@@ -10,11 +10,11 @@
       },
       "MassTransit": {
         "type": "Direct",
-        "requested": "[8.5.10, )",
-        "resolved": "8.5.10",
-        "contentHash": "TGi34UA8RftBIpYCHEdoIP5uSu2/pLWZRen4RUcg4CV1nr8MmCZMuFYjzvXXUyFcj0ZuRQxZZNhG7fB5/raSOg==",
+        "requested": "[9.2.0, )",
+        "resolved": "9.2.0",
+        "contentHash": "jPzXSKh1h+zSLHNoI2EadZuqml+pSk2B7pB4S7ylaCdLRqYlImBgZNyzkTNK1PGeP4/w0LGTjNY6q0r4rd+bzA==",
         "dependencies": {
-          "MassTransit.Abstractions": "8.5.10"
+          "MassTransit.Abstractions": "9.2.0"
         }
       },
       "Microsoft.EntityFrameworkCore.InMemory": {
@@ -127,8 +127,8 @@
       },
       "MassTransit.Abstractions": {
         "type": "Transitive",
-        "resolved": "8.5.10",
-        "contentHash": "nZnm2YNH+NcVwY6yC114sJy8J9LtKdFjfKUm/A5HfmzOlZ8ksjgHaPBg5XCG1VAqKDRDFnaudIcesVultKJD7g=="
+        "resolved": "9.2.0",
+        "contentHash": "9nMSgeU4sH/1P1MZFQiZ78K/DNk9l1iSCMJi+iH1JNFMuNkvr1xpSc5HkmbARK+dyFe6yUJkD8o16T+UoM+VyA=="
       },
       "MediatR.Contracts": {
         "type": "Transitive",
@@ -480,7 +480,7 @@
           "HRManagement.MessageContracts": "[1.0.0, )",
           "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
+          "MassTransit": "[9.2.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
@@ -540,7 +540,7 @@
           "HRManagement.MessageContracts": "[1.0.0, )",
           "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
+          "MassTransit": "[9.2.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
@@ -614,7 +614,7 @@
           "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
           "HRManagement.Web.Shared": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
+          "MassTransit": "[9.2.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )",
           "Swashbuckle.AspNetCore": "[10.2.3, )"
         }
@@ -634,7 +634,7 @@
           "HRManagement.MessageContracts": "[1.0.0, )",
           "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
+          "MassTransit": "[9.2.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
@@ -652,7 +652,7 @@
           "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
           "HRManagement.Web.Shared": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
+          "MassTransit": "[9.2.0, )",
           "QuestPDF": "[2026.2.4, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )",
           "SkiaSharp": "[3.119.0, )",
@@ -766,6 +766,7 @@
           "HRManagement.Integration.Abstractions": "[1.0.0, )",
           "HRManagement.MessageContracts": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
+          "MassTransit": "[9.2.0, )",
           "MassTransit.EntityFrameworkCore": "[8.5.10, )",
           "MassTransit.RabbitMQ": "[8.5.10, )",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.10, )",
@@ -838,7 +839,7 @@
           "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
           "IT.Infrastructure.Domain": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
+          "MassTransit": "[9.2.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
