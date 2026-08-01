@@ -1,0 +1,83 @@
+# One-shot migration Job — run BEFORE rolling out app Deployments.
+# Reuses DEP-001/DB-001 scripts (efbundle + advisory lock). Do NOT migrate from every replica.
+#
+# This Job used to echo instructions and `exit 0`, so it reported success without applying a
+# single migration: rollouts then started against a schema that had never been upgraded. It now
+# runs the bundles and fails the Job when any of them fails.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hr-migrate
+  labels:
+    app.kubernetes.io/name: hr-migrate
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hr-migrate
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 64198
+        runAsGroup: 64198
+        fsGroup: 64198
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          # Must be an image that carries the EF bundles under $EFBUNDLE_DIR.
+          image: ghcr.io/OWNER/hrmanagement/hr-migrate:IMAGE_TAG
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          command: ["/bin/bash", "-lc"]
+          args:
+            - |
+              set -euo pipefail
+
+              : "${EFBUNDLE_DIR:=/app/efbundles}"
+              export EFBUNDLE_DIR
+
+              if [ ! -d "${EFBUNDLE_DIR}" ]; then
+                echo "ERROR: EFBUNDLE_DIR '${EFBUNDLE_DIR}' not found in image." >&2
+                exit 1
+              fi
+
+              shopt -s nullglob
+              bundles=("${EFBUNDLE_DIR}"/*)
+              if [ ${#bundles[@]} -eq 0 ]; then
+                echo "ERROR: no EF bundles present in ${EFBUNDLE_DIR}; refusing to report success." >&2
+                exit 1
+              fi
+
+              echo "Applying ${#bundles[@]} migration bundle(s) from ${EFBUNDLE_DIR}"
+              bash /app/scripts/run-migrations.sh
+              echo "All migration bundles applied."
+          envFrom:
+            - secretRef:
+                name: hr-app-secrets
+                optional: true
+            - configMapRef:
+                name: hr-app-config
+                optional: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,17 @@
+@model IReadOnlyList<HR.Health.Domain.Entities.InsuranceContract>
+@{ ViewData["Title"] = "عقود التأمين الصحي"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">عقود التأمين</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">عقد جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>المزود</th><th>من</th><th>إلى</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model) { <tr><td>@x.Provider</td><td>@x.StartDate</td><td>@(x.EndDate?.ToString() ?? "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد عقود</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

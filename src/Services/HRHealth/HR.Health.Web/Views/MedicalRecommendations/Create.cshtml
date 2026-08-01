@@ -1,0 +1,19 @@
+@model HR.Health.Domain.Entities.MedicalRecommendation
+@{ ViewData["Title"] = "توصية طبية"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="mb-3"><label asp-for="RecommendationType" class="form-label"></label><select asp-for="RecommendationType" class="form-control" asp-items="Html.GetEnumSelectList<HR.Health.Domain.Enums.MedicalRecommendationType>()"></select></div>
+            <div class="mb-3"><label asp-for="Details" class="form-label"></label><textarea asp-for="Details" class="form-control" rows="3"></textarea></div>
+            <div class="mb-3"><label asp-for="IssuedAt" class="form-label"></label><input asp-for="IssuedAt" class="form-control" type="datetime-local" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ ونشر</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

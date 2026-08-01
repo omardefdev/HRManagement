@@ -1,0 +1,77 @@
+{
+  "card": "PRV-003",
+  "version": "1.0.0",
+  "description": "Data breach response workflow with statutory timelines and notification decision tree.",
+  "phases": [
+    {
+      "id": "detection-triage",
+      "name": "Detection & Triage",
+      "targetHours": 4,
+      "owner": "CSIRT",
+      "coOwner": "DPO",
+      "outputs": ["incidentId", "initialSeverity", "affectedSystems"]
+    },
+    {
+      "id": "scoping",
+      "name": "Scoping",
+      "targetHours": 24,
+      "owner": "CSIRT",
+      "outputs": ["affectedDataCategories", "affectedIndividualEstimate", "breachVector"]
+    },
+    {
+      "id": "risk-assessment",
+      "name": "Risk Assessment",
+      "targetHours": 48,
+      "owner": "DPO",
+      "coOwner": "Legal",
+      "outputs": ["riskLevel", "notifyDecision", "decisionReason"]
+    },
+    {
+      "id": "regulator-notification",
+      "name": "Regulator Notification",
+      "targetHours": 72,
+      "owner": "DPO",
+      "statutory": true,
+      "outputs": ["regulatorNoticeId", "regulatorAcknowledgment"]
+    },
+    {
+      "id": "individual-notification",
+      "name": "Individual Notification",
+      "targetDescription": "without undue delay after regulator notification",
+      "owner": "DPO",
+      "coOwner": "Communications",
+      "channels": ["email", "sms", "in-app", "postal"],
+      "outputs": ["notifiedCount", "deliveryReceipts"]
+    },
+    {
+      "id": "remediation",
+      "name": "Remediation",
+      "targetDescription": "per severity SLA",
+      "owner": "Engineering",
+      "coOwner": "Security",
+      "outputs": ["rootCause", "fixDeployed", "regressionTestPassed"]
+    },
+    {
+      "id": "post-incident-review",
+      "name": "Post-Incident Review",
+      "targetDays": 14,
+      "owner": "DPO",
+      "outputs": ["lessonsLearned", "actionItems", "policyUpdates"]
+    }
+  ],
+  "notifyDecisionTree": {
+    "highRisk": "notify-required",
+    "lowRisk": "notify-optional-dpo-decides",
+    "noNotifyRequires": ["dpoSignoff", "legalSignoff"],
+    "evidenceChain": "EVD-001"
+  },
+  "processorObligation": {
+    "notifyControllerMaxHours": 24,
+    "lateNotificationEscalation": "SRE-003"
+  },
+  "crossAgencyCoordination": {
+    "enabled": true,
+    "channelSecure": true,
+    "templateMultilingual": true
+  }
+}

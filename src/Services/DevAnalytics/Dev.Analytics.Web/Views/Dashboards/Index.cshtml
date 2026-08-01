@@ -1,0 +1,53 @@
+@model (IReadOnlyList<Dev.Analytics.Domain.Entities.Dashboard> Dashboards, IReadOnlyList<Dev.Analytics.Domain.Entities.KPI> Kpis, IReadOnlyList<Dev.Analytics.Domain.Entities.ETLJob> Jobs)
+@{ ViewData["Title"] = "لوحات ومؤشرات"; }
+<p><a asp-action="Create" class="btn btn-primary btn-sm">لوحة جديدة</a></p>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">لوحات</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var d in Model.Dashboards)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">@d.Name <a asp-action="Details" asp-route-id="@d.Id" class="btn btn-sm btn-info">تفاصيل</a></li>
+                }
+                @if (!Model.Dashboards.Any())
+                {
+                    <li class="list-group-item text-muted">لا لوحات بعد</li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">مؤشرات (KPI)</div>
+            <ul class="list-group list-group-flush small">
+                @foreach (var k in Model.Kpis)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center"><span>@k.Code — @k.Name</span><a asp-controller="Kpis" asp-action="Details" asp-route-id="@k.Id" class="btn btn-sm btn-info">تفاصيل</a></li>
+                }
+                @if (!Model.Kpis.Any())
+                {
+                    <li class="list-group-item text-muted">لا مؤشرات</li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">وظائف ETL الأخيرة</div>
+            <ul class="list-group list-group-flush small">
+                @foreach (var j in Model.Jobs)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center"><span>@j.Name <span class="text-muted">(@j.Status)</span></span><a asp-controller="EtlJobs" asp-action="Details" asp-route-id="@j.Id" class="btn btn-sm btn-info">تفاصيل</a></li>
+                }
+                @if (!Model.Jobs.Any())
+                {
+                    <li class="list-group-item text-muted">لا وظائف</li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+<p><a asp-controller="Reports" asp-action="Index">التقارير</a></p>

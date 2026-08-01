@@ -1,0 +1,68 @@
+@model LegalCase
+@{ ViewData["Title"] = "تفاصيل القضية"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@Model.Subject</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">رقم القضية</dt>
+            <dd class="col-sm-9">@Model.CaseNumber</dd>
+            <dt class="col-sm-3">الموضوع</dt>
+            <dd class="col-sm-9">@Model.Subject</dd>
+            <dt class="col-sm-3">الأطراف</dt>
+            <dd class="col-sm-9">@(Model.Parties ?? "—")</dd>
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9"><span class="badge text-bg-info">@Model.Status</span></dd>
+            <dt class="col-sm-3">تفاصيل المحكمة</dt>
+            <dd class="col-sm-9">@(Model.CourtDetails ?? "—")</dd>
+            <dt class="col-sm-3">مسند إلى</dt>
+            <dd class="col-sm-9">@(Model.AssignedTo?.ToString() ?? "غير مسند")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">إسناد</h5></div>
+            <div class="card-body">
+                <form asp-action="Assign" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <input name="assignedTo" class="form-control mb-2" placeholder="معرّف المستخدم " />
+                    <button type="submit" class="btn btn-outline-primary btn-sm">إسناد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">تحديث الحالة</h5></div>
+            <div class="card-body">
+                <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <select name="status" asp-items="Html.GetEnumSelectList<CaseStatus>()" class="form-control mb-2"></select>
+                    <button type="submit" class="btn btn-outline-info btn-sm">تحديث</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        @if (Model.Status != CaseStatus.Closed)
+        {
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">إغلاق</h5></div>
+                <div class="card-body">
+                    <form asp-action="Close" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger btn-sm">إغلاق القضية</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3">العودة</a>

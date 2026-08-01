@@ -1,0 +1,50 @@
+@{ ViewData["Title"] = "لوحة تحكم العقود"; }
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner"><h3>@ViewBag.ActiveContracts</h3><p>عقود فعالة</p></div>
+            <div class="icon"><i class="fas fa-file-contract"></i></div>
+            <a asp-controller="Contracts" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner"><h3>@ViewBag.PendingLeaves</h3><p>طلبات إجازة معلقة</p></div>
+            <div class="icon"><i class="fas fa-calendar-minus"></i></div>
+            <a asp-controller="LeaveRequests" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner"><h3>@ViewBag.PendingAdvances</h3><p>طلبات سلف معلقة</p></div>
+            <div class="icon"><i class="fas fa-hand-holding-usd"></i></div>
+            <a asp-controller="AdvanceRequests" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner"><h3>@ViewBag.SeparationRecords</h3><p>سجلات فصل</p></div>
+            <div class="icon"><i class="fas fa-user-minus"></i></div>
+            <a asp-controller="SeparationRecords" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie me-2"></i>طلبات الإجازة حسب النوع</h3></div>
+    <div class="card-body"><div style="max-width:400px;margin:auto;"><canvas id="leaveChart"></canvas></div></div>
+</div>
+@section Scripts {
+<script>
+    new Chart(document.getElementById('leaveChart'), {
+        type: 'doughnut',
+        data: {
+            labels: @Html.Raw(ViewBag.LeaveLabels),
+            datasets: [{
+                data: @Html.Raw(ViewBag.LeaveData),
+                backgroundColor: ['#17a2b8','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+</script>
+}

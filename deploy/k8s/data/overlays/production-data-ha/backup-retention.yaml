@@ -1,0 +1,14 @@
+# OPS-003 production notes: retention + Object Lock
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-retention-notes
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: backup
+data:
+  README: |
+    Retention tiers (OPS-003): hot 7d / warm 30d / cold 90d.
+    CNPG Cluster.backup.retentionPolicy=30d (warm).
+    Enable S3 Object Lock (WORM) on bucket hrm-backups for production immutability.
+    Separate keys: cnpg-backup-store + backup-encryption ≠ hr-app-secrets.

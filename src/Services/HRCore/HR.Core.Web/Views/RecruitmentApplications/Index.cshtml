@@ -1,0 +1,201 @@
+@model HR.Core.Web.ViewModels.RecruitmentApplicationsIndexViewModel
+
+
+
+@using HR.Core.Domain.Enums
+
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+
+
+@{ ViewData["Title"] = "التوظيف والاستقطاب"; var gateway = (Configuration["HrGateway:PublicBaseUrl"] ?? "http://localhost:5000").TrimEnd('/'); }
+
+
+
+<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلبات التوظيف</h3><button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRecruitmentModal">طلب جديد</button></div>
+
+
+
+<div class="card-body p-0"><table class="table mb-0 align-middle"><thead><tr><th>المتقدم</th><th>الوظيفة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>
+
+
+
+@foreach (var x in Model.Applications){
+
+
+
+<tr>
+
+
+
+<td>@x.ApplicantFullName</td>
+
+
+
+<td>@x.AppliedPosition</td>
+
+
+
+<td>@x.Status</td>
+
+
+
+<td>
+
+
+
+@if (x.Status != RecruitmentApplicationStatus.Hired){
+
+
+
+<div class="d-flex flex-wrap gap-1 align-items-center">
+
+
+
+@if (x.Status == RecruitmentApplicationStatus.Shortlisted){
+
+
+
+<a asp-action="Hire" asp-route-id="@x.Id" class="btn btn-sm btn-success">تعيين</a>
+
+
+
+}
+
+
+
+<form asp-action="SetStatus" method="post" class="d-inline">@Html.AntiForgeryToken()
+
+
+
+<input type="hidden" name="id" value="@x.Id" />
+
+
+
+<input type="hidden" name="status" value="@((int)RecruitmentApplicationStatus.UnderReview)" />
+
+
+
+<button type="submit" class="btn btn-sm btn-outline-secondary">مراجعة</button>
+
+
+
+</form>
+
+
+
+<form asp-action="SetStatus" method="post" class="d-inline">@Html.AntiForgeryToken()
+
+
+
+<input type="hidden" name="id" value="@x.Id" />
+
+
+
+<input type="hidden" name="status" value="@((int)RecruitmentApplicationStatus.Shortlisted)" />
+
+
+
+<button type="submit" class="btn btn-sm btn-outline-primary">مختصر</button>
+
+
+
+</form>
+
+
+
+<form asp-action="SetStatus" method="post" class="d-inline">@Html.AntiForgeryToken()
+
+
+
+<input type="hidden" name="id" value="@x.Id" />
+
+
+
+<input type="hidden" name="status" value="@((int)RecruitmentApplicationStatus.Rejected)" />
+
+
+
+<button type="submit" class="btn btn-sm btn-outline-danger">رفض</button>
+
+
+
+</form>
+
+
+
+</div>
+
+
+
+} else {
+
+
+
+<div class="d-flex flex-wrap gap-1 align-items-center">
+
+
+
+<span class="text-muted">@(x.HiredEmployee != null ? x.HiredEmployee.FullName : "—")</span>
+
+
+
+@if (x.HiredEmployeeId.HasValue){
+
+
+
+<a href="@($"{gateway}/ui/hr-contracts/HireWizard/Continue?employeeId={x.HiredEmployeeId}")" class="btn btn-sm btn-outline-primary">متابعة المعالج</a>
+
+
+
+}
+
+
+
+</div>
+
+
+
+}
+
+
+
+</td>
+
+
+
+</tr>}
+
+
+
+@if(!Model.Applications.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد طلبات</td></tr>}</tbody></table></div></div>
+
+
+
+@await Html.PartialAsync("_CreateModal", Model.CreateModel)
+
+
+
+@section Scripts {
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            if (@Json.Serialize(Model.ShowCreateModal)) {
+
+                bootstrap.Modal.getOrCreateInstance(
+
+                    document.getElementById('createRecruitmentModal')).show();
+
+            }
+
+        });
+
+    </script>
+
+}
+
+

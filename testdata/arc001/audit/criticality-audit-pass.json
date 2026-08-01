@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"componentId":"gateway","tier":"0","dependencyRef":"postgres","failureDomainRef":"app-plane","sloRef":"slo-gateway","telemetryRef":"otel-gateway","recoveryStepRef":"step-2","actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/arc001","outcome":"pass","spofExceptionRef":"none"}]}

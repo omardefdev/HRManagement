@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-INDEPENDENT-MEASURE",
+  "expectedValidate": "PASS",
+  "kpiId": "data_error_duplicate_rate",
+  "ownerRole": "data",
+  "assessorRole": "audit",
+  "method": "sample-extract-vs-formula",
+  "formulaRef": "openDqCases / activeEmployees * 1000"
+}

@@ -1,0 +1,19 @@
+﻿{
+    "card":  "INT-004",
+    "ok":  true,
+    "failureCount":  0,
+    "failures":  [
+
+                 ],
+    "connectors":  [
+                       "treasury",
+                       "civil-registry",
+                       "federation"
+                   ],
+    "modes":  [
+                  "File",
+                  "Stub",
+                  "Sandbox",
+                  "Live"
+              ]
+}

@@ -1,0 +1,30 @@
+@model IReadOnlyList<IT.Infrastructure.Domain.Entities.BackupJob>
+@{ ViewData["Title"] = "نسخ احتياطي"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">مهام النسخ الاحتياطي</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">إضافة</a>
+    </div>
+    <div class="card-body border-bottom bg-light small">
+        <strong>تشغيل فعلي:</strong> هذا الشاشة تسجّل metadata فقط. نفّذ <code>pg_dump</code> خارجياً حسب الجدول في <code>Schedule</code> —
+        راجع دليل التشغيل في مستودع الوثائق: <code>docs/BACKUP_POSTGRES.md</code> (Cron / Task Scheduler / CronJob).
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الهدف</th><th>الجدول</th><th>آخر تشغيل</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Target</td>
+                        <td>@x.Schedule</td>
+                        <td>@x.LastRunAt</td>
+                        <td>@x.Status</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مهام</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

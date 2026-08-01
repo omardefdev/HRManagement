@@ -1,0 +1,74 @@
+{
+  "card": "MOB-001",
+  "version": "2026.07.31.1",
+  "asOfDate": "2026-07-31",
+  "pwaDecision": {
+    "strategy": "mobile-first-pwa",
+    "installable": true,
+    "offlineScope": "field_cases_after_threat_model"
+  },
+  "networkProfiles": [
+    {
+      "id": "3g-slow",
+      "downlinkKbps": 400,
+      "latencyMs": 400,
+      "packetLossPercent": 2
+    },
+    {
+      "id": "intermittent",
+      "downlinkKbps": 150,
+      "latencyMs": 800,
+      "disconnectEverySeconds": 30
+    }
+  ],
+  "performanceBudgets": {
+    "firstContentfulPaintMs": 2500,
+    "largestContentfulPaintMs": 4000,
+    "timeToInteractiveMs": 5000,
+    "totalBlockingTimeMs": 300,
+    "cumulativeLayoutShift": 0.1,
+    "initialJsKb": 250,
+    "initialCssKb": 50
+  },
+  "resumableUpload": {
+    "enabled": true,
+    "chunkSizeKb": 256,
+    "maxRetries": 5,
+    "idempotencyKeyRequired": true
+  },
+  "drafts": {
+    "enabled": true,
+    "encryptedAtRest": true,
+    "maxDraftAgeDays": 14
+  },
+  "retryPolicy": {
+    "safeRetryEnabled": true,
+    "idempotencyKeyHeader": "X-Idempotency-Key",
+    "forbidDoubleSubmit": true,
+    "exponentialBackoffMs": [500, 1000, 2000, 4000]
+  },
+  "secureCache": {
+    "piiInCacheForbidden": true,
+    "tokenInCacheForbidden": true,
+    "serviceWorkerCacheMaxAgeHours": 24,
+    "remoteLogoutClearsCache": true,
+    "revocationCheckOnResume": true
+  },
+  "offlineFieldCases": {
+    "enabledAfterThreatModel": true,
+    "threatModelRef": "SEC-003",
+    "conflictResolution": "server_wins_with_review_queue",
+    "deviceLossRemoteWipeRequired": true
+  },
+  "touchUx": {
+    "minTapTargetPx": 44,
+    "accessibleFocusVisible": true,
+    "wcagLevel": "2.2-AA"
+  },
+  "criticalJourneys": [
+    "leave_request",
+    "payslip_view",
+    "attendance_check_in",
+    "document_upload"
+  ]
+}

@@ -1,0 +1,59 @@
+@model HR.Core.Web.ViewModels.QualificationCreateViewModel
+@{
+    ViewData["Title"] = "إضافة مؤهل";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-plus-circle"></i> إضافة مؤهل — @Model.EmployeeName</h3>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="EmployeeId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="Title" class="form-label"></label>
+                        <input asp-for="Title" class="form-control" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="QualificationCode" class="form-label"></label>
+                        <input asp-for="QualificationCode" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="Provider" class="form-label"></label>
+                        <input asp-for="Provider" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="CompletionDate" class="form-label"></label>
+                        <input asp-for="CompletionDate" class="form-control" type="date" />
+                    </div>
+                </div>
+            </div>
+            @{
+                ViewData["FileUploadName"] = "FileId";
+                ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                ViewData["FileUploadMaxSize"] = "26214400";
+                ViewData["FileUploadLabel"] = "ملف الشهادة";
+            }
+            @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

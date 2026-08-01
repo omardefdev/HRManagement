@@ -1,0 +1,13 @@
+{
+  "resourceSpans": [{
+    "scopeSpans": [{
+      "spans": [{
+        "name": "bad-fixture",
+        "attributes": [
+          { "key": "NationalId", "value": { "stringValue": "12345678901" } },
+          { "key": "password", "value": { "stringValue": "super-secret" } }
+        ]
+      }]
+    }]
+  }]
+}

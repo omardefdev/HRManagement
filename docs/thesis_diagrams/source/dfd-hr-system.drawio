@@ -1,0 +1,1272 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="Electron" agent="Codex regenerated" pages="10">
+  <diagram name="Level 0 - Context Diagram" id="dfd-page-1">
+    <mxGraphModel dx="6280" dy="2917" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 0 - مخطط السياق لمنظومة الموارد البشرية" vertex="1">
+          <mxGeometry height="50" width="1800" x="300" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="0 نظام شعبة التنظيم والموارد البشرية استقبال البيانات، معالجتها، اعتمادها، إصدار المخرجات، والأرشفة" vertex="1">
+          <mxGeometry height="230" width="540" x="930" y="575" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة الطالبة" vertex="1">
+          <mxGeometry height="70" width="250" x="80" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهة التوظيف والاستقطاب" vertex="1">
+          <mxGeometry height="70" width="250" x="80" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="إدارة الصحة المهنية" vertex="1">
+          <mxGeometry height="70" width="250" x="80" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="اللجان الطبية" vertex="1">
+          <mxGeometry height="70" width="250" x="80" y="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="70" width="250" x="1080" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="المالية" vertex="1">
+          <mxGeometry height="70" width="250" x="2110" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهات التدريب والجهات الأكاديمية" vertex="1">
+          <mxGeometry height="70" width="250" x="2040" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="وزارة التعليم العالي" vertex="1">
+          <mxGeometry height="70" width="250" x="2070" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="وزارة الخارجية" vertex="1">
+          <mxGeometry height="70" width="250" x="2070" y="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الجهات المخولة بطلب الوثائق" vertex="1">
+          <mxGeometry height="70" width="250" x="1010" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-31" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="1420" y="1340" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-32" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="1610" y="1340" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-33" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="1840" y="1340" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-14" edge="1" parent="1" source="dfd-4" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=0.004;entryY=0.133;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-3" value="طلبات خدمة / نقل / إجازة / شكوى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-15" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.064;exitY=0.005;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-4" value="قرارات وإشعارات ووثائق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-16" edge="1" parent="1" source="dfd-5" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.508;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-3" value="بيانات مرشح / بيانات تعيين">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-17" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" target="dfd-5" value="نتيجة قبول أو استكمال بيانات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-18" edge="1" parent="1" source="dfd-6" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-3" value="تقارير فحص طبي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-19" edge="1" parent="1" source="dfd-7" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-3" value="قرارات وتقارير لجان طبية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-20" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=1;entryY=0.75;entryDx=0;entryDy=0;exitX=0.007;exitY=0.879;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-6" value="طلبات فحص / تحديث صحي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-21" edge="1" parent="1" source="dfd-8" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.394;entryY=0.007;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-3" value="اعتمادات وتوجيهات">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1110" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd-22" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=0.75;entryY=1;entryDx=0;entryDy=0;exitX=0.622;exitY=0.003;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-8" value="تقارير وإحصاءات وتوصيات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-23" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-9" value="أوامر صرف / قوائم جاهزة للصرف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-24" edge="1" parent="1" source="dfd-9" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0.981;entryY=0.065;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-3" value="نتائج دفع / ملاحظات مالية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-25" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=1.002;exitY=0.619;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-10" value="قوائم مرشحين / طلبات تدريب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-26" edge="1" parent="1" source="dfd-10" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" target="dfd-3" value="نتائج تدريب / شهادات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-27" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="dfd-11" value="ملفات بعثات واعتمادات تعليمية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-28" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.974;exitY=0.954;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-12" value="ملفات بعثات خارجية وتنسيق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-29" edge="1" parent="1" source="dfd-13" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=0.309;entryY=1.006;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.353;exitY=-0.014;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-3" value="طلب وثيقة / استعلام مخول">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-30" edge="1" parent="1" source="dfd-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.532;exitY=1.002;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.819;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-13" value="وثيقة سيرة / نتيجة تحقق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-34" edge="1" parent="1" source="dfd-31" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-32" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 1 - Main DFD" id="dfd-page-35">
+    <mxGraphModel dx="6280" dy="2917" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-36" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 1 - العمليات الرئيسية ومخازن البيانات" vertex="1">
+          <mxGeometry height="55" width="2100" x="450" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-37" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة الطالبة" vertex="1">
+          <mxGeometry height="70" width="230" x="1990" y="1535" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-38" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهة التوظيف" vertex="1">
+          <mxGeometry height="70" width="230" x="125" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-39" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الصحة المهنية / اللجان الطبية" vertex="1">
+          <mxGeometry height="70" width="230" x="500" y="1535" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-40" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="70" width="230" x="125" y="674" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-41" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="المالية" vertex="1">
+          <mxGeometry height="70" width="230" x="2685" y="1344" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-42" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهات التدريب والوزارات" vertex="1">
+          <mxGeometry height="70" width="230" x="1990" y="354" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-43" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهات طلب الوثائق" vertex="1">
+          <mxGeometry height="70" width="230" x="125" y="494" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-44" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1 إدارة الخدمة والعقود" vertex="1">
+          <mxGeometry height="90" width="250" x="1260" y="966" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-45" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P2 إدارة الملفات الشخصية والصحية" vertex="1">
+          <mxGeometry height="90" width="250" x="490" y="1314" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-46" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P3 إدارة التنقلات والتوزيع" vertex="1">
+          <mxGeometry height="90" width="250" x="1980" y="1314" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-47" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P4 إدارة التدريب والتأهيل" vertex="1">
+          <mxGeometry height="90" width="250" x="1980" y="614" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-48" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5 إدارة السيرة الوظيفية" vertex="1">
+          <mxGeometry height="90" width="250" x="1260" y="614" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-49" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6 إدارة الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="90" width="250" x="1980" y="984" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-50" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P7 إدارة الأرشفة" vertex="1">
+          <mxGeometry height="90" width="250" x="2445" y="1464" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-51" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P8 إدارة الهويات والوثائق" vertex="1">
+          <mxGeometry height="90" width="250" x="880" y="1324" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-52" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P9 الرقابة والشكاوى" vertex="1">
+          <mxGeometry height="90" width="250" x="2445" y="984" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-53" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P10 التخطيط والإحصاء" vertex="1">
+          <mxGeometry height="90" width="250" x="1620" y="1314" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-54" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P11 التنظيم والتجهيز" vertex="1">
+          <mxGeometry height="90" width="250" x="2435" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-55" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P12 تقنية المعلومات والتطوير" vertex="1">
+          <mxGeometry height="90" width="250" x="1260" y="1314" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-56" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D1 قاعدة بيانات الموظفين" vertex="1">
+          <mxGeometry height="52" width="300" x="80" y="1104" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-57" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="52" width="300" x="90" y="1204" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-58" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D3 الملفات الشخصية" vertex="1">
+          <mxGeometry height="52" width="300" x="90" y="1504" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-59" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D4 الملفات الصحية" vertex="1">
+          <mxGeometry height="52" width="300" x="90" y="1324" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-60" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="52" width="300" x="1230" y="394" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-61" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="140" x="2260" y="1262" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-62" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D7 التنقلات والتوزيع" vertex="1">
+          <mxGeometry height="52" width="150" x="2260" y="1504" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-63" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D8 التدريب والبعثات" vertex="1">
+          <mxGeometry height="52" width="300" x="1675" y="394" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-64" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D9 الهويات والوثائق" vertex="1">
+          <mxGeometry height="52" width="300" x="855" y="1504" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-65" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D10 الشكاوى والرقابة" vertex="1">
+          <mxGeometry height="52" width="150" x="2710" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-66" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="2420" y="1694" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-67" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D12 الصلاحيات والمستخدمين" vertex="1">
+          <mxGeometry height="52" width="300" x="1235" y="1504" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-108" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="2310" y="2000" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-109" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="2500" y="2000" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-110" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="2730" y="2000" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-68" edge="1" parent="1" source="aqhLfUtPFBljAKtuH0i2-2" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="dfd-44" value="طلبات خدمة وإجازات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-69" edge="1" parent="1" source="dfd-37" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-46" value="طلب نقل / توزيع">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-70" edge="1" parent="1" source="aqhLfUtPFBljAKtuH0i2-3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.981;entryY=0.94;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-52" value="شكوى أو تظلم">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-71" edge="1" parent="1" source="dfd-38" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-44" value="بيانات مرشح / تعيين">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-72" edge="1" parent="1" source="dfd-39" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-45" value="تقرير طبي / قرار لجنة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-73" edge="1" parent="1" source="dfd-40" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-48" value="اعتماد السيرة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-74" edge="1" parent="1" source="dfd-53" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="aqhLfUtPFBljAKtuH0i2-5" value="تقارير وإحصاءات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-75" edge="1" parent="1" source="aqhLfUtPFBljAKtuH0i2-4" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="dfd-54" value="قرارات هيكل وتجهيز">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-76" edge="1" parent="1" source="dfd-49" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=1.001;exitY=0.436;exitDx=0;exitDy=0;exitPerimeter=0;" target="dfd-41" value="قائمة صرف / أمر دفع">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-77" edge="1" parent="1" source="dfd-41" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" target="dfd-49" value="نتائج صرف / فروقات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-78" edge="1" parent="1" source="dfd-47" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.339;exitY=-0.015;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.322;entryY=1.026;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-42" value="قوائم مرشحين">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-79" edge="1" parent="1" source="dfd-42" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.669;exitY=1.034;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.65;entryY=0.038;entryDx=0;entryDy=0;entryPerimeter=0;" target="dfd-47" value="نتائج وشهادات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-80" edge="1" parent="1" source="dfd-43" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-48" value="طلب وثيقة سيرة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-81" edge="1" parent="1" source="dfd-48" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.015;exitY=0.103;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;exitPerimeter=0;" target="dfd-43" value="وثيقة سيرة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-82" edge="1" parent="1" source="dfd-44" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-56" value="بيانات موظف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-83" edge="1" parent="1" source="dfd-44" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-57" value="عقد / حالة خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-84" edge="1" parent="1" source="dfd-45" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-58" value="ملف شخصي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-85" edge="1" parent="1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-59" value="ملف صحي">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="1354" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd-86" edge="1" parent="1" source="dfd-46" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-62" value="قرار نقل / توزيع">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-87" edge="1" parent="1" source="dfd-47" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0;exitY=0;exitDx=0;exitDy=0;" target="dfd-63" value="خطة ونتائج تدريب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-88" edge="1" parent="1" source="dfd-48" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-60" value="سيرة وظيفية معتمدة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-89" edge="1" parent="1" source="dfd-49" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-61" value="راتب / تعويض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-90" edge="1" parent="1" source="dfd-50" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-66" value="وثائق مؤرشفة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-91" edge="1" parent="1" source="dfd-51" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-64" value="بطاقات ووثائق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-92" edge="1" parent="1" source="dfd-52" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-65" value="شكوى / تقرير رقابي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-93" edge="1" parent="1" source="dfd-55" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-67" value="صلاحيات ومستخدمون">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-94" edge="1" parent="1" source="dfd-44" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-49" value="أثر مالي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-95" edge="1" parent="1" source="dfd-44" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-51" value="طلب هوية / تحديث بطاقة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-96" edge="1" parent="1" source="dfd-44" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-48" value="تحديث خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-97" edge="1" parent="1" source="dfd-45" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-44" value="أثر صحي وظيفي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-98" edge="1" parent="1" source="dfd-45" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-51" value="بيانات تأمين صحي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-99" edge="1" parent="1" source="dfd-46" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-44" value="قرار نقل معتمد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-100" edge="1" parent="1" source="dfd-46" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-49" value="أثر نقل مالي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-101" edge="1" parent="1" source="dfd-47" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-48" value="نتيجة دورة / شهادة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-102" edge="1" parent="1" source="dfd-47" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-49" value="أثر بعثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-103" edge="1" parent="1" source="dfd-52" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-54" value="توصيات رقابية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-104" edge="1" parent="1" source="dfd-53" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-46" value="بيانات عجز وفائض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-105" edge="1" parent="1" source="dfd-54" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-47" value="توصيف وظيفي / كود تأهيل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-106" edge="1" parent="1" source="dfd-55" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-44" value="نماذج وصلاحيات نظام">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-107" edge="1" parent="1" source="dfd-55" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-53" value="بيانات BI">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-111" edge="1" parent="1" source="dfd-108" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-109" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="aqhLfUtPFBljAKtuH0i2-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة الطالبة" vertex="1">
+          <mxGeometry height="70" width="230" x="125" y="844" as="geometry" />
+        </mxCell>
+        <mxCell id="aqhLfUtPFBljAKtuH0i2-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة الطالبة" vertex="1">
+          <mxGeometry height="70" width="230" x="2685" y="1169" as="geometry" />
+        </mxCell>
+        <mxCell id="aqhLfUtPFBljAKtuH0i2-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="70" width="230" x="2445" y="354" as="geometry" />
+        </mxCell>
+        <mxCell id="aqhLfUtPFBljAKtuH0i2-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="70" width="230" x="1630" y="1535" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - موظف جديد" id="dfd-page-112">
+    <mxGraphModel dx="3425" dy="1591" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-113" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - معاملة موظف جديد" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-114" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهة التوظيف والاستقطاب" vertex="1">
+          <mxGeometry height="65" width="230" x="145" y="616" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-115" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="65" width="230" x="2225" y="806" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-116" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف" vertex="1">
+          <mxGeometry height="65" width="230" x="2225" y="622.5" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-117" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D1 قاعدة بيانات الموظفين" vertex="1">
+          <mxGeometry height="52" width="300" x="1320" y="466" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-118" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="52" width="300" x="935" y="441" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-119" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D3 الملفات الشخصية" vertex="1">
+          <mxGeometry height="52" width="300" x="1700" y="456" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-120" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="52" width="300" x="1320" y="1206" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-121" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="415" y="989" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-122" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D9 الهويات والوثائق" vertex="1">
+          <mxGeometry height="52" width="300" x="2115" y="466" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-123" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="2115" y="989" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-124" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.1 استلام بيانات المرشح" vertex="1">
+          <mxGeometry height="78" width="250" x="585" y="616" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-125" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.2 تصنيف الحالة وإعداد العقد" vertex="1">
+          <mxGeometry height="78" width="250" x="965" y="616" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-126" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P2.1 فتح الملف الشخصي" vertex="1">
+          <mxGeometry height="78" width="250" x="1345" y="616" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-127" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P8.1 إصدار الهوية" vertex="1">
+          <mxGeometry height="78" width="250" x="1725" y="616" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-128" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.1 ربط ملف راتب" vertex="1">
+          <mxGeometry height="78" width="250" x="965" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-129" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5.1 اعتماد السيرة الوظيفية" vertex="1">
+          <mxGeometry height="78" width="250" x="1345" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-130" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P7.1 أرشفة ملف التعيين" vertex="1">
+          <mxGeometry height="78" width="250" x="1725" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-147" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-148" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-149" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-131" edge="1" parent="1" source="dfd-114" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-124" value="بيانات مرشح / قرار قبول">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-132" edge="1" parent="1" source="dfd-124" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-125" value="بيانات تعيين مصنفة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-133" edge="1" parent="1" source="dfd-125" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-118" value="عقد موقع / حالة خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-134" edge="1" parent="1" source="dfd-125" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-126" value="بيانات شخصية أساسية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-135" edge="1" parent="1" source="dfd-126" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-119" value="ملف شخصي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-136" edge="1" parent="1" source="dfd-126" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-117" value="بيانات موظف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-137" edge="1" parent="1" source="dfd-126" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-127" value="بيانات هوية معتمدة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-138" edge="1" parent="1" source="dfd-127" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-122" value="بطاقة هوية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-139" edge="1" parent="1" source="dfd-127" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-116" value="بطاقة / إشعار تسليم">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-140" edge="1" parent="1" source="dfd-125" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-128" value="أثر مالي للتعيين">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-141" edge="1" parent="1" source="dfd-128" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-121" value="ملف راتب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-142" edge="1" parent="1" source="dfd-126" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-129" value="بيانات مكتملة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-143" edge="1" parent="1" source="dfd-115" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-129" value="اعتماد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-144" edge="1" parent="1" source="dfd-129" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-120" value="سيرة وظيفية أولية معتمدة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-145" edge="1" parent="1" source="dfd-129" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-130" value="ملف مكتمل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-146" edge="1" parent="1" source="dfd-130" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-123" value="وثائق تعيين مؤرشفة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-150" edge="1" parent="1" source="dfd-147" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-148" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - نقل موظف" id="dfd-page-151">
+    <mxGraphModel dx="4187" dy="1944" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-152" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - معاملة نقل موظف" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-153" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة الطالبة" vertex="1">
+          <mxGeometry height="65" width="230" x="60" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-154" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="65" width="230" x="2130" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-155" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D1 قاعدة بيانات الموظفين" vertex="1">
+          <mxGeometry height="52" width="300" x="845" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-156" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="52" width="300" x="845" y="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-157" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="52" width="300" x="1545" y="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-158" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="380" y="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-159" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D7 التنقلات والتوزيع" vertex="1">
+          <mxGeometry height="52" width="300" x="750" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-160" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="230" x="2300" y="873" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-161" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P3.1 استلام طلب النقل" vertex="1">
+          <mxGeometry height="78" width="250" x="405" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-162" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P10.1 تحليل العجز والفائض" vertex="1">
+          <mxGeometry height="78" width="250" x="870" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-163" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P3.2 إعداد مشروع النقل" vertex="1">
+          <mxGeometry height="78" width="250" x="1220" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-164" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P3.3 اعتماد النقل" vertex="1">
+          <mxGeometry height="78" width="250" x="1570" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-165" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.1 تحديث الخدمة" vertex="1">
+          <mxGeometry height="78" width="250" x="870" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-166" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.1 تحديث الراتب" vertex="1">
+          <mxGeometry height="78" width="250" x="405" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-167" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5.1 تحديث السيرة" vertex="1">
+          <mxGeometry height="78" width="250" x="1570" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-168" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P7.1 أرشفة قرار النقل" vertex="1">
+          <mxGeometry height="78" width="250" x="1920" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-185" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-186" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-187" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-169" edge="1" parent="1" source="dfd-153" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-161" value="طلب نقل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-170" edge="1" parent="1" source="dfd-161" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-159" value="طلب نقل مسجل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-171" edge="1" parent="1" source="dfd-161" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-162" value="بيانات الموظف والموقع">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-172" edge="1" parent="1" source="dfd-155" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-162" value="بيانات موظف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-173" edge="1" parent="1" source="dfd-162" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-163" value="توصية عجز/فائض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-174" edge="1" parent="1" source="dfd-163" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-159" value="مشروع نقل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-175" edge="1" parent="1" source="dfd-163" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-164" value="مشروع للاعتماد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-176" edge="1" parent="1" source="dfd-154" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-164" value="اعتماد / رفض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-177" edge="1" parent="1" source="dfd-164" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-165" value="قرار نقل معتمد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-178" edge="1" parent="1" source="dfd-165" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-156" value="تحديث خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-179" edge="1" parent="1" source="dfd-165" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-166" value="أثر مالي محتمل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-180" edge="1" parent="1" source="dfd-166" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-158" value="راتب محدث">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-181" edge="1" parent="1" source="dfd-165" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-167" value="بيانات نقل نهائية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-182" edge="1" parent="1" source="dfd-167" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-157" value="سيرة محدثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-183" edge="1" parent="1" source="dfd-167" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-168" value="قرار ووثائق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-184" edge="1" parent="1" source="dfd-168" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-160" value="أرشفة قرار النقل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-188" edge="1" parent="1" source="dfd-185" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-186" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - ملف طبي" id="dfd-page-189">
+    <mxGraphModel dx="3768" dy="1750" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-190" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - معاملة ملف طبي" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-191" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="إدارة الصحة المهنية" vertex="1">
+          <mxGeometry height="65" width="230" x="300" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-192" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="اللجان الطبية" vertex="1">
+          <mxGeometry height="65" width="230" x="300" y="805" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-193" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="القانونية عند الحاجة" vertex="1">
+          <mxGeometry height="65" width="230" x="1510" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-194" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D4 الملفات الصحية" vertex="1">
+          <mxGeometry height="52" width="300" x="1095" y="415" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-195" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="52" width="300" x="1900" y="415" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-196" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="1095" y="1195" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-197" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="52" width="300" x="1475" y="1195" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-198" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="1855" y="1195" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-199" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P2.1 استلام تقرير طبي" vertex="1">
+          <mxGeometry height="78" width="250" x="740" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-200" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P2.2 تحديث الملف الصحي" vertex="1">
+          <mxGeometry height="78" width="250" x="1120" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-201" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P2.3 تحويل القرار إلى أثر وظيفي" vertex="1">
+          <mxGeometry height="78" width="250" x="1500" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-202" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.1 تحديث حالة الخدمة" vertex="1">
+          <mxGeometry height="78" width="250" x="1930" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-203" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.1 تعويض / أثر مالي" vertex="1">
+          <mxGeometry height="78" width="250" x="1120" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-204" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5.1 تحديث السيرة" vertex="1">
+          <mxGeometry height="78" width="250" x="1500" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-205" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P7.1 أرشفة الملف الطبي" vertex="1">
+          <mxGeometry height="78" width="250" x="1880" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-220" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-221" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-222" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-206" edge="1" parent="1" source="dfd-191" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-199" value="تقرير فحص طبي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-207" edge="1" parent="1" source="dfd-192" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-199" value="قرار لجنة طبية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-208" edge="1" parent="1" source="dfd-199" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-200" value="بيانات صحية معتمدة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-209" edge="1" parent="1" source="dfd-200" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-194" value="تحديث ملف صحي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-210" edge="1" parent="1" source="dfd-200" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-201" value="قرار صحي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-211" edge="1" parent="1" source="dfd-201" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-202" value="أثر وظيفي: مهام/إنهاء/تعويض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-212" edge="1" parent="1" source="dfd-202" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-195" value="تحديث حالة خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-213" edge="1" parent="1" source="dfd-201" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-203" value="أثر مالي / تعويض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-214" edge="1" parent="1" source="dfd-203" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-196" value="تعويض أو إيقاف راتب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-215" edge="1" parent="1" source="dfd-202" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-204" value="تحديث وظيفي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-216" edge="1" parent="1" source="dfd-204" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-197" value="سيرة محدثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-217" edge="1" parent="1" source="dfd-201" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-193" value="ملف قانوني عند النزاع">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-218" edge="1" parent="1" source="dfd-204" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-205" value="وثائق طبية ووظيفية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-219" edge="1" parent="1" source="dfd-205" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-198" value="أرشفة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-223" edge="1" parent="1" source="dfd-220" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-221" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - دورة أو بعثة" id="dfd-page-224">
+    <mxGraphModel dx="3140" dy="1458" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-225" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - معاملة دورة أو بعثة" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-226" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة الطالبة / الموظف" vertex="1">
+          <mxGeometry height="65" width="230" x="170" y="627" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-227" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="65" width="230" x="860" y="447" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-228" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهات التدريب والجهات الأكاديمية" vertex="1">
+          <mxGeometry height="65" width="230" x="2200" y="692" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-229" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="وزارة التعليم العالي / الخارجية" vertex="1">
+          <mxGeometry height="65" width="230" x="1530" y="447" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-230" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D8 التدريب والبعثات" vertex="1">
+          <mxGeometry height="52" width="300" x="240" y="777" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-231" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="52" width="300" x="770" y="1197" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-232" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="240" y="1197" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-233" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D3 الملفات الشخصية" vertex="1">
+          <mxGeometry height="52" width="300" x="1290" y="1201" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-234" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="2030" y="980" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-235" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P4.1 تحليل فجوة المهارات" vertex="1">
+          <mxGeometry height="78" width="250" x="590" y="627" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-236" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P4.2 إعداد خطة وترشيح" vertex="1">
+          <mxGeometry height="78" width="250" x="940" y="627" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-237" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P4.3 اعتماد الترشيح" vertex="1">
+          <mxGeometry height="78" width="250" x="1290" y="627" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-238" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P4.4 متابعة التنفيذ والنتائج" vertex="1">
+          <mxGeometry height="78" width="250" x="1640" y="627" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-239" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5.1 توثيق النتيجة في السيرة" vertex="1">
+          <mxGeometry height="78" width="250" x="1030" y="967" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-240" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.1 أثر بعثة / بدل" vertex="1">
+          <mxGeometry height="78" width="250" x="600" y="967" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-241" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P7.1 أرشفة ملف التدريب" vertex="1">
+          <mxGeometry height="78" width="250" x="1640" y="967" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-259" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-260" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-261" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-242" edge="1" parent="1" source="dfd-226" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-235" value="احتياج تدريبي / ترشيح">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-243" edge="1" parent="1" source="dfd-235" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-230" value="فجوة مهارات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-244" edge="1" parent="1" source="dfd-235" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-236" value="احتياج معتمد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-245" edge="1" parent="1" source="dfd-236" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-237" value="قائمة مرشحين">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-246" edge="1" parent="1" source="dfd-227" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-237" value="اعتماد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-247" edge="1" parent="1" source="dfd-237" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="TsNMBm2KuosV8UTp4hy3-1" value="قوائم تدريب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-248" edge="1" parent="1" source="dfd-237" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-229" value="ملف بعثة عند الحاجة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-249" edge="1" parent="1" source="dfd-228" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-238" value="نتائج تدريب / شهادات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-250" edge="1" parent="1" source="dfd-229" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-238" value="نتائج بعثة / تمديد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-252" edge="1" parent="1" source="dfd-238" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-239" value="شهادة / نتيجة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-253" edge="1" parent="1" source="dfd-239" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-231" value="سيرة محدثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-254" edge="1" parent="1" source="dfd-239" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-233" value="تحديث ملف شخصي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-255" edge="1" parent="1" source="dfd-237" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-240" value="بيانات بدل أو بعثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-256" edge="1" parent="1" source="dfd-240" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-232" value="أثر مالي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-257" edge="1" parent="1" source="dfd-239" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-241" value="ملف مكتمل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-258" edge="1" parent="1" source="dfd-241" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-234" value="أرشفة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-262" edge="1" parent="1" source="dfd-259" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-260" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TsNMBm2KuosV8UTp4hy3-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="جهات التدريب والجهات الأكاديمية" vertex="1">
+          <mxGeometry height="65" width="230" x="1210" y="447" as="geometry" />
+        </mxCell>
+        <mxCell id="TsNMBm2KuosV8UTp4hy3-2" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D8 التدريب والبعثات" vertex="1">
+          <mxGeometry height="52" width="300" x="2030" y="827" as="geometry" />
+        </mxCell>
+        <mxCell id="TsNMBm2KuosV8UTp4hy3-3" edge="1" parent="1" source="dfd-238" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="TsNMBm2KuosV8UTp4hy3-2" value="نتيجة وتقييم">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1903" y="1217" as="sourcePoint" />
+            <mxPoint x="970" y="1879" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - الرواتب والتعويضات" id="dfd-page-263">
+    <mxGraphModel dx="6280" dy="2917" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-264" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-265" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الخدمة / التنقلات / البعثات" vertex="1">
+          <mxGeometry height="65" width="230" x="110" y="496.5" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-266" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="المالية" vertex="1">
+          <mxGeometry height="65" width="230" x="2195" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-267" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الرقابة" vertex="1">
+          <mxGeometry height="65" width="230" x="2195" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-268" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="القانونية" vertex="1">
+          <mxGeometry height="65" width="230" x="175" y="1223.5" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-269" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="870" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-270" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="52" width="300" x="775" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-271" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D7 التنقلات والتوزيع" vertex="1">
+          <mxGeometry height="52" width="300" x="335" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-272" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D10 الشكاوى والرقابة" vertex="1">
+          <mxGeometry height="52" width="300" x="1220" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-273" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="1570" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-274" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.1 استلام أثر مالي" vertex="1">
+          <mxGeometry height="78" width="250" x="545" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-275" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.2 تحديث ملف راتب" vertex="1">
+          <mxGeometry height="78" width="250" x="895" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-276" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.3 تدقيق قبل الصرف" vertex="1">
+          <mxGeometry height="78" width="250" x="1245" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-277" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.4 إرسال قائمة صرف" vertex="1">
+          <mxGeometry height="78" width="250" x="1595" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-278" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.5 تدقيق بعد الصرف" vertex="1">
+          <mxGeometry height="78" width="250" x="895" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-279" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.6 تقرير فروقات / تعويض" vertex="1">
+          <mxGeometry height="78" width="250" x="1245" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-280" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P7.1 أرشفة نتائج الرواتب" vertex="1">
+          <mxGeometry height="78" width="250" x="1595" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-297" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-298" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-299" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-281" edge="1" parent="1" source="dfd-265" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-274" value="بيانات تعيين / نقل / إجازة / بعثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-282" edge="1" parent="1" source="dfd-270" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-274" value="حالة خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-283" edge="1" parent="1" source="dfd-271" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-274" value="قرار نقل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-284" edge="1" parent="1" source="dfd-274" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-275" value="أثر مالي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-285" edge="1" parent="1" source="dfd-275" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-269" value="راتب محدث">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-286" edge="1" parent="1" source="dfd-275" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-276" value="بيانات مالية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-287" edge="1" parent="1" source="dfd-276" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-277" value="قائمة جاهزة للصرف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-288" edge="1" parent="1" source="dfd-277" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-266" value="أمر صرف / قائمة رواتب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-289" edge="1" parent="1" source="dfd-266" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-278" value="نتائج دفع">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-290" edge="1" parent="1" source="dfd-278" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-269" value="نتائج صرف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-291" edge="1" parent="1" source="dfd-278" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-279" value="فروقات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-292" edge="1" parent="1" source="dfd-279" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-267" value="تقرير فروقات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-293" edge="1" parent="1" source="dfd-268" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-279" value="قرار تعويض">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-294" edge="1" parent="1" source="dfd-279" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-272" value="ملاحظة رقابية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-295" edge="1" parent="1" source="dfd-279" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-280" value="نتائج نهائية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-296" edge="1" parent="1" source="dfd-280" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-273" value="أرشفة الرواتب">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-300" edge="1" parent="1" source="dfd-297" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-298" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - شكوى أو مخالفة" id="dfd-page-301">
+    <mxGraphModel dx="3425" dy="1591" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-302" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - شكوى أو مخالفة" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-303" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة" vertex="1">
+          <mxGeometry height="65" width="230" x="463" y="614.5" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-304" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="65" width="230" x="1933" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-305" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="القانونية والانضباط" vertex="1">
+          <mxGeometry height="65" width="230" x="1628" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-306" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="المالية عند الحاجة" vertex="1">
+          <mxGeometry height="65" width="230" x="1308" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-307" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D10 الشكاوى والرقابة" vertex="1">
+          <mxGeometry height="52" width="300" x="848" y="788" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-308" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D1 قاعدة بيانات الموظفين" vertex="1">
+          <mxGeometry height="52" width="300" x="548" y="428" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-309" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="923" y="428" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-310" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="428" y="1176" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-311" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P9.1 استلام شكوى أو ملاحظة" vertex="1">
+          <mxGeometry height="78" width="250" x="873" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-312" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P9.2 تحليل وتدقيق" vertex="1">
+          <mxGeometry height="78" width="250" x="1223" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-313" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P9.3 إحالة للجهة المختصة" vertex="1">
+          <mxGeometry height="78" width="250" x="1573" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-314" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P9.4 إعداد تقرير وتوصية" vertex="1">
+          <mxGeometry height="78" width="250" x="1923" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-315" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P9.5 متابعة التصحيح" vertex="1">
+          <mxGeometry height="78" width="250" x="873" y="965" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-316" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5/P7 توثيق وإغلاق" vertex="1">
+          <mxGeometry height="78" width="250" x="453" y="958" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-332" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-333" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-334" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-317" edge="1" parent="1" source="dfd-303" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-311" value="شكوى / تظلم">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-318" edge="1" parent="1" source="dfd-311" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-307" value="سجل شكوى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-319" edge="1" parent="1" source="dfd-311" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-312" value="ملف شكوى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-320" edge="1" parent="1" source="dfd-308" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-312" value="بيانات موظف">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-321" edge="1" parent="1" source="dfd-309" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-312" value="بيانات مالية عند الحاجة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-322" edge="1" parent="1" source="dfd-312" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-313" value="نتيجة تحليل">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-323" edge="1" parent="1" source="dfd-313" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-305" value="مخالفة قانونية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-324" edge="1" parent="1" source="dfd-313" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-306" value="ملاحظة مالية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-325" edge="1" parent="1" source="dfd-313" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-314" value="ردود الجهات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-326" edge="1" parent="1" source="dfd-314" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-304" value="تقرير وتوصيات">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-327" edge="1" parent="1" source="uQSyPJ_XM_DSHm6A0Mjf-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-315" value="قرار / توجيه">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-328" edge="1" parent="1" source="dfd-315" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-307" value="حالة تصحيح">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-329" edge="1" parent="1" source="dfd-315" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-316" value="ملف مغلق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-330" edge="1" parent="1" source="dfd-316" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-310" value="أرشفة الشكوى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-331" edge="1" parent="1" source="dfd-316" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-303" value="إشعار النتيجة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-335" edge="1" parent="1" source="dfd-332" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-333" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uQSyPJ_XM_DSHm6A0Mjf-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="65" width="230" x="883" y="1208" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Level 2 - إنهاء خدمة" id="dfd-page-336">
+    <mxGraphModel dx="4710" dy="2188" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-337" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="DFD Level 2 - إنهاء خدمة" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-338" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الموظف / الإدارة" vertex="1">
+          <mxGeometry height="65" width="230" x="260" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-339" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="اللجنة الطبية / القانونية" vertex="1">
+          <mxGeometry height="65" width="230" x="260" y="805" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-340" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="الإدارة العليا" vertex="1">
+          <mxGeometry height="65" width="230" x="1600" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-341" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="52" width="300" x="790" y="725" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-342" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="52" width="300" x="1005" y="1235" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-343" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="52" width="300" x="1360" y="1235" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-344" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D9 الهويات والوثائق" vertex="1">
+          <mxGeometry height="52" width="300" x="1700" y="1235" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-345" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="52" width="300" x="2040" y="1235" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-346" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.1 استلام سبب إنهاء الخدمة" vertex="1">
+          <mxGeometry height="78" width="250" x="680" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-347" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.2 تدقيق الحالة والوثائق" vertex="1">
+          <mxGeometry height="78" width="250" x="1030" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-348" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.3 إعداد قرار إنهاء" vertex="1">
+          <mxGeometry height="78" width="250" x="1380" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-349" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P1.4 اعتماد وتنفيذ الإنهاء" vertex="1">
+          <mxGeometry height="78" width="250" x="1730" y="495" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-350" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P6.1 إيقاف أو تسوية الراتب" vertex="1">
+          <mxGeometry height="78" width="250" x="1030" y="865" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-351" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P5.1 تحديث السيرة" vertex="1">
+          <mxGeometry height="78" width="250" x="1380" y="865" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-352" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="P8/P7 تعطيل الهوية والأرشفة" vertex="1">
+          <mxGeometry height="78" width="250" x="1730" y="865" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-368" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#000000;" value="كيان خارجي" vertex="1">
+          <mxGeometry height="50" width="160" x="70" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-369" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;arcSize=20;fillColor=#ffffff;strokeColor=#000000;" value="عملية معالجة بيانات" vertex="1">
+          <mxGeometry height="50" width="190" x="260" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-370" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D مخزن بيانات" vertex="1">
+          <mxGeometry height="50" width="210" x="490" y="1530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-353" edge="1" parent="1" source="dfd-338" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-346" value="استقالة / طلب إنهاء">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-354" edge="1" parent="1" source="dfd-339" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-346" value="قرار طبي / حكم / مخالفة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-355" edge="1" parent="1" source="dfd-346" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-347" value="ملف إنهاء خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-356" edge="1" parent="1" source="dfd-347" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-341" value="تدقيق حالة خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-357" edge="1" parent="1" source="dfd-347" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-348" value="بيانات مكتملة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-358" edge="1" parent="1" source="dfd-348" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-340" value="قرار مقترح">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-359" edge="1" parent="1" source="dfd-340" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-349" value="اعتماد">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-360" edge="1" parent="1" source="dfd-349" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-341" value="إنهاء خدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-361" edge="1" parent="1" source="dfd-349" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-350" value="أثر مالي نهائي">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-362" edge="1" parent="1" source="dfd-350" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-342" value="إيقاف / تسوية">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-363" edge="1" parent="1" source="dfd-349" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-351" value="بيانات إنهاء">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-364" edge="1" parent="1" source="dfd-351" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-343" value="سيرة محدثة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-365" edge="1" parent="1" source="dfd-349" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-352" value="تعطيل بطاقة ووثائق">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-366" edge="1" parent="1" source="dfd-352" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-344" value="هوية معطلة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-367" edge="1" parent="1" source="dfd-352" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-345" value="أرشفة ملف نهاية الخدمة">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-371" edge="1" parent="1" source="dfd-368" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;fontSize=12;" target="dfd-369" value="تدفق بيانات مسمى">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Data Dictionary" id="dfd-page-372">
+    <mxGraphModel dx="2571" dy="1591" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd-373" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;" value="قاموس بيانات DFD - توحيد أسماء التدفقات والمخازن" vertex="1">
+          <mxGeometry height="55" width="2000" x="300" y="35" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-374" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="التدفق&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; |التعريف&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| المسار النموذجي" vertex="1">
+          <mxGeometry height="48" width="2300" x="150" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-375" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="بيانات تعيين&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | بيانات مرشح، تصنيف وظيفي، تاريخ مباشرة، فئة العقد&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | جهة التوظيف → الخدمة والعقود" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-376" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="عقد موقع&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | صيغة عقد، توقيع، حالة تفعيل، تاريخ مباشرة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| الخدمة والعقود → العقود والخدمة" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-377" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="أثر مالي&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| بيانات تؤثر في الراتب أو البدلات أو التعويضات&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| الخدمة/النقل/البعثات/الصحة → الرواتب" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-378" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="تقرير طبي&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | نتائج فحص أو قرار لجنة طبية&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| الصحة المهنية/اللجان → الشؤون الصحية" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-379" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="نتيجة دورة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | حضور، نجاح، تقييم، شهادة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | جهات التدريب → التدريب والسيرة" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-380" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="وثيقة سيرة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| نسخة سيرة وظيفية معتمدة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| السيرة الوظيفية → الجهة الطالبة" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-381" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="طلب استرجاع وثيقة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| طلب رسمي من جهة مخولة لاستدعاء ملف أو نسخة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | جهة مخولة → الأرشفة" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-382" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="قرار نقل&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| وحدة منقولة منها، وحدة منقولة إليها، تاريخ نفاذ&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | التنقلات → الخدمة/الرواتب/السيرة" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-383" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="شكوى أو تظلم&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | موضوع الشكوى، مقدمها، جهة الإحالة، نتيجة المعالجة&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | الموظف/الإدارة → الرقابة" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="920" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-384" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#ffffff;strokeColor=#000000;align=right;" value="&lt;blockquote style=&quot;margin: 0 0 0 40px; border: none; padding: 0px;&quot;&gt;بيانات صلاحيات&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;| مستخدم، دور، فرع، مستوى وصول&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; | تقنية المعلومات والتطوير → د12&lt;/blockquote&gt;" vertex="1">
+          <mxGeometry height="62" width="2300" x="150" y="1010" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-385" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D1 قاعدة بيانات الموظفين" vertex="1">
+          <mxGeometry height="55" width="500" x="220" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-386" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D2 العقود والخدمة" vertex="1">
+          <mxGeometry height="55" width="500" x="980" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-387" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D3 الملفات الشخصية" vertex="1">
+          <mxGeometry height="55" width="500" x="1740" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-388" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D4 الملفات الصحية" vertex="1">
+          <mxGeometry height="55" width="500" x="220" y="1275" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-389" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D5 السيرة الوظيفية" vertex="1">
+          <mxGeometry height="55" width="500" x="980" y="1275" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-390" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D6 الرواتب والتعويضات" vertex="1">
+          <mxGeometry height="55" width="500" x="1740" y="1275" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-391" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D7 التنقلات والتوزيع" vertex="1">
+          <mxGeometry height="55" width="500" x="220" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-392" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D8 التدريب والبعثات" vertex="1">
+          <mxGeometry height="55" width="500" x="980" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-393" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D9 الهويات والوثائق" vertex="1">
+          <mxGeometry height="55" width="500" x="1740" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-394" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D10 الشكاوى والرقابة" vertex="1">
+          <mxGeometry height="55" width="500" x="220" y="1505" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-395" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D11 الأرشيف" vertex="1">
+          <mxGeometry height="55" width="500" x="980" y="1505" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-396" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;right=0;top=0;bottom=0;fontSize=13;fillColor=#ffffff;strokeColor=#000000;" value="D12 الصلاحيات والمستخدمين" vertex="1">
+          <mxGeometry height="55" width="500" x="1740" y="1505" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd-397" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=13;fillColor=#fffbe6;strokeColor=#666666;" value="قاعدة تحقق: لا يوجد مخزن بيانات يتصل مباشرة بكيان خارجي دون عملية وسيطة، وكل سهم يجب أن يحمل اسم بيانات واضح." vertex="1">
+          <mxGeometry height="70" width="1600" x="510" y="1600" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

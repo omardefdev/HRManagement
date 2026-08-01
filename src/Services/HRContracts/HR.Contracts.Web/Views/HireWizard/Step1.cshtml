@@ -1,0 +1,16 @@
+@{ ViewData["Title"] = "معالج التعيين - الخطوة 1"; }
+<div class="card">
+    <div class="card-header"><h3>معالج التعيين - اختيار الموظف</h3></div>
+    <div class="card-body">
+        <p class="text-muted">يجب أن يكون قد تم نشر حدث التوظيف (تعيين من طلبات التوظيف) وأن معاملة Appointment موجودة.</p>
+        <form asp-action="Step1" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label class="form-label">معرّف الموظف</label>
+                <input type="text" name="employeeId" class="form-control" required placeholder="GUID" />
+            </div>
+            <button type="submit" class="btn btn-primary">التالي</button>
+            <a asp-action="Index" class="btn btn-secondary">قائمة المعاملات</a>
+        </form>
+    </div>
+</div>

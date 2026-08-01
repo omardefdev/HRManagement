@@ -1,0 +1,44 @@
+name: hardening-check
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "docs/hardening/**"
+      - "docs/HARD_001_VERIFICATION.md"
+      - "docker-compose.production.yml"
+      - "deploy/k8s/**"
+      - "scripts/hard001-compliance-scan.ps1"
+      - ".github/workflows/hardening-check.yml"
+      - "src/Tests/HRManagement.UnitTests/Hard001HardeningTests.cs"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "docs/hardening/**"
+      - "docs/HARD_001_VERIFICATION.md"
+      - "docker-compose.production.yml"
+      - "deploy/k8s/**"
+      - "scripts/hard001-compliance-scan.ps1"
+      - ".github/workflows/hardening-check.yml"
+      - "src/Tests/HRManagement.UnitTests/Hard001HardeningTests.cs"
+  workflow_dispatch:
+
+jobs:
+  hard001-compliance:
+    name: HARD-001 compliance scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: HARD-001 hardening compliance scan
+        run: pwsh -NoProfile -File scripts/hard001-compliance-scan.ps1
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore test project
+        run: dotnet restore src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj
+
+      - name: HARD-001 unit tests
+        run: dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --filter "FullyQualifiedName~Hard001HardeningTests" --no-restore

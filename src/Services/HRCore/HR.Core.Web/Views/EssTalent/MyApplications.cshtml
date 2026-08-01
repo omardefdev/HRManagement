@@ -1,0 +1,25 @@
+@using HR.Core.Domain.Enums
+@model IReadOnlyList<HR.Core.Domain.Entities.InternalApplication>
+@{ ViewData["Title"] = "ترشّحاتي الداخلية"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">ترشّحاتي للشواغر الداخلية</h3>
+        <a asp-action="Index" class="btn btn-link">استعراض الشواغر</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الشاغر</th><th>تاريخ الترشّح</th><th>الحالة</th></tr></thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@(a.InternalVacancy?.Title ?? "—")</td>
+                        <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.DisplayFor(_ => a.Status)</td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-4">لم تترشّح بعد</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

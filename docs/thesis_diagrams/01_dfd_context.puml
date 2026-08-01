@@ -1,0 +1,43 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط سياق النظام (DFD Context) - HRManagement
+actor "المواطن" as Citizen
+actor "الموظف" as Employee
+actor "موظف الفرع" as BranchHr
+actor "مدير الفرع" as BranchManager
+actor "الإدارة المركزية" as Central
+actor "مسؤول الرواتب" as Payroll
+actor "مدير النظام" as Admin
+rectangle "نظام إدارة الموارد البشرية\\nHRManagement" as System
+Citizen --> System : طلب توظيف وتتبع طلب
+Employee --> System : خدمات ذاتية وتعلّم
+BranchHr --> System : معاملات موظفي الفرع
+BranchManager --> System : اعتماد ضمن نطاق الفرع
+Central --> System : قرارات وتقارير شاملة
+Payroll --> System : تشغيل دورات الرواتب
+Admin --> System : أدوار ومراقبة تشغيلية
+System --> Citizen : رقم متابعة وحالة الطلب
+System --> Employee : إشعارات وسجل تعلم
+System --> Central : مؤشرات وتقارير المؤسسة
+@enduml

@@ -1,0 +1,18 @@
+@model IEnumerable<HR.Core.Domain.Entities.DailyAttendanceRecord>
+@{
+    ViewData["Title"] = "سجل الحضور";
+}
+<table class="table table-striped">
+    <thead><tr><th>التاريخ</th><th>الحالة</th><th>ملاحظات</th></tr></thead>
+    <tbody>
+    @foreach (var r in Model)
+    {
+        <tr>
+            <td>@r.AttendanceDate</td>
+            <td>@r.Status</td>
+            <td>@r.Notes</td>
+        </tr>
+    }
+    </tbody>
+</table>
+<a asp-action="Index" class="btn btn-secondary">رجوع</a>

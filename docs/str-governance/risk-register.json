@@ -1,0 +1,47 @@
+{
+  "card": "STR-005",
+  "version": 1,
+  "generatedAt": "2026-07-30",
+  "risks": [
+    {
+      "riskId": "RK-STR005-LAW-LAG",
+      "likelihood": "Medium",
+      "impact": "High",
+      "ownerRole": "legal",
+      "mitigation": "Declared exception with expiry; Architecture review; link GOV-002 when gazette lands",
+      "linkedDecisionId": "PG-LAW-2026-07-SIM",
+      "status": "Open",
+      "title": "Gazette lag leaves interim payroll rule in production"
+    },
+    {
+      "riskId": "RK-STR005-INCIDENT-DRIFT",
+      "likelihood": "Medium",
+      "impact": "High",
+      "ownerRole": "security",
+      "mitigation": "Exception expiry + Change board review within REL-003 emergency window",
+      "linkedDecisionId": "PG-INC-2026-07-SIM",
+      "status": "Open",
+      "title": "Emergency change window extended without post-incident review"
+    },
+    {
+      "riskId": "RK-STR005-DELAY-SILENT",
+      "likelihood": "Low",
+      "impact": "Critical",
+      "ownerRole": "program",
+      "mitigation": "GoLiveMultiSeat gate; eng-only fixture must FAIL validate",
+      "linkedDecisionId": "PG-DELAY-2026-07-SIM",
+      "status": "Mitigated",
+      "title": "Engineering reschedules Go-Live without Sponsor/Security seats"
+    },
+    {
+      "riskId": "RK-STR005-SYD017-NAMES",
+      "likelihood": "High",
+      "impact": "Medium",
+      "ownerRole": "sponsor",
+      "mitigation": "Soft blocker SYD-017; role-based evidence until names assigned",
+      "linkedDecisionId": "PG-GOLIVE-GATE-POLICY",
+      "status": "Accepted",
+      "title": "Go-Live seats remain role placeholders without named humans"
+    }
+  ]
+}

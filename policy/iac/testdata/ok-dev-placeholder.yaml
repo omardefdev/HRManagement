@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ok-dev-placeholder
+  labels:
+    hrmanagement.io/secret-source: dev-only-placeholder
+stringData:
+  password: "replace-me"

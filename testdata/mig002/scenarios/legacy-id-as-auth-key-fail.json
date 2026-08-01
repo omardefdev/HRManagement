@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-LEGACY-ID-AS-AUTH",
+  "expectedValidate": "FAIL",
+  "proposedAuthKey": "EmpNo",
+  "proposedTenantKey": "EmpNo",
+  "notes": "Legacy EmpNo must not be auth or tenant key"
+}

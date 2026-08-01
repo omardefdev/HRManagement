@@ -1,0 +1,44 @@
+{
+  "card": "NAT-007",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Pilot wave and operational readiness certification evidence template",
+  "harnessStatus": "Done",
+  "liveCertificationStatus": "Blocked",
+  "liveCertificationNote": "Live pilot scorecard with agency sign-offs pending first authorized wave",
+  "pilotRequirements": {
+    "rel002Complete": true,
+    "rel003Complete": true,
+    "consecutivePayrollCycles": 3,
+    "sloWindowDays": 30,
+    "severity1IncidentCount": 0,
+    "supportSlaMet": true,
+    "criticalLessonsClosedBeforeExpansion": true
+  },
+  "scorecardDomains": [
+    { "id": "agency-uat", "mandatory": true },
+    { "id": "adoption", "mandatory": true },
+    { "id": "support", "mandatory": true },
+    { "id": "slo", "mandatory": true },
+    { "id": "incidents", "mandatory": true },
+    { "id": "payroll-data", "mandatory": true },
+    { "id": "integrations", "mandatory": true },
+    { "id": "training", "mandatory": true },
+    { "id": "rollback", "mandatory": true },
+    { "id": "orr", "mandatory": true },
+    { "id": "staffing", "mandatory": true },
+    { "id": "vendor-readiness", "mandatory": true }
+  ],
+  "relPilotRef": "docs/rel-pilot/scope-matrix.json",
+  "acceptanceCriteria": {
+    "rel002Rel003Satisfied": true,
+    "threeCyclesHarnessDefined": true,
+    "sloWindowDefined": true,
+    "zeroSeverity1Harness": true
+  },
+  "dependencies": ["REL-002", "REL-003", "SRE-001", "SRE-002", "SRE-003", "SUP-002", "SUP-003", "SUP-004", "MIG-007"],
+  "blockers": [
+    { "id": "live-pilot-scorecard", "status": "Blocked", "note": "Agency UAT sign-offs and live pilot scorecard pending" },
+    { "id": "live-operational-drill", "status": "Blocked", "note": "Operational drill with command center pending" }
+  ]
+}

@@ -1,0 +1,20 @@
+﻿{
+    "card":  "PHY-001",
+    "drill":  "power-cutover",
+    "mode":  "lab",
+    "measured":  true,
+    "measuredNotPaperOnly":  true,
+    "startedUtc":  "2026-07-31T15:19:40.1529322Z",
+    "completedUtc":  "2026-07-31T15:19:40.2186834Z",
+    "labElapsedSeconds":  0,
+    "upsMinutes":  30,
+    "measuredAutonomyHours":  72,
+    "generatorAutonomyHours":  72,
+    "dualFeed":  true,
+    "servicesChecked":  [
+                            "gateway",
+                            "postgresql",
+                            "rabbitmq"
+                        ],
+    "pass":  true
+}

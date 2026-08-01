@@ -1,0 +1,23 @@
+@model IReadOnlyList<Records.Archive.Domain.Entities.ArchiveItem>
+@{ ViewData["Title"] = "عناصر الأرشيف"; }
+<p><a asp-action="Create" class="btn btn-primary btn-sm">عنصر جديد</a></p>
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">الأرشيف</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>العنوان</th><th>المرجع</th><th>النوع</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@x.Id">@x.Title</a></td>
+                        <td>@x.ReferenceNumber</td>
+                        <td>@x.Format</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا عناصر</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

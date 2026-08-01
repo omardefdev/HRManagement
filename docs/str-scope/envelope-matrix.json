@@ -1,0 +1,365 @@
+{
+  "card": "STR-001",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "sourceDoc": "docs/completion-backlog/06-NATIONAL-READINESS-MODEL.md",
+  "requiredIndicatorFields": ["id", "value", "unit", "ownerRole", "asOfDate", "sourceTier", "envelope"],
+  "allowedSourceTiers": ["A", "B", "C"],
+  "allowedEnvelopes": ["national-competition", "syria-interim"],
+  "blockers": [
+    { "id": "SYR-002", "status": "Blocked", "note": "Official census may raise syria-interim values" },
+    { "id": "CAP-001", "status": "Blocked", "note": "National load proof consumes this envelope; not executed in STR-001" }
+  ],
+  "journeys": [
+    {
+      "id": "NationalScope",
+      "steps": [
+        { "id": "CountryCharter", "mandatory": true, "ownerRole": "program", "slaHours": 48, "evidenceType": "STR_001_SCOPE_CHARTER", "service": "docs", "event": null },
+        { "id": "GeographyWaves", "mandatory": true, "ownerRole": "program", "slaHours": 24, "evidenceType": "14-governorates", "service": "docs", "event": null },
+        { "id": "CriticalJourneys", "mandatory": true, "ownerRole": "product", "slaHours": 24, "evidenceType": "FUN+payroll", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "QuantitativeEnvelope",
+      "steps": [
+        { "id": "NationalCompetitionRows", "mandatory": true, "ownerRole": "architecture", "slaHours": 72, "evidenceType": "matrix rows", "service": "docs", "event": null },
+        { "id": "SyriaInterimRows", "mandatory": true, "ownerRole": "architecture", "slaHours": 72, "evidenceType": "matrix rows", "service": "docs", "event": null },
+        { "id": "OwnerDateSource", "mandatory": true, "ownerRole": "program", "slaHours": 24, "evidenceType": "per-indicator", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "WorkloadDataset",
+      "steps": [
+        { "id": "DatasetDescribed", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "STR_001_WORKLOAD_DATASET", "service": "docs", "event": null },
+        { "id": "SeasonsMapped", "mandatory": true, "ownerRole": "sre", "slaHours": 24, "evidenceType": "NFR seasons", "service": "docs", "event": null },
+        { "id": "LabScaleSeparated", "mandatory": true, "ownerRole": "sre", "slaHours": 8, "evidenceType": "scale_factor note", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "AssumptionsExclusions",
+      "steps": [
+        { "id": "AssumptionRegister", "mandatory": true, "ownerRole": "program", "slaHours": 48, "evidenceType": "ASSUMPTION_REGISTER", "service": "docs", "event": null },
+        { "id": "Exclusions", "mandatory": true, "ownerRole": "product", "slaHours": 24, "evidenceType": "EXCLUSIONS", "service": "docs", "event": null },
+        { "id": "Syr002Blocked", "mandatory": true, "ownerRole": "program", "slaHours": 8, "evidenceType": "ASS-SYR-CENSUS", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "GrowthReviewSignOff",
+      "steps": [
+        { "id": "Growth2x", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "GROWTH_2X", "service": "docs", "event": null },
+        { "id": "IndependentReview", "mandatory": true, "ownerRole": "program", "slaHours": 168, "evidenceType": "INDEPENDENT_REVIEW", "service": "docs", "event": null },
+        { "id": "BoardSignOff", "mandatory": true, "ownerRole": "program", "slaHours": 72, "evidenceType": "UAT_PACK", "service": "docs", "event": null }
+      ]
+    }
+  ],
+  "indicators": [
+    {
+      "id": "national.active_history_persons",
+      "label": "Active+historical person records",
+      "value": 5000000,
+      "unit": "persons",
+      "ownerRole": "architecture",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.tenants",
+      "label": "Independent agencies/tenants",
+      "value": 1000,
+      "unit": "tenants",
+      "ownerRole": "architecture",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.org_units",
+      "label": "Organizational units",
+      "value": 250000,
+      "unit": "units",
+      "ownerRole": "architecture",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.concurrent_sessions",
+      "label": "Authenticated concurrent sessions",
+      "value": 100000,
+      "unit": "sessions",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.peak_http_rps",
+      "label": "Peak HTTP requests/sec excluding static",
+      "value": 10000,
+      "unit": "req_per_sec",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-WORKLOAD-SHAPE"
+    },
+    {
+      "id": "national.payroll_window_persons",
+      "label": "Payroll window persons",
+      "value": 5000000,
+      "unit": "persons",
+      "ownerRole": "payroll",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.payroll_window_hours",
+      "label": "Payroll window duration",
+      "value": 6,
+      "unit": "hours",
+      "ownerRole": "payroll",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.payroll_unexplained_diff",
+      "label": "Unexplained payroll diffs allowed",
+      "value": 0,
+      "unit": "count",
+      "ownerRole": "payroll",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.availability_critical_pct",
+      "label": "Critical services monthly availability",
+      "value": 99.95,
+      "unit": "percent",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.availability_gateway_pct",
+      "label": "Identity/gateway availability target",
+      "value": 99.99,
+      "unit": "percent",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "national.rpo_critical_minutes",
+      "label": "RPO critical data",
+      "value": 5,
+      "unit": "minutes",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.rto_critical_minutes",
+      "label": "RTO critical journeys",
+      "value": 60,
+      "unit": "minutes",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.p95_read_ms",
+      "label": "p95 read latency",
+      "value": 1000,
+      "unit": "milliseconds",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-WORKLOAD-SHAPE"
+    },
+    {
+      "id": "national.p95_write_ms",
+      "label": "p95 write latency",
+      "value": 2000,
+      "unit": "milliseconds",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": "ASS-WORKLOAD-SHAPE"
+    },
+    {
+      "id": "national.audit_event_loss",
+      "label": "Allowed audit/financial event loss",
+      "value": 0,
+      "unit": "count",
+      "ownerRole": "security",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.cross_tenant_success",
+      "label": "Allowed successful cross-tenant access in independent tests",
+      "value": 0,
+      "unit": "count",
+      "ownerRole": "security",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.wcag_level",
+      "label": "Accessibility level for core journeys",
+      "value": "WCAG_2_2_AA",
+      "unit": "enum",
+      "ownerRole": "product",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.crit_high_vulns_unaccepted",
+      "label": "Unaccepted Critical/High vulns at release",
+      "value": 0,
+      "unit": "count",
+      "ownerRole": "security",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "national.restore_evidence_days",
+      "label": "Full/PITR restore evidence max age",
+      "value": 90,
+      "unit": "days",
+      "ownerRole": "sre",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "national-competition",
+      "assumptionId": null
+    },
+    {
+      "id": "syria.governorates",
+      "label": "Governorates in rollout scope",
+      "value": 14,
+      "unit": "count",
+      "ownerRole": "program",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-GEO"
+    },
+    {
+      "id": "syria.active_history_persons",
+      "label": "Syria interim active+historical persons",
+      "value": 5000000,
+      "unit": "persons",
+      "ownerRole": "architecture",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "C",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-CENSUS"
+    },
+    {
+      "id": "syria.payroll_ordinary_persons",
+      "label": "Ordinary payroll cycle persons",
+      "value": 1250000,
+      "unit": "persons",
+      "ownerRole": "payroll",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "C",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-CENSUS"
+    },
+    {
+      "id": "syria.payroll_ordinary_hours",
+      "label": "Ordinary payroll cycle max hours",
+      "value": 4,
+      "unit": "hours",
+      "ownerRole": "payroll",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-ENG-FLOOR"
+    },
+    {
+      "id": "syria.payroll_stress_persons",
+      "label": "Payroll engine stress persons",
+      "value": 2000000,
+      "unit": "persons",
+      "ownerRole": "payroll",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "C",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-CENSUS"
+    },
+    {
+      "id": "syria.retiree_beneficiary_records",
+      "label": "Retiree/beneficiary test records",
+      "value": 1250000,
+      "unit": "persons",
+      "ownerRole": "architecture",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "C",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-CENSUS"
+    },
+    {
+      "id": "syria.currency",
+      "label": "Primary currency",
+      "value": "SYP_NEW_100_1",
+      "unit": "enum",
+      "ownerRole": "product",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-CURRENCY"
+    },
+    {
+      "id": "syria.connectivity_profiles",
+      "label": "Required connectivity profiles",
+      "value": "urban_rural_weak",
+      "unit": "enum",
+      "ownerRole": "architecture",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "B",
+      "envelope": "syria-interim",
+      "assumptionId": "ASS-SYR-GEO"
+    },
+    {
+      "id": "syria.legal_rule_versioning",
+      "label": "Legal rule version on every payroll result",
+      "value": 1,
+      "unit": "required_flag",
+      "ownerRole": "legal",
+      "asOfDate": "2026-07-30",
+      "sourceTier": "A",
+      "envelope": "syria-interim",
+      "assumptionId": null
+    }
+  ]
+}

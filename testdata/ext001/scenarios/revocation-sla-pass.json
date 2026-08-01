@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-REVOCATION-SLA-PASS",
+  "expectedValidate": "PASS",
+  "slaMinutes": 15,
+  "elapsedMinutes": 8,
+  "withinSla": true,
+  "escalated": false
+}

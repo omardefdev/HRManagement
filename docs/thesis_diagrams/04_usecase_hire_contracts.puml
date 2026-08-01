@@ -1,0 +1,49 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام التوظيف والعقود والخدمة
+left to right direction
+actor "مواطن" as Citizen
+actor "موظف تعاقد" as ContractOps
+actor "معتمد مركزي" as Approver
+actor "مسؤول أرشيف" as Archivist
+rectangle "HR.Core + HR.Contracts" {
+  usecase "نشر إعلان وظيفي" as U1
+  usecase "تقديم طلب توظيف" as U2
+  usecase "فرز المرشحين" as U3
+  usecase "إنشاء حالة تعيين" as U4
+  usecase "تفعيل العقد" as U5
+  usecase "تسجيل المباشرة" as U6
+  usecase "نشر حدث اكتمال التعيين" as U7
+  usecase "أرشفة ملف التعيين" as U8
+}
+Citizen --> U2
+ContractOps --> U1
+ContractOps --> U3
+ContractOps --> U4
+Approver --> U5
+ContractOps --> U6
+U6 .> U7 : <<include>>
+U7 .> U8 : <<include>>
+Archivist --> U8
+@enduml

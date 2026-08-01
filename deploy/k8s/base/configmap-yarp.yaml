@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hr-gateway-yarp
+  labels:
+    app.kubernetes.io/name: hr-gateway
+    app.kubernetes.io/part-of: hrmanagement
+data:
+  # Single ClusterIP destination per module — kube-proxy load-balances Endpoints.
+  # PowerOfTwoChoices applies when multiple destinations are listed (optional headless).
+  ReverseProxy__Clusters__hr-core-cluster__Destinations__destination1__Address: http://hr-core-web:8080
+  ReverseProxy__Clusters__hr-core-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
+  ReverseProxy__Clusters__hr-contracts-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__hr-health-cluster__Destinations__destination1__Address: http://hr-health-web:8080
+  ReverseProxy__Clusters__hr-health-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__hr-movements-cluster__Destinations__destination1__Address: http://hr-movements-web:8080
+  ReverseProxy__Clusters__hr-movements-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__hr-training-cluster__Destinations__destination1__Address: http://hr-training-web:8080
+  ReverseProxy__Clusters__hr-training-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__payroll-cluster__Destinations__destination1__Address: http://payroll-web:8080
+  ReverseProxy__Clusters__payroll-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__idcard-cluster__Destinations__destination1__Address: http://idcard-web:8080
+  ReverseProxy__Clusters__idcard-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__records-archive-cluster__Destinations__destination1__Address: http://records-archive-web:8080
+  ReverseProxy__Clusters__records-archive-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
+  ReverseProxy__Clusters__admin-logistics-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__it-infra-cluster__Destinations__destination1__Address: http://it-infra-web:8080
+  ReverseProxy__Clusters__it-infra-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__dev-analytics-cluster__Destinations__destination1__Address: http://dev-analytics-web:8080
+  ReverseProxy__Clusters__dev-analytics-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__compliance-cluster__Destinations__destination1__Address: http://compliance-web:8080
+  ReverseProxy__Clusters__compliance-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__auth-directory-cluster__Destinations__destination1__Address: http://auth-directory-web:8080
+  ReverseProxy__Clusters__auth-directory-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
+  ReverseProxy__Clusters__file-storage-cluster__LoadBalancingPolicy: PowerOfTwoChoices
+  Integration__HrCoreBaseUrl: http://hr-core-web:8080
+  Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
+  Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080

@@ -1,0 +1,27 @@
+@model WorkplaceAccident
+@{ ViewData["Title"] = "تعديل حادث عمل"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">تعديل حادث عمل</h3>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('تأكيد الحذف؟');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
+        </form>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><input asp-for="EmployeeId" class="form-control" /><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EmployeeName" class="form-label"></label><input asp-for="EmployeeName" class="form-control" /><span asp-validation-for="EmployeeName" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="AccidentDate" class="form-label"></label><input asp-for="AccidentDate" class="form-control" type="date" /><span asp-validation-for="AccidentDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Location" class="form-label"></label><input asp-for="Location" class="form-control" /><span asp-validation-for="Location" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control"></textarea><span asp-validation-for="Description" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Severity" class="form-label"></label><select class="form-control" asp-for="Severity" asp-items="Html.GetEnumSelectList<AccidentSeverity>()" class="form-control"></select><span asp-validation-for="Severity" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="RelatedSickLeaveDays" class="form-label"></label><input asp-for="RelatedSickLeaveDays" class="form-control" type="number" min="0" /><span asp-validation-for="RelatedSickLeaveDays" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="InvestigationNotes" class="form-label"></label><textarea asp-for="InvestigationNotes" class="form-control"></textarea><span asp-validation-for="InvestigationNotes" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </form>
+    </div>
+</div>

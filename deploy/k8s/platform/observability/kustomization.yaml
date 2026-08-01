@@ -1,0 +1,10 @@
+# OBS-001 platform observability (Compose-parity stubs for Kustomize).
+# Full HA sizing is environment-specific; wire OTEL env on app overlays.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hrmanagement-observability
+resources:
+  - namespace.yaml
+  - otel-collector.yaml
+  - tempo.yaml
+  - configmap-otel.yaml

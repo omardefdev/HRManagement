@@ -1,0 +1,48 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title تدفق الأحداث العابرة للخدمات
+component "HR.Core" as Core
+component "HR.Contracts" as Contracts
+component "HR.Movements" as Moves
+component Payroll
+component "Records.Archive" as Archive
+component "Auth.Directory" as Directory
+component "Dev.Analytics" as Analytics
+queue "RabbitMQ\\nEvents" as Bus
+Core --> Bus : IEmployeeCreated
+Contracts --> Bus : IHireCaseCompleted
+ISeparationCompleted
+Moves --> Bus : ITransferExecuted
+ISecondmentExecuted
+Payroll --> Bus : IPayrollProcessed
+Bus --> Archive : hire / separation archive
+Bus --> Directory : user / movement update
+Bus --> Payroll : adjustments
+Bus --> Core : employee org update
+Bus --> Analytics : indicators
+note bottom of Bus
+Outbox, retry, idempotency and correlation IDs
+reduce duplicate processing and increase traceability.
+end note
+@enduml

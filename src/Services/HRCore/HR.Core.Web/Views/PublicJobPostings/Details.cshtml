@@ -1,0 +1,52 @@
+@using HR.Core.Domain.Enums
+@model HR.Core.Domain.Entities.PublicJobPosting
+@{ ViewData["Title"] = "تفاصيل الإعلان وطلبات المواطنين"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@Model.Title</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">تعديل</a>
+            <a asp-action="Index" class="btn btn-link">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الجهة</dt><dd class="col-sm-9">@(Model.Entity ?? "—")</dd>
+            <dt class="col-sm-3">مكان العمل</dt><dd class="col-sm-9">@(Model.Location ?? "—")</dd>
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@(Model.IsPublished ? "منشور" : "مخفي")</dd>
+            <dt class="col-sm-3">تاريخ الإغلاق</dt><dd class="col-sm-9">@(Model.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">طلبات المواطنين (@Model.Applications.Count)</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الرقم المرجعي</th><th>الاسم</th><th>الرقم الوطني</th><th>الهاتف</th><th>التاريخ</th><th>الحالة</th><th>تغيير</th></tr></thead>
+            <tbody>
+                @foreach (var a in Model.Applications.OrderByDescending(a => a.SubmittedAt))
+                {
+                    <tr>
+                        <td>@a.ReferenceNumber</td>
+                        <td>@a.FullName</td>
+                        <td>@a.NationalId</td>
+                        <td>@(a.Phone ?? "—")</td>
+                        <td>@a.SubmittedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.DisplayFor(_ => a.Status)</td>
+                        <td>
+                            <form asp-action="ChangeApplicationStatus" method="post" class="d-flex gap-1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <input type="hidden" name="postingId" value="@Model.Id" />
+                                <select name="status" asp-items="Html.GetEnumSelectList<CitizenApplicationStatus>()" class="form-control form-control-sm"></select>
+                                <button type="submit" class="btn btn-outline-primary btn-sm">تحديث</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Applications.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا طلبات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

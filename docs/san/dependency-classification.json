@@ -1,0 +1,135 @@
+{
+  "card": "SAN-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Sanctions, export controls, and supply chain dependency classification register",
+  "classificationStates": ["available", "restricted", "unpayable", "geo-blocked"],
+  "mirrorPolicy": {
+    "nugetConfig": "NuGet.config",
+    "sovereignMirrorPlaceholder": "https://SOVEREIGN_NUGET_MIRROR/v3/index.json",
+    "liveMirrorStatus": "Blocked",
+    "liveMirrorNote": "Air-gapped build from sovereign mirror pending national registry provisioning",
+    "baseImagePins": "docker/base-image-pins.json",
+    "observabilityImagesNote": "docker-compose.observability.yml public images require sovereign mirror (SAN-001)"
+  },
+  "pinningPolicy": {
+    "sdkPin": "global.json",
+    "sdkVersion": "10.0.302",
+    "rollForward": "disable",
+    "airgappedBuildScript": "scripts/san001-airgapped-build.ps1",
+    "offlineNuGetConfig": "NuGet.offline.config",
+    "packageLock": "packages.lock.json",
+    "centralPackageManagement": "Directory.Packages.props"
+  },
+  "dependencies": [
+    {
+      "dependencyId": "dep-dotnet-sdk",
+      "category": "build-tool",
+      "name": ".NET SDK",
+      "source": "Microsoft / dotnet.microsoft.com",
+      "legalStatus": "available",
+      "owner": "platform-engineering",
+      "criticality": "critical",
+      "alternative": "Offline SDK cache in sovereign mirror",
+      "pinning": "global.json:10.0.302",
+      "mirrorPolicy": "sovereign-mirror"
+    },
+    {
+      "dependencyId": "dep-nuget-packages",
+      "category": "nuget",
+      "name": "NuGet package dependencies",
+      "source": "nuget.org (dev) / sovereign-mirror (production)",
+      "legalStatus": "restricted",
+      "owner": "platform-engineering",
+      "criticality": "critical",
+      "alternative": "Sovereign NuGet mirror with full package cache",
+      "pinning": "Directory.Packages.props + packages.lock.json",
+      "mirrorPolicy": "sovereign-mirror"
+    },
+    {
+      "dependencyId": "dep-github-actions",
+      "category": "cloud",
+      "name": "GitHub Actions CI runners",
+      "source": "GitHub Inc.",
+      "legalStatus": "restricted",
+      "owner": "devops",
+      "criticality": "high",
+      "alternative": "On-premise CI runner with air-gapped artifact cache",
+      "pinning": "deploy.yml workflow pins",
+      "mirrorPolicy": "exception",
+      "riskAcceptance": "Time-bound until sovereign CI provisioned"
+    },
+    {
+      "dependencyId": "dep-container-base-images",
+      "category": "container",
+      "name": "Application base container images",
+      "source": "mcr.microsoft.com / ghcr.io",
+      "legalStatus": "restricted",
+      "owner": "platform-engineering",
+      "criticality": "critical",
+      "alternative": "Sovereign container registry with digest-pinned mirrors",
+      "pinning": "docker/base-image-pins.json",
+      "mirrorPolicy": "digest-pinned"
+    },
+    {
+      "dependencyId": "dep-observability-images",
+      "category": "container",
+      "name": "Observability stack images (Prometheus, Grafana, Tempo, etc.)",
+      "source": "docker.io / quay.io public registries",
+      "legalStatus": "geo-blocked",
+      "owner": "sre",
+      "criticality": "high",
+      "alternative": "Sovereign mirror of observability images with digest pins",
+      "pinning": "docker-compose.observability.yml tags",
+      "mirrorPolicy": "sovereign-mirror"
+    },
+    {
+      "dependencyId": "dep-tls-certificates",
+      "category": "certificate",
+      "name": "TLS certificates and trust chains",
+      "source": "National PKI / commercial CA",
+      "legalStatus": "available",
+      "owner": "security-operations",
+      "criticality": "critical",
+      "alternative": "National PKI as primary; offline CRL/OCSP cache",
+      "pinning": "Certificate thumbprint in IaC",
+      "mirrorPolicy": "exception"
+    },
+    {
+      "dependencyId": "dep-hsm-kms",
+      "category": "hsm",
+      "name": "HSM / KMS for key custody",
+      "source": "National HSM vendor or in-country deployment",
+      "legalStatus": "available",
+      "owner": "security-operations",
+      "criticality": "critical",
+      "alternative": "Dual HSM with manual key ceremony fallback",
+      "pinning": "SOV-003 key-sovereignty binding",
+      "mirrorPolicy": "exception"
+    },
+    {
+      "dependencyId": "dep-cosign-signing",
+      "category": "build-tool",
+      "name": "Cosign artifact signing",
+      "source": "Sigstore / in-country key",
+      "legalStatus": "available",
+      "owner": "devops",
+      "criticality": "high",
+      "alternative": "National signing key in sovereign KMS",
+      "pinning": "deploy.yml cosign step",
+      "mirrorPolicy": "sovereign-mirror"
+    }
+  ],
+  "continuityPolicy": {
+    "onSourceLoss": "Fail closed; activate sovereign mirror; escalate to STR-005",
+    "emergencyPatchPath": "Pre-staged patch packages in sovereign cache",
+    "legalRegimeTracking": "Escalate classification changes to STR-005 within 72h"
+  },
+  "blockers": [
+    { "id": "live-sovereign-mirror", "status": "Blocked", "note": "National artifact registry not yet provisioned" },
+    { "id": "live-air-gapped-build", "status": "Blocked", "note": "Full air-gapped build drill pending mirror" },
+    { "id": "SUP-001", "status": "Satisfied", "note": "SBOM/Cosign supply chain Done" },
+    { "id": "BLD-001", "status": "Satisfied", "note": "Build provenance Done" },
+    { "id": "DB-001", "status": "Satisfied", "note": "Reproducible deps Done" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-BULK-HARVEST",
+  "expectedValidate": "FAIL",
+  "queriesPerMinute": 500,
+  "bulkHarvestAttempted": true,
+  "maxQueriesPerMinute": 30,
+  "notes": "Bulk harvest must fail"
+}

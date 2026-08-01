@@ -1,0 +1,44 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title نموذج التفويض ونطاق الفرع
+actor "مدير مركزي" as Central
+actor "مدير الفرع A" as A
+actor "مدير الفرع B" as B
+rectangle "Keycloak\\nRoles + scope_org_unit_id" as Identity
+rectangle "HrOrgScopeVisibility\\nOrgScopeService" as Scope
+database "HR.Core: OrgUnit Tree" as Tree
+rectangle "واجهات الخدمات" as Apps
+Central --> Identity : role مركزي
+A --> Identity : branch-manager + scope=A
+B --> Identity : branch-manager + scope=B
+Identity --> Scope : claims
+Scope --> Tree : expand subtree
+Scope --> Apps : allowed OrgUnitIds
+note bottom of Apps
+المركز: كل الوحدات
+الفرع A: A وتفرعاته فقط
+الفرع B: B وتفرعاته فقط
+منع الفروع الشقيقة
+end note
+@enduml

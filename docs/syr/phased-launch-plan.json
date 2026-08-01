@@ -1,0 +1,95 @@
+{
+  "card": "SYR-017",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Syrian payroll phased launch certification and wave plan",
+  "harnessStatus": "Done",
+  "liveLaunchStatus": "Blocked",
+  "liveLaunchNote": "Three consecutive live shadow payroll cycles per system/channel pending national wave authorization",
+  "payrollVolume": {
+    "baselinePayrollCount": 1250000,
+    "baselineWindowHours": 4,
+    "stressPayrollCount": 2000000,
+    "stressNote": "Until SYR-002 census adopts higher ceiling",
+    "governorateCount": 14
+  },
+  "shadowCycles": {
+    "consecutiveRequired": 3,
+    "perSystemChannel": true,
+    "zeroUnexplainedVariance": true,
+    "zeroDuplicateLoss": true
+  },
+  "waves": [
+    {
+      "waveId": "pilot",
+      "name": "Pilot",
+      "sequence": 1,
+      "autoExpand": false,
+      "monitoringDays": 30,
+      "rollbackDefined": true,
+      "commandCenterRequired": true
+    },
+    {
+      "waveId": "agency",
+      "name": "Single agency",
+      "sequence": 2,
+      "autoExpand": false,
+      "monitoringDays": 30,
+      "rollbackDefined": true,
+      "commandCenterRequired": true
+    },
+    {
+      "waveId": "sector",
+      "name": "Sector rollout",
+      "sequence": 3,
+      "autoExpand": false,
+      "monitoringDays": 30,
+      "rollbackDefined": true,
+      "commandCenterRequired": true
+    },
+    {
+      "waveId": "national",
+      "name": "National",
+      "sequence": 4,
+      "autoExpand": false,
+      "monitoringDays": 30,
+      "rollbackDefined": true,
+      "commandCenterRequired": true
+    }
+  ],
+  "waveControls": {
+    "scopeDefined": true,
+    "blastRadiusDefined": true,
+    "rollbackDefined": true,
+    "noAutoExpansion": true,
+    "freezeWindowRespected": true,
+    "file14SignaturesRequired": true
+  },
+  "nat008CrossRef": {
+    "releaseDigestRequired": true,
+    "agenciesRequired": true,
+    "systemsRequired": true,
+    "certificationExpiryRequired": true
+  },
+  "prerequisites": {
+    "syr001to016HarnessOrLive": "harness-defined",
+    "nat001to007Harness": true,
+    "ven001Complete": true
+  },
+  "verification": {
+    "fullScalePayrollRecon": true,
+    "bankPostReconciliation": true,
+    "load72hRequired": true,
+    "drCyberRecoveryRequired": true,
+    "bankIdpCarrierGovernorateFailureDrills": true,
+    "waveRollbackDrill": true,
+    "independentAuditSampleSize": 100
+  },
+  "dependencies": ["SYR-001", "SYR-002", "SYR-003", "SYR-004", "SYR-005", "SYR-006", "SYR-007", "SYR-008", "SYR-009", "SYR-010", "SYR-011", "SYR-012", "SYR-013", "SYR-014", "SYR-015", "SYR-016", "NAT-001", "NAT-002", "NAT-003", "NAT-004", "NAT-005", "NAT-006", "NAT-007", "VEN-001"],
+  "blockers": [
+    { "id": "SYR-015", "status": "NotStarted", "note": "Records/retention matrix pending" },
+    { "id": "SYR-016", "status": "NotStarted", "note": "Syrian cyber compliance crosswalk pending" },
+    { "id": "live-shadow-cycles", "status": "Blocked", "note": "Three consecutive live shadow payroll cycles pending" },
+    { "id": "NAT-008", "status": "Blocked", "note": "National Go/No-Go live decision pending NAT certs" }
+  ]
+}

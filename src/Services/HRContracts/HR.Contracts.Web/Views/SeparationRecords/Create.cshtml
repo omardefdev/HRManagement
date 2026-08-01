@@ -1,0 +1,26 @@
+@model SeparationRecordCreateViewModel
+@{ ViewData["Title"] = "تسجيل إنهاء خدمة"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">سجل إنهاء خدمة جديد</h3></div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="mb-3"><label asp-for="ContractId" class="form-label"></label><select asp-for="ContractId" asp-items="Model.Contracts" class="form-control"><option value="">— بدون —</option></select></div>
+            <div class="mb-3"><label asp-for="SeparationType" class="form-label"></label><select asp-for="SeparationType" class="form-control" asp-items="Html.GetEnumSelectList<SeparationType>()"></select></div>
+            <div class="mb-3"><label asp-for="EffectiveDate" class="form-label"></label><input asp-for="EffectiveDate" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
+            <div class="mb-3">
+                <label class="form-label">المعتمد</label>
+                <input class="form-control" value="يُسجَّل عند الاعتماد" disabled />
+            </div>
+            <div class="mb-3"><label asp-for="Documents" class="form-label"></label><textarea asp-for="Documents" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

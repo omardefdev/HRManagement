@@ -1,0 +1,13 @@
+@model Auth.Directory.Domain.Entities.DirectoryEntry
+@{ ViewData["Title"] = "مدخل دليل"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="DisplayName" class="form-label"></label><input asp-for="DisplayName" class="form-control" /><span asp-validation-for="DisplayName" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="PrimaryEmail" class="form-label"></label><input asp-for="PrimaryEmail" class="form-control" /><span asp-validation-for="PrimaryEmail" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="PrimaryPhone" class="form-label"></label><input asp-for="PrimaryPhone" class="form-control" /><span asp-validation-for="PrimaryPhone" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="PrimaryOrgUnitId" class="form-label"></label><input asp-for="PrimaryOrgUnitId" class="form-control" /><span asp-validation-for="PrimaryOrgUnitId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Status" class="form-label"></label><input asp-for="Status" class="form-control" /><span asp-validation-for="Status" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="LastSyncedAt" class="form-label"></label><input asp-for="LastSyncedAt" class="form-control" type="datetime-local" /><span asp-validation-for="LastSyncedAt" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

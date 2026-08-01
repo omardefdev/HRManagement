@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-CLOCK-SKEW",
+  "expectedValidate": "FAIL",
+  "clockSkewSeconds": 900,
+  "treatedAsValid": true,
+  "notes": "Clock skew beyond maxSkewSeconds treated as valid must fail"
+}

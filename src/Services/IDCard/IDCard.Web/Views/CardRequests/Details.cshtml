@@ -1,0 +1,22 @@
+@model CardRequest
+@{ ViewData["Title"] = "تفاصيل طلب البطاقة"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلب بطاقة</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">طالب البطاقة</dt><dd class="col-sm-9">@Model.RequestedBy</dd>
+            <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Model.RequestDate</dd>
+            <dt class="col-sm-3">الغرض</dt><dd class="col-sm-9">@Model.Purpose</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    @if (Model.Status == CardRequestStatus.Pending)
+    {
+        <form asp-action="ProcessRequest" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success">معالجة الطلب</button></form>
+    }
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد؟')">حذف</button></form>
+</div>
+<p><a asp-action="Index">العودة</a></p>

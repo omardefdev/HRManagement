@@ -1,0 +1,42 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط تسلسل: معالجة دورة رواتب
+actor "مسؤول الرواتب" as Officer
+participant Gateway
+participant Payroll
+participant "قواعد فترة الرواتب" as Rules
+queue RabbitMQ
+participant "Dev.Analytics" as Analytics
+Officer -> Gateway : فتح دورة رواتب
+Gateway -> Payroll : CreatePayrollRun
+Officer -> Gateway : حساب الدورة
+Gateway -> Payroll : Calculate
+Payroll -> Rules : تحقق الأيام والتناسب
+Rules --> Payroll : قواعد تطبيقية
+Officer -> Gateway : مراجعة واعتماد وترحيل
+Gateway -> Payroll : Approve / Post
+Payroll -> RabbitMQ : PayrollProcessed
+RabbitMQ -> Analytics : تحديث المؤشرات
+Payroll --> Gateway : حالة الدورة
+@enduml

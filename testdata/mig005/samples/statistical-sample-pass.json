@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG005-STATISTICAL-SAMPLE",
+  "expectedValidate": "PASS",
+  "sampleSize": 40,
+  "statisticalMin": 30,
+  "errorRate": 0.0,
+  "liveIndependentSql": false
+}

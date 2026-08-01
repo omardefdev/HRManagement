@@ -1,0 +1,24 @@
+{
+  "comment": "QA-002 — ratchet: do not lower globalThreshold or any floor without updating docs/ADR-QA-002-risk-based-coverage.md",
+  "globalThreshold": 60,
+  "gateAssemblies": [
+    "Payroll.Domain",
+    "Payroll.Application",
+    "HR.Core.Domain",
+    "HR.Core.Infrastructure",
+    "HR.Contracts.Domain",
+    "HRManagement.SharedKernel",
+    "Compliance.Domain"
+  ],
+  "floors": {
+    "Payroll.Domain": 75,
+    "Payroll.Application": 75,
+    "Payroll.Infrastructure": 60,
+    "HR.Core.Domain": 70,
+    "HR.Core.Infrastructure": 70,
+    "HRManagement.Gateway": 25,
+    "HRManagement.ServiceDefaults": 40,
+    "Compliance.Domain": 50,
+    "HR.Contracts.Domain": 65
+  }
+}

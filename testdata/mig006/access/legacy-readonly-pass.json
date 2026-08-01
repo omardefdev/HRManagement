@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG006-LEGACY-READONLY",
+  "expectedValidate": "PASS",
+  "readOnlyAfterCutover": true,
+  "writeAccessRevoked": true,
+  "secured": true,
+  "liveAgencyCutover": false
+}

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\File.Storage.Domain\File.Storage.Domain.csproj" />
+    <ProjectReference Include="..\File.Storage.Infrastructure\File.Storage.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.FileStorage\HRManagement.FileStorage.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

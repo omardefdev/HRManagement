@@ -1,0 +1,149 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-gateway
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hr-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-core-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hr-core-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-contracts-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hr-contracts-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-health-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hr-health-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-movements-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hr-movements-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hr-training-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hr-training-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payroll-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: payroll-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: idcard-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: idcard-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: records-archive-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: records-archive-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: admin-logistics-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: admin-logistics-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: it-infra-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: it-infra-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dev-analytics-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dev-analytics-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: compliance-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: compliance-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-directory-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth-directory-web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: file-storage-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: file-storage-web

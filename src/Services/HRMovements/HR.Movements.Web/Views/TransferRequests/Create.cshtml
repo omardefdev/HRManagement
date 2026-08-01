@@ -1,0 +1,25 @@
+@model HR.Movements.Domain.Entities.TransferRequest
+@{ ViewData["Title"] = "طلب نقل"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="mb-3"><label asp-for="FromOrgUnitId" class="form-label"></label><select asp-for="FromOrgUnitId" class="form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select></div>
+            <div class="mb-3"><label asp-for="ToOrgUnitId" class="form-label"></label><select asp-for="ToOrgUnitId" class="form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select></div>
+            <div class="mb-3"><label asp-for="RequestDate" class="form-label"></label><input asp-for="RequestDate" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
+            <div class="mb-3">
+                <label class="form-label">الحالة</label>
+                <input class="form-control" value="قيد الانتظار" disabled />
+                <div class="form-text">يُعتمد طلب النقل عبر إجراء الموافقة.</div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

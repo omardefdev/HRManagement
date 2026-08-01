@@ -1,0 +1,23 @@
+@model LegalReferral
+@{ ViewData["Title"] = "تفاصيل الإحالة القانونية"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">إحالة قانونية</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">الوحدة المصدرة</dt>
+            <dd class="col-sm-9">@(Model.OriginatingUnit?.ToString() ?? "—")</dd>
+            <dt class="col-sm-3">محال إلى</dt>
+            <dd class="col-sm-9">@(Model.ReferredTo ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإحالة</dt>
+            <dd class="col-sm-9">@Model.ReferralDate?.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">المستندات</dt>
+            <dd class="col-sm-9">@(Model.Documents ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3">العودة</a>

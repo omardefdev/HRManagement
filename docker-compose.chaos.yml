@@ -1,0 +1,54 @@
+# NFR-002 optional Toxiproxy (profile: chaos)
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.chaos.yml --profile chaos up -d toxiproxy
+# Then create proxies via scripts/nfr-chaos-inject (or bootstrap below).
+
+services:
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    container_name: hrm-toxiproxy
+    profiles: ["chaos"]
+    ports:
+      - "8474:8474"   # API
+      - "15432:15432" # proxied postgres
+      - "15672:15672" # proxied rabbitmq amqp
+      - "15000:15000" # optional proxied gateway http
+    networks:
+      - default
+    # Proxies are created by bootstrap script / inject script (idempotent upsert).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8474/version"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot helper to register default proxies against compose service names.
+  toxiproxy-bootstrap:
+    image: curlimages/curl:8.5.0
+    profiles: ["chaos"]
+    depends_on:
+      toxiproxy:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        API=http://toxiproxy:8474
+        upsert() {
+          name=$$1; listen=$$2; upstream=$$3
+          curl -sf -X POST "$$API/proxies" -H 'Content-Type: application/json' \
+            -d "{\"name\":\"$$name\",\"listen\":\"$$listen\",\"upstream\":\"$$upstream\",\"enabled\":true}" \
+            || curl -sf -X POST "$$API/proxies/$$name" -H 'Content-Type: application/json' \
+            -d "{\"name\":\"$$name\",\"listen\":\"$$listen\",\"upstream\":\"$$upstream\",\"enabled\":true}" \
+            || true
+        }
+        sleep 2
+        upsert pg "0.0.0.0:15432" "postgresql:5432"
+        upsert rabbit "0.0.0.0:15672" "rabbitmq:5672"
+        upsert gateway "0.0.0.0:15000" "gateway:8080"
+        curl -sf "$$API/proxies" | head -c 500
+        echo
+        echo "toxiproxy bootstrap done"
+    networks:
+      - default
+    restart: "no"

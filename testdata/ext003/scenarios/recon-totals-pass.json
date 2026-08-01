@@ -1,0 +1,11 @@
+{
+  "scenarioId": "SIM-RECON-TOTALS",
+  "expectedValidate": "PASS",
+  "orderTotal": 100000,
+  "runNetPayable": 100000,
+  "orderLineCount": 12,
+  "runLineCount": 12,
+  "accountVerified": true,
+  "settlementState": "Settled",
+  "notes": "Matching totals and line counts pass recon"
+}

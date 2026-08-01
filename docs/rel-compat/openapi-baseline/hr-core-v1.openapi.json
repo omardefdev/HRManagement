@@ -1,0 +1,111 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HR Core API",
+    "version": "1.2.0",
+    "description": "REL-004 lab baseline stub — employee master-data read surface (GOV-003 SoR channel)"
+  },
+  "servers": [
+    { "url": "/api/hr-core", "description": "Gateway route hr-core-route" }
+  ],
+  "paths": {
+    "/employees/{id}": {
+      "get": {
+        "operationId": "getEmployeeById",
+        "tags": ["Employees"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employee found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EmployeeDto" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/employees": {
+      "get": {
+        "operationId": "listEmployees",
+        "tags": ["Employees"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paged employee list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EmployeeListPage" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EmployeeDto": {
+        "type": "object",
+        "required": ["id", "nationalId", "fullName", "status"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nationalId": { "type": "string" },
+          "fullName": { "type": "string" },
+          "status": { "type": "string", "enum": ["Active", "OnLeave", "Separated"] },
+          "departmentName": {
+            "type": "string",
+            "deprecated": true,
+            "description": "DEP-2026-003 — use orgUnit.displayName"
+          },
+          "orgUnit": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "displayName": { "type": "string" }
+            }
+          }
+        }
+      },
+      "EmployeeListPage": {
+        "type": "object",
+        "required": ["items", "page", "pageSize", "totalCount"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/EmployeeDto" }
+          },
+          "page": { "type": "integer" },
+          "pageSize": { "type": "integer" },
+          "totalCount": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

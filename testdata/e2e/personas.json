@@ -1,0 +1,85 @@
+{
+  "personas": [
+    {
+      "id": "maker-contracts",
+      "username": "e2e-maker-contracts",
+      "passwordEnv": "E2E_PERSONA_MAKER_CONTRACTS_PASSWORD",
+      "defaultPassword": "e2e-MakerContracts-1!",
+      "roles": ["hr-contracts"],
+      "tenantCode": "tenant-a",
+      "purpose": "Hire/leave maker"
+    },
+    {
+      "id": "checker-mgmt",
+      "username": "e2e-checker-mgmt",
+      "passwordEnv": "E2E_PERSONA_CHECKER_MGMT_PASSWORD",
+      "defaultPassword": "e2e-CheckerMgmt-1!",
+      "roles": ["hr-management-approver"],
+      "tenantCode": "tenant-a",
+      "purpose": "Management approve / SoD checker"
+    },
+    {
+      "id": "payroll-processor",
+      "username": "e2e-payroll-processor",
+      "passwordEnv": "E2E_PERSONA_PAYROLL_PROCESSOR_PASSWORD",
+      "defaultPassword": "e2e-PayrollProc-1!",
+      "roles": ["payroll-processor", "payroll"],
+      "tenantCode": "tenant-a",
+      "purpose": "Payroll maker"
+    },
+    {
+      "id": "payroll-approver",
+      "username": "e2e-payroll-approver",
+      "passwordEnv": "E2E_PERSONA_PAYROLL_APPROVER_PASSWORD",
+      "defaultPassword": "e2e-PayrollAppr-1!",
+      "roles": ["payroll-approver", "payroll"],
+      "tenantCode": "tenant-a",
+      "purpose": "Payroll checker — must differ from processor"
+    },
+    {
+      "id": "movements-ops",
+      "username": "e2e-movements-ops",
+      "passwordEnv": "E2E_PERSONA_MOVEMENTS_PASSWORD",
+      "defaultPassword": "e2e-Movements-1!",
+      "roles": ["hr-movements"],
+      "tenantCode": "tenant-a",
+      "purpose": "Transfer maker"
+    },
+    {
+      "id": "file-ops",
+      "username": "e2e-file-ops",
+      "passwordEnv": "E2E_PERSONA_FILE_OPS_PASSWORD",
+      "defaultPassword": "e2e-FileOps-1!",
+      "roles": ["file-storage"],
+      "tenantCode": "tenant-a",
+      "purpose": "File upload/download"
+    },
+    {
+      "id": "outsider-tenant-b",
+      "username": "e2e-outsider-b",
+      "passwordEnv": "E2E_PERSONA_OUTSIDER_B_PASSWORD",
+      "defaultPassword": "e2e-OutsiderB-1!",
+      "roles": ["hr-core"],
+      "tenantCode": "tenant-b",
+      "purpose": "Cross-tenant negative"
+    },
+    {
+      "id": "auth-directory",
+      "username": "e2e-auth-directory",
+      "passwordEnv": "E2E_PERSONA_AUTH_DIRECTORY_PASSWORD",
+      "defaultPassword": "e2e-AuthDir-1!",
+      "roles": ["auth-directory"],
+      "tenantCode": "tenant-a",
+      "purpose": "Role assignment maker"
+    },
+    {
+      "id": "hr-admin",
+      "username": "e2e-hr-admin",
+      "passwordEnv": "E2E_PERSONA_HR_ADMIN_PASSWORD",
+      "defaultPassword": "e2e-HrAdmin-1!",
+      "roles": ["hr-admin"],
+      "tenantCode": "tenant-a",
+      "purpose": "Four-eyes role grant checker"
+    }
+  ]
+}

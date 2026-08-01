@@ -1,0 +1,156 @@
+@model HR.Core.Web.ViewModels.EmployeeListViewModel
+@using HRManagement.SharedKernel
+@{
+    ViewData["Title"] = "إدارة الموظفين";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-users"></i> قائمة الموظفين</h3>
+        <div class="card-tools">
+            <a asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> إضافة موظف جديد
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="mb-3">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <input type="text" name="SearchTerm" value="@Model.Filter.SearchTerm"
+                           class="form-control" placeholder="بحث بالاسم أو الرقم الوطني..." />
+                </div>
+                <div class="col-md-2">
+                    <select name="OrgUnitId" asp-items="ViewBag.OrgUnits" class="form-control">
+                        <option value="">-- الوحدة التنظيمية --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="Status" class="form-control">
+                        <option value="">-- الحالة --</option>
+                        @{
+                            var statusOpts = new[] { ("Active", "نشط"), ("Suspended", "موقوف"), ("Terminated", "منتهي"), ("Retired", "متقاعد"), ("OnLeave", "في إجازة"), ("Seconded", "منتدب") };
+                            foreach (var o in statusOpts)
+                            {
+                                if (Model.Filter.Status == o.Item1)
+                                { <option value="@o.Item1" selected>@o.Item2</option> }
+                                else
+                                { <option value="@o.Item1">@o.Item2</option> }
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="Gender" class="form-control">
+                        <option value="">-- الجنس --</option>
+                        @{
+                            var genderOpts = new[] { ("Male", "ذكر"), ("Female", "أنثى") };
+                            foreach (var o in genderOpts)
+                            {
+                                if (Model.Filter.Gender == o.Item1)
+                                { <option value="@o.Item1" selected>@o.Item2</option> }
+                                else
+                                { <option value="@o.Item1">@o.Item2</option> }
+                            }
+                        }
+                    </select>
+                </div>
+                @if (ViewBag.CadreRestricted == null)
+                {
+                    <div class="col-md-2">
+                        <select name="Cadre" class="form-control">
+                            <option value="">-- الشريحة --</option>
+                            @{
+                                var cadreOpts = new[] { ("Supervisory", "كادر إشرافي"), ("Executive", "تنفيذي") };
+                                foreach (var o in cadreOpts)
+                                {
+                                    if (Model.Filter.Cadre == o.Item1)
+                                    { <option value="@o.Item1" selected>@o.Item2</option> }
+                                    else
+                                    { <option value="@o.Item1">@o.Item2</option> }
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> بحث</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-times"></i> مسح</a>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>الاسم الكامل</th>
+                        <th>الرقم الوطني</th>
+                        <th>الوحدة التنظيمية</th>
+                        <th>الحالة الوظيفية</th>
+                        <th>الشريحة</th>
+                        <th>تاريخ التعيين</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in Model.Employees.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@emp.Id">@emp.FullName</a>
+                            </td>
+                            <td>@PiiMask.NationalId(emp.NationalId)</td>
+                            <td>@(emp.PrimaryOrgUnit?.NameAr ?? "—")</td>
+                            <td>
+                                @switch (emp.CurrentStatus)
+                                {
+                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Active:
+                                        <span class="badge bg-success">نشط</span>
+                                        break;
+                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Suspended:
+                                        <span class="badge bg-warning">موقوف</span>
+                                        break;
+                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Terminated:
+                                        <span class="badge bg-danger">منتهي</span>
+                                        break;
+                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Retired:
+                                        <span class="badge bg-secondary">متقاعد</span>
+                                        break;
+                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.OnLeave:
+                                        <span class="badge bg-info">في إجازة</span>
+                                        break;
+                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Seconded:
+                                        <span class="badge bg-primary">منتدب</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@(emp.Cadre == HRManagement.SharedKernel.Enums.EmployeeCadre.Supervisory ? "إشرافي" : "تنفيذي")</td>
+                            <td>@(emp.HireDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@emp.Id" class="btn btn-info btn-xs" title="تفاصيل">
+                                    <i aria-hidden="true" class="fas fa-eye"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-warning btn-xs" title="تعديل">
+                                    <i aria-hidden="true" class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Employees.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                لا يوجد موظفون مسجلون
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Employees))
+    </div>
+</div>
+

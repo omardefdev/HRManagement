@@ -1,0 +1,340 @@
+{
+  "card": "MIG-002",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "mappingVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "allowedDispositions": ["Map", "Transform", "Quarantine"],
+  "requiredCodeMapFields": [
+    "mapId",
+    "sourceId",
+    "sourceField",
+    "sourceValue",
+    "targetField",
+    "targetValue",
+    "disposition",
+    "effectiveFrom"
+  ],
+  "canonicalEntities": [
+    {
+      "id": "employee",
+      "fields": ["NationalId", "FullName", "CurrentStatus", "PrimaryOrgUnitId", "Gender", "Cadre"],
+      "provenanceRequired": true,
+      "effectiveDatesRequired": true
+    },
+    {
+      "id": "org",
+      "fields": ["Code", "NameAr", "MaterializedPath"],
+      "provenanceRequired": true,
+      "effectiveDatesRequired": true
+    },
+    {
+      "id": "job",
+      "fields": ["PositionTitle"],
+      "provenanceRequired": true,
+      "effectiveDatesRequired": false,
+      "note": "MDM-001 catalog deferred; free text interim"
+    },
+    {
+      "id": "payroll",
+      "fields": ["BaseSalary", "RegimeCode"],
+      "provenanceRequired": true,
+      "effectiveDatesRequired": true
+    },
+    {
+      "id": "document",
+      "fields": ["DocumentType", "LegacyDocId"],
+      "provenanceRequired": true,
+      "effectiveDatesRequired": false
+    }
+  ],
+  "unmappedPolicy": {
+    "forbidOther": true,
+    "otherBucketMaxRate": 0.02,
+    "quarantineQueueId": "mig002-quarantine",
+    "forbiddenCatchAllValues": ["Other", "OTHER", "misc", "unknown-dump"]
+  },
+  "legacyIdPolicy": {
+    "storeAsReferenceOnly": true,
+    "neverUseAsAuthOrTenantKey": true,
+    "referenceFields": ["EmpNo", "NAT_ID", "BadgeId", "LegacyDocId", "LOGIN_HINT"],
+    "platformKey": "Guid"
+  },
+  "localeCalendar": {
+    "timezone": "Asia/Damascus",
+    "calendarSystem": "Gregorian",
+    "primaryLocale": "ar-SY",
+    "dateFormats": ["yyyy-MM-dd", "dd/MM/yyyy", "yyyyMMdd"],
+    "encodingTransforms": [
+      { "from": "windows-1256", "to": "utf-8", "sourceId": "legacy-hr-batch" }
+    ]
+  },
+  "identifiers": [
+    {
+      "name": "EmployeeId",
+      "kind": "platformKey",
+      "type": "Guid",
+      "securityKey": false
+    },
+    {
+      "name": "EmpNo",
+      "kind": "legacyReference",
+      "type": "string",
+      "securityKey": false
+    },
+    {
+      "name": "TenantId",
+      "kind": "platformKey",
+      "type": "Guid",
+      "securityKey": true,
+      "note": "From TEN-001 JWT; never from EmpNo"
+    }
+  ],
+  "signing": {
+    "signedByRole": "data-architecture",
+    "reviewerRole": "legal-hr-finance",
+    "mappingVersion": "2026.07.30.1",
+    "contentHash": "sha256:mig002-lab-maps-20260730",
+    "signedAt": "2026-07-30"
+  },
+  "codeMaps": [
+    {
+      "mapId": "CM-STATUS-A",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "sourceValue": "A",
+      "targetField": "Employee.CurrentStatus",
+      "targetValue": "Active",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "agency-pilot-a HR codebook v1"
+    },
+    {
+      "mapId": "CM-STATUS-T",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "sourceValue": "T",
+      "targetField": "Employee.CurrentStatus",
+      "targetValue": "Terminated",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "agency-pilot-a HR codebook v1"
+    },
+    {
+      "mapId": "CM-STATUS-S",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "sourceValue": "S",
+      "targetField": "Employee.CurrentStatus",
+      "targetValue": "Suspended",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "agency-pilot-a HR codebook v1"
+    },
+    {
+      "mapId": "CM-STATUS-XX",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "sourceValue": "XX",
+      "targetField": "Employee.CurrentStatus",
+      "targetValue": null,
+      "disposition": "Quarantine",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "unknown legacy status — quarantine"
+    },
+    {
+      "mapId": "CM-ORG-HQ",
+      "sourceId": "legacy-org-files",
+      "sourceField": "ORG_CODE",
+      "sourceValue": "HQ",
+      "targetField": "OrgUnit.Code",
+      "targetValue": "HQ",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "org file seed"
+    },
+    {
+      "mapId": "CM-ORG-BR1",
+      "sourceId": "legacy-org-files",
+      "sourceField": "ORG_CODE",
+      "sourceValue": "BR1",
+      "targetField": "OrgUnit.Code",
+      "targetValue": "BR1",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "org file seed"
+    },
+    {
+      "mapId": "CM-ORG-LEGACY-Z",
+      "sourceId": "legacy-org-files",
+      "sourceField": "ORG_CODE",
+      "sourceValue": "Z-OLD",
+      "targetField": "OrgUnit.Code",
+      "targetValue": null,
+      "disposition": "Quarantine",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "defunct org — quarantine"
+    },
+    {
+      "mapId": "CM-JOB-CLERK",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "JOB_TITLE",
+      "sourceValue": "كاتب",
+      "targetField": "EmploymentRecord.PositionTitle",
+      "targetValue": "كاتب",
+      "disposition": "Transform",
+      "transformId": "trim-normalize-ar",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "free text interim pending MDM-001"
+    },
+    {
+      "mapId": "CM-JOB-BLANK",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "JOB_TITLE",
+      "sourceValue": "",
+      "targetField": "EmploymentRecord.PositionTitle",
+      "targetValue": null,
+      "disposition": "Quarantine",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "empty title"
+    },
+    {
+      "mapId": "CM-REGIME-50",
+      "sourceId": "legacy-payroll",
+      "sourceField": "REGIME",
+      "sourceValue": "50-2004",
+      "targetField": "Payroll.RegimeCode",
+      "targetValue": "LAW_50_2004",
+      "disposition": "Map",
+      "effectiveFrom": "2004-01-01",
+      "provenance": "GOV-002 / PayrollRegimeSeed"
+    },
+    {
+      "mapId": "CM-REGIME-CS26",
+      "sourceId": "legacy-payroll",
+      "sourceField": "REGIME",
+      "sourceValue": "CS-2026",
+      "targetField": "Payroll.RegimeCode",
+      "targetValue": "CIVIL_SERVICE_2026",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "interim civil service seed"
+    },
+    {
+      "mapId": "CM-GENDER-M",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "GENDER",
+      "sourceValue": "M",
+      "targetField": "Employee.Gender",
+      "targetValue": "Male",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "HR codebook"
+    },
+    {
+      "mapId": "CM-GENDER-F",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "GENDER",
+      "sourceValue": "F",
+      "targetField": "Employee.Gender",
+      "targetValue": "Female",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "HR codebook"
+    },
+    {
+      "mapId": "CM-NAME-TRIM",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "FULL_NAME",
+      "sourceValue": "*",
+      "targetField": "Employee.FullName",
+      "targetValue": "*",
+      "disposition": "Transform",
+      "transformId": "trim-collapse-whitespace",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "wildcard transform for all names"
+    },
+    {
+      "mapId": "CM-DOC-IDCARD",
+      "sourceId": "legacy-docs-share",
+      "sourceField": "DOC_TYPE",
+      "sourceValue": "ID",
+      "targetField": "Document.DocumentType",
+      "targetValue": "NationalIdCopy",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "docs share codebook"
+    }
+  ],
+  "requiredCoverageDomains": [
+    { "sourceId": "legacy-hr-batch", "sourceField": "STATUS_CODE" },
+    { "sourceId": "legacy-org-files", "sourceField": "ORG_CODE" },
+    { "sourceId": "legacy-hr-batch", "sourceField": "JOB_TITLE" },
+    { "sourceId": "legacy-payroll", "sourceField": "REGIME" },
+    { "sourceId": "legacy-hr-batch", "sourceField": "GENDER" }
+  ],
+  "blockers": [
+    { "id": "MIG-001", "status": "Satisfied", "note": "Inventory gate Done" },
+    { "id": "TEN-001", "status": "Satisfied", "note": "Tenant model Done" },
+    { "id": "GOV-003", "status": "Satisfied", "note": "Field ownership Done" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Lab value universes" },
+    { "id": "SYR-003", "status": "Blocked", "note": "Full legal_regime model later" },
+    { "id": "MDM-001", "status": "Blocked", "note": "Position catalog deferred" }
+  ],
+  "journeys": [
+    {
+      "id": "CanonicalModel",
+      "steps": [
+        { "id": "FiveEntities", "mandatory": true, "ownerRole": "data-architecture", "slaHours": 48, "evidenceType": "canonicalEntities", "service": "docs", "event": null },
+        { "id": "ProvenanceFlags", "mandatory": true, "ownerRole": "data-architecture", "slaHours": 24, "evidenceType": "provenanceRequired", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "CodeMapCoverage",
+      "steps": [
+        { "id": "DomainsCovered", "mandatory": true, "ownerRole": "data", "slaHours": 72, "evidenceType": "codeMaps", "service": "docs", "event": null },
+        { "id": "DispositionRequired", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "disposition", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "NoMassOther",
+      "steps": [
+        { "id": "ForbidOther", "mandatory": true, "ownerRole": "audit", "slaHours": 24, "evidenceType": "unmappedPolicy", "service": "docs", "event": null },
+        { "id": "MassOtherFails", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "mass-other-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "LegacyIdReference",
+      "steps": [
+        { "id": "ReferenceOnly", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "legacyIdPolicy", "service": "docs", "event": null },
+        { "id": "AuthKeyFails", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "legacy-id-as-auth-key-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RoundTrip",
+      "steps": [
+        { "id": "StatusOrgSamples", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "roundtrip", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "LegalBusinessSignOff",
+      "steps": [
+        { "id": "SignedMapping", "mandatory": true, "ownerRole": "legal-hr-finance", "slaHours": 48, "evidenceType": "signing", "service": "docs", "event": null },
+        { "id": "SignoffFixture", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "legal-business-signoff", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "mappingCoverage": "testdata/mig002/coverage/mapping-coverage.json",
+    "roundTrip": "testdata/mig002/roundtrip/status-org-roundtrip.json",
+    "massOtherFail": "testdata/mig002/scenarios/mass-other-fail.json",
+    "unmappedNoQuarantineFail": "testdata/mig002/scenarios/unmapped-no-quarantine-fail.json",
+    "legacyIdAsAuthFail": "testdata/mig002/scenarios/legacy-id-as-auth-key-fail.json",
+    "legalBusinessSignoff": "testdata/mig002/signoff/legal-business-signoff.json"
+  },
+  "joins": {
+    "mig001Inventory": "docs/mig-inventory/source-inventory.json",
+    "gov003FieldOwnership": "docs/master-data/field-ownership.json",
+    "str001Envelope": "docs/str-scope/envelope-matrix.json"
+  }
+}

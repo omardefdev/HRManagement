@@ -1,0 +1,16 @@
+{
+  "scenarioId": "SIM-LAW-CHANGE",
+  "type": "LawChange",
+  "title": "Interim payroll rule pending gazette",
+  "decisionId": "PG-LAW-2026-07-SIM",
+  "ownerRole": "legal",
+  "reviewerRole": "architecture",
+  "board": "Architecture",
+  "adrRequired": true,
+  "adrRef": "docs/ADR-STR-005-program-governance-boards.md",
+  "exceptionId": "EX-STR005-SIM-LAW-INTERIM",
+  "riskId": "RK-STR005-LAW-LAG",
+  "gov002Handoff": "Update legal-decisions/register.json when gazette lands",
+  "outcome": "ApprovedInterim",
+  "notes": "Owner legal + reviewer architecture; temporary exception declared"
+}

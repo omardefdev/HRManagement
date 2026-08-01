@@ -1,0 +1,146 @@
+@model HR.Core.Web.ViewModels.ReportsSummaryViewModel
+@{
+    ViewData["Title"] = "التقارير والتصدير";
+}
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="info-box bg-info">
+            <span class="info-box-icon"><i class="fas fa-users"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">إجمالي الموظفين</span>
+                <span class="info-box-number">@Model.TotalEmployees</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-file-export"></i> تصدير البيانات</h3>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card card-outline card-primary h-100">
+                    <div class="card-header"><h5 class="card-title">قائمة الموظفين</h5></div>
+                    <div class="card-body">
+                        <p>تصدير بيانات جميع الموظفين بتنسيقات مختلفة</p>
+                        <form asp-action="ExportEmployeesCsv" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-csv"></i> CSV</button></form>
+                        <form asp-action="ExportEmployeesExcel" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-success"><i class="fas fa-file-excel"></i> Excel</button></form>
+                        <form asp-action="ExportEmployeesPdf" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-file-pdf"></i> PDF</button></form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card card-outline card-warning h-100">
+                    <div class="card-header"><h5 class="card-title">سجل حالة التوظيف</h5></div>
+                    <div class="card-body">
+                        <p>تصدير سجل تغييرات الحالة الوظيفية</p>
+                        <form asp-action="ExportStatusHistoryCsv" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-csv"></i> CSV</button></form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card card-outline card-success h-100">
+                    <div class="card-header"><h5 class="card-title">التقييمات</h5></div>
+                    <div class="card-body">
+                        <p>تصدير بيانات تقييمات الأداء</p>
+                        <form asp-action="ExportEvaluationsCsv" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-csv"></i> CSV</button></form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">توزيع حسب الحالة</h3></div>
+            <div class="card-body">
+                <canvas id="chartStatus" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">توزيع حسب الوحدة التنظيمية</h3></div>
+            <div class="card-body">
+                <canvas id="chartOrgUnit" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">توزيع حسب الشريحة</h3></div>
+            <div class="card-body">
+                <canvas id="chartCadre" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">توزيع حسب الجنس</h3></div>
+            <div class="card-body">
+                <canvas id="chartGender" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+    <script>
+        const colors = ['#007bff','#28a745','#ffc107','#dc3545','#6f42c1','#17a2b8','#fd7e14','#20c997'];
+
+        new Chart(document.getElementById('chartStatus'), {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByStatus.Select(x => x.Label))),
+                datasets: [{
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByStatus.Select(x => x.Count))),
+                    backgroundColor: colors
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('chartOrgUnit'), {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByOrgUnit.Select(x => x.Label))),
+                datasets: [{
+                    label: 'عدد الموظفين',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByOrgUnit.Select(x => x.Count))),
+                    backgroundColor: '#007bff'
+                }]
+            },
+            options: { indexAxis: 'y' }
+        });
+
+        new Chart(document.getElementById('chartCadre'), {
+            type: 'pie',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByCadre.Select(x => x.Label))),
+                datasets: [{
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByCadre.Select(x => x.Count))),
+                    backgroundColor: ['#007bff','#28a745']
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('chartGender'), {
+            type: 'pie',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByGender.Select(x => x.Label))),
+                datasets: [{
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByGender.Select(x => x.Count))),
+                    backgroundColor: ['#17a2b8','#fd7e14']
+                }]
+            }
+        });
+    </script>
+}

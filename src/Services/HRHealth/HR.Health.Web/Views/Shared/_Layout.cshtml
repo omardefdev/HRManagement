@@ -1,0 +1,32 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "hr-health";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">الصحة واللجان الطبية</li>
+    <li class="nav-item"><a asp-controller="MedicalRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-notes-medical"></i><p>السجلات الطبية</p></a></li>
+    <li class="nav-item"><a asp-controller="MedicalCommitteeReports" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-md"></i><p>تقارير اللجان الطبية</p></a></li>
+    <li class="nav-item"><a asp-controller="PeriodicMedicalChecks" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-heartbeat"></i><p>الفحوصات الدورية</p></a></li>
+    <li class="nav-item"><a asp-controller="MedicalRecommendations" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-check"></i><p>التوصيات الطبية</p></a></li>
+    <li class="nav-item"><a asp-controller="HealthStatusEntries" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-stethoscope"></i><p>حالة الصحة</p></a></li>
+    <li class="nav-item"><a asp-controller="InsuranceCards" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-id-card-alt"></i><p>بطاقات التأمين</p></a></li>
+    <li class="nav-item"><a asp-controller="InsuranceContracts" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-shield-alt"></i><p>عقود التأمين</p></a></li>
+    <li class="nav-item"><a asp-controller="HealthRetirementRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-wheelchair"></i><p>التقاعد الصحي</p></a></li>
+    <li class="nav-header">الصحة والسلامة المهنية</li>
+    <li class="nav-item"><a asp-controller="WorkplaceSafety" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-hard-hat"></i><p>حوادث العمل</p></a></li>
+    <li class="nav-item"><a asp-controller="WorkplaceSafety" asp-action="Inspections" class="nav-link"><i class="nav-icon fas fa-clipboard-list"></i><p>تفتيش السلامة</p></a></li>
+    <li class="nav-item"><a asp-controller="WorkplaceSafety" asp-action="FirstAid" class="nav-link"><i class="nav-icon fas fa-briefcase-medical"></i><p>الإسعافات الأولية</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

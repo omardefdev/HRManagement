@@ -1,0 +1,78 @@
+@model HR.Contracts.Domain.Entities.ServiceTransaction
+@using HR.Contracts.Domain.Enums
+@{ ViewData["Title"] = "تفاصيل المعاملة"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-file-alt"></i> تفاصيل المعاملة</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+        <table class="table table-sm">
+            <tr><th>المعرّف</th><td>@Model.Id</td></tr>
+            <tr><th>الرقم المرجعي</th><td>@(Model.ReferenceNumber ?? "—")</td></tr>
+            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>النوع</th><td>@Model.TransactionType</td></tr>
+            <tr><th>الحالة الحالية</th><td><span class="badge bg-info fs-6">@Model.State</span></td></tr>
+            <tr><th>ملاحظات</th><td>@(Model.Notes ?? "—")</td></tr>
+        </table>
+
+        @{
+            var nextStates = Model.State switch
+            {
+                ServiceTransactionState.Draft => new[] { ServiceTransactionState.Submitted, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.Submitted => new[] { ServiceTransactionState.UnderReview, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.UnderReview => new[] { ServiceTransactionState.NeedsInfo, ServiceTransactionState.InProcess, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.NeedsInfo => new[] { ServiceTransactionState.UnderReview, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.InProcess => new[] { ServiceTransactionState.PendingApproval, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.PendingApproval => new[] { ServiceTransactionState.Approved, ServiceTransactionState.Rejected, ServiceTransactionState.InProcess },
+                ServiceTransactionState.Rejected => new[] { ServiceTransactionState.InProcess, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.Approved => new[] { ServiceTransactionState.Executing, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.Executing => new[] { ServiceTransactionState.PostProcessing, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.PostProcessing => new[] { ServiceTransactionState.Completed, ServiceTransactionState.Cancelled },
+                ServiceTransactionState.Completed => new[] { ServiceTransactionState.Archived },
+                _ => Array.Empty<ServiceTransactionState>()
+            };
+        }
+
+        @if (nextStates.Any())
+        {
+            <h6 class="mt-3">نقل إلى حالة:</h6>
+            <div class="d-flex gap-2 flex-wrap">
+                @foreach (var ns in nextStates)
+                {
+                    var btnClass = ns == ServiceTransactionState.Cancelled ? "btn-outline-danger" : "btn-outline-primary";
+                    <form asp-action="Advance" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="nextState" value="@ns" />
+                        <button type="submit" class="btn @btnClass btn-sm">@ns</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0"><i class="fas fa-history"></i> سجل تاريخ الحالات</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>من</th><th>إلى</th><th>بواسطة</th><th>السبب</th><th>التاريخ</th></tr></thead>
+            <tbody>
+                @foreach (var h in Model.StateHistory.OrderByDescending(h => h.CreatedAt))
+                {
+                    <tr>
+                        <td>@h.FromState</td>
+                        <td>@h.ToState</td>
+                        <td>@(h.ChangedBy?.ToString() ?? "—")</td>
+                        <td>@(h.Reason ?? "—")</td>
+                        <td>@h.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    </tr>
+                }
+                @if (!Model.StateHistory.Any()) { <tr><td colspan="5" class="text-muted text-center py-3">لا يوجد سجل</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

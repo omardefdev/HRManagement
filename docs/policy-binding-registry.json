@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "policies": [
+    { "path": "docs/frd/anomaly-rules.json", "card": "FRD-001", "binding": "production", "loader": "FrdAnomalyRulesProvider" },
+    { "path": "docs/sov-zt/zero-trust-matrix.json", "card": "SOV-004", "binding": "production", "loader": "SovZtProvider" },
+    { "path": "docs/prod-policy/policy-platform-matrix.json", "card": "PROD-001", "binding": "production", "loader": "ProdPolicyProvider" },
+    { "path": "docs/str-modules/module-catalog.json", "card": "STR-003", "binding": "production", "loader": "ModuleCatalogProvider" },
+    { "path": "docs/str-scope/envelope-matrix.json", "card": "STR-005", "binding": "production", "loader": "NationalScopeProvider" },
+    { "path": "docs/str-legal/control-catalog.json", "card": "STR-007", "binding": "production", "loader": "LegalControlCatalogProvider" },
+    { "path": "docs/str-legal/legislative-watch-stamp.json", "card": "STR-007", "binding": "production", "loader": "LegalControlCatalogProvider" },
+    { "path": "docs/str-governance/governance-matrix.json", "card": "STR-008", "binding": "production", "loader": "ProgramGovernanceProvider" },
+    { "path": "docs/str-governance/decision-log.json", "card": "STR-008", "binding": "production", "loader": "ProgramGovernanceProvider" },
+    { "path": "docs/str-governance/risk-register.json", "card": "STR-008", "binding": "production", "loader": "ProgramGovernanceProvider" },
+    { "path": "docs/prd-product/capability-map.json", "card": "PRD-001", "binding": "production", "loader": "CapabilityRegistry" },
+    { "path": "docs/prd-product/agency-archetypes.json", "card": "PRD-001", "binding": "production", "loader": "CapabilityRegistry" },
+    { "path": "docs/nat/nat003-checklist.json", "card": "NAT-003", "binding": "documentation", "loader": null },
+    { "path": "docs/nat/go-no-go-decision.json", "card": "NAT-001", "binding": "documentation", "loader": null },
+    { "path": "docs/fun-htc/journey-matrix.json", "card": "FUN-004", "binding": "documentation", "loader": null }
+  ]
+}

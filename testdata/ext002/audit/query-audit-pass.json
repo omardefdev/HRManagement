@@ -1,0 +1,22 @@
+{
+  "fixtureId": "EXT002-QUERY-AUDIT",
+  "expectedValidate": "PASS",
+  "entries": [
+    {
+      "queryId": "q-001",
+      "purposeCode": "hire-identity-proof",
+      "actor": "hr-officer-01",
+      "tenantId": "tenant-pilot-a",
+      "outcome": "Match",
+      "queriedAt": "2026-07-28T10:00:00Z"
+    },
+    {
+      "queryId": "q-002",
+      "purposeCode": "dsar-identity-confirm",
+      "actor": "privacy-officer-01",
+      "tenantId": "tenant-pilot-a",
+      "outcome": "Mismatch",
+      "queriedAt": "2026-07-28T11:00:00Z"
+    }
+  ]
+}

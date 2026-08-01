@@ -1,0 +1,2 @@
+defectId,severity,title,discoveredAt,escapedFrom,rootCause,status,waiverId
+REL2-DEF-001,P2,example-template-row,2026-07-30,staging,example,Open,

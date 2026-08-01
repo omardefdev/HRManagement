@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"keyId":"kek-payroll","purpose":"payroll-encrypt","custodyType":"lab-mock-hsm","actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/sov003","outcome":"pass","ceremonyRef":"cer-lab-1"}]}

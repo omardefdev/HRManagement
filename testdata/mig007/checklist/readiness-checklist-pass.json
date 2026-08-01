@@ -1,0 +1,14 @@
+{
+  "fixtureId": "MIG007-READINESS-CHECKLIST",
+  "expectedValidate": "PASS",
+  "gates": {
+    "tenant": true,
+    "config": true,
+    "roles": true,
+    "integrations": true,
+    "data": true,
+    "training": true,
+    "support": true
+  },
+  "allMandatoryOk": true
+}

@@ -1,0 +1,14 @@
+{
+  "cycleId": "cycle-2",
+  "diffs": [
+    {
+      "employeeKey": "SYN-0002",
+      "field": "netPay",
+      "sourceValue": 395000,
+      "shadowValue": 395500,
+      "reasonCode": "ROUNDING_POLICY",
+      "waiverId": null,
+      "note": "Synthetic rounding delta for harness demo"
+    }
+  ]
+}

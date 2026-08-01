@@ -1,0 +1,1153 @@
+[
+  {
+    "service_ar": "البوابة والتدقيق",
+    "service": "Gateway Audit",
+    "context": "GatewayAuditDbContext",
+    "database": "gateway_audit_db",
+    "dbset_count": 1,
+    "entity_sets": [
+      {
+        "entity": "GatewayAuditEntry",
+        "set": "AuditEntries"
+      }
+    ],
+    "snapshot_tables": [
+      "gateway_audit_entries"
+    ],
+    "business_table_count": 1,
+    "infrastructure_tables": [],
+    "source": "src/Gateway/HRManagement.Gateway/Data/GatewayAuditDbContext.cs",
+    "snapshot_source": "src/Gateway/HRManagement.Gateway/Data/Migrations/GatewayAuditDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "اللوجستيات الإدارية",
+    "service": "Admin.Logistics",
+    "context": "AdminLogisticsDbContext",
+    "database": "admin_db",
+    "dbset_count": 9,
+    "entity_sets": [
+      {
+        "entity": "Asset",
+        "set": "Assets"
+      },
+      {
+        "entity": "AssetAssignment",
+        "set": "AssetAssignments"
+      },
+      {
+        "entity": "SupplyOrder",
+        "set": "SupplyOrders"
+      },
+      {
+        "entity": "InventoryItem",
+        "set": "InventoryItems"
+      },
+      {
+        "entity": "MaintenanceRecord",
+        "set": "MaintenanceRecords"
+      },
+      {
+        "entity": "Vendor",
+        "set": "Vendors"
+      },
+      {
+        "entity": "ReceiptRecord",
+        "set": "ReceiptRecords"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AssetAssignments",
+      "Assets",
+      "AuditLogs",
+      "IntegrationMessageReceipts",
+      "InventoryItems",
+      "MaintenanceRecords",
+      "ReceiptRecords",
+      "SupplyOrders",
+      "Vendors"
+    ],
+    "business_table_count": 7,
+    "infrastructure_tables": [
+      "AuditLogs",
+      "IntegrationMessageReceipts"
+    ],
+    "source": "src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Data/AdminLogisticsDbContext.cs",
+    "snapshot_source": "src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Migrations/AdminLogisticsDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الدليل والمصادقة",
+    "service": "Auth.Directory",
+    "context": "AuthDirectoryDbContext",
+    "database": "auth_directory_db",
+    "dbset_count": 9,
+    "entity_sets": [
+      {
+        "entity": "AuthUser",
+        "set": "AuthUsers"
+      },
+      {
+        "entity": "Role",
+        "set": "Roles"
+      },
+      {
+        "entity": "AuthToken",
+        "set": "AuthTokens"
+      },
+      {
+        "entity": "DirectoryEntry",
+        "set": "DirectoryEntries"
+      },
+      {
+        "entity": "DirectorySyncRecord",
+        "set": "DirectorySyncRecords"
+      },
+      {
+        "entity": "PermissionPolicy",
+        "set": "PermissionPolicies"
+      },
+      {
+        "entity": "UserRole",
+        "set": "UserRoles"
+      },
+      {
+        "entity": "AuthAuditLog",
+        "set": "AuthAuditLogs"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditLogs",
+      "AuthAuditLogs",
+      "AuthTokens",
+      "AuthUsers",
+      "DirectoryEntries",
+      "DirectorySyncRecords",
+      "PermissionPolicies",
+      "Roles",
+      "UserRoles"
+    ],
+    "business_table_count": 8,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/AuthDirectory/Auth.Directory.Infrastructure/Data/AuthDirectoryDbContext.cs",
+    "snapshot_source": "src/Services/AuthDirectory/Auth.Directory.Infrastructure/Migrations/AuthDirectoryDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الامتثال والشكاوى",
+    "service": "Compliance",
+    "context": "ComplianceDbContext",
+    "database": "compliance_db",
+    "dbset_count": 8,
+    "entity_sets": [
+      {
+        "entity": "Complaint",
+        "set": "Complaints"
+      },
+      {
+        "entity": "AuditFinding",
+        "set": "AuditFindings"
+      },
+      {
+        "entity": "LegalCase",
+        "set": "LegalCases"
+      },
+      {
+        "entity": "ComplianceRecommendation",
+        "set": "ComplianceRecommendations"
+      },
+      {
+        "entity": "DisciplinaryAction",
+        "set": "DisciplinaryActions"
+      },
+      {
+        "entity": "LegalReferral",
+        "set": "LegalReferrals"
+      },
+      {
+        "entity": "ComplaintFollowUp",
+        "set": "ComplaintFollowUps"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditFindings",
+      "AuditLogs",
+      "ComplaintFollowUps",
+      "Complaints",
+      "ComplianceRecommendations",
+      "DisciplinaryActions",
+      "LegalCases",
+      "LegalReferrals"
+    ],
+    "business_table_count": 7,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/Compliance/Compliance.Infrastructure/Data/ComplianceDbContext.cs",
+    "snapshot_source": "src/Services/Compliance/Compliance.Infrastructure/Migrations/ComplianceDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "التحليلات",
+    "service": "Dev.Analytics",
+    "context": "AnalyticsDbContext",
+    "database": "analytics_db",
+    "dbset_count": 8,
+    "entity_sets": [
+      {
+        "entity": "Report",
+        "set": "Reports"
+      },
+      {
+        "entity": "Dashboard",
+        "set": "Dashboards"
+      },
+      {
+        "entity": "ETLJob",
+        "set": "ETLJobs"
+      },
+      {
+        "entity": "ReadModel",
+        "set": "ReadModels"
+      },
+      {
+        "entity": "KPI",
+        "set": "KPIs"
+      },
+      {
+        "entity": "AnalyticsEvent",
+        "set": "AnalyticsEvents"
+      },
+      {
+        "entity": "DataRefreshSchedule",
+        "set": "DataRefreshSchedules"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AnalyticsEvents",
+      "AuditLogs",
+      "Dashboards",
+      "DataRefreshSchedules",
+      "ETLJobs",
+      "KPIs",
+      "ReadModels",
+      "Reports"
+    ],
+    "business_table_count": 7,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Data/AnalyticsDbContext.cs",
+    "snapshot_source": "src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Migrations/AnalyticsDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "تخزين الملفات",
+    "service": "File.Storage",
+    "context": "FileStorageDbContext",
+    "database": "file_storage_db",
+    "dbset_count": 4,
+    "entity_sets": [
+      {
+        "entity": "FileRecord",
+        "set": "Files"
+      },
+      {
+        "entity": "FileReferenceRecord",
+        "set": "FileReferences"
+      },
+      {
+        "entity": "FileAccessAuditLog",
+        "set": "FileAccessAuditLogs"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditLogs",
+      "FileAccessAuditLogs",
+      "FileReferences",
+      "Files"
+    ],
+    "business_table_count": 3,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/FileStorage/File.Storage.Infrastructure/Data/FileStorageDbContext.cs",
+    "snapshot_source": "src/Services/FileStorage/File.Storage.Infrastructure/Migrations/FileStorageDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "العقود والخدمة",
+    "service": "HR.Contracts",
+    "context": "ContractsDbContext",
+    "database": "hr_contracts_db",
+    "dbset_count": 18,
+    "entity_sets": [
+      {
+        "entity": "Contract",
+        "set": "Contracts"
+      },
+      {
+        "entity": "ContractType",
+        "set": "ContractTypes"
+      },
+      {
+        "entity": "ContractSignature",
+        "set": "ContractSignatures"
+      },
+      {
+        "entity": "ProbationRecord",
+        "set": "ProbationRecords"
+      },
+      {
+        "entity": "SeparationRecord",
+        "set": "SeparationRecords"
+      },
+      {
+        "entity": "LeaveRequest",
+        "set": "LeaveRequests"
+      },
+      {
+        "entity": "AdvanceRequest",
+        "set": "AdvanceRequests"
+      },
+      {
+        "entity": "AdministrativeDecision",
+        "set": "AdministrativeDecisions"
+      },
+      {
+        "entity": "CommencementRecord",
+        "set": "CommencementRecords"
+      },
+      {
+        "entity": "ServiceTransaction",
+        "set": "ServiceTransactions"
+      },
+      {
+        "entity": "ServiceTransactionStateHistory",
+        "set": "ServiceTransactionStateHistories"
+      },
+      {
+        "entity": "LeaveBalance",
+        "set": "LeaveBalances"
+      },
+      {
+        "entity": "LeavePolicy",
+        "set": "LeavePolicies"
+      },
+      {
+        "entity": "AdvanceInstallmentPlan",
+        "set": "AdvanceInstallmentPlans"
+      },
+      {
+        "entity": "SeparationChecklist",
+        "set": "SeparationChecklists"
+      },
+      {
+        "entity": "HireChecklist",
+        "set": "HireChecklists"
+      },
+      {
+        "entity": "OrgUnitSnapshot",
+        "set": "OrgUnitSnapshots"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AdministrativeDecisions",
+      "AdvanceInstallmentPlans",
+      "AdvanceRequests",
+      "AuditLogs",
+      "CommencementRecords",
+      "ContractSignatures",
+      "ContractTypes",
+      "Contracts",
+      "HireChecklists",
+      "InboxState",
+      "LeaveBalances",
+      "LeavePolicies",
+      "LeaveRequests",
+      "OrgUnitSnapshots",
+      "OutboxMessage",
+      "OutboxState",
+      "ProbationRecords",
+      "SeparationChecklists",
+      "SeparationRecords",
+      "ServiceTransactionStateHistories",
+      "ServiceTransactions"
+    ],
+    "business_table_count": 17,
+    "infrastructure_tables": [
+      "AuditLogs",
+      "InboxState",
+      "OutboxMessage",
+      "OutboxState"
+    ],
+    "source": "src/Services/HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs",
+    "snapshot_source": "src/Services/HRContracts/HR.Contracts.Infrastructure/Migrations/ContractsDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "النواة والموظفون",
+    "service": "HR.Core",
+    "context": "HRCoreDbContext",
+    "database": "hr_core_db",
+    "dbset_count": 32,
+    "entity_sets": [
+      {
+        "entity": "Employee",
+        "set": "Employees"
+      },
+      {
+        "entity": "EmployeeProfile",
+        "set": "EmployeeProfiles"
+      },
+      {
+        "entity": "EmploymentRecord",
+        "set": "EmploymentRecords"
+      },
+      {
+        "entity": "EmployeeDocument",
+        "set": "EmployeeDocuments"
+      },
+      {
+        "entity": "Qualification",
+        "set": "Qualifications"
+      },
+      {
+        "entity": "ContactInfo",
+        "set": "ContactInfos"
+      },
+      {
+        "entity": "EmploymentStatusHistory",
+        "set": "EmploymentStatusHistories"
+      },
+      {
+        "entity": "OrgUnit",
+        "set": "OrgUnits"
+      },
+      {
+        "entity": "PerformanceEvaluation",
+        "set": "PerformanceEvaluations"
+      },
+      {
+        "entity": "ApprovedCV",
+        "set": "ApprovedCVs"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
+        "entity": "WorkforcePlan",
+        "set": "WorkforcePlans"
+      },
+      {
+        "entity": "HrStatisticReport",
+        "set": "HrStatisticReports"
+      },
+      {
+        "entity": "DailyAttendanceRecord",
+        "set": "DailyAttendanceRecords"
+      },
+      {
+        "entity": "FieldInspectionVisit",
+        "set": "FieldInspectionVisits"
+      },
+      {
+        "entity": "DiwanCorrespondence",
+        "set": "DiwanCorrespondences"
+      },
+      {
+        "entity": "RecruitmentApplication",
+        "set": "RecruitmentApplications"
+      },
+      {
+        "entity": "ApprovalRequest",
+        "set": "ApprovalRequests"
+      },
+      {
+        "entity": "ApprovalStep",
+        "set": "ApprovalSteps"
+      },
+      {
+        "entity": "Shift",
+        "set": "Shifts"
+      },
+      {
+        "entity": "ShiftRoster",
+        "set": "ShiftRosters"
+      },
+      {
+        "entity": "ShiftAssignment",
+        "set": "ShiftAssignments"
+      },
+      {
+        "entity": "CareerPath",
+        "set": "CareerPaths"
+      },
+      {
+        "entity": "CareerPathStep",
+        "set": "CareerPathSteps"
+      },
+      {
+        "entity": "KeyPosition",
+        "set": "KeyPositions"
+      },
+      {
+        "entity": "SuccessionPlan",
+        "set": "SuccessionPlans"
+      },
+      {
+        "entity": "SuccessorCandidate",
+        "set": "SuccessorCandidates"
+      },
+      {
+        "entity": "InternalVacancy",
+        "set": "InternalVacancies"
+      },
+      {
+        "entity": "InternalApplication",
+        "set": "InternalApplications"
+      },
+      {
+        "entity": "PublicJobPosting",
+        "set": "PublicJobPostings"
+      },
+      {
+        "entity": "CitizenApplication",
+        "set": "CitizenApplications"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "ApprovalRequests",
+      "ApprovalSteps",
+      "ApprovedCVs",
+      "AuditLogs",
+      "CareerPathSteps",
+      "CareerPaths",
+      "CitizenApplications",
+      "ContactInfos",
+      "DailyAttendanceRecords",
+      "DiwanCorrespondences",
+      "EmployeeDocuments",
+      "EmployeeProfiles",
+      "Employees",
+      "EmploymentRecords",
+      "EmploymentStatusHistories",
+      "FieldInspectionVisits",
+      "HrStatisticReports",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "InternalApplications",
+      "InternalVacancies",
+      "KeyPositions",
+      "OrgUnits",
+      "OutboxMessage",
+      "OutboxState",
+      "PerformanceEvaluations",
+      "PublicJobPostings",
+      "Qualifications",
+      "RecruitmentApplications",
+      "ShiftAssignments",
+      "ShiftRosters",
+      "Shifts",
+      "SuccessionPlans",
+      "SuccessorCandidates",
+      "WorkforcePlans"
+    ],
+    "business_table_count": 30,
+    "infrastructure_tables": [
+      "AuditLogs",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OutboxMessage",
+      "OutboxState"
+    ],
+    "source": "src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs",
+    "snapshot_source": "src/Services/HRCore/HR.Core.Infrastructure/Migrations/HRCoreDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الصحة المهنية",
+    "service": "HR.Health",
+    "context": "HealthDbContext",
+    "database": "hr_health_db",
+    "dbset_count": 13,
+    "entity_sets": [
+      {
+        "entity": "MedicalRecord",
+        "set": "MedicalRecords"
+      },
+      {
+        "entity": "MedicalCommitteeReport",
+        "set": "MedicalCommitteeReports"
+      },
+      {
+        "entity": "PeriodicMedicalCheck",
+        "set": "PeriodicMedicalChecks"
+      },
+      {
+        "entity": "InsuranceCard",
+        "set": "InsuranceCards"
+      },
+      {
+        "entity": "HealthStatusEntry",
+        "set": "HealthStatusEntries"
+      },
+      {
+        "entity": "MedicalRecommendation",
+        "set": "MedicalRecommendations"
+      },
+      {
+        "entity": "HealthRetirementRecord",
+        "set": "HealthRetirementRecords"
+      },
+      {
+        "entity": "InsuranceContract",
+        "set": "InsuranceContracts"
+      },
+      {
+        "entity": "WorkplaceAccident",
+        "set": "WorkplaceAccidents"
+      },
+      {
+        "entity": "SafetyInspection",
+        "set": "SafetyInspections"
+      },
+      {
+        "entity": "FirstAidTrainingRecord",
+        "set": "FirstAidTrainingRecords"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditLogs",
+      "FirstAidTrainingRecords",
+      "HealthRetirementRecords",
+      "HealthStatusEntries",
+      "InsuranceCards",
+      "InsuranceContracts",
+      "IntegrationMessageReceipts",
+      "MedicalCommitteeReports",
+      "MedicalRecommendations",
+      "MedicalRecords",
+      "PeriodicMedicalChecks",
+      "SafetyInspections",
+      "WorkplaceAccidents"
+    ],
+    "business_table_count": 11,
+    "infrastructure_tables": [
+      "AuditLogs",
+      "IntegrationMessageReceipts"
+    ],
+    "source": "src/Services/HRHealth/HR.Health.Infrastructure/Data/HealthDbContext.cs",
+    "snapshot_source": "src/Services/HRHealth/HR.Health.Infrastructure/Migrations/HealthDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الحركات والتنقلات",
+    "service": "HR.Movements",
+    "context": "MovementsDbContext",
+    "database": "hr_movements_db",
+    "dbset_count": 10,
+    "entity_sets": [
+      {
+        "entity": "TransferRequest",
+        "set": "TransferRequests"
+      },
+      {
+        "entity": "MovementNotice",
+        "set": "MovementNotices"
+      },
+      {
+        "entity": "DistributionPlan",
+        "set": "DistributionPlans"
+      },
+      {
+        "entity": "MovementExecutionRecord",
+        "set": "MovementExecutionRecords"
+      },
+      {
+        "entity": "SecondmentRequest",
+        "set": "SecondmentRequests"
+      },
+      {
+        "entity": "LoanAssignmentRequest",
+        "set": "LoanAssignmentRequests"
+      },
+      {
+        "entity": "TransferApproval",
+        "set": "TransferApprovals"
+      },
+      {
+        "entity": "TransferFinancialImpact",
+        "set": "TransferFinancialImpacts"
+      },
+      {
+        "entity": "OrgUnitSnapshot",
+        "set": "OrgUnitSnapshots"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditLogs",
+      "DistributionPlans",
+      "LoanAssignmentRequests",
+      "MovementExecutionRecords",
+      "MovementNotices",
+      "OrgUnitSnapshots",
+      "SecondmentRequests",
+      "TransferApprovals",
+      "TransferFinancialImpacts",
+      "TransferRequests"
+    ],
+    "business_table_count": 9,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/HRMovements/HR.Movements.Infrastructure/Data/MovementsDbContext.cs",
+    "snapshot_source": "src/Services/HRMovements/HR.Movements.Infrastructure/Migrations/MovementsDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "التدريب والتعلم",
+    "service": "HR.Training",
+    "context": "TrainingDbContext",
+    "database": "hr_training_db",
+    "dbset_count": 14,
+    "entity_sets": [
+      {
+        "entity": "TrainingCourse",
+        "set": "TrainingCourses"
+      },
+      {
+        "entity": "TrainingEnrollment",
+        "set": "TrainingEnrollments"
+      },
+      {
+        "entity": "QualificationCode",
+        "set": "QualificationCodes"
+      },
+      {
+        "entity": "TrainingResult",
+        "set": "TrainingResults"
+      },
+      {
+        "entity": "MissionFile",
+        "set": "MissionFiles"
+      },
+      {
+        "entity": "TrainingNomination",
+        "set": "TrainingNominations"
+      },
+      {
+        "entity": "TrainingProvider",
+        "set": "TrainingProviders"
+      },
+      {
+        "entity": "TrainingPlan",
+        "set": "TrainingPlans"
+      },
+      {
+        "entity": "ELearningCourse",
+        "set": "ELearningCourses"
+      },
+      {
+        "entity": "CourseModule",
+        "set": "CourseModules"
+      },
+      {
+        "entity": "Lesson",
+        "set": "Lessons"
+      },
+      {
+        "entity": "LearningEnrollment",
+        "set": "LearningEnrollments"
+      },
+      {
+        "entity": "LearningCertificate",
+        "set": "LearningCertificates"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditLogs",
+      "CourseModules",
+      "ELearningCourses",
+      "LearningCertificates",
+      "LearningEnrollments",
+      "Lessons",
+      "MissionFiles",
+      "QualificationCodes",
+      "TrainingCourses",
+      "TrainingEnrollments",
+      "TrainingNominations",
+      "TrainingPlans",
+      "TrainingProviders",
+      "TrainingResults"
+    ],
+    "business_table_count": 13,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/HRTraining/HR.Training.Infrastructure/Data/TrainingDbContext.cs",
+    "snapshot_source": "src/Services/HRTraining/HR.Training.Infrastructure/Migrations/TrainingDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الهويات والبطاقات",
+    "service": "IDCard",
+    "context": "IDCardDbContext",
+    "database": "idcard_db",
+    "dbset_count": 8,
+    "entity_sets": [
+      {
+        "entity": "CardDesign",
+        "set": "CardDesigns"
+      },
+      {
+        "entity": "IssuedCard",
+        "set": "IssuedCards"
+      },
+      {
+        "entity": "CardRequest",
+        "set": "CardRequests"
+      },
+      {
+        "entity": "CardDeliveryRecord",
+        "set": "CardDeliveryRecords"
+      },
+      {
+        "entity": "OfficialSealRecord",
+        "set": "OfficialSealRecords"
+      },
+      {
+        "entity": "AccessPermission",
+        "set": "AccessPermissions"
+      },
+      {
+        "entity": "CardPermissionSet",
+        "set": "CardPermissionSets"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AccessPermissions",
+      "AuditLogs",
+      "CardDeliveryRecords",
+      "CardDesigns",
+      "CardPermissionSets",
+      "CardRequests",
+      "IssuedCards",
+      "OfficialSealRecords"
+    ],
+    "business_table_count": 7,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/IDCard/IDCard.Infrastructure/Data/IDCardDbContext.cs",
+    "snapshot_source": "src/Services/IDCard/IDCard.Infrastructure/Migrations/IDCardDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "البنية التقنية",
+    "service": "IT.Infra",
+    "context": "ITInfraDbContext",
+    "database": "it_infra_db",
+    "dbset_count": 9,
+    "entity_sets": [
+      {
+        "entity": "ServerDevice",
+        "set": "ServerDevices"
+      },
+      {
+        "entity": "UserDevice",
+        "set": "UserDevices"
+      },
+      {
+        "entity": "BackupJob",
+        "set": "BackupJobs"
+      },
+      {
+        "entity": "SecurityIncident",
+        "set": "SecurityIncidents"
+      },
+      {
+        "entity": "SystemPermissionRecord",
+        "set": "SystemPermissionRecords"
+      },
+      {
+        "entity": "ITSupportTicket",
+        "set": "ITSupportTickets"
+      },
+      {
+        "entity": "EnvironmentConfiguration",
+        "set": "EnvironmentConfigurations"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "AuditLogs",
+      "BackupJobs",
+      "EnvironmentConfigurations",
+      "ITSupportTickets",
+      "IntegrationMessageReceipts",
+      "SecurityIncidents",
+      "ServerDevices",
+      "SystemPermissionRecords",
+      "UserDevices"
+    ],
+    "business_table_count": 7,
+    "infrastructure_tables": [
+      "AuditLogs",
+      "IntegrationMessageReceipts"
+    ],
+    "source": "src/Services/ITInfrastructure/IT.Infra.Infrastructure/Data/ITInfraDbContext.cs",
+    "snapshot_source": "src/Services/ITInfrastructure/IT.Infra.Infrastructure/Migrations/ITInfraDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الرواتب والتعويضات",
+    "service": "Payroll",
+    "context": "PayrollDbContext",
+    "database": "payroll_db",
+    "dbset_count": 24,
+    "entity_sets": [
+      {
+        "entity": "PayrollRun",
+        "set": "PayrollRuns"
+      },
+      {
+        "entity": "SalaryLine",
+        "set": "SalaryLines"
+      },
+      {
+        "entity": "CompensationType",
+        "set": "CompensationTypes"
+      },
+      {
+        "entity": "AllowanceRecord",
+        "set": "AllowanceRecords"
+      },
+      {
+        "entity": "DeductionRecord",
+        "set": "DeductionRecords"
+      },
+      {
+        "entity": "PayrollAdjustment",
+        "set": "PayrollAdjustments"
+      },
+      {
+        "entity": "PayrollAuditRecord",
+        "set": "PayrollAuditRecords"
+      },
+      {
+        "entity": "PaymentBatch",
+        "set": "PaymentBatches"
+      },
+      {
+        "entity": "SalaryScale",
+        "set": "SalaryScales"
+      },
+      {
+        "entity": "PayGrade",
+        "set": "PayGrades"
+      },
+      {
+        "entity": "DeductionType",
+        "set": "DeductionTypes"
+      },
+      {
+        "entity": "EmployeePayProfile",
+        "set": "EmployeePayProfiles"
+      },
+      {
+        "entity": "SalaryLineComponent",
+        "set": "SalaryLineComponents"
+      },
+      {
+        "entity": "EndOfServiceSettlement",
+        "set": "EndOfServiceSettlements"
+      },
+      {
+        "entity": "PayrollConfiguration",
+        "set": "PayrollConfigurations"
+      },
+      {
+        "entity": "TaxBracket",
+        "set": "TaxBrackets"
+      },
+      {
+        "entity": "OfficialHoliday",
+        "set": "OfficialHolidays"
+      },
+      {
+        "entity": "EmployeePayProfileHistory",
+        "set": "EmployeePayProfileHistories"
+      },
+      {
+        "entity": "PayrollRunApproval",
+        "set": "PayrollRunApprovals"
+      },
+      {
+        "entity": "PayslipDelivery",
+        "set": "PayslipDeliveries"
+      },
+      {
+        "entity": "AbsenceDeduction",
+        "set": "AbsenceDeductions"
+      },
+      {
+        "entity": "OrgUnitSnapshot",
+        "set": "OrgUnitSnapshots"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      }
+    ],
+    "snapshot_tables": [
+      "AbsenceDeductions",
+      "AllowanceRecords",
+      "AuditLogs",
+      "CompensationTypes",
+      "DeductionRecords",
+      "DeductionTypes",
+      "EmployeePayProfileHistories",
+      "EmployeePayProfiles",
+      "EndOfServiceSettlements",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OfficialHolidays",
+      "OrgUnitSnapshots",
+      "OutboxMessage",
+      "OutboxState",
+      "PayGrades",
+      "PaymentBatches",
+      "PayrollAdjustments",
+      "PayrollAuditRecords",
+      "PayrollConfigurations",
+      "PayrollRunApprovals",
+      "PayrollRuns",
+      "PayslipDeliveries",
+      "SalaryLineComponents",
+      "SalaryLines",
+      "SalaryScales",
+      "TaxBrackets"
+    ],
+    "business_table_count": 22,
+    "infrastructure_tables": [
+      "AuditLogs",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OutboxMessage",
+      "OutboxState"
+    ],
+    "source": "src/Services/Payroll/Payroll.Infrastructure/Data/PayrollDbContext.cs",
+    "snapshot_source": "src/Services/Payroll/Payroll.Infrastructure/Migrations/PayrollDbContextModelSnapshot.cs"
+  },
+  {
+    "service_ar": "الأرشيف والسجلات",
+    "service": "Records.Archive",
+    "context": "ArchiveDbContext",
+    "database": "archive_db",
+    "dbset_count": 8,
+    "entity_sets": [
+      {
+        "entity": "ArchiveItem",
+        "set": "ArchiveItems"
+      },
+      {
+        "entity": "PhysicalFileRecord",
+        "set": "PhysicalFileRecords"
+      },
+      {
+        "entity": "DigitalFileRecord",
+        "set": "DigitalFileRecords"
+      },
+      {
+        "entity": "LoanRecord",
+        "set": "LoanRecords"
+      },
+      {
+        "entity": "ArchiveIndexEntry",
+        "set": "ArchiveIndexEntries"
+      },
+      {
+        "entity": "DisposalRecord",
+        "set": "DisposalRecords"
+      },
+      {
+        "entity": "DocumentClassification",
+        "set": "DocumentClassifications"
+      },
+      {
+        "entity": "EntityAuditLog",
+        "set": "AuditLogs"
+      }
+    ],
+    "snapshot_tables": [
+      "ArchiveIndexEntries",
+      "ArchiveItems",
+      "AuditLogs",
+      "DigitalFileRecords",
+      "DisposalRecords",
+      "DocumentClassifications",
+      "LoanRecords",
+      "PhysicalFileRecords"
+    ],
+    "business_table_count": 7,
+    "infrastructure_tables": [
+      "AuditLogs"
+    ],
+    "source": "src/Services/RecordsArchive/Records.Archive.Infrastructure/Data/ArchiveDbContext.cs",
+    "snapshot_source": "src/Services/RecordsArchive/Records.Archive.Infrastructure/Migrations/ArchiveDbContextModelSnapshot.cs"
+  }
+]

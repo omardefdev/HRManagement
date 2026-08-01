@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-N1-COMPAT",
+  "expectedValidate": "PASS",
+  "consumerVersion": "1.1.0",
+  "providerVersion": "1.2.0",
+  "backwardCompatMeasured": true,
+  "compatResult": "pass",
+  "notes": "N-1 consumer against provider passes"
+}

@@ -1,0 +1,10 @@
+{
+  "fixtureId": "MIG003-LOG-REDACTION-SAMPLE",
+  "expectedValidate": "PASS",
+  "logLines": [
+    { "level": "Information", "message": "batch started", "batchId": "batch-pilot-a-001", "rowCount": 1000 },
+    { "level": "Information", "message": "stage completed", "stage": "validate", "offset": 1000 },
+    { "level": "Warning", "message": "quarantine enqueued", "sourceRecordKeyHash": "sha256:…", "disposition": "Quarantine" }
+  ],
+  "plaintextForbiddenAbsent": true
+}

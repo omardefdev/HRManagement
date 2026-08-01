@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-SCHEMA-INCOMPAT",
+  "expectedValidate": "FAIL",
+  "schemaCompatible": false,
+  "treatedAsPublished": true,
+  "notes": "Incompatible schema treated as published must fail"
+}

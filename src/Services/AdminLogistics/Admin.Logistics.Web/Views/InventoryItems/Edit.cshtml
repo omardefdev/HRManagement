@@ -1,0 +1,22 @@
+@model InventoryItem
+@{ ViewData["Title"] = "تعديل عنصر المخزون"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="Sku" class="form-label"></label><input asp-for="Sku" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Quantity" class="form-label"></label><input asp-for="Quantity" class="form-control" type="number" /></div>
+            <div class="mb-3"><label asp-for="Unit" class="form-label"></label><input asp-for="Unit" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Location" class="form-label"></label><input asp-for="Location" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="ReorderThreshold" class="form-label"></label><input asp-for="ReorderThreshold" class="form-control" type="number" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

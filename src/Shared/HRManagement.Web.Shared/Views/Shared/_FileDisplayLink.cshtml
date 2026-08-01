@@ -1,0 +1,14 @@
+@model (Guid? FileId, string? FileName)
+@{
+    var fileId = Model.FileId;
+    var fileName = Model.FileName ?? "عرض الملف";
+}
+
+@if (fileId.HasValue)
+{
+    <a href="@FileUrls.DownloadUrl(fileId.Value)" target="_blank" rel="noopener">@fileName</a>
+}
+else
+{
+    <span class="text-muted">—</span>
+}

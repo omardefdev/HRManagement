@@ -1,0 +1,17 @@
+@model DigitalFileRecord
+@{ ViewData["Title"] = "تفاصيل الملف الرقمي"; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">ملف رقمي</h3></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">عنصر الأرشيف</dt><dd class="col-sm-9">@Model.ArchiveItem?.Title</dd>
+            <dt class="col-sm-3">الملف</dt><dd class="col-sm-9">@await Html.PartialAsync("_FileDisplayLink", (Model.FileId, "عرض الملف"))</dd>
+            <dt class="col-sm-3">الحجم (بايت)</dt><dd class="col-sm-9">@Model.FileSizeBytes</dd>
+            <dt class="col-sm-3">المجموع الاختباري</dt><dd class="col-sm-9">@(Model.Checksum ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

@@ -1,0 +1,7 @@
+{
+  "fixtureId": "EXT002-CIVIL-REGISTRY-RUN-LEDGER",
+  "runs": [
+    { "runId": "cr-lab-001", "purposeCode": "hire-identity-proof", "outcome": "Match", "liveMoi": false },
+    { "runId": "cr-lab-002", "purposeCode": "migration-nid-exception", "outcome": "Mismatch", "liveMoi": false }
+  ]
+}

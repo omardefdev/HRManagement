@@ -1,0 +1,26 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.ShiftRoster>
+@{ ViewData["Title"] = "جداول المناوبات"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">جداول المناوبات</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">جدول جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>العنوان</th><th>الوحدة</th><th>من</th><th>إلى</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Title</td>
+                        <td>@(x.OrgUnit?.NameAr ?? "—")</td>
+                        <td>@x.PeriodStart.ToString("yyyy-MM-dd")</td>
+                        <td>@x.PeriodEnd.ToString("yyyy-MM-dd")</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا توجد جداول</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

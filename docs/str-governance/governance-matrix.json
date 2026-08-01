@@ -1,0 +1,277 @@
+{
+  "card": "STR-005",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "requiredDecisionFields": [
+    "decisionId",
+    "type",
+    "ownerRole",
+    "reviewerRole",
+    "board",
+    "adrRef",
+    "status",
+    "evidenceRef",
+    "decidedAt"
+  ],
+  "requiredExceptionFields": [
+    "exceptionId",
+    "declaredBy",
+    "reviewerRole",
+    "expiresOn",
+    "status",
+    "reason"
+  ],
+  "criticalDecisionTypes": [
+    "LawChange",
+    "SecurityIncident",
+    "ScheduleDelay",
+    "GoLive",
+    "ArchitectureVariance",
+    "DataModelChange",
+    "ExceptionGrant"
+  ],
+  "boards": [
+    {
+      "id": "Architecture",
+      "quorumMin": 2,
+      "defaultOwnerRole": "architecture",
+      "defaultReviewerRole": "program",
+      "scope": "ADR, variance, platform boundaries"
+    },
+    {
+      "id": "Security",
+      "quorumMin": 2,
+      "defaultOwnerRole": "security",
+      "defaultReviewerRole": "sponsor",
+      "scope": "incidents, exceptions, Go-Live security seat"
+    },
+    {
+      "id": "Data",
+      "quorumMin": 2,
+      "defaultOwnerRole": "data",
+      "defaultReviewerRole": "architecture",
+      "scope": "canonical model, migration freeze, retention"
+    },
+    {
+      "id": "Change",
+      "quorumMin": 2,
+      "defaultOwnerRole": "change",
+      "defaultReviewerRole": "security",
+      "scope": "CAB-lite alignment with REL-003; emergency windows"
+    },
+    {
+      "id": "Program",
+      "quorumMin": 2,
+      "defaultOwnerRole": "program",
+      "defaultReviewerRole": "sponsor",
+      "scope": "schedule delay, milestone evidence, conflict escalation"
+    }
+  ],
+  "decisionRights": [
+    {
+      "type": "LawChange",
+      "ownerRole": "legal",
+      "reviewerRole": "architecture",
+      "board": "Architecture",
+      "adrRequired": true
+    },
+    {
+      "type": "SecurityIncident",
+      "ownerRole": "security",
+      "reviewerRole": "change",
+      "board": "Security",
+      "adrRequired": false
+    },
+    {
+      "type": "ScheduleDelay",
+      "ownerRole": "program",
+      "reviewerRole": "sponsor",
+      "board": "Program",
+      "adrRequired": false
+    },
+    {
+      "type": "GoLive",
+      "ownerRole": "sponsor",
+      "reviewerRole": "security",
+      "board": "Program",
+      "adrRequired": true
+    },
+    {
+      "type": "ArchitectureVariance",
+      "ownerRole": "architecture",
+      "reviewerRole": "program",
+      "board": "Architecture",
+      "adrRequired": true
+    },
+    {
+      "type": "DataModelChange",
+      "ownerRole": "data",
+      "reviewerRole": "architecture",
+      "board": "Data",
+      "adrRequired": true
+    },
+    {
+      "type": "ExceptionGrant",
+      "ownerRole": "program",
+      "reviewerRole": "sponsor",
+      "board": "Program",
+      "adrRequired": false
+    }
+  ],
+  "adrRequired": {
+    "types": ["LawChange", "GoLive", "ArchitectureVariance", "DataModelChange"],
+    "rule": "ADR must exist or be referenced before execution for listed types"
+  },
+  "exceptionExpiry": {
+    "maxDaysDefault": 90,
+    "renewRequiresReviewer": true,
+    "expiredWithoutRenewFailsValidate": true
+  },
+  "goLiveMultiSeat": {
+    "forbidden": ["eng-only"],
+    "requiredSeats": ["sponsor", "security", "architecture"],
+    "optionalSeatsWhenDataImpact": ["data"],
+    "engRoleAliases": ["engineering", "eng", "developer", "dev"]
+  },
+  "conflictEscalation": {
+    "levels": [
+      { "level": 1, "owner": "board-chair", "note": "Board resolves within SLA" },
+      { "level": 2, "owner": "Program", "note": "Program board; SAN-001 supply/legal class escalates here" },
+      { "level": 3, "owner": "sponsor", "note": "Sponsor / file-14 SYD-017 named seats when assigned" }
+    ]
+  },
+  "exceptions": [
+    {
+      "exceptionId": "EX-STR005-SIM-LAW-INTERIM",
+      "declaredBy": "legal",
+      "reviewerRole": "architecture",
+      "expiresOn": "2026-10-30",
+      "status": "Declared",
+      "reason": "Interim payroll rule pending gazette — simulation seed"
+    },
+    {
+      "exceptionId": "EX-STR005-SIM-INCIDENT-WINDOW",
+      "declaredBy": "security",
+      "reviewerRole": "change",
+      "expiresOn": "2026-08-15",
+      "status": "Declared",
+      "reason": "Emergency change window post-incident — simulation seed"
+    }
+  ],
+  "blockers": [
+    {
+      "id": "SYD-017",
+      "status": "Blocked",
+      "note": "Named Go-Live signatories OPEN in file 14"
+    },
+    {
+      "id": "PGM-001",
+      "status": "Satisfied",
+      "note": "Program timeline / critical path pack Done"
+    }
+  ],
+  "journeys": [
+    {
+      "id": "DecisionRights",
+      "steps": [
+        {
+          "id": "CriticalTypesMapped",
+          "mandatory": true,
+          "ownerRole": "program",
+          "slaHours": 48,
+          "evidenceType": "decisionRights",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "OwnerNotReviewer",
+          "mandatory": true,
+          "ownerRole": "program",
+          "slaHours": 24,
+          "evidenceType": "decision-log",
+          "service": "docs",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "BoardsAndAdr",
+      "steps": [
+        {
+          "id": "FiveBoards",
+          "mandatory": true,
+          "ownerRole": "architecture",
+          "slaHours": 48,
+          "evidenceType": "boards",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "AdrGate",
+          "mandatory": true,
+          "ownerRole": "architecture",
+          "slaHours": 24,
+          "evidenceType": "adrRequired",
+          "service": "docs",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "ExceptionExpiry",
+      "steps": [
+        {
+          "id": "DeclaredTemporary",
+          "mandatory": true,
+          "ownerRole": "program",
+          "slaHours": 24,
+          "evidenceType": "exceptions",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "ExpiryEnforced",
+          "mandatory": true,
+          "ownerRole": "qa",
+          "slaHours": 24,
+          "evidenceType": "str005-governance-validate",
+          "service": "scripts",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "GoLiveMultiSeat",
+      "steps": [
+        {
+          "id": "EngOnlyFails",
+          "mandatory": true,
+          "ownerRole": "sponsor",
+          "slaHours": 24,
+          "evidenceType": "go-live/eng-only",
+          "service": "testdata",
+          "event": null
+        },
+        {
+          "id": "MultiSeatPasses",
+          "mandatory": true,
+          "ownerRole": "sponsor",
+          "slaHours": 24,
+          "evidenceType": "go-live/multi-seat",
+          "service": "testdata",
+          "event": null
+        }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "lawChange": "testdata/str005/scenarios/law-change.json",
+    "incident": "testdata/str005/scenarios/incident.json",
+    "delay": "testdata/str005/scenarios/delay.json"
+  },
+  "goLiveFixturePaths": {
+    "engOnly": "testdata/str005/go-live/eng-only.json",
+    "multiSeat": "testdata/str005/go-live/multi-seat.json"
+  }
+}

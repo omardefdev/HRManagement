@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hr-contracts-web
+  labels:
+    app.kubernetes.io/name: hr-contracts-web
+    app.kubernetes.io/part-of: hrmanagement
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: hr-contracts-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

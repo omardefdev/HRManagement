@@ -1,0 +1,11 @@
+{
+  "scenarioId": "SIM-FULL-ACCOUNTED",
+  "expectedValidate": "PASS",
+  "sourceCount": 1000,
+  "migrated": 920,
+  "rejected": 50,
+  "deferred": 30,
+  "rejectedReasonsPresent": true,
+  "deferredReasonsPresent": true,
+  "unexplainedGap": 0
+}

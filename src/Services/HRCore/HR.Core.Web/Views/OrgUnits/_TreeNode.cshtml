@@ -1,0 +1,30 @@
+@model HR.Core.Web.ViewModels.OrgUnitTreeViewModel
+
+<li>
+    <span class="tree-node">
+        @if (Model.Children.Any())
+        {
+            <i class="fas fa-folder-open text-warning"></i>
+        }
+        else
+        {
+            <i class="fas fa-folder text-muted"></i>
+        }
+        <a asp-controller="OrgUnits" asp-action="Details" asp-route-id="@Model.Id">
+            <strong>@Model.Code</strong> — @Model.NameAr
+        </a>
+        @if (!string.IsNullOrEmpty(Model.HeadEmployeeName))
+        {
+            <small class="text-muted">(@Model.HeadEmployeeName)</small>
+        }
+    </span>
+    @if (Model.Children.Any())
+    {
+        <ul>
+            @foreach (var child in Model.Children)
+            {
+                @await Html.PartialAsync("_TreeNode", child)
+            }
+        </ul>
+    }
+</li>

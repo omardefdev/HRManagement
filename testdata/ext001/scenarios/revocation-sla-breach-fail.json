@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-REVOCATION-SLA-BREACH",
+  "expectedValidate": "FAIL",
+  "slaMinutes": 15,
+  "elapsedMinutes": 40,
+  "withinSla": false,
+  "escalated": false,
+  "notes": "SLA breach without escalation must fail"
+}

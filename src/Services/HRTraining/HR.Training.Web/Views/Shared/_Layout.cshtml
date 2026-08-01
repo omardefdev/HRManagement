@@ -1,0 +1,30 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "hr-training";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">التدريب والتأهيل</li>
+    <li class="nav-item"><a asp-controller="TrainingCourses" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-book"></i><p>الدورات</p></a></li>
+    <li class="nav-item"><a asp-controller="TrainingEnrollments" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-check"></i><p>التسجيلات</p></a></li>
+    <li class="nav-item"><a asp-controller="TrainingPlans" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-calendar-alt"></i><p>خطط التدريب</p></a></li>
+    <li class="nav-item"><a asp-controller="QualificationCodes" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-code"></i><p>رموز المؤهلات</p></a></li>
+    <li class="nav-item"><a asp-controller="TrainingProviders" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-building"></i><p>جهات التدريب</p></a></li>
+    <li class="nav-item"><a asp-controller="TrainingNominations" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>الترشيحات</p></a></li>
+    <li class="nav-item"><a asp-controller="MissionFiles" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-plane"></i><p>الإيفادات</p></a></li>
+    <li class="nav-item"><a asp-controller="TrainingResults" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-star"></i><p>نتائج التدريب</p></a></li>
+    <li class="nav-header">التعلّم الإلكتروني</li>
+    <li class="nav-item"><a asp-controller="ELearningCourses" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-laptop"></i><p>الدورات الإلكترونية</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rel003-mtta-mttr-ledger",
+  "title": "REL-003 MTTA/MTTR game-day ledger",
+  "type": "object",
+  "required": ["card", "scenarioId", "severity", "serviceId", "detectedAt", "acknowledgedAt", "resolvedAt", "mttaMinutes", "mttrMinutes", "mttaPass", "mttrPass"],
+  "properties": {
+    "card": { "const": "REL-003" },
+    "scenarioId": { "type": "string" },
+    "severity": { "type": "string" },
+    "serviceId": { "type": "string" },
+    "detectedAt": { "type": "string" },
+    "acknowledgedAt": { "type": "string" },
+    "resolvedAt": { "type": "string" },
+    "mttaMinutes": { "type": "number" },
+    "mttrMinutes": { "type": "number" },
+    "mttaTargetMinutes": { "type": "number" },
+    "mttrTargetMinutes": { "type": "number" },
+    "mttaPass": { "type": "boolean" },
+    "mttrPass": { "type": "boolean" },
+    "waiverId": { "type": ["string", "null"] },
+    "ok": { "type": "boolean" }
+  }
+}

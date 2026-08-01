@@ -1,0 +1,93 @@
+{
+  "$schema": "service-regimes-v1",
+  "card": "SYR-003",
+  "description": "Syrian public service legal regimes: Law 50/2004, Law 53/2021, and special regimes",
+  "regimes": [
+    {
+      "legal_regime_id": "law50",
+      "name": "القانون الأساسي للعاملين في الدولة",
+      "name_en": "Basic Law for State Employees (Law 50/2004)",
+      "type": "Law50",
+      "legislation_ref": "law50_2004",
+      "scope": "General public employees in ministries, governorates, municipalities, and public institutions",
+      "employment_types": ["permanent", "temporary", "daily", "seasonal", "production"],
+      "grade_structure": "law50_categories_ranks",
+      "has_promotion_rules": true,
+      "covers_pension": true,
+      "pension_authority": "GOSI",
+      "effective_from": "2004-04-01"
+    },
+    {
+      "legal_regime_id": "law53",
+      "name": "قانون العاملين الأساسي في القطاع الاقتصادي",
+      "name_en": "Basic Law for Economic Sector Employees (Law 53/2021)",
+      "type": "Law53",
+      "legislation_ref": "law53_2021",
+      "scope": "Employees in public economic sector companies and enterprises",
+      "employment_types": ["permanent", "temporary", "contractual", "part_time"],
+      "grade_structure": "law53_categories_levels",
+      "has_promotion_rules": true,
+      "covers_pension": true,
+      "pension_authority": "GOIP",
+      "effective_from": "2021-08-01"
+    },
+    {
+      "legal_regime_id": "special_banking",
+      "name": "النظام الخاص بالمصارف العامة",
+      "name_en": "Public Banking Special Regime",
+      "type": "Special",
+      "legislation_ref": "decree_special_banking",
+      "scope": "Central Bank and public commercial banks",
+      "employment_types": ["permanent", "contractual"],
+      "grade_structure": "banking_grades",
+      "has_promotion_rules": true,
+      "covers_pension": true,
+      "effective_from": "2005-01-01"
+    },
+    {
+      "legal_regime_id": "special_judiciary",
+      "name": "النظام الخاص بالسلطة القضائية",
+      "name_en": "Judiciary Special Regime",
+      "type": "Special",
+      "legislation_ref": "judiciary_organization_law",
+      "scope": "Judges and judicial staff",
+      "employment_types": ["permanent"],
+      "grade_structure": "judicial_ranks",
+      "has_promotion_rules": true,
+      "covers_pension": true,
+      "effective_from": "1961-01-01"
+    }
+  ],
+  "employment_types": [
+    {"code": "permanent", "name_ar": "دائم", "name_en": "Permanent"},
+    {"code": "temporary", "name_ar": "مؤقت", "name_en": "Temporary"},
+    {"code": "daily", "name_ar": "يومي", "name_en": "Daily"},
+    {"code": "seasonal", "name_ar": "موسمي", "name_en": "Seasonal"},
+    {"code": "part_time", "name_ar": "جزئي", "name_en": "Part-Time"},
+    {"code": "production", "name_ar": "إنتاج", "name_en": "Production"},
+    {"code": "contractual", "name_ar": "عقدي", "name_en": "Contractual"}
+  ],
+  "transition_rules": {
+    "description": "Rules for transitioning between regimes",
+    "preserves_history": true,
+    "requires_decision_ref": true,
+    "allowed_transitions": [
+      {"from": "law50", "to": "law53", "condition": "agency_reclassification"},
+      {"from": "law53", "to": "law50", "condition": "agency_reclassification"},
+      {"from": "law50", "to": "special_banking", "condition": "transfer_to_bank"},
+      {"from": "law53", "to": "special_banking", "condition": "transfer_to_bank"}
+    ]
+  },
+  "exception_handling": {
+    "unclassified_action": "exception_queue",
+    "blocks_final_payroll": true,
+    "article_159_configurable": true,
+    "decree_67_2026_patterns": "covered"
+  },
+  "movement_types": [
+    {"code": "secondment", "name_ar": "انتداب", "name_en": "Secondment", "preserves_regime": true},
+    {"code": "loan", "name_ar": "إعارة", "name_en": "Loan", "preserves_regime": true},
+    {"code": "transfer", "name_ar": "نقل", "name_en": "Transfer", "may_change_regime": true},
+    {"code": "delegation", "name_ar": "ندب", "name_en": "Delegation", "preserves_regime": true}
+  ]
+}

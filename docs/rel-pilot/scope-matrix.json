@@ -1,0 +1,60 @@
+{
+  "card": "REL-002",
+  "version": 1,
+  "pilotCharter": {
+    "agencyId": "PILOT-AGENCY-001",
+    "agencyName": "Template Pilot Agency",
+    "tenantId": "11111111-1111-1111-1111-111111111111",
+    "maxEmployees": 2000,
+    "maxNamedUsers": 150,
+    "durationDays": 90,
+    "legalRegimeHint": "LAW_50_2004"
+  },
+  "journeys": [
+    {
+      "id": "PilotScope",
+      "steps": [
+        { "id": "Charter", "mandatory": true, "ownerRole": "program", "slaHours": 48, "evidenceType": "scope-matrix+ADR", "service": "docs", "event": null },
+        { "id": "Ceilings", "mandatory": true, "ownerRole": "program", "slaHours": 24, "evidenceType": "maxEmployees/users", "service": "docs", "event": null },
+        { "id": "InScopeJourneys", "mandatory": true, "ownerRole": "qa", "slaHours": 72, "evidenceType": "FUN-001..006 UAT packs", "service": "docs", "event": null },
+        { "id": "OutOfScopeNational", "mandatory": true, "ownerRole": "program", "slaHours": 24, "evidenceType": "NAT excluded", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "EvidenceGates",
+      "steps": [
+        { "id": "DailyRecon", "mandatory": true, "ownerRole": "ops", "slaHours": 24, "evidenceType": "REL_002_DAILY_RECONCILIATION", "service": "ops", "event": null },
+        { "id": "SloWindow", "mandatory": true, "ownerRole": "sre", "slaHours": 168, "evidenceType": "REL_002_SLO_WINDOW", "service": "ops", "event": null },
+        { "id": "DefectLeakage", "mandatory": true, "ownerRole": "qa", "slaHours": 72, "evidenceType": "REL_002_DEFECT_LEAKAGE", "service": "qa", "event": null },
+        { "id": "PayrollParallel3", "mandatory": true, "ownerRole": "payroll", "slaHours": 240, "evidenceType": "3-cycle harness", "service": "scripts", "event": null },
+        { "id": "DrSecurityBinder", "mandatory": true, "ownerRole": "security", "slaHours": 168, "evidenceType": "OPS+assessor", "service": "docs", "event": null },
+        { "id": "SupportContacts", "mandatory": true, "ownerRole": "support", "slaHours": 48, "evidenceType": "REL_002_SUPPORT", "service": "docs", "event": null },
+        { "id": "MigrationStub", "mandatory": false, "ownerRole": "migration", "slaHours": 72, "evidenceType": "MIG-006 or Blocked", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "GoNoGoDecision",
+      "steps": [
+        { "id": "BlockerReview", "mandatory": true, "ownerRole": "program", "slaHours": 24, "evidenceType": "blocker register", "service": "docs", "event": null },
+        { "id": "MultiRoleSignOff", "mandatory": true, "ownerRole": "program", "slaHours": 48, "evidenceType": "REL_002_PILOT_GO_NO_GO", "service": "docs", "event": null },
+        { "id": "PilotOnlyClause", "mandatory": true, "ownerRole": "program", "slaHours": 8, "evidenceType": "not NAT-008", "service": "docs", "event": null }
+      ]
+    }
+  ],
+  "inScopeJourneys": ["FUN-001", "FUN-002", "FUN-003", "FUN-004", "FUN-005", "FUN-006"],
+  "outOfScope": ["NAT-007", "NAT-008", "11-NATIONAL-GO-NO-GO", "national-24x7"],
+  "blockers": [
+    { "id": "UAT-001", "status": "Blocked", "note": "External multi-authority UAT sign-off" },
+    { "id": "TRN-001", "status": "Blocked", "note": "Field training / adoption" },
+    { "id": "MIG-006", "status": "Blocked", "note": "Three timed migration rehearsals" },
+    { "id": "ONB-001", "status": "Satisfied", "note": "Agency provisioning manifest pack Done" },
+    { "id": "SRE-001", "status": "Blocked", "note": "24x7 ORR" },
+    { "id": "SRE-002", "status": "Blocked", "note": "National envelope" },
+    { "id": "SRE-003", "status": "Blocked", "note": "Cyber recovery" },
+    { "id": "SUP-002", "status": "Blocked", "note": "Full L1-L3 desk" },
+    { "id": "SUP-003", "status": "Blocked", "note": "Competency program" },
+    { "id": "SUP-004", "status": "Blocked", "note": "Vendor escalation contracts" },
+    { "id": "REL-001", "status": "Satisfied", "note": "Staging parity Done" }
+  ],
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied"]
+}

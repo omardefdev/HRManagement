@@ -1,0 +1,14 @@
+{
+  "cycleId": "cycle-3",
+  "diffs": [
+    {
+      "employeeKey": "SYN-0003",
+      "field": "netPay",
+      "sourceValue": 0,
+      "shadowValue": 0,
+      "reasonCode": "SEPARATION_MID_CYCLE",
+      "waiverId": "W-REL2-SYN-0003",
+      "note": "Both systems zeroed; explained for audit trail"
+    }
+  ]
+}

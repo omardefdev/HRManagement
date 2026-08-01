@@ -1,0 +1,31 @@
+@model IReadOnlyList<WorkplaceAccident>
+@{ ViewData["Title"] = "حوادث العمل"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">حوادث العمل</h3>
+        <div>
+            <a asp-action="Inspections" class="btn btn-outline-secondary btn-sm">تفتيش السلامة</a>
+            <a asp-action="FirstAid" class="btn btn-outline-secondary btn-sm">الإسعافات الأولية</a>
+            <a asp-action="Create" class="btn btn-primary btn-sm">تسجيل حادث</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>التاريخ</th><th>الموظف</th><th>الموقع</th><th>الخطورة</th><th>أيام مرضية</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.AccidentDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(x.EmployeeName ?? x.EmployeeId.ToString())</td>
+                        <td>@x.Location</td>
+                        <td>@Html.DisplayFor(_ => x.Severity)</td>
+                        <td>@x.RelatedSickLeaveDays</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا حوادث مسجّلة</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

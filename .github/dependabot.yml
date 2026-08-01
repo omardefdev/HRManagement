@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - SUP-001
+      - dependencies
+      - advisory
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - SUP-001
+      - dependencies
+
+  - package-ecosystem: docker
+    directory: /docker/alert-sink
+    schedule:
+      interval: weekly
+    labels:
+      - SUP-001
+      - dependencies
+
+  - package-ecosystem: docker
+    directory: /src/Gateway/HRManagement.Gateway
+    schedule:
+      interval: monthly
+    labels:
+      - SUP-001
+      - dependencies

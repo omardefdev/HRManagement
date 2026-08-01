@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="Testcontainers.Minio" />
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Services\Payroll\Payroll.Web\Payroll.Web.csproj" />
+    <ProjectReference Include="..\..\Services\Payroll\Payroll.Infrastructure\Payroll.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRCore\HR.Core.Web\HR.Core.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRCore\HR.Core.Infrastructure\HR.Core.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Web\HR.Contracts.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Infrastructure\HR.Contracts.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Infrastructure\Admin.Logistics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infra.Infrastructure\IT.Infra.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Infrastructure\Dev.Analytics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\RecordsArchive\Records.Archive.Infrastructure\Records.Archive.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Infrastructure\Auth.Directory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\IDCard\IDCard.Infrastructure\IDCard.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Web\File.Storage.Web.csproj" />
+    <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Infrastructure\File.Storage.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Infrastructure\HR.Movements.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Web\HR.Movements.Web.csproj" />
+    <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Web\Auth.Directory.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRTraining\HR.Training.Infrastructure\HR.Training.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRHealth\HR.Health.Infrastructure\HR.Health.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\Compliance\Compliance.Infrastructure\Compliance.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Gateway\HRManagement.Gateway\HRManagement.Gateway.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\docker\keycloak\realm-qa003-test.json"
+          Link="docker\keycloak\realm-qa003-test.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,74 @@
+# Requires CloudNativePG operator (scripts/apply-cnpg-operator.sh) before apply.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: hr-postgres
+  labels:
+    app.kubernetes.io/name: hr-postgres
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: postgres
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.6
+  primaryUpdateStrategy: unsupervised
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: hr-postgres-superuser
+  bootstrap:
+    initdb:
+      database: gateway_audit_db
+      owner: hrmanagement
+      secret:
+        name: hr-postgres-app
+  storage:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: topology.kubernetes.io/zone
+    podAntiAffinityType: preferred
+  postgresql:
+    parameters:
+      # 15 services x replicas x Npgsql's default pool of 100 per process saturates a 200-connection
+      # server long before national volumes. Connection strings must also cap Maximum Pool Size;
+      # this ceiling assumes that cap is in place and leaves headroom for migrations and backups.
+      max_connections: "800"
+      shared_buffers: "1GB"
+      effective_cache_size: "3GB"
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      destinationPath: s3://hrm-backups/cnpg
+      # Replace endpoint via Secret / overlay for real clusters
+      endpointURL: http://minio.hrmanagement-data.svc.cluster.local:9000
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-backup-store
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: cnpg-backup-store
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+        maxParallel: 2
+      data:
+        compression: gzip
+  managed:
+    roles:
+      - name: hrmanagement
+        ensure: present
+        login: true
+        passwordSecret:
+          name: hr-postgres-app
+      - name: hrm_backup
+        ensure: present
+        login: true
+        passwordSecret:
+          name: hr-postgres-backup
+        comment: OPS-003 logical dump role (least privilege)

@@ -1,0 +1,184 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة payroll_db\nPayroll"
+
+entity "AuditLogs\nEntityAuditLog" as T01 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T02 {
+  * Id
+    MessageId
+    TenantId
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T03 {
+  * Id
+    ParentId
+}
+entity "InboxState\nInboxState" as T04 {
+  * Id
+    ConsumerId
+    LockId
+    MessageId
+}
+entity "OutboxMessage\nOutboxMessage" as T05 {
+  * SequenceNumber
+    ConversationId
+    CorrelationId
+    InboxConsumerId
+    InboxMessageId
+    InitiatorId
+    MessageId
+    OutboxId
+    RequestId
+}
+entity "OutboxState\nOutboxState" as T06 {
+  * OutboxId
+    LockId
+}
+entity "AbsenceDeductions\nAbsenceDeduction" as T07 {
+  * Id
+    AppliedInRunId
+    EmployeeId
+    TenantId
+}
+entity "AllowanceRecords\nAllowanceRecord" as T08 {
+  * Id
+    AllowanceTypeId
+    EmployeeId
+    TenantId
+}
+entity "CompensationTypes\nCompensationType" as T09 {
+  * Id
+    TenantId
+}
+entity "DeductionRecords\nDeductionRecord" as T10 {
+  * Id
+    AppliedInRunId
+    EmployeeId
+    TenantId
+}
+entity "DeductionTypes\nDeductionType" as T11 {
+  * Id
+    TenantId
+}
+entity "EmployeePayProfiles\nEmployeePayProfile" as T12 {
+  * Id
+    EmployeeId
+    OrgUnitId
+    PayGradeId
+    TenantId
+}
+entity "EmployeePayProfileHistories\nEmployeePayProfileHistory" as T13 {
+  * Id
+    EmployeeId
+    PayGradeId
+    SourceProfileId
+    TenantId
+}
+entity "EndOfServiceSettlements\nEndOfServiceSettlement" as T14 {
+  * Id
+    EmployeeId
+    SeparationRecordId
+    TenantId
+}
+entity "OfficialHolidays\nOfficialHoliday" as T15 {
+  * Id
+    PayrollConfigurationId
+    TenantId
+}
+entity "PayGrades\nPayGrade" as T16 {
+  * Id
+    SalaryScaleId
+    TenantId
+}
+entity "PaymentBatches\nPaymentBatch" as T17 {
+  * Id
+    PayrollRunId
+    TenantId
+}
+entity "PayrollAdjustments\nPayrollAdjustment" as T18 {
+  * Id
+    EmployeeId
+    PayrollRunId
+    TenantId
+}
+entity "PayrollAuditRecords\nPayrollAuditRecord" as T19 {
+  * Id
+    AuditorId
+    PayrollRunId
+    TenantId
+}
+entity "PayrollConfigurations\nPayrollConfiguration" as T20 {
+  * Id
+    TenantId
+}
+entity "PayrollRuns\nPayrollRun" as T21 {
+  * Id
+    SourceRunId
+    TenantId
+}
+entity "PayrollRunApprovals\nPayrollRunApproval" as T22 {
+  * Id
+    ApproverId
+    PayrollRunId
+    TenantId
+}
+entity "PayslipDeliveries\nPayslipDelivery" as T23 {
+  * Id
+    SalaryLineId
+    TenantId
+}
+entity "SalaryLines\nSalaryLine" as T24 {
+  * Id
+    EmployeeId
+    PayrollRunId
+    TenantId
+}
+entity "SalaryLineComponents\nSalaryLineComponent" as T25 {
+  * Id
+    ReferenceId
+    SalaryLineId
+    TenantId
+}
+entity "SalaryScales\nSalaryScale" as T26 {
+  * Id
+    TenantId
+}
+entity "TaxBrackets\nTaxBracket" as T27 {
+  * Id
+    PayrollConfigurationId
+    TenantId
+}
+
+T08 }o--|| T09 : AllowanceTypeId
+T10 }o--|| T21 : AppliedInRunId
+T12 }o--|| T16 : PayGradeId
+T13 }o--|| T12 : SourceProfileId
+T15 }o--|| T20 : PayrollConfigurationId
+T16 }o--|| T26 : SalaryScaleId
+T17 }o--|| T21 : PayrollRunId
+T18 }o--|| T21 : PayrollRunId
+T19 }o--|| T21 : PayrollRunId
+T22 }o--|| T21 : PayrollRunId
+T23 }o--|| T24 : SalaryLineId
+T24 }o--|| T21 : PayrollRunId
+T25 }o--|| T24 : SalaryLineId
+T27 }o--|| T20 : PayrollConfigurationId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

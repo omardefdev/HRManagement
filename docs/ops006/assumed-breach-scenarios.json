@@ -1,0 +1,69 @@
+{
+  "card": "OPS-006",
+  "version": "1.0.0",
+  "description": "Assumed-breach exercise scenarios for cyber recovery validation",
+  "scenarios": [
+    {
+      "id": "ransomware-host-compromise",
+      "severity": "critical",
+      "trigger": "EDR alert: encryption activity on app node",
+      "response": "Isolate segment; declare assumed-breach; clean-room rebuild",
+      "cyberRtoHours": 24,
+      "artifacts": ["git-signed-tag", "container-registry", "database-backup"],
+      "credentialResetRequired": true
+    },
+    {
+      "id": "poisoned-container-image",
+      "severity": "critical",
+      "trigger": "Registry scan: unsigned or digest mismatch vs SBOM",
+      "response": "Admission rejects deploy; rebuild from signed digest only",
+      "cyberRtoHours": 8,
+      "artifacts": ["container-registry", "sbom-artifacts"],
+      "credentialResetRequired": false
+    },
+    {
+      "id": "long-lived-credential-theft",
+      "severity": "high",
+      "trigger": "SOC: exfiltration of service account token",
+      "response": "Full trust reset per OPS_006_CREDENTIAL_RESET.md",
+      "cyberRtoHours": 12,
+      "artifacts": ["secrets-kms"],
+      "credentialResetRequired": true
+    },
+    {
+      "id": "backup-tampering",
+      "severity": "high",
+      "trigger": "Backup checksum mismatch vs WORM catalog",
+      "response": "Reject restore; use alternate backup generation",
+      "cyberRtoHours": 16,
+      "artifacts": ["database-backup"],
+      "credentialResetRequired": true
+    },
+    {
+      "id": "registry-kms-loss",
+      "severity": "high",
+      "trigger": "KMS unavailable; cannot verify signatures",
+      "response": "Fail closed; use offline digest manifest + manual key ceremony",
+      "cyberRtoHours": 24,
+      "artifacts": ["container-registry", "sbom-artifacts", "secrets-kms"],
+      "credentialResetRequired": true
+    },
+    {
+      "id": "ci-pipeline-compromise",
+      "severity": "critical",
+      "trigger": "Unauthorized workflow run or secret exfil from GitHub Actions",
+      "response": "Revoke CI tokens; rebuild from last verified signed tag",
+      "cyberRtoHours": 24,
+      "artifacts": ["git-signed-tag", "container-registry"],
+      "credentialResetRequired": true
+    }
+  ],
+  "exerciseFrequency": {
+    "tabletop": "quarterly",
+    "fullCleanRoom": "2 per year"
+  },
+  "blockers": [
+    { "id": "live-clean-room-drill", "status": "Blocked" },
+    { "id": "live-assumed-breach-game-day", "status": "Blocked" }
+  ]
+}

@@ -1,0 +1,11 @@
+﻿{
+    "card":  "EXT-004",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "allowedAlgCount":  2,
+    "auditFieldCount":  6,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

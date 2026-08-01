@@ -1,0 +1,96 @@
+{
+  "card": "FUN-002",
+  "version": 1,
+  "steps": [
+    {
+      "id": "SeparationDecision",
+      "separationStep": null,
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 24,
+      "evidenceType": "SeparationRecord.Id",
+      "service": "HR.Contracts",
+      "event": null
+    },
+    {
+      "id": "ContractTerminated",
+      "separationStep": "ContractTerminated",
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 48,
+      "evidenceType": "Contract.Terminated",
+      "service": "HR.Contracts",
+      "event": null
+    },
+    {
+      "id": "PayrollSettled",
+      "separationStep": "PayrollSettled",
+      "mandatory": true,
+      "ownerRole": "payroll",
+      "slaHours": 72,
+      "evidenceType": "EndOfServiceSettlement.Id",
+      "service": "Payroll",
+      "event": "IExecuteSeparationParty"
+    },
+    {
+      "id": "CardRevoked",
+      "separationStep": "CardRevoked",
+      "mandatory": true,
+      "ownerRole": "idcard",
+      "slaHours": 48,
+      "evidenceType": "party:IDCard",
+      "service": "IDCard",
+      "event": "IExecuteSeparationParty"
+    },
+    {
+      "id": "AccountDisabled",
+      "separationStep": "AccountDisabled",
+      "mandatory": true,
+      "ownerRole": "auth-directory",
+      "slaHours": 24,
+      "evidenceType": "AuthUser.IsActive=false",
+      "service": "Auth.Directory",
+      "event": "IExecuteSeparationParty"
+    },
+    {
+      "id": "AssetsReturned",
+      "separationStep": "AssetsReturned",
+      "mandatory": true,
+      "ownerRole": "admin-logistics",
+      "slaHours": 72,
+      "evidenceType": "party:Admin.Logistics",
+      "service": "Admin.Logistics",
+      "event": "IExecuteSeparationParty"
+    },
+    {
+      "id": "ITAccessRevoked",
+      "separationStep": null,
+      "mandatory": true,
+      "ownerRole": "it-infra",
+      "slaHours": 48,
+      "evidenceType": "party:IT.Infra",
+      "service": "IT.Infra",
+      "event": "IExecuteSeparationParty"
+    },
+    {
+      "id": "Archived",
+      "separationStep": "Archived",
+      "mandatory": true,
+      "ownerRole": "records-archive",
+      "slaHours": 24,
+      "evidenceType": "party:Archive",
+      "service": "Records.Archive",
+      "event": "IExecuteSeparationParty"
+    },
+    {
+      "id": "SeparationCompleted",
+      "separationStep": null,
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 1,
+      "evidenceType": "ISeparationCompleted",
+      "service": "SeparationSaga",
+      "event": "ISeparationCompleted"
+    }
+  ]
+}

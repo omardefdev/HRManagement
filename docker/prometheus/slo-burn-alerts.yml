@@ -1,0 +1,92 @@
+# OBS-002 multi-window burn + journey alerts
+groups:
+  - name: slo_burn_obs002
+    rules:
+      - alert: J1GatewayAvailabilityBurnFast
+        expr: slo:j1_burn_rate:1h > 14.4 and slo:j1_burn_rate:5m > 14.4
+        for: 2m
+        labels:
+          severity: page
+          owner: platform
+          journey: J1
+        annotations:
+          summary: "J1 Gateway availability burn (fast window)"
+          description: "1h and 5m burn rates exceed 14.4x of 99.5% SLO error budget."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j1gatewayavailabilityburnfast"
+
+      - alert: J1GatewayAvailabilityBurnSlow
+        expr: slo:j1_burn_rate:6h > 6 and slo:j1_burn_rate:30m > 6
+        for: 15m
+        labels:
+          severity: ticket
+          owner: platform
+          journey: J1
+        annotations:
+          summary: "J1 Gateway availability burn (slow window)"
+          description: "6h and 30m burn rates exceed 6x of 99.5% SLO error budget."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j1gatewayavailabilityburnslow"
+
+      - alert: J2ApiAvailabilityBurnFast
+        expr: slo:j2_burn_rate:1h > 14.4 and slo:j2_burn_rate:5m > 14.4
+        for: 2m
+        labels:
+          severity: page
+          owner: platform
+          journey: J2
+        annotations:
+          summary: "J2 API availability burn (fast window)"
+          description: "Gateway HTTP 5xx error budget burning quickly."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j2apiavailabilityburnfast"
+
+      - alert: J2ApiAvailabilityBurnSlow
+        expr: slo:j2_burn_rate:6h > 6 and slo:j2_burn_rate:30m > 6
+        for: 15m
+        labels:
+          severity: ticket
+          owner: platform
+          journey: J2
+        annotations:
+          summary: "J2 API availability burn (slow window)"
+          description: "Gateway HTTP 5xx error budget burning over longer window."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j2apiavailabilityburnslow"
+
+      - alert: J2ApiLatencyHigh
+        expr: job:http_duration_p95:5m{job="hr-gateway"} > 2
+        for: 10m
+        labels:
+          severity: ticket
+          owner: platform
+          journey: J2
+        annotations:
+          summary: "J2 Gateway P95 latency > 2s"
+          description: "Latency SLI degraded for 10m."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j2apilatencyhigh"
+
+      - alert: J3MessagingFreshnessDegraded
+        expr: max(outbox_pending_messages) > 100 or max(outbox_oldest_age_seconds) > 300
+        for: 10m
+        labels:
+          severity: ticket
+          owner: platform
+          journey: J3
+        annotations:
+          summary: "J3 messaging freshness degraded"
+          description: "Outbox pending > 100 or oldest age > 300s for 10m."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j3messagingfreshnessdegraded"
+
+      - alert: J4PayrollFailRatioHigh
+        expr: |
+          sli:j4_payroll_fail_ratio:1h > 0.01
+          and
+          (
+            sum(rate(hrm_payroll_run_employees_processed_total[1h]) or rate(hrm_payroll_run_employees_processed[1h]) or vector(0)) > 0
+          )
+        for: 15m
+        labels:
+          severity: ticket
+          owner: payroll
+          journey: J4
+        annotations:
+          summary: "J4 payroll fail ratio > 1%"
+          description: "Correctness proxy during active payroll processing."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#j4payrollfailratiohigh"

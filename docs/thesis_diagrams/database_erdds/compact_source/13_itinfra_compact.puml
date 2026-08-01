@@ -1,0 +1,60 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة it_infra_db\nIT.Infra"
+
+entity "AuditLogs\nEntityAuditLog" as T01 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T02 {
+  * Id
+    MessageId
+    TenantId
+}
+entity "BackupJobs\nBackupJob" as T03 {
+  * Id
+    TenantId
+}
+entity "EnvironmentConfigurations\nEnvironmentConfiguration" as T04 {
+  * Id
+    TenantId
+}
+entity "ITSupportTickets\nITSupportTicket" as T05 {
+  * Id
+    TenantId
+}
+entity "SecurityIncidents\nSecurityIncident" as T06 {
+  * Id
+    TenantId
+}
+entity "ServerDevices\nServerDevice" as T07 {
+  * Id
+    TenantId
+}
+entity "SystemPermissionRecords\nSystemPermissionRecord" as T08 {
+  * Id
+    TenantId
+    UserId
+}
+entity "UserDevices\nUserDevice" as T09 {
+  * Id
+    TenantId
+}
+
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

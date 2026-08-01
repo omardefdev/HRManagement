@@ -1,0 +1,37 @@
+{
+  "card": "FUN-004",
+  "version": 1,
+  "journeys": [
+    {
+      "id": "Health",
+      "steps": [
+        { "id": "ConsentRecorded", "mandatory": true, "ownerRole": "hr-health-clinical", "slaHours": 24, "evidenceType": "MedicalRecord.Consent", "service": "HR.Health", "event": null },
+        { "id": "MedicalRecord", "mandatory": true, "ownerRole": "hr-health-clinical", "slaHours": 48, "evidenceType": "MedicalRecord.Id", "service": "HR.Health", "event": null },
+        { "id": "Recommendation", "mandatory": false, "ownerRole": "hr-health-clinical", "slaHours": 72, "evidenceType": "MedicalRecommendation", "service": "HR.Health", "event": "IMedicalRecommendationIssued" },
+        { "id": "CommitteeDecision", "mandatory": false, "ownerRole": "hr-health-clinical", "slaHours": 120, "evidenceType": "MedicalCommitteeReport", "service": "HR.Health", "event": "IMedicalDecisionIssued" },
+        { "id": "InsuranceActive", "mandatory": true, "ownerRole": "hr-health", "slaHours": 72, "evidenceType": "InsuranceCard.Active", "service": "HR.Health", "event": null },
+        { "id": "InsuranceEnded", "mandatory": false, "ownerRole": "hr-health", "slaHours": 24, "evidenceType": "InsuranceCard.RevokedOrExpired", "service": "HR.Health", "event": null }
+      ]
+    },
+    {
+      "id": "Training",
+      "steps": [
+        { "id": "Enrolled", "mandatory": true, "ownerRole": "hr-training", "slaHours": 24, "evidenceType": "TrainingEnrollment.Id", "service": "HR.Training", "event": null },
+        { "id": "Completed", "mandatory": true, "ownerRole": "hr-training", "slaHours": 720, "evidenceType": "TrainingResult.Score", "service": "HR.Training", "event": "ITrainingCompleted" },
+        { "id": "CertificateIssued", "mandatory": true, "ownerRole": "hr-training", "slaHours": 48, "evidenceType": "CertificateNo|CertificateFileId", "service": "HR.Training", "event": null },
+        { "id": "CertificateVerified", "mandatory": false, "ownerRole": "hr-training", "slaHours": 24, "evidenceType": "verify:CertificateNo", "service": "HR.Training", "event": null }
+      ]
+    },
+    {
+      "id": "Compliance",
+      "steps": [
+        { "id": "ComplaintFiled", "mandatory": true, "ownerRole": "compliance", "slaHours": 24, "evidenceType": "Complaint.Id", "service": "Compliance", "event": null },
+        { "id": "Assigned", "mandatory": true, "ownerRole": "compliance", "slaHours": 48, "evidenceType": "Complaint.AssignedTo", "service": "Compliance", "event": null },
+        { "id": "EvidenceCollected", "mandatory": true, "ownerRole": "compliance", "slaHours": 168, "evidenceType": "FILE-002:EvidenceFileId", "service": "Compliance", "event": null },
+        { "id": "Resolved", "mandatory": true, "ownerRole": "compliance", "slaHours": 72, "evidenceType": "Complaint.Resolution", "service": "Compliance", "event": "IComplaintResolved" },
+        { "id": "DisciplineIssued", "mandatory": false, "ownerRole": "compliance", "slaHours": 72, "evidenceType": "DisciplinaryAction", "service": "Compliance", "event": "IDisciplinaryActionTaken" },
+        { "id": "Closed", "mandatory": true, "ownerRole": "compliance", "slaHours": 24, "evidenceType": "ComplaintStatus.Closed", "service": "Compliance", "event": null }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="ClosedXML" />
+    <PackageReference Include="QuestPDF" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Payroll.Domain\Payroll.Domain.csproj" />
+    <ProjectReference Include="..\Payroll.Application\Payroll.Application.csproj" />
+    <ProjectReference Include="..\Payroll.Infrastructure\Payroll.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.Web.Shared\HRManagement.Web.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\..\..\docs\str-scope\envelope-matrix.json" Link="NationalScope\envelope-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

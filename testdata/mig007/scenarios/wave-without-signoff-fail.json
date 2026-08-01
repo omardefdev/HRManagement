@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-WAVE-WITHOUT-SIGNOFF",
+  "expectedValidate": "FAIL",
+  "waveStarted": true,
+  "signOffsComplete": false,
+  "missingRoles": ["security-owner"],
+  "notes": "Wave without complete sign-offs must fail"
+}

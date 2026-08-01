@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hr-gateway
+  labels:
+    app.kubernetes.io/name: hr-gateway
+  annotations:
+    # TLS / cert-manager (document; enable when cluster has issuer)
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # WAF / rate-limit stubs (OPS-001 minimum; cloud WAF preferred in front)
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    nginx.ingress.kubernetes.io/proxy-body-size: "32m"
+    # Example ModSecurity toggle when ingress-nginx WAF module is installed:
+    # nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    # nginx.ingress.kubernetes.io/modsecurity-snippet: |
+    #   SecRuleEngine On
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - hr.example.com
+      secretName: hr-gateway-tls
+  rules:
+    - host: hr.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hr-gateway
+                port:
+                  number: 8080

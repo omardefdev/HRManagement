@@ -1,0 +1,16 @@
+@model HR.Core.Web.ViewModels.SuccessionPlanCreateViewModel
+@{ ViewData["Title"] = "خطة تعاقب جديدة"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">خطة تعاقب جديدة</h3></div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3"><label asp-for="KeyPositionId" class="form-label"></label><select asp-for="KeyPositionId" asp-items="ViewBag.KeyPositions" class="form-control"><option value="">— اختر —</option></select><span asp-validation-for="KeyPositionId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Year" class="form-label"></label><input asp-for="Year" type="number" class="form-control" /><span asp-validation-for="Year" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control"></textarea><span asp-validation-for="Notes" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,139 @@
+{
+  "card": "PRD-001",
+  "version": 1,
+  "asOfDate": "2026-07-31",
+  "allowedEntitlements": ["mandatory", "optional", "configurable", "disabled"],
+  "requiredModuleIds": [
+    "hr-core",
+    "hr-contracts",
+    "hr-health",
+    "hr-movements",
+    "hr-training",
+    "payroll",
+    "idcard",
+    "records-archive",
+    "admin-logistics",
+    "it-infra",
+    "dev-analytics",
+    "compliance",
+    "auth-directory",
+    "file-storage"
+  ],
+  "archetypes": [
+    {
+      "id": "central-ministry",
+      "nameAr": "وزارة مركزية",
+      "nameEn": "Central Ministry",
+      "description": "National policy authority with full HR lifecycle, payroll, compliance, and cross-agency reporting.",
+      "scaleTier": "xl",
+      "moduleEntitlements": {
+        "hr-core": "mandatory",
+        "hr-contracts": "mandatory",
+        "hr-health": "mandatory",
+        "hr-movements": "mandatory",
+        "hr-training": "mandatory",
+        "payroll": "mandatory",
+        "idcard": "mandatory",
+        "records-archive": "mandatory",
+        "admin-logistics": "configurable",
+        "it-infra": "mandatory",
+        "dev-analytics": "configurable",
+        "compliance": "mandatory",
+        "auth-directory": "mandatory",
+        "file-storage": "mandatory"
+      }
+    },
+    {
+      "id": "governorate",
+      "nameAr": "محافظة",
+      "nameEn": "Governorate",
+      "description": "Regional government unit executing national HR policy with localized payroll and field operations.",
+      "scaleTier": "large",
+      "moduleEntitlements": {
+        "hr-core": "mandatory",
+        "hr-contracts": "mandatory",
+        "hr-health": "mandatory",
+        "hr-movements": "mandatory",
+        "hr-training": "configurable",
+        "payroll": "mandatory",
+        "idcard": "mandatory",
+        "records-archive": "mandatory",
+        "admin-logistics": "optional",
+        "it-infra": "mandatory",
+        "dev-analytics": "optional",
+        "compliance": "mandatory",
+        "auth-directory": "mandatory",
+        "file-storage": "mandatory"
+      }
+    },
+    {
+      "id": "autonomous-institution",
+      "nameAr": "مؤسسة مستقلة",
+      "nameEn": "Autonomous Institution",
+      "description": "Self-governing public body with statutory autonomy; configurable modules beyond core HR and payroll.",
+      "scaleTier": "medium",
+      "moduleEntitlements": {
+        "hr-core": "mandatory",
+        "hr-contracts": "mandatory",
+        "hr-health": "configurable",
+        "hr-movements": "mandatory",
+        "hr-training": "optional",
+        "payroll": "mandatory",
+        "idcard": "configurable",
+        "records-archive": "mandatory",
+        "admin-logistics": "optional",
+        "it-infra": "mandatory",
+        "dev-analytics": "optional",
+        "compliance": "mandatory",
+        "auth-directory": "mandatory",
+        "file-storage": "mandatory"
+      }
+    },
+    {
+      "id": "branch-office",
+      "nameAr": "فرع ميداني",
+      "nameEn": "Branch Office",
+      "description": "Remote operational site with constrained scope; heavy reliance on central payroll and identity services.",
+      "scaleTier": "small",
+      "moduleEntitlements": {
+        "hr-core": "mandatory",
+        "hr-contracts": "configurable",
+        "hr-health": "optional",
+        "hr-movements": "configurable",
+        "hr-training": "optional",
+        "payroll": "configurable",
+        "idcard": "mandatory",
+        "records-archive": "configurable",
+        "admin-logistics": "optional",
+        "it-infra": "mandatory",
+        "dev-analytics": "disabled",
+        "compliance": "mandatory",
+        "auth-directory": "mandatory",
+        "file-storage": "mandatory"
+      }
+    },
+    {
+      "id": "specialized-body",
+      "nameAr": "هيئة متخصصة",
+      "nameEn": "Specialized Body",
+      "description": "Sector-specific agency with extended training, compliance, and analytics; limited logistics footprint.",
+      "scaleTier": "medium",
+      "moduleEntitlements": {
+        "hr-core": "mandatory",
+        "hr-contracts": "mandatory",
+        "hr-health": "mandatory",
+        "hr-movements": "mandatory",
+        "hr-training": "mandatory",
+        "payroll": "mandatory",
+        "idcard": "configurable",
+        "records-archive": "mandatory",
+        "admin-logistics": "disabled",
+        "it-infra": "mandatory",
+        "dev-analytics": "mandatory",
+        "compliance": "mandatory",
+        "auth-directory": "mandatory",
+        "file-storage": "mandatory"
+      }
+    }
+  ]
+}

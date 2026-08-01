@@ -1,0 +1,30 @@
+@model UserDevice
+@{ ViewData["Title"] = "تفاصيل جهاز المستخدم"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.AssetTag)</dt>
+            <dd class="col-sm-9">@Model.AssetTag</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.AssignedTo)</dt>
+            <dd class="col-sm-9">@Model.AssignedTo</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.DeviceType)</dt>
+            <dd class="col-sm-9">@Model.DeviceType</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.SerialNumber)</dt>
+            <dd class="col-sm-9">@Model.SerialNumber</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
+            <dd class="col-sm-9">@Model.Status</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+    </div>
+</div>

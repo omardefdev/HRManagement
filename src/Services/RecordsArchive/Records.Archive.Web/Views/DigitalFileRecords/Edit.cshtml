@@ -1,0 +1,26 @@
+@model DigitalFileRecord
+@{ ViewData["Title"] = "تعديل الملف الرقمي"; var items = (SelectList)ViewBag.Items; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="ArchiveItemId" class="form-label"></label><select asp-for="ArchiveItemId" asp-items="items" class="form-control"></select></div>
+            @{
+                ViewData["FileUploadName"] = "FileId";
+                ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                ViewData["FileUploadMaxSize"] = "26214400";
+                ViewData["FileUploadLabel"] = "الملف الرقمي";
+            }
+            @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+            <div class="mb-3"><label asp-for="FileSizeBytes" class="form-label"></label><input asp-for="FileSizeBytes" class="form-control" type="number" /></div>
+            <div class="mb-3"><label asp-for="Checksum" class="form-label"></label><input asp-for="Checksum" class="form-control" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

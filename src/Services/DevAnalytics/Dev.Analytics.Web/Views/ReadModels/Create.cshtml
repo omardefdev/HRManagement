@@ -1,0 +1,9 @@
+@model Dev.Analytics.Domain.Entities.ReadModel
+@{ ViewData["Title"] = "نموذج قراءة"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Schema" class="form-label"></label><textarea asp-for="Schema" class="form-control" rows="3" placeholder="المخطط / الوصف"></textarea><span asp-validation-for="Schema" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="LastRefreshed" class="form-label"></label><input asp-for="LastRefreshed" class="form-control" type="datetime-local" /><span asp-validation-for="LastRefreshed" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

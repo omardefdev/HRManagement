@@ -1,0 +1,137 @@
+@model HR.Core.Web.ViewModels.ContactsIndexViewModel
+
+@{
+
+    ViewData["Title"] = "معلومات الاتصال";
+
+    var employee = Model.Employee;
+
+    string TypeAr(HRManagement.SharedKernel.Enums.ContactType t) => t switch
+
+    {
+
+        HRManagement.SharedKernel.Enums.ContactType.Phone => "هاتف",
+
+        HRManagement.SharedKernel.Enums.ContactType.Email => "بريد إلكتروني",
+
+        _ => "عنوان"
+
+    };
+
+}
+
+
+
+<div class="card">
+
+    <div class="card-header">
+
+        <h3 class="card-title"><i class="fas fa-phone"></i> اتصالات الموظف: @employee.FullName</h3>
+
+        <div class="card-tools">
+
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createContactModal">
+
+                <i class="fas fa-plus"></i> إضافة اتصال
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="card-body p-0">
+
+        <table class="table table-striped table-hover mb-0">
+
+            <thead>
+
+                <tr><th>نوع الاتصال</th><th>القيمة</th><th>أساسي</th><th>إجراءات</th></tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var c in Model.Contacts)
+
+                {
+
+                    <tr>
+
+                        <td>@TypeAr(c.Type)</td>
+
+                        <td>@c.Value</td>
+
+                        <td>@(c.IsPrimary ? Html.Raw("<i class=\"fas fa-check text-success\"></i>") : "—")</td>
+
+                        <td>
+
+                            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+
+                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = c.Id })" aria-label="حذف">
+
+                                <i aria-hidden="true" class="fas fa-trash"></i>
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                }
+
+                @if (!Model.Contacts.Any())
+
+                {
+
+                    <tr><td colspan="4" class="text-center text-muted py-4">لا توجد معلومات اتصال</td></tr>
+
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="card-footer">
+
+        <a asp-controller="Employees" asp-action="Details" asp-route-id="@employee.Id" class="btn btn-secondary">
+
+            <i class="fas fa-arrow-right"></i> العودة لملف الموظف
+
+        </a>
+
+    </div>
+
+</div>
+
+
+
+@await Html.PartialAsync("_CreateModal", Model.CreateModel)
+
+
+
+@section Scripts {
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            if (@Json.Serialize(Model.ShowCreateModal)) {
+
+                bootstrap.Modal.getOrCreateInstance(
+
+                    document.getElementById('createContactModal')).show();
+
+            }
+
+        });
+
+    </script>
+
+}
+
+

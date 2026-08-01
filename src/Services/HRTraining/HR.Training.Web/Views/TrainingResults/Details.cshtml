@@ -1,0 +1,18 @@
+@model HR.Training.Domain.Entities.TrainingResult
+@{ ViewData["Title"] = "تفاصيل نتيجة التدريب"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">نتيجة تدريب</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        <table class="table table-borderless table-sm w-auto">
+            <tr><th>الموظف</th><td>@Model.Enrollment.EmployeeId</td></tr>
+            <tr><th>الدورة</th><td>@(Model.Enrollment.Course?.TitleAr ?? "—")</td></tr>
+            <tr><th>الدرجة</th><td>@Model.Score</td></tr>
+            @if (!string.IsNullOrEmpty(Model.EvaluationNotes)) { <tr><th>ملاحظات</th><td>@Model.EvaluationNotes</td></tr> }
+            <tr><th>المقيّم</th><td>@(Model.GradedBy?.ToString() ?? "—")</td></tr>
+            <tr><th>تاريخ التقييم</th><td>@Model.GradedAt?.ToString("yyyy/MM/dd HH:mm")</td></tr>
+        </table>
+    </div>
+</div>

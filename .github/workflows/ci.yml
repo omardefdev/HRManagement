@@ -1,0 +1,413 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore local tools (dotnet-ef)
+        run: dotnet tool restore
+
+      - name: Guard against wildcard package versions
+        run: |
+          set -euo pipefail
+          if grep -RInE 'Version="(\*|[0-9]+\.\*)"' --include='*.csproj' .; then
+            echo "::error::Wildcard PackageReference versions found in .csproj files (DB-001)"
+            exit 1
+          fi
+          echo "No wildcard package versions."
+
+      - name: Base image pins (SUP-001-B)
+        run: bash scripts/check-base-image-pins.sh
+
+      - name: Supply-chain exceptions validity (SUP-001-C)
+        run: bash scripts/check-supply-chain-exceptions.sh
+
+      - name: License policy (SUP-001-E)
+        run: bash scripts/check-license-policy.sh
+
+      - name: No external CDN (UX-001-C)
+        run: bash scripts/check-no-external-cdn.sh
+
+      - name: XSS DOM sinks gate (UX-001-E)
+        run: bash scripts/check-xss-dom-sinks.sh
+
+      - name: Icon button accessible names (UX-002-E)
+        run: python3 scripts/check-icon-button-names.py
+
+      - name: Non-prod data policy (GOV-001-D)
+        run: python3 scripts/check-non-prod-data-policy.py
+
+      - name: No LEGAL_TBD in release path (GOV-002-B)
+        run: python3 scripts/check-no-legal-tbd.py
+
+      - name: STR-002 control runtime validate
+        run: pwsh -NoProfile -File scripts/str002-control-runtime-validate.ps1
+
+      - name: STR-003 module runtime validate
+        run: pwsh -NoProfile -File scripts/str003-module-runtime-validate.ps1
+
+      - name: STR-004 nofork runtime validate
+        run: pwsh -NoProfile -File scripts/str004-nofork-runtime-validate.ps1
+
+      - name: STR-005 governance runtime validate
+        run: pwsh -NoProfile -File scripts/str005-governance-runtime-validate.ps1
+
+      - name: STR-006 ownership runtime validate
+        run: pwsh -NoProfile -File scripts/str006-ownership-runtime-validate.ps1
+
+      - name: STR-007 value runtime validate
+        run: pwsh -NoProfile -File scripts/str007-value-runtime-validate.ps1
+
+      - name: MIG-001 inventory runtime validate
+        run: pwsh -NoProfile -File scripts/mig001-inventory-runtime-validate.ps1
+
+      - name: MIG-002 codemap runtime validate
+        run: pwsh -NoProfile -File scripts/mig002-codemap-runtime-validate.ps1
+
+      - name: MIG-003 factory runtime validate
+        run: pwsh -NoProfile -File scripts/mig003-factory-runtime-validate.ps1
+
+      - name: MIG-004 match runtime validate
+        run: pwsh -NoProfile -File scripts/mig004-match-runtime-validate.ps1
+
+      - name: MIG-005 evidence runtime validate
+        run: pwsh -NoProfile -File scripts/mig005-evidence-runtime-validate.ps1
+
+      - name: MIG-006 cutover runtime validate
+        run: pwsh -NoProfile -File scripts/mig006-cutover-runtime-validate.ps1
+
+      - name: MIG-007 onboarding runtime validate
+        run: pwsh -NoProfile -File scripts/mig007-onboarding-runtime-validate.ps1
+
+      - name: EXT-001 federation runtime validate
+        run: pwsh -NoProfile -File scripts/ext001-federation-runtime-validate.ps1
+
+      - name: EXT-002 civil-registry runtime validate
+        run: pwsh -NoProfile -File scripts/ext002-civil-registry-runtime-validate.ps1
+
+      - name: EXT-003 treasury-payment runtime validate
+        run: pwsh -NoProfile -File scripts/ext003-treasury-payment-runtime-validate.ps1
+
+      - name: EXT-004 pki-signature runtime validate
+        run: pwsh -NoProfile -File scripts/ext004-pki-signature-runtime-validate.ps1
+
+      - name: EXT-005 api-exchange runtime validate
+        run: pwsh -NoProfile -File scripts/ext005-api-exchange-runtime-validate.ps1
+
+      - name: EXT-006 sandbox-cert pack validate
+        run: pwsh -NoProfile -File scripts/ext006-sandbox-cert-validate.ps1
+
+      - name: EXT-006 sandbox-cert runtime validate
+        run: pwsh -NoProfile -File scripts/ext006-sandbox-cert-runtime-validate.ps1
+
+      - name: EXT-007 sector-catalog pack validate
+        run: pwsh -NoProfile -File scripts/ext007-sector-catalog-validate.ps1
+
+      - name: EXT-007 sector-catalog runtime validate
+        run: pwsh -NoProfile -File scripts/ext007-sector-catalog-runtime-validate.ps1
+
+      - name: PROD-001 policy-platform pack validate
+        run: pwsh -NoProfile -File scripts/prod001-policy-platform-validate.ps1
+
+      - name: PROD-001 policy-platform runtime validate
+        run: pwsh -NoProfile -File scripts/prod001-policy-platform-runtime-validate.ps1
+
+      - name: PROD-002 agency-selfadmin pack validate
+        run: pwsh -NoProfile -File scripts/prod002-agency-selfadmin-validate.ps1
+
+      - name: PROD-002 agency-selfadmin runtime validate
+        run: pwsh -NoProfile -File scripts/prod002-agency-selfadmin-runtime-validate.ps1
+
+      - name: PROD-003 employee-selfservice pack validate
+        run: pwsh -NoProfile -File scripts/prod003-employee-selfservice-validate.ps1
+
+      - name: PROD-003 employee-selfservice runtime validate
+        run: pwsh -NoProfile -File scripts/prod003-employee-selfservice-runtime-validate.ps1
+
+      - name: PROD-004 remote-branch pack validate
+        run: pwsh -NoProfile -File scripts/prod004-remote-branch-validate.ps1
+
+      - name: PROD-004 remote-branch runtime validate
+        run: pwsh -NoProfile -File scripts/prod004-remote-branch-runtime-validate.ps1
+
+      - name: PROD-005 workbox pack validate
+        run: pwsh -NoProfile -File scripts/prod005-workbox-validate.ps1
+
+      - name: PROD-005 workbox runtime validate
+        run: pwsh -NoProfile -File scripts/prod005-workbox-runtime-validate.ps1
+
+      - name: PROD-006 semantic-layer pack validate
+        run: pwsh -NoProfile -File scripts/prod006-semantic-layer-validate.ps1
+
+      - name: PROD-006 semantic-layer runtime validate
+        run: pwsh -NoProfile -File scripts/prod006-semantic-layer-runtime-validate.ps1
+
+      - name: PROD-007 extensibility pack validate
+        run: pwsh -NoProfile -File scripts/prod007-extensibility-validate.ps1
+
+      - name: PROD-007 extensibility runtime validate
+        run: pwsh -NoProfile -File scripts/prod007-extensibility-runtime-validate.ps1
+
+      - name: SOV-001 control-baseline pack validate
+        run: pwsh -NoProfile -File scripts/sov001-control-baseline-validate.ps1
+
+      - name: SOV-001 control-baseline runtime validate
+        run: pwsh -NoProfile -File scripts/sov001-control-baseline-runtime-validate.ps1
+
+      - name: SOV-002 data-sovereignty pack validate
+        run: pwsh -NoProfile -File scripts/sov002-data-sovereignty-validate.ps1
+
+      - name: SOV-002 data-sovereignty runtime validate
+        run: pwsh -NoProfile -File scripts/sov002-data-sovereignty-runtime-validate.ps1
+
+      - name: SOV-003 key-sovereignty pack validate
+        run: pwsh -NoProfile -File scripts/sov003-key-sovereignty-validate.ps1
+
+      - name: SOV-003 key-sovereignty runtime validate
+        run: pwsh -NoProfile -File scripts/sov003-key-sovereignty-runtime-validate.ps1
+
+      - name: SOV-004 zero-trust pack validate
+        run: pwsh -NoProfile -File scripts/sov004-zero-trust-validate.ps1
+
+      - name: SOV-004 zero-trust runtime validate
+        run: pwsh -NoProfile -File scripts/sov004-zero-trust-runtime-validate.ps1
+
+      - name: SOV-005 threat-model pack validate
+        run: pwsh -NoProfile -File scripts/sov005-threat-model-validate.ps1
+
+      - name: SOV-005 threat-model runtime validate
+        run: pwsh -NoProfile -File scripts/sov005-threat-model-runtime-validate.ps1
+
+      - name: SOV-006 pen-red pack validate
+        run: pwsh -NoProfile -File scripts/sov006-pen-red-validate.ps1
+
+      - name: SOV-006 pen-red runtime validate
+        run: pwsh -NoProfile -File scripts/sov006-pen-red-runtime-validate.ps1
+
+      - name: SOV-007 vendor-exit pack validate
+        run: pwsh -NoProfile -File scripts/sov007-vendor-exit-validate.ps1
+
+      - name: SOV-007 vendor-exit runtime validate
+        run: pwsh -NoProfile -File scripts/sov007-vendor-exit-runtime-validate.ps1
+
+      - name: ARC-001 criticality pack validate
+        run: pwsh -NoProfile -File scripts/arc001-criticality-validate.ps1
+
+      - name: ARC-001 criticality runtime validate
+        run: pwsh -NoProfile -File scripts/arc001-criticality-runtime-validate.ps1
+
+      - name: ARC-002 reference pack validate
+        run: pwsh -NoProfile -File scripts/arc002-reference-validate.ps1
+
+      - name: ARC-002 reference runtime validate
+        run: pwsh -NoProfile -File scripts/arc002-reference-runtime-validate.ps1
+
+      - name: Master data DQ report offline (GOV-003-D)
+        run: GOV003_DQ_FIXTURE=testdata/gov003/dq-fixture-clean.json python3 scripts/gov003-data-quality-report.py
+
+      - name: Restore (locked mode)
+        run: dotnet restore HRManagement.slnx --locked-mode
+
+      - name: Check formatting
+        run: dotnet format HRManagement.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build HRManagement.slnx --configuration Release --no-restore
+
+      - name: Check pending EF model changes
+        run: bash scripts/check-pending-ef-model-changes.sh
+
+      - name: Check EF migration discoverability
+        run: bash scripts/check-migration-discovery.sh
+
+      - name: Validate FRD-001 anomaly rules binding
+        run: pwsh -NoProfile -File scripts/frd001-validate.ps1
+
+      - name: Classify test evidence (separated counts)
+        run: python3 scripts/classify-test-evidence.py
+
+      - name: Unit tests
+        run: >
+          dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj
+          --configuration Release --no-build
+          --logger "trx;LogFileName=unit-results.trx"
+          --results-directory ./TestResults/unit
+          --settings coverlet.runsettings
+          --collect:"XPlat Code Coverage"
+
+      - name: Integration tests (MassTransit InMemory)
+        run: >
+          dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj
+          --configuration Release --no-build
+          --logger "trx;LogFileName=integration-results.trx"
+          --results-directory ./TestResults/integration
+          --filter "Category!=Testcontainers"
+          --blame-hang-timeout 5m
+          --settings coverlet.runsettings
+          --collect:"XPlat Code Coverage"
+
+      - name: Integration tests (Testcontainers)
+        env:
+          RUN_TESTCONTAINERS: "true"
+        run: >
+          dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj
+          --configuration Release --no-build
+          --logger "trx;LogFileName=integration-tc-results.trx"
+          --results-directory ./TestResults/integration-tc
+          --filter "Category=Testcontainers"
+          --blame-hang-timeout 15m
+          --settings coverlet.runsettings
+          --collect:"XPlat Code Coverage"
+
+      - name: Coverage gate
+        env:
+          # QA-002: 60% on gateAssemblies + per-assembly floors (coverage-floors.json); ratchet — do not lower without ADR
+          COVERAGE_THRESHOLD: "60"
+        run: bash scripts/check-coverage.sh
+
+      - name: Tech debt measurement (QA-005)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa005-measure-debt.ps1
+
+      - name: XL decomposition audit (PGM-001)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pgm001-xl-audit.ps1
+
+      - name: Security scan (known vulnerabilities)
+        run: bash scripts/check-nuget-vulnerabilities.sh vuln-report.txt
+
+      - name: SCA Crit/High fixture (SUP-001-C)
+        run: bash scripts/verify-sca-fixture.sh
+
+      - name: Install ReportGenerator
+        if: always()
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          REPORTS="$(find . -name 'coverage.cobertura.xml' -path '*/TestResults/*' | sort | paste -sd ';' -)"
+          if [ -n "$REPORTS" ]; then
+            reportgenerator "-reports:$REPORTS" "-targetdir:coveragereport" "-reporttypes:HtmlInline_AzurePipelines;Cobertura"
+          fi
+
+      - name: Verify Docker builds
+        run: docker compose build
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/**/coverage.cobertura.xml
+            coveragereport/
+            vuln-report.txt
+
+  e2e:
+    name: E2E
+    # Mandatory gate: no PR label opt-in. Playwright browsers must be installed before RUN_PLAYWRIGHT_E2E.
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Start stack
+        run: docker compose up -d --wait
+
+      - name: Import E2E Keycloak realm personas
+        run: |
+          if [ -f docker/keycloak/realm-qa004-e2e.json ]; then
+            cp docker/keycloak/realm-qa004-e2e.json docker/keycloak/import/ || true
+          fi
+          if [ -f scripts/prepare-keycloak-import.ps1 ]; then
+            pwsh -NoProfile -File scripts/prepare-keycloak-import.ps1 || true
+          fi
+
+      - name: Restore E2E project
+        run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
+
+      - name: Build E2E project
+        run: dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --configuration Release --no-restore
+
+      - name: Install Playwright browsers
+        run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
+
+      - name: Run E2E tests
+        env:
+          RUN_PLAYWRIGHT_E2E: "true"
+          GATEWAY_BASE_URL: "http://localhost:5000"
+        run: >
+          dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
+          --configuration Release
+          --logger "trx;LogFileName=e2e-results.trx"
+          --results-directory ./TestResults/e2e
+
+      - name: Fail on skipped mandatory journeys
+        if: always()
+        run: |
+          # Zero-skip policy for mandatory Playwright journeys when the gate is enabled.
+          if [ -f ./TestResults/e2e/e2e-results.trx ]; then
+            skipped=$(grep -o 'outcome="NotExecuted"' ./TestResults/e2e/e2e-results.trx | wc -l || true)
+            echo "Skipped E2E cases: ${skipped}"
+            if [ "${skipped}" -gt 0 ]; then
+              echo "::error::Mandatory E2E journeys skipped (${skipped}). Fix or remove Skip attributes."
+              exit 1
+            fi
+          fi
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+      - name: Build for CodeQL
+        run: |
+          dotnet restore HRManagement.slnx --locked-mode
+          dotnet build HRManagement.slnx --configuration Release --no-restore
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"
+
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

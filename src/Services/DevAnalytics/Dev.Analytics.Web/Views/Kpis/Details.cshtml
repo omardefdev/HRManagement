@@ -1,0 +1,30 @@
+@model KPI
+@{ ViewData["Title"] = "تفاصيل المؤشر"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">@ViewData["Title"]</h3></div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Code)</dt>
+            <dd class="col-sm-9">@Model.Code</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Name)</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Definition)</dt>
+            <dd class="col-sm-9">@Model.Definition</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.TargetValue)</dt>
+            <dd class="col-sm-9">@Model.TargetValue</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.CurrentValue)</dt>
+            <dd class="col-sm-9">@Model.CurrentValue</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.MeasuredAt)</dt>
+            <dd class="col-sm-9">@Model.MeasuredAt</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+    </div>
+</div>

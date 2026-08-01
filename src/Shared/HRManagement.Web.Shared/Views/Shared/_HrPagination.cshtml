@@ -1,0 +1,80 @@
+@using Microsoft.AspNetCore.Routing
+@using HRManagement.SharedKernel.ViewModels
+@model HrPaginationModel?
+
+@{
+    int pageIndex;
+    int totalPages;
+    int totalCount;
+    bool hasPrev;
+    bool hasNext;
+    string action;
+    string controller;
+
+    if (Model != null)
+    {
+        pageIndex = Model.PageIndex;
+        totalPages = Model.TotalPages;
+        totalCount = Model.TotalCount;
+        hasPrev = Model.HasPreviousPage;
+        hasNext = Model.HasNextPage;
+    }
+    else
+    {
+        pageIndex = (int)(ViewData["CurrentPage"] ?? 1);
+        totalPages = (int)(ViewData["TotalPages"] ?? 1);
+        totalCount = (int)(ViewData["TotalCount"] ?? 0);
+        hasPrev = pageIndex > 1;
+        hasNext = pageIndex < totalPages;
+    }
+
+    action = ViewContext.RouteData.Values["action"]?.ToString()
+        ?? (string?)ViewData["PaginationAction"]
+        ?? "Index";
+    controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+
+    var routeValues = new RouteValueDictionary(ViewContext.RouteData.Values);
+    foreach (var key in ViewContext.HttpContext.Request.Query.Keys)
+    {
+        if (string.Equals(key, "page", StringComparison.OrdinalIgnoreCase)) continue;
+        var v = ViewContext.HttpContext.Request.Query[key].FirstOrDefault();
+        if (string.IsNullOrEmpty(v)) continue;
+        routeValues[key] = v;
+    }
+}
+
+@if (totalPages > 1)
+{
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+        <div class="text-muted">
+            عرض صفحة @pageIndex من @totalPages@if (totalCount > 0) { <text> (إجمالي @totalCount سجل)</text> }
+        </div>
+        <nav aria-label="التنقل بين الصفحات">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(hasPrev ? "" : "disabled")">
+                    @{
+                        routeValues["page"] = pageIndex - 1;
+                    }
+                    <a class="page-link" href="@Url.Action(action, controller, routeValues)" aria-label="السابق">
+                        <i class="fas fa-chevron-right"></i> السابق
+                    </a>
+                </li>
+                @for (int i = Math.Max(1, pageIndex - 2); i <= Math.Min(totalPages, pageIndex + 2); i++)
+                {
+                    routeValues["page"] = i;
+                    <li class="page-item @(i == pageIndex ? "active" : "")">
+                        <a class="page-link" href="@Url.Action(action, controller, routeValues)">@i</a>
+                    </li>
+                }
+                <li class="page-item @(hasNext ? "" : "disabled")">
+                    @{
+                        routeValues["page"] = pageIndex + 1;
+                    }
+                    <a class="page-link" href="@Url.Action(action, controller, routeValues)" aria-label="التالي">
+                        التالي <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+}

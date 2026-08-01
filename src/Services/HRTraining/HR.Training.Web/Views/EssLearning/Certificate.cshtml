@@ -1,0 +1,16 @@
+@model HR.Training.Domain.Entities.LearningEnrollment
+@{ ViewData["Title"] = "شهادة إتمام"; }
+<div class="card">
+    <div class="card-body text-center p-5" style="border:3px double #198754;">
+        <h2 class="mb-4">شهادة إتمام دورة</h2>
+        <p class="lead mb-1">تشهد إدارة الموارد البشرية بأن الموظف أكمل بنجاح دورة</p>
+        <h3 class="my-3">«@(Model.ELearningCourse?.TitleAr ?? "—")»</h3>
+        <p class="mb-1">عدد الساعات التقديرية: @(Model.ELearningCourse?.EstimatedHours) ساعة</p>
+        <p class="mb-1">تاريخ الإكمال: @(Model.CompletedAt?.ToString("yyyy-MM-dd") ?? "—")</p>
+        <hr class="w-50 mx-auto" />
+        <p class="text-muted mb-0">رقم الشهادة: <strong>@Model.Certificate?.CertificateNo</strong></p>
+    </div>
+    <div class="card-footer text-center">
+        <a asp-action="MyLearning" class="btn btn-link">رجوع</a>
+    </div>
+</div>

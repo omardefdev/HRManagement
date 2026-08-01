@@ -1,0 +1,42 @@
+@model HR.Core.Web.ViewModels.RecruitmentApplicationCreateViewModel
+
+<div class="modal fade" id="createRecruitmentModal" tabindex="-1" aria-labelledby="createRecruitmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" dir="rtl">
+        <div class="modal-content">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createRecruitmentModalLabel">طلب توظيف جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="mb-3">
+                        <label asp-for="ApplicantFullName" class="form-label"></label>
+                        <input asp-for="ApplicantFullName" class="form-control" />
+                        <span asp-validation-for="ApplicantFullName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NationalId" class="form-label"></label>
+                        <input asp-for="NationalId" class="form-control" />
+                        <span asp-validation-for="NationalId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="AppliedPosition" class="form-label"></label>
+                        <input asp-for="AppliedPosition" class="form-control" />
+                        <span asp-validation-for="AppliedPosition" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- NU1510: package pruning hints on transitive refs — documented baseline, not actionable without dependency upgrades -->
+    <!-- xUnit1031/xUnit2002: async blocking and JsonElement asserts in legacy binding tests — tracked, non-blocking for CI -->
+    <NoWarn>$(NoWarn);NU1510;xUnit1031;xUnit2002</NoWarn>
+  </PropertyGroup>
+
+  <!-- QA-001 / DB-001: force patched transitive natives used by EF Sqlite (GHSA-2m69-gcr7-jv3q) -->
+  <ItemGroup>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+  </ItemGroup>
+
+</Project>

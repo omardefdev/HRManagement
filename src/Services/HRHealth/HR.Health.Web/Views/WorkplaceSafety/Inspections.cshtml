@@ -1,0 +1,41 @@
+@model IReadOnlyList<SafetyInspection>
+@{ ViewData["Title"] = "تفتيش السلامة المهنية"; }
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">تسجيل تفتيش جديد</h5></div>
+    <div class="card-body">
+        <form asp-action="CreateInspection" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3"><label class="form-label">الموقع</label><input name="Location" class="form-control" required /></div>
+            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="InspectionDate" type="date" class="form-control" value="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-2"><label class="form-label">المُفتِّش</label><input name="Inspector" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label">الملاحظات</label><input name="Findings" class="form-control" /></div>
+            <div class="col-md-1 d-flex align-items-end"><div class="form-check"><input name="Passed" value="true" type="checkbox" class="form-check-input" checked /><label class="form-check-label">مطابِق</label></div></div>
+            <div class="col-md-1 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">حفظ</button></div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">سجل التفتيش</h3>
+        <a asp-action="Index" class="btn btn-link">رجوع للحوادث</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>التاريخ</th><th>الموقع</th><th>المُفتِّش</th><th>النتيجة</th><th>الملاحظات</th><th>التالي</th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.InspectionDate.ToString("yyyy-MM-dd")</td>
+                        <td>@x.Location</td>
+                        <td>@(x.Inspector ?? "—")</td>
+                        <td>@(x.Passed ? "مطابِق" : "مخالفات")</td>
+                        <td>@(x.Findings ?? "—")</td>
+                        <td>@(x.NextDue?.ToString("yyyy-MM-dd") ?? "—")</td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا عمليات تفتيش</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

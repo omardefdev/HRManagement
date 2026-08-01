@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-UNDOCUMENTED-ACCESS-RISK",
+  "expectedValidate": "FAIL",
+  "sourceId": "legacy-hr-batch",
+  "accessRisks": [],
+  "notes": "Inventoried source with empty accessRisks must fail"
+}

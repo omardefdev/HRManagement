@@ -1,0 +1,205 @@
+{
+  "card": "REL-003",
+  "version": 1,
+  "requiredServiceFields": ["id", "displayName", "ownerRole", "runbookPath", "escalationPath", "onCallTier", "sloRef"],
+  "allowedOnCallTiers": ["platform", "payroll", "sre", "shared"],
+  "journeys": [
+    {
+      "id": "ServiceCatalog",
+      "steps": [
+        { "id": "InventoryMap", "mandatory": true, "ownerRole": "sre", "slaHours": 48, "evidenceType": "service-catalog.json", "service": "docs", "event": null },
+        { "id": "OwnerRunbookEscalation", "mandatory": true, "ownerRole": "sre", "slaHours": 72, "evidenceType": "per-service fields", "service": "docs", "event": null },
+        { "id": "SeveritySlaBind", "mandatory": true, "ownerRole": "sre", "slaHours": 24, "evidenceType": "REL_003_SEVERITY_SLA", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "IncidentChange",
+      "steps": [
+        { "id": "IncidentProcess", "mandatory": true, "ownerRole": "sre", "slaHours": 48, "evidenceType": "REL_003_INCIDENT_PROCESS", "service": "docs", "event": null },
+        { "id": "ProblemProcess", "mandatory": true, "ownerRole": "sre", "slaHours": 48, "evidenceType": "REL_003_PROBLEM_PROCESS", "service": "docs", "event": null },
+        { "id": "ChangeProcess", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "REL_003_CHANGE_PROCESS+DEP-001", "service": "docs", "event": null },
+        { "id": "StatusMaintenance", "mandatory": true, "ownerRole": "ops", "slaHours": 24, "evidenceType": "REL_003_STATUS_MAINTENANCE", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "OnCallGameDay",
+      "steps": [
+        { "id": "OnCallRoster", "mandatory": true, "ownerRole": "sre", "slaHours": 24, "evidenceType": "REL_003_ONCALL_ROSTER", "service": "docs", "event": null },
+        { "id": "IncidentGameDay", "mandatory": true, "ownerRole": "sre", "slaHours": 72, "evidenceType": "rel003-incident-game-day", "service": "scripts", "event": null },
+        { "id": "MttaMttrLedger", "mandatory": true, "ownerRole": "sre", "slaHours": 24, "evidenceType": "mtta-mttr-ledger", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AccessPatchPostmortem",
+      "steps": [
+        { "id": "AccessReview", "mandatory": true, "ownerRole": "security", "slaHours": 168, "evidenceType": "REL_003_ACCESS_REVIEW", "service": "docs", "event": null },
+        { "id": "PatchCadence", "mandatory": true, "ownerRole": "platform", "slaHours": 72, "evidenceType": "REL_003_PATCH_CADENCE", "service": "docs", "event": null },
+        { "id": "PostmortemTracker", "mandatory": true, "ownerRole": "sre", "slaHours": 48, "evidenceType": "postmortem-actions CSV", "service": "docs", "event": null },
+        { "id": "TrainingVendorStub", "mandatory": false, "ownerRole": "program", "slaHours": 24, "evidenceType": "blockedOn TRN/SUP", "service": "docs", "event": null }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "gateway",
+      "displayName": "HRManagement.Gateway",
+      "ownerRole": "platform",
+      "runbookPath": "docs/GATEWAY_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j1--gatewayavailability"
+    },
+    {
+      "id": "hr-core",
+      "displayName": "HR.Core.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "hr-contracts",
+      "displayName": "HR.Contracts.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "hr-health",
+      "displayName": "HR.Health.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "hr-movements",
+      "displayName": "HR.Movements.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j3--messagingfreshness"
+    },
+    {
+      "id": "hr-training",
+      "displayName": "HR.Training.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "payroll",
+      "displayName": "Payroll.Web",
+      "ownerRole": "payroll",
+      "runbookPath": "docs/OBS_ALERT_RUNBOOKS.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#payroll",
+      "onCallTier": "payroll",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j4--payrollcorrectnesssignal"
+    },
+    {
+      "id": "idcard",
+      "displayName": "IDCard.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "records-archive",
+      "displayName": "Records.Archive.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "admin-logistics",
+      "displayName": "Admin.Logistics.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "it-infra",
+      "displayName": "IT.Infra.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "dev-analytics",
+      "displayName": "Dev.Analytics.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "compliance",
+      "displayName": "Compliance.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "auth-directory",
+      "displayName": "Auth.Directory.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/KEYCLOAK_AND_SECRETS.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "file-storage",
+      "displayName": "File.Storage.Web",
+      "ownerRole": "platform",
+      "runbookPath": "docs/PRODUCTION_RUNBOOK.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#platform",
+      "onCallTier": "platform",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j2--apilatency-gateway-http"
+    },
+    {
+      "id": "postgres",
+      "displayName": "PostgreSQL (platform)",
+      "ownerRole": "platform",
+      "runbookPath": "docs/BACKUP_POSTGRES.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#sre",
+      "onCallTier": "sre",
+      "sloRef": "docs/OBS_ALERT_RUNBOOKS.md"
+    },
+    {
+      "id": "rabbitmq",
+      "displayName": "RabbitMQ (platform)",
+      "ownerRole": "platform",
+      "runbookPath": "docs/RABBITMQ_OPERATIONS.md",
+      "escalationPath": "docs/REL_003_ONCALL_ROSTER.md#sre",
+      "onCallTier": "sre",
+      "sloRef": "docs/OBS_SLO_CATALOG.md#j3--messagingfreshness"
+    }
+  ],
+  "outOfScope": ["SRE-001", "SRE-002", "SRE-003", "SUP-002", "SUP-003", "SUP-004", "OPS-007", "national-status-page"],
+  "blockedNational": [
+    { "id": "TRN-001", "status": "Blocked", "note": "Field user training" },
+    { "id": "SUP-002", "status": "Blocked", "note": "Full L1-L3 national desk" },
+    { "id": "SUP-004", "status": "Blocked", "note": "Vendor escalation contracts" },
+    { "id": "SRE-001", "status": "Blocked", "note": "24x7 ORR" },
+    { "id": "OPS-007", "status": "Blocked", "note": "National OS/DB patch SLAs" }
+  ]
+}

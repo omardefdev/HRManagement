@@ -1,0 +1,106 @@
+{
+  "card": "FIN-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Cost allocation, budgeting, anomaly detection, and optimization guardrails",
+  "allocationPolicy": {
+    "requiredCoveragePercent": 100,
+    "dimensions": ["environment", "service", "agency"],
+    "sharedAllocationRules": [
+      {
+        "ruleId": "shared-platform-overhead",
+        "description": "Platform overhead allocated by headcount-weighted share",
+        "basis": "headcount-percent-by-agency"
+      },
+      {
+        "ruleId": "shared-observability",
+        "description": "Observability stack cost allocated by log-volume share",
+        "basis": "log-volume-percent-by-service"
+      }
+    ]
+  },
+  "taggingPolicy": {
+    "requiredTags": ["environment", "service", "agency", "cost-center"],
+    "enforceAtDeploy": true,
+    "missingTagAction": "fail-closed"
+  },
+  "budgets": [
+    {
+      "budgetId": "platform-monthly",
+      "scope": "platform-wide",
+      "period": "monthly",
+      "alertThresholds": [
+        { "percent": 70, "action": "notify-finops-lead" },
+        { "percent": 85, "action": "notify-cfo-delegate" },
+        { "percent": 100, "action": "freeze-non-critical-spend" }
+      ]
+    },
+    {
+      "budgetId": "agency-monthly",
+      "scope": "per-agency",
+      "period": "monthly",
+      "alertThresholds": [
+        { "percent": 70, "action": "notify-agency-finance" },
+        { "percent": 85, "action": "notify-agency-director" },
+        { "percent": 100, "action": "escalate-to-finops" }
+      ]
+    }
+  ],
+  "anomalyDetection": {
+    "frequency": "daily",
+    "method": "rolling-7-day-zscore",
+    "thresholdSigma": 2.5,
+    "ownerRole": "finops-analyst",
+    "escalationHours": 24
+  },
+  "unitMetrics": [
+    {
+      "id": "cost_per_employee_month",
+      "ref": "FIN-001",
+      "formula": "allocated_monthly_cost / active_employees"
+    },
+    {
+      "id": "cost_per_payroll_cycle",
+      "ref": "FIN-001",
+      "formula": "payroll_processing_cost / cycles"
+    },
+    {
+      "id": "cost_per_tb_month",
+      "ref": "FIN-001",
+      "formula": "(storage + backup + dr) / total_tb"
+    }
+  ],
+  "forecast": {
+    "horizonMonths": 12,
+    "varianceThresholdPercent": 10,
+    "varianceExplanationRequired": true,
+    "reviewFrequency": "monthly"
+  },
+  "idleWastePolicy": {
+    "idleResourceReviewDays": 30,
+    "unusedStorageReviewDays": 90,
+    "logRetentionCostTracking": true,
+    "defaultLogRetentionDays": 90
+  },
+  "chargebackShowback": {
+    "mode": "showback-with-optional-chargeback",
+    "agencyVisibilityRequired": true,
+    "monthlyStatementRequired": true
+  },
+  "optimizationGuardrails": {
+    "sloPreservationRequired": true,
+    "drPreservationRequired": true,
+    "forbiddenOptimizations": [
+      "reduce-backup-retention-below-rpo",
+      "disable-dr-replication",
+      "reduce-observability-below-slo-target",
+      "scale-down-tier0-without-arc-review"
+    ],
+    "approvalRole": "sre-finops-joint"
+  },
+  "blockers": [
+    { "id": "live-cost-dashboard", "status": "Blocked", "note": "Live FinOps dashboard pending OBS billing integration" },
+    { "id": "FIN-001", "status": "Satisfied", "note": "TCO model Done" },
+    { "id": "OBS-001", "status": "Satisfied", "note": "Observability stack Done" }
+  ]
+}

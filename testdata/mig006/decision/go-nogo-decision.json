@@ -1,0 +1,13 @@
+{
+  "fixtureId": "MIG006-GO-NOGO",
+  "expectedValidate": "PASS",
+  "decision": "Go",
+  "criteria": {
+    "rehearsalsComplete": true,
+    "evidencePackageOk": true,
+    "rollbackExercised": true,
+    "deltaNoLoss": true,
+    "legacySecuredPlan": true
+  },
+  "decidedByRole": "cutover-command"
+}

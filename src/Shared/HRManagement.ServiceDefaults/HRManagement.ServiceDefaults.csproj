@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Yarp.ReverseProxy" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Sinks.Seq" />
+    <!-- QA-001: latest stable clears Moderate GHSA advisories on Api/OTLP exporter -->
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Asp.Versioning.Mvc" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Asp.Versioning.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
+    <ProjectReference Include="..\HRManagement.Integration.Abstractions\HRManagement.Integration.Abstractions.csproj" />
+    <ProjectReference Include="..\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HRManagement.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\docs\str-scope\envelope-matrix.json" Link="NationalScope\envelope-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-legal\control-catalog.json" Link="LegalControl\control-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-legal\legislative-watch-stamp.json" Link="LegalControl\legislative-watch-stamp.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-modules\module-catalog.json" Link="ModuleCatalog\module-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-product\nofork-matrix.json" Link="NoFork\nofork-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\testdata\str004\agencies\*.json" Link="NoFork\agencies\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-governance\governance-matrix.json" Link="ProgramGovernance\governance-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-governance\decision-log.json" Link="ProgramGovernance\decision-log.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-governance\risk-register.json" Link="ProgramGovernance\risk-register.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="ProgramGovernance\go-live-evidence.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-ownership\ownership-matrix.json" Link="Ownership\ownership-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-value\kpi-matrix.json" Link="ValueKpi\kpi-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-inventory\source-inventory.json" Link="MigInventory\source-inventory.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-canonical\code-map-matrix.json" Link="MigCanonical\code-map-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-factory\pipeline-matrix.json" Link="MigFactory\pipeline-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-match\match-matrix.json" Link="MigMatch\match-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-evidence\recon-matrix.json" Link="MigEvidence\recon-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-cutover\cutover-matrix.json" Link="MigCutover\cutover-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-onboarding\onboarding-matrix.json" Link="MigOnboarding\onboarding-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-federation\assurance-matrix.json" Link="ExtFederation\assurance-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-civil\civil-registry-matrix.json" Link="ExtCivil\civil-registry-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-treasury\treasury-payment-matrix.json" Link="ExtTreasury\treasury-payment-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-pki\pki-signature-matrix.json" Link="ExtPki\pki-signature-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-api\api-exchange-matrix.json" Link="ExtApi\api-exchange-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-sandbox\sandbox-cert-matrix.json" Link="ExtSandbox\sandbox-cert-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\ext-sector\sector-catalog-matrix.json" Link="ExtSector\sector-catalog-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-policy\policy-platform-matrix.json" Link="ProdPolicy\policy-platform-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-agency\agency-selfadmin-matrix.json" Link="ProdAgency\agency-selfadmin-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-ess\employee-selfservice-matrix.json" Link="ProdEss\employee-selfservice-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-branch\remote-branch-matrix.json" Link="ProdBranch\remote-branch-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-workbox\workbox-matrix.json" Link="ProdWorkbox\workbox-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-semantic\semantic-layer-matrix.json" Link="ProdSemantic\semantic-layer-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prod-extensibility\extensibility-matrix.json" Link="ProdExtensibility\extensibility-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-baseline\control-baseline-matrix.json" Link="SovBaseline\control-baseline-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-data\data-sovereignty-matrix.json" Link="SovData\data-sovereignty-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-keys\key-sovereignty-matrix.json" Link="SovKeys\key-sovereignty-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-zt\zero-trust-matrix.json" Link="SovZt\zero-trust-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-threat\threat-model-matrix.json" Link="SovThreat\threat-model-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-pentest\pen-red-matrix.json" Link="SovPentest\pen-red-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\sov-vendor\vendor-exit-matrix.json" Link="SovVendor\vendor-exit-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\arc-criticality\criticality-matrix.json" Link="ArcCriticality\criticality-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\arc-reference\reference-architecture-matrix.json" Link="ArcReference\reference-architecture-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prd-product\capability-map.json" Link="ProductCapability\capability-map.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\prd-product\agency-archetypes.json" Link="ProductCapability\agency-archetypes.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,87 @@
+@model ITSupportTicket
+@{ ViewData["Title"] = Model.IssueSummary; }
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="card-title">@Model.IssueSummary</h3>
+        <span class="badge bg-info">@Model.Status</span>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.IssueSummary)</dt>
+            <dd class="col-sm-9">@Model.IssueSummary</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Description)</dt>
+            <dd class="col-sm-9">@Model.Description</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
+            <dd class="col-sm-9">@Model.Status</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportedBy)</dt>
+            <dd class="col-sm-9">@Model.ReportedBy</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.AssignedTo)</dt>
+            <dd class="col-sm-9">@Model.AssignedTo</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ResolvedAt)</dt>
+            <dd class="col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+
+            <dt class="col-sm-3">تزويد الدليل</dt>
+            <dd class="col-sm-9">@Model.ProvisioningStatus @(Model.ProvisioningError is null ? "" : $"— {Model.ProvisioningError}")</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+        @if (Model.ProvisioningStatus == ProvisioningStatus.Failed)
+        {
+            <form asp-action="RetryProvision" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">إعادة التزويد</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.Status == TicketStatus.Open)
+{
+    <div class="card mb-3">
+        <div class="card-header">تعيين</div>
+        <div class="card-body">
+            <form asp-action="Assign" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="col-md-8">
+                    <input type="text" name="assignedTo" class="form-control" placeholder="GUID المسند إليه" />
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary w-100">تعيين</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (Model.Status == TicketStatus.Open || Model.Status == TicketStatus.Assigned)
+{
+    <form asp-action="Resolve" asp-route-id="@Model.Id" method="post" style="display:inline">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-success">تم الحل</button>
+    </form>
+}
+
+@if (Model.Status == TicketStatus.Resolved)
+{
+    <form asp-action="Close" asp-route-id="@Model.Id" method="post" style="display:inline">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-secondary">إغلاق</button>
+    </form>
+}
+
+@if (Model.Status == TicketStatus.Resolved || Model.Status == TicketStatus.Closed)
+{
+    <form asp-action="Reopen" asp-route-id="@Model.Id" method="post" style="display:inline">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-info">إعادة فتح</button>
+    </form>
+}

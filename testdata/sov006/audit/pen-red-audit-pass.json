@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"findingId":"F-001","severity":"high","surface":"api","assessorRef":"lab-assessor","retestOutcome":"closed","detectionRef":"soc-lab","actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/sov006","outcome":"pass"}]}

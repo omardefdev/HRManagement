@@ -1,0 +1,173 @@
+{
+  "card": "MIG-004",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "matchPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted", "Done"],
+  "allowedMatchOutcomes": ["AutoMerge", "HumanReview", "Reject", "ExceptionQueue"],
+  "allowedRiskLevels": ["Low", "Medium", "High"],
+  "matchStrategies": [
+    {
+      "id": "DeterministicNationalId",
+      "keys": ["tenantId", "NationalId"],
+      "defaultOutcome": "HumanReview",
+      "autoMergeAllowedWhen": "risk<=Low AND exceptionAbsent"
+    },
+    {
+      "id": "DeterministicComposite",
+      "keys": ["tenantId", "sourceId", "sourceRecordKey"],
+      "defaultOutcome": "AutoMerge",
+      "autoMergeAllowedWhen": "risk<=Low"
+    },
+    {
+      "id": "ProbabilisticNameDob",
+      "features": ["normalizedName", "dateOfBirth", "gender"],
+      "defaultOutcome": "HumanReview",
+      "autoMergeAllowedWhen": "never"
+    },
+    {
+      "id": "ExceptionQueue",
+      "keys": ["exceptionCode"],
+      "defaultOutcome": "ExceptionQueue",
+      "autoMergeAllowedWhen": "never"
+    }
+  ],
+  "nationalIdExceptions": [
+    { "code": "missing", "autoMergeForbidden": true, "route": "ExceptionQueue" },
+    { "code": "invalid-checksum", "autoMergeForbidden": true, "route": "ExceptionQueue" },
+    { "code": "twin-shared", "autoMergeForbidden": true, "route": "HumanReview" },
+    { "code": "foreign-id", "autoMergeForbidden": true, "route": "HumanReview" }
+  ],
+  "nameVariants": [
+    { "id": "arabic-hamza", "note": "lab stub; L10N-002 soft" },
+    { "id": "spacing", "note": "lab stub" },
+    { "id": "nickname", "note": "lab stub" }
+  ],
+  "thresholds": {
+    "autoMergeMaxRisk": "Low",
+    "reviewMinScore": 0.72,
+    "rejectBelowScore": 0.40,
+    "precisionTarget": 0.95,
+    "recallTarget": 0.90,
+    "highRiskAutoMergeForbidden": true
+  },
+  "falsePositiveControls": {
+    "requireEvidenceForAutoMerge": true,
+    "secondReviewerForHighRisk": true,
+    "maxAutoMergePerBatch": 50
+  },
+  "humanReview": {
+    "queue": "mig-identity-review",
+    "roles": ["data-quality-reviewer", "privacy-officer"],
+    "slaHours": 72,
+    "maskPiiByDefault": true
+  },
+  "survivorRules": {
+    "preferNewerEmployment": true,
+    "preferCompleteNationalId": true,
+    "forbidSilentFieldOverwrite": true
+  },
+  "fraudIndicators": [
+    { "id": "ghost-employee-signal", "forcesReview": true },
+    { "id": "cross-agency-same-nid", "forcesReview": true },
+    { "id": "payroll-without-hire", "forcesReview": true }
+  ],
+  "mergeAudit": {
+    "requiredFields": [
+      "mergedAt",
+      "actor",
+      "evidenceRef",
+      "survivorId",
+      "sourceId",
+      "reversible"
+    ],
+    "reversibleRequired": true,
+    "gov003Join": "docs/GOV_003_MERGE_RUNBOOK.md"
+  },
+  "reviewPrivacy": {
+    "tenantScopedReview": true,
+    "forbidCrossAgencyPii": true,
+    "maskingMode": "hash-or-omit"
+  },
+  "signing": {
+    "signedByRole": "data-quality-lead",
+    "reviewerRole": "privacy-officer",
+    "matchPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:mig004-lab-thresholds-20260730"
+  },
+  "blockers": [
+    { "id": "MIG-002", "status": "Satisfied", "note": "Code-map gate Done" },
+    { "id": "DATA-002", "status": "Satisfied", "note": "Legal lifecycle Done" },
+    { "id": "GOV-001", "status": "Satisfied", "note": "Privacy Done" },
+    { "id": "GOV-003-merge", "status": "Satisfied", "note": "Interim merge/unmerge" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Lab labelled pairs only" },
+    { "id": "L10N-002", "status": "Done", "note": "Arabic normalization DB columns + interceptor + lookup" },
+    { "id": "live-labelled-metrics", "status": "Blocked", "note": "Agency precision/recall later" }
+  ],
+  "outOfScope": [
+    "Production matcher service",
+    "MDM-002 golden person",
+    "FRD-001 continuous fraud",
+    "EmployeeLegalLifecycleService rewrite",
+    "MIG-005 evidence packages"
+  ],
+  "journeys": [
+    {
+      "id": "ThresholdSignOff",
+      "steps": [
+        { "id": "ThresholdsDeclared", "mandatory": true, "ownerRole": "data-quality", "slaHours": 48, "evidenceType": "thresholds", "service": "docs", "event": null },
+        { "id": "SignedPolicy", "mandatory": true, "ownerRole": "privacy-officer", "slaHours": 24, "evidenceType": "threshold-signoff", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NoHighRiskAutoMerge",
+      "steps": [
+        { "id": "PolicyBan", "mandatory": true, "ownerRole": "data-quality", "slaHours": 24, "evidenceType": "thresholds", "service": "docs", "event": null },
+        { "id": "HighRiskFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "high-risk-auto-merge-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ReversibleMerge",
+      "steps": [
+        { "id": "AuditFields", "mandatory": true, "ownerRole": "data-quality", "slaHours": 48, "evidenceType": "mergeAudit", "service": "docs", "event": null },
+        { "id": "RoundTrip", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "merge-unmerge-roundtrip", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ReviewPrivacy",
+      "steps": [
+        { "id": "TenantScoped", "mandatory": true, "ownerRole": "privacy-officer", "slaHours": 24, "evidenceType": "reviewPrivacy", "service": "docs", "event": null },
+        { "id": "CrossTenantFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-tenant-review-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "LabelledMetrics",
+      "steps": [
+        { "id": "LabelledPairs", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "identity-pairs", "service": "testdata", "event": null },
+        { "id": "PrecisionRecall", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "precision-recall-lab", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AdversarialIdentity",
+      "steps": [
+        { "id": "TwinsVariants", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "twins-name-variants", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "thresholdSignoff": "testdata/mig004/signoff/threshold-signoff.json",
+    "highRiskAutoMergeFail": "testdata/mig004/scenarios/high-risk-auto-merge-fail.json",
+    "mergeUnmergeRoundtrip": "testdata/mig004/scenarios/merge-unmerge-roundtrip.json",
+    "crossTenantReviewFail": "testdata/mig004/scenarios/cross-tenant-review-fail.json",
+    "identityPairs": "testdata/mig004/labelled/identity-pairs.json",
+    "precisionRecallLab": "testdata/mig004/metrics/precision-recall-lab.json",
+    "twinsNameVariants": "testdata/mig004/adversarial/twins-name-variants.json",
+    "matchDecisionLedger": "testdata/mig004/harness/match-decision-ledger.json"
+  },
+  "joins": {
+    "mig002CodeMaps": "docs/mig-canonical/code-map-matrix.json#mappingVersion",
+    "gov003Merge": "docs/GOV_003_MERGE_RUNBOOK.md",
+    "data002Lifecycle": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md#DATA-002",
+    "gov001Privacy": "docs/ADR-GOV-001-data-classification-privacy.md"
+  }
+}

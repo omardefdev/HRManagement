@@ -1,0 +1,24 @@
+@model IReadOnlyList<HR.Movements.Domain.Entities.MovementExecutionRecord>
+@{ ViewData["Title"] = "سجل التنفيذ"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">سجل تنفيذ الحركات</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>نوع الحركة</th><th>وقت التنفيذ</th><th>المنفذ</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var r in Model)
+            {
+                var type = r.TransferRequestId != null ? "نقل" : r.SecondmentRequestId != null ? "انتداب" : "—";
+                <tr>
+                    <td>@r.EmployeeId</td>
+                    <td>@type</td>
+                    <td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>@r.ExecutedBy</td>
+                    <td><a asp-action="Details" asp-route-id="@r.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا توجد سجلات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

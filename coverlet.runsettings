@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QA-001: Scope coverage to HRManagement application assemblies only. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[HRManagement.*]*,[HR.*]*,[Payroll.*]*,[Compliance.*]*,[IDCard.*]*,[Records.*]*,[Admin.*]*,[IT.*]*,[Dev.*]*,[Auth.*]*,[File.*]*</Include>
+          <Exclude>[*.Tests]*,[*.UnitTests]*,[*.IntegrationTests]*,[*.E2E]*,[Moq]*,[xunit*]*,[coverlet*]*,[Microsoft*]*,[System*]*,[Testcontainers*]*,[MassTransit*]*</Exclude>
+          <ExcludeByFile>**/Migrations/**/*.cs,**/*.Designer.cs,**/obj/**,**/bin/**</ExcludeByFile>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

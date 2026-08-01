@@ -1,0 +1,10 @@
+{
+  "fixtureId": "MIG005-CHECKSUM-RECON",
+  "expectedValidate": "PASS",
+  "files": [
+    { "path": "extract/hr-batch-001.csv", "sha256": "sha256:lab-hr-001", "match": true },
+    { "path": "extract/org-files-001.csv", "sha256": "sha256:lab-org-001", "match": true },
+    { "path": "extract/payroll-001.csv", "sha256": "sha256:lab-pay-001", "match": true }
+  ],
+  "allMatched": true
+}

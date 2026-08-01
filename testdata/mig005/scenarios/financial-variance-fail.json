@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-FINANCIAL-VARIANCE",
+  "expectedValidate": "FAIL",
+  "sourcePayrollControlTotal": 1500000.00,
+  "platformPayrollControlTotal": 1498750.00,
+  "variance": 1250.00,
+  "explainedAdjustmentReason": null,
+  "notes": "Unexplained payroll variance must fail"
+}

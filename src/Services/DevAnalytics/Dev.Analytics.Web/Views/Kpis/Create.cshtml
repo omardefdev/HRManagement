@@ -1,0 +1,12 @@
+@model Dev.Analytics.Domain.Entities.KPI
+@{ ViewData["Title"] = "مؤشر أداء"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /><span asp-validation-for="Code" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Definition" class="form-label"></label><textarea asp-for="Definition" class="form-control" rows="2"></textarea><span asp-validation-for="Definition" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="TargetValue" class="form-label"></label><input asp-for="TargetValue" class="form-control" type="number" step="0.01" /><span asp-validation-for="TargetValue" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="CurrentValue" class="form-label"></label><input asp-for="CurrentValue" class="form-control" type="number" step="0.01" /><span asp-validation-for="CurrentValue" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="MeasuredAt" class="form-label"></label><input asp-for="MeasuredAt" class="form-control" type="datetime-local" /><span asp-validation-for="MeasuredAt" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

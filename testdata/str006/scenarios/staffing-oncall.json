@@ -1,0 +1,33 @@
+{
+  "scenarioId": "SIM-STAFFING",
+  "window": "P1-unannounced",
+  "national24x7Claim": false,
+  "tiers": [
+    {
+      "tier": "sre",
+      "primaryRole": "sre-a",
+      "backupRoles": ["sre-b"],
+      "ackMinutesTarget": 5
+    },
+    {
+      "tier": "soc",
+      "primaryRole": "soc-a",
+      "backupRoles": ["soc-b"],
+      "ackMinutesTarget": 5
+    },
+    {
+      "tier": "platform",
+      "primaryRole": "platform-lead",
+      "backupRoles": ["platform-backup"],
+      "ackMinutesTarget": 10
+    },
+    {
+      "tier": "payroll",
+      "primaryRole": "payroll-lead",
+      "backupRoles": ["payroll-backup"],
+      "ackMinutesTarget": 10
+    }
+  ],
+  "coverageGaps": [],
+  "expectedValidate": "PASS"
+}

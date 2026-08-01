@@ -1,0 +1,89 @@
+{
+  "card": "LEG-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "authority": "Records Authority + Legal",
+  "description": "Retention schedule for official electronic records",
+  "classes": [
+    {
+      "code": "employee-file",
+      "nameAr": "ملف الموظف",
+      "nameEn": "Employee Personnel File",
+      "retentionYears": 75,
+      "trigger": "separation-date",
+      "legalBasis": "Law 50/2004 Art. 172; Records Regulation",
+      "dispositionAction": "archive-then-destroy",
+      "owner": "HR Records Authority"
+    },
+    {
+      "code": "payroll-run",
+      "nameAr": "دورة الرواتب",
+      "nameEn": "Payroll Run Records",
+      "retentionYears": 15,
+      "trigger": "fiscal-year-end",
+      "legalBasis": "Financial Regulations; Audit Law",
+      "dispositionAction": "destroy-with-certificate",
+      "owner": "Finance / Payroll Authority"
+    },
+    {
+      "code": "administrative-decision",
+      "nameAr": "القرار الإداري",
+      "nameEn": "Administrative Decision",
+      "retentionYears": 30,
+      "trigger": "decision-date",
+      "legalBasis": "Law 50/2004; Administrative Procedure Act",
+      "dispositionAction": "archive-then-destroy",
+      "owner": "Issuing Authority"
+    },
+    {
+      "code": "disciplinary-case",
+      "nameAr": "قضية تأديبية",
+      "nameEn": "Disciplinary Case",
+      "retentionYears": 20,
+      "trigger": "case-closure-date",
+      "legalBasis": "Law 50/2004 Chapter 12",
+      "dispositionAction": "destroy-with-certificate",
+      "owner": "Employee Relations"
+    },
+    {
+      "code": "recruitment-application",
+      "nameAr": "طلب توظيف",
+      "nameEn": "Recruitment Application",
+      "retentionYears": 3,
+      "trigger": "competition-closure-date",
+      "legalBasis": "Records Regulation; Privacy Law 12/2024",
+      "dispositionAction": "destroy-with-certificate",
+      "owner": "Recruitment Authority"
+    },
+    {
+      "code": "insurance-contribution",
+      "nameAr": "اشتراك تأمين",
+      "nameEn": "Insurance Contribution Record",
+      "retentionYears": 50,
+      "trigger": "separation-date",
+      "legalBasis": "Social Insurance Law; Pension Law",
+      "dispositionAction": "archive-permanent",
+      "owner": "Social Insurance Authority"
+    },
+    {
+      "code": "audit-evidence",
+      "nameAr": "دليل تدقيق",
+      "nameEn": "Audit Evidence / Decision Trail",
+      "retentionYears": 10,
+      "trigger": "evidence-creation-date",
+      "legalBasis": "Internal Audit Standards; EVD-001",
+      "dispositionAction": "destroy-with-certificate",
+      "owner": "Internal Audit"
+    },
+    {
+      "code": "technical-log",
+      "nameAr": "سجل تقني",
+      "nameEn": "Technical / System Log",
+      "retentionYears": 3,
+      "trigger": "log-creation-date",
+      "legalBasis": "Cybersecurity Law 20/2022; SOV-002",
+      "dispositionAction": "destroy",
+      "owner": "Platform SRE"
+    }
+  ]
+}

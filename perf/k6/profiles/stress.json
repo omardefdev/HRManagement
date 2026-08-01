@@ -1,0 +1,6 @@
+{
+  "name": "stress",
+  "vus_base": 50,
+  "multiplier": 1.5,
+  "description": "150% of NFR lab model; looser error threshold"
+}

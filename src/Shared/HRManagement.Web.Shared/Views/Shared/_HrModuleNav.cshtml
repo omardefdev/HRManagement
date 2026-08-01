@@ -1,0 +1,47 @@
+@using HRManagement.Web.Shared.Models
+@{
+    var excludeSlug = ViewData["CurrentModuleSlug"] as string;
+    var serviceModules = HrModuleCatalog.ServiceModules
+        .Where(m => !string.Equals(m.Slug, excludeSlug, StringComparison.OrdinalIgnoreCase));
+    var supportModules = HrModuleCatalog.SupportModules
+        .Where(m => !string.Equals(m.Slug, excludeSlug, StringComparison.OrdinalIgnoreCase));
+}
+
+<li class="nav-header">الأقسام والخدمات</li>
+@foreach (var module in serviceModules)
+{
+    <li class="nav-item">
+        <a href="@module.UiPath" class="nav-link">
+            <i class="nav-icon @module.IconClass"></i>
+            <p>@module.TitleAr</p>
+        </a>
+    </li>
+}
+
+<li class="nav-header">الإدارة والدعم</li>
+@foreach (var module in supportModules)
+{
+    <li class="nav-item">
+        <a href="@module.UiPath" class="nav-link">
+            <i class="nav-icon @module.IconClass"></i>
+            <p>@module.TitleAr</p>
+        </a>
+    </li>
+}
+
+<li class="nav-header">البوابة</li>
+<li class="nav-item">
+    <a href="/" class="nav-link">
+        <i class="nav-icon fas fa-home"></i>
+        <p>الرئيسية — لوحة البوابة</p>
+    </a>
+</li>
+@if (!string.Equals(excludeSlug, "hr-core", StringComparison.OrdinalIgnoreCase))
+{
+    <li class="nav-item">
+        <a href="/ui/hr-core" class="nav-link">
+            <i class="nav-icon fas fa-users"></i>
+            <p>نواة الموارد البشرية</p>
+        </a>
+    </li>
+}

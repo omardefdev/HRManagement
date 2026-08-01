@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-DUAL-CONTROL-MISSING",
+  "expectedValidate": "FAIL",
+  "signers": [
+    { "role": "migration-qa", "actor": "qa-01" }
+  ],
+  "minSigners": 2,
+  "distinctRoles": false,
+  "notes": "Single signer fails dual control"
+}

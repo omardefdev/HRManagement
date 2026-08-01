@@ -1,0 +1,19 @@
+@model AssetAssignment
+@{ ViewData["Title"] = "تفاصيل العهدة"; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">عهدة أصل</h3></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الأصل</dt><dd class="col-sm-9">@Model.Asset?.TagNumber — @Model.Asset?.Name</dd>
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">تاريخ التسليم</dt><dd class="col-sm-9">@Model.AssignedAt.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">تاريخ الإعادة المتوقع</dt><dd class="col-sm-9">@(Model.DueBackDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">الحالة عند التسليم</dt><dd class="col-sm-9">@(Model.ConditionOnAssign ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإعادة</dt><dd class="col-sm-9">@(Model.ReturnedAt?.ToString("yyyy/MM/dd") ?? "لم تتم")</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

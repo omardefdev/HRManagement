@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-PARALLEL-PAYROLL",
+  "expectedValidate": "PASS",
+  "runs": [
+    { "payrollRunId": "run-a", "idempotencyKey": "idem-a", "orderId": "ord-a" },
+    { "payrollRunId": "run-b", "idempotencyKey": "idem-b", "orderId": "ord-b" }
+  ],
+  "crossRunKeyCollision": false,
+  "notes": "Parallel runs with distinct keys pass"
+}

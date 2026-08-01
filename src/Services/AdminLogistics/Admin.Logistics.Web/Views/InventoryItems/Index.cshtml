@@ -1,0 +1,27 @@
+@model IReadOnlyList<Admin.Logistics.Domain.Entities.InventoryItem>
+@{ ViewData["Title"] = "المخزون"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">عناصر المخزون</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">إضافة</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>SKU</th><th>الاسم</th><th>الكمية</th><th>الموقع</th><th>حد إعادة الطلب</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Sku</td>
+                        <td>@x.Name</td>
+                        <td>@x.Quantity @(x.Unit ?? "")</td>
+                        <td>@x.Location</td>
+                        <td>@x.ReorderThreshold</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا عناصر</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,147 @@
+{
+  "card": "SOV-001",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "controlBaselinePolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "frameworks": {
+    "required": true,
+    "localLawTailoringRequired": true,
+    "crosswalk": ["NIST-CSF", "NIST-800-53B", "ISO-27001", "ASVS-5", "SSDF"]
+  },
+  "impactCategorization": {
+    "required": true
+  },
+  "controlCoverage": {
+    "required": true,
+    "fullCoverageRequired": true,
+    "allowedStatuses": ["applicable", "implemented", "partial", "not-applicable"],
+    "siteReasonRequiredForNa": true
+  },
+  "ownershipEvidence": {
+    "required": true,
+    "ownerRequired": true,
+    "evidenceRequired": true,
+    "testRefRequired": true,
+    "frequencyRequired": true
+  },
+  "poam": {
+    "required": true,
+    "datedRemediationRequired": true
+  },
+  "exceptions": {
+    "required": true,
+    "signedExceptionRequired": true
+  },
+  "authorizationBoundary": {
+    "required": true
+  },
+  "reassessment": {
+    "required": true,
+    "afterMaterialChangeRequired": true
+  },
+  "independentAssessment": {
+    "required": true,
+    "labStubAllowed": true,
+    "liveAtoForbidden": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["controlId", "owner", "evidenceRef", "status", "outcome", "actor", "occurredAt", "assessmentRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveAtoForbidden": true,
+    "livePoamSystemForbidden": true,
+    "liveContinuousAssessmentForbidden": true
+  },
+  "signing": {
+    "signedByRole": "ciso-lead",
+    "reviewerRole": "compliance-governance-officer",
+    "controlBaselinePolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:sov001-lab-control-baseline-20260730"
+  },
+  "blockers": [
+    { "id": "STR-002", "status": "Satisfied", "note": "Production control binding Done" },
+    { "id": "SUP-001", "status": "Satisfied", "note": "Supply chain Done" },
+    { "id": "GOV-001", "status": "Satisfied", "note": "Privacy/classification Done" },
+    { "id": "live-independent-ato", "status": "Blocked", "note": "Lab assessment stub only" },
+    { "id": "continuous-assessment-workers", "status": "Blocked", "note": "Lab fixtures only" },
+    { "id": "live-poam-system", "status": "Blocked", "note": "Lab POA&M contracts only" },
+    { "id": "SYR-001", "status": "NotStarted", "note": "Certified legislation corpus later" },
+    { "id": "SOV-002", "status": "Satisfied", "note": "Production data-sovereignty binding Done; live egress later SOV-002a" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "National Go/No-Go later" }
+  ],
+  "outOfScope": [
+    "Live independent ATO issuance",
+    "Continuous assessment workers",
+    "Live POA&M system",
+    "SYR-001 certified corpus",
+    "SOV-002 live egress/JIT/deletion (SOV-002a–c; platform binding Satisfied)",
+    "Flipping STR-002 CTRL-* Blocked-Legal to Implemented",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "CrosswalkImpact",
+      "steps": [
+        { "id": "FrameworksPolicy", "mandatory": true, "ownerRole": "ciso", "slaHours": 72, "evidenceType": "frameworks", "service": "docs", "event": null },
+        { "id": "ImpactPass", "mandatory": true, "ownerRole": "compliance", "slaHours": 48, "evidenceType": "impactCategorization", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "CoverageOwnership",
+      "steps": [
+        { "id": "FullCoveragePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "full-coverage-pass", "service": "testdata", "event": null },
+        { "id": "CoverageGapFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "coverage-gap-fail", "service": "testdata", "event": null },
+        { "id": "OwnerEvidencePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "owner-evidence-pass", "service": "testdata", "event": null },
+        { "id": "MissingOwnerFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-owner-fail", "service": "testdata", "event": null },
+        { "id": "MissingEvidenceFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-evidence-fail", "service": "testdata", "event": null },
+        { "id": "NaWithoutReasonFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "na-without-site-reason-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "PoamExceptions",
+      "steps": [
+        { "id": "DatedPoamPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "dated-poam-pass", "service": "testdata", "event": null },
+        { "id": "UndatedPoamFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "undated-poam-fail", "service": "testdata", "event": null },
+        { "id": "SignedExceptionPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "signed-exception-pass", "service": "testdata", "event": null },
+        { "id": "UnsignedExceptionFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unsigned-exception-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AtoBoundary",
+      "steps": [
+        { "id": "BoundaryPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "boundary-pass", "service": "testdata", "event": null },
+        { "id": "MissingBoundaryFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-boundary-fail", "service": "testdata", "event": null },
+        { "id": "IndependentSamplePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "independent-sample-pass", "service": "testdata", "event": null },
+        { "id": "ReassessmentPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "reassessment-trigger-pass", "service": "testdata", "event": null },
+        { "id": "LiveAtoClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-ato-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "missingOwnerFail": "testdata/sov001/scenarios/missing-owner-fail.json",
+    "missingEvidenceFail": "testdata/sov001/scenarios/missing-evidence-fail.json",
+    "coverageGapFail": "testdata/sov001/scenarios/coverage-gap-fail.json",
+    "naWithoutSiteReasonFail": "testdata/sov001/scenarios/na-without-site-reason-fail.json",
+    "undatedPoamFail": "testdata/sov001/scenarios/undated-poam-fail.json",
+    "unsignedExceptionFail": "testdata/sov001/scenarios/unsigned-exception-fail.json",
+    "missingBoundaryFail": "testdata/sov001/scenarios/missing-boundary-fail.json",
+    "liveAtoClaimFail": "testdata/sov001/scenarios/live-ato-claim-fail.json",
+    "fullCoveragePass": "testdata/sov001/scenarios/full-coverage-pass.json",
+    "ownerEvidencePass": "testdata/sov001/scenarios/owner-evidence-pass.json",
+    "datedPoamPass": "testdata/sov001/scenarios/dated-poam-pass.json",
+    "signedExceptionPass": "testdata/sov001/scenarios/signed-exception-pass.json",
+    "boundaryPass": "testdata/sov001/scenarios/boundary-pass.json",
+    "independentSamplePass": "testdata/sov001/scenarios/independent-sample-pass.json",
+    "reassessmentTriggerPass": "testdata/sov001/scenarios/reassessment-trigger-pass.json",
+    "baselineRunLedger": "testdata/sov001/harness/baseline-run-ledger.json",
+    "baselineAuditPass": "testdata/sov001/audit/baseline-audit-pass.json"
+  },
+  "joins": {
+    "str002Catalog": "docs/str-legal/control-catalog.json",
+    "gov001": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md",
+    "sup001": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "smoke",
+  "vus_base": 2,
+  "description": "CI / preflight smoke"
+}

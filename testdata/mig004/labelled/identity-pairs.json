@@ -1,0 +1,28 @@
+{
+  "fixtureId": "MIG004-IDENTITY-PAIRS",
+  "minPairs": 20,
+  "pairs": [
+    { "id": "p01", "label": "match", "strategy": "DeterministicNationalId", "risk": "Low" },
+    { "id": "p02", "label": "match", "strategy": "DeterministicComposite", "risk": "Low" },
+    { "id": "p03", "label": "match", "strategy": "DeterministicNationalId", "risk": "Low" },
+    { "id": "p04", "label": "match", "strategy": "DeterministicComposite", "risk": "Low" },
+    { "id": "p05", "label": "match", "strategy": "DeterministicNationalId", "risk": "Medium" },
+    { "id": "p06", "label": "match", "strategy": "ProbabilisticNameDob", "risk": "Medium" },
+    { "id": "p07", "label": "match", "strategy": "ProbabilisticNameDob", "risk": "Medium" },
+    { "id": "p08", "label": "match", "strategy": "DeterministicComposite", "risk": "Low" },
+    { "id": "p09", "label": "match", "strategy": "DeterministicNationalId", "risk": "Low" },
+    { "id": "p10", "label": "match", "strategy": "DeterministicComposite", "risk": "Low" },
+    { "id": "p11", "label": "non-match", "strategy": "ProbabilisticNameDob", "risk": "High" },
+    { "id": "p12", "label": "non-match", "strategy": "ProbabilisticNameDob", "risk": "High" },
+    { "id": "p13", "label": "non-match", "strategy": "DeterministicNationalId", "risk": "High" },
+    { "id": "p14", "label": "non-match", "strategy": "ExceptionQueue", "risk": "High" },
+    { "id": "p15", "label": "non-match", "strategy": "ProbabilisticNameDob", "risk": "Medium" },
+    { "id": "p16", "label": "non-match", "strategy": "ProbabilisticNameDob", "risk": "Low" },
+    { "id": "p17", "label": "non-match", "strategy": "DeterministicComposite", "risk": "Medium" },
+    { "id": "p18", "label": "non-match", "strategy": "ExceptionQueue", "risk": "High" },
+    { "id": "p19", "label": "non-match", "strategy": "ProbabilisticNameDob", "risk": "High" },
+    { "id": "p20", "label": "non-match", "strategy": "ProbabilisticNameDob", "risk": "Medium" },
+    { "id": "p21", "label": "match", "strategy": "DeterministicNationalId", "risk": "Low" },
+    { "id": "p22", "label": "non-match", "strategy": "ExceptionQueue", "risk": "High" }
+  ]
+}

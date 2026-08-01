@@ -1,0 +1,11 @@
+﻿{
+    "card":  "STR-005",
+    "ok":  true,
+    "asOfDate":  "2026-07-30",
+    "decisionCount":  4,
+    "riskCount":  4,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

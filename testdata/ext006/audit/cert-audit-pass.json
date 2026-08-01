@@ -1,0 +1,22 @@
+{
+  "fixtureId": "EXT006-CERT-AUDIT",
+  "expectedValidate": "PASS",
+  "entries": [
+    {
+      "partnerId": "partner-lab-01",
+      "credentialId": "cred-ephem-01",
+      "suiteId": "suite-negative-v1",
+      "outcome": "Rejected",
+      "actor": "cert-runner",
+      "occurredAt": "2026-07-28T10:00:00Z"
+    },
+    {
+      "partnerId": "partner-lab-02",
+      "credentialId": "cred-ephem-02",
+      "suiteId": "suite-happy-v1",
+      "outcome": "Certified",
+      "actor": "cert-runner",
+      "occurredAt": "2026-07-28T11:00:00Z"
+    }
+  ]
+}

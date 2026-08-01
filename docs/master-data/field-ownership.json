@@ -1,0 +1,83 @@
+{
+  "card": "GOV-003",
+  "version": 1,
+  "fields": [
+    {
+      "field": "Employee.NationalId",
+      "writer": "HR.Core",
+      "readers": ["Payroll", "Auth.Directory", "HR.Contracts", "Dev.Analytics"],
+      "event": "IEmployeeCreated / IEmployeeStatusChanged",
+      "conflictPolicy": "Unique(TenantId,NationalId); consumers must not rewrite"
+    },
+    {
+      "field": "Employee.FullName",
+      "writer": "HR.Core",
+      "readers": ["Payroll.lookup", "Auth.Directory", "Reports"],
+      "event": "IEmployeeCreated",
+      "conflictPolicy": "Payroll uses EmployeeLookupService — no local SoR name"
+    },
+    {
+      "field": "Employee.CurrentStatus",
+      "writer": "HR.Core",
+      "readers": ["Auth.Directory", "Payroll", "HR.Contracts"],
+      "event": "IEmployeeStatusChanged",
+      "conflictPolicy": "Directory reacts; does not invent HR status"
+    },
+    {
+      "field": "Employee.PrimaryOrgUnitId",
+      "writer": "HR.Core",
+      "readers": ["Payroll", "HR.Movements", "Dev.Analytics"],
+      "event": "IEmployeeCreated / transfer events",
+      "conflictPolicy": "Snapshots may lag; SoR remains HR.Core"
+    },
+    {
+      "field": "OrgUnit.Code",
+      "writer": "HR.Core",
+      "readers": ["Payroll.OrgUnitSnapshot", "Contracts", "Movements"],
+      "event": "OrgUnit integration/publish",
+      "conflictPolicy": "Snapshots copy; no conflicting Code writers"
+    },
+    {
+      "field": "OrgUnit.NameAr",
+      "writer": "HR.Core",
+      "readers": ["Snapshots", "Reports"],
+      "event": "OrgUnit integration/publish",
+      "conflictPolicy": "HR.Core SoR"
+    },
+    {
+      "field": "OrgUnit.MaterializedPath",
+      "writer": "HR.Core",
+      "readers": ["OrgScope", "Reports"],
+      "event": null,
+      "conflictPolicy": "Computed in HR.Core only"
+    },
+    {
+      "field": "EmploymentRecord.PositionTitle",
+      "writer": "HR.Core",
+      "readers": ["Reports"],
+      "event": null,
+      "conflictPolicy": "Interim free text — catalog deferred to MDM-001"
+    },
+    {
+      "field": "EmployeePayProfile.BaseSalary",
+      "writer": "Payroll",
+      "readers": ["Payroll engine", "Reports"],
+      "event": "IContractActivated / hire consumers",
+      "conflictPolicy": "HR.Core must not store competing salary SoR"
+    },
+    {
+      "field": "AuthUser.Username",
+      "writer": "Auth.Directory",
+      "readers": ["Gateway", "IAM"],
+      "event": "IEmployeeCreated (creates link)",
+      "conflictPolicy": "EmployeeId link only; HR does not own Username"
+    },
+    {
+      "field": "AuthUser.Email",
+      "writer": "Auth.Directory",
+      "readers": ["IAM"],
+      "event": "IEmployeeCreated",
+      "conflictPolicy": "Distinct from ContactInfo SoR in HR.Core"
+    }
+  ]
+}

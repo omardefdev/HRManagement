@@ -1,0 +1,56 @@
+{
+  "card": "SYR-014",
+  "version": "2026.07.31.1",
+  "asOfDate": "2026-07-31",
+  "legalSourceId": "SYR-DEC-188-2025",
+  "timezone": "Asia/Damascus",
+  "forbidHardcodedHolidayList": true,
+  "fixedHolidays": [
+    { "code": "NEW_YEAR", "month": 1, "day": 1, "nameAr": "رأس السنة الميلادية" },
+    { "code": "EVACUATION_DAY", "month": 4, "day": 17, "nameAr": "عيد الجلاء" },
+    { "code": "LABOUR_DAY", "month": 5, "day": 1, "nameAr": "عيد العمال" },
+    { "code": "MARTYRS_DAY", "month": 5, "day": 6, "nameAr": "يوم الشهداء" },
+    { "code": "ARMY_DAY", "month": 8, "day": 1, "nameAr": "يوم الجيش" },
+    { "code": "OCTOBER_WAR", "month": 10, "day": 6, "nameAr": "ذكرى حرب تشرين" },
+    { "code": "INDEPENDENCE_DAY", "month": 4, "day": 17, "nameAr": "عيد الاستقلال" }
+  ],
+  "variableHolidays": {
+    "source": "late_announcement",
+    "examples": ["EID_AL_FITR", "EID_AL_ADHA", "PROPHET_BIRTHDAY", "CHRISTIAN_EASTER"],
+    "retroactiveApplicationAllowed": true,
+    "retroactiveEffectiveDateRule": "announcement_signed_date"
+  },
+  "localAndEmergencyHolidays": {
+    "requiresOfficialDecision": true,
+    "scopeLevels": ["governorate", "agency", "site"],
+    "effectiveDated": true
+  },
+  "continuousOperations": {
+    "24x7AgencyTypes": ["hospital", "emergency_service", "security"],
+    "forbidFullClosureFor24x7": true,
+    "shiftCrossesMidnightSupported": true
+  },
+  "shiftPolicy": {
+    "overnightShiftSplitAtMidnight": false,
+    "compensatoryTimeFromRulePack": true,
+    "overtimeFromRulePack": true
+  },
+  "compensatoryDays": {
+    "enabled": true,
+    "accrualOnHolidayWork": true,
+    "maxCarryForwardDays": 30
+  },
+  "calendarAssignment": {
+    "dimensions": ["agencyId", "siteId", "legalRegime"],
+    "effectiveDated": true,
+    "signedSourceRequired": true
+  },
+  "payrollImpact": {
+    "recalculateBeforePayrollApproval": true,
+    "retroactiveHolidayTriggersRecalc": true
+  },
+  "timeSource": {
+    "ntpRequired": true,
+    "dstObserved": true
+  }
+}

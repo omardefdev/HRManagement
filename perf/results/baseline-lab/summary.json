@@ -1,0 +1,25 @@
+{
+  "card": "NFR-001",
+  "kind": "baseline-lab-template",
+  "signedMethodology": true,
+  "note": "Template run record for repeatability. Replace metrics after a real staging execution.",
+  "scale_factor": 0.002,
+  "employeesTarget": 10000,
+  "profiles": {
+    "smoke": { "status": "harness-ready", "command": "pwsh scripts/nfr-k6-run.ps1 -Scenario smoke -Profile smoke -Docker" },
+    "load": { "vus_base": 50, "p95_target_ms": 2000, "failed_rate_target": 0.01 },
+    "soak": { "duration": "2h", "vus_base": 50, "cap_extension": "72h @100% → CAP-001" },
+    "spike": { "spike_vus": 150 },
+    "stress": { "multiplier": 1.5, "failed_rate_ceiling": 0.05 }
+  },
+  "scenarios": ["smoke", "gateway-mixed", "lookup-list", "payroll-run", "export-async", "org-tree"],
+  "sloMapping": {
+    "gateway-mixed": ["J1", "J2"],
+    "lookup-list": ["J2"],
+    "payroll-run": ["J4", "J3"],
+    "export-async": ["J2"],
+    "org-tree": ["J2"]
+  },
+  "leakWatch": ["process_resident_memory_bytes", "db_connections", "rabbit_queue_depth", "outbox_pending_messages"],
+  "headroomTargetPct": 30
+}

@@ -1,0 +1,9 @@
+﻿{
+    "card":  "PROD-005",
+    "mode":  "pack-validate",
+    "ok":  true,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

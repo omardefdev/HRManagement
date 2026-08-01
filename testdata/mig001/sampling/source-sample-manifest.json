@@ -1,0 +1,11 @@
+{
+  "fixtureId": "MIG001-SAMPLE-MANIFEST",
+  "expectedValidate": "PASS",
+  "samples": [
+    { "sourceId": "legacy-hr-batch", "sampleSize": 200, "sampleHash": "sha256:lab-hr-sample-001" },
+    { "sourceId": "legacy-payroll", "sampleSize": 200, "sampleHash": "sha256:lab-pay-sample-001" },
+    { "sourceId": "legacy-org-files", "sampleSize": 50, "sampleHash": "sha256:lab-org-sample-001" },
+    { "sourceId": "legacy-docs-share", "sampleSize": 40, "sampleHash": "sha256:lab-docs-sample-001" },
+    { "sourceId": "paper-personnel-files", "sampleSize": 30, "sampleHash": "sha256:lab-paper-sample-001" }
+  ]
+}

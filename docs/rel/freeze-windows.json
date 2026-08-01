@@ -1,0 +1,68 @@
+{
+  "card": "REL-006",
+  "version": "1.0.0",
+  "description": "Release freeze windows — no standard deployments during these periods.",
+  "freezeWindows": [
+    {
+      "id": "payroll-close",
+      "name": "Payroll Close",
+      "recurrence": "monthly",
+      "startDay": 25,
+      "endDay": 5,
+      "reason": "Payroll processing and reconciliation period",
+      "exceptions": ["emergency-hotfix", "security-patch"]
+    },
+    {
+      "id": "fiscal-year-end",
+      "name": "End of Fiscal Year",
+      "recurrence": "annual",
+      "startOffset": "-14d",
+      "endOffset": "0d",
+      "reason": "Fiscal year close and audit period",
+      "exceptions": ["emergency-hotfix"]
+    },
+    {
+      "id": "national-holidays",
+      "name": "National Holidays",
+      "recurrence": "calendar",
+      "calendarRef": "national-holiday-calendar",
+      "reason": "Reduced staffing and support coverage",
+      "exceptions": ["emergency-hotfix", "security-patch"]
+    },
+    {
+      "id": "pilot-stabilization",
+      "name": "Pilot Stabilization",
+      "recurrence": "event-driven",
+      "durationDays": 30,
+      "trigger": "wave-launch",
+      "reason": "Post-wave hypercare and stabilization",
+      "exceptions": ["emergency-hotfix"]
+    }
+  ],
+  "emergencyHotfixPolicy": {
+    "requiredApprovals": 2,
+    "icApprovalRequired": true,
+    "pirDeadlineHours": 24,
+    "auditFields": ["reason", "approver", "incidentId", "deployDigest"],
+    "ciMustPass": true,
+    "securityScanRequired": true
+  },
+  "riskLevels": [
+    {
+      "level": "standard",
+      "requiredReviewers": 1,
+      "stagingDeploy": false
+    },
+    {
+      "level": "medium",
+      "requiredReviewers": 2,
+      "stagingDeploy": true
+    },
+    {
+      "level": "high",
+      "requiredReviewers": 2,
+      "stagingDeploy": true,
+      "changeBoardApproval": true
+    }
+  ]
+}

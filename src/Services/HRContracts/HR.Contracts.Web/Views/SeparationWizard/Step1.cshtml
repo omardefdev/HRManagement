@@ -1,0 +1,46 @@
+@model HR.Contracts.Web.ViewModels.SeparationRecordCreateViewModel
+@using HR.Contracts.Domain.Enums
+@{ ViewData["Title"] = "معالج الفصل - الخطوة 1"; }
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-magic"></i> معالج الفصل - الخطوة 1: إنشاء سجل الفصل</h3>
+    </div>
+    <div class="card-body">
+        <div class="bs-stepper-header mb-4" role="tablist">
+            <div class="step active"><span class="bs-stepper-circle">1</span><span class="bs-stepper-label">البيانات</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">2</span><span class="bs-stepper-label">المراجعة</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">3</span><span class="bs-stepper-label">التنفيذ</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">4</span><span class="bs-stepper-label">المتابعة</span></div>
+        </div>
+        <form asp-action="Step1" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="EmployeeId" class="form-label"></label>
+                    <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ContractId" class="form-label"></label>
+                    <input asp-for="ContractId" class="form-control" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="SeparationType" class="form-label"></label>
+                    <select asp-for="SeparationType" asp-items="Html.GetEnumSelectList<SeparationType>()" class="form-select"></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EffectiveDate" class="form-label"></label>
+                    <input asp-for="EffectiveDate" class="form-control" type="date" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Reason" class="form-label"></label>
+                    <input asp-for="Reason" class="form-control" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-left"></i> التالي</button>
+        </form>
+    </div>
+</div>

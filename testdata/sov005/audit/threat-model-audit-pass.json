@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"threatId":"T-001","category":"tenantEscape","severity":"high","controlRef":"TEN-002","testRef":"CrossTenantApiPenetrationTests","ownerRole":"product-security","actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/sov005","outcome":"pass"}]}

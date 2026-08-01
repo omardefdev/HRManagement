@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hr-postgres-superuser
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hr-postgres-app
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-default-user
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-admin
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-db
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-root
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-filestorage
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cnpg-backup-store
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hr-postgres-backup
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-encryption
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-erlang-cookie
+$patch: delete
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-backup-reader
+$patch: delete

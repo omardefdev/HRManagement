@@ -1,0 +1,232 @@
+{
+  "card": "PRD-001",
+  "version": 1,
+  "asOfDate": "2026-07-31",
+  "capabilityDomains": [
+    { "id": "employee-lifecycle", "nameEn": "Employee Lifecycle", "nameAr": "دورة حياة الموظف" },
+    { "id": "compensation", "nameEn": "Compensation & Payroll", "nameAr": "التعويضات والرواتب" },
+    { "id": "workforce-movements", "nameEn": "Workforce Movements", "nameAr": "حركات القوى العاملة" },
+    { "id": "health-wellness", "nameEn": "Health & Wellness", "nameAr": "الصحة والعافية" },
+    { "id": "learning-talent", "nameEn": "Learning & Talent", "nameAr": "التعلم والمواهب" },
+    { "id": "identity-credentials", "nameEn": "Identity & Credentials", "nameAr": "الهوية والبطاقات" },
+    { "id": "records-archival", "nameEn": "Records & Archival", "nameAr": "السجلات والأرشفة" },
+    { "id": "admin-operations", "nameEn": "Admin & Logistics", "nameAr": "الإدارة واللوجستيات" },
+    { "id": "platform-ops", "nameEn": "Platform Operations", "nameAr": "تشغيل المنصة" },
+    { "id": "analytics-insights", "nameEn": "Analytics & Insights", "nameAr": "التحليلات والرؤى" },
+    { "id": "compliance-governance", "nameEn": "Compliance & Governance", "nameAr": "الامتثال والحوكمة" },
+    { "id": "security-identity", "nameEn": "Security & Directory", "nameAr": "الأمن والدليل" },
+    { "id": "document-management", "nameEn": "Document Management", "nameAr": "إدارة الوثائق" }
+  ],
+  "services": [
+    {
+      "moduleId": "hr-core",
+      "displayName": "HR.Core",
+      "capabilityDomain": "employee-lifecycle",
+      "ownerRole": "hr-core-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-hr-core.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "mandatory",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "hr-contracts",
+      "displayName": "HR.Contracts",
+      "capabilityDomain": "employee-lifecycle",
+      "ownerRole": "hr-contracts-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-hr-contracts.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "configurable",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "hr-health",
+      "displayName": "HR.Health",
+      "capabilityDomain": "health-wellness",
+      "ownerRole": "hr-health-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-hr-health.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "configurable",
+        "branch-office": "optional",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "hr-movements",
+      "displayName": "HR.Movements",
+      "capabilityDomain": "workforce-movements",
+      "ownerRole": "hr-movements-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-hr-movements.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "configurable",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "hr-training",
+      "displayName": "HR.Training",
+      "capabilityDomain": "learning-talent",
+      "ownerRole": "hr-training-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-hr-training.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "configurable",
+        "autonomous-institution": "optional",
+        "branch-office": "optional",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "payroll",
+      "displayName": "Payroll",
+      "capabilityDomain": "compensation",
+      "ownerRole": "payroll-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-payroll.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "configurable",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "idcard",
+      "displayName": "ID Card",
+      "capabilityDomain": "identity-credentials",
+      "ownerRole": "idcard-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-idcard.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "configurable",
+        "branch-office": "mandatory",
+        "specialized-body": "configurable"
+      }
+    },
+    {
+      "moduleId": "records-archive",
+      "displayName": "Records Archive",
+      "capabilityDomain": "records-archival",
+      "ownerRole": "records-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-records-archive.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "configurable",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "admin-logistics",
+      "displayName": "Admin Logistics",
+      "capabilityDomain": "admin-operations",
+      "ownerRole": "admin-logistics-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-admin-logistics.md",
+      "archetypeClassification": {
+        "central-ministry": "configurable",
+        "governorate": "optional",
+        "autonomous-institution": "optional",
+        "branch-office": "optional",
+        "specialized-body": "disabled"
+      }
+    },
+    {
+      "moduleId": "it-infra",
+      "displayName": "IT Infrastructure",
+      "capabilityDomain": "platform-ops",
+      "ownerRole": "platform-sre",
+      "uatRequired": false,
+      "sloRef": "docs/sre/slo-it-infra.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "mandatory",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "dev-analytics",
+      "displayName": "Dev Analytics",
+      "capabilityDomain": "analytics-insights",
+      "ownerRole": "data-analytics",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-dev-analytics.md",
+      "archetypeClassification": {
+        "central-ministry": "configurable",
+        "governorate": "optional",
+        "autonomous-institution": "optional",
+        "branch-office": "disabled",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "compliance",
+      "displayName": "Compliance",
+      "capabilityDomain": "compliance-governance",
+      "ownerRole": "compliance-product",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-compliance.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "mandatory",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "auth-directory",
+      "displayName": "Auth Directory",
+      "capabilityDomain": "security-identity",
+      "ownerRole": "iam-platform",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-auth-directory.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "mandatory",
+        "specialized-body": "mandatory"
+      }
+    },
+    {
+      "moduleId": "file-storage",
+      "displayName": "File Storage",
+      "capabilityDomain": "document-management",
+      "ownerRole": "file-platform",
+      "uatRequired": true,
+      "sloRef": "docs/sre/slo-file-storage.md",
+      "archetypeClassification": {
+        "central-ministry": "mandatory",
+        "governorate": "mandatory",
+        "autonomous-institution": "mandatory",
+        "branch-office": "mandatory",
+        "specialized-body": "mandatory"
+      }
+    }
+  ]
+}

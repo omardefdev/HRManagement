@@ -1,0 +1,161 @@
+{
+  "card": "SOV-005",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "threatModelPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "methodology": {
+    "required": true,
+    "strideRequired": true
+  },
+  "trustBoundaries": {
+    "required": true,
+    "inventoryRequired": true
+  },
+  "assetsActors": {
+    "required": true
+  },
+  "threatCategories": {
+    "required": true,
+    "categories": [
+      "payrollFraud",
+      "insider",
+      "massExport",
+      "tenantEscape",
+      "messageReplay",
+      "supplyChain",
+      "migration",
+      "recovery"
+    ]
+  },
+  "highThreatCoverage": {
+    "required": true,
+    "controlRequired": true,
+    "testRequired": true,
+    "ownerRequired": true
+  },
+  "changeTrigger": {
+    "required": true,
+    "materialChangeUpdateRequired": true
+  },
+  "misuseStories": {
+    "required": true,
+    "backlogLinkageRequired": true
+  },
+  "residualRisk": {
+    "required": true,
+    "signedRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": [
+      "threatId",
+      "category",
+      "severity",
+      "controlRef",
+      "testRef",
+      "ownerRole",
+      "actor",
+      "occurredAt",
+      "evidenceRef",
+      "outcome"
+    ]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveIndependentTmReviewForbidden": true,
+    "liveAttackTreeWalkthroughForbidden": true,
+    "liveMisuseBacklogSyncForbidden": true,
+    "liveResidualRiskSignoffForbidden": true
+  },
+  "signing": {
+    "signedByRole": "product-security-lead",
+    "reviewerRole": "ciso-lead",
+    "threatModelPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:sov005-lab-threat-model-20260730"
+  },
+  "blockers": [
+    { "id": "STR-001", "status": "Satisfied", "note": "Production scope binding Done" },
+    { "id": "TEN-001", "status": "Satisfied", "note": "Tenant model Done" },
+    { "id": "INT-003", "status": "Satisfied", "note": "Hire/sep/transfer sagas Done" },
+    { "id": "SOV-004", "status": "Satisfied", "note": "Production zero-trust binding Done" },
+    { "id": "live-independent-tm-review", "status": "Blocked", "note": "Lab threat-model contracts only" },
+    { "id": "live-attack-tree-walkthrough", "status": "Blocked", "note": "Lab attack-tree fixtures only" },
+    { "id": "live-misuse-backlog-sync", "status": "Blocked", "note": "Lab misuse linkage contracts only" },
+    { "id": "live-residual-risk-signoff", "status": "Blocked", "note": "Lab residual-risk signing only" },
+    { "id": "SOV-006", "status": "Satisfied", "note": "Production pen-red binding Done; live pen later" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "National Go/No-Go later" }
+  ],
+  "outOfScope": [
+    "Live independent threat-model review",
+    "Live attack-tree walkthrough",
+    "Live misuse backlog sync",
+    "Live residual risk signoff",
+    "Live pen after SOV-006 platform binding",
+    "FRD-001 continuous fraud controls",
+    "LivePamClaim elevation",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "MethodologyBoundaries",
+      "steps": [
+        { "id": "StrideCoveragePass", "mandatory": true, "ownerRole": "product-security", "slaHours": 48, "evidenceType": "stride-coverage-pass", "service": "testdata", "event": null },
+        { "id": "MissingStrideFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-stride-fail", "service": "testdata", "event": null },
+        { "id": "TrustBoundaryPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "trust-boundary-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "HighCoverage",
+      "steps": [
+        { "id": "HighThreatTriadPass", "mandatory": true, "ownerRole": "product-security", "slaHours": 48, "evidenceType": "high-threat-triad-pass", "service": "testdata", "event": null },
+        { "id": "HighWithoutControlFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "high-without-control-fail", "service": "testdata", "event": null },
+        { "id": "HighWithoutTestFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "high-without-test-fail", "service": "testdata", "event": null },
+        { "id": "HighWithoutOwnerFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "high-without-owner-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ChangeMisuseResidual",
+      "steps": [
+        { "id": "ChangeTriggerPass", "mandatory": true, "ownerRole": "product-security", "slaHours": 48, "evidenceType": "change-trigger-pass", "service": "testdata", "event": null },
+        { "id": "NoChangeTriggerFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "no-change-trigger-fail", "service": "testdata", "event": null },
+        { "id": "MisuseLinkedPass", "mandatory": true, "ownerRole": "product", "slaHours": 48, "evidenceType": "misuse-linked-pass", "service": "testdata", "event": null },
+        { "id": "MisuseUnlinkedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "misuse-unlinked-fail", "service": "testdata", "event": null },
+        { "id": "ResidualSignedPass", "mandatory": true, "ownerRole": "ciso", "slaHours": 72, "evidenceType": "residual-signed-pass", "service": "testdata", "event": null },
+        { "id": "ResidualUnsignedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "residual-unsigned-fail", "service": "testdata", "event": null },
+        { "id": "AttackTreeLabPass", "mandatory": true, "ownerRole": "product-security", "slaHours": 48, "evidenceType": "attack-tree-lab-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClaimGate",
+      "steps": [
+        { "id": "LiveThreatModelClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-threat-model-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "missingStrideFail": "testdata/sov005/scenarios/missing-stride-fail.json",
+    "highWithoutControlFail": "testdata/sov005/scenarios/high-without-control-fail.json",
+    "highWithoutTestFail": "testdata/sov005/scenarios/high-without-test-fail.json",
+    "highWithoutOwnerFail": "testdata/sov005/scenarios/high-without-owner-fail.json",
+    "noChangeTriggerFail": "testdata/sov005/scenarios/no-change-trigger-fail.json",
+    "misuseUnlinkedFail": "testdata/sov005/scenarios/misuse-unlinked-fail.json",
+    "residualUnsignedFail": "testdata/sov005/scenarios/residual-unsigned-fail.json",
+    "liveThreatModelClaimFail": "testdata/sov005/scenarios/live-threat-model-claim-fail.json",
+    "strideCoveragePass": "testdata/sov005/scenarios/stride-coverage-pass.json",
+    "trustBoundaryPass": "testdata/sov005/scenarios/trust-boundary-pass.json",
+    "highThreatTriadPass": "testdata/sov005/scenarios/high-threat-triad-pass.json",
+    "changeTriggerPass": "testdata/sov005/scenarios/change-trigger-pass.json",
+    "misuseLinkedPass": "testdata/sov005/scenarios/misuse-linked-pass.json",
+    "residualSignedPass": "testdata/sov005/scenarios/residual-signed-pass.json",
+    "attackTreeLabPass": "testdata/sov005/scenarios/attack-tree-lab-pass.json",
+    "threatModelRunLedger": "testdata/sov005/harness/threat-model-run-ledger.json",
+    "threatModelAuditPass": "testdata/sov005/audit/threat-model-audit-pass.json"
+  },
+  "joins": {
+    "sov004Matrix": "docs/sov-zt/zero-trust-matrix.json",
+    "str001": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md",
+    "ten001": "docs/TENANT_THREAT_MODEL.md",
+    "int003": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md"
+  }
+}

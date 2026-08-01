@@ -1,0 +1,17 @@
+@model IReadOnlyList<HR.Training.Domain.Entities.TrainingNomination>
+@{ ViewData["Title"] = "ترشيحات التدريب"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الترشيحات</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">ترشيح جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>موظف</th><th>الدورة</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model) { <tr><td>@x.EmployeeId</td><td>@(x.Course?.TitleAr ?? "—")</td><td>@x.Status</td><td>@x.NominatedAt.ToString("yyyy/MM/dd")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا توجد ترشيحات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

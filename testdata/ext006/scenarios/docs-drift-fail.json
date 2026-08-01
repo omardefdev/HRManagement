@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-DOCS-DRIFT",
+  "expectedValidate": "FAIL",
+  "docsMatchPublishedContract": false,
+  "treatedAsPublishReady": true,
+  "notes": "Docs drift from published contract treated as ready must fail"
+}

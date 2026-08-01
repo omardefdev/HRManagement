@@ -1,0 +1,183 @@
+{
+  "card": "ARC-002",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "referenceArchitecturePolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "boundedContexts": {
+    "required": true,
+    "everyContextHasOwnerAndRationaleRequired": true,
+    "noUnjustifiedDistributedComplexityRequired": true
+  },
+  "syncVsEvent": {
+    "required": true,
+    "interactionStyleDocumentedRequired": true
+  },
+  "dataOwnership": {
+    "required": true,
+    "singleWriterPerAggregateRequired": true
+  },
+  "multiSiteProfiles": {
+    "required": true,
+    "sameArtifactPrimaryAndDrRequired": true,
+    "primaryAndDrProfilesRequired": true
+  },
+  "tenancyBoundaries": {
+    "required": true,
+    "tenantModelAlignedRequired": true
+  },
+  "controlDataPlanes": {
+    "required": true,
+    "planesSeparatedRequired": true
+  },
+  "supportedTopologies": {
+    "required": true,
+    "unsupportedTopologyRejectedRequired": true,
+    "envelopeValidatedRequired": true
+  },
+  "couplingGuardrails": {
+    "required": true,
+    "noDirectDbCrossBoundaryRequired": true,
+    "noDomainCouplingAcrossContextsRequired": true
+  },
+  "fitnessEnvelope": {
+    "required": true,
+    "referenceImplementationRequired": true,
+    "labFitnessHarnessRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": [
+      "contextId",
+      "ownerRole",
+      "interactionStyle",
+      "dataOwnerRef",
+      "siteProfileRef",
+      "topologyRef",
+      "couplingScanRef",
+      "fitnessRef",
+      "actor",
+      "occurredAt",
+      "evidenceRef",
+      "outcome",
+      "rationaleRef"
+    ]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveTwoSiteDeploymentForbidden": true,
+    "liveArchitectureFitnessEnvelopeForbidden": true,
+    "liveCouplingBoundaryScanForbidden": true,
+    "liveReferenceImplementationSignoffForbidden": true
+  },
+  "signing": {
+    "signedByRole": "architecture-board-chair",
+    "reviewerRole": "platform-sre-lead",
+    "referenceArchitecturePolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:arc002-lab-reference-20260730"
+  },
+  "blockers": [
+    { "id": "ARC-001", "status": "Satisfied", "note": "Production criticality binding Done" },
+    { "id": "TEN-001", "status": "Satisfied", "note": "Tenant model ADR Done" },
+    { "id": "INT-001", "status": "Satisfied", "note": "Inbox/Outbox Done" },
+    { "id": "OPS-005", "status": "Satisfied", "note": "IaC platform Done" },
+    { "id": "live-two-site-deployment", "status": "Blocked", "note": "Lab multi-site contracts only" },
+    { "id": "live-architecture-fitness-envelope", "status": "Blocked", "note": "Live fitness vs envelope later" },
+    { "id": "live-coupling-boundary-scan", "status": "Blocked", "note": "Live coupling scan later" },
+    { "id": "live-reference-implementation-signoff", "status": "Blocked", "note": "Board live signoff later" },
+    { "id": "QA-005", "status": "Satisfied", "note": "Technical debt baseline and CI limits Done" },
+    { "id": "PHY-001", "status": "Satisfied", "note": "Physical site autonomy pack Done" }
+  ],
+  "outOfScope": [
+    "Live two-site deployment",
+    "Live architecture fitness envelope",
+    "Live coupling boundary scan",
+    "Live reference implementation signoff",
+    "QA-005 maintainability baseline",
+    "PHY-001 physical site independence",
+    "CAP-001 national envelope load proof",
+    "SCM-001 source control maturity",
+    "National24x7Claim elevation",
+    "Domain rewrite"
+  ],
+  "contexts": [
+    { "id": "gateway-edge", "ownerRole": "platform", "stayOrMerge": "stay", "interactionStyle": "sync", "rationale": "National edge and BFF" },
+    { "id": "hr-core", "ownerRole": "hr-domain", "stayOrMerge": "stay", "interactionStyle": "event", "rationale": "Employee aggregate writer" },
+    { "id": "payroll", "ownerRole": "payroll-domain", "stayOrMerge": "stay", "interactionStyle": "event", "rationale": "Payroll run ownership" },
+    { "id": "auth-identity", "ownerRole": "identity", "stayOrMerge": "stay", "interactionStyle": "sync", "rationale": "OIDC/tenant auth plane" },
+    { "id": "file-storage", "ownerRole": "platform", "stayOrMerge": "stay", "interactionStyle": "sync", "rationale": "Document store boundary" },
+    { "id": "integration-messaging", "ownerRole": "integration", "stayOrMerge": "stay", "interactionStyle": "event", "rationale": "Bus/outbox mesh" }
+  ],
+  "siteProfiles": [
+    { "id": "primary", "role": "primary", "artifactProfile": "national-ref-2026.07.30" },
+    { "id": "dr", "role": "dr", "artifactProfile": "national-ref-2026.07.30" }
+  ],
+  "unsupportedTopologies": [
+    "cross-site-direct-db",
+    "shared-domain-assembly-across-services"
+  ],
+  "journeys": [
+    {
+      "id": "ContextsOwnership",
+      "steps": [
+        { "id": "ContextOwnedPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 72, "evidenceType": "context-owned-pass", "service": "testdata", "event": null },
+        { "id": "ContextWithoutOwnerFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "context-without-owner-fail", "service": "testdata", "event": null },
+        { "id": "UnjustifiedDistributionFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unjustified-distribution-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "MultiSiteTopology",
+      "steps": [
+        { "id": "SameArtifactPrimaryDrPass", "mandatory": true, "ownerRole": "platform", "slaHours": 72, "evidenceType": "same-artifact-primary-dr-pass", "service": "testdata", "event": null },
+        { "id": "ArtifactDriftFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "artifact-drift-primary-dr-fail", "service": "testdata", "event": null },
+        { "id": "SupportedTopologyPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "supported-topology-pass", "service": "testdata", "event": null },
+        { "id": "UnsupportedTopologyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unsupported-topology-fail", "service": "testdata", "event": null },
+        { "id": "EnvelopeUnvalidatedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "envelope-unvalidated-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CouplingFitness",
+      "steps": [
+        { "id": "CouplingGuardrailPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 72, "evidenceType": "coupling-guardrail-pass", "service": "testdata", "event": null },
+        { "id": "DirectDbFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "direct-db-cross-boundary-fail", "service": "testdata", "event": null },
+        { "id": "DomainCouplingFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "domain-coupling-fail", "service": "testdata", "event": null },
+        { "id": "FitnessLabPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 96, "evidenceType": "fitness-lab-pass", "service": "testdata", "event": null },
+        { "id": "TenancyAlignedPass", "mandatory": true, "ownerRole": "tenancy", "slaHours": 48, "evidenceType": "tenancy-aligned-pass", "service": "testdata", "event": null },
+        { "id": "PlanesSeparatedPass", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "planes-separated-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClaimGate",
+      "steps": [
+        { "id": "LiveReferenceClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-reference-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "unjustifiedDistributionFail": "testdata/arc002/scenarios/unjustified-distribution-fail.json",
+    "artifactDriftPrimaryDrFail": "testdata/arc002/scenarios/artifact-drift-primary-dr-fail.json",
+    "unsupportedTopologyFail": "testdata/arc002/scenarios/unsupported-topology-fail.json",
+    "directDbCrossBoundaryFail": "testdata/arc002/scenarios/direct-db-cross-boundary-fail.json",
+    "domainCouplingFail": "testdata/arc002/scenarios/domain-coupling-fail.json",
+    "contextWithoutOwnerFail": "testdata/arc002/scenarios/context-without-owner-fail.json",
+    "envelopeUnvalidatedFail": "testdata/arc002/scenarios/envelope-unvalidated-fail.json",
+    "liveReferenceClaimFail": "testdata/arc002/scenarios/live-reference-claim-fail.json",
+    "contextOwnedPass": "testdata/arc002/scenarios/context-owned-pass.json",
+    "sameArtifactPrimaryDrPass": "testdata/arc002/scenarios/same-artifact-primary-dr-pass.json",
+    "supportedTopologyPass": "testdata/arc002/scenarios/supported-topology-pass.json",
+    "couplingGuardrailPass": "testdata/arc002/scenarios/coupling-guardrail-pass.json",
+    "fitnessLabPass": "testdata/arc002/scenarios/fitness-lab-pass.json",
+    "tenancyAlignedPass": "testdata/arc002/scenarios/tenancy-aligned-pass.json",
+    "planesSeparatedPass": "testdata/arc002/scenarios/planes-separated-pass.json",
+    "referenceRunLedger": "testdata/arc002/harness/reference-run-ledger.json",
+    "referenceAuditPass": "testdata/arc002/audit/reference-audit-pass.json"
+  },
+  "joins": {
+    "arc001Matrix": "docs/arc-criticality/criticality-matrix.json",
+    "tenantAdr": "docs/decisions/ADR-001-tenant-model.md",
+    "opsDrTopology": "docs/OPS_DR_TOPOLOGY.md",
+    "opsIacTopology": "docs/OPS_IAC_TOPOLOGY.md",
+    "strEnvelope": "docs/str-scope/envelope-matrix.json",
+    "messageEvents": "docs/MESSAGE_EVENT_MATRIX.md"
+  }
+}

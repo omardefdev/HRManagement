@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-STALE-AS-TRUTH",
+  "expectedValidate": "FAIL",
+  "cacheAgeSeconds": 200000,
+  "ttlSeconds": 86400,
+  "treatedAsVerifiedMatch": true,
+  "notes": "Stale cache as truth must fail"
+}

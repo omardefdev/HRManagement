@@ -1,0 +1,12 @@
+@model Admin.Logistics.Domain.Entities.AssetAssignment
+@{ ViewData["Title"] = "تسليم عهدة"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="AssetId" class="form-label"></label><select asp-for="AssetId" asp-items="ViewBag.Assets" class="form-control"><option value="">— الأصل —</option></select><span asp-validation-for="AssetId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="AssignedAt" class="form-label"></label><input asp-for="AssignedAt" class="form-control" type="datetime-local" /><span asp-validation-for="AssignedAt" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="DueBackDate" class="form-label"></label><input asp-for="DueBackDate" class="form-control" type="datetime-local" /><span asp-validation-for="DueBackDate" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ConditionOnAssign" class="form-label"></label><input asp-for="ConditionOnAssign" class="form-control" /><span asp-validation-for="ConditionOnAssign" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ReturnedAt" class="form-label"></label><input asp-for="ReturnedAt" class="form-control" type="datetime-local" /><span asp-validation-for="ReturnedAt" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

@@ -1,0 +1,77 @@
+@model HR.Core.Web.ViewModels.DocumentEditViewModel
+@{
+    ViewData["Title"] = "تعديل المستند";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-edit"></i> تعديل المستند — @Model.EmployeeName</h3>
+    </div>
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="EmployeeId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="DocTitle" class="form-label"></label>
+                        <input asp-for="DocTitle" class="form-control" />
+                        <span asp-validation-for="DocTitle" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="DocType" class="form-label"></label>
+                        <select asp-for="DocType" class="form-control">
+                            <option value="Certificate">شهادة</option>
+                            <option value="Photo">صورة</option>
+                            <option value="Fingerprint">بصمة</option>
+                            <option value="NationalId">هوية وطنية</option>
+                            <option value="Passport">جواز سفر</option>
+                            <option value="Other">أخرى</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label class="form-label">صادر عن</label>
+                        <input class="form-control" value="@Model.IssuedBy" readonly />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="IssueDate" class="form-label"></label>
+                        <input asp-for="IssueDate" class="form-control" type="date" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="ExpiryDate" class="form-label"></label>
+                        <input asp-for="ExpiryDate" class="form-control" type="date" />
+                    </div>
+                </div>
+            </div>
+            @{
+                ViewData["FileUploadName"] = "FileId";
+                ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                ViewData["FileUploadMaxSize"] = "26214400";
+                ViewData["FileUploadLabel"] = "ملف المستند";
+            }
+            @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+            <div class="form-check mb-3">
+                <input asp-for="Verified" class="form-check-input" />
+                <label asp-for="Verified" class="form-check-label"></label>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

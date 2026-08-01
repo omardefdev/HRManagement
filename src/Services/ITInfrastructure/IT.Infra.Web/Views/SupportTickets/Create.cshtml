@@ -1,0 +1,17 @@
+@model IT.Infrastructure.Domain.Entities.ITSupportTicket
+@{ ViewData["Title"] = "تذكرة جديدة"; }
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="IssueSummary" class="form-label"></label>
+        <input asp-for="IssueSummary" class="form-control" />
+        <span asp-validation-for="IssueSummary" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">إرسال</button>
+    <a asp-action="Index" class="btn btn-link">إلغاء</a>
+</form>

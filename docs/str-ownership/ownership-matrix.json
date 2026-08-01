@@ -1,0 +1,509 @@
+{
+  "card": "STR-006",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "requiredComponentFields": [
+    "id",
+    "tier",
+    "critical",
+    "productOwnerRole",
+    "serviceOwnerRole",
+    "dataOwnerRole",
+    "securityOwnerRole",
+    "primaryRole",
+    "backupRoles",
+    "busFactor"
+  ],
+  "requiredSkillFields": ["skillId", "tier", "qualifiedRoles", "minQualified"],
+  "requiredBudgetFields": ["category", "years", "funded", "ownerRole"],
+  "requiredVendorClauseFields": [
+    "vendorId",
+    "componentIds",
+    "rtoHours",
+    "incidentDisclosureHours",
+    "exitAssistance",
+    "clauses"
+  ],
+  "allowedBudgetCategories": [
+    "dev",
+    "ops",
+    "security",
+    "backup",
+    "dr",
+    "licenses",
+    "support",
+    "training",
+    "migration"
+  ],
+  "requiredVendorClauses": ["RTO", "IncidentDisclosure", "Exit"],
+  "busFactorRule": {
+    "criticalMinBusFactor": 2,
+    "tier0MinBackups": 1
+  },
+  "budgetRule": {
+    "mustFundCategories": ["ops", "security", "backup"],
+    "forbidDevOnly": true,
+    "horizonYears": 5
+  },
+  "envelopeRtoMinutes": 240,
+  "components": [
+    {
+      "id": "payroll",
+      "tier": "0",
+      "critical": true,
+      "productOwnerRole": "product-payroll",
+      "serviceOwnerRole": "payroll-ops",
+      "dataOwnerRole": "data-payroll",
+      "securityOwnerRole": "security",
+      "primaryRole": "payroll-lead",
+      "backupRoles": ["payroll-backup", "platform-lead"],
+      "busFactor": 3,
+      "rel003ServiceId": "payroll",
+      "str003ModuleId": "payroll",
+      "ipOwnership": "agency"
+    },
+    {
+      "id": "gateway",
+      "tier": "0",
+      "critical": true,
+      "productOwnerRole": "product-platform",
+      "serviceOwnerRole": "platform",
+      "dataOwnerRole": "data-platform",
+      "securityOwnerRole": "security",
+      "primaryRole": "platform-lead",
+      "backupRoles": ["platform-backup", "sre-a"],
+      "busFactor": 3,
+      "rel003ServiceId": "gateway",
+      "str003ModuleId": null,
+      "ipOwnership": "agency"
+    },
+    {
+      "id": "hr-core",
+      "tier": "0",
+      "critical": true,
+      "productOwnerRole": "product-hr",
+      "serviceOwnerRole": "platform",
+      "dataOwnerRole": "data-hr",
+      "securityOwnerRole": "security",
+      "primaryRole": "hr-core-lead",
+      "backupRoles": ["hr-core-backup", "platform-lead"],
+      "busFactor": 3,
+      "rel003ServiceId": "hr-core",
+      "str003ModuleId": "hr-core",
+      "ipOwnership": "agency"
+    },
+    {
+      "id": "auth-directory",
+      "tier": "0",
+      "critical": true,
+      "productOwnerRole": "product-platform",
+      "serviceOwnerRole": "platform",
+      "dataOwnerRole": "data-identity",
+      "securityOwnerRole": "security",
+      "primaryRole": "auth-lead",
+      "backupRoles": ["auth-backup", "security"],
+      "busFactor": 3,
+      "rel003ServiceId": "auth-directory",
+      "str003ModuleId": "auth-directory",
+      "ipOwnership": "agency"
+    },
+    {
+      "id": "postgres",
+      "tier": "0",
+      "critical": true,
+      "productOwnerRole": "product-platform",
+      "serviceOwnerRole": "dba",
+      "dataOwnerRole": "data-platform",
+      "securityOwnerRole": "security",
+      "primaryRole": "dba-primary",
+      "backupRoles": ["dba-backup", "platform-lead"],
+      "busFactor": 3,
+      "rel003ServiceId": null,
+      "str003ModuleId": null,
+      "ipOwnership": "agency-with-vendor-support"
+    },
+    {
+      "id": "compliance",
+      "tier": "1",
+      "critical": true,
+      "productOwnerRole": "product-compliance",
+      "serviceOwnerRole": "platform",
+      "dataOwnerRole": "data-compliance",
+      "securityOwnerRole": "security",
+      "primaryRole": "compliance-lead",
+      "backupRoles": ["compliance-backup"],
+      "busFactor": 2,
+      "rel003ServiceId": "compliance",
+      "str003ModuleId": "compliance",
+      "ipOwnership": "agency"
+    },
+    {
+      "id": "dev-analytics",
+      "tier": "2",
+      "critical": false,
+      "productOwnerRole": "product-analytics",
+      "serviceOwnerRole": "platform",
+      "dataOwnerRole": "data-analytics",
+      "securityOwnerRole": "security",
+      "primaryRole": "analytics-lead",
+      "backupRoles": ["analytics-backup"],
+      "busFactor": 2,
+      "rel003ServiceId": "dev-analytics",
+      "str003ModuleId": "dev-analytics",
+      "ipOwnership": "agency"
+    }
+  ],
+  "skills": [
+    {
+      "skillId": "SK-PAYROLL-CALC",
+      "tier": "0",
+      "qualifiedRoles": ["payroll-lead", "payroll-backup", "platform-lead"],
+      "minQualified": 2
+    },
+    {
+      "skillId": "SK-PLATFORM-DEPLOY",
+      "tier": "0",
+      "qualifiedRoles": ["platform-lead", "platform-backup", "sre-a"],
+      "minQualified": 2
+    },
+    {
+      "skillId": "SK-DBA-RESTORE",
+      "tier": "0",
+      "qualifiedRoles": ["dba-primary", "dba-backup"],
+      "minQualified": 2
+    },
+    {
+      "skillId": "SK-SOC-TRIAGE",
+      "tier": "0",
+      "qualifiedRoles": ["soc-a", "soc-b", "security"],
+      "minQualified": 2
+    },
+    {
+      "skillId": "SK-AUTH-IDP",
+      "tier": "1",
+      "qualifiedRoles": ["auth-lead", "auth-backup"],
+      "minQualified": 2
+    }
+  ],
+  "succession": [
+    {
+      "roleId": "payroll-lead",
+      "successorRoles": ["payroll-backup"],
+      "ktPlanRef": "docs/STR_006_KNOWLEDGE_TRANSFER.md#payroll-lead"
+    },
+    {
+      "roleId": "platform-lead",
+      "successorRoles": ["platform-backup", "sre-a"],
+      "ktPlanRef": "docs/STR_006_KNOWLEDGE_TRANSFER.md#platform-lead"
+    },
+    {
+      "roleId": "dba-primary",
+      "successorRoles": ["dba-backup"],
+      "ktPlanRef": "docs/STR_006_KNOWLEDGE_TRANSFER.md#dba-primary"
+    },
+    {
+      "roleId": "sponsor",
+      "successorRoles": ["program"],
+      "ktPlanRef": "docs/STR_006_KNOWLEDGE_TRANSFER.md#sponsor"
+    }
+  ],
+  "staffing": {
+    "model": "template-extends-REL-003",
+    "coverageHours": "24x7-stub",
+    "national24x7Claim": false,
+    "tiers": ["platform", "payroll", "sre", "soc"],
+    "rosters": [
+      {
+        "tier": "platform",
+        "primaryRole": "platform-lead",
+        "backupRoles": ["platform-backup"]
+      },
+      {
+        "tier": "payroll",
+        "primaryRole": "payroll-lead",
+        "backupRoles": ["payroll-backup"]
+      },
+      {
+        "tier": "sre",
+        "primaryRole": "sre-a",
+        "backupRoles": ["sre-b"]
+      },
+      {
+        "tier": "soc",
+        "primaryRole": "soc-a",
+        "backupRoles": ["soc-b"]
+      }
+    ],
+    "gapPolicy": "failValidate"
+  },
+  "budgetLines": [
+    {
+      "category": "dev",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [100, 90, 80, 70, 60],
+      "funded": true,
+      "ownerRole": "product"
+    },
+    {
+      "category": "ops",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [40, 42, 44, 46, 48],
+      "funded": true,
+      "ownerRole": "finance"
+    },
+    {
+      "category": "security",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [25, 26, 27, 28, 29],
+      "funded": true,
+      "ownerRole": "security"
+    },
+    {
+      "category": "backup",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [15, 15, 16, 16, 17],
+      "funded": true,
+      "ownerRole": "platform"
+    },
+    {
+      "category": "dr",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [20, 20, 21, 21, 22],
+      "funded": true,
+      "ownerRole": "platform"
+    },
+    {
+      "category": "support",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [30, 30, 32, 32, 34],
+      "funded": true,
+      "ownerRole": "procurement"
+    },
+    {
+      "category": "training",
+      "years": [1, 2, 3, 4, 5],
+      "amounts": [8, 8, 9, 9, 10],
+      "funded": true,
+      "ownerRole": "hr"
+    }
+  ],
+  "tcoApproval": {
+    "status": "RoleApprovedStub",
+    "approverRoles": ["sponsor", "finance"],
+    "independentFinanceReview": false,
+    "evidenceRef": "docs/STR_006_TCO_APPROVAL.md"
+  },
+  "vendors": [
+    {
+      "vendorId": "v-db",
+      "componentIds": ["postgres"],
+      "rtoHours": 4,
+      "incidentDisclosureHours": 24,
+      "exitAssistance": true,
+      "clauses": ["RTO", "IncidentDisclosure", "Exit"],
+      "ipOwnership": "agency-with-vendor-support",
+      "eolDate": null
+    },
+    {
+      "vendorId": "v-cloud-host",
+      "componentIds": ["gateway", "hr-core"],
+      "rtoHours": 4,
+      "incidentDisclosureHours": 12,
+      "exitAssistance": true,
+      "clauses": ["RTO", "IncidentDisclosure", "Exit"],
+      "ipOwnership": "agency",
+      "eolDate": null
+    },
+    {
+      "vendorId": "v-idp-support",
+      "componentIds": ["auth-directory"],
+      "rtoHours": 4,
+      "incidentDisclosureHours": 24,
+      "exitAssistance": true,
+      "clauses": ["RTO", "IncidentDisclosure", "Exit"],
+      "ipOwnership": "agency",
+      "eolDate": null
+    }
+  ],
+  "knowledgeTransfer": [
+    {
+      "fromRole": "payroll-lead",
+      "toRole": "payroll-backup",
+      "artifactRefs": ["docs/STR_006_KNOWLEDGE_TRANSFER.md#payroll-lead"],
+      "status": "Planned"
+    },
+    {
+      "fromRole": "platform-lead",
+      "toRole": "platform-backup",
+      "artifactRefs": ["docs/STR_006_KNOWLEDGE_TRANSFER.md#platform-lead"],
+      "status": "Planned"
+    },
+    {
+      "fromRole": "dba-primary",
+      "toRole": "dba-backup",
+      "artifactRefs": ["docs/STR_006_KNOWLEDGE_TRANSFER.md#dba-primary"],
+      "status": "InProgress"
+    }
+  ],
+  "eol": [
+    {
+      "componentId": "legacy-batch-bridge",
+      "eolDate": "2027-12-31",
+      "successorId": "payroll",
+      "ownerRole": "product-payroll"
+    }
+  ],
+  "blockers": [
+    {
+      "id": "STR-005",
+      "status": "Satisfied",
+      "note": "Governance boards Done"
+    },
+    {
+      "id": "SOV-007",
+      "status": "Satisfied",
+      "note": "Vendor-exit binding Done; live exit drill = VEN-001"
+    },
+    {
+      "id": "FIN-001",
+      "status": "NotStarted",
+      "note": "Full TCO workbook consumes this stub"
+    },
+    {
+      "id": "SRE-001",
+      "status": "Blocked",
+      "note": "National 24x7 desk; roster template only"
+    }
+  ],
+  "journeys": [
+    {
+      "id": "OwnershipQuad",
+      "steps": [
+        {
+          "id": "QuadRoles",
+          "mandatory": true,
+          "ownerRole": "program",
+          "slaHours": 48,
+          "evidenceType": "components",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "JoinRel003Str003",
+          "mandatory": true,
+          "ownerRole": "platform",
+          "slaHours": 24,
+          "evidenceType": "joins",
+          "service": "docs",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "BusFactor",
+      "steps": [
+        {
+          "id": "CriticalMinTwo",
+          "mandatory": true,
+          "ownerRole": "program",
+          "slaHours": 24,
+          "evidenceType": "busFactorRule",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "ExerciseFixtures",
+          "mandatory": true,
+          "ownerRole": "qa",
+          "slaHours": 24,
+          "evidenceType": "bus-factor scenarios",
+          "service": "testdata",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "StaffingOnCall",
+      "steps": [
+        {
+          "id": "RosterTemplate",
+          "mandatory": true,
+          "ownerRole": "sre",
+          "slaHours": 48,
+          "evidenceType": "STAFFING_ONCALL",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "NoNational24x7Claim",
+          "mandatory": true,
+          "ownerRole": "sre",
+          "slaHours": 24,
+          "evidenceType": "national24x7Claim false",
+          "service": "docs",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "BudgetTco",
+      "steps": [
+        {
+          "id": "OpsSecBackupFunded",
+          "mandatory": true,
+          "ownerRole": "finance",
+          "slaHours": 48,
+          "evidenceType": "budgetLines",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "TcoStubApproval",
+          "mandatory": true,
+          "ownerRole": "sponsor",
+          "slaHours": 24,
+          "evidenceType": "TCO_APPROVAL",
+          "service": "docs",
+          "event": null
+        }
+      ]
+    },
+    {
+      "id": "VendorSla",
+      "steps": [
+        {
+          "id": "RequiredClauses",
+          "mandatory": true,
+          "ownerRole": "procurement",
+          "slaHours": 48,
+          "evidenceType": "vendors",
+          "service": "docs",
+          "event": null
+        },
+        {
+          "id": "MissingExitFails",
+          "mandatory": true,
+          "ownerRole": "qa",
+          "slaHours": 24,
+          "evidenceType": "missing-exit-clause",
+          "service": "testdata",
+          "event": null
+        }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "busFactorPass": "testdata/str006/scenarios/bus-factor-pass.json",
+    "busFactorFail": "testdata/str006/scenarios/bus-factor-fail.json",
+    "staffingOnCall": "testdata/str006/scenarios/staffing-oncall.json",
+    "tcoDevOnly": "testdata/str006/scenarios/tco-dev-only.json",
+    "tcoFunded": "testdata/str006/scenarios/tco-ops-security-backup.json",
+    "vendorMissingExit": "testdata/str006/vendors/missing-exit-clause.json"
+  },
+  "joins": {
+    "rel003ServiceIds": "docs/rel-ops/service-catalog.json#services[].id",
+    "str003ModuleIds": "docs/str-modules/module-catalog.json#modules[].moduleId",
+    "envelopeRto": "docs/str-scope/envelope-matrix.json#national.rto_critical_minutes"
+  }
+}

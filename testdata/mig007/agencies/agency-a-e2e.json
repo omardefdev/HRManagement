@@ -1,0 +1,15 @@
+{
+  "fixtureId": "MIG007-AGENCY-A-E2E",
+  "expectedValidate": "PASS",
+  "agencyId": "lab-agency-a",
+  "profile": "central-ministry",
+  "owners": {
+    "data-owner": "owner-a-data",
+    "security-owner": "owner-a-sec",
+    "ops-owner": "owner-a-ops"
+  },
+  "readinessAllOk": true,
+  "signOffsComplete": true,
+  "forkUsed": false,
+  "liveOnboard": false
+}

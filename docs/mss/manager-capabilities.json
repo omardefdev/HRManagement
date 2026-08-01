@@ -1,0 +1,117 @@
+{
+  "$schema": "manager-capabilities-v1",
+  "card": "MSS-001",
+  "description": "Manager self-service capability definitions derived from dated organizational relationships",
+  "capabilities": [
+    {
+      "code": "team.view",
+      "name": "View Dated Team",
+      "description": "View current and historical team composition based on org structure effective dates",
+      "scope": "direct_reports",
+      "dependencies": ["ORG-001"]
+    },
+    {
+      "code": "team.calendar",
+      "name": "Team Calendar",
+      "description": "View absence/attendance calendar for direct reports",
+      "scope": "direct_reports",
+      "dependencies": ["HCM-002"]
+    },
+    {
+      "code": "approval.leave",
+      "name": "Approve Leave",
+      "description": "Approve or reject leave requests from direct reports",
+      "scope": "direct_reports",
+      "requires_no_conflict": true,
+      "delegatable": true
+    },
+    {
+      "code": "approval.overtime",
+      "name": "Approve Overtime",
+      "description": "Approve or reject overtime requests",
+      "scope": "direct_reports",
+      "requires_no_conflict": true,
+      "delegatable": true
+    },
+    {
+      "code": "approval.training",
+      "name": "Approve Training",
+      "description": "Approve or reject training nominations with budget check",
+      "scope": "direct_reports",
+      "requires_no_conflict": true,
+      "delegatable": true,
+      "dependencies": ["HCM-005"]
+    },
+    {
+      "code": "position.view",
+      "name": "View Positions",
+      "description": "View positions and vacancies within manager's org unit",
+      "scope": "org_unit",
+      "dependencies": ["EST-001"]
+    },
+    {
+      "code": "performance.initiate",
+      "name": "Initiate Reviews",
+      "description": "Start performance review cycle for direct reports",
+      "scope": "direct_reports",
+      "dependencies": ["HCM-003"]
+    },
+    {
+      "code": "performance.submit",
+      "name": "Submit Reviews",
+      "description": "Submit manager performance reviews",
+      "scope": "direct_reports",
+      "requires_no_conflict": true
+    },
+    {
+      "code": "change.transfer",
+      "name": "Request Transfer",
+      "description": "Initiate employee transfer request",
+      "scope": "direct_reports",
+      "requires_approval": true
+    },
+    {
+      "code": "change.promotion",
+      "name": "Recommend Promotion",
+      "description": "Recommend employee for promotion consideration",
+      "scope": "direct_reports",
+      "requires_approval": true
+    },
+    {
+      "code": "delegation.grant",
+      "name": "Delegate Authority",
+      "description": "Temporarily delegate manager capabilities to another person",
+      "scope": "self",
+      "constraints": {
+        "max_duration_days": 90,
+        "requires_expiry": true,
+        "audit_required": true
+      }
+    },
+    {
+      "code": "dashboard.team",
+      "name": "Team Dashboard",
+      "description": "Access team metrics and KPIs dashboard",
+      "scope": "direct_reports",
+      "data_minimization": true
+    }
+  ],
+  "conflict_rules": {
+    "description": "Conflict of interest prevents manager from making decision; escalates to next level",
+    "triggers": [
+      "manager_is_subject",
+      "family_relationship",
+      "active_grievance",
+      "financial_interest"
+    ],
+    "action": "escalate_to_next_level"
+  },
+  "delegation_policy": {
+    "temporary": true,
+    "requires_explicit_expiry": true,
+    "max_duration_days": 90,
+    "revocable": true,
+    "audit_trail": true,
+    "acting_manager_assignment": true
+  }
+}

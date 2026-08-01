@@ -1,0 +1,5 @@
+@model Records.Archive.Domain.Entities.DocumentClassification
+@{ ViewData["Title"] = "تصنيف جديد"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body"><div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" placeholder="الرمز" /><span asp-validation-for="Code" class="text-danger"></span></div><div class="mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" placeholder="الاسم عربي" /><span asp-validation-for="NameAr" class="text-danger"></span></div><div class="mb-3"><label asp-for="NameEn" class="form-label"></label><input asp-for="NameEn" class="form-control" /><span asp-validation-for="NameEn" class="text-danger"></span></div><div class="mb-3"><label asp-for="RetentionYears" class="form-label"></label><input asp-for="RetentionYears" class="form-control" type="number" /><span asp-validation-for="RetentionYears" class="text-danger"></span></div>
+<div class="card-footer"><button class="btn btn-primary" type="submit">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

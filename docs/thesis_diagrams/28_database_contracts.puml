@@ -1,0 +1,86 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 18
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+
+title "ERD منطقي مختصر لقاعدة HR.Contracts\nContracts and service lifecycle"
+
+entity "ContractType\nنوع العقد" as ContractType {
+  * Id : uuid <<PK>>
+  Code : string <<UQ>>
+}
+entity "Contract\nالعقد" as Contract {
+  * Id : uuid <<PK>>
+  ContractTypeId : uuid <<FK>>
+  EmployeeId : uuid <<identifier>>
+  Status : enum
+}
+entity "ContractSignature\nتوقيع العقد" as Signature {
+  * Id : uuid <<PK>>
+  ContractId : uuid <<FK>>
+}
+entity "ProbationRecord\nفترة التجربة" as Probation {
+  * Id : uuid <<PK>>
+  ContractId : uuid <<FK>>
+}
+entity "CommencementRecord\nالمباشرة" as Commencement {
+  * Id : uuid <<PK>>
+  ContractId : uuid <<FK>>
+}
+entity "ServiceTransaction\nمعاملة خدمة" as Transaction {
+  * Id : uuid <<PK>>
+  TransactionType : enum
+  State : enum
+}
+entity "HireChecklist\nقائمة التعيين" as HireChecklist {
+  * Id : uuid <<PK>>
+  ServiceTransactionId : uuid <<FK>>
+  Step : enum
+}
+entity "SeparationRecord\nإنهاء الخدمة" as Separation {
+  * Id : uuid <<PK>>
+  ContractId : uuid <<FK>>
+}
+entity "SeparationChecklist\nقائمة الإنهاء" as SeparationChecklist {
+  * Id : uuid <<PK>>
+  SeparationRecordId : uuid <<FK>>
+  Step : enum
+}
+entity "LeaveRequest\nطلب إجازة" as Leave {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<identifier>>
+  Status : enum
+}
+entity "AdvanceRequest\nطلب سلفة" as Advance {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<identifier>>
+  Amount : decimal
+}
+entity "AdvanceInstallmentPlan\nخطة التقسيط" as Installment {
+  * Id : uuid <<PK>>
+  AdvanceRequestId : uuid <<FK>>
+}
+
+ContractType ||--o{ Contract
+Contract ||--o{ Signature
+Contract ||--o{ Probation
+Contract ||--o{ Commencement
+Contract ||--o{ Separation
+Transaction ||--o{ HireChecklist
+Separation ||--o{ SeparationChecklist
+Advance ||--o{ Installment
+
+note right of Contract
+EmployeeId مرجع تكاملي إلى HR.Core.
+التفعيل والنقل والإنهاء ينشر أحداثاً
+تستهلكها Payroll وIDCard وArchive وغيرها.
+end note
+@enduml

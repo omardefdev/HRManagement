@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - @(ViewBag.OrganizationName ?? "نظام إدارة الموارد البشرية")</title>
+
+    @await Html.PartialAsync("_OrganizationBranding")
+
+
+
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" asp-append-version="true" />
+
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.rtl.min.css" asp-append-version="true" />
+
+    <link rel="stylesheet" href="~/lib/admin-lte/css/adminlte.rtl.min.css" asp-append-version="true" />
+
+    <link rel="stylesheet" href="~/css/syrian-theme.css" asp-append-version="true" />
+
+    <link rel="stylesheet" href="~/css/file-upload.css" asp-append-version="true" />
+
+
+
+    @await RenderSectionAsync("Styles", required: false)
+
+</head>
+
+<body class="layout-fixed sidebar-expand-lg" dir="rtl" data-lookup-base="/ui/hr-core">
+
+    <a class="hr-skip-link" href="#main-content">تخطي إلى المحتوى</a>
+
+    <div class="app-wrapper">
+
+
+
+        <nav class="app-header navbar navbar-expand navbar-dark" aria-label="شريط التطبيق">
+
+            <div class="container-fluid">
+
+                <ul class="navbar-nav">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button" aria-label="إظهار أو إخفاء القائمة الجانبية"><i class="fas fa-bars" aria-hidden="true"></i></a>
+
+                    </li>
+
+                    <li class="nav-item d-none d-sm-inline-block">
+
+                        <a href="/" class="nav-link">الرئيسية</a>
+
+                    </li>
+
+                </ul>
+
+                <ul class="navbar-nav ms-auto">
+
+                    @await Html.PartialAsync("_HrAuthNav")
+
+                    <li class="nav-item">
+
+                        <a class="nav-link" data-lte-toggle="fullscreen" href="#" role="button" aria-label="ملء الشاشة"><i class="fas fa-expand-arrows-alt" aria-hidden="true"></i></a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        </nav>
+
+
+
+        <aside class="app-sidebar shadow" data-bs-theme="dark" aria-label="القائمة الجانبية">
+
+            <div class="sidebar-brand hr-sidebar-brand">
+
+                <a href="/" class="brand-link hr-brand-link">
+
+                    <i class="fas fa-building brand-image hr-brand-icon"></i>
+
+                    <span class="brand-text fw-black" id="hr-org-brand-name">شعبة التنظيم والموارد البشرية</span>
+
+                </a>
+
+            </div>
+
+            <div class="sidebar-wrapper">
+
+                <nav class="mt-2">
+
+                    <ul class="nav nav-pills sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+
+                        @await RenderSectionAsync("SidebarItems", required: false)
+
+                    </ul>
+
+                </nav>
+
+            </div>
+
+        </aside>
+
+
+
+        <main class="app-main" id="main-content" tabindex="-1">
+
+            <div class="app-content-header">
+
+                <div class="container-fluid">
+
+                    <div class="row mb-2">
+
+                        <div class="col-sm-6"><h1 class="m-0">@ViewData["Title"]</h1></div>
+
+                        <div class="col-sm-6">
+
+                            @await Html.PartialAsync("_HrBreadcrumb")
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="app-content">
+
+                <div class="container-fluid">
+
+                    @await Html.PartialAsync("_HrAlerts")
+
+                    @RenderBody()
+
+                </div>
+
+            </div>
+
+        </main>
+
+
+
+        <footer class="app-footer">
+
+            <strong>شعبة التنظيم والموارد البشرية</strong> &mdash; نظام إدارة الموارد البشرية
+
+            <div class="float-end d-none d-sm-inline-block"><b>&copy; @DateTime.Now.Year</b></div>
+
+        </footer>
+
+
+
+    </div>
+
+
+
+    <script src="~/lib/jquery/jquery.min.js" asp-append-version="true"></script>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+
+    <script src="~/lib/admin-lte/js/adminlte.min.js" asp-append-version="true"></script>
+
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+
+    <script src="~/js/shared-ui.js" asp-append-version="true"></script>
+
+    <script src="~/js/a11y-forms.js" asp-append-version="true"></script>
+
+    @await Html.PartialAsync("_HrPickerAssets")
+
+    @await Html.PartialAsync("_OrgUnitTreeModal")
+
+    <script src="~/js/display-names.js" asp-append-version="true"></script>
+
+    <script src="~/js/file-upload.js" asp-append-version="true"></script>
+
+
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+
+</html>

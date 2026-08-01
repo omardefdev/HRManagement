@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-PURPOSE-MISMATCH",
+  "expectedValidate": "FAIL",
+  "purposeCode": "marketing-enrichment",
+  "consentRef": "c-lab-001",
+  "notes": "Purpose outside allowlist must fail"
+}

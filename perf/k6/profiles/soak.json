@@ -1,0 +1,6 @@
+{
+  "name": "soak",
+  "vus_base": 50,
+  "soak_duration": "2h",
+  "description": "NFR-001 lab soak ≥2h at 100% model (not CAP 72h)"
+}

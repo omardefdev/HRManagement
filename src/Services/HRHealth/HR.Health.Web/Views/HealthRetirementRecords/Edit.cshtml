@@ -1,0 +1,15 @@
+@model HR.Health.Domain.Entities.HealthRetirementRecord
+@{ ViewData["Title"] = "تعديل التقاعد الصحي"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EffectiveDate" class="form-label"></label><input asp-for="EffectiveDate" class="form-control" type="date" /><span asp-validation-for="EffectiveDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea><span asp-validation-for="Reason" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Documents" class="form-label"></label><textarea asp-for="Documents" class="form-control" rows="2"></textarea><span asp-validation-for="Documents" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

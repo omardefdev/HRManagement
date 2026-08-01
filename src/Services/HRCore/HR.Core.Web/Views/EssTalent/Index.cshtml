@@ -1,0 +1,33 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.InternalVacancy>
+@{ ViewData["Title"] = "سوق المواهب الداخلي"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الشواغر الداخلية المتاحة</h3>
+        <a asp-action="MyApplications" class="btn btn-outline-secondary btn-sm">ترشّحاتي</a>
+    </div>
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <p class="text-center text-muted py-4">لا توجد شواغر مفتوحة حالياً</p>
+        }
+        @foreach (var v in Model)
+        {
+            <div class="border rounded p-3 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">@v.Title</h5>
+                        <div class="text-muted small">@(v.OrgUnit?.NameAr ?? "—") @(v.ClosingDate != null ? $"• يُغلق في {v.ClosingDate:yyyy-MM-dd}" : "")</div>
+                        @if (!string.IsNullOrWhiteSpace(v.Description)) { <p class="mb-1 mt-2">@v.Description</p> }
+                        @if (!string.IsNullOrWhiteSpace(v.RequiredQualifications)) { <p class="mb-0 small"><strong>المؤهلات:</strong> @v.RequiredQualifications</p> }
+                    </div>
+                    <form asp-action="Apply" method="post" class="text-start" style="min-width:240px;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="vacancyId" value="@v.Id" />
+                        <textarea name="motivation" class="form-control form-control-sm mb-2" rows="2" placeholder="مسوّغات الترشّح (اختياري)"></textarea>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">ترشّح</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

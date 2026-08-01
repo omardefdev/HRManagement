@@ -1,0 +1,6 @@
+{
+  "scenarioId": "SIM-KEY-EXFIL",
+  "expectedValidate": "FAIL",
+  "privateKeyExported": true,
+  "notes": "Private key leaving HSM must fail"
+}

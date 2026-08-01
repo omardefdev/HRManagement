@@ -1,0 +1,151 @@
+@model IReadOnlyList<HRManagement.Gateway.Models.GatewayModuleStatus>
+@{
+    ViewData["Title"] = "عمليات البوابة";
+    var metrics = ViewData["Metrics"] as HRManagement.Gateway.Services.GatewayMetricsSnapshot;
+    var correlationId = ViewData["CorrelationIdFilter"] as string;
+    var trace = ViewData["AuditTrace"] as IReadOnlyList<HRManagement.Gateway.Models.GatewayAuditRowViewModel>;
+}
+<div class="gateway-page-header">
+    <h1 class="gateway-page-title">عمليات البوابة</h1>
+    <p class="gateway-page-subtitle">تفاصيل حالات الخدمات الخلفية الحالية مع زمن الاستجابة.</p>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-8">
+        <input type="text" class="form-control" name="correlationId" value="@correlationId" placeholder="معرّف الترابط لتتبع طلبات محددة" />
+    </div>
+    <div class="col-md-4 d-flex gap-2">
+        <button class="btn gateway-btn-primary w-100" type="submit">تتبع</button>
+        <a class="btn gateway-btn-secondary w-100" asp-action="Operations">إعادة</a>
+    </div>
+</form>
+
+@if (metrics is not null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="gateway-card-ops">
+                <h6><i class="fas fa-chart-pie ms-1"></i> عدادات حالات الطلبات</h6>
+                @foreach (var kv in metrics.StatusCounters.OrderBy(x => x.Key))
+                {
+                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="border-color: rgba(185,167,121,0.2) !important;">
+                        <span>الحالة @kv.Key</span>
+                        <span class="fw-bold">@kv.Value</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="gateway-card-ops">
+                <h6><i class="fas fa-tachometer-alt ms-1"></i> زمن الاستجابة P95 حسب الوحدة (مللي ثانية)</h6>
+                @foreach (var kv in metrics.ModuleP95LatencyMs.OrderBy(x => x.Key))
+                {
+                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="border-color: rgba(185,167,121,0.2) !important;">
+                        <span>@kv.Key</span>
+                        <span class="fw-bold">@kv.Value ms</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<div class="gateway-table table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+        <thead>
+        <tr>
+            <th>الوحدة</th>
+            <th>الصلاحية</th>
+            <th>الصحة</th>
+            <th>الحالة</th>
+            <th>الزمن (مللي ثانية)</th>
+            <th>المسار</th>
+            <th>ملاحظة</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var row in Model)
+        {
+            <tr>
+                <td>@row.Module.Name</td>
+                <td>@(row.IsAuthorized ? "مسموح" : "غير مسموح")</td>
+                <td>
+                    <span class="gateway-badge @(row.IsHealthy ? "gateway-badge-ok" : "gateway-badge-danger")">
+                        @(row.IsHealthy ? "سليم" : "غير متاح")
+                    </span>
+                </td>
+                <td>@(row.StatusCode < 0 ? "خطأ" : row.StatusCode)</td>
+                <td>@row.LatencyMs</td>
+                <td><code>@row.Module.HealthPath</code></td>
+                <td class="small">
+                    @if (string.IsNullOrWhiteSpace(row.Error))
+                    {
+                        <span>-</span>
+                    }
+                    else
+                    {
+                        <div class="gateway-error-state">الخدمة غير متاحة حاليًا</div>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@if (metrics is not null && metrics.RecentErrors.Count > 0)
+{
+    <div class="gateway-card-ops">
+        <h6><i class="fas fa-exclamation-triangle ms-1"></i> آخر أخطاء التوجيه</h6>
+        <ul class="mb-0 list-unstyled">
+            @foreach (var err in metrics.RecentErrors.TakeLast(15))
+            {
+                <li class="small py-1 border-bottom" style="border-color: rgba(185,167,121,0.2) !important;"><code>@err</code></li>
+            }
+        </ul>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(correlationId))
+{
+    <div class="gateway-card-ops mt-3">
+        <h6><i class="fas fa-link ms-1"></i> أحداث مرتبطة بالمُعرّف <code>@correlationId</code></h6>
+        @if (trace is null || trace.Count == 0)
+        {
+            <p class="text-muted mb-0">لا توجد أحداث مرتبطة ضمن السجلات الحالية.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                    <tr>
+                        <th>الوقت</th>
+                        <th>القرار</th>
+                        <th>الكود</th>
+                        <th>الطريقة</th>
+                        <th>المسار</th>
+                        <th>الزمن (مللي ثانية)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in trace)
+                    {
+                        <tr>
+                            <td>@item.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@item.Decision</td>
+                            <td>@item.StatusCode</td>
+                            <td>@item.Method</td>
+                            <td><code>@item.Path</code></td>
+                            <td>@item.ElapsedMs</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-2">
+                <a class="btn btn-sm gateway-btn-ghost" href="/ops/audit-search?correlationId=@Uri.EscapeDataString(correlationId)&timeRange=all&pageSize=100">عرض البيانات النصية</a>
+            </div>
+        }
+    </div>
+}

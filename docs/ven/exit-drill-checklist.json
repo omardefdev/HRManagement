@@ -1,0 +1,74 @@
+{
+  "card": "VEN-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Vendor exit drill checklist and operational handover plan",
+  "exitRtoHours": 72,
+  "liveDrillStatus": "Blocked",
+  "liveDrillNote": "Full exit rehearsal pending alternate operator readiness; lab checklist only",
+  "sov007MatrixRef": "docs/sov-vendor/vendor-exit-matrix.json",
+  "phases": [
+    {
+      "phaseId": "pre-exit-preparation",
+      "name": "Pre-Exit Preparation",
+      "steps": [
+        { "stepId": "verify-ownership", "description": "Confirm IP/source/IaC/SBOM/docs ownership per SOV-007", "mandatory": true, "ownerRole": "legal-architecture" },
+        { "stepId": "inventory-accounts", "description": "Inventory all vendor accounts, DNS, registry, KMS access", "mandatory": true, "ownerRole": "security-operations" },
+        { "stepId": "designate-alternate", "description": "Designate alternate operator with trained staff", "mandatory": true, "ownerRole": "system-owner" }
+      ]
+    },
+    {
+      "phaseId": "transfer",
+      "name": "Asset Transfer",
+      "steps": [
+        { "stepId": "transfer-source", "description": "Transfer source code repositories to national custody", "mandatory": true, "ownerRole": "devops" },
+        { "stepId": "transfer-artifacts", "description": "Transfer signed build artifacts and SBOM", "mandatory": true, "ownerRole": "devops" },
+        { "stepId": "transfer-iac", "description": "Transfer IaC, deployment configs, and runbooks", "mandatory": true, "ownerRole": "sre" },
+        { "stepId": "export-data", "description": "Full data export including attachments and contracts", "mandatory": true, "ownerRole": "dba" },
+        { "stepId": "transfer-kms", "description": "Transfer KMS keys to national HSM custody", "mandatory": true, "ownerRole": "security-operations" },
+        { "stepId": "transfer-dns-registry", "description": "Transfer DNS and container registry control", "mandatory": true, "ownerRole": "network-operations" }
+      ]
+    },
+    {
+      "phaseId": "rebuild-restore",
+      "name": "Rebuild & Restore",
+      "steps": [
+        { "stepId": "clean-room-rebuild", "description": "Rebuild from owned artifacts at alternate site", "mandatory": true, "ownerRole": "devops" },
+        { "stepId": "restore-data", "description": "Restore data from export with reconciliation", "mandatory": true, "ownerRole": "dba" },
+        { "stepId": "new-certificates", "description": "Issue new TLS certificates under national PKI", "mandatory": true, "ownerRole": "security-operations" },
+        { "stepId": "reconciliation", "description": "Reconcile export/import totals — 100% match required", "mandatory": true, "ownerRole": "audit" }
+      ]
+    },
+    {
+      "phaseId": "revoke-attest",
+      "name": "Revoke & Attest",
+      "steps": [
+        { "stepId": "revoke-vendor-access", "description": "Revoke all vendor accounts, keys, and API tokens", "mandatory": true, "ownerRole": "security-operations" },
+        { "stepId": "knowledge-transfer", "description": "Complete knowledge transfer sessions with alternate operator", "mandatory": true, "ownerRole": "system-owner" },
+        { "stepId": "support-continuity", "description": "Activate national support continuity plan", "mandatory": true, "ownerRole": "support-lead" },
+        { "stepId": "deletion-attestation", "description": "Obtain prior vendor data wipe attestation", "mandatory": true, "ownerRole": "legal" }
+      ]
+    },
+    {
+      "phaseId": "verification",
+      "name": "Exit Verification",
+      "steps": [
+        { "stepId": "functional-smoke", "description": "Alternate operator runs full functional smoke test", "mandatory": true, "ownerRole": "qa" },
+        { "stepId": "exit-rto-measurement", "description": "Measure total exit time against Exit-RTO target", "mandatory": true, "ownerRole": "sre" },
+        { "stepId": "independent-audit", "description": "Independent auditor confirms exit completeness", "mandatory": true, "ownerRole": "audit" }
+      ]
+    }
+  ],
+  "exportImportPolicy": {
+    "fullDataExportRequired": true,
+    "attachmentsExportRequired": true,
+    "contractsExportRequired": true,
+    "reconciliationPercent": 100,
+    "formats": ["sql-dump", "json-ndjson", "blob-archive"]
+  },
+  "blockers": [
+    { "id": "live-vendor-exit-drill", "status": "Blocked", "note": "Full rehearsal pending alternate operator" },
+    { "id": "SOV-007", "status": "Satisfied", "note": "Vendor-exit binding Done" },
+    { "id": "IOP-002", "status": "Satisfied", "note": "Open portability Done" }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "card": "INT-004",
+  "version": "1.0.0",
+  "allowedModes": ["File", "Stub", "Live"],
+  "productionRules": {
+    "forbidStubForRequired": true,
+    "liveRequiresSandboxUntilExtCertified": true
+  },
+  "connectors": [
+    {
+      "id": "treasury",
+      "extCard": "EXT-003",
+      "requiredInProduction": true,
+      "sandboxAvailable": true,
+      "nationalEndpointsExternal": true,
+      "description": "Treasury payroll disbursement channel"
+    },
+    {
+      "id": "civil-registry",
+      "extCard": "EXT-002",
+      "requiredInProduction": true,
+      "sandboxAvailable": true,
+      "nationalEndpointsExternal": true,
+      "description": "MOI civil registry identity proof"
+    },
+    {
+      "id": "federation",
+      "extCard": "EXT-001",
+      "requiredInProduction": false,
+      "sandboxAvailable": true,
+      "nationalEndpointsExternal": true,
+      "description": "Government identity federation assurance descriptor"
+    }
+  ],
+  "blockers": [
+    { "id": "EXT-001", "status": "Satisfied", "note": "Production federation binding Done" },
+    { "id": "EXT-002", "status": "Satisfied", "note": "Production civil-registry binding Done" },
+    { "id": "EXT-003", "status": "Satisfied", "note": "Production treasury binding Done" },
+    { "id": "live-treasury-national", "status": "Blocked", "note": "EXT-003a–e national treasury endpoints" },
+    { "id": "live-civil-national", "status": "Blocked", "note": "EXT-002a–d national civil registry endpoints" },
+    { "id": "live-federation-national", "status": "Blocked", "note": "EXT-001a–d national/agency IdP" }
+  ],
+  "allowedBlockerStatuses": ["Satisfied", "Blocked", "NotStarted"]
+}

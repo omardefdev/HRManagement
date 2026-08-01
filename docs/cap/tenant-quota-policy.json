@@ -1,0 +1,48 @@
+{
+  "card": "CAP-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Per-tenant admission control quota definitions",
+  "defaultQuota": {
+    "maxConcurrentRequests": 100,
+    "maxRequestsPerMinute": 600
+  },
+  "tiers": [
+    {
+      "tier": "standard",
+      "description": "Default quota for regular agencies",
+      "maxConcurrentRequests": 100,
+      "maxRequestsPerMinute": 600
+    },
+    {
+      "tier": "payroll-critical",
+      "description": "Elevated quota during payroll processing windows",
+      "maxConcurrentRequests": 250,
+      "maxRequestsPerMinute": 1500
+    },
+    {
+      "tier": "identity-critical",
+      "description": "Elevated quota for identity/authentication flows",
+      "maxConcurrentRequests": 200,
+      "maxRequestsPerMinute": 1200
+    },
+    {
+      "tier": "large-agency",
+      "description": "Higher baseline for agencies with >10,000 employees",
+      "maxConcurrentRequests": 200,
+      "maxRequestsPerMinute": 1200
+    },
+    {
+      "tier": "restricted",
+      "description": "Reduced quota for agencies under investigation or load incident",
+      "maxConcurrentRequests": 20,
+      "maxRequestsPerMinute": 120
+    }
+  ],
+  "overloadBehavior": {
+    "rejectionHttpStatus": 429,
+    "retryAfterSeconds": 5,
+    "retryBudgetPerMinute": 3,
+    "loadSheddingPriority": ["payroll", "identity", "approval", "query", "export", "report"]
+  }
+}

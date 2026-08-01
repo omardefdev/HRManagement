@@ -1,0 +1,23 @@
+{
+  "scenarioId": "SIM-DELAY",
+  "type": "ScheduleDelay",
+  "title": "Pilot milestone slip — reject eng-only Go-Live reschedule",
+  "decisionId": "PG-DELAY-2026-07-SIM",
+  "ownerRole": "program",
+  "reviewerRole": "sponsor",
+  "board": "Program",
+  "adrRequired": false,
+  "riskId": "RK-STR005-DELAY-SILENT",
+  "rejectedProposal": {
+    "seats": ["engineering"],
+    "action": "RescheduleGoLive",
+    "expectedValidate": "FAIL"
+  },
+  "acceptedProposal": {
+    "seats": ["program", "sponsor"],
+    "action": "RescheduleMilestone",
+    "expectedValidate": "PASS"
+  },
+  "outcome": "Approved",
+  "notes": "Program board owns delay; eng-only Go-Live move forbidden"
+}

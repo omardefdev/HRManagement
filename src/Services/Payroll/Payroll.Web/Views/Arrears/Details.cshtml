@@ -1,0 +1,37 @@
+@model Payroll.Domain.Entities.ArrearsLedgerEntry
+@using Payroll.Domain.Enums
+@{
+    ViewData["Title"] = "تفاصيل قيد المتأخرات";
+    var entitled = (decimal)(ViewBag.Entitled ?? Model.OriginalAmount);
+    var paid = (decimal)(ViewBag.Paid ?? Model.PaidAmount);
+    var arrears = (decimal)(ViewBag.Arrears ?? Model.ArrearsAmount);
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-balance-scale"></i> تفاصيل قيد المتأخرات</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+        <table class="table table-bordered">
+            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>تشغيل الرواتب</th><td>@Model.PayrollRunId</td></tr>
+            <tr class="table-light"><th>المستحق (Entitled)</th><td><strong>@entitled.ToString("N2")</strong></td></tr>
+            <tr><th>المدفوع (Paid)</th><td>@paid.ToString("N2")</td></tr>
+            <tr class="table-warning"><th>المتأخرات (Arrears)</th><td><strong>@arrears.ToString("N2")</strong></td></tr>
+            <tr><th>عصر العملة</th><td>@Model.CurrencyEra</td></tr>
+            <tr><th>السبب</th><td>@(Model.Reason ?? "—")</td></tr>
+            <tr><th>الحالة</th>
+                <td>
+                    <span class="badge @(Model.Status == ArrearsLedgerStatus.FullyPaid ? "bg-success" : Model.Status == ArrearsLedgerStatus.PartiallyPaid ? "bg-warning" : "bg-secondary")">
+                        @Model.Status
+                    </span>
+                </td>
+            </tr>
+            <tr><th>دفعة التسوية</th><td>@(Model.SettledByBatchId?.ToString() ?? "—")</td></tr>
+            <tr><th>تاريخ الإنشاء</th><td>@Model.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td></tr>
+        </table>
+    </div>
+</div>

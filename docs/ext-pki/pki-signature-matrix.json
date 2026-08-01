@@ -1,0 +1,177 @@
+{
+  "card": "EXT-004",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "pkiPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "signerIntentRequired": true,
+  "signerRoleRequired": true,
+  "signatures": {
+    "kinds": ["document", "approval"],
+    "formSignatureNotLegalEvidence": true
+  },
+  "organizationalSeals": {
+    "cryptoSealRequiredForLegal": true,
+    "metadataOnlyInsufficient": true
+  },
+  "trustedTimestamp": {
+    "requiredForLtv": true,
+    "tsaOutageDegrade": "hold-not-valid"
+  },
+  "certValidation": {
+    "checkExpiry": true,
+    "checkRevocation": true,
+    "failClosedOnUnknown": true
+  },
+  "revocation": {
+    "failClosed": true,
+    "sources": ["CRL", "OCSP"]
+  },
+  "ltv": {
+    "requiredAfterExpiry": true,
+    "archiveEvidenceRequired": true
+  },
+  "hsmCustody": {
+    "privateKeyNeverLeavesHsm": true,
+    "labMockAllowed": true
+  },
+  "clockSkewPolicy": {
+    "maxSkewSeconds": 300,
+    "failClosed": true
+  },
+  "algorithmAgility": {
+    "allowedAlgs": ["RSA-PSS-SHA256", "ECDSA-P256-SHA256"],
+    "deprecatedAlgs": ["MD5", "SHA1", "RSA-PKCS1-SHA1"]
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["signatureId", "signerId", "signerRole", "outcome", "algorithm", "signedAt"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "livePkiForbidden": true,
+    "mockCa": true,
+    "mockTsa": true,
+    "mockHsm": true
+  },
+  "signing": {
+    "signedByRole": "pki-security-lead",
+    "reviewerRole": "legal-evidence-officer",
+    "pkiPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext004-lab-pki-signature-policy-20260730"
+  },
+  "blockers": [
+    { "id": "STR-002", "status": "Satisfied", "note": "Control catalog Done" },
+    { "id": "OBS-003", "status": "Satisfied", "note": "Tamper audit Done" },
+    { "id": "SOV-003", "status": "Satisfied", "note": "Production key-sovereignty binding Done; live HSM later SOV-003a; hsm-prod remains Blocked" },
+    { "id": "national-pki-live", "status": "Blocked", "note": "Lab mock CA only" },
+    { "id": "hsm-prod", "status": "Blocked", "note": "Mock HSM only" },
+    { "id": "tsa-live", "status": "Blocked", "note": "Mock TSA only" },
+    { "id": "SYD-011", "status": "Blocked", "note": "Legal OPEN-NO-GO" }
+  ],
+  "outOfScope": [
+    "Live national CA",
+    "Production HSM",
+    "Live TSA",
+    "SIG-001 product UI",
+    "EXT-003e live treasury signature bind",
+    "Domain rewrite Contracts",
+    "SYR-011"
+  ],
+  "journeys": [
+    {
+      "id": "SignApproval",
+      "steps": [
+        { "id": "SignerIntentPolicy", "mandatory": true, "ownerRole": "legal", "slaHours": 48, "evidenceType": "signerIntentRequired", "service": "docs", "event": null },
+        { "id": "MissingSignerRoleFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-signer-role-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "OrgSeal",
+      "steps": [
+        { "id": "SealPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "organizationalSeals", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "TrustedTimestamp",
+      "steps": [
+        { "id": "TsaPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "trustedTimestamp", "service": "docs", "event": null },
+        { "id": "TsaOutageDegradePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "tsa-outage-degrade-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RevocationFailClosed",
+      "steps": [
+        { "id": "RevocationPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "revocation", "service": "docs", "event": null },
+        { "id": "RevokedCertFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "revoked-cert-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ExpiredCertLtv",
+      "steps": [
+        { "id": "LtvPolicy", "mandatory": true, "ownerRole": "legal", "slaHours": 48, "evidenceType": "ltv", "service": "docs", "event": null },
+        { "id": "ExpiredWithoutLtvFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "expired-without-ltv-fail", "service": "testdata", "event": null },
+        { "id": "ExpiredCertLtvPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "expired-cert-ltv-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClockFailure",
+      "steps": [
+        { "id": "ClockPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "clockSkewPolicy", "service": "docs", "event": null },
+        { "id": "ClockSkewFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "clock-skew-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "HsmKeyCustody",
+      "steps": [
+        { "id": "HsmPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "hsmCustody", "service": "docs", "event": null },
+        { "id": "KeyExfilFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "key-exfil-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ArchiveRestoreVerify",
+      "steps": [
+        { "id": "ArchivePolicy", "mandatory": true, "ownerRole": "records", "slaHours": 48, "evidenceType": "ltv", "service": "docs", "event": null },
+        { "id": "ArchiveRestoreVerifyPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "archive-restore-verify-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AlgorithmAgility",
+      "steps": [
+        { "id": "AlgPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "algorithmAgility", "service": "docs", "event": null },
+        { "id": "DeprecatedAlgFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "deprecated-alg-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "FormSignatureGate",
+      "steps": [
+        { "id": "FormNotLegalPolicy", "mandatory": true, "ownerRole": "legal", "slaHours": 24, "evidenceType": "signatures", "service": "docs", "event": null },
+        { "id": "FormSignatureAsLegalFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "form-signature-as-legal-fail", "service": "testdata", "event": null },
+        { "id": "SignatureAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "signature-audit-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "missingSignerRoleFail": "testdata/ext004/scenarios/missing-signer-role-fail.json",
+    "revokedCertFail": "testdata/ext004/scenarios/revoked-cert-fail.json",
+    "expiredWithoutLtvFail": "testdata/ext004/scenarios/expired-without-ltv-fail.json",
+    "expiredCertLtvPass": "testdata/ext004/scenarios/expired-cert-ltv-pass.json",
+    "clockSkewFail": "testdata/ext004/scenarios/clock-skew-fail.json",
+    "keyExfilFail": "testdata/ext004/scenarios/key-exfil-fail.json",
+    "tsaOutageDegradePass": "testdata/ext004/scenarios/tsa-outage-degrade-pass.json",
+    "archiveRestoreVerifyPass": "testdata/ext004/scenarios/archive-restore-verify-pass.json",
+    "deprecatedAlgFail": "testdata/ext004/scenarios/deprecated-alg-fail.json",
+    "formSignatureAsLegalFail": "testdata/ext004/scenarios/form-signature-as-legal-fail.json",
+    "signatureAuditPass": "testdata/ext004/audit/signature-audit-pass.json",
+    "pkiRunLedger": "testdata/ext004/harness/pki-run-ledger.json"
+  },
+  "joins": {
+    "str002Catalog": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md",
+    "obs003Audit": "docs/completion-backlog/03-P2-SCALE-AND-RELIABILITY.md",
+    "ext003Signatures": "docs/EXT_003_SIGNATURES_AND_CHANNEL.md",
+    "contractSignaturesGap": "src/Services/HRContracts/HR.Contracts.Web/",
+    "officialSealMetadata": "src/Services/IDCard/",
+    "sov003Soft": "docs/completion-backlog/08-NATIONAL-ASSURANCE-OPERATIONS.md",
+    "syd011": "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md"
+  }
+}

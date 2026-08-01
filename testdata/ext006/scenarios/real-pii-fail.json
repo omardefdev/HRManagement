@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-REAL-PII",
+  "expectedValidate": "FAIL",
+  "containsRealPii": true,
+  "datasetId": "sandbox-seed-bad",
+  "notes": "Real PII in sandbox dataset must fail"
+}

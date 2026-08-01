@@ -1,0 +1,49 @@
+@model DisciplinaryAction
+@{ ViewData["Title"] = "تعديل الإجراء التأديبي"; }
+
+<div class="card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header"><h3 class="mb-0">تعديل الإجراء التأديبي</h3></div>
+        <div class="card-body">
+            <div class="mb-3 mb-3">
+                <label asp-for="EmployeeId" class="form-label"></label>
+                <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select>
+                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="ActionType" class="form-label"></label>
+                <select asp-for="ActionType" asp-items="Html.GetEnumSelectList<ActionType>()" class="form-control"></select>
+            </div>
+            <div class="mb-3 mb-3">
+                <label class="form-label">صادر عن</label>
+                <input class="form-control" value="@Model.IssuedBy" readonly />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="IssuedAt" class="form-label"></label>
+                <input asp-for="IssuedAt" class="form-control" type="datetime-local" />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="ComplaintId" class="form-label">الشكوى المصدر</label>
+                <select asp-for="ComplaintId" class="form-control">
+                    <option value="">— بدون —</option>
+                    @if (ViewBag.Complaints != null)
+                    {
+                        @foreach (SelectListItem item in (SelectList)ViewBag.Complaints)
+                        {
+                            <option value="@item.Value" selected="@(item.Value == Model.ComplaintId?.ToString())">@item.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

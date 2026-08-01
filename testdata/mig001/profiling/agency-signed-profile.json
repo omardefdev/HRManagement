@@ -1,0 +1,16 @@
+{
+  "fixtureId": "MIG001-AGENCY-SIGNED-PROFILE",
+  "expectedValidate": "PASS",
+  "agencySigned": true,
+  "signedByRole": "agency-hr",
+  "asOfDate": "2026-06-18",
+  "sourcesProfiled": [
+    "legacy-hr-batch",
+    "legacy-payroll",
+    "legacy-org-files",
+    "legacy-docs-share",
+    "civil-api-stub",
+    "paper-personnel-files"
+  ],
+  "notes": "Lab profile signed for pack evidence; live extract blocked on agency-extract-access"
+}

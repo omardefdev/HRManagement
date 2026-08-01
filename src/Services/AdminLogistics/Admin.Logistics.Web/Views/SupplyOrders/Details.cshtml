@@ -1,0 +1,30 @@
+@model SupplyOrder
+@{ ViewData["Title"] = "تفاصيل طلب التجهيز"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلب تجهيز</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">طالب الطلب</dt><dd class="col-sm-9">@Model.RequestedBy</dd>
+            <dt class="col-sm-3">الوحدة التنظيمية</dt><dd class="col-sm-9">@Model.OrgUnitId</dd>
+            <dt class="col-sm-3">التفاصيل</dt><dd class="col-sm-9">@(Model.Items ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Model.OrderedAt?.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@(Model.FulfilledAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    @if (Model.Status == SupplyOrderStatus.Pending)
+    {
+        <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success">موافقة</button></form>
+    }
+    @if (Model.Status == SupplyOrderStatus.Approved)
+    {
+        <form asp-action="Fulfill" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary">تنفيذ</button></form>
+    }
+    @if (Model.Status == SupplyOrderStatus.Pending || Model.Status == SupplyOrderStatus.Approved)
+    {
+        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد؟')">إلغاء</button></form>
+    }
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

@@ -1,0 +1,66 @@
+@model Payroll.Domain.Entities.PayrollConfiguration
+@{
+    ViewData["Title"] = "تفاصيل الإطار القانوني";
+    var holidays = ViewBag.Holidays as IEnumerable<Payroll.Domain.Entities.OfficialHoliday> ?? [];
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between flex-wrap gap-2">
+        <h3 class="card-title mb-0">@Model.NameAr (@Model.RegimeCode) — v@Model.VersionNumber</h3>
+        <div>
+            @if (Model.PublicationStatus == Payroll.Domain.Enums.PayrollConfigPublicationStatus.Draft)
+            {
+                <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-warning">اعتماد</button>
+                </form>
+            }
+            @if (Model.PublicationStatus is Payroll.Domain.Enums.PayrollConfigPublicationStatus.Draft
+                or Payroll.Domain.Enums.PayrollConfigPublicationStatus.Approved)
+            {
+                <form asp-action="LegalAttest" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-outline-warning">تصديق قانوني</button>
+                </form>
+                <form asp-action="Publish" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="impactSummary" value="نشر إطار @Model.Code v@Model.VersionNumber" />
+                    <button type="submit" class="btn btn-sm btn-success">نشر</button>
+                </form>
+            }
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">الكود</dt><dd class="col-sm-8">@Model.Code</dd>
+            <dt class="col-sm-4">رقم الإصدار</dt><dd class="col-sm-8">@Model.VersionNumber</dd>
+            <dt class="col-sm-4">حالة النشر</dt><dd class="col-sm-8">@Model.PublicationStatus @(Model.IsActive ? "(نشط للتشغيلات الجديدة)" : "")</dd>
+            <dt class="col-sm-4">بصمة المحتوى</dt><dd class="col-sm-8"><code>@(Model.ContentHash ?? "—")</code></dd>
+            <dt class="col-sm-4">ساري من / إلى</dt>
+            <dd class="col-sm-8">@Model.EffectiveFrom.ToString("yyyy-MM-dd") — @(Model.EffectiveTo?.ToString("yyyy-MM-dd") ?? "مفتوح")</dd>
+            <dt class="col-sm-4">العملة / التقريب</dt>
+            <dd class="col-sm-8">@Model.CurrencyCode — @Model.RoundingMode (@Model.DecimalPlaces منازل)</dd>
+            <dt class="col-sm-4">أساس التناسب</dt><dd class="col-sm-8">@Model.ProrationDaysBasis</dd>
+            <dt class="col-sm-4">أيام العطلة</dt><dd class="col-sm-8">@Model.NonWorkingDays</dd>
+            <dt class="col-sm-4">تعويض نهاية الخدمة</dt>
+            <dd class="col-sm-8">@Model.EosGratuityRateFirstPeriod × @Model.EosGratuityFirstYearsThreshold سنوات، ثم @Model.EosGratuityRateAfterThreshold</dd>
+            <dt class="col-sm-4">أساس الضريبة</dt><dd class="col-sm-8">@Model.TaxableBaseMode</dd>
+            <dt class="col-sm-4">إعفاء ضريبي</dt><dd class="col-sm-8">@Model.TaxExemptionAmount</dd>
+        </dl>
+        <h5>شرائح الضريبة</h5>
+        <ul>
+            @foreach (var b in Model.TaxBrackets.OrderBy(t => t.SortOrder))
+            {
+                <li>حتى @b.UpperLimit — @b.RatePercent%</li>
+            }
+        </ul>
+        <h5>العطل الرسمية</h5>
+        <ul>
+            @foreach (var h in holidays)
+            {
+                <li>@h.NameAr (@h.Date.ToString("MM-dd"))</li>
+            }
+        </ul>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">@(Model.IsImmutable ? "إصدار جديد من هذه النسخة" : "تعديل المسودة")</a>
+        <a asp-action="Index" class="btn btn-secondary">رجوع</a>
+    </div>
+</div>

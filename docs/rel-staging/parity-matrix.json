@@ -1,0 +1,114 @@
+{
+  "card": "REL-001",
+  "version": 1,
+  "sourceOfTruth": {
+    "staging": "deploy/k8s/overlays/staging-ha",
+    "production": "deploy/k8s/overlays/production-ha",
+    "stagingData": "deploy/k8s/data/overlays/staging-data-ha",
+    "productionData": "deploy/k8s/data/overlays/production-data-ha",
+    "composeLab": "docker-compose.yml + docker-compose.services.yml"
+  },
+  "journeys": [
+    {
+      "id": "TopologyParity",
+      "steps": [
+        { "id": "IngressTls", "mandatory": true, "ownerRole": "platform", "slaHours": 24, "evidenceType": "ingress.yaml tls", "service": "k8s", "event": null },
+        { "id": "DnsStub", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "hr.staging.example.com", "service": "terraform", "event": null },
+        { "id": "ReplicasScale", "mandatory": false, "ownerRole": "platform", "slaHours": 72, "evidenceType": "approved lower replicas", "service": "k8s", "event": null },
+        { "id": "ParityDiffGate", "mandatory": true, "ownerRole": "platform", "slaHours": 8, "evidenceType": "rel001-parity-diff", "service": "scripts", "event": null }
+      ]
+    },
+    {
+      "id": "SyntheticReset",
+      "steps": [
+        { "id": "PilotPack", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "testdata/rel001", "service": "seed", "event": null },
+        { "id": "NoProdPii", "mandatory": true, "ownerRole": "security", "slaHours": 8, "evidenceType": "policy+obs-pii-scan", "service": "scripts", "event": null },
+        { "id": "KeycloakRoles", "mandatory": true, "ownerRole": "iam", "slaHours": 24, "evidenceType": "realm-rel001-staging", "service": "keycloak", "event": null },
+        { "id": "ResetScript", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "rel001-reset-staging", "service": "scripts", "event": null }
+      ]
+    },
+    {
+      "id": "ReleaseRehearsal",
+      "steps": [
+        { "id": "FeatureFlags", "mandatory": true, "ownerRole": "platform", "slaHours": 24, "evidenceType": "REL_001_FEATURE_FLAGS", "service": "gateway", "event": null },
+        { "id": "EnvOwnership", "mandatory": true, "ownerRole": "program", "slaHours": 48, "evidenceType": "RACI", "service": "docs", "event": null },
+        { "id": "RehearsalChecklist", "mandatory": true, "ownerRole": "release", "slaHours": 24, "evidenceType": "REL_001_REHEARSAL + DEP-001", "service": "ci", "event": null },
+        { "id": "VerifyE2eObs", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "verify-stack+E2E+OBS", "service": "scripts", "event": null }
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "ingress-tls",
+      "stagingPath": "deploy/k8s/overlays/staging-ha/ingress.yaml",
+      "productionPath": "deploy/k8s/overlays/production-ha/ingress.yaml",
+      "check": "stagingHasTlsBlock",
+      "status": "match",
+      "owner": "platform",
+      "note": "Staging uses lab TLS secret hr-gateway-tls; prod uses cert-manager issuer"
+    },
+    {
+      "id": "ingress-host",
+      "stagingPath": "deploy/k8s/overlays/staging-ha/ingress.yaml",
+      "productionPath": "deploy/k8s/overlays/production-ha/ingress.yaml",
+      "check": "hostDiffersByDesign",
+      "status": "approved",
+      "owner": "platform",
+      "note": "hr.staging.example.com vs hr.example.com"
+    },
+    {
+      "id": "replicas-scale",
+      "stagingPath": "deploy/k8s/overlays/staging-ha/patches/replicas.yaml",
+      "productionPath": "deploy/k8s/overlays/production-ha/patches/replicas.yaml",
+      "check": "stagingLowerReplicas",
+      "status": "approved",
+      "owner": "platform",
+      "note": "Pilot cost: staging 1–2 replicas; prod 2–3"
+    },
+    {
+      "id": "data-tls-stub",
+      "stagingPath": "deploy/k8s/data/overlays/staging-data-ha/tls-stub.yaml",
+      "productionPath": "deploy/k8s/data/overlays/production-data-ha/tls-stub.yaml",
+      "check": "fileExistsBoth",
+      "status": "match",
+      "owner": "platform",
+      "note": "Data-plane TLS notes ConfigMap present on both"
+    },
+    {
+      "id": "backup-retention",
+      "stagingPath": "deploy/k8s/data/overlays/staging-data-ha/backup-retention.yaml",
+      "productionPath": "deploy/k8s/data/overlays/production-data-ha/backup-retention.yaml",
+      "check": "fileExistsBoth",
+      "status": "approved",
+      "owner": "platform",
+      "note": "Staging shorter retention for cost; file present with staging values"
+    },
+    {
+      "id": "compose-lab",
+      "stagingPath": "docker-compose.yml",
+      "productionPath": "deploy/k8s/overlays/production-ha",
+      "check": "composeIsLabOnly",
+      "status": "approved",
+      "owner": "platform",
+      "note": "Compose is lab/dev SoT for local; HA staging uses Kustomize"
+    },
+    {
+      "id": "keycloak-realm",
+      "stagingPath": "docker/keycloak/realm-rel001-staging.json",
+      "productionPath": "docker/keycloak/realm-hr-services.json",
+      "check": "fileExistsStaging",
+      "status": "match",
+      "owner": "iam",
+      "note": "REL-001 realm imports QA-004 personas + service roles mapping"
+    },
+    {
+      "id": "observability",
+      "stagingPath": "docker-compose.observability.yml",
+      "productionPath": "deploy/k8s/platform/observability",
+      "check": "obsStackDocumented",
+      "status": "approved",
+      "owner": "sre",
+      "note": "OBS-001..003 Done; staging may use compose observability overlay"
+    }
+  ]
+}

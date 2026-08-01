@@ -1,0 +1,1 @@
+﻿{"withinTenant":false,"withinOrg":true,"expectedValidate":"FAIL","scenarioId":"cross-tenant-search-fail","existenceLeakAttempted":true}

@@ -1,0 +1,8 @@
+{
+  "fixtureId": "GOLIVE-MULTI-SEAT",
+  "expectedValidate": "PASS",
+  "seats": ["sponsor", "security", "architecture"],
+  "declaredByRole": "sponsor",
+  "optionalDataSeat": false,
+  "notes": "Operational go-live evidence (role placeholders until SYD-017). Default GoLiveDeclared=false in appsettings."
+}

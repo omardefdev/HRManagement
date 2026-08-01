@@ -1,0 +1,9 @@
+jquery=3.7.0 (from Auth.Directory lib)
+bootstrap=5.3.3 (from Auth.Directory lib)
+admin-lte=4.0.2
+fontawesome=6.5.0
+tom-select=2.3.1
+chart.js=4.4.1
+@microsoft/signalr=8.0.7
+jquery-validation=1.19.5
+jquery-validation-unobtrusive=4.0.0

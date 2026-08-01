@@ -1,0 +1,47 @@
+@{
+    ViewData["Title"] = "استيراد البيانات الأولية";
+}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">استيراد الوحدات التنظيمية (CSV)</div>
+            <div class="card-body">
+                <p>الأعمدة: Code,NameAr</p>
+                <form asp-action="ImportOrgUnits" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    @{
+                        ViewData["InputName"] = "file";
+                        ViewData["InputId"] = "orgUnitsImportFile";
+                        ViewData["Accept"] = ".csv";
+                        ViewData["Required"] = true;
+                        ViewData["Label"] = "ملف الوحدات التنظيمية";
+                        ViewData["Hint"] = "ملف CSV — الأعمدة: Code, NameAr";
+                    }
+                    @await Html.PartialAsync("_ArabicFileInput")
+                    <button type="submit" class="btn btn-primary">استيراد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">استيراد الموظفين (CSV)</div>
+            <div class="card-body">
+                <p>الأعمدة: NationalId,FirstName,LastName,BirthDate(yyyy-MM-dd),OrgUnitCode</p>
+                <form asp-action="ImportEmployees" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    @{
+                        ViewData["InputName"] = "file";
+                        ViewData["InputId"] = "employeesImportFile";
+                        ViewData["Accept"] = ".csv";
+                        ViewData["Required"] = true;
+                        ViewData["Label"] = "ملف الموظفين";
+                        ViewData["Hint"] = "ملف CSV — الأعمدة: NationalId, FirstName, LastName, BirthDate, OrgUnitCode";
+                    }
+                    @await Html.PartialAsync("_ArabicFileInput")
+                    <button type="submit" class="btn btn-primary">استيراد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

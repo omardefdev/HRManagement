@@ -1,0 +1,11 @@
+{
+  "fixtureId": "VENDOR-MISSING-EXIT",
+  "vendorId": "v-bad",
+  "componentIds": ["postgres"],
+  "rtoHours": 4,
+  "incidentDisclosureHours": 24,
+  "exitAssistance": false,
+  "clauses": ["RTO", "IncidentDisclosure"],
+  "expectedValidate": "FAIL",
+  "notes": "Missing Exit clause must fail STR-006 vendor gate"
+}

@@ -1,0 +1,14 @@
+@model HR.Training.Domain.Entities.TrainingPlan
+@{ ViewData["Title"] = "تعديل خطة التدريب"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="Year" class="form-label"></label><input asp-for="Year" class="form-control" type="number" /><span asp-validation-for="Year" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" class="form-control form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="PlannedCourses" class="form-label"></label><textarea asp-for="PlannedCourses" class="form-control" rows="4"></textarea><span asp-validation-for="PlannedCourses" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

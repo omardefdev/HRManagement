@@ -1,0 +1,27 @@
+{
+  "fixtureId": "MIG003-PIPELINE-LEDGER",
+  "runs": [
+    {
+      "batchId": "batch-pilot-a-001",
+      "pipelineId": "pipe-pilot-a-hr",
+      "stages": [
+        { "id": "extract", "status": "Completed", "offset": 1000 },
+        { "id": "validate", "status": "Completed", "offset": 1000 },
+        { "id": "transform", "status": "Completed", "offset": 980 },
+        { "id": "quarantine", "status": "Completed", "offset": 20 },
+        { "id": "load", "status": "Completed", "offset": 980 },
+        { "id": "purge", "status": "Completed", "offset": 0 }
+      ]
+    },
+    {
+      "batchId": "batch-pilot-a-002",
+      "pipelineId": "pipe-pilot-a-hr",
+      "stages": [
+        { "id": "extract", "status": "Completed", "offset": 500 },
+        { "id": "validate", "status": "Checkpointed", "offset": 500 },
+        { "id": "transform", "status": "Failed", "offset": 200 },
+        { "id": "transform", "status": "Completed", "offset": 500, "resumed": true }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+@model LoanRecord
+@{ ViewData["Title"] = "تعديل الإعارة"; var items = (SelectList)ViewBag.Items; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="ArchiveItemId" class="form-label"></label><select asp-for="ArchiveItemId" asp-items="items" class="form-control"></select></div>
+            <div class="mb-3"><label asp-for="Borrower" class="form-label"></label><input asp-for="Borrower" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="LoanDate" class="form-label"></label><input asp-for="LoanDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="DueDate" class="form-label"></label><input asp-for="DueDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="ReturnedDate" class="form-label"></label><input asp-for="ReturnedDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<LoanStatus>()"></select></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

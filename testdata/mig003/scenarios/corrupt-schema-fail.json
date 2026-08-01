@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-CORRUPT-SCHEMA",
+  "expectedValidate": "FAIL",
+  "batchId": "batch-pilot-a-003",
+  "failureStage": "validate",
+  "corruptField": "STATUS_CODE",
+  "silentPartialCommit": false,
+  "quarantineCreated": true,
+  "notes": "Corrupt schema must not silently commit without lineage"
+}

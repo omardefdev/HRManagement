@@ -1,0 +1,9 @@
+{
+  "fixtureId": "PRIVACY-CROSS-TENANT-LEAK",
+  "expectedValidate": "FAIL",
+  "tenantScoped": false,
+  "crossTenantRollup": true,
+  "waiverPresent": false,
+  "minCellSizeHonored": false,
+  "notes": "Cross-tenant value rollup without waiver must fail"
+}

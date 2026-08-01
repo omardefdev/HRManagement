@@ -1,0 +1,70 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة auth_directory_db\nAuth.Directory"
+
+entity "AuthAuditLogs\nAuthAuditLog" as T01 {
+  * Id
+    EntityId
+    TenantId
+}
+entity "AuthTokens\nAuthToken" as T02 {
+  * Id
+    TenantId
+    UserId
+}
+entity "AuthUsers\nAuthUser" as T03 {
+  * Id
+    EmployeeId
+    KeycloakUserId
+    ScopeOrgUnitId
+    TenantId
+}
+entity "DirectoryEntries\nDirectoryEntry" as T04 {
+  * Id
+    EmployeeId
+    PrimaryOrgUnitId
+    TenantId
+}
+entity "DirectorySyncRecords\nDirectorySyncRecord" as T05 {
+  * Id
+    TenantId
+}
+entity "PermissionPolicies\nPermissionPolicy" as T06 {
+  * Id
+    TenantId
+}
+entity "Roles\nRole" as T07 {
+  * Id
+    TenantId
+}
+entity "UserRoles\nUserRole" as T08 {
+  * Id
+    AuthUserId
+    RoleId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T09 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+
+T02 }o--|| T03 : UserId
+T08 }o--|| T03 : AuthUserId
+T08 }o--|| T07 : RoleId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

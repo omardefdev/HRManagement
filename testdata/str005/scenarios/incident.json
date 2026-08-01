@@ -1,0 +1,16 @@
+{
+  "scenarioId": "SIM-INCIDENT",
+  "type": "SecurityIncident",
+  "title": "Emergency change window after security incident",
+  "decisionId": "PG-INC-2026-07-SIM",
+  "ownerRole": "security",
+  "reviewerRole": "change",
+  "board": "Security",
+  "adrRequired": false,
+  "exceptionId": "EX-STR005-SIM-INCIDENT-WINDOW",
+  "riskId": "RK-STR005-INCIDENT-DRIFT",
+  "rel003Alignment": "Emergency path in REL_003_CHANGE_PROCESS — post-facto review window",
+  "postReviewBy": "2026-08-15",
+  "outcome": "Approved",
+  "notes": "Security + Change seats; exception expires with review"
+}

@@ -1,0 +1,42 @@
+{
+  "card": "TRN-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "personas": [
+    { "id": "TP-01", "name": "HR Officer", "scope": "recruitment, attendance, cases", "estimatedHours": 24 },
+    { "id": "TP-02", "name": "Payroll Specialist", "scope": "payroll, arrears, reconciliation", "estimatedHours": 32 },
+    { "id": "TP-03", "name": "Agency Admin", "scope": "configuration, user management, reporting", "estimatedHours": 16 },
+    { "id": "TP-04", "name": "Manager (MSS)", "scope": "team management, approvals, performance", "estimatedHours": 8 },
+    { "id": "TP-05", "name": "Employee (ESS)", "scope": "self-service: leave, payslips, profile", "estimatedHours": 4 },
+    { "id": "TP-06", "name": "Auditor", "scope": "evidence review, compliance monitoring", "estimatedHours": 16 },
+    { "id": "TP-07", "name": "IT Support", "scope": "technical support, incident triage", "estimatedHours": 20 }
+  ],
+  "curriculumStructure": [
+    { "module": "Foundation", "description": "System overview, navigation, Arabic/English interface", "mandatory": true },
+    { "module": "Role-specific", "description": "Workflows, screens, and business rules per persona", "mandatory": true },
+    { "module": "Compliance", "description": "Data protection, security awareness, fraud indicators", "mandatory": true },
+    { "module": "Assessment", "description": "Practical exam with minimum pass score", "mandatory": true },
+    { "module": "Certification", "description": "Verifiable completion certificate via DOC-001", "mandatory": true }
+  ],
+  "readinessThresholds": {
+    "trainingCompletionRate": 0.90,
+    "assessmentPassRate": 0.80,
+    "environmentReady": true,
+    "helpDeskStaffed": true,
+    "helpDeskLanguage": "Arabic",
+    "communicationLeadTimeDays": 14
+  },
+  "changeManagement": {
+    "resistanceRegister": true,
+    "stakeholderAnalysisPerWave": true,
+    "communicationApprovalRequired": true,
+    "feedbackLoop": true,
+    "adoptionMetricsCard": "STR-007"
+  },
+  "delivery": {
+    "modes": ["in-person", "virtual", "self-paced-e-learning", "on-the-job"],
+    "languages": ["ar", "en"],
+    "governorates": 14,
+    "refreshTrainingOnMajorRelease": true
+  }
+}

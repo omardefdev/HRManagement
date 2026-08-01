@@ -1,0 +1,67 @@
+@model HR.Core.Web.ViewModels.DocumentCreateViewModel
+
+<div class="modal fade" id="createDocumentModal" tabindex="-1" aria-labelledby="createDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" dir="rtl">
+        <div class="modal-content">
+            <form asp-controller="Documents" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="EmployeeId" />
+                <input type="hidden" asp-for="ReturnTo" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createDocumentModalLabel">إضافة مستند@(Model.EmployeeName != null ? $" — {Model.EmployeeName}" : "")</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="DocTitle" class="form-label"></label>
+                                <input asp-for="DocTitle" class="form-control" />
+                                <span asp-validation-for="DocTitle" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="DocType" class="form-label"></label>
+                                <select asp-for="DocType" class="form-control">
+                                    <option value="Certificate">شهادة</option>
+                                    <option value="Photo">صورة</option>
+                                    <option value="Fingerprint">بصمة</option>
+                                    <option value="NationalId">هوية وطنية</option>
+                                    <option value="Passport">جواز سفر</option>
+                                    <option value="Other">أخرى</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label asp-for="IssueDate" class="form-label"></label>
+                                <input asp-for="IssueDate" class="form-control" type="date" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label asp-for="ExpiryDate" class="form-label"></label>
+                                <input asp-for="ExpiryDate" class="form-control" type="date" />
+                            </div>
+                        </div>
+                    </div>
+                    @{
+                        ViewData["FileUploadName"] = "FileId";
+                        ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                        ViewData["FileUploadMaxSize"] = "26214400";
+                        ViewData["FileUploadLabel"] = "ملف المستند";
+                    }
+                    @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

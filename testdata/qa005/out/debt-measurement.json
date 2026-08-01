@@ -1,0 +1,16 @@
+﻿{
+    "card":  "QA-005",
+    "measuredInCi":  true,
+    "measuredAtUtc":  "2026-07-31T15:19:39.9252693Z",
+    "fileCount":  1570,
+    "maxFileLines":  902,
+    "filesOver500Lines":  6,
+    "circularDependencyPairs":  0,
+    "debtRegisterPath":  "docs/qa/debt-register.json",
+    "baselineVersion":  "2026.07.31",
+    "thresholds":  {
+                       "file_length_max":  500,
+                       "circular_dependencies_max":  0
+                   },
+    "pass":  true
+}

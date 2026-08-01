@@ -1,0 +1,75 @@
+# Production image overlay — GHCR image references for all app services.
+# Replaces local `build:` with registry `image:` so hosts can deploy without source/build tools.
+#
+# Usage:
+#   IMAGE_TAG=<sha12> GITHUB_REPOSITORY_OWNER=<owner> docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.services.yml \
+#     -f docker-compose.observability.yml \
+#     -f docker-compose.images.yml \
+#     -f docker-compose.production.yml \
+#     pull && ... up -d --remove-orphans
+#
+# IMAGE_TAG is required (short SHA from CI). Do not use :latest for releases.
+
+services:
+  hr-gateway:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/hr-gateway:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  hr-core-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/hr-core-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  hr-contracts-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/hr-contracts-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  hr-health-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/hr-health-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  hr-movements-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/hr-movements-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  hr-training-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/hr-training-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  payroll-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/payroll-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  idcard-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/idcard-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  records-archive-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/records-archive-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  admin-logistics-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/admin-logistics-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  it-infra-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/it-infra-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  dev-analytics-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/dev-analytics-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  compliance-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/compliance-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  auth-directory-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/auth-directory-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+
+  file-storage-web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER required}/hrmanagement/file-storage-web:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null
+

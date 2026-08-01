@@ -1,0 +1,120 @@
+{
+  "card": "OPS-007",
+  "title": "Platform Component Inventory",
+  "version": "1.0.0",
+  "lastUpdated": "2026-07-31",
+  "components": [
+    {
+      "id": "dotnet-runtime",
+      "name": ".NET Runtime",
+      "vendor": "Microsoft",
+      "currentVersion": "9.0.7",
+      "tier": 0,
+      "eolDate": "2026-11-12",
+      "upgradeTarget": "10.0.0",
+      "owner": "Platform Engineering",
+      "patchStatus": "current"
+    },
+    {
+      "id": "postgresql",
+      "name": "PostgreSQL",
+      "vendor": "PostgreSQL Global Development Group",
+      "currentVersion": "16.3",
+      "tier": 0,
+      "eolDate": "2028-11-09",
+      "upgradeTarget": "17.x",
+      "owner": "DBA Team",
+      "patchStatus": "current"
+    },
+    {
+      "id": "rabbitmq",
+      "name": "RabbitMQ",
+      "vendor": "VMware / Broadcom",
+      "currentVersion": "3.13.3",
+      "tier": 0,
+      "eolDate": "2027-06-30",
+      "upgradeTarget": "4.0.x",
+      "owner": "Platform Engineering",
+      "patchStatus": "current"
+    },
+    {
+      "id": "keycloak",
+      "name": "Keycloak",
+      "vendor": "Red Hat",
+      "currentVersion": "25.0.1",
+      "tier": 0,
+      "eolDate": "2027-03-31",
+      "upgradeTarget": "26.x",
+      "owner": "IAM Team",
+      "patchStatus": "current"
+    },
+    {
+      "id": "kubernetes",
+      "name": "Kubernetes",
+      "vendor": "CNCF",
+      "currentVersion": "1.30.2",
+      "tier": 0,
+      "eolDate": "2025-12-28",
+      "upgradeTarget": "1.31.x",
+      "owner": "Platform Engineering",
+      "patchStatus": "upgrade-planned"
+    },
+    {
+      "id": "minio",
+      "name": "MinIO",
+      "vendor": "MinIO Inc.",
+      "currentVersion": "2024.06.29",
+      "tier": 1,
+      "eolDate": null,
+      "upgradeTarget": "latest",
+      "owner": "Platform Engineering",
+      "patchStatus": "current"
+    },
+    {
+      "id": "nginx-ingress",
+      "name": "NGINX Ingress Controller",
+      "vendor": "Kubernetes",
+      "currentVersion": "1.11.1",
+      "tier": 0,
+      "eolDate": null,
+      "upgradeTarget": "1.12.x",
+      "owner": "Platform Engineering",
+      "patchStatus": "current"
+    },
+    {
+      "id": "cert-manager",
+      "name": "cert-manager",
+      "vendor": "Jetstack / CNCF",
+      "currentVersion": "1.15.1",
+      "tier": 1,
+      "eolDate": null,
+      "upgradeTarget": "1.16.x",
+      "owner": "Security Engineering",
+      "patchStatus": "current"
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "vendor": "Grafana Labs",
+      "currentVersion": "11.1.0",
+      "tier": 1,
+      "eolDate": null,
+      "upgradeTarget": "11.2.x",
+      "owner": "SRE Team",
+      "patchStatus": "current"
+    },
+    {
+      "id": "prometheus",
+      "name": "Prometheus",
+      "vendor": "CNCF",
+      "currentVersion": "2.53.0",
+      "tier": 1,
+      "eolDate": null,
+      "upgradeTarget": "2.54.x",
+      "owner": "SRE Team",
+      "patchStatus": "current"
+    }
+  ],
+  "eolExceptions": [],
+  "reviewSchedule": "quarterly"
+}

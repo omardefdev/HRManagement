@@ -1,0 +1,60 @@
+{
+  "card": "REL-004",
+  "version": 1,
+  "asOfDate": "2026-07-31",
+  "entries": [
+    {
+      "id": "DEP-2026-001",
+      "artifactType": "api",
+      "service": "payroll",
+      "surface": "POST /api/payroll/runs",
+      "fieldOrParameter": "periodCode",
+      "replacement": "periodId",
+      "announcedRelease": "2026.Q3.1",
+      "warnRelease": "2026.Q3.2",
+      "earliestRemovalRelease": "2026.Q4.1",
+      "status": "warn",
+      "owner": "payroll",
+      "consumerIds": ["gateway-payroll", "inter-payroll-hr-core"],
+      "noticeDays": 90,
+      "notes": "Migrate class — dual-read until earliestRemovalRelease"
+    },
+    {
+      "id": "DEP-2026-002",
+      "artifactType": "event",
+      "service": "HR.Contracts",
+      "surface": "ILeaveApproved",
+      "fieldOrParameter": "LegacyReasonCode",
+      "replacement": "ReasonCode",
+      "announcedRelease": "2026.Q2.2",
+      "warnRelease": "2026.Q3.1",
+      "earliestRemovalRelease": "2026.Q3.2",
+      "status": "scheduled-removal",
+      "owner": "hr-domain",
+      "consumerIds": ["inter-contracts-payroll"],
+      "noticeDays": 120,
+      "schemaVersion": 2
+    },
+    {
+      "id": "DEP-2026-003",
+      "artifactType": "api",
+      "service": "hr-core",
+      "surface": "GET /api/hr-core/employees",
+      "fieldOrParameter": "departmentName",
+      "replacement": "orgUnit.displayName",
+      "announcedRelease": "2026.Q3.2",
+      "warnRelease": "2026.Q4.1",
+      "earliestRemovalRelease": "2026.Q4.2",
+      "status": "announced",
+      "owner": "hr-domain",
+      "consumerIds": ["gateway-hr-core", "ext-agency-onboarding-sync"],
+      "noticeDays": 90,
+      "notes": "Response expand+migrate; old field still populated in N/N-1"
+    }
+  ],
+  "policy": {
+    "deprecationReleaseTrains": 2,
+    "noticeDaysMin": 90,
+    "sunsetRequiresMajor": true
+  }
+}

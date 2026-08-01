@@ -1,0 +1,8 @@
+# OBS-003 SIEM rule: privileged gateway forbidden
+id: privileged-gateway
+eventType: PrivilegedGateway
+windowMinutes: 10
+threshold: 5
+alertname: SiemPrivilegedGatewayDenied
+severity: ticket
+owner: security

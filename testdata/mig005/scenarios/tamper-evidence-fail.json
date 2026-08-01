@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-TAMPER-EVIDENCE",
+  "expectedValidate": "FAIL",
+  "declaredContentHash": "sha256:mig005-lab-package-abc",
+  "recomputedContentHash": "sha256:mig005-lab-package-TAMPERED",
+  "immutable": true,
+  "notes": "Hash mismatch must fail immutability check"
+}

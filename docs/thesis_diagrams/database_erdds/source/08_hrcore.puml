@@ -1,0 +1,250 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "ERD الكامل لقاعدة hr_core_db\nHR.Core / HRCoreDbContext"
+
+entity "ApprovalRequests\nApprovalRequest" as T01 {
+  * Id : uuid
+    EntityId : uuid
+    TenantId : uuid
+}
+entity "ApprovalSteps\nApprovalStep" as T02 {
+  * Id : uuid
+    ApprovalRequestId : uuid
+    TenantId : uuid
+}
+entity "ApprovedCVs\nApprovedCV" as T03 {
+  * Id : uuid
+    EmployeeId : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "CareerPaths\nCareerPath" as T04 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "CareerPathSteps\nCareerPathStep" as T05 {
+  * Id : uuid
+    CareerPathId : uuid
+    TenantId : uuid
+}
+entity "CitizenApplications\nCitizenApplication" as T06 {
+  * Id : uuid
+    NationalId : text
+    PublicJobPostingId : uuid
+    TenantId : uuid
+}
+entity "ContactInfos\nContactInfo" as T07 {
+  * Id : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "DailyAttendanceRecords\nDailyAttendanceRecord" as T08 {
+  * Id : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "DiwanCorrespondences\nDiwanCorrespondence" as T09 {
+  * Id : uuid
+    RelatedEmployeeId : uuid
+    ServiceTransactionId : uuid
+    TenantId : uuid
+}
+entity "Employees\nEmployee" as T10 {
+  * Id : uuid
+    NationalId : text
+    PhotoFileId : uuid
+    PrimaryContactId : uuid
+    PrimaryOrgUnitId : uuid
+    TenantId : uuid
+}
+entity "EmployeeDocuments\nEmployeeDocument" as T11 {
+  * Id : uuid
+    EmployeeId : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "EmployeeProfiles\nEmployeeProfile" as T12 {
+  * Id : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "EmploymentRecords\nEmploymentRecord" as T13 {
+  * Id : uuid
+    EmployeeId : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "EmploymentStatusHistories\nEmploymentStatusHistory" as T14 {
+  * Id : uuid
+    EmployeeId : uuid
+    EmploymentRecordId : uuid
+    TenantId : uuid
+}
+entity "FieldInspectionVisits\nFieldInspectionVisit" as T15 {
+  * Id : uuid
+    LeadInspectorId : uuid
+    TenantId : uuid
+}
+entity "HrStatisticReports\nHrStatisticReport" as T16 {
+  * Id : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "InternalApplications\nInternalApplication" as T17 {
+  * Id : uuid
+    EmployeeId : uuid
+    InternalVacancyId : uuid
+    TenantId : uuid
+}
+entity "InternalVacancies\nInternalVacancy" as T18 {
+  * Id : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "KeyPositions\nKeyPosition" as T19 {
+  * Id : uuid
+    CurrentHolderEmployeeId : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "OrgUnits\nOrgUnit" as T20 {
+  * Id : uuid
+    HeadEmployeeId : uuid
+    ParentId : uuid
+    TenantId : uuid
+}
+entity "PerformanceEvaluations\nPerformanceEvaluation" as T21 {
+  * Id : uuid
+    EmployeeId : uuid
+    EvaluatorId : uuid
+    TenantId : uuid
+}
+entity "PublicJobPostings\nPublicJobPosting" as T22 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "Qualifications\nQualification" as T23 {
+  * Id : uuid
+    EmployeeId : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "RecruitmentApplications\nRecruitmentApplication" as T24 {
+  * Id : uuid
+    HiredEmployeeId : uuid
+    NationalId : text
+    TenantId : uuid
+}
+entity "Shifts\nShift" as T25 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "ShiftAssignments\nShiftAssignment" as T26 {
+  * Id : uuid
+    EmployeeId : uuid
+    ShiftId : uuid
+    ShiftRosterId : uuid
+    TenantId : uuid
+}
+entity "ShiftRosters\nShiftRoster" as T27 {
+  * Id : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "SuccessionPlans\nSuccessionPlan" as T28 {
+  * Id : uuid
+    KeyPositionId : uuid
+    TenantId : uuid
+}
+entity "SuccessorCandidates\nSuccessorCandidate" as T29 {
+  * Id : uuid
+    EmployeeId : uuid
+    SuccessionPlanId : uuid
+    TenantId : uuid
+}
+entity "WorkforcePlans\nWorkforcePlan" as T30 {
+  * Id : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T31 {
+  * Id : uuid
+    EntityId : uuid
+    TenantId : uuid
+    UserId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T32 {
+  * Id : uuid
+    MessageId : text
+    TenantId : uuid
+}
+entity "InboxState\nInboxState" as T33 {
+  * Id : bigint
+    ConsumerId : uuid
+    LockId : uuid
+    MessageId : uuid
+}
+entity "OutboxMessage\nOutboxMessage" as T34 {
+  * SequenceNumber : bigint
+    ConversationId : uuid
+    CorrelationId : uuid
+    InboxConsumerId : uuid
+    InboxMessageId : uuid
+    InitiatorId : uuid
+    MessageId : uuid
+    OutboxId : uuid
+    RequestId : uuid
+}
+entity "OutboxState\nOutboxState" as T35 {
+  * OutboxId : uuid
+    LockId : uuid
+}
+
+T02 }o--|| T01 : ApprovalRequestId
+T03 }o--|| T10 : EmployeeId
+T05 }o--|| T04 : CareerPathId
+T06 }o--|| T22 : PublicJobPostingId
+T07 }o--|| T10 : EmployeeId
+T08 }o--|| T10 : EmployeeId
+T09 }o--|| T10 : RelatedEmployeeId
+T10 }o--|| T20 : PrimaryOrgUnitId
+T11 }o--|| T10 : EmployeeId
+T12 }o--|| T10 : EmployeeId
+T13 }o--|| T10 : EmployeeId
+T13 }o--|| T20 : OrgUnitId
+T14 }o--|| T10 : EmployeeId
+T14 }o--|| T13 : EmploymentRecordId
+T16 }o--|| T20 : OrgUnitId
+T17 }o--|| T10 : EmployeeId
+T17 }o--|| T18 : InternalVacancyId
+T18 }o--|| T20 : OrgUnitId
+T19 }o--|| T20 : OrgUnitId
+T20 }o--|| T10 : HeadEmployeeId
+T20 }o--|| T20 : ParentId
+T21 }o--|| T10 : EmployeeId
+T23 }o--|| T10 : EmployeeId
+T24 }o--|| T10 : HiredEmployeeId
+T26 }o--|| T10 : EmployeeId
+T26 }o--|| T25 : ShiftId
+T26 }o--|| T27 : ShiftRosterId
+T27 }o--|| T20 : OrgUnitId
+T28 }o--|| T19 : KeyPositionId
+T29 }o--|| T10 : EmployeeId
+T29 }o--|| T28 : SuccessionPlanId
+T30 }o--|| T20 : OrgUnitId
+
+note bottom
+يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.
+المعرفات مثل EmployeeId أو OrgUnitId التي لا تظهر كعلاقة داخلية هي معرفات تكاملية عابرة للخدمات وليست FK بين قواعد البيانات.
+end note
+@enduml

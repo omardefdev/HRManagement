@@ -1,0 +1,140 @@
+{
+  "card": "EXT-002",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "civilRegistryPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted", "Done"],
+  "purposeAllowlist": [
+    "hire-identity-proof",
+    "payroll-beneficiary-verify",
+    "migration-nid-exception",
+    "dsar-identity-confirm"
+  ],
+  "consentRequired": true,
+  "minimalQuery": {
+    "allowedRequestFields": ["nationalId", "purposeCode", "consentRef", "requesterTenantId"],
+    "allowedResponseFields": ["matchStatus", "opaqueSubject", "assuranceHint", "queriedAt"]
+  },
+  "matchOutcomes": ["Match", "Mismatch", "Unavailable", "Error"],
+  "mismatchHumanWorkflow": {
+    "required": true,
+    "queue": "civil-registry-mismatch-review"
+  },
+  "caching": {
+    "ttlSeconds": 86400,
+    "forbidStaleAsTruth": true
+  },
+  "corrections": {
+    "workflowRequired": true
+  },
+  "unavailableMode": {
+    "degradeBehavior": "fail-closed-manual",
+    "forbidUnverifiedAsTruth": true
+  },
+  "rateLimits": {
+    "maxQueriesPerMinute": 30,
+    "bulkHarvestForbidden": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["queryId", "purposeCode", "actor", "tenantId", "outcome", "queriedAt"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveMoiForbidden": true,
+    "portJoin": "INationalIdentityVerifier"
+  },
+  "signing": {
+    "signedByRole": "integration-privacy-lead",
+    "reviewerRole": "data-protection-officer",
+    "civilRegistryPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext002-lab-civil-registry-policy-20260730"
+  },
+  "blockers": [
+    { "id": "EXT-001", "status": "Satisfied", "note": "Production federation binding Done" },
+    { "id": "GOV-001", "status": "Satisfied", "note": "Privacy Done" },
+    { "id": "MIG-004", "status": "Satisfied", "note": "Match gate Done" },
+    { "id": "moi-civil-registry-live", "status": "Blocked", "note": "Lab mock only" },
+    { "id": "live-sandbox-cert", "status": "Blocked", "note": "Stub/file only" },
+    { "id": "L10N-002", "status": "Done", "note": "Arabic normalization DB columns + interceptor + lookup" },
+    { "id": "national-idp-live", "status": "Blocked", "note": "Inherited EXT-001" }
+  ],
+  "outOfScope": [
+    "Live MOI API connector",
+    "Bulk harvest tooling",
+    "EXT-003 treasury",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "PurposeConsent",
+      "steps": [
+        { "id": "PurposeAllowlist", "mandatory": true, "ownerRole": "privacy", "slaHours": 48, "evidenceType": "purposeAllowlist", "service": "docs", "event": null },
+        { "id": "PurposeMismatchFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "purpose-mismatch-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "MinimalData",
+      "steps": [
+        { "id": "FieldAllowlist", "mandatory": true, "ownerRole": "integration", "slaHours": 48, "evidenceType": "minimalQuery", "service": "docs", "event": null },
+        { "id": "ExcessStoreFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "excess-field-store-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "MismatchHuman",
+      "steps": [
+        { "id": "WorkflowPolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 24, "evidenceType": "mismatchHumanWorkflow", "service": "docs", "event": null },
+        { "id": "MismatchReviewPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "mismatch-review-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "UnavailableMode",
+      "steps": [
+        { "id": "DegradePolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 24, "evidenceType": "unavailableMode", "service": "docs", "event": null },
+        { "id": "OutageAsTruthFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "outage-as-truth-fail", "service": "testdata", "event": null },
+        { "id": "UnavailableDegradePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unavailable-degrade-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RateLimitAbuse",
+      "steps": [
+        { "id": "RatePolicy", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "rateLimits", "service": "docs", "event": null },
+        { "id": "BulkHarvestFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "bulk-harvest-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AuditTrail",
+      "steps": [
+        { "id": "AuditPolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 24, "evidenceType": "audit", "service": "docs", "event": null },
+        { "id": "QueryAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "query-audit-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "StaleCorrection",
+      "steps": [
+        { "id": "CachePolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 24, "evidenceType": "caching", "service": "docs", "event": null },
+        { "id": "StaleFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "stale-as-truth-fail", "service": "testdata", "event": null },
+        { "id": "CorrectionPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "correction-workflow-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "purposeMismatchFail": "testdata/ext002/scenarios/purpose-mismatch-fail.json",
+    "excessFieldStoreFail": "testdata/ext002/scenarios/excess-field-store-fail.json",
+    "mismatchReviewPass": "testdata/ext002/scenarios/mismatch-review-pass.json",
+    "outageAsTruthFail": "testdata/ext002/scenarios/outage-as-truth-fail.json",
+    "unavailableDegradePass": "testdata/ext002/scenarios/unavailable-degrade-pass.json",
+    "bulkHarvestFail": "testdata/ext002/scenarios/bulk-harvest-fail.json",
+    "staleAsTruthFail": "testdata/ext002/scenarios/stale-as-truth-fail.json",
+    "correctionWorkflowPass": "testdata/ext002/scenarios/correction-workflow-pass.json",
+    "queryAuditPass": "testdata/ext002/audit/query-audit-pass.json",
+    "civilRegistryRunLedger": "testdata/ext002/harness/civil-registry-run-ledger.json"
+  },
+  "joins": {
+    "ext001Assurance": "docs/ext-federation/assurance-matrix.json",
+    "gov001Dpia": "docs/GOV_001_DPIA.md",
+    "mig004NidExceptions": "docs/MIG_004_NATIONAL_ID_EXCEPTIONS.md",
+    "identityVerifierPort": "src/Shared/HRManagement.Integration.Abstractions/Identity/",
+    "externalIntegrationsDoc": "docs/EXTERNAL_INTEGRATIONS.md"
+  }
+}

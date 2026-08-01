@@ -1,0 +1,1 @@
+﻿{"scenarioId":"policy-audit-pass","expectedValidate":"PASS","entries":[{"templateId":"leave-policy-v3","kind":"policy","version":"2026.07.30.1","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T12:00:00Z","evidenceRef":"testdata/prod001/scenarios/law-change-pass.json"}]}

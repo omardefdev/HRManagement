@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "تتبّع الطلب";
+    Layout = "_PublicLayout";
+}
+<h2 class="careers-page-title"><i class="fas fa-search ms-2"></i> تتبّع حالة طلب التوظيف</h2>
+<div class="careers-card">
+    <div class="card-body">
+        @if (ViewBag.NotFound == true)
+        {
+            <div class="alert alert-warning border-0 shadow-sm mb-3">
+                <i class="fas fa-exclamation-circle ms-1"></i> لم يُعثر على طلب مطابق للرقم المرجعي والرقم الوطني.
+            </div>
+        }
+        <form asp-action="Track" method="post" class="careers-form">
+            @Html.AntiForgeryToken()
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">الرقم المرجعي</label>
+                    <input name="referenceNumber" class="form-control" placeholder="مثلاً: REF-20260612-ABC123" required />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">الرقم الوطني</label>
+                    <input name="nationalId" class="form-control" required />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn careers-btn-primary w-100"><i class="fas fa-search ms-1"></i> تتبّع</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

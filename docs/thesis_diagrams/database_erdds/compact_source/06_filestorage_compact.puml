@@ -1,0 +1,42 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة file_storage_db\nFile.Storage"
+
+entity "FileAccessAuditLogs\nFileAccessAuditLog" as T01 {
+  * Id
+    FileId
+    TenantId
+    UserId
+}
+entity "Files\nFileRecord" as T02 {
+  * Id
+    TenantId
+}
+entity "FileReferences\nFileReferenceRecord" as T03 {
+  * Id
+    FileId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T04 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+
+T03 }o--|| T02 : FileId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

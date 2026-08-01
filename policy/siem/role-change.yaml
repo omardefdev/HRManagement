@@ -1,0 +1,8 @@
+# OBS-003 SIEM rule: auth directory role changes
+id: role-change
+eventType: RoleChange
+windowMinutes: 60
+threshold: 1
+alertname: SiemRoleChange
+severity: page
+owner: security

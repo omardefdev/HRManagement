@@ -1,0 +1,130 @@
+{
+  "card": "PROD-002",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "agencySelfAdminPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "delegatedAdmin": {
+    "required": true,
+    "noDbaDeveloperRequired": true,
+    "scopes": ["structure", "roles", "templates", "calendars", "notifications", "quotas"]
+  },
+  "nationalControlsImmutable": true,
+  "crossTenantAdminForbidden": true,
+  "rollback": {
+    "required": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["changeId", "agencyId", "scope", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "fourEyesSensitive": {
+    "required": true,
+    "publisherRoleEqualsReviewerForbidden": true
+  },
+  "preview": {
+    "required": true
+  },
+  "separationNationalAgency": {
+    "required": true
+  },
+  "supportEscalation": {
+    "required": true
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveSelfAdminForbidden": true,
+    "liveDelegatedUiForbidden": true
+  },
+  "signing": {
+    "signedByRole": "product-iam-lead",
+    "reviewerRole": "tenant-security-officer",
+    "agencySelfAdminPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod002-lab-agency-selfadmin-20260730"
+  },
+  "blockers": [
+    { "id": "IAM-003", "status": "Satisfied", "note": "Role/persona Done" },
+    { "id": "TEN-003", "status": "Satisfied", "note": "Tenant isolation Done" },
+    { "id": "PROD-001", "status": "Satisfied", "note": "Policy-platform production binding Done" },
+    { "id": "live-agency-selfadmin", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-delegated-admin-ui", "status": "Blocked", "note": "Lab UI stubs only" },
+    { "id": "cross-tenant-admin", "status": "Blocked", "note": "Cross-tenant admin forbidden" },
+    { "id": "ONB-001", "status": "Satisfied", "note": "Agency provisioning manifest pack Done" },
+    { "id": "PROD-003", "status": "Satisfied", "note": "Employee-selfservice production binding Done" }
+  ],
+  "outOfScope": [
+    "Live agency self-admin UI",
+    "Live delegated structure/roles product",
+    "Live quotas/calendars/notifications admin",
+    "ONB-001 join",
+    "PROD-003 join",
+    "Domain/UI rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "DailyDelegatedChange",
+      "steps": [
+        { "id": "DelegatedPolicy", "mandatory": true, "ownerRole": "product-iam", "slaHours": 48, "evidenceType": "delegatedAdmin", "service": "docs", "event": null },
+        { "id": "DailyStructurePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "daily-structure-change-pass", "service": "testdata", "event": null },
+        { "id": "DbaRequiredFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "dba-required-path-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NationalAndTenantCeiling",
+      "steps": [
+        { "id": "CeilingPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "nationalControlsImmutable", "service": "docs", "event": null },
+        { "id": "NationalMutateFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "national-control-mutate-fail", "service": "testdata", "event": null },
+        { "id": "CrossTenantFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-tenant-admin-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "Accountability",
+      "steps": [
+        { "id": "AuditPolicy", "mandatory": true, "ownerRole": "ops", "slaHours": 24, "evidenceType": "rollbackAudit", "service": "docs", "event": null },
+        { "id": "NoRollbackFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "no-rollback-fail", "service": "testdata", "event": null },
+        { "id": "MissingAuditFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-audit-fail", "service": "testdata", "event": null },
+        { "id": "RollbackPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "rollback-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SensitiveFourEyes",
+      "steps": [
+        { "id": "FourEyesPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "fourEyesSensitive", "service": "docs", "event": null },
+        { "id": "SameRoleFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "same-role-sensitive-fail", "service": "testdata", "event": null },
+        { "id": "SensitiveFourEyesPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "sensitive-four-eyes-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "HostileConcurrent",
+      "steps": [
+        { "id": "HostilePolicy", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "hostileConfig", "service": "docs", "event": null },
+        { "id": "HostileQuotaFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "hostile-quota-bypass-fail", "service": "testdata", "event": null },
+        { "id": "PreviewPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "role-template-preview-pass", "service": "testdata", "event": null },
+        { "id": "ConcurrentPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "concurrent-change-pass", "service": "testdata", "event": null },
+        { "id": "AuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "agency-admin-audit-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "nationalControlMutateFail": "testdata/prod002/scenarios/national-control-mutate-fail.json",
+    "crossTenantAdminFail": "testdata/prod002/scenarios/cross-tenant-admin-fail.json",
+    "noRollbackFail": "testdata/prod002/scenarios/no-rollback-fail.json",
+    "sameRoleSensitiveFail": "testdata/prod002/scenarios/same-role-sensitive-fail.json",
+    "missingAuditFail": "testdata/prod002/scenarios/missing-audit-fail.json",
+    "dbaRequiredPathFail": "testdata/prod002/scenarios/dba-required-path-fail.json",
+    "hostileQuotaBypassFail": "testdata/prod002/scenarios/hostile-quota-bypass-fail.json",
+    "dailyStructureChangePass": "testdata/prod002/scenarios/daily-structure-change-pass.json",
+    "roleTemplatePreviewPass": "testdata/prod002/scenarios/role-template-preview-pass.json",
+    "sensitiveFourEyesPass": "testdata/prod002/scenarios/sensitive-four-eyes-pass.json",
+    "rollbackPass": "testdata/prod002/scenarios/rollback-pass.json",
+    "concurrentChangePass": "testdata/prod002/scenarios/concurrent-change-pass.json",
+    "agencyAdminAuditPass": "testdata/prod002/audit/agency-admin-audit-pass.json",
+    "selfadminRunLedger": "testdata/prod002/harness/selfadmin-run-ledger.json"
+  },
+  "joins": {
+    "prod001Policy": "docs/prod-policy/policy-platform-matrix.json",
+    "mig007Onboarding": "docs/mig-onboarding/onboarding-matrix.json",
+    "iam003": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "ten003": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md"
+  }
+}

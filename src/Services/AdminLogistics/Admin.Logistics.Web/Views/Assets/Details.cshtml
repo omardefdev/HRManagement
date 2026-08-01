@@ -1,0 +1,76 @@
+@model Admin.Logistics.Domain.Entities.Asset
+@{ ViewData["Title"] = Model.Name; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">@Model.Name</h3>
+        <span class="badge bg-secondary">@Model.Status</span>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">رقم العهدة</dt><dd class="col-sm-9">@Model.TagNumber</dd>
+            <dt class="col-sm-3">الفئة</dt><dd class="col-sm-9">@Model.Category</dd>
+            <dt class="col-sm-3">الماركة / الموديل</dt><dd class="col-sm-9">@Model.Brand @Model.Model</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">تسليم عهدة لموظف</div>
+    <div class="card-body">
+        <form asp-action="AssignToEmployee" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="col-md-4">
+                <label class="form-label">معرّف الموظف </label>
+                <input type="text" name="employeeId" class="form-control" required  />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">إعادة متوقعة</label>
+                <input type="date" name="dueBackDate" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الحالة عند التسليم</label>
+                <input type="text" name="conditionOnAssign" class="form-control" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">تسليم</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">سجل التسليم</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>الموظف</th><th>تاريخ التسليم</th><th>إعادة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var a in Model.Assignments.OrderByDescending(x => x.AssignedAt))
+                {
+                    <tr>
+                        <td>@a.EmployeeId</td>
+                        <td>@a.AssignedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@(a.ReturnedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>
+                            @if (a.ReturnedAt is null)
+                            {
+                                <form asp-action="ReturnAssignment" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="assignmentId" value="@a.Id" />
+                                    <input type="hidden" name="assetId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success">استرداد</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Assignments.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-3">لا سجلات</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p><a asp-action="Index">العودة</a></p>

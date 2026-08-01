@@ -1,0 +1,29 @@
+@model IReadOnlyList<Payroll.Domain.Entities.CompensationType>
+@{ ViewData["Title"] = "أنواع التعويض"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">أنواع التعويض</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm" aria-label="إضافة"><i aria-hidden="true" class="fas fa-plus"></i></a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+<table class="table table-striped mb-0">
+            <thead><tr><th>الرمز</th><th>الاسم</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Code</td>
+                        <td>@x.NameAr</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = x.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-4">لا بيانات</td></tr> }
+            </tbody>
+        </table>
+</div>
+    </div>
+</div>

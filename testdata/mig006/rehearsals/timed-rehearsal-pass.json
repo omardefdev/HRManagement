@@ -1,0 +1,10 @@
+{
+  "fixtureId": "MIG006-TIMED-REHEARSAL",
+  "expectedValidate": "PASS",
+  "rehearsalIds": ["R1", "R2", "R3"],
+  "allTimed": true,
+  "allWithinWindow": true,
+  "allVolumeOk": true,
+  "windowHours": 8,
+  "liveAtAgencyScale": false
+}

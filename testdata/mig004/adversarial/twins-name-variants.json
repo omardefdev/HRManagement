@@ -1,0 +1,31 @@
+{
+  "fixtureId": "MIG004-TWINS-NAME-VARIANTS",
+  "expectedValidate": "PASS",
+  "cases": [
+    {
+      "id": "twin-shared-nid",
+      "exceptionCode": "twin-shared",
+      "proposedOutcome": "HumanReview",
+      "autoMergeAttempted": false
+    },
+    {
+      "id": "arabic-hamza-variant",
+      "nameVariant": "arabic-hamza",
+      "proposedOutcome": "HumanReview",
+      "autoMergeAttempted": false
+    },
+    {
+      "id": "spacing-variant",
+      "nameVariant": "spacing",
+      "proposedOutcome": "HumanReview",
+      "autoMergeAttempted": false
+    },
+    {
+      "id": "nickname-variant",
+      "nameVariant": "nickname",
+      "proposedOutcome": "HumanReview",
+      "autoMergeAttempted": false
+    }
+  ],
+  "anyAutoMerge": false
+}

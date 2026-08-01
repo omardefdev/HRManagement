@@ -1,0 +1,88 @@
+{
+  "card": "NAT-006",
+  "templateVersion": "1.0.0",
+  "templateOnly": true,
+  "liveCertificationStatus": "Blocked",
+  "note": "Populate all witness and telemetry fields after an independent run. Empty template is NOT evidence.",
+  "runId": "",
+  "environment": "",
+  "startedAt": "",
+  "completedAt": "",
+  "cap001Ref": "perf/scenarios/cap001-national-envelope.json",
+  "witness": {
+    "name": "",
+    "role": "",
+    "organization": "",
+    "signedAt": "",
+    "signatureMethod": ""
+  },
+  "loadPhases": [
+    {
+      "phase": "soak",
+      "plannedHours": 72,
+      "plannedLoadPercent": 100,
+      "actualHours": null,
+      "actualLoadPercent": null,
+      "p95LatencyMs": null,
+      "errorRatePercent": null,
+      "rawArtifactUri": ""
+    },
+    {
+      "phase": "stress",
+      "plannedHours": 4,
+      "plannedLoadPercent": 150,
+      "actualHours": null,
+      "actualLoadPercent": null,
+      "p95LatencyMs": null,
+      "errorRatePercent": null,
+      "rawArtifactUri": ""
+    },
+    {
+      "phase": "spike",
+      "plannedMinutes": 15,
+      "plannedLoadPercent": 200,
+      "actualMinutes": null,
+      "actualLoadPercent": null,
+      "p95LatencyMs": null,
+      "errorRatePercent": null,
+      "rawArtifactUri": ""
+    }
+  ],
+  "headroomPercent": null,
+  "zeroLossCorruptionAttested": false,
+  "reconciliationReportHash": "",
+  "telemetryRefs": [
+    {
+      "type": "prometheus",
+      "queryOrDashboard": "",
+      "snapshotUri": ""
+    },
+    {
+      "type": "tempo",
+      "traceIdSample": "",
+      "snapshotUri": ""
+    }
+  ],
+  "resilienceDrills": [
+    {
+      "drill": "ha-failover",
+      "exercised": false,
+      "rtoMinutes": null,
+      "rawLogUri": ""
+    },
+    {
+      "drill": "dr-rpo-rto",
+      "exercised": false,
+      "rpoMinutes": null,
+      "rtoMinutes": null,
+      "rawLogUri": ""
+    },
+    {
+      "drill": "cyber-rto",
+      "exercised": false,
+      "rtoMinutes": null,
+      "rawLogUri": ""
+    }
+  ],
+  "ciArtifactPath": "testdata/nat006/out/witnessed-run-<runId>.json"
+}

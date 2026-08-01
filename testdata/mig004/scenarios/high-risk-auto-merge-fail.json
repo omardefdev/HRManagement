@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-HIGH-RISK-AUTO-MERGE",
+  "expectedValidate": "FAIL",
+  "proposedOutcome": "AutoMerge",
+  "riskLevel": "High",
+  "score": 0.91,
+  "evidenceRef": null,
+  "notes": "High risk auto-merge without evidence must fail policy"
+}

@@ -1,0 +1,8 @@
+@model string
+@{
+    var message = string.IsNullOrWhiteSpace(Model) ? (ViewData["EmptyMessage"] as string ?? "لا توجد سجلات") : Model;
+}
+<div class="text-center text-muted py-4">
+    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+    <p class="mb-0">@message</p>
+</div>

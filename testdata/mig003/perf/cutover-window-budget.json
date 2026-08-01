@@ -1,0 +1,11 @@
+{
+  "fixtureId": "MIG003-CUTOVER-BUDGET",
+  "expectedValidate": "PASS",
+  "cutoverWindowHours": 8,
+  "targetRowsPerHour": 200000,
+  "syntheticRowBudget": 1250000,
+  "requiredHoursAtTarget": 6.25,
+  "fitsWindow": true,
+  "liveProof": false,
+  "notes": "Lab budget vs MIG-001 volumes; live proof Blocked"
+}

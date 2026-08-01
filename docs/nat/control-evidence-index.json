@@ -1,0 +1,48 @@
+{
+  "card": "NAT-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "sections": [
+    { "id": "SEC-CB", "name": "Control Baseline", "sourceCard": "SOV-001", "evidenceType": "compliance-matrix" },
+    { "id": "SEC-SA", "name": "Security Assessment", "sourceCard": "SOV-005/SOV-006", "evidenceType": "assessment-report" },
+    { "id": "SEC-DS", "name": "Data Sovereignty", "sourceCard": "SOV-002", "evidenceType": "flow-map-attestation" },
+    { "id": "SEC-PF", "name": "Performance", "sourceCard": "CAP-001", "evidenceType": "load-test-results" },
+    { "id": "SEC-OR", "name": "Operational Readiness", "sourceCard": "SRE-002", "evidenceType": "orr-checklist" },
+    { "id": "SEC-PV", "name": "Privacy", "sourceCard": "PRV-001", "evidenceType": "ropa-dpia" },
+    { "id": "SEC-HD", "name": "Hardening", "sourceCard": "HARD-001", "evidenceType": "scan-results" },
+    { "id": "SEC-DR", "name": "Disaster Recovery", "sourceCard": "OPS-006", "evidenceType": "rebuild-evidence" },
+    { "id": "SEC-FR", "name": "Fraud Controls", "sourceCard": "FRD-001", "evidenceType": "audit-report" },
+    { "id": "SEC-UA", "name": "UAT Sign-off", "sourceCard": "UAT-001", "evidenceType": "signed-acceptance" }
+  ],
+  "evidenceRequirements": {
+    "immutability": true,
+    "reproducibilityThreshold": 0.10,
+    "hashAlgorithm": "SHA-256",
+    "hashChainLink": "EVD-001",
+    "freshnessEnforced": true,
+    "defaultExpiryDays": 180,
+    "provenanceRequired": true,
+    "provenanceFields": ["collector", "timestamp", "source", "releaseVersion"],
+    "classification": ["confidential", "restricted", "internal"],
+    "piiBlocked": true,
+    "secretsBlocked": true
+  },
+  "authorizationGate": {
+    "submittedTo": "National Authorization Board",
+    "independentAssessor": true,
+    "assessorSampleMinimum": 0.10,
+    "zeroCriticalGaps": true,
+    "nonCriticalRequiresPOAM": true,
+    "authorizationTimeLimit": true,
+    "authorizationScopeLimit": "per-wave",
+    "reAuthorizationTriggers": ["major-change", "scope-expansion", "expiry"]
+  },
+  "lifecycle": [
+    { "phase": "Collection", "automated": true, "sources": ["CI/CD", "test-runs", "security-scans", "operational-drills"] },
+    { "phase": "Validation", "description": "Schema and completeness check" },
+    { "phase": "Submission", "description": "Sealed pack with manifest and top-level hash" },
+    { "phase": "Assessment", "description": "Independent review with sampling" },
+    { "phase": "Decision", "options": ["Authorize", "Authorize-with-conditions", "Reject"] },
+    { "phase": "Maintenance", "description": "Ongoing evidence refresh; gap monitoring" }
+  ]
+}

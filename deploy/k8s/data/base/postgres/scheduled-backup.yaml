@@ -1,0 +1,17 @@
+# OPS-003: daily base backup; WAL archived continuously via Cluster.barmanObjectStore
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: hr-postgres-daily
+  labels:
+    app.kubernetes.io/name: hr-postgres
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: backup
+spec:
+  # sec min hour dom month dow — daily 02:00 UTC
+  schedule: "0 0 2 * * *"
+  backupOwnerReference: self
+  immediate: false
+  cluster:
+    name: hr-postgres
+  method: barmanObjectStore

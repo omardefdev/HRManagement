@@ -1,0 +1,149 @@
+{
+  "card": "STR-004",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "releaseDigest": "sha256:str004-demo-digest-20260730",
+  "allowedKinds": ["data", "policy", "template", "workflow", "branding", "integration", "code-forbidden"],
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied"],
+  "requiredSurfaceFields": [
+    "surfaceId",
+    "kind",
+    "title",
+    "allowedMechanism",
+    "forbiddenMechanism",
+    "ownerRole",
+    "prod001Dependency"
+  ],
+  "forbiddenCodePatterns": [
+    "if\\s*\\(\\s*agency\\s*==",
+    "if\\s*\\(\\s*tenantName\\s*==",
+    "AgencySpecificFork",
+    "tenant-branch",
+    "per-agency-fork"
+  ],
+  "blockers": [
+    { "id": "STR-002", "status": "Satisfied", "note": "Legal control catalog Done" },
+    { "id": "TEN-003", "status": "Satisfied", "note": "Tenant isolation Done" },
+    { "id": "PROD-001", "status": "Satisfied", "note": "Policy-platform production binding Done" },
+    { "id": "ONB-001", "status": "Satisfied", "note": "Agency provisioning manifest pack Done" }
+  ],
+  "agencyFixtures": {
+    "agencyAPath": "testdata/str004/agencies/agency-a.json",
+    "agencyBPath": "testdata/str004/agencies/agency-b.json",
+    "requireSameReleaseDigest": true
+  },
+  "signedConfigPackSchema": {
+    "requiredFields": ["packId", "agencyId", "releaseDigest", "reviewerRoles", "rollbackRef", "payload"]
+  },
+  "journeys": [
+    {
+      "id": "ConfigTaxonomy",
+      "steps": [
+        { "id": "SurfaceKinds", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "surfaces", "service": "docs", "event": null },
+        { "id": "ForbiddenCode", "mandatory": true, "ownerRole": "architecture", "slaHours": 24, "evidenceType": "code-forbidden", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "ExtensionPoints",
+      "steps": [
+        { "id": "AllowedMechanisms", "mandatory": true, "ownerRole": "product", "slaHours": 48, "evidenceType": "EXTENSION_POINTS", "service": "docs", "event": null },
+        { "id": "EntitlementFlags", "mandatory": true, "ownerRole": "product", "slaHours": 24, "evidenceType": "STR-003", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "DualAgencySameRelease",
+      "steps": [
+        { "id": "SameDigest", "mandatory": true, "ownerRole": "program", "slaHours": 24, "evidenceType": "agency fixtures", "service": "testdata", "event": null },
+        { "id": "ConflictingPolicy", "mandatory": true, "ownerRole": "product", "slaHours": 48, "evidenceType": "DUAL_AGENCY_WALKTHROUGH", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "PromotionRollback",
+      "steps": [
+        { "id": "ConfigPackSchema", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "CONFIG_PROMOTION", "service": "docs", "event": null },
+        { "id": "UpgradeStub", "mandatory": true, "ownerRole": "platform", "slaHours": 24, "evidenceType": "UPGRADE_REHEARSAL", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "RepoNoForkRule",
+      "steps": [
+        { "id": "NoAgencyBranches", "mandatory": true, "ownerRole": "platform", "slaHours": 24, "evidenceType": "REPO_NOFORK_RULE", "service": "docs", "event": null },
+        { "id": "ValidateHarness", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "str004-nofork-validate", "service": "scripts", "event": null }
+      ]
+    }
+  ],
+  "surfaces": [
+    {
+      "surfaceId": "SURF-DATA-MASTER",
+      "kind": "data",
+      "title": "Agency master data (org units, employees)",
+      "allowedMechanism": "Tenant-scoped DB rows + TEN filters",
+      "forbiddenMechanism": "Separate schema fork per agency",
+      "ownerRole": "data",
+      "prod001Dependency": false
+    },
+    {
+      "surfaceId": "SURF-POLICY-PAYROLL",
+      "kind": "policy",
+      "title": "Payroll / legal decision overrides",
+      "allowedMechanism": "Versioned policy packs (PROD-001) + GOV-002 register",
+      "forbiddenMechanism": "Hard-coded agency branch in Payroll rules",
+      "ownerRole": "legal",
+      "prod001Dependency": true
+    },
+    {
+      "surfaceId": "SURF-TEMPLATE-LETTER",
+      "kind": "template",
+      "title": "Document / letter templates",
+      "allowedMechanism": "Tenant template store with inheritance",
+      "forbiddenMechanism": "Copy service repo for letter layouts",
+      "ownerRole": "product",
+      "prod001Dependency": true
+    },
+    {
+      "surfaceId": "SURF-WORKFLOW-APPROVAL",
+      "kind": "workflow",
+      "title": "Approval workflows",
+      "allowedMechanism": "Configurable workflow definitions (PROD-001)",
+      "forbiddenMechanism": "Agency-named if-chains in ApprovalStep code",
+      "ownerRole": "product",
+      "prod001Dependency": true
+    },
+    {
+      "surfaceId": "SURF-BRANDING",
+      "kind": "branding",
+      "title": "Organization name / primary color",
+      "allowedMechanism": "OrganizationBrandingOptions or tenant branding pack",
+      "forbiddenMechanism": "Forked CSS theme repo per agency",
+      "ownerRole": "product",
+      "prod001Dependency": false
+    },
+    {
+      "surfaceId": "SURF-INTEGRATION",
+      "kind": "integration",
+      "title": "External system connectors",
+      "allowedMechanism": "Config + adapter registration; conformance packs",
+      "forbiddenMechanism": "Agency-specific connector fork in mainline",
+      "ownerRole": "integration",
+      "prod001Dependency": false
+    },
+    {
+      "surfaceId": "SURF-MODULE-ENTITLEMENT",
+      "kind": "data",
+      "title": "Optional module entitlement",
+      "allowedMechanism": "STR-003 catalog + EnabledModules / agency contract",
+      "forbiddenMechanism": "Removing modules from shared Gateway catalog per agency fork",
+      "ownerRole": "product",
+      "prod001Dependency": false
+    },
+    {
+      "surfaceId": "SURF-CODE-FORK",
+      "kind": "code-forbidden",
+      "title": "Per-agency product source fork",
+      "allowedMechanism": "None — single product line only",
+      "forbiddenMechanism": "agency/* product branches, tenant-branch, AgencySpecificFork",
+      "ownerRole": "architecture",
+      "prod001Dependency": false
+    }
+  ]
+}

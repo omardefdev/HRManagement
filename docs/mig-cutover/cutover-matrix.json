@@ -1,0 +1,170 @@
+{
+  "card": "MIG-006",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "cutoverPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "minRehearsals": 3,
+  "rehearsals": [
+    {
+      "id": "R1",
+      "timed": true,
+      "windowHours": 8,
+      "volumeRef": "testdata/mig003/perf/cutover-window-budget.json",
+      "volumeOk": true,
+      "withinWindow": true
+    },
+    {
+      "id": "R2",
+      "timed": true,
+      "windowHours": 8,
+      "volumeRef": "testdata/mig003/perf/cutover-window-budget.json",
+      "volumeOk": true,
+      "withinWindow": true
+    },
+    {
+      "id": "R3",
+      "timed": true,
+      "windowHours": 8,
+      "volumeRef": "testdata/mig003/perf/cutover-window-budget.json",
+      "volumeOk": true,
+      "withinWindow": true
+    }
+  ],
+  "changeFreeze": {
+    "required": true,
+    "join": "docs/MIG_001_FREEZE_CONSTRAINTS.md"
+  },
+  "deltaCapture": {
+    "noLossRequired": true,
+    "captureMode": "cdc-or-batch-delta"
+  },
+  "parallelMode": {
+    "read": true,
+    "run": true
+  },
+  "userLock": {
+    "requiredBeforeCutover": true
+  },
+  "dnsCutover": {
+    "labStub": true,
+    "liveForbiddenInThisPack": true
+  },
+  "communicationPlan": {
+    "required": true,
+    "channels": ["agency-ops", "cutover-command", "support"]
+  },
+  "rollback": {
+    "windowHours": 4,
+    "mustBeExercised": true,
+    "paperOnlyForbidden": true,
+    "ops003Join": "docs/ADR-OPS-003-backup-pitr.md"
+  },
+  "goNoGo": {
+    "decisionRequired": true,
+    "criteria": [
+      "rehearsalsComplete",
+      "evidencePackageOk",
+      "rollbackExercised",
+      "deltaNoLoss",
+      "legacySecuredPlan"
+    ]
+  },
+  "legacyAccess": {
+    "readOnlyAfterCutover": true,
+    "securedRequired": true
+  },
+  "postCutoverRecon": {
+    "checkpoints": ["T+0", "T+1", "T+30"],
+    "mig005Join": "docs/mig-evidence/recon-matrix.json"
+  },
+  "signing": {
+    "signedByRole": "cutover-command",
+    "reviewerRole": "internal-audit",
+    "cutoverPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:mig006-lab-cutover-policy-20260730"
+  },
+  "blockers": [
+    { "id": "MIG-005", "status": "Satisfied", "note": "Evidence gate Done" },
+    { "id": "OPS-003", "status": "Satisfied", "note": "Backup/PITR Done" },
+    { "id": "REL-001", "status": "Satisfied", "note": "Staging Done" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Lab harness only" },
+    { "id": "live-cutover-perf", "status": "Blocked", "note": "Real window later" },
+    { "id": "live-agency-recon", "status": "Blocked", "note": "Live T+ recon later" },
+    { "id": "live-rehearsal-at-scale", "status": "Blocked", "note": "Full agency-scale later" }
+  ],
+  "outOfScope": [
+    "Live agency cutover",
+    "Production DNS flip",
+    "MIG-007 onboarding factory",
+    "DEC-001 decommission"
+  ],
+  "journeys": [
+    {
+      "id": "TimedRehearsals",
+      "steps": [
+        { "id": "MinThree", "mandatory": true, "ownerRole": "cutover-command", "slaHours": 168, "evidenceType": "rehearsals", "service": "docs", "event": null },
+        { "id": "TimedPass", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "timed-rehearsal-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DeltaIntegrity",
+      "steps": [
+        { "id": "DeltaPolicy", "mandatory": true, "ownerRole": "migration-engineering", "slaHours": 48, "evidenceType": "deltaCapture", "service": "docs", "event": null },
+        { "id": "DeltaPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "delta-capture-pass", "service": "testdata", "event": null },
+        { "id": "DeltaLossFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "delta-loss-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SurpriseRollback",
+      "steps": [
+        { "id": "RollbackPolicy", "mandatory": true, "ownerRole": "cutover-command", "slaHours": 48, "evidenceType": "rollback", "service": "docs", "event": null },
+        { "id": "SurprisePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "surprise-rollback-pass", "service": "testdata", "event": null },
+        { "id": "PaperFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "paper-rollback-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "GoNoGoGate",
+      "steps": [
+        { "id": "Criteria", "mandatory": true, "ownerRole": "cutover-command", "slaHours": 24, "evidenceType": "goNoGo", "service": "docs", "event": null },
+        { "id": "Decision", "mandatory": true, "ownerRole": "cutover-command", "slaHours": 24, "evidenceType": "go-nogo-decision", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "LegacySecured",
+      "steps": [
+        { "id": "LegacyPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "legacyAccess", "service": "docs", "event": null },
+        { "id": "ReadonlyPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "legacy-readonly-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "PostCutoverRecon",
+      "steps": [
+        { "id": "T0", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 24, "evidenceType": "recon-t0", "service": "testdata", "event": null },
+        { "id": "T1", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 48, "evidenceType": "recon-t1", "service": "testdata", "event": null },
+        { "id": "T30", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 720, "evidenceType": "recon-t30", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "timedRehearsalPass": "testdata/mig006/rehearsals/timed-rehearsal-pass.json",
+    "deltaCapturePass": "testdata/mig006/scenarios/delta-capture-pass.json",
+    "deltaLossFail": "testdata/mig006/scenarios/delta-loss-fail.json",
+    "surpriseRollbackPass": "testdata/mig006/scenarios/surprise-rollback-pass.json",
+    "paperRollbackFail": "testdata/mig006/scenarios/paper-rollback-fail.json",
+    "goNogoDecision": "testdata/mig006/decision/go-nogo-decision.json",
+    "legacyReadonlyPass": "testdata/mig006/access/legacy-readonly-pass.json",
+    "reconT0": "testdata/mig006/recon/recon-t0.json",
+    "reconT1": "testdata/mig006/recon/recon-t1.json",
+    "reconT30": "testdata/mig006/recon/recon-t30.json",
+    "cutoverRunLedger": "testdata/mig006/harness/cutover-run-ledger.json"
+  },
+  "joins": {
+    "mig003Budget": "testdata/mig003/perf/cutover-window-budget.json",
+    "mig005Evidence": "docs/mig-evidence/recon-matrix.json",
+    "ops003Pitr": "docs/ADR-OPS-003-backup-pitr.md",
+    "rel001Staging": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md#REL-001",
+    "rel002Stub": "docs/REL_002_MIGRATION_REHEARSAL.md",
+    "mig001Freeze": "docs/MIG_001_FREEZE_CONSTRAINTS.md"
+  }
+}

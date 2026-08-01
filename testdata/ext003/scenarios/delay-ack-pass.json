@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-DELAY-ACK",
+  "expectedValidate": "PASS",
+  "ackDelayHours": 36,
+  "heldAsSubmittedNotSettled": true,
+  "orderId": "ord-delay-001",
+  "notes": "Delayed ack keeps Submitted until ACK"
+}

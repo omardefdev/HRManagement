@@ -1,0 +1,12 @@
+{
+  "scenarioId": "SIM-SAME-BATCH-RELOAD",
+  "expectedValidate": "PASS",
+  "batchId": "batch-pilot-a-001",
+  "pipelineId": "pipe-pilot-a-hr",
+  "tenantId": "tenant-pilot-a",
+  "firstLoadRows": 1000,
+  "reloadRowsAttempted": 1000,
+  "duplicatesCreated": 0,
+  "reloadPolicy": "skip-identical",
+  "outcome": "Completed"
+}

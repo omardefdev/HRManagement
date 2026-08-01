@@ -1,0 +1,11 @@
+﻿{
+    "card":  "STR-007",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "kpiCount":  10,
+    "frozenBaselineCount":  10,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

@@ -1,0 +1,8 @@
+{
+  "fixtureId": "EXT001-AGENCY-IDP-INTEROP",
+  "expectedValidate": "PASS",
+  "idpId": "lab-agency-idp-a",
+  "metadataComplete": true,
+  "ssoLabOk": true,
+  "live": false
+}

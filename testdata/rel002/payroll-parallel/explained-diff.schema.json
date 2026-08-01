@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rel002-explained-diff",
+  "title": "REL-002 explained payroll parallel diff",
+  "type": "object",
+  "required": ["cycleId", "diffs"],
+  "properties": {
+    "cycleId": { "type": "string" },
+    "diffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["employeeKey", "field", "sourceValue", "shadowValue", "reasonCode"],
+        "properties": {
+          "employeeKey": { "type": "string" },
+          "field": { "type": "string" },
+          "sourceValue": {},
+          "shadowValue": {},
+          "reasonCode": { "type": "string", "minLength": 1 },
+          "waiverId": { "type": ["string", "null"] },
+          "note": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

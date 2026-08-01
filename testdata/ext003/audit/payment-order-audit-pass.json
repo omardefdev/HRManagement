@@ -1,0 +1,22 @@
+{
+  "fixtureId": "EXT003-PAYMENT-ORDER-AUDIT",
+  "expectedValidate": "PASS",
+  "entries": [
+    {
+      "orderId": "ord-001",
+      "payrollRunId": "run-posted-001",
+      "actor": "payroll-officer-01",
+      "tenantId": "tenant-pilot-a",
+      "outcome": "Submitted",
+      "submittedAt": "2026-07-28T10:00:00Z"
+    },
+    {
+      "orderId": "ord-002",
+      "payrollRunId": "run-posted-002",
+      "actor": "finance-control-01",
+      "tenantId": "tenant-pilot-a",
+      "outcome": "Settled",
+      "submittedAt": "2026-07-28T11:00:00Z"
+    }
+  ]
+}

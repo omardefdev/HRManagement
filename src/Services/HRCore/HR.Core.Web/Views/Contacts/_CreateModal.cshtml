@@ -1,0 +1,47 @@
+@model HR.Core.Web.ViewModels.ContactCreateViewModel
+
+<div class="modal fade" id="createContactModal" tabindex="-1" aria-labelledby="createContactModalLabel" aria-hidden="true">
+    <div class="modal-dialog" dir="rtl">
+        <div class="modal-content">
+            <form asp-controller="Contacts" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="EmployeeId" />
+                <input type="hidden" asp-for="ReturnTo" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createContactModalLabel">إضافة اتصال@(Model.EmployeeName != null ? $" — {Model.EmployeeName}" : "")</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Type" class="form-label"></label>
+                                <select asp-for="Type" class="form-control">
+                                    <option value="Phone">هاتف</option>
+                                    <option value="Email">بريد إلكتروني</option>
+                                    <option value="Address">عنوان</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label asp-for="Value" class="form-label"></label>
+                                <input asp-for="Value" class="form-control" />
+                                <span asp-validation-for="Value" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input asp-for="IsPrimary" class="form-check-input" />
+                        <label asp-for="IsPrimary" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

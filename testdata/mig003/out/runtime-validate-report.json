@@ -1,0 +1,12 @@
+﻿{
+    "card":  "MIG-003",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "pipelineCount":  2,
+    "zoneCount":  4,
+    "stageCount":  6,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

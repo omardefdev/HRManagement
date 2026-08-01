@@ -1,0 +1,1 @@
+﻿{"scenarioId":"adapter-cert-audit-pass","expectedValidate":"PASS","entries":[{"adapterId":"pension-lab-v1","domain":"pension","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T10:00:00Z","evidenceRef":"testdata/ext007/scenarios/catalog-entry-pass.json"}]}

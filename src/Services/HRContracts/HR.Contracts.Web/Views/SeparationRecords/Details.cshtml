@@ -1,0 +1,27 @@
+@model SeparationRecord
+@{ ViewData["Title"] = "تفاصيل إنهاء الخدمة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0">إنهاء خدمة — @Model.EmployeeId</h3>
+        <div>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <tr><th>نوع الإنهاء</th><td>@Model.SeparationType</td></tr>
+            <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate.ToString("yyyy/MM/dd")</td></tr>
+            <tr><th>السبب</th><td>@(Model.Reason ?? "—")</td></tr>
+            <tr><th>العقد</th><td>@(Model.ContractId?.ToString() ?? "—")</td></tr>
+            <tr><th>نشر الحدث</th><td>@(Model.SeparationEventPublished ? "نعم" : "لا")</td></tr>
+        </table>
+        @if (!Model.SeparationEventPublished)
+        {
+            <form asp-action="PublishSeparation" asp-route-id="@Model.Id" method="post" class="mt-2">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success"><i class="fas fa-broadcast-tower"></i> نشر إكمال الفصل للأنظمة المرتبطة</button>
+            </form>
+        }
+    </div>
+</div>

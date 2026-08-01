@@ -1,0 +1,28 @@
+@model Payroll.Domain.Entities.SalaryLine
+@{ ViewData["Title"] = "بند راتب"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">إضافة بند راتب</h3></div>
+    <form asp-action="AddSalaryLine" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="PayrollRunId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label asp-for="GrossPay" class="form-label"></label><input asp-for="GrossPay" class="form-control" type="number" step="0.01" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="TotalDeductions" class="form-label"></label><input asp-for="TotalDeductions" class="form-control" type="number" step="0.01" /></div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="NetPay" class="form-label"></label>
+                    <input asp-for="NetPay" class="form-control" type="number" step="0.01" readonly />
+                    <div class="form-text">يُحسب صافي الراتب على الخادم ولا يمكن تعديله يدوياً.</div>
+                </div>
+            </div>
+            <div class="mb-3"><label asp-for="PayComponents" class="form-label"></label><input asp-for="PayComponents" class="form-control" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.PayrollRunId" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,11 @@
+@model Dev.Analytics.Domain.Entities.ETLJob
+@{ ViewData["Title"] = "مهمة ETL"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Schedule" class="form-label"></label><input asp-for="Schedule" class="form-control" /><span asp-validation-for="Schedule" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="LastRun" class="form-label"></label><input asp-for="LastRun" class="form-control" type="datetime-local" /><span asp-validation-for="LastRun" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Status" class="form-label"></label><select class="form-control" asp-for="Status" asp-items="Html.GetEnumSelectList<Dev.Analytics.Domain.Enums.JobStatus>()" class="form-control"></select><span asp-validation-for="Status" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Log" class="form-label"></label><textarea asp-for="Log" class="form-control" rows="3"></textarea><span asp-validation-for="Log" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

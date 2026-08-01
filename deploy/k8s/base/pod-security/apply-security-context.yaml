@@ -1,0 +1,32 @@
+# HARD-001: applies the restricted security context to every app Deployment.
+#
+# The defaults previously existed only as text inside a ConfigMap, so the namespace declared
+# Restricted Pod Security while no workload actually carried the fields it demands — the pods
+# would have been rejected at admission, or admitted unhardened if enforcement were relaxed.
+# This patch is applied by kustomization.yaml against all Deployments.
+#
+# readOnlyRootFilesystem is intentionally left to individual services: several write to a local
+# integration outbox. Restricted PSA does not require it; the four fields below are what it checks.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: not-used-selector-target
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1654
+            capabilities:
+              drop:
+                - ALL

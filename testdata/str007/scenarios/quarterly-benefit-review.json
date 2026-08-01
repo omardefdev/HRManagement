@@ -1,0 +1,15 @@
+{
+  "scenarioId": "SIM-QUARTERLY-REVIEW",
+  "expectedValidate": "PASS",
+  "quarter": "2026-Q3",
+  "metricsReviewed": [
+    "hire_cycle_time",
+    "payroll_cycle_time",
+    "data_error_duplicate_rate",
+    "uptime_value",
+    "adoption_rate"
+  ],
+  "forbiddenMeasuresUsed": [],
+  "antiGamingExceptions": [],
+  "privacyWaivers": []
+}

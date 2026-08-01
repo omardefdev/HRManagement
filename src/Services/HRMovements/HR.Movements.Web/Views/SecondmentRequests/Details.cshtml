@@ -1,0 +1,52 @@
+@model HR.Movements.Domain.Entities.SecondmentRequest
+@using HR.Movements.Domain.Enums
+@{ ViewData["Title"] = "تفاصيل طلب الانتداب"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">طلب انتداب</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+        <table class="table table-borderless table-sm w-auto">
+            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الجهة المستضيفة</th><td>@Model.HostOrg</td></tr>
+            <tr><th>من</th><td>@Model.StartDate</td></tr>
+            <tr><th>إلى</th><td>@Model.EndDate</td></tr>
+            <tr><th>الحالة</th><td><span class="badge bg-info">@Model.Status</span></td></tr>
+            @if (!string.IsNullOrEmpty(Model.Terms)) { <tr><th>الشروط</th><td>@Model.Terms</td></tr> }
+        </table>
+
+        <div class="mt-3 d-flex flex-wrap gap-2">
+            @if (Model.Status == SecondmentStatus.Pending)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">تعديل</a>
+                <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success btn-sm">اعتماد</button></form>
+            }
+            @if (Model.Status == SecondmentStatus.Approved)
+            {
+                <form asp-action="Activate" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary btn-sm">تفعيل الانتداب</button></form>
+            }
+            @if (Model.Status != SecondmentStatus.Closed)
+            {
+                <form asp-action="Close" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-secondary btn-sm">إغلاق</button></form>
+            }
+        </div>
+
+        @if (Model.ExecutionRecords.Any())
+        {
+            <h5 class="mt-4">سجل التنفيذ</h5>
+            <table class="table table-sm table-striped">
+                <thead><tr><th>الوقت</th><th>المنفذ</th><th>ملاحظات</th></tr></thead>
+                <tbody>
+                @foreach (var r in Model.ExecutionRecords.OrderByDescending(r => r.ExecutedAt))
+                {
+                    <tr><td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td><td>@r.ExecutedBy</td><td>@r.Notes</td></tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

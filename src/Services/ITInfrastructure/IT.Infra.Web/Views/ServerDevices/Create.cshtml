@@ -1,0 +1,12 @@
+@model IT.Infrastructure.Domain.Entities.ServerDevice
+@{ ViewData["Title"] = "سيرفر"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Hostname" class="form-label"></label><input asp-for="Hostname" class="form-control" /><span asp-validation-for="Hostname" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="IpAddress" class="form-label"></label><input asp-for="IpAddress" class="form-control" /><span asp-validation-for="IpAddress" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Os" class="form-label"></label><input asp-for="Os" class="form-control" /><span asp-validation-for="Os" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Purpose" class="form-label"></label><input asp-for="Purpose" class="form-control" /><span asp-validation-for="Purpose" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Location" class="form-label"></label><input asp-for="Location" class="form-control" /><span asp-validation-for="Location" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Status" class="form-label"></label><select class="form-control" asp-for="Status" asp-items="Html.GetEnumSelectList<IT.Infrastructure.Domain.Enums.ServerStatus>()" class="form-control"></select><span asp-validation-for="Status" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

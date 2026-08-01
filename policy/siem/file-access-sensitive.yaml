@@ -1,0 +1,8 @@
+# OBS-003 SIEM rule: sensitive file access
+id: file-access-sensitive
+eventType: FileAccessSensitive
+windowMinutes: 15
+threshold: 20
+alertname: SiemFileAccessBurst
+severity: ticket
+owner: security

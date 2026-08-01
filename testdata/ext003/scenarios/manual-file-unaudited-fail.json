@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-MANUAL-FILE-UNAUDITED",
+  "expectedValidate": "FAIL",
+  "manualFile": true,
+  "audited": false,
+  "fileId": "manual-pay-001",
+  "notes": "Unaudited manual payment file must fail"
+}

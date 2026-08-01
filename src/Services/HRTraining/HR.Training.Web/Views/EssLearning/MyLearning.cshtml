@@ -1,0 +1,41 @@
+@model IReadOnlyList<HR.Training.Domain.Entities.LearningEnrollment>
+@{ ViewData["Title"] = "تعلّمي"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">دوراتي الإلكترونية</h3>
+        <a asp-action="Index" class="btn btn-link">استعراض الدورات</a>
+    </div>
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <p class="text-center text-muted py-4">لم تلتحق بأي دورة بعد</p>
+        }
+        @foreach (var e in Model)
+        {
+            <div class="border rounded p-3 mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0">@(e.ELearningCourse?.TitleAr ?? "—")</h5>
+                    <span class="badge @(e.Status == HR.Training.Domain.Enums.LearningEnrollmentStatus.Completed ? "bg-success" : "bg-info")">@Html.DisplayFor(_ => e.Status)</span>
+                </div>
+                <div class="progress mb-2" style="height:18px;">
+                    <div class="progress-bar" role="progressbar" style="width:@(e.ProgressPercent)%;">@e.ProgressPercent%</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-end">
+                    <form asp-action="UpdateProgress" method="post" class="d-flex gap-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="enrollmentId" value="@e.Id" />
+                        <div>
+                            <label class="form-label small mb-0">تحديث نسبة الإنجاز</label>
+                            <input name="progressPercent" type="number" min="0" max="100" value="@e.ProgressPercent" class="form-control form-control-sm" style="width:120px;" />
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm">حفظ</button>
+                    </form>
+                    @if (e.Certificate != null)
+                    {
+                        <a asp-action="Certificate" asp-route-enrollmentId="@e.Id" class="btn btn-success btn-sm">عرض الشهادة</a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,31 @@
+@model LegalReferral
+@{ ViewData["Title"] = "تعديل الإحالة القانونية"; }
+
+<div class="card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header"><h3 class="mb-0">تعديل الإحالة القانونية</h3></div>
+        <div class="card-body">
+            <div class="mb-3 mb-3">
+                <label asp-for="OriginatingUnit" class="form-label"></label>
+                <select asp-for="OriginatingUnit" class="form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="ReferredTo" class="form-label"></label>
+                <input asp-for="ReferredTo" class="form-control" />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="ReferralDate" class="form-label"></label>
+                <input asp-for="ReferralDate" class="form-control" type="date" />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Documents" class="form-label"></label>
+                <textarea asp-for="Documents" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

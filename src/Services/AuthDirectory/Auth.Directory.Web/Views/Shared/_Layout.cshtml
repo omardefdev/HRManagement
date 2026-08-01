@@ -1,0 +1,25 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "auth-directory";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Home" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">المصادقة والدليل</li>
+    <li class="nav-item"><a asp-controller="AuthUsers" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-users"></i><p>المستخدمون</p></a></li>
+    <li class="nav-item"><a asp-controller="Roles" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-tag"></i><p>الأدوار</p></a></li>
+    <li class="nav-item"><a asp-controller="DirectoryEntries" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-address-book"></i><p>سجل الدليل</p></a></li>
+    <li class="nav-item"><a asp-controller="DirectorySyncRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-sync"></i><p>مزامنة الدليل</p></a></li>
+    <li class="nav-item"><a asp-controller="PermissionPolicies" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-shield-alt"></i><p>سياسات الصلاحيات</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

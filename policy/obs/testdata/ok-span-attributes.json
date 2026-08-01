@@ -1,0 +1,14 @@
+{
+  "resourceSpans": [{
+    "scopeSpans": [{
+      "spans": [{
+        "name": "ok-fixture",
+        "attributes": [
+          { "key": "NationalId", "value": { "stringValue": "[redacted]" } },
+          { "key": "http.route", "value": { "stringValue": "/api/employees" } },
+          { "key": "tenant.id", "value": { "stringValue": "00000000-0000-0000-0000-000000000001" } }
+        ]
+      }]
+    }]
+  }]
+}

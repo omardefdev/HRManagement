@@ -1,0 +1,24 @@
+{
+  "card": "NFR-002",
+  "kind": "baseline-lab-template",
+  "signedMethodology": true,
+  "scenarios": [
+    "toxiproxy-latency-rabbit",
+    "toxiproxy-down-pg-restore",
+    "inbox-duplicate",
+    "out-of-order-projection",
+    "worker-crash-payroll",
+    "safe-abort",
+    "disk-pressure-audit-overflow",
+    "secret-rotation-checklist",
+    "expired-cert-stub",
+    "partial-region-ops004"
+  ],
+  "codeGates": {
+    "RetryUseJitter": true,
+    "GatewayHealthProbeCircuitBreaker": true,
+    "unitTests": ["Nfr002OutOfOrderTests", "Nfr002CircuitBreakerTests"]
+  },
+  "alertChannel": "OBS-002 alert-sink / burn rules",
+  "note": "Replace with stamped run folders after live staging game day."
+}

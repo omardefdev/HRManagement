@@ -1,0 +1,35 @@
+{
+  "card": "FUN-005",
+  "version": 1,
+  "journeys": [
+    {
+      "id": "IDCard",
+      "steps": [
+        { "id": "Requested", "mandatory": true, "ownerRole": "idcard", "slaHours": 24, "evidenceType": "CardRequest.Id", "service": "IDCard", "event": null },
+        { "id": "Designed", "mandatory": false, "ownerRole": "idcard", "slaHours": 48, "evidenceType": "CardDesign.Id", "service": "IDCard", "event": null },
+        { "id": "Issued", "mandatory": true, "ownerRole": "idcard", "slaHours": 48, "evidenceType": "IssuedCard.Serial", "service": "IDCard", "event": "ICardIssued" },
+        { "id": "Printed", "mandatory": true, "ownerRole": "idcard", "slaHours": 24, "evidenceType": "Delivery.PrintedAt", "service": "IDCard", "event": null },
+        { "id": "Delivered", "mandatory": true, "ownerRole": "idcard", "slaHours": 24, "evidenceType": "Receipt|FILE-002", "service": "IDCard", "event": null },
+        { "id": "Revoked", "mandatory": true, "ownerRole": "idcard", "slaHours": 48, "evidenceType": "CardStatus.Revoked", "service": "IDCard", "event": "IExecuteSeparationParty" }
+      ]
+    },
+    {
+      "id": "Assets",
+      "steps": [
+        { "id": "Assigned", "mandatory": true, "ownerRole": "admin-logistics", "slaHours": 24, "evidenceType": "AssetAssignment.Id", "service": "Admin.Logistics", "event": null },
+        { "id": "Returned", "mandatory": true, "ownerRole": "admin-logistics", "slaHours": 72, "evidenceType": "ReturnedAt", "service": "Admin.Logistics", "event": null },
+        { "id": "Lost", "mandatory": false, "ownerRole": "admin-logistics", "slaHours": 24, "evidenceType": "AssetStatus.Lost", "service": "Admin.Logistics", "event": null },
+        { "id": "SeparationReturn", "mandatory": true, "ownerRole": "admin-logistics", "slaHours": 48, "evidenceType": "ISeparationCompleted", "service": "Admin.Logistics", "event": "ISeparationCompleted" }
+      ]
+    },
+    {
+      "id": "ITProvision",
+      "steps": [
+        { "id": "HireTicket", "mandatory": true, "ownerRole": "it-infra", "slaHours": 24, "evidenceType": "ITSupportTicket", "service": "IT.Infra", "event": "IEmployeeCreated" },
+        { "id": "DirectorySync", "mandatory": true, "ownerRole": "it-infra", "slaHours": 48, "evidenceType": "ProvisioningStatus", "service": "IT.Infra", "event": null },
+        { "id": "RetryOnFail", "mandatory": false, "ownerRole": "it-infra", "slaHours": 24, "evidenceType": "RetryProvision", "service": "IT.Infra", "event": null },
+        { "id": "SeparationDetach", "mandatory": true, "ownerRole": "it-infra", "slaHours": 48, "evidenceType": "UserDevice.clear+Permissions", "service": "IT.Infra", "event": "ISeparationCompleted" }
+      ]
+    }
+  ]
+}

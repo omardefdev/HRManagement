@@ -1,0 +1,144 @@
+{
+  "card": "PROD-003",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "employeeSelfServicePolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "highVolumeJourneys": {
+    "required": true,
+    "exceptionOnlyBackOffice": true,
+    "journeys": [
+      "profile-correction",
+      "leave-request",
+      "payslip-tax",
+      "documents",
+      "manager-approvals",
+      "delegation",
+      "inbox"
+    ]
+  },
+  "correctionVisibility": {
+    "sourceVisible": true,
+    "statusVisible": true
+  },
+  "managerScope": {
+    "enforced": true,
+    "outsideScopeForbidden": true
+  },
+  "usageTelemetry": {
+    "required": true,
+    "labStubAllowed": true,
+    "liveForbidden": true
+  },
+  "privacy": {
+    "minimizationRequired": true
+  },
+  "deviceSession": {
+    "lostSessionHandled": true,
+    "deviceSecurityRequired": true
+  },
+  "personaUat": {
+    "multiAgencyRequired": true,
+    "mobileDesktopRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["journeyId", "actorRole", "agencyId", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveEmployeePortalForbidden": true,
+    "liveManagerPortalForbidden": true
+  },
+  "signing": {
+    "signedByRole": "product-ux-lead",
+    "reviewerRole": "privacy-security-officer",
+    "employeeSelfServicePolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod003-lab-employee-selfservice-20260730"
+  },
+  "blockers": [
+    { "id": "IAM-003", "status": "Satisfied", "note": "Roles/personas Done" },
+    { "id": "FUN-001", "status": "Satisfied", "note": "Core HR journeys Done" },
+    { "id": "FUN-002", "status": "Satisfied", "note": "Attendance Done" },
+    { "id": "FUN-003", "status": "Satisfied", "note": "Leave Done" },
+    { "id": "FUN-004", "status": "Satisfied", "note": "Payroll docs Done" },
+    { "id": "FUN-005", "status": "Satisfied", "note": "Documents Done" },
+    { "id": "FUN-006", "status": "Satisfied", "note": "Reporting Done" },
+    { "id": "UX-002", "status": "Satisfied", "note": "UX accessibility Done" },
+    { "id": "IAM-002", "status": "NotStarted", "note": "Org-scope fail-closed still P0 open" },
+    { "id": "live-employee-portal", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-manager-portal", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-usage-telemetry", "status": "Blocked", "note": "Lab stub telemetry only" },
+    { "id": "ESS-001", "status": "NotStarted", "note": "ESS product later" },
+    { "id": "MSS-001", "status": "NotStarted", "note": "MSS product later" },
+    { "id": "PROD-004", "status": "Satisfied", "note": "Remote-branch production binding Done" }
+  ],
+  "outOfScope": [
+    "Live employee portal UI",
+    "Live manager portal UI",
+    "Live usage KPI measurement",
+    "ESS-001 / MSS-001 join",
+    "PROD-004 / NAT-005 join",
+    "Domain/UI rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "HighVolumeE2E",
+      "steps": [
+        { "id": "JourneyPolicy", "mandatory": true, "ownerRole": "product-ux", "slaHours": 48, "evidenceType": "highVolumeJourneys", "service": "docs", "event": null },
+        { "id": "LeaveRequestPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "leave-request-pass", "service": "testdata", "event": null },
+        { "id": "BackofficeRequiredFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "backoffice-required-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CorrectionVisibility",
+      "steps": [
+        { "id": "CorrectionPolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 24, "evidenceType": "correctionVisibility", "service": "docs", "event": null },
+        { "id": "ProfileCorrectionPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "profile-correction-pass", "service": "testdata", "event": null },
+        { "id": "SourceHiddenFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "correction-source-hidden-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ManagerScope",
+      "steps": [
+        { "id": "ScopePolicy", "mandatory": true, "ownerRole": "iam", "slaHours": 48, "evidenceType": "managerScope", "service": "docs", "event": null },
+        { "id": "ScopedApprovePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "manager-scoped-approve-pass", "service": "testdata", "event": null },
+        { "id": "OutsideScopeFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "manager-outside-scope-fail", "service": "testdata", "event": null },
+        { "id": "CrossAgencyLeakFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-agency-leak-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "UsageAndSession",
+      "steps": [
+        { "id": "TelemetryPolicy", "mandatory": true, "ownerRole": "product", "slaHours": 24, "evidenceType": "usageTelemetry", "service": "docs", "event": null },
+        { "id": "UsagePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "usage-telemetry-pass", "service": "testdata", "event": null },
+        { "id": "UsageUnmeasuredFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "usage-unmeasured-fail", "service": "testdata", "event": null },
+        { "id": "LostSessionPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "lost-session-recover-pass", "service": "testdata", "event": null },
+        { "id": "LostSessionFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "lost-session-unhandled-fail", "service": "testdata", "event": null },
+        { "id": "PayslipPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "payslip-view-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "backofficeRequiredFail": "testdata/prod003/scenarios/backoffice-required-fail.json",
+    "correctionSourceHiddenFail": "testdata/prod003/scenarios/correction-source-hidden-fail.json",
+    "managerOutsideScopeFail": "testdata/prod003/scenarios/manager-outside-scope-fail.json",
+    "usageUnmeasuredFail": "testdata/prod003/scenarios/usage-unmeasured-fail.json",
+    "lostSessionUnhandledFail": "testdata/prod003/scenarios/lost-session-unhandled-fail.json",
+    "crossAgencyLeakFail": "testdata/prod003/scenarios/cross-agency-leak-fail.json",
+    "leaveRequestPass": "testdata/prod003/scenarios/leave-request-pass.json",
+    "profileCorrectionPass": "testdata/prod003/scenarios/profile-correction-pass.json",
+    "managerScopedApprovePass": "testdata/prod003/scenarios/manager-scoped-approve-pass.json",
+    "payslipViewPass": "testdata/prod003/scenarios/payslip-view-pass.json",
+    "lostSessionRecoverPass": "testdata/prod003/scenarios/lost-session-recover-pass.json",
+    "usageTelemetryPass": "testdata/prod003/scenarios/usage-telemetry-pass.json",
+    "essRunLedger": "testdata/prod003/harness/ess-run-ledger.json",
+    "essAuditPass": "testdata/prod003/audit/ess-audit-pass.json"
+  },
+  "joins": {
+    "prod002Agency": "docs/prod-agency/agency-selfadmin-matrix.json",
+    "str007Kpi": "docs/str-value/kpi-matrix.json",
+    "iam002": "docs/completion-backlog/01-P0-RELEASE-BLOCKERS.md",
+    "funPack": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md"
+  }
+}

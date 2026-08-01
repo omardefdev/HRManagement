@@ -1,0 +1,34 @@
+@model ETLJob
+@{ ViewData["Title"] = "تفاصيل مهمة ETL"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">@ViewData["Title"]</h3></div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Name)</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Schedule)</dt>
+            <dd class="col-sm-9">@Model.Schedule</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.LastRun)</dt>
+            <dd class="col-sm-9">@Model.LastRun</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
+            <dd class="col-sm-9">@Model.Status</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Log)</dt>
+            <dd class="col-sm-9"><pre>@Model.Log</pre></dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        @if (Model.Status == JobStatus.Ok)
+        {
+            <form asp-action="Run" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success">تشغيل</button>
+            </form>
+        }
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+    </div>
+</div>

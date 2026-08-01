@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-RATE-ERROR",
+  "expectedValidate": "PASS",
+  "rateLimitSimulated": true,
+  "errorInjectionSimulated": true,
+  "notes": "Rate and error simulation available in lab"
+}

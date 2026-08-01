@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hrmanagement.local/perf/cap001-results-schema.json",
+  "title": "CAP-001 National Workload Envelope Results",
+  "description": "Signed, repeatable k6 + resource snapshot for national envelope proof.",
+  "type": "object",
+  "required": [
+    "card",
+    "scenarioId",
+    "runStartedAtUtc",
+    "runFinishedAtUtc",
+    "slo",
+    "latencies",
+    "errorRates",
+    "headroom"
+  ],
+  "properties": {
+    "card": { "const": "CAP-001" },
+    "scenarioId": {
+      "type": "string",
+      "enum": [
+        "soak-100",
+        "stress-150",
+        "spike-200",
+        "failure-during-load",
+        "regional-mix",
+        "payroll-window"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["soak", "stress", "spike", "failure", "mixed", "payroll"]
+    },
+    "loadPct": { "type": "number", "minimum": 100, "maximum": 200 },
+    "durationPlanned": { "type": "string" },
+    "runStartedAtUtc": { "type": "string", "format": "date-time" },
+    "runFinishedAtUtc": { "type": "string", "format": "date-time" },
+    "gitSha": { "type": "string" },
+    "baseUrl": { "type": "string" },
+    "vusConfigured": { "type": "integer", "minimum": 1 },
+    "scaleFactor": { "type": "number" },
+    "k6SummaryPath": { "type": "string" },
+    "slo": {
+      "type": "object",
+      "required": ["pass", "checks"],
+      "properties": {
+        "pass": { "type": "boolean" },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "pass"],
+            "properties": {
+              "id": { "type": "string" },
+              "pass": { "type": "boolean" },
+              "target": {},
+              "observed": {},
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "latencies": {
+      "type": "object",
+      "required": ["http_req_duration_p95_ms"],
+      "properties": {
+        "http_req_duration_p50_ms": { "type": "number", "minimum": 0 },
+        "http_req_duration_p95_ms": { "type": "number", "minimum": 0 },
+        "http_req_duration_p99_ms": { "type": "number", "minimum": 0 },
+        "http_req_duration_max_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "errorRates": {
+      "type": "object",
+      "required": ["http_req_failed_rate"],
+      "properties": {
+        "http_req_failed_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "checks_pass_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "payroll_fail_ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "headroom": {
+      "type": "object",
+      "required": ["targetPct", "computedPct", "pass"],
+      "properties": {
+        "targetPct": { "type": "number", "const": 30 },
+        "computedPct": { "type": "number" },
+        "pass": { "type": "boolean" },
+        "method": {
+          "type": "string",
+          "enum": ["resource_peak", "slo_latency_margin", "vus_linear_estimate"]
+        },
+        "resourcePeaks": {
+          "type": "object",
+          "properties": {
+            "cpu_utilization_pct": { "type": "number" },
+            "memory_utilization_pct": { "type": "number" },
+            "db_connections_pct": { "type": "number" },
+            "rabbit_queue_depth_max": { "type": "number" }
+          }
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "failureInjection": {
+      "type": "object",
+      "properties": {
+        "scenario": { "type": "string" },
+        "zeroDataLoss": { "type": "boolean" },
+        "recoveryMinutes": { "type": "number" }
+      }
+    },
+    "regionalMix": {
+      "type": "object",
+      "properties": {
+        "governorates": { "type": "integer", "const": 14 },
+        "fairnessPass": { "type": "boolean" }
+      }
+    },
+    "signedBy": { "type": "string" },
+    "signatureNote": { "type": "string" }
+  },
+  "additionalProperties": true
+}

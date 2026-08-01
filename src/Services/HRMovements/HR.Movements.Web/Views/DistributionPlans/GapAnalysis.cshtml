@@ -1,0 +1,28 @@
+@model HR.Movements.Domain.Services.WorkforceGapResult
+@{
+    ViewData["Title"] = "تحليل الفجوة";
+    var plan = ViewBag.Plan as HR.Movements.Domain.Entities.DistributionPlan;
+    var actual = (int)ViewBag.ActualHeadcount;
+}
+<div class="card" dir="rtl">
+    <div class="card-header"><h3 class="card-title">تحليل عجز/فائض — @plan?.OrgUnitId</h3></div>
+    <div class="card-body">
+        <form asp-action="GapAnalysis" asp-route-id="@plan?.Id" method="post" class="mb-3">
+            @Html.AntiForgeryToken()
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label">العدد الفعلي للموظفين</label>
+                    <input type="number" name="actualHeadcount" value="@actual" class="form-control" min="0" />
+                </div>
+                <div class="col-auto"><button type="submit" class="btn btn-primary">إعادة الحساب</button></div>
+            </div>
+        </form>
+        <dl class="row">
+            <dt class="col-sm-4">المخطط</dt><dd class="col-sm-8">@Model.PlannedTotal</dd>
+            <dt class="col-sm-4">الفعلي</dt><dd class="col-sm-8">@Model.ActualTotal</dd>
+            <dt class="col-sm-4">عجز</dt><dd class="col-sm-8 text-danger">@Model.Deficit</dd>
+            <dt class="col-sm-4">فائض</dt><dd class="col-sm-8 text-success">@Model.Surplus</dd>
+        </dl>
+        <a asp-action="Details" asp-route-id="@plan?.Id" class="btn btn-secondary">عودة</a>
+    </div>
+</div>

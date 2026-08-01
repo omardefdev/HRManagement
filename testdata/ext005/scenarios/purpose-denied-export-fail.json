@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-PURPOSE-DENIED-EXPORT",
+  "expectedValidate": "FAIL",
+  "purposeCode": "marketing-enrichment",
+  "exportAttempted": true,
+  "notes": "Export with non-allowlisted purpose must fail"
+}

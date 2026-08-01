@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-08-01T19:03:10.156629+00:00",
+  "behavior": 851,
+  "artifactGate": 0,
+  "architectureFitness": 4,
+  "mixed": 1356,
+  "totalMethods": 2211,
+  "note": "Publish behavior count separately from artifact/architecture gates (AUDIT_PROTOCOL §2)."
+}

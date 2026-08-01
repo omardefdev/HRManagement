@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG006-RECON-T0",
+  "expectedValidate": "PASS",
+  "checkpoint": "T+0",
+  "unexplainedGap": 0,
+  "mig005AccountedOk": true,
+  "liveAgencyRecon": false
+}

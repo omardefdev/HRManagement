@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG007-DEFECTS-TELEMETRY",
+  "expectedValidate": "PASS",
+  "defectCount": 3,
+  "defectBudget": 5,
+  "withinBudget": true,
+  "liveMeasured": false
+}

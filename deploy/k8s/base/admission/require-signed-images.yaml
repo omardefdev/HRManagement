@@ -1,0 +1,57 @@
+# BLD-001: Kyverno ClusterPolicy — reject unsigned or unverified container images.
+#
+# Verification is keyless, matching what the release pipeline actually does: deploy.yml runs
+# `cosign sign` under GitHub's OIDC identity and pushes provenance attestation. The policy
+# previously carried an inline PLACEHOLDER_REPLACE_BEFORE_PRODUCTION key while set to Enforce,
+# which could never verify anything — so the control was either blocking every workload or being
+# left unapplied.
+#
+# Set OWNER/REPO below via Kustomize replacement for the target organisation.
+# Install Kyverno before applying: https://kyverno.io/docs/installation/
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-signed-images
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    card: BLD-001
+  annotations:
+    policies.kyverno.io/title: Require Cosign-signed HR Management images
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Enforces Cosign signature verification on ghcr.io/OWNER/hrmanagement/* images.
+      Unsigned or tampered images are rejected at admission. Pair with deploy.yml
+      cosign sign + attest-build-provenance (SUP-001 / BLD-001).
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: verify-hrmanagement-image-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kyverno
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/OWNER/hrmanagement/*"
+          mutateDigest: true
+          required: true
+          verifyDigest: true
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    # Only signatures produced by this repository's release workflow are accepted.
+                    subject: "https://github.com/OWNER/hrmanagement/.github/workflows/deploy.yml@refs/heads/main"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: https://rekor.sigstore.dev
+                      ignoreTlog: false

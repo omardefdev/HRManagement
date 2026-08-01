@@ -1,0 +1,169 @@
+@model Records.Archive.Domain.Entities.ArchiveItem
+@using Records.Archive.Domain.Entities
+@using Records.Archive.Domain.Enums
+@{ ViewData["Title"] = Model.Title; var disposals = ViewBag.DisposalRecords as IReadOnlyList<DisposalRecord>; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">@Model.Title</h3>
+        @if (Model.IsOnLegalHold) { <span class="badge bg-warning">Legal Hold</span> }
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">المرجع</dt><dd class="col-sm-9">@Model.ReferenceNumber</dd>
+            <dt class="col-sm-3">النوع</dt><dd class="col-sm-9">@Model.Format</dd>
+            <dt class="col-sm-3">مكان التخزين</dt><dd class="col-sm-9">@Model.StorageLocation</dd>
+            <dt class="col-sm-3">الاحتفاظ (سنوات)</dt><dd class="col-sm-9">@Model.RetentionPeriodYears</dd>
+            <dt class="col-sm-3">اكتمال</dt><dd class="col-sm-9"><code class="small">@(Model.CompletenessAttestation ?? "—")</code></dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        @if (!Model.IsOnLegalHold)
+        {
+            <form asp-action="PlaceLegalHold" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="text" name="reason" placeholder="سبب Hold" class="form-control form-control-sm d-inline-block w-auto" />
+                <button type="submit" class="btn btn-sm btn-warning">Legal Hold</button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="ReleaseLegalHold" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-sm btn-outline-secondary">رفع Hold</button>
+            </form>
+        }
+        <form asp-action="AttestCompleteness" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-sm btn-outline-primary">إثبات اكتمال</button>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">تعديل فترة الاحتفاظ</div>
+    <div class="card-body">
+        <form asp-action="UpdateRetention" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="col-md-4">
+                <input type="number" name="retentionPeriodYears" class="form-control" value="@Model.RetentionPeriodYears" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-secondary">تحديث</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">إتلاف / إخراج نهائي (طلب ثم موافقة SoD)</div>
+    <div class="card-body">
+        @if (disposals?.Count > 0)
+        {
+            <p class="text-muted small mb-2">تم تسجيل إتلاف لهذا العنصر.</p>
+            <ul class="small">
+                @foreach (var d in disposals)
+                {
+                    <li>@d.DisposalDate.ToString("yyyy/MM/dd") — @(d.Method ?? "—") — معتمد: @(d.ApprovedBy?.ToString() ?? "—")</li>
+                }
+            </ul>
+        }
+        else if (Model.DisposeRequestedAt.HasValue && !Model.IsDisposeCancelled)
+        {
+            <p class="small">طلب إتلاف في @Model.DisposeRequestedAt?.ToString("yyyy/MM/dd HH:mm") بواسطة @(Model.DisposeRequestedBy?.ToString() ?? "—")</p>
+            <form asp-action="ApproveDisposal" method="post" class="row g-2 mb-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="col-md-3">
+                    <input type="datetime-local" name="disposalDate" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")" />
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="method" class="form-control" placeholder="طريقة الإتلاف" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-danger w-100">اعتماد SoD</button>
+                </div>
+            </form>
+            <form asp-action="CancelDisposalRequest" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="text" name="reason" class="form-control form-control-sm d-inline-block w-auto" placeholder="سبب الإلغاء" />
+                <button type="submit" class="btn btn-sm btn-outline-secondary">إلغاء الطلب</button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="RequestDisposal" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="col-md-4">
+                    <input type="text" name="method" class="form-control" placeholder="ملاحظة الطلب" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-danger w-100">طلب إتلاف</button>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">إعارة جديدة</div>
+    <div class="card-body">
+        <form asp-action="StartLoan" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="col-md-4">
+                <label class="form-label">المستعير</label>
+                <input type="text" name="borrower" class="form-control" required />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">تاريخ الإعارة</label>
+                <input type="date" name="loanDate" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">تاريخ الاستحقاق</label>
+                <input type="date" name="dueDate" class="form-control" value="@DateTime.UtcNow.AddDays(14).ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">إعارة</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.LoanRecords?.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header">الإعارات</div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>المستعير</th><th>من</th><th>إلى</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var loan in Model.LoanRecords.OrderByDescending(l => l.LoanDate))
+                {
+                    <tr>
+                        <td>@loan.Borrower</td>
+                        <td>@loan.LoanDate.ToString("yyyy/MM/dd")</td>
+                        <td>@(loan.ReturnedDate?.ToString("yyyy/MM/dd") ?? loan.DueDate.ToString("yyyy/MM/dd"))</td>
+                        <td>
+                            @if (loan.ReturnedDate is null)
+                            {
+                                <form asp-action="ReturnLoan" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="loanId" value="@loan.Id" />
+                                    <input type="hidden" name="archiveItemId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success">إعادة</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

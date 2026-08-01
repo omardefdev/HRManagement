@@ -1,0 +1,1 @@
+﻿{"scenarioId":"catalog-entry-pass","expectedValidate":"PASS","isDeclaredCritical":true,"isInCatalog":true,"domain":"pension","hasContract":true,"hasSlo":true,"hasRetry":true,"hasRecon":true,"hasExit":true}

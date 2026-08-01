@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-OUTAGE-AS-TRUTH",
+  "expectedValidate": "FAIL",
+  "registryAvailable": false,
+  "treatedAsVerifiedMatch": true,
+  "notes": "Outage must not become verified truth"
+}

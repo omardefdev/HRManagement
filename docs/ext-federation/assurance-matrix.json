@@ -1,0 +1,152 @@
+{
+  "card": "EXT-001",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "assurancePolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "assuranceLevels": [
+    { "id": "AAL1", "fal": "FAL1", "description": "single-factor" },
+    { "id": "AAL2", "fal": "FAL2", "description": "multi-factor" },
+    { "id": "AAL3", "fal": "FAL3", "description": "phishing-resistant hardware" }
+  ],
+  "personas": [
+    { "id": "citizen-self-service", "risk": "Low", "minAal": "AAL1", "minFal": "FAL1" },
+    { "id": "employee-standard", "risk": "Medium", "minAal": "AAL2", "minFal": "FAL2" },
+    { "id": "hr-approver", "risk": "High", "minAal": "AAL2", "minFal": "FAL2" },
+    { "id": "payroll-operator", "risk": "High", "minAal": "AAL3", "minFal": "FAL3" },
+    { "id": "security-admin", "risk": "Critical", "minAal": "AAL3", "minFal": "FAL3" },
+    { "id": "break-glass-operator", "risk": "Critical", "minAal": "AAL3", "minFal": "FAL3" }
+  ],
+  "federationTrust": {
+    "nationalIdp": { "id": "lab-national-idp", "labStub": true, "live": false },
+    "agencyIdps": [
+      { "id": "lab-agency-idp-a", "labStub": true, "live": false },
+      { "id": "lab-agency-idp-b", "labStub": true, "live": false }
+    ],
+    "metadataRequirements": ["entityId", "signingCert", "ssoEndpoint", "logoutEndpoint"]
+  },
+  "mfaPolicy": {
+    "phishingResistantRoles": ["payroll-operator", "security-admin", "break-glass-operator"],
+    "allowedAuthenticatorsLab": ["webauthn-stub", "hardware-key-stub"],
+    "smsOtpForbiddenForSensitive": true
+  },
+  "lifecycle": {
+    "states": ["provision", "active", "disable", "revoke"],
+    "revokeRequiresReason": true
+  },
+  "revocation": {
+    "slaMinutes": 15,
+    "channel": "federation-revoke-bus",
+    "breachForbiddenWithoutEscalation": true
+  },
+  "breakGlass": {
+    "dualControl": true,
+    "timeBoundMinutes": 60,
+    "auditRequired": true
+  },
+  "citizenEmployeeSeparation": {
+    "required": true,
+    "forbidSharedPrincipal": true
+  },
+  "attributeAuthority": {
+    "claimsAllowlist": ["sub", "tenant_id", "org_scope", "aal", "fal", "persona", "opaque_subject"],
+    "noNameOnlyLinking": true,
+    "forbidLinkKeys": ["FullName", "display_name"]
+  },
+  "identifierPolicy": {
+    "opaquePreferred": true,
+    "forbidPlainNationalIdInLogs": true
+  },
+  "signing": {
+    "signedByRole": "national-iam-lead",
+    "reviewerRole": "security-architecture",
+    "assurancePolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext001-lab-assurance-policy-20260730"
+  },
+  "blockers": [
+    { "id": "IAM-003", "status": "Satisfied", "note": "SoD Done" },
+    { "id": "IAM-004", "status": "Satisfied", "note": "S2S Done" },
+    { "id": "STR-002", "status": "Satisfied", "note": "Catalog Done" },
+    { "id": "IAM-001", "status": "Blocked", "note": "JWT audience/TLS still open" },
+    { "id": "national-idp-live", "status": "Blocked", "note": "Lab stub only" },
+    { "id": "agency-idp-live", "status": "Blocked", "note": "Lab stub only" },
+    { "id": "phishing-mfa-fleet", "status": "Blocked", "note": "Policy only" },
+    { "id": "live-federation-conformance", "status": "Blocked", "note": "Lab harness only" }
+  ],
+  "outOfScope": [
+    "Live national IdP bind",
+    "Hardware WebAuthn fleet",
+    "IAM-005 JML",
+    "EXT-002 civil registry",
+    "KeycloakExtensions rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "AssuranceMapping",
+      "steps": [
+        { "id": "LevelsDefined", "mandatory": true, "ownerRole": "national-iam", "slaHours": 48, "evidenceType": "assuranceLevels", "service": "docs", "event": null },
+        { "id": "SignedMatrix", "mandatory": true, "ownerRole": "security-architecture", "slaHours": 24, "evidenceType": "assurance-matrix-signoff", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "FederationInterop",
+      "steps": [
+        { "id": "TrustInventory", "mandatory": true, "ownerRole": "national-iam", "slaHours": 48, "evidenceType": "federationTrust", "service": "docs", "event": null },
+        { "id": "NationalInterop", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "national-idp-interop-pass", "service": "testdata", "event": null },
+        { "id": "AgencyInterop", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "agency-idp-interop-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RevocationSla",
+      "steps": [
+        { "id": "SlaPolicy", "mandatory": true, "ownerRole": "national-iam", "slaHours": 24, "evidenceType": "revocation", "service": "docs", "event": null },
+        { "id": "SlaPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "revocation-sla-pass", "service": "testdata", "event": null },
+        { "id": "SlaBreachFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "revocation-sla-breach-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NoNameOnlyLink",
+      "steps": [
+        { "id": "AttrPolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 24, "evidenceType": "attributeAuthority", "service": "docs", "event": null },
+        { "id": "NameOnlyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "name-only-link-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CredentialLoss",
+      "steps": [
+        { "id": "LossPlaybook", "mandatory": true, "ownerRole": "national-iam", "slaHours": 48, "evidenceType": "lifecycle", "service": "docs", "event": null },
+        { "id": "LossPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "credential-loss-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "IdpOutageFailover",
+      "steps": [
+        { "id": "OutagePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "idp-outage-failover-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "FraudCases",
+      "steps": [
+        { "id": "FraudHarness", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "fraud-cases", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "assuranceMatrixSignoff": "testdata/ext001/signoff/assurance-matrix-signoff.json",
+    "nationalIdpInteropPass": "testdata/ext001/interop/national-idp-interop-pass.json",
+    "agencyIdpInteropPass": "testdata/ext001/interop/agency-idp-interop-pass.json",
+    "nameOnlyLinkFail": "testdata/ext001/scenarios/name-only-link-fail.json",
+    "revocationSlaPass": "testdata/ext001/scenarios/revocation-sla-pass.json",
+    "revocationSlaBreachFail": "testdata/ext001/scenarios/revocation-sla-breach-fail.json",
+    "credentialLossPass": "testdata/ext001/scenarios/credential-loss-pass.json",
+    "idpOutageFailoverPass": "testdata/ext001/scenarios/idp-outage-failover-pass.json",
+    "fraudCases": "testdata/ext001/adversarial/fraud-cases.json",
+    "federationRunLedger": "testdata/ext001/harness/federation-run-ledger.json"
+  },
+  "joins": {
+    "iam003Sod": "docs/SOD_MATRIX.md",
+    "iam004S2s": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md#IAM-004",
+    "str002Catalog": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md#STR-002",
+    "keycloakBaseline": "docs/KEYCLOAK_AND_SECRETS.md"
+  }
+}

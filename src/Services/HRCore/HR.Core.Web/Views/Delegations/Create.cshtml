@@ -1,0 +1,47 @@
+@model HR.Core.Web.ViewModels.ApprovalDelegationCreateViewModel
+@{
+    ViewData["Title"] = "إنشاء تفويض اعتماد";
+}
+
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header">
+            <h3 class="card-title mb-0">@ViewData["Title"]</h3>
+        </div>
+        <div class="card-body">
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="DelegateId" class="form-label">معرّف المفوَّض (GUID)</label>
+                <input asp-for="DelegateId" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="EntityTypeScope" class="form-label">نوع الكيان (اختياري)</label>
+                <input asp-for="EntityTypeScope" class="form-control" placeholder="LeaveRequest / PayrollRun / ..." />
+            </div>
+            <div class="mb-3">
+                <label asp-for="RoleScope" class="form-label">نطاق الدور (اختياري)</label>
+                <input asp-for="RoleScope" class="form-control" />
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ActiveFrom" class="form-label">من</label>
+                    <input asp-for="ActiveFrom" class="form-control" type="datetime-local" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ActiveUntil" class="form-label">إلى</label>
+                    <input asp-for="ActiveUntil" class="form-control" type="datetime-local" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label">السبب</label>
+                <textarea asp-for="Reason" class="form-control" rows="2"></textarea>
+            </div>
+            <p class="text-muted small">الحد الأقصى لمدة التفويض 90 يوماً. لا يمكن التفويض للنفس.</p>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

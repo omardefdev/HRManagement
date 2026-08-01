@@ -1,0 +1,7 @@
+{
+  "fixtureId": "EXT001-FEDERATION-RUN-LEDGER",
+  "runs": [
+    { "runId": "fed-lab-001", "idpId": "lab-national-idp", "outcome": "Completed", "live": false },
+    { "runId": "fed-lab-002", "idpId": "lab-agency-idp-a", "outcome": "Completed", "live": false }
+  ]
+}

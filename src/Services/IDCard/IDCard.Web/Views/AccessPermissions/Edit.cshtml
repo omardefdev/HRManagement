@@ -1,0 +1,21 @@
+@model AccessPermission
+@{ ViewData["Title"] = "تعديل صلاحية الدخول"; var cards = (SelectList)ViewBag.Cards; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="IssuedCardId" class="form-label"></label><select asp-for="IssuedCardId" asp-items="cards" class="form-control"></select></div>
+            <div class="mb-3"><label asp-for="Resource" class="form-label"></label><input asp-for="Resource" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="AccessLevel" class="form-label"></label><input asp-for="AccessLevel" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="ValidFrom" class="form-label"></label><input asp-for="ValidFrom" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="ValidTo" class="form-label"></label><input asp-for="ValidTo" class="form-control" type="date" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

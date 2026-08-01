@@ -1,0 +1,24 @@
+@{
+    var crumbs = ViewData["Breadcrumbs"] as IEnumerable<(string Label, string? Url)>;
+}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">الرئيسية</a></li>
+    @if (crumbs != null)
+    {
+        foreach (var (label, url) in crumbs)
+        {
+            if (!string.IsNullOrEmpty(url))
+            {
+                <li class="breadcrumb-item"><a href="@url">@label</a></li>
+            }
+            else
+            {
+                <li class="breadcrumb-item active">@label</li>
+            }
+        }
+    }
+    else
+    {
+        <li class="breadcrumb-item active">@ViewData["Title"]</li>
+    }
+</ol>

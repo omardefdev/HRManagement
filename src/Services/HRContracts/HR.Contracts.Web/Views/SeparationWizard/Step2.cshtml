@@ -1,0 +1,61 @@
+@model HR.Contracts.Domain.Entities.SeparationRecord
+@{ ViewData["Title"] = "معالج الفصل - الخطوة 2"; var checklist = ViewBag.Checklist as List<HR.Contracts.Domain.Entities.SeparationChecklist>; }
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-magic"></i> معالج الفصل - الخطوة 2: مراجعة وتأكيد</h3>
+    </div>
+    <div class="card-body">
+        <div class="bs-stepper-header mb-4" role="tablist">
+            <div class="step"><span class="bs-stepper-circle">1</span><span class="bs-stepper-label">البيانات</span></div>
+            <div class="line"></div>
+            <div class="step active"><span class="bs-stepper-circle">2</span><span class="bs-stepper-label">المراجعة</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">3</span><span class="bs-stepper-label">التنفيذ</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">4</span><span class="bs-stepper-label">المتابعة</span></div>
+        </div>
+
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>بيانات الفصل</h5>
+                <table class="table table-bordered">
+                    <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+                    <tr><th>العقد</th><td>@(Model.ContractId?.ToString() ?? "—")</td></tr>
+                    <tr><th>نوع الإنهاء</th><td>@Model.SeparationType</td></tr>
+                    <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate.ToString("yyyy/MM/dd")</td></tr>
+                    <tr><th>السبب</th><td>@(Model.Reason ?? "—")</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h5>قائمة التحقق</h5>
+                <ul class="list-group">
+                    @if (checklist != null)
+                    {
+                        @foreach (var item in checklist)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                @item.Step
+                                @if (item.IsCompleted)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-clock"></i></span>
+                                }
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <form asp-action="Step2Confirm" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-left"></i> تأكيد والانتقال للتنفيذ</button>
+            <a asp-action="Step1" class="btn btn-secondary">العودة</a>
+        </form>
+    </div>
+</div>

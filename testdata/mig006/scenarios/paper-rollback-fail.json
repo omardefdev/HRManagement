@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-PAPER-ROLLBACK",
+  "expectedValidate": "FAIL",
+  "exercised": false,
+  "paperOnly": true,
+  "notes": "Documented-only rollback must fail"
+}

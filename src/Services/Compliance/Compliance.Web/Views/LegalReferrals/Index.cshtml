@@ -1,0 +1,36 @@
+@model IReadOnlyList<LegalReferral>
+@{ ViewData["Title"] = "الإحالات القانونية"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">الإحالات القانونية</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>الوحدة المصدرة</th>
+                    <th>محال إلى</th>
+                    <th>تاريخ الإحالة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@(x.OriginatingUnit?.ToString() ?? "—")</td>
+                    <td>@(x.ReferredTo ?? "—")</td>
+                    <td>@x.ReferralDate?.ToString("yyyy/MM/dd")</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="4" class="text-center text-muted">لا توجد إحالات</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

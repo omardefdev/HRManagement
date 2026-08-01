@@ -1,0 +1,84 @@
+{
+  "card": "REL-007",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "authority": "National Rollout Office",
+  "description": "National wave rollout entry, exit, stop criteria and hypercare thresholds",
+  "waveTypes": [
+    {
+      "id": "pilot-small",
+      "name": "Small pilot wave",
+      "maxAgencies": 3,
+      "maxEmployees": 5000
+    },
+    {
+      "id": "sector-large",
+      "name": "Large sector wave",
+      "maxAgencies": 15,
+      "maxEmployees": 150000
+    },
+    {
+      "id": "national-distributed",
+      "name": "Distributed national wave",
+      "maxAgencies": 50,
+      "maxEmployees": 500000
+    }
+  ],
+  "waves": [
+    {
+      "id": "wave-0-pilot",
+      "type": "pilot-small",
+      "governorates": ["SY-01", "SY-04"],
+      "commandCenter": "Damascus HQ"
+    },
+    {
+      "id": "wave-1-sector",
+      "type": "sector-large",
+      "governorates": ["SY-01", "SY-02", "SY-03", "SY-04", "SY-05"],
+      "commandCenter": "Damascus HQ"
+    },
+    {
+      "id": "wave-2-national",
+      "type": "national-distributed",
+      "governorates": ["ALL-14"],
+      "commandCenter": "National Operations Center"
+    }
+  ],
+  "entryCriteria": [
+    { "id": "EC-01", "criterion": "Prior wave exit criteria met or waived by council", "mandatory": true },
+    { "id": "EC-02", "criterion": "Capacity headroom ≥50% per SYR-002", "mandatory": true },
+    { "id": "EC-03", "criterion": "Migration rehearsal passed twice", "mandatory": true },
+    { "id": "EC-04", "criterion": "Training completion ≥90% for privileged roles", "mandatory": true },
+    { "id": "EC-05", "criterion": "Support on-call roster staffed", "mandatory": true },
+    { "id": "EC-06", "criterion": "Rollback plan signed and rehearsed", "mandatory": true }
+  ],
+  "exitCriteria": [
+    { "id": "XC-01", "criterion": "≥3 consecutive successful payroll cycles", "mandatory": true },
+    { "id": "XC-02", "criterion": "Zero Severity-1 data defects", "mandatory": true },
+    { "id": "XC-03", "criterion": "SLO met for 30 consecutive days", "mandatory": true },
+    { "id": "XC-04", "criterion": "Adoption threshold ≥80% active users", "mandatory": true },
+    { "id": "XC-05", "criterion": "Support CSAT ≥4.0/5.0", "mandatory": true },
+    { "id": "XC-06", "criterion": "Daily reconciliation variance = 0 unexplained", "mandatory": true }
+  ],
+  "stopCriteria": [
+    { "id": "SC-01", "criterion": "Unexplained financial variance > 0.01%", "action": "halt-wave" },
+    { "id": "SC-02", "criterion": "Severity-1 data defect", "action": "halt-wave" },
+    { "id": "SC-03", "criterion": "Duplicate payment detected", "action": "halt-wave-and-rollback" },
+    { "id": "SC-04", "criterion": "Identity outage >24h without approved procedure", "action": "halt-expansion" }
+  ],
+  "hypercare": {
+    "durationDays": 30,
+    "dailyReconciliation": true,
+    "commandCenterStaffing": "24x7 during first 14 days",
+    "lessonsLearnedRequired": true
+  },
+  "rollback": {
+    "rehearsalRequired": true,
+    "maxBlastRadiusDocumented": true,
+    "independentCouncilApprovalForNextWave": true
+  },
+  "capacityGate": {
+    "requireHeadroomBeforeNextWave": true,
+    "headroomPercent": 50
+  }
+}

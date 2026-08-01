@@ -1,0 +1,28 @@
+{
+  "stryker-config": {
+    "project": "src/Services/Payroll/Payroll.Domain/Payroll.Domain.csproj",
+    "solution": "HRManagement.slnx",
+    "test-projects": [
+      "src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj"
+    ],
+    "reporters": ["html", "json", "progress"],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 60
+    },
+    "mutate": [
+      "**/*.cs",
+      "!**/Migrations/**",
+      "!**/*.Designer.cs"
+    ],
+    "ignore-methods": [
+      "*ToString",
+      "*GetHashCode",
+      "*Equals"
+    ],
+    "additional-timeout": 10000,
+    "concurrency": 2,
+    "verbosity": "info"
+  }
+}

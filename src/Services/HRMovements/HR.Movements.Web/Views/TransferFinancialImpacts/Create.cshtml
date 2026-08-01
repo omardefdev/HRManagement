@@ -1,0 +1,16 @@
+@model HR.Movements.Domain.Entities.TransferFinancialImpact
+@{ ViewData["Title"] = "أثر مالي لنقل"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="TransferRequestId" class="form-label"></label><select asp-for="TransferRequestId" asp-items="ViewBag.TransferRequests" class="form-control"></select><span asp-validation-for="TransferRequestId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="SalaryChange" class="form-label"></label><input asp-for="SalaryChange" class="form-control" type="number" step="0.01" /><span asp-validation-for="SalaryChange" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="AllowanceChange" class="form-label"></label><input asp-for="AllowanceChange" class="form-control" type="number" step="0.01" /><span asp-validation-for="AllowanceChange" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea><span asp-validation-for="Notes" class="text-danger"></span></div>
+            <input type="hidden" asp-for="CalculatedAt" />
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

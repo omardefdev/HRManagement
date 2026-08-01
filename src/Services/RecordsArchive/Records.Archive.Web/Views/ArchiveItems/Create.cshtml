@@ -1,0 +1,31 @@
+@model Records.Archive.Domain.Entities.ArchiveItem
+@{ ViewData["Title"] = "عنصر أرشيف جديد"; }
+<h3>عنصر أرشيف جديد</h3>
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="ReferenceNumber" class="form-label"></label>
+        <input asp-for="ReferenceNumber" class="form-control" />
+        <span asp-validation-for="ReferenceNumber" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="StorageLocation" class="form-label"></label>
+        <input asp-for="StorageLocation" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Format" class="form-label"></label>
+        <select asp-for="Format" class="form-select" asp-items="Html.GetEnumSelectList<Records.Archive.Domain.Enums.ArchiveFormat>()"></select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="RetentionPeriodYears" class="form-label"></label>
+        <input asp-for="RetentionPeriodYears" class="form-control" type="number" />
+    </div>
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a asp-action="Index" class="btn btn-link">إلغاء</a>
+</form>

@@ -1,0 +1,46 @@
+@model HR.Core.Web.ViewModels.ContactCreateViewModel
+@{
+    ViewData["Title"] = "إضافة معلومات اتصال";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-plus-circle"></i> إضافة اتصال — @Model.EmployeeName</h3>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="EmployeeId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="Type" class="form-label"></label>
+                        <select asp-for="Type" class="form-control">
+                            <option value="Phone">هاتف</option>
+                            <option value="Email">بريد إلكتروني</option>
+                            <option value="Address">عنوان</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="Value" class="form-label"></label>
+                        <input asp-for="Value" class="form-control" />
+                        <span asp-validation-for="Value" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-check mb-3">
+                <input asp-for="IsPrimary" class="form-check-input" />
+                <label asp-for="IsPrimary" class="form-check-label"></label>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

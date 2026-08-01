@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-UNMAPPED-NO-QUARANTINE",
+  "expectedValidate": "FAIL",
+  "sourceId": "legacy-hr-batch",
+  "sourceField": "STATUS_CODE",
+  "sourceValue": "ZZ",
+  "disposition": null,
+  "notes": "Unmapped value without Quarantine disposition must fail"
+}

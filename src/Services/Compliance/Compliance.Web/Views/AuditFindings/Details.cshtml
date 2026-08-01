@@ -1,0 +1,90 @@
+@model AuditFinding
+@{ ViewData["Title"] = "تفاصيل الملاحظة الرقابية"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">ملاحظة رقابية</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">معرّف التدقيق</dt>
+            <dd class="col-sm-9">@(Model.AuditId?.ToString() ?? "—")</dd>
+            <dt class="col-sm-3">الوصف</dt>
+            <dd class="col-sm-9">@(Model.Description ?? "—")</dd>
+            <dt class="col-sm-3">الخطورة</dt>
+            <dd class="col-sm-9"><span class="badge text-bg-warning">@Model.Severity</span></dd>
+            <dt class="col-sm-3">التوصية</dt>
+            <dd class="col-sm-9">@(Model.Recommendation ?? "—")</dd>
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9">
+                @switch (Model.Status)
+                {
+                    case FindingStatus.Open:
+                        <span class="badge text-bg-danger">مفتوحة</span>
+                        break;
+                    case FindingStatus.Mitigated:
+                        <span class="badge text-bg-warning">مخففة</span>
+                        break;
+                    case FindingStatus.Closed:
+                        <span class="badge text-bg-success">مغلقة</span>
+                        break;
+                }
+            </dd>
+            <dt class="col-sm-3">تاريخ الحل</dt>
+            <dd class="col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+@if (Model.Recommendations.Any())
+{
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">التوصيات</h5></div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead><tr><th>الإجراء الموصى به</th><th>تاريخ الاستحقاق</th><th>الحالة</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var rec in Model.Recommendations)
+                {
+                    <tr>
+                        <td>@rec.RecommendedAction</td>
+                        <td>@rec.DueDate?.ToString("yyyy/MM/dd")</td>
+                        <td>@rec.Status</td>
+                        <td><a asp-controller="ComplianceRecommendations" asp-action="Details" asp-route-id="@rec.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="row">
+    @if (Model.Status == FindingStatus.Open)
+    {
+        <div class="col-md-4">
+            <form asp-action="Mitigate" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning">تخفيف</button>
+            </form>
+        </div>
+    }
+    @if (Model.Status != FindingStatus.Closed)
+    {
+        <div class="col-md-4">
+            <form asp-action="CloseItem" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">إغلاق</button>
+            </form>
+        </div>
+    }
+    <div class="col-md-4">
+        <form asp-action="CreateReferral" asp-route-id="@Model.Id" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-info">إحالة قانونية</button>
+        </form>
+    </div>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3">العودة</a>

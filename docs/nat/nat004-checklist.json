@@ -1,0 +1,42 @@
+{
+  "card": "NAT-004",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Migration and data quality certification evidence template",
+  "harnessStatus": "Done",
+  "liveCertificationStatus": "Blocked",
+  "liveCertificationNote": "Per-wave agency sign-offs and live statistical samples pending rollout waves",
+  "migReferences": ["MIG-001", "MIG-002", "MIG-003", "MIG-004", "MIG-005", "MIG-006", "MIG-007"],
+  "dataQuality": {
+    "inventoryMappingLineageRequired": true,
+    "countsTotalsFilesReconciled": true,
+    "duplicateQuarantinePolicyRequired": true,
+    "securityClassificationRequired": true,
+    "criticalRecordGapCount": 0,
+    "criticalFinancialGapCount": 0,
+    "accountedPercent": 100
+  },
+  "cutover": {
+    "rollbackTestedInHarness": true,
+    "liveRollbackTested": false,
+    "legacyArchiveRequired": true,
+    "perWaveSignOffRequired": true
+  },
+  "evidenceItems": [
+    { "id": "mig-inventory", "artifactRef": "docs/mig/inventory-matrix.json", "mandatory": true },
+    { "id": "mig-evidence", "artifactRef": "docs/mig/evidence-pack-template.json", "mandatory": true },
+    { "id": "mig-cutover", "artifactRef": "docs/mig/cutover-runbook.json", "mandatory": true }
+  ],
+  "acceptanceCriteria": {
+    "mig005EvidencePresent": true,
+    "mig006EvidencePresent": true,
+    "zeroCriticalGap": true,
+    "hundredPercentAccounted": true,
+    "rollbackHarnessPass": true
+  },
+  "dependencies": ["MIG-001", "MIG-002", "MIG-003", "MIG-004", "MIG-005", "MIG-006", "MIG-007"],
+  "blockers": [
+    { "id": "live-wave-signoffs", "status": "Blocked", "note": "Agency data owner sign-offs per wave pending" },
+    { "id": "live-statistical-sample", "status": "Blocked", "note": "Independent statistical sample on production data pending" }
+  ]
+}

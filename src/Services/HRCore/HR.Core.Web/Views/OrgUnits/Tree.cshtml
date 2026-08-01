@@ -1,0 +1,36 @@
+@model List<HR.Core.Web.ViewModels.OrgUnitTreeViewModel>
+@{
+    ViewData["Title"] = "الهيكل التنظيمي";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-project-diagram"></i> الهيكل التنظيمي</h3>
+        <div class="card-tools">
+            <a asp-action="Index" class="btn btn-secondary btn-sm"><i class="fas fa-list"></i> عرض القائمة</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <ul class="list-unstyled" id="orgTree">
+                @foreach (var root in Model)
+                {
+                    @await Html.PartialAsync("_TreeNode", root)
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="text-center text-muted">لا توجد وحدات تنظيمية</p>
+        }
+    </div>
+</div>
+
+<style>
+    #orgTree ul { padding-right: 25px; border-right: 2px solid var(--sy-gold); }
+    #orgTree li { list-style: none; padding: 5px 0; }
+    .tree-node { cursor: pointer; padding: 5px 10px; border-radius: 4px; display: inline-block; }
+    .tree-node:hover { background-color: rgba(107, 31, 42, 0.1); }
+    .tree-toggle { cursor: pointer; margin-left: 5px; }
+</style>

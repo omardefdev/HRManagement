@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"contextId":"hr-core","ownerRole":"hr-domain","interactionStyle":"event","dataOwnerRef":"hr-core","siteProfileRef":"primary","topologyRef":"warm-standby","couplingScanRef":"lab-scan","fitnessRef":"lab-fitness","actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/arc002","outcome":"pass","rationaleRef":"stay-service"}]}

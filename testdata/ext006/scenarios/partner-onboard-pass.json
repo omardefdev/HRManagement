@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-PARTNER-ONBOARD",
+  "expectedValidate": "PASS",
+  "ephemeralCredential": true,
+  "prodAccess": false,
+  "syntheticDataOnly": true,
+  "partnerId": "partner-lab-01",
+  "notes": "Partner onboards with ephemeral lab credential"
+}

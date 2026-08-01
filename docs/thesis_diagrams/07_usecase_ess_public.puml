@@ -1,0 +1,47 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام البوابة العامة والخدمة الذاتية
+left to right direction
+actor "مواطن" as Citizen
+actor "موظف" as Employee
+actor "موظف الموارد البشرية" as Hr
+rectangle "بوابة المواطن وESS" {
+  usecase "استعراض الوظائف العامة" as U1
+  usecase "تقديم وترقيم الطلب" as U2
+  usecase "تتبع الطلب بالرقم الوطني" as U3
+  usecase "الترشح لفرصة داخلية" as U4
+  usecase "الالتحاق بدورة إلكترونية" as U5
+  usecase "تحديث تقدم التعلم" as U6
+  usecase "إصدار شهادة تعلم" as U7
+  usecase "إدارة الإعلانات والفرص" as U8
+}
+Citizen --> U1
+Citizen --> U2
+Citizen --> U3
+Employee --> U4
+Employee --> U5
+Employee --> U6
+Employee --> U7
+Hr --> U8
+@enduml

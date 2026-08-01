@@ -1,0 +1,24 @@
+@model IEnumerable<Payroll.Domain.Entities.SalaryLine>
+@{
+    ViewData["Title"] = "كشوف الراتب";
+}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">كشوف الراتب</h3></div>
+    <div class="card-body table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>الفترة</th><th>الإجمالي</th><th>الخصومات</th><th>الصافي</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var line in Model)
+            {
+                <tr>
+                    <td>@line.PayrollRun?.PeriodStart.ToString("yyyy-MM")</td>
+                    <td>@line.GrossPay.ToString("N2")</td>
+                    <td>@line.TotalDeductions.ToString("N2")</td>
+                    <td>@line.NetPay.ToString("N2")</td>
+                    <td><a asp-action="Payslip" asp-route-salaryLineId="@line.Id" class="btn btn-sm btn-outline-primary">عرض</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

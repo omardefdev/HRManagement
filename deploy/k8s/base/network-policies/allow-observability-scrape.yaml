@@ -1,0 +1,49 @@
+# SEC-001: Prometheus may scrape /metrics on app pods; Grafana may query Prometheus.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape-apps
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: hrmanagement
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-keycloak-ingress
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: hrmanagement
+      ports:
+        - protocol: TCP
+          port: 8080

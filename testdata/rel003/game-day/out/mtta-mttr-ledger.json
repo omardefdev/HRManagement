@@ -1,0 +1,17 @@
+﻿{
+    "card":  "REL-003",
+    "scenarioId":  "REL3-GD-001",
+    "severity":  "Sev2",
+    "serviceId":  "gateway",
+    "detectedAt":  "2026-07-30T08:00:00Z",
+    "acknowledgedAt":  "2026-07-30T08:12:00Z",
+    "resolvedAt":  "2026-07-30T09:45:00Z",
+    "mttaMinutes":  12,
+    "mttrMinutes":  105,
+    "mttaTargetMinutes":  30,
+    "mttrTargetMinutes":  480,
+    "mttaPass":  true,
+    "mttrPass":  true,
+    "waiverId":  null,
+    "ok":  true
+}

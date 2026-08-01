@@ -1,0 +1,7 @@
+{
+  "card": "STR-002",
+  "lastReviewed": "2026-07-30",
+  "nextDue": "2027-01-31",
+  "owner": "legal",
+  "note": "Interim legislative watch cadence bound to STR-002 production control binding; refresh before nextDue or Production startup fails."
+}

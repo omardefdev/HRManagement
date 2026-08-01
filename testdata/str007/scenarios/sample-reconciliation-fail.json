@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-RECONCILE-FAIL",
+  "expectedValidate": "FAIL",
+  "kpiId": "data_error_duplicate_rate",
+  "reportedValue": 2.0,
+  "sourceValue": 22.0,
+  "tolerancePct": 5,
+  "sourceRef": "docs/GOV_003_DATA_QUALITY.md"
+}

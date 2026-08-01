@@ -1,0 +1,55 @@
+﻿{
+    "generatedAtUtc":  "2026-07-29T21:09:13.5411241Z",
+    "matrixVersion":  1,
+    "failed":  0,
+    "results":  [
+                    {
+                        "id":  "ingress-tls",
+                        "status":  "match",
+                        "ok":  true,
+                        "detail":  "Staging uses lab TLS secret hr-gateway-tls; prod uses cert-manager issuer"
+                    },
+                    {
+                        "id":  "ingress-host",
+                        "status":  "approved",
+                        "ok":  true,
+                        "detail":  "hr.staging.example.com vs hr.example.com"
+                    },
+                    {
+                        "id":  "replicas-scale",
+                        "status":  "approved",
+                        "ok":  true,
+                        "detail":  "Pilot cost: staging 1â€“2 replicas; prod 2â€“3"
+                    },
+                    {
+                        "id":  "data-tls-stub",
+                        "status":  "match",
+                        "ok":  true,
+                        "detail":  "Data-plane TLS notes ConfigMap present on both"
+                    },
+                    {
+                        "id":  "backup-retention",
+                        "status":  "approved",
+                        "ok":  true,
+                        "detail":  "Staging shorter retention for cost; file present with staging values"
+                    },
+                    {
+                        "id":  "compose-lab",
+                        "status":  "approved",
+                        "ok":  true,
+                        "detail":  "Compose is lab/dev SoT for local; HA staging uses Kustomize"
+                    },
+                    {
+                        "id":  "keycloak-realm",
+                        "status":  "match",
+                        "ok":  true,
+                        "detail":  "REL-001 realm imports QA-004 personas + service roles mapping"
+                    },
+                    {
+                        "id":  "observability",
+                        "status":  "approved",
+                        "ok":  true,
+                        "detail":  "OBS-001..003 Done; staging may use compose observability overlay"
+                    }
+                ]
+}

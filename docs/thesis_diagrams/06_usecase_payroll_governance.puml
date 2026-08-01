@@ -1,0 +1,46 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام الرواتب والحوكمة والخدمات المساندة
+left to right direction
+actor "مسؤول الرواتب" as PayrollOps
+actor "مدقق الامتثال" as Auditor
+actor "مسؤول تقنية" as It
+actor "الإدارة المركزية" as Central
+rectangle "Payroll + Governance" {
+  usecase "فتح دورة رواتب" as U1
+  usecase "حساب ومراجعة واعتماد الدورة" as U2
+  usecase "تطبيق تعديلات الأحداث" as U3
+  usecase "إصدار بطاقة هوية" as U4
+  usecase "إدارة العهد والدعم" as U5
+  usecase "معالجة شكوى أو إجراء" as U6
+  usecase "إنتاج لوحة ومؤشرات" as U7
+}
+PayrollOps --> U1
+PayrollOps --> U2
+U2 .> U3 : <<include>>
+It --> U4
+It --> U5
+Auditor --> U6
+Central --> U7
+@enduml

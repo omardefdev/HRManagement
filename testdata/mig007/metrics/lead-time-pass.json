@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG007-LEAD-TIME",
+  "expectedValidate": "PASS",
+  "leadTimeDays": 38,
+  "leadTimeTargetDays": 45,
+  "withinTarget": true,
+  "liveMeasured": false
+}

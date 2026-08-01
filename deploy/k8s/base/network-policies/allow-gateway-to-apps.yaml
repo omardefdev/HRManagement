@@ -1,0 +1,68 @@
+# SEC-001: Gateway may call application services on HTTP 8080.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-apps
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: hrmanagement
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: hr-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Gateway egress to apps / Keycloak / data plane.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-egress
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hr-gateway
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: hrmanagement
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

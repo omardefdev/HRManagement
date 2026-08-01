@@ -1,0 +1,51 @@
+@using HR.Core.Domain.Enums
+@model HR.Core.Domain.Entities.InternalVacancy
+@{ ViewData["Title"] = "تفاصيل الشاغر الداخلي"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@Model.Title</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">تعديل</a>
+            <a asp-action="Index" class="btn btn-link">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">الوحدة</dt><dd class="col-sm-9">@(Model.OrgUnit?.NameAr ?? "—")</dd>
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@(Model.IsOpen ? "مفتوح" : "مغلق")</dd>
+            <dt class="col-sm-3">تاريخ الإغلاق</dt><dd class="col-sm-9">@(Model.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dt class="col-sm-3">الوصف</dt><dd class="col-sm-9">@(Model.Description ?? "—")</dd>
+            <dt class="col-sm-3">المؤهلات المطلوبة</dt><dd class="col-sm-9">@(Model.RequiredQualifications ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">المترشّحون (@Model.Applications.Count)</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>تاريخ الترشّح</th><th>المسوّغات</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead>
+            <tbody>
+                @foreach (var a in Model.Applications.OrderByDescending(a => a.AppliedAt))
+                {
+                    <tr>
+                        <td>@(a.Employee?.FullName ?? a.EmployeeId.ToString())</td>
+                        <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@(a.Motivation ?? "—")</td>
+                        <td>@Html.DisplayFor(_ => a.Status)</td>
+                        <td>
+                            <form asp-action="ChangeApplicationStatus" method="post" class="d-flex gap-1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <input type="hidden" name="vacancyId" value="@Model.Id" />
+                                <select name="status" asp-items="Html.GetEnumSelectList<InternalApplicationStatus>()" class="form-control form-control-sm"></select>
+                                <button type="submit" class="btn btn-outline-primary btn-sm">تحديث</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Applications.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مترشّحين</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,11 @@
+﻿{
+    "card":  "EXT-003",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "paymentOrderFieldCount":  6,
+    "auditFieldCount":  6,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

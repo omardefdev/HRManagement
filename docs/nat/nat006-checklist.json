@@ -1,0 +1,42 @@
+{
+  "card": "NAT-006",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Performance, resilience, and recovery certification evidence template",
+  "harnessStatus": "Done",
+  "liveCertificationStatus": "Blocked",
+  "liveCertificationNote": "Witnessed independent performance run on production-like environment pending ORR",
+  "cap001Ref": "perf/scenarios/cap001-national-envelope.json",
+  "workloadEnvelope": {
+    "soakHours": 72,
+    "soakLoadPercent": 100,
+    "stressHours": 4,
+    "stressLoadPercent": 150,
+    "spikeMinutes": 15,
+    "spikeLoadPercent": 200,
+    "headroomPercent": 30
+  },
+  "resilience": {
+    "haFailoverRequired": true,
+    "drRpoRtoRequired": true,
+    "cyberRecoveryRequired": true,
+    "noisyNeighborRequired": true,
+    "zeroLossCorruptionRequired": true
+  },
+  "observability": {
+    "telemetryRequired": true,
+    "rawResultsReproducible": true,
+    "noProductionViolatingTuning": true
+  },
+  "acceptanceCriteria": {
+    "cap001TargetsDefined": true,
+    "drCyberRtoDefined": true,
+    "headroomAtLeast30Percent": true,
+    "harnessResultsSchemaValid": true
+  },
+  "dependencies": ["CAP-001", "CAP-002", "CAP-003", "OPS-002", "OPS-003", "OPS-004", "OPS-005", "OPS-006", "NFR-002"],
+  "blockers": [
+    { "id": "live-witnessed-performance-run", "status": "Blocked", "note": "Independent witnessed soak/stress/spike on production-like pending" },
+    { "id": "live-dr-cyber-rto-drill", "status": "Blocked", "note": "Live DR/cyber-RTO drill with raw telemetry pending" }
+  ]
+}

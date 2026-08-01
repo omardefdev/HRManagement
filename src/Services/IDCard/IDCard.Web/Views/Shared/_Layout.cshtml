@@ -1,0 +1,25 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "idcard";
+}
+
+@section SidebarItems {
+    <li class="nav-header">خدمة الهويات</li>
+    <li class="nav-item"><a asp-controller="CardRequests" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-inbox"></i><p>طلبات البطاقات</p></a></li>
+    <li class="nav-item"><a asp-controller="IssuedCards" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-id-card"></i><p>البطاقات المصدرة</p></a></li>
+    <li class="nav-item"><a asp-controller="CardDesigns" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-palette"></i><p>تصاميم البطاقات</p></a></li>
+    <li class="nav-item"><a asp-controller="AccessPermissions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-door-open"></i><p>صلاحيات الدخول</p></a></li>
+    <li class="nav-item"><a asp-controller="OfficialSealRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-stamp"></i><p>الأختام الرسمية</p></a></li>
+    <li class="nav-item"><a asp-controller="CardPermissionSets" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-list"></i><p>مجموعات الصلاحيات</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

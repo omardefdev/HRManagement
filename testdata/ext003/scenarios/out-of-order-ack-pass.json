@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-OUT-OF-ORDER-ACK",
+  "expectedValidate": "PASS",
+  "ackArrivedBeforeSubmitRecorded": true,
+  "reconciledByOrderId": true,
+  "orderId": "ord-ooo-001",
+  "notes": "Out-of-order ack reconciled by orderId"
+}

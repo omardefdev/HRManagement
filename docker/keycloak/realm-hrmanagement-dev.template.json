@@ -1,0 +1,556 @@
+{
+    "realm":  "hrmanagement",
+    "enabled":  true,
+    "displayName":  "HR Management (local Docker)",
+    "sslRequired":  "none",
+    "registrationAllowed":  false,
+    "loginWithEmailAllowed":  true,
+    "duplicateEmailsAllowed":  false,
+    "resetPasswordAllowed":  true,
+    "editUsernameAllowed":  false,
+    "roles":  {
+                  "realm":  [
+                                {
+                                    "name":  "hr-admin",
+                                    "description":  "Full access to all HR modules"
+                                },
+                                {
+                                    "name":  "hr-core",
+                                    "description":  "HR.Core"
+                                },
+                                {
+                                    "name":  "hr-contracts",
+                                    "description":  "HR.Contracts"
+                                },
+                                {
+                                    "name":  "hr-health",
+                                    "description":  "HR.Health"
+                                },
+                                {
+                                    "name":  "hr-movements",
+                                    "description":  "HR.Movements"
+                                },
+                                {
+                                    "name":  "hr-training",
+                                    "description":  "HR.Training"
+                                },
+                                {
+                                    "name":  "payroll",
+                                    "description":  "Payroll"
+                                },
+                                {
+                                    "name":  "payroll-processor",
+                                    "description":  "Process payroll runs"
+                                },
+                                {
+                                    "name":  "payroll-approver",
+                                    "description":  "Approve payroll runs"
+                                },
+                                {
+                                    "name":  "idcard",
+                                    "description":  "IDCard"
+                                },
+                                {
+                                    "name":  "records-archive",
+                                    "description":  "Records.Archive"
+                                },
+                                {
+                                    "name":  "admin-logistics",
+                                    "description":  "Admin.Logistics"
+                                },
+                                {
+                                    "name":  "it-infra",
+                                    "description":  "IT.Infra"
+                                },
+                                {
+                                    "name":  "dev-analytics",
+                                    "description":  "Dev.Analytics"
+                                },
+                                {
+                                    "name":  "compliance",
+                                    "description":  "Compliance"
+                                },
+                                {
+                                    "name":  "auth-directory",
+                                    "description":  "Auth.Directory"
+                                },
+                                {
+                                    "name":  "file-storage",
+                                    "description":  "File.Storage"
+                                },
+                                {
+                                    "name":  "platform-admin",
+                                    "description":  "Platform operator"
+                                },
+                                {
+                                    "name":  "branch-manager",
+                                    "description":  "Branch scope manager"
+                                },
+                                {
+                                    "name":  "hr-employee",
+                                    "description":  "Employee self-service"
+                                },
+                                {
+                                    "name":  "hr-management-approver",
+                                    "description":  "Management approval workflows"
+                                }
+                            ]
+              },
+    "users":  [
+                  {
+                      "username":  "hradmin",
+                      "enabled":  true,
+                      "email":  "hradmin@hrm.local",
+                      "emailVerified":  true,
+                      "firstName":  "HR",
+                      "lastName":  "Admin",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "__DEMO_HRADMIN_PASSWORD__",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-admin",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-maker-contracts",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "MakerContracts",
+                      "email":  "e2e-maker@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-MakerContracts-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-contracts",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-checker-mgmt",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "CheckerMgmt",
+                      "email":  "e2e-checker@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-CheckerMgmt-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-management-approver",
+                                         "hr-core",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-payroll-processor",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "PayrollProcessor",
+                      "email":  "e2e-payroll-proc@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-PayrollProc-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "payroll-processor",
+                                         "payroll",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-payroll-approver",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "PayrollApprover",
+                      "email":  "e2e-payroll-appr@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-PayrollAppr-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "payroll-approver",
+                                         "payroll",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-movements-ops",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "MovementsOps",
+                      "email":  "e2e-movements@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-Movements-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-movements",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-file-ops",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "FileOps",
+                      "email":  "e2e-file@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-FileOps-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "file-storage",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-auth-directory",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "AuthDirectory",
+                      "email":  "e2e-auth@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-AuthDir-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "auth-directory",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-hr-admin",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "HrAdmin",
+                      "email":  "e2e-hradmin@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-HrAdmin-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-admin",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-training-ops",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "TrainingOps",
+                      "email":  "e2e-training@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-Training-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-training",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-compliance",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "Compliance",
+                      "email":  "e2e-compliance@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-Compliance-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "compliance",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  },
+                  {
+                      "username":  "e2e-health-ops",
+                      "enabled":  true,
+                      "emailVerified":  true,
+                      "firstName":  "E2E",
+                      "lastName":  "HealthOps",
+                      "email":  "e2e-health@hrm.local",
+                      "credentials":  [
+                                          {
+                                              "type":  "password",
+                                              "value":  "e2e-Health-1!",
+                                              "temporary":  false
+                                          }
+                                      ],
+                      "realmRoles":  [
+                                         "hr-health",
+                                         "offline_access"
+                                     ],
+                      "attributes":  {
+                                         "tenant_id":  [
+                                                           "00000000-0000-4000-8000-000000000001"
+                                                       ]
+                                     }
+                  }
+              ],
+    "clients":  [
+                    {
+                        "clientId":  "hr-gateway-client",
+                        "name":  "HR Gateway",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__KEYCLOAK_HR_GATEWAY_CLIENT_SECRET__",
+                        "redirectUris":  [
+                                             "http://localhost:5000/signin-oidc",
+                                             "http://localhost:5200/signin-oidc"
+                                         ],
+                        "webOrigins":  [
+                                           "+"
+                                       ],
+                        "attributes":  {
+                                           "post.logout.redirect.uris":  "http://localhost:5000/signout-callback-oidc##http://localhost:5200/signout-callback-oidc"
+                                       },
+                        "standardFlowEnabled":  true,
+                        "directAccessGrantsEnabled":  true,
+                        "serviceAccountsEnabled":  false,
+                        "protocol":  "openid-connect",
+                        "fullScopeAllowed":  true,
+                        "defaultClientScopes":  [
+                                                    "openid",
+                                                    "profile",
+                                                    "email",
+                                                    "roles"
+                                                ],
+                        "optionalClientScopes":  [
+                                                     "offline_access"
+                                                 ],
+                        "protocolMappers":  [
+                                                {
+                                                    "name":  "audience-gateway",
+                                                    "protocol":  "openid-connect",
+                                                    "protocolMapper":  "oidc-audience-mapper",
+                                                    "consentRequired":  false,
+                                                    "config":  {
+                                                                   "included.client.audience":  "hr-gateway-client",
+                                                                   "id.token.claim":  "false",
+                                                                   "access.token.claim":  "true",
+                                                                   "introspection.token.claim":  "true"
+                                                               }
+                                                },
+                                                {
+                                                    "name":  "audience-account",
+                                                    "protocol":  "openid-connect",
+                                                    "protocolMapper":  "oidc-audience-mapper",
+                                                    "consentRequired":  false,
+                                                    "config":  {
+                                                                   "included.client.audience":  "account",
+                                                                   "id.token.claim":  "false",
+                                                                   "access.token.claim":  "true",
+                                                                   "introspection.token.claim":  "true"
+                                                               }
+                                                },
+                                                {
+                                                    "name":  "tenant_id",
+                                                    "protocol":  "openid-connect",
+                                                    "protocolMapper":  "oidc-usermodel-attribute-mapper",
+                                                    "consentRequired":  false,
+                                                    "config":  {
+                                                                   "user.attribute":  "tenant_id",
+                                                                   "claim.name":  "tenant_id",
+                                                                   "jsonType.label":  "String",
+                                                                   "id.token.claim":  "true",
+                                                                   "access.token.claim":  "true",
+                                                                   "userinfo.token.claim":  "true"
+                                                               }
+                                                }
+                                            ]
+                    },
+                    {
+                        "clientId":  "svc-hr-core",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-payroll",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-hr-contracts",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-hr-training",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-idcard",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-records-archive",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-file-storage",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-auth-directory",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "svc-it-infra",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect"
+                    },
+                    {
+                        "clientId":  "directory-sync",
+                        "enabled":  true,
+                        "publicClient":  false,
+                        "secret":  "__SVC_SECRET__",
+                        "standardFlowEnabled":  false,
+                        "serviceAccountsEnabled":  true,
+                        "protocol":  "openid-connect",
+                        "description":  "Keycloak Admin API provisioning (manage-users)"
+                    }
+                ]
+}

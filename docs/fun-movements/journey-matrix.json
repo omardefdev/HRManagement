@@ -1,0 +1,38 @@
+{
+  "card": "FUN-003",
+  "version": 1,
+  "journeys": [
+    {
+      "id": "Transfer",
+      "steps": [
+        { "id": "TransferRequest", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 24, "evidenceType": "TransferRequest.Id", "service": "HR.Movements", "event": null },
+        { "id": "TransferApproved", "mandatory": true, "ownerRole": "hr-management-approver", "slaHours": 48, "evidenceType": "TransferApproval", "service": "HR.Movements", "event": null },
+        { "id": "FinancialImpact", "mandatory": true, "ownerRole": "payroll", "slaHours": 48, "evidenceType": "TransferFinancialImpact", "service": "Payroll", "event": "IExecuteTransferParty" },
+        { "id": "OrgSync", "mandatory": true, "ownerRole": "hr-core", "slaHours": 24, "evidenceType": "party:HR.Core", "service": "HR.Core", "event": "IExecuteTransferParty" },
+        { "id": "DirectoryScope", "mandatory": true, "ownerRole": "auth-directory", "slaHours": 24, "evidenceType": "party:Auth.Directory", "service": "Auth.Directory", "event": "IExecuteTransferParty" },
+        { "id": "AssetsMove", "mandatory": false, "ownerRole": "admin-logistics", "slaHours": 72, "evidenceType": "party:Admin.Logistics", "service": "Admin.Logistics", "event": "IExecuteTransferParty" },
+        { "id": "TransferExecuted", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 1, "evidenceType": "ITransferExecuted", "service": "TransferSaga", "event": "ITransferExecuted" }
+      ]
+    },
+    {
+      "id": "Secondment",
+      "steps": [
+        { "id": "SecondmentRequest", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 24, "evidenceType": "SecondmentRequest.Id", "service": "HR.Movements", "event": null },
+        { "id": "SecondmentApproved", "mandatory": true, "ownerRole": "hr-management-approver", "slaHours": 48, "evidenceType": "approval", "service": "HR.Movements", "event": null },
+        { "id": "PayImpact", "mandatory": true, "ownerRole": "payroll", "slaHours": 48, "evidenceType": "party:Payroll", "service": "Payroll", "event": "IExecuteSecondmentParty" },
+        { "id": "DirectoryHost", "mandatory": true, "ownerRole": "auth-directory", "slaHours": 24, "evidenceType": "party:Auth.Directory", "service": "Auth.Directory", "event": "IExecuteSecondmentParty" },
+        { "id": "SecondmentActivated", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 1, "evidenceType": "ISecondmentExecuted", "service": "SecondmentSaga", "event": "ISecondmentExecuted" },
+        { "id": "SecondmentEnded", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 24, "evidenceType": "status:Closed", "service": "HR.Movements", "event": null }
+      ]
+    },
+    {
+      "id": "Loan",
+      "steps": [
+        { "id": "LoanRequest", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 24, "evidenceType": "LoanAssignmentRequest.Id", "service": "HR.Movements", "event": null },
+        { "id": "LoanApproved", "mandatory": true, "ownerRole": "hr-management-approver", "slaHours": 48, "evidenceType": "approval", "service": "HR.Movements", "event": null },
+        { "id": "LoanActivated", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 24, "evidenceType": "ILoanAssignmentExecuted", "service": "HR.Movements", "event": "ILoanAssignmentExecuted" },
+        { "id": "LoanEnded", "mandatory": true, "ownerRole": "hr-movements", "slaHours": 24, "evidenceType": "ILoanAssignmentEnded", "service": "HR.Movements", "event": "ILoanAssignmentEnded" }
+      ]
+    }
+  ]
+}

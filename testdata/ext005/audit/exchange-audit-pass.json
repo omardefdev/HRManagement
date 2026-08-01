@@ -1,0 +1,24 @@
+{
+  "fixtureId": "EXT005-EXCHANGE-AUDIT",
+  "expectedValidate": "PASS",
+  "entries": [
+    {
+      "exchangeId": "ex-001",
+      "integrationId": "int-payroll-export",
+      "actor": "svc-payroll",
+      "tenantId": "tenant-pilot-a",
+      "outcome": "Accepted",
+      "correlationId": "corr-001",
+      "occurredAt": "2026-07-28T10:00:00Z"
+    },
+    {
+      "exchangeId": "ex-002",
+      "integrationId": "int-agency-sync",
+      "actor": "svc-onboarding",
+      "tenantId": "tenant-pilot-a",
+      "outcome": "Accepted",
+      "correlationId": "corr-002",
+      "occurredAt": "2026-07-28T11:00:00Z"
+    }
+  ]
+}

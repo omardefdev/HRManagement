@@ -1,0 +1,13 @@
+# SEC-001: default deny for all pods in hrmanagement namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-default
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

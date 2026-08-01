@@ -1,0 +1,14 @@
+{
+  "scenarioId": "SIM-ESTIMATE-ONLY-VOLUME",
+  "expectedValidate": "FAIL",
+  "sourceId": "legacy-hr-batch",
+  "status": "Inventoried",
+  "volume": {
+    "rowCount": 100000,
+    "fileCount": 0,
+    "measuredAt": "2026-06-01",
+    "method": "guess",
+    "estimateOnly": true
+  },
+  "notes": "Inventoried source with estimateOnly=true and no exception must fail"
+}

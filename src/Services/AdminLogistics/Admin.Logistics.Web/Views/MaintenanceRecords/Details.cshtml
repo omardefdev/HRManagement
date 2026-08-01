@@ -1,0 +1,19 @@
+@model MaintenanceRecord
+@{ ViewData["Title"] = "تفاصيل الصيانة"; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">سجل صيانة</h3></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الأصل</dt><dd class="col-sm-9">@Model.Asset?.TagNumber — @Model.Asset?.Name</dd>
+            <dt class="col-sm-3">نوع الصيانة</dt><dd class="col-sm-9">@Model.MaintenanceType</dd>
+            <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@Model.PerformedAt?.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">نفذ بواسطة</dt><dd class="col-sm-9">@(Model.PerformedBy ?? "—")</dd>
+            <dt class="col-sm-3">التكلفة</dt><dd class="col-sm-9">@Model.Cost</dd>
+            <dt class="col-sm-3">ملاحظات</dt><dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

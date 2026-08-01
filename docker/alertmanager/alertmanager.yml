@@ -1,0 +1,40 @@
+# OBS-002 — Alertmanager. Default webhook = alert-sink (testable).
+# Production: mount a custom file with Slack/Teams URL, or set compose
+# ALERTMANAGER_WEBHOOK_URL and use docker/alertmanager/render-config.sh.
+route:
+  receiver: webhook
+  group_by: [alertname, severity, owner]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = page
+      receiver: webhook
+      group_wait: 10s
+      repeat_interval: 1h
+    - matchers:
+        - severity = ticket
+      receiver: webhook
+      repeat_interval: 4h
+    - matchers:
+        - severity = warning
+      receiver: webhook
+      repeat_interval: 12h
+    - matchers:
+        - severity = info
+      receiver: webhook
+      repeat_interval: 24h
+
+inhibit_rules:
+  - source_matchers:
+      - severity = page
+    target_matchers:
+      - severity = ticket
+    equal: [journey]
+
+receivers:
+  - name: webhook
+    webhook_configs:
+      - url: http://alert-sink:8089/webhook
+        send_resolved: true

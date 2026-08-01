@@ -1,0 +1,149 @@
+{
+  "card": "SOV-004",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "zeroTrustPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "noStandingPrivilege": {
+    "required": true,
+    "sharedRootForbidden": true,
+    "permanentAdminForbidden": true
+  },
+  "pamJit": {
+    "required": true,
+    "temporaryOnly": true,
+    "reasonRequired": true,
+    "approvalRequired": true,
+    "jeaRequired": true
+  },
+  "phishingResistantMfa": {
+    "required": true,
+    "adminPathsRequired": true
+  },
+  "adminWorkstations": {
+    "required": true,
+    "ordinaryDeviceForbidden": true
+  },
+  "sessionRecord": {
+    "required": true
+  },
+  "approvals": {
+    "required": true
+  },
+  "breakGlass": {
+    "required": true,
+    "immediateAlertRequired": true,
+    "postUseReviewRequired": true
+  },
+  "serviceAdminSeparation": {
+    "required": true
+  },
+  "privilegedTargets": {
+    "required": true,
+    "targets": ["database", "cloud", "k8s", "keycloak"]
+  },
+  "accessRecertification": {
+    "required": true,
+    "quarterlyRequired": true,
+    "dormantOrphanZeroRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["principalId", "privilege", "reason", "approver", "actor", "occurredAt", "evidenceRef", "outcome", "sessionRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "livePamForbidden": true,
+    "liveAdminWorkstationForbidden": true,
+    "liveBreakGlassSocForbidden": true,
+    "liveAccessRecertificationForbidden": true
+  },
+  "signing": {
+    "signedByRole": "security-architecture-lead",
+    "reviewerRole": "ciso-lead",
+    "zeroTrustPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:sov004-lab-zero-trust-20260730"
+  },
+  "blockers": [
+    { "id": "IAM-003", "status": "Satisfied", "note": "Object authorization Done" },
+    { "id": "IAM-004", "status": "Satisfied", "note": "Service trust Done" },
+    { "id": "SOV-003", "status": "Satisfied", "note": "Production key-sovereignty binding Done" },
+    { "id": "live-pam-workers", "status": "Blocked", "note": "Lab PAM/JIT contracts only" },
+    { "id": "live-admin-workstation-enforcement", "status": "Blocked", "note": "Lab workstation fixtures only" },
+    { "id": "live-break-glass-soc", "status": "Blocked", "note": "Lab break-glass contracts only" },
+    { "id": "live-access-recertification", "status": "Blocked", "note": "Lab recertification contracts only" },
+    { "id": "SOV-005", "status": "Satisfied", "note": "Production threat-modeling binding Done; live TM review later" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "National Go/No-Go later" }
+  ],
+  "outOfScope": [
+    "Live PAM/JIT workers",
+    "Live admin workstation enforcement",
+    "Live break-glass SOC integration",
+    "Live access recertification workers",
+    "Live TM review after SOV-005 platform binding",
+    "LiveKeyCustodyClaim elevation",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "StandingJit",
+      "steps": [
+        { "id": "NoStandingPass", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "no-standing-pass", "service": "testdata", "event": null },
+        { "id": "StandingPrivilegeFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "standing-privilege-fail", "service": "testdata", "event": null },
+        { "id": "SharedRootFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "shared-root-fail", "service": "testdata", "event": null },
+        { "id": "JitApprovedPass", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "jit-approved-pass", "service": "testdata", "event": null },
+        { "id": "JitWithoutApprovalFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "jit-without-approval-fail", "service": "testdata", "event": null },
+        { "id": "JitWithoutReasonFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "jit-without-reason-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "WorkstationMfa",
+      "steps": [
+        { "id": "AdminWorkstationPass", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "admin-workstation-pass", "service": "testdata", "event": null },
+        { "id": "AdminFromOrdinaryDeviceFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "admin-from-ordinary-device-fail", "service": "testdata", "event": null },
+        { "id": "PhishingMfaPass", "mandatory": true, "ownerRole": "identity", "slaHours": 48, "evidenceType": "phishing-mfa-pass", "service": "testdata", "event": null },
+        { "id": "SessionRecordPass", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "session-record-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "BreakGlassRecert",
+      "steps": [
+        { "id": "BreakGlassAlertReviewPass", "mandatory": true, "ownerRole": "soc", "slaHours": 48, "evidenceType": "break-glass-alert-review-pass", "service": "testdata", "event": null },
+        { "id": "BreakGlassNoAlertFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "break-glass-no-alert-fail", "service": "testdata", "event": null },
+        { "id": "QuarterlyRecertPass", "mandatory": true, "ownerRole": "iam", "slaHours": 72, "evidenceType": "quarterly-recert-pass", "service": "testdata", "event": null },
+        { "id": "DormantAccessFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "dormant-access-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClaimGate",
+      "steps": [
+        { "id": "LivePamClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-pam-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "standingPrivilegeFail": "testdata/sov004/scenarios/standing-privilege-fail.json",
+    "sharedRootFail": "testdata/sov004/scenarios/shared-root-fail.json",
+    "jitWithoutApprovalFail": "testdata/sov004/scenarios/jit-without-approval-fail.json",
+    "jitWithoutReasonFail": "testdata/sov004/scenarios/jit-without-reason-fail.json",
+    "adminFromOrdinaryDeviceFail": "testdata/sov004/scenarios/admin-from-ordinary-device-fail.json",
+    "breakGlassNoAlertFail": "testdata/sov004/scenarios/break-glass-no-alert-fail.json",
+    "dormantAccessFail": "testdata/sov004/scenarios/dormant-access-fail.json",
+    "livePamClaimFail": "testdata/sov004/scenarios/live-pam-claim-fail.json",
+    "noStandingPass": "testdata/sov004/scenarios/no-standing-pass.json",
+    "jitApprovedPass": "testdata/sov004/scenarios/jit-approved-pass.json",
+    "phishingMfaPass": "testdata/sov004/scenarios/phishing-mfa-pass.json",
+    "adminWorkstationPass": "testdata/sov004/scenarios/admin-workstation-pass.json",
+    "breakGlassAlertReviewPass": "testdata/sov004/scenarios/break-glass-alert-review-pass.json",
+    "sessionRecordPass": "testdata/sov004/scenarios/session-record-pass.json",
+    "quarterlyRecertPass": "testdata/sov004/scenarios/quarterly-recert-pass.json",
+    "zeroTrustRunLedger": "testdata/sov004/harness/zero-trust-run-ledger.json",
+    "zeroTrustAuditPass": "testdata/sov004/audit/zero-trust-audit-pass.json"
+  },
+  "joins": {
+    "sov003Matrix": "docs/sov-keys/key-sovereignty-matrix.json",
+    "iam003": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "iam004": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "ext001Mfa": "docs/EXT_001_MFA_POLICY.md"
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "card": "REP-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Statutory report catalog with versions, as-of semantics, and governed access",
+  "crossTenantForbidden": true,
+  "backgroundJobDefaultThresholdRows": 10000,
+  "reports": [
+    {
+      "reportId": "rep-headcount-by-agency",
+      "nameAr": "كشف أعداد الموظفين حسب الجهة",
+      "nameEn": "Headcount by Agency",
+      "legalAuthority": "Law 50/2004 — staffing accountability",
+      "version": "1.0.0",
+      "effectiveDate": "2026-01-01",
+      "goldenDataset": "semantic.headcount-by-agency",
+      "grain": "agency-month",
+      "asOfRequired": true,
+      "drillThrough": ["Employee", "Position", "OrgUnit"],
+      "schedule": "monthly-first-business-day",
+      "retentionYears": 10,
+      "accessRoles": ["reporting-analyst", "agency-hr-director", "finance-controller"],
+      "backgroundJobThresholdRows": 5000
+    },
+    {
+      "reportId": "rep-payroll-summary",
+      "nameAr": "ملخص الرواتب الشهري",
+      "nameEn": "Monthly Payroll Summary",
+      "legalAuthority": "Decree 67/2026 — wage reform reporting",
+      "version": "1.0.0",
+      "effectiveDate": "2026-01-01",
+      "goldenDataset": "semantic.payroll-summary",
+      "grain": "agency-payroll-run",
+      "asOfRequired": true,
+      "drillThrough": ["PayrollRun", "PayrollLine", "Employee"],
+      "schedule": "per-payroll-cycle",
+      "retentionYears": 15,
+      "accessRoles": ["finance-controller", "treasury-liaison", "audit-readonly"],
+      "backgroundJobThresholdRows": 10000
+    },
+    {
+      "reportId": "rep-social-insurance-contributions",
+      "nameAr": "كشف اشتراكات التأمينات الاجتماعية",
+      "nameEn": "Social Insurance Contributions",
+      "legalAuthority": "Decree 135/2026 — social insurance amendments",
+      "version": "1.0.0",
+      "effectiveDate": "2026-01-01",
+      "goldenDataset": "semantic.social-insurance-contributions",
+      "grain": "employee-month",
+      "asOfRequired": true,
+      "drillThrough": ["ContributionPeriod", "Employee", "Agency"],
+      "schedule": "monthly",
+      "retentionYears": 15,
+      "accessRoles": ["social-insurance-liaison", "finance-controller"],
+      "backgroundJobThresholdRows": 10000
+    },
+    {
+      "reportId": "rep-leave-balance",
+      "nameAr": "أرصدة الإجازات",
+      "nameEn": "Leave Balance Report",
+      "legalAuthority": "Law 50/2004 Art. 68-72 — leave entitlements",
+      "version": "1.0.0",
+      "effectiveDate": "2026-01-01",
+      "goldenDataset": "semantic.leave-balance",
+      "grain": "employee-as-of",
+      "asOfRequired": true,
+      "drillThrough": ["LeaveBalance", "LeaveTransaction", "Employee"],
+      "schedule": "quarterly",
+      "retentionYears": 7,
+      "accessRoles": ["agency-hr-director", "hr-analyst"],
+      "backgroundJobThresholdRows": 5000
+    },
+    {
+      "reportId": "rep-pension-eligibility",
+      "nameAr": "كشف أهلية التقاعد",
+      "nameEn": "Pension Eligibility Report",
+      "legalAuthority": "Decree 135/2026 — pension eligibility",
+      "version": "1.0.0",
+      "effectiveDate": "2026-01-01",
+      "goldenDataset": "semantic.pension-eligibility",
+      "grain": "employee-as-of",
+      "asOfRequired": true,
+      "drillThrough": ["PensionEnrollment", "ServiceRecord", "Employee"],
+      "schedule": "annual",
+      "retentionYears": 20,
+      "accessRoles": ["pension-administrator", "finance-controller", "audit-readonly"],
+      "backgroundJobThresholdRows": 5000
+    }
+  ],
+  "governedAdHoc": {
+    "allowedWithApproval": true,
+    "approverRole": "reporting-governance-lead",
+    "maxRetentionDays": 90,
+    "exportFormats": ["pdf", "xlsx", "csv"],
+    "watermarkRequired": true
+  },
+  "metadataPolicy": {
+    "embedVersion": true,
+    "embedAsOf": true,
+    "embedSourceDataset": true,
+    "embedRunTimestamp": true
+  },
+  "blockers": [
+    { "id": "live-report-engine", "status": "Blocked", "note": "Statutory report runtime pending ANA-001 warehouse" },
+    { "id": "ANA-001", "status": "NotStarted", "note": "Analytics warehouse later" },
+    { "id": "PROD-006", "status": "Satisfied", "note": "Semantic layer binding Done" }
+  ]
+}

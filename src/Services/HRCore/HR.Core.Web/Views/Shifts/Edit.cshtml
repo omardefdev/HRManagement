@@ -1,0 +1,26 @@
+@model HR.Core.Web.ViewModels.ShiftEditViewModel
+@{ ViewData["Title"] = "تعديل وردية"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">تعديل وردية</h3>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('تأكيد الحذف؟');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
+        </form>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /><span asp-validation-for="Code" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /><span asp-validation-for="NameAr" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="ShiftType" class="form-label"></label><select class="form-control" asp-for="ShiftType" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.ShiftType>()" class="form-control"></select><span asp-validation-for="ShiftType" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="StartTime" class="form-label"></label><input asp-for="StartTime" class="form-control" type="time" /><span asp-validation-for="StartTime" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EndTime" class="form-label"></label><input asp-for="EndTime" class="form-control" type="time" /><span asp-validation-for="EndTime" class="text-danger"></span></div>
+            <div class="form-check mb-2"><input asp-for="IsActive" class="form-check-input" /><label class="form-check-label" asp-for="IsActive">مفعّلة</label></div>
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </form>
+    </div>
+</div>

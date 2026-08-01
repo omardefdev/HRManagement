@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: records-archive-web
+  labels:
+    app.kubernetes.io/name: records-archive-web
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: records-archive-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: records-archive-web
+        app.kubernetes.io/part-of: hrmanagement
+    spec:
+      terminationGracePeriodSeconds: 45
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: records-archive-web
+                topologyKey: topology.kubernetes.io/zone
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: records-archive-web
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: app
+          image: ghcr.io/OWNER/hrmanagement/records-archive-web:IMAGE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: hr-app-config
+                optional: true
+            - secretRef:
+                name: hr-app-secrets
+                optional: true
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: hr-app-config
+                  key: ASPNETCORE_ENVIRONMENT
+                  optional: true
+            - name: ASPNETCORE_SHUTDOWNTIMEOUTSECONDS
+              value: "30"
+            - name: Database__RunMigrationsAtStartup
+              value: "false"
+            - name: ASPNETCORE_PATHBASE
+              value: "/ui/records-archive"
+          readinessProbe:
+            httpGet:
+              path: /ui/records-archive/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ui/records-archive/health/live
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /ui/records-archive/health/ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+      # No container_name — Kubernetes assigns unique pod names for HA.

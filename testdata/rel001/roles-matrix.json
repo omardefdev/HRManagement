@@ -1,0 +1,22 @@
+{
+  "card": "REL-001",
+  "description": "Role mapping for staging rehearsal — QA-004 personas + module roles",
+  "importOrder": [
+    "docker/keycloak/realm-hr-services.json",
+    "docker/keycloak/realm-qa004-e2e.json",
+    "docker/keycloak/realm-rel001-staging.json"
+  ],
+  "pilotTenantCode": "tenant-a",
+  "requiredRealmRoles": [
+    "hr-core",
+    "hr-contracts",
+    "hr-management-approver",
+    "payroll",
+    "payroll-processor",
+    "payroll-approver",
+    "hr-movements",
+    "file-storage",
+    "hr-admin"
+  ],
+  "notes": "Lab passwords only; never copy production Keycloak users or secrets into staging."
+}

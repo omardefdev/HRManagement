@@ -1,0 +1,85 @@
+{
+  "card": "SRE-003",
+  "title": "Incident Severity Model",
+  "version": "1.0.0",
+  "severities": [
+    {
+      "level": "Sev-1",
+      "meaning": "Platform / payroll / auth down; national impact",
+      "examples": [
+        "All services unreachable",
+        "Payroll disbursement pipeline blocked",
+        "Identity provider outage",
+        "Data breach confirmed"
+      ],
+      "sla": {
+        "firstCommMinutes": 15,
+        "updateCadenceMinutes": 30,
+        "incidentCommanderRequired": true,
+        "postmortemRequiredDays": 5,
+        "regulatorNotifyHours": 24
+      }
+    },
+    {
+      "level": "Sev-2",
+      "meaning": "Degraded service; single agency severely impacted",
+      "examples": [
+        "One agency cannot process leave approvals",
+        "Report generation timing out for large agencies",
+        "Partial message queue stall"
+      ],
+      "sla": {
+        "firstCommMinutes": 30,
+        "updateCadenceMinutes": 60,
+        "incidentCommanderRequired": true,
+        "postmortemRequiredDays": 5,
+        "regulatorNotifyHours": null
+      }
+    },
+    {
+      "level": "Sev-3",
+      "meaning": "Limited impact; workaround available",
+      "examples": [
+        "Slow dashboard rendering for a subset of users",
+        "Non-critical notification delay",
+        "Minor UI rendering issue"
+      ],
+      "sla": {
+        "firstCommMinutes": 120,
+        "updateCadenceMinutes": 1440,
+        "incidentCommanderRequired": false,
+        "postmortemRequiredDays": null,
+        "regulatorNotifyHours": null
+      }
+    },
+    {
+      "level": "Sev-4",
+      "meaning": "Cosmetic or minor; no SLO breach",
+      "examples": [
+        "Typo in non-critical notification",
+        "Logging verbosity too high",
+        "Non-functional tooltip missing"
+      ],
+      "sla": {
+        "firstCommMinutes": null,
+        "updateCadenceMinutes": null,
+        "incidentCommanderRequired": false,
+        "postmortemRequiredDays": null,
+        "regulatorNotifyHours": null
+      }
+    }
+  ],
+  "roles": [
+    { "role": "Incident Commander", "abbr": "IC", "responsibility": "Owns timeline, decisions, communications" },
+    { "role": "Operations Lead", "abbr": "OL", "responsibility": "Executes diagnosis and mitigation" },
+    { "role": "Communications Lead", "abbr": "CL", "responsibility": "Drafts status updates, agency notifications" },
+    { "role": "Scribe", "abbr": "SC", "responsibility": "Records timeline, decisions, action items" },
+    { "role": "Subject Matter Expert", "abbr": "SME", "responsibility": "Domain expertise as needed" }
+  ],
+  "escalationTriggers": [
+    { "condition": "Duration > 30 min without mitigation progress", "action": "Escalate to next tier" },
+    { "condition": "Data integrity concern", "action": "Engage DBA + Security on-call" },
+    { "condition": "Privacy / PII exposure", "action": "Notify DPO within 1 hour" },
+    { "condition": "Legal / regulatory implication", "action": "Notify Legal within 2 hours" }
+  ]
+}

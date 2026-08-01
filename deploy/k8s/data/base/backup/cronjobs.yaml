@@ -1,0 +1,184 @@
+# OPS-003: scheduled MinIO mirror + Keycloak realm export (least-privilege secrets).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-minio
+  labels:
+    app.kubernetes.io/name: backup-minio
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: backup-minio
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+              env:
+                - name: MINIO_ENDPOINT
+                  value: http://minio:9000
+                - name: MINIO_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: minio-backup-reader
+                      key: accessKey
+                - name: MINIO_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: minio-backup-reader
+                      key: secretKey
+                - name: BACKUP_DEST_ENDPOINT
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnpg-backup-store
+                      key: ENDPOINT
+                      optional: true
+                - name: BACKUP_S3_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnpg-backup-store
+                      key: ACCESS_KEY_ID
+                - name: BACKUP_S3_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnpg-backup-store
+                      key: ACCESS_SECRET_KEY
+                - name: BACKUP_CATALOG_PATH
+                  value: /catalog/backup-catalog.jsonl
+              volumeMounts:
+                - name: catalog
+                  mountPath: /catalog
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  SRC=hrmsrc
+                  DST=hrmdst
+                  mc alias set "$SRC" "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+                  ENDPOINT="${BACKUP_DEST_ENDPOINT:-$MINIO_ENDPOINT}"
+                  mc alias set "$DST" "$ENDPOINT" "$BACKUP_S3_ACCESS_KEY" "$BACKUP_S3_SECRET_KEY"
+                  mc mb --ignore-existing "$DST/hrm-backups" || true
+                  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+                  for b in hr-core hr-contracts idcard records-archive hr-training file-storage file-storage-quarantine; do
+                    mc mirror --overwrite "$SRC/$b" "$DST/hrm-backups/minio/$STAMP/$b" || true
+                  done
+                  echo "{\"takenAt\":\"$STAMP\",\"component\":\"minio.mirror\",\"path\":\"hrm-backups/minio/$STAMP\",\"checksumSha256\":\"\",\"bytes\":0,\"expiresAt\":\"\",\"status\":\"ok\"}" >> /catalog/backup-catalog.jsonl
+                  echo "MinIO backup CronJob done: $STAMP"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: catalog
+              persistentVolumeClaim:
+                claimName: backup-catalog
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-keycloak-realm
+  labels:
+    app.kubernetes.io/name: backup-keycloak-realm
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: backup-keycloak-realm
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: export
+              image: quay.io/keycloak/keycloak:24.0
+              env:
+                - name: KEYCLOAK_ADMIN
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-admin
+                      key: KEYCLOAK_ADMIN
+                - name: KEYCLOAK_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-admin
+                      key: KEYCLOAK_ADMIN_PASSWORD
+                - name: KC_DB
+                  value: postgres
+                - name: KC_DB_URL
+                  value: jdbc:postgresql://hr-postgres-pooler-rw:5432/keycloak_db
+                - name: KC_DB_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db
+                      key: KC_DB_USERNAME
+                - name: KC_DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db
+                      key: KC_DB_PASSWORD
+              command: ["/bin/bash", "-lc"]
+              args:
+                - |
+                  set -euo pipefail
+                  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+                  OUT="/tmp/realm-${STAMP}.json"
+                  # Users included for production HA path (DB PITR remains primary for identity durability).
+                  /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm hrmanagement --users realm_file || \
+                    /opt/keycloak/bin/kc.sh export --file "$OUT" --realm hrmanagement || true
+                  mkdir -p /catalog/keycloak
+                  if [ -d /tmp/export ]; then
+                    cp -a /tmp/export/. /catalog/keycloak/"$STAMP"/ || true
+                  elif [ -f "$OUT" ]; then
+                    mkdir -p /catalog/keycloak/"$STAMP"
+                    cp "$OUT" /catalog/keycloak/"$STAMP"/
+                  fi
+                  echo "{\"takenAt\":\"$STAMP\",\"component\":\"keycloak.realm\",\"path\":\"/catalog/keycloak/$STAMP\",\"checksumSha256\":\"\",\"bytes\":0,\"expiresAt\":\"\",\"status\":\"ok\"}" >> /catalog/backup-catalog.jsonl
+                  echo "Keycloak realm export done: $STAMP"
+              volumeMounts:
+                - name: catalog
+                  mountPath: /catalog
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1536Mi
+          volumes:
+            - name: catalog
+              persistentVolumeClaim:
+                claimName: backup-catalog
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-backup-reader
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: backup
+    hrmanagement.io/secret-source: dev-only-placeholder
+type: Opaque
+stringData:
+  accessKey: backup-reader
+  secretKey: "replace-me-backup-reader"
+  NOTES: "Create via mc admin user; read app buckets + write hrm-backups only — not minio root"

@@ -1,0 +1,48 @@
+# Build output
+**/bin/
+**/obj/
+**/TestResults/
+**/coveragereport/
+**/.playwright/
+.nuget/
+tmp/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# Secrets and local env
+.env
+.env.local
+*.pfx
+*.pem
+
+# Generated Keycloak import (secrets substituted from .env)
+docker/keycloak/import/*.json
+!docker/keycloak/import/.gitkeep
+
+# Logs and local data
+logs/
+*.log
+postgres_data/
+backups/
+data/nfr-seed*/
+perf/results/*/
+!perf/results/README.md
+!perf/results/baseline-lab/
+!perf/results/baseline-lab/**
+chaos/results/*/
+!chaos/results/README.md
+!chaos/results/baseline-lab/
+!chaos/results/baseline-lab/**
+chaos/certs/# OS
+.DS_Store
+Thumbs.db
+
+# Publish artifacts
+**/publish/
+**/publish-test/
+artifacts/
+docs/output/

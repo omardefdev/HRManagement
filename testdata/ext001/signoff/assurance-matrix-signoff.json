@@ -1,0 +1,9 @@
+{
+  "fixtureId": "EXT001-ASSURANCE-SIGNOFF",
+  "expectedValidate": "PASS",
+  "assurancePolicyVersion": "2026.07.30.1",
+  "signedByRole": "national-iam-lead",
+  "reviewerRole": "security-architecture",
+  "contentHash": "sha256:ext001-lab-assurance-policy-20260730",
+  "personaCountAck": 6
+}

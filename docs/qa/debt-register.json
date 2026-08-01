@@ -1,0 +1,25 @@
+{
+  "card": "QA-005",
+  "version": "1.0.0",
+  "asOfDate": "2026-07-31",
+  "items": [
+    {
+      "id": "TD-001",
+      "title": "File.Storage Domain Visibility string vs SharedKernel FileVisibility enum",
+      "owner": "platform-engineering",
+      "openedDate": "2026-07-01",
+      "targetResolutionDate": "2026-08-31",
+      "riskLevel": "medium",
+      "status": "open"
+    },
+    {
+      "id": "TD-002",
+      "title": "INT-002 OTel counters declared but not incremented",
+      "owner": "integration-engineering",
+      "openedDate": "2026-07-15",
+      "targetResolutionDate": "2026-09-15",
+      "riskLevel": "low",
+      "status": "open"
+    }
+  ]
+}

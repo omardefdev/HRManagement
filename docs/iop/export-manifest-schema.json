@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "card": "IOP-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "title": "HR Platform Export Manifest Schema",
+  "description": "Defines the structure of a full or delta tenant data export package for portability",
+  "type": "object",
+  "required": ["manifestVersion", "exportType", "tenantId", "exportedAt", "entities", "controlTotals", "checksums"],
+  "properties": {
+    "manifestVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for forward compatibility"
+    },
+    "exportType": {
+      "type": "string",
+      "enum": ["full", "delta"],
+      "description": "Full tenant export or incremental delta since last export"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Source tenant identifier"
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of export"
+    },
+    "exportedBy": {
+      "type": "string",
+      "description": "Identity of the user/system that initiated the export"
+    },
+    "deltaBaseline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "For delta exports: timestamp of the baseline full export"
+    },
+    "platformVersion": {
+      "type": "string",
+      "description": "HR platform release version that produced this export"
+    },
+    "entities": {
+      "type": "array",
+      "description": "List of exported entity types with metadata",
+      "items": {
+        "type": "object",
+        "required": ["entityType", "format", "recordCount", "schemaFile", "dataFile", "checksumSha256"],
+        "properties": {
+          "entityType": {
+            "type": "string",
+            "description": "Canonical entity name (e.g. Employee, PayrollRun, SalaryLine)"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["jsonl", "json", "csv"],
+            "description": "Data file format"
+          },
+          "recordCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of records in the data file"
+          },
+          "schemaFile": {
+            "type": "string",
+            "description": "Relative path to JSON Schema file for this entity"
+          },
+          "dataFile": {
+            "type": "string",
+            "description": "Relative path to the data file"
+          },
+          "checksumSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash of the data file"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "targetEntity": { "type": "string" },
+                "foreignKey": { "type": "string" },
+                "cardinality": { "type": "string", "enum": ["one-to-one", "one-to-many", "many-to-many"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "description": "Binary file attachments metadata",
+      "properties": {
+        "totalCount": { "type": "integer", "minimum": 0 },
+        "totalSizeBytes": { "type": "integer", "minimum": 0 },
+        "directory": { "type": "string" },
+        "indexFile": { "type": "string" }
+      }
+    },
+    "controlTotals": {
+      "type": "object",
+      "description": "Financial and record-count control totals for reconciliation",
+      "required": ["totalRecords", "entityCounts"],
+      "properties": {
+        "totalRecords": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "entityCounts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "financialTotals": {
+          "type": "object",
+          "properties": {
+            "totalGrossPay": { "type": "string", "description": "Decimal as string" },
+            "totalNetPay": { "type": "string" },
+            "totalDeductions": { "type": "string" },
+            "currency": { "type": "string" },
+            "currencyEra": { "type": "string" }
+          }
+        }
+      }
+    },
+    "checksums": {
+      "type": "object",
+      "required": ["algorithm", "manifestHash"],
+      "properties": {
+        "algorithm": { "type": "string", "const": "SHA-256" },
+        "manifestHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the manifest excluding this field"
+        }
+      }
+    },
+    "encryption": {
+      "type": "object",
+      "properties": {
+        "algorithm": { "type": "string" },
+        "keyId": { "type": "string" },
+        "encryptedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "identityMapping": {
+      "type": "object",
+      "description": "Cross-environment ID mapping for import",
+      "properties": {
+        "mappingFile": { "type": "string" },
+        "strategy": { "type": "string", "enum": ["preserve", "remap", "merge"] }
+      }
+    }
+  }
+}

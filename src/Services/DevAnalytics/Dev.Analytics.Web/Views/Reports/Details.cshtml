@@ -1,0 +1,30 @@
+@model Report
+@{ ViewData["Title"] = "تفاصيل التقرير"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">@ViewData["Title"]</h3></div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Title)</dt>
+            <dd class="col-sm-9">@Model.Title</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportType)</dt>
+            <dd class="col-sm-9">@Model.ReportType</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Parameters)</dt>
+            <dd class="col-sm-9">@Model.Parameters</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.GeneratedAt)</dt>
+            <dd class="col-sm-9">@(Model.GeneratedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.GeneratedBy)</dt>
+            <dd class="col-sm-9">@Model.GeneratedBy</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Url)</dt>
+            <dd class="col-sm-9">@Model.Url</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+    </div>
+</div>

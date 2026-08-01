@@ -1,0 +1,1 @@
+﻿{"ledgerId":"prod002-selfadmin-lab","runs":[{"runId":"run-1","liveSelfAdmin":false,"scopes":["structure","roles"]},{"runId":"run-2","liveSelfAdmin":false,"scopes":["templates","quotas"]}]}

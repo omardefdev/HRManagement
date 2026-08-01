@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "card": "REL-001",
+  "description": "Pilot synthetic staging pack — one primary tenant, no production dump/PII",
+  "policy": {
+    "forbidProductionDump": true,
+    "forbidRealPii": true,
+    "allowedGenerators": ["scripts/nfr-seed-synthetic.ps1", "testdata/e2e"],
+    "defaultEmployees": 1000,
+    "maxEmployeesWithoutApproval": 5000,
+    "tenantId": "11111111-1111-1111-1111-111111111111"
+  },
+  "extends": {
+    "e2eManifest": "testdata/e2e/manifest.json",
+    "e2ePersonas": "testdata/e2e/personas.json",
+    "keycloakE2e": "docker/keycloak/realm-qa004-e2e.json",
+    "keycloakServices": "docker/keycloak/realm-hr-services.json",
+    "keycloakRel001": "docker/keycloak/realm-rel001-staging.json"
+  },
+  "seed": {
+    "script": "scripts/rel001-seed-synthetic.ps1",
+    "outDir": "data/rel001-seed",
+    "employees": 1000,
+    "orgUnits": 20,
+    "seed": 42
+  },
+  "reset": {
+    "script": "scripts/rel001-reset-staging.ps1"
+  }
+}

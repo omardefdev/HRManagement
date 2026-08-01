@@ -1,0 +1,31 @@
+@{ ViewData["Title"] = "لوحة تحكم التنقلات"; }
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner"><h3>@ViewBag.TransferRequests</h3><p>طلبات تنقل</p></div>
+            <div class="icon"><i class="fas fa-exchange-alt"></i></div>
+            <a asp-controller="TransferRequests" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner"><h3>@ViewBag.SecondmentRequests</h3><p>طلبات انتداب</p></div>
+            <div class="icon"><i class="fas fa-user-friends"></i></div>
+            <a asp-controller="SecondmentRequests" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner"><h3>@ViewBag.MovementNotices</h3><p>إشعارات حركة</p></div>
+            <div class="icon"><i class="fas fa-bell"></i></div>
+            <a asp-controller="MovementNotices" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-primary">
+            <div class="inner"><h3>@ViewBag.DistributionPlans</h3><p>خطط توزيع</p></div>
+            <div class="icon"><i class="fas fa-sitemap"></i></div>
+            <a asp-controller="DistributionPlans" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+</div>

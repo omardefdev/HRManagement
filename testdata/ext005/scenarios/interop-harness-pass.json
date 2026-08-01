@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-INTEROP-HARNESS",
+  "expectedValidate": "PASS",
+  "producerOk": true,
+  "consumerOk": true,
+  "liveBus": false,
+  "notes": "Lab interop harness producer/consumer pass"
+}

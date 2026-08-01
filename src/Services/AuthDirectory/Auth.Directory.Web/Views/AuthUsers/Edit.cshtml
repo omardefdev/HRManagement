@@ -1,0 +1,72 @@
+@model Auth.Directory.Domain.Entities.AuthUser
+@{
+    ViewData["Title"] = "تعديل المستخدم";
+    var allRoles = ViewBag.AllRoles as List<Auth.Directory.Domain.Entities.Role> ?? new();
+    var assignedRoleIds = Model.UserRoles.Select(ur => ur.RoleId).ToHashSet();
+}
+
+<div class="card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header">
+            <h3 class="card-title mb-0">تعديل: @Model.Username</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-3 mb-3">
+                <label class="form-label">اسم المستخدم</label>
+                <input type="text" class="form-control" value="@Model.Username" disabled />
+            </div>
+
+            <div class="mb-3 mb-3">
+                <label class="form-label">البريد الإلكتروني</label>
+                <input type="text" class="form-control" value="@Model.Email" disabled />
+            </div>
+
+            <div class="mb-3 mb-3">
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="isActive" name="isActive" value="true" @(Model.IsActive ? "checked" : "") />
+                    <label class="form-check-label" for="isActive">نشط</label>
+                </div>
+            </div>
+
+            <div class="mb-3 mb-3">
+                <label class="form-label fw-bold">الأدوار</label>
+                @if (allRoles.Any())
+                {
+                    @foreach (var role in allRoles)
+                    {
+                        <div class="form-check">
+                            <input type="checkbox"
+                                   class="form-check-input"
+                                   id="role_@role.Id"
+                                   name="selectedRoles"
+                                   value="@role.Id"
+                                   @(assignedRoleIds.Contains(role.Id) ? "checked" : "") />
+                            <label class="form-check-label" for="role_@role.Id">
+                                @role.Name
+                                @if (!string.IsNullOrEmpty(role.Description))
+                                {
+                                    <small class="text-muted">— @role.Description</small>
+                                }
+                            </label>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">لا توجد أدوار معرّفة بعد</p>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">معتمد ثانٍ (مطلوب لمنح الأدوار الحساسة)</label>
+                <input type="text" name="secondApproverId" class="form-control" placeholder="GUID للمعتمد الثاني" />
+                <div class="form-text">مطلوب عند منح hr-admin أو platform-admin أو payroll-poster</div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,99 @@
+@model Contract
+@{
+    ViewData["Title"] = "تفاصيل العقد";
+    string StatusBadge() => Model.Status switch
+    {
+        ContractStatus.Pending => "bg-warning",
+        ContractStatus.Active => "bg-success",
+        ContractStatus.Expired => "bg-secondary",
+        ContractStatus.Terminated => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0"><i class="fas fa-file-contract"></i> عقد — @Model.ContractType.NameAr</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> تعديل</a>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p><span class="badge @StatusBadge()">@Model.Status</span></p>
+        <table class="table table-sm">
+            <tr><th>معرّف الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>نوع العقد</th><td>@Model.ContractType.NameAr (@Model.ContractType.Code)</td></tr>
+            <tr><th>من</th><td>@Model.StartDate.ToString("yyyy/MM/dd")</td></tr>
+            <tr><th>إلى</th><td>@(Model.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td></tr>
+            <tr><th>البنود</th><td>@(Model.Terms ?? "—")</td></tr>
+            <tr><th>فترة الاختبار (أشهر)</th><td>@(Model.ProbationMonths?.ToString() ?? "—")</td></tr>
+        </table>
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (TempData["Warning"] != null) { <div class="alert alert-warning">@TempData["Warning"]</div> }
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+        @if (Model.Status == ContractStatus.Pending)
+        {
+            <div class="mb-3">
+                <h6><i class="fas fa-tasks"></i> شروط التفعيل</h6>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex align-items-center gap-2">
+                        @if (Model.Signatures.Any())
+                        {
+                            <i class="fas fa-check-circle text-success"></i>
+                        }
+                        else
+                        {
+                            <i class="fas fa-times-circle text-danger"></i>
+                        }
+                        <span>وجود توقيع واحد على الأقل (@Model.Signatures.Count توقيع)</span>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center gap-2">
+                        <i class="fas fa-question-circle text-muted"></i>
+                        <span>وجود سجل مباشرة مرتبط (يتم التحقق عند التفعيل)</span>
+                    </li>
+                    @if (Model.ProbationMonths.HasValue && Model.ProbationMonths.Value > 0)
+                    {
+                        <li class="list-group-item d-flex align-items-center gap-2">
+                            <i class="fas fa-question-circle text-muted"></i>
+                            <span>اجتياز فترة الاختبار (يتم التحقق عند التفعيل)</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <form asp-action="Activate" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> تفعيل العقد وإشعار الأنظمة</button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-signature"></i> التوقيعات</h3>
+        <a asp-controller="ContractSignatures" asp-action="Create" asp-route-contractId="@Model.Id" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> توقيع</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>الموقّع</th><th>التاريخ</th><th>النوع</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Signatures)
+                {
+                    <tr>
+                        <td>@s.SignedBy</td>
+                        <td>@s.SignedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@s.SignatureType</td>
+                        <td>
+                            <form asp-controller="ContractSignatures" asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('حذف التوقيع؟');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Signatures.Any()) { <tr><td colspan="4" class="text-muted text-center py-3">لا توجد توقيعات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

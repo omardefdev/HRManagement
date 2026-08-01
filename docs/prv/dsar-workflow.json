@@ -1,0 +1,68 @@
+{
+  "card": "PRV-002",
+  "asOf": "2026-07-31",
+  "legalFrameworkRefs": ["SY-Law-12-2024", "GOV-001", "PRV-001"],
+  "requestTypes": [
+    { "type": "Access", "slaDays": 30, "requiresDiscovery": true },
+    { "type": "Correction", "slaDays": 30, "requiresDiscovery": true, "preservesProvenance": true },
+    { "type": "Restriction", "slaDays": 30, "requiresDiscovery": true },
+    { "type": "Deletion", "slaDays": 45, "requiresDiscovery": true, "checksLegalHold": true },
+    { "type": "Objection", "slaDays": 30, "requiresDiscovery": false },
+    { "type": "Appeal", "slaDays": 30, "independentReviewer": true }
+  ],
+  "statuses": [
+    "Received",
+    "IdentityVerification",
+    "InProgress",
+    "PendingReview",
+    "Fulfilled",
+    "PartiallyFulfilled",
+    "Rejected",
+    "AppealOpen",
+    "Closed"
+  ],
+  "transitions": [
+    { "from": "Received", "to": "IdentityVerification", "actor": "PrivacyOps" },
+    { "from": "Received", "to": "Rejected", "actor": "PrivacyOps", "requiresReason": true },
+    { "from": "IdentityVerification", "to": "InProgress", "actor": "PrivacyOps", "requiresIdentityProof": true },
+    { "from": "IdentityVerification", "to": "Rejected", "actor": "PrivacyOps", "requiresReason": true },
+    { "from": "InProgress", "to": "PendingReview", "actor": "PrivacyOps", "requiresDiscoveryScope": true },
+    { "from": "InProgress", "to": "Rejected", "actor": "PrivacyOps", "requiresReason": true },
+    { "from": "PendingReview", "to": "Fulfilled", "actor": "DPO", "requiresDiscoveryPackage": true },
+    { "from": "PendingReview", "to": "PartiallyFulfilled", "actor": "DPO", "requiresException": true },
+    { "from": "PendingReview", "to": "Rejected", "actor": "DPO", "requiresReason": true },
+    { "from": "PartiallyFulfilled", "to": "AppealOpen", "actor": "Subject" },
+    { "from": "Rejected", "to": "AppealOpen", "actor": "Subject" },
+    { "from": "AppealOpen", "to": "InProgress", "actor": "IndependentReviewer" },
+    { "from": "Fulfilled", "to": "Closed", "actor": "System" },
+    { "from": "PartiallyFulfilled", "to": "Closed", "actor": "System" },
+    { "from": "Rejected", "to": "Closed", "actor": "System" }
+  ],
+  "discoverySources": [
+    "HR.Core",
+    "Payroll",
+    "HR.Contracts",
+    "HR.Movements",
+    "HR.Health",
+    "HR.Training",
+    "File.Storage",
+    "Records.Archive",
+    "IDCard",
+    "Compliance",
+    "Dev.Analytics"
+  ],
+  "exceptionCodes": [
+    { "code": "THIRD_PARTY_RIGHTS", "description": "Disclosure would violate another person's rights" },
+    { "code": "LEGAL_HOLD", "description": "Record under legal hold (LEG-001)" },
+    { "code": "STATUTORY_EXEMPTION", "description": "Processing exempt from erasure/access scope" },
+    { "code": "IDENTITY_NOT_VERIFIED", "description": "Subject identity could not be verified" }
+  ],
+  "identityProofMethods": [
+    "in-person-agency",
+    "digital-national-id",
+    "delegated-guardian",
+    "employee-self-service-mfa"
+  ],
+  "noDirectDbEdit": true,
+  "appealIndependent": true
+}

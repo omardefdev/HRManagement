@@ -1,0 +1,29 @@
+@model AdministrativeDecisionViewModel
+@{ ViewData["Title"] = "تعديل قرار"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">تعديل قرار إداري</h3></div>
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="Subject" class="form-label"></label><input asp-for="Subject" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="DecisionNumber" class="form-label"></label><input asp-for="DecisionNumber" class="form-control" /></div>
+            <div class="mb-3"><label class="form-label">صادر عن</label><input class="form-control" value="@Model.IssuedBy" readonly /></div>
+            <div class="mb-3"><label asp-for="IssuedDate" class="form-label"></label><input asp-for="IssuedDate" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="RelatedEmployeeId" class="form-label"></label><input asp-for="RelatedEmployeeId" class="form-control" /></div>
+            @{
+                ViewData["FileUploadName"] = "FileId";
+                ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                ViewData["FileUploadMaxSize"] = "26214400";
+                ViewData["FileUploadLabel"] = "ملف القرار";
+            }
+            @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,0 +1,19 @@
+@model Payroll.Domain.Entities.DeductionType
+@{ ViewData["Title"] = "نوع خصم جديد"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> نوع خصم جديد</h3></div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">@Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /></div>
+                <div class="col-md-6 mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /></div>
+                <div class="col-md-4 mb-3"><div class="form-check mt-4"><input asp-for="IsStatutory" class="form-check-input" type="checkbox" /><label asp-for="IsStatutory" class="form-check-label"></label></div></div>
+                <div class="col-md-4 mb-3"><label asp-for="Percentage" class="form-label"></label><input asp-for="Percentage" class="form-control" type="number" step="0.01" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="FixedAmount" class="form-label"></label><input asp-for="FixedAmount" class="form-control" type="number" step="0.01" /></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

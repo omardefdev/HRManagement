@@ -1,0 +1,12 @@
+{
+  "scenarioId": "SIM-TCO-FUNDED",
+  "horizonYears": 5,
+  "lines": [
+    { "category": "dev", "funded": true },
+    { "category": "ops", "funded": true },
+    { "category": "security", "funded": true },
+    { "category": "backup", "funded": true }
+  ],
+  "mustFundCategories": ["ops", "security", "backup"],
+  "expectedValidate": "PASS"
+}

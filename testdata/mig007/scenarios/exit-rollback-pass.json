@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-EXIT-ROLLBACK",
+  "expectedValidate": "PASS",
+  "mode": "rollback-to-pre-wave",
+  "exercised": true,
+  "auditTrailKept": true
+}

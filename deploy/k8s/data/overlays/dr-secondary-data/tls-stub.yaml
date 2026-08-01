@@ -1,0 +1,15 @@
+# TLS notes for data-plane (OPS-002). Prefer cert-manager Certificate CRs in real clusters.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-tls-notes
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: tls
+data:
+  README: |
+    Production TLS: issue Certificate for rabbitmq / minio / keycloak internal DNS
+    via cert-manager ClusterIssuer; store in Secret data-tls or per-service secrets.
+    Do not expose RabbitMQ management (15672) or MinIO console publicly (SEC-001).
+    Keycloak edge TLS terminates at Ingress (OPS-001) with KC_PROXY=edge.
+    Example: kubectl create secret tls data-tls --cert=... --key=... -n hrmanagement-data

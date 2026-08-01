@@ -1,0 +1,8 @@
+# Example remote state — copy to backend.hcl and fill (do not commit real names with secrets).
+# terraform init -backend-config=backend.hcl
+
+bucket         = "hrm-tfstate-REPLACE"
+key            = "hrmanagement/ENV/terraform.tfstate"
+region         = "eu-central-1"
+dynamodb_table = "hrm-tfstate-lock-REPLACE"
+encrypt        = true

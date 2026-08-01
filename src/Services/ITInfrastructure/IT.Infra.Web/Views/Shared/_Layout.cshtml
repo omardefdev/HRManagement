@@ -1,0 +1,27 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "it-infra";
+}
+
+@section SidebarItems {
+    <li class="nav-header">البنية التحتية</li>
+    <li class="nav-item"><a asp-controller="ServerDevices" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-database"></i><p>السيرفرات</p></a></li>
+    <li class="nav-item"><a asp-controller="SystemPermissionRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-key"></i><p>صلاحيات الأنظمة</p></a></li>
+    <li class="nav-item"><a asp-controller="EnvironmentConfigurations" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-sliders-h"></i><p>وصفات البيئة</p></a></li>
+    <li class="nav-item"><a asp-controller="UserDevices" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-laptop"></i><p>أجهزة المستخدمين</p></a></li>
+    <li class="nav-item"><a asp-controller="SupportTickets" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-headset"></i><p>تذاكر الدعم</p></a></li>
+    <li class="nav-item"><a asp-controller="SupportTickets" asp-action="FailedProvisioning" class="nav-link"><i class="nav-icon fas fa-redo"></i><p>تزويد فاشل</p></a></li>
+    <li class="nav-item"><a asp-controller="BackupJobs" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-hdd"></i><p>النسخ الاحتياطي</p></a></li>
+    <li class="nav-item"><a asp-controller="SecurityIncidents" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-exclamation-triangle"></i><p>الحوادث الأمنية</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

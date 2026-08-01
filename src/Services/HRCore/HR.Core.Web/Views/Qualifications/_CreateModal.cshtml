@@ -1,0 +1,60 @@
+@model HR.Core.Web.ViewModels.QualificationCreateViewModel
+
+<div class="modal fade" id="createQualificationModal" tabindex="-1" aria-labelledby="createQualificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" dir="rtl">
+        <div class="modal-content">
+            <form asp-controller="Qualifications" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="EmployeeId" />
+                <input type="hidden" asp-for="ReturnTo" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createQualificationModalLabel">إضافة مؤهل@(Model.EmployeeName != null ? $" — {Model.EmployeeName}" : "")</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Title" class="form-label"></label>
+                                <input asp-for="Title" class="form-control" />
+                                <span asp-validation-for="Title" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="QualificationCode" class="form-label"></label>
+                                <input asp-for="QualificationCode" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Provider" class="form-label"></label>
+                                <input asp-for="Provider" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="CompletionDate" class="form-label"></label>
+                                <input asp-for="CompletionDate" class="form-control" type="date" />
+                            </div>
+                        </div>
+                    </div>
+                    @{
+                        ViewData["FileUploadName"] = "FileId";
+                        ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                        ViewData["FileUploadMaxSize"] = "26214400";
+                        ViewData["FileUploadLabel"] = "ملف الشهادة";
+                    }
+                    @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

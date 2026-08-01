@@ -1,0 +1,43 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط نشاط: النقل أو الانتداب بين الوحدات
+start
+:استلام طلب الحركة;
+:التحقق من الوحدة المصدر والوجهة;
+if (المستخدم مخول للنطاق؟) then (نعم)
+  :مراجعة الاحتياج والاعتماد;
+  :تنفيذ النقل;
+  :نشر TransferExecuted;
+  fork
+    :تحديث وحدة الموظف المرجعية;
+  fork again
+    :تحديث الأثر المالي;
+  fork again
+    :تحديث الدليل والتجهيزات;
+  end fork
+else (لا)
+  :منع الوصول وتسجيل المحاولة;
+endif
+stop
+@enduml

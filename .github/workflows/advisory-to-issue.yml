@@ -1,0 +1,23 @@
+name: advisory-to-issue
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Dependabot alerts → Issues (SUP-001-E)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      security-events: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync alerts to issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/sync-dependabot-alerts-to-issues.sh

@@ -1,0 +1,31 @@
+@model Report
+@{ ViewData["Title"] = "تقرير جديد"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header"><h3 class="card-title">@ViewData["Title"]</h3></div>
+        <div class="card-body">
+            <div class="mb-3 mb-2">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="ReportType" class="form-label"></label>
+                <select asp-for="ReportType" asp-items="Html.GetEnumSelectList<ReportType>()" class="form-control"></select>
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="Parameters" class="form-label"></label>
+                <input asp-for="Parameters" class="form-control" />
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="Url" class="form-label"></label>
+                <input asp-for="Url" class="form-control" />
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

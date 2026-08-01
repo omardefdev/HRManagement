@@ -1,0 +1,334 @@
+{
+  "card": "STR-007",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "requiredKpiFields": [
+    "id",
+    "name",
+    "definition",
+    "unit",
+    "formula",
+    "sourceRef",
+    "ownerRole",
+    "auditorRole",
+    "target",
+    "baselineRequired",
+    "antiGamingRules",
+    "benefitCategory",
+    "moduleIds"
+  ],
+  "forbiddenBenefitMeasures": ["screenCount", "pageCount", "widgetCount"],
+  "privacyRules": {
+    "tenantScoped": true,
+    "minCellSize": 5,
+    "forbidCrossTenantRollupWithoutWaiver": true
+  },
+  "kpis": [
+    {
+      "id": "hire_cycle_time",
+      "name": "Hire cycle time",
+      "definition": "Median calendar days from approved vacancy to employee start date",
+      "unit": "days",
+      "formula": "median(startDate - vacancyApprovedDate)",
+      "sourceRef": "HR.Core hiring events / legacy HR extract",
+      "ownerRole": "product-hr",
+      "auditorRole": "audit",
+      "target": { "direction": "decrease", "value": 45 },
+      "baselineRequired": true,
+      "antiGamingRules": ["exclude-cancelled-offers", "freeze-definition-before-quarter"],
+      "benefitCategory": "time-to-productivity",
+      "moduleIds": ["hr-core", "hr-contracts"]
+    },
+    {
+      "id": "separation_cycle_time",
+      "name": "Separation cycle time",
+      "definition": "Median days from separation request to final payroll/access close",
+      "unit": "days",
+      "formula": "median(accessClosedAt - separationRequestedAt)",
+      "sourceRef": "HR.Movements + Auth.Directory offboarding",
+      "ownerRole": "product-hr",
+      "auditorRole": "audit",
+      "target": { "direction": "decrease", "value": 10 },
+      "baselineRequired": true,
+      "antiGamingRules": ["include-all-involuntary", "no-backdate-without-ticket"],
+      "benefitCategory": "risk-reduction",
+      "moduleIds": ["hr-movements", "auth-directory"]
+    },
+    {
+      "id": "payroll_cycle_time",
+      "name": "Payroll cycle time",
+      "definition": "Hours from period close to payslip available",
+      "unit": "hours",
+      "formula": "median(payslipAvailableAt - periodClosedAt)",
+      "sourceRef": "Payroll.Domain run ledger",
+      "ownerRole": "product-payroll",
+      "auditorRole": "audit",
+      "target": { "direction": "decrease", "value": 48 },
+      "baselineRequired": true,
+      "antiGamingRules": ["exclude-re-runs-after-error", "definition-locked-per-regime"],
+      "benefitCategory": "operational-efficiency",
+      "moduleIds": ["payroll"]
+    },
+    {
+      "id": "self_service_rate",
+      "name": "Self-service rate",
+      "definition": "Share of eligible employee transactions completed without clerk",
+      "unit": "percent",
+      "formula": "selfServiceTxn / eligibleTxn * 100",
+      "sourceRef": "ESS portal stub — PROD-003; fixture until portals exist",
+      "ownerRole": "product",
+      "auditorRole": "audit",
+      "target": { "direction": "increase", "value": 40 },
+      "baselineRequired": true,
+      "antiGamingRules": ["eligible-set-signed", "no-force-self-service-denials"],
+      "benefitCategory": "adoption",
+      "moduleIds": ["hr-core"]
+    },
+    {
+      "id": "data_error_duplicate_rate",
+      "name": "Data error / duplicate rate",
+      "definition": "Open duplicate or DQ-fail cases per 1000 active employees",
+      "unit": "per_1000",
+      "formula": "openDqCases / activeEmployees * 1000",
+      "sourceRef": "docs/GOV_003_DATA_QUALITY.md + gov003-data-quality-report",
+      "ownerRole": "data",
+      "auditorRole": "audit",
+      "target": { "direction": "decrease", "value": 5 },
+      "baselineRequired": true,
+      "antiGamingRules": ["no-silent-close", "threshold-from-GOV-003"],
+      "benefitCategory": "data-quality",
+      "moduleIds": ["hr-core"]
+    },
+    {
+      "id": "user_satisfaction",
+      "name": "User satisfaction",
+      "definition": "Quarterly CSAT mean for agency HR operators (1-5)",
+      "unit": "score",
+      "formula": "mean(surveyScore)",
+      "sourceRef": "UXR survey pack / UXR-001 later",
+      "ownerRole": "product",
+      "auditorRole": "audit",
+      "target": { "direction": "increase", "value": 4.0 },
+      "baselineRequired": true,
+      "antiGamingRules": ["min-response-rate-30pct", "no-cherry-pick-agencies"],
+      "benefitCategory": "experience",
+      "moduleIds": ["hr-core", "payroll"]
+    },
+    {
+      "id": "uptime_value",
+      "name": "Platform uptime (value)",
+      "definition": "Gateway availability as value proxy for national HR access",
+      "unit": "percent",
+      "formula": "probe_success / probe_total * 100 over 30d",
+      "sourceRef": "docs/OBS_SLO_CATALOG.md#j1--gatewayavailability",
+      "ownerRole": "sre",
+      "auditorRole": "audit",
+      "target": { "direction": "increase", "value": 99.5 },
+      "baselineRequired": true,
+      "antiGamingRules": ["use-OBS-SLO-window", "no-exclude-maintenance-without-change-ticket"],
+      "benefitCategory": "reliability",
+      "moduleIds": []
+    },
+    {
+      "id": "cost_per_employee",
+      "name": "Cost per employee",
+      "definition": "Fully loaded annual platform cost divided by active employees",
+      "unit": "currency_per_employee",
+      "formula": "annualPlatformCost / activeEmployees",
+      "sourceRef": "FIN-001 TCO stub — STR-006 budget until FIN-001",
+      "ownerRole": "finance",
+      "auditorRole": "audit",
+      "target": { "direction": "decrease", "value": null, "note": "target set when FIN-001 lands" },
+      "baselineRequired": true,
+      "antiGamingRules": ["include-ops-security-backup", "no-dev-only-cost"],
+      "benefitCategory": "unit-economics",
+      "moduleIds": []
+    },
+    {
+      "id": "agency_onboarding_time",
+      "name": "Agency onboarding time",
+      "definition": "Calendar days from onboarding kickoff to first successful payroll run",
+      "unit": "days",
+      "formula": "firstPayrollSuccessAt - onboardingKickoffAt",
+      "sourceRef": "ONB / program milestone evidence",
+      "ownerRole": "program",
+      "auditorRole": "audit",
+      "target": { "direction": "decrease", "value": 90 },
+      "baselineRequired": true,
+      "antiGamingRules": ["kickoff-date-from-charter", "no-exclude-failed-first-runs"],
+      "benefitCategory": "time-to-value",
+      "moduleIds": ["payroll", "hr-core"]
+    },
+    {
+      "id": "adoption_rate",
+      "name": "Module adoption rate",
+      "definition": "Share of entitled agencies actively using core modules in period",
+      "unit": "percent",
+      "formula": "activeAgencies / entitledAgencies * 100",
+      "sourceRef": "STR-003 entitlements + usage events",
+      "ownerRole": "product",
+      "auditorRole": "audit",
+      "target": { "direction": "increase", "value": 70 },
+      "baselineRequired": true,
+      "antiGamingRules": ["active=min-1-txn-in-period", "entitled-from-STR-003"],
+      "benefitCategory": "adoption",
+      "moduleIds": ["hr-core", "payroll", "hr-contracts"]
+    }
+  ],
+  "baselines": [
+    {
+      "kpiId": "hire_cycle_time",
+      "legacySystem": "legacy-hr-batch",
+      "asOfDate": "2026-06-01",
+      "value": 62,
+      "sourceTier": "agency-sample",
+      "signedByRole": "agency-hr",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "separation_cycle_time",
+      "legacySystem": "legacy-hr-batch",
+      "asOfDate": "2026-06-01",
+      "value": 18,
+      "sourceTier": "agency-sample",
+      "signedByRole": "agency-hr",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "payroll_cycle_time",
+      "legacySystem": "legacy-payroll",
+      "asOfDate": "2026-06-01",
+      "value": 96,
+      "sourceTier": "agency-sample",
+      "signedByRole": "agency-payroll",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "self_service_rate",
+      "legacySystem": "clerk-only",
+      "asOfDate": "2026-06-01",
+      "value": 5,
+      "sourceTier": "estimate-signed",
+      "signedByRole": "product",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "data_error_duplicate_rate",
+      "legacySystem": "legacy-mdm-none",
+      "asOfDate": "2026-06-01",
+      "value": 22,
+      "sourceTier": "gov003-seed",
+      "signedByRole": "data",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "user_satisfaction",
+      "legacySystem": "no-survey",
+      "asOfDate": "2026-06-01",
+      "value": 2.8,
+      "sourceTier": "pilot-pre-survey",
+      "signedByRole": "product",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "uptime_value",
+      "legacySystem": "legacy-uptime-log",
+      "asOfDate": "2026-06-01",
+      "value": 97.0,
+      "sourceTier": "ops-sample",
+      "signedByRole": "sre",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "cost_per_employee",
+      "legacySystem": "fragmented-licenses",
+      "asOfDate": "2026-06-01",
+      "value": null,
+      "sourceTier": "fin001-pending",
+      "signedByRole": "finance",
+      "prePilotFreeze": true,
+      "note": "Numeric baseline deferred to FIN-001; freeze flag still required"
+    },
+    {
+      "kpiId": "agency_onboarding_time",
+      "legacySystem": "manual-cutover",
+      "asOfDate": "2026-06-01",
+      "value": 180,
+      "sourceTier": "program-sample",
+      "signedByRole": "program",
+      "prePilotFreeze": true
+    },
+    {
+      "kpiId": "adoption_rate",
+      "legacySystem": "paper-parallel",
+      "asOfDate": "2026-06-01",
+      "value": 10,
+      "sourceTier": "program-sample",
+      "signedByRole": "product",
+      "prePilotFreeze": true
+    }
+  ],
+  "blockers": [
+    { "id": "STR-001", "status": "Satisfied", "note": "Envelope Done" },
+    { "id": "STR-003", "status": "Satisfied", "note": "Module catalog Done" },
+    { "id": "GOV-003", "status": "Satisfied", "note": "Master data / DQ Done" },
+    { "id": "FIN-001", "status": "NotStarted", "note": "cost_per_employee SoT" },
+    { "id": "PROD-003", "status": "Satisfied", "note": "Employee-selfservice production binding Done; live portals still later" }
+  ],
+  "journeys": [
+    {
+      "id": "KpiCatalog",
+      "steps": [
+        { "id": "RequiredFields", "mandatory": true, "ownerRole": "product", "slaHours": 48, "evidenceType": "kpis", "service": "docs", "event": null },
+        { "id": "OwnerNotAuditor", "mandatory": true, "ownerRole": "audit", "slaHours": 24, "evidenceType": "ownerRole", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "BaselineFreeze",
+      "steps": [
+        { "id": "PrePilotFreeze", "mandatory": true, "ownerRole": "program", "slaHours": 72, "evidenceType": "baselines", "service": "docs", "event": null },
+        { "id": "LegacySample", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "legacy-sample", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "IndependentMeasure",
+      "steps": [
+        { "id": "AssessorIndependent", "mandatory": true, "ownerRole": "audit", "slaHours": 48, "evidenceType": "independent-measurement", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SampleReconcile",
+      "steps": [
+        { "id": "ReconcilePassFail", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "sample-reconciliation", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "QuarterlyReview",
+      "steps": [
+        { "id": "AgendaNoScreenCount", "mandatory": true, "ownerRole": "product", "slaHours": 24, "evidenceType": "quarterly-benefit-review", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "PrivacyGate",
+      "steps": [
+        { "id": "TenantScoped", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "privacyRules", "service": "docs", "event": null },
+        { "id": "CrossTenantFails", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-tenant-leak", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "legacyBaseline": "testdata/str007/baselines/legacy-sample.json",
+    "independentMeasurement": "testdata/str007/scenarios/independent-measurement.json",
+    "sampleReconcilePass": "testdata/str007/scenarios/sample-reconciliation-pass.json",
+    "sampleReconcileFail": "testdata/str007/scenarios/sample-reconciliation-fail.json",
+    "quarterlyReview": "testdata/str007/scenarios/quarterly-benefit-review.json",
+    "screenCountBanned": "testdata/str007/scenarios/screen-count-banned.json",
+    "crossTenantLeak": "testdata/str007/privacy/cross-tenant-leak.json"
+  },
+  "joins": {
+    "str003Modules": "docs/str-modules/module-catalog.json#modules[].moduleId",
+    "gov003Dq": "docs/GOV_003_DATA_QUALITY.md",
+    "obsUptime": "docs/OBS_SLO_CATALOG.md#j1--gatewayavailability"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "card": "MIG-007",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "onboardingPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "readinessGates": [
+    { "id": "tenant", "mandatory": true },
+    { "id": "config", "mandatory": true },
+    { "id": "roles", "mandatory": true },
+    { "id": "integrations", "mandatory": true },
+    { "id": "data", "mandatory": true },
+    { "id": "training", "mandatory": true },
+    { "id": "support", "mandatory": true }
+  ],
+  "playbook": {
+    "noforkRequired": true,
+    "str004Join": "docs/str-product/nofork-matrix.json",
+    "standardSteps": [
+      "assess-readiness",
+      "provision-tenant-config",
+      "assign-owners",
+      "sandbox-cert-lab",
+      "signoffs-before-wave",
+      "cutover-join-mig006",
+      "telemetry-closeout"
+    ]
+  },
+  "sandboxCertification": {
+    "labStub": true,
+    "livePortalForbidden": true,
+    "ext006Join": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md#EXT-006"
+  },
+  "waveCriteria": {
+    "signOffsRequiredBeforeWave": true,
+    "requiredSignOffRoles": ["agency-data-owner", "security-owner", "ops-owner", "onboarding-office"]
+  },
+  "requiredOwners": ["data-owner", "security-owner", "ops-owner"],
+  "telemetry": {
+    "leadTimeTargetDays": 45,
+    "defectBudget": 5
+  },
+  "exitRollback": {
+    "required": true,
+    "modes": ["exit-incomplete", "rollback-to-pre-wave"]
+  },
+  "agencies": [
+    {
+      "id": "lab-agency-a",
+      "profile": "central-ministry",
+      "policyVariant": "strict-cadre"
+    },
+    {
+      "id": "lab-agency-b",
+      "profile": "governorate-service",
+      "policyVariant": "flexible-local"
+    }
+  ],
+  "signing": {
+    "signedByRole": "onboarding-office-lead",
+    "reviewerRole": "internal-audit",
+    "onboardingPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:mig007-lab-onboarding-policy-20260730"
+  },
+  "blockers": [
+    { "id": "MIG-006", "status": "Satisfied", "note": "Production cutover binding Done" },
+    { "id": "STR-004", "status": "Satisfied", "note": "Nofork Done" },
+    { "id": "EXT-006", "status": "NotStarted", "note": "Sandbox portal later" },
+    { "id": "PROD-002", "status": "Satisfied", "note": "Agency self-admin production binding Done" },
+    { "id": "ONB-001", "status": "Satisfied", "note": "Agency provisioning manifest pack Done" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Lab only" },
+    { "id": "live-dual-agency-onboard", "status": "Blocked", "note": "Live E2E later" }
+  ],
+  "outOfScope": [
+    "EXT-006 developer portal",
+    "PROD-002 self-admin",
+    "ONB-001 provision engine",
+    "Live agency extract/cutover"
+  ],
+  "journeys": [
+    {
+      "id": "ReadinessChecklist",
+      "steps": [
+        { "id": "GatesDefined", "mandatory": true, "ownerRole": "onboarding-office", "slaHours": 48, "evidenceType": "readinessGates", "service": "docs", "event": null },
+        { "id": "ChecklistPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "readiness-checklist-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NoForkPlaybook",
+      "steps": [
+        { "id": "PlaybookNofork", "mandatory": true, "ownerRole": "product", "slaHours": 48, "evidenceType": "playbook", "service": "docs", "event": null },
+        { "id": "ForkFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "fork-attempt-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "WaveSignOffGate",
+      "steps": [
+        { "id": "WavePolicy", "mandatory": true, "ownerRole": "onboarding-office", "slaHours": 24, "evidenceType": "waveCriteria", "service": "docs", "event": null },
+        { "id": "WaveWithoutSignoffFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "wave-without-signoff-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DualAgencyE2E",
+      "steps": [
+        { "id": "AgencyA", "mandatory": true, "ownerRole": "qa", "slaHours": 72, "evidenceType": "agency-a-e2e", "service": "testdata", "event": null },
+        { "id": "AgencyB", "mandatory": true, "ownerRole": "qa", "slaHours": 72, "evidenceType": "agency-b-e2e", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "LeadTimeDefects",
+      "steps": [
+        { "id": "LeadTime", "mandatory": true, "ownerRole": "onboarding-office", "slaHours": 48, "evidenceType": "lead-time-pass", "service": "testdata", "event": null },
+        { "id": "Defects", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "defects-telemetry", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ExitRollback",
+      "steps": [
+        { "id": "ExitPolicy", "mandatory": true, "ownerRole": "onboarding-office", "slaHours": 48, "evidenceType": "exitRollback", "service": "docs", "event": null },
+        { "id": "ExitPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "exit-rollback-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "readinessChecklistPass": "testdata/mig007/checklist/readiness-checklist-pass.json",
+    "waveWithoutSignoffFail": "testdata/mig007/scenarios/wave-without-signoff-fail.json",
+    "forkAttemptFail": "testdata/mig007/scenarios/fork-attempt-fail.json",
+    "agencyAE2E": "testdata/mig007/agencies/agency-a-e2e.json",
+    "agencyBE2E": "testdata/mig007/agencies/agency-b-e2e.json",
+    "leadTimePass": "testdata/mig007/metrics/lead-time-pass.json",
+    "defectsTelemetry": "testdata/mig007/metrics/defects-telemetry.json",
+    "exitRollbackPass": "testdata/mig007/scenarios/exit-rollback-pass.json",
+    "onboardingRunLedger": "testdata/mig007/harness/onboarding-run-ledger.json"
+  },
+  "joins": {
+    "str004Nofork": "docs/str-product/nofork-matrix.json",
+    "mig006Cutover": "docs/mig-cutover/cutover-matrix.json",
+    "ext006Backlog": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md#EXT-006",
+    "prod002Backlog": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md#PROD-002"
+  }
+}

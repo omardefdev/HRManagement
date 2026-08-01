@@ -1,0 +1,67 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.EmploymentRecord>
+@{
+    ViewData["Title"] = "السجل الوظيفي";
+    var employee = (HR.Core.Domain.Entities.Employee)ViewBag.Employee;
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-briefcase"></i> السجل الوظيفي — @employee.FullName</h3>
+        <div class="card-tools">
+            <a asp-action="Create" asp-route-employeeId="@employee.Id" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> إضافة سجل
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>المسمى</th>
+                    <th>الوحدة</th>
+                    <th>من</th>
+                    <th>إلى</th>
+                    <th>نوع التوظيف</th>
+                    <th>الحالة</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>@r.PositionTitle</td>
+                        <td>@(r.OrgUnit?.NameAr ?? "—")</td>
+                        <td>@r.StartDate.ToString("yyyy/MM/dd")</td>
+                        <td>@(r.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@r.EmploymentType</td>
+                        <td>@r.Status @(r.ApprovedBy != null ? "✓ معتمد" : "")</td>
+                        <td>
+                            @if (r.ApprovedBy == null)
+                            {
+                                <form asp-action="Approve" asp-route-id="@r.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-success btn-xs" title="اعتماد السجل">اعتماد</button>
+                                </form>
+                            }
+                            <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = r.Id })" aria-label="حذف">
+                                <i aria-hidden="true" class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد سجلات وظيفية</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer">
+        <a asp-controller="Employees" asp-action="Details" asp-route-id="@employee.Id" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة لملف الموظف
+        </a>
+    </div>
+</div>
+

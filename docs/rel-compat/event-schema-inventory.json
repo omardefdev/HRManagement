@@ -1,0 +1,206 @@
+{
+  "card": "REL-004",
+  "version": 1,
+  "asOfDate": "2026-07-31",
+  "policyVersion": "2026.07.31.1",
+  "additiveOnlyWithinMinor": true,
+  "contracts": [
+    {
+      "id": "IEmployeeCreated",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Core.EmployeeIntegrationService",
+      "consumers": ["HR.Contracts", "HR.Health", "IDCard", "Auth.Directory", "Payroll", "IT.Infra", "Dev.Analytics"],
+      "category": "domain",
+      "compatRule": "additive-only-minor",
+      "idempotency": "inbox-filter"
+    },
+    {
+      "id": "IEmployeeStatusChanged",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Core",
+      "consumers": ["Auth.Directory"],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "IContractActivated",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Contracts",
+      "consumers": ["Payroll"],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "ISeparationCompleted",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Contracts",
+      "consumers": ["Payroll", "Records.Archive", "IDCard", "Admin.Logistics", "Auth.Directory", "IT.Infra", "Dev.Analytics"],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "IPayrollProcessed",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "Payroll",
+      "consumers": ["Dev.Analytics"],
+      "category": "domain",
+      "compatRule": "additive-only-minor",
+      "idempotency": "referenceKey"
+    },
+    {
+      "id": "ILeaveApproved",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Contracts",
+      "consumers": ["Payroll", "HR.Core", "Records.Archive"],
+      "category": "workflow-integration",
+      "compatRule": "additive-only-minor",
+      "outbox": true
+    },
+    {
+      "id": "IAdvanceApproved",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Contracts",
+      "consumers": ["Payroll", "HR.Core", "Records.Archive"],
+      "category": "workflow-integration",
+      "compatRule": "additive-only-minor",
+      "outbox": true
+    },
+    {
+      "id": "ITransferExecuted",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Movements",
+      "consumers": ["Payroll", "Auth.Directory", "HR.Core", "Admin.Logistics"],
+      "category": "workflow-integration",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "ITrainingCompleted",
+      "kind": "event",
+      "schemaVersion": 3,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Training",
+      "consumers": ["HR.Core", "Payroll"],
+      "category": "workflow-integration",
+      "compatRule": "additive-only-minor",
+      "notes": "v3 — last bump added optional certification fields; N-1 consumers skip via EventSchemaVersion"
+    },
+    {
+      "id": "ICandidateAccepted",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Core.RecruitmentIntegrationService",
+      "consumers": ["HR.Contracts"],
+      "category": "workflow-integration",
+      "outbox": true
+    },
+    {
+      "id": "IHireCaseCompleted",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Contracts.PublishHireCaseHandler",
+      "consumers": ["Records.Archive", "HR.Core"],
+      "category": "workflow-integration",
+      "outbox": true
+    },
+    {
+      "id": "ILeaveRequested",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "external-seam",
+      "consumers": ["HR.Contracts"],
+      "category": "external-seam",
+      "compatRule": "additive-only-minor",
+      "notes": "Integration tests only; employee portal future publisher"
+    },
+    {
+      "id": "IAdvanceRequested",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "external-seam",
+      "consumers": ["HR.Contracts"],
+      "category": "external-seam",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "IExportJobRequested",
+      "kind": "command",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Commands",
+      "publisher": "Compliance / EXT-005 export",
+      "consumers": ["Records.Archive", "Dev.Analytics"],
+      "category": "command",
+      "compatRule": "additive-only-minor",
+      "purposeCode": "audit-evidence-export"
+    },
+    {
+      "id": "IProcessLeaveApproval",
+      "kind": "command",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Commands",
+      "publisher": "HR.Contracts saga",
+      "consumers": ["HR.Contracts"],
+      "category": "saga-command",
+      "compatRule": "additive-only-minor",
+      "sourceFile": "ProcessSagaCommands.cs"
+    },
+    {
+      "id": "ICommencementRecorded",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Contracts",
+      "consumers": [],
+      "category": "dead-end",
+      "compatRule": "additive-only-minor",
+      "notes": "Published; deferred v1 consumer"
+    },
+    {
+      "id": "IDisciplinaryActionTaken",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "Compliance",
+      "consumers": ["Payroll"],
+      "category": "domain",
+      "compatRule": "additive-only-minor",
+      "idempotency": "ActionId"
+    },
+    {
+      "id": "IMedicalRecommendationIssued",
+      "kind": "event",
+      "schemaVersion": 2,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Health",
+      "consumers": ["Compliance"],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    }
+  ],
+  "sagaCommandCount": 28,
+  "sagaCommandSource": "HRManagement.MessageContracts.Commands.ProcessSagaCommands",
+  "joins": {
+    "messageEventMatrix": "docs/MESSAGE_EVENT_MATRIX.md",
+    "eventMeshAudit": "docs/EVENT_MESH_AUDIT.md",
+    "inboxIdempotency": "docs/INBOX_IDEMPOTENCY.md"
+  }
+}

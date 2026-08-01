@@ -1,0 +1,68 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "ERD الكامل لقاعدة compliance_db\nCompliance / ComplianceDbContext"
+
+entity "AuditFindings\nAuditFinding" as T01 {
+  * Id : uuid
+    AuditId : uuid
+    TenantId : uuid
+}
+entity "Complaints\nComplaint" as T02 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "ComplaintFollowUps\nComplaintFollowUp" as T03 {
+  * Id : uuid
+    ComplaintId : uuid
+    TenantId : uuid
+}
+entity "ComplianceRecommendations\nComplianceRecommendation" as T04 {
+  * Id : uuid
+    ComplaintId : uuid
+    FindingId : uuid
+    ResponsibleUnitId : uuid
+    TenantId : uuid
+}
+entity "DisciplinaryActions\nDisciplinaryAction" as T05 {
+  * Id : uuid
+    ComplaintId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "LegalCases\nLegalCase" as T06 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "LegalReferrals\nLegalReferral" as T07 {
+  * Id : uuid
+    ComplaintId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T08 {
+  * Id : uuid
+    EntityId : uuid
+    TenantId : uuid
+    UserId : uuid
+}
+
+T03 }o--|| T02 : ComplaintId
+T04 }o--|| T02 : ComplaintId
+T04 }o--|| T01 : FindingId
+T05 }o--|| T02 : ComplaintId
+T07 }o--|| T02 : ComplaintId
+
+note bottom
+يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.
+المعرفات مثل EmployeeId أو OrgUnitId التي لا تظهر كعلاقة داخلية هي معرفات تكاملية عابرة للخدمات وليست FK بين قواعد البيانات.
+end note
+@enduml

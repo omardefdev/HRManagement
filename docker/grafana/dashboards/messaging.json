@@ -1,0 +1,88 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "RabbitMQ messages ready",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rabbitmq_queue_messages_ready",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    },
+    {
+      "title": "Inbox processed rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate(inbox_processed[5m]))",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Outbox pending",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "outbox_pending_messages",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Outbox oldest age (s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "outbox_oldest_age_seconds",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Consumer faults / retries",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate(consumer_fault_permanent[5m]))",
+          "legendFormat": "fault {{job}}"
+        },
+        {
+          "expr": "sum by (job) (rate(consumer_retry[5m]))",
+          "legendFormat": "retry {{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Job cycles",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate(job_cycles_total[5m]))",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["obs-001", "messaging"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "OBS-001 Messaging — MQ / Inbox / Outbox / Jobs",
+  "uid": "obs001-messaging",
+  "version": 1
+}

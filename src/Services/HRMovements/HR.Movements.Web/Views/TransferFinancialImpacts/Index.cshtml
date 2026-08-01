@@ -1,0 +1,17 @@
+@model IReadOnlyList<HR.Movements.Domain.Entities.TransferFinancialImpact>
+@{ ViewData["Title"] = "الأثر المالي للنقل"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الأثر المالي للنقل</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">تسجيل</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>طلب النقل</th><th>موظف</th><th>فرق راتب</th><th>فرق بدلات</th><th>التاريخ</th></tr></thead>
+            <tbody>
+            @foreach (var x in Model) { <tr><td>@x.TransferRequestId</td><td>@x.EmployeeId</td><td>@x.SalaryChange</td><td>@x.AllowanceChange</td><td>@x.CalculatedAt.ToString("yyyy/MM/dd")</td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا توجد سجلات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

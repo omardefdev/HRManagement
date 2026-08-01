@@ -1,0 +1,21 @@
+@model MaintenanceRecord
+@{ ViewData["Title"] = "إضافة سجل صيانة"; var assets = (SelectList)ViewBag.Assets; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="AssetId" class="form-label"></label><select asp-for="AssetId" asp-items="assets" class="form-control"></select></div>
+            <div class="mb-3"><label asp-for="MaintenanceType" class="form-label"></label><select asp-for="MaintenanceType" class="form-control" asp-items="Html.GetEnumSelectList<MaintenanceType>()"></select></div>
+            <div class="mb-3"><label asp-for="PerformedAt" class="form-label"></label><input asp-for="PerformedAt" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="PerformedBy" class="form-label"></label><input asp-for="PerformedBy" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Cost" class="form-label"></label><input asp-for="Cost" class="form-control" type="number" step="0.01" /></div>
+            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="3"></textarea></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

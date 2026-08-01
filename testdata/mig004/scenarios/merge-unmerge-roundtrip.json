@@ -1,0 +1,19 @@
+{
+  "scenarioId": "SIM-MERGE-UNMERGE-ROUNDTRIP",
+  "expectedValidate": "PASS",
+  "merge": {
+    "mergedAt": "2026-07-28T12:00:00Z",
+    "actor": "dq-reviewer-01",
+    "evidenceRef": "ev-merge-lab-001",
+    "survivorId": "emp-surv-100",
+    "sourceId": "emp-src-200",
+    "reversible": true
+  },
+  "unmerge": {
+    "unmergedAt": "2026-07-28T15:00:00Z",
+    "actor": "dq-reviewer-01",
+    "sourceRestored": true,
+    "legalHoldBlocked": false
+  },
+  "gov003Join": "docs/GOV_003_MERGE_RUNBOOK.md"
+}

@@ -1,0 +1,28 @@
+{
+  "realm": "hrmanagement-qa003",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "qa003-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "qa003-service-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "qa003-wrong-audience",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "qa003-wrong-secret",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    }
+  ]
+}

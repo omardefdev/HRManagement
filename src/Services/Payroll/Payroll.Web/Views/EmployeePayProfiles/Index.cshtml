@@ -1,0 +1,58 @@
+@model IList<Payroll.Domain.Entities.EmployeePayProfile>
+
+@{ ViewData["Title"] = "ملفات الراتب"; }
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <h3 class="card-title mb-0"><i class="fas fa-id-card"></i> ملفات الراتب</h3>
+
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
+
+    </div>
+
+    <div class="card-body">@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }</div>
+
+    <div class="card-body p-0 border-top-0 pt-0">
+
+        <table class="table table-striped mb-0">
+
+            <thead><tr><th>الموظف</th><th>الدرجة</th><th>الأساسي</th><th>من</th><th>إلى</th><th>فعّال</th><th></th></tr></thead>
+
+            <tbody>
+
+                @foreach (var p in Model)
+
+                {
+
+                    <tr>
+
+                        <td>@p.EmployeeId</td>
+
+                        <td>@p.PayGrade?.GradeNameAr</td>
+
+                        <td>@p.BaseSalary.ToString("N2")</td>
+
+                        <td>@p.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+
+                        <td>@(p.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
+
+                        <td>@(p.IsActive ? "نعم" : "لا")</td>
+
+                        <td><a asp-action="History" asp-route-employeeId="@p.EmployeeId" class="btn btn-info btn-xs">السجل</a></td>
+
+                    </tr>
+
+                }
+
+                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد ملفات</td></tr> }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+

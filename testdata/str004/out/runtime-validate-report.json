@@ -1,0 +1,11 @@
+﻿{
+    "card":  "STR-004",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "packCount":  2,
+    "releaseDigest":  "sha256:str004-demo-digest-20260730",
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

@@ -1,0 +1,9 @@
+environment         = "dr-secondary"
+name_prefix         = "hrm-dr"
+vpc_cidr            = "10.60.0.0/16"
+backup_bucket_name  = "hrm-backups-dr-secondary-REPLACE"
+aws_region          = "eu-west-1"
+cluster_version     = "1.29"
+node_desired        = 3
+dns_enabled         = false
+owner               = "platform"

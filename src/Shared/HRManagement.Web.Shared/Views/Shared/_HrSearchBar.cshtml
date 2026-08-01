@@ -1,0 +1,16 @@
+@{
+    var placeholder = ViewData["SearchPlaceholder"] as string ?? "بحث...";
+    var searchTerm = ViewData["SearchTerm"] as string ?? Context.Request.Query["SearchTerm"].FirstOrDefault() ?? "";
+    var searchId = "hr-search-term";
+}
+<form method="get" class="mb-3" role="search">
+    <div class="input-group">
+        <label class="visually-hidden" for="@searchId">@placeholder</label>
+        <input id="@searchId" type="search" name="SearchTerm" value="@searchTerm" class="form-control" placeholder="@placeholder" autocomplete="off" />
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search" aria-hidden="true"></i> بحث</button>
+        @if (!string.IsNullOrEmpty(searchTerm))
+        {
+            <a asp-action="@ViewContext.RouteData.Values["action"]" class="btn btn-secondary">مسح</a>
+        }
+    </div>
+</form>

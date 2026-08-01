@@ -1,0 +1,57 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Process CPU",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(process_cpu_time_seconds_total[5m])",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "GC heap",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "dotnet_gc_heap_total_available_bytes",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Thread pool queue",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "dotnet_threadpool_queue_length",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "title": "Postgres exporter up",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "up{job=\"postgres\"}" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["obs-001", "use"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "OBS-001 USE — Runtime / DB",
+  "uid": "obs001-use",
+  "version": 1
+}

@@ -1,0 +1,20 @@
+{
+  "card": "REL-003",
+  "version": 1,
+  "scenarioId": "REL3-GD-001",
+  "title": "Synthetic gateway availability page response",
+  "severity": "Sev2",
+  "serviceId": "gateway",
+  "mttaTargetMinutes": 30,
+  "mttrTargetMinutes": 480,
+  "forbidMissingAckResolve": true,
+  "timeline": {
+    "detectedAt": "2026-07-30T08:00:00Z",
+    "acknowledgedAt": "2026-07-30T08:12:00Z",
+    "resolvedAt": "2026-07-30T09:45:00Z"
+  },
+  "ackBy": "oncall-platform-primary",
+  "commander": "oncall-sre-backup",
+  "waiverId": null,
+  "notes": "Synthetic CI scenario; optional live obs-alert-fire-drill outside unit gate"
+}

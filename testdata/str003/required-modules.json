@@ -1,0 +1,22 @@
+{
+  "card": "STR-003",
+  "requiredAppModuleIds": [
+    "hr-core",
+    "hr-contracts",
+    "hr-health",
+    "hr-movements",
+    "hr-training",
+    "payroll",
+    "idcard",
+    "records-archive",
+    "admin-logistics",
+    "it-infra",
+    "dev-analytics",
+    "compliance",
+    "auth-directory",
+    "file-storage"
+  ],
+  "requiredPlatformModuleIds": ["postgres", "rabbitmq"],
+  "opsCatalogPath": "docs/rel-ops/service-catalog.json",
+  "requireOpsJoinForAppModules": true
+}

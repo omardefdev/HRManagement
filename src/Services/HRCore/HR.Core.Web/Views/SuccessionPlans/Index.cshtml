@@ -1,0 +1,25 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.SuccessionPlan>
+@{ ViewData["Title"] = "خطط التعاقب الوظيفي"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">خطط التعاقب الوظيفي</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">خطة جديدة</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>المنصب الحرج</th><th>السنة</th><th>عدد المرشّحين</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@(x.KeyPosition?.Title ?? "—")</td>
+                        <td>@x.Year</td>
+                        <td>@x.Candidates.Count</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا خطط</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-DEPRECATION-TOO-SHORT",
+  "expectedValidate": "FAIL",
+  "noticeDays": 30,
+  "sunsetAttempted": true,
+  "notes": "Deprecation notice below noticeDaysMin must fail"
+}

@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-SCREEN-COUNT-BANNED",
+  "expectedValidate": "FAIL",
+  "claimedBenefitMeasure": "screenCount",
+  "claimedValue": 120,
+  "notes": "UI screen count must not count as STR-007 benefit"
+}

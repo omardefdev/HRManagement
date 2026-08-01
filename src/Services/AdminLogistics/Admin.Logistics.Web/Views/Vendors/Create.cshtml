@@ -1,0 +1,9 @@
+@model Admin.Logistics.Domain.Entities.Vendor
+@{ ViewData["Title"] = "مورد"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ContactInfo" class="form-label"></label><input asp-for="ContactInfo" class="form-control" /><span asp-validation-for="ContactInfo" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Country" class="form-label"></label><input asp-for="Country" class="form-control" /><span asp-validation-for="Country" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

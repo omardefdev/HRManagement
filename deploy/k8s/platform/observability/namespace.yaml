@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hrmanagement-observability
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: observability

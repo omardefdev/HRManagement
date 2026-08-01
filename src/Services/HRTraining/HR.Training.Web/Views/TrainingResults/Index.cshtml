@@ -1,0 +1,23 @@
+@model IReadOnlyList<HR.Training.Domain.Entities.TrainingResult>
+@{ ViewData["Title"] = "نتائج التدريب"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">نتائج التدريب</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>الدورة</th><th>درجة</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@x.Enrollment.EmployeeId</td>
+                    <td>@(x.Enrollment.Course?.TitleAr ?? "—")</td>
+                    <td>@x.Score</td>
+                    <td>@x.GradedAt?.ToString("yyyy/MM/dd")</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا توجد نتائج</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

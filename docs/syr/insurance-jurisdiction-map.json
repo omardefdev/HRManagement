@@ -1,0 +1,93 @@
+{
+  "card": "SYR-006",
+  "version": "2026.07.31.1",
+  "asOfDate": "2026-07-31",
+  "legalSources": [
+    { "legalSourceId": "SYR-DEC-135-2026", "number": "135/2026", "scope": "contribution rates and retirement age" },
+    { "legalSourceId": "SYR-LAW-50-2004", "number": "50/2004", "scope": "social insurance obligations" }
+  ],
+  "institutions": [
+    {
+      "id": "GOSI",
+      "nameAr": "المؤسسة العامة للتأمينات الاجتماعية",
+      "nameEn": "General Organization for Social Insurance",
+      "jurisdiction": "social_insurance",
+      "services": ["contribution", "work_injury", "disability", "survivor_benefit"],
+      "exportChannel": "gosi-batch-v1"
+    },
+    {
+      "id": "GOIP",
+      "nameAr": "المؤسسة العامة للتأمين والمعاشات",
+      "nameEn": "General Organization for Insurance and Pensions",
+      "jurisdiction": "pensions",
+      "services": ["pension_accrual", "retirement", "pension_payment", "beneficiary"],
+      "exportChannel": "goip-batch-v1"
+    }
+  ],
+  "jurisdictionRules": [
+    {
+      "ruleId": "ACTIVE_EMPLOYEE_CONTRIBUTION",
+      "employeeStatus": "active",
+      "routeTo": "GOSI",
+      "forbidRouteTo": ["GOIP"],
+      "reason": "Active employees contribute to social insurance, not pension payout"
+    },
+    {
+      "ruleId": "RETIRED_PENSION_PAYMENT",
+      "employeeStatus": "retired",
+      "routeTo": "GOIP",
+      "forbidRouteTo": ["GOSI"],
+      "reason": "Retired employees receive pension from GOIP"
+    },
+    {
+      "ruleId": "REFERRAL_TO_RETIREMENT",
+      "event": "retirement_referral",
+      "routeTo": "GOIP",
+      "prerequisiteInstitution": "GOSI",
+      "reason": "Retirement referral follows completed GOSI service record"
+    },
+    {
+      "ruleId": "DEATH_BENEFIT",
+      "event": "death",
+      "routeTo": "GOSI",
+      "secondaryRoute": "GOIP",
+      "reason": "Survivor benefits may span both institutions per certified decree text"
+    }
+  ],
+  "contributionRates": [
+    {
+      "rateId": "GOSI-EE-2026",
+      "institution": "GOSI",
+      "legalSourceId": "SYR-DEC-135-2026",
+      "effectiveFrom": "2026-07-01",
+      "employeePercent": 7,
+      "employerPercent": 14,
+      "ceiling": 3000000,
+      "currencyEra": "SYP_NEW"
+    }
+  ],
+  "retirementProvisions": {
+    "legalSourceId": "SYR-DEC-135-2026",
+    "normalRetirementAge": 60,
+    "earlyRetirementAge": 55,
+    "minimumServiceYears": 20
+  },
+  "beneficiaryRules": {
+    "forbidDuplicateBeneficiary": true,
+    "rejectionRequiresActionableState": true,
+    "varianceRequiresActionableState": true
+  },
+  "reconciliation": {
+    "monthlyIndependentReconciliation": true,
+    "controlTotals": ["contribution_total", "pension_total", "beneficiary_count"],
+    "compareWithCensusRef": "SYR-002"
+  },
+  "paymentChannels": [
+    { "channel": "public_bank", "settlementRequired": true },
+    { "channel": "syrian_post", "settlementRequired": true }
+  ],
+  "lawAmendmentPolicy": {
+    "forbidManualPatch": true,
+    "requiresNewVersionedPack": true
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG006-RECON-T30",
+  "expectedValidate": "PASS",
+  "checkpoint": "T+30",
+  "unexplainedGap": 0,
+  "mig005AccountedOk": true,
+  "liveAgencyRecon": false
+}

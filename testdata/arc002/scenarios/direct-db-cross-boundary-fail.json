@@ -1,0 +1,1 @@
+﻿{"scenarioId":"direct-db-cross-boundary-fail","expectedValidate":"FAIL","directDbCrossBoundary":true,"domainCouplingAcrossContexts":false}

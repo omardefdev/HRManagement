@@ -1,0 +1,17 @@
+@model ReceiptRecord
+@{ ViewData["Title"] = "تفاصيل الاستلام"; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">سجل استلام</h3></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">طلب التجهيز</dt><dd class="col-sm-9">@(Model.SupplyOrder?.Items ?? "—")</dd>
+            <dt class="col-sm-3">استلم بواسطة</dt><dd class="col-sm-9">@Model.ReceivedBy</dd>
+            <dt class="col-sm-3">تاريخ الاستلام</dt><dd class="col-sm-9">@Model.ReceivedAt?.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">المواد المستلمة</dt><dd class="col-sm-9">@(Model.ItemsReceived ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

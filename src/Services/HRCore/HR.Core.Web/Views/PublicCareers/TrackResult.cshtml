@@ -1,0 +1,63 @@
+@using HR.Core.Domain.Enums
+@model HR.Core.Domain.Entities.CitizenApplication
+@{
+    ViewData["Title"] = "حالة الطلب";
+    Layout = "_PublicLayout";
+    string Badge(CitizenApplicationStatus s) => s switch
+    {
+        CitizenApplicationStatus.Accepted => "background:#2e7d32; color:#fff;",
+        CitizenApplicationStatus.Rejected => "background:#c62828; color:#fff;",
+        CitizenApplicationStatus.Shortlisted => "background:#0277bd; color:#fff;",
+        CitizenApplicationStatus.UnderReview => "background:#f9a825; color:#333;",
+        _ => "background:#757575; color:#fff;"
+    };
+    string StatusLabel(CitizenApplicationStatus s) => s switch
+    {
+        CitizenApplicationStatus.Accepted => "مقبول",
+        CitizenApplicationStatus.Rejected => "مرفوض",
+        CitizenApplicationStatus.Shortlisted => "في القائمة المختصرة",
+        CitizenApplicationStatus.UnderReview => "قيد المراجعة",
+        CitizenApplicationStatus.Received => "مستلَم",
+        _ => s.ToString()
+    };
+}
+<h2 class="careers-page-title"><i class="fas fa-clipboard-check ms-2"></i> حالة الطلب</h2>
+<div class="careers-card">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <span class="text-muted small">الرقم المرجعي</span>
+                    <p class="fw-bold mb-0">@Model.ReferenceNumber</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <span class="text-muted small">الوظيفة</span>
+                    <p class="fw-bold mb-0">@(Model.PublicJobPosting?.Title ?? "—")</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <span class="text-muted small">مقدّم الطلب</span>
+                    <p class="fw-bold mb-0">@Model.FullName</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <span class="text-muted small">تاريخ التقديم</span>
+                    <p class="fw-bold mb-0">@Model.SubmittedAt.ToString("yyyy-MM-dd")</p>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="mb-0">
+                    <span class="text-muted small">الحالة</span>
+                    <p class="mb-0"><span class="badge rounded-pill px-3 py-2" style="@Badge(Model.Status)">@StatusLabel(Model.Status)</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="mt-3">
+    <a asp-action="Track" class="btn careers-btn-outline"><i class="fas fa-search ms-1"></i> تتبّع طلب آخر</a>
+</div>

@@ -1,0 +1,27 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "compliance";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">الامتثال والرقابة</li>
+    <li class="nav-item"><a asp-controller="Complaints" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-exclamation-triangle"></i><p>الشكاوى والبلاغات</p></a></li>
+    <li class="nav-item"><a asp-controller="LegalCases" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-gavel"></i><p>القضايا القانونية</p></a></li>
+    <li class="nav-item"><a asp-controller="DisciplinaryActions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-slash"></i><p>الإجراءات التأديبية</p></a></li>
+    <li class="nav-item"><a asp-controller="AuditFindings" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-search"></i><p>نتائج التدقيق</p></a></li>
+    <li class="nav-item"><a asp-controller="ComplianceRecommendations" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-list"></i><p>توصيات الامتثال</p></a></li>
+    <li class="nav-item"><a asp-controller="LegalReferrals" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-share-square"></i><p>الإحالات القانونية</p></a></li>
+    <li class="nav-item"><a asp-controller="Export" asp-action="ExportComplaintsCsv" class="nav-link"><i class="nav-icon fas fa-file-export"></i><p>تصدير البيانات</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

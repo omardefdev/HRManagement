@@ -1,0 +1,53 @@
+{
+  "card": "GOV-002",
+  "regimeCode": "LAW_50_2004",
+  "cases": [
+    {
+      "id": "tax-bracket-boundary-5000",
+      "decisionIds": ["LD-TAX-BRACKETS"],
+      "monthlyBase": 5000,
+      "workingDays": 22,
+      "employeeDays": 22,
+      "expectGross": 5000,
+      "expectTax": 0
+    },
+    {
+      "id": "tax-progressive-20000",
+      "decisionIds": ["LD-TAX-BRACKETS", "LD-TAXABLE-BASE"],
+      "monthlyBase": 20000,
+      "workingDays": 22,
+      "employeeDays": 22,
+      "expectGross": 20000,
+      "expectTaxMin": 1
+    },
+    {
+      "id": "proration-half-period",
+      "decisionIds": ["LD-PRORATION-BASIS"],
+      "monthlyBase": 10000,
+      "workingDays": 20,
+      "employeeDays": 10,
+      "expectGross": 5000
+    },
+    {
+      "id": "rounding-away-from-zero",
+      "decisionIds": ["LD-ROUNDING"],
+      "value": 1.005,
+      "decimalPlaces": 2,
+      "expectRounded": 1.01
+    },
+    {
+      "id": "eos-threshold-5-years",
+      "decisionIds": ["LD-EOS-FORMULA"],
+      "yearsOfService": 5,
+      "baseSalary": 10000,
+      "expectMultiplier": 2.5
+    },
+    {
+      "id": "retro-months-cap",
+      "decisionIds": ["LD-RETRO-MONTHS"],
+      "maxRetroMonths": 12,
+      "monthsBack": 13,
+      "expectAllowed": false
+    }
+  ]
+}

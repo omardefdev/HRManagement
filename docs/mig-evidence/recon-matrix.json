@@ -1,0 +1,140 @@
+{
+  "card": "MIG-005",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "evidencePolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "accountedBuckets": [
+    { "id": "Migrated", "reasonRequired": false },
+    { "id": "Rejected", "reasonRequired": true },
+    { "id": "Deferred", "reasonRequired": true }
+  ],
+  "reconDimensions": [
+    "counts",
+    "sums",
+    "hashes",
+    "payrollControlTotals",
+    "attachments",
+    "relationships",
+    "rejects",
+    "lineage"
+  ],
+  "financialPolicy": {
+    "unexplainedVarianceForbidden": true,
+    "controlTotalTolerance": 0,
+    "payrollControlRequired": true
+  },
+  "dualControl": {
+    "minSigners": 2,
+    "requireDistinctRoles": true,
+    "roles": ["migration-qa", "internal-audit"]
+  },
+  "evidencePackage": {
+    "immutable": true,
+    "requiredArtifacts": [
+      "source-counts",
+      "bucket-breakdown",
+      "payroll-control",
+      "lineage-export",
+      "reject-register",
+      "checksum-manifest",
+      "sample-results",
+      "dual-control-signoff"
+    ],
+    "contentHashAlg": "sha256",
+    "wormJoin": "docs/ADR-OBS-003-siem-tamper-audit.md"
+  },
+  "sampling": {
+    "randomRate": 0.02,
+    "statisticalMin": 30,
+    "businessSignOffRequired": true
+  },
+  "agencyWaveSignOff": {
+    "perWaveRequired": true,
+    "roles": ["agency-data-owner", "migration-qa", "internal-audit"]
+  },
+  "signing": {
+    "signedByRole": "migration-qa-lead",
+    "reviewerRole": "internal-audit",
+    "evidencePolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:mig005-lab-evidence-policy-20260730"
+  },
+  "blockers": [
+    { "id": "MIG-003", "status": "Satisfied", "note": "Factory gate Done" },
+    { "id": "OBS-003", "status": "Satisfied", "note": "SIEM/hash/WORM Done" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Lab harness only" },
+    { "id": "live-agency-recon", "status": "Blocked", "note": "Real agency recon later" },
+    { "id": "live-independent-sql", "status": "Blocked", "note": "Independent SQL later" }
+  ],
+  "outOfScope": [
+    "EVD-003 production vault",
+    "Live agency SQL reports",
+    "MIG-006 cutover rehearsals",
+    "MIG-003a-d ETL workers"
+  ],
+  "journeys": [
+    {
+      "id": "FullAccounted",
+      "steps": [
+        { "id": "BucketsDefined", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 48, "evidenceType": "accountedBuckets", "service": "docs", "event": null },
+        { "id": "FullAccountedPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "full-accounted-pass", "service": "testdata", "event": null },
+        { "id": "UnexplainedGapFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unexplained-gap-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "FinancialControls",
+      "steps": [
+        { "id": "PayrollPolicy", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 48, "evidenceType": "financialPolicy", "service": "docs", "event": null },
+        { "id": "VarianceFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "financial-variance-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "BusinessSamples",
+      "steps": [
+        { "id": "SamplingPolicy", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 48, "evidenceType": "sampling", "service": "docs", "event": null },
+        { "id": "BusinessSignoff", "mandatory": true, "ownerRole": "agency-data-owner", "slaHours": 72, "evidenceType": "business-sample-signoff", "service": "testdata", "event": null },
+        { "id": "StatisticalSample", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "statistical-sample-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ImmutableEvidence",
+      "steps": [
+        { "id": "PackageContract", "mandatory": true, "ownerRole": "internal-audit", "slaHours": 48, "evidenceType": "evidencePackage", "service": "docs", "event": null },
+        { "id": "TamperFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "tamper-evidence-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ChecksumRecon",
+      "steps": [
+        { "id": "ChecksumPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "checksum-recon-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DualControlSignOff",
+      "steps": [
+        { "id": "DualPolicy", "mandatory": true, "ownerRole": "internal-audit", "slaHours": 24, "evidenceType": "dualControl", "service": "docs", "event": null },
+        { "id": "MissingDualFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "dual-control-missing-fail", "service": "testdata", "event": null },
+        { "id": "WaveSignoff", "mandatory": true, "ownerRole": "migration-qa", "slaHours": 72, "evidenceType": "agency-wave-signoff", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "fullAccountedPass": "testdata/mig005/scenarios/full-accounted-pass.json",
+    "unexplainedGapFail": "testdata/mig005/scenarios/unexplained-gap-fail.json",
+    "financialVarianceFail": "testdata/mig005/scenarios/financial-variance-fail.json",
+    "dualControlMissingFail": "testdata/mig005/scenarios/dual-control-missing-fail.json",
+    "tamperEvidenceFail": "testdata/mig005/scenarios/tamper-evidence-fail.json",
+    "checksumReconPass": "testdata/mig005/recon/checksum-recon-pass.json",
+    "businessSampleSignoff": "testdata/mig005/samples/business-sample-signoff.json",
+    "statisticalSamplePass": "testdata/mig005/samples/statistical-sample-pass.json",
+    "evidencePackageStub": "testdata/mig005/harness/evidence-package-stub.json",
+    "agencyWaveSignoff": "testdata/mig005/harness/agency-wave-signoff.json"
+  },
+  "joins": {
+    "mig003Lineage": "docs/MIG_003_RECORD_LINEAGE.md",
+    "mig003Ledger": "testdata/mig003/harness/pipeline-run-ledger.json",
+    "mig003Factory": "docs/mig-factory/pipeline-matrix.json",
+    "obs003Adr": "docs/ADR-OBS-003-siem-tamper-audit.md",
+    "obs003Verify": "docs/OBS_SIEM_VERIFICATION.md"
+  }
+}

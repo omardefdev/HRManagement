@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-EXCESS-FIELD-STORE",
+  "expectedValidate": "FAIL",
+  "storedFields": ["matchStatus", "opaqueSubject", "FullName", "address"],
+  "forbiddenStored": ["FullName", "address"],
+  "notes": "Storing non-allowlisted response fields must fail"
+}

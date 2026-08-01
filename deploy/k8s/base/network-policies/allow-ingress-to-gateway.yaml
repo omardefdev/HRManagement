@@ -1,0 +1,20 @@
+# SEC-001: Ingress / edge traffic may reach Gateway only (HTTP).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-gateway
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: hr-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080

@@ -1,0 +1,54 @@
+@model IEnumerable<Payroll.Domain.Entities.PayrollConfiguration>
+@{
+    ViewData["Title"] = "الأطر القانونية للرواتب";
+}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">الأطر القانونية للرواتب (إصدارات PAY-002)</h3></div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>الكود</th>
+                    <th>الإصدار</th>
+                    <th>الاسم</th>
+                    <th>الإطار</th>
+                    <th>النشر</th>
+                    <th>نشط</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr class="@(item.PublicationStatus == Payroll.Domain.Enums.PayrollConfigPublicationStatus.Superseded ? "table-secondary" : null)">
+                    <td>@item.Code</td>
+                    <td>v@item.VersionNumber</td>
+                    <td>@item.NameAr</td>
+                    <td>@item.RegimeCode</td>
+                    <td>@item.PublicationStatus</td>
+                    <td>@(item.IsActive ? "نعم" : "لا")</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">تفاصيل</a>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">@(item.IsImmutable ? "نسخة جديدة" : "تعديل")</a>
+                        @if (!item.IsActive && item.PublicationStatus == Payroll.Domain.Enums.PayrollConfigPublicationStatus.Published)
+                        {
+                            <form asp-action="Activate" asp-route-id="@item.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-success">تفعيل</button>
+                            </form>
+                        }
+                        @if (item.PublicationStatus is Payroll.Domain.Enums.PayrollConfigPublicationStatus.Draft
+                            or Payroll.Domain.Enums.PayrollConfigPublicationStatus.Approved)
+                        {
+                            <form asp-action="Publish" asp-route-id="@item.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-success">نشر</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

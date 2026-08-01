@@ -1,0 +1,80 @@
+{
+  "card": "SUP-002",
+  "title": "SLA/OLA Matrix",
+  "version": "1.0.0",
+  "slaTarget": "95% achievement after stabilization",
+  "priorities": [
+    {
+      "id": "P1",
+      "name": "Critical",
+      "description": "Service down, payroll blocked, auth outage, data breach",
+      "sla": {
+        "responseMinutes": 15,
+        "resolutionHours": 4
+      },
+      "ola": {
+        "l2PickupMinutes": 10,
+        "l3PickupMinutes": 30
+      },
+      "availability": "24x7",
+      "escalation": "Automatic after SLA breach; IC engaged per SRE-003"
+    },
+    {
+      "id": "P2",
+      "name": "High",
+      "description": "Degraded service, single agency severely impacted",
+      "sla": {
+        "responseMinutes": 30,
+        "resolutionHours": 8
+      },
+      "ola": {
+        "l2PickupMinutes": 30,
+        "l3PickupHours": 2
+      },
+      "availability": "24x7 for critical agencies, business hours otherwise",
+      "escalation": "Automatic after SLA breach"
+    },
+    {
+      "id": "P3",
+      "name": "Medium",
+      "description": "Limited impact, workaround available",
+      "sla": {
+        "responseHours": 4,
+        "resolutionBusinessDays": 3
+      },
+      "ola": {
+        "l2PickupHours": 4,
+        "l3PickupBusinessDays": 1
+      },
+      "availability": "Business hours",
+      "escalation": "Manual escalation if aging > 2 days"
+    },
+    {
+      "id": "P4",
+      "name": "Low",
+      "description": "Cosmetic, enhancement request, documentation",
+      "sla": {
+        "responseBusinessDays": 1,
+        "resolutionBusinessDays": 5
+      },
+      "ola": {
+        "l2PickupBusinessDays": 1,
+        "l3PickupBusinessDays": 3
+      },
+      "availability": "Business hours",
+      "escalation": "Review in weekly backlog grooming"
+    }
+  ],
+  "metrics": [
+    { "id": "sla-achievement", "name": "SLA Achievement", "target": ">=95%", "frequency": "weekly" },
+    { "id": "fcr", "name": "First Contact Resolution", "target": ">=40%", "frequency": "monthly" },
+    { "id": "backlog-age", "name": "P1/P2 Open Beyond SLA", "target": "0", "frequency": "daily" },
+    { "id": "csat", "name": "Customer Satisfaction", "target": ">=4.0/5.0", "frequency": "monthly" },
+    { "id": "misroute-rate", "name": "Ticket Misroute Rate", "target": "<=5%", "frequency": "monthly" }
+  ],
+  "supportTiers": [
+    { "tier": "L1", "name": "Service Desk", "scope": "Triage, known-error, password, FAQ", "hours": "24x7 critical" },
+    { "tier": "L2", "name": "Application Support", "scope": "Config, workflow, data, integration", "hours": "Business + on-call" },
+    { "tier": "L3", "name": "Engineering", "scope": "Code, infra, DB, security", "hours": "On-call" }
+  ]
+}

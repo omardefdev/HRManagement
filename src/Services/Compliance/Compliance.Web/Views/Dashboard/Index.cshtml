@@ -1,0 +1,31 @@
+@{ ViewData["Title"] = "لوحة تحكم الامتثال"; }
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner"><h3>@ViewBag.OpenComplaints</h3><p>شكاوى مفتوحة</p></div>
+            <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+            <a asp-controller="Complaints" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner"><h3>@ViewBag.AuditFindings</h3><p>نتائج تدقيق</p></div>
+            <div class="icon"><i class="fas fa-search"></i></div>
+            <a asp-controller="AuditFindings" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner"><h3>@ViewBag.DisciplinaryActions</h3><p>إجراءات تأديبية</p></div>
+            <div class="icon"><i class="fas fa-gavel"></i></div>
+            <a asp-controller="DisciplinaryActions" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-secondary">
+            <div class="inner"><h3>@ViewBag.LegalCases</h3><p>قضايا قانونية</p></div>
+            <div class="icon"><i class="fas fa-balance-scale"></i></div>
+            <a asp-controller="LegalCases" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+@model HR.Training.Domain.Entities.MissionFile
+@{ ViewData["Title"] = "ملف بعثة"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Destination" class="form-label"></label><input asp-for="Destination" class="form-control" /><span asp-validation-for="Destination" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /><span asp-validation-for="StartDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /><span asp-validation-for="EndDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Purpose" class="form-label"></label><textarea asp-for="Purpose" class="form-control" rows="2"></textarea><span asp-validation-for="Purpose" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Sponsor" class="form-label"></label><input asp-for="Sponsor" class="form-control" /><span asp-validation-for="Sponsor" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<HR.Training.Domain.Enums.MissionStatus>()"></select><span asp-validation-for="Status" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

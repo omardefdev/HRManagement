@@ -1,0 +1,44 @@
+@model HR.Core.Web.ViewModels.ApprovedCvEditViewModel
+@{
+    ViewData["Title"] = "تعديل سيرة معتمدة";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-edit"></i> تعديل سيرة معتمدة — @Model.EmployeeName</h3>
+    </div>
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="EmployeeId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            @{
+                ViewData["FileUploadName"] = "FileId";
+                ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";
+                ViewData["FileUploadMaxSize"] = "26214400";
+                ViewData["FileUploadLabel"] = "ملف السيرة";
+            }
+            @await Html.PartialAsync("_FileUploadWidget", Model.FileId)
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label class="form-label">المعتمد</label>
+                        <input class="form-control" value="@Model.ApprovedBy" disabled />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label class="form-label">تاريخ الاعتماد</label>
+                        <input class="form-control" value="@Model.ApprovedAt" disabled />
+                        <div class="form-text">يُسجَّلان عند المراجعة ولا يُعدَّلان هنا.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

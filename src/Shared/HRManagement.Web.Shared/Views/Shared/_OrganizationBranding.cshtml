@@ -1,0 +1,20 @@
+@using HRManagement.ServiceDefaults
+@using HRManagement.ServiceDefaults.NoFork
+@using Microsoft.Extensions.Options
+@inject IOptions<OrganizationBrandingOptions> BrandingDefaults
+@inject IAgencyBrandingAccessor AgencyBranding
+@{
+    var org = AgencyBranding.GetBranding();
+}
+<style>
+    :root {
+        --sy-primary: @OrganizationBrandingSanitizer.SanitizePrimaryColor(org.PrimaryColor);
+    }
+</style>
+<script>
+    window.hrOrganization = {
+        name: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(org.Name)),
+        shortName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(org.ShortName)),
+        logoUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(org.LogoUrl ?? ""))
+    };
+</script>

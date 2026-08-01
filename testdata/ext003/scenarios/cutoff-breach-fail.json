@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-CUTOFF-BREACH",
+  "expectedValidate": "FAIL",
+  "submittedAfterCutoff": true,
+  "contingencyHold": false,
+  "treatedAsSettled": true,
+  "notes": "Post-cutoff submit without contingency hold must fail"
+}

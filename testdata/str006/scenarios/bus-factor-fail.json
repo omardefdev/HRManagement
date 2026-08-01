@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-BUSFACTOR-FAIL",
+  "componentId": "payroll-orphan",
+  "critical": true,
+  "tier": "0",
+  "primaryRole": "payroll-lead",
+  "backupRoles": [],
+  "busFactor": 1,
+  "expectedValidate": "FAIL"
+}

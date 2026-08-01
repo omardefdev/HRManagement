@@ -1,0 +1,41 @@
+@model IReadOnlyList<Auth.Directory.Domain.Entities.DirectorySyncRecord>
+@{ ViewData["Title"] = "سجلات المزامنة"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">سجلات مزامنة الدليل</h3>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>المصدر</th>
+                    <th>البدء</th>
+                    <th>الاكتمال</th>
+                    <th>معالجة</th>
+                    <th>نجاح</th>
+                    <th>فشل</th>
+                    <th>السجل</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>@(r.SourceService ?? "—")</td>
+                        <td>@r.StartedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(r.CompletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                        <td>@r.RecordsProcessed</td>
+                        <td><span class="badge bg-success">@r.SuccessCount</span></td>
+                        <td><span class="badge bg-danger">@r.FailureCount</span></td>
+                        <td><small>@(r.Log?.Length > 80 ? r.Log[..80] + "…" : r.Log ?? "—")</small></td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد سجلات مزامنة</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

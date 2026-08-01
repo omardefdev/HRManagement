@@ -1,0 +1,29 @@
+{
+  "fixtureId": "MIG004-MATCH-DECISION-LEDGER",
+  "decisions": [
+    {
+      "decisionId": "d-001",
+      "pairId": "p01",
+      "outcome": "AutoMerge",
+      "risk": "Low",
+      "evidenceRef": "ev-lab-001",
+      "tenantId": "tenant-pilot-a"
+    },
+    {
+      "decisionId": "d-002",
+      "pairId": "p06",
+      "outcome": "HumanReview",
+      "risk": "Medium",
+      "evidenceRef": null,
+      "tenantId": "tenant-pilot-a"
+    },
+    {
+      "decisionId": "d-003",
+      "pairId": "p14",
+      "outcome": "ExceptionQueue",
+      "risk": "High",
+      "evidenceRef": null,
+      "tenantId": "tenant-pilot-a"
+    }
+  ]
+}

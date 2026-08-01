@@ -1,0 +1,10 @@
+﻿{
+    "card":  "PROD-003",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "auditFieldCount":  7,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

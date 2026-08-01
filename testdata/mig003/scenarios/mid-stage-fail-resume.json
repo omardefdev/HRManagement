@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-MID-FAIL-RESUME",
+  "expectedValidate": "PASS",
+  "batchId": "batch-pilot-a-002",
+  "failedAtStage": "transform",
+  "checkpointStage": "validate",
+  "resumeFromStage": "transform",
+  "reExtractedCompletedStages": false,
+  "finalOutcome": "Completed"
+}

@@ -1,0 +1,134 @@
+{
+  "card": "PROD-005",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "workboxPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "queueCompleteness": {
+    "required": true,
+    "noLostCrossModule": true,
+    "itemTypes": ["tasks", "cases", "approvals"]
+  },
+  "prioritySlaEscalation": {
+    "required": true
+  },
+  "safeSearch": {
+    "required": true,
+    "tenantScoped": true,
+    "orgScoped": true,
+    "existenceLeakForbidden": true
+  },
+  "bulkActions": {
+    "required": true,
+    "limitsRequired": true,
+    "fourEyesRequired": true
+  },
+  "notifications": {
+    "required": true,
+    "noSecretsInPayload": true,
+    "deliveryReceiptsRequired": true,
+    "labStubAllowed": true,
+    "liveForbidden": true
+  },
+  "deepLinks": {
+    "required": true,
+    "reauthOnExpiredRequired": true,
+    "correctStateRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["itemId", "actorRole", "tenantId", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveWorkboxForbidden": true,
+    "liveNotificationForbidden": true
+  },
+  "signing": {
+    "signedByRole": "product-platform-lead",
+    "reviewerRole": "security-privacy-officer",
+    "workboxPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod005-lab-workbox-20260730"
+  },
+  "blockers": [
+    { "id": "INT-003", "status": "Satisfied", "note": "Integration integrity Done" },
+    { "id": "EXT-007", "status": "Satisfied", "note": "Sector catalog binding Done" },
+    { "id": "IAM-002", "status": "NotStarted", "note": "Org-scope fail-closed still P0 open" },
+    { "id": "live-workbox-ui", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-notification-delivery", "status": "Blocked", "note": "Lab stub notifications only" },
+    { "id": "live-safe-search", "status": "Blocked", "note": "Lab search contracts only" },
+    { "id": "COM-001", "status": "NotStarted", "note": "NotificationHub receipts later" },
+    { "id": "WF-002", "status": "NotStarted", "note": "National workbox product later" },
+    { "id": "PROD-006", "status": "Satisfied", "note": "Production semantic-layer binding Done; live warehouse/BI later PROD-006a–c" },
+    { "id": "NAT-005", "status": "NotStarted", "note": "Accessibility cert later" }
+  ],
+  "outOfScope": [
+    "Live workbox UI",
+    "Live notification delivery",
+    "Live full safe search",
+    "COM-001 / WF-002 join",
+    "NAT-005 / PROD-006 join",
+    "Domain/UI rewrite",
+    "Closing NotificationHub COM-001 gap"
+  ],
+  "journeys": [
+    {
+      "id": "QueueCompleteness",
+      "steps": [
+        { "id": "QueuePolicy", "mandatory": true, "ownerRole": "product", "slaHours": 48, "evidenceType": "queueCompleteness", "service": "docs", "event": null },
+        { "id": "CasePersistsPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "case-persists-pass", "service": "testdata", "event": null },
+        { "id": "LostTransactionFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "lost-transaction-fail", "service": "testdata", "event": null },
+        { "id": "EscalationPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "escalation-queue-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SafeSearch",
+      "steps": [
+        { "id": "SearchPolicy", "mandatory": true, "ownerRole": "iam", "slaHours": 48, "evidenceType": "safeSearch", "service": "docs", "event": null },
+        { "id": "ScopedSearchPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "scoped-search-pass", "service": "testdata", "event": null },
+        { "id": "CrossTenantFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-tenant-search-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "BulkFourEyes",
+      "steps": [
+        { "id": "BulkPolicy", "mandatory": true, "ownerRole": "governance", "slaHours": 48, "evidenceType": "bulkActions", "service": "docs", "event": null },
+        { "id": "BulkFourEyesPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "bulk-four-eyes-pass", "service": "testdata", "event": null },
+        { "id": "BulkWithoutLimitFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "bulk-without-limit-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NotifyDeepLink",
+      "steps": [
+        { "id": "NotifyPolicy", "mandatory": true, "ownerRole": "comms", "slaHours": 48, "evidenceType": "notifications", "service": "docs", "event": null },
+        { "id": "DeliveryReceiptPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "delivery-receipt-pass", "service": "testdata", "event": null },
+        { "id": "SecretNotifyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "secret-in-notification-fail", "service": "testdata", "event": null },
+        { "id": "DeeplinkReauthPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "deeplink-reauth-pass", "service": "testdata", "event": null },
+        { "id": "ExpiredNoReauthFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "expired-deeplink-no-reauth-fail", "service": "testdata", "event": null },
+        { "id": "NotifyFailUntracked", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "notification-failure-untracked-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "lostTransactionFail": "testdata/prod005/scenarios/lost-transaction-fail.json",
+    "crossTenantSearchFail": "testdata/prod005/scenarios/cross-tenant-search-fail.json",
+    "bulkWithoutLimitFail": "testdata/prod005/scenarios/bulk-without-limit-fail.json",
+    "secretInNotificationFail": "testdata/prod005/scenarios/secret-in-notification-fail.json",
+    "expiredDeeplinkNoReauthFail": "testdata/prod005/scenarios/expired-deeplink-no-reauth-fail.json",
+    "notificationFailureUntrackedFail": "testdata/prod005/scenarios/notification-failure-untracked-fail.json",
+    "casePersistsPass": "testdata/prod005/scenarios/case-persists-pass.json",
+    "scopedSearchPass": "testdata/prod005/scenarios/scoped-search-pass.json",
+    "bulkFourEyesPass": "testdata/prod005/scenarios/bulk-four-eyes-pass.json",
+    "deliveryReceiptPass": "testdata/prod005/scenarios/delivery-receipt-pass.json",
+    "deeplinkReauthPass": "testdata/prod005/scenarios/deeplink-reauth-pass.json",
+    "escalationQueuePass": "testdata/prod005/scenarios/escalation-queue-pass.json",
+    "workboxRunLedger": "testdata/prod005/harness/workbox-run-ledger.json",
+    "workboxAuditPass": "testdata/prod005/audit/workbox-audit-pass.json"
+  },
+  "joins": {
+    "prod004Branch": "docs/prod-branch/remote-branch-matrix.json",
+    "ext007Sector": "docs/ext-sector/sector-catalog-matrix.json",
+    "iam002": "docs/completion-backlog/01-P0-RELEASE-BLOCKERS.md",
+    "int003": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md"
+  }
+}

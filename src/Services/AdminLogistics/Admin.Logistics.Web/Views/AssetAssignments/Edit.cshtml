@@ -1,0 +1,22 @@
+@model AssetAssignment
+@{ ViewData["Title"] = "تعديل العهدة"; var assets = (SelectList)ViewBag.Assets; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="AssetId" class="form-label"></label><select asp-for="AssetId" asp-items="assets" class="form-control"></select></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="mb-3"><label asp-for="AssignedAt" class="form-label"></label><input asp-for="AssignedAt" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="DueBackDate" class="form-label"></label><input asp-for="DueBackDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="ConditionOnAssign" class="form-label"></label><input asp-for="ConditionOnAssign" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="ReturnedAt" class="form-label"></label><input asp-for="ReturnedAt" class="form-control" type="datetime-local" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

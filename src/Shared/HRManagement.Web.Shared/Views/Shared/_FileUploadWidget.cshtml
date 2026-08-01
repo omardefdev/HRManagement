@@ -1,0 +1,67 @@
+@model Guid?
+@{
+    var inputName = ViewData["FileUploadName"] as string ?? "FileId";
+    var inputId = ViewData["FileUploadId"] as string ?? inputName;
+    var accept = ViewData["FileUploadAccept"] as string ?? "";
+    var maxSize = ViewData["FileUploadMaxSize"] as string ?? "26214400";
+    var uploadUrl = FileUrls.UploadUrl();
+    var downloadUrlTemplate = FileUrls.DownloadUrl(Guid.Empty).Replace(Guid.Empty.ToString("D"), "{fileId}", StringComparison.Ordinal);
+    var currentFileId = Model;
+    var label = ViewData["FileUploadLabel"] as string ?? "ملف";
+    var showImagePreview = accept?.Contains("image") ?? false;
+    var chooseLabel = ViewData["FileUploadChooseLabel"] as string ?? "اختيار ملف";
+    var maxSizeMb = Math.Max(1, (int)(long.Parse(maxSize) / 1048576));
+    var hint = ViewData["FileUploadHint"] as string ?? $"انقر أو اسحب الملف هنا (حتى {maxSizeMb} م.ب)";
+    var zoneClass = currentFileId.HasValue ? "hr-file-upload-zone is-selected" : "hr-file-upload-zone";
+}
+
+<div class="hr-file-upload mb-3" data-file-upload-widget
+     data-upload-url="@uploadUrl"
+     data-download-url-template="@downloadUrlTemplate"
+     data-max-size="@maxSize"
+     data-accept="@accept">
+    <input type="hidden" name="@inputName" id="@inputId" value="@(currentFileId?.ToString() ?? "")" data-file-id-input />
+
+    <div class="@zoneClass" data-hr-file-picker role="group" aria-label="@label">
+        <input type="file" hidden data-file-input tabindex="-1" aria-hidden="true" accept="@accept" />
+
+        <div class="hr-file-upload-empty @(currentFileId.HasValue ? "d-none" : "")" data-picker-empty>
+            <div class="hr-file-upload-icon" aria-hidden="true">
+                <i class="fas fa-cloud-arrow-up"></i>
+            </div>
+            <div class="hr-file-upload-title">@label</div>
+            <p class="hr-file-upload-hint">@hint</p>
+            <button type="button" class="btn btn-primary btn-sm hr-file-picker-btn" data-file-picker-btn>
+                <i class="fas fa-folder-open ms-1" aria-hidden="true"></i> @chooseLabel
+            </button>
+        </div>
+
+        <div class="hr-file-upload-file @(currentFileId.HasValue ? "" : "d-none")" data-picker-file>
+            <div class="hr-file-upload-file-icon" aria-hidden="true">
+                <i class="fas fa-file-circle-check"></i>
+            </div>
+            <div class="hr-file-upload-file-info">
+                <span class="hr-file-upload-file-name" data-file-picker-name>
+                    @(currentFileId.HasValue ? "ملف مرفق" : "")
+                </span>
+                <span class="hr-file-upload-file-meta" data-file-status>
+                    @(currentFileId.HasValue ? "يمكنك استبداله بملف جديد" : "")
+                </span>
+            </div>
+            <div class="hr-file-upload-actions">
+                <button type="button" class="btn btn-link hr-file-replace-btn" data-file-picker-btn>استبدال</button>
+                <button type="button" class="btn btn-link text-danger hr-file-clear-btn" data-file-clear-btn>إزالة</button>
+            </div>
+        </div>
+    </div>
+
+    @if (showImagePreview)
+    {
+        <div class="hr-file-upload-preview" data-file-preview>
+            @if (currentFileId.HasValue)
+            {
+                <img src="@FileUrls.DownloadUrl(currentFileId.Value)" alt="" />
+            }
+        </div>
+    }
+</div>

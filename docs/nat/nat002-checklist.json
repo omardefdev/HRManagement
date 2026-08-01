@@ -1,0 +1,43 @@
+{
+  "card": "NAT-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Independent security and privacy certification evidence template",
+  "harnessStatus": "Done",
+  "liveCertificationStatus": "Blocked",
+  "liveCertificationNote": "Independent assessor-issued report and live ATO pending national authorization board schedule",
+  "scope": {
+    "releaseDigestRequired": true,
+    "environment": "national-production-candidate",
+    "validityMonths": 12
+  },
+  "sovReferences": ["SOV-001", "SOV-002", "SOV-003", "SOV-004", "SOV-005", "SOV-006", "SOV-007"],
+  "evidenceDomains": [
+    { "id": "control-assessment", "name": "Control assessment", "mandatory": true, "artifactRef": "docs/sov-baseline/control-baseline-matrix.json" },
+    { "id": "pen-red", "name": "Pen/red team", "mandatory": true, "artifactRef": "docs/sov-pentest/pen-red-matrix.json" },
+    { "id": "privacy-impact", "name": "Privacy impact", "mandatory": true, "artifactRef": "docs/prv/ropa-register.json" },
+    { "id": "sovereignty", "name": "Sovereignty", "mandatory": true, "artifactRef": "docs/sov-data/data-sovereignty-matrix.json" },
+    { "id": "supplier", "name": "Supplier security", "mandatory": true, "artifactRef": "docs/sup-contracts/vendor-contract-registry.json" },
+    { "id": "incident", "name": "Incident readiness", "mandatory": true, "artifactRef": "docs/sre/incident-severity-model.json" },
+    { "id": "remediation", "name": "Remediation closure", "mandatory": true, "artifactRef": "docs/sov-pentest/pen-red-matrix.json" },
+    { "id": "residual-risk", "name": "Residual risk sign-off", "mandatory": true, "signatoryRole": "independent-authority-not-developer" }
+  ],
+  "acceptanceCriteria": {
+    "sov006Closed": true,
+    "openBlockerCount": 0,
+    "privacyLegalApprovalsRequired": true,
+    "residualRiskSignedByAuthority": true,
+    "certificationScopedToRelease": true
+  },
+  "ato": {
+    "expiryMonths": 12,
+    "conditionsTracked": true,
+    "liveAtoClaim": false
+  },
+  "dependencies": ["SOV-001", "SOV-002", "SOV-003", "SOV-004", "SOV-005", "SOV-006", "SOV-007", "GOV-001", "OPS-006"],
+  "blockers": [
+    { "id": "live-independent-assessor-report", "status": "Blocked", "note": "Assessor-issued signed report pending" },
+    { "id": "live-ato-grant", "status": "Blocked", "note": "Limited-duration ATO pending independent assessment" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "Evidence repository not yet closed" }
+  ]
+}

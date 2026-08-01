@@ -1,0 +1,17 @@
+@model IReadOnlyList<HR.Training.Domain.Entities.TrainingPlan>
+@{ ViewData["Title"] = "خطط التدريب السنوية"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">خطط التدريب</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">خطة جديدة</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>السنة</th><th>الوحدة</th><th>اعتماد</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model) { <tr><td>@x.Year</td><td>@(x.OrgUnitId?.ToString() ?? "—")</td><td>@(x.ApprovedAt != null ? "معتمدة" : "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد خطط</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

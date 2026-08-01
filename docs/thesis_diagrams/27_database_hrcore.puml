@@ -1,0 +1,89 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 18
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+
+title "ERD منطقي مختصر لقاعدة HR.Core\nHR.Core bounded context"
+
+entity "Employee\nالموظف" as Employee {
+  * Id : uuid <<PK>>
+  --
+  NationalId : string <<UQ>>
+  PrimaryOrgUnitId : uuid <<FK>>
+}
+entity "OrgUnit\nالوحدة التنظيمية" as OrgUnit {
+  * Id : uuid <<PK>>
+  --
+  Code : string <<UQ>>
+  ParentId : uuid <<FK>>
+  HeadEmployeeId : uuid <<FK>>
+}
+entity "EmployeeProfile\nالملف الشخصي" as Profile {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<FK>>
+}
+entity "EmploymentRecord\nالسجل الوظيفي" as Employment {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<FK>>
+  OrgUnitId : uuid <<FK>>
+}
+entity "EmployeeDocument\nوثيقة الموظف" as Document {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<FK>>
+}
+entity "Qualification\nالمؤهل" as Qualification {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<FK>>
+}
+entity "ApprovalRequest\nطلب اعتماد" as Approval {
+  * Id : uuid <<PK>>
+  EntityType : string
+  EntityId : uuid
+}
+entity "ApprovalStep\nخطوة اعتماد" as ApprovalStep {
+  * Id : uuid <<PK>>
+  ApprovalRequestId : uuid <<FK>>
+  Level : int
+}
+entity "ShiftRoster\nجدول المناوبات" as Roster {
+  * Id : uuid <<PK>>
+  OrgUnitId : uuid <<FK>>
+}
+entity "ShiftAssignment\nتكليف مناوبة" as Assignment {
+  * Id : uuid <<PK>>
+  ShiftRosterId : uuid <<FK>>
+  EmployeeId : uuid <<FK>>
+  ShiftId : uuid <<FK>>
+}
+entity "RecruitmentApplication\nطلب توظيف" as Recruitment {
+  * Id : uuid <<PK>>
+  HiredEmployeeId : uuid <<FK nullable>>
+}
+
+OrgUnit ||--o{ Employee : PrimaryOrgUnit
+OrgUnit ||--o{ OrgUnit : Parent / Children
+Employee ||--o{ Profile
+Employee ||--o{ Employment
+OrgUnit ||--o{ Employment
+Employee ||--o{ Document
+Employee ||--o{ Qualification
+Approval ||--o{ ApprovalStep
+OrgUnit ||--o{ Roster
+Roster ||--o{ Assignment
+Employee ||--o{ Assignment
+Employee ||--o{ Recruitment : hired employee
+
+note right of Employee
+Employee وOrgUnit هما المرجعان المركزيان داخل HR.Core.
+الخدمات الأخرى تستقبل EmployeeId وOrgUnitId
+أو OrgUnitSnapshot، ولا تنشئ FK عابراً لقواعد البيانات.
+end note
+@enduml

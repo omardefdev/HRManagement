@@ -1,0 +1,1 @@
+﻿{"scenarioId":"egress-deny-default-pass","expectedValidate":"PASS","denyByDefault":true}

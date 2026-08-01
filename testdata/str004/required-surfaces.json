@@ -1,0 +1,12 @@
+{
+  "card": "STR-004",
+  "requiredKinds": ["data", "policy", "template", "workflow", "branding", "integration", "code-forbidden"],
+  "minSurfaces": 8,
+  "requireProd001Satisfied": true,
+  "requireOnb001Blocked": false,
+  "srcScanRoots": [
+    "src/Gateway",
+    "src/Shared/HRManagement.ServiceDefaults",
+    "src/Services"
+  ]
+}

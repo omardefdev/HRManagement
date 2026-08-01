@@ -1,0 +1,74 @@
+@model Payroll.Domain.Entities.EmployeePayProfile
+
+@{ ViewData["Title"] = "ملف راتب جديد"; }
+
+<div class="card">
+
+    <div class="card-header"><h3 class="card-title">ملف راتب موظف</h3></div>
+
+    <div class="card-body">
+
+        <form asp-action="Create" method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+
+                <label asp-for="EmployeeId" class="form-label"></label>
+
+                <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="PayGradeId" class="form-label"></label>
+
+                <select asp-for="PayGradeId" asp-items="ViewBag.Grades" class="form-select"><option value="">—</option></select>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="BaseSalary" class="form-label"></label>
+
+                <input asp-for="BaseSalary" class="form-control" />
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="EffectiveFrom" class="form-label"></label>
+
+                <input asp-for="EffectiveFrom" class="form-control" type="datetime-local" />
+
+            </div>
+
+            <div class="mb-3 form-check">
+
+                <input asp-for="IsActive" class="form-check-input" />
+
+                <label asp-for="IsActive" class="form-check-label"></label>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">سبب التغيير</label>
+
+                <input name="changeReason" class="form-control" />
+
+            </div>
+
+            <button type="submit" class="btn btn-primary">حفظ</button>
+
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+
+        </form>
+
+    </div>
+
+</div>
+

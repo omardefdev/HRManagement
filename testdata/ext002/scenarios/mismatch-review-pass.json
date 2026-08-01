@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-MISMATCH-REVIEW",
+  "expectedValidate": "PASS",
+  "outcome": "Mismatch",
+  "humanReviewQueued": true,
+  "queue": "civil-registry-mismatch-review",
+  "autoAcceptedAsMatch": false
+}

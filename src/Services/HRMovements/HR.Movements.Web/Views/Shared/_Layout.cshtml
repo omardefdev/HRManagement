@@ -1,0 +1,26 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "hr-movements";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">التنقلات والتوزيع</li>
+    <li class="nav-item"><a asp-controller="TransferRequests" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-random"></i><p>طلبات النقل</p></a></li>
+    <li class="nav-item"><a asp-controller="MovementNotices" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-bullhorn"></i><p>نشرات التنقلات</p></a></li>
+    <li class="nav-item"><a asp-controller="DistributionPlans" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-sitemap"></i><p>خطط التوزيع</p></a></li>
+    <li class="nav-item"><a asp-controller="SecondmentRequests" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-link"></i><p>الانتداب</p></a></li>
+    <li class="nav-item"><a asp-controller="TransferFinancialImpacts" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-coins"></i><p>الأثر المالي</p></a></li>
+    <li class="nav-item"><a asp-controller="MovementExecutions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-check"></i><p>سجل التنفيذ</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

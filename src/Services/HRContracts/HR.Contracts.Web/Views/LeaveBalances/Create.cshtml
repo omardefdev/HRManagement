@@ -1,0 +1,36 @@
+@model HR.Contracts.Domain.Entities.LeaveBalance
+@using HR.Contracts.Domain.Enums
+@{ ViewData["Title"] = "إضافة رصيد إجازة"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> إضافة رصيد إجازة</h3></div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="EmployeeId" class="form-label"></label>
+                    <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LeaveType" class="form-label"></label>
+                    <select asp-for="LeaveType" asp-items="Html.GetEnumSelectList<LeaveType>()" class="form-select"></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Year" class="form-label"></label>
+                    <input asp-for="Year" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="TotalEntitlement" class="form-label"></label>
+                    <input asp-for="TotalEntitlement" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Used" class="form-label"></label>
+                    <input asp-for="Used" class="form-control" type="number" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

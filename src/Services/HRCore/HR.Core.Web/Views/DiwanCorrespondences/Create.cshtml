@@ -1,0 +1,12 @@
+@model HR.Core.Web.ViewModels.DiwanCorrespondenceCreateViewModel
+@{ ViewData["Title"] = "مكاتبة ديوان"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="ReferenceNumber" class="form-label"></label><input asp-for="ReferenceNumber" class="form-control" /><span asp-validation-for="ReferenceNumber" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Subject" class="form-label"></label><input asp-for="Subject" class="form-control" /><span asp-validation-for="Subject" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Direction" class="form-label"></label><select class="form-control" asp-for="Direction" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.CorrespondenceDirection>()" class="form-control"></select><span asp-validation-for="Direction" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ExternalParty" class="form-label"></label><input asp-for="ExternalParty" class="form-control" /><span asp-validation-for="ExternalParty" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Body" class="form-label"></label><textarea asp-for="Body" class="form-control" rows="3"></textarea><span asp-validation-for="Body" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="RelatedEmployeeId" class="form-label"></label><select asp-for="RelatedEmployeeId" asp-items="ViewBag.Employees" class="form-control"><option value="">— موظف مرتبط —</option></select><span asp-validation-for="RelatedEmployeeId" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

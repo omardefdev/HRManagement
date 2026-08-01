@@ -1,0 +1,16 @@
+@model HR.Health.Domain.Entities.InsuranceCard
+@{ ViewData["Title"] = "بطاقة تأمين جديدة"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="MemberNumber" class="form-label"></label><input asp-for="MemberNumber" class="form-control" /><span asp-validation-for="MemberNumber" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Provider" class="form-label"></label><input asp-for="Provider" class="form-control" /><span asp-validation-for="Provider" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="IssueDate" class="form-label"></label><input asp-for="IssueDate" class="form-control" type="date" /><span asp-validation-for="IssueDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="ExpiryDate" class="form-label"></label><input asp-for="ExpiryDate" class="form-control" type="date" /><span asp-validation-for="ExpiryDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="FamilyMembers" class="form-label"></label><textarea asp-for="FamilyMembers" class="form-control" rows="2"></textarea><span asp-validation-for="FamilyMembers" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

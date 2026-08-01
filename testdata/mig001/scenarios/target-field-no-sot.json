@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-TARGET-FIELD-NO-SOT",
+  "expectedValidate": "FAIL",
+  "targetField": "Employee.NationalId",
+  "sourceOfTruthSourceId": null,
+  "notes": "Required target field without SoT must fail"
+}

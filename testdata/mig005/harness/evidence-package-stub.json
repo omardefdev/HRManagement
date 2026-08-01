@@ -1,0 +1,17 @@
+{
+  "fixtureId": "MIG005-EVIDENCE-PACKAGE-STUB",
+  "evidencePolicyVersion": "2026.07.30.1",
+  "contentHash": "sha256:mig005-lab-package-abc",
+  "immutable": true,
+  "artifacts": [
+    "source-counts",
+    "bucket-breakdown",
+    "payroll-control",
+    "lineage-export",
+    "reject-register",
+    "checksum-manifest",
+    "sample-results",
+    "dual-control-signoff"
+  ],
+  "wormJoin": "docs/ADR-OBS-003-siem-tamper-audit.md"
+}

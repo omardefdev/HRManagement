@@ -1,0 +1,14 @@
+@model HR.Health.Domain.Entities.InsuranceContract
+@{ ViewData["Title"] = "عقد تأمين جديد"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="Provider" class="form-label"></label><input asp-for="Provider" class="form-control" /><span asp-validation-for="Provider" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="CoverageDetails" class="form-label"></label><textarea asp-for="CoverageDetails" class="form-control" rows="2"></textarea><span asp-validation-for="CoverageDetails" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /><span asp-validation-for="StartDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /><span asp-validation-for="EndDate" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

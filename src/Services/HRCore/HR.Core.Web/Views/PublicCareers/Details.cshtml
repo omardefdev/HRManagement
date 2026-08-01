@@ -1,0 +1,50 @@
+@model HR.Core.Domain.Entities.PublicJobPosting
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "_PublicLayout";
+}
+<div class="careers-card mb-4">
+    <div class="card-body">
+        <h3 class="card-title" style="font-size:1.4rem;">@Model.Title</h3>
+        <p class="card-subtitle mb-3">
+            <i class="fas fa-building ms-1"></i> @(Model.Entity ?? "—")
+            @if (!string.IsNullOrWhiteSpace(Model.Location)) { <span>• <i class="fas fa-map-marker-alt ms-1"></i> @Model.Location</span> }
+        </p>
+        @if (Model.ClosingDate != null)
+        {
+            <p style="color:#6b1f2a;"><i class="fas fa-clock ms-1"></i> آخر موعد للتقديم: @Model.ClosingDate.Value.ToString("dd-MM-yyyy")</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <h6 class="mt-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-file-alt ms-1"></i> الوصف</h6>
+            <p class="text-muted">@Model.Description</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Requirements))
+        {
+            <h6 class="mt-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-list-check ms-1"></i> الشروط والمؤهلات</h6>
+            <p class="text-muted">@Model.Requirements</p>
+        }
+    </div>
+</div>
+
+<div class="careers-card">
+    <div class="card-body">
+        <h5 style="color:#6b1f2a; font-weight:700; margin-bottom:1.25rem;"><i class="fas fa-paper-plane ms-2"></i> تقديم طلب توظيف</h5>
+        <form asp-action="Apply" method="post" class="careers-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="PublicJobPostingId" value="@Model.Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">الاسم الكامل</label><input name="FullName" class="form-control" required /></div>
+                <div class="col-md-6"><label class="form-label">الرقم الوطني</label><input name="NationalId" class="form-control" required /></div>
+                <div class="col-md-6"><label class="form-label">رقم الهاتف</label><input name="Phone" class="form-control" /></div>
+                <div class="col-md-6"><label class="form-label">البريد الإلكتروني</label><input name="Email" type="email" class="form-control" /></div>
+                <div class="col-12"><label class="form-label">نبذة / مسوّغات</label><textarea name="CoverNote" class="form-control" rows="3"></textarea></div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1"></i> إرسال الطلب</button>
+                <a asp-action="Index" class="btn careers-btn-outline me-2">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>

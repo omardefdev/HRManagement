@@ -1,0 +1,83 @@
+{
+  "card": "REL-005",
+  "title": "Canary Deployment Gates",
+  "version": "1.0.0",
+  "rollbackSlaMinutes": 15,
+  "stages": [
+    {
+      "id": "smoke",
+      "order": 1,
+      "name": "Smoke",
+      "trafficPercent": 1,
+      "durationMinutes": 5,
+      "autoPromote": true,
+      "gates": [
+        { "id": "error-rate-smoke", "type": "health", "metric": "error_rate_5xx", "operator": "lt", "threshold": 0.001 },
+        { "id": "latency-smoke", "type": "health", "metric": "latency_p99_ratio_to_baseline", "operator": "lt", "threshold": 2.0 }
+      ]
+    },
+    {
+      "id": "canary",
+      "order": 2,
+      "name": "Canary",
+      "trafficPercent": 5,
+      "durationMinutes": 15,
+      "autoPromote": true,
+      "gates": [
+        { "id": "error-rate-canary", "type": "health", "metric": "error_rate_5xx", "operator": "lt", "threshold": 0.005 },
+        { "id": "latency-canary", "type": "health", "metric": "latency_p99_ms", "operator": "lt", "threshold": 500 },
+        { "id": "payroll-invariant", "type": "business", "metric": "payroll_gross_minus_deductions_equals_net", "operator": "eq", "threshold": true },
+        { "id": "no-oom", "type": "health", "metric": "container_oom_events", "operator": "eq", "threshold": 0 }
+      ]
+    },
+    {
+      "id": "expand",
+      "order": 3,
+      "name": "Expand",
+      "trafficPercent": 25,
+      "durationMinutes": 30,
+      "autoPromote": true,
+      "gates": [
+        { "id": "slo-budget-expand", "type": "health", "metric": "slo_error_budget_remaining_pct", "operator": "gt", "threshold": 10 },
+        { "id": "no-data-anomaly", "type": "business", "metric": "data_anomaly_detected", "operator": "eq", "threshold": false },
+        { "id": "no-duplicate-disbursement", "type": "business", "metric": "duplicate_disbursement_events", "operator": "eq", "threshold": 0 }
+      ]
+    },
+    {
+      "id": "majority",
+      "order": 4,
+      "name": "Majority",
+      "trafficPercent": 75,
+      "durationMinutes": 30,
+      "autoPromote": true,
+      "gates": [
+        { "id": "all-health-majority", "type": "health", "metric": "all_health_gates_green", "operator": "eq", "threshold": true },
+        { "id": "all-business-majority", "type": "business", "metric": "all_business_gates_green", "operator": "eq", "threshold": true }
+      ]
+    },
+    {
+      "id": "full",
+      "order": 5,
+      "name": "Full",
+      "trafficPercent": 100,
+      "durationMinutes": null,
+      "autoPromote": false,
+      "gates": []
+    }
+  ],
+  "abortPolicy": {
+    "onGateFail": "automatic-rollback",
+    "onManualAbort": "immediate-rollback",
+    "onErrorBudgetExhausted": "block-further-rollouts",
+    "rollbackTargetVersion": "previous-stable"
+  },
+  "featureFlags": {
+    "cohorts": ["internal", "pilot-agencies", "region", "full"],
+    "killSwitchEnabled": true,
+    "evaluationTime": "request-time"
+  },
+  "auditRequirements": {
+    "logFields": ["digest", "cohort", "gateResults", "approver", "timestamp"],
+    "retentionDays": 365
+  }
+}

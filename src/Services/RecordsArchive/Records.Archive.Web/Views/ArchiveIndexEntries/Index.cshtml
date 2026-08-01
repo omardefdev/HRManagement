@@ -1,0 +1,24 @@
+@model IReadOnlyList<ArchiveIndexEntry>
+@{ ViewData["Title"] = "فهرس الأرشيف"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">فهرس الأرشيف</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>عنصر الأرشيف</th><th>الكلمات المفتاحية</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.ArchiveItem?.Title</td>
+                        <td>@(x.Keywords ?? "—")</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-4">لا فهارس</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

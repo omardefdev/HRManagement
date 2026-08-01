@@ -1,0 +1,66 @@
+@model Records.Archive.Domain.Entities.PhysicalFileRecord
+
+@{ ViewData["Title"] = "ملف ورقي"; }
+
+<div class="card">
+
+    <form asp-action="Create" method="post">
+
+        @Html.AntiForgeryToken()
+
+        <div class="card-body">
+
+            <div class="mb-3">
+
+                <label asp-for="ArchiveItemId" class="form-label"></label>
+
+                <select asp-for="ArchiveItemId" asp-items="ViewBag.Items" class="form-control"></select>
+
+                <span asp-validation-for="ArchiveItemId" class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="BoxNumber" class="form-label"></label>
+
+                <input asp-for="BoxNumber" class="form-control" />
+
+                <span asp-validation-for="BoxNumber" class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="PageCount" class="form-label"></label>
+
+                <input asp-for="PageCount" class="form-control" type="number" />
+
+                <span asp-validation-for="PageCount" class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="Condition" class="form-label"></label>
+
+                <input asp-for="Condition" class="form-control" />
+
+                <span asp-validation-for="Condition" class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+        <div class="card-footer">
+
+            <button class="btn btn-primary" type="submit">حفظ</button>
+
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+
+        </div>
+
+    </form>
+
+</div>
+

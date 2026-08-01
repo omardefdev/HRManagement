@@ -1,0 +1,147 @@
+{
+  "card": "SOV-002",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "dataSovereigntyPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "dataCopyInventory": {
+    "required": true,
+    "classificationRequired": true,
+    "approvedLocationRequired": true,
+    "copyTypes": ["db", "object", "backups", "logs", "traces", "ci-artifacts", "support-dumps"]
+  },
+  "dataFlowMap": {
+    "required": true
+  },
+  "residency": {
+    "required": true,
+    "approvedRegionsRequired": true,
+    "outsideScopeForbidden": true
+  },
+  "egress": {
+    "required": true,
+    "denyByDefault": true
+  },
+  "remoteSupport": {
+    "required": true,
+    "jitRequired": true,
+    "loggedRequired": true,
+    "approvalRequired": true
+  },
+  "subcontractors": {
+    "required": true,
+    "inventoryRequired": true
+  },
+  "telemetry": {
+    "required": true,
+    "residencyBound": true
+  },
+  "destruction": {
+    "required": true,
+    "certificateRequired": true
+  },
+  "lawfulDisclosure": {
+    "required": true,
+    "loggedDisclosureRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["copyId", "classification", "location", "egressDecision", "supportTicketId", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveEgressForbidden": true,
+    "liveSupportJitForbidden": true,
+    "liveDeletionSystemForbidden": true
+  },
+  "signing": {
+    "signedByRole": "data-sovereignty-lead",
+    "reviewerRole": "legal-privacy-officer",
+    "dataSovereigntyPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:sov002-lab-data-sovereignty-20260730"
+  },
+  "blockers": [
+    { "id": "GOV-001", "status": "Satisfied", "note": "Classification/privacy Done" },
+    { "id": "OPS-003", "status": "Satisfied", "note": "Backup/PITR Done" },
+    { "id": "STR-002", "status": "Satisfied", "note": "Production control binding Done" },
+    { "id": "SOV-001", "status": "Satisfied", "note": "Production control-baseline binding Done" },
+    { "id": "live-egress-enforcement", "status": "Blocked", "note": "Lab egress contracts only" },
+    { "id": "live-support-jit-workers", "status": "Blocked", "note": "Lab JIT support fixtures only" },
+    { "id": "live-deletion-certificate-system", "status": "Blocked", "note": "Lab deletion cert contracts only" },
+    { "id": "SYR-008", "status": "NotStarted", "note": "Hosting authorization later" },
+    { "id": "SOV-003", "status": "Satisfied", "note": "Production key-sovereignty binding Done; live HSM later SOV-003a" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "National Go/No-Go later" }
+  ],
+  "outOfScope": [
+    "Live network egress enforcement",
+    "Live JIT support workers",
+    "Live deletion certificate system",
+    "SYR-008 hosting authorization",
+    "SOV-003 live HSM/ceremony/time (SOV-003a–d; platform binding Satisfied)",
+    "LiveAtoClaim elevation",
+    "Flipping STR-002 CTRL-* Blocked-Legal to Implemented",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "InventoryFlow",
+      "steps": [
+        { "id": "ClassifiedInventoryPass", "mandatory": true, "ownerRole": "data-steward", "slaHours": 48, "evidenceType": "classified-inventory-pass", "service": "testdata", "event": null },
+        { "id": "UnclassifiedCopyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unclassified-copy-fail", "service": "testdata", "event": null },
+        { "id": "UnapprovedLocationFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unapproved-location-fail", "service": "testdata", "event": null },
+        { "id": "DataFlowMapPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "data-flow-map-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ResidencyEgress",
+      "steps": [
+        { "id": "ApprovedResidencyPass", "mandatory": true, "ownerRole": "sovereignty", "slaHours": 48, "evidenceType": "approved-residency-pass", "service": "testdata", "event": null },
+        { "id": "CopyOutsideScopeFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "copy-outside-scope-fail", "service": "testdata", "event": null },
+        { "id": "EgressDenyDefaultPass", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "egress-deny-default-pass", "service": "testdata", "event": null },
+        { "id": "EgressAllowDefaultFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "egress-allow-default-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SupportDestruction",
+      "steps": [
+        { "id": "JitSupportPass", "mandatory": true, "ownerRole": "support", "slaHours": 24, "evidenceType": "jit-support-pass", "service": "testdata", "event": null },
+        { "id": "SupportWithoutJitFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "support-without-jit-fail", "service": "testdata", "event": null },
+        { "id": "SupportWithoutApprovalFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "support-without-approval-fail", "service": "testdata", "event": null },
+        { "id": "DeletionCertPass", "mandatory": true, "ownerRole": "privacy", "slaHours": 48, "evidenceType": "deletion-cert-pass", "service": "testdata", "event": null },
+        { "id": "MissingDeletionCertFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-deletion-cert-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AuditClaim",
+      "steps": [
+        { "id": "SupplierAuditPass", "mandatory": true, "ownerRole": "procurement", "slaHours": 72, "evidenceType": "supplier-audit-pass", "service": "testdata", "event": null },
+        { "id": "LiveSovereigntyClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-sovereignty-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "unclassifiedCopyFail": "testdata/sov002/scenarios/unclassified-copy-fail.json",
+    "unapprovedLocationFail": "testdata/sov002/scenarios/unapproved-location-fail.json",
+    "egressAllowDefaultFail": "testdata/sov002/scenarios/egress-allow-default-fail.json",
+    "supportWithoutJitFail": "testdata/sov002/scenarios/support-without-jit-fail.json",
+    "supportWithoutApprovalFail": "testdata/sov002/scenarios/support-without-approval-fail.json",
+    "copyOutsideScopeFail": "testdata/sov002/scenarios/copy-outside-scope-fail.json",
+    "missingDeletionCertFail": "testdata/sov002/scenarios/missing-deletion-cert-fail.json",
+    "liveSovereigntyClaimFail": "testdata/sov002/scenarios/live-sovereignty-claim-fail.json",
+    "classifiedInventoryPass": "testdata/sov002/scenarios/classified-inventory-pass.json",
+    "approvedResidencyPass": "testdata/sov002/scenarios/approved-residency-pass.json",
+    "egressDenyDefaultPass": "testdata/sov002/scenarios/egress-deny-default-pass.json",
+    "jitSupportPass": "testdata/sov002/scenarios/jit-support-pass.json",
+    "deletionCertPass": "testdata/sov002/scenarios/deletion-cert-pass.json",
+    "dataFlowMapPass": "testdata/sov002/scenarios/data-flow-map-pass.json",
+    "supplierAuditPass": "testdata/sov002/scenarios/supplier-audit-pass.json",
+    "sovereigntyRunLedger": "testdata/sov002/harness/sovereignty-run-ledger.json",
+    "sovereigntyAuditPass": "testdata/sov002/audit/sovereignty-audit-pass.json"
+  },
+  "joins": {
+    "gov001Inventory": "docs/data-classification/inventory.json",
+    "ops003Backup": "docs/completion-backlog/03-P2-SCALE-AND-RELIABILITY.md",
+    "sov001Baseline": "docs/sov-baseline/control-baseline-matrix.json",
+    "str002Catalog": "docs/str-legal/control-catalog.json"
+  }
+}

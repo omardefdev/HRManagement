@@ -1,0 +1,38 @@
+@model IReadOnlyList<Payroll.Domain.Entities.PaymentHold>
+@{ ViewData["Title"] = "حجوزات الصرف"; }
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">حجوزات الصرف</h3>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>النوع</th>
+                <th>الحالة</th>
+                <th>السبب</th>
+                <th>وقت الحجز</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@x.EmployeeId</td>
+                    <td>@x.HoldType</td>
+                    <td>@x.Status</td>
+                    <td class="text-truncate" style="max-width:280px">@x.Reason</td>
+                    <td>@x.HeldAtUtc.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-primary">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-3">لا توجد حجوزات</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

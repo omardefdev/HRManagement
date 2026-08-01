@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG005-BUSINESS-SAMPLE-SIGNOFF",
+  "expectedValidate": "PASS",
+  "sampleSize": 25,
+  "signedByRole": "agency-data-owner",
+  "approved": true,
+  "waveId": "wave-pilot-a-1"
+}

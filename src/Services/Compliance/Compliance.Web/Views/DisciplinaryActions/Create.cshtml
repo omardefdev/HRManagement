@@ -1,0 +1,39 @@
+@model Compliance.Domain.Entities.DisciplinaryAction
+@{ ViewData["Title"] = "إجراء تأديبي جديد"; ViewData["FormTitle"] = "إجراء تأديبي جديد"; ViewData["FormIcon"] = "fa-user-slash"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        @await Html.PartialAsync("_HrFormCardHeader")
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3">
+                <label asp-for="EmployeeId" class="form-label">الموظف</label>
+                <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— اختر موظف —</option>
+                </select>
+                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ActionType" class="form-label">نوع الإجراء</label>
+                <select asp-for="ActionType" asp-items="Html.GetEnumSelectList<Compliance.Domain.Enums.ActionType>()" class="form-select"></select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="IssuedAt" class="form-label">تاريخ الإصدار</label>
+                <input asp-for="IssuedAt" class="form-control" type="datetime-local" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label">ملاحظات</label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AppealStatus" class="form-label">حالة الاستئناف</label>
+                <select asp-for="AppealStatus" asp-items="Html.GetEnumSelectList<Compliance.Domain.Enums.AppealStatus>()" class="form-select"></select>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

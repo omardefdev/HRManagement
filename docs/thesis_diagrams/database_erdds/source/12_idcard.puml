@@ -1,0 +1,65 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "ERD الكامل لقاعدة idcard_db\nIDCard / IDCardDbContext"
+
+entity "AuditLogs\nEntityAuditLog" as T01 {
+  * Id : uuid
+    EntityId : uuid
+    TenantId : uuid
+    UserId : uuid
+}
+entity "AccessPermissions\nAccessPermission" as T02 {
+  * Id : uuid
+    IssuedCardId : uuid
+    TenantId : uuid
+}
+entity "CardDeliveryRecords\nCardDeliveryRecord" as T03 {
+  * Id : uuid
+    IssuedCardId : uuid
+    TenantId : uuid
+}
+entity "CardDesigns\nCardDesign" as T04 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "CardPermissionSets\nCardPermissionSet" as T05 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "CardRequests\nCardRequest" as T06 {
+  * Id : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "IssuedCards\nIssuedCard" as T07 {
+  * Id : uuid
+    CardDesignId : uuid
+    DeliveryRecordId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "OfficialSealRecords\nOfficialSealRecord" as T08 {
+  * Id : uuid
+    SealFileId : uuid
+    TenantId : uuid
+}
+
+T02 }o--|| T07 : IssuedCardId
+T07 }o--|| T04 : CardDesignId
+T07 }o--|| T03 : IDCard.Domain.Entities.IssuedCard, DeliveryRecordId
+
+note bottom
+يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.
+المعرفات مثل EmployeeId أو OrgUnitId التي لا تظهر كعلاقة داخلية هي معرفات تكاملية عابرة للخدمات وليست FK بين قواعد البيانات.
+end note
+@enduml

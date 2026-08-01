@@ -1,0 +1,28 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.Shift>
+@{ ViewData["Title"] = "الورديات"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الورديات</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">إضافة وردية</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الرمز</th><th>الاسم</th><th>النوع</th><th>من</th><th>إلى</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Code</td>
+                        <td>@x.NameAr</td>
+                        <td>@Html.DisplayFor(_ => x.ShiftType)</td>
+                        <td>@x.StartTime.ToString("HH:mm")</td>
+                        <td>@x.EndTime.ToString("HH:mm")</td>
+                        <td>@(x.IsActive ? "مفعّلة" : "موقوفة")</td>
+                        <td><a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-outline-secondary btn-xs">تعديل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد ورديات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

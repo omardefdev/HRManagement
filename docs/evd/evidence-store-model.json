@@ -1,0 +1,59 @@
+{
+  "card": "EVD-003",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "evidenceItemSchema": {
+    "id": "uuid",
+    "cardId": "string — associated card identifier",
+    "controlId": "string — control or requirement identifier",
+    "releaseDigest": "string — release version",
+    "source": "CI/CD | test-run | security-scan | operational-drill | manual-upload",
+    "collectedAt": "ISO 8601 UTC timestamp",
+    "collectedBy": "system or person identifier",
+    "hashAlgorithm": "SHA-256",
+    "hashValue": "hex-encoded content hash",
+    "classification": "confidential | restricted | internal",
+    "expiresAt": "ISO 8601 UTC timestamp",
+    "status": "Active | Expired | Superseded"
+  },
+  "immutability": {
+    "appendOnly": true,
+    "noUpdateByAnyone": true,
+    "noDeleteByAnyone": true,
+    "adminCannotModify": true,
+    "hashChainLink": "EVD-001",
+    "wormStorage": true,
+    "backupPreservesHashChain": true
+  },
+  "automatedCollection": {
+    "ciCdPublish": true,
+    "securityScanAutoCollect": true,
+    "drillEvidenceCapture": true,
+    "manualUploadRequires": ["reviewer-approval", "hash-verification"]
+  },
+  "accessControl": {
+    "authors": "write-only-no-modify",
+    "applicationAdmin": "no-write-no-delete",
+    "independentAssessor": "read-only-no-production-access",
+    "auditLogForAllAccess": true
+  },
+  "freshness": {
+    "configurableExpiration": true,
+    "defaultExpirationDays": 180,
+    "expiredCreatesVisibleGap": true,
+    "gapNotification": true,
+    "gapNotifyTargets": ["evidence-owner", "assurance-office"],
+    "reCollectionBeforeGate": true
+  },
+  "sovereignBoundary": {
+    "storedWithinSovereignTerritory": true,
+    "backupWithinSovereignTerritory": true,
+    "restoreTested": true
+  },
+  "piiProtection": {
+    "piiBlocked": true,
+    "secretsBlocked": true,
+    "redactionEnforced": true,
+    "scanOnIngestion": true
+  }
+}

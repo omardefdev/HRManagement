@@ -1,0 +1,19 @@
+{
+  "fixtureId": "MIG007-ONBOARDING-RUN-LEDGER",
+  "runs": [
+    {
+      "runId": "onb-lab-a-001",
+      "agencyId": "lab-agency-a",
+      "outcome": "Completed",
+      "leadTimeDays": 38,
+      "defects": 2
+    },
+    {
+      "runId": "onb-lab-b-001",
+      "agencyId": "lab-agency-b",
+      "outcome": "Completed",
+      "leadTimeDays": 41,
+      "defects": 1
+    }
+  ]
+}

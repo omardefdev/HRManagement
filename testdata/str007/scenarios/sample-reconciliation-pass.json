@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-RECONCILE-PASS",
+  "expectedValidate": "PASS",
+  "kpiId": "uptime_value",
+  "reportedValue": 99.6,
+  "sourceValue": 99.55,
+  "tolerancePct": 5,
+  "sourceRef": "docs/OBS_SLO_CATALOG.md#j1--gatewayavailability"
+}

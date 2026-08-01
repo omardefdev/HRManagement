@@ -1,0 +1,11 @@
+{
+  "fixtureId": "MIG002-MAPPING-COVERAGE",
+  "expectedValidate": "PASS",
+  "domains": [
+    { "sourceId": "legacy-hr-batch", "sourceField": "STATUS_CODE", "distinctValues": ["A", "T", "S", "XX"], "allDispositioned": true },
+    { "sourceId": "legacy-org-files", "sourceField": "ORG_CODE", "distinctValues": ["HQ", "BR1", "Z-OLD"], "allDispositioned": true },
+    { "sourceId": "legacy-hr-batch", "sourceField": "JOB_TITLE", "distinctValues": ["كاتب", ""], "allDispositioned": true },
+    { "sourceId": "legacy-payroll", "sourceField": "REGIME", "distinctValues": ["50-2004", "CS-2026"], "allDispositioned": true },
+    { "sourceId": "legacy-hr-batch", "sourceField": "GENDER", "distinctValues": ["M", "F"], "allDispositioned": true }
+  ]
+}

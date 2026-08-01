@@ -1,0 +1,62 @@
+@model HR.Core.Domain.Entities.CareerPath
+@{ ViewData["Title"] = "تفاصيل المسار الوظيفي"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@Model.Title</h3>
+        <div>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('حذف المسار؟');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
+            </form>
+            <a asp-action="Index" class="btn btn-link">رجوع</a>
+        </div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <div class="card-body"><p class="mb-0">@Model.Description</p></div>
+    }
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">إضافة مرحلة</h5></div>
+    <div class="card-body">
+        <form asp-action="AddStep" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="careerPathId" value="@Model.Id" />
+            <div class="col-md-1"><label class="form-label">الترتيب</label><input name="order" type="number" class="form-control" value="@(Model.Steps.Count + 1)" /></div>
+            <div class="col-md-4"><label class="form-label">المسمى الوظيفي</label><input name="positionTitle" class="form-control" required /></div>
+            <div class="col-md-2"><label class="form-label">سنوات الخبرة</label><input name="minYears" type="number" min="0" class="form-control" value="0" /></div>
+            <div class="col-md-4"><label class="form-label">المتطلبات</label><input name="requirements" class="form-control" /></div>
+            <div class="col-md-1 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">إضافة</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">مراحل المسار</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>#</th><th>المسمى</th><th>سنوات الخبرة</th><th>المتطلبات</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Steps.OrderBy(s => s.Order))
+                {
+                    <tr>
+                        <td>@s.Order</td>
+                        <td>@s.PositionTitle</td>
+                        <td>@s.MinYears</td>
+                        <td>@(s.Requirements ?? "—")</td>
+                        <td>
+                            <form asp-action="RemoveStep" method="post" onsubmit="return confirm('حذف المرحلة؟');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@s.Id" />
+                                <input type="hidden" name="careerPathId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-outline-danger btn-xs">حذف</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Steps.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مراحل</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

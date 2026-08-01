@@ -1,0 +1,25 @@
+@model HR.Core.Web.Controllers.EssIdCardRequestModel
+@{
+    ViewData["Title"] = "طلب بطاقة هوية";
+}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">طلب بطاقة هوية</h3></div>
+    <div class="card-body">
+        <form asp-action="IdCard" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label">ملاحظات إضافية</label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+            </div>
+            @{
+                ViewData["FileUploadName"] = nameof(Model.AttachmentFileId);
+                ViewData["FileUploadId"] = nameof(Model.AttachmentFileId);
+                ViewData["FileUploadLabel"] = "مرفق (اختياري)";
+                ViewData["FileUploadAccept"] = "image/*,.pdf";
+            }
+            @await Html.PartialAsync("_FileUploadWidget", Model.AttachmentFileId)
+            <button type="submit" class="btn btn-primary">تقديم الطلب</button>
+            <a asp-action="Index" class="btn btn-secondary">رجوع</a>
+        </form>
+    </div>
+</div>

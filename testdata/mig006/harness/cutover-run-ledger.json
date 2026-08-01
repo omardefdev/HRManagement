@@ -1,0 +1,8 @@
+{
+  "fixtureId": "MIG006-CUTOVER-RUN-LEDGER",
+  "runs": [
+    { "runId": "cut-lab-r1", "rehearsalId": "R1", "outcome": "Completed", "rollbackExercised": false },
+    { "runId": "cut-lab-r2", "rehearsalId": "R2", "outcome": "Completed", "rollbackExercised": true },
+    { "runId": "cut-lab-r3", "rehearsalId": "R3", "outcome": "Completed", "rollbackExercised": false }
+  ]
+}

@@ -1,0 +1,47 @@
+@model ServerDevice
+@{ ViewData["Title"] = "تعديل سيرفر"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <form asp-action="Edit">
+        <div class="card-body">
+            <input type="hidden" asp-for="Id" />
+            <div class="mb-3">
+                <label asp-for="Hostname" class="form-label"></label>
+                <input asp-for="Hostname" class="form-control" />
+                <span asp-validation-for="Hostname" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="IpAddress" class="form-label"></label>
+                <input asp-for="IpAddress" class="form-control" />
+                <span asp-validation-for="IpAddress" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Os" class="form-label"></label>
+                <input asp-for="Os" class="form-control" />
+                <span asp-validation-for="Os" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Purpose" class="form-label"></label>
+                <input asp-for="Purpose" class="form-control" />
+                <span asp-validation-for="Purpose" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Location" class="form-label"></label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<ServerStatus>()" class="form-control"></select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-default">إلغاء</a>
+        </div>
+    </form>
+</div>

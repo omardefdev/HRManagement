@@ -1,0 +1,40 @@
+name: iac-drift
+
+# OPS-005: scheduled drift detection (optional — requires AWS secrets).
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Env to check"
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production, dr-secondary]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.7"
+          terraform_wrapper: false
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+      - name: Drift check
+        env:
+          ENV_NAME: ${{ github.event.inputs.environment || 'staging' }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${AWS_ACCESS_KEY_ID:-}" ]]; then
+            echo "No AWS credentials — skipping drift job."
+            exit 0
+          fi
+          bash scripts/iac-drift-check.sh "${ENV_NAME}"

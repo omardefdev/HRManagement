@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-CORRECTION-WORKFLOW",
+  "expectedValidate": "PASS",
+  "correctionOpened": true,
+  "workflowRequired": true,
+  "silentOverwrite": false
+}

@@ -1,0 +1,25 @@
+@model HR.Core.Web.ViewModels.KeyPositionEditViewModel
+@{ ViewData["Title"] = "تعديل منصب حرج"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">تعديل منصب حرج</h3>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('تأكيد الحذف؟');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
+        </form>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /><span asp-validation-for="Title" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" asp-items="ViewBag.OrgUnits" class="form-control"><option value="">— بدون —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="CurrentHolderEmployeeId" class="form-label"></label><select asp-for="CurrentHolderEmployeeId" asp-items="ViewBag.Employees" class="form-control"><option value="">— بدون —</option></select><span asp-validation-for="CurrentHolderEmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Criticality" class="form-label"></label><input asp-for="Criticality" type="number" min="1" max="5" class="form-control" /><span asp-validation-for="Criticality" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control"></textarea><span asp-validation-for="Notes" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </form>
+    </div>
+</div>

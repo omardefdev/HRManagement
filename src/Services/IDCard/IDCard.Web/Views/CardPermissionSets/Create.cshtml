@@ -1,0 +1,8 @@
+@model IDCard.Domain.Entities.CardPermissionSet
+@{ ViewData["Title"] = "مجموعة صلاحيات"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Permissions" class="form-label"></label><textarea asp-for="Permissions" class="form-control" rows="4" placeholder="قائمة الصلاحيات (نص)"></textarea><span asp-validation-for="Permissions" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

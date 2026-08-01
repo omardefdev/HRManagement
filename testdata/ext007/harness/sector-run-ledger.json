@@ -1,0 +1,1 @@
+﻿{"ledgerId":"ext007-sector-lab","runs":[{"runId":"run-1","liveAdapters":false,"domainsTouched":["pension","tax"]},{"runId":"run-2","liveAdapters":false,"domainsTouched":["mail-notify","insurance"]}]}

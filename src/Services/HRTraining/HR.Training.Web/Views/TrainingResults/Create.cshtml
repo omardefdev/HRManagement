@@ -1,0 +1,15 @@
+@model HR.Training.Domain.Entities.TrainingResult
+@{ ViewData["Title"] = "نتيجة تدريب"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EnrollmentId" class="form-label"></label><select asp-for="EnrollmentId" asp-items="ViewBag.Enrollments" class="form-control"></select><span asp-validation-for="EnrollmentId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Score" class="form-label"></label><input asp-for="Score" class="form-control" type="number" step="0.01" /><span asp-validation-for="Score" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EvaluationNotes" class="form-label"></label><textarea asp-for="EvaluationNotes" class="form-control" rows="2"></textarea><span asp-validation-for="EvaluationNotes" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="GradedBy" class="form-label"></label><select asp-for="GradedBy" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="GradedBy" class="text-danger"></span></div>
+            <input type="hidden" asp-for="GradedAt" />
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

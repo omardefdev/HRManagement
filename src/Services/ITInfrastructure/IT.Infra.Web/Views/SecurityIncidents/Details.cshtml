@@ -1,0 +1,41 @@
+@model SecurityIncident
+@{ ViewData["Title"] = "تفاصيل الحادثة الأمنية"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Title)</dt>
+            <dd class="col-sm-9">@Model.Title</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Description)</dt>
+            <dd class="col-sm-9">@Model.Description</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Severity)</dt>
+            <dd class="col-sm-9">@Model.Severity</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportedAt)</dt>
+            <dd class="col-sm-9">@Model.ReportedAt.ToString("yyyy/MM/dd HH:mm")</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
+            <dd class="col-sm-9">@Model.Status</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.HandledBy)</dt>
+            <dd class="col-sm-9">@Model.HandledBy</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+
+        @if (Model.Status == TicketStatus.Open)
+        {
+            <form asp-action="Handle" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning">معالجة</button>
+            </form>
+        }
+    </div>
+</div>

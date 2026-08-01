@@ -1,0 +1,13 @@
+environment         = "staging"
+name_prefix         = "hrm-stg"
+vpc_cidr            = "10.40.0.0/16"
+backup_bucket_name  = "hrm-backups-staging-REPLACE"
+aws_region          = "eu-central-1"
+cluster_version     = "1.29"
+node_desired        = 3
+# REL-001 DNS stub: enable when Route53 zone exists; host matches staging ingress.
+dns_enabled         = false
+dns_record_name     = "hr.staging"
+dns_record_value   = "placeholder.staging.example.invalid"
+# route53_zone_id   = "ZXXXXXXXX"
+owner               = "platform"

@@ -1,0 +1,33 @@
+{
+  "card": "REL-002",
+  "version": 1,
+  "agencyId": "PILOT-AGENCY-001",
+  "policy": {
+    "cycleCount": 3,
+    "forbidLiveAgencyPayroll": true,
+    "unexplainedDiffFails": true
+  },
+  "cycles": [
+    {
+      "id": "cycle-1",
+      "period": "2026-01",
+      "sourcePath": "source/cycle-1.json",
+      "shadowPath": "shadow/cycle-1.json",
+      "explainedDiffsPath": "explained/cycle-1-diffs.json"
+    },
+    {
+      "id": "cycle-2",
+      "period": "2026-02",
+      "sourcePath": "source/cycle-2.json",
+      "shadowPath": "shadow/cycle-2.json",
+      "explainedDiffsPath": "explained/cycle-2-diffs.json"
+    },
+    {
+      "id": "cycle-3",
+      "period": "2026-03",
+      "sourcePath": "source/cycle-3.json",
+      "shadowPath": "shadow/cycle-3.json",
+      "explainedDiffsPath": "explained/cycle-3-diffs.json"
+    }
+  ]
+}

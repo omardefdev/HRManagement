@@ -1,0 +1,46 @@
+@model HR.Health.Domain.Entities.MedicalCommitteeReport
+@{ ViewData["Title"] = "تفاصيل تقرير اللجنة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">تقرير اللجنة الطبية</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الملف الطبي</dt><dd class="col-sm-9">
+                @if (Model.MedicalRecord != null)
+                {
+                    <a asp-controller="MedicalRecords" asp-action="Details" asp-route-id="@Model.MedicalRecordId">@Model.MedicalRecord.EmployeeId</a>
+                }
+                else { <span>@Model.MedicalRecordId</span> }
+            </dd>
+            <dt class="col-sm-3">تاريخ الانعقاد</dt><dd class="col-sm-9">@Model.CommitteeDate</dd>
+            <dt class="col-sm-3">النتائج</dt><dd class="col-sm-9">@(Model.Findings ?? "—")</dd>
+            <dt class="col-sm-3">التوصية</dt><dd class="col-sm-9"><span class="badge bg-info">@Model.Recommendation</span></dd>
+            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@(Model.IssuedBy ?? "—")</dd>
+            <dt class="col-sm-3">المستندات</dt><dd class="col-sm-9">@(Model.RelatedDocuments ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+@if (Model.Recommendations?.Any() == true)
+{
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">التوصيات الطبية</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>النوع</th><th>التفاصيل</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var rec in Model.Recommendations)
+            {
+                <tr>
+                    <td>@rec.RecommendationType</td>
+                    <td>@(rec.Details?.Length > 50 ? rec.Details[..50] + "…" : rec.Details)</td>
+                    <td><a asp-controller="MedicalRecommendations" asp-action="Details" asp-route-id="@rec.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+}
+<p><a asp-action="Index">العودة للقائمة</a></p>

@@ -1,0 +1,94 @@
+@model DisciplinaryAction
+@using Compliance.Domain.Services
+@{ ViewData["Title"] = "تفاصيل الإجراء التأديبي"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">إجراء تأديبي</h3>
+        @if (Model.AppealStatus == AppealStatus.None)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+        }
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">معرّف الموظف</dt>
+            <dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">نوع الإجراء</dt>
+            <dd class="col-sm-9">@Model.ActionType</dd>
+            <dt class="col-sm-3">صادر من</dt>
+            <dd class="col-sm-9">@(Model.IssuedBy?.ToString() ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإصدار</dt>
+            <dd class="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">ملاحظات</dt>
+            <dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
+            <dt class="col-sm-3">حالة الاستئناف</dt>
+            <dd class="col-sm-9">
+                @switch (Model.AppealStatus)
+                {
+                    case AppealStatus.None:
+                        <span class="badge text-bg-secondary">لم يُستأنف</span>
+                        break;
+                    case AppealStatus.Pending:
+                        <span class="badge text-bg-warning">قيد الاستئناف</span>
+                        break;
+                    case AppealStatus.Decided:
+                        <span class="badge text-bg-success">تم البت</span>
+                        break;
+                }
+            </dd>
+            <dt class="col-sm-3">الشكوى المصدر</dt>
+            <dd class="col-sm-9">
+                @if (Model.ComplaintId.HasValue)
+                {
+                    <a asp-controller="Complaints" asp-action="Details" asp-route-id="@Model.ComplaintId">@Model.ComplaintId</a>
+                    @if (Model.Complaint != null)
+                    {
+                        <text> — @Model.Complaint.Subject</text>
+                    }
+                }
+                else
+                {
+                    <text>—</text>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="row">
+    @if (DisciplinaryWorkflowRules.CanAppeal(Model.AppealStatus))
+    {
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">تقديم استئناف</h5></div>
+                <div class="card-body">
+                    <form asp-action="Appeal" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-warning btn-sm">تقديم استئناف</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (DisciplinaryWorkflowRules.CanDecide(Model.AppealStatus))
+    {
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">البت في الاستئناف</h5></div>
+                <div class="card-body">
+                    <form asp-action="DecideAppeal" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3 mb-2">
+                            <textarea name="decision" class="form-control" rows="3" placeholder="نص القرار" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm">إصدار القرار</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3">العودة</a>

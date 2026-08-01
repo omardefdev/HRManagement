@@ -1,0 +1,46 @@
+{
+  "card": "DEC-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "phases": [
+    { "id": "DC-01", "name": "Write-Freeze", "description": "Legacy system stops accepting new data at announced cut-off date", "mandatory": true },
+    { "id": "DC-02", "name": "Read-Only", "description": "System remains accessible for historical queries", "mandatory": true },
+    { "id": "DC-03", "name": "Archive", "description": "Records extracted with manifest, checksum, and legal retention metadata", "mandatory": true },
+    { "id": "DC-04", "name": "Shadow Audit", "description": "Field audit confirms no parallel data entry or shadow processes", "mandatory": true },
+    { "id": "DC-05", "name": "Credential Revocation", "description": "All user/service accounts and API keys disabled", "mandatory": true },
+    { "id": "DC-06", "name": "License Termination", "description": "Software licenses and support contracts formally ended", "mandatory": true },
+    { "id": "DC-07", "name": "Media Destruction", "description": "Hardware and media destroyed with signed destruction certificate", "mandatory": true },
+    { "id": "DC-08", "name": "Rollback Window", "description": "Time-limited fallback capability before final destruction", "mandatory": true }
+  ],
+  "archiveRequirements": {
+    "format": "open-documented",
+    "manifestRequired": true,
+    "checksumAlgorithm": "SHA-256",
+    "retentionPolicy": "SYR-015",
+    "sampleRetrievalTest": true,
+    "sovereignBoundary": true
+  },
+  "shadowOperationDetection": {
+    "fieldAuditRequired": true,
+    "minimumAgenciesPerWave": 2,
+    "checkTargets": ["spreadsheets", "local-databases", "manual-parallel-entry", "hidden-integrations"],
+    "zeroShadowForCleanDecommission": true,
+    "documentedExceptionsAllowed": true
+  },
+  "credentialRevocation": {
+    "userAccounts": true,
+    "serviceAccounts": true,
+    "apiKeys": true,
+    "evidenceRequired": true
+  },
+  "mediaDestruction": {
+    "destructionCertificateRequired": true,
+    "signedByCustodian": true,
+    "noUntrackedCopies": true
+  },
+  "rollbackWindow": {
+    "timeLimited": true,
+    "requiresAuthorization": true,
+    "postWindowDestruction": true
+  }
+}

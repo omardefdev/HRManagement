@@ -1,0 +1,44 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title ملكية البيانات وعلاقاتها المنطقية
+database "hr_core_db\\nEmployee, OrgUnit" as CoreDb
+database "hr_contracts_db\\nContract, Leave, Separation" as ContractDb
+database "payroll_db\\nPayrollRun, SalaryLine" as PayDb
+database "movements_db\\nTransfer, Secondment" as MoveDb
+database "health_db\\nMedicalRecord" as HealthDb
+database "auth_directory_db\\nAuthUser, DirectoryEntry" as AuthDb
+queue "RabbitMQ" as Bus
+CoreDb ..> ContractDb : EmployeeId reference
+CoreDb ..> PayDb : EmployeeId reference
+CoreDb ..> MoveDb : EmployeeId / OrgUnitId
+CoreDb ..> HealthDb : EmployeeId reference
+CoreDb ..> AuthDb : EmployeeId / PrimaryOrgUnitId
+ContractDb --> Bus
+MoveDb --> Bus
+PayDb --> Bus
+note bottom
+لا توجد وصلات قاعدة بيانات مباشرة بين الخدمات؛
+كل خدمة تملك مخططها وتتكامل عبر معرفات وأحداث.
+end note
+@enduml

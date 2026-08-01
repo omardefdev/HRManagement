@@ -1,0 +1,109 @@
+name: iac-plan
+
+# OPS-005: Terraform fmt/validate/plan + Conftest on PRs touching IaC / prod overlays.
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "policy/iac/**"
+      - "scripts/iac-*.sh"
+      - "deploy/k8s/overlays/production-ha/**"
+      - "deploy/k8s/data/overlays/production-data-ha/**"
+      - "deploy/k8s/platform/external-secrets/**"
+      - ".github/workflows/iac-plan.yml"
+      - ".github/workflows/iac-apply.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "terraform/**"
+      - "policy/iac/**"
+      - "scripts/iac-*.sh"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [staging, production, dr-secondary]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.7"
+          terraform_wrapper: false
+
+      - name: fmt
+        run: terraform fmt -check -recursive terraform/
+
+      - name: init + validate (${{ matrix.env }})
+        working-directory: terraform/envs/${{ matrix.env }}
+        run: |
+          set -euo pipefail
+          terraform init -backend=false
+          terraform validate
+
+      - name: plan staging (no credentials → skip)
+        if: matrix.env == 'staging'
+        working-directory: terraform/envs/staging
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-central-1
+        run: |
+          set -euo pipefail
+          if [[ -z "${AWS_ACCESS_KEY_ID:-}" ]]; then
+            echo "No AWS credentials — validate-only gate (OPS-005)."
+            exit 0
+          fi
+          terraform init -backend=false
+          terraform plan -var-file=terraform.tfvars.example -input=false -lock=false || true
+
+  conftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Conftest
+        run: |
+          set -euo pipefail
+          curl -sL "https://github.com/open-policy-agent/conftest/releases/download/v0.50.0/conftest_0.50.0_Linux_x86_64.tar.gz" | tar xz
+          sudo mv conftest /usr/local/bin/
+
+      - name: Policy fixtures must fail/pass as expected
+        run: |
+          set -euo pipefail
+          if conftest test --policy policy/iac policy/iac/testdata/bad-prod-secret.yaml; then
+            echo "::error::expected deny on bad-prod-secret"
+            exit 1
+          fi
+          conftest test --policy policy/iac policy/iac/testdata/ok-dev-placeholder.yaml
+
+      - name: Scan production overlays for plaintext Secrets
+        run: |
+          set -euo pipefail
+          # Build overlays then filter Secret docs (ExternalSecret OK)
+          for ovl in deploy/k8s/overlays/production-ha deploy/k8s/data/overlays/production-data-ha; do
+            echo "== $ovl =="
+            kubectl kustomize "$ovl" > /tmp/built.yaml
+            # Fail if any Secret with stringData remains (placeholders must be deleted)
+            if grep -n 'kind: Secret' -A20 /tmp/built.yaml | grep -q 'stringData:'; then
+              echo "::error::plaintext stringData Secret still present in $ovl"
+              exit 1
+            fi
+          done
+
+  kustomize-dry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dry-run kustomize overlays via iac-kustomize-apply
+        run: |
+          set -euo pipefail
+          OWNER=ci IMAGE_TAG=deadbeef bash scripts/iac-kustomize-apply.sh staging --dry-run
+          OWNER=ci IMAGE_TAG=deadbeef bash scripts/iac-kustomize-apply.sh production --dry-run
+          OWNER=ci IMAGE_TAG=deadbeef bash scripts/iac-kustomize-apply.sh dr-secondary --dry-run

@@ -1,0 +1,27 @@
+@model ProbationRecordViewModel
+@{ ViewData["Title"] = "تعديل فترة اختبار"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">تعديل فترة الاختبار</h3></div>
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="ContractId" class="form-label"></label><select asp-for="ContractId" asp-items="Model.Contracts" class="form-control"></select></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /></div>
+                <div class="col-md-6 mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /></div>
+            </div>
+            <div class="mb-3"><label asp-for="Result" class="form-label"></label><select asp-for="Result" class="form-control" asp-items="Html.GetEnumSelectList<ProbationResult>()"></select></div>
+            <div class="mb-3"><label asp-for="DecisionBy" class="form-label"></label><input asp-for="DecisionBy" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="DecisionDate" class="form-label"></label><input asp-for="DecisionDate" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

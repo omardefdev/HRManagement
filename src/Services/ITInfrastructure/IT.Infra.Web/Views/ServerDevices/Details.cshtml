@@ -1,0 +1,33 @@
+@model ServerDevice
+@{ ViewData["Title"] = "تفاصيل السيرفر"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Hostname)</dt>
+            <dd class="col-sm-9">@Model.Hostname</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.IpAddress)</dt>
+            <dd class="col-sm-9">@Model.IpAddress</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Os)</dt>
+            <dd class="col-sm-9">@Model.Os</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Purpose)</dt>
+            <dd class="col-sm-9">@Model.Purpose</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Location)</dt>
+            <dd class="col-sm-9">@Model.Location</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
+            <dd class="col-sm-9">@Model.Status</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+    </div>
+</div>

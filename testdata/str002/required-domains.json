@@ -1,0 +1,18 @@
+{
+  "card": "STR-002",
+  "requiredDomains": [
+    "civil_service",
+    "labor",
+    "payroll",
+    "tax",
+    "pension",
+    "privacy",
+    "archive",
+    "signature_evidence",
+    "accessibility",
+    "sovereignty"
+  ],
+  "minTraceHeadings": 3,
+  "traceDocRelative": "docs/STR_002_TRACE_SAMPLES.md",
+  "forbidLegalTbdOnImplemented": true
+}

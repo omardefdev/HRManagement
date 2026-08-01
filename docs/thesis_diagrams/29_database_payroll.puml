@@ -1,0 +1,86 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 18
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+top to bottom direction
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+
+title "ERD منطقي مختصر لقاعدة Payroll\nPayroll bounded context"
+
+entity "PayrollRun\nدورة الراتب" as Run {
+  * Id : uuid <<PK>>
+  Period : date
+  Status : enum
+}
+entity "SalaryLine\nسطر الراتب" as Line {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK>>
+  EmployeeId : uuid <<identifier>>
+}
+entity "SalaryLineComponent\nمكوّن السطر" as Component {
+  * Id : uuid <<PK>>
+  SalaryLineId : uuid <<FK>>
+  ComponentType : enum
+}
+entity "EmployeePayProfile\nملف أجر الموظف" as PayProfile {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<identifier>>
+  PayGradeId : uuid <<FK nullable>>
+  IsActive : bool
+}
+entity "SalaryScale\nسلم الرواتب" as Scale {
+  * Id : uuid <<PK>>
+  Code : string <<UQ>>
+}
+entity "PayGrade\nدرجة الأجر" as Grade {
+  * Id : uuid <<PK>>
+  SalaryScaleId : uuid <<FK>>
+  GradeCode : string
+}
+entity "DeductionRecord\nحسم" as Deduction {
+  * Id : uuid <<PK>>
+  AppliedInRunId : uuid <<FK nullable>>
+}
+entity "PayrollAdjustment\nتعديل راتب" as Adjustment {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK nullable>>
+  EmployeeId : uuid <<identifier>>
+}
+entity "PayrollRunApproval\nاعتماد الدورة" as RunApproval {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK>>
+}
+entity "PaymentBatch\nدفعة دفع" as Batch {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK>>
+}
+entity "PayslipDelivery\nتسليم القسيمة" as Payslip {
+  * Id : uuid <<PK>>
+  SalaryLineId : uuid <<FK>>
+}
+
+Run ||--o{ Line
+Line ||--o{ Component
+Scale ||--o{ Grade
+Grade ||--o{ PayProfile
+Run ||--o{ Deduction : AppliedInRun
+Run ||--o{ Adjustment
+Run ||--o{ RunApproval
+Run ||--o{ Batch
+Line ||--o{ Payslip
+PayProfile -[hidden]down-> Run
+
+note right of PayProfile
+EmployeeId وOrgUnitId معرفات تكاملية.
+لا يعتمد Payroll على FK إلى HR.Core.
+ويستقبل آثار العقود والإجازات والنقل
+والصحة عبر أحداث موثقة قابلة لإعادة المعالجة.
+end note
+@enduml

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hr-app-config
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  Host__ShutdownTimeoutSeconds: "30"
+  # OPS-002 data plane (namespace hrmanagement-data). Apps use pooler RW + TargetSessionAttrs.
+  # Full connection strings live in Secret hr-app-secrets (per-database).
+  Postgres__Host: hr-postgres-pooler-rw.hrmanagement-data.svc.cluster.local
+  Postgres__Port: "5432"
+  Postgres__TargetSessionAttrs: read-write
+  RabbitMQ__Host: rabbitmq.hrmanagement-data.svc.cluster.local
+  RabbitMQ__Port: "5672"
+  RabbitMQ__UseQuorumQueues: "true"
+  RabbitMQ__PublisherConfirmation: "true"
+  Keycloak__Authority: http://keycloak.hrmanagement-data.svc.cluster.local:8080/realms/hrmanagement
+  FileStorage__Endpoint: minio.hrmanagement-data.svc.cluster.local:9000
+  FileStorage__UseSsl: "false"
+  FileStorage__Provider: Minio
+  # Database connection pool (per-process). Formula: services × replicas × MaxPoolSize ≤ postgres max_connections.
+  Database__MaxPoolSize: "25"
+  # OBS-001 telemetry
+  OpenTelemetry__Enabled: "true"
+  OpenTelemetry__SamplingRatio: "0.1"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.hrmanagement-observability.svc:4317
+  Serilog__SeqUrl: http://seq.hrmanagement-observability.svc

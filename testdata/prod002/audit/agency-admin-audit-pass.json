@@ -1,0 +1,1 @@
+﻿{"scenarioId":"agency-admin-audit-pass","expectedValidate":"PASS","entries":[{"changeId":"chg-1","agencyId":"agency-a","scope":"structure","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T14:00:00Z","evidenceRef":"testdata/prod002/scenarios/daily-structure-change-pass.json"}]}

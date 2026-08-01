@@ -1,0 +1,30 @@
+@model IList<Payroll.Domain.Entities.PayGrade>
+@{ ViewData["Title"] = "الدرجات الوظيفية"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-layer-group"></i> الدرجات الوظيفية</h3>
+        <a asp-action="Create" asp-route-scaleId="@ViewBag.ScaleId" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
+    </div>
+    <div class="card-body">@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }</div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <div class="table-responsive">
+<table class="table table-striped mb-0">
+            <thead><tr><th>الجدول</th><th>الكود</th><th>الاسم</th><th>الأساسي</th><th>الحد الأدنى</th><th>الحد الأقصى</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var g in Model)
+                {
+                    <tr>
+                        <td>@g.SalaryScale?.NameAr</td><td>@g.GradeCode</td><td>@g.GradeNameAr</td>
+                        <td>@g.BaseSalary.ToString("N2")</td><td>@g.MinSalary.ToString("N2")</td><td>@g.MaxSalary.ToString("N2")</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@g.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            <form asp-action="Delete" asp-route-id="@g.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('حذف؟')" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button></form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد درجات</td></tr> }
+            </tbody>
+        </table>
+</div>
+    </div>
+</div>

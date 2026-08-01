@@ -1,0 +1,46 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط النشر التشغيلي
+node "متصفح المستخدم" as Browser
+node "شبكة المؤسسة / HTTPS" as Network
+node "بيئة Docker Compose أو إنتاج" {
+  node "Gateway" as Gateway
+  node "خدمات HRManagement" as Services
+  node "Keycloak" as Keycloak
+  queue "RabbitMQ" as Rabbit
+  database "PostgreSQL\\nقواعد متعددة" as Postgres
+  storage "MinIO\\nملفات" as Minio
+}
+Browser --> Network
+Network --> Gateway
+Gateway --> Keycloak
+Gateway --> Services
+Services --> Rabbit
+Services --> Postgres
+Services --> Minio
+note right of Gateway
+Health checks + correlation IDs
+توجد على البوابة والخدمات
+end note
+@enduml

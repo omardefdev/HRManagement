@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-DUPLICATE-SUBMIT",
+  "expectedValidate": "FAIL",
+  "idempotencyKey": "idem-lab-001",
+  "duplicateSubmit": true,
+  "secondBusinessEffect": true,
+  "notes": "Same idempotency key with second business effect must fail"
+}

@@ -1,0 +1,8 @@
+{
+  "fixtureId": "EXT001-NATIONAL-IDP-INTEROP",
+  "expectedValidate": "PASS",
+  "idpId": "lab-national-idp",
+  "metadataComplete": true,
+  "ssoLabOk": true,
+  "live": false
+}

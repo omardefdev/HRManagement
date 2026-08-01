@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-DELTA-CAPTURE",
+  "expectedValidate": "PASS",
+  "changesDuringFreeze": 120,
+  "captured": 120,
+  "lost": 0,
+  "appliedOrDeferred": 120
+}

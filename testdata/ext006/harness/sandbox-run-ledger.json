@@ -1,0 +1,7 @@
+{
+  "fixtureId": "EXT006-SANDBOX-RUN-LEDGER",
+  "runs": [
+    { "runId": "sbx-lab-001", "partnerId": "partner-lab-01", "outcome": "Certified", "livePortal": false },
+    { "runId": "sbx-lab-002", "partnerId": "partner-lab-02", "outcome": "Rejected", "livePortal": false }
+  ]
+}

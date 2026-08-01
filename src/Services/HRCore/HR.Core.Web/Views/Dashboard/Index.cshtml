@@ -1,0 +1,180 @@
+@model HR.Core.Web.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة القيادة";
+}
+
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>@Model.TotalEmployees</h3>
+                <p>إجمالي الموظفين</p>
+            </div>
+            <div class="icon"><i class="fas fa-users"></i></div>
+            <a asp-controller="Employees" asp-action="Index" class="small-box-footer">
+                عرض الكل <i class="fas fa-arrow-circle-left"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>@Model.ActiveEmployees</h3>
+                <p>الموظفون النشطون</p>
+            </div>
+            <div class="icon"><i class="fas fa-user-check"></i></div>
+            <a asp-controller="Employees" asp-action="Index" asp-route-Status="Active" class="small-box-footer">
+                عرض <i class="fas fa-arrow-circle-left"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>@Model.TotalOrgUnits</h3>
+                <p>الوحدات التنظيمية</p>
+            </div>
+            <div class="icon"><i class="fas fa-sitemap"></i></div>
+            <a asp-controller="OrgUnits" asp-action="Index" class="small-box-footer">
+                عرض الكل <i class="fas fa-arrow-circle-left"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>@Model.TotalQualifications</h3>
+                <p>المؤهلات المسجلة</p>
+            </div>
+            <div class="icon"><i class="fas fa-graduation-cap"></i></div>
+            <span class="small-box-footer">&nbsp;</span>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-pie"></i> توزيع الموظفين حسب الحالة</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>الحالة</th>
+                            <th>العدد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.EmployeesByStatus)
+                        {
+                            <tr>
+                                <td>@item.Key</td>
+                                <td><span class="badge bg-primary">@item.Value</span></td>
+                            </tr>
+                        }
+                        @if (!Model.EmployeesByStatus.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-venus-mars"></i> توزيع الموظفين حسب الجنس</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>الجنس</th>
+                            <th>العدد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.EmployeesByGender)
+                        {
+                            <tr>
+                                <td>@item.Key</td>
+                                <td><span class="badge bg-info">@item.Value</span></td>
+                            </tr>
+                        }
+                        @if (!Model.EmployeesByGender.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-building"></i> توزيع الموظفين حسب الوحدة التنظيمية</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>الوحدة</th>
+                            <th>العدد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.EmployeesByOrgUnit)
+                        {
+                            <tr>
+                                <td>@item.Key</td>
+                                <td><span class="badge bg-success">@item.Value</span></td>
+                            </tr>
+                        }
+                        @if (!Model.EmployeesByOrgUnit.Any())
+                        {
+                            <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-clock"></i> آخر النشاطات</h3>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentActivities.Any())
+                {
+                    <div class="timeline timeline-inverse">
+                        @foreach (var activity in Model.RecentActivities)
+                        {
+                            <div class="time-label">
+                                <span class="bg-@activity.CssClass">@activity.Date.ToString("yyyy/MM/dd")</span>
+                            </div>
+                            <div>
+                                <i class="@activity.Icon bg-@activity.CssClass"></i>
+                                <div class="timeline-item">
+                                    <span class="time"><i class="fas fa-clock"></i> @activity.Date.ToString("HH:mm")</span>
+                                    <h3 class="timeline-header">@activity.Description</h3>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-muted">لا توجد نشاطات حديثة</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

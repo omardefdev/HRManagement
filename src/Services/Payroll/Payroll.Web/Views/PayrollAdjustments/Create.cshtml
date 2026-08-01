@@ -1,0 +1,14 @@
+@model Payroll.Domain.Entities.PayrollAdjustment
+@{ ViewData["Title"] = "تسوية راتب"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="PayrollRunId" class="form-label"></label><select asp-for="PayrollRunId" asp-items="ViewBag.Runs" class="form-control"><option value="">—</option></select><span asp-validation-for="PayrollRunId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Amount" class="form-label"></label><input asp-for="Amount" class="form-control" type="number" step="0.01" /><span asp-validation-for="Amount" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="AdjustmentReason" class="form-label"></label><textarea asp-for="AdjustmentReason" class="form-control" rows="2"></textarea><span asp-validation-for="AdjustmentReason" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

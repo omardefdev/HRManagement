@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dr-secondary-data-notes
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    ops.hrmanagement.io/site: secondary
+data:
+  README: |
+    OPS-004 warm standby data plane.
+    1) Ensure cnpg-backup-store points at shared/replicated hrm-backups.
+    2) Bootstrap Postgres via recovery from object store (see restore-pitr-drill.sh / CNPG recovery).
+    3) Recreate RabbitMQ/MinIO/Keycloak; restore MinIO prefixes from hrm-backups/minio/.
+    4) Never mount primary-region PVCs in this cluster.
+    Full cluster VMs/network = OPS-005.

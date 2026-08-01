@@ -1,0 +1,11 @@
+﻿{
+    "card":  "EXT-001",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "personaCount":  6,
+    "agencyIdpCount":  2,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

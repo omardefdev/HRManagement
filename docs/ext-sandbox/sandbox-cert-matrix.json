@@ -1,0 +1,130 @@
+{
+  "card": "EXT-006",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "sandboxCertPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "syntheticDataOnly": true,
+  "realPiiForbidden": true,
+  "credentials": {
+    "ephemeralRequired": true,
+    "manualSecretsForbidden": true,
+    "noProdAccess": true
+  },
+  "conformance": {
+    "negativeCasesRequired": true,
+    "incompatibleClientMustFail": true
+  },
+  "certification": {
+    "requiredBeforeProdJoin": true,
+    "revocationSupported": true
+  },
+  "docsMatchPublishedContract": true,
+  "rateErrorSimulation": {
+    "required": true
+  },
+  "supportAnalytics": {
+    "labStubAllowed": true,
+    "liveForbidden": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["partnerId", "credentialId", "suiteId", "outcome", "actor", "occurredAt"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "livePortalForbidden": true,
+    "realDataForbidden": true
+  },
+  "signing": {
+    "signedByRole": "api-product-lead",
+    "reviewerRole": "integration-security-officer",
+    "sandboxCertPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext006-lab-sandbox-cert-policy-20260730"
+  },
+  "blockers": [
+    { "id": "EXT-005", "status": "Satisfied", "note": "API exchange production binding Done" },
+    { "id": "REL-001", "status": "Satisfied", "note": "Staging/synthetic Done" },
+    { "id": "live-developer-portal", "status": "Blocked", "note": "Lab harness only" },
+    { "id": "real-pii-in-sandbox", "status": "Blocked", "note": "Synthetic data only" },
+    { "id": "partner-cert-fleet-live", "status": "Blocked", "note": "Lab conformance only" },
+    { "id": "EXT-007", "status": "Satisfied", "note": "Sector catalog production binding Done" }
+  ],
+  "outOfScope": [
+    "Live developer portal UI",
+    "Live partner cert fleet",
+    "Production key rotation product",
+    "Live usage analytics",
+    "MIG-007 EXT-006 Satisfied flip",
+    "Domain/UI rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "PartnerOnboard",
+      "steps": [
+        { "id": "CredentialPolicy", "mandatory": true, "ownerRole": "api-product", "slaHours": 48, "evidenceType": "credentials", "service": "docs", "event": null },
+        { "id": "PartnerOnboardPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "partner-onboard-pass", "service": "testdata", "event": null },
+        { "id": "ProdAccessFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "prod-access-fail", "service": "testdata", "event": null },
+        { "id": "ManualSecretFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "manual-secret-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SyntheticOnly",
+      "steps": [
+        { "id": "SyntheticPolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 24, "evidenceType": "syntheticDataOnly", "service": "docs", "event": null },
+        { "id": "RealPiiFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "real-pii-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ConformanceGate",
+      "steps": [
+        { "id": "ConformancePolicy", "mandatory": true, "ownerRole": "api-gov", "slaHours": 48, "evidenceType": "conformance", "service": "docs", "event": null },
+        { "id": "NegativeConformancePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "negative-conformance-pass", "service": "testdata", "event": null },
+        { "id": "IncompatibleClientFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "incompatible-client-pass-as-certified-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CertificationRevocation",
+      "steps": [
+        { "id": "CertPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "certification", "service": "docs", "event": null },
+        { "id": "UnrevokedKeyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unrevoked-compromised-key-fail", "service": "testdata", "event": null },
+        { "id": "KeyRotationPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "key-rotation-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DocsMatch",
+      "steps": [
+        { "id": "DocsPolicy", "mandatory": true, "ownerRole": "api-product", "slaHours": 24, "evidenceType": "docsMatchPublishedContract", "service": "docs", "event": null },
+        { "id": "DocsDriftFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "docs-drift-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RateErrorSim",
+      "steps": [
+        { "id": "SimPolicy", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "rateErrorSimulation", "service": "docs", "event": null },
+        { "id": "RateErrorSimPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "rate-error-sim-pass", "service": "testdata", "event": null },
+        { "id": "CertAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cert-audit-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "prodAccessFail": "testdata/ext006/scenarios/prod-access-fail.json",
+    "realPiiFail": "testdata/ext006/scenarios/real-pii-fail.json",
+    "manualSecretFail": "testdata/ext006/scenarios/manual-secret-fail.json",
+    "incompatibleClientPassAsCertifiedFail": "testdata/ext006/scenarios/incompatible-client-pass-as-certified-fail.json",
+    "docsDriftFail": "testdata/ext006/scenarios/docs-drift-fail.json",
+    "unrevokedCompromisedKeyFail": "testdata/ext006/scenarios/unrevoked-compromised-key-fail.json",
+    "partnerOnboardPass": "testdata/ext006/scenarios/partner-onboard-pass.json",
+    "negativeConformancePass": "testdata/ext006/scenarios/negative-conformance-pass.json",
+    "keyRotationPass": "testdata/ext006/scenarios/key-rotation-pass.json",
+    "rateErrorSimPass": "testdata/ext006/scenarios/rate-error-sim-pass.json",
+    "certAuditPass": "testdata/ext006/audit/cert-audit-pass.json",
+    "sandboxRunLedger": "testdata/ext006/harness/sandbox-run-ledger.json"
+  },
+  "joins": {
+    "ext005Catalog": "docs/ext-api/api-exchange-matrix.json",
+    "rel001Staging": "docs/completion-backlog/03-P2-SCALE-AND-RELIABILITY.md",
+    "mig007Soft": "docs/mig-onboarding/onboarding-matrix.json",
+    "ext007Downstream": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md"
+  }
+}

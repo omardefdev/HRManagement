@@ -1,0 +1,10 @@
+﻿{
+    "card":  "SOV-001",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "auditFieldCount":  8,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

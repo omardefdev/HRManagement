@@ -1,0 +1,17 @@
+@model IReadOnlyList<HR.Training.Domain.Entities.TrainingProvider>
+@{ ViewData["Title"] = "مزودو التدريب"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">مزودو التدريب</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">مزود جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الاسم</th><th>الدولة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model) { <tr><td>@x.Name</td><td>@(x.Country ?? "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-3">لا يوجد مزودون</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,6 @@
+# docker-compose.override.yml
+# .NET microservice containers are NOT included here.
+# During development, services run locally via dotnet run or the IDE.
+# Only infrastructure dependencies (PostgreSQL, RabbitMQ, Keycloak) are managed by Docker Compose.
+
+services: {}

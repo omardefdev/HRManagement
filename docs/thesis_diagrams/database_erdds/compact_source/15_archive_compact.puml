@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة archive_db\nRecords.Archive"
+
+entity "AuditLogs\nEntityAuditLog" as T01 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+entity "ArchiveIndexEntries\nArchiveIndexEntry" as T02 {
+  * Id
+    ArchiveItemId
+    TenantId
+}
+entity "ArchiveItems\nArchiveItem" as T03 {
+  * Id
+    ClassificationId
+    TenantId
+}
+entity "DigitalFileRecords\nDigitalFileRecord" as T04 {
+  * Id
+    ArchiveItemId
+    FileId
+    TenantId
+}
+entity "DisposalRecords\nDisposalRecord" as T05 {
+  * Id
+    ArchiveItemId
+    TenantId
+}
+entity "DocumentClassifications\nDocumentClassification" as T06 {
+  * Id
+    TenantId
+}
+entity "LoanRecords\nLoanRecord" as T07 {
+  * Id
+    ArchiveItemId
+    TenantId
+}
+entity "PhysicalFileRecords\nPhysicalFileRecord" as T08 {
+  * Id
+    ArchiveItemId
+    TenantId
+}
+
+T02 }o--|| T03 : ArchiveItemId
+T03 }o--|| T06 : ClassificationId
+T04 }o--|| T03 : ArchiveItemId
+T05 }o--|| T03 : ArchiveItemId
+T07 }o--|| T03 : ArchiveItemId
+T08 }o--|| T03 : ArchiveItemId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

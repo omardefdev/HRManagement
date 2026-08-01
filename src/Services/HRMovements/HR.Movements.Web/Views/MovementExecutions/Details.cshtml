@@ -1,0 +1,18 @@
+@model HR.Movements.Domain.Entities.MovementExecutionRecord
+@{ ViewData["Title"] = "تفاصيل سجل التنفيذ"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">سجل تنفيذ</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        <table class="table table-borderless table-sm w-auto">
+            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>وقت التنفيذ</th><td>@Model.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            <tr><th>المنفذ</th><td>@(Model.ExecutedBy?.ToString() ?? "—")</td></tr>
+            @if (Model.TransferRequestId != null) { <tr><th>طلب النقل</th><td><a asp-controller="TransferRequests" asp-action="Details" asp-route-id="@Model.TransferRequestId">@Model.TransferRequestId</a></td></tr> }
+            @if (Model.SecondmentRequestId != null) { <tr><th>طلب الانتداب</th><td><a asp-controller="SecondmentRequests" asp-action="Details" asp-route-id="@Model.SecondmentRequestId">@Model.SecondmentRequestId</a></td></tr> }
+            @if (!string.IsNullOrEmpty(Model.Notes)) { <tr><th>ملاحظات</th><td>@Model.Notes</td></tr> }
+        </table>
+    </div>
+</div>

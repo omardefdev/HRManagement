@@ -1,0 +1,10 @@
+{
+  "fixtureId": "EXT001-FRAUD-CASES",
+  "expectedValidate": "PASS",
+  "cases": [
+    { "id": "stolen-refresh", "outcome": "block", "forcedReview": true },
+    { "id": "impossible-travel", "outcome": "block", "forcedReview": true },
+    { "id": "shared-citizen-employee", "outcome": "block", "forcedReview": true }
+  ],
+  "anyAllowWithoutReview": false
+}

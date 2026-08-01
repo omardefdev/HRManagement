@@ -1,0 +1,185 @@
+{
+  "card": "ARC-001",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "criticalityPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "tierClassification": {
+    "required": true,
+    "allServicesClassifiedRequired": true,
+    "allDependenciesClassifiedRequired": true,
+    "tiers": ["0", "1", "2"]
+  },
+  "journeyDependencyMap": {
+    "required": true,
+    "criticalJourneysMappedRequired": true
+  },
+  "sharedPlatformDeps": {
+    "required": true,
+    "surfaces": ["dns", "pki", "kms", "registry", "ci", "telemetry"]
+  },
+  "failureDomains": {
+    "required": true,
+    "domainsDocumentedRequired": true
+  },
+  "numericTargetsTelemetry": {
+    "required": true,
+    "everyNumericTargetHasTelemetryRequired": true
+  },
+  "spofPolicy": {
+    "required": true,
+    "noUnacceptableSpofInTier01Required": true
+  },
+  "recoveryOrder": {
+    "required": true,
+    "orderedStepsRequired": true,
+    "drillEvidenceRequired": true
+  },
+  "gracefulDegradation": {
+    "required": true,
+    "tier01DegradationDocumentedRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": [
+      "componentId",
+      "tier",
+      "dependencyRef",
+      "failureDomainRef",
+      "sloRef",
+      "telemetryRef",
+      "recoveryStepRef",
+      "actor",
+      "occurredAt",
+      "evidenceRef",
+      "outcome",
+      "spofExceptionRef"
+    ]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveArchitectureFailureWalkthroughForbidden": true,
+    "liveControlledDependencyShutdownForbidden": true,
+    "liveRecoveryOrderDrillForbidden": true,
+    "liveFullDependencyDiscoveryForbidden": true
+  },
+  "signing": {
+    "signedByRole": "enterprise-architecture-lead",
+    "reviewerRole": "sre-lead",
+    "criticalityPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:arc001-lab-criticality-20260730"
+  },
+  "blockers": [
+    { "id": "STR-001", "status": "Satisfied", "note": "Production scope binding Done" },
+    { "id": "OBS-001", "status": "Satisfied", "note": "Telemetry inventory Done" },
+    { "id": "OPS-001", "status": "Satisfied", "note": "HA multi-AZ apps Done" },
+    { "id": "SOV-007", "status": "Satisfied", "note": "Production vendor-exit binding Done" },
+    { "id": "live-architecture-failure-walkthrough", "status": "Blocked", "note": "Lab walkthrough contracts only" },
+    { "id": "live-controlled-dependency-shutdown", "status": "Blocked", "note": "Controlled shutdown later" },
+    { "id": "live-recovery-order-drill", "status": "Blocked", "note": "Live recovery order drill later" },
+    { "id": "live-full-dependency-discovery", "status": "Blocked", "note": "Full discovery later" },
+    { "id": "ARC-002", "status": "Satisfied", "note": "Reference-architecture binding Done; live two-site = ARC-002a" },
+    { "id": "PHY-001", "status": "Satisfied", "note": "Physical site autonomy pack Done" }
+  ],
+  "outOfScope": [
+    "Live architecture failure walkthrough",
+    "Live controlled dependency shutdown",
+    "Live recovery-order drill",
+    "Live full dependency discovery",
+    "ARC-002 live two-site deployment (binding Done separately)",
+    "PHY-001 physical site independence",
+    "SRE-002 ORR closure",
+    "BCP-001 closure",
+    "CAP-001 national envelope load proof",
+    "National24x7Claim elevation",
+    "Domain rewrite"
+  ],
+  "components": [
+    { "id": "gateway", "kind": "service", "tier": "0", "failureDomain": "app-plane", "recoveryStep": "2", "telemetryRef": "otel-gateway" },
+    { "id": "hr-core", "kind": "service", "tier": "0", "failureDomain": "app-plane", "recoveryStep": "3", "telemetryRef": "otel-hr-core" },
+    { "id": "payroll", "kind": "service", "tier": "0", "failureDomain": "app-plane", "recoveryStep": "4", "telemetryRef": "otel-payroll" },
+    { "id": "auth-directory", "kind": "service", "tier": "0", "failureDomain": "identity-plane", "recoveryStep": "2", "telemetryRef": "otel-auth" },
+    { "id": "file-storage", "kind": "service", "tier": "1", "failureDomain": "data-plane", "recoveryStep": "5", "telemetryRef": "otel-files" },
+    { "id": "postgres", "kind": "dependency", "tier": "0", "failureDomain": "data-plane", "recoveryStep": "1", "telemetryRef": "prom-postgres" },
+    { "id": "rabbitmq", "kind": "dependency", "tier": "0", "failureDomain": "messaging-plane", "recoveryStep": "1", "telemetryRef": "prom-rabbitmq" },
+    { "id": "keycloak", "kind": "dependency", "tier": "0", "failureDomain": "identity-plane", "recoveryStep": "1", "telemetryRef": "prom-keycloak" }
+  ],
+  "journeys": [
+    {
+      "id": "TierClassification",
+      "steps": [
+        { "id": "FullClassificationPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 72, "evidenceType": "full-classification-pass", "service": "testdata", "event": null },
+        { "id": "UnclassifiedServiceFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unclassified-service-fail", "service": "testdata", "event": null },
+        { "id": "UnclassifiedDependencyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unclassified-dependency-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DependenciesPlatform",
+      "steps": [
+        { "id": "JourneyMapPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "journey-map-pass", "service": "testdata", "event": null },
+        { "id": "JourneyUnmappedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "journey-unmapped-fail", "service": "testdata", "event": null },
+        { "id": "SharedPlatformPass", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "shared-platform-pass", "service": "testdata", "event": null },
+        { "id": "SharedPlatformGapFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "shared-platform-gap-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SpofTelemetryRecovery",
+      "steps": [
+        { "id": "SpofMitigatedPass", "mandatory": true, "ownerRole": "sre", "slaHours": 72, "evidenceType": "spof-mitigated-pass", "service": "testdata", "event": null },
+        { "id": "Tier01SpofFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "tier01-spof-fail", "service": "testdata", "event": null },
+        { "id": "TelemetryBoundPass", "mandatory": true, "ownerRole": "observability", "slaHours": 48, "evidenceType": "telemetry-bound-pass", "service": "testdata", "event": null },
+        { "id": "TargetWithoutTelemetryFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "target-without-telemetry-fail", "service": "testdata", "event": null },
+        { "id": "RecoveryOrderLabPass", "mandatory": true, "ownerRole": "sre", "slaHours": 96, "evidenceType": "recovery-order-lab-pass", "service": "testdata", "event": null },
+        { "id": "RecoveryOrderMissingFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "recovery-order-missing-fail", "service": "testdata", "event": null },
+        { "id": "FailureDomainPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "failure-domain-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClaimGate",
+      "steps": [
+        { "id": "LiveCriticalityClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-criticality-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "criticalJourneys": [
+    { "id": "login", "dependsOn": ["keycloak", "auth-directory", "gateway"] },
+    { "id": "gateway", "dependsOn": ["gateway", "dns", "pki"] },
+    { "id": "hire", "dependsOn": ["hr-core", "postgres", "rabbitmq"] },
+    { "id": "payroll", "dependsOn": ["payroll", "postgres", "rabbitmq"] },
+    { "id": "file-upload", "dependsOn": ["file-storage", "postgres"] }
+  ],
+  "recoverySteps": [
+    { "order": 1, "componentIds": ["postgres", "rabbitmq", "keycloak"] },
+    { "order": 2, "componentIds": ["gateway", "auth-directory"] },
+    { "order": 3, "componentIds": ["hr-core"] },
+    { "order": 4, "componentIds": ["payroll"] },
+    { "order": 5, "componentIds": ["file-storage"] }
+  ],
+  "simulationPaths": {
+    "unclassifiedServiceFail": "testdata/arc001/scenarios/unclassified-service-fail.json",
+    "unclassifiedDependencyFail": "testdata/arc001/scenarios/unclassified-dependency-fail.json",
+    "tier01SpofFail": "testdata/arc001/scenarios/tier01-spof-fail.json",
+    "targetWithoutTelemetryFail": "testdata/arc001/scenarios/target-without-telemetry-fail.json",
+    "recoveryOrderMissingFail": "testdata/arc001/scenarios/recovery-order-missing-fail.json",
+    "sharedPlatformGapFail": "testdata/arc001/scenarios/shared-platform-gap-fail.json",
+    "journeyUnmappedFail": "testdata/arc001/scenarios/journey-unmapped-fail.json",
+    "liveCriticalityClaimFail": "testdata/arc001/scenarios/live-criticality-claim-fail.json",
+    "fullClassificationPass": "testdata/arc001/scenarios/full-classification-pass.json",
+    "journeyMapPass": "testdata/arc001/scenarios/journey-map-pass.json",
+    "sharedPlatformPass": "testdata/arc001/scenarios/shared-platform-pass.json",
+    "telemetryBoundPass": "testdata/arc001/scenarios/telemetry-bound-pass.json",
+    "spofMitigatedPass": "testdata/arc001/scenarios/spof-mitigated-pass.json",
+    "recoveryOrderLabPass": "testdata/arc001/scenarios/recovery-order-lab-pass.json",
+    "failureDomainPass": "testdata/arc001/scenarios/failure-domain-pass.json",
+    "criticalityRunLedger": "testdata/arc001/harness/criticality-run-ledger.json",
+    "criticalityAuditPass": "testdata/arc001/audit/criticality-audit-pass.json"
+  },
+  "joins": {
+    "str001Envelope": "docs/str-scope/envelope-matrix.json",
+    "obsInventory": "docs/OBS_SERVICE_INVENTORY.md",
+    "obsSlo": "docs/OBS_SLO_CATALOG.md",
+    "opsDrBia": "docs/OPS_DR_BIA_RTO_RPO.md",
+    "opsDrTopology": "docs/OPS_DR_TOPOLOGY.md",
+    "messageEvents": "docs/MESSAGE_EVENT_MATRIX.md"
+  }
+}

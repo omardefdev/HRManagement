@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-NEGATIVE-CONFORMANCE",
+  "expectedValidate": "PASS",
+  "negativeCasesExecuted": true,
+  "incompatibleClientRejected": true,
+  "notes": "Negative conformance suite rejects incompatible client"
+}

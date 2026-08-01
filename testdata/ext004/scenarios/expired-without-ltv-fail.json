@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-EXPIRED-WITHOUT-LTV",
+  "expectedValidate": "FAIL",
+  "certExpired": true,
+  "ltvPackagePresent": false,
+  "treatedAsValid": true,
+  "notes": "Expired cert without LTV treated as valid must fail"
+}

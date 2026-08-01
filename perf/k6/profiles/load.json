@@ -1,0 +1,5 @@
+{
+  "name": "load",
+  "vus_base": 50,
+  "description": "NFR-001 100% lab model — ramp to VUS_BASE for ~5m"
+}

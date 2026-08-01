@@ -1,0 +1,7 @@
+@{
+    var title = ViewData["FormTitle"] as string ?? ViewData["Title"]?.ToString() ?? "";
+    var icon = ViewData["FormIcon"] as string ?? "fa-edit";
+}
+<div class="card-header">
+    <h3 class="card-title"><i class="fas @icon"></i> @title</h3>
+</div>

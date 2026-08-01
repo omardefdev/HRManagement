@@ -1,0 +1,11 @@
+﻿{
+    "card":  "MIG-004",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "strategyCount":  4,
+    "fraudCount":  3,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

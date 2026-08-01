@@ -1,0 +1,16 @@
+{
+  "packId": "pack-agency-b-v1",
+  "agencyId": "AGENCY-B",
+  "displayName": "Agency B (Field-heavy)",
+  "releaseDigest": "sha256:str004-demo-digest-20260730",
+  "tenantId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "rollbackRef": "pack-agency-b-v0-baseline",
+  "reviewerRoles": ["product", "platform"],
+  "branding": {
+    "organizationName": "Agency B Field Services",
+    "primaryColor": "#2E7D32"
+  },
+  "enabledOptionalModules": ["hr-training", "idcard", "admin-logistics"],
+  "disabledOptionalModules": ["compliance", "dev-analytics"],
+  "policyNotes": "Training and ID cards mandatory for field ops; compliance module not entitled"
+}

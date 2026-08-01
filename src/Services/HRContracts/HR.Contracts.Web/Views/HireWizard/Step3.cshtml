@@ -1,0 +1,14 @@
+@model HR.Contracts.Domain.Entities.ServiceTransaction
+@{ ViewData["Title"] = "معالج التعيين - اعتماد"; }
+<div class="card">
+    <div class="card-header"><h3>اعتماد الإدارة العليا</h3></div>
+    <div class="card-body">
+        <p>الحالة الحالية: <strong>@Model.State</strong></p>
+        <form asp-action="Step3Approve" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="transactionId" value="@Model.Id" />
+            <button type="submit" class="btn btn-success">اعتماد وبدء التنفيذ</button>
+        </form>
+        <a asp-action="Step4" asp-route-transactionId="@Model.Id" class="btn btn-link mt-2">تخطي إلى الإكمال</a>
+    </div>
+</div>

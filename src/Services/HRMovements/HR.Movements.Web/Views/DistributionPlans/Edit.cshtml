@@ -1,0 +1,14 @@
+@model HR.Movements.Domain.Entities.DistributionPlan
+@{ ViewData["Title"] = "تعديل خطة التوزيع"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" class="form-control form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EffectiveDate" class="form-label"></label><input asp-for="EffectiveDate" class="form-control" type="date" /><span asp-validation-for="EffectiveDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="PlannedPositions" class="form-label"></label><textarea asp-for="PlannedPositions" class="form-control" rows="4"></textarea><span asp-validation-for="PlannedPositions" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ التعديلات</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

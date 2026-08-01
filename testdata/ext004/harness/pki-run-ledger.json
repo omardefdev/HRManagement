@@ -1,0 +1,7 @@
+{
+  "fixtureId": "EXT004-PKI-RUN-LEDGER",
+  "runs": [
+    { "runId": "pki-lab-001", "outcome": "Valid", "livePki": false },
+    { "runId": "pki-lab-002", "outcome": "Revoked", "livePki": false }
+  ]
+}

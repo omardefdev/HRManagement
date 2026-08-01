@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — بوابة التوظيف الحكومية</title>
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.rtl.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/syrian-theme.css" asp-append-version="true" />
+    <style>
+        body { background: #f4f6f9; }
+        .careers-navbar {
+            background: linear-gradient(135deg, #6b1f2a 0%, #4a1520 100%);
+            padding: 1rem 0;
+            box-shadow: 0 2px 8px rgba(107,31,42,0.2);
+        }
+        .careers-navbar .navbar-brand {
+            color: #f5f0e8;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        .careers-navbar .nav-link-pub {
+            color: rgba(245,240,232,0.85);
+            border: 1px solid rgba(185,167,121,0.5);
+            border-radius: 6px;
+            padding: 0.4rem 1rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .careers-navbar .nav-link-pub:hover {
+            background: rgba(185,167,121,0.2);
+            color: #f5f0e8;
+            border-color: #b9a779;
+        }
+        .careers-card {
+            background: #fff;
+            border: 1px solid rgba(185,167,121,0.2);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .careers-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(107,31,42,0.1);
+        }
+        .careers-card .card-body { padding: 1.5rem; }
+        .careers-card .card-title {
+            color: #6b1f2a;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .careers-card .card-subtitle {
+            color: #7a7a7a;
+            font-size: 0.9rem;
+        }
+        .careers-btn-primary {
+            background: linear-gradient(135deg, #6b1f2a 0%, #8a2b38 100%);
+            color: #f5f0e8;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .careers-btn-primary:hover {
+            background: linear-gradient(135deg, #8a2b38 0%, #6b1f2a 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(107,31,42,0.3);
+        }
+        .careers-btn-outline {
+            border: 1.5px solid #6b1f2a;
+            color: #6b1f2a;
+            border-radius: 6px;
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .careers-btn-outline:hover {
+            background: #6b1f2a;
+            color: #f5f0e8;
+        }
+        .careers-footer {
+            background: #2c2c2c;
+            color: rgba(245,240,232,0.7);
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+        .careers-page-title {
+            color: #6b1f2a;
+            font-weight: 700;
+            font-size: 1.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .careers-badge {
+            background: rgba(107,31,42,0.1);
+            color: #6b1f2a;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+        .careers-form .form-label {
+            font-weight: 600;
+            color: #4a4a4a;
+            font-size: 0.9rem;
+        }
+        .careers-form .form-control:focus {
+            border-color: #b9a779;
+            box-shadow: 0 0 0 0.2rem rgba(185,167,121,0.25);
+        }
+    </style>
+</head>
+<body dir="rtl">
+    <a class="hr-skip-link" href="#main-content">تخطي إلى المحتوى</a>
+    <nav class="careers-navbar" aria-label="تنقل بوابة التوظيف">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand text-decoration-none" asp-controller="PublicCareers" asp-action="Index">
+                <i class="fas fa-landmark ms-2" aria-hidden="true"></i> بوابة التوظيف الحكومية
+            </a>
+            <div class="d-flex gap-2">
+                <a class="nav-link-pub" asp-controller="PublicCareers" asp-action="Index"><i class="fas fa-briefcase ms-1" aria-hidden="true"></i> الوظائف</a>
+                <a class="nav-link-pub" asp-controller="PublicCareers" asp-action="Track"><i class="fas fa-search ms-1" aria-hidden="true"></i> تتبّع طلب</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4" id="main-content" tabindex="-1">
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger border-0 shadow-sm" role="alert"><i class="fas fa-exclamation-triangle ms-1" aria-hidden="true"></i> @TempData["Error"]</div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success border-0 shadow-sm" role="alert"><i class="fas fa-check-circle ms-1" aria-hidden="true"></i> @TempData["Success"]</div>
+        }
+        @RenderBody()
+    </main>
+    <footer class="careers-footer">
+        <strong>شعبة التنظيم والموارد البشرية</strong> — بوابة الخدمة المدنية للمواطن &copy; @DateTime.Now.Year
+    </footer>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+</body>
+</html>

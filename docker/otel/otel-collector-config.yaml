@@ -1,0 +1,54 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  attributes/pii:
+    actions:
+      - key: national_id
+        action: delete
+      - key: NationalId
+        action: delete
+      - key: password
+        action: delete
+      - key: Password
+        action: delete
+      - key: access_token
+        action: delete
+      - key: Authorization
+        action: delete
+      - key: client_secret
+        action: delete
+      - key: http.request.body
+        action: delete
+      - key: db.statement
+        action: hash
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  logging:
+    loglevel: warn
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otelcol
+    const_labels:
+      source: otel-collector
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [attributes/pii, batch]
+      exporters: [otlp/tempo, logging]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, logging]

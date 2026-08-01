@@ -1,0 +1,11 @@
+﻿{
+    "card":  "STR-006",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "criticalComponentCount":  6,
+    "vendorCount":  3,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

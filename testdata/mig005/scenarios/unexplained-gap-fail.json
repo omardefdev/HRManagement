@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-UNEXPLAINED-GAP",
+  "expectedValidate": "FAIL",
+  "sourceCount": 1000,
+  "migrated": 900,
+  "rejected": 50,
+  "deferred": 30,
+  "unexplainedGap": 20,
+  "notes": "Residual without bucket/reason must fail"
+}

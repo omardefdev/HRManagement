@@ -1,0 +1,38 @@
+@model Payroll.Domain.Entities.EndOfServiceSettlement
+@using Payroll.Domain.Enums
+@{ ViewData["Title"] = "تفاصيل تسوية نهاية الخدمة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-file-invoice-dollar"></i> تفاصيل التسوية</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+        <table class="table table-bordered">
+            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>سجل الفصل</th><td>@(Model.SeparationRecordId?.ToString() ?? "—")</td></tr>
+            <tr><th>سنوات الخدمة</th><td>@Model.ServiceYears</td></tr>
+            <tr><th>الراتب الأساسي</th><td>@Model.BaseSalary.ToString("N2")</td></tr>
+            <tr><th>مكافأة نهاية الخدمة</th><td>@Model.GratuityAmount.ToString("N2")</td></tr>
+            <tr><th>رصيد الإجازات المستحقة</th><td>@Model.LeaveBalancePayout.ToString("N2")</td></tr>
+            <tr><th>تعويضات أخرى</th><td>@Model.OtherCompensation.ToString("N2")</td></tr>
+            <tr><th>إجمالي الخصومات</th><td class="text-danger">@Model.TotalDeductions.ToString("N2")</td></tr>
+            <tr class="table-primary"><th>صافي التسوية</th><td><strong>@Model.NetSettlement.ToString("N2")</strong></td></tr>
+            <tr><th>الحالة</th><td><span class="badge @(Model.Status == EosStatus.Paid ? "bg-info" : Model.Status == EosStatus.Approved ? "bg-success" : "bg-warning")">@Model.Status</span></td></tr>
+            <tr><th>تاريخ الحساب</th><td>@Model.CalculatedAt.ToString("yyyy/MM/dd HH:mm")</td></tr>
+        </table>
+
+        <div class="d-flex gap-2">
+            @if (Model.Status == EosStatus.Draft)
+            {
+                <form asp-action="Approve" asp-route-id="@Model.Id" method="post">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success"><i class="fas fa-check"></i> اعتماد</button></form>
+            }
+            @if (Model.Status == EosStatus.Approved)
+            {
+                <form asp-action="MarkPaid" asp-route-id="@Model.Id" method="post">@Html.AntiForgeryToken()<button type="submit" class="btn btn-info"><i class="fas fa-money-bill"></i> تسجيل الصرف</button></form>
+            }
+        </div>
+    </div>
+</div>

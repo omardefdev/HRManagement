@@ -1,0 +1,8 @@
+﻿{
+    "card":  "SAN-001",
+    "mode":  "dry-run",
+    "status":  "dry-run-ok",
+    "rollForward":  "disable",
+    "offlineNuGetConfig":  "NuGet.offline.config",
+    "timestampUtc":  "2026-07-31T15:19:36.4383096Z"
+}

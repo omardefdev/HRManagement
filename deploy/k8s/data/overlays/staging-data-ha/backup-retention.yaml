@@ -1,0 +1,15 @@
+# REL-001 / OPS-003 staging notes: shorter retention for cost
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-retention-notes
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/environment: staging
+data:
+  README: |
+    Staging retention (REL-001 approved drift vs prod): hot 3d / warm 7d / cold 14d.
+    CNPG Cluster.backup.retentionPolicy=7d (warm staging).
+    Object Lock optional on staging; required on production (OPS-003).
+    Do not point staging backups at production bucket.

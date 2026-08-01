@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0",
+  "cardId": "BCP-001",
+  "description": "Triggers for degraded or manual business continuity mode",
+  "triggers": [
+    {
+      "id": "platform-gateway-down",
+      "severity": "critical",
+      "condition": "Gateway /health/ready unavailable > 15 minutes from ≥2 regions",
+      "automaticAction": "page-oncall-tier0",
+      "manualMode": "tier-0-manual",
+      "owner": "Incident Commander"
+    },
+    {
+      "id": "keycloak-unavailable",
+      "severity": "critical",
+      "condition": "Keycloak unreachable; no valid JWT issuance > 10 minutes",
+      "automaticAction": "page-oncall-tier0",
+      "manualMode": "identity-manual",
+      "owner": "Identity lead"
+    },
+    {
+      "id": "payroll-close-window",
+      "severity": "high",
+      "condition": "Payroll cut-off within 24h AND any Tier-0 dependency degraded",
+      "automaticAction": "notify-hr-finance",
+      "manualMode": "payroll-manual",
+      "owner": "HR Finance lead"
+    },
+    {
+      "id": "network-partition-branch",
+      "severity": "high",
+      "condition": "Branch offline > 4h during business hours",
+      "automaticAction": "notify-branch-manager",
+      "manualMode": "branch-local-continuity",
+      "owner": "Branch manager"
+    },
+    {
+      "id": "database-primary-failover",
+      "severity": "high",
+      "condition": "PostgreSQL primary failover in progress > 30 minutes",
+      "automaticAction": "page-dba-oncall",
+      "manualMode": "read-only-degraded",
+      "owner": "DBA on-call"
+    },
+    {
+      "id": "minio-unavailable",
+      "severity": "medium",
+      "condition": "File storage upload/download failure rate > 50% for 15 minutes",
+      "automaticAction": "page-platform",
+      "manualMode": "defer-nonessential-attachments",
+      "owner": "Platform on-call"
+    }
+  ],
+  "escalation": {
+    "icDeclarationRequired": true,
+    "maxManualModeDurationHours": 72,
+    "reviewDocument": "docs/BCP_001_REENTRY_RECONCILIATION.md"
+  }
+}

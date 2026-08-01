@@ -1,0 +1,80 @@
+groups:
+  - name: hrmanagement
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"hr-.*"} == 0
+        for: 2m
+        labels:
+          severity: page
+          owner: platform
+        annotations:
+          summary: "HR service {{ $labels.job }} is down"
+          description: "Prometheus cannot scrape {{ $labels.instance }} for 2 minutes (symptom; see journey burns)."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#servicedown"
+
+      - alert: RabbitMqExporterDown
+        expr: up{job="rabbitmq"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          owner: platform
+        annotations:
+          summary: "RabbitMQ exporter is down"
+          description: "MQ freshness signals may be incomplete."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#rabbitmqexporterdown"
+
+      - alert: HighHttpServerDuration
+        expr: histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket[5m])) by (le, job)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          owner: platform
+        annotations:
+          summary: "Elevated P95 latency on {{ $labels.job }}"
+          description: "Symptom alert; journey SLO is J2ApiLatencyHigh for gateway."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#highhttpserverduration"
+
+      - alert: PostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          owner: platform
+        annotations:
+          summary: "Postgres exporter is down"
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#postgresexporterdown"
+
+      - alert: OutboxPendingHigh
+        expr: outbox_pending_messages > 100
+        for: 5m
+        labels:
+          severity: warning
+          owner: platform
+          journey: J3
+        annotations:
+          summary: "Outbox backlog high on {{ $labels.job }}"
+          description: "Pairs with J3MessagingFreshnessDegraded SLO alert."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#outboxpendinghigh"
+
+      - alert: InboxConsumerStalled
+        expr: increase(inbox_processed[15m]) == 0 and up{job=~"hr-.*|payroll|file-storage|compliance"} == 1
+        for: 15m
+        labels:
+          severity: info
+          owner: platform
+        annotations:
+          summary: "No inbox_processed increase (may be idle)"
+          description: "Check consumer health if traffic is expected."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#inboxconsumerstalled"
+
+      - alert: BlackboxGatewayProbeDown
+        expr: probe_success{job="probe_gateway_ready"} == 0
+        for: 2m
+        labels:
+          severity: page
+          owner: platform
+          journey: J1
+        annotations:
+          summary: "Black-box Gateway /health/ready failing"
+          description: "External probe cannot reach gateway readiness."
+          runbook_url: "docs/OBS_ALERT_RUNBOOKS.md#blackboxgatewayprobedown"

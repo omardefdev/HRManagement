@@ -1,0 +1,39 @@
+{
+  "card": "SYR-004",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "New Syrian Lira currency era configuration",
+  "conversionRatio": 100,
+  "oldCurrency": {
+    "code": "SYP",
+    "name": "Syrian Pound (old)",
+    "era": "OldLira",
+    "validUntil": "2026-07-30"
+  },
+  "newCurrency": {
+    "code": "SYP-NEW",
+    "name": "Syrian Pound (new)",
+    "era": "NewLira",
+    "validFrom": "2026-07-31"
+  },
+  "cutoverDate": "2026-07-31T00:00:00Z",
+  "rules": {
+    "defaultAfterCutover": "NewLira",
+    "historicalDisplayDual": true,
+    "noFloatingPoint": true,
+    "roundingPolicy": "BankersRounding",
+    "roundingDecimalPlaces": 2,
+    "noDoubleConversion": true,
+    "importWithoutEraTagMustFail": true
+  },
+  "reconciliation": {
+    "preConversionBalance": "must equal postConversionBalance * 100",
+    "tolerance": 0,
+    "auditRequired": true
+  },
+  "legalSource": {
+    "authority": "Central Bank of Syria",
+    "decreeReference": "Currency Reform Decree 2026",
+    "effectiveDate": "2026-07-31"
+  }
+}

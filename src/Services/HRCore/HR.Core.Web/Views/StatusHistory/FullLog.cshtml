@@ -1,0 +1,88 @@
+@model List<HR.Core.Domain.Entities.EmploymentStatusHistory>
+@{
+    ViewData["Title"] = "السجل الكامل لتغييرات حالة التوظيف";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-list-alt"></i> @ViewData["Title"]</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row mb-3 g-2">
+            <div class="col-md-3">
+                <input type="text" name="search" value="@ViewBag.SearchTerm"
+                       class="form-control form-control-sm" placeholder="بحث بالاسم أو السبب..." />
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="status" value="@ViewBag.StatusFilter"
+                       class="form-control form-control-sm" placeholder="الحالة" />
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="from" value="@ViewBag.FromDate" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="to" value="@ViewBag.ToDate" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>الموظف</th>
+                        <th>الحالة القديمة</th>
+                        <th>الحالة الجديدة</th>
+                        <th>تاريخ التغيير</th>
+                        <th>السبب</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in Model)
+                    {
+                        <tr>
+                            <td>
+                                @if (h.Employee != null)
+                                {
+                                    <a asp-controller="Employees" asp-action="Details" asp-route-id="@h.EmployeeId">@h.Employee.FullName</a>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </td>
+                            <td>@(h.OldStatus ?? "—")</td>
+                            <td><span class="badge text-bg-primary">@h.NewStatus</span></td>
+                            <td dir="ltr">@h.ChangedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@(h.Reason ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @{
+            var currentPage = (int)ViewBag.CurrentPage;
+            var totalPages = (int)ViewBag.TotalPages;
+        }
+        @if (totalPages > 1)
+        {
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center">
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" asp-action="FullLog" asp-route-page="@i"
+                               asp-route-search="@ViewBag.SearchTerm"
+                               asp-route-status="@ViewBag.StatusFilter"
+                               asp-route-from="@ViewBag.FromDate"
+                               asp-route-to="@ViewBag.ToDate">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+</div>

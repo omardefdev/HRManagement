@@ -1,0 +1,200 @@
+@model HRManagement.Gateway.Models.GatewayDashboardViewModel
+@{
+    ViewData["Title"] = "لوحة البوابة";
+}
+<div class="gateway-page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="gateway-page-title">لوحة التشغيل المركزية</h1>
+        <small class="gateway-muted">آخر تحديث: @Model.GeneratedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
+    </div>
+    <div>
+        <a class="btn btn-sm gateway-btn-secondary" href="/health">صحة البوابة</a>
+        <a class="btn btn-sm gateway-btn-primary" asp-action="Operations">تفاصيل العمليات</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="gateway-card-kpi gateway-kpi">
+            <div class="gateway-kpi-label"><i class="fas fa-cubes ms-1"></i> إجمالي الوحدات</div>
+            <div class="gateway-kpi-value">@Model.Summary.Total</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="gateway-card-kpi gateway-kpi">
+            <div class="gateway-kpi-label"><i class="fas fa-check-circle ms-1"></i> وحدات سليمة</div>
+            <div class="gateway-kpi-value gateway-kpi-value-ok">@Model.Summary.Healthy</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="gateway-card-kpi gateway-kpi">
+            <div class="gateway-kpi-label"><i class="fas fa-exclamation-circle ms-1"></i> وحدات متدهورة</div>
+            <div class="gateway-kpi-value gateway-kpi-value-danger">@Model.Summary.Degraded</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="gateway-card-kpi gateway-kpi">
+            <div class="gateway-kpi-label"><i class="fas fa-lock ms-1"></i> غير مصرح بها</div>
+            <div class="gateway-kpi-value gateway-kpi-value-warn">@Model.Summary.Unauthorized</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="gateway-card-kpi gateway-kpi">
+            <div class="d-flex align-items-center gap-3">
+                <div class="gateway-kpi-icon gateway-kpi-icon-info">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <div class="gateway-kpi-label">المستخدمون النشطون</div>
+                    <div class="gateway-kpi-value">
+                        @if (Model.ActiveUsersCount >= 0)
+                        {
+                            @Model.ActiveUsersCount
+                        }
+                        else
+                        {
+                            <span class="gateway-badge gateway-badge-warn">غير متاح</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="gateway-card-kpi gateway-kpi">
+            <div class="d-flex align-items-center gap-3">
+                <div class="gateway-kpi-icon gateway-kpi-icon-gold">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <div>
+                    <div class="gateway-kpi-label">الموافقات المعلّقة</div>
+                    <div class="gateway-kpi-value">
+                        @if (Model.PendingApprovalsCount >= 0)
+                        {
+                            @Model.PendingApprovalsCount
+                        }
+                        else
+                        {
+                            <span class="gateway-badge gateway-badge-warn">غير متاح</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.ModuleStats.Count > 0)
+{
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="gateway-card-ops">
+            <h6><i class="fas fa-chart-bar ms-1"></i> إحصائيات الطلبات حسب الوحدة</h6>
+            <canvas id="moduleStatsChart" height="100"></canvas>
+        </div>
+    </div>
+</div>
+}
+
+<div class="row g-3">
+@foreach (var item in Model.Modules.OrderBy(x => x.Module.Name))
+{
+    var badgeClass = !item.IsAuthorized ? "gateway-badge gateway-badge-warn" : item.IsHealthy ? "gateway-badge gateway-badge-ok" : "gateway-badge gateway-badge-danger";
+    var badgeText = !item.IsAuthorized ? "غير مصرح" : item.IsHealthy ? "سليم" : "غير متاح";
+    var statusIcon = !item.IsAuthorized ? "fa-lock" : item.IsHealthy ? "fa-circle-check" : "fa-circle-xmark";
+    var statusColor = !item.IsAuthorized ? "text-warning" : item.IsHealthy ? "text-success" : "text-danger";
+    <div class="col-lg-4 col-md-6">
+        <div class="gateway-module-card h-100">
+            <div class="gateway-module-card-header">
+                <div class="gateway-module-card-title">
+                    <h5>@item.Module.DisplayNameAr</h5>
+                    <span class="gateway-module-card-subtitle">@item.Module.Name</span>
+                </div>
+                <span class="@badgeClass">@badgeText</span>
+            </div>
+            <div class="gateway-module-card-body">
+                <div class="gateway-module-card-stats">
+                    <div class="gateway-module-stat">
+                        <i class="fas fa-clock"></i>
+                        <span>@item.LatencyMs ms</span>
+                    </div>
+                    <div class="gateway-module-stat">
+                        <i class="fas @statusIcon @statusColor"></i>
+                        <span>@(item.StatusCode < 0 ? "خطأ في الاتصال" : $"HTTP {item.StatusCode}")</span>
+                    </div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(item.Error))
+                {
+                    <div class="gateway-module-card-alert">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <span>تعذر الوصول إلى الخدمة</span>
+                    </div>
+                }
+            </div>
+            <div class="gateway-module-card-actions">
+                @if (item.IsAuthorized)
+                {
+                    <a class="btn btn-sm gateway-btn-primary" asp-action="OpenModule" asp-route-slug="@item.Module.Slug">
+                        <i class="fas fa-external-link-alt"></i> فتح الوحدة
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-sm gateway-btn-secondary" disabled>
+                        <i class="fas fa-lock"></i> تتطلب صلاحية
+                    </button>
+                }
+                <a class="btn btn-sm gateway-btn-ghost" href="http://localhost:@item.Module.DirectPort" target="_blank" rel="noopener">
+                    <i class="fas fa-server"></i> مباشر
+                </a>
+            </div>
+        </div>
+    </div>
+}
+</div>
+
+@if (Model.ModuleStats.Count > 0)
+{
+<script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var ctx = document.getElementById('moduleStatsChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ModuleStats.Select(s => s.ModuleName))),
+            datasets: [
+                {
+                    label: 'عدد الطلبات',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ModuleStats.Select(s => s.RequestCount))),
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'عدد الأخطاء',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ModuleStats.Select(s => s.ErrorCount))),
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top', labels: { font: { family: 'inherit' } } }
+            },
+            scales: {
+                x: { ticks: { font: { family: 'inherit' } } },
+                y: { beginAtZero: true, ticks: { font: { family: 'inherit' } } }
+            }
+        }
+    });
+});
+</script>
+}

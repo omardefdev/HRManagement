@@ -1,0 +1,16 @@
+@model DocumentClassification
+@{ ViewData["Title"] = "تفاصيل التصنيف"; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">@Model.NameAr</h3></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الرمز</dt><dd class="col-sm-9">@Model.Code</dd>
+            <dt class="col-sm-3">الاسم بالإنكليزي</dt><dd class="col-sm-9">@(Model.NameEn ?? "—")</dd>
+            <dt class="col-sm-3">سنوات الاحتفاظ</dt><dd class="col-sm-9">@Model.RetentionYears</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

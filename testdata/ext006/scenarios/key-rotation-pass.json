@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-KEY-ROTATION",
+  "expectedValidate": "PASS",
+  "oldCredentialRevoked": true,
+  "newEphemeralIssued": true,
+  "notes": "Lab key rotation revokes old and issues ephemeral"
+}

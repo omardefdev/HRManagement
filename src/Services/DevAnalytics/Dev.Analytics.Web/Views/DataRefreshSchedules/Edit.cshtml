@@ -1,0 +1,33 @@
+@model DataRefreshSchedule
+@{ ViewData["Title"] = "تعديل جدول التحديث"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-header"><h3 class="card-title">@ViewData["Title"]</h3></div>
+        <div class="card-body">
+            <div class="mb-3 mb-2">
+                <label asp-for="TargetReadModelId" class="form-label"></label>
+                <select asp-for="TargetReadModelId" asp-items="@ViewBag.ReadModels" class="form-control">
+                    <option value="">-- اختر --</option>
+                </select>
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="CronExpression" class="form-label"></label>
+                <input asp-for="CronExpression" class="form-control" />
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="LastRunAt" class="form-label"></label>
+                <input asp-for="LastRunAt" class="form-control" type="datetime-local" />
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="NextRunAt" class="form-label"></label>
+                <input asp-for="NextRunAt" class="form-control" type="datetime-local" />
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

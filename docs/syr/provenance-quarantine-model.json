@@ -1,0 +1,49 @@
+{
+  "card": "SYR-012",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "provenanceFields": {
+    "sourceSystem": "Originating system identifier from approved registry",
+    "sourceRecordId": "Original record ID in source system",
+    "extractedAt": "ISO 8601 UTC timestamp of extraction",
+    "extractedBy": "Person or process identifier",
+    "hashAlgorithm": "SHA-256",
+    "hashAtExtraction": "Hex-encoded hash of original record",
+    "hashAtLoad": "Hex-encoded hash verified at load time",
+    "transformationLog": "Ordered, append-only list of transformations applied",
+    "confidenceScore": "0.0–1.0 match confidence for duplicate detection",
+    "quarantineReason": "null if clean; reason code if quarantined"
+  },
+  "quarantineReasons": [
+    { "code": "QR-01", "reason": "Duplicate candidate — confidence below threshold", "autoResolvable": false },
+    { "code": "QR-02", "reason": "Missing mandatory field (national ID, legal regime)", "autoResolvable": false },
+    { "code": "QR-03", "reason": "Hash mismatch between extraction and load", "autoResolvable": false },
+    { "code": "QR-04", "reason": "Source system not in approved registry", "autoResolvable": false },
+    { "code": "QR-05", "reason": "Date/period inconsistency across records", "autoResolvable": false },
+    { "code": "QR-06", "reason": "Amount reconciliation failure", "autoResolvable": false },
+    { "code": "QR-07", "reason": "Manual override without authorization evidence", "autoResolvable": false }
+  ],
+  "unificationRules": {
+    "provenanceRequired": true,
+    "silentMergeBlocked": true,
+    "quarantineBlocksPayroll": true,
+    "resolutionApproval": "four-eyes",
+    "resolutionAuditImmutable": true,
+    "hashVerificationPoints": ["extraction", "transport", "load"],
+    "transformationLogAppendOnly": true
+  },
+  "reconciliation": {
+    "controlTotalInvariant": "loaded + quarantined = extracted",
+    "reconciliationFrequency": "monthly",
+    "escalationThreshold": "90 days unresolved",
+    "escalationTarget": "Data Governance Board",
+    "silentLossBlocked": true
+  },
+  "approvedSourceSystems": [
+    { "id": "SRC-01", "name": "Ministry of Finance Payroll", "type": "database", "format": "SQL export" },
+    { "id": "SRC-02", "name": "Administrative Development Registry", "type": "database", "format": "CSV" },
+    { "id": "SRC-03", "name": "GOSI Contributions Ledger", "type": "database", "format": "flat-file" },
+    { "id": "SRC-04", "name": "Agency Spreadsheets", "type": "spreadsheet", "format": "XLSX" },
+    { "id": "SRC-05", "name": "Paper-Digitized Archives", "type": "scanned", "format": "PDF+metadata" }
+  ]
+}

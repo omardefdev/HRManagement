@@ -1,0 +1,381 @@
+# Optional compose override: all 13 HR services + gateway.
+# Host ports align with README / gateway appsettings (5010, 5020, …, 5130).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.services.yml up -d
+services:
+
+  hr-contracts-web:
+    build:
+      context: .
+      dockerfile: src/Services/HRContracts/HR.Contracts.Web/Dockerfile
+    container_name: hrm-hr-contracts-web
+    ports:
+      - "5020:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/hr-contracts
+      ConnectionStrings__ContractsDb: Host=postgresql;Port=5432;Database=hr_contracts_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr-health-web:
+    build:
+      context: .
+      dockerfile: src/Services/HRHealth/HR.Health.Web/Dockerfile
+    container_name: hrm-hr-health-web
+    ports:
+      - "5030:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/hr-health
+      ConnectionStrings__HealthDb: Host=postgresql;Port=5432;Database=hr_health_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr-movements-web:
+    build:
+      context: .
+      dockerfile: src/Services/HRMovements/HR.Movements.Web/Dockerfile
+    container_name: hrm-hr-movements-web
+    ports:
+      - "5040:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/hr-movements
+      ConnectionStrings__MovementsDb: Host=postgresql;Port=5432;Database=hr_movements_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr-training-web:
+    build:
+      context: .
+      dockerfile: src/Services/HRTraining/HR.Training.Web/Dockerfile
+    container_name: hrm-hr-training-web
+    ports:
+      - "5050:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/hr-training
+      ConnectionStrings__TrainingDb: Host=postgresql;Port=5432;Database=hr_training_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payroll-web:
+    build:
+      context: .
+      dockerfile: src/Services/Payroll/Payroll.Web/Dockerfile
+    container_name: hrm-payroll-web
+    ports:
+      - "5060:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/payroll
+      ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  idcard-web:
+    build:
+      context: .
+      dockerfile: src/Services/IDCard/IDCard.Web/Dockerfile
+    container_name: hrm-idcard-web
+    ports:
+      - "5070:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/idcard
+      ConnectionStrings__IDCardDb: Host=postgresql;Port=5432;Database=idcard_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  records-archive-web:
+    build:
+      context: .
+      dockerfile: src/Services/RecordsArchive/Records.Archive.Web/Dockerfile
+    container_name: hrm-records-archive-web
+    ports:
+      - "5080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/records-archive
+      ConnectionStrings__ArchiveDb: Host=postgresql;Port=5432;Database=archive_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  admin-logistics-web:
+    build:
+      context: .
+      dockerfile: src/Services/AdminLogistics/Admin.Logistics.Web/Dockerfile
+    container_name: hrm-admin-logistics-web
+    ports:
+      - "5090:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/admin-logistics
+      ConnectionStrings__AdminDb: Host=postgresql;Port=5432;Database=admin_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  it-infra-web:
+    build:
+      context: .
+      dockerfile: src/Services/ITInfrastructure/IT.Infra.Web/Dockerfile
+    container_name: hrm-it-infra-web
+    ports:
+      - "5100:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/it-infra
+      ConnectionStrings__ITInfraDb: Host=postgresql;Port=5432;Database=it_infra_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  dev-analytics-web:
+    build:
+      context: .
+      dockerfile: src/Services/DevAnalytics/Dev.Analytics.Web/Dockerfile
+    container_name: hrm-dev-analytics-web
+    ports:
+      - "5110:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/dev-analytics
+      ConnectionStrings__AnalyticsDb: Host=postgresql;Port=5432;Database=analytics_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  compliance-web:
+    build:
+      context: .
+      dockerfile: src/Services/Compliance/Compliance.Web/Dockerfile
+    container_name: hrm-compliance-web
+    ports:
+      - "5120:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/compliance
+      ConnectionStrings__ComplianceDb: Host=postgresql;Port=5432;Database=compliance_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  auth-directory-web:
+    build:
+      context: .
+      dockerfile: src/Services/AuthDirectory/Auth.Directory.Web/Dockerfile
+    container_name: hrm-auth-directory-web
+    ports:
+      - "5130:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/auth-directory
+      ConnectionStrings__AuthDirectoryDb: Host=postgresql;Port=5432;Database=auth_directory_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  file-storage-web:
+    build:
+      context: .
+      dockerfile: src/Services/FileStorage/File.Storage.Web/Dockerfile
+    container_name: hrm-file-storage-web
+    ports:
+      - "5140:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__FileStorageDb: Host=postgresql;Port=5432;Database=file_storage_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__VirtualHost: /
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__RequireHttpsMetadata: "false"
+      Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      HrAuth__BehindGateway: "true"
+      FileStorage__Provider: Minio
+      FileStorage__Endpoint: minio:9000
+      # SEC-004: dev-only root defaults — production uses dedicated app key via :?required.
+      FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
+      FileStorage__SecretKey: ${MINIO_ROOT_PASSWORD:-hrminio_secret_change_me}
+      FileStorage__UseSsl: "false"
+      FileStorage__ClamAvHost: clamav
+      FileStorage__ClamAvPort: "3310"
+      FileStorage__ClamAvRequired: "true"
+    depends_on:
+      clamav:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  hr-gateway:
+    environment:
+      ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
+      ReverseProxy__Clusters__hr-health-cluster__Destinations__destination1__Address: http://hr-health-web:8080
+      ReverseProxy__Clusters__hr-movements-cluster__Destinations__destination1__Address: http://hr-movements-web:8080
+      ReverseProxy__Clusters__hr-training-cluster__Destinations__destination1__Address: http://hr-training-web:8080
+      ReverseProxy__Clusters__payroll-cluster__Destinations__destination1__Address: http://payroll-web:8080
+      ReverseProxy__Clusters__idcard-cluster__Destinations__destination1__Address: http://idcard-web:8080
+      ReverseProxy__Clusters__records-archive-cluster__Destinations__destination1__Address: http://records-archive-web:8080
+      ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
+      ReverseProxy__Clusters__it-infra-cluster__Destinations__destination1__Address: http://it-infra-web:8080
+      ReverseProxy__Clusters__dev-analytics-cluster__Destinations__destination1__Address: http://dev-analytics-web:8080
+      ReverseProxy__Clusters__compliance-cluster__Destinations__destination1__Address: http://compliance-web:8080
+      ReverseProxy__Clusters__auth-directory-cluster__Destinations__destination1__Address: http://auth-directory-web:8080
+      ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
+      Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
+      Gateway__EnabledModules__0: hr-core
+      Gateway__EnabledModules__1: hr-contracts
+      Gateway__EnabledModules__2: hr-health
+      Gateway__EnabledModules__3: hr-movements
+      Gateway__EnabledModules__4: hr-training
+      Gateway__EnabledModules__5: payroll
+      Gateway__EnabledModules__6: idcard
+      Gateway__EnabledModules__7: records-archive
+      Gateway__EnabledModules__8: admin-logistics
+      Gateway__EnabledModules__9: it-infra
+      Gateway__EnabledModules__10: dev-analytics
+      Gateway__EnabledModules__11: compliance
+      Gateway__EnabledModules__12: auth-directory
+      Gateway__EnabledModules__13: file-storage
+    depends_on:
+      hr-contracts-web:
+        condition: service_started
+      hr-health-web:
+        condition: service_started
+      hr-movements-web:
+        condition: service_started
+      hr-training-web:
+        condition: service_started
+      payroll-web:
+        condition: service_started

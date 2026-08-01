@@ -1,0 +1,40 @@
+{
+  "card": "NAT-005",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Accessibility, usability, and field acceptance certification evidence template",
+  "harnessStatus": "Done",
+  "liveCertificationStatus": "Blocked",
+  "liveCertificationNote": "Independent moderated field studies and network labs pending national UAT schedule",
+  "wcagVersion": "2.2",
+  "conformanceLevel": "AA",
+  "accessibilityBlockers": 0,
+  "localization": {
+    "rtlFirst": true,
+    "arabicPrimary": true,
+    "lowBandwidthProfileRequired": true
+  },
+  "criticalJourneys": [
+    { "journeyId": "employee-self-service", "wcagLevel": "AA", "mandatory": true },
+    { "journeyId": "manager-approval", "wcagLevel": "AA", "mandatory": true },
+    { "journeyId": "payroll-inquiry", "wcagLevel": "AA", "mandatory": true },
+    { "journeyId": "branch-attendance", "wcagLevel": "AA", "mandatory": true }
+  ],
+  "fieldAcceptance": {
+    "regionalRoleDiversityRequired": true,
+    "disabilityRepresentationRequired": true,
+    "taskSuccessTargetPercent": 90,
+    "errorRecoveryRequired": true,
+    "trainingBurdenMeasured": true
+  },
+  "str007Targets": {
+    "taskSuccessRef": "docs/str-value/kpi-baseline.json",
+    "timeOnTaskRef": "docs/str-value/kpi-baseline.json"
+  },
+  "verificationMethods": ["automated-audit", "manual-audit", "moderated-field-study", "network-lab"],
+  "dependencies": ["UX-002", "PROD-003", "PROD-004", "PROD-005", "STR-007"],
+  "blockers": [
+    { "id": "live-field-study", "status": "Blocked", "note": "Moderated field studies with branch/disability representation pending" },
+    { "id": "live-network-lab", "status": "Blocked", "note": "Low-bandwidth network lab certification pending" }
+  ]
+}

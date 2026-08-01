@@ -1,0 +1,17 @@
+{
+  "card": "PHY-001",
+  "version": "1.0.0",
+  "governorateCount": 14,
+  "requirements": {
+    "backupPowerMinutes": 60,
+    "alternateConnectivity": true,
+    "acceptableDeviceClass": "gov-standard-laptop",
+    "offlineDraftAllowed": true,
+    "localPrintFallback": true
+  },
+  "waveEntryRule": "branch below minimum requires signed site decision and alternate procedure",
+  "governorates": [
+    "Damascus", "Rif Dimashq", "Aleppo", "Homs", "Hama", "Latakia", "Tartus",
+    "Idlib", "Deir ez-Zor", "Raqqa", "Hasakah", "Daraa", "Quneitra", "As-Suwayda"
+  ]
+}

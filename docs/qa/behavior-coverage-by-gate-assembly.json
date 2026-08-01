@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-08-01T19:03:10.156888+00:00",
+  "gateAssemblies": [
+    {
+      "assembly": "Payroll.Domain",
+      "floorPercent": 75,
+      "behaviorTestFiles": [
+        "PayrollFinancialInvariantsTests.cs",
+        "PayrollCalculationExtendedTests.cs"
+      ],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "high"
+    },
+    {
+      "assembly": "Payroll.Application",
+      "floorPercent": 75,
+      "behaviorTestFiles": [
+        "Frd001FraudEngineTests.cs"
+      ],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "high"
+    },
+    {
+      "assembly": "HR.Core.Domain",
+      "floorPercent": 70,
+      "behaviorTestFiles": [],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "medium"
+    },
+    {
+      "assembly": "HR.Core.Infrastructure",
+      "floorPercent": 70,
+      "behaviorTestFiles": [],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "medium"
+    },
+    {
+      "assembly": "HR.Contracts.Domain",
+      "floorPercent": 65,
+      "behaviorTestFiles": [
+        "LeaveAndAdvanceRulesTests.cs"
+      ],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "medium"
+    },
+    {
+      "assembly": "HRManagement.SharedKernel",
+      "floorPercent": null,
+      "behaviorTestFiles": [],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "medium"
+    },
+    {
+      "assembly": "Compliance.Domain",
+      "floorPercent": 50,
+      "behaviorTestFiles": [
+        "ComplianceDomainRulesTests.cs"
+      ],
+      "gap": "Map domain types to behavioral tests in QA_RISK_TO_TEST_MATRIX.md",
+      "priority": "high"
+    }
+  ],
+  "note": "Line-coverage floors are not behavioral proof; each row needs linked behavioral tests."
+}

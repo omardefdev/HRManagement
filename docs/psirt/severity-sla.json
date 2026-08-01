@@ -1,0 +1,62 @@
+{
+  "card": "PSIRT-001",
+  "version": "1.0.0",
+  "description": "Vulnerability severity levels and response SLAs.",
+  "acknowledgmentMaxHours": 24,
+  "severityLevels": [
+    {
+      "severity": "Critical-Exploited",
+      "cvssRange": "9.0-10.0 + known exploitation",
+      "triageMaxHours": 4,
+      "fixDeployedMaxHours": 24,
+      "advisoryMaxHours": 48,
+      "containmentRequired": true
+    },
+    {
+      "severity": "Critical",
+      "cvssRange": "9.0-10.0",
+      "triageMaxHours": 8,
+      "fixDeployedMaxHours": 72,
+      "advisoryMaxDays": 5,
+      "containmentRequired": true
+    },
+    {
+      "severity": "High",
+      "cvssRange": "7.0-8.9",
+      "triageMaxHours": 24,
+      "fixDeployedMaxDays": 7,
+      "advisoryMaxDays": 14,
+      "containmentRequired": false
+    },
+    {
+      "severity": "Medium",
+      "cvssRange": "4.0-6.9",
+      "triageMaxDays": 3,
+      "fixDeployedMaxDays": 30,
+      "advisoryPolicy": "with-next-release",
+      "containmentRequired": false
+    },
+    {
+      "severity": "Low",
+      "cvssRange": "0.1-3.9",
+      "triageMaxDays": 5,
+      "fixDeployedMaxDays": 90,
+      "advisoryPolicy": "with-next-release",
+      "containmentRequired": false
+    }
+  ],
+  "fixPolicy": {
+    "requiredReviewers": 2,
+    "ciMustPass": true,
+    "securityScanRequired": true,
+    "regressionTestRequired": true,
+    "rootCauseActionRequired": true,
+    "rollbackPlanRequired": true
+  },
+  "advisoryPolicy": {
+    "signed": true,
+    "versioned": true,
+    "includesVex": true,
+    "sbomImpactAnalysis": true
+  }
+}

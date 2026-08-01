@@ -1,0 +1,87 @@
+{
+  "card": "SYR-013",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Branch and governorate UX policy with WCAG 2.2 AA checklist for Syrian HR platform",
+  "wcagVersion": "2.2",
+  "conformanceLevel": "AA",
+  "localization": {
+    "primaryLanguage": "ar",
+    "rtlFirst": true,
+    "numberFormat": "arabic-indic-or-western-per-agency-policy",
+    "dateFormat": "dd/MM/yyyy Asia/Damascus",
+    "currencyFormat": "SYP-new (1 new = 100 old per SYR-004)",
+    "secondaryLanguages": {
+      "policy": "official-decision-required",
+      "candidates": ["ku", "en"],
+      "note": "No language enabled without formal agency/ministry decision"
+    }
+  },
+  "networkProfiles": [
+    {
+      "profileId": "lab-3g-throttled",
+      "description": "Minimum supported connection for critical journeys",
+      "bandwidthKbps": 384,
+      "latencyMs": 300,
+      "packetLossPercent": 5,
+      "approvedForCriticalJourneys": true
+    },
+    {
+      "profileId": "lab-edge-2g",
+      "description": "Degraded mode — queue/resume only, no real-time submit",
+      "bandwidthKbps": 64,
+      "latencyMs": 800,
+      "packetLossPercent": 15,
+      "approvedForCriticalJourneys": false,
+      "queueResumeOnly": true
+    }
+  ],
+  "governorates": [
+    { "id": "damascus", "nameAr": "دمشق", "nameEn": "Damascus", "uatRequired": true },
+    { "id": "aleppo", "nameAr": "حلب", "nameEn": "Aleppo", "uatRequired": true },
+    { "id": "homs", "nameAr": "حمص", "nameEn": "Homs", "uatRequired": true },
+    { "id": "hama", "nameAr": "حماة", "nameEn": "Hama", "uatRequired": true },
+    { "id": "latakia", "nameAr": "اللاذقية", "nameEn": "Latakia", "uatRequired": true },
+    { "id": "tartus", "nameAr": "طرطوس", "nameEn": "Tartus", "uatRequired": true },
+    { "id": "idlib", "nameAr": "إدلب", "nameEn": "Idlib", "uatRequired": true },
+    { "id": "raqqa", "nameAr": "الرقة", "nameEn": "Raqqa", "uatRequired": true },
+    { "id": "deir-ez-zor", "nameAr": "دير الزور", "nameEn": "Deir ez-Zor", "uatRequired": true },
+    { "id": "hasakah", "nameAr": "الحسكة", "nameEn": "Hasakah", "uatRequired": true },
+    { "id": "daraa", "nameAr": "درعا", "nameEn": "Daraa", "uatRequired": true },
+    { "id": "suwayda", "nameAr": "السويداء", "nameEn": "Suwayda", "uatRequired": true },
+    { "id": "quneitra", "nameAr": "القنيطرة", "nameEn": "Quneitra", "uatRequired": true },
+    { "id": "rural-damascus", "nameAr": "ريف دمشق", "nameEn": "Rural Damascus", "uatRequired": true }
+  ],
+  "criticalJourneys": [
+    { "journeyId": "ess-leave-request", "name": "ESS Leave Request", "wcagRequired": true },
+    { "journeyId": "ess-payslip-view", "name": "ESS Payslip View", "wcagRequired": true },
+    { "journeyId": "mss-approval", "name": "MSS Approval", "wcagRequired": true },
+    { "journeyId": "branch-employee-registration", "name": "Branch Employee Registration", "wcagRequired": true },
+    { "journeyId": "offline-draft-sync", "name": "Offline Draft Sync", "wcagRequired": true }
+  ],
+  "wcagCriteria": [
+    { "id": "1.4.3", "name": "Contrast (Minimum)", "level": "AA", "appliesTo": "all-critical-journeys" },
+    { "id": "1.4.11", "name": "Non-text Contrast", "level": "AA", "appliesTo": "all-critical-journeys" },
+    { "id": "2.1.1", "name": "Keyboard", "level": "A", "appliesTo": "all-critical-journeys" },
+    { "id": "2.4.7", "name": "Focus Visible", "level": "AA", "appliesTo": "all-critical-journeys" },
+    { "id": "2.5.8", "name": "Target Size (Minimum)", "level": "AA", "appliesTo": "all-critical-journeys" },
+    { "id": "3.3.7", "name": "Redundant Entry", "level": "A", "appliesTo": "all-critical-journeys" },
+    { "id": "4.1.2", "name": "Name, Role, Value", "level": "A", "appliesTo": "all-critical-journeys" }
+  ],
+  "draftPolicy": {
+    "encryptedSaveRequired": true,
+    "sensitiveDataInCacheForbidden": true,
+    "duplicateSubmitPrevention": true
+  },
+  "printPolicy": {
+    "unifiedTemplateRequired": true,
+    "pdfAccessibleRequired": true,
+    "arabicRtlRequired": true
+  },
+  "blockers": [
+    { "id": "live-governorate-uat", "status": "Blocked", "note": "Field UAT across 14 governorates pending deployment" },
+    { "id": "UX-002", "status": "Satisfied", "note": "Accessibility baseline Done" },
+    { "id": "PROD-004", "status": "Satisfied", "note": "Remote branch binding Done" },
+    { "id": "L10N-001", "status": "NotStarted", "note": "Full i18n product later" }
+  ]
+}

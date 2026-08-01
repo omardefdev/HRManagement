@@ -1,0 +1,70 @@
+@using HR.Core.Domain.Services
+@model HR.Core.Domain.Entities.ShiftRoster
+@{
+    ViewData["Title"] = "تفاصيل جدول المناوبات";
+    var allowances = (Dictionary<Guid, ShiftAllowanceResult>)ViewBag.Allowances;
+    var wage = (decimal)ViewBag.IndicativeHourlyWage;
+}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@Model.Title</h3>
+        <a asp-action="Index" class="btn btn-link">رجوع</a>
+    </div>
+    <div class="card-body">
+        <p><strong>الوحدة:</strong> @(Model.OrgUnit?.NameAr ?? "—")</p>
+        <p><strong>الفترة:</strong> @Model.PeriodStart.ToString("yyyy-MM-dd") ← @Model.PeriodEnd.ToString("yyyy-MM-dd")</p>
+        @if (!string.IsNullOrWhiteSpace(Model.Notes)) { <p><strong>ملاحظات:</strong> @Model.Notes</p> }
+        <p class="text-muted small">البدلات أدناه استرشادية بأجر ساعة @wage ل.س — الاحتساب الفعلي يتم في خدمة الرواتب.</p>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">إسناد وردية</h5></div>
+    <div class="card-body">
+        <form asp-action="AddAssignment" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="rosterId" value="@Model.Id" />
+            <div class="col-md-3"><label class="form-label">الموظف</label><select name="employeeId" asp-items="ViewBag.Employees" class="form-control" required></select></div>
+            <div class="col-md-3"><label class="form-label">الوردية</label><select name="shiftId" asp-items="ViewBag.Shifts" class="form-control" required></select></div>
+            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="workDate" type="date" class="form-control" value="@Model.PeriodStart.ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-2"><label class="form-label">ساعات إضافية</label><input name="overtimeHours" type="number" step="0.5" min="0" value="0" class="form-control" /></div>
+            <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">إسناد</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">الإسنادات</h5>
+        <span class="badge bg-success">إجمالي البدلات: @ViewBag.TotalAllowance ل.س</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>الوردية</th><th>التاريخ</th><th>ساعات الوردية</th><th>بدل النوع</th><th>عمل إضافي</th><th>إجمالي البدل</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var a in Model.Assignments.OrderBy(a => a.WorkDate))
+                {
+                    var b = allowances.TryGetValue(a.Id, out var r) ? r : null;
+                    <tr>
+                        <td>@(a.Employee?.FullName ?? "—")</td>
+                        <td>@(a.Shift?.NameAr ?? "—")</td>
+                        <td>@a.WorkDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(b?.ShiftHours)</td>
+                        <td>@(b?.ShiftPremiumAmount) ل.س</td>
+                        <td>@a.OvertimeHours س / @(b?.OvertimeAmount) ل.س</td>
+                        <td><strong>@(b?.TotalAllowance) ل.س</strong></td>
+                        <td>
+                            <form asp-action="RemoveAssignment" method="post" onsubmit="return confirm('حذف الإسناد؟');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <input type="hidden" name="rosterId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-outline-danger btn-xs">حذف</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Assignments.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا إسنادات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

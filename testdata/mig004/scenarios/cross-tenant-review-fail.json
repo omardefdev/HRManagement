@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-CROSS-TENANT-REVIEW",
+  "expectedValidate": "FAIL",
+  "reviewerTenantId": "tenant-pilot-a",
+  "payloadTenantId": "tenant-pilot-b",
+  "plaintextPiiExposed": true,
+  "fieldsShown": ["NationalId", "FullName"],
+  "notes": "Cross-agency PII to unauthorized reviewer must fail"
+}

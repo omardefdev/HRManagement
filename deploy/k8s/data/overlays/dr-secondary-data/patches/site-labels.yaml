@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    ops.hrmanagement.io/site: secondary
+spec:
+  template:
+    metadata:
+      labels:
+        ops.hrmanagement.io/site: secondary
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  labels:
+    ops.hrmanagement.io/site: secondary
+spec:
+  template:
+    metadata:
+      labels:
+        ops.hrmanagement.io/site: secondary
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  labels:
+    ops.hrmanagement.io/site: secondary
+spec:
+  template:
+    metadata:
+      labels:
+        ops.hrmanagement.io/site: secondary

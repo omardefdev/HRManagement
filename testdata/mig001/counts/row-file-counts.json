@@ -1,0 +1,11 @@
+{
+  "fixtureId": "MIG001-ROW-FILE-COUNTS",
+  "expectedValidate": "PASS",
+  "counts": [
+    { "sourceId": "legacy-hr-batch", "rowCount": 125000, "fileCount": 0, "estimateOnly": false },
+    { "sourceId": "legacy-payroll", "rowCount": 980000, "fileCount": 0, "estimateOnly": false },
+    { "sourceId": "legacy-org-files", "rowCount": 4200, "fileCount": 18, "estimateOnly": false },
+    { "sourceId": "legacy-docs-share", "rowCount": 0, "fileCount": 54000, "estimateOnly": false },
+    { "sourceId": "paper-personnel-files", "rowCount": 0, "fileCount": 8200, "estimateOnly": false }
+  ]
+}

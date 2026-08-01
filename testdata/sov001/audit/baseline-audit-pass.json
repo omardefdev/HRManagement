@@ -1,0 +1,1 @@
+﻿{"scenarioId":"baseline-audit-pass","expectedValidate":"PASS","entries":[{"controlId":"CTRL-AC-01","owner":"ciso","evidenceRef":"testdata/sov001/scenarios/owner-evidence-pass.json","status":"implemented","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T20:00:00Z","assessmentRef":"testdata/sov001/scenarios/independent-sample-pass.json"}]}

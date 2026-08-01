@@ -1,0 +1,20 @@
+@model HR.Training.Domain.Entities.TrainingProvider
+@{ ViewData["Title"] = "تفاصيل مزود التدريب"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">@Model.Name</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">تعديل</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('حذف؟')">حذف</button></form>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        <table class="table table-borderless table-sm w-auto">
+            <tr><th>الاسم</th><td>@Model.Name</td></tr>
+            <tr><th>الدولة</th><td>@(Model.Country ?? "—")</td></tr>
+            <tr><th>معلومات الاتصال</th><td>@(Model.ContactInfo ?? "—")</td></tr>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,77 @@
+{
+  "card": "SYR-009",
+  "version": "2026.07.31.1",
+  "asOfDate": "2026-07-31",
+  "extendsCard": "EXT-002",
+  "officialIdentifier": {
+    "field": "nationalId",
+    "format": "numeric",
+    "length": 11,
+    "issuer": "Directorate of Civil Status"
+  },
+  "allowedFields": {
+    "query": ["nationalId", "purposeCode", "consentRef"],
+    "store": ["nationalId", "fullNameAr", "fatherNameAr", "motherNameAr", "birthDate", "birthPlace", "gender", "civilStatusEvent"],
+    "forbiddenStore": ["fullRegistryExtract", "familyTree", "biometricRaw"]
+  },
+  "arabicNameRules": {
+    "normalizationVersion": "L10N-002-v1",
+    "matchOnNormalizedForm": true,
+    "preserveOriginal": true,
+    "compoundNameSupport": true,
+    "fatherNameRequiredForMatch": true
+  },
+  "matchRules": [
+    {
+      "ruleId": "EXACT_NID",
+      "priority": 1,
+      "confidence": "high",
+      "criteria": ["nationalId exact match"]
+    },
+    {
+      "ruleId": "NAME_BIRTHDATE",
+      "priority": 2,
+      "confidence": "medium",
+      "criteria": ["normalized fullNameAr", "fatherNameAr", "birthDate"],
+      "requiresHumanReviewBelowConfidence": "high"
+    },
+    {
+      "ruleId": "FUZZY_NAME",
+      "priority": 3,
+      "confidence": "low",
+      "criteria": ["normalized name similarity >= 0.85", "birthPlace match"],
+      "autoMergeForbidden": true
+    }
+  ],
+  "matchOutcomes": ["Match", "Mismatch", "Conflict", "Duplicate", "Unavailable"],
+  "confidenceLevels": ["high", "medium", "low"],
+  "deduplication": {
+    "autoMergeForbidden": true,
+    "duplicateQueue": "civil-identity-duplicate-review",
+    "conflictQueue": "civil-identity-conflict-review"
+  },
+  "civilEvents": [
+    { "event": "death", "workflow": "terminate-benefits-review", "hrMustNotReplaceRegistry": true },
+    { "event": "name_change", "workflow": "identity-correction-review" },
+    { "event": "birth_correction", "workflow": "identity-correction-review" }
+  ],
+  "outagePolicy": {
+    "forbidPermanentIdentityWithoutReview": true,
+    "degradeBehavior": "manual-review-queue",
+    "maxProvisionalDays": 7
+  },
+  "barcodeVerification": {
+    "enabledWhenAvailable": true,
+    "fallbackToFieldMatch": true
+  },
+  "audit": {
+    "required": true,
+    "retentionDays": 2555,
+    "fields": ["queryId", "actor", "tenantId", "purposeCode", "nationalIdHash", "outcome", "confidence", "reason", "queriedAt"]
+  },
+  "sla": {
+    "onlineQuerySeconds": 30,
+    "reconciliationDaily": true
+  },
+  "hrBoundaryRule": "HR must not become substitute civil registry; all authoritative identity changes originate from civil status source"
+}

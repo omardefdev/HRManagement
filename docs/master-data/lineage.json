@@ -1,0 +1,50 @@
+{
+  "card": "GOV-003",
+  "paths": [
+    {
+      "id": "hire-to-payroll",
+      "steps": [
+        "HR.Core Employee (SoR)",
+        "IEmployeeCreated",
+        "Payroll EmployeePayProfile (BaseSalary SoR)",
+        "PayrollRun / payslip report"
+      ]
+    },
+    {
+      "id": "orgunit-to-snapshot-report",
+      "steps": [
+        "HR.Core OrgUnit (SoR)",
+        "OrgUnit sync / snapshot",
+        "Payroll|Contracts|Movements OrgUnitSnapshot",
+        "Org-scoped report / headcount"
+      ]
+    },
+    {
+      "id": "employee-to-auth",
+      "steps": [
+        "HR.Core Employee",
+        "IEmployeeCreated",
+        "Auth.Directory AuthUser (Username SoR)",
+        "Gateway login / directory lookup"
+      ]
+    },
+    {
+      "id": "employee-to-analytics",
+      "steps": [
+        "HR.Core Employee + OrgUnit",
+        "IEmployeeCreated / ISeparationCompleted",
+        "Dev.Analytics projection",
+        "Analytics dashboard (tenant/org attrs must be preserved — FUN-006)"
+      ]
+    },
+    {
+      "id": "merge-lifecycle",
+      "steps": [
+        "MasterDataDuplicateCase",
+        "EmployeeLifecycle merge",
+        "IEmployeeStatusChanged (Merged)",
+        "Satellite remap per GOV_003_MERGE_RUNBOOK"
+      ]
+    }
+  ]
+}

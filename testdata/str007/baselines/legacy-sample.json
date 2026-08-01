@@ -1,0 +1,12 @@
+{
+  "fixtureId": "LEGACY-BASELINE-SAMPLE",
+  "expectedValidate": "PASS",
+  "prePilotFreeze": true,
+  "asOfDate": "2026-06-01",
+  "baselines": [
+    { "kpiId": "hire_cycle_time", "value": 62, "prePilotFreeze": true },
+    { "kpiId": "payroll_cycle_time", "value": 96, "prePilotFreeze": true },
+    { "kpiId": "data_error_duplicate_rate", "value": 22, "prePilotFreeze": true },
+    { "kpiId": "uptime_value", "value": 97.0, "prePilotFreeze": true }
+  ]
+}

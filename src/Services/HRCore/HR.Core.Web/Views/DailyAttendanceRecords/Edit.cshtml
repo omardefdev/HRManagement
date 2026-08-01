@@ -1,0 +1,25 @@
+@model HR.Core.Web.ViewModels.DailyAttendanceRecordEditViewModel
+@{
+    ViewData["Title"] = "تعديل الحضور";
+}
+<form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3">
+        <label asp-for="EmployeeId" class="form-label"></label>
+        <select asp-for="EmployeeId" class="form-control" asp-items="ViewBag.Employees"></select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="AttendanceDate" class="form-label"></label>
+        <input asp-for="AttendanceDate" class="form-control" type="date" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Status" class="form-label"></label>
+        <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.DailyAttendanceStatus>()"></select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Notes" class="form-label"></label>
+        <textarea asp-for="Notes" class="form-control"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">حفظ</button>
+</form>

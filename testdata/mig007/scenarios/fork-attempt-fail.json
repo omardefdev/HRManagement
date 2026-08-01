@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-FORK-ATTEMPT",
+  "expectedValidate": "FAIL",
+  "proposedFork": true,
+  "agencyNamedBranch": "tenant/agency-x-custom",
+  "noforkRequired": true,
+  "notes": "Per-agency fork must fail"
+}

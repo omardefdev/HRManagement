@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-EXPIRED-CERT-LTV",
+  "expectedValidate": "PASS",
+  "certExpired": true,
+  "ltvPackagePresent": true,
+  "tsaTokenPresent": true,
+  "treatedAsValid": true,
+  "notes": "Expired cert with LTV and TSA passes"
+}

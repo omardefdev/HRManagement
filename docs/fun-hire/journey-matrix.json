@@ -1,0 +1,106 @@
+{
+  "card": "FUN-001",
+  "version": 1,
+  "steps": [
+    {
+      "id": "CandidateAccepted",
+      "hireStep": "CandidateReceived",
+      "mandatory": true,
+      "ownerRole": "hr-recruiter",
+      "slaHours": 24,
+      "evidenceType": "event:ICandidateAccepted",
+      "service": "HR.Core / HR.Contracts",
+      "event": "ICandidateAccepted"
+    },
+    {
+      "id": "EmployeeEnsure",
+      "hireStep": "PersonalFileOpened",
+      "mandatory": true,
+      "ownerRole": "hr-core",
+      "slaHours": 8,
+      "evidenceType": "EmployeeId",
+      "service": "HR.Core",
+      "event": "IEmployeeCreated"
+    },
+    {
+      "id": "ContractAppointment",
+      "hireStep": "ContractClassified",
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 48,
+      "evidenceType": "ContractId",
+      "service": "HR.Contracts",
+      "event": null
+    },
+    {
+      "id": "PayProfile",
+      "hireStep": "PayrollLinked",
+      "mandatory": true,
+      "ownerRole": "payroll",
+      "slaHours": 24,
+      "evidenceType": "party:Payroll",
+      "service": "Payroll",
+      "event": "IExecuteHireParty"
+    },
+    {
+      "id": "DirectoryAccount",
+      "hireStep": null,
+      "mandatory": true,
+      "ownerRole": "auth-directory",
+      "slaHours": 8,
+      "evidenceType": "AuthUser.EmployeeId",
+      "service": "Auth.Directory",
+      "event": "IExecuteHireParty"
+    },
+    {
+      "id": "ITProvision",
+      "hireStep": null,
+      "mandatory": true,
+      "ownerRole": "it-infra",
+      "slaHours": 72,
+      "evidenceType": "party:IT.Infra",
+      "service": "IT.Infra",
+      "event": "IExecuteHireParty"
+    },
+    {
+      "id": "IdCard",
+      "hireStep": "IdentityIssued",
+      "mandatory": true,
+      "ownerRole": "idcard",
+      "slaHours": 72,
+      "evidenceType": "ICardIssued",
+      "service": "IDCard",
+      "event": "ICardIssued"
+    },
+    {
+      "id": "CareerRecord",
+      "hireStep": "CareerRecordApproved",
+      "mandatory": false,
+      "ownerRole": "hr-core",
+      "slaHours": 120,
+      "evidenceType": "notes",
+      "service": "HR.Core",
+      "event": null
+    },
+    {
+      "id": "ArchiveDiwan",
+      "hireStep": "HireArchived",
+      "mandatory": true,
+      "ownerRole": "records-archive",
+      "slaHours": 24,
+      "evidenceType": "party:Archive",
+      "service": "Records.Archive",
+      "event": "IHireCaseCompleted"
+    },
+    {
+      "id": "HireCaseCompleted",
+      "hireStep": null,
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 1,
+      "evidenceType": "IHireCaseCompleted",
+      "service": "HireCaseSaga",
+      "event": "IHireCaseCompleted"
+    }
+  ]
+}

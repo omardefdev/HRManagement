@@ -1,0 +1,32 @@
+@model IReadOnlyList<HR.Movements.Domain.Entities.MovementNotice>
+@{ ViewData["Title"] = "نشرات التنقلات"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">نشرات التنقلات</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">نشرة جديدة</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        <form asp-action="Generate" method="post" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+            @Html.AntiForgeryToken()
+            <div><label class="form-label small">من</label><input type="date" name="from" class="form-control form-control-sm" /></div>
+            <div><label class="form-label small">إلى</label><input type="date" name="to" class="form-control form-control-sm" /></div>
+            <button type="submit" class="btn btn-outline-success btn-sm">توليد تلقائي</button>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>العنوان</th><th>تاريخ الإصدار</th><th>الفترة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@x.Title</td><td>@x.IssueDate</td><td>@(x.Period ?? "—")</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد نشرات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

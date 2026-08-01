@@ -1,0 +1,32 @@
+@model IReadOnlyList<HR.Training.Domain.Entities.TrainingEnrollment>
+@{ ViewData["Title"] = "تسجيلات التدريب"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">التسجيلات</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">تسجيل جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>موظف</th><th>دورة</th><th>الحالة</th><th>نتيجة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.EmployeeId</td>
+                        <td>@x.Course.Code</td>
+                        <td>@x.Status</td>
+                        <td>@(x.Result != null ? x.Result.Score.ToString() : "—")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a>
+                            @if (x.Result == null)
+                            {
+                                <a asp-action="Complete" asp-route-id="@x.Id" class="btn btn-sm btn-success">إتمام</a>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا تسجيلات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

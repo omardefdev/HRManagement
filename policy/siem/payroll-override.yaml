@@ -1,0 +1,8 @@
+# OBS-003 SIEM rule: payroll line/adjustment overrides
+id: payroll-override
+eventType: PayrollOverride
+windowMinutes: 60
+threshold: 1
+alertname: SiemPayrollOverride
+severity: page
+owner: security

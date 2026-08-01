@@ -1,0 +1,23 @@
+@model IReadOnlyList<Payroll.Web.Controllers.PayrollReportsController.PayrollVarianceRow>
+@{ ViewData["Title"] = "تقرير التباين"; var baseline = ViewBag.BaselineRun; var comparison = ViewBag.ComparisonRun; }
+<div class="card" dir="rtl">
+    <div class="card-header"><h3 class="card-title">تقرير تباين تشغيلي</h3></div>
+    <div class="card-body">
+        <p>الأساس: @baseline?.PeriodStart — @baseline?.PeriodEnd | المقارنة: @comparison?.PeriodStart — @comparison?.PeriodEnd</p>
+        <p>إجمالي الأساس: @ViewBag.TotalBaseline | إجمالي المقارنة: @ViewBag.TotalComparison | التباين: @ViewBag.TotalVariance</p>
+        <table class="table table-striped">
+            <thead><tr><th>الموظف</th><th>صافي الأساس</th><th>صافي المقارنة</th><th>التباين</th></tr></thead>
+            <tbody>
+            @foreach (var row in Model)
+            {
+                <tr>
+                    <td>@row.EmployeeId</td>
+                    <td>@row.BaselineNet</td>
+                    <td>@row.ComparisonNet</td>
+                    <td>@row.Variance</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,122 @@
+{
+  "card": "SUP-003",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "coveragePolicy": {
+    "minimumDepth": 2,
+    "freshnessIntervalDays": 90,
+    "certReviewIntervalDays": 365
+  },
+  "skills": [
+    {
+      "id": "SKILL-PG-DBA",
+      "name": "PostgreSQL DBA",
+      "tier": 0,
+      "domain": "Database",
+      "primary": "dba-lead",
+      "secondary": "platform-engineer",
+      "certification": "PGCA (optional)",
+      "trainingLab": true,
+      "lastAssessed": "2026-07-01"
+    },
+    {
+      "id": "SKILL-KC-IAM",
+      "name": "Keycloak IAM Administration",
+      "tier": 0,
+      "domain": "Identity",
+      "primary": "iam-lead",
+      "secondary": "security-engineer",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-07-01"
+    },
+    {
+      "id": "SKILL-K8S-OPS",
+      "name": "Kubernetes Operations",
+      "tier": 0,
+      "domain": "Infrastructure",
+      "primary": "devops-lead",
+      "secondary": "sre-1",
+      "certification": "CKA (recommended)",
+      "trainingLab": true,
+      "lastAssessed": "2026-06-15"
+    },
+    {
+      "id": "SKILL-DOTNET",
+      "name": ".NET Core / EF Core Development",
+      "tier": 0,
+      "domain": "Application",
+      "primary": "tech-lead",
+      "secondary": "senior-dev",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-07-15"
+    },
+    {
+      "id": "SKILL-RMQ-MT",
+      "name": "RabbitMQ / MassTransit Messaging",
+      "tier": 0,
+      "domain": "Messaging",
+      "primary": "platform-engineer",
+      "secondary": "backend-dev",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-06-01"
+    },
+    {
+      "id": "SKILL-SOC-IR",
+      "name": "Incident Response (SOC)",
+      "tier": 0,
+      "domain": "Security",
+      "primary": "soc-lead",
+      "secondary": "sre-2",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-07-10"
+    },
+    {
+      "id": "SKILL-PAY-DOM",
+      "name": "Payroll Domain Knowledge",
+      "tier": 0,
+      "domain": "Business",
+      "primary": "payroll-sme",
+      "secondary": "hr-officer",
+      "certification": null,
+      "trainingLab": false,
+      "lastAssessed": "2026-07-20"
+    },
+    {
+      "id": "SKILL-AR-RTL",
+      "name": "Arabic Localization / RTL",
+      "tier": 0,
+      "domain": "Localization",
+      "primary": "ui-lead",
+      "secondary": "frontend-dev",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-07-01"
+    },
+    {
+      "id": "SKILL-NET-FW",
+      "name": "Network / Firewall Administration",
+      "tier": 0,
+      "domain": "Security",
+      "primary": "network-engineer",
+      "secondary": "devops-lead",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-06-20"
+    },
+    {
+      "id": "SKILL-DR-BKP",
+      "name": "Backup / Disaster Recovery",
+      "tier": 0,
+      "domain": "Operations",
+      "primary": "sre-lead",
+      "secondary": "dba-lead",
+      "certification": null,
+      "trainingLab": true,
+      "lastAssessed": "2026-07-05"
+    }
+  ]
+}

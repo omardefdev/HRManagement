@@ -1,0 +1,38 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/node_modules
+**/.idea
+**/TestResults
+**/*.user
+**/*.suo
+**/.dockerignore
+
+# Secrets and credentials — must never enter image layers (SEC-004)
+.env
+.env.*
+.env.local
+*.pfx
+*.pem
+*.key
+*.secret
+secrets/
+credentials/
+
+# Local data and backups
+backups/
+postgres_data/
+logs/
+*.log
+
+# Non-runtime content (Dockerfiles COPY full repo context)
+# NOTE: docs/*.json matrices are runtime content (copied by ServiceDefaults) — do not exclude docs/.
+scripts/
+docker/
+tests/
+src/Tests/
+*.md
+!README.md
+docs/**/*.md

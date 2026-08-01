@@ -1,0 +1,14 @@
+@model Payroll.Domain.Entities.PaymentBatch
+@{ ViewData["Title"] = "دفعة صرف"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="PayrollRunId" class="form-label"></label><select asp-for="PayrollRunId" asp-items="ViewBag.Runs" class="form-control"></select><span asp-validation-for="PayrollRunId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="BankTransferReference" class="form-label"></label><input asp-for="BankTransferReference" class="form-control" /><span asp-validation-for="BankTransferReference" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="TotalAmount" class="form-label"></label><input asp-for="TotalAmount" class="form-control" type="number" step="0.01" /><span asp-validation-for="TotalAmount" class="text-danger"></span></div>
+            <input type="hidden" asp-for="ProcessedAt" />
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

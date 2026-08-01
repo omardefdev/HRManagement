@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-TSA-OUTAGE-DEGRADE",
+  "expectedValidate": "PASS",
+  "tsaUnavailable": true,
+  "heldNotValid": true,
+  "treatedAsLtvComplete": false,
+  "notes": "TSA outage holds signature; not treated as LTV-complete"
+}

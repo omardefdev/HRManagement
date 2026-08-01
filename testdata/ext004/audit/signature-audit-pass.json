@@ -1,0 +1,22 @@
+{
+  "fixtureId": "EXT004-SIGNATURE-AUDIT",
+  "expectedValidate": "PASS",
+  "entries": [
+    {
+      "signatureId": "sig-001",
+      "signerId": "officer-01",
+      "signerRole": "payroll-approver",
+      "outcome": "Valid",
+      "algorithm": "RSA-PSS-SHA256",
+      "signedAt": "2026-07-28T10:00:00Z"
+    },
+    {
+      "signatureId": "sig-002",
+      "signerId": "legal-01",
+      "signerRole": "legal-evidence-officer",
+      "outcome": "Valid",
+      "algorithm": "ECDSA-P256-SHA256",
+      "signedAt": "2026-07-28T11:00:00Z"
+    }
+  ]
+}

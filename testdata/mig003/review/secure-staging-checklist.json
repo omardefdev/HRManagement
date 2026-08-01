@@ -1,0 +1,16 @@
+{
+  "fixtureId": "MIG003-SECURE-STAGING-REVIEW",
+  "expectedValidate": "PASS",
+  "allZonesEncrypted": true,
+  "allZonesTenantScoped": true,
+  "purgePoliciesPresent": true,
+  "secretsRotateBeforeWave": true,
+  "noSecretsInLogs": true,
+  "checklistItems": [
+    "encryptionAtRest",
+    "tenantScoped",
+    "purgePolicy",
+    "accessRole",
+    "secretRotation"
+  ]
+}

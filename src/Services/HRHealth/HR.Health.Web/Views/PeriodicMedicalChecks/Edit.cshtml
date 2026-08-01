@@ -1,0 +1,16 @@
+@model HR.Health.Domain.Entities.PeriodicMedicalCheck
+@{ ViewData["Title"] = "تعديل الفحص الدوري"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="CheckDate" class="form-label"></label><input asp-for="CheckDate" class="form-control" type="date" /><span asp-validation-for="CheckDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="NextDue" class="form-label"></label><input asp-for="NextDue" class="form-control" type="date" /><span asp-validation-for="NextDue" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Summary" class="form-label"></label><textarea asp-for="Summary" class="form-control"></textarea><span asp-validation-for="Summary" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Vitals" class="form-label"></label><textarea asp-for="Vitals" class="form-control"></textarea><span asp-validation-for="Vitals" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

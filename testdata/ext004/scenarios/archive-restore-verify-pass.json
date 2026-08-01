@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-ARCHIVE-RESTORE-VERIFY",
+  "expectedValidate": "PASS",
+  "archiveRestored": true,
+  "ltvReverified": true,
+  "hashChainIntact": true,
+  "notes": "Archive restore then LTV re-verify passes"
+}

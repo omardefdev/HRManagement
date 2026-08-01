@@ -1,0 +1,38 @@
+@model IReadOnlyList<ComplianceRecommendation>
+@{ ViewData["Title"] = "التوصيات الرقابية"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">التوصيات الرقابية</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>معرّف النتيجة</th>
+                    <th>الإجراء الموصى به</th>
+                    <th>تاريخ الاستحقاق</th>
+                    <th>الحالة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@x.FindingId</td>
+                    <td>@(x.RecommendedAction?.Length > 40 ? x.RecommendedAction[..40] + "…" : x.RecommendedAction)</td>
+                    <td>@x.DueDate?.ToString("yyyy/MM/dd")</td>
+                    <td>@x.Status</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted">لا توجد توصيات</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

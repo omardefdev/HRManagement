@@ -1,0 +1,59 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 18
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam DatabaseBorderColor #0F6B73
+skinparam DatabaseBackgroundColor #EAF6F6
+skinparam QueueBorderColor #B36B00
+skinparam QueueBackgroundColor #FFF4DD
+
+title "تواصل قواعد البيانات عبر الأحداث والمعرفات\nCross-database integration without shared foreign keys"
+
+database "hr_core_db\nEmployee / OrgUnit" as Core
+database "hr_contracts_db\nContract / Leave / Separation" as Contracts
+database "hr_movements_db\nTransfer / Secondment" as Movements
+database "hr_health_db\nMedicalRecommendation" as Health
+database "hr_training_db\nTrainingResult" as Training
+database "payroll_db\nPayrollRun / SalaryLine" as Payroll
+database "idcard_db\nIssuedCard" as Card
+database "auth_directory_db\nDirectoryEntry" as Auth
+database "archive_db\nArchiveItem" as Archive
+database "analytics_db\nAnalyticsEvent / ReadModel" as Analytics
+queue "RabbitMQ / MassTransit\nOutbox + Inbox + retry" as Bus
+
+Core --> Bus : IEmployeeCreated\nIOrgUnitChanged\nIEmployeeStatusChanged
+Bus --> Contracts : employee/org snapshot
+Bus --> Health : IEmployeeCreated
+Bus --> Card : IEmployeeCreated
+Bus --> Auth : IEmployeeCreated
+Bus --> Analytics : employee/org events
+
+Contracts --> Bus : IContractActivated\nIHireCaseCompleted\nILeaveApproved\nIAdvanceApproved\nISeparationCompleted
+Bus --> Payroll : contract / leave / separation effects
+Bus --> Card : ISeparationCompleted
+Bus --> Auth : separation / account state
+Bus --> Archive : transaction archive
+
+Movements --> Bus : ITransferExecuted\nISecondmentExecuted
+Bus --> Payroll : movement financial impact
+Bus --> Auth : directory scope update
+Bus --> Core : employment status update
+
+Health --> Bus : IMedicalRecommendationIssued
+Bus --> Payroll : health-related adjustment
+Training --> Bus : ITrainingCompleted
+Bus --> Payroll : training-related adjustment
+Payroll --> Bus : IPayrollProcessed
+Bus --> Analytics : payroll read model
+
+note bottom
+التواصل بين القواعد يتم بثلاثة عناصر: معرف الكيان، نسخة محدودة من السياق (Snapshot)، ورسالة حدث.
+لا تنفذ خدمة استعلاماً مباشراً على قاعدة خدمة أخرى، ولا تشترك قواعد الخدمات في FK أو DbContext.
+end note
+@enduml

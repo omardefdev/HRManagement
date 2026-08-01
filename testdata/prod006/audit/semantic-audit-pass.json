@@ -1,0 +1,1 @@
+﻿{"scenarioId":"semantic-audit-pass","expectedValidate":"PASS","entries":[{"reportId":"r1","kpiId":"hire-to-fill","tenantId":"tenant-a","asOf":"2026-07-30","sourceRef":"payroll","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T17:00:00Z","evidenceRef":"testdata/prod006/scenarios/golden-report-pass.json"}]}

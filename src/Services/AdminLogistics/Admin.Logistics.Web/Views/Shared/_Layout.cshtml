@@ -1,0 +1,26 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "admin-logistics";
+}
+
+@section SidebarItems {
+    <li class="nav-header">اللوجستيات</li>
+    <li class="nav-item"><a asp-controller="Assets" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-cogs"></i><p>الأصول والعهد</p></a></li>
+    <li class="nav-item"><a asp-controller="AssetAssignments" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-hand-holding"></i><p>عهدة الأصول</p></a></li>
+    <li class="nav-item"><a asp-controller="SupplyOrders" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-list"></i><p>طلبات التجهيز</p></a></li>
+    <li class="nav-item"><a asp-controller="InventoryItems" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-boxes"></i><p>المخزون</p></a></li>
+    <li class="nav-item"><a asp-controller="Vendors" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-truck"></i><p>الموردون</p></a></li>
+    <li class="nav-item"><a asp-controller="MaintenanceRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tools"></i><p>سجلات الصيانة</p></a></li>
+    <li class="nav-item"><a asp-controller="ReceiptRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-receipt"></i><p>سجلات الاستلام</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

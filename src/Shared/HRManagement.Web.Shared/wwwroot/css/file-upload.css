@@ -1,0 +1,195 @@
+.hr-file-upload-zone input[type="file"],
+.hr-file-picker input[type="file"] {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.hr-file-upload-zone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 9.5rem;
+    border: 2px dashed var(--sy-gold, #b9a779);
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, #fff 0%, rgba(237, 235, 224, 0.35) 100%);
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.hr-file-upload-zone:hover,
+.hr-file-upload-zone.is-dragover {
+    border-color: var(--sy-teal, #428177);
+    background: linear-gradient(180deg, #fff 0%, rgba(66, 129, 119, 0.08) 100%);
+    box-shadow: 0 4px 14px rgba(5, 66, 57, 0.08);
+}
+
+.hr-file-upload-zone.is-uploading {
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.hr-file-upload-zone.is-selected {
+    border-style: solid;
+    border-color: var(--sy-teal, #428177);
+    background: rgba(66, 129, 119, 0.07);
+    cursor: default;
+    min-height: auto;
+    padding: 1rem 1.1rem;
+}
+
+.hr-file-upload-zone.is-error {
+    border-color: #c0392b;
+    background: rgba(192, 57, 43, 0.05);
+}
+
+.hr-file-upload-empty {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hr-file-upload-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    margin-bottom: 0.85rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(107, 31, 42, 0.1);
+    color: var(--sy-primary, #6b1f2a);
+    font-size: 1.4rem;
+}
+
+.hr-file-upload-title {
+    font-weight: 900;
+    color: var(--sy-charcoal, #161616);
+    margin-bottom: 0.4rem;
+    font-size: 1.05rem;
+}
+
+.hr-file-upload-hint {
+    color: var(--sy-gray, #3d3a3b);
+    font-size: 0.875rem;
+    margin: 0 0 1rem;
+    line-height: 1.5;
+    max-width: 22rem;
+}
+
+.hr-file-upload-zone .hr-file-picker-btn {
+    min-width: 9rem;
+    background: var(--sy-primary, #6b1f2a);
+    border-color: var(--sy-primary, #6b1f2a);
+    color: #fff;
+    font-weight: 700;
+    padding: 0.45rem 1.1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 6px rgba(107, 31, 42, 0.18);
+}
+
+.hr-file-upload-zone .hr-file-picker-btn:hover {
+    background: var(--sy-primary-dark, #4a151e);
+    border-color: var(--sy-primary-dark, #4a151e);
+    color: #fff;
+}
+
+.hr-file-upload-file {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    text-align: right;
+}
+
+.hr-file-upload-file-icon {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(66, 129, 119, 0.15);
+    color: var(--sy-teal-dark, #054239);
+    font-size: 1.2rem;
+}
+
+.hr-file-upload-file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.hr-file-upload-file-name {
+    display: block;
+    font-weight: 700;
+    color: var(--sy-charcoal, #161616);
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.hr-file-upload-file-meta {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--sy-gray, #3d3a3b);
+    margin-top: 0.2rem;
+}
+
+.hr-file-upload-actions {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 0.15rem;
+    align-items: flex-start;
+}
+
+.hr-file-upload-actions .btn-link {
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    padding: 0.1rem 0.25rem;
+}
+
+.hr-file-upload-preview {
+    margin-top: 0.85rem;
+    text-align: center;
+}
+
+.hr-file-upload-preview img {
+    max-height: 120px;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.hr-file-upload-zone.is-compact {
+    min-height: 8rem;
+    padding: 1.1rem;
+}
+
+.hr-file-upload-zone.is-compact .hr-file-upload-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.65rem;
+}
+
+@media (max-width: 576px) {
+    .hr-file-upload-file {
+        flex-wrap: wrap;
+    }
+
+    .hr-file-upload-actions {
+        flex-direction: row;
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

@@ -1,0 +1,78 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط ERD منطقي للكيانات المحورية
+entity "OrgUnit" as Org {
+  * Id : uuid
+  --
+  Code : text
+  ParentId : uuid?
+}
+entity "Employee" as Emp {
+  * Id : uuid
+  --
+  NationalId : text
+  PrimaryOrgUnitId : uuid?
+}
+entity "Contract" as Contract {
+  * Id : uuid
+  --
+  EmployeeId : uuid
+  Status : text
+}
+entity "LeaveRequest" as Leave {
+  * Id : uuid
+  --
+  EmployeeId : uuid
+  Status : text
+}
+entity "TransferRequest" as Transfer {
+  * Id : uuid
+  --
+  EmployeeId : uuid
+  FromOrgUnitId : uuid
+  ToOrgUnitId : uuid
+}
+entity "PayrollRun" as Run {
+  * Id : uuid
+  --
+  Period : text
+  Status : text
+}
+entity "SalaryLine" as Salary {
+  * Id : uuid
+  --
+  PayrollRunId : uuid
+  EmployeeId : uuid
+}
+Org ||--o{ Emp : unit
+Emp ||--o{ Contract : employee reference
+Emp ||--o{ Leave : employee reference
+Emp ||--o{ Transfer : employee reference
+Run ||--o{ Salary : payroll run
+Emp ||..o{ Salary : cross-service reference
+note bottom
+الأسهم المنقطة تمثل مراجع منطقية بين قواعد مستقلة،
+وليست مفاتيح خارجية عابرة للخدمات.
+end note
+@enduml

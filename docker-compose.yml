@@ -1,0 +1,199 @@
+services:
+  postgresql:
+    image: postgres:16-alpine
+    container_name: hrm-postgresql
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # IAM-004: used by init-service-roles.sh (fallback for all *_app roles)
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
+    volumes:
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+      - ./docker/init-service-roles.sh:/docker-entrypoint-initdb.d/02-init-service-roles.sh
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: hrm-rabbitmq
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: hrm-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      # SEC-004: dev-only defaults — production override uses :?required (no fallback).
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-hrminio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-hrminio_secret_change_me}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: hrm-clamav
+    # File uploads are scanned by this daemon. Without it the composite scanner recognises only
+    # the EICAR test string and treats every other payload as clean.
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: hrm-keycloak
+    # Import realm from ./docker/keycloak/import (run scripts/prepare-keycloak-import.ps1 first).
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "8088:8080"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: ${KC_DB}
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8088
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    volumes:
+      - ./docker/keycloak/import:/opt/keycloak/data/import:ro
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  hr-core-web:
+    build:
+      context: .
+      dockerfile: src/Services/HRCore/HR.Core.Web/Dockerfile
+    container_name: hrm-hr-core-web
+    ports:
+      - "5010:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/hr-core
+      ConnectionStrings__HRCoreDb: Host=postgresql;Port=5432;Database=hr_core_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__VirtualHost: /
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      FileStorage__Provider: Minio
+      FileStorage__Endpoint: minio:9000
+      # SEC-004: dev-only root defaults — production clears these (hr-core uses service identity, not direct MinIO).
+      FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
+      FileStorage__SecretKey: ${MINIO_ROOT_PASSWORD:-hrminio_secret_change_me}
+      FileStorage__UseSsl: "false"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    volumes:
+      - hr_core_integration_outbox:/app/integration-outbox
+    restart: unless-stopped
+
+  hr-contracts-web:
+    build:
+      context: .
+      dockerfile: src/Services/HRContracts/HR.Contracts.Web/Dockerfile
+    container_name: hrm-hr-contracts-web
+    ports:
+      - "5020:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_PATHBASE: /ui/hr-contracts
+      ConnectionStrings__ContractsDb: Host=postgresql;Port=5432;Database=hr_contracts_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__VirtualHost: /
+      RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
+      RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+      HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+
+  hr-gateway:
+    build:
+      context: .
+      dockerfile: src/Gateway/HRManagement.Gateway/Dockerfile
+    container_name: hrm-hr-gateway
+    ports:
+      - "5200:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__GatewayAuditDb: Host=postgresql;Port=5432;Database=gateway_audit_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__PublicAuthority: http://localhost:8088/realms/hrmanagement
+      Keycloak__GetClaimsFromUserInfo: "false"
+      Keycloak__ClientId: hr-gateway-client
+      Keycloak__ClientSecret: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}
+      Keycloak__RequireHttpsMetadata: "false"
+      ReverseProxy__Clusters__hr-core-cluster__Destinations__destination1__Address: http://hr-core-web:8080
+      ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
+      Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Gateway__EnabledModules__0: hr-core
+      Gateway__EnabledModules__1: hr-contracts
+    depends_on:
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      hr-contracts-web:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:
+  clamav_data:
+  hr_core_integration_outbox:

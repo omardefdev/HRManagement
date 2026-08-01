@@ -1,0 +1,42 @@
+@model ContractEditViewModel
+@{ ViewData["Title"] = "تعديل عقد"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">تعديل عقد</h3></div>
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="EmployeeId" class="form-label"></label>
+                    <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ContractTypeId" class="form-label"></label>
+                    <select asp-for="ContractTypeId" asp-items="Model.ContractTypes" class="form-control"></select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /></div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">الحالة</label>
+                    <input class="form-control" value="@Model.Status" disabled />
+                    <div class="form-text">تتغيّر الحالة عبر إجراءات دورة الحياة فقط.</div>
+                </div>
+            </div>
+            <div class="mb-3"><label asp-for="Terms" class="form-label"></label><textarea asp-for="Terms" class="form-control" rows="3"></textarea></div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label asp-for="SignedBy" class="form-label"></label><input asp-for="SignedBy" class="form-control" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="SignedDate" class="form-label"></label><input asp-for="SignedDate" class="form-control" type="date" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="ProbationMonths" class="form-label"></label><input asp-for="ProbationMonths" class="form-control" type="number" /></div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

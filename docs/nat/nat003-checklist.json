@@ -1,0 +1,43 @@
+{
+  "card": "NAT-003",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Payroll and legal service certification evidence template",
+  "harnessStatus": "Done",
+  "liveCertificationStatus": "Blocked",
+  "liveCertificationNote": "Three consecutive live payroll cycles at target volume pending wave authorization",
+  "payrollCycles": {
+    "consecutiveRequired": 3,
+    "targetVolume": "national-envelope",
+    "unexplainedVariancePercent": 0
+  },
+  "goldenCases": [
+    { "caseId": "pay-basic-salary", "description": "Basic salary with allowances", "mandatory": true },
+    { "caseId": "pay-retroactive", "description": "Retroactive adjustment within legal window", "mandatory": true },
+    { "caseId": "pay-boundary-tax", "description": "Tax bracket boundary", "mandatory": true },
+    { "caseId": "pay-separation-benefits", "description": "Separation benefits and final settlement", "mandatory": true },
+    { "caseId": "pay-reversal", "description": "Payment reversal with audit trail", "mandatory": true },
+    { "caseId": "pay-maker-checker", "description": "Maker/checker separation on approval", "mandatory": true }
+  ],
+  "reconciliation": {
+    "bankReconciliationRequired": true,
+    "treasuryReconciliationRequired": true,
+    "historicalReplayMatchRequired": true
+  },
+  "legalEvidence": {
+    "ruleProvenanceRequired": true,
+    "configVersionEvidenceRequired": true,
+    "lawReferenceRequired": true
+  },
+  "acceptanceCriteria": {
+    "consecutiveCyclesMet": false,
+    "zeroUnexplainedVariance": true,
+    "makerCheckerProven": true,
+    "historicalReplayMatch": true
+  },
+  "dependencies": ["PAY-001", "PAY-002", "PAY-003", "GOV-002", "EXT-003", "CAP-001"],
+  "blockers": [
+    { "id": "live-three-cycle-payroll", "status": "Blocked", "note": "Three consecutive live cycles at target volume" },
+    { "id": "live-bank-treasury-recon", "status": "Blocked", "note": "Independent bank/treasury reconciliation pending" }
+  ]
+}

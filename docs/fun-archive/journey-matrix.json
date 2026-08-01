@@ -1,0 +1,36 @@
+{
+  "card": "FUN-006",
+  "version": 1,
+  "journeys": [
+    {
+      "id": "ArchiveLifecycle",
+      "steps": [
+        { "id": "Classified", "mandatory": true, "ownerRole": "archive", "slaHours": 24, "evidenceType": "DocumentClassification+ret-archive-docs", "service": "Records.Archive", "event": null },
+        { "id": "Ingested", "mandatory": true, "ownerRole": "archive", "slaHours": 48, "evidenceType": "ArchiveItem+Checksum", "service": "Records.Archive", "event": null },
+        { "id": "Held", "mandatory": false, "ownerRole": "archive", "slaHours": 4, "evidenceType": "LegalHold", "service": "Records.Archive", "event": null },
+        { "id": "Released", "mandatory": false, "ownerRole": "archive", "slaHours": 24, "evidenceType": "HoldReleased", "service": "Records.Archive", "event": null },
+        { "id": "DisposeRequested", "mandatory": true, "ownerRole": "archive", "slaHours": 72, "evidenceType": "DisposeRequest", "service": "Records.Archive", "event": null },
+        { "id": "DisposeApproved", "mandatory": true, "ownerRole": "archive", "slaHours": 48, "evidenceType": "ApprovedBy+SoD", "service": "Records.Archive", "event": null },
+        { "id": "Disposed", "mandatory": true, "ownerRole": "archive", "slaHours": 24, "evidenceType": "DisposalRecord+Custody", "service": "Records.Archive", "event": null }
+      ]
+    },
+    {
+      "id": "AnalyticsProjection",
+      "steps": [
+        { "id": "IngestEvent", "mandatory": true, "ownerRole": "analytics", "slaHours": 24, "evidenceType": "AnalyticsEvent+OrgUnitId", "service": "Dev.Analytics", "event": "IEmployeeCreated|ISeparationCompleted|…" },
+        { "id": "Project", "mandatory": true, "ownerRole": "analytics", "slaHours": 48, "evidenceType": "ReadModel", "service": "Dev.Analytics", "event": null },
+        { "id": "LateEvent", "mandatory": false, "ownerRole": "analytics", "slaHours": 72, "evidenceType": "OccurredAt ordering", "service": "Dev.Analytics", "event": null },
+        { "id": "Rebuild", "mandatory": true, "ownerRole": "analytics", "slaHours": 24, "evidenceType": "Fingerprint+LastRefreshed", "service": "Dev.Analytics", "event": null }
+      ]
+    },
+    {
+      "id": "BranchReportExport",
+      "steps": [
+        { "id": "ScopeGate", "mandatory": true, "ownerRole": "analytics", "slaHours": 1, "evidenceType": "HrOrgScopeVisibility", "service": "Dev.Analytics", "event": null },
+        { "id": "BranchHeadcount", "mandatory": true, "ownerRole": "analytics", "slaHours": 24, "evidenceType": "gap-analysis OrgUnitId", "service": "Dev.Analytics", "event": null },
+        { "id": "Reconcile", "mandatory": true, "ownerRole": "analytics", "slaHours": 48, "evidenceType": "FUN_006_RECONCILIATION", "service": "Dev.Analytics", "event": null },
+        { "id": "ExportAsync", "mandatory": false, "ownerRole": "analytics", "slaHours": 24, "evidenceType": "ExportJob PERF-004", "service": "Dev.Analytics", "event": "IExportJobRequested" }
+      ]
+    }
+  ]
+}

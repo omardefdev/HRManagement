@@ -1,0 +1,71 @@
+{
+  "card": "IOP-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Canonical identifier definitions for national integration",
+  "identifiers": [
+    {
+      "name": "PersonId",
+      "type": "uuid",
+      "owner": "HRCore / MDM-002",
+      "description": "System-wide golden person identifier, stable across merges and transfers",
+      "scope": "national"
+    },
+    {
+      "name": "NationalIdHash",
+      "type": "string:sha256hex",
+      "owner": "Civil Registry / EXT-002",
+      "description": "SHA-256 hex of national civil ID; never store raw",
+      "scope": "national"
+    },
+    {
+      "name": "EmployeeId",
+      "type": "uuid",
+      "owner": "HRCore",
+      "description": "Agency-scoped employee record identifier",
+      "scope": "tenant"
+    },
+    {
+      "name": "OrgUnitId",
+      "type": "uuid",
+      "owner": "HRCore / ORG-001",
+      "description": "Stable org-unit identity; versions tracked in OrgUnitVersion",
+      "scope": "tenant"
+    },
+    {
+      "name": "PositionId",
+      "type": "uuid",
+      "owner": "HRCore / EST-001",
+      "description": "Funded position within establishment; linked to OrgUnit and budget year",
+      "scope": "tenant"
+    },
+    {
+      "name": "PayrollRunId",
+      "type": "uuid",
+      "owner": "Payroll",
+      "description": "Unique payroll processing run for a period and tenant",
+      "scope": "tenant"
+    },
+    {
+      "name": "TenantId",
+      "type": "uuid",
+      "owner": "Platform / TEN-002",
+      "description": "Agency/ministry boundary; every tenant-owned row carries this",
+      "scope": "national"
+    },
+    {
+      "name": "CatalogCode",
+      "type": "string:max50",
+      "owner": "MDM-001",
+      "description": "Reference data catalog code, unique per CatalogKind and tenant",
+      "scope": "national"
+    }
+  ],
+  "conventions": {
+    "dateTime": "ISO 8601 UTC with timezone offset; storage in UTC",
+    "currency": "ISO 4217 code + era (old/new) per SYR-004",
+    "locale": "BCP 47 (ar-SY default, en)",
+    "pagination": "cursor-based with opaque token; limit + after/before",
+    "errors": "RFC 7807 Problem Details with correlation ID"
+  }
+}

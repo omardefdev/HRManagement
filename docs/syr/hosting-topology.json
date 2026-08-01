@@ -1,0 +1,69 @@
+{
+  "card": "SYR-008",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "National hosting topology for Syrian HR platform",
+  "sites": [
+    {
+      "id": "primary",
+      "name": "Primary National Data Center",
+      "location": "Damascus, Syria",
+      "role": "primary",
+      "sovereignCustody": true,
+      "services": ["all"],
+      "storageClassification": "sovereign-only",
+      "networkEgress": "deny-by-default",
+      "hsmProvider": "national-hsm",
+      "drPairedWith": "dr-site"
+    },
+    {
+      "id": "dr-site",
+      "name": "Disaster Recovery Site",
+      "location": "Syria (approved secondary location)",
+      "role": "disaster-recovery",
+      "sovereignCustody": true,
+      "services": ["all-critical"],
+      "storageClassification": "sovereign-only",
+      "networkEgress": "deny-by-default",
+      "hsmProvider": "national-hsm",
+      "drPairedWith": "primary"
+    }
+  ],
+  "dns": {
+    "primaryDomain": "hr.gov.sy",
+    "registrar": "NIC.SY / NAITS",
+    "dnssec": true,
+    "caaRecords": ["national-ca.gov.sy"]
+  },
+  "certificates": {
+    "serverTls": {
+      "ca": "Syrian National CA / Government CA",
+      "algorithm": "RSA-2048 or ECDSA P-256",
+      "maxValidityDays": 397,
+      "renewalLeadDays": 30,
+      "ocsp": true,
+      "crl": true
+    },
+    "codeSigning": {
+      "ca": "Syrian Government CA",
+      "algorithm": "RSA-4096",
+      "timestampAuthority": "national-tsa.gov.sy"
+    },
+    "employeeCertificates": {
+      "ca": "Syrian Government CA",
+      "issuancePolicy": "identity-verified-in-person",
+      "storagePolicy": "HSM or secure token"
+    }
+  },
+  "egressRules": [
+    { "destination": "*.gov.sy", "action": "allow", "purpose": "government integration" },
+    { "destination": "national-ca.gov.sy", "action": "allow", "purpose": "OCSP/CRL" },
+    { "destination": "*", "action": "deny", "purpose": "default deny" }
+  ],
+  "supportAccess": {
+    "method": "JIT with approval",
+    "logging": "mandatory",
+    "maxDurationMinutes": 60,
+    "vendorSecretAccess": false
+  }
+}

@@ -1,0 +1,2 @@
+principalId,roleOrEntitlement,system,owner,lastUsed,decision,justification,reviewer,reviewedAt
+example-breakglass,cluster-admin,k8s,platform,2026-07-01,Keep,documented break-glass,security,

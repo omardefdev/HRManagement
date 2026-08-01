@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0",
+  "cardId": "BCP-001",
+  "description": "Tier-0/1 journey mapping to degraded and manual operating modes",
+  "modes": [
+    {
+      "id": "full-manual",
+      "label": "Full manual (platform unavailable)",
+      "maxDurationHours": 72,
+      "icDeclarationRequired": true
+    },
+    {
+      "id": "identity-manual",
+      "label": "Identity manual; limited digital access",
+      "maxDurationHours": 24,
+      "icDeclarationRequired": true
+    },
+    {
+      "id": "payroll-manual",
+      "label": "Payroll manual run only",
+      "maxDurationHours": 48,
+      "icDeclarationRequired": true
+    },
+    {
+      "id": "read-only-degraded",
+      "label": "Read-only platform; no writes",
+      "maxDurationHours": 12,
+      "icDeclarationRequired": false
+    },
+    {
+      "id": "branch-local-continuity",
+      "label": "Branch offline local procedures",
+      "maxDurationHours": 96,
+      "icDeclarationRequired": false
+    }
+  ],
+  "journeys": [
+    {
+      "id": "payroll-disbursement",
+      "tier": 0,
+      "rtoHours": 4,
+      "manualProcedureDoc": "docs/BCP_001_MANUAL_PROCEDURES.md#tier-0-journeys",
+      "degradedModes": ["full-manual", "payroll-manual", "read-only-degraded"],
+      "fraudControls": ["dual-signature", "max-one-emergency-run-per-period"],
+      "reentryOrder": 5
+    },
+    {
+      "id": "identity-access",
+      "tier": 0,
+      "rtoHours": 4,
+      "manualProcedureDoc": "docs/BCP_001_MANUAL_PROCEDURES.md#tier-0-journeys",
+      "degradedModes": ["full-manual", "identity-manual"],
+      "fraudControls": ["temp-credential-24h-max", "paper-audit-log"],
+      "reentryOrder": 1
+    },
+    {
+      "id": "emergency-leave",
+      "tier": 0,
+      "rtoHours": 4,
+      "manualProcedureDoc": "docs/BCP_001_MANUAL_PROCEDURES.md#tier-0-journeys",
+      "degradedModes": ["full-manual", "branch-local-continuity"],
+      "fraudControls": ["manager-daily-cap-5", "duplicate-national-id-check"],
+      "reentryOrder": 3
+    },
+    {
+      "id": "attendance-correction",
+      "tier": 1,
+      "rtoHours": 8,
+      "manualProcedureDoc": "docs/BCP_001_MANUAL_PROCEDURES.md#tier-1-journeys",
+      "degradedModes": ["full-manual", "read-only-degraded", "branch-local-continuity"],
+      "fraudControls": ["witness-signature-required"],
+      "reentryOrder": 4
+    },
+    {
+      "id": "routine-leave",
+      "tier": 1,
+      "rtoHours": 8,
+      "manualProcedureDoc": "docs/BCP_001_MANUAL_PROCEDURES.md#tier-1-journeys",
+      "degradedModes": ["full-manual", "branch-local-continuity"],
+      "fraudControls": ["weekly-batch-only"],
+      "reentryOrder": 3
+    }
+  ],
+  "triggersRef": "docs/bcp/degraded-mode-triggers.json",
+  "reentryDoc": "docs/BCP_001_REENTRY_RECONCILIATION.md",
+  "drillDoc": "docs/BCP_001_DRILL_PLAYBOOK.md"
+}

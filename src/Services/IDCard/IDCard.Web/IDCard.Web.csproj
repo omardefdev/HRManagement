@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IDCard.Domain\IDCard.Domain.csproj" />
+    <ProjectReference Include="..\IDCard.Infrastructure\IDCard.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.Web.Shared\HRManagement.Web.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.FileStorage\HRManagement.FileStorage.csproj" />
+  </ItemGroup>
+</Project>

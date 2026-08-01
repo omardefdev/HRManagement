@@ -1,0 +1,14 @@
+{
+  "comment": "SUP-001 — allowed base image refs for application Dockerfiles. Digests recorded at release via deploy build-push. Observability public images → SAN-001 for sovereign mirror.",
+  "forbidTags": ["latest"],
+  "allowedFrom": [
+    "mcr.microsoft.com/dotnet/sdk:10.0",
+    "mcr.microsoft.com/dotnet/aspnet:10.0",
+    "python:3.12-alpine"
+  ],
+  "ghcrRetention": {
+    "shaTagRetentionDays": 90,
+    "digestArtifactRetentionDays": 90,
+    "policyDoc": "docs/GHCR_RETENTION.md"
+  }
+}

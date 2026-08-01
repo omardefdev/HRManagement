@@ -1,0 +1,57 @@
+@{ ViewData["Title"] = "لوحة تحكم الرواتب"; }
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner"><h3>@ViewBag.TotalRuns</h3><p>إجمالي التشغيلات</p></div>
+            <div class="icon"><i class="fas fa-calculator"></i></div>
+            <a asp-controller="PayrollRuns" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner"><h3>@ViewBag.TotalProfiles</h3><p>ملفات رواتب نشطة</p></div>
+            <div class="icon"><i class="fas fa-users"></i></div>
+            <a asp-controller="EmployeePayProfiles" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner"><h3>@ViewBag.TotalPosted</h3><p>تشغيلات مرحّلة</p></div>
+            <div class="icon"><i class="fas fa-check-double"></i></div>
+            <a href="#" class="small-box-footer">&nbsp;</a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner"><h3>@(((decimal)ViewBag.LastRunNet).ToString("N0"))</h3><p>صافي آخر تشغيل</p></div>
+            <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
+            <a asp-controller="PayrollReports" asp-action="Index" class="small-box-footer">التقارير <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar me-2"></i>صافي الرواتب الشهري</h3></div>
+    <div class="card-body"><canvas id="payrollChart" height="80"></canvas></div>
+</div>
+@section Scripts {
+<script>
+    new Chart(document.getElementById('payrollChart'), {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(ViewBag.ChartLabels),
+            datasets: [{
+                label: 'صافي الرواتب',
+                data: @Html.Raw(ViewBag.ChartData),
+                backgroundColor: 'rgba(60,141,188,0.6)',
+                borderColor: 'rgba(60,141,188,1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } },
+            plugins: { legend: { display: false } }
+        }
+    });
+</script>
+}

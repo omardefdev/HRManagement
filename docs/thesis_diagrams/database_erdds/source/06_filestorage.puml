@@ -1,0 +1,43 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "ERD الكامل لقاعدة file_storage_db\nFile.Storage / FileStorageDbContext"
+
+entity "FileAccessAuditLogs\nFileAccessAuditLog" as T01 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+    UserId : uuid
+}
+entity "Files\nFileRecord" as T02 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "FileReferences\nFileReferenceRecord" as T03 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T04 {
+  * Id : uuid
+    EntityId : uuid
+    TenantId : uuid
+    UserId : uuid
+}
+
+T03 }o--|| T02 : FileId
+
+note bottom
+يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.
+المعرفات مثل EmployeeId أو OrgUnitId التي لا تظهر كعلاقة داخلية هي معرفات تكاملية عابرة للخدمات وليست FK بين قواعد البيانات.
+end note
+@enduml

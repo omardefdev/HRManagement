@@ -1,0 +1,16 @@
+{
+  "packId": "pack-agency-a-v1",
+  "agencyId": "AGENCY-A",
+  "displayName": "Agency A (Finance-heavy)",
+  "releaseDigest": "sha256:str004-demo-digest-20260730",
+  "tenantId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "rollbackRef": "pack-agency-a-v0-baseline",
+  "reviewerRoles": ["product", "platform"],
+  "branding": {
+    "organizationName": "Agency A Public Authority",
+    "primaryColor": "#0B3D5C"
+  },
+  "enabledOptionalModules": ["payroll", "compliance", "dev-analytics"],
+  "disabledOptionalModules": ["hr-training", "idcard"],
+  "policyNotes": "Requires compliance + analytics; training deferred"
+}

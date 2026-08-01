@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-THROTTLE-EXCEED",
+  "expectedValidate": "PASS",
+  "requestsPerMinute": 200,
+  "httpStatus": 429,
+  "correlationIdPresent": true,
+  "notes": "Throttle exceed returns 429 with correlation"
+}

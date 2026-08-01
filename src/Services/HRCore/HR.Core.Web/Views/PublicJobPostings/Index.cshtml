@@ -1,0 +1,27 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.PublicJobPosting>
+@{ ViewData["Title"] = "إعلانات التوظيف العامة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">إعلانات التوظيف العامة (بوابة المواطن)</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">إعلان جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>العنوان</th><th>الجهة</th><th>الإغلاق</th><th>الحالة</th><th>الطلبات</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Title</td>
+                        <td>@(x.Entity ?? "—")</td>
+                        <td>@(x.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@(x.IsPublished ? "منشور" : "مخفي")</td>
+                        <td>@x.Applications.Count</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا إعلانات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

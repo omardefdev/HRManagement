@@ -1,0 +1,25 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "dev-analytics";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboards" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحات المؤشرات</p></a></li>
+    <li class="nav-header">التحليلات</li>
+    <li class="nav-item"><a asp-controller="Kpis" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-bullseye"></i><p>مؤشرات الأداء</p></a></li>
+    <li class="nav-item"><a asp-controller="EtlJobs" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-sync"></i><p>مهام ETL</p></a></li>
+    <li class="nav-item"><a asp-controller="ReadModels" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-table"></i><p>نماذج القراءة</p></a></li>
+    <li class="nav-item"><a asp-controller="DataRefreshSchedules" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clock"></i><p>جداول التحديث</p></a></li>
+    <li class="nav-item"><a asp-controller="Reports" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>التقارير</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

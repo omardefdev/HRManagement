@@ -1,0 +1,21 @@
+@model int
+@{
+    ViewData["Title"] = $"الحالة {Model}";
+    var message = Model switch
+    {
+        401 => "يتطلب الوصول تسجيل الدخول.",
+        403 => "ليس لديك صلاحية للوصول إلى هذا المسار.",
+        404 => "المسار المطلوب غير موجود.",
+        429 => "عدد الطلبات كبير. حاول بعد قليل.",
+        502 => "الخدمة الهدف غير متاحة حاليًا.",
+        503 => "الخدمة قيد التوقف المؤقت أو الضغط العالي.",
+        _ => "حدثت حالة غير متوقعة أثناء المعالجة."
+    };
+}
+<div class="text-center py-5">
+    <h1 class="display-4 mb-3">@Model</h1>
+    <p class="lead">@message</p>
+    <div class="mt-3">
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Index">العودة للبوابة</a>
+    </div>
+</div>

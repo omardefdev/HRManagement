@@ -1,0 +1,111 @@
+{
+  "card": "SRE-002",
+  "title": "Operational Readiness Review Checklist",
+  "version": "1.0.0",
+  "instructions": "Complete all items before requesting ORR sign-off. Each item must be Passed, N/A (with justification), or Blocked (with remediation plan and date).",
+  "service": "{{SERVICE_NAME}}",
+  "tier": "{{TIER_0_1_2}}",
+  "reviewDate": "{{YYYY-MM-DD}}",
+  "sections": [
+    {
+      "id": "ownership",
+      "title": "Service Ownership",
+      "items": [
+        { "id": "orr-own-01", "check": "Named service owner on SRE-001 roster", "status": "pending", "evidence": "" },
+        { "id": "orr-own-02", "check": "Backup owner identified and trained", "status": "pending", "evidence": "" },
+        { "id": "orr-own-03", "check": "CODEOWNERS file covers all service paths", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "slo-observability",
+      "title": "SLO / Dashboard / Alerts",
+      "items": [
+        { "id": "orr-slo-01", "check": "SLO targets defined and published (OBS-001)", "status": "pending", "evidence": "" },
+        { "id": "orr-slo-02", "check": "Grafana dashboard exists and shows error rate, latency, saturation", "status": "pending", "evidence": "" },
+        { "id": "orr-slo-03", "check": "P1/P2 alerts configured in Alertmanager", "status": "pending", "evidence": "" },
+        { "id": "orr-slo-04", "check": "Every alert has a linked runbook", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "title": "Dependency Map",
+      "items": [
+        { "id": "orr-dep-01", "check": "All upstream dependencies documented (ARC-001)", "status": "pending", "evidence": "" },
+        { "id": "orr-dep-02", "check": "All downstream consumers documented", "status": "pending", "evidence": "" },
+        { "id": "orr-dep-03", "check": "No SPOF in Tier-0/1 dependency chain", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "capacity",
+      "title": "Capacity",
+      "items": [
+        { "id": "orr-cap-01", "check": "Resource headroom ≥ 30 % (CAP-001)", "status": "pending", "evidence": "" },
+        { "id": "orr-cap-02", "check": "HPA or scaling policy documented", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "deploy-rollback",
+      "title": "Deploy / Rollback",
+      "items": [
+        { "id": "orr-rel-01", "check": "Rollback tested and completes ≤ 15 min (REL-005)", "status": "pending", "evidence": "" },
+        { "id": "orr-rel-02", "check": "Canary or blue-green deploy configured", "status": "pending", "evidence": "" },
+        { "id": "orr-rel-03", "check": "Database migration is rollback-safe within window", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "backup-restore",
+      "title": "Backup / Restore",
+      "items": [
+        { "id": "orr-bak-01", "check": "Automated backups verified (OPS-003/004)", "status": "pending", "evidence": "" },
+        { "id": "orr-bak-02", "check": "Restore tested within RPO/RTO targets", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "failure-runbooks",
+      "title": "Common Failure Runbooks",
+      "items": [
+        { "id": "orr-run-01", "check": "db-connection-failure runbook exists and tested", "status": "pending", "evidence": "" },
+        { "id": "orr-run-02", "check": "queue-backup runbook exists and tested", "status": "pending", "evidence": "" },
+        { "id": "orr-run-03", "check": "oom-kill runbook exists and tested", "status": "pending", "evidence": "" },
+        { "id": "orr-run-04", "check": "cert-expiry runbook exists and tested", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "items": [
+        { "id": "orr-sec-01", "check": "SOV-001 controls satisfied for this service", "status": "pending", "evidence": "" },
+        { "id": "orr-sec-02", "check": "No Critical/High vulnerabilities open (SOV-006)", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "maintenance",
+      "title": "Maintenance Windows",
+      "items": [
+        { "id": "orr-mnt-01", "check": "Maintenance windows documented and SLO-aligned", "status": "pending", "evidence": "" },
+        { "id": "orr-mnt-02", "check": "Payroll freeze windows respected (REL-006)", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "support",
+      "title": "Support",
+      "items": [
+        { "id": "orr-sup-01", "check": "Tier mapping (L1/L2/L3) defined per SUP-002", "status": "pending", "evidence": "" },
+        { "id": "orr-sup-02", "check": "Knowledge base articles for top issues", "status": "pending", "evidence": "" }
+      ]
+    },
+    {
+      "id": "known-errors",
+      "title": "Known Errors",
+      "items": [
+        { "id": "orr-ke-01", "check": "Known error register with workarounds documented", "status": "pending", "evidence": "" }
+      ]
+    }
+  ],
+  "signOff": {
+    "serviceOwner": { "name": "", "date": "", "signature": "" },
+    "sreLead": { "name": "", "date": "", "signature": "" },
+    "securityRep": { "name": "", "date": "", "signature": "" },
+    "capacityLead": { "name": "", "date": "", "signature": "" }
+  }
+}

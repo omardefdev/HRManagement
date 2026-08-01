@@ -1,0 +1,148 @@
+{
+  "card": "SOV-003",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "keySovereigntyPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "keyHierarchy": {
+    "required": true,
+    "inventoryRequired": true
+  },
+  "hsmKms": {
+    "required": true,
+    "approvedCustodyRequired": true,
+    "vendorAloneCannotDecrypt": true,
+    "labMockAllowed": true
+  },
+  "byokHyok": {
+    "required": true,
+    "whereRequiredFlag": true
+  },
+  "separation": {
+    "required": true,
+    "envTenantPurposeSeparation": true
+  },
+  "dualControl": {
+    "required": true
+  },
+  "rotation": {
+    "required": true,
+    "revocationRequired": true,
+    "backupRequired": true,
+    "destructionRequired": true,
+    "custodianLossDrillRequired": true
+  },
+  "algorithmAgility": {
+    "required": true,
+    "deprecatedAlgForbiddenInProdClaim": true
+  },
+  "tlsCertificates": {
+    "required": true,
+    "inventoryExpiryAlertsRequired": true
+  },
+  "trustedTime": {
+    "required": true,
+    "clockDriftBoundRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["keyId", "purpose", "custodyType", "actor", "occurredAt", "evidenceRef", "outcome", "ceremonyRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveHsmForbidden": true,
+    "liveKeyCeremonyForbidden": true,
+    "liveTrustedTimeForbidden": true
+  },
+  "signing": {
+    "signedByRole": "cryptography-authority",
+    "reviewerRole": "ciso-lead",
+    "keySovereigntyPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:sov003-lab-key-sovereignty-20260730"
+  },
+  "blockers": [
+    { "id": "OPS-002", "status": "Satisfied", "note": "HA/platform Done" },
+    { "id": "STR-002", "status": "Satisfied", "note": "Production control binding Done" },
+    { "id": "SOV-002", "status": "Satisfied", "note": "Production data-sovereignty binding Done" },
+    { "id": "SEC-004", "status": "Blocked", "note": "Secret rotation / MinIO / build context not Done" },
+    { "id": "live-hsm-prod", "status": "Blocked", "note": "Lab mock HSM only" },
+    { "id": "live-key-ceremony-workers", "status": "Blocked", "note": "Lab ceremony fixtures only" },
+    { "id": "live-trusted-time", "status": "Blocked", "note": "Lab clock-drift contracts only" },
+    { "id": "EXT-004", "status": "Satisfied", "note": "Production PKI/signature binding Done; hsm-prod remains Blocked" },
+    { "id": "SOV-004", "status": "Satisfied", "note": "Production zero-trust binding Done; live PAM later" },
+    { "id": "SIG-001", "status": "NotStarted", "note": "Legal signature evidence later" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "National Go/No-Go later" }
+  ],
+  "outOfScope": [
+    "Live production HSM/KMS",
+    "Live key ceremony workers",
+    "Live rotation/failover drills",
+    "Live trusted time source",
+    "Live PAM after SOV-004 platform binding",
+    "Closing SEC-004",
+    "Flipping EXT-004 hsm-prod to Satisfied",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "HierarchyCustody",
+      "steps": [
+        { "id": "HierarchyInventoryPass", "mandatory": true, "ownerRole": "crypto", "slaHours": 48, "evidenceType": "hierarchy-inventory-pass", "service": "testdata", "event": null },
+        { "id": "MissingHierarchyFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-hierarchy-fail", "service": "testdata", "event": null },
+        { "id": "HsmMockCustodyPass", "mandatory": true, "ownerRole": "crypto", "slaHours": 48, "evidenceType": "hsm-mock-custody-pass", "service": "testdata", "event": null },
+        { "id": "VendorAloneDecryptFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "vendor-alone-decrypt-fail", "service": "testdata", "event": null },
+        { "id": "SoftKeyProdClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "soft-key-prod-claim-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ControlRotation",
+      "steps": [
+        { "id": "DualControlPass", "mandatory": true, "ownerRole": "crypto", "slaHours": 48, "evidenceType": "dual-control-pass", "service": "testdata", "event": null },
+        { "id": "NoDualControlFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "no-dual-control-fail", "service": "testdata", "event": null },
+        { "id": "RotationDrillPass", "mandatory": true, "ownerRole": "crypto", "slaHours": 72, "evidenceType": "rotation-drill-pass", "service": "testdata", "event": null },
+        { "id": "MissingRotationFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-rotation-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AgilityTime",
+      "steps": [
+        { "id": "AlgorithmAgilityPass", "mandatory": true, "ownerRole": "crypto", "slaHours": 48, "evidenceType": "algorithm-agility-pass", "service": "testdata", "event": null },
+        { "id": "DeprecatedAlgClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "deprecated-alg-claim-fail", "service": "testdata", "event": null },
+        { "id": "CertExpiryAlertPass", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "cert-expiry-alert-pass", "service": "testdata", "event": null },
+        { "id": "TrustedTimeBoundPass", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "trusted-time-bound-pass", "service": "testdata", "event": null },
+        { "id": "ClockDriftUnboundedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "clock-drift-unbounded-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClaimGate",
+      "steps": [
+        { "id": "LiveKeyCustodyClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-key-custody-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "vendorAloneDecryptFail": "testdata/sov003/scenarios/vendor-alone-decrypt-fail.json",
+    "missingHierarchyFail": "testdata/sov003/scenarios/missing-hierarchy-fail.json",
+    "noDualControlFail": "testdata/sov003/scenarios/no-dual-control-fail.json",
+    "missingRotationFail": "testdata/sov003/scenarios/missing-rotation-fail.json",
+    "deprecatedAlgClaimFail": "testdata/sov003/scenarios/deprecated-alg-claim-fail.json",
+    "clockDriftUnboundedFail": "testdata/sov003/scenarios/clock-drift-unbounded-fail.json",
+    "softKeyProdClaimFail": "testdata/sov003/scenarios/soft-key-prod-claim-fail.json",
+    "liveKeyCustodyClaimFail": "testdata/sov003/scenarios/live-key-custody-claim-fail.json",
+    "hierarchyInventoryPass": "testdata/sov003/scenarios/hierarchy-inventory-pass.json",
+    "hsmMockCustodyPass": "testdata/sov003/scenarios/hsm-mock-custody-pass.json",
+    "dualControlPass": "testdata/sov003/scenarios/dual-control-pass.json",
+    "rotationDrillPass": "testdata/sov003/scenarios/rotation-drill-pass.json",
+    "algorithmAgilityPass": "testdata/sov003/scenarios/algorithm-agility-pass.json",
+    "certExpiryAlertPass": "testdata/sov003/scenarios/cert-expiry-alert-pass.json",
+    "trustedTimeBoundPass": "testdata/sov003/scenarios/trusted-time-bound-pass.json",
+    "keySovereigntyRunLedger": "testdata/sov003/harness/key-sovereignty-run-ledger.json",
+    "keySovereigntyAuditPass": "testdata/sov003/audit/key-sovereignty-audit-pass.json"
+  },
+  "joins": {
+    "sov002Matrix": "docs/sov-data/data-sovereignty-matrix.json",
+    "ext004Matrix": "docs/ext-pki/pki-signature-matrix.json",
+    "ext004HsmDoc": "docs/EXT_004_HSM_AND_KEY_CUSTODY.md",
+    "ops002": "docs/completion-backlog/03-P2-SCALE-AND-RELIABILITY.md"
+  }
+}

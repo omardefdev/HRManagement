@@ -1,0 +1,6 @@
+@model IReadOnlyList<Admin.Logistics.Domain.Entities.SupplyOrder>
+@{ ViewData["Title"] = "طلبات التجهيز"; }
+<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلبات التجهيز</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
+<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الحالة</th><th>تاريخ الطلب</th><th>التفاصيل</th><th></th></tr></thead><tbody>
+@foreach (var x in Model){ var it = x.Items; <tr><td>@x.Status</td><td>@x.OrderedAt</td><td>@(it != null && it.Length > 50 ? it[..50]+"…" : it)</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
+@if(!Model.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>

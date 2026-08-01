@@ -1,0 +1,137 @@
+{
+  "card": "UXR-001",
+  "asOf": "2026-07-31",
+  "methodology": "Moderated field studies with task-based metrics and post-session SUS",
+  "archetypesRequired": [
+    "central-ministry",
+    "governorate",
+    "autonomous-institution",
+    "branch-office",
+    "specialized-body"
+  ],
+  "globalTargets": {
+    "taskSuccessRateMin": 0.85,
+    "errorRateMax": 0.10,
+    "susScoreMin": 68,
+    "accessibilityBlockersMax": 0
+  },
+  "journeys": [
+    {
+      "id": "journey-hire",
+      "name": "Hire / onboarding",
+      "tasks": [
+        {
+          "id": "hire.requisition.success",
+          "description": "Create requisition linked to funded position",
+          "successRateMin": 0.90,
+          "timeOnTaskP75Seconds": 300,
+          "errorRateMax": 0.08
+        },
+        {
+          "id": "hire.conversion.time",
+          "description": "Convert approved candidate to employee record",
+          "successRateMin": 0.88,
+          "timeOnTaskP75Seconds": 420,
+          "errorRateMax": 0.10
+        },
+        {
+          "id": "hire.ess-first-login.success",
+          "description": "New hire completes ESS profile without helpdesk",
+          "successRateMin": 0.85,
+          "timeOnTaskP75Seconds": 600,
+          "errorRateMax": 0.12
+        }
+      ]
+    },
+    {
+      "id": "journey-payroll",
+      "name": "Payroll cycle",
+      "tasks": [
+        {
+          "id": "payroll.validation.success",
+          "description": "Run validation and resolve blocking errors",
+          "successRateMin": 0.88,
+          "timeOnTaskP75Seconds": 900,
+          "errorRateMax": 0.10
+        },
+        {
+          "id": "payroll.cycle.time",
+          "description": "Complete cycle open through approval",
+          "successRateMin": 0.85,
+          "timeOnTaskP75Seconds": 1800,
+          "errorRateMax": 0.12
+        },
+        {
+          "id": "payroll.payslip.view.success",
+          "description": "Employee views and understands payslip",
+          "successRateMin": 0.92,
+          "timeOnTaskP75Seconds": 120,
+          "errorRateMax": 0.05
+        }
+      ]
+    },
+    {
+      "id": "journey-leave",
+      "name": "Leave request",
+      "tasks": [
+        {
+          "id": "leave.submit.success",
+          "description": "Employee submits leave request with correct dates",
+          "successRateMin": 0.90,
+          "timeOnTaskP75Seconds": 180,
+          "errorRateMax": 0.08
+        },
+        {
+          "id": "leave.approval.time",
+          "description": "Manager approves from MSS inbox",
+          "successRateMin": 0.88,
+          "timeOnTaskP75Seconds": 120,
+          "errorRateMax": 0.10
+        },
+        {
+          "id": "leave.balance-accuracy",
+          "description": "Displayed balance matches policy after approval",
+          "successRateMin": 0.95,
+          "timeOnTaskP75Seconds": 60,
+          "errorRateMax": 0.05
+        }
+      ]
+    },
+    {
+      "id": "journey-transfer",
+      "name": "Employee transfer",
+      "tasks": [
+        {
+          "id": "transfer.initiate.success",
+          "description": "HR initiates transfer with valid target position",
+          "successRateMin": 0.85,
+          "timeOnTaskP75Seconds": 600,
+          "errorRateMax": 0.12
+        },
+        {
+          "id": "transfer.cross-agency.time",
+          "description": "Cross-agency transfer reaches target acceptance",
+          "successRateMin": 0.80,
+          "timeOnTaskP75Seconds": 1200,
+          "errorRateMax": 0.15
+        },
+        {
+          "id": "transfer.employee-notify.success",
+          "description": "Employee opens notification and views status",
+          "successRateMin": 0.90,
+          "timeOnTaskP75Seconds": 90,
+          "errorRateMax": 0.08
+        }
+      ]
+    }
+  ],
+  "inclusionCriteria": {
+    "disabilityParticipationMin": 0.10,
+    "lowBandwidthSitesMin": 0.15,
+    "remoteSitesMin": 0.20
+  },
+  "reportingTemplate": {
+    "findingFields": ["journeyId", "stage", "metricsKey", "severity", "backlogCardRef"],
+    "signOffRoles": ["Service Design Lead", "Agency Representative", "DPO (when PII-sensitive)"]
+  }
+}

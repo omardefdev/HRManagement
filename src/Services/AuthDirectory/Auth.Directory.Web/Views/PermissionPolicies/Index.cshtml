@@ -1,0 +1,6 @@
+@model IReadOnlyList<Auth.Directory.Domain.Entities.PermissionPolicy>
+@{ ViewData["Title"] = "سياسات الصلاحيات"; }
+<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">السياسات</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
+<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الاسم</th><th>القواعد</th></tr></thead><tbody>
+@foreach (var x in Model){ var r = x.Rules; <tr><td>@x.Name</td><td>@(r != null && r.Length > 80 ? r[..80]+"…" : r)</td></tr>}
+@if(!Model.Any()){<tr><td colspan="2" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>

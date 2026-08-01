@@ -1,0 +1,25 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "records-archive";
+}
+
+@section SidebarItems {
+    <li class="nav-header">الأرشيف والملفات</li>
+    <li class="nav-item"><a asp-controller="ArchiveItems" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-archive"></i><p>عناصر الأرشيف</p></a></li>
+    <li class="nav-item"><a asp-controller="DocumentClassifications" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tags"></i><p>تصنيفات الوثائق</p></a></li>
+    <li class="nav-item"><a asp-controller="LoanRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-exchange-alt"></i><p>إعارة الملفات</p></a></li>
+    <li class="nav-item"><a asp-controller="PhysicalFileRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file"></i><p>الملفات الورقية</p></a></li>
+    <li class="nav-item"><a asp-controller="DigitalFileRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-alt"></i><p>الملفات الرقمية</p></a></li>
+    <li class="nav-item"><a asp-controller="ArchiveIndexEntries" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-search"></i><p>فهرس الأرشيف</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

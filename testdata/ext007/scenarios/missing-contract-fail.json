@@ -1,0 +1,1 @@
+﻿{"scenarioId":"missing-contract-fail","expectedValidate":"FAIL","hasContract":false,"hasSlo":true,"hasRetry":true,"hasRecon":true,"hasExit":true}

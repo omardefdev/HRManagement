@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-TOTALS-MISMATCH",
+  "expectedValidate": "FAIL",
+  "orderTotal": 100000,
+  "runNetPayable": 99500,
+  "orderLineCount": 10,
+  "runLineCount": 10,
+  "treatedAsReconciled": true,
+  "notes": "Totals mismatch treated as reconciled must fail"
+}

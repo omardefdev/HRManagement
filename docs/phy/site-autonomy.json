@@ -1,0 +1,94 @@
+﻿{
+    "card":  "PHY-001",
+    "version":  "1.0.0",
+    "effectiveDate":  "2026-07-31",
+    "authority":  "Facilities + Platform Operations + NAITS Liaison",
+    "description":  "Physical site autonomy requirements for primary, DR, and branch locations",
+    "sites":  [
+                  {
+                      "id":  "primary-dc",
+                      "name":  "Primary National Data Center",
+                      "tier":  "Tier-0",
+                      "power":  {
+                                    "dualFeed":  true,
+                                    "upsMinutes":  30,
+                                    "generatorAutonomyHours":  72,
+                                    "fuelStockDays":  7,
+                                    "fuelPriorityContract":  true
+                                },
+                      "cooling":  {
+                                      "redundantUnits":  2,
+                                      "thermalAlertLeadMinutes":  15,
+                                      "documentedShutdownProcedure":  true
+                                  },
+                      "connectivity":  {
+                                           "dualProvider":  true,
+                                           "dualPhysicalPath":  true,
+                                           "singlePathAllowed":  false
+                                       },
+                      "physicalSecurity":  {
+                                               "accessControl":  "badge-and-biometric",
+                                               "escortRequired":  true,
+                                               "hsmVaultControlled":  true,
+                                               "mediaDestructionCertificate":  true
+                                           },
+                      "measuredAutonomyHours":  72,
+                      "lastPowerDrillUtc":  "2026-07-31T15:19:40.2186834Z",
+                      "lastPowerDrillMeasuredHours":  72
+                  },
+                  {
+                      "id":  "dr-dc",
+                      "name":  "Disaster Recovery Site",
+                      "tier":  "Tier-0",
+                      "power":  {
+                                    "dualFeed":  true,
+                                    "upsMinutes":  30,
+                                    "generatorAutonomyHours":  72,
+                                    "fuelStockDays":  7,
+                                    "fuelPriorityContract":  true
+                                },
+                      "cooling":  {
+                                      "redundantUnits":  2,
+                                      "thermalAlertLeadMinutes":  15,
+                                      "documentedShutdownProcedure":  true
+                                  },
+                      "connectivity":  {
+                                           "dualProvider":  true,
+                                           "dualPhysicalPath":  true,
+                                           "singlePathAllowed":  false
+                                       },
+                      "physicalSecurity":  {
+                                               "accessControl":  "badge-and-biometric",
+                                               "escortRequired":  true,
+                                               "hsmVaultControlled":  true,
+                                               "mediaDestructionCertificate":  true
+                                           },
+                      "measuredAutonomyHours":  72
+                  }
+              ],
+    "branchMinimum":  {
+                          "governorateCount":  14,
+                          "requirements":  {
+                                               "backupPowerMinutes":  60,
+                                               "alternateConnectivity":  true,
+                                               "acceptableDeviceClass":  "gov-standard-laptop",
+                                               "offlineDraftAllowed":  true
+                                           },
+                          "waveEntryRule":  "branch below minimum requires site decision and alternate procedure"
+                      },
+    "degradedOperations":  {
+                               "bcpLink":  "BCP-001",
+                               "tier01SinglePathForbidden":  true,
+                               "tier01SinglePowerForbidden":  true
+                           },
+    "verification":  {
+                         "measuredNotPaperOnly":  true,
+                         "requiredDrills":  [
+                                                "power-cutover",
+                                                "connectivity-failover",
+                                                "cooling-failure",
+                                                "unauthorized-entry-attempt",
+                                                "branch-outage-submit"
+                                            ]
+                     }
+}

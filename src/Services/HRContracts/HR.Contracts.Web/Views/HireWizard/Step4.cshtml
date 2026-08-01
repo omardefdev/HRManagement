@@ -1,0 +1,23 @@
+@model (HR.Contracts.Domain.Entities.ServiceTransaction Txn, IReadOnlyList<HR.Contracts.Domain.Entities.HireChecklist> Checklist)
+@{
+    ViewData["Title"] = "معالج التعيين - إكمال";
+    var labels = ViewBag.ChecklistLabels as Dictionary<HR.Contracts.Domain.Enums.HireStep, string> ?? new();
+    var allDone = Model.Checklist.All(c => c.IsCompleted);
+}
+<div class="card">
+    <div class="card-header"><h3>إكمال وأرشفة التعيين</h3></div>
+    <div class="card-body">
+        <ul class="list-group mb-3">
+            @foreach (var item in Model.Checklist)
+            {
+                <li class="list-group-item">@(labels.GetValueOrDefault(item.Step, item.Step.ToString())) — @(item.IsCompleted ? "✓" : "…")</li>
+            }
+        </ul>
+        <form asp-action="Step4Complete" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
+            <button type="submit" class="btn btn-primary" @(allDone ? "" : "disabled")>إكمال المعاملة</button>
+        </form>
+        @if (!allDone) { <p class="text-warning mt-2">أكمل جميع بنود قائمة التحقق قبل الإغلاق.</p> }
+    </div>
+</div>

@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-REVOKED-CERT",
+  "expectedValidate": "FAIL",
+  "certStatus": "Revoked",
+  "treatedAsValid": true,
+  "notes": "Revoked cert treated as valid must fail"
+}

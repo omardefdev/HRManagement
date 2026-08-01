@@ -1,0 +1,32 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: hr-postgres-pooler-rw
+  labels:
+    app.kubernetes.io/name: hr-postgres-pooler-rw
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: postgres-pooler
+spec:
+  cluster:
+    name: hr-postgres
+  instances: 2
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: "400"
+      default_pool_size: "25"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hr-postgres-pooler-rw
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    cnpg.io/poolerName: hr-postgres-pooler-rw
+                topologyKey: topology.kubernetes.io/zone

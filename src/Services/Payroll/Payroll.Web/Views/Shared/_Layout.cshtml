@@ -1,0 +1,37 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "payroll";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">خدمة الرواتب</li>
+    <li class="nav-item"><a asp-controller="PayrollRuns" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-money-check-alt"></i><p>تشغيلات الرواتب</p></a></li>
+    <li class="nav-item"><a asp-controller="SalaryScales" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-table"></i><p>جداول الرواتب</p></a></li>
+    <li class="nav-item"><a asp-controller="PayGrades" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-layer-group"></i><p>الدرجات الوظيفية</p></a></li>
+    <li class="nav-item"><a asp-controller="EmployeePayProfiles" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-id-card"></i><p>ملفات الراتب</p></a></li>
+    <li class="nav-item"><a asp-controller="DeductionTypes" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-percentage"></i><p>أنواع الخصومات</p></a></li>
+    <li class="nav-item"><a asp-controller="CompensationTypes" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-coins"></i><p>أنواع التعويض</p></a></li>
+    <li class="nav-item"><a asp-controller="AllowanceRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-plus-circle"></i><p>البدلات</p></a></li>
+    <li class="nav-item"><a asp-controller="DeductionRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-minus-circle"></i><p>الخصومات</p></a></li>
+    <li class="nav-item"><a asp-controller="PayrollAdjustments" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-sliders-h"></i><p>تسويات</p></a></li>
+    <li class="nav-item"><a asp-controller="EndOfService" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-invoice-dollar"></i><p>نهاية الخدمة</p></a></li>
+    <li class="nav-item"><a asp-controller="PayrollReports" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chart-pie"></i><p>التقارير</p></a></li>
+    <li class="nav-item"><a asp-controller="PayrollReports" asp-action="ExportEosCsv" class="nav-link"><i class="nav-icon fas fa-file-export"></i><p>تصدير البيانات</p></a></li>
+    <li class="nav-item"><a asp-controller="PayrollAuditRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-search-dollar"></i><p>مراجعة الرواتب</p></a></li>
+    <li class="nav-item"><a asp-controller="PaymentBatches" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-university"></i><p>دفعات الصرف</p></a></li>
+    <li class="nav-item"><a asp-controller="Arrears" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-balance-scale"></i><p>دفتر المتأخرات</p></a></li>
+    <li class="nav-item"><a asp-controller="FraudAlerts" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-shield-alt"></i><p>تنبيهات الاحتيال</p></a></li>
+    <li class="nav-item"><a asp-controller="PaymentHolds" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-hand-paper"></i><p>حجوزات الصرف</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

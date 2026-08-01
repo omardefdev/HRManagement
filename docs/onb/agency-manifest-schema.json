@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "card": "ONB-001",
+  "version": "1.0.0",
+  "title": "Agency provisioning manifest",
+  "description": "Signed manifest schema for automated agency provisioning from zero",
+  "type": "object",
+  "required": [
+    "packId",
+    "agencyId",
+    "releaseDigest",
+    "reviewerRoles",
+    "rollbackRef",
+    "tenant",
+    "identity",
+    "roles",
+    "policies",
+    "workflows",
+    "referenceSubset",
+    "language",
+    "calendar",
+    "integrations",
+    "retention",
+    "monitoring",
+    "backup",
+    "support"
+  ],
+  "properties": {
+    "packId": { "type": "string", "minLength": 1 },
+    "agencyId": { "type": "string", "minLength": 1 },
+    "releaseDigest": { "type": "string", "pattern": "^sha256:" },
+    "signature": { "type": "string", "description": "Detached signature over canonical manifest bytes" },
+    "reviewerRoles": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "type": "string" }
+    },
+    "rollbackRef": { "type": "string" },
+    "tenant": {
+      "type": "object",
+      "required": ["displayName", "archetype", "governorateCode"],
+      "properties": {
+        "displayName": { "type": "string" },
+        "archetype": { "enum": ["ministry", "governorate", "authority", "institution", "branch"] },
+        "governorateCode": { "type": "string", "pattern": "^SY-[0-9]{2}$" }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "required": ["realm", "adminBootstrapRef"],
+      "properties": {
+        "realm": { "type": "string" },
+        "adminBootstrapRef": { "type": "string", "description": "Reference to sealed bootstrap secret, not inline secret" }
+      }
+    },
+    "roles": {
+      "type": "object",
+      "required": ["catalogRef", "sodMatrixRef"],
+      "properties": {
+        "catalogRef": { "type": "string" },
+        "sodMatrixRef": { "type": "string" }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "required": ["policyPackIds", "preserveNationalMandatory"],
+      "properties": {
+        "policyPackIds": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "preserveNationalMandatory": { "type": "boolean", "const": true }
+      }
+    },
+    "workflows": {
+      "type": "object",
+      "required": ["workflowPackIds"],
+      "properties": {
+        "workflowPackIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "referenceSubset": {
+      "type": "object",
+      "required": ["catalogKinds"],
+      "properties": {
+        "catalogKinds": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "language": {
+      "type": "object",
+      "required": ["primaryLocale", "rtlFirst"],
+      "properties": {
+        "primaryLocale": { "type": "string", "const": "ar-SY" },
+        "rtlFirst": { "type": "boolean", "const": true },
+        "secondaryLocales": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "calendar": {
+      "type": "object",
+      "required": ["timezone", "holidayPolicyRef"],
+      "properties": {
+        "timezone": { "type": "string", "const": "Asia/Damascus" },
+        "holidayPolicyRef": { "type": "string" }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "properties": {
+        "primaryColor": { "type": "string" },
+        "logoRef": { "type": "string" }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "required": ["connectorProfiles"],
+      "properties": {
+        "connectorProfiles": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "required": ["matrixRef"],
+      "properties": {
+        "matrixRef": { "type": "string", "const": "docs/syr/records-retention-matrix.json" }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "required": ["observabilityProfile"],
+      "properties": {
+        "observabilityProfile": { "type": "string" }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "required": ["scheduleRef", "restoreTestRequired"],
+      "properties": {
+        "scheduleRef": { "type": "string" },
+        "restoreTestRequired": { "type": "boolean", "const": true }
+      }
+    },
+    "support": {
+      "type": "object",
+      "required": ["serviceDeskTier", "onCallRef"],
+      "properties": {
+        "serviceDeskTier": { "type": "string" },
+        "onCallRef": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "provisioningRules": {
+    "noSecretInPack": true,
+    "noManualDbEdits": true,
+    "automatedObservabilityTests": true,
+    "automatedBackupAccessTests": true,
+    "rollbackSupported": true,
+    "fourEyesPublish": true
+  },
+  "exampleManifest": {
+    "packId": "onb-demo-ministry-001",
+    "agencyId": "agency-demo-ministry",
+    "releaseDigest": "sha256:onb001-demo-digest-20260731",
+    "reviewerRoles": ["platform-owner", "security-reviewer"],
+    "rollbackRef": "rollback/onb-demo-ministry-001",
+    "tenant": {
+      "displayName": "Demo Ministry of Administrative Development",
+      "archetype": "ministry",
+      "governorateCode": "SY-01"
+    },
+    "identity": {
+      "realm": "agency-demo-ministry",
+      "adminBootstrapRef": "vault://bootstrap/agency-demo-ministry"
+    },
+    "roles": {
+      "catalogRef": "roles/national-catalog-v1",
+      "sodMatrixRef": "roles/sod-matrix-v1"
+    },
+    "policies": {
+      "policyPackIds": ["policy-national-core-v1"],
+      "preserveNationalMandatory": true
+    },
+    "workflows": {
+      "workflowPackIds": ["wf-leave-v1", "wf-payroll-approval-v1"]
+    },
+    "referenceSubset": {
+      "catalogKinds": ["governorate", "grade", "employment-type", "bank"]
+    },
+    "language": {
+      "primaryLocale": "ar-SY",
+      "rtlFirst": true,
+      "secondaryLocales": ["en-SY"]
+    },
+    "calendar": {
+      "timezone": "Asia/Damascus",
+      "holidayPolicyRef": "docs/syr/holiday-calendar-policy.json"
+    },
+    "branding": {
+      "primaryColor": "#006233",
+      "logoRef": "branding/agency-demo-ministry/logo.svg"
+    },
+    "integrations": {
+      "connectorProfiles": ["civil-registry-sandbox", "treasury-batch-transitional"]
+    },
+    "retention": {
+      "matrixRef": "docs/syr/records-retention-matrix.json"
+    },
+    "monitoring": {
+      "observabilityProfile": "national-tier1"
+    },
+    "backup": {
+      "scheduleRef": "ops/backup-schedule-tier1",
+      "restoreTestRequired": true
+    },
+    "support": {
+      "serviceDeskTier": "L1-national",
+      "onCallRef": "sre/oncall-national"
+    }
+  }
+}

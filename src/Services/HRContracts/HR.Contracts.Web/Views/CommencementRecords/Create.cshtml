@@ -1,0 +1,21 @@
+@model CommencementRecordViewModel
+@{ ViewData["Title"] = "إذن مباشرة"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">إذن مباشرة جديد</h3></div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="mb-3"><label asp-for="ContractId" class="form-label"></label><select asp-for="ContractId" asp-items="Model.Contracts" class="form-control"><option value="">— اختياري —</option></select></div>
+            <div class="mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="NotifiedBy" class="form-label"></label><input asp-for="NotifiedBy" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="NotificationDate" class="form-label"></label><input asp-for="NotificationDate" class="form-control" type="datetime-local" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

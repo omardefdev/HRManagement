@@ -1,0 +1,86 @@
+{
+  "card": "SYR-011",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "channels": [
+    {
+      "id": "CH-01",
+      "name": "Commercial Bank (CBS)",
+      "type": "bank",
+      "format": "ISO 20022 pain.001",
+      "settlementSla": "T+1",
+      "amountLimit": { "currency": "SYP-NEW", "max": 50000000 },
+      "cutOffTime": "14:00",
+      "timezone": "Asia/Damascus",
+      "ibanRequired": true,
+      "active": true
+    },
+    {
+      "id": "CH-02",
+      "name": "State-Owned Bank",
+      "type": "bank",
+      "format": "national-flat-file",
+      "settlementSla": "T+1",
+      "amountLimit": { "currency": "SYP-NEW", "max": 100000000 },
+      "cutOffTime": "13:00",
+      "timezone": "Asia/Damascus",
+      "ibanRequired": true,
+      "active": true
+    },
+    {
+      "id": "CH-03",
+      "name": "Post Office",
+      "type": "post",
+      "format": "proprietary-batch",
+      "settlementSla": "T+2",
+      "amountLimit": { "currency": "SYP-NEW", "max": 5000000 },
+      "cutOffTime": "12:00",
+      "timezone": "Asia/Damascus",
+      "ibanRequired": false,
+      "bbanFallback": true,
+      "active": true
+    },
+    {
+      "id": "CH-04",
+      "name": "Mobile Wallet",
+      "type": "mobile",
+      "format": "api-push",
+      "settlementSla": "real-time",
+      "amountLimit": { "currency": "SYP-NEW", "max": 1000000 },
+      "cutOffTime": null,
+      "timezone": "Asia/Damascus",
+      "ibanRequired": false,
+      "active": true
+    }
+  ],
+  "paymentOrderStates": [
+    "Generated",
+    "Validated",
+    "Dispatched",
+    "Acknowledged",
+    "Settled",
+    "Rejected",
+    "Reconciled"
+  ],
+  "validationRules": {
+    "ibanFormat": "SY[0-9]{2}[0-9]{4}[0-9]{16}",
+    "duplicateWindow": "48h",
+    "duplicateKey": ["employeeId", "periodId", "amount"],
+    "cutOffEnforcement": true,
+    "nextBusinessDayRollover": true
+  },
+  "reconciliation": {
+    "invariant": "Dispatched + Pending + Settled + Rejected = TotalPayrollRunAmount",
+    "unmatchedEscalationTimeout": "72h",
+    "writeOffApproval": "four-eyes",
+    "reportPerCycle": true
+  },
+  "security": {
+    "fileSigningRequired": true,
+    "signingPolicy": "SIG-001",
+    "credentialRotation": "SEC-004",
+    "sovereignBoundary": "SYR-008",
+    "auditTrail": "EVD-001",
+    "manualInjectionBlocked": true
+  }
+}

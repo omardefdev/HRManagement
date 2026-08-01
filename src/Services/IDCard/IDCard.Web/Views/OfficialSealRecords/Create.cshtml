@@ -1,0 +1,16 @@
+@model IDCard.Domain.Entities.OfficialSealRecord
+@{ ViewData["Title"] = "ختم رسمي"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+@{
+    ViewData["FileUploadName"] = "SealFileId";
+    ViewData["FileUploadAccept"] = "image/jpeg,image/png,image/webp";
+    ViewData["FileUploadMaxSize"] = "2097152";
+    ViewData["FileUploadLabel"] = "صورة الختم";
+}
+@await Html.PartialAsync("_FileUploadWidget", Model.SealFileId)
+<div class="mb-3"><label asp-for="ValidFrom" class="form-label"></label><input asp-for="ValidFrom" class="form-control" type="date" /><span asp-validation-for="ValidFrom" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ValidTo" class="form-label"></label><input asp-for="ValidTo" class="form-control" type="date" /><span asp-validation-for="ValidTo" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

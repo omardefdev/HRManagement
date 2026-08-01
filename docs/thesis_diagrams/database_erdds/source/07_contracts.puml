@@ -1,0 +1,149 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "ERD الكامل لقاعدة hr_contracts_db\nHR.Contracts / ContractsDbContext"
+
+entity "AdministrativeDecisions\nAdministrativeDecision" as T01 {
+  * Id : uuid
+    FileId : uuid
+    RelatedEmployeeId : uuid
+    TenantId : uuid
+}
+entity "AdvanceInstallmentPlans\nAdvanceInstallmentPlan" as T02 {
+  * Id : uuid
+    AdvanceRequestId : uuid
+    TenantId : uuid
+}
+entity "AdvanceRequests\nAdvanceRequest" as T03 {
+  * Id : uuid
+    EmployeeId : uuid
+    OrgUnitId : uuid
+    ServiceTransactionId : uuid
+    TenantId : uuid
+}
+entity "CommencementRecords\nCommencementRecord" as T04 {
+  * Id : uuid
+    ContractId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "Contracts\nContract" as T05 {
+  * Id : uuid
+    ContractTypeId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "ContractSignatures\nContractSignature" as T06 {
+  * Id : uuid
+    ContractId : uuid
+    TenantId : uuid
+}
+entity "ContractTypes\nContractType" as T07 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "HireChecklists\nHireChecklist" as T08 {
+  * Id : uuid
+    ServiceTransactionId : uuid
+    TenantId : uuid
+}
+entity "LeaveBalances\nLeaveBalance" as T09 {
+  * Id : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "LeavePolicies\nLeavePolicy" as T10 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "LeaveRequests\nLeaveRequest" as T11 {
+  * Id : uuid
+    EmployeeId : uuid
+    OrgUnitId : uuid
+    ServiceTransactionId : uuid
+    TenantId : uuid
+}
+entity "ProbationRecords\nProbationRecord" as T12 {
+  * Id : uuid
+    ContractId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "SeparationChecklists\nSeparationChecklist" as T13 {
+  * Id : uuid
+    SeparationRecordId : uuid
+    TenantId : uuid
+}
+entity "SeparationRecords\nSeparationRecord" as T14 {
+  * Id : uuid
+    ContractId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "ServiceTransactions\nServiceTransaction" as T15 {
+  * Id : uuid
+    CurrentApproverId : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "ServiceTransactionStateHistories\nServiceTransactionStateHistory" as T16 {
+  * Id : uuid
+    TenantId : uuid
+    TransactionId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T17 {
+  * Id : uuid
+    EntityId : uuid
+    TenantId : uuid
+    UserId : uuid
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T18 {
+  * Id : uuid
+    ParentId : uuid
+}
+entity "InboxState\nInboxState" as T19 {
+  * Id : bigint
+    ConsumerId : uuid
+    LockId : uuid
+    MessageId : uuid
+}
+entity "OutboxMessage\nOutboxMessage" as T20 {
+  * SequenceNumber : bigint
+    ConversationId : uuid
+    CorrelationId : uuid
+    InboxConsumerId : uuid
+    InboxMessageId : uuid
+    InitiatorId : uuid
+    MessageId : uuid
+    OutboxId : uuid
+    RequestId : uuid
+}
+entity "OutboxState\nOutboxState" as T21 {
+  * OutboxId : uuid
+    LockId : uuid
+}
+
+T02 }o--|| T03 : AdvanceRequestId
+T04 }o--|| T05 : ContractId
+T05 }o--|| T07 : ContractTypeId
+T06 }o--|| T05 : ContractId
+T08 }o--|| T15 : ServiceTransactionId
+T12 }o--|| T05 : ContractId
+T13 }o--|| T14 : SeparationRecordId
+T14 }o--|| T05 : ContractId
+T16 }o--|| T15 : TransactionId
+
+note bottom
+يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.
+المعرفات مثل EmployeeId أو OrgUnitId التي لا تظهر كعلاقة داخلية هي معرفات تكاملية عابرة للخدمات وليست FK بين قواعد البيانات.
+end note
+@enduml

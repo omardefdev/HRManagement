@@ -1,0 +1,16 @@
+# TLS notes for staging data-plane (REL-001 / OPS-002). Prefer cert-manager in real clusters.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-tls-notes
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    app.kubernetes.io/component: tls
+    app.kubernetes.io/environment: staging
+data:
+  README: |
+    Staging TLS: issue Certificate for rabbitmq / minio / keycloak internal DNS
+    via cert-manager ClusterIssuer selfsigned-staging (lab) or equivalent.
+    Edge TLS terminates at Ingress on hr.staging.example.com (secret hr-gateway-tls).
+    Do not use production Let's Encrypt issuer on staging by default.
+    Example: kubectl create secret tls hr-gateway-tls --cert=... --key=... -n hrmanagement

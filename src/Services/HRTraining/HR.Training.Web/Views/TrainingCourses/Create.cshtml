@@ -1,0 +1,18 @@
+@model HR.Training.Domain.Entities.TrainingCourse
+@{ ViewData["Title"] = "دورة جديدة"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">دورة جديدة</h3></div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /><span asp-validation-for="Code" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="TitleAr" class="form-label"></label><input asp-for="TitleAr" class="form-control" /><span asp-validation-for="TitleAr" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="TitleEn" class="form-label"></label><input asp-for="TitleEn" class="form-control" /><span asp-validation-for="TitleEn" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control"></textarea><span asp-validation-for="Description" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="DurationDays" class="form-label"></label><input asp-for="DurationDays" class="form-control" type="number" /><span asp-validation-for="DurationDays" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="ProviderId" class="form-label"></label><select asp-for="ProviderId" asp-items="ViewBag.Providers" class="form-control"><option value="">— بدون —</option></select><span asp-validation-for="ProviderId" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </form>
+    </div>
+</div>

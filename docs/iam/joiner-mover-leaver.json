@@ -1,0 +1,107 @@
+{
+  "card": "IAM-005",
+  "version": "1.0.0",
+  "description": "Identity lifecycle — Joiner, Mover, Leaver (JML) workflow with SLAs and reconciliation.",
+  "lifecycleEvents": [
+    {
+      "type": "Joiner",
+      "steps": [
+        {
+          "id": "create-person",
+          "action": "Create or link golden person record",
+          "owner": "HR.Core",
+          "sla": "at-hire"
+        },
+        {
+          "id": "provision-accounts",
+          "action": "Provision Keycloak accounts and service credentials",
+          "owner": "IdentityPlatform",
+          "slaBusinessDays": 1
+        },
+        {
+          "id": "assign-roles",
+          "action": "Assign roles per position, grade, and org-unit",
+          "owner": "SoDEngine",
+          "sla": "at-provisioning",
+          "dependsOn": ["provision-accounts"]
+        },
+        {
+          "id": "sod-check",
+          "action": "Verify no privilege overlap",
+          "owner": "Compliance",
+          "sla": "before-activation",
+          "failAction": "block-activation"
+        }
+      ]
+    },
+    {
+      "type": "Mover",
+      "steps": [
+        {
+          "id": "revoke-source",
+          "action": "Revoke source-org roles and access",
+          "owner": "IdentityPlatform",
+          "slaHours": 4
+        },
+        {
+          "id": "assign-destination",
+          "action": "Assign destination-org roles",
+          "owner": "IdentityPlatform",
+          "dependsOn": ["revoke-source"]
+        },
+        {
+          "id": "reconcile-residual",
+          "action": "Scan and remediate residual permissions",
+          "owner": "ReconciliationJob",
+          "frequency": "daily"
+        },
+        {
+          "id": "update-golden",
+          "action": "Update golden record linkage",
+          "owner": "MDM-002",
+          "sla": "at-transfer"
+        }
+      ]
+    },
+    {
+      "type": "Leaver",
+      "steps": [
+        {
+          "id": "disable-login",
+          "action": "Disable interactive login",
+          "owner": "IdentityPlatform",
+          "slaHours": 1
+        },
+        {
+          "id": "revoke-tokens",
+          "action": "Revoke API tokens and service credentials",
+          "owner": "IdentityPlatform",
+          "slaHours": 1
+        },
+        {
+          "id": "archive-anonymize",
+          "action": "Archive and anonymize per retention policy",
+          "owner": "LEG-001",
+          "sla": "per-schedule"
+        },
+        {
+          "id": "orphan-scan",
+          "action": "Scan for orphan accounts",
+          "owner": "ReconciliationJob",
+          "frequency": "weekly"
+        }
+      ]
+    }
+  ],
+  "orphanPolicy": {
+    "dormantThresholdDays": 90,
+    "orphanDisableHours": 24,
+    "serviceAccountReviewFrequency": "quarterly"
+  },
+  "feedOutage": {
+    "failClosed": true,
+    "noNewGrants": true,
+    "alertWithinMinutes": 15,
+    "manualOverrideRequires": ["dualApproval", "evidenceRecord"]
+  }
+}

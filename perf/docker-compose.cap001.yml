@@ -1,0 +1,114 @@
+# CAP-001 — National Workload Envelope k6 runners (extends docker-compose.load.yml).
+# Usage:
+#   docker compose -f perf/docker-compose.cap001.yml --profile cap001 run --rm k6-cap001-soak
+# Lab: set SOAK_DURATION=2h STRESS_DURATION=10m SPIKE_DURATION=3m
+# Production-like national proof: use defaults (72h / 4h / 15m) on staging at national scale.
+
+services:
+  k6-cap001-soak:
+    image: grafana/k6:0.54.0
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:5000}
+      NFR_PROFILE: soak
+      VUS_BASE: ${VUS_BASE:-50}
+      SOAK_DURATION: ${SOAK_DURATION:-72h}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+      CAP001_PAYROLL_WINDOW: ${CAP001_PAYROLL_WINDOW:-false}
+      THINK_TIME: ${THINK_TIME:-0.3}
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/results:/out
+    command:
+      - run
+      - --summary-export=/out/cap001-soak-summary.json
+      - /scripts/cap001-soak-72h.js
+    profiles: ["cap001"]
+    # Resource note: k6 runner — limit client CPU so gateway saturation is measured on target stack.
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+
+  k6-cap001-stress:
+    image: grafana/k6:0.54.0
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:5000}
+      NFR_PROFILE: stress
+      VUS_BASE: ${VUS_BASE:-50}
+      STRESS_DURATION: ${STRESS_DURATION:-4h}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+      THINK_TIME: ${THINK_TIME:-0.15}
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/results:/out
+    command:
+      - run
+      - --summary-export=/out/cap001-stress-summary.json
+      - /scripts/cap001-stress-150.js
+    profiles: ["cap001"]
+    deploy:
+      resources:
+        limits:
+          cpus: "6"
+          memory: 4G
+
+  k6-cap001-spike:
+    image: grafana/k6:0.54.0
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:5000}
+      NFR_PROFILE: spike
+      VUS_BASE: ${VUS_BASE:-50}
+      SPIKE_DURATION: ${SPIKE_DURATION:-15m}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+      THINK_TIME: ${THINK_TIME:-0.1}
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/results:/out
+    command:
+      - run
+      - --summary-export=/out/cap001-spike-summary.json
+      - /scripts/cap001-spike-200.js
+    profiles: ["cap001"]
+    deploy:
+      resources:
+        limits:
+          cpus: "8"
+          memory: 4G
+
+  k6-cap001-failure:
+    image: grafana/k6:0.54.0
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:5000}
+      NFR_PROFILE: load
+      VUS_BASE: ${VUS_BASE:-50}
+      FAILURE_LOAD_DURATION: ${FAILURE_LOAD_DURATION:-30m}
+      FAILURE_SCENARIO: ${FAILURE_SCENARIO:-db_latency}
+      PAYROLL_RUN_ID: ${PAYROLL_RUN_ID:-}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+      THINK_TIME: ${THINK_TIME:-0.25}
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/results:/out
+    command:
+      - run
+      - --summary-export=/out/cap001-failure-summary.json
+      - /scripts/cap001-failure-during-load.js
+    profiles: ["cap001"]
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 4G
+
+# Target stack resource limits (documented for national envelope proof — apply on staging/production-like compose):
+# | Service        | CPU limit | Memory limit | Headroom intent                          |
+# |----------------|-----------|--------------|------------------------------------------|
+# | Gateway        | 4 cores   | 2 GiB        | ≥30% free at 100% CAP VUS                |
+# | HR.Core        | 8 cores   | 8 GiB        | DB-bound lookups; watch connection pool  |
+# | Payroll        | 8 cores   | 8 GiB        | Window burst; bounded worker queue       |
+# | Postgres       | 16 cores  | 32 GiB       | connections ≤ 70% max_connections        |
+# | RabbitMQ       | 4 cores   | 4 GiB        | queue depth stable during soak           |
+#
+# Pair failure-during-load with docker-compose.chaos.yml on the same network.
+# See docs/CAP_001_NATIONAL_ENVELOPE.md and docker-compose.load.yml for NFR lab baseline.

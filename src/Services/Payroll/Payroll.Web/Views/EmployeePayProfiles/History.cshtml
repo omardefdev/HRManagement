@@ -1,0 +1,50 @@
+@model IList<Payroll.Domain.Entities.EmployeePayProfileHistory>
+
+@{ ViewData["Title"] = "سجل ملف الراتب"; var employeeId = ViewBag.EmployeeId; }
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between">
+
+        <h3 class="card-title">سجل الراتب — @employeeId</h3>
+
+        <a asp-action="Index" class="btn btn-secondary btn-sm">رجوع</a>
+
+    </div>
+
+    <div class="card-body p-0">
+
+        <table class="table table-sm mb-0">
+
+            <thead><tr><th>الأساسي</th><th>من</th><th>إلى</th><th>السبب</th></tr></thead>
+
+            <tbody>
+
+                @foreach (var h in Model)
+
+                {
+
+                    <tr>
+
+                        <td>@h.BaseSalary.ToString("N2")</td>
+
+                        <td>@h.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+
+                        <td>@(h.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
+
+                        <td>@h.ChangeReason</td>
+
+                    </tr>
+
+                }
+
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-muted text-center py-3">لا سجل</td></tr> }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+

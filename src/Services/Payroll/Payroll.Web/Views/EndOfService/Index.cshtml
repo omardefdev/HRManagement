@@ -1,0 +1,28 @@
+@model IList<Payroll.Domain.Entities.EndOfServiceSettlement>
+@{ ViewData["Title"] = "مستحقات نهاية الخدمة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-file-invoice-dollar"></i> مستحقات نهاية الخدمة</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> تسوية جديدة</a>
+    </div>
+    <div class="card-body">@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }</div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>سنوات الخدمة</th><th>المكافأة</th><th>رصيد الإجازات</th><th>الصافي</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    var badge = e.Status.ToString() switch { "Draft" => "bg-warning", "Approved" => "bg-success", "Paid" => "bg-info", _ => "bg-secondary" };
+                    <tr>
+                        <td>@e.EmployeeId</td><td>@e.ServiceYears</td>
+                        <td>@e.GratuityAmount.ToString("N2")</td><td>@e.LeaveBalancePayout.ToString("N2")</td>
+                        <td><strong>@e.NetSettlement.ToString("N2")</strong></td>
+                        <td><span class="badge @badge">@e.Status</span></td>
+                        <td><a asp-action="Details" asp-route-id="@e.Id" class="btn btn-primary btn-xs" aria-label="تفاصيل"><i aria-hidden="true" class="fas fa-eye"></i></a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد تسويات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

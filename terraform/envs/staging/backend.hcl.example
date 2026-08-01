@@ -1,0 +1,2 @@
+# Partial backend config for staging — merge with ../../backend.hcl.example
+key = "hrmanagement/staging/terraform.tfstate"

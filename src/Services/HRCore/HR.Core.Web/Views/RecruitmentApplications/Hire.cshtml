@@ -1,0 +1,113 @@
+@model HR.Core.Web.ViewModels.RecruitmentHireViewModel
+@using HR.Core.Web.ViewModels
+@using HRManagement.SharedKernel.Enums
+@{ ViewData["Title"] = "تعيين من طلب توظيف"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0"><i class="fas fa-user-check"></i> تعيين: @Model.ApplicantFullName</h3>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">العودة للقائمة</a>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">الوظيفة: <strong>@Model.AppliedPosition</strong></p>
+        <form asp-action="Hire" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ApplicationId" />
+            <input type="hidden" asp-for="ApplicantFullName" />
+            <input type="hidden" asp-for="AppliedPosition" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item">
+                    <button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-create" id="btn-create">إنشاء موظف جديد</button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-link" id="btn-link">ربط موظف موجود</button>
+                </li>
+            </ul>
+
+            <input type="hidden" asp-for="Mode" id="hireMode" />
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tab-create">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="NationalId" class="form-label"></label>
+                            <input asp-for="NationalId" class="form-control" />
+                            <span asp-validation-for="NationalId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="MiddleName" class="form-label"></label>
+                            <input asp-for="MiddleName" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="BirthDate" class="form-label"></label>
+                            <input asp-for="BirthDate" type="date" class="form-control" />
+                            <span asp-validation-for="BirthDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Gender" class="form-label"></label>
+                            <select asp-for="Gender" class="form-select" asp-items="Html.GetEnumSelectList<Gender>()"></select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="PrimaryOrgUnitId" class="form-label"></label>
+                            <select asp-for="PrimaryOrgUnitId" class="form-select" asp-items="Model.OrgUnits">
+                                <option value="">— اختياري —</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="tab-link">
+                    <div class="mb-3">
+                        <label asp-for="ExistingEmployeeId" class="form-label"></label>
+                        <select asp-for="ExistingEmployeeId" class="form-select" asp-items="Model.Employees">
+                            <option value="">— اختر موظفاً —</option>
+                        </select>
+                        <span asp-validation-for="ExistingEmployeeId" class="text-danger"></span>
+                        <div class="form-text">يُستخدم عندما يكون سجل الموظف موجوداً مسبقاً في النواة.</div>
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="ExpectedStartDate" class="form-label"></label>
+                    <input asp-for="ExpectedStartDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EmploymentCategory" class="form-label"></label>
+                    <input asp-for="EmploymentCategory" class="form-control" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">تأكيد التعيين ومتابعة المعالج</button>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const modeInput = document.getElementById('hireMode');
+            const createVal = '@((int)RecruitmentHireMode.CreateNew)';
+            const linkVal = '@((int)RecruitmentHireMode.LinkExisting)';
+            document.getElementById('btn-create')?.addEventListener('shown.bs.tab', () => { modeInput.value = createVal; });
+            document.getElementById('btn-link')?.addEventListener('shown.bs.tab', () => { modeInput.value = linkVal; });
+            modeInput.value = createVal;
+        })();
+    </script>
+}

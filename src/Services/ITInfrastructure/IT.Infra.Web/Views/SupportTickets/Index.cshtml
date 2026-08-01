@@ -1,0 +1,23 @@
+@model IReadOnlyList<IT.Infrastructure.Domain.Entities.ITSupportTicket>
+@{ ViewData["Title"] = "تذاكر الدعم"; }
+<p><a asp-action="Create" class="btn btn-primary btn-sm">تذكرة جديدة</a></p>
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">تذاكر الدعم الفني</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>الملخص</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@x.Id">@x.IssueSummary</a></td>
+                        <td>@x.Status</td>
+                        <td>@x.CreatedAt.ToString("yyyy/MM/dd")</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-secondary">فتح</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا تذاكر</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

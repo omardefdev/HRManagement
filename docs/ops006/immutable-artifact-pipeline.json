@@ -1,0 +1,66 @@
+{
+  "card": "OPS-006",
+  "version": "1.0.0",
+  "pipeline": {
+    "id": "immutable-artifact-pipeline",
+    "description": "Trusted sources for clean-room rebuild outside blast radius"
+  },
+  "sources": [
+    {
+      "id": "git-signed-tag",
+      "type": "iac",
+      "path": "deploy/k8s/",
+      "trust": "SCM-001 signed tag on main",
+      "immutable": true
+    },
+    {
+      "id": "container-registry",
+      "type": "oci",
+      "registry": "ghcr.io",
+      "trust": "Cosign signature + SLSA provenance (BLD-001)",
+      "immutable": true,
+      "admissionPolicy": "deploy/k8s/base/admission/require-signed-images.yaml"
+    },
+    {
+      "id": "sbom-artifacts",
+      "type": "cyclonedx",
+      "source": ".github/workflows/deploy.yml",
+      "retentionDays": 90,
+      "immutable": true
+    },
+    {
+      "id": "database-backup",
+      "type": "postgres",
+      "source": "deploy/k8s/data/base/backup/",
+      "trust": "OPS-003 offline/WORM catalog",
+      "immutable": true,
+      "crossCheckRequired": true
+    },
+    {
+      "id": "secrets-kms",
+      "type": "kms",
+      "policy": "fresh-generation-only",
+      "restoreOldSecretsForbidden": true
+    }
+  ],
+  "cleanRoomRules": {
+    "rebuildInPlaceForbidden": true,
+    "credentialReuseForbidden": true,
+    "unsignedImageDeployForbidden": true,
+    "nationalConnectorSandboxFirst": true
+  },
+  "cyberRto": {
+    "trustResetMinutes": 30,
+    "clusterBootstrapHours": 4,
+    "dataValidationHours": 8,
+    "businessResumptionHours": 24
+  },
+  "blockers": [
+    { "id": "OPS-003", "status": "Satisfied" },
+    { "id": "OPS-004", "status": "Satisfied" },
+    { "id": "SOV-003", "status": "Satisfied" },
+    { "id": "SUP-001", "status": "Satisfied" },
+    { "id": "live-clean-room-drill", "status": "Blocked" },
+    { "id": "live-assumed-breach-game-day", "status": "Blocked" }
+  ]
+}

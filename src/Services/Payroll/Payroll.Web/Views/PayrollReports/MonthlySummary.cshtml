@@ -1,0 +1,63 @@
+@{ ViewData["Title"] = "ملخص شهري"; var runs = ViewBag.Runs as List<Payroll.Domain.Entities.PayrollRun>; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-bar"></i> ملخص شهري - @ViewBag.Month/@ViewBag.Year</h3></div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-4">
+            <div class="col-auto"><input type="number" name="year" value="@ViewBag.Year" class="form-control form-control-sm" /></div>
+            <div class="col-auto"><input type="number" name="month" value="@ViewBag.Month" min="1" max="12" class="form-control form-control-sm" /></div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i> عرض</button></div>
+        </form>
+
+        <div class="row mb-4">
+            <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-info"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">الموظفين</span><span class="info-box-number">@ViewBag.EmployeeCount</span></div>
+            <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-success"><i class="fas fa-plus"></i></span><div class="info-box-content"><span class="info-box-text">إجمالي الرواتب</span><span class="info-box-number">@(((decimal)ViewBag.TotalGross).ToString("N2"))</span></div>
+            <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-danger"><i class="fas fa-minus"></i></span><div class="info-box-content"><span class="info-box-text">إجمالي الخصومات</span><span class="info-box-number">@(((decimal)ViewBag.TotalDeductions).ToString("N2"))</span></div>
+            <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-primary"><i class="fas fa-wallet"></i></span><div class="info-box-content"><span class="info-box-text">صافي الرواتب</span><span class="info-box-number">@(((decimal)ViewBag.TotalNet).ToString("N2"))</span></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6"><canvas id="summaryChart" height="200"></canvas></div>
+            <div class="col-md-6">
+                <h5>التشغيلات</h5>
+                <table class="table table-sm">
+                    <thead><tr><th>التشغيل</th><th>الحالة</th><th>الصافي</th><th></th></tr></thead>
+                    <tbody>
+                        @if (runs != null)
+                        {
+                            @foreach (var r in runs)
+                            {
+                                <tr>
+                                    <td>@r.RunDate.ToString("yyyy/MM/dd")</td>
+                                    <td>@r.Status</td>
+                                    <td>@r.TotalNetPay.ToString("N2")</td>
+                                    <td>
+                                        <a asp-action="PayrollRegister" asp-route-payrollRunId="@r.Id" class="btn btn-success btn-xs" aria-label="ملف"><i aria-hidden="true" class="fas fa-file-excel"></i></a>
+                                        <a asp-action="ExportRunCsv" asp-route-runId="@r.Id" class="btn btn-outline-secondary btn-xs" aria-label="ملف"><i aria-hidden="true" class="fas fa-file-csv"></i></a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+<script>
+    new Chart(document.getElementById('summaryChart'), {
+        type: 'bar',
+        data: {
+            labels: ['الإجمالي', 'الخصومات', 'الصافي'],
+            datasets: [{
+                label: 'المبالغ',
+                data: [@ViewBag.TotalGross, @ViewBag.TotalDeductions, @ViewBag.TotalNet],
+                backgroundColor: ['#28a745', '#dc3545', '#007bff']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+</script>
+}

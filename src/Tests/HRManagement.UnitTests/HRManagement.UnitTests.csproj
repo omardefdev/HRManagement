@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Application\HR.Contracts.Application.csproj" />
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Domain\HR.Contracts.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Infrastructure\HR.Contracts.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Web\HR.Contracts.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRCore\HR.Core.Domain\HR.Core.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\HRCore\HR.Core.Infrastructure\HR.Core.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRCore\HR.Core.Web\HR.Core.Web.csproj" />
+    <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Domain\Auth.Directory.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Infrastructure\Auth.Directory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\Payroll\Payroll.Domain\Payroll.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\Payroll\Payroll.Application\Payroll.Application.csproj" />
+    <ProjectReference Include="..\..\Services\Payroll\Payroll.Infrastructure\Payroll.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\RecordsArchive\Records.Archive.Infrastructure\Records.Archive.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Domain\HR.Movements.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Infrastructure\HR.Movements.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRTraining\HR.Training.Domain\HR.Training.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\HRTraining\HR.Training.Infrastructure\HR.Training.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\HRHealth\HR.Health.Domain\HR.Health.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\HRHealth\HR.Health.Infrastructure\HR.Health.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\Compliance\Compliance.Domain\Compliance.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\Compliance\Compliance.Infrastructure\Compliance.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\IDCard\IDCard.Domain\IDCard.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\IDCard\IDCard.Infrastructure\IDCard.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Domain\Admin.Logistics.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Infrastructure\Admin.Logistics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infrastructure.Domain\IT.Infrastructure.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infra.Infrastructure\IT.Infra.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Domain\Dev.Analytics.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Infrastructure\Dev.Analytics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Domain\File.Storage.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Infrastructure\File.Storage.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Gateway\HRManagement.Gateway\HRManagement.Gateway.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.Integration.Abstractions\HRManagement.Integration.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.Integration.FileAdapters\HRManagement.Integration.FileAdapters.csproj" />
+    <ProjectReference Include="..\HRManagement.TestSupport\HRManagement.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>

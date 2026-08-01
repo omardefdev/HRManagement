@@ -1,0 +1,60 @@
+@model HR.Contracts.Domain.Entities.SeparationRecord
+@{ ViewData["Title"] = "معالج الفصل - الخطوة 4"; var checklist = ViewBag.Checklist as List<HR.Contracts.Domain.Entities.SeparationChecklist>; }
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-magic"></i> معالج الفصل - الخطوة 4: المتابعة</h3>
+    </div>
+    <div class="card-body">
+        <div class="bs-stepper-header mb-4" role="tablist">
+            <div class="step"><span class="bs-stepper-circle">1</span><span class="bs-stepper-label">البيانات</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">2</span><span class="bs-stepper-label">المراجعة</span></div>
+            <div class="line"></div>
+            <div class="step"><span class="bs-stepper-circle">3</span><span class="bs-stepper-label">التنفيذ</span></div>
+            <div class="line"></div>
+            <div class="step active"><span class="bs-stepper-circle">4</span><span class="bs-stepper-label">المتابعة</span></div>
+        </div>
+
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+        <h5 class="mb-3">حالة قائمة التحقق</h5>
+        @if (checklist != null)
+        {
+            var completed = checklist.Count(c => c.IsCompleted);
+            var total = checklist.Count;
+            var pct = total > 0 ? (int)(100.0 * completed / total) : 0;
+
+            <div class="progress mb-3" style="height: 25px;">
+                <div class="progress-bar @(pct == 100 ? "bg-success" : "bg-primary")" style="width: @(pct)%;">
+                    @completed / @total
+                </div>
+            </div>
+
+            <table class="table table-bordered">
+                <thead><tr><th>الخطوة</th><th>الحالة</th><th>تاريخ الإكمال</th><th>ملاحظات</th></tr></thead>
+                <tbody>
+                    @foreach (var item in checklist)
+                    {
+                        <tr class="@(item.IsCompleted ? "table-success" : "")">
+                            <td>@item.Step</td>
+                            <td>
+                                @if (item.IsCompleted)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> مكتمل</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning"><i class="fas fa-clock"></i> قيد الانتظار</span>
+                                }
+                            </td>
+                            <td>@(item.CompletedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</td>
+                            <td>@(item.Notes ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <a asp-controller="SeparationRecords" asp-action="Index" class="btn btn-secondary"><i class="fas fa-arrow-right"></i> العودة لقائمة الفصل</a>
+    </div>
+</div>

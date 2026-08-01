@@ -1,0 +1,514 @@
+@model Payroll.Domain.Entities.PayrollRun
+
+@using Payroll.Domain.Enums
+
+@{ ViewData["Title"] = "تفاصيل تشغيل الرواتب"; }
+
+<div class="card mb-3">
+
+    <div class="card-header d-flex justify-content-between flex-wrap gap-2">
+
+        <h3 class="card-title mb-0">تشغيل @Model.RunDate.ToString("yyyy/MM/dd") — @Model.RunType</h3>
+
+        <div>
+
+            @if (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated)
+            {
+                <a asp-action="AddSalaryLine" asp-route-payrollRunId="@Model.Id" class="btn btn-primary btn-sm">إضافة بند</a>
+            }
+
+            <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <p>الحالة: <strong>@Model.Status</strong> — إجمالي صافي مسجل: <strong>@Model.TotalNetPay.ToString("N2")</strong>
+            @if (Model.ResultsFrozen) { <span class="badge bg-secondary">نتائج مُجمّدة</span> }
+            @if (Model.ValidatedAtCalculate) { <span class="badge bg-success">تم التحقق</span> }
+        </p>
+
+        @{
+            var job = ViewBag.Job as Payroll.Domain.Entities.PayrollRunJob;
+        }
+        @if (job is not null)
+        {
+            <div class="alert alert-light border mb-3">
+                <strong>مهمة الحساب (PAY-003 / PERF-001)</strong>
+                <div>الحالة: @job.Status — المرحلة: @job.Phase — محاولة: @job.Attempt</div>
+                @if (job.TotalEmployeeCount > 0)
+                {
+                    var pct = job.TotalEmployeeCount == 0 ? 0 : (100.0 * job.ProcessedEmployeeCount / job.TotalEmployeeCount);
+                    <div>التقدّم: @job.ProcessedEmployeeCount / @job.TotalEmployeeCount (@pct.ToString("0.0")%)</div>
+                    @if (job.CalculateStartedAt is not null && job.ProcessedEmployeeCount > 0)
+                    {
+                        var elapsed = DateTime.UtcNow - job.CalculateStartedAt.Value;
+                        var rate = elapsed.TotalSeconds > 0 ? job.ProcessedEmployeeCount / elapsed.TotalSeconds : 0;
+                        <div>المعدل: @rate.ToString("0.0") موظف/ث</div>
+                    }
+                    @if (job.EstimatedCompletionAt is not null && job.Status == PayrollRunJobStatus.Running)
+                    {
+                        <div>ETA: @job.EstimatedCompletionAt.Value.ToLocalTime().ToString("HH:mm:ss")</div>
+                    }
+                }
+                @if (!string.IsNullOrEmpty(job.Error))
+                {
+                    <div class="text-danger">@job.Error</div>
+                }
+                @if (job.Partitions?.Count > 0)
+                {
+                    <ul class="mb-2 mt-2">
+                        @foreach (var p in job.Partitions.OrderBy(x => x.PartitionIndex))
+                        {
+                            <li>قسم @p.PartitionIndex: @p.Status — @p.ProcessedCount/@p.EmployeeCount@(string.IsNullOrEmpty(p.WorkerId) ? "" : $" — {p.WorkerId}")</li>
+                        }
+                    </ul>
+                }
+                @if (job.Status == PayrollRunJobStatus.Running)
+                {
+                    <form asp-action="PauseJob" method="post" class="d-inline me-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="jobId" value="@job.Id" />
+                        <input type="hidden" name="runId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-warning btn-sm">إيقاف</button>
+                    </form>
+                }
+                @if (job.Status is PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed)
+                {
+                    <form asp-action="ResumeJob" method="post" class="d-inline me-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="jobId" value="@job.Id" />
+                        <input type="hidden" name="runId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-primary btn-sm">استئناف</button>
+                    </form>
+                }
+                @if (job.Status is not (PayrollRunJobStatus.Completed or PayrollRunJobStatus.Cancelled)
+                     && Model.Status is not (PayrollRunStatus.Posted or PayrollRunStatus.Reversed))
+                {
+                    <form asp-action="CancelJob" method="post" class="d-inline me-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="jobId" value="@job.Id" />
+                        <input type="hidden" name="runId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
+                    </form>
+                }
+            </div>
+        }
+
+        @if (Model.PaymentBatches?.Count > 0)
+        {
+            <div class="mb-3">
+                <strong>دفعات الصرف</strong>
+                <ul>
+                    @foreach (var b in Model.PaymentBatches.OrderByDescending(x => x.CreatedAt))
+                    {
+                        <li>
+                            @b.BatchKind — @b.Status — @b.TotalAmount.ToString("N2")
+                            @if (b.Status == PaymentBatchStatus.Pending && Model.Status == PayrollRunStatus.Posted)
+                            {
+                                <form asp-action="ProcessPayment" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="batchId" value="@b.Id" />
+                                    <input type="hidden" name="runId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success">صرف</button>
+                                </form>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="alert alert-light border mb-3">
+            <strong>الأساس القانوني (PAY-002)</strong>
+            @if (Model.PayrollConfiguration is not null)
+            {
+                <div>الإطار: @Model.PayrollConfiguration.RegimeCode — @Model.PayrollConfiguration.NameAr</div>
+                <div>الإصدار: v@Model.PayrollConfiguration.VersionNumber — @Model.PayrollConfiguration.PublicationStatus</div>
+                <div>العملة/التقريب: @Model.PayrollConfiguration.CurrencyCode / @Model.PayrollConfiguration.RoundingMode</div>
+                <div>البصمة: <code>@(Model.ConfigContentHash ?? Model.PayrollConfiguration.ContentHash ?? "—")</code></div>
+                <div>اعتماد/نشر: @(Model.PayrollConfiguration.ApprovedAt?.ToString("yyyy-MM-dd") ?? "—") / @(Model.PayrollConfiguration.PublishedAt?.ToString("yyyy-MM-dd") ?? "—")</div>
+            }
+            else if (!string.IsNullOrEmpty(Model.ConfigContentHash))
+            {
+                <div>بصمة مثبتة: <code>@Model.ConfigContentHash</code> (النسخة غير محمّلة)</div>
+            }
+            else
+            {
+                <div class="text-muted">لم تُثبَّت نسخة بعد — سيتم الربط عند الحساب.</div>
+            }
+        </div>
+
+        @if (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated or PayrollRunStatus.Calculating)
+
+        {
+
+            <form asp-action="GenerateLines" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-primary"><i class="fas fa-cogs"></i> حساب البنود</button>
+
+            </form>
+
+        }
+
+        @if (Model.Status is PayrollRunStatus.Calculated or PayrollRunStatus.Validating)
+        {
+            <form asp-action="ValidateRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary">تحقق وتجميد</button>
+            </form>
+        }
+
+        @if (Model.Status == PayrollRunStatus.Calculated)
+
+        {
+
+            <form asp-action="SubmitForReview" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-info"><i class="fas fa-paper-plane"></i> إرسال للمراجعة</button>
+
+            </form>
+
+        }
+
+        @if (Model.Status == PayrollRunStatus.UnderReview)
+
+        {
+
+            <form asp-action="ApproveRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> اعتماد</button>
+
+            </form>
+
+            <form asp-action="RejectRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-warning"><i class="fas fa-times"></i> رفض</button>
+
+            </form>
+
+        }
+
+        @if (Model.Status == PayrollRunStatus.Approved)
+
+        {
+
+            <form asp-action="PostPayroll" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-success"><i class="fas fa-check-double"></i> ترحيل ونشر</button>
+
+            </form>
+
+        }
+
+        @if (Model.Status == PayrollRunStatus.Posted)
+
+        {
+
+            <form asp-action="ReverseRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-danger" onclick="return confirm('تأكيد عكس التشغيل؟');"><i class="fas fa-undo"></i> عكس</button>
+
+            </form>
+
+            <form asp-action="CreateCorrection" asp-route-sourceRunId="@Model.Id" method="post" class="d-inline">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-outline-primary"><i class="fas fa-history"></i> تصحيح رجعي</button>
+
+            </form>
+
+        }
+
+    </div>
+
+</div>
+
+
+
+@if (Model.Approvals?.Any() == true)
+
+{
+
+    <div class="card mb-3">
+
+        <div class="card-header"><h3 class="card-title">سجل الاعتمادات</h3></div>
+
+        <div class="card-body p-0">
+
+            <table class="table table-sm mb-0">
+
+                <thead><tr><th>القرار</th><th>التاريخ</th><th>ملاحظات</th></tr></thead>
+
+                <tbody>
+
+                @foreach (var a in Model.Approvals.OrderByDescending(x => x.DecidedAt))
+
+                {
+
+                    <tr><td>@a.Decision</td><td>@a.DecidedAt?.ToString("yyyy/MM/dd HH:mm")</td><td>@a.Notes</td></tr>
+
+                }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+}
+
+
+
+@if (Model.SalaryLines.Any())
+
+{
+
+    <div class="row mb-3">
+
+        <div class="col-lg-4">
+
+            <div class="card">
+
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie me-2"></i>توزيع المكونات</h3></div>
+
+                <div class="card-body"><canvas id="componentChart"></canvas></div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-8">
+
+            <div class="row">
+
+                <div class="col-md-3">
+
+                    <div class="info-box bg-info"><span class="info-box-icon"><i class="fas fa-users"></i></span>
+
+                        <div class="info-box-content"><span class="info-box-text">عدد الموظفين</span><span class="info-box-number">@Model.SalaryLines.Count</span></div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="info-box bg-success"><span class="info-box-icon"><i class="fas fa-coins"></i></span>
+
+                        <div class="info-box-content"><span class="info-box-text">إجمالي</span><span class="info-box-number">@Model.SalaryLines.Sum(l => l.GrossPay).ToString("N0")</span></div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="info-box bg-warning"><span class="info-box-icon"><i class="fas fa-minus-circle"></i></span>
+
+                        <div class="info-box-content"><span class="info-box-text">خصومات</span><span class="info-box-number">@Model.SalaryLines.Sum(l => l.TotalDeductions).ToString("N0")</span></div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                    <div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-wallet"></i></span>
+
+                        <div class="info-box-content"><span class="info-box-text">صافي</span><span class="info-box-number">@Model.SalaryLines.Sum(l => l.NetPay).ToString("N0")</span></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+}
+
+
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between">
+
+        <h3 class="card-title">بنود الرواتب</h3>
+
+        @if (Model.SalaryLines.Any())
+
+        {
+
+            <div>
+
+                <a asp-controller="PayrollReports" asp-action="ExportRunCsv" asp-route-runId="@Model.Id" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-csv"></i> CSV</a>
+
+                <a asp-controller="PayrollReports" asp-action="PayrollRegister" asp-route-payrollRunId="@Model.Id" class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel"></i> Excel</a>
+
+                <form asp-controller="PayrollReports" asp-action="BulkPayslips" asp-route-payrollRunId="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-info btn-sm"><i class="fas fa-file-archive"></i> قسائم ZIP</button></form>
+
+            </div>
+
+        }
+
+    </div>
+
+    <div class="card-body p-0">
+
+        <table class="table table-sm table-hover mb-0">
+
+            <thead><tr><th>موظف</th><th>إجمالي</th><th>خصومات</th><th>صافي</th><th>المكونات</th><th>قسيمة</th></tr></thead>
+
+            <tbody>
+
+                @foreach (var l in Model.SalaryLines)
+
+                {
+
+                    <tr data-bs-toggle="collapse" data-bs-target="#comp-@l.Id.ToString("N")" style="cursor:pointer;" title="انقر لعرض المكونات">
+
+                        <td>@l.EmployeeId</td>
+
+                        <td>@l.GrossPay.ToString("N2")</td>
+
+                        <td>@l.TotalDeductions.ToString("N2")</td>
+
+                        <td><strong>@l.NetPay.ToString("N2")</strong></td>
+
+                        <td><span class="badge bg-secondary">@(ViewBag.ComponentCounts != null && ((Dictionary<Guid,int>)ViewBag.ComponentCounts).ContainsKey(l.Id) ? ((Dictionary<Guid,int>)ViewBag.ComponentCounts)[l.Id] : 0) مكوّن</span></td>
+
+                        <td><a asp-controller="PayrollReports" asp-action="Payslip" asp-route-salaryLineId="@l.Id" class="btn btn-outline-info btn-xs" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-file-pdf"></i> طباعة</a></td>
+
+                    </tr>
+
+                    <tr class="collapse" id="comp-@l.Id.ToString("N")">
+
+                        <td colspan="6" class="bg-light p-3">
+
+                            @if (ViewBag.Components != null && ((Dictionary<Guid, List<Payroll.Domain.Entities.SalaryLineComponent>>)ViewBag.Components).ContainsKey(l.Id))
+
+                            {
+
+                                var comps = ((Dictionary<Guid, List<Payroll.Domain.Entities.SalaryLineComponent>>)ViewBag.Components)[l.Id];
+
+                                <table class="table table-bordered table-sm mb-0">
+
+                                    <thead><tr><th>البند</th><th>النوع</th><th class="text-end">المبلغ</th></tr></thead>
+
+                                    <tbody>
+
+                                    @foreach (var c in comps)
+
+                                    {
+
+                                        <tr>
+
+                                            <td>@c.ComponentName</td>
+
+                                            <td><span class="badge bg-@(c.ComponentType == SalaryComponentType.Deduction || c.ComponentType == SalaryComponentType.Tax ? "danger" : "success")">@c.ComponentType</span></td>
+
+                                            <td class="text-end">@c.Amount.ToString("N2")</td>
+
+                                        </tr>
+
+                                    }
+
+                                    </tbody>
+
+                                </table>
+
+                            }
+
+                            else
+
+                            {
+
+                                <span class="text-muted">لا مكونات مسجلة</span>
+
+                            }
+
+                        </td>
+
+                    </tr>
+
+                }
+
+                @if (!Model.SalaryLines.Any()) { <tr><td colspan="6" class="text-muted text-center py-3">لا بنود</td></tr> }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+@section Scripts {
+
+<script>
+
+    @if (Model.SalaryLines.Any())
+
+    {
+
+        var totalGross = Model.SalaryLines.Sum(l => l.GrossPay);
+
+        var totalDed = Model.SalaryLines.Sum(l => l.TotalDeductions);
+
+        var totalNet = Model.SalaryLines.Sum(l => l.NetPay);
+
+        <text>
+
+        new Chart(document.getElementById('componentChart'), {
+
+            type: 'doughnut',
+
+            data: {
+
+                labels: ['إجمالي', 'خصومات', 'صافي'],
+
+                datasets: [{
+
+                    data: [@totalGross, @totalDed, @totalNet],
+
+                    backgroundColor: ['#28a745', '#dc3545', '#007bff']
+
+                }]
+
+            },
+
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+
+        });
+
+        </text>
+
+    }
+
+</script>
+
+}
+
+

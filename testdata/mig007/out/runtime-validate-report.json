@@ -1,0 +1,11 @@
+﻿{
+    "card":  "MIG-007",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "gateCount":  7,
+    "agencyCount":  2,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

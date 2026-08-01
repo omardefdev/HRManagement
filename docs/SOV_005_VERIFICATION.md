@@ -1,0 +1,1 @@
+﻿**الحالة:** Done (production threat-modeling binding) — LiveThreatModelClaim=false؛ live-* Blocked؛ SOV-006=Satisfied (pen-red binding؛ اختراق حي لاحقاً)؛ NAT-001 NotStarted؛ SOV-004 يقبل SOV-005=Satisfied دون رفع LivePamClaim.

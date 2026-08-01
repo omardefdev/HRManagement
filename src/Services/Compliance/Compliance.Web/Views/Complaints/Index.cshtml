@@ -1,0 +1,23 @@
+@model IReadOnlyList<Compliance.Domain.Entities.Complaint>
+@{ ViewData["Title"] = "الشكاوى"; }
+<p class="mb-2"><a asp-action="Create" class="btn btn-primary btn-sm">شكوى جديدة</a></p>
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">الشكاوى والقضايا</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>الموضوع</th><th>الحالة</th><th>تاريخ الإنشاء</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@c.Id">@c.Subject</a></td>
+                        <td>@c.Status</td>
+                        <td>@c.CreatedAt.ToString("yyyy/MM/dd")</td>
+                        <td><a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا بيانات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

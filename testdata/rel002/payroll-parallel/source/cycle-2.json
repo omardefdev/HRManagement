@@ -1,0 +1,9 @@
+{
+  "cycleId": "cycle-2",
+  "period": "2026-02",
+  "lines": [
+    { "employeeKey": "SYN-0001", "netPay": 450000, "grossPay": 520000 },
+    { "employeeKey": "SYN-0002", "netPay": 395000, "grossPay": 455000 },
+    { "employeeKey": "SYN-0003", "netPay": 510000, "grossPay": 590000 }
+  ]
+}

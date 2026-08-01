@@ -1,0 +1,35 @@
+@model IReadOnlyList<Auth.Directory.Domain.Entities.AuthUser>
+@{ ViewData["Title"] = "مستخدمو الدليل"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">المستخدمون</h3></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+<table class="table table-sm mb-0">
+            <thead><tr><th>اسم المستخدم</th><th>البريد</th><th>نشط</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@u.Id">@u.Username</a></td>
+                        <td>@(u.Email ?? "—")</td>
+                        <td>
+                            @if (u.IsActive)
+                            {
+                                <span class="badge bg-success">نشط</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">غير نشط</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-xs btn-warning" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا مستخدمين</td></tr> }
+            </tbody>
+        </table>
+</div>
+    </div>
+</div>

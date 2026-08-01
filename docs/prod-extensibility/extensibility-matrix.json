@@ -1,0 +1,143 @@
+{
+  "card": "PROD-007",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "extensibilityPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "supportedContracts": {
+    "required": true,
+    "contractTypes": ["apis", "events", "webhooks"]
+  },
+  "semanticVersioning": {
+    "required": true,
+    "semverRequired": true,
+    "breakingRequiresMajorBump": true
+  },
+  "compatibilityWindows": {
+    "required": true,
+    "supportNMinus2": true,
+    "measureBackwardCompat": true
+  },
+  "pluginIsolation": {
+    "required": true,
+    "crossTenantForbidden": true,
+    "coreDisruptionForbidden": true
+  },
+  "quotas": {
+    "required": true,
+    "enforceRpm": true
+  },
+  "certification": {
+    "required": true,
+    "consumerInventoryRequired": true,
+    "labStubAllowed": true,
+    "liveForbidden": true
+  },
+  "deprecation": {
+    "required": true,
+    "noticeDaysMin": 90,
+    "measuredAnnouncementRequired": true
+  },
+  "sdkPolicy": {
+    "required": true,
+    "labStubAllowed": true,
+    "liveSdkForbidden": true
+  },
+  "noDirectDb": true,
+  "noCustomFork": true,
+  "audit": {
+    "required": true,
+    "requiredFields": ["extensionId", "contractRef", "tenantId", "version", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveExtensionRuntimeForbidden": true,
+    "livePartnerSdkForbidden": true,
+    "liveWebhookDeliveryForbidden": true
+  },
+  "signing": {
+    "signedByRole": "product-architecture-lead",
+    "reviewerRole": "integration-governance-officer",
+    "extensibilityPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod007-lab-extensibility-20260730"
+  },
+  "blockers": [
+    { "id": "INT-002", "status": "Satisfied", "note": "Inbox/idempotency Done" },
+    { "id": "SUP-001", "status": "Satisfied", "note": "Supply chain Done" },
+    { "id": "STR-004", "status": "Satisfied", "note": "No-fork production binding Done" },
+    { "id": "live-extension-runtime", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-partner-sdk", "status": "Blocked", "note": "Lab SDK stub only" },
+    { "id": "live-webhook-delivery", "status": "Blocked", "note": "Lab webhooks only" },
+    { "id": "EXT-006", "status": "NotStarted", "note": "Certification surface later" },
+    { "id": "IOP-001", "status": "NotStarted", "note": "Interop profiles later" },
+    { "id": "REL-004", "status": "NotStarted", "note": "Upgrade ops later" }
+  ],
+  "outOfScope": [
+    "Live extension/plugin runtime",
+    "Live partner SDK",
+    "Live webhook delivery",
+    "EXT-006 certification surface",
+    "IOP-001 / REL-004",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "VersionCompat",
+      "steps": [
+        { "id": "ContractsPolicy", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "supportedContracts", "service": "docs", "event": null },
+        { "id": "N2CompatPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "n2-compat-pass", "service": "testdata", "event": null },
+        { "id": "N2BreakFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "n2-break-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "IsolationQuotas",
+      "steps": [
+        { "id": "IsolationPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "isolation-pass", "service": "testdata", "event": null },
+        { "id": "CrossTenantFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-tenant-extension-fail", "service": "testdata", "event": null },
+        { "id": "MaliciousFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "malicious-extension-fail", "service": "testdata", "event": null },
+        { "id": "SlowFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "slow-extension-fail", "service": "testdata", "event": null },
+        { "id": "QuotaPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "quota-enforced-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DeprecationUpgrade",
+      "steps": [
+        { "id": "DeprecationPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "deprecation-notice-pass", "service": "testdata", "event": null },
+        { "id": "UndeprecatedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "undeprecated-breaking-fail", "service": "testdata", "event": null },
+        { "id": "UpgradePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "upgrade-rehearsal-pass", "service": "testdata", "event": null },
+        { "id": "MissingUpgradeFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-upgrade-path-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NoForkDb",
+      "steps": [
+        { "id": "DirectDbFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "direct-db-access-fail", "service": "testdata", "event": null },
+        { "id": "CertifiedConsumerPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "certified-consumer-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "n2BreakFail": "testdata/prod007/scenarios/n2-break-fail.json",
+    "maliciousExtensionFail": "testdata/prod007/scenarios/malicious-extension-fail.json",
+    "slowExtensionFail": "testdata/prod007/scenarios/slow-extension-fail.json",
+    "crossTenantExtensionFail": "testdata/prod007/scenarios/cross-tenant-extension-fail.json",
+    "directDbAccessFail": "testdata/prod007/scenarios/direct-db-access-fail.json",
+    "undeprecatedBreakingFail": "testdata/prod007/scenarios/undeprecated-breaking-fail.json",
+    "missingUpgradePathFail": "testdata/prod007/scenarios/missing-upgrade-path-fail.json",
+    "n2CompatPass": "testdata/prod007/scenarios/n2-compat-pass.json",
+    "quotaEnforcedPass": "testdata/prod007/scenarios/quota-enforced-pass.json",
+    "certifiedConsumerPass": "testdata/prod007/scenarios/certified-consumer-pass.json",
+    "deprecationNoticePass": "testdata/prod007/scenarios/deprecation-notice-pass.json",
+    "upgradeRehearsalPass": "testdata/prod007/scenarios/upgrade-rehearsal-pass.json",
+    "isolationPass": "testdata/prod007/scenarios/isolation-pass.json",
+    "extensibilityRunLedger": "testdata/prod007/harness/extensibility-run-ledger.json",
+    "extensibilityAuditPass": "testdata/prod007/audit/extensibility-audit-pass.json"
+  },
+  "joins": {
+    "ext005ApiExchange": "docs/ext-api/api-exchange-matrix.json",
+    "prod006Semantic": "docs/prod-semantic/semantic-layer-matrix.json",
+    "str004Nofork": "docs/str-product/nofork-matrix.json",
+    "int002": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "sup001": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md"
+  }
+}

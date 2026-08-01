@@ -1,0 +1,50 @@
+{
+  "fixtureId": "MIG003-LINEAGE-SAMPLE",
+  "records": [
+    {
+      "sourceId": "legacy-hr-batch",
+      "sourceRecordKey": "EMP-1001",
+      "mappingVersion": "2026.07.30.1",
+      "disposition": "Map",
+      "loadBatchId": "batch-pilot-a-001",
+      "loadedAt": "2026-07-28T10:00:00Z",
+      "tenantId": "tenant-pilot-a"
+    },
+    {
+      "sourceId": "legacy-hr-batch",
+      "sourceRecordKey": "EMP-1002",
+      "mappingVersion": "2026.07.30.1",
+      "disposition": "Map",
+      "loadBatchId": "batch-pilot-a-001",
+      "loadedAt": "2026-07-28T10:00:01Z",
+      "tenantId": "tenant-pilot-a"
+    },
+    {
+      "sourceId": "legacy-hr-batch",
+      "sourceRecordKey": "EMP-1003",
+      "mappingVersion": "2026.07.30.1",
+      "disposition": "Quarantine",
+      "loadBatchId": "batch-pilot-a-001",
+      "loadedAt": "2026-07-28T10:00:02Z",
+      "tenantId": "tenant-pilot-a"
+    },
+    {
+      "sourceId": "legacy-org-files",
+      "sourceRecordKey": "ORG-HQ",
+      "mappingVersion": "2026.07.30.1",
+      "disposition": "Map",
+      "loadBatchId": "batch-pilot-a-001",
+      "loadedAt": "2026-07-28T10:00:03Z",
+      "tenantId": "tenant-pilot-a"
+    },
+    {
+      "sourceId": "legacy-payroll",
+      "sourceRecordKey": "PAY-1001-202601",
+      "mappingVersion": "2026.07.30.1",
+      "disposition": "Transform",
+      "loadBatchId": "batch-pilot-a-pay-001",
+      "loadedAt": "2026-07-28T11:00:00Z",
+      "tenantId": "tenant-pilot-a"
+    }
+  ]
+}

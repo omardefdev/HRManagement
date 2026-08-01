@@ -1,0 +1,7 @@
+{
+  "fixtureId": "EXT005-API-EXCHANGE-RUN-LEDGER",
+  "runs": [
+    { "runId": "api-lab-001", "integrationId": "int-payroll-export", "outcome": "Accepted", "liveBus": false },
+    { "runId": "api-lab-002", "integrationId": "int-agency-sync", "outcome": "Throttled", "liveBus": false }
+  ]
+}

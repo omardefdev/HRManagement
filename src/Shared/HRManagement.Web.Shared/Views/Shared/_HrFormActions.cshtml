@@ -1,0 +1,16 @@
+@{
+    var cancelAction = ViewData["CancelAction"] as string ?? "Index";
+    var cancelController = ViewData["CancelController"] as string;
+    var submitLabel = ViewData["SubmitLabel"] as string ?? "حفظ";
+}
+<div class="card-footer">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> @submitLabel</button>
+    @if (!string.IsNullOrEmpty(cancelController))
+    {
+        <a asp-controller="@cancelController" asp-action="@cancelAction" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+    }
+    else
+    {
+        <a asp-action="@cancelAction" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+    }
+</div>

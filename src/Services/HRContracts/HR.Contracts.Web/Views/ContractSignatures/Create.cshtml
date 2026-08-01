@@ -1,0 +1,21 @@
+@model ContractSignatureCreateViewModel
+@{ ViewData["Title"] = "إضافة توقيع"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">توقيع على العقد</h3></div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ContractId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="SignedBy" class="form-label"></label><input asp-for="SignedBy" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="SignedAt" class="form-label"></label><input asp-for="SignedAt" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="SignatureType" class="form-label"></label><select asp-for="SignatureType" class="form-control" asp-items="Html.GetEnumSelectList<SignatureType>()"></select></div>
+            <div class="mb-3"><label asp-for="SignatureData" class="form-label"></label><textarea asp-for="SignatureData" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-controller="Contracts" asp-action="Details" asp-route-id="@Model.ContractId" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

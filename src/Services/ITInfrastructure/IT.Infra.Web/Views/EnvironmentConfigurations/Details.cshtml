@@ -1,0 +1,27 @@
+@model EnvironmentConfiguration
+@{ ViewData["Title"] = "تفاصيل وصفة البيئة"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Name)</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Config)</dt>
+            <dd class="col-sm-9"><pre>@Model.Config</pre></dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Version)</dt>
+            <dd class="col-sm-9">@Model.Version</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.AppliedAt)</dt>
+            <dd class="col-sm-9">@(Model.AppliedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+    </div>
+</div>

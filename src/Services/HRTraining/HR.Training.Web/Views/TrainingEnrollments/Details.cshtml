@@ -1,0 +1,38 @@
+@model HR.Training.Domain.Entities.TrainingEnrollment
+@using HR.Training.Domain.Enums
+@{ ViewData["Title"] = "تفاصيل التسجيل"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">تسجيل دورة</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        @if (TempData["Warning"] != null) { <div class="alert alert-warning">@TempData["Warning"]</div> }
+
+        <table class="table table-borderless table-sm w-auto">
+            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الدورة</th><td>@(Model.Course?.TitleAr ?? Model.CourseId.ToString()) <span class="text-muted small">(@(Model.Course?.Code ?? "—"))</span></td></tr>
+            <tr><th>المزود</th><td>@(Model.Course?.Provider?.Name ?? "—")</td></tr>
+            <tr><th>تاريخ التسجيل</th><td>@Model.EnrolledAt.ToString("yyyy/MM/dd")</td></tr>
+            <tr><th>الحالة</th><td><span class="badge bg-info">@Model.Status</span></td></tr>
+            @if (Model.FinalScore != null) { <tr><th>الدرجة</th><td>@Model.FinalScore</td></tr> }
+            @if (Model.CertificateFileId.HasValue) { <tr><th>الشهادة</th><td>@await Html.PartialAsync("_FileDisplayLink", (Model.CertificateFileId, "عرض الشهادة"))</td></tr> }
+        </table>
+
+        @if (Model.Result != null)
+        {
+            <h5 class="mt-3">النتيجة</h5>
+            <table class="table table-borderless table-sm w-auto">
+                <tr><th>الدرجة</th><td>@Model.Result.Score</td></tr>
+                @if (!string.IsNullOrEmpty(Model.Result.EvaluationNotes)) { <tr><th>ملاحظات</th><td>@Model.Result.EvaluationNotes</td></tr> }
+                <tr><th>تاريخ التقييم</th><td>@Model.Result.GradedAt?.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            </table>
+        }
+
+        @if (Model.Status != EnrollmentStatus.Completed && Model.Status != EnrollmentStatus.Cancelled)
+        {
+            <a asp-action="Complete" asp-route-id="@Model.Id" class="btn btn-success btn-sm mt-2">إكمال التدريب</a>
+        }
+    </div>
+</div>

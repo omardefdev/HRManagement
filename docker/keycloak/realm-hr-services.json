@@ -1,0 +1,131 @@
+{
+  "realm": "hrmanagement",
+  "enabled": true,
+  "displayName": "HRManagement (sanitized service clients — IAM-004)",
+  "clients": [
+    {
+      "clientId": "hr-gateway-client",
+      "name": "HR Gateway (interactive)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}",
+      "redirectUris": ["http://localhost:5000/signin-oidc", "https://*/signin-oidc"],
+      "webOrigins": ["+"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-hr-core",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_HR_CORE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": { "oauth2.device.authorization.grant.enabled": "false" }
+    },
+    {
+      "clientId": "svc-payroll",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_PAYROLL_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-it-infra",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_IT_INFRA_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-hr-contracts",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_HR_CONTRACTS_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-hr-training",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_HR_TRAINING_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-idcard",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_IDCARD_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-records-archive",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_RECORDS_ARCHIVE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-file-storage",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_FILE_STORAGE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "svc-auth-directory",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_AUTH_DIRECTORY_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "directory-sync",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${KEYCLOAK_DIRECTORY_SYNC_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "description": "Keycloak Admin API provisioning (manage-users)"
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "directory.sync",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true" }
+    },
+    {
+      "name": "hr-core.lookup",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true" }
+    },
+    {
+      "name": "file-storage.references",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true" }
+    }
+  ],
+  "_comment": "Sanitized template — replace ${...} secrets at import time. Assign client scopes to service accounts in Keycloak UI or Admin API after import. See docs/SERVICE_TRUST_INVENTORY.md."
+}

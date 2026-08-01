@@ -1,0 +1,49 @@
+@{
+    var inputName = ViewData["InputName"] as string ?? "file";
+    var inputId = ViewData["InputId"] as string ?? inputName;
+    var accept = ViewData["Accept"] as string ?? "";
+    var required = ViewData["Required"] as bool? ?? false;
+    var cssClass = ViewData["CssClass"] as string ?? "mb-3";
+    var label = ViewData["Label"] as string ?? "ملف CSV";
+    var chooseLabel = ViewData["ChooseLabel"] as string ?? "اختيار ملف";
+    var hint = ViewData["Hint"] as string ?? "انقر أو اسحب ملف CSV هنا";
+}
+
+<div class="hr-file-upload @cssClass" data-hr-file-picker role="group" aria-label="@label">
+    <input type="file"
+           name="@inputName"
+           id="@inputId"
+           accept="@accept"
+           hidden
+           data-file-input
+           tabindex="-1"
+           aria-hidden="true"
+           @(required ? "required" : null) />
+
+    <div class="hr-file-upload-zone is-compact" data-picker-zone>
+        <div class="hr-file-upload-empty" data-picker-empty>
+            <div class="hr-file-upload-icon" aria-hidden="true">
+                <i class="fas fa-file-csv"></i>
+            </div>
+            <div class="hr-file-upload-title">@label</div>
+            <p class="hr-file-upload-hint">@hint</p>
+            <button type="button" class="btn btn-primary btn-sm hr-file-picker-btn" data-file-picker-btn>
+                <i class="fas fa-folder-open ms-1" aria-hidden="true"></i> @chooseLabel
+            </button>
+        </div>
+
+        <div class="hr-file-upload-file d-none" data-picker-file>
+            <div class="hr-file-upload-file-icon" aria-hidden="true">
+                <i class="fas fa-file-circle-check"></i>
+            </div>
+            <div class="hr-file-upload-file-info">
+                <span class="hr-file-upload-file-name" data-file-picker-name></span>
+                <span class="hr-file-upload-file-meta" data-file-status></span>
+            </div>
+            <div class="hr-file-upload-actions">
+                <button type="button" class="btn btn-link hr-file-replace-btn" data-file-picker-btn>استبدال</button>
+                <button type="button" class="btn btn-link text-danger hr-file-clear-btn" data-file-clear-btn>إزالة</button>
+            </div>
+        </div>
+    </div>
+</div>

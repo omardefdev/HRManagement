@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-UNREVOKED-COMPROMISED-KEY",
+  "expectedValidate": "FAIL",
+  "credentialCompromised": true,
+  "revoked": false,
+  "notes": "Compromised credential left unrevoked must fail"
+}

@@ -1,0 +1,24 @@
+@model Payroll.Domain.Entities.PayrollRun
+@{ ViewData["Title"] = "تشغيل رواتب جديد"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title">تشغيل جديد</h3></div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="PeriodStart" class="form-label"></label><input asp-for="PeriodStart" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="PeriodEnd" class="form-label"></label><input asp-for="PeriodEnd" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="RunDate" class="form-label"></label><input asp-for="RunDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3">
+                <label class="form-label">الحالة</label>
+                <input class="form-control" value="مسودة" disabled />
+                <div class="form-text">يبدأ التشغيل مسودةً ويتقدّم عبر الاحتساب والمراجعة والاعتماد والترحيل.</div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

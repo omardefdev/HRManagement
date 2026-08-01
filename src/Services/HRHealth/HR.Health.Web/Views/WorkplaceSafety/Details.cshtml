@@ -1,0 +1,22 @@
+@model WorkplaceAccident
+@{ ViewData["Title"] = "تفاصيل الحادث"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">تفاصيل حادث العمل</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">تعديل</a>
+            <a asp-action="Index" class="btn btn-link">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@(Model.EmployeeName ?? Model.EmployeeId.ToString())</dd>
+            <dt class="col-sm-3">التاريخ</dt><dd class="col-sm-9">@Model.AccidentDate.ToString("yyyy-MM-dd")</dd>
+            <dt class="col-sm-3">الموقع</dt><dd class="col-sm-9">@Model.Location</dd>
+            <dt class="col-sm-3">الخطورة</dt><dd class="col-sm-9">@Html.DisplayFor(m => m.Severity)</dd>
+            <dt class="col-sm-3">الوصف</dt><dd class="col-sm-9">@Model.Description</dd>
+            <dt class="col-sm-3">أيام مرضية ناتجة</dt><dd class="col-sm-9">@Model.RelatedSickLeaveDays</dd>
+            <dt class="col-sm-3">التحقيق والوقاية</dt><dd class="col-sm-9">@(Model.InvestigationNotes ?? "—")</dd>
+        </dl>
+    </div>
+</div>

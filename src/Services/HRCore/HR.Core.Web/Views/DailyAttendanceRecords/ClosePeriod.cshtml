@@ -1,0 +1,25 @@
+@{
+    ViewData["Title"] = "إغلاق فترة الحضور";
+}
+<form method="post" asp-action="ClosePeriod">
+    @Html.AntiForgeryToken()
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label>بداية الفترة</label>
+                <input type="date" name="periodStart" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label>نهاية الفترة</label>
+                <input type="date" name="periodEnd" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label>الوحدة (اختياري)</label>
+                <select name="orgUnitId" class="form-control" asp-items="ViewBag.OrgUnits">
+                    <option value="">كل الوحدات</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-warning">إغلاق ونشر للرواتب</button>
+        </div>
+    </div>
+</form>

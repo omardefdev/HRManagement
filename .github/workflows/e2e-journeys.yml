@@ -1,0 +1,75 @@
+# QA-004: Journey E2E against release images (nightly + manual pre-release).
+name: E2E Journeys (QA-004)
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "IMAGE_TAG (short SHA) for docker-compose.images.yml; empty = build from compose"
+        required: false
+        default: ""
+
+jobs:
+  journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Start stack (release images when IMAGE_TAG set)
+        env:
+          IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          if [ -n "${IMAGE_TAG}" ]; then
+            echo "Using release images tag=${IMAGE_TAG}"
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.images.yml \
+              up -d --wait
+          else
+            echo "No IMAGE_TAG — local compose build (pre-release lab)"
+            docker compose -f docker-compose.yml -f docker-compose.services.yml up -d --wait
+          fi
+
+      - name: Restore / build E2E
+        run: |
+          dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
+          dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj -c Release --no-restore
+
+      - name: Install Playwright browsers
+        run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
+
+      - name: Run journey suite
+        env:
+          RUN_PLAYWRIGHT_E2E: "true"
+          GATEWAY_BASE_URL: "http://localhost:5000"
+          E2E_ARTIFACTS_DIR: "TestResults/e2e-artifacts"
+        run: >
+          dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
+          --configuration Release --no-build
+          --filter "Category=Journey|FullyQualifiedName~E2eSeedPackTests"
+          --logger "trx;LogFileName=e2e-journey-results.trx"
+          --results-directory ./TestResults/e2e-journeys
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-journey-artifacts
+          path: |
+            TestResults/e2e-journeys/**
+            TestResults/e2e-artifacts/**
+          if-no-files-found: warn
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml down -v || true

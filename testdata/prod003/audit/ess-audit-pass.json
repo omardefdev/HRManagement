@@ -1,0 +1,1 @@
+﻿{"scenarioId":"ess-audit-pass","expectedValidate":"PASS","entries":[{"journeyId":"leave-request","actorRole":"employee","agencyId":"agency-a","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T15:00:00Z","evidenceRef":"testdata/prod003/scenarios/leave-request-pass.json"}]}

@@ -1,0 +1,63 @@
+{
+  "card": "UAT-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "phases": [
+    { "id": "PH-01", "name": "Planning", "description": "Map requirements to test scenarios; assign testers" },
+    { "id": "PH-02", "name": "Environment", "description": "Provision UAT environment with anonymized production-like data" },
+    { "id": "PH-03", "name": "Execution", "description": "Testers execute scenarios; record pass/fail with evidence" },
+    { "id": "PH-04", "name": "Defect Triage", "description": "Classify defects; blockers halt sign-off" },
+    { "id": "PH-05", "name": "Re-test", "description": "Fixed defects re-verified by original tester" },
+    { "id": "PH-06", "name": "Sign-off", "description": "Authorized representative signs acceptance per capability" }
+  ],
+  "acceptanceCriteria": [
+    { "id": "AC-01", "category": "Functional correctness", "description": "Business logic matches approved requirements" },
+    { "id": "AC-02", "category": "Data integrity", "description": "No data loss, corruption, or silent truncation" },
+    { "id": "AC-03", "category": "Accessibility", "description": "WCAG 2.1 AA compliance for Arabic RTL" },
+    { "id": "AC-04", "category": "Performance", "description": "Response times within SLO under realistic load" },
+    { "id": "AC-05", "category": "Security", "description": "No unauthorized access paths discovered during UAT" },
+    { "id": "AC-06", "category": "Localization", "description": "Arabic/English display correct; numbers/dates localized" },
+    { "id": "AC-07", "category": "Regulatory", "description": "Payroll/tax/insurance calculations match golden cases" }
+  ],
+  "signOff": {
+    "perCapability": true,
+    "blanketSignOffBlocked": true,
+    "conditionalAllowed": true,
+    "conditionalRequires": ["documented-exceptions", "remediation-timeline"],
+    "noProductionWithoutSignOff": true,
+    "waiverAuthority": "Product Council"
+  },
+  "defectSeverity": [
+    { "level": "blocker", "haltsSignOff": true, "slaHours": 24 },
+    { "level": "critical", "haltsSignOff": true, "slaHours": 48 },
+    { "level": "major", "haltsSignOff": false, "slaHours": 120 },
+    { "level": "minor", "haltsSignOff": false, "slaHours": null }
+  ],
+  "traceability": {
+    "requirementToTestMapping": "mandatory",
+    "testToEvidenceMapping": "mandatory",
+    "evidenceTypes": ["screenshot", "log", "automated-test-result", "video"],
+    "gapAnalysisAutomatic": true,
+    "linkedToReleaseVersion": true
+  },
+  "sampleRequirements": [
+    {
+      "requirementId": "REQ-PAY-001",
+      "description": "Monthly payroll calculation for Law 50 employees",
+      "testScenarios": ["TS-PAY-001a", "TS-PAY-001b", "TS-PAY-001c"],
+      "status": "template"
+    },
+    {
+      "requirementId": "REQ-ATT-001",
+      "description": "Cross-midnight shift attendance recording",
+      "testScenarios": ["TS-ATT-001a"],
+      "status": "template"
+    },
+    {
+      "requirementId": "REQ-ESS-001",
+      "description": "Employee self-service leave request submission",
+      "testScenarios": ["TS-ESS-001a", "TS-ESS-001b"],
+      "status": "template"
+    }
+  ]
+}

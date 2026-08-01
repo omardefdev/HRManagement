@@ -1,0 +1,74 @@
+{
+  "card": "PRD-001",
+  "version": 1,
+  "asOfDate": "2026-07-31",
+  "personas": [
+    {
+      "id": "hr-officer",
+      "role": "HR Officer",
+      "nameAr": "موظف الموارد البشرية",
+      "archetypeAffinity": ["central-ministry", "governorate", "autonomous-institution", "branch-office", "specialized-body"],
+      "capabilityTouchpoints": [
+        { "moduleId": "hr-core", "journeys": ["onboarding", "transfer", "separation"] },
+        { "moduleId": "hr-contracts", "journeys": ["onboarding", "separation"] },
+        { "moduleId": "hr-movements", "journeys": ["transfer"] },
+        { "moduleId": "records-archive", "journeys": ["onboarding", "separation"] },
+        { "moduleId": "file-storage", "journeys": ["onboarding", "transfer", "separation"] }
+      ]
+    },
+    {
+      "id": "payroll-clerk",
+      "role": "Payroll Clerk",
+      "nameAr": "كاتب الرواتب",
+      "archetypeAffinity": ["central-ministry", "governorate", "autonomous-institution", "specialized-body"],
+      "capabilityTouchpoints": [
+        { "moduleId": "payroll", "journeys": ["payroll-cycle"] },
+        { "moduleId": "hr-core", "journeys": ["payroll-cycle"] },
+        { "moduleId": "compliance", "journeys": ["payroll-cycle"] }
+      ]
+    },
+    {
+      "id": "department-head",
+      "role": "Department Head",
+      "nameAr": "رئيس القسم",
+      "archetypeAffinity": ["central-ministry", "governorate", "autonomous-institution", "specialized-body"],
+      "capabilityTouchpoints": [
+        { "moduleId": "hr-core", "journeys": ["onboarding", "transfer"] },
+        { "moduleId": "hr-movements", "journeys": ["transfer"] },
+        { "moduleId": "hr-training", "journeys": ["onboarding"] }
+      ]
+    },
+    {
+      "id": "minister",
+      "role": "Minister / Executive",
+      "nameAr": "وزير / تنفيذي",
+      "archetypeAffinity": ["central-ministry", "governorate"],
+      "capabilityTouchpoints": [
+        { "moduleId": "dev-analytics", "journeys": ["payroll-cycle"] },
+        { "moduleId": "compliance", "journeys": ["payroll-cycle"] },
+        { "moduleId": "hr-core", "journeys": ["onboarding", "separation"] }
+      ]
+    },
+    {
+      "id": "auditor",
+      "role": "Internal Auditor",
+      "nameAr": "مدقق داخلي",
+      "archetypeAffinity": ["central-ministry", "governorate", "autonomous-institution", "specialized-body"],
+      "capabilityTouchpoints": [
+        { "moduleId": "compliance", "journeys": ["payroll-cycle", "separation"] },
+        { "moduleId": "records-archive", "journeys": ["separation"] },
+        { "moduleId": "payroll", "journeys": ["payroll-cycle"] }
+      ]
+    },
+    {
+      "id": "citizen",
+      "role": "Citizen / External Stakeholder",
+      "nameAr": "مواطن / طرف خارجي",
+      "archetypeAffinity": ["central-ministry", "governorate", "branch-office"],
+      "capabilityTouchpoints": [
+        { "moduleId": "idcard", "journeys": ["onboarding"] },
+        { "moduleId": "auth-directory", "journeys": ["onboarding"] }
+      ]
+    }
+  ]
+}

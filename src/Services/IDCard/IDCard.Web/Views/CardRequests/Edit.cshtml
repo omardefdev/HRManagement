@@ -1,0 +1,25 @@
+@model CardRequest
+@{ ViewData["Title"] = "تعديل طلب"; }
+<div class="card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
+            <div class="mb-3">
+                <label class="form-label">مقدّم الطلب</label>
+                <input class="form-control" value="@Model.RequestedBy" disabled />
+                <div class="form-text">يُسجَّل مقدّم الطلب من هوية الجلسة ولا يُعدَّل.</div>
+            </div>
+            <div class="mb-3"><label asp-for="RequestDate" class="form-label"></label><input asp-for="RequestDate" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="Purpose" class="form-label"></label><select asp-for="Purpose" class="form-control" asp-items="Html.GetEnumSelectList<CardRequestPurpose>()"></select></div>
+            <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<CardRequestStatus>()"></select></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

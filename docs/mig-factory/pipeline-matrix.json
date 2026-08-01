@@ -1,0 +1,173 @@
+{
+  "card": "MIG-003",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "pipelineVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "allowedStageStatuses": ["Pending", "Running", "Checkpointed", "Completed", "Failed", "Quarantined"],
+  "stages": [
+    { "id": "extract", "name": "Extract to staging", "order": 1, "inputs": ["legacy-source"], "outputs": ["staging-raw"], "checkpointable": true, "purgeAfterDays": 7 },
+    { "id": "validate", "name": "Schema validation", "order": 2, "inputs": ["staging-raw"], "outputs": ["staging-valid"], "checkpointable": true, "purgeAfterDays": 7 },
+    { "id": "transform", "name": "Apply MIG-002 maps", "order": 3, "inputs": ["staging-valid"], "outputs": ["staging-mapped"], "checkpointable": true, "purgeAfterDays": 7 },
+    { "id": "quarantine", "name": "Quarantine unmapped", "order": 4, "inputs": ["staging-mapped"], "outputs": ["quarantine-queue"], "checkpointable": true, "purgeAfterDays": 30 },
+    { "id": "load", "name": "Idempotent load", "order": 5, "inputs": ["staging-mapped"], "outputs": ["platform-db"], "checkpointable": true, "purgeAfterDays": 0 },
+    { "id": "purge", "name": "Purge staging", "order": 6, "inputs": ["staging-raw", "staging-valid", "staging-mapped"], "outputs": [], "checkpointable": false, "purgeAfterDays": 0 }
+  ],
+  "stagingZones": [
+    {
+      "id": "mig-raw",
+      "encryptionAtRest": true,
+      "accessRole": "migration-extract",
+      "tenantScoped": true,
+      "purgePolicy": "delete-after-7d-or-wave-complete"
+    },
+    {
+      "id": "mig-valid",
+      "encryptionAtRest": true,
+      "accessRole": "migration-transform",
+      "tenantScoped": true,
+      "purgePolicy": "delete-after-7d"
+    },
+    {
+      "id": "mig-mapped",
+      "encryptionAtRest": true,
+      "accessRole": "migration-load",
+      "tenantScoped": true,
+      "purgePolicy": "delete-after-7d"
+    },
+    {
+      "id": "mig-quarantine",
+      "encryptionAtRest": true,
+      "accessRole": "migration-qa",
+      "tenantScoped": true,
+      "purgePolicy": "delete-after-30d-or-resolved"
+    }
+  ],
+  "idempotency": {
+    "batchKeyFields": ["tenantId", "pipelineId", "batchId"],
+    "naturalKeyFields": ["tenantId", "sourceId", "sourceRecordKey"],
+    "reloadPolicy": "skip-identical",
+    "duplicateOnReloadForbidden": true
+  },
+  "checkpoint": {
+    "store": "pipeline-run-ledger",
+    "resumeFromStage": true,
+    "midFailBehavior": "resume-next-unfinished-stage"
+  },
+  "lineage": {
+    "perRecordFields": [
+      "sourceId",
+      "sourceRecordKey",
+      "mappingVersion",
+      "disposition",
+      "loadBatchId",
+      "loadedAt",
+      "tenantId"
+    ]
+  },
+  "piiLogging": {
+    "forbiddenFields": ["NationalId", "FullName", "BASE_SALARY", "EmpNo", "NAT_ID", "password", "email"],
+    "redactionMode": "hash-or-omit",
+    "logSamplePolicy": "structure-only"
+  },
+  "throughput": {
+    "cutoverWindowHours": 8,
+    "targetRowsPerHour": 200000,
+    "syntheticBudgetRef": "docs/mig-inventory/source-inventory.json#legacy-hr-batch.volume",
+    "liveProofRequired": false
+  },
+  "secrets": {
+    "store": "ops-005-secret-manager",
+    "rotateBeforeWave": true,
+    "noSecretsInLogs": true
+  },
+  "pipelines": [
+    {
+      "id": "pipe-pilot-a-hr",
+      "version": "2026.07.30.1",
+      "sourceIds": ["legacy-hr-batch", "legacy-org-files"],
+      "codeMapVersionRef": "2026.07.30.1",
+      "stageIds": ["extract", "validate", "transform", "quarantine", "load", "purge"]
+    },
+    {
+      "id": "pipe-pilot-a-payroll",
+      "version": "2026.07.30.1",
+      "sourceIds": ["legacy-payroll"],
+      "codeMapVersionRef": "2026.07.30.1",
+      "stageIds": ["extract", "validate", "transform", "quarantine", "load", "purge"]
+    }
+  ],
+  "blockers": [
+    { "id": "MIG-002", "status": "Satisfied", "note": "Code-map gate Done" },
+    { "id": "TEN-002", "status": "Satisfied", "note": "Tenant enforcement present" },
+    { "id": "OPS-005", "status": "Satisfied", "note": "IaC Done" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Lab harness only" },
+    { "id": "live-cutover-perf", "status": "Blocked", "note": "Real window → MIG-006 + agency volumes" }
+  ],
+  "outOfScope": [
+    "ETL workers runtime",
+    "DataImportController rewrite",
+    "MIG-004 identity match",
+    "MIG-005 evidence package",
+    "MIG-006 cutover rehearsals"
+  ],
+  "journeys": [
+    {
+      "id": "IdempotentReload",
+      "steps": [
+        { "id": "BatchKeyDefined", "mandatory": true, "ownerRole": "migration-engineering", "slaHours": 48, "evidenceType": "idempotency", "service": "docs", "event": null },
+        { "id": "SameBatchNoDup", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "same-batch-reload", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "MidFailResume",
+      "steps": [
+        { "id": "CheckpointStore", "mandatory": true, "ownerRole": "migration-engineering", "slaHours": 48, "evidenceType": "checkpoint", "service": "docs", "event": null },
+        { "id": "ResumeFixture", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "mid-stage-fail-resume", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RecordLineage",
+      "steps": [
+        { "id": "RequiredFields", "mandatory": true, "ownerRole": "data", "slaHours": 48, "evidenceType": "lineage", "service": "docs", "event": null },
+        { "id": "LineageSample", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "lineage-sample", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NoPiiInLogs",
+      "steps": [
+        { "id": "ForbiddenList", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "piiLogging", "service": "docs", "event": null },
+        { "id": "RedactionSample", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "log-redaction-sample", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CutoverThroughput",
+      "steps": [
+        { "id": "BudgetDeclared", "mandatory": true, "ownerRole": "migration-engineering", "slaHours": 48, "evidenceType": "throughput", "service": "docs", "event": null },
+        { "id": "PerfStub", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cutover-window-budget", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SecureStagingReview",
+      "steps": [
+        { "id": "ZonesEncrypted", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "stagingZones", "service": "docs", "event": null },
+        { "id": "ReviewChecklist", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "secure-staging-checklist", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "sameBatchReload": "testdata/mig003/scenarios/same-batch-reload.json",
+    "midFailResume": "testdata/mig003/scenarios/mid-stage-fail-resume.json",
+    "corruptSchemaFail": "testdata/mig003/scenarios/corrupt-schema-fail.json",
+    "cutoverBudget": "testdata/mig003/perf/cutover-window-budget.json",
+    "secureStagingReview": "testdata/mig003/review/secure-staging-checklist.json",
+    "pipelineLedger": "testdata/mig003/harness/pipeline-run-ledger.json",
+    "lineageSample": "testdata/mig003/harness/lineage-sample.json",
+    "logRedactionSample": "testdata/mig003/harness/log-redaction-sample.json"
+  },
+  "joins": {
+    "mig001Inventory": "docs/mig-inventory/source-inventory.json",
+    "mig002CodeMaps": "docs/mig-canonical/code-map-matrix.json#mappingVersion",
+    "ops005Iac": "docs/ADR-OPS-005-iac.md"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "realm": "hrmanagement",
+  "enabled": true,
+  "displayName": "HRManagement REL-001 staging rehearsal",
+  "attributes": {
+    "rel001": "true",
+    "imports": "realm-hr-services + realm-qa004-e2e"
+  },
+  "roles": {
+    "realm": [
+      { "name": "hr-admin", "description": "REL-001 staging admin persona" },
+      { "name": "rel001-rehearsal", "description": "Marker role for release rehearsal" }
+    ]
+  },
+  "users": [
+    {
+      "username": "rel001-staging-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "REL001",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "rel001-StagingAdmin-1!", "temporary": false }],
+      "realmRoles": ["hr-admin", "rel001-rehearsal", "hr-core"]
+    }
+  ],
+  "_comment": "Import after realm-hr-services.json and realm-qa004-e2e.json (or merge in KC admin). Lab secrets only."
+}

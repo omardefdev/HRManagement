@@ -1,0 +1,31 @@
+@model Compliance.Domain.Entities.Complaint
+@{ ViewData["Title"] = "شكوى جديدة"; }
+<h3>تسجيل شكوى</h3>
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="FiledBy" class="form-label"></label>
+        <input asp-for="FiledBy" class="form-control" />
+        <span asp-validation-for="FiledBy" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Against" class="form-label"></label>
+        <input asp-for="Against" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Subject" class="form-label"></label>
+        <input asp-for="Subject" class="form-control" />
+        <span asp-validation-for="Subject" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="FiledAt" class="form-label"></label>
+        <input asp-for="FiledAt" class="form-control" type="datetime-local" />
+    </div>
+    <button type="submit" class="btn btn-primary">حفظ</button>
+    <a asp-action="Index" class="btn btn-link">إلغاء</a>
+</form>

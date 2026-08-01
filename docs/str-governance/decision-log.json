@@ -1,0 +1,56 @@
+{
+  "card": "STR-005",
+  "version": 1,
+  "generatedAt": "2026-07-30",
+  "scopeNote": "Program governance decisions — not GOV-002 legal payroll register",
+  "decisions": [
+    {
+      "decisionId": "PG-LAW-2026-07-SIM",
+      "type": "LawChange",
+      "ownerRole": "legal",
+      "reviewerRole": "architecture",
+      "board": "Architecture",
+      "adrRef": "docs/ADR-STR-005-program-governance-boards.md",
+      "status": "ApprovedInterim",
+      "evidenceRef": "testdata/str005/scenarios/law-change.json",
+      "decidedAt": "2026-07-28",
+      "notes": "Simulation: interim rule pending gazette"
+    },
+    {
+      "decisionId": "PG-INC-2026-07-SIM",
+      "type": "SecurityIncident",
+      "ownerRole": "security",
+      "reviewerRole": "change",
+      "board": "Security",
+      "adrRef": null,
+      "status": "Approved",
+      "evidenceRef": "testdata/str005/scenarios/incident.json",
+      "decidedAt": "2026-07-29",
+      "notes": "Simulation: emergency window + post-review"
+    },
+    {
+      "decisionId": "PG-DELAY-2026-07-SIM",
+      "type": "ScheduleDelay",
+      "ownerRole": "program",
+      "reviewerRole": "sponsor",
+      "board": "Program",
+      "adrRef": null,
+      "status": "Approved",
+      "evidenceRef": "testdata/str005/scenarios/delay.json",
+      "decidedAt": "2026-07-30",
+      "notes": "Simulation: milestone slip; eng-only reschedule rejected"
+    },
+    {
+      "decisionId": "PG-GOLIVE-GATE-POLICY",
+      "type": "GoLive",
+      "ownerRole": "sponsor",
+      "reviewerRole": "security",
+      "board": "Program",
+      "adrRef": "docs/ADR-STR-005-program-governance-boards.md",
+      "status": "PolicyAccepted",
+      "evidenceRef": "docs/STR_005_GO_LIVE_GATE.md",
+      "decidedAt": "2026-07-30",
+      "notes": "Policy: multi-seat required; not a production Go-Live declaration"
+    }
+  ]
+}

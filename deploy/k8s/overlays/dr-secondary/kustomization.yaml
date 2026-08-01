@@ -1,0 +1,24 @@
+# DR secondary apps overlay (OPS-004 stub)
+#
+# Warm-standby application plane for a secondary region/cluster.
+# Do NOT apply to production primary. Requires a separate cluster (OPS-005 provision).
+# DNS host during drills: hr-dr.example.com — promote to hr.example.com only after Go decision.
+#
+#   kubectl kustomize deploy/k8s/overlays/dr-secondary
+#   # then apply only on the secondary cluster after data bootstrap
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hrmanagement
+resources:
+  - ../../base
+  - hpa.yaml
+  - pdb.yaml
+  - ingress.yaml
+patches:
+  - path: patches/replicas.yaml
+  - path: patches/region-labels.yaml
+commonAnnotations:
+  ops.hrmanagement.io/site: secondary
+  ops.hrmanagement.io/role: warm-standby
+  ops.hrmanagement.io/card: OPS-004

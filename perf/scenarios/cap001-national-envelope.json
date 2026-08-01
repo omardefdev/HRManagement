@@ -1,0 +1,134 @@
+{
+  "card": "CAP-001",
+  "title": "National Workload Envelope",
+  "version": 1,
+  "asOfDate": "2026-07-31",
+  "sourceDocs": [
+    "docs/STR_001_WORKLOAD_DATASET.md",
+    "docs/NFR_CAPACITY_MODEL.md",
+    "docs/str-scope/envelope-matrix.json"
+  ],
+  "envelope": {
+    "active_history_persons": 5000000,
+    "tenants": 1000,
+    "org_units": 250000,
+    "concurrent_sessions": 100000,
+    "peak_http_rps": 10000,
+    "payroll_window_national": { "persons": 5000000, "hours": 6 },
+    "payroll_window_syria": { "persons": 1250000, "hours": 4 }
+  },
+  "labScaling": {
+    "scale_factor": 0.002,
+    "employees_lab": 10000,
+    "vus_base_100pct": 50,
+    "note": "National proof uses production-like scale; lab CI uses scale_factor with shortened durations."
+  },
+  "headroomTargetPct": 30,
+  "regionalMix": {
+    "governorates": 14,
+    "distribution": "uniform",
+    "tagHeader": "X-CAP001-Region"
+  },
+  "scenarios": [
+    {
+      "id": "soak-100",
+      "kind": "soak",
+      "script": "perf/k6/cap001-soak-72h.js",
+      "loadPct": 100,
+      "duration": "72h",
+      "labDuration": "2h",
+      "vus": { "base": 50, "env": "VUS_BASE" },
+      "slo": {
+        "http_req_failed_rate_max": 0.01,
+        "http_req_duration_p95_ms_max": 2000,
+        "data_loss": false,
+        "duplicate_writes": false
+      },
+      "seasons": ["morning-login", "org-browse"],
+      "acceptance": "SLO at 100% peak for full soak; no unbounded RSS/connection/queue growth"
+    },
+    {
+      "id": "stress-150",
+      "kind": "stress",
+      "script": "perf/k6/cap001-stress-150.js",
+      "loadPct": 150,
+      "duration": "4h",
+      "labDuration": "10m",
+      "vus": { "base": 50, "multiplier": 1.5, "env": "VUS_BASE" },
+      "slo": {
+        "http_req_failed_rate_max": 0.05,
+        "http_req_duration_p95_ms_max": 4000,
+        "degradation": "safe",
+        "data_corruption": false
+      },
+      "acceptance": "Graceful degradation (429/503/backpressure); no corruption or cascading OOM"
+    },
+    {
+      "id": "spike-200",
+      "kind": "spike",
+      "script": "perf/k6/cap001-spike-200.js",
+      "loadPct": 200,
+      "duration": "15m",
+      "labDuration": "3m",
+      "vus": { "base": 50, "multiplier": 2.0, "env": "VUS_BASE" },
+      "slo": {
+        "http_req_failed_rate_max": 0.05,
+        "http_req_duration_p95_ms_max": 4000,
+        "recovery_minutes_max": 15
+      },
+      "acceptance": "Short burst survives; system recovers to baseline within recovery window"
+    },
+    {
+      "id": "failure-during-load",
+      "kind": "failure",
+      "script": "perf/k6/cap001-failure-during-load.js",
+      "loadPct": 100,
+      "duration": "30m",
+      "labDuration": "5m",
+      "failureScenarios": [
+        { "tag": "db_latency", "env": "FAILURE_SCENARIO=db_latency", "note": "Inject DB latency via chaos compose" },
+        { "tag": "gateway_503", "env": "FAILURE_SCENARIO=gateway_503", "note": "Upstream 503 simulation" },
+        { "tag": "mq_backlog", "env": "FAILURE_SCENARIO=mq_backlog", "note": "Queue saturation / slow consumers" },
+        { "tag": "payroll_worker_loss", "env": "FAILURE_SCENARIO=payroll_worker_loss", "note": "Payroll worker scale-down" }
+      ],
+      "slo": {
+        "http_req_failed_rate_max": 0.05,
+        "zero_data_loss": true,
+        "explicit_rejection": true
+      },
+      "acceptance": "Explicit errors and recovery; no silent loss or duplicate payroll"
+    },
+    {
+      "id": "regional-mix",
+      "kind": "mixed",
+      "script": "perf/k6/cap001-soak-72h.js",
+      "loadPct": 100,
+      "duration": "4h",
+      "labDuration": "15m",
+      "regionalMix": true,
+      "acceptance": "14-governorate traffic mix without tenant starvation"
+    },
+    {
+      "id": "payroll-window",
+      "kind": "payroll",
+      "script": "perf/k6/payroll-run.js",
+      "loadPct": 100,
+      "duration": "6h",
+      "labDuration": "30m",
+      "env": { "CAP001_PAYROLL_WINDOW": "true", "NFR_PROFILE": "load" },
+      "slo": {
+        "payroll_fail_ratio_max": 0.01,
+        "outbox_pending_max": 100,
+        "outbox_age_seconds_max": 300
+      },
+      "acceptance": "Payroll batch + messaging within J3/J4 during national window shape"
+    }
+  ],
+  "resourceLimits": {
+    "criticalHeadroomPctMin": 30,
+    "signals": ["cpu_utilization", "memory_utilization", "db_connections_pct", "rabbit_queue_depth"]
+  },
+  "resultsSchema": "perf/cap001-results-schema.json",
+  "validateScript": "scripts/cap001-envelope-validate.ps1",
+  "headroomScript": "scripts/cap001-headroom-calculator.ps1"
+}

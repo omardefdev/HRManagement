@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة compliance_db\nCompliance"
+
+entity "AuditFindings\nAuditFinding" as T01 {
+  * Id
+    AuditId
+    TenantId
+}
+entity "Complaints\nComplaint" as T02 {
+  * Id
+    TenantId
+}
+entity "ComplaintFollowUps\nComplaintFollowUp" as T03 {
+  * Id
+    ComplaintId
+    TenantId
+}
+entity "ComplianceRecommendations\nComplianceRecommendation" as T04 {
+  * Id
+    ComplaintId
+    FindingId
+    ResponsibleUnitId
+    TenantId
+}
+entity "DisciplinaryActions\nDisciplinaryAction" as T05 {
+  * Id
+    ComplaintId
+    EmployeeId
+    TenantId
+}
+entity "LegalCases\nLegalCase" as T06 {
+  * Id
+    TenantId
+}
+entity "LegalReferrals\nLegalReferral" as T07 {
+  * Id
+    ComplaintId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T08 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+
+T03 }o--|| T02 : ComplaintId
+T04 }o--|| T02 : ComplaintId
+T04 }o--|| T01 : FindingId
+T05 }o--|| T02 : ComplaintId
+T07 }o--|| T02 : ComplaintId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-FORM-SIGNATURE-AS-LEGAL",
+  "expectedValidate": "FAIL",
+  "formSignature": true,
+  "claimedAsLegalEvidence": true,
+  "notes": "UI form signature claimed as legal evidence must fail"
+}

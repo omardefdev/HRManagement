@@ -1,0 +1,10 @@
+{
+  "scenarioId": "SIM-BUSFACTOR-PASS",
+  "componentId": "payroll",
+  "critical": true,
+  "tier": "0",
+  "primaryRole": "payroll-lead",
+  "backupRoles": ["payroll-backup", "platform-lead"],
+  "busFactor": 3,
+  "expectedValidate": "PASS"
+}

@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Yarp.ReverseProxy" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Sinks.Seq" />
+    <!-- QA-001: latest stable clears Moderate GHSA advisories on Api/OTLP exporter -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
+    <ProjectReference Include="..\HRManagement.Integration.Abstractions\HRManagement.Integration.Abstractions.csproj" />
+    <ProjectReference Include="..\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\docs\str-scope\envelope-matrix.json" Link="NationalScope\envelope-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-legal\control-catalog.json" Link="LegalControl\control-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-legal\legislative-watch-stamp.json" Link="LegalControl\legislative-watch-stamp.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-modules\module-catalog.json" Link="ModuleCatalog\module-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-product\nofork-matrix.json" Link="NoFork\nofork-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\testdata\str004\agencies\*.json" Link="NoFork\agencies\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-governance\governance-matrix.json" Link="ProgramGovernance\governance-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-governance\decision-log.json" Link="ProgramGovernance\decision-log.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-governance\risk-register.json" Link="ProgramGovernance\risk-register.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="ProgramGovernance\go-live-evidence.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-ownership\ownership-matrix.json" Link="Ownership\ownership-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\str-value\kpi-matrix.json" Link="ValueKpi\kpi-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\docs\mig-inventory\source-inventory.json" Link="MigInventory\source-inventory.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

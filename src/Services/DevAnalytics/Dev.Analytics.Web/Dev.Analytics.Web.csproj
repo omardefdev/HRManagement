@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dev.Analytics.Domain\Dev.Analytics.Domain.csproj" />
+    <ProjectReference Include="..\Dev.Analytics.Infrastructure\Dev.Analytics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
+    <ProjectReference Include="..\..\HRMovements\HR.Movements.Domain\HR.Movements.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.Web.Shared\HRManagement.Web.Shared.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+﻿{
+    "card":  "MIG-006",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "rehearsalCount":  3,
+    "criteriaCount":  5,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

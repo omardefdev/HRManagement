@@ -1,0 +1,44 @@
+{
+  "card": "IOP-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Schema registry profile templates for national integration partners",
+  "profiles": [
+    {
+      "partner": "Treasury",
+      "ref": "EXT-003",
+      "schemaFormat": "OpenAPI 3.1",
+      "transport": "REST + signed batch files (transitional)",
+      "canonicalMapping": "PayrollRunId → disbursement-order; EmployeeId → beneficiary",
+      "versionPolicy": "semver; breaking changes require new major version",
+      "conformanceStatus": "pending-sandbox"
+    },
+    {
+      "partner": "CivilRegistry",
+      "ref": "EXT-002",
+      "schemaFormat": "OpenAPI 3.1",
+      "transport": "REST (sandbox) / signed batch (transitional)",
+      "canonicalMapping": "NationalIdHash → civil-id-lookup; PersonId → verified-identity",
+      "versionPolicy": "semver",
+      "conformanceStatus": "pending-sandbox"
+    },
+    {
+      "partner": "SocialInsurance",
+      "ref": "SYR-006",
+      "schemaFormat": "AsyncAPI 3.0 + OpenAPI 3.1",
+      "transport": "event bus (future) / signed batch (transitional)",
+      "canonicalMapping": "EmployeeId → insured-person; contribution-period → fiscal-month",
+      "versionPolicy": "semver",
+      "conformanceStatus": "pending-contract"
+    },
+    {
+      "partner": "GovernmentDataBus",
+      "ref": "SYR-010",
+      "schemaFormat": "AsyncAPI 3.0",
+      "transport": "mTLS event bus (when ready) / signed encrypted batch (transitional)",
+      "canonicalMapping": "all canonical identifiers mapped via adapter",
+      "versionPolicy": "semver; registry tracks all versions",
+      "conformanceStatus": "pending-bus-availability"
+    }
+  ]
+}

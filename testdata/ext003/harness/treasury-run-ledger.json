@@ -1,0 +1,7 @@
+{
+  "fixtureId": "EXT003-TREASURY-RUN-LEDGER",
+  "runs": [
+    { "runId": "tr-lab-001", "payrollRunId": "run-posted-001", "outcome": "Settled", "liveTreasury": false },
+    { "runId": "tr-lab-002", "payrollRunId": "run-posted-002", "outcome": "Rejected", "liveTreasury": false }
+  ]
+}

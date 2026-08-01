@@ -1,0 +1,137 @@
+{
+  "card": "EXT-007",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "sectorCatalogPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "noImplicitCriticalIntegrations": true,
+  "adapterRequirements": {
+    "contractRequired": true,
+    "sloRequired": true,
+    "retryRequired": true,
+    "reconciliationRequired": true,
+    "exitRequired": true
+  },
+  "notification": {
+    "sensitivePiiForbidden": true
+  },
+  "failure": {
+    "mustSurface": true,
+    "swallowForbidden": true
+  },
+  "certification": {
+    "requiredBeforeEnable": true
+  },
+  "reconciliation": {
+    "required": true
+  },
+  "deliveryReceipts": {
+    "requiredWhereApplicable": true
+  },
+  "catalogDomains": [
+    { "id": "pension", "priority": "P1", "sourceOfTruth": "national-pension-lab", "latencyClass": "batch-daily", "ownerRole": "pension-integration", "fallback": "manual-recon-queue" },
+    { "id": "insurance", "priority": "P1", "sourceOfTruth": "national-insurance-lab", "latencyClass": "near-realtime", "ownerRole": "insurance-integration", "fallback": "cached-eligibility" },
+    { "id": "tax", "priority": "P1", "sourceOfTruth": "tax-authority-lab", "latencyClass": "batch-daily", "ownerRole": "tax-integration", "fallback": "hold-payroll-line" },
+    { "id": "attendance", "priority": "P2", "sourceOfTruth": "attendance-device-lab", "latencyClass": "near-realtime", "ownerRole": "attendance-integration", "fallback": "manual-timesheet" },
+    { "id": "erp", "priority": "P2", "sourceOfTruth": "erp-finance-lab", "latencyClass": "batch-hourly", "ownerRole": "erp-integration", "fallback": "file-drop" },
+    { "id": "budget", "priority": "P1", "sourceOfTruth": "mof-budget-lab", "latencyClass": "batch-daily", "ownerRole": "budget-integration", "fallback": "freeze-commitment" },
+    { "id": "mail-notify", "priority": "P2", "sourceOfTruth": "notification-lab", "latencyClass": "near-realtime", "ownerRole": "notify-integration", "fallback": "in-app-only" }
+  ],
+  "audit": {
+    "required": true,
+    "requiredFields": ["adapterId", "domain", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveAdaptersForbidden": true,
+    "liveNotificationForbidden": true
+  },
+  "signing": {
+    "signedByRole": "enterprise-architect",
+    "reviewerRole": "integration-security-officer",
+    "sectorCatalogPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext007-lab-sector-catalog-policy-20260730"
+  },
+  "blockers": [
+    { "id": "EXT-005", "status": "Satisfied", "note": "API exchange production binding Done" },
+    { "id": "STR-003", "status": "Satisfied", "note": "Module catalog production binding Done" },
+    { "id": "live-sector-adapters", "status": "Blocked", "note": "Lab stubs only" },
+    { "id": "live-notification-channel", "status": "Blocked", "note": "Lab notify only" },
+    { "id": "adapter-fleet-certified-live", "status": "Blocked", "note": "Lab certification only" },
+    { "id": "PROD-005", "status": "Satisfied", "note": "Workbox production binding Done" },
+    { "id": "COM-001", "status": "NotStarted", "note": "Durable notifications later" }
+  ],
+  "outOfScope": [
+    "Live sector adapters",
+    "Live notification channel",
+    "Live adapter cert fleet",
+    "PROD-005 join",
+    "COM-001 join",
+    "Domain/UI rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "NoImplicitCritical",
+      "steps": [
+        { "id": "CatalogPolicy", "mandatory": true, "ownerRole": "enterprise-arch", "slaHours": 48, "evidenceType": "noImplicitCritical", "service": "docs", "event": null },
+        { "id": "ImplicitCriticalFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "implicit-critical-fail", "service": "testdata", "event": null },
+        { "id": "CatalogEntryPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "catalog-entry-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "AdapterCompleteness",
+      "steps": [
+        { "id": "AdapterPolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 48, "evidenceType": "adapterRequirements", "service": "docs", "event": null },
+        { "id": "MissingContractFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-contract-fail", "service": "testdata", "event": null },
+        { "id": "MissingSloFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-slo-fail", "service": "testdata", "event": null },
+        { "id": "MissingExitFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-exit-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NotificationPii",
+      "steps": [
+        { "id": "NotifyPolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 24, "evidenceType": "notificationPii", "service": "docs", "event": null },
+        { "id": "NotifyPiiFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "notify-pii-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "FailureSurfacing",
+      "steps": [
+        { "id": "FailurePolicy", "mandatory": true, "ownerRole": "ops", "slaHours": 24, "evidenceType": "failureSurfacing", "service": "docs", "event": null },
+        { "id": "SwallowedFailureFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "swallowed-failure-fail", "service": "testdata", "event": null },
+        { "id": "OutageVisiblePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "outage-visible-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CertReconReceipts",
+      "steps": [
+        { "id": "CertPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "certification", "service": "docs", "event": null },
+        { "id": "UncertifiedEnableFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "uncertified-adapter-enable-fail", "service": "testdata", "event": null },
+        { "id": "ReconciliationPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "reconciliation-pass", "service": "testdata", "event": null },
+        { "id": "DeliveryReceiptPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "delivery-receipt-pass", "service": "testdata", "event": null },
+        { "id": "AdapterCertAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "adapter-cert-audit-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "implicitCriticalFail": "testdata/ext007/scenarios/implicit-critical-fail.json",
+    "missingContractFail": "testdata/ext007/scenarios/missing-contract-fail.json",
+    "missingSloFail": "testdata/ext007/scenarios/missing-slo-fail.json",
+    "missingExitFail": "testdata/ext007/scenarios/missing-exit-fail.json",
+    "notifyPiiFail": "testdata/ext007/scenarios/notify-pii-fail.json",
+    "swallowedFailureFail": "testdata/ext007/scenarios/swallowed-failure-fail.json",
+    "uncertifiedAdapterEnableFail": "testdata/ext007/scenarios/uncertified-adapter-enable-fail.json",
+    "catalogEntryPass": "testdata/ext007/scenarios/catalog-entry-pass.json",
+    "outageVisiblePass": "testdata/ext007/scenarios/outage-visible-pass.json",
+    "reconciliationPass": "testdata/ext007/scenarios/reconciliation-pass.json",
+    "deliveryReceiptPass": "testdata/ext007/scenarios/delivery-receipt-pass.json",
+    "adapterCertAuditPass": "testdata/ext007/audit/adapter-cert-audit-pass.json",
+    "sectorRunLedger": "testdata/ext007/harness/sector-run-ledger.json"
+  },
+  "joins": {
+    "ext005Catalog": "docs/ext-api/api-exchange-matrix.json",
+    "str003Modules": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md",
+    "ext006Upstream": "docs/ext-sandbox/sandbox-cert-matrix.json",
+    "prod005Downstream": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md"
+  }
+}

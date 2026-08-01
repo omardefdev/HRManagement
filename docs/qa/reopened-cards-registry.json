@@ -1,0 +1,446 @@
+{
+  "generatedAt": "2026-08-01T19:03:10.156772+00:00",
+  "reopenedCount": 44,
+  "cards": [
+    {
+      "cardId": "BLD-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Bld001BuildProvenanceTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "HARD-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Hard001HardeningTests.cs"
+      ],
+      "artifactGateMethods": 4,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "IAM-005",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Iam005LifecycleTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat001EvidenceTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-002",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat002SecurityCertTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-003",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat003PayrollCertTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-004",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat004MigrationCertTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-005",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat005AccessibilityCertTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-006",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat006PerformanceCertTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-007",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat007PilotCertTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "NAT-008",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Nat008GoNoGoTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "PHY-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Phy001PhysicalTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "PRV-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Prv001RopaTests.cs"
+      ],
+      "artifactGateMethods": 0,
+      "behaviorMethods": 2,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "QA-005",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Qa005TechDebtTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel001StagingParityTests.cs"
+      ],
+      "artifactGateMethods": 4,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-002",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel002PilotGatePackTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-003",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel003OpsSupportTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-004",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel004CompatibilityTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-005",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel005ProgressiveDeliveryTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-006",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel006ReleaseTrainTests.cs"
+      ],
+      "artifactGateMethods": 5,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "REL-007",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Rel007WaveTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SAN-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/San001SanctionsTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SEC-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Sec001PortScanTests.cs"
+      ],
+      "artifactGateMethods": 9,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SEC-004",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Sec004SecretRotationTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr001LegislationTests.cs"
+      ],
+      "artifactGateMethods": 9,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-002",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr002CensusTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-003",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr003ServiceRegimeTests.cs"
+      ],
+      "artifactGateMethods": 13,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-004",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr004CurrencyTests.cs"
+      ],
+      "artifactGateMethods": 15,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-005",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr005WageTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-006",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr006InsuranceTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-007",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr007DataProtectionTests.cs"
+      ],
+      "artifactGateMethods": 11,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-008",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr008HostingTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-009",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr009CivilIdentityTests.cs"
+      ],
+      "artifactGateMethods": 9,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-010",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr010DataBusTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-011",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr011PaymentTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-012",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr012LegacyTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-013",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr013BranchUxTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-014",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr014CalendarTests.cs"
+      ],
+      "artifactGateMethods": 8,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-015",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr015RecordsTests.cs"
+      ],
+      "artifactGateMethods": 9,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-016",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr016CyberTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "SYR-017",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Syr017LaunchTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "TRN-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Trn001TrainingTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "UAT-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Uat001AcceptanceTests.cs"
+      ],
+      "artifactGateMethods": 7,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    },
+    {
+      "cardId": "VEN-001",
+      "testFiles": [
+        "src/Tests/HRManagement.UnitTests/Ven001ExitTests.cs"
+      ],
+      "artifactGateMethods": 6,
+      "behaviorMethods": 0,
+      "reopenStatus": "Blocked",
+      "reason": "دليل اختباري غير سلوكي — لا ينفّذ كود المنتج"
+    }
+  ]
+}

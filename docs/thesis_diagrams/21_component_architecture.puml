@@ -1,0 +1,61 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط المكونات والخدمات
+actor "مستخدم" as User
+component "Gateway\\nYARP" as Gateway
+component "Keycloak\\nOIDC" as Keycloak
+package "الخدمات الأساسية" {
+  [HR.Core] as Core
+  [HR.Contracts] as Contracts
+  [Payroll] as Payroll
+}
+package "الخدمات المساندة" {
+  [Health] as Health
+  [Movements] as Moves
+  [Training] as Training
+  [Archive / ID / IT] as Support
+  [Compliance / Analytics] as Gov
+}
+queue "RabbitMQ\\nMassTransit" as Bus
+database "قواعد PostgreSQL\\nمنفصلة" as Db
+User --> Gateway
+Gateway --> Keycloak
+Gateway --> Core
+Gateway --> Contracts
+Gateway --> Payroll
+Gateway --> Health
+Gateway --> Moves
+Gateway --> Training
+Gateway --> Support
+Gateway --> Gov
+Core --> Bus
+Contracts --> Bus
+Payroll --> Bus
+Moves --> Bus
+Bus --> Gov
+Core --> Db
+Contracts --> Db
+Payroll --> Db
+Health --> Db
+@enduml

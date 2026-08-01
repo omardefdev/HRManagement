@@ -1,0 +1,14 @@
+@model HR.Health.Domain.Entities.MedicalCommitteeReport
+@{ ViewData["Title"] = "تقرير لجنة طبية"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="MedicalRecordId" class="form-label"></label><select asp-for="MedicalRecordId" asp-items="ViewBag.MedicalRecords" class="form-control"></select><span asp-validation-for="MedicalRecordId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="CommitteeDate" class="form-label"></label><input asp-for="CommitteeDate" class="form-control" type="date" /><span asp-validation-for="CommitteeDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Findings" class="form-label"></label><textarea asp-for="Findings" class="form-control" rows="2"></textarea><span asp-validation-for="Findings" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Recommendation" class="form-label"></label><select asp-for="Recommendation" class="form-control" asp-items="Html.GetEnumSelectList<HR.Health.Domain.Enums.MedicalCommitteeRecommendation>()"></select><span asp-validation-for="Recommendation" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

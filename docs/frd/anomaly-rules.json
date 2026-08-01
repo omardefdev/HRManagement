@@ -1,0 +1,104 @@
+{
+  "card": "FRD-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "detectionRules": [
+    {
+      "id": "FR-01",
+      "category": "Ghost employee",
+      "description": "Payroll entry with no attendance or physical verification",
+      "severity": "critical",
+      "action": "payment-hold",
+      "autoDetectable": true
+    },
+    {
+      "id": "FR-02",
+      "category": "Deceased beneficiary",
+      "description": "Continued payment after civil registry death notification",
+      "severity": "critical",
+      "action": "payment-hold",
+      "autoDetectable": true,
+      "dataSource": "civil-registry-death-feed"
+    },
+    {
+      "id": "FR-03",
+      "category": "Duplicate employment",
+      "description": "Same person on multiple agency payrolls without authorized dual-employment",
+      "severity": "high",
+      "action": "payment-hold",
+      "autoDetectable": true,
+      "matchLevel": "person-not-position"
+    },
+    {
+      "id": "FR-04",
+      "category": "Shared IBAN/account",
+      "description": "Single bank account receiving payments for multiple unrelated beneficiaries",
+      "severity": "high",
+      "action": "flag-for-review",
+      "autoDetectable": true,
+      "threshold": 2
+    },
+    {
+      "id": "FR-05",
+      "category": "Anomalous compensation",
+      "description": "Compensation amount outside expected range for grade/position",
+      "severity": "medium",
+      "action": "flag-for-review",
+      "autoDetectable": true,
+      "deviationThreshold": "2-sigma"
+    },
+    {
+      "id": "FR-06",
+      "category": "Single approver volume",
+      "description": "One approver handling abnormally high number of payroll actions",
+      "severity": "medium",
+      "action": "flag-for-review",
+      "autoDetectable": true
+    },
+    {
+      "id": "FR-07",
+      "category": "Same-day hire-and-pay",
+      "description": "Employee created and paid in the same payroll cycle",
+      "severity": "high",
+      "action": "payment-hold",
+      "autoDetectable": true
+    },
+    {
+      "id": "FR-08",
+      "category": "Missing source record",
+      "description": "Payroll line with no traceable HR action or decision",
+      "severity": "critical",
+      "action": "payment-hold",
+      "autoDetectable": true
+    },
+    {
+      "id": "FR-POL",
+      "category": "Proof of life expired",
+      "description": "Proof-of-life verification expired for pension or disability beneficiary",
+      "severity": "critical",
+      "action": "payment-hold",
+      "autoDetectable": true
+    }
+  ],
+  "proofOfLife": {
+    "pensioners": { "frequency": "annually", "gracePeriodDays": 60 },
+    "disabilityBeneficiaries": { "frequency": "semi-annually", "gracePeriodDays": 60 },
+    "methods": ["in-person", "biometric", "notarized-attestation"],
+    "exceptionForDisabilityRemote": true,
+    "holdOnExpiry": true,
+    "holdReleaseApproval": "four-eyes"
+  },
+  "paymentHold": {
+    "ownerRequired": true,
+    "singleOperatorReleaseBlocked": true,
+    "releaseRequiresEvidence": true,
+    "silentExpiryBlocked": true,
+    "evidenceChain": "EVD-001"
+  },
+  "verification": {
+    "consecutiveCyclesWithAudit": 3,
+    "syntheticFraudInjection": true,
+    "crossReconciliation": ["GOSI", "GOIP", "civil-registry"],
+    "metricsFromEvidence": true
+  }
+}

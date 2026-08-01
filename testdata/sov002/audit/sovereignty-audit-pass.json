@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"copyId":"db-payroll","classification":"PII","location":"primary-sy","egressDecision":"deny","supportTicketId":null,"actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/sov002"}]}

@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "card": "GOV-001",
+  "fields": [
+    {
+      "id": "hrcore.employee.nationalId",
+      "entity": "HR.Core.Domain.Entities.Employee",
+      "field": "NationalId",
+      "classification": "PII",
+      "owner": "HR.Core / Data Steward",
+      "purpose": "هوية موظف حكومي وربط سجلات الخدمة",
+      "legalBasis": "تنفيذ علاقة العمل / خدمة مدنية",
+      "policyId": "ret-employee-lifecycle",
+      "retentionDays": null,
+      "residencyNote": "داخل Tenant؛ لا نقل خارجي دون اتفاق"
+    },
+    {
+      "id": "hrcore.employee.birthDate",
+      "entity": "HR.Core.Domain.Entities.Employee",
+      "field": "BirthDate",
+      "classification": "PII",
+      "owner": "HR.Core / Data Steward",
+      "purpose": "أهلية وأعمار قانونية",
+      "legalBasis": "تنفيذ علاقة العمل",
+      "policyId": "ret-employee-lifecycle",
+      "retentionDays": null,
+      "residencyNote": "داخل Tenant"
+    },
+    {
+      "id": "hrcore.employee.names",
+      "entity": "HR.Core.Domain.Entities.Employee",
+      "field": "FirstName|MiddleName|LastName|FullName",
+      "classification": "PII",
+      "owner": "HR.Core / Data Steward",
+      "purpose": "عرض وتشغيل الموارد البشرية",
+      "legalBasis": "تنفيذ علاقة العمل",
+      "policyId": "ret-employee-lifecycle",
+      "retentionDays": null,
+      "residencyNote": "داخل Tenant"
+    },
+    {
+      "id": "health.medicalRecord.clinical",
+      "entity": "HR.Health.Domain.Entities.MedicalRecord",
+      "field": "MedicalHistory|CurrentConditions|Allergies|Disabilities",
+      "classification": "Medical",
+      "owner": "HR.Health / Medical Officer",
+      "purpose": "لياقة طبية ولجان طبية",
+      "legalBasis": "ضرورة طبية وظيفية",
+      "policyId": "ret-medical",
+      "retentionDays": 3650,
+      "residencyNote": "داخل Tenant؛ أقل صلاحية وصول"
+    },
+    {
+      "id": "compliance.complaint.body",
+      "entity": "Compliance.Domain.Entities.Complaint",
+      "field": "FiledBy|Against|Description|Resolution",
+      "classification": "Complaint",
+      "owner": "Compliance / Integrity",
+      "purpose": "معالجة تظلمات وتحقيقات",
+      "legalBasis": "التزام تنظيمي / عدالة إدارية",
+      "policyId": "ret-complaint",
+      "retentionDays": 2555,
+      "residencyNote": "داخل Tenant"
+    },
+    {
+      "id": "payroll.payProfile.baseSalary",
+      "entity": "Payroll.Domain.Entities.EmployeePayProfile",
+      "field": "BaseSalary",
+      "classification": "Payroll",
+      "owner": "Payroll / Finance",
+      "purpose": "احتساب الأجور",
+      "legalBasis": "تنفيذ عقد العمل / رواتب",
+      "policyId": "ret-payroll",
+      "retentionDays": 3650,
+      "residencyNote": "داخل Tenant"
+    },
+    {
+      "id": "auth.user.identifiers",
+      "entity": "Auth.Directory.Domain.Entities.AuthUser",
+      "field": "Username|Email",
+      "classification": "PII",
+      "owner": "Auth.Directory / IAM",
+      "purpose": "حساب دليل ووصول",
+      "legalBasis": "أمن الوصول",
+      "policyId": "ret-directory",
+      "retentionDays": null,
+      "residencyNote": "داخل Tenant؛ مزامنة مع IdP"
+    },
+    {
+      "id": "files.metadata.holder",
+      "entity": "File.Storage (FileReference)",
+      "field": "Holder/Reference metadata",
+      "classification": "OtherSensitive",
+      "owner": "File.Storage / Module owner",
+      "purpose": "مرفقات تشغيلية",
+      "legalBasis": "غرض الوحدة المالكة",
+      "policyId": "ret-files-purge",
+      "retentionDays": null,
+      "residencyNote": "داخل Tenant؛ LegalHold/RetainUntil"
+    }
+  ]
+}

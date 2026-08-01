@@ -1,0 +1,23 @@
+@model HR.Health.Domain.Entities.InsuranceContract
+@{ ViewData["Title"] = "تفاصيل عقد التأمين"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">عقد التأمين</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">المزود</dt><dd class="col-sm-9">@Model.Provider</dd>
+            <dt class="col-sm-3">تفاصيل التغطية</dt><dd class="col-sm-9">@(Model.CoverageDetails ?? "—")</dd>
+            <dt class="col-sm-3">البداية</dt><dd class="col-sm-9">@Model.StartDate</dd>
+            <dt class="col-sm-3">النهاية</dt><dd class="col-sm-9">@(Model.EndDate?.ToString() ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<p><a asp-action="Index">العودة للقائمة</a></p>

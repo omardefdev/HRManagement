@@ -1,0 +1,4 @@
+{
+  "comment": "SUP-001 Crit/High exception allowlist. Empty by default. expired entries fail CI. Do not commit secrets.",
+  "exceptions": []
+}

@@ -1,0 +1,37 @@
+@model EnvironmentConfiguration
+@{ ViewData["Title"] = "تعديل وصفة البيئة"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <form asp-action="Edit">
+        <div class="card-body">
+            <input type="hidden" asp-for="Id" />
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Config" class="form-label"></label>
+                <textarea asp-for="Config" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Config" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Version" class="form-label"></label>
+                <input asp-for="Version" class="form-control" />
+                <span asp-validation-for="Version" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AppliedAt" class="form-label"></label>
+                <input asp-for="AppliedAt" class="form-control" type="datetime-local" />
+                <span asp-validation-for="AppliedAt" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-default">إلغاء</a>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,70 @@
+{
+  "card": "SYR-007",
+  "version": "1.0.0",
+  "effectiveDate": "2024-01-01",
+  "law": {
+    "title": "قانون حماية البيانات الشخصية رقم 12 لعام 2024",
+    "titleEn": "Personal Data Protection Law No. 12 of 2024",
+    "authority": "Personal Data Protection Authority (Syria)",
+    "publicationDate": "2024-01-01",
+    "enforcementDate": "2024-07-01"
+  },
+  "roles": {
+    "controller": {
+      "entity": "Ministry / Agency operating the HR system",
+      "obligations": ["lawful basis", "purpose limitation", "data minimization", "accuracy", "storage limitation", "security", "accountability"]
+    },
+    "processor": {
+      "entity": "Platform operator (if separate from controller)",
+      "obligations": ["process only on documented instructions", "confidentiality", "security measures", "assist controller", "return/delete data"]
+    },
+    "dpo": {
+      "required": true,
+      "registeredWith": "Personal Data Protection Authority",
+      "contactPublished": true
+    }
+  },
+  "legalBases": [
+    {"id": "LB-01", "basis": "Public duty / legal obligation", "applicableTo": "Employment records, payroll, social insurance, tax"},
+    {"id": "LB-02", "basis": "Contractual necessity", "applicableTo": "Employment contract processing"},
+    {"id": "LB-03", "basis": "Legitimate interest", "applicableTo": "Security, fraud prevention, analytics (with balancing test)"},
+    {"id": "LB-04", "basis": "Consent", "applicableTo": "Optional services, non-mandatory communications (not coerced)"}
+  ],
+  "dataSubjectRights": [
+    {"id": "DSR-01", "right": "Right to be informed", "deadline": "At collection or within 30 days"},
+    {"id": "DSR-02", "right": "Right of access", "deadline": "30 days from request"},
+    {"id": "DSR-03", "right": "Right to rectification", "deadline": "15 days from request"},
+    {"id": "DSR-04", "right": "Right to erasure", "deadline": "30 days (subject to legal retention)"},
+    {"id": "DSR-05", "right": "Right to object", "deadline": "15 days from request"},
+    {"id": "DSR-06", "right": "Right to data portability", "deadline": "30 days from request"},
+    {"id": "DSR-07", "right": "Right to restrict processing", "deadline": "Immediate upon valid request"}
+  ],
+  "sensitiveData": {
+    "categories": ["health", "biometric", "political opinion", "religious belief", "trade union membership", "criminal record"],
+    "additionalSafeguards": ["explicit consent or law", "DPIA required", "enhanced access controls", "encryption at rest"]
+  },
+  "complianceControls": [
+    {"id": "CC-01", "control": "ROPA maintained", "evidence": "docs/PRV_001_ROPA.md"},
+    {"id": "CC-02", "control": "Privacy notices published", "evidence": "Application UI + onboarding docs"},
+    {"id": "CC-03", "control": "DPIA conducted for high-risk processing", "evidence": "docs/PRV_001_DPIA_*.md"},
+    {"id": "CC-04", "control": "DPO registered with Authority", "evidence": "Registration confirmation letter"},
+    {"id": "CC-05", "control": "Data subject request workflow", "evidence": "GOV-001 DSAR workflow"},
+    {"id": "CC-06", "control": "Breach notification within 72 hours", "evidence": "docs/PRV_003_BREACH_RESPONSE.md"},
+    {"id": "CC-07", "control": "Data sharing agreements", "evidence": "docs/PRV_001_DATA_SHARING.md"},
+    {"id": "CC-08", "control": "Retention schedule per SYR-015", "evidence": "Retention matrix"},
+    {"id": "CC-09", "control": "No consent coercion for mandatory processing", "evidence": "Legal basis mapping"},
+    {"id": "CC-10", "control": "Cross-border transfer restrictions", "evidence": "SYR-008 hosting sovereignty"},
+    {"id": "CC-11", "control": "Processor agreements in place", "evidence": "docs/PRV_001_SUBPROCESSOR_REGISTER.md"},
+    {"id": "CC-12", "control": "Security measures (encryption, access control, audit)", "evidence": "SOV-001 + HARD-001 controls"}
+  ],
+  "breachResponse": {
+    "notifyAuthority": "72 hours from awareness",
+    "notifyDataSubjects": "Without undue delay if high risk",
+    "documentAll": true,
+    "workflow": "PRV-003"
+  },
+  "penalties": {
+    "administrative": "Warning, suspension of processing, fines per law",
+    "escalation": "Referral to judicial authority for criminal violations"
+  }
+}

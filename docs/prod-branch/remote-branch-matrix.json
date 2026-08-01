@@ -1,0 +1,147 @@
+{
+  "card": "PROD-004",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "remoteBranchPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "performanceBudgets": {
+    "required": true,
+    "maxTtiMs": 5000,
+    "maxPayloadKb": 512
+  },
+  "networkProfile": {
+    "throttledLabRequired": true,
+    "lowBandwidthSupported": true,
+    "profileId": "lab-3g-throttled"
+  },
+  "responsivePwa": {
+    "required": true,
+    "labStubAllowed": true,
+    "livePwaForbidden": true
+  },
+  "resumableUploads": {
+    "required": true
+  },
+  "saveDraft": {
+    "required": true
+  },
+  "retryIdempotency": {
+    "required": true,
+    "duplicateSubmitSafe": true
+  },
+  "localization": {
+    "arabicEnglishRequired": true,
+    "rtlLtrRequired": true,
+    "localLanguagesDecisionRequired": true
+  },
+  "timezoneCalendar": {
+    "required": true
+  },
+  "printableFallback": {
+    "required": true
+  },
+  "offline": {
+    "limitedAllowed": true,
+    "encryptionRequired": true,
+    "threatModelRequired": true,
+    "liveOfflineForbidden": true
+  },
+  "accessibility": {
+    "wcag22AaRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["journeyId", "networkProfileId", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveRemoteBranchForbidden": true,
+    "liveFullOfflineForbidden": true
+  },
+  "signing": {
+    "signedByRole": "ux-architecture-lead",
+    "reviewerRole": "accessibility-security-officer",
+    "remoteBranchPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod004-lab-remote-branch-20260730"
+  },
+  "blockers": [
+    { "id": "UX-002", "status": "Satisfied", "note": "Accessibility/responsive Done" },
+    { "id": "DATA-001", "status": "Satisfied", "note": "Data integrity Done" },
+    { "id": "FILE-001", "status": "Satisfied", "note": "File storage Done" },
+    { "id": "live-remote-branch-ux", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-pwa-fleet", "status": "Blocked", "note": "Lab stub PWA only" },
+    { "id": "live-offline-field", "status": "Blocked", "note": "Lab offline policy only" },
+    { "id": "L10N-001", "status": "NotStarted", "note": "Full i18n product later" },
+    { "id": "MOB-001", "status": "NotStarted", "note": "Mobile/PWA product later" },
+    { "id": "PROD-005", "status": "Satisfied", "note": "Workbox production binding Done" },
+    { "id": "SYR-013", "status": "NotStarted", "note": "Syria branch UX later" }
+  ],
+  "outOfScope": [
+    "Live remote branch UX fleet",
+    "Live PWA device fleet",
+    "Live field offline",
+    "L10N-001 / MOB-001 join",
+    "SYR-013 / NAT join",
+    "Domain/UI rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "LowBandwidthCore",
+      "steps": [
+        { "id": "BudgetPolicy", "mandatory": true, "ownerRole": "ux-arch", "slaHours": 48, "evidenceType": "performanceBudgets", "service": "docs", "event": null },
+        { "id": "ThrottledPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "throttled-core-journey-pass", "service": "testdata", "event": null },
+        { "id": "BelowBudgetFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "below-budget-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "InterruptResilience",
+      "steps": [
+        { "id": "ResumablePolicy", "mandatory": true, "ownerRole": "platform", "slaHours": 48, "evidenceType": "resumableUploads", "service": "docs", "event": null },
+        { "id": "InterruptedResumePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "interrupted-upload-resume-pass", "service": "testdata", "event": null },
+        { "id": "DataLossFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "data-loss-on-interrupt-fail", "service": "testdata", "event": null },
+        { "id": "DraftPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "save-draft-reconnect-pass", "service": "testdata", "event": null },
+        { "id": "NonIdempotentFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "non-idempotent-retry-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "LocaleAndA11y",
+      "steps": [
+        { "id": "LocalePolicy", "mandatory": true, "ownerRole": "ux", "slaHours": 48, "evidenceType": "localization", "service": "docs", "event": null },
+        { "id": "ArEnPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "ar-en-rtl-ltr-pass", "service": "testdata", "event": null },
+        { "id": "HardcodeFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "hardcode-locale-fail", "service": "testdata", "event": null },
+        { "id": "WcagPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "wcag-audit-pass", "service": "testdata", "event": null },
+        { "id": "WcagFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "wcag-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "OfflineThreat",
+      "steps": [
+        { "id": "OfflinePolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "offline", "service": "docs", "event": null },
+        { "id": "OfflinePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "offline-encrypted-limited-pass", "service": "testdata", "event": null },
+        { "id": "PlaintextFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "plaintext-offline-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "belowBudgetFail": "testdata/prod004/scenarios/below-budget-fail.json",
+    "dataLossOnInterruptFail": "testdata/prod004/scenarios/data-loss-on-interrupt-fail.json",
+    "hardcodeLocaleFail": "testdata/prod004/scenarios/hardcode-locale-fail.json",
+    "plaintextOfflineFail": "testdata/prod004/scenarios/plaintext-offline-fail.json",
+    "wcagFail": "testdata/prod004/scenarios/wcag-fail.json",
+    "nonIdempotentRetryFail": "testdata/prod004/scenarios/non-idempotent-retry-fail.json",
+    "throttledCoreJourneyPass": "testdata/prod004/scenarios/throttled-core-journey-pass.json",
+    "interruptedUploadResumePass": "testdata/prod004/scenarios/interrupted-upload-resume-pass.json",
+    "saveDraftReconnectPass": "testdata/prod004/scenarios/save-draft-reconnect-pass.json",
+    "arEnRtlLtrPass": "testdata/prod004/scenarios/ar-en-rtl-ltr-pass.json",
+    "offlineEncryptedLimitedPass": "testdata/prod004/scenarios/offline-encrypted-limited-pass.json",
+    "wcagAuditPass": "testdata/prod004/scenarios/wcag-audit-pass.json",
+    "branchRunLedger": "testdata/prod004/harness/branch-run-ledger.json",
+    "branchAuditPass": "testdata/prod004/audit/branch-audit-pass.json"
+  },
+  "joins": {
+    "prod003Ess": "docs/prod-ess/employee-selfservice-matrix.json",
+    "ux002": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md",
+    "data001": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "file001": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md"
+  }
+}

@@ -1,0 +1,16 @@
+@model HR.Movements.Domain.Entities.SecondmentRequest
+@{ ViewData["Title"] = "تعديل طلب انتداب"; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="HostOrg" class="form-label"></label><input asp-for="HostOrg" class="form-control" /><span asp-validation-for="HostOrg" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /><span asp-validation-for="StartDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /><span asp-validation-for="EndDate" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Terms" class="form-label"></label><textarea asp-for="Terms" class="form-control" rows="2"></textarea><span asp-validation-for="Terms" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ التعديلات</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

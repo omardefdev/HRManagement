@@ -1,0 +1,94 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Gateway/">
+    <Project Path="src/Gateway/HRManagement.Gateway/HRManagement.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/AdminLogistics/">
+    <Project Path="src/Services/AdminLogistics/Admin.Logistics.Domain/Admin.Logistics.Domain.csproj" />
+    <Project Path="src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Admin.Logistics.Infrastructure.csproj" />
+    <Project Path="src/Services/AdminLogistics/Admin.Logistics.Web/Admin.Logistics.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/AuthDirectory/">
+    <Project Path="src/Services/AuthDirectory/Auth.Directory.Domain/Auth.Directory.Domain.csproj" />
+    <Project Path="src/Services/AuthDirectory/Auth.Directory.Infrastructure/Auth.Directory.Infrastructure.csproj" />
+    <Project Path="src/Services/AuthDirectory/Auth.Directory.Web/Auth.Directory.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Compliance/">
+    <Project Path="src/Services/Compliance/Compliance.Domain/Compliance.Domain.csproj" />
+    <Project Path="src/Services/Compliance/Compliance.Infrastructure/Compliance.Infrastructure.csproj" />
+    <Project Path="src/Services/Compliance/Compliance.Web/Compliance.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/DevAnalytics/">
+    <Project Path="src/Services/DevAnalytics/Dev.Analytics.Domain/Dev.Analytics.Domain.csproj" />
+    <Project Path="src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Dev.Analytics.Infrastructure.csproj" />
+    <Project Path="src/Services/DevAnalytics/Dev.Analytics.Web/Dev.Analytics.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/HRContracts/">
+    <Project Path="src/Services/HRContracts/HR.Contracts.Application/HR.Contracts.Application.csproj" />
+    <Project Path="src/Services/HRContracts/HR.Contracts.Domain/HR.Contracts.Domain.csproj" />
+    <Project Path="src/Services/HRContracts/HR.Contracts.Infrastructure/HR.Contracts.Infrastructure.csproj" />
+    <Project Path="src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/HRCore/">
+    <Project Path="src/Services/HRCore/HR.Core.Domain/HR.Core.Domain.csproj" />
+    <Project Path="src/Services/HRCore/HR.Core.Infrastructure/HR.Core.Infrastructure.csproj" />
+    <Project Path="src/Services/HRCore/HR.Core.Web/HR.Core.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/HRHealth/">
+    <Project Path="src/Services/HRHealth/HR.Health.Domain/HR.Health.Domain.csproj" />
+    <Project Path="src/Services/HRHealth/HR.Health.Infrastructure/HR.Health.Infrastructure.csproj" />
+    <Project Path="src/Services/HRHealth/HR.Health.Web/HR.Health.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/HRMovements/">
+    <Project Path="src/Services/HRMovements/HR.Movements.Domain/HR.Movements.Domain.csproj" />
+    <Project Path="src/Services/HRMovements/HR.Movements.Infrastructure/HR.Movements.Infrastructure.csproj" />
+    <Project Path="src/Services/HRMovements/HR.Movements.Web/HR.Movements.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/HRTraining/">
+    <Project Path="src/Services/HRTraining/HR.Training.Domain/HR.Training.Domain.csproj" />
+    <Project Path="src/Services/HRTraining/HR.Training.Infrastructure/HR.Training.Infrastructure.csproj" />
+    <Project Path="src/Services/HRTraining/HR.Training.Web/HR.Training.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/IDCard/">
+    <Project Path="src/Services/IDCard/IDCard.Domain/IDCard.Domain.csproj" />
+    <Project Path="src/Services/IDCard/IDCard.Infrastructure/IDCard.Infrastructure.csproj" />
+    <Project Path="src/Services/IDCard/IDCard.Web/IDCard.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/ITInfrastructure/">
+    <Project Path="src/Services/ITInfrastructure/IT.Infra.Infrastructure/IT.Infra.Infrastructure.csproj" />
+    <Project Path="src/Services/ITInfrastructure/IT.Infra.Web/IT.Infra.Web.csproj" />
+    <Project Path="src/Services/ITInfrastructure/IT.Infrastructure.Domain/IT.Infrastructure.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Payroll/">
+    <Project Path="src/Services/Payroll/Payroll.Application/Payroll.Application.csproj" />
+    <Project Path="src/Services/Payroll/Payroll.Domain/Payroll.Domain.csproj" />
+    <Project Path="src/Services/Payroll/Payroll.Infrastructure/Payroll.Infrastructure.csproj" />
+    <Project Path="src/Services/Payroll/Payroll.Web/Payroll.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/RecordsArchive/">
+    <Project Path="src/Services/RecordsArchive/Records.Archive.Domain/Records.Archive.Domain.csproj" />
+    <Project Path="src/Services/RecordsArchive/Records.Archive.Infrastructure/Records.Archive.Infrastructure.csproj" />
+    <Project Path="src/Services/RecordsArchive/Records.Archive.Web/Records.Archive.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/FileStorage/">
+    <Project Path="src/Services/FileStorage/File.Storage.Domain/File.Storage.Domain.csproj" />
+    <Project Path="src/Services/FileStorage/File.Storage.Infrastructure/File.Storage.Infrastructure.csproj" />
+    <Project Path="src/Services/FileStorage/File.Storage.Web/File.Storage.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/HRManagement.FileStorage/HRManagement.FileStorage.csproj" />
+    <Project Path="src/Shared/HRManagement.Integration.Abstractions/HRManagement.Integration.Abstractions.csproj" />
+    <Project Path="src/Shared/HRManagement.Integration.FileAdapters/HRManagement.Integration.FileAdapters.csproj" />
+    <Project Path="src/Shared/HRManagement.MessageContracts/HRManagement.MessageContracts.csproj" />
+    <Project Path="src/Shared/HRManagement.ServiceDefaults/HRManagement.ServiceDefaults.csproj" />
+    <Project Path="src/Shared/HRManagement.SharedKernel/HRManagement.SharedKernel.csproj" />
+    <Project Path="src/Shared/HRManagement.Web.Shared/HRManagement.Web.Shared.csproj" />
+  </Folder>
+  <Folder Name="/src/Tests/">
+    <Project Path="src/Tests/HRManagement.TestSupport/HRManagement.TestSupport.csproj" />
+    <Project Path="src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj" />
+    <Project Path="src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj" />
+    <Project Path="src/Tests/HRManagement.E2E/HRManagement.E2E.csproj" />
+  </Folder>
+</Solution>

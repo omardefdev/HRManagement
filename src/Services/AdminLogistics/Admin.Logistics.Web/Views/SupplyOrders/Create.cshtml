@@ -1,0 +1,12 @@
+@model Admin.Logistics.Domain.Entities.SupplyOrder
+@{ ViewData["Title"] = "طلب تجهيز"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label class="form-label">طالب الطلب</label><input class="form-control" value="يُسجَّل من هوية الجلسة" disabled /></div>
+<div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" class="form-control form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Items" class="form-label"></label><textarea asp-for="Items" class="form-control" rows="3"></textarea><span asp-validation-for="Items" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Status" class="form-label"></label><select class="form-control" asp-for="Status" asp-items="Html.GetEnumSelectList<Admin.Logistics.Domain.Enums.SupplyOrderStatus>()" class="form-control"></select><span asp-validation-for="Status" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="OrderedAt" class="form-label"></label><input asp-for="OrderedAt" class="form-control" type="datetime-local" /><span asp-validation-for="OrderedAt" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="FulfilledAt" class="form-label"></label><input asp-for="FulfilledAt" class="form-control" type="datetime-local" /><span asp-validation-for="FulfilledAt" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

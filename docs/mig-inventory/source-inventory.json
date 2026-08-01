@@ -1,0 +1,371 @@
+{
+  "card": "MIG-001",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "allowedSourceTypes": ["database", "file", "paper", "api", "unsupported"],
+  "allowedSourceStatuses": ["Inventoried", "ExceptionSigned", "Unsupported"],
+  "requiredSourceFields": [
+    "sourceId",
+    "type",
+    "agencyId",
+    "ownerRole",
+    "encoding",
+    "keys",
+    "historyDepth",
+    "attachments",
+    "legalRetention",
+    "availability",
+    "freezeConstraints",
+    "volume",
+    "quality",
+    "accessRisks",
+    "status"
+  ],
+  "requiredTargetFieldSotFields": [
+    "targetField",
+    "sourceOfTruthSourceId",
+    "sourceField",
+    "gov003Join"
+  ],
+  "knownSourceUniverse": [
+    "legacy-hr-batch",
+    "legacy-payroll",
+    "legacy-org-files",
+    "legacy-docs-share",
+    "civil-api-stub",
+    "paper-personnel-files",
+    "legacy-access-control-unsupported"
+  ],
+  "sources": [
+    {
+      "sourceId": "legacy-hr-batch",
+      "type": "database",
+      "agencyId": "agency-pilot-a",
+      "ownerRole": "agency-hr",
+      "encoding": "windows-1256",
+      "keys": ["NationalId", "EmpNo"],
+      "historyDepth": "10y",
+      "attachments": false,
+      "legalRetention": "employment+10y",
+      "availability": "business-hours-read-replica",
+      "freezeConstraints": ["extract-freeze-T-7d", "no-schema-change-during-wave"],
+      "volume": {
+        "rowCount": 125000,
+        "fileCount": 0,
+        "measuredAt": "2026-06-15",
+        "method": "query",
+        "estimateOnly": false
+      },
+      "quality": {
+        "completeness": 0.91,
+        "nullRate": 0.08,
+        "duplicateKeyRate": 0.012,
+        "profileReportRef": "testdata/mig001/profiling/agency-signed-profile.json"
+      },
+      "accessRisks": ["shared-dba-account", "no-row-level-audit", "pii-in-extract"],
+      "status": "Inventoried"
+    },
+    {
+      "sourceId": "legacy-payroll",
+      "type": "database",
+      "agencyId": "agency-pilot-a",
+      "ownerRole": "agency-payroll",
+      "encoding": "utf-8",
+      "keys": ["EmpNo", "PeriodId"],
+      "historyDepth": "7y",
+      "attachments": false,
+      "legalRetention": "payroll+7y",
+      "availability": "month-end-lock-window",
+      "freezeConstraints": ["extract-freeze-T-3d", "period-close-before-extract"],
+      "volume": {
+        "rowCount": 980000,
+        "fileCount": 0,
+        "measuredAt": "2026-06-15",
+        "method": "query",
+        "estimateOnly": false
+      },
+      "quality": {
+        "completeness": 0.96,
+        "nullRate": 0.03,
+        "duplicateKeyRate": 0.004,
+        "profileReportRef": "testdata/mig001/profiling/agency-signed-profile.json"
+      },
+      "accessRisks": ["vendor-vpn-only", "credential-rotation-unknown", "pii-in-extract"],
+      "status": "Inventoried"
+    },
+    {
+      "sourceId": "legacy-org-files",
+      "type": "file",
+      "agencyId": "agency-pilot-a",
+      "ownerRole": "agency-hr",
+      "encoding": "utf-8",
+      "keys": ["OrgCode"],
+      "historyDepth": "5y",
+      "attachments": false,
+      "legalRetention": "org-structure-current",
+      "availability": "shared-drive",
+      "freezeConstraints": ["freeze-folder-T-7d"],
+      "volume": {
+        "rowCount": 4200,
+        "fileCount": 18,
+        "measuredAt": "2026-06-16",
+        "method": "sample",
+        "estimateOnly": false
+      },
+      "quality": {
+        "completeness": 0.88,
+        "nullRate": 0.1,
+        "duplicateKeyRate": 0.02,
+        "profileReportRef": "testdata/mig001/profiling/agency-signed-profile.json"
+      },
+      "accessRisks": ["unencrypted-share", "broad-acl"],
+      "status": "Inventoried"
+    },
+    {
+      "sourceId": "legacy-docs-share",
+      "type": "file",
+      "agencyId": "agency-pilot-a",
+      "ownerRole": "agency-records",
+      "encoding": "mixed",
+      "keys": ["EmpNo", "DocId"],
+      "historyDepth": "15y",
+      "attachments": true,
+      "legalRetention": "personnel-file-lifetime",
+      "availability": "nas-offline-nights",
+      "freezeConstraints": ["copy-then-freeze", "checksum-before-cutover"],
+      "volume": {
+        "rowCount": 0,
+        "fileCount": 54000,
+        "measuredAt": "2026-06-16",
+        "method": "sample",
+        "estimateOnly": false
+      },
+      "quality": {
+        "completeness": 0.7,
+        "nullRate": 0.0,
+        "duplicateKeyRate": 0.05,
+        "profileReportRef": "testdata/mig001/profiling/agency-signed-profile.json"
+      },
+      "accessRisks": ["no-dlp", "pii-attachments", "virus-scan-gap"],
+      "status": "Inventoried"
+    },
+    {
+      "sourceId": "civil-api-stub",
+      "type": "api",
+      "agencyId": "national-civil",
+      "ownerRole": "integration",
+      "encoding": "utf-8",
+      "keys": ["NationalId"],
+      "historyDepth": "current-only",
+      "attachments": false,
+      "legalRetention": "query-logs-90d",
+      "availability": "rate-limited-api",
+      "freezeConstraints": ["no-bulk-export-without-MOU"],
+      "volume": {
+        "rowCount": 0,
+        "fileCount": 0,
+        "measuredAt": "2026-06-17",
+        "method": "sample",
+        "estimateOnly": false
+      },
+      "quality": {
+        "completeness": 1.0,
+        "nullRate": 0.0,
+        "duplicateKeyRate": 0.0,
+        "profileReportRef": "testdata/mig001/profiling/agency-signed-profile.json"
+      },
+      "accessRisks": ["api-key-shared", "no-staging-sandbox"],
+      "status": "Inventoried"
+    },
+    {
+      "sourceId": "paper-personnel-files",
+      "type": "paper",
+      "agencyId": "agency-pilot-a",
+      "ownerRole": "agency-records",
+      "encoding": "n/a",
+      "keys": ["NationalId"],
+      "historyDepth": "lifetime",
+      "attachments": true,
+      "legalRetention": "personnel-file-lifetime",
+      "availability": "physical-archive",
+      "freezeConstraints": ["scan-batch-freeze", "chain-of-custody"],
+      "volume": {
+        "rowCount": 0,
+        "fileCount": 8200,
+        "measuredAt": "2026-06-18",
+        "method": "sample",
+        "estimateOnly": false
+      },
+      "quality": {
+        "completeness": 0.55,
+        "nullRate": 0.0,
+        "duplicateKeyRate": 0.08,
+        "profileReportRef": "testdata/mig001/profiling/agency-signed-profile.json"
+      },
+      "accessRisks": ["physical-theft", "incomplete-index", "no-digital-backup"],
+      "status": "Inventoried"
+    },
+    {
+      "sourceId": "legacy-access-control-unsupported",
+      "type": "unsupported",
+      "agencyId": "agency-pilot-b",
+      "ownerRole": "agency-it",
+      "encoding": "unknown",
+      "keys": ["BadgeId"],
+      "historyDepth": "unknown",
+      "attachments": false,
+      "legalRetention": "unknown",
+      "availability": "vendor-offline",
+      "freezeConstraints": ["manual-defer-to-wave-2"],
+      "volume": {
+        "rowCount": 0,
+        "fileCount": 0,
+        "measuredAt": "2026-06-18",
+        "method": "exception",
+        "estimateOnly": true
+      },
+      "quality": {
+        "completeness": 0,
+        "nullRate": 0,
+        "duplicateKeyRate": 0,
+        "profileReportRef": null
+      },
+      "accessRisks": ["vendor-lock", "no-export-api"],
+      "status": "Unsupported"
+    }
+  ],
+  "targetFieldSot": [
+    {
+      "targetField": "Employee.NationalId",
+      "sourceOfTruthSourceId": "legacy-hr-batch",
+      "sourceField": "NAT_ID",
+      "gov003Join": "docs/master-data/field-ownership.json#Employee.NationalId"
+    },
+    {
+      "targetField": "Employee.FullName",
+      "sourceOfTruthSourceId": "legacy-hr-batch",
+      "sourceField": "FULL_NAME",
+      "gov003Join": "docs/master-data/field-ownership.json#Employee.FullName"
+    },
+    {
+      "targetField": "Employee.CurrentStatus",
+      "sourceOfTruthSourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "gov003Join": "docs/master-data/field-ownership.json#Employee.CurrentStatus"
+    },
+    {
+      "targetField": "Employee.PrimaryOrgUnitId",
+      "sourceOfTruthSourceId": "legacy-org-files",
+      "sourceField": "ORG_CODE",
+      "gov003Join": "docs/master-data/field-ownership.json#Employee.PrimaryOrgUnitId"
+    },
+    {
+      "targetField": "OrgUnit.Code",
+      "sourceOfTruthSourceId": "legacy-org-files",
+      "sourceField": "ORG_CODE",
+      "gov003Join": "docs/master-data/field-ownership.json#OrgUnit.Code"
+    },
+    {
+      "targetField": "EmploymentRecord.PositionTitle",
+      "sourceOfTruthSourceId": "legacy-hr-batch",
+      "sourceField": "JOB_TITLE",
+      "gov003Join": "docs/master-data/field-ownership.json#EmploymentRecord.PositionTitle"
+    },
+    {
+      "targetField": "EmployeePayProfile.BaseSalary",
+      "sourceOfTruthSourceId": "legacy-payroll",
+      "sourceField": "BASE_SALARY",
+      "gov003Join": "docs/master-data/field-ownership.json#EmployeePayProfile.BaseSalary"
+    },
+    {
+      "targetField": "AuthUser.Username",
+      "sourceOfTruthSourceId": "legacy-hr-batch",
+      "sourceField": "LOGIN_HINT",
+      "gov003Join": "docs/master-data/field-ownership.json#AuthUser.Username"
+    }
+  ],
+  "requiredTargetFields": [
+    "Employee.NationalId",
+    "Employee.FullName",
+    "Employee.CurrentStatus",
+    "Employee.PrimaryOrgUnitId",
+    "OrgUnit.Code",
+    "EmploymentRecord.PositionTitle",
+    "EmployeePayProfile.BaseSalary",
+    "AuthUser.Username"
+  ],
+  "exceptions": [
+    {
+      "exceptionId": "EX-MIG001-UNSUPPORTED-ACCESS",
+      "sourceId": "legacy-access-control-unsupported",
+      "signedByRole": "agency-it",
+      "reviewerRole": "migration-office",
+      "expiresOn": "2027-06-30",
+      "reason": "Vendor offline; defer access-control migration to wave-2; ExceptionSigned covers universe coverage",
+      "status": "Declared"
+    }
+  ],
+  "blockers": [
+    { "id": "STR-001", "status": "Satisfied", "note": "Envelope Done" },
+    { "id": "GOV-003", "status": "Satisfied", "note": "Field ownership / DQ Done" },
+    { "id": "agency-extract-access", "status": "Blocked", "note": "Real agency read paths not granted; lab measured counts" },
+    { "id": "SYR-002", "status": "Blocked", "note": "Official census volumes later" }
+  ],
+  "journeys": [
+    {
+      "id": "SourceCatalog",
+      "steps": [
+        { "id": "UniverseCovered", "mandatory": true, "ownerRole": "migration-office", "slaHours": 72, "evidenceType": "sources", "service": "docs", "event": null },
+        { "id": "TypesEncoded", "mandatory": true, "ownerRole": "migration-office", "slaHours": 48, "evidenceType": "source types", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "FieldSot",
+      "steps": [
+        { "id": "CriticalTargetsMapped", "mandatory": true, "ownerRole": "data", "slaHours": 72, "evidenceType": "targetFieldSot", "service": "docs", "event": null },
+        { "id": "Gov003Join", "mandatory": true, "ownerRole": "data", "slaHours": 24, "evidenceType": "gov003Join", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "MeasuredVolumeQuality",
+      "steps": [
+        { "id": "NoEstimateOnly", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "volume", "service": "docs", "event": null },
+        { "id": "QualityProfiled", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "quality", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "AccessRisks",
+      "steps": [
+        { "id": "RisksDocumented", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "accessRisks", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "SamplingProfiling",
+      "steps": [
+        { "id": "SampleManifest", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "sampling", "service": "testdata", "event": null },
+        { "id": "AgencySignedProfile", "mandatory": true, "ownerRole": "agency-hr", "slaHours": 72, "evidenceType": "profiling", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CoverageGate",
+      "steps": [
+        { "id": "HundredPercentOrException", "mandatory": true, "ownerRole": "migration-office", "slaHours": 24, "evidenceType": "exceptions", "service": "docs", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "sampling": "testdata/mig001/sampling/source-sample-manifest.json",
+    "rowFileCounts": "testdata/mig001/counts/row-file-counts.json",
+    "profilingReport": "testdata/mig001/profiling/agency-signed-profile.json",
+    "accessRiskFail": "testdata/mig001/scenarios/undocumented-access-risk.json",
+    "estimateOnlyFail": "testdata/mig001/scenarios/estimate-only-volume.json",
+    "missingSotFail": "testdata/mig001/scenarios/target-field-no-sot.json",
+    "coverageException": "testdata/mig001/exceptions/signed-unsupported.json"
+  },
+  "joins": {
+    "gov003FieldOwnership": "docs/master-data/field-ownership.json",
+    "str001Envelope": "docs/str-scope/envelope-matrix.json",
+    "str007LegacyBaselines": "docs/str-value/kpi-matrix.json#baselines"
+  }
+}

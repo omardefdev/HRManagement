@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "إدخال حضور جماعي";
+}
+<form method="post" asp-action="BulkEntry">
+    @Html.AntiForgeryToken()
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label>الوحدة التنظيمية</label>
+                <select name="orgUnitId" class="form-control" asp-items="ViewBag.OrgUnits" required></select>
+            </div>
+            <div class="mb-3">
+                <label>الشهر</label>
+                <input type="month" name="month" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label>الحالة الافتراضية</label>
+                <select name="defaultStatus" class="form-control" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.DailyAttendanceStatus>()"></select>
+            </div>
+            <button type="submit" class="btn btn-primary">إدخال</button>
+        </div>
+    </div>
+</form>

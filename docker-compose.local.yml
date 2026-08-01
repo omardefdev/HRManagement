@@ -1,0 +1,71 @@
+services:
+  keycloak:
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8088
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+
+  hr-core-web:
+    environment:
+      HrGateway__PublicBaseUrl: http://localhost:5200
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  hr-contracts-web:
+    environment:
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  hr-health-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  hr-movements-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  hr-training-web:
+    environment:
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  payroll-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  idcard-web:
+    environment:
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  records-archive-web:
+    environment:
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  admin-logistics-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  it-infra-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  dev-analytics-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  compliance-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  auth-directory-web:
+    environment:
+      Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+
+  hr-gateway:
+    environment:
+      Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
+      Keycloak__PublicAuthority: http://localhost:8088/realms/hrmanagement
+      Keycloak__GetClaimsFromUserInfo: "false"

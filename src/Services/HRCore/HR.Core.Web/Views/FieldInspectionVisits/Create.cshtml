@@ -1,0 +1,11 @@
+@model HR.Core.Web.ViewModels.FieldInspectionVisitCreateViewModel
+@{ ViewData["Title"] = "زيارة تفتيش"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /><span asp-validation-for="Title" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Location" class="form-label"></label><input asp-for="Location" class="form-control" /><span asp-validation-for="Location" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="VisitDate" class="form-label"></label><input asp-for="VisitDate" class="form-control" type="date" /><span asp-validation-for="VisitDate" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="LeadInspectorId" class="form-label"></label><input asp-for="LeadInspectorId" class="form-control" placeholder="قائد التفتيش " /><span asp-validation-for="LeadInspectorId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Summary" class="form-label"></label><textarea asp-for="Summary" class="form-control" rows="3"></textarea><span asp-validation-for="Summary" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

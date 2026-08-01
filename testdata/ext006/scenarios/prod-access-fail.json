@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-PROD-ACCESS",
+  "expectedValidate": "FAIL",
+  "attemptedProdAccess": true,
+  "partnerId": "partner-lab-01",
+  "notes": "Sandbox credential used against production must fail"
+}

@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-UNAVAILABLE-DEGRADE",
+  "expectedValidate": "PASS",
+  "registryAvailable": false,
+  "degradeBehavior": "fail-closed-manual",
+  "treatedAsVerifiedMatch": false,
+  "manualHold": true
+}

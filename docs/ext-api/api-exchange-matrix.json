@@ -1,0 +1,187 @@
+{
+  "card": "EXT-005",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "apiExchangePolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "catalogRequired": true,
+  "requiredCatalogFields": ["integrationId", "contractRef", "owner", "sla"],
+  "versioning": {
+    "semverRequired": true,
+    "breakingRequiresMajorBump": true
+  },
+  "compatibility": {
+    "measureBackwardCompat": true,
+    "supportNMinus1": true
+  },
+  "sharedDbForbidden": true,
+  "purposeBoundExport": {
+    "consentRequired": true,
+    "purposeAllowlist": [
+      "payroll-disbursement-export",
+      "civil-registry-proof-query",
+      "agency-onboarding-sync",
+      "audit-evidence-export"
+    ]
+  },
+  "throttling": {
+    "defaultRpm": 120,
+    "burst": 30,
+    "onExceed": 429
+  },
+  "nonRepudiation": {
+    "correlationIdRequired": true,
+    "auditRequired": true
+  },
+  "tenant": {
+    "tenantHeaderRequired": true,
+    "crossTenantDeny": true
+  },
+  "errorModel": {
+    "problemDetailsRequired": true
+  },
+  "deprecation": {
+    "noticeDaysMin": 90,
+    "sunsetRequiresMajor": true
+  },
+  "dataMinimization": {
+    "forbidExcessFields": true
+  },
+  "schemaRegistry": {
+    "labMockAllowed": true,
+    "liveForbidden": true
+  },
+  "consumerDriven": {
+    "certifiedConsumersProtected": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["exchangeId", "integrationId", "actor", "tenantId", "outcome", "correlationId", "occurredAt"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveBusForbidden": true,
+    "mockCatalog": true,
+    "mockRegistry": true
+  },
+  "signing": {
+    "signedByRole": "api-governance-lead",
+    "reviewerRole": "integration-architecture-officer",
+    "apiExchangePolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext005-lab-api-exchange-policy-20260730"
+  },
+  "blockers": [
+    { "id": "IAM-004", "status": "Satisfied", "note": "S2S Done" },
+    { "id": "TEN-003", "status": "Satisfied", "note": "Isolation Done" },
+    { "id": "INT-002", "status": "Satisfied", "note": "Inbox Done" },
+    { "id": "PROD-007", "status": "Satisfied", "note": "Production extensibility-platform binding Done; live extension runtime later PROD-007a–c" },
+    { "id": "gov-exchange-bus-live", "status": "Blocked", "note": "Lab catalog only" },
+    { "id": "schema-registry-live", "status": "Blocked", "note": "Lab mock only" },
+    { "id": "partner-cdc-cert", "status": "Blocked", "note": "Needs EXT-006" },
+    { "id": "national-openapi-publish", "status": "Blocked", "note": "Dev Swagger not governed" }
+  ],
+  "outOfScope": [
+    "Live government exchange bus",
+    "Production schema registry",
+    "PROD-007 product platform",
+    "EXT-006 certification UI",
+    "EXT-007 sector catalog product",
+    "Shared-database integrations",
+    "Domain/Gateway rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "CatalogPublish",
+      "steps": [
+        { "id": "CatalogPolicy", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "catalogRequired", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "ContractOwnerSla",
+      "steps": [
+        { "id": "OwnerSlaPolicy", "mandatory": true, "ownerRole": "api-gov", "slaHours": 48, "evidenceType": "requiredCatalogFields", "service": "docs", "event": null },
+        { "id": "MissingOwnerSlaFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-owner-sla-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "BackwardCompatMeasured",
+      "steps": [
+        { "id": "CompatPolicy", "mandatory": true, "ownerRole": "api-gov", "slaHours": 48, "evidenceType": "compatibility", "service": "docs", "event": null },
+        { "id": "BreakingWithoutBumpFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "breaking-without-bump-fail", "service": "testdata", "event": null },
+        { "id": "N1CompatPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "n1-compat-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "NoSharedDb",
+      "steps": [
+        { "id": "SharedDbPolicy", "mandatory": true, "ownerRole": "architecture", "slaHours": 24, "evidenceType": "sharedDbForbidden", "service": "docs", "event": null },
+        { "id": "SharedDbFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "shared-db-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "PurposeBoundExport",
+      "steps": [
+        { "id": "PurposePolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 48, "evidenceType": "purposeBoundExport", "service": "docs", "event": null },
+        { "id": "PurposeDeniedExportFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "purpose-denied-export-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ConsumerDrivenBreak",
+      "steps": [
+        { "id": "CdcPolicy", "mandatory": true, "ownerRole": "api-gov", "slaHours": 48, "evidenceType": "consumerDriven", "service": "docs", "event": null },
+        { "id": "CertifiedConsumerBreakFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "certified-consumer-break-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SchemaRegistryCompat",
+      "steps": [
+        { "id": "RegistryPolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 48, "evidenceType": "schemaRegistry", "service": "docs", "event": null },
+        { "id": "SchemaIncompatFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "schema-incompat-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ThrottleAndCorrelation",
+      "steps": [
+        { "id": "ThrottlePolicy", "mandatory": true, "ownerRole": "security", "slaHours": 24, "evidenceType": "throttling", "service": "docs", "event": null },
+        { "id": "ThrottleExceedPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "throttle-exceed-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "DeprecationWindow",
+      "steps": [
+        { "id": "DeprecationPolicy", "mandatory": true, "ownerRole": "api-gov", "slaHours": 24, "evidenceType": "deprecation", "service": "docs", "event": null },
+        { "id": "DeprecationTooShortFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "deprecation-too-short-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "InteropHarness",
+      "steps": [
+        { "id": "InteropPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "interop-harness-pass", "service": "testdata", "event": null },
+        { "id": "ExchangeAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "exchange-audit-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "missingOwnerSlaFail": "testdata/ext005/scenarios/missing-owner-sla-fail.json",
+    "breakingWithoutBumpFail": "testdata/ext005/scenarios/breaking-without-bump-fail.json",
+    "n1CompatPass": "testdata/ext005/scenarios/n1-compat-pass.json",
+    "sharedDbFail": "testdata/ext005/scenarios/shared-db-fail.json",
+    "certifiedConsumerBreakFail": "testdata/ext005/scenarios/certified-consumer-break-fail.json",
+    "purposeDeniedExportFail": "testdata/ext005/scenarios/purpose-denied-export-fail.json",
+    "schemaIncompatFail": "testdata/ext005/scenarios/schema-incompat-fail.json",
+    "throttleExceedPass": "testdata/ext005/scenarios/throttle-exceed-pass.json",
+    "deprecationTooShortFail": "testdata/ext005/scenarios/deprecation-too-short-fail.json",
+    "interopHarnessPass": "testdata/ext005/scenarios/interop-harness-pass.json",
+    "exchangeAuditPass": "testdata/ext005/audit/exchange-audit-pass.json",
+    "apiExchangeRunLedger": "testdata/ext005/harness/api-exchange-run-ledger.json"
+  },
+  "joins": {
+    "externalIntegrations": "docs/EXTERNAL_INTEGRATIONS.md",
+    "eventMatrix": "docs/MESSAGE_EVENT_MATRIX.md",
+    "iam004S2s": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "ten003Isolation": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "int002Inbox": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "prod007Soft": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md",
+    "ext006Downstream": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md"
+  }
+}

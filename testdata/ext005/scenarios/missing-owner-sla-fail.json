@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-MISSING-OWNER-SLA",
+  "expectedValidate": "FAIL",
+  "integrationId": "int-lab-001",
+  "contractRef": "openapi:payroll-v1",
+  "owner": null,
+  "sla": null,
+  "notes": "Catalog entry without owner/SLA must fail"
+}

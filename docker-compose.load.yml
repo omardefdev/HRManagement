@@ -1,0 +1,30 @@
+# NFR-001 — optional one-shot k6 runner (not part of production stack).
+# Usage:
+#   docker compose -f docker-compose.load.yml run --rm k6-smoke
+# Requires network access to the gateway (host.docker.internal on Docker Desktop).
+
+services:
+  k6-smoke:
+    image: grafana/k6:0.54.0
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:5000}
+      NFR_PROFILE: smoke
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/results:/out
+    command: ["run", "--summary-export=/out/docker-smoke-summary.json", "/scripts/smoke.js"]
+    profiles: ["load"]
+
+  k6-gateway-load:
+    image: grafana/k6:0.54.0
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:5000}
+      NFR_PROFILE: load
+      VUS_BASE: ${VUS_BASE:-50}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+    volumes:
+      - ./perf/k6:/scripts:ro
+      - ./perf/results:/out
+    command: ["run", "--summary-export=/out/docker-gateway-load-summary.json", "/scripts/gateway-mixed.js"]
+    profiles: ["load"]

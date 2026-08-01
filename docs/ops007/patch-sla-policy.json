@@ -1,0 +1,65 @@
+{
+  "card": "OPS-007",
+  "title": "Patch SLA Policy",
+  "version": "1.0.0",
+  "patchSLAs": [
+    {
+      "id": "exploited-critical",
+      "class": "Exploited Critical (CISA KEV / zero-day)",
+      "cvssMin": 9.0,
+      "exploitedInWild": true,
+      "slaHours": 24,
+      "exceptionProcess": "CISO sign-off within 4 hours; compensating control mandatory",
+      "changeType": "emergency"
+    },
+    {
+      "id": "critical",
+      "class": "Critical",
+      "cvssMin": 9.0,
+      "exploitedInWild": false,
+      "slaDays": 7,
+      "exceptionProcess": "Risk acceptance with expiry date",
+      "changeType": "urgent"
+    },
+    {
+      "id": "high",
+      "class": "High",
+      "cvssMin": 7.0,
+      "cvssMax": 8.9,
+      "slaDays": 30,
+      "exceptionProcess": "Standard change approval",
+      "changeType": "standard"
+    },
+    {
+      "id": "medium",
+      "class": "Medium",
+      "cvssMin": 4.0,
+      "cvssMax": 6.9,
+      "slaDays": 90,
+      "exceptionProcess": "Batched in maintenance window",
+      "changeType": "standard"
+    },
+    {
+      "id": "low",
+      "class": "Low",
+      "cvssMin": 0.0,
+      "cvssMax": 3.9,
+      "slaDays": null,
+      "slaDescription": "Next scheduled upgrade cycle",
+      "exceptionProcess": "None required",
+      "changeType": "routine"
+    }
+  ],
+  "certAlertWindows": [
+    { "daysBeforeExpiry": 60, "severity": "info", "action": "Plan renewal" },
+    { "daysBeforeExpiry": 30, "severity": "warning", "action": "Initiate renewal process" },
+    { "daysBeforeExpiry": 15, "severity": "urgent", "action": "Escalate if not renewed" },
+    { "daysBeforeExpiry": 7, "severity": "critical", "action": "Page on-call, emergency renewal" }
+  ],
+  "eolPolicy": {
+    "zeroEolWithoutException": true,
+    "exceptionRequires": ["risk-assessment", "compensating-controls", "time-bound-plan", "named-owner"],
+    "sweepFrequency": "quarterly",
+    "approachingEolThresholdMonths": 6
+  }
+}

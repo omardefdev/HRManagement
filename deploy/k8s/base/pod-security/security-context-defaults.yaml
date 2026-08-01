@@ -1,0 +1,49 @@
+# HARD-001: reference SecurityContext defaults for HR Management app pods.
+# Apply via Kustomize patches or copy into Deployment/StatefulSet manifests.
+# Data-plane operators (CNPG, RabbitMQ) may require documented exceptions.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-security-context-defaults
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hard001.hrmanagement.io/reference: "true"
+data:
+  pod-security-context.yaml: |
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+  container-security-context.yaml: |
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1654
+      capabilities:
+        drop:
+          - ALL
+  gateway-container-security-context.yaml: |
+    # hr-gateway: readOnlyRootFilesystem true; no writable outbox volume
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1654
+      capabilities:
+        drop:
+          - ALL
+  outbox-container-security-context.yaml: |
+    # hr-core-web, payroll-web: mount emptyDir or PVC at /app/integration-outbox
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 1654
+      capabilities:
+        drop:
+          - ALL

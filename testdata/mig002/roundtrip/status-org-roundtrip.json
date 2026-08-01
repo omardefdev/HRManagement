@@ -1,0 +1,27 @@
+{
+  "fixtureId": "MIG002-STATUS-ORG-ROUNDTRIP",
+  "expectedValidate": "PASS",
+  "samples": [
+    {
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "sourceValue": "A",
+      "forwardTarget": "Active",
+      "roundTripSource": "A"
+    },
+    {
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "STATUS_CODE",
+      "sourceValue": "T",
+      "forwardTarget": "Terminated",
+      "roundTripSource": "T"
+    },
+    {
+      "sourceId": "legacy-org-files",
+      "sourceField": "ORG_CODE",
+      "sourceValue": "HQ",
+      "forwardTarget": "HQ",
+      "roundTripSource": "HQ"
+    }
+  ]
+}

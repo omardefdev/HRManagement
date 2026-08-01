@@ -1,0 +1,46 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام النقل والتدريب والصحة
+left to right direction
+actor "موظف الموارد البشرية" as Hr
+actor "مدير الفرع" as Branch
+actor "مسؤول التدريب" as Training
+actor "مسؤول الصحة" as Health
+rectangle "خدمات الأفراد" {
+  usecase "طلب نقل أو انتداب" as U1
+  usecase "اعتماد وتنفيذ النقل" as U2
+  usecase "نشر الأثر المالي" as U3
+  usecase "إعداد خطة تدريب" as U4
+  usecase "تسجيل الالتحاق والإكمال" as U5
+  usecase "إنشاء سجل صحي" as U6
+  usecase "توثيق فحص أو حادث مهني" as U7
+}
+Hr --> U1
+Branch --> U2
+U2 .> U3 : <<include>>
+Training --> U4
+Training --> U5
+Health --> U6
+Health --> U7
+@enduml

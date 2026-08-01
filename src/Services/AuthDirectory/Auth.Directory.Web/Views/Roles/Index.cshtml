@@ -1,0 +1,33 @@
+@model IReadOnlyList<Auth.Directory.Domain.Entities.Role>
+@{ ViewData["Title"] = "الأدوار"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">الأدوار</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>الاسم</th><th>الوصف</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.Name</td>
+                        <td>@x.Description</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-xs btn-warning" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            <form asp-action="Delete" asp-route-id="@x.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('هل أنت متأكد من الحذف؟')" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="3" class="text-center text-muted">لا توجد</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

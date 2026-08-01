@@ -1,0 +1,40 @@
+@model IReadOnlyList<FirstAidTrainingRecord>
+@{ ViewData["Title"] = "تدريب الإسعافات الأولية"; }
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">تسجيل تدريب إسعافات</h5></div>
+    <div class="card-body">
+        <form asp-action="CreateFirstAid" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <div class="col-md-2"><label class="form-label">معرّف الموظف</label><input name="EmployeeId" class="form-control" required /></div>
+            <div class="col-md-3"><label class="form-label">اسم الموظف</label><input name="EmployeeName" class="form-control" /></div>
+            <div class="col-md-2"><label class="form-label">تاريخ التدريب</label><input name="TrainingDate" type="date" class="form-control" value="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-2"><label class="form-label">الجهة المدرِّبة</label><input name="Provider" class="form-control" /></div>
+            <div class="col-md-2"><label class="form-label">رقم الشهادة</label><input name="CertificateNo" class="form-control" /></div>
+            <div class="col-md-1 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">حفظ</button></div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">سجل التدريب على الإسعافات</h3>
+        <a asp-action="Index" class="btn btn-link">رجوع للحوادث</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>التاريخ</th><th>الموظف</th><th>الجهة</th><th>رقم الشهادة</th><th>انتهاء الصلاحية</th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.TrainingDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(x.EmployeeName ?? x.EmployeeId.ToString())</td>
+                        <td>@(x.Provider ?? "—")</td>
+                        <td>@(x.CertificateNo ?? "—")</td>
+                        <td>@(x.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا سجلات تدريب</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

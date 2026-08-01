@@ -1,0 +1,53 @@
+@model List<HR.Core.Domain.Entities.ApprovalRequest>
+@{
+    ViewData["Title"] = "الطلبات المعلقة";
+}
+
+<div class="card">
+    <div class="card-header bg-warning">
+        <h3 class="card-title"><i class="fas fa-clock"></i> @ViewData["Title"]</h3>
+        <div class="card-tools">
+            <a asp-action="Index" class="btn btn-default btn-sm"><i class="fas fa-list"></i> كل الطلبات</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info">لا توجد طلبات معلقة حالياً</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>نوع الكيان</th>
+                            <th>الوصف</th>
+                            <th>مقدّم الطلب</th>
+                            <th>تاريخ الطلب</th>
+                            <th>المستوى</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var req in Model)
+                        {
+                            <tr>
+                                <td>@req.EntityType</td>
+                                <td>@(req.Description ?? "—")</td>
+                                <td>@(req.RequestedByName ?? "—")</td>
+                                <td dir="ltr">@req.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><span class="badge text-bg-info">المستوى @req.CurrentLevel</span></td>
+                                <td>
+                                    <a asp-action="Review" asp-route-id="@req.Id" class="btn btn-primary btn-xs">
+                                        <i class="fas fa-gavel"></i> مراجعة
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,11 @@
+@model Guid?
+@{
+    var fileId = Model;
+    var cssClass = ViewData["ImageClass"] as string ?? "img-thumbnail";
+    var maxHeight = ViewData["MaxHeight"] as string ?? "120px";
+}
+
+@if (fileId.HasValue)
+{
+    <img src="@FileUrls.DownloadUrl(fileId.Value)" alt="" class="@cssClass" style="max-height:@maxHeight" />
+}

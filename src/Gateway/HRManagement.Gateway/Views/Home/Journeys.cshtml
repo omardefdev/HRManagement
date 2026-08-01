@@ -1,0 +1,30 @@
+@model IReadOnlyList<HRManagement.Gateway.Models.GatewayJourneyDefinition>
+@{
+    ViewData["Title"] = "المسارات التشغيلية";
+}
+
+<div class="gateway-page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="gateway-page-title">المسارات التشغيلية</h1>
+        <p class="gateway-page-subtitle">رحلات عمل عابرة للخدمات لتمكين التنفيذ المنهجي حسب سياسات المؤسسة.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var journey in Model)
+    {
+        <div class="col-lg-4 col-md-6">
+            <div class="gateway-card-journey h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">@journey.Title</h5>
+                        <span class="gateway-badge gateway-badge-info">@journey.Category</span>
+                    </div>
+                    <p class="small gateway-muted mb-3">@journey.Description</p>
+                    <div class="small mb-3">عدد الخطوات: <strong>@journey.Steps.Count</strong></div>
+                    <a class="btn btn-sm gateway-btn-primary" asp-action="JourneyDetails" asp-route-id="@journey.Id">عرض المسار</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

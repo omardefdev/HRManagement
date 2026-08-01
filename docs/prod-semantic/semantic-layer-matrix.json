@@ -1,0 +1,144 @@
+{
+  "card": "PROD-006",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "semanticLayerPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "warehouseDecision": {
+    "required": true,
+    "labStubAllowed": true,
+    "liveWarehouseForbidden": true
+  },
+  "semanticMetrics": {
+    "required": true,
+    "unifiedDefinitionRequired": true
+  },
+  "scdDimensions": {
+    "required": true
+  },
+  "tenantRegionRollups": {
+    "required": true,
+    "rlsRequired": true,
+    "crossTenantForbidden": true
+  },
+  "statutoryReports": {
+    "required": true
+  },
+  "freshness": {
+    "required": true
+  },
+  "lineage": {
+    "required": true,
+    "versionAsOfSourceRequired": true
+  },
+  "privacyThresholds": {
+    "required": true,
+    "smallCellSuppressionRequired": true,
+    "reidentificationForbidden": true
+  },
+  "openDataAggregates": {
+    "required": true,
+    "labStubAllowed": true,
+    "liveFeedForbidden": true
+  },
+  "governedBi": {
+    "required": true,
+    "labStubAllowed": true,
+    "liveDashboardForbidden": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["reportId", "kpiId", "tenantId", "asOf", "sourceRef", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveWarehouseForbidden": true,
+    "liveBiDashboardForbidden": true
+  },
+  "signing": {
+    "signedByRole": "data-analytics-lead",
+    "reviewerRole": "privacy-governance-officer",
+    "semanticLayerPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod006-lab-semantic-layer-20260730"
+  },
+  "blockers": [
+    { "id": "GOV-003", "status": "Satisfied", "note": "Master data governance Done" },
+    { "id": "FUN-006", "status": "Satisfied", "note": "Reporting functions Done" },
+    { "id": "PERF-004", "status": "Satisfied", "note": "Scale/perf Done" },
+    { "id": "TEN-003", "status": "Satisfied", "note": "Tenant isolation Done" },
+    { "id": "live-warehouse", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-bi-dashboard", "status": "Blocked", "note": "Lab BI stub only" },
+    { "id": "live-open-data-feed", "status": "Blocked", "note": "Lab aggregates only" },
+    { "id": "ANA-001", "status": "NotStarted", "note": "National analytics later" },
+    { "id": "REP-001", "status": "NotStarted", "note": "Statutory reporting product later" },
+    { "id": "PROD-007", "status": "Satisfied", "note": "Production extensibility-platform binding Done; open-data live remains Blocked" }
+  ],
+  "outOfScope": [
+    "Live warehouse/lakehouse",
+    "Live semantic metrics engine",
+    "Live BI dashboard / LiveDashboardClaim",
+    "ANA-001 / REP-001 join",
+    "Open-data live feed / PROD-007",
+    "Domain rewrite",
+    "Closing WorkforcePlanning ANA-001 gap"
+  ],
+  "journeys": [
+    {
+      "id": "KpiDefinitions",
+      "steps": [
+        { "id": "MetricsPolicy", "mandatory": true, "ownerRole": "analytics", "slaHours": 48, "evidenceType": "semanticMetrics", "service": "docs", "event": null },
+        { "id": "KpiDefinitionPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "kpi-definition-pass", "service": "testdata", "event": null },
+        { "id": "UndefinedKpiFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "undefined-kpi-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "Reconciliation",
+      "steps": [
+        { "id": "GoldenPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "golden-report-pass", "service": "testdata", "event": null },
+        { "id": "ReconFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "reconciliation-fail", "service": "testdata", "event": null },
+        { "id": "FreshnessPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "lineage-freshness-pass", "service": "testdata", "event": null },
+        { "id": "StaleFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "stale-without-freshness-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "TenantPrivacy",
+      "steps": [
+        { "id": "RlsPolicy", "mandatory": true, "ownerRole": "security", "slaHours": 48, "evidenceType": "tenantRegionRollups", "service": "docs", "event": null },
+        { "id": "TenantScopedPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "tenant-scoped-pass", "service": "testdata", "event": null },
+        { "id": "CrossTenantFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cross-tenant-rollup-fail", "service": "testdata", "event": null },
+        { "id": "PrivacyPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "privacy-threshold-pass", "service": "testdata", "event": null },
+        { "id": "SmallCellFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "small-cell-attack-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "Provenance",
+      "steps": [
+        { "id": "LineagePolicy", "mandatory": true, "ownerRole": "data", "slaHours": 48, "evidenceType": "lineage", "service": "docs", "event": null },
+        { "id": "VersionedPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "versioned-report-pass", "service": "testdata", "event": null },
+        { "id": "MissingProvenanceFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "missing-provenance-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "undefinedKpiFail": "testdata/prod006/scenarios/undefined-kpi-fail.json",
+    "reconciliationFail": "testdata/prod006/scenarios/reconciliation-fail.json",
+    "crossTenantRollupFail": "testdata/prod006/scenarios/cross-tenant-rollup-fail.json",
+    "smallCellAttackFail": "testdata/prod006/scenarios/small-cell-attack-fail.json",
+    "missingProvenanceFail": "testdata/prod006/scenarios/missing-provenance-fail.json",
+    "staleWithoutFreshnessFail": "testdata/prod006/scenarios/stale-without-freshness-fail.json",
+    "kpiDefinitionPass": "testdata/prod006/scenarios/kpi-definition-pass.json",
+    "goldenReportPass": "testdata/prod006/scenarios/golden-report-pass.json",
+    "tenantScopedPass": "testdata/prod006/scenarios/tenant-scoped-pass.json",
+    "privacyThresholdPass": "testdata/prod006/scenarios/privacy-threshold-pass.json",
+    "versionedReportPass": "testdata/prod006/scenarios/versioned-report-pass.json",
+    "lineageFreshnessPass": "testdata/prod006/scenarios/lineage-freshness-pass.json",
+    "semanticRunLedger": "testdata/prod006/harness/semantic-run-ledger.json",
+    "semanticAuditPass": "testdata/prod006/audit/semantic-audit-pass.json"
+  },
+  "joins": {
+    "prod005Workbox": "docs/prod-workbox/workbox-matrix.json",
+    "str007Kpi": "docs/str-value/kpi-matrix.json",
+    "gov003": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md",
+    "ten003": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md"
+  }
+}

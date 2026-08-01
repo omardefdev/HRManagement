@@ -1,0 +1,67 @@
+{
+  "realm": "hrmanagement",
+  "enabled": true,
+  "sslRequired": "none",
+  "users": [
+    {
+      "username": "e2e-maker-contracts",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "E2E",
+      "lastName": "MakerContracts",
+      "credentials": [{ "type": "password", "value": "e2e-MakerContracts-1!", "temporary": false }],
+      "realmRoles": ["hr-contracts"]
+    },
+    {
+      "username": "e2e-checker-mgmt",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "e2e-CheckerMgmt-1!", "temporary": false }],
+      "realmRoles": ["hr-management-approver"]
+    },
+    {
+      "username": "e2e-payroll-processor",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-PayrollProc-1!", "temporary": false }],
+      "realmRoles": ["payroll-processor", "payroll"]
+    },
+    {
+      "username": "e2e-payroll-approver",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-PayrollAppr-1!", "temporary": false }],
+      "realmRoles": ["payroll-approver", "payroll"]
+    },
+    {
+      "username": "e2e-movements-ops",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-Movements-1!", "temporary": false }],
+      "realmRoles": ["hr-movements"]
+    },
+    {
+      "username": "e2e-file-ops",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-FileOps-1!", "temporary": false }],
+      "realmRoles": ["file-storage"]
+    },
+    {
+      "username": "e2e-outsider-b",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-OutsiderB-1!", "temporary": false }],
+      "realmRoles": ["hr-core"],
+      "attributes": { "tenant_id": ["33333333-3333-3333-3333-333333333333"] }
+    },
+    {
+      "username": "e2e-auth-directory",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-AuthDir-1!", "temporary": false }],
+      "realmRoles": ["auth-directory"]
+    },
+    {
+      "username": "e2e-hr-admin",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "e2e-HrAdmin-1!", "temporary": false }],
+      "realmRoles": ["hr-admin"]
+    }
+  ],
+  "_comment": "QA-004 synthetic users — merge/import into hrmanagement realm for journey E2E. Passwords are lab-only."
+}

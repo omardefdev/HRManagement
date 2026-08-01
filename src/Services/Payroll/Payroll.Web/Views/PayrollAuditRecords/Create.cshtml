@@ -1,0 +1,13 @@
+@model Payroll.Domain.Entities.PayrollAuditRecord
+@{ ViewData["Title"] = "مراجعة رواتب"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="PayrollRunId" class="form-label"></label><select asp-for="PayrollRunId" asp-items="ViewBag.Runs" class="form-control"></select><span asp-validation-for="PayrollRunId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Findings" class="form-label"></label><textarea asp-for="Findings" class="form-control" rows="3"></textarea><span asp-validation-for="Findings" class="text-danger"></span></div>
+            <div class="alert alert-info mb-0">يتم تعيين المدقق من هوية المستخدم الحالية، وتبدأ المراجعة بحالة مفتوحة فقط.</div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

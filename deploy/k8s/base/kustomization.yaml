@@ -1,0 +1,102 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hrmanagement
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/part-of: hrmanagement
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - configmap-app.yaml
+  - pod-security
+  - admission
+  - configmap-yarp.yaml
+  - secret-placeholder.yaml
+  - migrate-job.yaml
+  - network-policies
+  - hr-gateway/deployment.yaml
+  - hr-gateway/service.yaml
+  - hr-core-web/deployment.yaml
+  - hr-core-web/service.yaml
+  - hr-contracts-web/deployment.yaml
+  - hr-contracts-web/service.yaml
+  - hr-health-web/deployment.yaml
+  - hr-health-web/service.yaml
+  - hr-movements-web/deployment.yaml
+  - hr-movements-web/service.yaml
+  - hr-training-web/deployment.yaml
+  - hr-training-web/service.yaml
+  - payroll-web/deployment.yaml
+  - payroll-web/service.yaml
+  - idcard-web/deployment.yaml
+  - idcard-web/service.yaml
+  - records-archive-web/deployment.yaml
+  - records-archive-web/service.yaml
+  - admin-logistics-web/deployment.yaml
+  - admin-logistics-web/service.yaml
+  - it-infra-web/deployment.yaml
+  - it-infra-web/service.yaml
+  - dev-analytics-web/deployment.yaml
+  - dev-analytics-web/service.yaml
+  - compliance-web/deployment.yaml
+  - compliance-web/service.yaml
+  - auth-directory-web/deployment.yaml
+  - auth-directory-web/service.yaml
+  - file-storage-web/deployment.yaml
+  - file-storage-web/service.yaml
+patches:
+  - path: pod-security/restricted-psa.yaml
+  # HARD-001: restricted security context on every app Deployment (see the patch for why the
+  # ConfigMap of defaults was not enough).
+  - path: pod-security/apply-security-context.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+images:
+  - name: ghcr.io/OWNER/hrmanagement/hr-gateway
+    newName: ghcr.io/OWNER/hrmanagement/hr-gateway
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/hr-core-web
+    newName: ghcr.io/OWNER/hrmanagement/hr-core-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/hr-contracts-web
+    newName: ghcr.io/OWNER/hrmanagement/hr-contracts-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/hr-health-web
+    newName: ghcr.io/OWNER/hrmanagement/hr-health-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/hr-movements-web
+    newName: ghcr.io/OWNER/hrmanagement/hr-movements-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/hr-training-web
+    newName: ghcr.io/OWNER/hrmanagement/hr-training-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/payroll-web
+    newName: ghcr.io/OWNER/hrmanagement/payroll-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/idcard-web
+    newName: ghcr.io/OWNER/hrmanagement/idcard-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/records-archive-web
+    newName: ghcr.io/OWNER/hrmanagement/records-archive-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/admin-logistics-web
+    newName: ghcr.io/OWNER/hrmanagement/admin-logistics-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/it-infra-web
+    newName: ghcr.io/OWNER/hrmanagement/it-infra-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/dev-analytics-web
+    newName: ghcr.io/OWNER/hrmanagement/dev-analytics-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/compliance-web
+    newName: ghcr.io/OWNER/hrmanagement/compliance-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/auth-directory-web
+    newName: ghcr.io/OWNER/hrmanagement/auth-directory-web
+    newTag: IMAGE_TAG
+  - name: ghcr.io/OWNER/hrmanagement/file-storage-web
+    newName: ghcr.io/OWNER/hrmanagement/file-storage-web
+    newTag: IMAGE_TAG

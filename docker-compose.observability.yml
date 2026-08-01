@@ -1,0 +1,154 @@
+# Observability stack — for production, load this BEFORE the production overlay
+# so SEC-001 port closures in docker-compose.production.yml win:
+#   docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.observability.yml -f docker-compose.production.yml up -d
+
+services:
+  seq:
+    image: datalust/seq:2024.3
+    container_name: hrm-seq
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "${SEQ_HTTP_PORT:-5341}:80"
+    volumes:
+      - seq_data:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: hrm-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "${TEMPO_HTTP_PORT:-3200}:3200"
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: hrm-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./docker/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "8889:8889"
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: hrm-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./docker/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
+      - ./docker/prometheus/slo-burn-alerts.yml:/etc/prometheus/slo-burn-alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_HTTP_PORT:-9090}:9090"
+    depends_on:
+      - blackbox-exporter
+      - alertmanager
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: hrm-alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    volumes:
+      - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "${ALERTMANAGER_HTTP_PORT:-9093}:9093"
+    depends_on:
+      - alert-sink
+    restart: unless-stopped
+
+  alert-sink:
+    build:
+      context: ./docker/alert-sink
+    container_name: hrm-alert-sink
+    environment:
+      ALERT_SINK_PORT: "8089"
+      ALERT_SINK_DATA: /data
+    volumes:
+      - alert_sink_data:/data
+    ports:
+      - "${ALERT_SINK_HTTP_PORT:-8089}:8089"
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.24.0
+    container_name: hrm-blackbox-exporter
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+    volumes:
+      - ./docker/blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    ports:
+      - "${BLACKBOX_HTTP_PORT:-9115}:9115"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: hrm-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_DEFAULT_THEME: light
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_HTTP_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+      - tempo
+    restart: unless-stopped
+
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:v1.0.0-RC19
+    container_name: hrm-rabbitmq-exporter
+    environment:
+      RABBIT_URL: http://rabbitmq:15672
+      RABBIT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBIT_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      PUBLISH_PORT: "9419"
+    ports:
+      - "9419:9419"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: hrm-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgresql:5432/postgres?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  seq_data:
+  prometheus_data:
+  grafana_data:
+  tempo_data:
+  alert_sink_data:

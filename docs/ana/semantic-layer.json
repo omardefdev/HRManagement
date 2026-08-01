@@ -1,0 +1,129 @@
+{
+  "$schema": "semantic-layer-v1",
+  "card": "ANA-001",
+  "description": "National HR analytics semantic layer with governed measures, dimensions, and KPIs",
+  "measures": [
+    {
+      "code": "headcount",
+      "name": "Headcount",
+      "definition": "Exact count of active employees as-of snapshot date",
+      "grain": "monthly",
+      "type": "exact_count",
+      "owner": "Data Governance",
+      "source": "employment_records",
+      "reconciles_with": "EST-001 funded positions"
+    },
+    {
+      "code": "fte",
+      "name": "Full-Time Equivalent",
+      "definition": "Sum of FTE fractions for all active employment records",
+      "grain": "monthly",
+      "type": "exact_sum",
+      "owner": "Data Governance",
+      "source": "employment_records"
+    },
+    {
+      "code": "vacancy_rate",
+      "name": "Vacancy Rate",
+      "definition": "Vacant funded positions / total funded positions × 100",
+      "grain": "monthly",
+      "type": "ratio",
+      "owner": "HR Planning",
+      "source": "funded_positions",
+      "reconciles_with": "EST-001 position occupancy"
+    },
+    {
+      "code": "payroll_total",
+      "name": "Total Payroll Cost",
+      "definition": "Sum of gross pay for all processed payroll records in period",
+      "grain": "monthly",
+      "type": "exact_sum",
+      "currency": "SYP",
+      "owner": "Finance",
+      "source": "payroll_records",
+      "reconciles_with": "PAY-002 payroll run totals"
+    },
+    {
+      "code": "turnover_rate",
+      "name": "Turnover Rate",
+      "definition": "Separations in period / average headcount × 100",
+      "grain": "monthly",
+      "type": "ratio",
+      "owner": "HR Analytics",
+      "source": "separation_records"
+    },
+    {
+      "code": "avg_tenure",
+      "name": "Average Tenure",
+      "definition": "Mean service duration in months for active employees",
+      "grain": "monthly",
+      "type": "average",
+      "owner": "HR Analytics",
+      "source": "employment_records"
+    }
+  ],
+  "dimensions": [
+    {
+      "code": "agency",
+      "name": "Agency/Ministry",
+      "scd_type": 2,
+      "source": "MDM-001 reference catalogs"
+    },
+    {
+      "code": "governorate",
+      "name": "Governorate",
+      "scd_type": 1,
+      "source": "MDM-001 geographic catalog",
+      "values_count": 14
+    },
+    {
+      "code": "grade",
+      "name": "Grade/Rank",
+      "scd_type": 2,
+      "source": "EST-001 job catalog"
+    },
+    {
+      "code": "legal_regime",
+      "name": "Legal Regime",
+      "scd_type": 2,
+      "source": "SYR-003 legal regime registry",
+      "values": ["law50", "law53", "special"]
+    },
+    {
+      "code": "gender",
+      "name": "Gender",
+      "scd_type": 1,
+      "source": "employee demographics"
+    },
+    {
+      "code": "age_band",
+      "name": "Age Band",
+      "scd_type": 0,
+      "source": "computed from date of birth",
+      "bands": ["18-25", "26-35", "36-45", "46-55", "56-65", "65+"]
+    },
+    {
+      "code": "service_band",
+      "name": "Service Duration Band",
+      "scd_type": 0,
+      "source": "computed from hire date",
+      "bands": ["0-2y", "3-5y", "6-10y", "11-20y", "20y+"]
+    }
+  ],
+  "snapshot_policy": {
+    "grain": "monthly",
+    "as_of_support": true,
+    "late_data_handling": "event_timestamp_not_arrival",
+    "rebuild_deterministic": true,
+    "reconciliation_required": true
+  },
+  "permissions": {
+    "tenant_rls": true,
+    "national_aggregate_separate": true,
+    "national_aggregate_requires": "national_analytics_role",
+    "privacy_controls": {
+      "minimum_group_size": 5,
+      "suppress_small_cells": true
+    }
+  }
+}

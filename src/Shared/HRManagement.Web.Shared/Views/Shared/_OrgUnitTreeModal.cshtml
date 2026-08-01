@@ -1,0 +1,27 @@
+<div class="modal fade" id="orgUnitTreeModal" tabindex="-1" aria-labelledby="orgUnitTreeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" dir="rtl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orgUnitTreeModalLabel">اختيار وحدة تنظيمية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body" id="orgUnitTreePickerBody">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hr-org-tree ul { padding-inline-start: 1.25rem; border-inline-start: 2px solid var(--sy-gold, #b9a779); }
+    .hr-org-tree-item { list-style: none; padding: 0.15rem 0; }
+    .tree-select-btn { text-align: start; text-decoration: none; padding: 0.25rem 0.5rem; }
+    .tree-select-btn:hover { background-color: rgba(107, 31, 42, 0.08); border-radius: 4px; }
+    .tree-select-btn:focus-visible { outline: 3px solid var(--sy-gold, #b9a779); outline-offset: 2px; }
+    .ts-control { direction: rtl; text-align: right; }
+    .ts-dropdown { direction: rtl; text-align: right; }
+</style>

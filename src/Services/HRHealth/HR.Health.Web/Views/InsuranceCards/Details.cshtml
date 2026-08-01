@@ -1,0 +1,25 @@
+@model HR.Health.Domain.Entities.InsuranceCard
+@{ ViewData["Title"] = "تفاصيل بطاقة التأمين"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">بطاقة التأمين</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">رقم العضوية</dt><dd class="col-sm-9">@Model.MemberNumber</dd>
+            <dt class="col-sm-3">الشركة</dt><dd class="col-sm-9">@(Model.Provider ?? "—")</dd>
+            <dt class="col-sm-3">الإصدار</dt><dd class="col-sm-9">@Model.IssueDate</dd>
+            <dt class="col-sm-3">الانتهاء</dt><dd class="col-sm-9">@Model.ExpiryDate</dd>
+            <dt class="col-sm-3">أفراد الأسرة</dt><dd class="col-sm-9">@(Model.FamilyMembers ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<p><a asp-action="Index">العودة للقائمة</a></p>

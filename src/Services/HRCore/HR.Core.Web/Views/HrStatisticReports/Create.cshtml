@@ -1,0 +1,11 @@
+@model HR.Core.Web.ViewModels.HrStatisticReportCreateViewModel
+@{ ViewData["Title"] = "تقرير إحصائي"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /><span asp-validation-for="Title" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="PeriodStart" class="form-label"></label><input asp-for="PeriodStart" class="form-control" type="date" /><span asp-validation-for="PeriodStart" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="PeriodEnd" class="form-label"></label><input asp-for="PeriodEnd" class="form-control" type="date" /><span asp-validation-for="PeriodEnd" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" asp-items="ViewBag.OrgUnits" class="form-control"><option value="">— اختياري —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="MetricsSummary" class="form-label"></label><textarea asp-for="MetricsSummary" class="form-control" rows="4"></textarea><span asp-validation-for="MetricsSummary" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

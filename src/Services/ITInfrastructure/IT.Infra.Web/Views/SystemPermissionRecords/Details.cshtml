@@ -1,0 +1,38 @@
+@model SystemPermissionRecord
+@{ ViewData["Title"] = "تفاصيل صلاحية النظام"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">@ViewData["Title"]</h3>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.UserId)</dt>
+            <dd class="col-sm-9">@Model.UserId</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.System)</dt>
+            <dd class="col-sm-9">@Model.System</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Roles)</dt>
+            <dd class="col-sm-9">@Model.Roles</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.GrantedAt)</dt>
+            <dd class="col-sm-9">@Model.GrantedAt.ToString("yyyy/MM/dd HH:mm")</dd>
+
+            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.RevokedAt)</dt>
+            <dd class="col-sm-9">@(Model.RevokedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+        </dl>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+        <a asp-action="Index" class="btn btn-default">رجوع</a>
+
+        @if (Model.RevokedAt == null)
+        {
+            <form asp-action="Revoke" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">سحب الصلاحية</button>
+            </form>
+        }
+    </div>
+</div>

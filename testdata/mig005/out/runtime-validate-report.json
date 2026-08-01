@@ -1,0 +1,11 @@
+﻿{
+    "card":  "MIG-005",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "bucketCount":  3,
+    "artifactCount":  8,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

@@ -1,0 +1,10 @@
+{
+  "fixtureId": "MIG001-SIGNED-UNSUPPORTED",
+  "expectedValidate": "PASS",
+  "exceptionId": "EX-MIG001-UNSUPPORTED-ACCESS",
+  "sourceId": "legacy-access-control-unsupported",
+  "signedByRole": "agency-it",
+  "reviewerRole": "migration-office",
+  "expiresOn": "2027-06-30",
+  "coversUniverseGap": true
+}

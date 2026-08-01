@@ -1,0 +1,14 @@
+@model HR.Training.Domain.Entities.QualificationCode
+@{ ViewData["Title"] = "رمز تأهيل"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /><span asp-validation-for="Code" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="TitleAr" class="form-label"></label><input asp-for="TitleAr" class="form-control" /><span asp-validation-for="TitleAr" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="TitleEn" class="form-label"></label><input asp-for="TitleEn" class="form-control" /><span asp-validation-for="TitleEn" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="RequiredCourses" class="form-label"></label><textarea asp-for="RequiredCourses" class="form-control" rows="3"></textarea><span asp-validation-for="RequiredCourses" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

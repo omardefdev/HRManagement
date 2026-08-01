@@ -1,0 +1,8 @@
+# OBS-003 SIEM rule: bulk employee/org lookup
+id: bulk-lookup
+eventType: BulkLookup
+windowMinutes: 5
+threshold: 1
+alertname: SiemBulkLookup
+severity: page
+owner: security

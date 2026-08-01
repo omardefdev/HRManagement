@@ -1,0 +1,187 @@
+{
+  "card": "SYR-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "jurisdiction": "Syrian Arab Republic",
+  "register": [
+    {
+      "legalSourceId": "SYR-LAW-50-2004",
+      "type": "law",
+      "number": "50/2004",
+      "titleAr": "قانون العاملين الأساسي في الدولة",
+      "titleEn": "Basic State Employment Law",
+      "issueDate": "2004-09-09",
+      "effectiveDate": "2004-10-01",
+      "publicationDate": "2004-09-15",
+      "status": "active",
+      "amendedBy": ["SYR-DEC-67-2026", "SYR-DEC-68-2026"],
+      "repeals": [],
+      "scope": "Public sector employees under state employment",
+      "articles": {
+        "totalArticles": 166,
+        "keyArticles": [
+          {"number": 1, "subject": "Definitions and scope"},
+          {"number": 6, "subject": "Categories and grades"},
+          {"number": 18, "subject": "Appointment conditions"},
+          {"number": 65, "subject": "Leave entitlements"},
+          {"number": 105, "subject": "Promotion rules"},
+          {"number": 137, "subject": "Disciplinary actions"},
+          {"number": 159, "subject": "Special regime provisions"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "Ministry of Administrative Development"
+    },
+    {
+      "legalSourceId": "SYR-LAW-53-2021",
+      "type": "law",
+      "number": "53/2021",
+      "titleAr": "قانون العمل",
+      "titleEn": "Labor Code",
+      "issueDate": "2021-12-23",
+      "effectiveDate": "2022-03-23",
+      "publicationDate": "2021-12-30",
+      "status": "active",
+      "amendedBy": [],
+      "repeals": ["SYR-LAW-17-2010"],
+      "scope": "Private and mixed sector workers",
+      "articles": {
+        "totalArticles": 278,
+        "keyArticles": [
+          {"number": 1, "subject": "Scope and definitions"},
+          {"number": 55, "subject": "Employment contract"},
+          {"number": 115, "subject": "Working hours and leave"},
+          {"number": 185, "subject": "Wages and compensation"},
+          {"number": 230, "subject": "Social insurance obligations"},
+          {"number": 265, "subject": "Termination and severance"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "Ministry of Social Affairs and Labour"
+    },
+    {
+      "legalSourceId": "SYR-DEC-67-2026",
+      "type": "decree",
+      "number": "67/2026",
+      "titleAr": "مرسوم إصلاح جداول الأجور",
+      "titleEn": "Wage Reform Tables Decree",
+      "issueDate": "2026-03-15",
+      "effectiveDate": "2026-04-01",
+      "publicationDate": "2026-03-20",
+      "status": "active",
+      "amendedBy": [],
+      "repeals": [],
+      "scope": "Wage tables for all Law 50 employees",
+      "articles": {
+        "totalArticles": 12,
+        "keyArticles": [
+          {"number": 1, "subject": "New base wage tables"},
+          {"number": 4, "subject": "Grade-specific adjustments"},
+          {"number": 8, "subject": "Transition rules"},
+          {"number": 12, "subject": "Effective date and retroactivity"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "Ministry of Finance"
+    },
+    {
+      "legalSourceId": "SYR-DEC-68-2026",
+      "type": "decree",
+      "number": "68/2026",
+      "titleAr": "مرسوم إصلاح التعويضات",
+      "titleEn": "Compensation Reform Decree",
+      "issueDate": "2026-03-15",
+      "effectiveDate": "2026-04-01",
+      "publicationDate": "2026-03-20",
+      "status": "active",
+      "amendedBy": [],
+      "repeals": [],
+      "scope": "Compensation and allowance restructuring",
+      "articles": {
+        "totalArticles": 15,
+        "keyArticles": [
+          {"number": 1, "subject": "Abolished allowances"},
+          {"number": 5, "subject": "Continuing allowances"},
+          {"number": 10, "subject": "Remote/semi-remote area allowances"},
+          {"number": 14, "subject": "Minimum wage provisions"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "Ministry of Finance"
+    },
+    {
+      "legalSourceId": "SYR-DEC-135-2026",
+      "type": "decree",
+      "number": "135/2026",
+      "titleAr": "مرسوم تعديل التأمينات الاجتماعية",
+      "titleEn": "Social Insurance Amendment Decree",
+      "issueDate": "2026-06-01",
+      "effectiveDate": "2026-07-01",
+      "publicationDate": "2026-06-10",
+      "status": "active",
+      "amendedBy": [],
+      "repeals": [],
+      "scope": "Social insurance rates and retirement age amendments",
+      "articles": {
+        "totalArticles": 8,
+        "keyArticles": [
+          {"number": 1, "subject": "Updated contribution rates"},
+          {"number": 3, "subject": "Retirement age provisions"},
+          {"number": 6, "subject": "Beneficiary eligibility"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "General Organization for Social Insurance"
+    },
+    {
+      "legalSourceId": "SYR-DEC-188-2025",
+      "type": "decree",
+      "number": "188/2025",
+      "titleAr": "مرسوم العطل الرسمية الثابتة",
+      "titleEn": "Fixed Public Holidays Decree",
+      "issueDate": "2025-12-15",
+      "effectiveDate": "2026-01-01",
+      "publicationDate": "2025-12-20",
+      "status": "active",
+      "amendedBy": [],
+      "repeals": [],
+      "scope": "Fixed-date public holidays and late-announced holidays",
+      "articles": {
+        "totalArticles": 5,
+        "keyArticles": [
+          {"number": 1, "subject": "Annual fixed holidays"},
+          {"number": 3, "subject": "Late-announced holidays procedure"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "Council of Ministers"
+    },
+    {
+      "legalSourceId": "SYR-LAW-12-2024",
+      "type": "law",
+      "number": "12/2024",
+      "titleAr": "قانون حماية البيانات الشخصية",
+      "titleEn": "Personal Data Protection Law",
+      "issueDate": "2024-04-15",
+      "effectiveDate": "2024-10-15",
+      "publicationDate": "2024-04-25",
+      "status": "active",
+      "amendedBy": [],
+      "repeals": [],
+      "scope": "Personal data protection, controller/processor obligations, rights",
+      "articles": {
+        "totalArticles": 52,
+        "keyArticles": [
+          {"number": 1, "subject": "Scope and definitions"},
+          {"number": 8, "subject": "Legal basis for processing"},
+          {"number": 15, "subject": "Data subject rights"},
+          {"number": 28, "subject": "Data breach notification"},
+          {"number": 35, "subject": "Cross-border transfer"},
+          {"number": 45, "subject": "DPO designation"}
+        ]
+      },
+      "certifiedTextHash": "PLACEHOLDER_HASH_PENDING_CERTIFIED_COPY",
+      "owner": "Data Protection Authority"
+    }
+  ]
+}

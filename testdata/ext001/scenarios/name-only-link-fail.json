@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-NAME-ONLY-LINK",
+  "expectedValidate": "FAIL",
+  "linkKey": "FullName",
+  "proposedLink": "Ahmad / Ahmed",
+  "noNameOnlyLinking": true,
+  "notes": "Name-only account linking must fail"
+}

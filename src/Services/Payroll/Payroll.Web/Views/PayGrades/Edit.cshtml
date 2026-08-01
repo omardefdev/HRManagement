@@ -1,0 +1,21 @@
+@model Payroll.Domain.Entities.PayGrade
+@{ ViewData["Title"] = "تعديل الدرجة الوظيفية"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-edit"></i> تعديل الدرجة الوظيفية</h3></div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">@Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label asp-for="SalaryScaleId" class="form-label">جدول الرواتب</label><select asp-for="SalaryScaleId" asp-items="@(ViewBag.Scales as Microsoft.AspNetCore.Mvc.Rendering.SelectList)" class="form-select"></select></div>
+                <div class="col-md-3 mb-3"><label asp-for="GradeCode" class="form-label"></label><input asp-for="GradeCode" class="form-control" /></div>
+                <div class="col-md-3 mb-3"><label asp-for="GradeNameAr" class="form-label"></label><input asp-for="GradeNameAr" class="form-control" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="BaseSalary" class="form-label"></label><input asp-for="BaseSalary" class="form-control" type="number" step="0.01" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="MinSalary" class="form-label"></label><input asp-for="MinSalary" class="form-control" type="number" step="0.01" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="MaxSalary" class="form-label"></label><input asp-for="MaxSalary" class="form-control" type="number" step="0.01" /></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

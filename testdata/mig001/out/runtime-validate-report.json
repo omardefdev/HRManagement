@@ -1,0 +1,11 @@
+﻿{
+    "card":  "MIG-001",
+    "mode":  "runtime-production-binding",
+    "ok":  true,
+    "sourceCount":  7,
+    "sotCount":  8,
+    "failureCount":  0,
+    "failures":  [
+
+                 ]
+}

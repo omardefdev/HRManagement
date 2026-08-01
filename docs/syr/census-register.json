@@ -1,0 +1,126 @@
+{
+  "card": "SYR-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Census register structure for Syrian government agencies, workforce, pensioners, and systems",
+  "headroomPolicy": {
+    "minimumPercent": 50,
+    "overrideAuthority": "National Authorization Board",
+    "note": "Capacity planning uses census peak × (1 + headroom%). Board may set a higher value."
+  },
+  "governorates": [
+    { "id": "SY-DI", "name": "دمشق", "nameEn": "Damascus" },
+    { "id": "SY-RD", "name": "ريف دمشق", "nameEn": "Rif Dimashq" },
+    { "id": "SY-HL", "name": "حلب", "nameEn": "Aleppo" },
+    { "id": "SY-HM", "name": "حمص", "nameEn": "Homs" },
+    { "id": "SY-HI", "name": "حماة", "nameEn": "Hama" },
+    { "id": "SY-LA", "name": "اللاذقية", "nameEn": "Latakia" },
+    { "id": "SY-TA", "name": "طرطوس", "nameEn": "Tartus" },
+    { "id": "SY-ID", "name": "إدلب", "nameEn": "Idlib" },
+    { "id": "SY-RA", "name": "الرقة", "nameEn": "Ar-Raqqah" },
+    { "id": "SY-DR", "name": "درعا", "nameEn": "Daraa" },
+    { "id": "SY-SU", "name": "السويداء", "nameEn": "As-Suwayda" },
+    { "id": "SY-QU", "name": "القنيطرة", "nameEn": "Quneitra" },
+    { "id": "SY-DZ", "name": "دير الزور", "nameEn": "Deir ez-Zor" },
+    { "id": "SY-HA", "name": "الحسكة", "nameEn": "Al-Hasakah" }
+  ],
+  "agencyTypes": [
+    { "code": "MINISTRY", "name": "وزارة", "nameEn": "Ministry" },
+    { "code": "AUTHORITY", "name": "هيئة", "nameEn": "Authority" },
+    { "code": "INSTITUTION", "name": "مؤسسة", "nameEn": "Institution" },
+    { "code": "COMPANY", "name": "شركة عامة", "nameEn": "Public Company" },
+    { "code": "GOVERNORATE", "name": "محافظة", "nameEn": "Governorate Administration" },
+    { "code": "ADMIN_UNIT", "name": "وحدة إدارية", "nameEn": "Administrative Unit" }
+  ],
+  "employeeClassifications": [
+    { "code": "PERMANENT", "legalRegime": "law50", "name": "دائم - قانون 50" },
+    { "code": "PERMANENT_53", "legalRegime": "law53", "name": "دائم - قانون 53" },
+    { "code": "TEMPORARY", "legalRegime": "law50", "name": "مؤقت" },
+    { "code": "DAILY", "legalRegime": "law50", "name": "يومي" },
+    { "code": "SEASONAL", "legalRegime": "law50", "name": "موسمي" },
+    { "code": "CONTRACT", "legalRegime": "special", "name": "عقد خاص" },
+    { "code": "PRODUCTION", "legalRegime": "special", "name": "إنتاج" }
+  ],
+  "censusCategories": [
+    {
+      "code": "current",
+      "name": "عاملون حاليون",
+      "nameEn": "Current employees on payroll",
+      "countable": true
+    },
+    {
+      "code": "historical",
+      "name": "منتهية خدماتهم",
+      "nameEn": "Separated employees with archived records",
+      "countable": true
+    },
+    {
+      "code": "beneficiary",
+      "name": "مستفيدون من المعاشات",
+      "nameEn": "Pension/insurance beneficiaries",
+      "countable": true
+    },
+    {
+      "code": "duplicate",
+      "name": "مكررون قيد المعالجة",
+      "nameEn": "Identified duplicates pending resolution",
+      "countable": false
+    }
+  ],
+  "sourceAuthorities": [
+    {
+      "id": "mof",
+      "name": "وزارة المالية",
+      "nameEn": "Ministry of Finance",
+      "dataType": "payroll_files",
+      "refreshFrequency": "monthly"
+    },
+    {
+      "id": "mad",
+      "name": "وزارة التنمية الإدارية",
+      "nameEn": "Ministry of Administrative Development",
+      "dataType": "agency_registry",
+      "refreshFrequency": "quarterly"
+    },
+    {
+      "id": "gosi",
+      "name": "المؤسسة العامة للتأمينات الاجتماعية",
+      "nameEn": "General Organization for Social Insurance",
+      "dataType": "contributions_beneficiaries",
+      "refreshFrequency": "monthly"
+    },
+    {
+      "id": "goip",
+      "name": "المؤسسة العامة للتأمين والمعاشات",
+      "nameEn": "General Organization for Insurance and Pensions",
+      "dataType": "pensions_beneficiaries",
+      "refreshFrequency": "monthly"
+    }
+  ],
+  "reconciliationRules": [
+    {
+      "rule": "agency_total_match",
+      "description": "Sum of employees per agency must match Finance payroll headcount",
+      "tolerance": "0",
+      "action": "flag_and_investigate"
+    },
+    {
+      "rule": "governorate_total_match",
+      "description": "Sum of employees per governorate must reconcile across sources",
+      "tolerance": "0.5%",
+      "action": "document_explanation"
+    },
+    {
+      "rule": "no_duplicate_national_id",
+      "description": "No two current employees share the same national ID",
+      "tolerance": "0",
+      "action": "quarantine"
+    },
+    {
+      "rule": "pension_beneficiary_no_active",
+      "description": "Pension beneficiaries must not appear as active employees (except transitional)",
+      "tolerance": "0",
+      "action": "flag_and_investigate"
+    }
+  ]
+}

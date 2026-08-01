@@ -1,0 +1,41 @@
+{
+  "card": "TRN-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "representationBodies": [
+    { "id": "WR-01", "name": "General Federation of Trade Unions", "scope": "national", "sectorCoverage": "all-public-sector" },
+    { "id": "WR-02", "name": "Agency Worker Committee", "scope": "per-agency", "electedRepresentatives": true },
+    { "id": "WR-03", "name": "Professional Association", "scope": "per-profession", "examples": ["teachers", "engineers", "health-workers"] }
+  ],
+  "engagementClassification": [
+    { "topic": "Attendance monitoring rules", "level": "negotiation" },
+    { "topic": "Performance evaluation criteria", "level": "consultation" },
+    { "topic": "Disciplinary procedures", "level": "negotiation" },
+    { "topic": "Data monitoring / surveillance", "level": "negotiation", "complianceLink": "PRV-001" },
+    { "topic": "Compensation structure changes", "level": "negotiation" },
+    { "topic": "Training requirements", "level": "consultation" },
+    { "topic": "System access and usability", "level": "information" }
+  ],
+  "engagementProtocol": [
+    { "step": 1, "name": "Identification", "description": "Map affected bodies per wave" },
+    { "step": 2, "name": "Pre-notification", "leadTimeDays": 30 },
+    { "step": 3, "name": "Consultation/Negotiation", "documented": true, "minutesRequired": true },
+    { "step": 4, "name": "Objection handling", "responseDeadlineDays": 15, "writtenResponseRequired": true },
+    { "step": 5, "name": "Resolution", "options": ["agreement", "conditional-approval", "escalation"] },
+    { "step": 6, "name": "Evidence", "linkedToCard": "NAT-001" }
+  ],
+  "monitoringBoundaries": {
+    "scopeDisclosed": true,
+    "purposeDisclosed": true,
+    "consistentWithPrivacy": "PRV-001",
+    "consistentWithLaw": "Law 12/2024",
+    "collectiveGrievancePathway": true,
+    "approvedContentOnly": true
+  },
+  "waveReadiness": {
+    "noWaveWithoutEngagementEvidence": true,
+    "objectionsMustBeResolved": true,
+    "escalationAuthority": "competent-authority",
+    "impactOnScopeDocumented": true
+  }
+}

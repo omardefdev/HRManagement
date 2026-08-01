@@ -1,0 +1,111 @@
+groups:
+  - name: hrm_recording_obs001
+    rules:
+      - record: job:http_requests:rate5m
+        expr: sum by (job) (rate(http_server_request_duration_seconds_count[5m]))
+
+      - record: job:http_errors:rate5m
+        expr: sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+
+      - record: job:http_duration_p95:5m
+        expr: histogram_quantile(0.95, sum by (le, job) (rate(http_server_request_duration_seconds_bucket[5m])))
+
+  - name: hrm_sli_obs002
+    rules:
+      - record: sli:j1_availability:ratio5m
+        expr: avg_over_time(probe_success{job="probe_gateway_ready"}[5m])
+
+      - record: sli:j1_availability:ratio30d
+        expr: avg_over_time(probe_success{job="probe_gateway_ready"}[30d])
+
+      - record: sli:j1_error:ratio5m
+        expr: 1 - clamp_min(clamp_max(avg_over_time(probe_success{job="probe_gateway_ready"}[5m]), 1), 0)
+
+      - record: sli:j2_availability:ratio_rate5m
+        expr: |
+          (
+            sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[5m]))
+            -
+            sum(rate(http_server_request_duration_seconds_count{job="hr-gateway",http_response_status_code=~"5.."}[5m]))
+          )
+          /
+          clamp_min(sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[5m])), 1e-9)
+
+      - record: sli:j2_error:ratio_rate5m
+        expr: 1 - clamp_min(clamp_max(sli:j2_availability:ratio_rate5m, 1), 0)
+
+      - record: sli:j2_latency_fast:ratio_rate5m
+        expr: |
+          sum(rate(http_server_request_duration_seconds_bucket{job="hr-gateway",le="2.0"}[5m]))
+          /
+          clamp_min(sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[5m])), 1e-9)
+
+      - record: slo:j1_burn_rate:5m
+        expr: (1 - clamp_min(clamp_max(avg_over_time(probe_success{job="probe_gateway_ready"}[5m]), 1), 0)) / 0.005
+
+      - record: slo:j1_burn_rate:1h
+        expr: (1 - clamp_min(clamp_max(avg_over_time(probe_success{job="probe_gateway_ready"}[1h]), 1), 0)) / 0.005
+
+      - record: slo:j1_burn_rate:30m
+        expr: (1 - clamp_min(clamp_max(avg_over_time(probe_success{job="probe_gateway_ready"}[30m]), 1), 0)) / 0.005
+
+      - record: slo:j1_burn_rate:6h
+        expr: (1 - clamp_min(clamp_max(avg_over_time(probe_success{job="probe_gateway_ready"}[6h]), 1), 0)) / 0.005
+
+      - record: slo:j2_burn_rate:5m
+        expr: sli:j2_error:ratio_rate5m / 0.005
+
+      - record: slo:j2_burn_rate:1h
+        expr: |
+          (
+            1 - (
+              (
+                sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[1h]))
+                -
+                sum(rate(http_server_request_duration_seconds_count{job="hr-gateway",http_response_status_code=~"5.."}[1h]))
+              )
+              / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[1h])), 1e-9)
+            )
+          ) / 0.005
+
+      - record: slo:j2_burn_rate:30m
+        expr: |
+          (
+            1 - (
+              (
+                sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[30m]))
+                -
+                sum(rate(http_server_request_duration_seconds_count{job="hr-gateway",http_response_status_code=~"5.."}[30m]))
+              )
+              / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[30m])), 1e-9)
+            )
+          ) / 0.005
+
+      - record: slo:j2_burn_rate:6h
+        expr: |
+          (
+            1 - (
+              (
+                sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[6h]))
+                -
+                sum(rate(http_server_request_duration_seconds_count{job="hr-gateway",http_response_status_code=~"5.."}[6h]))
+              )
+              / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="hr-gateway"}[6h])), 1e-9)
+            )
+          ) / 0.005
+
+      - record: slo:j1_error_budget_remaining:ratio
+        expr: clamp_min((clamp_min(clamp_max(avg_over_time(probe_success{job="probe_gateway_ready"}[30d]), 1), 0) - 0.995) / 0.005, 0)
+
+      - record: sli:j4_payroll_fail_ratio:1h
+        expr: |
+          sum(increase(hrm_payroll_run_employees_failed_total[1h]) or increase(hrm_payroll_run_employees_failed[1h]) or vector(0))
+          /
+          clamp_min(
+            (
+              sum(increase(hrm_payroll_run_employees_processed_total[1h]) or increase(hrm_payroll_run_employees_processed[1h]) or vector(0))
+              +
+              sum(increase(hrm_payroll_run_employees_failed_total[1h]) or increase(hrm_payroll_run_employees_failed[1h]) or vector(0))
+            ),
+            1e-9
+          )

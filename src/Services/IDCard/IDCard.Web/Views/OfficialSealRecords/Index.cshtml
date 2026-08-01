@@ -1,0 +1,6 @@
+@model IReadOnlyList<IDCard.Domain.Entities.OfficialSealRecord>
+@{ ViewData["Title"] = "الأختام الرسمية"; }
+<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">الأختام</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
+<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الاسم</th><th>صادر عن</th><th>ساري من</th><th>ساري إلى</th><th>تفاصيل</th></tr></thead><tbody>
+@foreach (var x in Model){<tr><td>@x.Name</td><td>@x.IssuedBy</td><td>@x.ValidFrom</td><td>@x.ValidTo</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
+@if(!Model.Any()){<tr><td colspan="5" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>

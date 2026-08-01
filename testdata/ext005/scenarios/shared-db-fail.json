@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-SHARED-DB",
+  "expectedValidate": "FAIL",
+  "sharedDbJoin": true,
+  "treatedAsIntegration": true,
+  "notes": "Shared DB join treated as integration must fail"
+}

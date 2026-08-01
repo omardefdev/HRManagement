@@ -1,0 +1,36 @@
+@model AuditFinding
+@{ ViewData["Title"] = "تعديل الملاحظة الرقابية"; }
+
+<div class="card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header"><h3 class="mb-0">تعديل الملاحظة الرقابية</h3></div>
+        <div class="card-body">
+            <div class="mb-3 mb-3">
+                <label asp-for="AuditId" class="form-label"></label>
+                <input asp-for="AuditId" class="form-control" />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Severity" class="form-label"></label>
+                <select asp-for="Severity" asp-items="Html.GetEnumSelectList<FindingSeverity>()" class="form-control"></select>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Recommendation" class="form-label"></label>
+                <textarea asp-for="Recommendation" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<FindingStatus>()" class="form-control"></select>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

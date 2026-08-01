@@ -1,0 +1,74 @@
+{
+  "card": "QA-005",
+  "version": "2026.07.31.1",
+  "asOfDate": "2026-07-31",
+  "baselineVersion": "2026.07.31",
+  "measuredInCi": true,
+  "forbidManualReportOnly": true,
+  "metrics": [
+    {
+      "id": "cyclomatic_complexity",
+      "tool": "dotnet-format-analyzers",
+      "threshold": { "methodMax": 15, "classMax": 50 },
+      "enforceOnDiff": true
+    },
+    {
+      "id": "file_length",
+      "threshold": { "maxLines": 500 },
+      "enforceOnDiff": true
+    },
+    {
+      "id": "method_length",
+      "threshold": { "maxLines": 60 },
+      "enforceOnDiff": true
+    },
+    {
+      "id": "duplication",
+      "tool": "jscpd",
+      "threshold": { "maxPercent": 5 },
+      "enforceOnDiff": true
+    },
+    {
+      "id": "dead_code",
+      "tool": "roslyn-analyzers",
+      "threshold": { "unusedPublicMembers": 0 },
+      "enforceOnDiff": true
+    },
+    {
+      "id": "blocking_warnings",
+      "threshold": { "count": 0 },
+      "enforceOnDiff": true,
+      "protectedBranchesOnly": true
+    },
+    {
+      "id": "circular_dependencies",
+      "threshold": { "count": 0 },
+      "enforceOnDiff": true
+    }
+  ],
+  "debtBudget": {
+    "maxNewDebtPointsPerPr": 0,
+    "exceptionRequiresSignedWaiver": true,
+    "waiverMaxDays": 30,
+    "waiverOwnerRole": "architecture-lead"
+  },
+  "sharedKernelPolicy": {
+    "forbidDuplicatedBusinessLogic": true,
+    "targetLocations": ["SharedKernel", "ServiceDefaults"],
+    "ownershipDecisionRequired": true
+  },
+  "architectureFitnessTests": {
+    "runInCi": true,
+    "continuousNotOneTime": true,
+    "refs": ["ARC-002", "SCM-001"]
+  },
+  "debtRegister": {
+    "required": true,
+    "fields": ["id", "owner", "openedDate", "targetResolutionDate", "riskLevel"]
+  },
+  "onboardingExercise": {
+    "criticalPathChangeTargetHours": 4,
+    "evidenceType": "timed_developer_exercise"
+  },
+  "dependencies": ["QA-001", "QA-002", "ARC-002", "SCM-001"]
+}

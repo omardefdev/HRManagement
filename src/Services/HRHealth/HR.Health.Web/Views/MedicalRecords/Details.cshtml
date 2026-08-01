@@ -1,0 +1,46 @@
+@model HR.Health.Domain.Entities.MedicalRecord
+@{ ViewData["Title"] = "تفاصيل الملف الطبي"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الملف الطبي</h3>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">التاريخ الطبي</dt><dd class="col-sm-9">@(Model.MedicalHistory ?? "—")</dd>
+            <dt class="col-sm-3">الحالات الحالية</dt><dd class="col-sm-9">@(Model.CurrentConditions ?? "—")</dd>
+            <dt class="col-sm-3">الحساسيات</dt><dd class="col-sm-9">@(Model.Allergies ?? "—")</dd>
+            <dt class="col-sm-3">الإعاقات</dt><dd class="col-sm-9">@(Model.Disabilities ?? "—")</dd>
+            <dt class="col-sm-3">آخر فحص</dt><dd class="col-sm-9">@(Model.LastExamDate?.ToString() ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+@if (Model.CommitteeReports?.Any() == true)
+{
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">تقارير اللجان الطبية</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>التاريخ</th><th>التوصية</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var r in Model.CommitteeReports)
+            {
+                <tr>
+                    <td>@r.CommitteeDate</td>
+                    <td>@r.Recommendation</td>
+                    <td><a asp-controller="MedicalCommitteeReports" asp-action="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+}
+<p><a asp-action="Index">العودة للقائمة</a></p>

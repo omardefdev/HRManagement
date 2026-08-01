@@ -1,0 +1,1 @@
+﻿{"scenarioId":"branch-audit-pass","expectedValidate":"PASS","entries":[{"journeyId":"core-leave","networkProfileId":"lab-3g-throttled","outcome":"PASS","actor":"qa-bot","occurredAt":"2026-07-30T16:00:00Z","evidenceRef":"testdata/prod004/scenarios/throttled-core-journey-pass.json"}]}

@@ -1,0 +1,112 @@
+@model Auth.Directory.Domain.Entities.AuthUser
+@{ ViewData["Title"] = "تفاصيل المستخدم"; }
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">@Model.Username</h3>
+                <div>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> تعديل
+                    </a>
+                    <form asp-action="SyncFromKeycloak" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-info btn-sm">
+                            <i class="fas fa-sync"></i> إعادة مزامنة (إصلاح)
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">البريد الإلكتروني</dt>
+                    <dd class="col-sm-8">@Model.Email</dd>
+
+                    <dt class="col-sm-4">الحالة</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">نشط</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">غير نشط</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">معرّف الموظف</dt>
+                    <dd class="col-sm-8">@(Model.EmployeeId?.ToString() ?? "—")</dd>
+
+                    <dt class="col-sm-4">معرّف Keycloak</dt>
+                    <dd class="col-sm-8">@(Model.KeycloakUserId ?? "—")</dd>
+
+                    <dt class="col-sm-4">آخر تسجيل دخول</dt>
+                    <dd class="col-sm-8">@(Model.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+
+                    <dt class="col-sm-4">تاريخ الإنشاء</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title mb-0">الأدوار المسندة</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الدور</th><th>تاريخ الإسناد</th><th>بواسطة</th></tr></thead>
+                    <tbody>
+                        @foreach (var ur in Model.UserRoles)
+                        {
+                            <tr>
+                                <td>@ur.Role.Name</td>
+                                <td>@ur.AssignedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(ur.AssignedBy ?? "—")</td>
+                            </tr>
+                        }
+                        @if (!Model.UserRoles.Any())
+                        {
+                            <tr><td colspan="3" class="text-center text-muted py-3">لا توجد أدوار مسندة</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><h3 class="card-title mb-0">الرموز / الجلسات</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>صدر في</th><th>ينتهي في</th><th>ملغى</th></tr></thead>
+                    <tbody>
+                        @foreach (var t in Model.Tokens.OrderByDescending(t => t.IssuedAt).Take(10))
+                        {
+                            <tr>
+                                <td>@t.IssuedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@t.ExpiresAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (t.Revoked)
+                                    {
+                                        <span class="badge bg-secondary">ملغى</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">ساري</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Tokens.Any())
+                        {
+                            <tr><td colspan="3" class="text-center text-muted py-3">لا توجد رموز</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3"><i class="fas fa-arrow-right"></i> العودة للقائمة</a>

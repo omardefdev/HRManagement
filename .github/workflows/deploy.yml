@@ -1,0 +1,505 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Deploy new release or rollback to a previous tag
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - rollback
+      environment:
+        description: Deployment target
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      run_migrations:
+        description: Apply EF migrations before deploy (ignored for rollback)
+        required: true
+        default: true
+        type: boolean
+      rollback_tag:
+        description: Image tag to rollback to (required when action=rollback)
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/hrmanagement
+
+jobs:
+  # ── Build & push (deploy path only) ─────────────────────────────────────────
+  build-and-push:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: hr-gateway
+            dockerfile: src/Gateway/HRManagement.Gateway/Dockerfile
+            image: hr-gateway
+          - service: hr-core-web
+            dockerfile: src/Services/HRCore/HR.Core.Web/Dockerfile
+            image: hr-core-web
+          - service: hr-contracts-web
+            dockerfile: src/Services/HRContracts/HR.Contracts.Web/Dockerfile
+            image: hr-contracts-web
+          - service: hr-health-web
+            dockerfile: src/Services/HRHealth/HR.Health.Web/Dockerfile
+            image: hr-health-web
+          - service: hr-movements-web
+            dockerfile: src/Services/HRMovements/HR.Movements.Web/Dockerfile
+            image: hr-movements-web
+          - service: hr-training-web
+            dockerfile: src/Services/HRTraining/HR.Training.Web/Dockerfile
+            image: hr-training-web
+          - service: payroll-web
+            dockerfile: src/Services/Payroll/Payroll.Web/Dockerfile
+            image: payroll-web
+          - service: idcard-web
+            dockerfile: src/Services/IDCard/IDCard.Web/Dockerfile
+            image: idcard-web
+          - service: records-archive-web
+            dockerfile: src/Services/RecordsArchive/Records.Archive.Web/Dockerfile
+            image: records-archive-web
+          - service: admin-logistics-web
+            dockerfile: src/Services/AdminLogistics/Admin.Logistics.Web/Dockerfile
+            image: admin-logistics-web
+          - service: it-infra-web
+            dockerfile: src/Services/ITInfrastructure/IT.Infra.Web/Dockerfile
+            image: it-infra-web
+          - service: dev-analytics-web
+            dockerfile: src/Services/DevAnalytics/Dev.Analytics.Web/Dockerfile
+            image: dev-analytics-web
+          - service: compliance-web
+            dockerfile: src/Services/Compliance/Compliance.Web/Dockerfile
+            image: compliance-web
+          - service: auth-directory-web
+            dockerfile: src/Services/AuthDirectory/Auth.Directory.Web/Dockerfile
+            image: auth-directory-web
+          - service: file-storage-web
+            dockerfile: src/Services/FileStorage/File.Storage.Web/Dockerfile
+            image: file-storage-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          # DEP-001: never push :latest for releases — only immutable SHA tag
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ steps.meta.outputs.tag }}
+
+      - name: Record digest
+        run: |
+          mkdir -p digests
+          echo "${{ matrix.image }}@${{ steps.build.outputs.digest }}" > "digests/${{ matrix.image }}.txt"
+          echo "Pushed ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ steps.meta.outputs.tag }} digest=${{ steps.build.outputs.digest }}"
+
+      - name: Trivy image scan (SUP-001-C)
+        # Pin commit (v0.36.0) — prefer SHA after 2026 trivy-action tag incidents
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ steps.meta.outputs.tag }}
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+          format: table
+
+      - name: Generate SBOM (SUP-001-D)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ steps.meta.outputs.tag }}
+          format: cyclonedx-json
+          artifact-name: sbom-${{ matrix.image }}-${{ steps.meta.outputs.tag }}.cyclonedx.json
+          output-file: sbom-${{ matrix.image }}.cyclonedx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.image }}
+          path: sbom-${{ matrix.image }}.cyclonedx.json
+          retention-days: 90
+
+      - uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Cosign sign image (SUP-001-D)
+        env:
+          COSIGN_YES: "true"
+        run: |
+          cosign sign --yes \
+            "${{ env.IMAGE_PREFIX }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}"
+
+      - name: Attest build provenance (SUP-001-D light)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.image }}
+          path: digests/${{ matrix.image }}.txt
+          retention-days: 90
+
+  # ── Migrations (before deploy; locked; includes FileStorage) ────────────────
+  migrate:
+    needs: build-and-push
+    # Run on workflow_dispatch when requested, OR automatically on tag push (v*)
+    if: >-
+      always()
+      && needs.build-and-push.result == 'success'
+      && (
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.event.inputs.run_migrations == 'true')
+        || github.event_name == 'push'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore local tools (dotnet-ef)
+        run: dotnet tool restore
+
+      - name: Restore (locked mode)
+        run: dotnet restore HRManagement.slnx --locked-mode
+
+      - name: Build EF migration bundles
+        run: bash scripts/build-ef-bundles.sh
+
+      - name: Upload EF bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: efbundles
+          path: artifacts/efbundles/
+          retention-days: 30
+
+      - name: Apply migrations
+        env:
+          ConnectionStrings__GatewayAuditDb: ${{ secrets.GATEWAY_AUDIT_DB }}
+          ConnectionStrings__HRCoreDb: ${{ secrets.HR_CORE_DB }}
+          ConnectionStrings__ContractsDb: ${{ secrets.HR_CONTRACTS_DB }}
+          ConnectionStrings__PayrollDb: ${{ secrets.PAYROLL_DB }}
+          ConnectionStrings__HealthDb: ${{ secrets.HR_HEALTH_DB }}
+          ConnectionStrings__MovementsDb: ${{ secrets.HR_MOVEMENTS_DB }}
+          ConnectionStrings__TrainingDb: ${{ secrets.HR_TRAINING_DB }}
+          ConnectionStrings__IDCardDb: ${{ secrets.IDCARD_DB }}
+          ConnectionStrings__ArchiveDb: ${{ secrets.ARCHIVE_DB }}
+          ConnectionStrings__AdminDb: ${{ secrets.ADMIN_DB }}
+          ConnectionStrings__ITInfraDb: ${{ secrets.IT_INFRA_DB }}
+          ConnectionStrings__AnalyticsDb: ${{ secrets.ANALYTICS_DB }}
+          ConnectionStrings__ComplianceDb: ${{ secrets.COMPLIANCE_DB }}
+          ConnectionStrings__AuthDirectoryDb: ${{ secrets.AUTH_DIRECTORY_DB }}
+          ConnectionStrings__FileStorageDb: ${{ secrets.FILE_STORAGE_DB }}
+          MIGRATION_LOCK_CONNECTION: ${{ secrets.GATEWAY_AUDIT_DB }}
+          EFBUNDLE_DIR: ${{ github.workspace }}/artifacts/efbundles
+        run: bash scripts/run-migrations.sh
+
+  # ── Deploy (new release) ────────────────────────────────────────────────────
+  deploy:
+    needs: [build-and-push, migrate]
+    if: >-
+      always()
+      && needs.build-and-push.result == 'success'
+      && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+      && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: tag
+        # Matrix jobs do not reliably export outputs — derive tag from SHA directly
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - uses: sigstore/cosign-installer@v3.7.0
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image signatures before deploy (SUP-001-D)
+        env:
+          IMAGE_PREFIX: ${{ env.IMAGE_PREFIX }}
+          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/verify-image-signatures.sh
+
+      - name: Deploy via SSH
+        id: ssh-deploy
+        uses: appleboy/ssh-action@v1.0.3
+        # DEP-001: never hide SSH failures
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            export IMAGE_TAG="${{ steps.tag.outputs.tag }}"
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+            echo "Deploying IMAGE_TAG=$IMAGE_TAG owner=$GITHUB_REPOSITORY_OWNER"
+            # --profile backup is required: postgres-backup and minio-backup sit behind that
+            # profile, so deploying without it silently ran production with no scheduled backups.
+            docker compose \
+              --profile backup \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.observability.yml \
+              -f docker-compose.images.yml \
+              -f docker-compose.production.yml \
+              pull
+            docker compose \
+              --profile backup \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.observability.yml \
+              -f docker-compose.images.yml \
+              -f docker-compose.production.yml \
+              up -d --remove-orphans
+            # Wait for containers to become healthy before health gate
+            sleep 30
+
+      - name: Post-deploy health gate
+        id: health-gate
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            GATEWAY_PORT="${GATEWAY_HTTP_PORT:-5000}"
+            if command -v pwsh >/dev/null 2>&1; then
+              pwsh -File scripts/verify-staging-stack.ps1 -GatewayBaseUrl "http://localhost:${GATEWAY_PORT}"
+            else
+              # Fallback when PowerShell is not installed on the host
+              fail=0
+              curl -sf "http://localhost:${GATEWAY_PORT}/health/live" || fail=1
+              for slug in hr-core hr-contracts hr-health hr-movements hr-training payroll idcard records-archive admin-logistics it-infra dev-analytics compliance auth-directory; do
+                code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${GATEWAY_PORT}/health/upstreams/${slug}" || echo 000)
+                echo "upstream ${slug} -> ${code}"
+                if [ "$code" -ge 500 ] 2>/dev/null || [ "$code" = "000" ]; then
+                  fail=1
+                fi
+              done
+              if [ "$fail" -ne 0 ]; then
+                echo "Health gate failed"
+                exit 1
+              fi
+              echo "Health gate passed (curl fallback)"
+            fi
+
+      - name: Rollback on health-gate failure
+        if: failure() && steps.health-gate.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            LOG="${{ secrets.DEPLOY_PATH }}/deployments.log"
+            PREV=""
+            if [ -f "$LOG" ]; then
+              PREV=$(awk -F'|' '{for(i=1;i<=NF;i++) if($i ~ /^tag=/) {t=substr($i,5)}} END{print t}' "$LOG")
+            fi
+            if [ -z "${PREV}" ]; then
+              echo "No previous tag recorded in deployments.log — cannot auto-rollback. Manual intervention required."
+              exit 1
+            fi
+            export IMAGE_TAG="$PREV"
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+            echo "Rolling back to IMAGE_TAG=$IMAGE_TAG"
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.observability.yml \
+              -f docker-compose.images.yml \
+              -f docker-compose.production.yml \
+              pull
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.observability.yml \
+              -f docker-compose.images.yml \
+              -f docker-compose.production.yml \
+              up -d --remove-orphans
+            echo "Rollback to $IMAGE_TAG completed"
+
+      - name: Write deployment record
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            export IMAGE_TAG="${{ steps.tag.outputs.tag }}"
+            export GITHUB_SHA="${{ github.sha }}"
+            export DEPLOY_ENV="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'production' }}"
+            export GITHUB_ACTOR="${{ github.actor }}"
+            export DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            bash scripts/record-deployment.sh
+
+      - name: Post-deploy summary
+        if: always()
+        run: |
+          echo "Action: deploy"
+          echo "Image tag: ${{ steps.tag.outputs.tag }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "Environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'production' }}"
+          echo "SSH deploy: ${{ steps.ssh-deploy.outcome }}"
+          echo "Health gate: ${{ steps.health-gate.outcome }}"
+
+  # ── Manual rollback (workflow_dispatch action=rollback) ─────────────────────
+  rollback:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate rollback_tag
+        run: |
+          if [ -z "${{ github.event.inputs.rollback_tag }}" ]; then
+            echo "::error::rollback_tag is required when action=rollback"
+            exit 1
+          fi
+          echo "Rolling back to tag=${{ github.event.inputs.rollback_tag }}"
+
+      - uses: sigstore/cosign-installer@v3.7.0
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify rollback image signatures (SUP-001-D)
+        env:
+          IMAGE_PREFIX: ${{ env.IMAGE_PREFIX }}
+          IMAGE_TAG: ${{ github.event.inputs.rollback_tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/verify-image-signatures.sh
+
+      - name: Rollback via SSH
+        id: ssh-rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            export IMAGE_TAG="${{ github.event.inputs.rollback_tag }}"
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+            echo "Rollback IMAGE_TAG=$IMAGE_TAG"
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.observability.yml \
+              -f docker-compose.images.yml \
+              -f docker-compose.production.yml \
+              pull
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.services.yml \
+              -f docker-compose.observability.yml \
+              -f docker-compose.images.yml \
+              -f docker-compose.production.yml \
+              up -d --remove-orphans
+            sleep 30
+
+      - name: Post-rollback health gate
+        id: health-gate
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            GATEWAY_PORT="${GATEWAY_HTTP_PORT:-5000}"
+            if command -v pwsh >/dev/null 2>&1; then
+              pwsh -File scripts/verify-staging-stack.ps1 -GatewayBaseUrl "http://localhost:${GATEWAY_PORT}"
+            else
+              fail=0
+              curl -sf "http://localhost:${GATEWAY_PORT}/health/live" || fail=1
+              for slug in hr-core hr-contracts hr-health hr-movements hr-training payroll idcard records-archive admin-logistics it-infra dev-analytics compliance auth-directory; do
+                code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${GATEWAY_PORT}/health/upstreams/${slug}" || echo 000)
+                echo "upstream ${slug} -> ${code}"
+                if [ "$code" -ge 500 ] 2>/dev/null || [ "$code" = "000" ]; then
+                  fail=1
+                fi
+              done
+              if [ "$fail" -ne 0 ]; then
+                echo "Health gate failed after rollback"
+                exit 1
+              fi
+              echo "Health gate passed (curl fallback)"
+            fi
+
+      - name: Write rollback deployment record
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.DEPLOY_PATH }}
+            export IMAGE_TAG="${{ github.event.inputs.rollback_tag }}"
+            export GITHUB_SHA="${{ github.sha }}"
+            export DEPLOY_ENV="${{ github.event.inputs.environment }}-rollback"
+            export GITHUB_ACTOR="${{ github.actor }}"
+            export DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            bash scripts/record-deployment.sh

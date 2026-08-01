@@ -1,0 +1,344 @@
+{
+  "card": "STR-002",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "sourceDocs": [
+    "docs/completion-backlog/12-SYRIA-BASELINE-AND-SOURCES.md",
+    "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md",
+    "docs/legal-decisions/register.json"
+  ],
+  "requiredControlFields": [
+    "requirementId",
+    "domain",
+    "title",
+    "sourceRef",
+    "confidence",
+    "cardIds",
+    "controlOwner",
+    "evidencePath",
+    "testRef",
+    "frequency",
+    "status"
+  ],
+  "allowedDomains": [
+    "civil_service",
+    "labor",
+    "payroll",
+    "tax",
+    "pension",
+    "privacy",
+    "archive",
+    "signature_evidence",
+    "accessibility",
+    "sovereignty"
+  ],
+  "allowedConfidence": ["A", "B", "C", "D"],
+  "allowedStatuses": ["Implemented", "Partial", "Blocked-Legal"],
+  "blockers": [
+    { "id": "SYR-001", "status": "Blocked", "note": "Certified legislation corpus" },
+    { "id": "SOV-001", "status": "Satisfied", "note": "Production control-baseline binding Done; live independent ATO later SOV-001a" },
+    { "id": "SYD-001", "status": "OPEN-NO-GO", "note": "Certified Law 50 corpus" },
+    { "id": "SYD-004", "status": "OPEN-NO-GO", "note": "MoF tax brackets" },
+    { "id": "SYD-008", "status": "OPEN-NO-GO", "note": "Privacy license / DPO registration" }
+  ],
+  "journeys": [
+    {
+      "id": "DomainCoverage",
+      "steps": [
+        { "id": "TenDomainsSeeded", "mandatory": true, "ownerRole": "legal", "slaHours": 72, "evidenceType": "control-catalog.json", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "ControlLinkage",
+      "steps": [
+        { "id": "CardEvidenceTest", "mandatory": true, "ownerRole": "legal", "slaHours": 72, "evidenceType": "cardIds+evidence+testRef", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "ConflictExceptions",
+      "steps": [
+        { "id": "ExceptionRegister", "mandatory": true, "ownerRole": "legal", "slaHours": 48, "evidenceType": "CONFLICT_EXCEPTION_REGISTER", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "LegislativeWatch",
+      "steps": [
+        { "id": "WatchCadence", "mandatory": true, "ownerRole": "legal", "slaHours": 24, "evidenceType": "LEGISLATIVE_WATCH", "service": "docs", "event": null }
+      ]
+    },
+    {
+      "id": "TraceWalkthrough",
+      "steps": [
+        { "id": "ThreeTraces", "mandatory": true, "ownerRole": "qa", "slaHours": 48, "evidenceType": "TRACE_SAMPLES", "service": "docs", "event": null }
+      ]
+    }
+  ],
+  "exceptions": [
+    {
+      "exceptionId": "EX-STR2-TAX-INTERIM",
+      "title": "Interim tax brackets pending MoF gazette",
+      "status": "Active",
+      "signedByRoles": ["legal", "payroll"],
+      "expiresOn": "2027-01-31",
+      "linkedRequirementIds": ["CTRL-TAX-BRACKETS-INTERIM"],
+      "note": "GOV-002 LD-TAX-* ApprovedInterim; SYD-004 remains OPEN-NO-GO"
+    },
+    {
+      "exceptionId": "EX-STR2-LAW50-UNCERTIFIED",
+      "title": "Law 50 regime without certified corpus",
+      "status": "Active",
+      "signedByRoles": ["legal", "program"],
+      "expiresOn": "2027-01-31",
+      "linkedRequirementIds": ["CTRL-CS-LAW50-REGIME"],
+      "note": "SYD-001 / SYR-001 required before production gazette pin"
+    },
+    {
+      "exceptionId": "EX-STR2-LAB-MULTI-INTERIM",
+      "title": "Multi-regime labor engine pending certified decree corpus",
+      "status": "Active",
+      "signedByRoles": ["legal", "payroll"],
+      "expiresOn": "2027-01-31",
+      "linkedRequirementIds": ["CTRL-LAB-REGIME-MULTI"],
+      "note": "Interim Partial until SYR-003 / SYD-002 certified carve-outs"
+    },
+    {
+      "exceptionId": "EX-STR2-PEN-SEPARATE-INTERIM",
+      "title": "Pension vs salary separation pending decree pin",
+      "status": "Active",
+      "signedByRoles": ["legal", "payroll"],
+      "expiresOn": "2027-01-31",
+      "linkedRequirementIds": ["CTRL-PEN-SEPARATE-CALC"],
+      "note": "Interim Partial until SYR-006 gazette pin"
+    },
+    {
+      "exceptionId": "EX-STR2-PRV-DPIA-INTERIM",
+      "title": "DPIA/ROPA path partial pending privacy authority license",
+      "status": "Active",
+      "signedByRoles": ["privacy", "legal"],
+      "expiresOn": "2027-01-31",
+      "linkedRequirementIds": ["CTRL-PRV-LAW12-DPIA"],
+      "note": "GOV-001 evidence exists; SYD-008 license remains OPEN-NO-GO"
+    },
+    {
+      "exceptionId": "EX-STR2-ARC-RETENTION-INTERIM",
+      "title": "Archive retention schedule interim pending SYD-007",
+      "status": "Active",
+      "signedByRoles": ["records", "legal"],
+      "expiresOn": "2027-01-31",
+      "linkedRequirementIds": ["CTRL-ARC-RETENTION"],
+      "note": "GOV-001 retention ADR; national schedule not certified"
+    }
+  ],
+  "controls": [
+    {
+      "requirementId": "CTRL-CS-LAW50-REGIME",
+      "domain": "civil_service",
+      "title": "Dated legal_regime_id per employment relation (Law 50/2004 baseline)",
+      "sourceRef": "file12:Law50/2004; SYD-001",
+      "confidence": "B",
+      "cardIds": ["STR-002", "PAY-002", "SYR-001"],
+      "controlOwner": "legal",
+      "evidencePath": "docs/completion-backlog/12-SYRIA-BASELINE-AND-SOURCES.md",
+      "testRef": "docs/STR_002_TRACE_SAMPLES.md#trace-1",
+      "frequency": "on-regime-change",
+      "exceptionId": "EX-STR2-LAW50-UNCERTIFIED",
+      "status": "Partial"
+    },
+    {
+      "requirementId": "CTRL-CS-SYD001-CORPUS",
+      "domain": "civil_service",
+      "title": "Certified unified Law 50 corpus and amendments",
+      "sourceRef": "SYD-001 OPEN-NO-GO",
+      "confidence": "D",
+      "cardIds": ["SYR-001", "STR-002"],
+      "controlOwner": "legal",
+      "evidencePath": "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md",
+      "testRef": "n/a-blocked-legal",
+      "frequency": "on-state-decision",
+      "exceptionId": null,
+      "status": "Blocked-Legal"
+    },
+    {
+      "requirementId": "CTRL-LAB-REGIME-MULTI",
+      "domain": "labor",
+      "title": "Multi-regime engine; no unlawful benefit stacking (decree 67/2026 carve-outs)",
+      "sourceRef": "file12:decree67/2026; SYD-002",
+      "confidence": "B",
+      "cardIds": ["STR-002", "PAY-002", "SYR-003"],
+      "controlOwner": "legal",
+      "evidencePath": "docs/completion-backlog/12-SYRIA-BASELINE-AND-SOURCES.md",
+      "testRef": "docs/STR_002_TRACE_SAMPLES.md#trace-1",
+      "frequency": "quarterly",
+      "exceptionId": "EX-STR2-LAB-MULTI-INTERIM",
+      "status": "Partial"
+    },
+    {
+      "requirementId": "CTRL-PAY-LD-REGISTER",
+      "domain": "payroll",
+      "title": "Immutable legal decision register bound to payroll config publish",
+      "sourceRef": "GOV-002 register.json",
+      "confidence": "A",
+      "cardIds": ["GOV-002", "PAY-002"],
+      "controlOwner": "payroll",
+      "evidencePath": "docs/legal-decisions/register.json",
+      "testRef": "Gov002LegalGovernanceTests",
+      "frequency": "each-publish",
+      "exceptionId": null,
+      "status": "Implemented"
+    },
+    {
+      "requirementId": "CTRL-PAY-NO-LEGAL-TBD",
+      "domain": "payroll",
+      "title": "No unresolved legal placeholders on payroll release path",
+      "sourceRef": "GOV-002 / CI_AND_TESTING",
+      "confidence": "A",
+      "cardIds": ["GOV-002", "STR-002"],
+      "controlOwner": "payroll",
+      "evidencePath": "scripts/check-no-legal-tbd.py",
+      "testRef": "scripts/check-no-legal-tbd.py",
+      "frequency": "each-ci",
+      "exceptionId": null,
+      "status": "Implemented"
+    },
+    {
+      "requirementId": "CTRL-TAX-BRACKETS-INTERIM",
+      "domain": "tax",
+      "title": "Interim progressive tax brackets until MoF certified table",
+      "sourceRef": "LD-TAX-BRACKETS; SYD-004",
+      "confidence": "C",
+      "cardIds": ["GOV-002", "PAY-002", "SYR-005"],
+      "controlOwner": "payroll",
+      "evidencePath": "docs/legal-decisions/register.json#LD-TAX-BRACKETS",
+      "testRef": "Gov002LegalGoldenPackTests",
+      "frequency": "each-publish",
+      "exceptionId": "EX-STR2-TAX-INTERIM",
+      "status": "Partial"
+    },
+    {
+      "requirementId": "CTRL-TAX-SYD004-MOF",
+      "domain": "tax",
+      "title": "MoF effective tax brackets and exemption rules at go-live",
+      "sourceRef": "SYD-004 OPEN-NO-GO",
+      "confidence": "D",
+      "cardIds": ["SYR-005", "STR-002"],
+      "controlOwner": "legal",
+      "evidencePath": "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md",
+      "testRef": "n/a-blocked-legal",
+      "frequency": "on-state-decision",
+      "exceptionId": null,
+      "status": "Blocked-Legal"
+    },
+    {
+      "requirementId": "CTRL-PEN-SEPARATE-CALC",
+      "domain": "pension",
+      "title": "Separate salary vs pension calculation; dated rules (decree 135/2026)",
+      "sourceRef": "file12:decree135/2026; SYD-005",
+      "confidence": "B",
+      "cardIds": ["STR-002", "SYR-006"],
+      "controlOwner": "legal",
+      "evidencePath": "docs/completion-backlog/12-SYRIA-BASELINE-AND-SOURCES.md",
+      "testRef": "docs/STR_002_TRACE_SAMPLES.md#trace-1",
+      "frequency": "on-rule-change",
+      "exceptionId": "EX-STR2-PEN-SEPARATE-INTERIM",
+      "status": "Partial"
+    },
+    {
+      "requirementId": "CTRL-PRV-LAW12-DPIA",
+      "domain": "privacy",
+      "title": "Law 12/2024 DPIA / ROPA / DSAR path before real personal data",
+      "sourceRef": "file12:Law12/2024; GOV-001; SYD-008",
+      "confidence": "A",
+      "cardIds": ["GOV-001", "PRV-001"],
+      "controlOwner": "privacy",
+      "evidencePath": "docs/GOV_001_VERIFICATION.md",
+      "testRef": "Gov001*",
+      "frequency": "annual+on-change",
+      "exceptionId": "EX-STR2-PRV-DPIA-INTERIM",
+      "status": "Partial"
+    },
+    {
+      "requirementId": "CTRL-PRV-SYD008-LICENSE",
+      "domain": "privacy",
+      "title": "Controller/processor decision and privacy authority license",
+      "sourceRef": "SYD-008 OPEN-NO-GO",
+      "confidence": "D",
+      "cardIds": ["PRV-001", "STR-002"],
+      "controlOwner": "privacy",
+      "evidencePath": "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md",
+      "testRef": "n/a-blocked-legal",
+      "frequency": "on-state-decision",
+      "exceptionId": null,
+      "status": "Blocked-Legal"
+    },
+    {
+      "requirementId": "CTRL-ARC-RETENTION",
+      "domain": "archive",
+      "title": "Retention / disclosure / destruction / legal hold schedule",
+      "sourceRef": "GOV-001 retention; SYD-007",
+      "confidence": "B",
+      "cardIds": ["GOV-001", "FUN-006"],
+      "controlOwner": "records",
+      "evidencePath": "docs/ADR-GOV-001-data-classification-privacy.md",
+      "testRef": "Gov001*",
+      "frequency": "annual",
+      "exceptionId": "EX-STR2-ARC-RETENTION-INTERIM",
+      "status": "Partial"
+    },
+    {
+      "requirementId": "CTRL-SIG-TRUST-CHAIN",
+      "domain": "signature_evidence",
+      "title": "National trust chain and signature legality per decision type",
+      "sourceRef": "SYD-011 OPEN-NO-GO; SIG-001",
+      "confidence": "D",
+      "cardIds": ["SIG-001", "STR-002"],
+      "controlOwner": "security",
+      "evidencePath": "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md",
+      "testRef": "n/a-blocked-legal",
+      "frequency": "on-state-decision",
+      "exceptionId": null,
+      "status": "Blocked-Legal"
+    },
+    {
+      "requirementId": "CTRL-A11Y-WCAG22AA",
+      "domain": "accessibility",
+      "title": "WCAG 2.2 AA for core journeys",
+      "sourceRef": "STR-001 envelope; UX-002",
+      "confidence": "A",
+      "cardIds": ["UX-002", "STR-001"],
+      "controlOwner": "product",
+      "evidencePath": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md",
+      "testRef": "Ux002*",
+      "frequency": "each-release",
+      "exceptionId": null,
+      "status": "Implemented"
+    },
+    {
+      "requirementId": "CTRL-SOV-HOSTING",
+      "domain": "sovereignty",
+      "title": "Primary/DR hosting, keys, remote access authorization (NAITS/MoC)",
+      "sourceRef": "file12:hosting; SYD-009",
+      "confidence": "D",
+      "cardIds": ["SOV-001", "OPS-004"],
+      "controlOwner": "security",
+      "evidencePath": "docs/completion-backlog/14-SYRIA-GO-LIVE-DECISIONS.md",
+      "testRef": "n/a-blocked-legal",
+      "frequency": "on-state-decision",
+      "exceptionId": null,
+      "status": "Blocked-Legal"
+    },
+    {
+      "requirementId": "CTRL-SOV-CROSS-TENANT",
+      "domain": "sovereignty",
+      "title": "Zero successful cross-tenant access in independent tests",
+      "sourceRef": "STR-001 national.cross_tenant_success; TEN-002/003",
+      "confidence": "A",
+      "cardIds": ["TEN-003", "SEC-002"],
+      "controlOwner": "security",
+      "evidencePath": "docs/str-scope/envelope-matrix.json",
+      "testRef": "docs/STR_002_TRACE_SAMPLES.md#trace-3",
+      "frequency": "each-release",
+      "exceptionId": null,
+      "status": "Implemented"
+    }
+  ]
+}

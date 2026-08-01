@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-MASS-OTHER",
+  "expectedValidate": "FAIL",
+  "otherBucketRate": 0.35,
+  "otherBucketMaxRate": 0.02,
+  "catchAllTarget": "Other",
+  "notes": "Mass Other dump must fail STR-MIG-002 unmappedPolicy"
+}

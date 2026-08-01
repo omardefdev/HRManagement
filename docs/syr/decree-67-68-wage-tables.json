@@ -1,0 +1,119 @@
+{
+  "card": "SYR-005",
+  "version": "2026.07.31.1",
+  "asOfDate": "2026-07-31",
+  "legalSources": [
+    { "legalSourceId": "SYR-DEC-67-2026", "number": "67/2026", "scope": "base wage tables" },
+    { "legalSourceId": "SYR-DEC-68-2026", "number": "68/2026", "scope": "compensation and allowances" }
+  ],
+  "currencyEra": "SYP_NEW",
+  "separationPolicy": {
+    "baseWageField": "baseWage",
+    "compensationField": "compensationTotal",
+    "taxableBaseField": "taxableBase",
+    "insurableBaseField": "insurableBase",
+    "forbidDoubleStacking67And68": true
+  },
+  "wageTables": [
+    {
+      "tableId": "L50-GRADE-A",
+      "legalRegime": "law50",
+      "effectiveFrom": "2026-04-01",
+      "grades": [
+        { "grade": 1, "step": 1, "baseWage": 450000, "currencyEra": "SYP_NEW" },
+        { "grade": 1, "step": 2, "baseWage": 475000, "currencyEra": "SYP_NEW" },
+        { "grade": 2, "step": 1, "baseWage": 520000, "currencyEra": "SYP_NEW" }
+      ]
+    },
+    {
+      "tableId": "L50-GRADE-B",
+      "legalRegime": "law50",
+      "effectiveFrom": "2026-04-01",
+      "grades": [
+        { "grade": 3, "step": 1, "baseWage": 580000, "currencyEra": "SYP_NEW" },
+        { "grade": 4, "step": 1, "baseWage": 640000, "currencyEra": "SYP_NEW" }
+      ]
+    }
+  ],
+  "compensationRules": [
+    {
+      "code": "REMOTE_AREA",
+      "legalSourceId": "SYR-DEC-68-2026",
+      "status": "continuing",
+      "percentOfBase": 15,
+      "taxable": true,
+      "insurable": true
+    },
+    {
+      "code": "SEMI_REMOTE",
+      "legalSourceId": "SYR-DEC-68-2026",
+      "status": "continuing",
+      "percentOfBase": 8,
+      "taxable": true,
+      "insurable": true
+    },
+    {
+      "code": "TRANSPORT_LEGACY",
+      "legalSourceId": "SYR-DEC-68-2026",
+      "status": "abolished",
+      "effectiveTo": "2026-03-31"
+    },
+    {
+      "code": "PROMOTION_BONUS",
+      "legalSourceId": "SYR-DEC-68-2026",
+      "status": "continuing",
+      "fixedAmount": 50000,
+      "currencyEra": "SYP_NEW",
+      "trigger": "promotion"
+    }
+  ],
+  "minimumWage": {
+    "legalSourceId": "SYR-DEC-68-2026",
+    "amount": 450000,
+    "currencyEra": "SYP_NEW",
+    "effectiveFrom": "2026-04-01"
+  },
+  "taxBrackets": [
+    {
+      "bracketId": "INCOME-2026-EFFECTIVE",
+      "legalSourceId": "SYR-DEC-67-2026",
+      "status": "effective",
+      "effectiveFrom": "2026-04-01",
+      "bands": [
+        { "from": 0, "to": 500000, "ratePercent": 0 },
+        { "from": 500001, "to": 1000000, "ratePercent": 5 },
+        { "from": 1000001, "to": null, "ratePercent": 10 }
+      ]
+    }
+  ],
+  "proposedTaxReform": {
+    "status": "not_effective",
+    "forbidApplicationBeforeEffectiveDate": true
+  },
+  "deductions": [
+    { "code": "SOCIAL_INSURANCE_EE", "type": "percent", "ratePercent": 7, "base": "insurableBase" },
+    { "code": "SOCIAL_INSURANCE_ER", "type": "percent", "ratePercent": 14, "base": "insurableBase" }
+  ],
+  "roundingRules": {
+    "legalSourceId": "SYR-DEC-67-2026",
+    "method": "half_up",
+    "scale": 0,
+    "currencyEra": "SYP_NEW",
+    "forbidFloatArithmetic": true
+  },
+  "entitlementDimensions": ["agencyId", "jobTitleCode", "legalRegime"],
+  "excludedCategories": [
+    { "legalRegime": "law53", "reason": "Decree 67/2026 carve-out per SYR-003", "decisionRef": "SYD-003" },
+    { "category": "qualitative_increase_beneficiary", "reason": "Excluded per decree annex pending certified list" }
+  ],
+  "governance": {
+    "rulePackSignatureRequired": true,
+    "signingAuthority": "Ministry of Finance",
+    "fourEyesRequired": true,
+    "simulationBeforeActivation": true,
+    "diffReportRequired": true,
+    "rollbackStopsPayment": true,
+    "rollbackPreservesHistory": true
+  },
+  "shadowCyclesRequired": 3
+}

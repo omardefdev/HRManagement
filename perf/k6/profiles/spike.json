@@ -1,0 +1,6 @@
+{
+  "name": "spike",
+  "vus_base": 50,
+  "spike_vus": 150,
+  "description": "Short spike to 3x base VUs"
+}

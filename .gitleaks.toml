@@ -1,0 +1,9 @@
+# SUP-001 — default gitleaks config (extend as needed)
+title = "HRManagement gitleaks"
+
+[allowlist]
+description = "False positives / test fixtures"
+paths = [
+  '''testdata/''',
+  '''docs/completion-backlog/''',
+]

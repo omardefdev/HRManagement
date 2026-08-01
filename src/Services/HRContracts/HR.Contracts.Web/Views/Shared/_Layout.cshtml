@@ -1,0 +1,32 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "hr-contracts";
+}
+
+@section SidebarItems {
+    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i><p>لوحة التحكم</p></a></li>
+    <li class="nav-header">العقود والخدمة</li>
+    <li class="nav-item"><a asp-controller="ServiceContracts" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-signature"></i><p>العقود</p></a></li>
+    <li class="nav-item"><a asp-controller="Leaves" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-calendar-minus"></i><p>الإجازات</p></a></li>
+    <li class="nav-item"><a asp-controller="LeaveBalances" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-balance-scale"></i><p>أرصدة الإجازات</p></a></li>
+    <li class="nav-item"><a asp-controller="LeavePolicies" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-list"></i><p>سياسات الإجازات</p></a></li>
+    <li class="nav-item"><a asp-controller="Advances" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-hand-holding-usd"></i><p>السلف</p></a></li>
+    <li class="nav-item"><a asp-controller="Separations" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-times"></i><p>إنهاء الخدمة</p></a></li>
+    <li class="nav-item"><a asp-controller="HireWizard" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>معالج التعيين</p></a></li>
+    <li class="nav-item"><a asp-controller="SeparationWizard" asp-action="Step1" class="nav-link"><i class="nav-icon fas fa-magic"></i><p>معالج الفصل</p></a></li>
+    <li class="nav-item"><a asp-controller="ServiceTransactions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-exchange-alt"></i><p>المعاملات</p></a></li>
+    <li class="nav-item"><a asp-controller="ContractRenewals" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-redo"></i><p>تجديد العقود</p></a></li>
+    <li class="nav-item"><a asp-controller="ServiceExtensions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-calendar-plus"></i><p>تمديد الخدمة</p></a></li>
+    <li class="nav-item"><a asp-controller="Export" asp-action="ExportLeavesCsv" class="nav-link"><i class="nav-icon fas fa-file-export"></i><p>تصدير البيانات</p></a></li>
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

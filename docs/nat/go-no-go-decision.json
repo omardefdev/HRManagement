@@ -1,0 +1,59 @@
+{
+  "card": "NAT-008",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "National Go/No-Go decision record and certification renewal template",
+  "harnessStatus": "Done",
+  "liveDecisionStatus": "Blocked",
+  "liveDecisionNote": "Signed national authorization board decision pending closure of live NAT-001..007 certifications",
+  "decisionType": "GoNoGo",
+  "candidateIdentity": {
+    "releaseVersion": "",
+    "sourceCommit": "",
+    "imageDigestsRequired": true,
+    "sbomBundleRequired": true,
+    "schemaMigrationBundleRequired": true,
+    "configPolicyVersionsRequired": true
+  },
+  "natCertReview": {
+    "requiredCerts": ["NAT-001", "NAT-002", "NAT-003", "NAT-004", "NAT-005", "NAT-006", "NAT-007"],
+    "harnessComplete": true,
+    "liveCertsComplete": false
+  },
+  "goCriteria": {
+    "openP0P1Count": 0,
+    "openSeverity12Count": 0,
+    "allAuthoritySignaturesRequired": true,
+    "scopeReleaseDurationClear": true,
+    "annualRecertificationRequired": true,
+    "recertOnMaterialChangeRequired": true
+  },
+  "authoritySignatures": [
+    { "role": "business", "required": true, "signed": false },
+    { "role": "finance", "required": true, "signed": false },
+    { "role": "legal", "required": true, "signed": false },
+    { "role": "privacy", "required": true, "signed": false },
+    { "role": "security", "required": true, "signed": false },
+    { "role": "operations", "required": true, "signed": false },
+    { "role": "audit", "required": true, "signed": false }
+  ],
+  "certification": {
+    "releaseDigestRequired": true,
+    "agenciesInScopeRequired": true,
+    "systemsInScopeRequired": true,
+    "expiryDateRequired": true,
+    "continuousMonitoringRequired": true
+  },
+  "wavePlan": {
+    "stopRollbackDefined": true,
+    "publicAccountabilityRequired": true,
+    "fundingConfirmedRequired": true,
+    "capacityConfirmedRequired": true
+  },
+  "dependencies": ["NAT-001", "NAT-002", "NAT-003", "NAT-004", "NAT-005", "NAT-006", "NAT-007", "REL-007", "FIN-001"],
+  "blockers": [
+    { "id": "NAT-001", "status": "NotStarted", "note": "Evidence repository harness not closed" },
+    { "id": "live-nat-certs", "status": "Blocked", "note": "Live independent certifications NAT-002..007 pending" },
+    { "id": "live-board-signatures", "status": "Blocked", "note": "National authorization board signed minutes pending" }
+  ]
+}

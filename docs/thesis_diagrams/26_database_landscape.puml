@@ -1,0 +1,60 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam DatabaseBorderColor #0F6B73
+skinparam DatabaseBackgroundColor #EAF6F6
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+
+title "منظومة قواعد البيانات المملوكة للخدمات\nHRManagement database ownership landscape"
+
+component "البوابة المركزية\nYARP Gateway" as Gateway
+database "gateway_audit_db\nGatewayAuditDbContext" as GatewayDb
+queue "RabbitMQ / MassTransit\nIntegration bus" as Bus
+cloud "Keycloak\nهوية خارجية" as Keycloak
+cloud "MinIO\nالملفات الثنائية" as Minio
+
+database "hr_core_db\nHR.Core\nالموظفون والوحدات" as Core
+database "hr_contracts_db\nHR.Contracts\nالعقود والخدمة" as Contracts
+database "payroll_db\nPayroll\nالرواتب والتعويضات" as Payroll
+database "hr_health_db\nHR.Health\nالصحة المهنية" as Health
+database "hr_movements_db\nHR.Movements\nالحركات" as Movements
+database "hr_training_db\nHR.Training\nالتدريب" as Training
+database "idcard_db\nIDCard\nالهويات" as IDCard
+database "auth_directory_db\nAuth.Directory\nالدليل" as Auth
+database "file_storage_db\nFile.Storage\nبيانات الملفات" as FileDb
+database "archive_db\nRecords.Archive\nالأرشيف" as Archive
+database "compliance_db\nCompliance\nالشكاوى والامتثال" as Compliance
+database "analytics_db\nDev.Analytics\nالنماذج التحليلية" as Analytics
+database "admin_db\nAdmin.Logistics\nاللوجستيات" as Admin
+database "it_infra_db\nIT.Infra\nالبنية التقنية" as IT
+
+Gateway --> GatewayDb : تدقيق البوابة
+Gateway --> Keycloak : OIDC / JWT
+Gateway --> Core : HTTP / UI
+Gateway --> Contracts : HTTP / UI
+Gateway --> Payroll : HTTP / UI
+Gateway --> Bus : نشر/استهلاك عبر الخدمات
+
+Core --> Bus : IEmployeeCreated\nIOrgUnitChanged
+Contracts --> Bus : IContractActivated\nISeparationCompleted
+Movements --> Bus : ITransferExecuted
+Health --> Bus : IMedicalRecommendationIssued
+Training --> Bus : ITrainingCompleted
+Payroll --> Bus : IPayrollProcessed
+Bus --> Archive : أحداث الأرشفة
+Bus --> Analytics : أحداث التحليل
+FileDb --> Minio : metadata + object storage
+
+note bottom of Core
+كل خدمة تملك DbContext وترحيلاتها وقاعدة بياناتها.
+لا توجد وصلة FK مباشرة بين قواعد الخدمات.
+التكامل بين الخدمات يتم عبر معرفات وأحداث منشورة.
+end note
+@enduml

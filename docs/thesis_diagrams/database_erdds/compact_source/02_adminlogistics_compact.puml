@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة admin_db\nAdmin.Logistics"
+
+entity "Assets\nAsset" as T01 {
+  * Id
+    TenantId
+}
+entity "AssetAssignments\nAssetAssignment" as T02 {
+  * Id
+    AssetId
+    EmployeeId
+    TenantId
+}
+entity "InventoryItems\nInventoryItem" as T03 {
+  * Id
+    TenantId
+}
+entity "MaintenanceRecords\nMaintenanceRecord" as T04 {
+  * Id
+    AssetId
+    TenantId
+}
+entity "ReceiptRecords\nReceiptRecord" as T05 {
+  * Id
+    SupplyOrderId
+    TenantId
+}
+entity "SupplyOrders\nSupplyOrder" as T06 {
+  * Id
+    OrgUnitId
+    TenantId
+}
+entity "Vendors\nVendor" as T07 {
+  * Id
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T08 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T09 {
+  * Id
+    MessageId
+    TenantId
+}
+
+T02 }o--|| T01 : AssetId
+T04 }o--|| T01 : AssetId
+T05 }o--|| T06 : SupplyOrderId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

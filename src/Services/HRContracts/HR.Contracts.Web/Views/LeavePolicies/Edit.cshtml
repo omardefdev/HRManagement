@@ -1,0 +1,46 @@
+@model HR.Contracts.Web.ViewModels.LeavePolicyEditViewModel
+@using HR.Contracts.Domain.Enums
+@{ ViewData["Title"] = "تعديل سياسة الإجازة"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-edit"></i> تعديل سياسة الإجازة</h3></div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="LeaveType" />
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">نوع الإجازة</label>
+                    <input value="@Model.LeaveType" class="form-control" disabled />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="MaxDaysPerYear" class="form-label"></label>
+                    <input asp-for="MaxDaysPerYear" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="MinNoticeDays" class="form-label"></label>
+                    <input asp-for="MinNoticeDays" class="form-control" type="number" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-check mt-4">
+                        <input asp-for="IsPaid" class="form-check-input" type="checkbox" />
+                        <label asp-for="IsPaid" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="form-check mt-4">
+                        <input asp-for="RequiresMedicalCertificate" class="form-check-input" type="checkbox" />
+                        <label asp-for="RequiresMedicalCertificate" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label asp-for="Description" class="form-label"></label>
+                    <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

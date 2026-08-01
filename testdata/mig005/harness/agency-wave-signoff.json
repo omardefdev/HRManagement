@@ -1,0 +1,12 @@
+{
+  "fixtureId": "MIG005-AGENCY-WAVE-SIGNOFF",
+  "expectedValidate": "PASS",
+  "waveId": "wave-pilot-a-1",
+  "agencyId": "agency-pilot-a",
+  "signers": [
+    { "role": "agency-data-owner", "actor": "owner-a" },
+    { "role": "migration-qa", "actor": "qa-01" },
+    { "role": "internal-audit", "actor": "audit-01" }
+  ],
+  "liveAgencyExtract": false
+}

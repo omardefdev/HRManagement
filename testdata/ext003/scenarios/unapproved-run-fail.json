@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-UNAPPROVED-RUN",
+  "expectedValidate": "FAIL",
+  "payrollRunId": "run-draft-001",
+  "runStatus": "Draft",
+  "orderId": "ord-bad-001",
+  "notes": "Payment order bound to non-Posted/Approved run must fail"
+}

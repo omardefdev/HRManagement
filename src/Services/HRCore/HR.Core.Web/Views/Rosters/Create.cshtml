@@ -1,0 +1,18 @@
+@model HR.Core.Web.ViewModels.ShiftRosterCreateViewModel
+@{ ViewData["Title"] = "جدول مناوبات جديد"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">جدول مناوبات جديد</h3></div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /><span asp-validation-for="Title" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" asp-items="ViewBag.OrgUnits" class="form-control"><option value="">— بدون —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="PeriodStart" class="form-label"></label><input asp-for="PeriodStart" class="form-control" type="date" /><span asp-validation-for="PeriodStart" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="PeriodEnd" class="form-label"></label><input asp-for="PeriodEnd" class="form-control" type="date" /><span asp-validation-for="PeriodEnd" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control"></textarea><span asp-validation-for="Notes" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </form>
+    </div>
+</div>

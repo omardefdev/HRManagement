@@ -1,0 +1,92 @@
+@{
+    Layout = "_HrSharedLayout";
+    ViewData["CurrentModuleSlug"] = "hr-core";
+}
+
+@section SidebarItems {
+    <li class="nav-header">نواة الموارد البشرية (HR.Core)</li>
+
+    <li class="nav-item">
+        <a asp-controller="Dashboard" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-tachometer-alt"></i>
+            <p>لوحة القيادة</p>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a asp-controller="Employees" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-users"></i>
+            <p>الموظفون</p>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a asp-controller="OrgUnits" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-sitemap"></i>
+            <p>الهيكل التنظيمي</p>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a asp-controller="Evaluations" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-star"></i>
+            <p>تقييمات الأداء</p>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a asp-controller="Approvals" asp-action="Pending" class="nav-link">
+            <i class="nav-icon fas fa-gavel"></i>
+            <p>طلبات الموافقة</p>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a asp-controller="StatusHistory" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-history"></i>
+            <p>سجل حالة التوظيف</p>
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a asp-controller="Reports" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-file-export"></i>
+            <p>التقارير والتصدير</p>
+        </a>
+    </li>
+
+    <li class="nav-header">التخطيط والحضور والديوان</li>
+    <li class="nav-item"><a asp-controller="WorkforcePlans" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-project-diagram"></i><p>خطط القوى العاملة</p></a></li>
+    <li class="nav-item"><a asp-controller="HrStatisticReports" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chart-pie"></i><p>التقارير الإحصائية</p></a></li>
+    <li class="nav-item"><a asp-controller="DailyAttendanceRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-calendar-check"></i><p>الحضور اليومي</p></a></li>
+    <li class="nav-item"><a asp-controller="FieldInspectionVisits" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-check"></i><p>التفتيش الميداني</p></a></li>
+    <li class="nav-item"><a asp-controller="DiwanCorrespondences" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-envelope-open-text"></i><p>سجل الديوان</p></a></li>
+    <li class="nav-item"><a asp-controller="RecruitmentApplications" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>التوظيف والاستقطاب</p></a></li>
+
+    <li class="nav-header">المناوبات والورديات</li>
+    <li class="nav-item"><a asp-controller="Shifts" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clock"></i><p>تعريف الورديات</p></a></li>
+    <li class="nav-item"><a asp-controller="Rosters" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-calendar-week"></i><p>جداول المناوبات</p></a></li>
+
+    <li class="nav-header">التعاقب والمسارات الوظيفية</li>
+    <li class="nav-item"><a asp-controller="CareerPaths" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-route"></i><p>المسارات الوظيفية</p></a></li>
+    <li class="nav-item"><a asp-controller="KeyPositions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chess-king"></i><p>المناصب الحرجة</p></a></li>
+    <li class="nav-item"><a asp-controller="SuccessionPlans" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-users-cog"></i><p>خطط التعاقب</p></a></li>
+
+    <li class="nav-header">سوق المواهب الداخلي</li>
+    <li class="nav-item"><a asp-controller="TalentMarketplace" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-bullhorn"></i><p>الشواغر الداخلية</p></a></li>
+
+    <li class="nav-header">بوابة المواطن للتوظيف</li>
+    <li class="nav-item"><a asp-controller="PublicJobPostings" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-globe"></i><p>الإعلانات وطلبات المواطنين</p></a></li>
+
+    @await Html.PartialAsync("_HrModuleNav")
+}
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
+
+@RenderBody()

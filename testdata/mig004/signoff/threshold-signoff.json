@@ -1,0 +1,14 @@
+{
+  "fixtureId": "MIG004-THRESHOLD-SIGNOFF",
+  "expectedValidate": "PASS",
+  "matchPolicyVersion": "2026.07.30.1",
+  "signedByRole": "data-quality-lead",
+  "reviewerRole": "privacy-officer",
+  "contentHash": "sha256:mig004-lab-thresholds-20260730",
+  "thresholdsAck": {
+    "autoMergeMaxRisk": "Low",
+    "precisionTarget": 0.95,
+    "recallTarget": 0.90,
+    "highRiskAutoMergeForbidden": true
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "card": "EXT-003",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "treasuryPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "approvedRunRequired": true,
+  "runStatusesAllowed": ["Posted", "Approved"],
+  "paymentOrder": {
+    "requiredFields": ["orderId", "payrollRunId", "tenantId", "totalAmount", "lineCount", "idempotencyKey"],
+    "bindingToRunId": true
+  },
+  "signatures": {
+    "labStubAllowed": true,
+    "livePkiRequiresExt004": true
+  },
+  "channel": {
+    "fileShapes": ["treasury-csv-v1"],
+    "apiShapes": ["treasury-submit-v1"],
+    "ackCodes": ["ACK", "NACK"],
+    "returnRejectCodes": ["REJECT", "RETURN", "PARTIAL_REJECT"]
+  },
+  "bankAccountVerification": {
+    "requiredBeforeSettle": true
+  },
+  "settlement": {
+    "states": ["Submitted", "Acked", "Settled", "Rejected", "Returned"]
+  },
+  "reconciliation": {
+    "totalsMustMatch": true,
+    "lineCountMustMatch": true
+  },
+  "exactlyOnce": {
+    "idempotencyKeyRequired": true,
+    "duplicatePolicy": "reject"
+  },
+  "rejectCorrectionWorkflow": {
+    "required": true,
+    "queue": "treasury-reject-correction"
+  },
+  "cutoffCalendar": {
+    "cutoffRequired": true,
+    "contingencyPath": "manual-hold-next-window"
+  },
+  "manualFiles": {
+    "unauditedForbidden": true,
+    "auditRequiredFields": ["fileId", "actor", "tenantId", "payrollRunId", "approvedAt"]
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": ["orderId", "payrollRunId", "actor", "tenantId", "outcome", "submittedAt"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveTreasuryForbidden": true,
+    "portJoin": "IPayrollDisbursementGateway"
+  },
+  "signing": {
+    "signedByRole": "payroll-finance-integration-lead",
+    "reviewerRole": "finance-control-officer",
+    "treasuryPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:ext003-lab-treasury-payment-policy-20260730"
+  },
+  "blockers": [
+    { "id": "PAY-003", "status": "Satisfied", "note": "Resumable payroll Done" },
+    { "id": "IAM-003", "status": "Satisfied", "note": "SoD Done" },
+    { "id": "INT-003", "status": "Satisfied", "note": "Process sagas Done" },
+    { "id": "EXT-004", "status": "NotStarted", "note": "Live PKI deferred; lab stub only" },
+    { "id": "treasury-live", "status": "Blocked", "note": "Lab mock only" },
+    { "id": "bank-sandbox-cert", "status": "Blocked", "note": "Stub/file only" },
+    { "id": "postal-channel-live", "status": "Blocked", "note": "Out of scope this pack" }
+  ],
+  "outOfScope": [
+    "Live MOF/treasury API",
+    "Live bank/postal connectors",
+    "PAY-004 funding shortfall",
+    "SYR-011 production channel",
+    "EXT-004 live PKI",
+    "Domain rewrite PaymentBatch line states"
+  ],
+  "journeys": [
+    {
+      "id": "ApprovedRunBinding",
+      "steps": [
+        { "id": "RunStatusPolicy", "mandatory": true, "ownerRole": "payroll", "slaHours": 48, "evidenceType": "approvedRunRequired", "service": "docs", "event": null },
+        { "id": "UnapprovedRunFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unapproved-run-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ExactlyOnce",
+      "steps": [
+        { "id": "IdempotencyPolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 48, "evidenceType": "exactlyOnce", "service": "docs", "event": null },
+        { "id": "DuplicateSubmitFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "duplicate-submit-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "TotalsRecon",
+      "steps": [
+        { "id": "ReconPolicy", "mandatory": true, "ownerRole": "finance", "slaHours": 48, "evidenceType": "reconciliation", "service": "docs", "event": null },
+        { "id": "TotalsMismatchFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "totals-mismatch-fail", "service": "testdata", "event": null },
+        { "id": "ReconTotalsPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "recon-totals-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "RejectCorrection",
+      "steps": [
+        { "id": "RejectPolicy", "mandatory": true, "ownerRole": "integration", "slaHours": 24, "evidenceType": "rejectCorrectionWorkflow", "service": "docs", "event": null },
+        { "id": "PartialRejectCorrectPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "partial-reject-correct-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ManualFileGate",
+      "steps": [
+        { "id": "ManualFilePolicy", "mandatory": true, "ownerRole": "finance", "slaHours": 24, "evidenceType": "manualFiles", "service": "docs", "event": null },
+        { "id": "ManualUnauditedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "manual-file-unaudited-fail", "service": "testdata", "event": null },
+        { "id": "PaymentOrderAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "payment-order-audit-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CutoffContingency",
+      "steps": [
+        { "id": "CutoffPolicy", "mandatory": true, "ownerRole": "finance", "slaHours": 24, "evidenceType": "cutoffCalendar", "service": "docs", "event": null },
+        { "id": "CutoffBreachFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "cutoff-breach-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ParallelPayroll",
+      "steps": [
+        { "id": "ParallelPolicy", "mandatory": true, "ownerRole": "payroll", "slaHours": 24, "evidenceType": "parallel-payroll-pass", "service": "testdata", "event": null },
+        { "id": "ParallelPayrollPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "parallel-payroll-pass", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "OutOfOrderAck",
+      "steps": [
+        { "id": "OutOfOrderPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "out-of-order-ack-pass", "service": "testdata", "event": null },
+        { "id": "DelayAckPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "delay-ack-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "unapprovedRunFail": "testdata/ext003/scenarios/unapproved-run-fail.json",
+    "duplicateSubmitFail": "testdata/ext003/scenarios/duplicate-submit-fail.json",
+    "totalsMismatchFail": "testdata/ext003/scenarios/totals-mismatch-fail.json",
+    "reconTotalsPass": "testdata/ext003/scenarios/recon-totals-pass.json",
+    "partialRejectCorrectPass": "testdata/ext003/scenarios/partial-reject-correct-pass.json",
+    "manualFileUnauditedFail": "testdata/ext003/scenarios/manual-file-unaudited-fail.json",
+    "outOfOrderAckPass": "testdata/ext003/scenarios/out-of-order-ack-pass.json",
+    "delayAckPass": "testdata/ext003/scenarios/delay-ack-pass.json",
+    "parallelPayrollPass": "testdata/ext003/scenarios/parallel-payroll-pass.json",
+    "cutoffBreachFail": "testdata/ext003/scenarios/cutoff-breach-fail.json",
+    "paymentOrderAuditPass": "testdata/ext003/audit/payment-order-audit-pass.json",
+    "treasuryRunLedger": "testdata/ext003/harness/treasury-run-ledger.json"
+  },
+  "joins": {
+    "pay003Batches": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "iam003Sod": "docs/SOD_MATRIX.md",
+    "int003Sagas": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "disbursementPort": "src/Shared/HRManagement.Integration.Abstractions/Payroll/",
+    "fileAdapter": "src/Shared/HRManagement.Integration.FileAdapters/Payroll/",
+    "externalIntegrationsDoc": "docs/EXTERNAL_INTEGRATIONS.md",
+    "ext004PkiSoft": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md"
+  }
+}

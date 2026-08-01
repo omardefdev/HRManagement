@@ -1,0 +1,30 @@
+@model Auth.Directory.Domain.Entities.Role
+@{ ViewData["Title"] = "تعديل الدور"; }
+
+<div class="card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-header">
+            <h3 class="card-title mb-0">تعديل الدور</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-3 mb-2">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="Description" class="form-label"></label>
+                <input asp-for="Description" class="form-control" />
+            </div>
+            <div class="mb-3 mb-2">
+                <label asp-for="Permissions" class="form-label"></label>
+                <textarea asp-for="Permissions" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

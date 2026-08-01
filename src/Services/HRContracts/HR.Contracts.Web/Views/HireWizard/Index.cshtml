@@ -1,0 +1,105 @@
+@model IEnumerable<HR.Contracts.Domain.Entities.ServiceTransaction>
+
+@functions {
+
+    static string EmployeeDisplay(string? notes, Guid employeeId)
+
+    {
+
+        if (string.IsNullOrWhiteSpace(notes))
+
+            return employeeId.ToString();
+
+        var sep = notes.IndexOf(" — ", StringComparison.Ordinal);
+
+        return sep > 0 ? notes[..sep] : notes;
+
+    }
+
+}
+
+@{ ViewData["Title"] = "معاملات التعيين"; }
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <h3 class="card-title"><i class="fas fa-user-plus"></i> معاملات التعيين المفتوحة</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        @if (TempData["Error"] is string err)
+
+        {
+
+            <div class="alert alert-warning">@err</div>
+
+        }
+
+        @if (TempData["Success"] is string ok)
+
+        {
+
+            <div class="alert alert-success">@ok</div>
+
+        }
+
+        <p class="text-muted">تُنشأ المعاملات تلقائياً عند التعيين من <strong>طلبات التوظيف</strong> في النواة.</p>
+
+        <div class="table-responsive">
+
+        <table class="table table-striped">
+
+            <thead>
+
+            <tr><th>الموظف</th><th>الحالة</th><th>ملاحظات</th><th></th></tr>
+
+            </thead>
+
+            <tbody>
+
+            @foreach (var t in Model)
+
+            {
+
+                <tr>
+
+                    <td>@EmployeeDisplay(t.Notes, t.EmployeeId)</td>
+
+                    <td>@t.State</td>
+
+                    <td>@t.Notes</td>
+
+                    <td>
+
+                        <a asp-action="Step2" asp-route-transactionId="@t.Id" class="btn btn-sm btn-outline-primary">متابعة</a>
+
+                        <a asp-controller="ServiceTransactions" asp-action="Details" asp-route-id="@t.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a>
+
+                    </td>
+
+                </tr>
+
+            }
+
+            @if (!Model.Any())
+
+            {
+
+                <tr><td colspan="4" class="text-center text-muted">لا توجد معاملات مفتوحة</td></tr>
+
+            }
+
+            </tbody>
+
+        </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+

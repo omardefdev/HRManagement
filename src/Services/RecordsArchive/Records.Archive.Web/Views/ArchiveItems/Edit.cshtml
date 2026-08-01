@@ -1,0 +1,22 @@
+@model ArchiveItem
+@{ ViewData["Title"] = "تعديل عنصر أرشيف"; var classifications = (SelectList)ViewBag.Classifications; }
+<div class="card">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="ReferenceNumber" class="form-label"></label><input asp-for="ReferenceNumber" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="ClassificationId" class="form-label"></label><select asp-for="ClassificationId" asp-items="classifications" class="form-control"><option value="">-- اختر --</option></select></div>
+            <div class="mb-3"><label asp-for="StorageLocation" class="form-label"></label><input asp-for="StorageLocation" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Format" class="form-label"></label><select asp-for="Format" class="form-control" asp-items="Html.GetEnumSelectList<ArchiveFormat>()"></select></div>
+            <div class="mb-3"><label asp-for="RetentionPeriodYears" class="form-label"></label><input asp-for="RetentionPeriodYears" class="form-control" type="number" /></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

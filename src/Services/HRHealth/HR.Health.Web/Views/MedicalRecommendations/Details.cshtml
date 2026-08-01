@@ -1,0 +1,25 @@
+@model HR.Health.Domain.Entities.MedicalRecommendation
+@{ ViewData["Title"] = "تفاصيل التوصية الطبية"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">توصية طبية</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">النوع</dt><dd class="col-sm-9">@Model.RecommendationType</dd>
+            <dt class="col-sm-3">التفاصيل</dt><dd class="col-sm-9">@(Model.Details ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@(Model.IssuedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@(Model.IssuedBy ?? "—")</dd>
+            <dt class="col-sm-3">التقرير</dt><dd class="col-sm-9">
+                @if (Model.Report != null)
+                {
+                    <a asp-controller="MedicalCommitteeReports" asp-action="Details" asp-route-id="@Model.ReportId">عرض التقرير</a>
+                }
+                else { <span>—</span> }
+            </dd>
+        </dl>
+    </div>
+</div>
+<p><a asp-action="Index">العودة للقائمة</a></p>

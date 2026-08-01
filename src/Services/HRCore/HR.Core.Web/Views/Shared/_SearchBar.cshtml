@@ -1,0 +1,21 @@
+@model HRManagement.SharedKernel.ViewModels.SearchFilterBase
+
+@{
+    string action = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+}
+
+<form method="get" asp-action="@action" class="mb-3">
+    <div class="input-group">
+        <input type="text" name="SearchTerm" value="@Model?.SearchTerm"
+               class="form-control" placeholder="بحث..." aria-label="بحث" />
+        <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search"></i> بحث
+        </button>
+        @if (!string.IsNullOrEmpty(Model?.SearchTerm))
+        {
+            <a asp-action="@action" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> مسح
+            </a>
+        }
+    </div>
+</form>

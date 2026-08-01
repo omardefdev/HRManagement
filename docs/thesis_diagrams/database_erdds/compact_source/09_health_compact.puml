@@ -1,0 +1,90 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam EntityBorderColor #0F6B73
+skinparam EntityBackgroundColor #F4FAFA
+top to bottom direction
+title "خريطة ERD المختصرة لقاعدة hr_health_db\nHR.Health"
+
+entity "FirstAidTrainingRecords\nFirstAidTrainingRecord" as T01 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "HealthRetirementRecords\nHealthRetirementRecord" as T02 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "HealthStatusEntries\nHealthStatusEntry" as T03 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "InsuranceCards\nInsuranceCard" as T04 {
+  * Id
+    EmployeeId
+    InsuranceContractId
+    TenantId
+}
+entity "InsuranceContracts\nInsuranceContract" as T05 {
+  * Id
+    TenantId
+}
+entity "MedicalCommitteeReports\nMedicalCommitteeReport" as T06 {
+  * Id
+    MedicalRecordId
+    TenantId
+}
+entity "MedicalRecommendations\nMedicalRecommendation" as T07 {
+  * Id
+    EmployeeId
+    ReportId
+    TenantId
+}
+entity "MedicalRecords\nMedicalRecord" as T08 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "PeriodicMedicalChecks\nPeriodicMedicalCheck" as T09 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "SafetyInspections\nSafetyInspection" as T10 {
+  * Id
+    TenantId
+}
+entity "WorkplaceAccidents\nWorkplaceAccident" as T11 {
+  * Id
+    EmployeeId
+    MedicalRecordId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T12 {
+  * Id
+    EntityId
+    TenantId
+    UserId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T13 {
+  * Id
+    MessageId
+    TenantId
+}
+
+T04 }o--|| T05 : InsuranceContractId
+T06 }o--|| T08 : MedicalRecordId
+T07 }o--|| T06 : ReportId
+
+note bottom
+الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.
+end note
+@enduml

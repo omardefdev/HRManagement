@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-DELTA-LOSS",
+  "expectedValidate": "FAIL",
+  "changesDuringFreeze": 120,
+  "captured": 110,
+  "lost": 10,
+  "notes": "Lost delta rows must fail"
+}

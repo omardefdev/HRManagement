@@ -1,0 +1,7 @@
+{
+  "scenarioId": "SIM-DEPRECATED-ALG",
+  "expectedValidate": "FAIL",
+  "algorithm": "SHA1",
+  "treatedAsValid": true,
+  "notes": "Deprecated algorithm treated as valid must fail"
+}

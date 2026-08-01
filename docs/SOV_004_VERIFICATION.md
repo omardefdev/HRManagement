@@ -1,0 +1,1 @@
+﻿**الحالة:** Done (production zero-trust binding) — LivePamClaim=false؛ live-* Blocked؛ SOV-005=Satisfied (threat-modeling binding؛ مراجعة حية لاحقاً)؛ NAT-001 NotStarted؛ SOV-003 يقبل SOV-004=Satisfied دون رفع LiveKeyCustodyClaim.

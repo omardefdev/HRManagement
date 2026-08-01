@@ -1,0 +1,45 @@
+@{ ViewData["Title"] = "تقارير الرواتب"; }
+<div class="row">
+    <div class="col-md-3">
+        <div class="small-box bg-info"><div class="inner"><h3>@ViewBag.TotalRuns</h3><p>إجمالي التشغيلات</p></div><div class="icon"><i class="fas fa-cogs"></i></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="small-box bg-success"><div class="inner"><h3>@ViewBag.TotalPosted</h3><p>مرحّلة</p></div><div class="icon"><i class="fas fa-check-double"></i></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="small-box bg-warning"><div class="inner"><h3>@ViewBag.TotalEmployees</h3><p>موظف بملف راتب</p></div><div class="icon"><i class="fas fa-users"></i></div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="small-box bg-danger"><div class="inner"><h3>@ViewBag.TotalEos</h3><p>تسويات نهاية خدمة</p></div><div class="icon"><i class="fas fa-file-invoice-dollar"></i></div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie"></i> مركز التقارير</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>تقارير التشغيل</h5>
+                <ul class="list-group">
+                    <li class="list-group-item"><a asp-action="MonthlySummary"><i class="fas fa-chart-bar"></i> ملخص شهري بالمخططات</a></li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h5>تصدير التكامل الخارجي (المالية / التأمينات)</h5>
+                <p class="text-muted small">يُصدّر ملفات CSV قياسية إلى مجلد <code>integration-outbox</code> — وضع File (المستوى الثاني).</p>
+                @if (ViewBag.LatestRunId is Guid latestRunId)
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        <a asp-action="ExportTreasuryFile" asp-route-runId="@latestRunId" class="btn btn-outline-primary btn-sm">ملف المالية/الخزانة</a>
+                        <a asp-action="ExportSocialInsuranceFile" asp-route-runId="@latestRunId" class="btn btn-outline-primary btn-sm">ملف التأمينات</a>
+                        <a asp-action="ExportExternalIntegrationBundle" asp-route-runId="@latestRunId" class="btn btn-primary btn-sm">التصدير المزدوج</a>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">لا يوجد تشغيل رواتب لتصديره.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

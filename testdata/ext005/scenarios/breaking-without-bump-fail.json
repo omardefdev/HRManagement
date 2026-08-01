@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-BREAKING-WITHOUT-BUMP",
+  "expectedValidate": "FAIL",
+  "breakingChange": true,
+  "majorBumped": false,
+  "fromVersion": "1.2.0",
+  "toVersion": "1.3.0",
+  "notes": "Breaking change without major bump must fail"
+}

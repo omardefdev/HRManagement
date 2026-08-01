@@ -1,0 +1,9 @@
+{
+  "scenarioId": "SIM-PARTIAL-REJECT-CORRECT",
+  "expectedValidate": "PASS",
+  "ackCode": "PARTIAL_REJECT",
+  "correctionOpened": true,
+  "silentOverwriteToSettled": false,
+  "resubmitIdempotencyKey": "idem-lab-001-corr",
+  "notes": "Partial reject opens correction workflow"
+}

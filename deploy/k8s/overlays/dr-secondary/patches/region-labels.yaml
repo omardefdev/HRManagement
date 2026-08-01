@@ -1,0 +1,37 @@
+# Label all Deployments as secondary warm-standby (OPS-004).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hr-gateway
+  labels:
+    ops.hrmanagement.io/site: secondary
+    topology.kubernetes.io/region: secondary
+spec:
+  template:
+    metadata:
+      labels:
+        ops.hrmanagement.io/site: secondary
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hr-core-web
+  labels:
+    ops.hrmanagement.io/site: secondary
+spec:
+  template:
+    metadata:
+      labels:
+        ops.hrmanagement.io/site: secondary
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payroll-web
+  labels:
+    ops.hrmanagement.io/site: secondary
+spec:
+  template:
+    metadata:
+      labels:
+        ops.hrmanagement.io/site: secondary

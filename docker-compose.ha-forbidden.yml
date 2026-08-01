@@ -1,0 +1,46 @@
+# HA policy overlay — strips fixed container_name so Compose can scale without name collisions.
+# Usage (optional check / multi-replica experiments on a single host — NOT a substitute for k8s HA):
+#   docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ha-forbidden.yml config
+#
+# Production HA = Kubernetes (see deploy/k8s/ and docs/OPS_HA_TOPOLOGY.md).
+# Do not use fixed container_name on HA paths; Kubernetes assigns unique pod names.
+
+services:
+  postgresql:
+    container_name: !reset null
+  rabbitmq:
+    container_name: !reset null
+  minio:
+    container_name: !reset null
+  keycloak:
+    container_name: !reset null
+  hr-core-web:
+    container_name: !reset null
+  hr-contracts-web:
+    container_name: !reset null
+  hr-health-web:
+    container_name: !reset null
+  hr-movements-web:
+    container_name: !reset null
+  hr-training-web:
+    container_name: !reset null
+  payroll-web:
+    container_name: !reset null
+  idcard-web:
+    container_name: !reset null
+  records-archive-web:
+    container_name: !reset null
+  admin-logistics-web:
+    container_name: !reset null
+  it-infra-web:
+    container_name: !reset null
+  dev-analytics-web:
+    container_name: !reset null
+  compliance-web:
+    container_name: !reset null
+  auth-directory-web:
+    container_name: !reset null
+  file-storage-web:
+    container_name: !reset null
+  hr-gateway:
+    container_name: !reset null

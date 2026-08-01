@@ -1,0 +1,125 @@
+{
+  "card": "SYR-010",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Government data bus profile and transitional integration channel for Syrian HR platform",
+  "busStatus": "transitional",
+  "busStatusNote": "Official national data bus pending; signed encrypted batch is default transport",
+  "liveBusClaimForbidden": true,
+  "shadowIntegrationForbidden": true,
+  "transitionalBatchPolicy": {
+    "encryption": "AES-256-GCM",
+    "signature": "RSA-PSS-SHA256 or national PKI equivalent",
+    "manifestRequired": true,
+    "sequenceRequired": true,
+    "checksumAlgorithm": "SHA-256",
+    "ackRequired": true,
+    "replaySafe": true,
+    "reconciliationIntervalHours": 24,
+    "maxOutageHoursWithoutLoss": 24
+  },
+  "schemaRegistryRef": "docs/iop/schema-registry-profile.json",
+  "connectors": [
+    {
+      "connectorId": "gov-civil-registry",
+      "authority": "Ministry of Interior — Civil Affairs",
+      "classification": "restricted-personal",
+      "purpose": "identity-verification",
+      "contractVersion": "1.0.0",
+      "transport": "batch",
+      "futureTransport": "api",
+      "slo": {
+        "freshnessHours": 24,
+        "availabilityPercent": 99.5,
+        "reconciliationPercent": 100
+      },
+      "canonicalIds": ["NationalIdHash", "PersonId", "CivilEventId"],
+      "schemaRef": "CivilRegistry",
+      "cutoverPlan": "batch-to-api-v1"
+    },
+    {
+      "connectorId": "gov-treasury-disbursement",
+      "authority": "Ministry of Finance — Treasury",
+      "classification": "restricted-financial",
+      "purpose": "payroll-disbursement",
+      "contractVersion": "1.0.0",
+      "transport": "batch",
+      "futureTransport": "api",
+      "slo": {
+        "freshnessHours": 4,
+        "availabilityPercent": 99.9,
+        "reconciliationPercent": 100
+      },
+      "canonicalIds": ["PayrollRunId", "DisbursementOrderId", "BeneficiaryId"],
+      "schemaRef": "Treasury",
+      "cutoverPlan": "batch-to-api-v1"
+    },
+    {
+      "connectorId": "gov-social-insurance",
+      "authority": "General Organization for Social Insurance",
+      "classification": "restricted-personal",
+      "purpose": "contribution-reporting",
+      "contractVersion": "1.0.0",
+      "transport": "batch",
+      "futureTransport": "event",
+      "slo": {
+        "freshnessHours": 48,
+        "availabilityPercent": 99.0,
+        "reconciliationPercent": 100
+      },
+      "canonicalIds": ["EmployeeId", "InsuredPersonId", "ContributionPeriodId"],
+      "schemaRef": "SocialInsurance",
+      "cutoverPlan": "batch-to-event-v1"
+    },
+    {
+      "connectorId": "gov-data-bus-hub",
+      "authority": "Government Integration Authority",
+      "classification": "restricted-operational",
+      "purpose": "cross-ministry-exchange",
+      "contractVersion": "0.1.0-draft",
+      "transport": "batch",
+      "futureTransport": "event",
+      "slo": {
+        "freshnessHours": 24,
+        "availabilityPercent": 99.5,
+        "reconciliationPercent": 100
+      },
+      "canonicalIds": ["MessageId", "CorrelationId", "SourceSystemId"],
+      "schemaRef": "GovernmentDataBus",
+      "cutoverPlan": "batch-to-event-v2",
+      "liveEndpointProofRequired": true
+    }
+  ],
+  "cutoverPlans": [
+    {
+      "id": "batch-to-api-v1",
+      "description": "Semantic-preserving cutover from signed batch to REST API",
+      "steps": ["sandbox-conformance", "parallel-run", "control-total-match", "api-primary", "batch-retire"],
+      "rollbackAllowed": true
+    },
+    {
+      "id": "batch-to-event-v1",
+      "description": "Semantic-preserving cutover from signed batch to event bus",
+      "steps": ["schema-registry-compat", "event-shadow", "reconciliation-match", "event-primary", "batch-retire"],
+      "rollbackAllowed": true
+    },
+    {
+      "id": "batch-to-event-v2",
+      "description": "National data bus cutover when official endpoint available",
+      "steps": ["endpoint-proof", "mTLS-setup", "key-rollover-drill", "conformance-cert", "bus-primary"],
+      "rollbackAllowed": true,
+      "requiresLiveEndpointProof": true
+    }
+  ],
+  "monitoring": {
+    "freshnessDashboardRequired": true,
+    "backlogAlertThresholdHours": 12,
+    "controlTotalVarianceThresholdPercent": 0.01
+  },
+  "blockers": [
+    { "id": "gov-data-bus-live", "status": "Blocked", "note": "Official bus endpoint not yet available" },
+    { "id": "EXT-005", "status": "Satisfied", "note": "Gov data-exchange contract pack Done" },
+    { "id": "INT-004", "status": "Satisfied", "note": "Mode-switched connectors Done" },
+    { "id": "IOP-001", "status": "Satisfied", "note": "Schema registry profiles Done" }
+  ]
+}

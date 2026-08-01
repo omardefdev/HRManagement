@@ -1,0 +1,155 @@
+{
+  "card": "SYR-016",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "authority": "CISO + National Cybersecurity / NAITS Liaison",
+  "description": "Syrian cybersecurity compliance crosswalk linking legal articles to controls, implementation, evidence, and owners",
+  "legalFramework": [
+    {
+      "id": "LAW-20-2022",
+      "title": "Cybercrime Law 20/2022",
+      "status": "certified-text-required"
+    },
+    {
+      "id": "NISP",
+      "title": "National Information Security Policy",
+      "status": "certified-text-required"
+    },
+    {
+      "id": "NCS",
+      "title": "National Cybersecurity Strategy",
+      "status": "certified-text-required"
+    },
+    {
+      "id": "NAITS-ET-20",
+      "title": "Regulation 20 NAITS/ET",
+      "status": "certified-text-required"
+    }
+  ],
+  "assetClassification": {
+    "levels": ["public", "internal", "confidential", "secret"],
+    "dataMappingRequired": true,
+    "ownerRole": "CISO"
+  },
+  "controls": [
+    {
+      "id": "CYB-01",
+      "articleRef": "Law 20/2022 Art. 8",
+      "control": "Asset and data classification register",
+      "implementation": "SOV-001 control baseline + data inventory",
+      "evidence": "sov-baseline/control-baseline-matrix.json",
+      "owner": "CISO",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-02",
+      "articleRef": "NAITS/ET Reg. 20 §4",
+      "control": "System hardening baseline",
+      "implementation": "HARD-001 + CIS-aligned host policy",
+      "evidence": "HARD_001_HARDENING.md",
+      "owner": "Platform Security",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-03",
+      "articleRef": "NAITS/ET Reg. 20 §7",
+      "control": "Security logging and SIEM forwarding",
+      "implementation": "Central log pipeline within sovereign boundary",
+      "evidence": "OBS-003 telemetry pack",
+      "owner": "SOC Lead",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-04",
+      "articleRef": "NISP §Incident",
+      "control": "National SOC handoff and incident clock",
+      "implementation": "Unified incident clock aligned with PRV-003 breach workflow",
+      "evidence": "SRE-003 incident matrix",
+      "owner": "SOC Lead",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-05",
+      "articleRef": "Law 20/2022 Art. 12",
+      "control": "Data loss prevention for mass export",
+      "implementation": "Export gates + audit on bulk download",
+      "evidence": "SOV-005 abuse cases",
+      "owner": "Product Security",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-06",
+      "articleRef": "NAITS/ET Reg. 20 §9",
+      "control": "Encryption in transit and at rest",
+      "implementation": "SOV-003 key sovereignty + TLS 1.2+",
+      "evidence": "sov-keys/key-sovereignty-matrix.json",
+      "owner": "Cryptography Authority",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-07",
+      "articleRef": "NCS Pillar 3",
+      "control": "Vulnerability scan and change approval",
+      "implementation": "CI security scan + change board per REL-006",
+      "evidence": "REL_006_RELEASE_TRAIN.md",
+      "owner": "Change Management",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-08",
+      "articleRef": "NAITS/ET Reg. 20 §11",
+      "control": "Penetration test and retest closure",
+      "implementation": "SOV-006 independent assessor program",
+      "evidence": "sov-pentest/pen-red-matrix.json",
+      "owner": "Independent Security Assessor",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-09",
+      "articleRef": "NISP §Contacts",
+      "control": "Syrian national contact playbooks",
+      "implementation": "Incident playbooks name NAITS and sector CSIRT contacts",
+      "evidence": "SYR_016_CYBERSECURITY.md playbooks",
+      "owner": "CISO",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-10",
+      "articleRef": "Law 20/2022 Art. 15",
+      "control": "Insider threat and privileged access monitoring",
+      "implementation": "SOV-004 zero trust + PAM/JIT",
+      "evidence": "sov-zt/zero-trust-matrix.json",
+      "owner": "Security Architecture",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-11",
+      "articleRef": "NAITS/ET Reg. 20 §14",
+      "control": "Evidence bundle for re-accreditation",
+      "implementation": "Signed evidence bundle on law/policy change",
+      "evidence": "EVD-002 forensic chain",
+      "owner": "Assurance Office",
+      "gapSeverity": "none"
+    },
+    {
+      "id": "CYB-12",
+      "articleRef": "NCS Pillar 5",
+      "control": "Telemetry residency within sovereignty",
+      "implementation": "SOV-002 data sovereignty matrix",
+      "evidence": "sov-data/data-sovereignty-matrix.json",
+      "owner": "Data Sovereignty",
+      "gapSeverity": "none"
+    }
+  ],
+  "incidentResponse": {
+    "unifiedClockWithPrivacy": true,
+    "notifyNaits": true,
+    "notifyPersonalDataAuthorityOnPiiBreach": true,
+    "playbookOwner": "SOC Lead"
+  },
+  "reAccreditation": {
+    "triggerOnLawChange": true,
+    "triggerOnPolicyChange": true,
+    "zeroCriticalGapRequired": true
+  }
+}

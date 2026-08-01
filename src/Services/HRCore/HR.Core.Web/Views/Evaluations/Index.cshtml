@@ -1,0 +1,173 @@
+@model HR.Core.Web.ViewModels.EvaluationListViewModel
+
+@{
+
+    ViewData["Title"] = "تقييمات الأداء";
+
+    var employee = Model.Employee ?? ViewBag.Employee as HR.Core.Domain.Entities.Employee;
+
+}
+
+
+
+<div class="card">
+
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between">
+
+        <div>
+
+            <h3 class="card-title mb-1"><i class="fas fa-star"></i> تقييمات الأداء</h3>
+
+            @if (employee != null)
+
+            {
+
+                <p class="mb-0 text-muted small">الموظف: <strong>@employee.FullName</strong></p>
+
+            }
+
+        </div>
+
+        @if (Model.EmployeeId.HasValue)
+
+        {
+
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createEvaluationModal">
+
+                <i class="fas fa-plus"></i> إضافة تقييم
+
+            </button>
+
+        }
+
+    </div>
+
+    <div class="card-body p-0">
+
+        <table class="table table-striped table-hover mb-0">
+
+            <thead>
+
+                <tr>
+
+                    <th>الموظف</th>
+
+                    <th>السنة</th>
+
+                    <th>الدرجة</th>
+
+                    <th>الحالة</th>
+
+                    <th>إجراءات</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var ev in Model.Evaluations.Items)
+
+                {
+
+                    <tr>
+
+                        <td>@(ev.Employee?.FullName ?? "—")</td>
+
+                        <td>@ev.Year</td>
+
+                        <td>@ev.Score</td>
+
+                        <td>@(ev.Status == "draft" ? "مسودة" : "نهائي")</td>
+
+                        <td>
+
+                            <a asp-action="Edit" asp-route-id="@ev.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+
+                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = ev.Id })" aria-label="حذف">
+
+                                <i aria-hidden="true" class="fas fa-trash"></i>
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                }
+
+                @if (!Model.Evaluations.Items.Any())
+
+                {
+
+                    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد تقييمات</td></tr>
+
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="card-footer">
+
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Evaluations))
+
+        @if (employee != null)
+
+        {
+
+            <a asp-controller="Employees" asp-action="Details" asp-route-id="@employee.Id" class="btn btn-secondary mt-2">
+
+                <i class="fas fa-arrow-right"></i> العودة لملف الموظف
+
+            </a>
+
+        }
+
+    </div>
+
+</div>
+
+
+
+@if (Model.EmployeeId.HasValue)
+
+{
+
+    @await Html.PartialAsync("_CreateModal", Model.CreateModel)
+
+}
+
+
+
+@section Scripts {
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    @if (Model.EmployeeId.HasValue)
+
+    {
+
+        <script>
+
+            document.addEventListener('DOMContentLoaded', function () {
+
+                if (@Json.Serialize(Model.ShowCreateModal)) {
+
+                    bootstrap.Modal.getOrCreateInstance(
+
+                        document.getElementById('createEvaluationModal')).show();
+
+                }
+
+            });
+
+        </script>
+
+    }
+
+}
+
+

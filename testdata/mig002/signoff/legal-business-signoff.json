@@ -1,0 +1,10 @@
+{
+  "fixtureId": "MIG002-LEGAL-BUSINESS-SIGNOFF",
+  "expectedValidate": "PASS",
+  "mappingVersion": "2026.07.30.1",
+  "contentHash": "sha256:mig002-lab-maps-20260730",
+  "signedByRole": "data-architecture",
+  "reviewerRole": "legal-hr-finance",
+  "expiresOn": "2027-07-30",
+  "rolesMatchMatrix": true
+}

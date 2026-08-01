@@ -1,0 +1,8 @@
+{
+  "scenarioId": "SIM-IDP-OUTAGE-FAILOVER",
+  "expectedValidate": "PASS",
+  "primaryIdpDown": true,
+  "failoverActivated": true,
+  "noUnauthenticatedAccess": true,
+  "liveConformance": false
+}

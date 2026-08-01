@@ -1,0 +1,17 @@
+@model HR.Health.Domain.Entities.HealthRetirementRecord
+@{ ViewData["Title"] = "تفاصيل التقاعد الصحي"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">التقاعد الصحي</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">تاريخ النفاذ</dt><dd class="col-sm-9">@Model.EffectiveDate</dd>
+            <dt class="col-sm-3">السبب</dt><dd class="col-sm-9">@(Model.Reason ?? "—")</dd>
+            <dt class="col-sm-3">المستندات</dt><dd class="col-sm-9">@(Model.Documents ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+<p><a asp-action="Index">العودة للقائمة</a></p>

@@ -1,0 +1,43 @@
+@model IReadOnlyList<IssuedCard>
+@{ ViewData["Title"] = "البطاقات المصدرة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">البطاقات المصدرة</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إصدار</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>التصميم</th><th>التسلسل</th><th>الإصدار</th><th>الحالة</th><th>طباعة/تسليم</th><th>تفاصيل</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.EmployeeId</td>
+                        <td>@x.CardDesign.Name</td>
+                        <td>@x.SerialNumber</td>
+                        <td>@x.IssuedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@x.Status</td>
+                        <td class="small">
+                            @(x.DeliveryRecord?.PrintedAt != null ? $"طباعة: {x.DeliveryRecord.PrintedAt:yyyy/MM/dd}" : "—")
+                            <br />
+                            @(x.DeliveryRecord?.DeliveredAt != null ? $"تسليم: {x.DeliveryRecord.DeliveredAt:yyyy/MM/dd}" : "")
+                        </td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                        <td class="text-nowrap">
+                            <form asp-action="MarkPrinted" asp-route-id="@x.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">طباعة</button>
+                            </form>
+                            <form asp-action="MarkDelivered" asp-route-id="@x.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="deliveredTo" value="@x.EmployeeId" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary">تسليم</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا بطاقات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,18 @@
+@model LoanRecord
+@{ ViewData["Title"] = "تفاصيل الإعارة"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">إعارة</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">عنصر الأرشيف</dt><dd class="col-sm-9">@Model.ArchiveItem?.Title</dd>
+            <dt class="col-sm-3">المستعير</dt><dd class="col-sm-9">@Model.Borrower</dd>
+            <dt class="col-sm-3">تاريخ الإعارة</dt><dd class="col-sm-9">@Model.LoanDate.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">الاستحقاق</dt><dd class="col-sm-9">@Model.DueDate.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">الإعادة</dt><dd class="col-sm-9">@(Model.ReturnedDate?.ToString("yyyy/MM/dd") ?? "لم تتم")</dd>
+        </dl>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

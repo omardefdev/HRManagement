@@ -1,0 +1,648 @@
+# Production overrides — MUST be last so port/network closures win over observability:
+#   docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.observability.yml -f docker-compose.production.yml up -d
+#
+# SEC-001: only Gateway (and optionally Keycloak for IdP redirects) publish host ports.
+# All other listeners stay on isolated Docker networks. See docs/NETWORK_MATRIX.md.
+
+x-app-production-env: &app-production-env
+  ASPNETCORE_ENVIRONMENT: Production
+  Database__RunMigrationsAtStartup: "false"
+  Serilog__SeqUrl: http://seq:5341
+  OpenTelemetry__Enabled: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+
+x-app-messaging-env: &app-messaging-env
+  RabbitMQ__Host: rabbitmq
+  RabbitMQ__Port: 5672
+  RabbitMQ__VirtualHost: /
+  # IAM-004: override RabbitMQ__Username/Password per service (do not use DEFAULT admin in apps).
+  # SEC-004: fail-closed — no default RabbitMQ credentials in production.
+  RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
+  RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
+  Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/hrmanagement}
+  HrAuth__BehindGateway: "true"
+  HealthChecks__IncludeRabbitMq: "true"
+  # IAM-004: MinIO credentials must NOT be injected into every service — only file-storage-web.
+
+x-app-healthcheck: &app-healthcheck
+  test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 60s
+
+x-app-resources: &app-resources
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 512M
+      reservations:
+        cpus: "0.25"
+        memory: 256M
+
+# HARD-001: full container hardening for ASP.NET app services (non-root images + cap drop).
+x-app-hardening: &app-hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+# HARD-001: mild hardening for data-plane / JVM / Erlang — do NOT cap_drop ALL (breaks init).
+x-infra-hardening-mild: &infra-hardening-mild
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  postgresql:
+    <<: *infra-hardening-mild
+    ports: !override []
+    networks: !override
+      - data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  rabbitmq:
+    <<: *infra-hardening-mild
+    ports: !override []
+    networks: !override
+      - data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  clamav:
+    <<: *infra-hardening-mild
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  minio:
+    <<: *infra-hardening-mild
+    ports: !override []
+    networks: !override
+      - data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD required}
+    volumes:
+      - minio_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  keycloak:
+    <<: *infra-hardening-mild
+    command: start
+    # IdP must be reachable by browsers; restrict via firewall/VPN in real deployments.
+    ports: !override
+      - "${KEYCLOAK_HTTP_PORT:-8080}:8080"
+    networks: !override
+      - edge
+      - data
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgresql:5432/keycloak_db
+      KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      KC_PROXY: edge
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_HTTP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  postgres-backup:
+    image: postgres:16-alpine
+    container_name: hrm-postgres-backup
+    profiles: ["backup"]
+    networks: !override
+      - data
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      # Prefer hrm_backup (OPS-003); fall back to POSTGRES_* for bootstrap
+      POSTGRES_USER: ${POSTGRES_BACKUP_USER:-${POSTGRES_USER}}
+      POSTGRES_PASSWORD: ${POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD}}
+      BACKUP_PGUSER: ${POSTGRES_BACKUP_USER:-hrm_backup}
+      BACKUP_PGPASSWORD: ${POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD}}
+      PGHOST: postgresql
+      PGPORT: "5432"
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_CATALOG_PATH: /backups/postgres/backup-catalog.jsonl
+    volumes:
+      - ./scripts/backup-postgres.sh:/backup/backup-postgres.sh:ro
+      - ./scripts/lib:/backup/lib:ro
+      - postgres_backups:/backups/postgres
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        # OPS-003: full inventory incl. file_storage_db; writes checksums + catalog
+        mkdir -p /backup/scripts && cp /backup/backup-postgres.sh /tmp/backup-postgres.sh
+        # script sources ../scripts/lib — provide layout
+        mkdir -p /work/scripts/lib
+        cp /backup/backup-postgres.sh /work/scripts/backup-postgres.sh
+        cp /backup/lib/backup-catalog.sh /work/scripts/lib/backup-catalog.sh
+        chmod +x /work/scripts/backup-postgres.sh
+        while true; do
+          /work/scripts/backup-postgres.sh /backups/postgres
+          sleep 86400
+        done
+    restart: unless-stopped
+
+  minio-backup:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    profiles: ["backup"]
+    networks: !override
+      - data
+    depends_on:
+      - minio
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_BACKUP_ACCESS_KEY:-${MINIO_ROOT_USER}}
+      MINIO_SECRET_KEY: ${MINIO_BACKUP_SECRET_KEY:-${MINIO_ROOT_PASSWORD}}
+      MINIO_BACKUP_DIR: /backups/minio
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_CATALOG_PATH: /backups/minio/backup-catalog.jsonl
+    volumes:
+      - ./scripts/backup-minio.sh:/backup/backup-minio.sh:ro
+      - ./scripts/lib/backup-catalog.sh:/backup/lib/backup-catalog.sh:ro
+      - minio_backups:/backups/minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /work/scripts/lib
+        cp /backup/backup-minio.sh /work/scripts/backup-minio.sh
+        cp /backup/lib/backup-catalog.sh /work/scripts/lib/backup-catalog.sh
+        chmod +x /work/scripts/backup-minio.sh
+        while true; do
+          /work/scripts/backup-minio.sh || true
+          sleep 86400
+        done
+    restart: unless-stopped
+
+  hr-gateway:
+    <<: [*app-resources, *app-hardening]
+    ports: !override
+      - "${GATEWAY_HTTP_PORT:-5000}:8080"
+    networks: !override
+      - edge
+      - application
+      - data
+    environment:
+      <<: *app-production-env
+      ConnectionStrings__GatewayAuditDb: Host=postgresql;Port=5432;Database=gateway_audit_db;Username=gateway_audit_app;Password=${POSTGRES_GATEWAY_AUDIT_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_gateway
+      RabbitMQ__Password: ${RABBITMQ_GATEWAY_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/hrmanagement}
+      Keycloak__ClientId: hr-gateway-client
+      Keycloak__ClientSecret: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required}
+      Keycloak__RequireHttpsMetadata: ${KEYCLOAK_REQUIRE_HTTPS_METADATA:-false}
+      UseForwardedHeaders: "true"
+      # Shared key ring: without it each gateway replica encrypts OIDC state with its own keys and
+      # interactive login breaks whenever the callback lands on a different replica.
+      DataProtection__KeyRingPath: /var/hrm/dataprotection-keys
+      ReverseProxy__Clusters__hr-core-cluster__Destinations__destination1__Address: http://hr-core-web:8080
+      ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
+      ReverseProxy__Clusters__hr-health-cluster__Destinations__destination1__Address: http://hr-health-web:8080
+      ReverseProxy__Clusters__hr-movements-cluster__Destinations__destination1__Address: http://hr-movements-web:8080
+      ReverseProxy__Clusters__hr-training-cluster__Destinations__destination1__Address: http://hr-training-web:8080
+      ReverseProxy__Clusters__payroll-cluster__Destinations__destination1__Address: http://payroll-web:8080
+      ReverseProxy__Clusters__idcard-cluster__Destinations__destination1__Address: http://idcard-web:8080
+      ReverseProxy__Clusters__records-archive-cluster__Destinations__destination1__Address: http://records-archive-web:8080
+      ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
+      ReverseProxy__Clusters__it-infra-cluster__Destinations__destination1__Address: http://it-infra-web:8080
+      ReverseProxy__Clusters__dev-analytics-cluster__Destinations__destination1__Address: http://dev-analytics-web:8080
+      ReverseProxy__Clusters__compliance-cluster__Destinations__destination1__Address: http://compliance-web:8080
+      ReverseProxy__Clusters__auth-directory-cluster__Destinations__destination1__Address: http://auth-directory-web:8080
+      ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
+    volumes:
+      - gateway_dataprotection_keys:/var/hrm/dataprotection-keys
+    healthcheck: *app-healthcheck
+    depends_on:
+      hr-core-web:
+        condition: service_healthy
+
+  hr-core-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__HRCoreDb: Host=postgresql;Port=5432;Database=hr_core_db;Username=hr_core_app;Password=${POSTGRES_HR_CORE_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_hr_core
+      RabbitMQ__Password: ${RABBITMQ_HR_CORE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-hr-core
+      ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:?SVC_HR_CORE_CLIENT_SECRET required}
+      ServiceIdentity__Scope: file-storage.references
+      ServiceIdentity__ApiAudience: api-hr-core
+      Keycloak__AdditionalValidAudiences: api-hr-core;hr-gateway-client
+      # SEC-004 / IAM-004: clear dev MinIO defaults — hr-core uses service identity, not direct MinIO.
+      FileStorage__AccessKey: ""
+      FileStorage__SecretKey: ""
+    volumes:
+      - hr_core_integration_outbox:/app/integration-outbox
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      minio:
+        condition: service_started
+
+  hr-contracts-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__ContractsDb: Host=postgresql;Port=5432;Database=hr_contracts_db;Username=hr_contracts_app;Password=${POSTGRES_HR_CONTRACTS_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_hr_contracts
+      RabbitMQ__Password: ${RABBITMQ_HR_CONTRACTS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-hr-contracts
+      ServiceIdentity__ClientSecret: ${SVC_HR_CONTRACTS_CLIENT_SECRET:?SVC_HR_CONTRACTS_CLIENT_SECRET required}
+      ServiceIdentity__Scope: file-storage.references
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr-health-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__HealthDb: Host=postgresql;Port=5432;Database=hr_health_db;Username=hr_health_app;Password=${POSTGRES_HR_HEALTH_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_hr_health
+      RabbitMQ__Password: ${RABBITMQ_HR_HEALTH_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-hr-health
+      ServiceIdentity__ClientSecret: ${SVC_HR_HEALTH_CLIENT_SECRET:?SVC_HR_HEALTH_CLIENT_SECRET required}
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr-movements-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__MovementsDb: Host=postgresql;Port=5432;Database=hr_movements_db;Username=hr_movements_app;Password=${POSTGRES_HR_MOVEMENTS_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_hr_movements
+      RabbitMQ__Password: ${RABBITMQ_HR_MOVEMENTS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-hr-movements
+      ServiceIdentity__ClientSecret: ${SVC_HR_MOVEMENTS_CLIENT_SECRET:?SVC_HR_MOVEMENTS_CLIENT_SECRET required}
+      ServiceIdentity__Scope: hr-core.lookup
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  hr-training-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__TrainingDb: Host=postgresql;Port=5432;Database=hr_training_db;Username=hr_training_app;Password=${POSTGRES_HR_TRAINING_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_hr_training
+      RabbitMQ__Password: ${RABBITMQ_HR_TRAINING_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-hr-training
+      ServiceIdentity__ClientSecret: ${SVC_HR_TRAINING_CLIENT_SECRET:?SVC_HR_TRAINING_CLIENT_SECRET required}
+      ServiceIdentity__Scope: file-storage.references
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payroll-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=payroll_app;Password=${POSTGRES_PAYROLL_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      RabbitMQ__Username: mq_payroll
+      RabbitMQ__Password: ${RABBITMQ_PAYROLL_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-payroll
+      ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:?SVC_PAYROLL_CLIENT_SECRET required}
+      ServiceIdentity__Scope: hr-core.lookup
+    volumes:
+      - payroll_integration_outbox:/app/integration-outbox
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  idcard-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__IDCardDb: Host=postgresql;Port=5432;Database=idcard_db;Username=idcard_app;Password=${POSTGRES_IDCARD_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_idcard
+      RabbitMQ__Password: ${RABBITMQ_IDCARD_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-idcard
+      ServiceIdentity__ClientSecret: ${SVC_IDCARD_CLIENT_SECRET:?SVC_IDCARD_CLIENT_SECRET required}
+      ServiceIdentity__Scope: file-storage.references
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  records-archive-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__ArchiveDb: Host=postgresql;Port=5432;Database=archive_db;Username=archive_app;Password=${POSTGRES_ARCHIVE_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_records_archive
+      RabbitMQ__Password: ${RABBITMQ_RECORDS_ARCHIVE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-records-archive
+      ServiceIdentity__ClientSecret: ${SVC_RECORDS_ARCHIVE_CLIENT_SECRET:?SVC_RECORDS_ARCHIVE_CLIENT_SECRET required}
+      ServiceIdentity__Scope: file-storage.references
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  admin-logistics-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__AdminDb: Host=postgresql;Port=5432;Database=admin_db;Username=admin_app;Password=${POSTGRES_ADMIN_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_admin_logistics
+      RabbitMQ__Password: ${RABBITMQ_ADMIN_LOGISTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-admin-logistics
+      ServiceIdentity__ClientSecret: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:?SVC_ADMIN_LOGISTICS_CLIENT_SECRET required}
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  it-infra-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__ITInfraDb: Host=postgresql;Port=5432;Database=it_infra_db;Username=it_infra_app;Password=${POSTGRES_IT_INFRA_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_it_infra
+      RabbitMQ__Password: ${RABBITMQ_IT_INFRA_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      Services__AuthDirectory__BaseUrl: http://auth-directory-web:8080
+      ServiceIdentity__ClientId: svc-it-infra
+      ServiceIdentity__ClientSecret: ${SVC_IT_INFRA_CLIENT_SECRET:?SVC_IT_INFRA_CLIENT_SECRET required}
+      ServiceIdentity__Scope: directory.sync
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  dev-analytics-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__AnalyticsDb: Host=postgresql;Port=5432;Database=analytics_db;Username=analytics_app;Password=${POSTGRES_ANALYTICS_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_dev_analytics
+      RabbitMQ__Password: ${RABBITMQ_DEV_ANALYTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-dev-analytics
+      ServiceIdentity__ClientSecret: ${SVC_DEV_ANALYTICS_CLIENT_SECRET:?SVC_DEV_ANALYTICS_CLIENT_SECRET required}
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  compliance-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__ComplianceDb: Host=postgresql;Port=5432;Database=compliance_db;Username=compliance_app;Password=${POSTGRES_COMPLIANCE_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_compliance
+      RabbitMQ__Password: ${RABBITMQ_COMPLIANCE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ClientId: svc-compliance
+      ServiceIdentity__ClientSecret: ${SVC_COMPLIANCE_CLIENT_SECRET:?SVC_COMPLIANCE_CLIENT_SECRET required}
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  auth-directory-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__AuthDirectoryDb: Host=postgresql;Port=5432;Database=auth_directory_db;Username=auth_directory_app;Password=${POSTGRES_AUTH_DIRECTORY_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_auth_directory
+      RabbitMQ__Password: ${RABBITMQ_AUTH_DIRECTORY_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
+      ServiceIdentity__ApiAudience: api-auth-directory
+      Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
+    healthcheck: *app-healthcheck
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  file-storage-web:
+    <<: [*app-resources, *app-hardening]
+    ports: !override []
+    networks: !override
+      - application
+      - data
+    environment:
+      <<: [*app-production-env, *app-messaging-env]
+      ConnectionStrings__FileStorageDb: Host=postgresql;Port=5432;Database=file_storage_db;Username=file_storage_app;Password=${POSTGRES_FILE_STORAGE_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
+      RabbitMQ__Username: mq_file_storage
+      RabbitMQ__Password: ${RABBITMQ_FILE_STORAGE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      ServiceIdentity__ApiAudience: api-file-storage
+      Keycloak__AdditionalValidAudiences: api-file-storage;hr-gateway-client
+      # IAM-004: MinIO app credentials for File.Storage only (not root)
+      FileStorage__Provider: Minio
+      FileStorage__Endpoint: minio:9000
+      FileStorage__AccessKey: ${MINIO_FILESTORAGE_ACCESS_KEY:?MINIO_FILESTORAGE_ACCESS_KEY required}
+      FileStorage__SecretKey: ${MINIO_FILESTORAGE_SECRET_KEY:?MINIO_FILESTORAGE_SECRET_KEY required}
+      FileStorage__UseSsl: "false"
+      # Anti-virus is mandatory in production: an unreachable daemon must yield ScanError, never
+      # a clean verdict. Uploads stay quarantined until a real scan succeeds.
+      FileStorage__ClamAvHost: ${CLAMAV_HOST:-clamav}
+      FileStorage__ClamAvPort: "${CLAMAV_PORT:-3310}"
+      FileStorage__ClamAvRequired: "true"
+    healthcheck: *app-healthcheck
+    depends_on:
+      clamav:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # Observability — no public host ports (Grafana bound to loopback only).
+  # Requires docker-compose.observability.yml in the same compose invocation.
+  seq:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  tempo:
+    ports: !override []
+    networks: !override
+      - observability
+
+  otel-collector:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  prometheus:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  alertmanager:
+    ports: !override []
+    networks: !override
+      - observability
+
+  alert-sink:
+    ports: !override []
+    networks: !override
+      - observability
+
+  blackbox-exporter:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  grafana:
+    ports: !override
+      - "127.0.0.1:${GRAFANA_HTTP_PORT:-3000}:3000"
+    networks: !override
+      - observability
+    environment:
+      # SEC-004: no default admin/admin in production (overrides docker-compose.observability.yml).
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER required}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required}
+
+  rabbitmq-exporter:
+    ports: !override []
+    networks: !override
+      - observability
+      - data
+
+  postgres-exporter:
+    ports: !override []
+    networks: !override
+      - observability
+      - data
+
+networks:
+  edge:
+    driver: bridge
+  application:
+    driver: bridge
+    internal: true
+  data:
+    driver: bridge
+    internal: true
+  observability:
+    driver: bridge
+    internal: true
+
+volumes:
+  # Shared Data Protection key ring for the gateway. Must survive restarts and be reachable by
+  # every replica, otherwise OIDC sign-in breaks across replicas.
+  gateway_dataprotection_keys:
+  postgres_backups:
+  minio_backups:
+  minio_data:
+  hr_core_integration_outbox:
+  payroll_integration_outbox:

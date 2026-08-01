@@ -1,0 +1,10 @@
+@model HR.Core.Web.ViewModels.WorkforcePlanCreateViewModel
+@{ ViewData["Title"] = "خطة قوى عاملة"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" class="form-control" /><span asp-validation-for="Title" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="FiscalYear" class="form-label"></label><input asp-for="FiscalYear" class="form-control" type="number" /><span asp-validation-for="FiscalYear" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" asp-items="ViewBag.OrgUnits" class="form-control"><option value="">— اختياري —</option></select><span asp-validation-for="OrgUnitId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Summary" class="form-label"></label><textarea asp-for="Summary" class="form-control" rows="3"></textarea><span asp-validation-for="Summary" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

@@ -1,0 +1,142 @@
+# SEC-001: Application pods may reach PostgreSQL, RabbitMQ, MinIO, Keycloak, ClamAV, observability.
+#
+# Every `to:` peer carries a namespaceSelector. A bare podSelector matches only pods in the
+# policy's own namespace, so with default-deny egress in `hrmanagement` these rules selected
+# nothing and the data plane in `hrmanagement-data` was unreachable — the apps could not open a
+# database connection at all.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-apps-egress-data
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: hrmanagement
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-data
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-data
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: rabbitmq
+      ports:
+        - protocol: TCP
+          port: 5672
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-data
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: minio
+      ports:
+        - protocol: TCP
+          port: 9000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-data
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - protocol: TCP
+          port: 8080
+    # File uploads are scanned before promotion; without this egress the scan errors and files
+    # stay quarantined.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-data
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: clamav
+      ports:
+        - protocol: TCP
+          port: 3310
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: seq
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 5341
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement-observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+      ports:
+        - protocol: TCP
+          port: 4317
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Data plane accepts app / gateway traffic only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-data-ingress-from-apps
+  namespace: hrmanagement-data
+  labels:
+    app.kubernetes.io/part-of: hrmanagement
+    hrmanagement.io/card: SEC-001
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - postgresql
+          - rabbitmq
+          - minio
+          - clamav
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: hrmanagement
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: hrmanagement
+      ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 5672
+        - protocol: TCP
+          port: 9000
+        - protocol: TCP
+          port: 3310

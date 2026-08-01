@@ -1,0 +1,18 @@
+@model IReadOnlyList<Dev.Analytics.Domain.Entities.Report>
+@{ ViewData["Title"] = "التقارير"; }
+<p><a asp-controller="Dashboards" asp-action="Index" class="btn btn-outline-primary btn-sm">لوحات ومؤشرات</a></p>
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0">التقارير</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>العنوان</th><th>النوع</th><th>تاريخ التوليد</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr><td>@x.Title</td><td>@x.ReportType</td><td>@(x.GeneratedAt?.ToString("yyyy-MM-dd") ?? "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا تقارير</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

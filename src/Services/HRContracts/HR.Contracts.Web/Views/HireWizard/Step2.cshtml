@@ -1,0 +1,26 @@
+@model (HR.Contracts.Domain.Entities.ServiceTransaction Txn, IReadOnlyList<HR.Contracts.Domain.Entities.HireChecklist> Checklist)
+@{
+    ViewData["Title"] = "معالج التعيين - الخطوة 2";
+    var labels = ViewBag.ChecklistLabels as Dictionary<HR.Contracts.Domain.Enums.HireStep, string> ?? new();
+}
+<div class="card">
+    <div class="card-header"><h3>قائمة التحقق — @Model.Txn.State</h3></div>
+    <div class="card-body">
+        <ul class="list-group mb-3">
+            @foreach (var item in Model.Checklist)
+            {
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>@(labels.GetValueOrDefault(item.Step, item.Step.ToString()))</span>
+                    <span class="badge @(item.IsCompleted ? "bg-success" : "bg-secondary")">
+                        @(item.IsCompleted ? "مكتمل" : "معلق")
+                    </span>
+                </li>
+            }
+        </ul>
+        <form asp-action="Step2Confirm" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
+            <button type="submit" class="btn btn-primary">التالي — الاعتماد</button>
+        </form>
+    </div>
+</div>

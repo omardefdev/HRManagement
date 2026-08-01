@@ -1,0 +1,31 @@
+{
+  "card": "ONB-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "waveProgression": [
+    { "wave": "Pilot", "scope": "1-2 agencies, limited functions", "stabilityPeriodDays": null },
+    { "wave": "Phase 1", "scope": "3-5 agencies, core functions", "stabilityPeriodDays": 30 },
+    { "wave": "Phase 2", "scope": "Sector rollout", "stabilityPeriodDays": 30 },
+    { "wave": "National", "scope": "All 14 governorates, all agencies", "stabilityPeriodDays": 30 }
+  ],
+  "readinessDimensions": [
+    { "id": "RD-01", "dimension": "Data Migration", "description": "Legacy data extracted, transformed, loaded, and reconciled", "mandatory": true },
+    { "id": "RD-02", "dimension": "Infrastructure", "description": "Network, devices, and connectivity meet minimum standards", "mandatory": true },
+    { "id": "RD-03", "dimension": "Training", "description": ">=90% staff trained and assessed per TRN-001", "mandatory": true, "threshold": 0.90 },
+    { "id": "RD-04", "dimension": "Governance", "description": "Agency admin appointed, roles configured, workflows activated", "mandatory": true },
+    { "id": "RD-05", "dimension": "Communication", "description": "Staff notified >=14 days; union engagement per TRN-002", "mandatory": true, "leadTimeDays": 14 },
+    { "id": "RD-06", "dimension": "Support", "description": "Help desk staffed; Tier-1 Arabic support available", "mandatory": true },
+    { "id": "RD-07", "dimension": "Rollback Plan", "description": "Documented rollback procedure reviewed and rehearsed", "mandatory": true },
+    { "id": "RD-08", "dimension": "UAT Sign-off", "description": "Agency UAT completed per UAT-001", "mandatory": true }
+  ],
+  "goNoGoDecision": {
+    "assessedBy": "Program Management",
+    "allMandatoryRequired": true,
+    "conditionsAllowed": true,
+    "conditionsRequire": ["remediation-owner", "deadline"],
+    "noGoBlocksAgencyOnly": true,
+    "blastRadiusDefined": true,
+    "rollbackScopeDefined": true,
+    "monitoringPeriodDays": 30
+  }
+}

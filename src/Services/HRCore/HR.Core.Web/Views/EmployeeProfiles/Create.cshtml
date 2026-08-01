@@ -1,0 +1,55 @@
+@model HR.Core.Web.ViewModels.EmployeeProfileEditViewModel
+@{
+    ViewData["Title"] = "إضافة ملف شخصي موسّع";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-id-badge"></i> ملف شخصي موسّع — @Model.EmployeeName</h3>
+    </div>
+    <form asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="EmployeeId" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="Nationality" class="form-label"></label>
+                        <input asp-for="Nationality" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3 mb-3">
+                        <label asp-for="PlaceOfBirth" class="form-label"></label>
+                        <input asp-for="PlaceOfBirth" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="NationalIdIssuePlace" class="form-label"></label>
+                <input asp-for="NationalIdIssuePlace" class="form-control" />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="ResidentialAddress" class="form-label"></label>
+                <textarea asp-for="ResidentialAddress" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="PermanentAddress" class="form-label"></label>
+                <textarea asp-for="PermanentAddress" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="EmergencyContact" class="form-label"></label>
+                <input asp-for="EmergencyContact" class="form-control" />
+            </div>
+            <div class="mb-3 mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ</button>
+            <a asp-controller="Employees" asp-action="Details" asp-route-id="@Model.EmployeeId" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

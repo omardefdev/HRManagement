@@ -1,0 +1,87 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "J1 probe success",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "probe_success{job=\"probe_gateway_ready\"}", "legendFormat": "ready" },
+        { "expr": "sli:j1_availability:ratio5m", "legendFormat": "avail 5m" }
+      ]
+    },
+    {
+      "title": "J1 error budget remaining",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "slo:j1_error_budget_remaining:ratio", "legendFormat": "budget" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.2 },
+              { "color": "green", "value": 0.5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Burn rates J1/J2",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "slo:j1_burn_rate:1h", "legendFormat": "j1 1h" },
+        { "expr": "slo:j1_burn_rate:5m", "legendFormat": "j1 5m" },
+        { "expr": "slo:j2_burn_rate:1h", "legendFormat": "j2 1h" },
+        { "expr": "slo:j2_burn_rate:5m", "legendFormat": "j2 5m" }
+      ]
+    },
+    {
+      "title": "J2 availability / latency fast ratio",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sli:j2_availability:ratio_rate5m", "legendFormat": "avail" },
+        { "expr": "sli:j2_latency_fast:ratio_rate5m", "legendFormat": "lt2s" },
+        { "expr": "job:http_duration_p95:5m{job=\"hr-gateway\"}", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "title": "J3 outbox freshness",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(outbox_pending_messages)", "legendFormat": "pending" },
+        { "expr": "max(outbox_oldest_age_seconds)", "legendFormat": "oldest_s" }
+      ]
+    },
+    {
+      "title": "J4 payroll fail ratio (1h)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sli:j4_payroll_fail_ratio:1h", "legendFormat": "fail_ratio" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["obs-002", "slo"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "OBS-002 SLO / Error Budget",
+  "uid": "obs002-slo",
+  "version": 1
+}

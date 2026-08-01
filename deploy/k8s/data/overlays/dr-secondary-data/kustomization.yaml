@@ -1,0 +1,23 @@
+# DR secondary data plane (OPS-004 stub)
+#
+# Bootstrap from s3://hrm-backups (OPS-003) — do NOT attach primary PVCs.
+# Apply only on the secondary cluster after OPS-005 provision / approved drill.
+#
+#   kubectl kustomize deploy/k8s/data/overlays/dr-secondary-data
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hrmanagement-data
+resources:
+  - ../../base
+  - tls-stub.yaml
+  - backup-retention.yaml
+  - site-notes.yaml
+patches:
+  - path: patches/keycloak-replicas.yaml
+  - path: patches/site-labels.yaml
+commonAnnotations:
+  ops.hrmanagement.io/site: secondary
+  ops.hrmanagement.io/role: warm-standby-data
+  ops.hrmanagement.io/card: OPS-004
+  ops.hrmanagement.io/bootstrap: from-hrm-backups

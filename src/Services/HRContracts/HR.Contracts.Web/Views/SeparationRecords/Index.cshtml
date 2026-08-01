@@ -1,0 +1,32 @@
+@model IReadOnlyList<SeparationRecord>
+@{ ViewData["Title"] = "إنهاء الخدمة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-user-times"></i> سجلات إنهاء الخدمة</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>الموظف</th><th>النوع</th><th>النفاذ</th><th>حدث</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>@r.EmployeeId</td>
+                        <td>@r.SeparationType</td>
+                        <td>@r.EffectiveDate.ToString("yyyy/MM/dd")</td>
+                        <td>
+                            @if (r.SeparationEventPublished) { <span class="badge bg-success">تم النشر</span> }
+                            else { <span class="badge bg-secondary">لم يُنشر</span> }
+                        </td>
+                        <td><a asp-action="Details" asp-route-id="@r.Id" class="btn btn-info btn-xs" aria-label="تفاصيل"><i aria-hidden="true" class="fas fa-eye"></i></a>
+                            <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = r.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا توجد سجلات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,134 @@
+{
+  "card": "PROD-001",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "policyPlatformPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "versionedTemplates": {
+    "required": true,
+    "kinds": ["policy", "rule", "workflow", "form"]
+  },
+  "effectiveDating": {
+    "required": true,
+    "historicalVersionPinned": true
+  },
+  "fourEyesPublish": {
+    "required": true,
+    "publisherRoleEqualsReviewerForbidden": true
+  },
+  "simulation": {
+    "required": true,
+    "syntheticOnly": true,
+    "realDataForbidden": true
+  },
+  "rollback": {
+    "required": true
+  },
+  "tenantOverride": {
+    "allowed": true,
+    "cannotBypassNationalMandatory": true
+  },
+  "noArbitraryCode": true,
+  "invalidPublishForbidden": true,
+  "changeWithoutDeployOrFork": true,
+  "audit": {
+    "required": true,
+    "requiredFields": ["templateId", "kind", "version", "outcome", "actor", "occurredAt", "evidenceRef"]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveEngineForbidden": true,
+    "livePublishForbidden": true
+  },
+  "signing": {
+    "signedByRole": "product-platform-lead",
+    "reviewerRole": "legal-control-officer",
+    "policyPlatformPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:prod001-lab-policy-platform-20260730"
+  },
+  "blockers": [
+    { "id": "PAY-002", "status": "Satisfied", "note": "Payroll rules Done" },
+    { "id": "GOV-002", "status": "Satisfied", "note": "Legal register Done" },
+    { "id": "STR-002", "status": "Satisfied", "note": "Control catalog production binding Done" },
+    { "id": "live-policy-engine", "status": "Blocked", "note": "Lab contracts only" },
+    { "id": "live-workflow-runtime", "status": "Blocked", "note": "Lab workflow defs only" },
+    { "id": "live-form-designer", "status": "Blocked", "note": "Lab form templates only" },
+    { "id": "PROD-002", "status": "Satisfied", "note": "Agency self-admin production binding Done" },
+    { "id": "ONB-001", "status": "Satisfied", "note": "Agency provisioning manifest pack Done" }
+  ],
+  "outOfScope": [
+    "Live policy engine",
+    "Live workflow runtime",
+    "Live form designer",
+    "Live agency override product",
+    "WF-001/WF-002 ApprovalStep rewrite",
+    "Domain/UI rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "VersionedChange",
+      "steps": [
+        { "id": "VersionPolicy", "mandatory": true, "ownerRole": "product-platform", "slaHours": 48, "evidenceType": "versionedTemplates", "service": "docs", "event": null },
+        { "id": "LawChangePass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "law-change-pass", "service": "testdata", "event": null },
+        { "id": "UnversionedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "unversioned-template-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "HistoricalPin",
+      "steps": [
+        { "id": "DatingPolicy", "mandatory": true, "ownerRole": "legal", "slaHours": 48, "evidenceType": "effectiveDating", "service": "docs", "event": null },
+        { "id": "HistoricalPinPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "historical-pin-pass", "service": "testdata", "event": null },
+        { "id": "HistoricalDriftFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "historical-drift-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "SimulationGate",
+      "steps": [
+        { "id": "SimPolicy", "mandatory": true, "ownerRole": "privacy", "slaHours": 24, "evidenceType": "simulation", "service": "docs", "event": null },
+        { "id": "SyntheticSimPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "synthetic-sim-pass", "service": "testdata", "event": null },
+        { "id": "RealDataSimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "real-data-sim-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "PublishSafety",
+      "steps": [
+        { "id": "PublishPolicy", "mandatory": true, "ownerRole": "legal", "slaHours": 48, "evidenceType": "fourEyesPublish", "service": "docs", "event": null },
+        { "id": "InvalidPublishFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "invalid-publish-fail", "service": "testdata", "event": null },
+        { "id": "SameRolePublishFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "same-role-publish-fail", "service": "testdata", "event": null },
+        { "id": "ArbitraryCodeFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "arbitrary-code-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "OverrideRollback",
+      "steps": [
+        { "id": "OverridePolicy", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "tenantOverride", "service": "docs", "event": null },
+        { "id": "OverrideBypassFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "override-bypass-national-fail", "service": "testdata", "event": null },
+        { "id": "OverrideCeilingPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "agency-override-within-ceiling-pass", "service": "testdata", "event": null },
+        { "id": "RollbackPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "rollback-pass", "service": "testdata", "event": null },
+        { "id": "PolicyAuditPass", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "policy-audit-pass", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "invalidPublishFail": "testdata/prod001/scenarios/invalid-publish-fail.json",
+    "realDataSimFail": "testdata/prod001/scenarios/real-data-sim-fail.json",
+    "overrideBypassNationalFail": "testdata/prod001/scenarios/override-bypass-national-fail.json",
+    "sameRolePublishFail": "testdata/prod001/scenarios/same-role-publish-fail.json",
+    "unversionedTemplateFail": "testdata/prod001/scenarios/unversioned-template-fail.json",
+    "historicalDriftFail": "testdata/prod001/scenarios/historical-drift-fail.json",
+    "arbitraryCodeFail": "testdata/prod001/scenarios/arbitrary-code-fail.json",
+    "lawChangePass": "testdata/prod001/scenarios/law-change-pass.json",
+    "historicalPinPass": "testdata/prod001/scenarios/historical-pin-pass.json",
+    "syntheticSimPass": "testdata/prod001/scenarios/synthetic-sim-pass.json",
+    "rollbackPass": "testdata/prod001/scenarios/rollback-pass.json",
+    "agencyOverrideWithinCeilingPass": "testdata/prod001/scenarios/agency-override-within-ceiling-pass.json",
+    "policyAuditPass": "testdata/prod001/audit/policy-audit-pass.json",
+    "policyRunLedger": "testdata/prod001/harness/policy-run-ledger.json"
+  },
+  "joins": {
+    "str002Controls": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md",
+    "str004Nofork": "docs/str-product/nofork-matrix.json",
+    "pay002": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "gov002": "docs/completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md"
+  }
+}

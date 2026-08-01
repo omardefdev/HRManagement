@@ -1,0 +1,43 @@
+# QA-002-C: Mutation testing for sensitive payroll domain (not a per-PR gate).
+name: Mutation (Payroll)
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  stryker-payroll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore HRManagement.slnx
+
+      - name: Install Stryker
+        run: |
+          dotnet new tool-manifest --force
+          dotnet tool install dotnet-stryker --version 4.5.1
+
+      - name: Run Stryker (Payroll.Domain)
+        run: |
+          dotnet tool run dotnet-stryker -f tests/stryker-payroll.json --reporter "json" --reporter "html"
+        env:
+          STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stryker-payroll-report
+          path: |
+            StrykerOutput/**/reports/**
+            **/mutation-report.*
+          if-no-files-found: warn

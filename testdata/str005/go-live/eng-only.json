@@ -1,0 +1,7 @@
+{
+  "fixtureId": "GOLIVE-ENG-ONLY",
+  "expectedValidate": "FAIL",
+  "seats": ["engineering"],
+  "declaredByRole": "engineering",
+  "notes": "Must fail STR-005 Go-Live multi-seat gate"
+}

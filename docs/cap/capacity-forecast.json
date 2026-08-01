@@ -1,0 +1,154 @@
+{
+  "card": "CAP-003",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Three-year capacity forecast for Syrian National HR Platform",
+  "baselineSources": ["CAP-001 national envelope results", "SYR-002 census register"],
+  "forecastHorizons": [
+    { "months": 12, "label": "Year 1" },
+    { "months": 24, "label": "Year 2" },
+    { "months": 36, "label": "Year 3" }
+  ],
+  "resources": [
+    {
+      "id": "cpu",
+      "name": "Compute (vCPU)",
+      "unit": "vCPU",
+      "triggerThresholdPercent": 60,
+      "procurementLeadWeeks": 8,
+      "growthModel": "linear",
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 20 },
+        "month24": { "growthPercent": 45 },
+        "month36": { "growthPercent": 70 }
+      },
+      "triggerOwner": "SRE Lead",
+      "fundingLink": "FIN-001"
+    },
+    {
+      "id": "memory",
+      "name": "Memory (GB)",
+      "unit": "GB",
+      "triggerThresholdPercent": 70,
+      "procurementLeadWeeks": 8,
+      "growthModel": "linear",
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 15 },
+        "month24": { "growthPercent": 35 },
+        "month36": { "growthPercent": 55 }
+      },
+      "triggerOwner": "SRE Lead",
+      "fundingLink": "FIN-001"
+    },
+    {
+      "id": "database",
+      "name": "Database Storage (TB)",
+      "unit": "TB",
+      "triggerThresholdPercent": 65,
+      "procurementLeadWeeks": 12,
+      "growthModel": "compound",
+      "growthDrivers": ["employee_records", "audit_evidence", "payroll_history"],
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 30 },
+        "month24": { "growthPercent": 65 },
+        "month36": { "growthPercent": 100 }
+      },
+      "triggerOwner": "DBA Lead",
+      "fundingLink": "FIN-001"
+    },
+    {
+      "id": "objectStorage",
+      "name": "Object Storage (TB)",
+      "unit": "TB",
+      "triggerThresholdPercent": 70,
+      "procurementLeadWeeks": 4,
+      "growthModel": "compound",
+      "growthDrivers": ["document_uploads", "file_attachments", "export_packages"],
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 40 },
+        "month24": { "growthPercent": 90 },
+        "month36": { "growthPercent": 150 }
+      },
+      "triggerOwner": "Platform Lead",
+      "fundingLink": "FIN-001"
+    },
+    {
+      "id": "network",
+      "name": "Network Bandwidth (Gbps)",
+      "unit": "Gbps",
+      "triggerThresholdPercent": 60,
+      "procurementLeadWeeks": 16,
+      "growthModel": "stepwise",
+      "growthDrivers": ["agency_onboarding", "payroll_windows", "report_generation"],
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 25 },
+        "month24": { "growthPercent": 50 },
+        "month36": { "growthPercent": 75 }
+      },
+      "triggerOwner": "Network Lead",
+      "fundingLink": "FIN-001"
+    },
+    {
+      "id": "backup",
+      "name": "Backup & DR Storage (TB)",
+      "unit": "TB",
+      "triggerThresholdPercent": 70,
+      "procurementLeadWeeks": 8,
+      "growthModel": "compound",
+      "growthDrivers": ["database_growth", "retention_schedule", "dr_replication"],
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 35 },
+        "month24": { "growthPercent": 75 },
+        "month36": { "growthPercent": 120 }
+      },
+      "triggerOwner": "DBA Lead",
+      "fundingLink": "FIN-001"
+    },
+    {
+      "id": "logs",
+      "name": "Logs & Traces Storage (TB)",
+      "unit": "TB",
+      "triggerThresholdPercent": 70,
+      "procurementLeadWeeks": 4,
+      "growthModel": "linear",
+      "growthDrivers": ["service_count", "request_volume", "retention_policy"],
+      "forecasts": {
+        "current": { "allocated": 0, "used": 0, "note": "Populate from baseline" },
+        "month12": { "growthPercent": 50 },
+        "month24": { "growthPercent": 100 },
+        "month36": { "growthPercent": 150 }
+      },
+      "triggerOwner": "Observability Lead",
+      "fundingLink": "FIN-001"
+    }
+  ],
+  "seasonalPeaks": [
+    { "event": "monthlyPayroll", "frequency": "monthly", "impactResources": ["cpu", "memory", "database", "network"], "multiplier": 2.5 },
+    { "event": "fiscalYearEnd", "frequency": "annual", "impactResources": ["cpu", "memory", "database"], "multiplier": 3.0 },
+    { "event": "annualEnrollment", "frequency": "annual", "impactResources": ["cpu", "memory", "network"], "multiplier": 1.5 },
+    { "event": "agencyOnboarding", "frequency": "event-driven", "impactResources": ["database", "objectStorage", "network"], "multiplier": 2.0 }
+  ],
+  "drCapacity": {
+    "requirement": "DR site must handle 100% of Tier-0 critical load",
+    "syncMode": "async-replication",
+    "rpoTarget": "< 1 hour",
+    "rtoTarget": "< 4 hours",
+    "validationFrequency": "quarterly"
+  },
+  "reviewSchedule": {
+    "frequency": "quarterly",
+    "owner": "Capacity + SRE + Finance",
+    "activities": [
+      "Compare forecast vs actuals",
+      "Adjust growth curves for actual onboarding pace",
+      "Update procurement pipeline",
+      "Reconcile with FIN-001 cost model"
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "card": "EVD-002",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "custodyChainSchema": {
+    "evidenceItem": {
+      "id": "uuid",
+      "caseId": "uuid (FK to ForensicCase)",
+      "type": "log | snapshot | memory-dump | network-capture | document | database-extract",
+      "description": "Human-readable description of the evidence",
+      "collectedBy": "system or person identifier",
+      "collectedAt": "ISO 8601 UTC timestamp",
+      "timeSource": "system-clock | ntp-verified | tsa-rfc3161",
+      "hashAlgorithm": "SHA-256",
+      "hashValue": "hex-encoded hash of evidence content",
+      "storageLocation": "sovereign-encrypted-store reference",
+      "classification": "confidential | restricted | internal",
+      "legalHoldApplied": true
+    },
+    "custodyTransfer": {
+      "id": "uuid",
+      "evidenceItemId": "uuid",
+      "fromCustodian": "person or system identifier",
+      "toCustodian": "person or system identifier",
+      "transferredAt": "ISO 8601 UTC timestamp",
+      "reason": "investigation | legal-request | regulatory-submission | archive",
+      "method": "digital-transfer | physical-media | sealed-package",
+      "verificationHash": "hash re-verified at transfer time",
+      "witnessId": "optional witness identifier"
+    }
+  },
+  "severityLevels": [
+    { "level": "Critical", "sla": "1 hour", "description": "Active breach or data exfiltration" },
+    { "level": "High", "sla": "4 hours", "description": "Confirmed unauthorized access" },
+    { "level": "Medium", "sla": "24 hours", "description": "Suspicious activity requiring investigation" },
+    { "level": "Low", "sla": "72 hours", "description": "Policy violation or audit finding" }
+  ],
+  "retentionPolicy": {
+    "activeCaseDays": null,
+    "closedCaseRetentionDays": 2555,
+    "archivedCaseRetentionDays": 3650,
+    "legalHoldOverridesRetention": true
+  },
+  "accessControl": {
+    "investigatorRole": "forensic-analyst",
+    "readOnlyAccess": true,
+    "noProductionAccess": true,
+    "cleanRoomRequired": ["Critical", "High"],
+    "allActionsLogged": true
+  }
+}

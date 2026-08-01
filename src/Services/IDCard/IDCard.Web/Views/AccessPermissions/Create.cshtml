@@ -1,0 +1,11 @@
+@model IDCard.Domain.Entities.AccessPermission
+@{ ViewData["Title"] = "صلاحية دخول"; }
+<div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
+<div class="card-body">
+<div class="mb-3"><label asp-for="IssuedCardId" class="form-label"></label><select asp-for="IssuedCardId" asp-items="ViewBag.Cards" class="form-control"><option value="">— اختر البطاقة —</option></select><span asp-validation-for="IssuedCardId" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="Resource" class="form-label"></label><input asp-for="Resource" class="form-control" placeholder="المورد" /><span asp-validation-for="Resource" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="AccessLevel" class="form-label"></label><input asp-for="AccessLevel" class="form-control" placeholder="مستوى الوصول" /><span asp-validation-for="AccessLevel" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ValidFrom" class="form-label"></label><input asp-for="ValidFrom" class="form-control" type="date" /><span asp-validation-for="ValidFrom" class="text-danger"></span></div>
+<div class="mb-3"><label asp-for="ValidTo" class="form-label"></label><input asp-for="ValidTo" class="form-control" type="date" /><span asp-validation-for="ValidTo" class="text-danger"></span></div>
+</div>
+<div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

@@ -1,0 +1,51 @@
+@model IssuedCard
+@{ ViewData["Title"] = "تفاصيل البطاقة"; }
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">@Model.SerialNumber</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">التصميم</dt><dd class="col-sm-9">@Model.CardDesign?.Name</dd>
+            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(Model.ExpiresAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+@if (Model.DeliveryRecord != null)
+{
+<div class="card mb-3">
+    <div class="card-header">سجل التسليم</div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الطباعة</dt><dd class="col-sm-9">@(Model.DeliveryRecord.PrintedAt?.ToString("yyyy/MM/dd HH:mm") ?? "لم تتم")</dd>
+            <dt class="col-sm-3">التسليم</dt><dd class="col-sm-9">@(Model.DeliveryRecord.DeliveredAt?.ToString("yyyy/MM/dd HH:mm") ?? "لم يتم")</dd>
+            <dt class="col-sm-3">الإيصال</dt><dd class="col-sm-9">@(Model.DeliveryRecord.SignatureOrReceipt ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+}
+<div class="card mb-3">
+    <div class="card-header">صلاحيات الدخول</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>المورد</th><th>المستوى</th><th>من</th><th>إلى</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model.AccessPermissions)
+                {
+                    <tr><td>@p.Resource</td><td>@p.AccessLevel</td><td>@p.ValidFrom</td><td>@p.ValidTo</td></tr>
+                }
+                @if (!Model.AccessPermissions.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا صلاحيات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="btn-group mb-3">
+    <form asp-action="MarkPrinted" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-secondary">طباعة</button></form>
+    <form asp-action="MarkDelivered" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="deliveredTo" value="@Model.EmployeeId" /><button type="submit" class="btn btn-outline-primary">تسليم</button></form>
+    @if (Model.Status == CardStatus.Active)
+    {
+        <form asp-action="Revoke" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد؟')">إلغاء البطاقة</button></form>
+    }
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+</div>
+<p><a asp-action="Index">العودة</a></p>

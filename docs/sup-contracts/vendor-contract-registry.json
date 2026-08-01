@@ -1,0 +1,168 @@
+{
+  "card": "SUP-004",
+  "version": "1.0.0",
+  "lastReviewed": "2026-07-31",
+  "vendors": [
+    {
+      "id": "postgres",
+      "component": "PostgreSQL (CloudNativePG)",
+      "criticality": "Tier-0",
+      "license": "PostgreSQL License",
+      "licenseExpiry": null,
+      "supportTier": "Enterprise / vendor SLA",
+      "sla": {
+        "availabilityPct": 99.95,
+        "p1ResponseMinutes": 15,
+        "p1ResolutionHours": 4,
+        "securityDisclosureHours": 24
+      },
+      "eol": {
+        "majorVersion": "16",
+        "eolDate": "2028-11-09",
+        "upgradePath": "CNPG rolling upgrade per OPS-007"
+      },
+      "escalation": {
+        "l1": "Platform DBA on-call",
+        "l2": "CNPG support channel",
+        "l3": "Vendor TAM / PostgreSQL community escalation"
+      },
+      "dataLocality": "In-country primary",
+      "exitClause": "SOV-007 full export + CNPG backup restore"
+    },
+    {
+      "id": "rabbitmq",
+      "component": "RabbitMQ (MassTransit bus)",
+      "criticality": "Tier-0",
+      "license": "MPL-2.0 / commercial support optional",
+      "licenseExpiry": null,
+      "supportTier": "Commercial or self-support with runbooks",
+      "sla": {
+        "availabilityPct": 99.9,
+        "p1ResponseMinutes": 30,
+        "p1ResolutionHours": 8,
+        "securityDisclosureHours": 48
+      },
+      "eol": {
+        "majorVersion": "3.13",
+        "eolDate": "2027-06-30",
+        "upgradePath": "StatefulSet rolling + quorum queue validation"
+      },
+      "escalation": {
+        "l1": "Platform messaging on-call",
+        "l2": "Vendor support ticket",
+        "l3": "Architecture + vendor architect bridge"
+      },
+      "dataLocality": "In-country cluster",
+      "exitClause": "Event replay from outbox + alternate broker per SOV-007"
+    },
+    {
+      "id": "keycloak",
+      "component": "Keycloak (IAM)",
+      "criticality": "Tier-0",
+      "license": "Apache-2.0",
+      "licenseExpiry": null,
+      "supportTier": "Red Hat SSO / community with national IdP MoU",
+      "sla": {
+        "availabilityPct": 99.9,
+        "p1ResponseMinutes": 15,
+        "p1ResolutionHours": 4,
+        "securityDisclosureHours": 24
+      },
+      "eol": {
+        "majorVersion": "26",
+        "eolDate": "2027-12-31",
+        "upgradePath": "Blue/green realm export per OPS-007"
+      },
+      "escalation": {
+        "l1": "IAM on-call",
+        "l2": "Keycloak vendor / Red Hat",
+        "l3": "National IdP federation team (EXT-001)"
+      },
+      "dataLocality": "In-country; no identity data offshore",
+      "exitClause": "Realm export + OIDC client rebind per IAM-003"
+    },
+    {
+      "id": "minio",
+      "component": "MinIO (object storage)",
+      "criticality": "Tier-1",
+      "license": "AGPL-3.0 / commercial SUBNET",
+      "licenseExpiry": "2027-07-31",
+      "supportTier": "Commercial SUBNET recommended for production",
+      "sla": {
+        "availabilityPct": 99.9,
+        "p1ResponseMinutes": 60,
+        "p1ResolutionHours": 12,
+        "securityDisclosureHours": 48
+      },
+      "eol": {
+        "majorVersion": "RELEASE.2026",
+        "eolDate": "2027-12-31",
+        "upgradePath": "StatefulSet version pin + bucket replication test"
+      },
+      "escalation": {
+        "l1": "Storage on-call",
+        "l2": "MinIO support",
+        "l3": "Procurement + alternate S3-compatible vendor"
+      },
+      "dataLocality": "In-country buckets only",
+      "exitClause": "Bucket export manifest per FILE-002 + SOV-007"
+    },
+    {
+      "id": "hosting",
+      "component": "National cloud / sovereign hosting",
+      "criticality": "Tier-0",
+      "license": "Infrastructure agreement",
+      "licenseExpiry": "2028-06-30",
+      "supportTier": "24x7 NOC + dedicated CSM",
+      "sla": {
+        "availabilityPct": 99.95,
+        "p1ResponseMinutes": 15,
+        "p1ResolutionHours": 4,
+        "securityDisclosureHours": 24
+      },
+      "eol": {
+        "majorVersion": "N/A",
+        "eolDate": null,
+        "upgradePath": "Contract renewal + DR site parity"
+      },
+      "escalation": {
+        "l1": "NOC ticket",
+        "l2": "Hosting provider duty manager",
+        "l3": "National procurement + legal"
+      },
+      "dataLocality": "Primary + DR in-country",
+      "exitClause": "VM/K8s export + clean-room rebuild OPS-006"
+    },
+    {
+      "id": "support",
+      "component": "Integrated L1–L3 support (SUP-002)",
+      "criticality": "Tier-1",
+      "license": "MSA + SLA schedule",
+      "licenseExpiry": "2027-07-31",
+      "supportTier": "24x7 for P1; business hours L2/L3",
+      "sla": {
+        "availabilityPct": 99.0,
+        "p1ResponseMinutes": 15,
+        "p1ResolutionHours": 8,
+        "securityDisclosureHours": 24
+      },
+      "eol": {
+        "majorVersion": "N/A",
+        "eolDate": "2027-07-31",
+        "upgradePath": "Competitive re-procurement STR-006"
+      },
+      "escalation": {
+        "l1": "Service desk",
+        "l2": "Product owner + SRE",
+        "l3": "Program director + vendor account exec"
+      },
+      "dataLocality": "Support tickets in-country SIEM",
+      "exitClause": "Knowledge transfer + 90-day hypercare per SUP-003"
+    }
+  ],
+  "auditRules": {
+    "licenseExpiryWarningDays": 90,
+    "requireEscalationDrillQuarterly": true,
+    "zeroUnapprovedEolComponents": true
+  }
+}

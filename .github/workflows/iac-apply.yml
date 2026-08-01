@@ -1,0 +1,55 @@
+name: iac-apply
+
+# OPS-005: production Terraform apply only via workflow_dispatch + Environment approval.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Terraform env to apply"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - dr-secondary
+      plan_only:
+        description: "Plan only (no apply)"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.7"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+          # Prefer OIDC role when configured:
+          # role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Plan / apply
+        env:
+          ALLOW_LOCAL_PROD_APPLY: "1"
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [[ "${{ github.event.inputs.plan_only }}" == "true" ]]; then
+            ARGS+=(--plan-only)
+          fi
+          bash scripts/iac-apply-env.sh "${{ github.event.inputs.environment }}" "${ARGS[@]}"

@@ -1,0 +1,19 @@
+@model Payroll.Domain.Entities.CompensationType
+@{ ViewData["Title"] = "نوع تعويض"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <div class="mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /><span asp-validation-for="Code" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /><span asp-validation-for="NameAr" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="NameEn" class="form-label"></label><input asp-for="NameEn" class="form-control" /><span asp-validation-for="NameEn" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="CalculationFormula" class="form-label"></label><input asp-for="CalculationFormula" class="form-control" /><span asp-validation-for="CalculationFormula" class="text-danger"></span></div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

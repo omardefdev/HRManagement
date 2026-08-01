@@ -1,0 +1,31 @@
+@model ComplianceRecommendation
+@{ ViewData["Title"] = "تفاصيل التوصية الرقابية"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">توصية رقابية</h3>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">الملاحظة الرقابية</dt>
+            <dd class="col-sm-9">
+                <a asp-controller="AuditFindings" asp-action="Details" asp-route-id="@Model.FindingId">@Model.FindingId</a>
+                @if (Model.Finding != null)
+                {
+                    <text> — @(Model.Finding.Description?.Length > 50 ? Model.Finding.Description[..50] + "…" : Model.Finding.Description)</text>
+                }
+            </dd>
+            <dt class="col-sm-3">الإجراء الموصى به</dt>
+            <dd class="col-sm-9">@(Model.RecommendedAction ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الاستحقاق</dt>
+            <dd class="col-sm-9">@(Model.DueDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">الوحدة المسؤولة</dt>
+            <dd class="col-sm-9">@(Model.ResponsibleUnitId?.ToString() ?? "—")</dd>
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9"><span class="badge text-bg-info">@Model.Status</span></dd>
+        </dl>
+    </div>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary mt-3">العودة</a>

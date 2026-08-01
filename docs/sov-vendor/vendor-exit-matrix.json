@@ -1,0 +1,157 @@
+{
+  "card": "SOV-007",
+  "version": 1,
+  "asOfDate": "2026-07-30",
+  "vendorExitPolicyVersion": "2026.07.30.1",
+  "allowedBlockerStatuses": ["Blocked", "Waived", "Satisfied", "NotStarted"],
+  "ownership": {
+    "required": true,
+    "ipSourceBuildIacSbomDocsRequired": true
+  },
+  "escrowLicenses": {
+    "required": true,
+    "escrowRequired": true,
+    "licenseRightsRequired": true,
+    "subcontractorDisclosureRequired": true
+  },
+  "openExport": {
+    "required": true,
+    "fullDataExportRequired": true,
+    "attachmentsExportRequired": true,
+    "contractsExportRequired": true,
+    "documentedFormatsRequired": true
+  },
+  "criticalAlternates": {
+    "required": true,
+    "noCriticalWithoutAlternateOrException": true
+  },
+  "cleanRoomRebuild": {
+    "required": true,
+    "ownedArtifactsOnlyRequired": true,
+    "alternateSiteRequired": true
+  },
+  "knowledgeTransfer": {
+    "required": true
+  },
+  "exitAssistance": {
+    "required": true
+  },
+  "destructionAttestation": {
+    "required": true,
+    "priorVendorProofRequired": true
+  },
+  "audit": {
+    "required": true,
+    "requiredFields": [
+      "artifactId",
+      "ownershipType",
+      "exportRef",
+      "alternateRef",
+      "rebuildRef",
+      "actor",
+      "occurredAt",
+      "evidenceRef",
+      "outcome",
+      "destructionRef"
+    ]
+  },
+  "mockSandbox": {
+    "labStub": true,
+    "liveCleanRoomRebuildForbidden": true,
+    "liveVendorExitDrillForbidden": true,
+    "liveFullExportImportForbidden": true,
+    "liveVendorDestructionAttestationForbidden": true
+  },
+  "signing": {
+    "signedByRole": "procurement-lead",
+    "reviewerRole": "legal-architecture-lead",
+    "vendorExitPolicyVersion": "2026.07.30.1",
+    "contentHash": "sha256:sov007-lab-vendor-exit-20260730"
+  },
+  "blockers": [
+    { "id": "SUP-001", "status": "Satisfied", "note": "Supply-chain/SBOM Done" },
+    { "id": "OPS-005", "status": "Satisfied", "note": "IaC Done" },
+    { "id": "DB-001", "status": "Satisfied", "note": "Reproducible deps/migrations Done" },
+    { "id": "SOV-006", "status": "Satisfied", "note": "Production pen-red binding Done" },
+    { "id": "live-clean-room-rebuild", "status": "Blocked", "note": "Lab rebuild contracts only" },
+    { "id": "live-vendor-exit-drill", "status": "Blocked", "note": "Full rehearsal = VEN-001" },
+    { "id": "live-full-export-import", "status": "Blocked", "note": "Lab export fixtures only" },
+    { "id": "live-vendor-destruction-attestation", "status": "Blocked", "note": "Prior-vendor wipe proof later" },
+    { "id": "VEN-001", "status": "NotStarted", "note": "Full exit rehearsal later" },
+    { "id": "NAT-001", "status": "NotStarted", "note": "National Go/No-Go later" }
+  ],
+  "outOfScope": [
+    "Live clean-room rebuild",
+    "Live vendor-exit drill",
+    "Live full export/import",
+    "Live vendor destruction attestation",
+    "VEN-001 full exit rehearsal",
+    "SAN-001 air-gapped supply",
+    "IOP-002 open portability",
+    "National24x7Claim elevation",
+    "Domain rewrite"
+  ],
+  "journeys": [
+    {
+      "id": "OwnershipEscrow",
+      "steps": [
+        { "id": "OwnedArtifactsPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 72, "evidenceType": "owned-artifacts-pass", "service": "testdata", "event": null },
+        { "id": "EscrowLicensePass", "mandatory": true, "ownerRole": "legal", "slaHours": 72, "evidenceType": "escrow-license-pass", "service": "testdata", "event": null },
+        { "id": "EscrowMissingFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "escrow-missing-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ExportAlternates",
+      "steps": [
+        { "id": "FullExportPass", "mandatory": true, "ownerRole": "data", "slaHours": 72, "evidenceType": "full-export-pass", "service": "testdata", "event": null },
+        { "id": "IncompleteExportFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "incomplete-export-fail", "service": "testdata", "event": null },
+        { "id": "CriticalAlternatePass", "mandatory": true, "ownerRole": "architecture", "slaHours": 48, "evidenceType": "critical-alternate-pass", "service": "testdata", "event": null },
+        { "id": "CriticalNoAlternateFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "critical-no-alternate-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "CleanRoomExit",
+      "steps": [
+        { "id": "CleanRoomLabPass", "mandatory": true, "ownerRole": "architecture", "slaHours": 96, "evidenceType": "clean-room-lab-pass", "service": "testdata", "event": null },
+        { "id": "RebuildUnownedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "rebuild-unowned-artifacts-fail", "service": "testdata", "event": null },
+        { "id": "KnowledgeExitPass", "mandatory": true, "ownerRole": "procurement", "slaHours": 72, "evidenceType": "knowledge-exit-pass", "service": "testdata", "event": null },
+        { "id": "KnowledgeTransferMissingFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "knowledge-transfer-missing-fail", "service": "testdata", "event": null },
+        { "id": "ExitAssistanceMissingFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "exit-assistance-missing-fail", "service": "testdata", "event": null },
+        { "id": "DestructionAttestedPass", "mandatory": true, "ownerRole": "legal", "slaHours": 72, "evidenceType": "destruction-attested-pass", "service": "testdata", "event": null },
+        { "id": "DestructionUnattestedFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "destruction-unattested-fail", "service": "testdata", "event": null }
+      ]
+    },
+    {
+      "id": "ClaimGate",
+      "steps": [
+        { "id": "LiveVendorClaimFail", "mandatory": true, "ownerRole": "qa", "slaHours": 24, "evidenceType": "live-vendor-claim-fail", "service": "testdata", "event": null }
+      ]
+    }
+  ],
+  "simulationPaths": {
+    "rebuildUnownedArtifactsFail": "testdata/sov007/scenarios/rebuild-unowned-artifacts-fail.json",
+    "incompleteExportFail": "testdata/sov007/scenarios/incomplete-export-fail.json",
+    "criticalNoAlternateFail": "testdata/sov007/scenarios/critical-no-alternate-fail.json",
+    "escrowMissingFail": "testdata/sov007/scenarios/escrow-missing-fail.json",
+    "destructionUnattestedFail": "testdata/sov007/scenarios/destruction-unattested-fail.json",
+    "knowledgeTransferMissingFail": "testdata/sov007/scenarios/knowledge-transfer-missing-fail.json",
+    "exitAssistanceMissingFail": "testdata/sov007/scenarios/exit-assistance-missing-fail.json",
+    "liveVendorClaimFail": "testdata/sov007/scenarios/live-vendor-claim-fail.json",
+    "ownedArtifactsPass": "testdata/sov007/scenarios/owned-artifacts-pass.json",
+    "fullExportPass": "testdata/sov007/scenarios/full-export-pass.json",
+    "criticalAlternatePass": "testdata/sov007/scenarios/critical-alternate-pass.json",
+    "escrowLicensePass": "testdata/sov007/scenarios/escrow-license-pass.json",
+    "cleanRoomLabPass": "testdata/sov007/scenarios/clean-room-lab-pass.json",
+    "destructionAttestedPass": "testdata/sov007/scenarios/destruction-attested-pass.json",
+    "knowledgeExitPass": "testdata/sov007/scenarios/knowledge-exit-pass.json",
+    "vendorExitRunLedger": "testdata/sov007/harness/vendor-exit-run-ledger.json",
+    "vendorExitAuditPass": "testdata/sov007/audit/vendor-exit-audit-pass.json"
+  },
+  "joins": {
+    "str006Matrix": "docs/str-ownership/ownership-matrix.json",
+    "sup001": "docs/completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md",
+    "ops005": "docs/completion-backlog/08-NATIONAL-ASSURANCE-OPERATIONS.md",
+    "db001": "docs/completion-backlog/02-P1-PLATFORM-INTEGRITY.md",
+    "ven001": "docs/completion-backlog/10-NATIONAL-CONTROL-SUPPLEMENT.md"
+  }
+}

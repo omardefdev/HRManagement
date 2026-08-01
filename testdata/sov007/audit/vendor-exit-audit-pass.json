@@ -1,0 +1,1 @@
+﻿{"expectedValidate":"PASS","entries":[{"artifactId":"A-001","ownershipType":"source","exportRef":"export-lab","alternateRef":"alt-1","rebuildRef":"rebuild-lab","actor":"lab","occurredAt":"2026-07-30T00:00:00Z","evidenceRef":"testdata/sov007","outcome":"pass","destructionRef":"dest-lab"}]}

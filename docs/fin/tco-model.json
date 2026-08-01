@@ -1,0 +1,145 @@
+{
+  "card": "FIN-001",
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-31",
+  "description": "Five-year Total Cost of Ownership model for Syrian National HR Platform",
+  "currency": "SYP-new",
+  "currencyNote": "All amounts in New Syrian Lira (SYR-004: 1 new = 100 old)",
+  "scenarios": ["base", "peak", "failure"],
+  "years": [
+    { "year": 1, "label": "Build & Pilot", "phase": "build" },
+    { "year": 2, "label": "National Rollout", "phase": "rollout" },
+    { "year": 3, "label": "Steady State", "phase": "run" },
+    { "year": 4, "label": "Steady State + Optimization", "phase": "run" },
+    { "year": 5, "label": "Steady State + Renewal", "phase": "run" }
+  ],
+  "costCategories": [
+    {
+      "id": "build",
+      "name": "Build & Migration",
+      "nameAr": "البناء والترحيل",
+      "subcategories": ["development", "testing", "integration", "migration", "deployment"],
+      "applicablePhases": ["build", "rollout"]
+    },
+    {
+      "id": "infra",
+      "name": "Infrastructure & Hosting",
+      "nameAr": "البنية التحتية والاستضافة",
+      "subcategories": ["compute", "storage", "network", "backup", "dr_site", "hsm_kms"],
+      "applicablePhases": ["build", "rollout", "run"]
+    },
+    {
+      "id": "licenses",
+      "name": "Software Licenses",
+      "nameAr": "تراخيص البرمجيات",
+      "subcategories": ["database", "messaging", "monitoring", "security_tools", "os_container"],
+      "applicablePhases": ["build", "rollout", "run"]
+    },
+    {
+      "id": "people",
+      "name": "People & Operations",
+      "nameAr": "الموارد البشرية والتشغيل",
+      "subcategories": ["sre_dba", "soc_security", "support_desk", "management", "training_refresh"],
+      "applicablePhases": ["rollout", "run"]
+    },
+    {
+      "id": "support",
+      "name": "Support & Training",
+      "nameAr": "الدعم والتدريب",
+      "subcategories": ["vendor_support", "user_training", "change_management", "documentation"],
+      "applicablePhases": ["build", "rollout", "run"]
+    },
+    {
+      "id": "security",
+      "name": "Security & Compliance",
+      "nameAr": "الأمن والامتثال",
+      "subcategories": ["pen_testing", "certifications", "audit", "incident_response"],
+      "applicablePhases": ["rollout", "run"]
+    },
+    {
+      "id": "contingency",
+      "name": "Contingency Reserve",
+      "nameAr": "احتياطي الطوارئ",
+      "percentOfTotal": 15,
+      "applicablePhases": ["build", "rollout", "run"]
+    },
+    {
+      "id": "decommission",
+      "name": "Decommission & Exit",
+      "nameAr": "إنهاء الخدمة والخروج",
+      "subcategories": ["data_migration", "archive", "destruction", "vendor_exit"],
+      "applicablePhases": ["run"],
+      "note": "Accrued in years 4-5 for end-of-cycle readiness"
+    }
+  ],
+  "unitMetrics": [
+    {
+      "id": "cost_per_employee_month",
+      "name": "Cost per Employee per Month",
+      "formula": "annual_run_cost / (avg_employees * 12)",
+      "benchmark": "Compare with legacy system and regional SaaS"
+    },
+    {
+      "id": "cost_per_agency_month",
+      "name": "Cost per Agency per Month",
+      "formula": "annual_run_cost / (agency_count * 12)",
+      "benchmark": "Compare with standalone agency systems"
+    },
+    {
+      "id": "cost_per_payroll_cycle",
+      "name": "Cost per Payroll Cycle",
+      "formula": "payroll_processing_cost / cycles_per_year",
+      "benchmark": "Compare with manual processing cost"
+    },
+    {
+      "id": "cost_per_tb_month",
+      "name": "Cost per TB per Month",
+      "formula": "(storage + backup + dr_cost) / total_tb",
+      "benchmark": "Compare with sovereign cloud rates"
+    }
+  ],
+  "sensitivityAxes": [
+    {
+      "axis": "demand",
+      "variations": [-50, -25, 0, 25, 50],
+      "unit": "percent",
+      "description": "Employee/agency count variation from baseline"
+    },
+    {
+      "axis": "unitCost",
+      "variations": [-50, -25, 0, 25, 50],
+      "unit": "percent",
+      "description": "Hosting and licensing unit cost variation"
+    },
+    {
+      "axis": "currencyImpact",
+      "description": "Impact of SYR-004 lira conversion on multi-year contracts"
+    },
+    {
+      "axis": "vendorEscalation",
+      "description": "Annual price escalation clauses in vendor contracts"
+    }
+  ],
+  "alternatives": [
+    {
+      "id": "legacy_maintain",
+      "name": "Maintain Legacy Systems",
+      "description": "Continue with existing disparate agency systems"
+    },
+    {
+      "id": "commercial_saas",
+      "name": "Commercial SaaS",
+      "description": "Regional SaaS HR platform (data sovereignty constraints apply)"
+    },
+    {
+      "id": "national_platform",
+      "name": "National Platform (this project)",
+      "description": "Custom sovereign HR platform"
+    }
+  ],
+  "reviewSchedule": {
+    "frequency": "quarterly",
+    "owner": "FinOps + Finance",
+    "escalation": "National Authorization Board for >10% variance"
+  }
+}
