@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>SYR-014: tests for Syrian holiday calendar policy structure.</summary>

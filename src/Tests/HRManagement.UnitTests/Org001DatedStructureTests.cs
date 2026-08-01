@@ -2,6 +2,7 @@ using System.Diagnostics;
 using HR.Core.Domain.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Org001DatedStructureTests

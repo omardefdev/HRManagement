@@ -3,6 +3,7 @@ using System.Text.Json;
 using HRManagement.ServiceDefaults.Capacity;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Cap002LoadProtectionTests

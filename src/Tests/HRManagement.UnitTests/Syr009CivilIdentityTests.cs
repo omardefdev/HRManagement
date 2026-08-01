@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>SYR-009: tests for civil registry identity match rules structure.</summary>

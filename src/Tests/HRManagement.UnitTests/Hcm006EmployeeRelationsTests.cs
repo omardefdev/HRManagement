@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Cases;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>HCM-006: tests for EmployeeRelationCase domain entity.</summary>

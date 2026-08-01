@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>PHY-001: tests for physical site autonomy artifacts.</summary>

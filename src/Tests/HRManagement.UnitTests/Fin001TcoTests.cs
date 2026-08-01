@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>FIN-001: tests for 5-year TCO model schema and calculations.</summary>

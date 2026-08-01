@@ -3,6 +3,7 @@ using System.Text.Json;
 using HRManagement.SharedKernel.Legal;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Leg001RetentionTests

@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>TRN-001: tests for training and change management artifacts.</summary>

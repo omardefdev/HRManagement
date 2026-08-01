@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>UAT-001: tests for formal acceptance testing artifacts.</summary>

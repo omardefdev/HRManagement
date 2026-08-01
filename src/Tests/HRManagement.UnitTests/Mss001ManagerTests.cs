@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>MSS-001: tests for manager self-service capability definitions and validation.</summary>

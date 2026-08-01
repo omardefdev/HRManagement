@@ -3,6 +3,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Services;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Est001EstablishmentTests

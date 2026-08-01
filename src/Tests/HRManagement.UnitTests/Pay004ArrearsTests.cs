@@ -3,6 +3,7 @@ using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>PAY-004: partial disbursement and arrears ledger.</summary>

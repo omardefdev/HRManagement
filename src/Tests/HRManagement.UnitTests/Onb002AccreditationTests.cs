@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>ONB-002: tests for agency accreditation wave artifacts.</summary>

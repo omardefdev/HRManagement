@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>SYR-011: tests for payment orders/banks channel profile artifacts.</summary>

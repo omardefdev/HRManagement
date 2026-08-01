@@ -112,153 +112,153 @@ public static class PayrollRunParallelCalculator
                 AsyncServiceScope? workerScope = dop > 1 ? scopeFactory.CreateAsyncScope() : null;
                 try
                 {
-                var repo = workerScope is not null
-                    ? workerScope.Value.ServiceProvider.GetRequiredService<IPayrollRepository>()
-                    : repository;
+                    var repo = workerScope is not null
+                        ? workerScope.Value.ServiceProvider.GetRequiredService<IPayrollRepository>()
+                        : repository;
 
-                var liveJob = await repo.PayrollRunJobs.AsNoTracking()
-                    .FirstAsync(j => j.Id == jobId, cancellationToken);
-                if (liveJob.Status == PayrollRunJobStatus.Paused)
-                {
-                    Interlocked.Exchange(ref stopRequested, 1);
-                    break;
-                }
-                if (liveJob.Status == PayrollRunJobStatus.Cancelled)
-                {
-                    Interlocked.Exchange(ref stopRequested, 2);
-                    break;
-                }
-
-                if (!await repo.TryClaimPartitionAsync(partitionId, workerId, cancellationToken))
-                    continue;
-
-                PayrollRunMetrics.ActivePartitions.Add(1);
-                var sw = Stopwatch.StartNew();
-                try
-                {
-                    var partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
-                    var slice = snapshotsByOrder
-                        .Skip(partition.PartitionIndex * job.PartitionSize)
-                        .Take(job.PartitionSize)
-                        .ToList();
-
-                    var bag = await PayrollPartitionInputLoader.LoadAsync(
-                        repo, slice.Select(s => s.EmployeeId).ToList(), run, periodStart, periodEnd, cancellationToken);
-
-                    var packages = new List<PayrollEmployeeCalculationPackage>(bulkSize);
-                    Guid? lastEmployee = null;
-                    var partitionProcessed = partition.ProcessedCount;
-
-                    async Task FlushAsync()
+                    var liveJob = await repo.PayrollRunJobs.AsNoTracking()
+                        .FirstAsync(j => j.Id == jobId, cancellationToken);
+                    if (liveJob.Status == PayrollRunJobStatus.Paused)
                     {
-                        if (packages.Count == 0) return;
-                        var (saved, _) = await repo.SaveEmployeePackagesBulkAsync(run.Id, packages, cancellationToken);
-                        Interlocked.Add(ref linesGenerated, saved);
-                        packages.Clear();
-                        repo.ClearChangeTracker();
-
-                        partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
-                        partition.ProcessedCount = partitionProcessed;
-                        partition.CursorEmployeeId = lastEmployee;
-                        var jobRow = await repo.PayrollRunJobs.FirstAsync(j => j.Id == jobId, cancellationToken);
-                        jobRow.LastCheckpointAt = DateTime.UtcNow;
-                        jobRow.ProcessedEmployeeCount = Volatile.Read(ref processedEmployees);
-                        UpdateEta(jobRow);
-                        await repo.SaveChangesAsync(cancellationToken);
-                        repo.ClearChangeTracker();
+                        Interlocked.Exchange(ref stopRequested, 1);
+                        break;
+                    }
+                    if (liveJob.Status == PayrollRunJobStatus.Cancelled)
+                    {
+                        Interlocked.Exchange(ref stopRequested, 2);
+                        break;
                     }
 
-                    foreach (var snap in slice)
+                    if (!await repo.TryClaimPartitionAsync(partitionId, workerId, cancellationToken))
+                        continue;
+
+                    PayrollRunMetrics.ActivePartitions.Add(1);
+                    var sw = Stopwatch.StartNew();
+                    try
                     {
-                        liveJob = await repo.PayrollRunJobs.AsNoTracking()
-                            .FirstAsync(j => j.Id == jobId, cancellationToken);
-                        if (liveJob.Status == PayrollRunJobStatus.Paused)
+                        var partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
+                        var slice = snapshotsByOrder
+                            .Skip(partition.PartitionIndex * job.PartitionSize)
+                            .Take(job.PartitionSize)
+                            .ToList();
+
+                        var bag = await PayrollPartitionInputLoader.LoadAsync(
+                            repo, slice.Select(s => s.EmployeeId).ToList(), run, periodStart, periodEnd, cancellationToken);
+
+                        var packages = new List<PayrollEmployeeCalculationPackage>(bulkSize);
+                        Guid? lastEmployee = null;
+                        var partitionProcessed = partition.ProcessedCount;
+
+                        async Task FlushAsync()
                         {
-                            await FlushAsync();
+                            if (packages.Count == 0) return;
+                            var (saved, _) = await repo.SaveEmployeePackagesBulkAsync(run.Id, packages, cancellationToken);
+                            Interlocked.Add(ref linesGenerated, saved);
+                            packages.Clear();
+                            repo.ClearChangeTracker();
+
                             partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
-                            partition.CursorEmployeeId = snap.EmployeeId;
+                            partition.ProcessedCount = partitionProcessed;
+                            partition.CursorEmployeeId = lastEmployee;
+                            var jobRow = await repo.PayrollRunJobs.FirstAsync(j => j.Id == jobId, cancellationToken);
+                            jobRow.LastCheckpointAt = DateTime.UtcNow;
+                            jobRow.ProcessedEmployeeCount = Volatile.Read(ref processedEmployees);
+                            UpdateEta(jobRow);
                             await repo.SaveChangesAsync(cancellationToken);
-                            Interlocked.Exchange(ref stopRequested, 1);
-                            return;
-                        }
-                        if (liveJob.Status == PayrollRunJobStatus.Cancelled)
-                        {
-                            partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
-                            partition.Status = PayrollRunPartitionStatus.Cancelled;
-                            await repo.SaveChangesAsync(cancellationToken);
-                            Interlocked.Exchange(ref stopRequested, 2);
-                            return;
+                            repo.ClearChangeTracker();
                         }
 
-                        if (!profileByEmp.TryGetValue(snap.EmployeeId, out var profile))
+                        foreach (var snap in slice)
                         {
-                            await FailPartitionAsync(repo, partitionId, jobId,
-                                $"الملف غير موجود للموظف {snap.EmployeeId:N}.", cancellationToken);
-                            Interlocked.Exchange(ref stopRequested, 3);
-                            lock (fatalGate) { fatalError ??= $"الملف غير موجود للموظف {snap.EmployeeId:N}."; }
-                            return;
-                        }
+                            liveJob = await repo.PayrollRunJobs.AsNoTracking()
+                                .FirstAsync(j => j.Id == jobId, cancellationToken);
+                            if (liveJob.Status == PayrollRunJobStatus.Paused)
+                            {
+                                await FlushAsync();
+                                partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
+                                partition.CursorEmployeeId = snap.EmployeeId;
+                                await repo.SaveChangesAsync(cancellationToken);
+                                Interlocked.Exchange(ref stopRequested, 1);
+                                return;
+                            }
+                            if (liveJob.Status == PayrollRunJobStatus.Cancelled)
+                            {
+                                partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
+                                partition.Status = PayrollRunPartitionStatus.Cancelled;
+                                await repo.SaveChangesAsync(cancellationToken);
+                                Interlocked.Exchange(ref stopRequested, 2);
+                                return;
+                            }
 
-                        var currentVersion = PayrollEmployeeCalculationUnit.ComputeProfileVersion(profile);
-                        if (!string.Equals(snap.ProfileVersion, currentVersion, StringComparison.Ordinal))
-                        {
-                            var msg = $"تعارض إصدار ملف الراتب للموظف {profile.EmployeeId:N}.";
-                            await FailPartitionAsync(repo, partitionId, jobId, msg, cancellationToken);
-                            Interlocked.Exchange(ref stopRequested, 3);
-                            lock (fatalGate) { fatalError ??= msg; }
-                            return;
-                        }
+                            if (!profileByEmp.TryGetValue(snap.EmployeeId, out var profile))
+                            {
+                                await FailPartitionAsync(repo, partitionId, jobId,
+                                    $"الملف غير موجود للموظف {snap.EmployeeId:N}.", cancellationToken);
+                                Interlocked.Exchange(ref stopRequested, 3);
+                                lock (fatalGate) { fatalError ??= $"الملف غير موجود للموظف {snap.EmployeeId:N}."; }
+                                return;
+                            }
 
-                        var allowances = bag.AllowancesFor(snap.EmployeeId);
-                        var deductions = bag.DeductionsFor(snap.EmployeeId);
-                        var adjustments = bag.AdjustmentsFor(snap.EmployeeId);
-                        var absences = bag.AbsencesFor(snap.EmployeeId);
-                        var fingerprint = PayrollInputFingerprint.Compute(allowances, deductions, adjustments, absences);
-                        if (!string.IsNullOrEmpty(snap.InputFingerprint)
-                            && !string.Equals(snap.InputFingerprint, fingerprint, StringComparison.OrdinalIgnoreCase))
-                        {
-                            var msg = $"تعارض بصمة مدخلات الراتب للموظف {profile.EmployeeId:N}.";
-                            await FailPartitionAsync(repo, partitionId, jobId, msg, cancellationToken);
-                            Interlocked.Exchange(ref stopRequested, 3);
-                            lock (fatalGate) { fatalError ??= msg; }
-                            PayrollRunMetrics.EmployeesFailed.Add(1);
-                            return;
-                        }
+                            var currentVersion = PayrollEmployeeCalculationUnit.ComputeProfileVersion(profile);
+                            if (!string.Equals(snap.ProfileVersion, currentVersion, StringComparison.Ordinal))
+                            {
+                                var msg = $"تعارض إصدار ملف الراتب للموظف {profile.EmployeeId:N}.";
+                                await FailPartitionAsync(repo, partitionId, jobId, msg, cancellationToken);
+                                Interlocked.Exchange(ref stopRequested, 3);
+                                lock (fatalGate) { fatalError ??= msg; }
+                                return;
+                            }
 
-                        lastEmployee = profile.EmployeeId;
-                        if (bag.ExistingLineEmployeeIds.Contains(profile.EmployeeId))
-                        {
+                            var allowances = bag.AllowancesFor(snap.EmployeeId);
+                            var deductions = bag.DeductionsFor(snap.EmployeeId);
+                            var adjustments = bag.AdjustmentsFor(snap.EmployeeId);
+                            var absences = bag.AbsencesFor(snap.EmployeeId);
+                            var fingerprint = PayrollInputFingerprint.Compute(allowances, deductions, adjustments, absences);
+                            if (!string.IsNullOrEmpty(snap.InputFingerprint)
+                                && !string.Equals(snap.InputFingerprint, fingerprint, StringComparison.OrdinalIgnoreCase))
+                            {
+                                var msg = $"تعارض بصمة مدخلات الراتب للموظف {profile.EmployeeId:N}.";
+                                await FailPartitionAsync(repo, partitionId, jobId, msg, cancellationToken);
+                                Interlocked.Exchange(ref stopRequested, 3);
+                                lock (fatalGate) { fatalError ??= msg; }
+                                PayrollRunMetrics.EmployeesFailed.Add(1);
+                                return;
+                            }
+
+                            lastEmployee = profile.EmployeeId;
+                            if (bag.ExistingLineEmployeeIds.Contains(profile.EmployeeId))
+                            {
+                                partitionProcessed++;
+                                Interlocked.Increment(ref processedEmployees);
+                                PayrollRunMetrics.EmployeesProcessed.Add(1);
+                                continue;
+                            }
+
+                            var package = PayrollEmployeeCalculationUnit.Build(
+                                engine, run, profile, profile.PayGrade, config, extraHolidays,
+                                allowances, deductions, deductionTypes, adjustments, absences);
+                            packages.Add(package);
                             partitionProcessed++;
                             Interlocked.Increment(ref processedEmployees);
                             PayrollRunMetrics.EmployeesProcessed.Add(1);
-                            continue;
+
+                            if (packages.Count >= bulkSize)
+                                await FlushAsync();
                         }
 
-                        var package = PayrollEmployeeCalculationUnit.Build(
-                            engine, run, profile, profile.PayGrade, config, extraHolidays,
-                            allowances, deductions, deductionTypes, adjustments, absences);
-                        packages.Add(package);
-                        partitionProcessed++;
-                        Interlocked.Increment(ref processedEmployees);
-                        PayrollRunMetrics.EmployeesProcessed.Add(1);
+                        await FlushAsync();
 
-                        if (packages.Count >= bulkSize)
-                            await FlushAsync();
+                        partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
+                        partition.Status = PayrollRunPartitionStatus.Completed;
+                        partition.ProcessedCount = slice.Count;
+                        partition.WorkerId = workerId;
+                        await repo.SaveChangesAsync(cancellationToken);
                     }
-
-                    await FlushAsync();
-
-                    partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
-                    partition.Status = PayrollRunPartitionStatus.Completed;
-                    partition.ProcessedCount = slice.Count;
-                    partition.WorkerId = workerId;
-                    await repo.SaveChangesAsync(cancellationToken);
-                }
-                finally
-                {
-                    PayrollRunMetrics.ActivePartitions.Add(-1);
-                    PayrollRunMetrics.PartitionDurationMs.Record(sw.Elapsed.TotalMilliseconds);
-                }
+                    finally
+                    {
+                        PayrollRunMetrics.ActivePartitions.Add(-1);
+                        PayrollRunMetrics.PartitionDurationMs.Record(sw.Elapsed.TotalMilliseconds);
+                    }
                 }
                 finally
                 {

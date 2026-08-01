@@ -1,4 +1,4 @@
-﻿using MassTransit;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Privacy;

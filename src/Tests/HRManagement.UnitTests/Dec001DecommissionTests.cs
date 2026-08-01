@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>DEC-001: tests for legacy system decommission artifacts.</summary>

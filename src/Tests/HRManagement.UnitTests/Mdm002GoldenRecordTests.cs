@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.MasterData;
 using HRManagement.ServiceDefaults.MasterData;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Mdm002GoldenRecordTests

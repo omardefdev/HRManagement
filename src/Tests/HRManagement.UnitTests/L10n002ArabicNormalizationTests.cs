@@ -2,6 +2,7 @@ using System.Diagnostics;
 using HRManagement.SharedKernel.Localization;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class L10n002ArabicNormalizationTests

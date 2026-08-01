@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Talent;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>HCM-005: tests for SkillRecord and LearningEnrollment domain entities.</summary>

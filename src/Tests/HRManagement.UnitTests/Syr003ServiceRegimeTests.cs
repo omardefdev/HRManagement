@@ -5,6 +5,7 @@ using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>SYR-003: tests for LegalRegime domain entity and service regimes definitions.</summary>

@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Performance;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>HCM-003: tests for PerformanceCycle and PerformanceReview domain entities.</summary>

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using HRManagement.SharedKernel.Currency;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>SYR-004: tests for SyrianCurrencyConverter.</summary>
