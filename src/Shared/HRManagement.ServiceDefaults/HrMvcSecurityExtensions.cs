@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.NoFork;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HRManagement.ServiceDefaults;
 
@@ -24,6 +26,9 @@ public static class HrMvcSecurityExtensions
         {
             options.Filters.Add<AutoValidateAntiforgeryUnlessApiFilter>();
         });
+
+        // _HrSharedLayout injects IAgencyBrandingAccessor via _OrganizationBranding.
+        services.TryAddSingleton<IAgencyBrandingAccessor, AgencyBrandingAccessor>();
 
         return services;
     }
