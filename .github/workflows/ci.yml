@@ -17,6 +17,12 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: PowerShell for Linux validation script tests
+        run: |
+          if command -v pwsh >/dev/null 2>&1 && ! command -v powershell >/dev/null 2>&1; then
+            sudo ln -sf "$(command -v pwsh)" /usr/local/bin/powershell
+          fi
+
       - name: Restore local tools (dotnet-ef)
         run: dotnet tool restore
 
