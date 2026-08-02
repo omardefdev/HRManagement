@@ -14,7 +14,7 @@
 
 **CI artifact:** `testdata/gov002/out/validate-report.json`
 
-**GitHub CI (G0):** https://github.com/omardefdev/HRManagement/actions/workflows/ci.yml — PR [#1](https://github.com/omardefdev/HRManagement/pull/1). Repo **public**; SCM-001 branch protection live (`CI`, `CodeQL`, `Gitleaks`). Repo-side validators green (`gov002-validate.ps1`, `nat006-validate.ps1`, `go-no-go-gate.sh` → **NO-GO** expected until national sign-offs).
+**GitHub CI (G0):** CLOSED — merge [`19a926b`](https://github.com/omardefdev/HRManagement/commit/19a926b29bfe3bc1209a827a0bd363d95a6dad42) (PR [#1](https://github.com/omardefdev/HRManagement/pull/1), squash). CI run [`30754738005`](https://github.com/omardefdev/HRManagement/actions/runs/30754738005): **E2E 57/57**, `CI`, `CodeQL`, `Gitleaks` green. Repo **public**; SCM-001 branch protection restored on `main`. Repo-side validators green (`gov002-validate.ps1`, `nat006-validate.ps1`, `go-no-go-gate.sh` → **NO-GO** expected until national sign-offs).
 
 ## Blockers (official sign-off outside repo)
 
