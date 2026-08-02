@@ -336,17 +336,11 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Start stack
-        run: docker compose up -d --wait
+      - name: Prepare CI stack environment
+        run: bash scripts/prepare-ci-compose-env.sh
 
-      - name: Import E2E Keycloak realm personas
-        run: |
-          if [ -f docker/keycloak/realm-qa004-e2e.json ]; then
-            cp docker/keycloak/realm-qa004-e2e.json docker/keycloak/import/ || true
-          fi
-          if [ -f scripts/prepare-keycloak-import.ps1 ]; then
-            pwsh -NoProfile -File scripts/prepare-keycloak-import.ps1 || true
-          fi
+      - name: Start stack
+        run: docker compose up -d --wait --wait-timeout 300
 
       - name: Restore E2E project
         run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
@@ -361,6 +355,8 @@ jobs:
         env:
           RUN_PLAYWRIGHT_E2E: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
+          E2E_KEYCLOAK_USER: "hradmin"
+          E2E_KEYCLOAK_PASSWORD: "HrAdmin123!"
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release
