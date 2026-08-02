@@ -22,8 +22,8 @@ public class GatewayE2ETests
 
         var finalUrl = page.Url;
         Assert.True(
-            finalUrl.Contains("localhost:5000", StringComparison.OrdinalIgnoreCase)
-            || finalUrl.Contains("localhost:8080", StringComparison.OrdinalIgnoreCase));
+            E2eEnv.IsGatewayUrl(finalUrl) || E2eEnv.IsKeycloakLoginUrl(finalUrl),
+            $"Expected gateway or Keycloak redirect, got {finalUrl}");
     }
 
     [SkippableFact]

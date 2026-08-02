@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Ess;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>ESS-001: tests for EmployeeServiceCase domain entity.</summary>

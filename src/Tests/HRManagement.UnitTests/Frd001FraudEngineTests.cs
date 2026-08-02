@@ -77,7 +77,7 @@ public class Frd001FraudEngineTests
             new SalaryLineScanInput(employeeId, 1200m, HireDate: asOf.Date, HasAttendance: true, HasSourceRecord: true)
         }, asOfUtc: asOf);
 
-        var alert = Assert.Single(result.Alerts.Where(a => a.RuleId == FraudRuleIds.SameDayHireAndPay));
+        var alert = Assert.Single(result.Alerts, a => a.RuleId == FraudRuleIds.SameDayHireAndPay);
         Assert.Equal(FraudAlertSeverity.High, alert.Severity);
         Assert.Contains(result.Holds, h => h.EmployeeId == employeeId && h.FraudAlertId == alert.Id);
     }

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Str001ProductionBindingTests

@@ -1,4 +1,4 @@
-﻿using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.NationalScope;
 using HRManagement.ServiceDefaults.LegalControl;

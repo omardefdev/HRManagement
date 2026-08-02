@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Recruitment;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>HCM-001: tests for RecruitmentRequisition, CandidateApplication, and OfferLetter domain entities.</summary>

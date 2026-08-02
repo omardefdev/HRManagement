@@ -1,4 +1,4 @@
-﻿using IT.Infrastructure.Domain.Entities;
+using IT.Infrastructure.Domain.Entities;
 
 namespace IT.Infrastructure.Domain.Services;
 

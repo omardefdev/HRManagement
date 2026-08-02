@@ -8,11 +8,11 @@ public static class SignaturePolicy
     public static readonly IReadOnlyDictionary<string, PolicyEntry> RequiredSignatures =
         new Dictionary<string, PolicyEntry>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Contract"]  = new("Contract",  MinSigners: 2, RequiresOrganizationalSeal: true),
-            ["Decision"]  = new("Decision",  MinSigners: 1, RequiresOrganizationalSeal: true),
-            ["Payroll"]   = new("Payroll",   MinSigners: 2, RequiresOrganizationalSeal: false),
+            ["Contract"] = new("Contract", MinSigners: 2, RequiresOrganizationalSeal: true),
+            ["Decision"] = new("Decision", MinSigners: 1, RequiresOrganizationalSeal: true),
+            ["Payroll"] = new("Payroll", MinSigners: 2, RequiresOrganizationalSeal: false),
             ["Promotion"] = new("Promotion", MinSigners: 1, RequiresOrganizationalSeal: true),
-            ["Transfer"]  = new("Transfer",  MinSigners: 1, RequiresOrganizationalSeal: true),
+            ["Transfer"] = new("Transfer", MinSigners: 1, RequiresOrganizationalSeal: true),
         };
 
     public static bool IsLegalSignatureRequired(string subjectType) =>

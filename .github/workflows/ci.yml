@@ -17,6 +17,12 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: PowerShell for Linux validation script tests
+        run: |
+          if command -v pwsh >/dev/null 2>&1 && ! command -v powershell >/dev/null 2>&1; then
+            sudo ln -sf "$(command -v pwsh)" /usr/local/bin/powershell
+          fi
+
       - name: Restore local tools (dotnet-ef)
         run: dotnet tool restore
 
@@ -330,17 +336,26 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Start stack
-        run: docker compose up -d --wait
+      - name: Prepare CI stack environment
+        run: bash scripts/prepare-ci-compose-env.sh
 
-      - name: Import E2E Keycloak realm personas
+      - name: Start stack
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml up -d --wait --wait-timeout 600
+
+      - name: Wait for gateway health
         run: |
-          if [ -f docker/keycloak/realm-qa004-e2e.json ]; then
-            cp docker/keycloak/realm-qa004-e2e.json docker/keycloak/import/ || true
-          fi
-          if [ -f scripts/prepare-keycloak-import.ps1 ]; then
-            pwsh -NoProfile -File scripts/prepare-keycloak-import.ps1 || true
-          fi
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5000/health/live >/dev/null; then
+              echo "Gateway healthy after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Gateway /health/live not ready"
+          docker compose ps
+          docker compose logs hr-gateway --tail 80 || true
+          exit 1
 
       - name: Restore E2E project
         run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
@@ -355,6 +370,8 @@ jobs:
         env:
           RUN_PLAYWRIGHT_E2E: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
+          E2E_KEYCLOAK_USER: "hradmin"
+          E2E_KEYCLOAK_PASSWORD: "HrAdmin123!"
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release
@@ -376,7 +393,7 @@ jobs:
 
       - name: Tear down stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml down -v
 
   codeql:
     name: CodeQL
@@ -400,10 +417,14 @@ jobs:
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:csharp"
+          upload: false
 
   gitleaks:
     name: Gitleaks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:

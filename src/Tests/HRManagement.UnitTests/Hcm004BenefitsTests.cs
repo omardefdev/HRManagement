@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Benefits;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>HCM-004: tests for BenefitPlan and PensionEnrollment domain entities.</summary>

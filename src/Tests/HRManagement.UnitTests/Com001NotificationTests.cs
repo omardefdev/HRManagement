@@ -3,6 +3,7 @@ using HRManagement.SharedKernel.Notifications;
 using HRManagement.ServiceDefaults.Notifications;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Com001NotificationTests

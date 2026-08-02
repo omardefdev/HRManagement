@@ -29,16 +29,16 @@ public class Sec003FileAuthorizationTests
         string? granteeId = null,
         bool revoked = false,
         string holderId = "other") => new()
-    {
-        TenantId = tenant ?? TenantA,
-        Module = "HR.Core",
-        HolderType = "Employee",
-        HolderId = holderId,
-        FileReference = "files/test.pdf",
-        Visibility = visibility,
-        GranteeId = granteeId,
-        IsRevoked = revoked
-    };
+        {
+            TenantId = tenant ?? TenantA,
+            Module = "HR.Core",
+            HolderType = "Employee",
+            HolderId = holderId,
+            FileReference = "files/test.pdf",
+            Visibility = visibility,
+            GranteeId = granteeId,
+            IsRevoked = revoked
+        };
 
     private static ClaimsPrincipal Admin() =>
         new(new ClaimsIdentity([new Claim(ClaimTypes.Role, HrManagementRoles.Admin)], "test"));

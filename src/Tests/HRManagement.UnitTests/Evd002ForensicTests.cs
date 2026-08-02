@@ -3,6 +3,7 @@ using System.Text.Json;
 using HRManagement.SharedKernel.Evidence;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Evd002ForensicTests

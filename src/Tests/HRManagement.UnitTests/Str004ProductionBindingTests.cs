@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Internal;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Str004ProductionBindingTests

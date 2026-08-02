@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using Moq;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 public class Iam001JwtKeycloakTests

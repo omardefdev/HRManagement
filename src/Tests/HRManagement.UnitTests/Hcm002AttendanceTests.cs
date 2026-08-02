@@ -4,6 +4,7 @@ using HRManagement.SharedKernel.Time;
 using HRManagement.SharedKernel.Entities;
 
 namespace HRManagement.UnitTests;
+
 using HRManagement.TestSupport;
 
 /// <summary>HCM-002: tests for AttendanceRecord and ShiftDefinition domain entities.</summary>

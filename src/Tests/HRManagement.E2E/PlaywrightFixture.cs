@@ -62,18 +62,22 @@ public sealed class PlaywrightFixture : IAsyncLifetime
     public async Task LoginAsync(IPage page, string username, string password)
     {
         await page.GotoAsync(E2eEnv.BaseUrl, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        if (!page.Url.Contains("8080", StringComparison.OrdinalIgnoreCase)
-            && !page.Url.Contains("signin", StringComparison.OrdinalIgnoreCase)
-            && !page.Url.Contains("realms", StringComparison.OrdinalIgnoreCase))
-        {
-            // Already authenticated or open gateway home
+        if (!E2eEnv.IsKeycloakLoginUrl(page.Url))
             return;
-        }
 
         await page.FillAsync("input[name='username']", username);
         await page.FillAsync("input[name='password']", password);
         await page.ClickAsync("input[type='submit'], button[type='submit']");
-        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        try
+        {
+            await page.WaitForURLAsync(
+                u => E2eEnv.IsGatewayUrl(u) || !E2eEnv.IsKeycloakLoginUrl(u),
+                new() { Timeout = 60_000 });
+        }
+        catch (TimeoutException)
+        {
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
+        }
         Assert.False(
             page.Url.Contains("error", StringComparison.OrdinalIgnoreCase),
             $"Login appears to have failed for user {username}; url={page.Url}");
