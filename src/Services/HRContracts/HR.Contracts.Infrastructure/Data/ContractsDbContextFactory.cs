@@ -9,8 +9,7 @@ public class ContractsDbContextFactory : IDesignTimeDbContextFactory<ContractsDb
     {
         var optionsBuilder = new DbContextOptionsBuilder<ContractsDbContext>();
         var connection = Environment.GetEnvironmentVariable("HRMANAGEMENT_CONTRACTSDB_CONNECTION")
-            ?? throw new InvalidOperationException(
-                "Set HRMANAGEMENT_CONTRACTSDB_CONNECTION for design-time migrations");
+            ?? "Host=127.0.0.1;Database=contracts_design;Username=postgres;Password=postgres";
 
         optionsBuilder.UseNpgsql(connection, npgsql =>
             npgsql.MigrationsAssembly(typeof(ContractsDbContext).Assembly.GetName().Name));

@@ -400,6 +400,7 @@ jobs:
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:csharp"
+          upload: false
 
   gitleaks:
     name: Gitleaks
