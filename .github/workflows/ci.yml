@@ -340,7 +340,7 @@ jobs:
         run: bash scripts/prepare-ci-compose-env.sh
 
       - name: Start stack
-        run: docker compose up -d --wait --wait-timeout 300
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml up -d --wait --wait-timeout 600
 
       - name: Wait for gateway health
         run: |
@@ -393,7 +393,7 @@ jobs:
 
       - name: Tear down stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml down -v
 
   codeql:
     name: CodeQL

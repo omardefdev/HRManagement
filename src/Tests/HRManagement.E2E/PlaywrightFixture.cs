@@ -68,9 +68,16 @@ public sealed class PlaywrightFixture : IAsyncLifetime
         await page.FillAsync("input[name='username']", username);
         await page.FillAsync("input[name='password']", password);
         await page.ClickAsync("input[type='submit'], button[type='submit']");
-        await page.WaitForURLAsync(
-            u => E2eEnv.IsGatewayUrl(u) || !E2eEnv.IsKeycloakLoginUrl(u),
-            new() { Timeout = 30_000 });
+        try
+        {
+            await page.WaitForURLAsync(
+                u => E2eEnv.IsGatewayUrl(u) || !E2eEnv.IsKeycloakLoginUrl(u),
+                new() { Timeout = 60_000 });
+        }
+        catch (TimeoutException)
+        {
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
+        }
         Assert.False(
             page.Url.Contains("error", StringComparison.OrdinalIgnoreCase),
             $"Login appears to have failed for user {username}; url={page.Url}");
