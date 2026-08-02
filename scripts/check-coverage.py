@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""QA-002: Merge Cobertura reports by summing lines; enforce global gate + floors.
+"""QA-002: Merge Cobertura reports with union line hits; enforce global gate + floors.
 
-Uses additive merge (covered/valid summed per assembly across reports), not
-best-of selection, so a stale high-coverage artifact cannot mask a low current run.
+Union merge: for each source line, a line is covered if any report records hits > 0.
+Summing covered/valid across overlapping reports (e.g. unit + integration + TC) would
+inflate valid line counts and fail the gate even when combined test runs exercise code.
 """
 from __future__ import annotations
 
@@ -24,28 +25,39 @@ def find_coverage_files(explicit: str | None) -> list[Path]:
     files: list[Path] = []
     for root in roots:
         for p in root.rglob("coverage.cobertura.xml"):
-            if "TestResults" in p.parts:
-                files.append(p)
+            if "TestResults" not in p.parts:
+                continue
+            # Coverlet also writes intermediate copies under _runner*/In/…; skip them so
+            # additive merge does not double-count valid lines (QA-002 gate inflation bug).
+            if any(part.startswith("_runner") for part in p.parts):
+                continue
+            files.append(p)
     return sorted(files)
 
 
 def package_stats(coverage_files: list[Path]) -> dict[str, tuple[int, int]]:
-    """Sum covered/valid line counts per package across reports (additive merge)."""
-    totals: dict[str, list[int]] = {}
+    """Union merge: max hits per (file, line) across reports; count unique lines once."""
+    merged: dict[str, dict[tuple[str, int], int]] = {}
     for path in coverage_files:
         root = ET.parse(path).getroot()
         for pkg in root.findall(".//package"):
             name = pkg.get("name") or ""
-            lines = pkg.findall(".//line")
-            if not lines:
-                continue
-            covered = sum(1 for ln in lines if int(ln.get("hits") or 0) > 0)
-            valid = len(lines)
-            if name not in totals:
-                totals[name] = [0, 0]
-            totals[name][0] += covered
-            totals[name][1] += valid
-    return {k: (v[0], v[1]) for k, v in totals.items()}
+            if name not in merged:
+                merged[name] = {}
+            for cls in pkg.findall("classes/class"):
+                filename = cls.get("filename") or ""
+                lines_el = cls.find("lines")
+                if lines_el is None:
+                    continue
+                for ln in lines_el.findall("line"):
+                    num = int(ln.get("number") or 0)
+                    hits = int(ln.get("hits") or 0)
+                    key = (filename, num)
+                    merged[name][key] = max(merged[name].get(key, 0), hits)
+    return {
+        name: (sum(1 for h in hits.values() if h > 0), len(hits))
+        for name, hits in merged.items()
+    }
 
 
 def load_floors(path: Path) -> dict:
@@ -75,7 +87,7 @@ def main() -> int:
         print("ERROR: No packages parsed from coverage files.", file=sys.stderr)
         return 1
 
-    print(f"Coverage files ({len(files)}; additive merge):")
+    print(f"Coverage files ({len(files)}; union merge):")
     for f in files:
         print(f"  {f}")
 
