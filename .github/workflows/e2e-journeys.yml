@@ -28,6 +28,7 @@ jobs:
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
+          bash scripts/prepare-ci-compose-env.sh
           if [ -n "${IMAGE_TAG}" ]; then
             echo "Using release images tag=${IMAGE_TAG}"
             docker compose \
