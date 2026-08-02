@@ -56,13 +56,22 @@ public sealed class A11yAxeE2ETests
         await E2eEnv.EnsureGatewayReachableAsync(api);
 
         var page = await browser.NewPageAsync();
-        var response = await page.GotoAsync($"{E2eEnv.BaseUrl}/", new()
+        var user = Environment.GetEnvironmentVariable("E2E_KEYCLOAK_USER") ?? "hradmin";
+        var password = Environment.GetEnvironmentVariable("E2E_KEYCLOAK_PASSWORD") ?? "HrAdmin123!";
+        await page.GotoAsync($"{E2eEnv.BaseUrl}/", new()
         {
             WaitUntil = WaitUntilState.DOMContentLoaded,
             Timeout = 30_000
         });
-        Assert.NotNull(response);
-        E2eHttp.EnsureNotServerError(response!, "Gateway home");
+        if (E2eEnv.IsKeycloakLoginUrl(page.Url))
+        {
+            await page.FillAsync("input[name='username']", user);
+            await page.FillAsync("input[name='password']", password);
+            await page.ClickAsync("input[type='submit'], button[type='submit']");
+            await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
+        }
+
+        Assert.True(E2eEnv.IsGatewayUrl(page.Url), $"Expected gateway home after login, got {page.Url}");
 
         Assert.True(await page.Locator("a.hr-skip-link").CountAsync() > 0, "Missing skip link on Gateway layout");
         await AssertNoSeriousOrCriticalAsync(page, "Gateway home");

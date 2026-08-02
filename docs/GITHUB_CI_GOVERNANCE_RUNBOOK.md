@@ -1,6 +1,6 @@
 # GitHub CI & governance runbook (SCM-001 / G0 / G9)
 
-**Repository:** `omardefdev/HRManagement`  
+**Repository:** `omardefdev/HRManagement` (public)  
 **Primary CI workflow:** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 
 ## Required status checks (branch protection)
@@ -12,14 +12,14 @@
 | `CodeQL` | codeql | `ci.yml` |
 | `Gitleaks` | gitleaks | `ci.yml` |
 
-Apply protection (admin, **requires GitHub Pro or public repo** for private repositories):
+Apply protection (admin):
 
 ```powershell
 gh api -X PUT repos/omardefdev/HRManagement/branches/main/protection `
   --input docs/scm-governance/branch-protection-main.json
 ```
 
-> **Note:** On a free private repo, GitHub returns 403 for branch protection API. Upgrade to Pro, use an organization plan, or make the repo public before applying live protection.
+> **Note:** Branch protection on private repos requires GitHub Pro. This repo is **public** so protection is applied live.
 
 Validate:
 

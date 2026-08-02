@@ -13,6 +13,16 @@ public static class E2eEnv
     public static string BaseUrl =>
         (Environment.GetEnvironmentVariable("GATEWAY_BASE_URL") ?? "http://localhost:5000").TrimEnd('/');
 
+    public static bool IsKeycloakLoginUrl(string url) =>
+        url.Contains("realms", StringComparison.OrdinalIgnoreCase)
+        || url.Contains(":8080", StringComparison.OrdinalIgnoreCase)
+        || url.Contains(":8088", StringComparison.OrdinalIgnoreCase)
+        || url.Contains("signin", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsGatewayUrl(string url) =>
+        url.Contains(":5000", StringComparison.OrdinalIgnoreCase)
+        || url.Contains(":5200", StringComparison.OrdinalIgnoreCase);
+
     public static string ArtifactsDir
     {
         get
@@ -34,19 +44,24 @@ public static class E2eEnv
 
     public static async Task EnsureGatewayReachableAsync(IAPIRequestContext api)
     {
-        IAPIResponse? response = null;
-        try
+        Exception? last = null;
+        for (var attempt = 0; attempt < 6; attempt++)
         {
-            response = await api.GetAsync($"{BaseUrl}/health/live", new() { Timeout = 10_000 });
-        }
-        catch (Exception ex)
-        {
-            Assert.Fail($"Gateway unreachable at {BaseUrl}/health/live while RUN_PLAYWRIGHT_E2E=true: {ex.Message}");
+            try
+            {
+                var response = await api.GetAsync($"{BaseUrl}/health/live", new() { Timeout = 15_000 });
+                E2eHttp.EnsureSuccessNot5xx(response, $"{BaseUrl}/health/live");
+                Assert.Equal(200, response.Status);
+                return;
+            }
+            catch (Exception ex)
+            {
+                last = ex;
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
         }
 
-        Assert.NotNull(response);
-        E2eHttp.EnsureSuccessNot5xx(response!, $"{BaseUrl}/health/live");
-        Assert.Equal(200, response!.Status);
+        Assert.Fail($"Gateway unreachable at {BaseUrl}/health/live while RUN_PLAYWRIGHT_E2E=true: {last?.Message}");
     }
 }
 

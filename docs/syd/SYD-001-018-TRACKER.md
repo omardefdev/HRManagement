@@ -14,7 +14,7 @@
 
 **CI artifact:** `testdata/gov002/out/validate-report.json`
 
-**GitHub CI (G0):** https://github.com/omardefdev/HRManagement/actions/workflows/ci.yml — PR [#1](https://github.com/omardefdev/HRManagement/pull/1). Repo-side validators green locally (`gov002-validate.ps1`, `nat006-validate.ps1`). National Go/No-Go remains **NOT-CLOSED** until external SYD sign-offs.
+**GitHub CI (G0):** https://github.com/omardefdev/HRManagement/actions/workflows/ci.yml — PR [#1](https://github.com/omardefdev/HRManagement/pull/1). Repo **public**; SCM-001 branch protection live (`CI`, `CodeQL`, `Gitleaks`). Repo-side validators green (`gov002-validate.ps1`, `nat006-validate.ps1`, `go-no-go-gate.sh` → **NO-GO** expected until national sign-offs).
 
 ## Blockers (official sign-off outside repo)
 

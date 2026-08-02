@@ -342,6 +342,21 @@ jobs:
       - name: Start stack
         run: docker compose up -d --wait --wait-timeout 300
 
+      - name: Wait for gateway health
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5000/health/live >/dev/null; then
+              echo "Gateway healthy after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Gateway /health/live not ready"
+          docker compose ps
+          docker compose logs hr-gateway --tail 80 || true
+          exit 1
+
       - name: Restore E2E project
         run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
 

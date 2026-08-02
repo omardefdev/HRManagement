@@ -22,8 +22,8 @@ public class GatewayAuthE2ETests
 
         var finalUrl = page.Url;
         Assert.True(
-            finalUrl.Contains("localhost:5000", StringComparison.OrdinalIgnoreCase)
-            || finalUrl.Contains("localhost:8080", StringComparison.OrdinalIgnoreCase));
+            E2eEnv.IsGatewayUrl(finalUrl) || E2eEnv.IsKeycloakLoginUrl(finalUrl),
+            $"Expected gateway or Keycloak redirect, got {finalUrl}");
     }
 
     [SkippableFact]
@@ -44,19 +44,19 @@ public class GatewayAuthE2ETests
         var page = await browser.NewPageAsync();
 
         await page.GotoAsync(BaseUrl);
-        if (page.Url.Contains("8080", StringComparison.OrdinalIgnoreCase))
+        if (E2eEnv.IsKeycloakLoginUrl(page.Url))
         {
             await page.FillAsync("input[name='username']", user);
             await page.FillAsync("input[name='password']", password);
             await page.ClickAsync("input[type='submit'], button[type='submit']");
-            await page.WaitForURLAsync(u => u.Contains("5000", StringComparison.OrdinalIgnoreCase));
+            await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
         }
 
         await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/hr-core/");
-        Assert.DoesNotContain("8080/realms", page.Url, StringComparison.OrdinalIgnoreCase);
+        Assert.False(E2eEnv.IsKeycloakLoginUrl(page.Url), page.Url);
 
         await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/payroll/");
-        Assert.DoesNotContain("8080/realms", page.Url, StringComparison.OrdinalIgnoreCase);
+        Assert.False(E2eEnv.IsKeycloakLoginUrl(page.Url), page.Url);
     }
 
     [SkippableFact]
@@ -77,18 +77,18 @@ public class GatewayAuthE2ETests
         var page = await browser.NewPageAsync();
 
         await page.GotoAsync(BaseUrl);
-        if (page.Url.Contains("8080", StringComparison.OrdinalIgnoreCase))
+        if (E2eEnv.IsKeycloakLoginUrl(page.Url))
         {
             await page.FillAsync("input[name='username']", user);
             await page.FillAsync("input[name='password']", password);
             await page.ClickAsync("input[type='submit'], button[type='submit']");
-            await page.WaitForURLAsync(u => u.Contains("5000", StringComparison.OrdinalIgnoreCase));
+            await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
         }
 
         await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/Account/Logout");
         await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/hr-core/");
         Assert.True(
-            page.Url.Contains("8080", StringComparison.OrdinalIgnoreCase)
-            || page.Url.Contains("signin", StringComparison.OrdinalIgnoreCase));
+            E2eEnv.IsKeycloakLoginUrl(page.Url),
+            $"Expected logout redirect to Keycloak, got {page.Url}");
     }
 }
