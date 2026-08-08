@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 WORKDIR /app
 COPY server.py .
 ENV ALERT_SINK_PORT=8089
