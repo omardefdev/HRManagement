@@ -54,6 +54,11 @@
 
 
 
+@if (Model.NextCandidate is not null && Model.CanWrite)
+{
+    <partial name="_NextCandidateBanner" model="Model.NextCandidate" />
+}
+
 <div class="card">
 
     <div class="card-header d-flex justify-content-between align-items-center">

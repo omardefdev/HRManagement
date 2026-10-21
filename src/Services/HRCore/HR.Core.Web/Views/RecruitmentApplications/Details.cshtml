@@ -17,7 +17,13 @@
 
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h3 class="mb-0">@app.ApplicantFullName — @Html.HrEnumDisplay(app.Status)</h3>
+        <h3 class="mb-0">
+            @app.ApplicantFullName — @Html.HrEnumDisplay(app.Status)
+            @if (app.Status == RecruitmentApplicationStatus.ReserveListed && app.ReserveUntil is DateOnly reserveUntil)
+            {
+                <span class="badge bg-secondary fs-6 align-middle">حتى @reserveUntil.ToString("yyyy/MM/dd")</span>
+            }
+        </h3>
         <div class="d-flex gap-1 flex-wrap">
             @if (canWrite && Model.CanHire)
             {
@@ -221,7 +227,7 @@
     @if (app.RequisitionId.HasValue && app.ActiveOfferLetter is null
          && app.Status is RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.ReserveListed)
     {
-        <div class="card mb-3">
+        <div class="card mb-3" id="create-offer">
             <div class="card-header"><h5 class="mb-0">إنشاء خطاب عرض</h5></div>
             <div class="card-body">
                 @if (!Model.CanOffer)
@@ -405,7 +411,13 @@
                             }
                         </td>
                         <td>@(row.AssessmentScore?.ToString("N1") ?? "—")</td>
-                        <td>@Html.HrEnumDisplay(row.Status)</td>
+                        <td>
+                            @Html.HrEnumDisplay(row.Status)
+                            @if (row.Status == RecruitmentApplicationStatus.ReserveListed && row.ReserveUntil is DateOnly rowReserveUntil)
+                            {
+                                <span class="text-muted small">حتى @rowReserveUntil.ToString("yyyy/MM/dd")</span>
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>

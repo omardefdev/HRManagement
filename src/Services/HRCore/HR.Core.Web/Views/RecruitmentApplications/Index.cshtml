@@ -89,7 +89,13 @@
                         }
                     </td>
                     <td>@application.AppliedPosition</td>
-                    <td>@Html.HrEnumDisplay(application.Status)</td>
+                    <td>
+                        @Html.HrEnumDisplay(application.Status)
+                        @if (application.Status == RecruitmentApplicationStatus.ReserveListed && application.ReserveUntil is DateOnly reserveUntil)
+                        {
+                            <span class="text-muted small">حتى @reserveUntil.ToString("yyyy/MM/dd")</span>
+                        }
+                    </td>
                     <td>
                         @if (application.ActiveOfferLetterId is Guid offerId)
                         {

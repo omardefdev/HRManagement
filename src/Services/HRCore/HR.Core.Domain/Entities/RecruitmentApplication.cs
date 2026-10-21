@@ -91,6 +91,14 @@ public class RecruitmentApplication : AuditableEntity
 
     public virtual OfferLetter? ActiveOfferLetter { get; set; }
 
+    /// <summary>HCM-027 (F2, D-7): last day the application stays on the reserve list.</summary>
+    [Display(Name = "الاحتياط حتى")]
+    public DateOnly? ReserveUntil { get; set; }
+
+    /// <summary>HCM-027 (F2): when the application was moved to the reserve list (hire of a sibling).</summary>
+    [Display(Name = "تاريخ الإدراج في الاحتياط")]
+    public DateTime? ReserveListedAt { get; set; }
+
     public virtual Employee? HiredEmployee { get; set; }
 
     public virtual ICollection<OfferLetter> OfferLetters { get; set; } = [];

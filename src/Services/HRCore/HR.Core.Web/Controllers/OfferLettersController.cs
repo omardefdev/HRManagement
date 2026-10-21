@@ -48,7 +48,9 @@ public class OfferLettersController(
 
     ILegislationRegisterProvider legislationProvider,
 
-    EstablishmentScopeService establishmentScope) : Controller
+    EstablishmentScopeService establishmentScope,
+
+    ReserveListService reserveList) : Controller
 
 {
 
@@ -164,6 +166,14 @@ public class OfferLettersController(
 
 
         var vm = await workflowUiService.BuildDetailsAsync(offer, User);
+
+        // HCM-027 (F3): after a decline/expiry/revoke, suggest the next candidate by merit.
+
+        if (offer.Status is OfferStatus.Declined or OfferStatus.Expired or OfferStatus.Revoked
+
+            && offer.RecruitmentApplication?.RequisitionId is Guid requisitionId)
+
+            vm.NextCandidate = await reserveList.GetNextCandidateSuggestionAsync(requisitionId);
 
         ViewData["OfferId"] = offer.Id;
 
@@ -360,7 +370,7 @@ public class OfferLettersController(
         // HCM-027: HR records the decline on the candidate's behalf. PLAN-30: candidate self-service (Candidate).
         var (success, error) = await offerService.DeclineAsync(id, form.Reason, OfferDeclinedBy.HrOnBehalf, ParseUserId(User));
 
-        TempData[success ? "Success" : "Error"] = success ? "تم رفض خطاب العرض" : error;
+        TempData[success ? "Success" : "Error"] = success ? "تم رفض خطاب العرض" + await AutoDraftNextOfferAsync(id) : error;
 
         return RedirectToAction(nameof(Details), new { id });
 
@@ -380,13 +390,29 @@ public class OfferLettersController(
 
         var (success, error) = await offerService.RevokeAsync(id, form.Reason, form.RevertToRanked, ParseUserId(User));
 
-        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء خطاب العرض" : error;
+        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء خطاب العرض" + await AutoDraftNextOfferAsync(id) : error;
 
         return RedirectToAction(nameof(Details), new { id });
 
     }
 
 
+
+    /// <summary>HCM-027 (F3): Recruitment:AutoDraftNextOffer — suffix for the success message.</summary>
+
+    private async Task<string> AutoDraftNextOfferAsync(Guid previousOfferId)
+
+    {
+
+        var (draft, error) = await offerService.TryAutoDraftNextOfferAsync(previousOfferId, ParseUserId(User));
+
+        if (draft is not null)
+
+            return $" — أُنشئت مسودة عرض للمرشح التالي بالجدارة ({draft.OfferNumber}).";
+
+        return error is null ? string.Empty : $" — تعذّر إنشاء مسودة للمرشح التالي: {error}";
+
+    }
 
     private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
 

@@ -24,6 +24,7 @@ public sealed class RecruitmentHireClosureService(
     RecruitmentLegalSourceValidator legalSourceValidator,
     Legal.ServiceRegimeValidator serviceRegimeValidator,
     Legal.ServiceRegimeExceptionService serviceRegimeExceptionService,
+    ReserveListService reserveList,
     IPublishEndpoint publish,
     IConfiguration configuration,
     ILogger<RecruitmentHireClosureService> logger)
@@ -328,26 +329,15 @@ public sealed class RecruitmentHireClosureService(
         }
     }
 
-    private async Task RejectSiblingApplicationsAsync(
+    /// <summary>
+    /// HCM-027 (F2): Ranked siblings move to the reserve list (Recruitment:ReserveValidityMonths); other
+    /// non-terminal siblings are Rejected; ReserveListed siblings keep their reserve date.
+    /// </summary>
+    private Task RejectSiblingApplicationsAsync(
         Guid requisitionId,
         Guid winnerApplicationId,
-        CancellationToken cancellationToken)
-    {
-        var siblings = await db.RecruitmentApplications
-            .Where(a => a.RequisitionId == requisitionId
-                        && a.Id != winnerApplicationId
-                        && a.Status != RecruitmentApplicationStatus.Hired
-                        && a.Status != RecruitmentApplicationStatus.Rejected
-                        && a.Status != RecruitmentApplicationStatus.Withdrawn
-                        && a.Status != RecruitmentApplicationStatus.OfferDeclined)
-            .ToListAsync(cancellationToken);
-
-        foreach (var sibling in siblings)
-        {
-            sibling.Status = RecruitmentApplicationStatus.Rejected;
-            sibling.ReviewedAt = DateTime.UtcNow;
-        }
-    }
+        CancellationToken cancellationToken) =>
+        reserveList.MoveSiblingsToReserveAsync(requisitionId, winnerApplicationId, DateTime.UtcNow, cancellationToken);
 
     private async Task PublishHireEventsAsync(
         Employee employee,

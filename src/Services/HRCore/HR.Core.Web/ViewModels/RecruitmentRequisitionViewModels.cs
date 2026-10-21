@@ -73,6 +73,8 @@ public class RecruitmentRequisitionDetailsViewModel
     public bool CanApprove { get; set; }
     /// <summary>HCM-026: assessment criteria versions panel.</summary>
     public AssessmentCriteriaPanelViewModel CriteriaPanel { get; set; } = new();
+    /// <summary>HCM-027 (F3): next candidate by merit after a decline/expiry/revoke (null when none).</summary>
+    public HR.Core.Infrastructure.Services.Recruitment.NextCandidateSuggestion? NextCandidate { get; set; }
 }
 
 public class RequisitionWorkflowPanelViewModel : WorkflowPanelViewModel;

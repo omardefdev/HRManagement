@@ -115,6 +115,7 @@ public class RecruitmentHireClosureIntegrationTests
         var (db, integration, _) = await CreateEnvAsync(rejectSiblings: true);
         var (app, req, _, offer) = await SeedOfferAcceptedScenarioAsync(db);
 
+        // HCM-027 (F2): a Ranked sibling now goes to the reserve list; unranked open siblings are still rejected.
         var sibling = new RecruitmentApplication
         {
             ApplicantFullName = "مرشح آخر",
@@ -124,7 +125,15 @@ public class RecruitmentHireClosureIntegrationTests
             Status = RecruitmentApplicationStatus.Ranked,
             Rank = 2
         };
-        db.RecruitmentApplications.Add(sibling);
+        var unranked = new RecruitmentApplication
+        {
+            ApplicantFullName = "مرشح غير مرتب",
+            RequisitionId = req.Id,
+            AppliedPosition = req.JobTitle,
+            AppliedAt = DateTime.UtcNow,
+            Status = RecruitmentApplicationStatus.Assessed
+        };
+        db.RecruitmentApplications.AddRange(sibling, unranked);
         await db.SaveChangesAsync();
 
         await integration.HireAndCreateEmployeeAsync(
@@ -139,11 +148,48 @@ public class RecruitmentHireClosureIntegrationTests
             DateOnly.FromDateTime(DateTime.UtcNow),
             "PERMANENT");
 
-        var siblingStatus = await db.RecruitmentApplications.AsNoTracking()
-            .Where(a => a.Id == sibling.Id)
+        var savedSibling = await db.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == sibling.Id);
+        Assert.Equal(RecruitmentApplicationStatus.ReserveListed, savedSibling.Status);
+        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(6), savedSibling.ReserveUntil);
+        var unrankedStatus = await db.RecruitmentApplications.AsNoTracking()
+            .Where(a => a.Id == unranked.Id)
             .Select(a => a.Status)
             .SingleAsync();
-        Assert.Equal(RecruitmentApplicationStatus.Rejected, siblingStatus);
+        Assert.Equal(RecruitmentApplicationStatus.Rejected, unrankedStatus);
+    }
+
+    [Fact]
+    public async Task HireClosure_LeavesSiblingApplicationsUnchanged_WhenSiblingHandlingOff()
+    {
+        var (db, integration, _) = await CreateEnvAsync(rejectSiblings: false);
+        var (app, req, _, _) = await SeedOfferAcceptedScenarioAsync(db);
+        var sibling = new RecruitmentApplication
+        {
+            ApplicantFullName = "مرشح آخر",
+            RequisitionId = req.Id,
+            AppliedPosition = req.JobTitle,
+            AppliedAt = DateTime.UtcNow,
+            Status = RecruitmentApplicationStatus.Ranked,
+            Rank = 2
+        };
+        db.RecruitmentApplications.Add(sibling);
+        await db.SaveChangesAsync();
+
+        await integration.HireAndCreateEmployeeAsync(
+            app,
+            "0606060606",
+            "هدى",
+            null,
+            "سالم",
+            DateTime.UtcNow.AddYears(-26),
+            Gender.Female,
+            null,
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            "PERMANENT");
+
+        var saved = await db.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == sibling.Id);
+        Assert.Equal(RecruitmentApplicationStatus.Ranked, saved.Status);
+        Assert.Null(saved.ReserveUntil);
     }
 
     [Fact]

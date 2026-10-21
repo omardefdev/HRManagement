@@ -41,6 +41,18 @@ public sealed class RecruitmentOptions
     /// </summary>
     public int MaxStartDays { get; set; } = 90;
 
+    /// <summary>
+    /// HCM-027 (F2, D-7): <c>Recruitment:ReserveValidityMonths</c> — ranked siblings stay on the reserve list
+    /// this many months after a hire, default 6.
+    /// </summary>
+    public int ReserveValidityMonths { get; set; } = 6;
+
+    /// <summary>
+    /// HCM-027 (F3): <c>Recruitment:AutoDraftNextOffer</c> — after a decline/expiry/revoke, draft an offer for the
+    /// next candidate by merit with the previous offer's terms (default false: only a suggestion is shown).
+    /// </summary>
+    public bool AutoDraftNextOffer { get; set; }
+
     /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();
 }
@@ -59,4 +71,10 @@ public sealed class RecruitmentJobsOptions
 
     /// <summary>HCM-027: <c>Recruitment:Jobs:OfferExpiryIntervalMinutes</c> (default 60).</summary>
     public int OfferExpiryIntervalMinutes { get; set; } = 60;
+
+    /// <summary>HCM-027: <c>Recruitment:Jobs:ReserveExpiryEnabled</c> — runs <c>RecruitmentReserveExpiryJob</c> (default true).</summary>
+    public bool ReserveExpiryEnabled { get; set; } = true;
+
+    /// <summary>HCM-027: <c>Recruitment:Jobs:ReserveExpiryIntervalMinutes</c> (default 1440, daily).</summary>
+    public int ReserveExpiryIntervalMinutes { get; set; } = 1440;
 }

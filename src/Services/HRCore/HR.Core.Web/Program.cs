@@ -149,6 +149,11 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 // HCM-027 (D): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.OfferExpiryEnabled.
 if (builder.Configuration.GetValue("Recruitment:Jobs:OfferExpiryEnabled", true))
     builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOfferExpiryJob>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.ReserveListService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentReserveExpirer>();
+// HCM-027 (F4): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.ReserveExpiryEnabled.
+if (builder.Configuration.GetValue("Recruitment:Jobs:ReserveExpiryEnabled", true))
+    builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.RecruitmentReserveExpiryJob>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();

@@ -1,0 +1,14 @@
+@model HR.Core.Infrastructure.Services.Recruitment.NextCandidateSuggestion
+@* HCM-027 (F3): next candidate by merit after a decline/expiry/revoke. *@
+<div class="alert alert-info d-flex flex-wrap align-items-center gap-2" id="next-candidate">
+    <i class="fas fa-user-plus ms-1"></i>
+    <span>
+        المرشح التالي بالجدارة: <strong>@Model.ApplicantFullName</strong> (رتبة @Model.Rank)
+        @if (Model.Status == HR.Core.Domain.Enums.RecruitmentApplicationStatus.ReserveListed)
+        {
+            <span class="badge bg-secondary ms-1">من قائمة الاحتياط</span>
+        }
+    </span>
+    <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@Model.ApplicationId"
+       asp-fragment="create-offer" class="btn btn-sm btn-primary">إنشاء عرض</a>
+</div>

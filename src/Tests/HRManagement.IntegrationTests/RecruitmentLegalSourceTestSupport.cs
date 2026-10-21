@@ -70,6 +70,11 @@ internal static class RecruitmentLegalSourceTestSupport
             validator,
             regimeValidator,
             exceptionService,
+            new ReserveListService(
+                db,
+                Microsoft.Extensions.Options.Options.Create(
+                    config.GetSection(RecruitmentOptions.SectionName).Get<RecruitmentOptions>() ?? new RecruitmentOptions()),
+                NullLogger<ReserveListService>.Instance),
             publish,
             config,
             logger ?? NullLogger<RecruitmentHireClosureService>.Instance);

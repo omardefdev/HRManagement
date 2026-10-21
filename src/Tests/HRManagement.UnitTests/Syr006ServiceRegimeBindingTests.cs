@@ -98,6 +98,10 @@ public class Syr006ServiceRegimeBindingTests
             legalValidator,
             regimeValidator,
             exceptionService,
+            new ReserveListService(
+                db,
+                Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
+                NullLogger<ReserveListService>.Instance),
             new Moq.Mock<MassTransit.IPublishEndpoint>().Object,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
             NullLogger<RecruitmentHireClosureService>.Instance);

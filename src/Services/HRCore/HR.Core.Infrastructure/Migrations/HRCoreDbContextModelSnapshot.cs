@@ -3209,6 +3209,12 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("RequisitionId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("ReserveListedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("ReserveUntil")
+                        .HasColumnType("date");
+
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("timestamp with time zone");
 

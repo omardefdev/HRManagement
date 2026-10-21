@@ -38,6 +38,11 @@ public sealed class RecruitmentOfferService(
     /// <summary>HCM-027: <c>Recruitment:OfferValidityDays</c> — default validity of a new offer.</summary>
     public int DefaultValidityDays => recruitmentOptions.Value.OfferValidityDays;
 
+    /// <summary>HCM-027 (F3): <c>Recruitment:AutoDraftNextOffer</c>.</summary>
+    public bool AutoDraftNextOfferEnabled => recruitmentOptions.Value.AutoDraftNextOffer;
+
+    public const string NoNextCandidateMessage = "لا يوجد مرشح تالٍ بالجدارة على هذا الشاغر.";
+
     public async Task<(OfferLetter? Offer, string? Error)> CreateDraftAsync(
         Guid applicationId,
         decimal offeredSalary,
@@ -366,6 +371,49 @@ public sealed class RecruitmentOfferService(
             ChangedFields = JsonSerializer.Serialize(changes)
         });
 
+    /// <summary>
+    /// HCM-027 (F3): when <c>Recruitment:AutoDraftNextOffer</c> is on and the previous offer was declined, expired
+    /// or revoked (its application is now OfferDeclined/Rejected) on a still Published requisition, drafts an offer
+    /// for the next candidate by merit with the previous grade, salary, validity and justifications, through
+    /// <see cref="CreateDraftAsync"/> (same eligibility and terms checks). A start date already in the past
+    /// becomes today + 30 days. Returns (null, null) when nothing is to be done.
+    /// </summary>
+    public async Task<(OfferLetter? Offer, string? Error)> TryAutoDraftNextOfferAsync(
+        Guid previousOfferId,
+        Guid? actorUserId,
+        CancellationToken ct = default)
+    {
+        if (!AutoDraftNextOfferEnabled)
+            return (null, null);
+
+        var previous = await LoadOfferAsync(previousOfferId, ct);
+        if (previous?.RecruitmentApplication is not { RequisitionId: Guid requisitionId } previousApp
+            || previous.Status is not (OfferStatus.Declined or OfferStatus.Expired or OfferStatus.Revoked)
+            || previousApp.Status is not (RecruitmentApplicationStatus.OfferDeclined or RecruitmentApplicationStatus.Rejected)
+            || previousApp.Requisition?.Status != RequisitionStatus.Published)
+            return (null, null);
+
+        var next = await AvailableForMerit(db.RecruitmentApplications.AsNoTracking(), requisitionId)
+            .OrderBy(a => a.Rank)
+            .FirstOrDefaultAsync(ct);
+        if (next is null)
+            return (null, NoNextCandidateMessage);
+
+        var today = DateTime.UtcNow.Date;
+        var startDate = previous.ProposedStartDate.Date >= today ? previous.ProposedStartDate : today.AddDays(30);
+
+        return await CreateDraftAsync(
+            next.Id,
+            previous.OfferedSalary,
+            previous.GradeCode,
+            startDate,
+            previous.ValidityDays,
+            actorUserId,
+            gradeDeviationReason: previous.GradeDeviationReason,
+            salaryJustification: previous.SalaryJustification,
+            ct: ct);
+    }
+
     /// <summary>Validated offer terms (HCM-027 E).</summary>
     private sealed record OfferTerms(
         string Grade,
@@ -457,13 +505,20 @@ public sealed class RecruitmentOfferService(
     /// (Ranked or ReserveListed, ranked, no pending appeal); null when none.
     /// </summary>
     public Task<int?> GetBestAvailableRankAsync(Guid requisitionId, CancellationToken ct = default) =>
-        db.RecruitmentApplications
-            .AsNoTracking()
-            .Where(a => a.RequisitionId == requisitionId
-                && (a.Status == RecruitmentApplicationStatus.Ranked || a.Status == RecruitmentApplicationStatus.ReserveListed)
-                && a.Rank != null
-                && a.AppealStatus != RecruitmentAppealStatus.Pending)
+        AvailableForMerit(db.RecruitmentApplications.AsNoTracking(), requisitionId)
             .MinAsync(a => a.Rank, ct);
+
+    /// <summary>
+    /// HCM-027: applications of the requisition that can still receive an offer by merit — the single
+    /// definition of "available" shared by <see cref="GetBestAvailableRankAsync"/> and the reserve list.
+    /// </summary>
+    internal static IQueryable<RecruitmentApplication> AvailableForMerit(
+        IQueryable<RecruitmentApplication> applications,
+        Guid requisitionId) =>
+        applications.Where(a => a.RequisitionId == requisitionId
+            && (a.Status == RecruitmentApplicationStatus.Ranked || a.Status == RecruitmentApplicationStatus.ReserveListed)
+            && a.Rank != null
+            && a.AppealStatus != RecruitmentAppealStatus.Pending);
 
     private Task<bool> HasOtherActiveOfferAsync(Guid requisitionId, Guid applicationId, CancellationToken ct) =>
         db.OfferLetters.AnyAsync(

@@ -32,7 +32,8 @@ public class RecruitmentRequisitionsController(
     ICodeGenerator codeGenerator,
     EstablishmentScopeService establishmentScope,
     IAuthorizationService authorization,
-    RecruitmentAssessmentCriteriaService criteriaService) : Controller
+    RecruitmentAssessmentCriteriaService criteriaService,
+    ReserveListService reserveList) : Controller
 {
     [HttpGet("/api/recruitment/vacant-positions")]
     public async Task<IActionResult> VacantPositions(
@@ -251,6 +252,7 @@ public class RecruitmentRequisitionsController(
             CanWrite = vm.CanWrite,
             CanApprove = vm.CanApprove
         };
+        vm.NextCandidate = await reserveList.GetNextCandidateSuggestionAsync(requisition.Id);
         return View(vm);
     }
 
