@@ -80,14 +80,14 @@ public class AcceptanceV2CatalogTests
     }
 
     [Fact]
-    public void Persona_catalog_has_55_separated_accounts_and_real_employee_links()
+    public void Persona_catalog_has_56_separated_accounts_and_real_employee_links()
     {
         var personas = AcceptancePersonaCatalog.Personas;
-        Assert.Equal(55, personas.Count);
-        Assert.Equal(55, personas.Select(p => p.Username).Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(49, personas.Count(p => p.Employee is not null));
+        Assert.Equal(56, personas.Count);
+        Assert.Equal(56, personas.Select(p => p.Username).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(50, personas.Count(p => p.Employee is not null));
         Assert.Equal(4, personas.Count(p => p.Fixture is not null));
-        Assert.Equal(53, personas.Count(p => p.Enabled));
+        Assert.Equal(54, personas.Count(p => p.Enabled));
 
         Assert.All(personas.Where(p => p.Employee is not null), persona =>
         {
@@ -97,7 +97,7 @@ public class AcceptanceV2CatalogTests
                 employee => employee.Id == persona.Employee.Id);
         });
 
-        Assert.Equal(37, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-A"));
+        Assert.Equal(38, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-A"));
         Assert.Equal(8, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-B"));
         Assert.Equal(4, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-C"));
         Assert.Equal(2, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "PLATFORM"));

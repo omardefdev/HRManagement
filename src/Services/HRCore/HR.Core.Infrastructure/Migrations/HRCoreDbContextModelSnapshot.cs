@@ -2288,6 +2288,20 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DeclineReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("DeclinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeclinedBy")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ExpiryDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -2301,12 +2315,19 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<bool>("IsConvertedToEmployee")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsMeritOverride")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("IssuedDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LegalSourceId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MeritOverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OfferNumber")
                         .IsRequired()
@@ -2322,6 +2343,13 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid>("RecruitmentApplicationId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("RevokeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -2333,6 +2361,9 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("ValidityDays")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("WorkflowInstanceId")
                         .HasColumnType("uuid");

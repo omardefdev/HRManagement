@@ -66,6 +66,23 @@
       "enabled": true
     },
     {
+      "id": "a-management-approver-2",
+      "username": "acc-a-management-approver-2",
+      "passwordEnv": "ACCEPTANCE_A_MANAGEMENT_APPROVER_2_PASSWORD",
+      "roles": [
+        "hr-management-approver"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 25,
+      "purpose": "Second management approver (distinct approver for merit override offers)",
+      "scenarios": [
+        "AC-HCM-27"
+      ],
+      "enabled": true
+    },
+    {
       "id": "a-supervisory-reader",
       "username": "acc-a-supervisory-reader",
       "passwordEnv": "ACCEPTANCE_A_SUPERVISORY_READER_PASSWORD",

@@ -28,6 +28,12 @@
                     }
                 </select>
             </div>
+            <div class="col-md-2">
+                <div class="form-check mb-2">
+                    <input type="checkbox" name="meritOverride" value="true" id="meritOverride" class="form-check-input" checked="@(Model.MeritOverrideOnly ? "checked" : null)" />
+                    <label class="form-check-label" for="meritOverride">عروض استثنائية فقط</label>
+                </div>
+            </div>
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> بحث</button>
                 <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-times"></i></a>
@@ -51,7 +57,13 @@
             @foreach (var offer in Model.Offers)
             {
                 <tr>
-                    <td>@offer.OfferNumber</td>
+                    <td>
+                        @offer.OfferNumber
+                        @if (offer.IsMeritOverride)
+                        {
+                            <span class="badge bg-warning text-dark ms-1">استثنائي</span>
+                        }
+                    </td>
                     <td>@(offer.RecruitmentApplication?.ApplicantFullName ?? "—")</td>
                     <td>@offer.OfferedSalary.ToString("N2")</td>
                     <td>@Html.HrEnumDisplay(offer.Status)</td>

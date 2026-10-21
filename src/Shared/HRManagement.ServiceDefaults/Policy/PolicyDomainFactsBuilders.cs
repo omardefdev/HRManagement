@@ -118,7 +118,8 @@ public static class PolicyDomainFactsBuilders
         Guid? tenantId,
         string action,
         Guid recruitmentApplicationId,
-        string? contextJson = null) =>
+        string? contextJson = null,
+        bool isMeritOverride = false) =>
         new()
         {
             Domain = PolicyDomains.CoreRecruitment,
@@ -130,7 +131,8 @@ public static class PolicyDomainFactsBuilders
             Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["action"] = action,
-                ["recruitmentApplicationId"] = recruitmentApplicationId.ToString()
+                ["recruitmentApplicationId"] = recruitmentApplicationId.ToString(),
+                ["isMeritOverride"] = isMeritOverride ? "true" : "false"
             }
         };
 

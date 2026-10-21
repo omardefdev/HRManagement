@@ -228,6 +228,15 @@ public static class PolicyEngineDomainSeeds
         await EnsureFactsFieldAsync(db, PolicyDomains.CoreRecruitment, "coiDeclared", "bool", "إقرار COI", ct);
         await EnsureFactsFieldAsync(db, PolicyDomains.CoreRecruitment, "rankAssigned", "bool", "ترتيب معيّن", ct);
 
+        // HCM-027: merit override offers. Rules are evaluated by ascending priority and the first
+        // TriggerWorkflow effect wins, so priority 9 beats R-OFF-ISSUE (10) only when isMeritOverride is true.
+        await EnsureFactsFieldAsync(db, PolicyDomains.CoreRecruitment, "recruitmentApplicationId", "string", "معرف طلب التوظيف", ct);
+        await EnsureFactsFieldAsync(db, PolicyDomains.CoreRecruitment, "isMeritOverride", "bool", "تجاوز الجدارة", ct);
+        await AddRuleIfMissingAsync(db, PolicyDomains.CoreRecruitment, "R-OFF-OVERRIDE",
+            "إصدار عرض استثنائي (تجاوز الجدارة) → workflow", 9,
+            """{"all":[{"field":"action","operator":"Equals","value":"Issue"},{"field":"isMeritOverride","operator":"Equals","value":"true"}]}""",
+            """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-OFFER-OVERRIDE-APPROVAL"}}]""", ct);
+
         await AddRuleIfMissingAsync(db, PolicyDomains.CoreRecruitment, "R-OFF-ISSUE",
             "إصدار عرض → workflow", 10,
             """{"all":[{"field":"action","operator":"Equals","value":"Issue"}]}""",

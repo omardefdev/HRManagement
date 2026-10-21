@@ -34,7 +34,12 @@ public sealed class OfferLetterWorkflowUiService(
                 MissingWorkflowWarning = offer.WorkflowInstanceId is null
                     ? "لم يُنشأ مسار اعتماد لهذا العرض. فعّل PolicyEngine:Core.Recruitment أو استخدم بيئة المختبر (IsLabScale)."
                     : null,
-                AdditionalBlockReason = (_, _, _) => WorkflowInboxOrgScope.GetBlockReason(accessScope, orgUnitId)
+                AdditionalBlockReason = (inst, _, actorId) =>
+                    WorkflowInboxOrgScope.GetBlockReason(accessScope, orgUnitId)
+                    ?? (OfferOverrideApprovalRules.IsOverrideWorkflow(definition?.Code)
+                        && OfferOverrideApprovalRules.HasApprovedEarlierStep(inst.StepHistoryJson, inst.CurrentStepLevel, actorId)
+                            ? OfferOverrideApprovalRules.SameApproverMessage
+                            : null)
             });
 
         return new OfferLetterDetailsViewModel

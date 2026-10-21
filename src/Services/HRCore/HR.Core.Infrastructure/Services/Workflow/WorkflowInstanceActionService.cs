@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Establishment;
 using HR.Core.Infrastructure.Services.Recruitment;
@@ -67,7 +68,7 @@ public sealed class WorkflowInstanceActionService(
         if (guardError is not null)
             return new WorkflowActionResult(false, guardError, null);
 
-        var sodError = await ValidateSelfApprovalAsync(instance, actor.UserId, ct);
+        var sodError = await ValidateSelfApprovalAsync(instance, definition, actor.UserId, ct);
         if (sodError is not null)
             return new WorkflowActionResult(false, sodError, null);
 
@@ -140,6 +141,7 @@ public sealed class WorkflowInstanceActionService(
 
     private async Task<string?> ValidateSelfApprovalAsync(
         WorkflowInstance instance,
+        WorkflowDefinition definition,
         Guid? actorUserId,
         CancellationToken ct)
     {
@@ -168,6 +170,11 @@ public sealed class WorkflowInstanceActionService(
                 .FirstOrDefaultAsync(o => o.Id == instance.EntityId, ct);
             if (offer?.CreatedBy == actorUserId)
                 return "لا يمكن للمنشئ اعتماد عرضه الخاص.";
+
+            // HCM-027: merit override offers need a distinct approver for every step.
+            if (OfferOverrideApprovalRules.IsOverrideWorkflow(definition.Code)
+                && OfferOverrideApprovalRules.HasApprovedEarlierStep(instance.StepHistoryJson, instance.CurrentStepLevel, actorUserId))
+                return OfferOverrideApprovalRules.SameApproverMessage;
         }
 
         return null;

@@ -22,7 +22,10 @@ public sealed class RecruitmentOfferService(
     IWorkflowStarter workflowStarter,
     IConfiguration configuration)
 {
-    private const string OfferApprovalWorkflowCode = "RECRUITMENT-OFFER-APPROVAL";
+    public const string OfferApprovalWorkflowCode = "RECRUITMENT-OFFER-APPROVAL";
+
+    /// <summary>HCM-027: three-step approval with distinct approvers for merit override offers.</summary>
+    public const string OfferOverrideApprovalWorkflowCode = OfferOverrideApprovalRules.WorkflowCode;
 
     public async Task<(OfferLetter? Offer, string? Error)> CreateDraftAsync(
         Guid applicationId,
@@ -72,6 +75,8 @@ public sealed class RecruitmentOfferService(
             ProposedStartDate = proposedStartDate,
             ExpiryDate = expiryDate,
             LegalSourceId = app.Requisition.LegalSourceId!.Trim(),
+            IsMeritOverride = isMeritOverride,
+            MeritOverrideReason = isMeritOverride ? meritOverrideReason!.Trim() : null,
             CreatedBy = actorUserId
         };
 
@@ -118,7 +123,7 @@ public sealed class RecruitmentOfferService(
             if (IsLabScale())
             {
                 offer.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-                    OfferApprovalWorkflowCode,
+                    offer.IsMeritOverride ? OfferOverrideApprovalWorkflowCode : OfferApprovalWorkflowCode,
                     "OfferLetter",
                     offer.Id,
                     offer.TenantId,
@@ -145,7 +150,8 @@ public sealed class RecruitmentOfferService(
             offer.TenantId,
             "Issue",
             offer.RecruitmentApplicationId,
-            policyContextJson);
+            policyContextJson,
+            offer.IsMeritOverride);
         policyRequest.Mode = mode;
         policyRequest.ActorUserId = actorUserId;
         policyRequest.ActorUserName = actorUserName;

@@ -79,6 +79,8 @@ public class OfferLettersIndexViewModel
     public IReadOnlyList<OfferLetter> Offers { get; set; } = [];
     public OfferStatus? Status { get; set; }
     public string? SearchTerm { get; set; }
+    /// <summary>HCM-027: only merit override (exception) offers.</summary>
+    public bool MeritOverrideOnly { get; set; }
 }
 
 public class OfferLetterDetailsViewModel

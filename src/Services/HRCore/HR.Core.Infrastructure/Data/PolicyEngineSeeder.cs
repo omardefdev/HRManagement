@@ -180,6 +180,7 @@ public static class PolicyEngineSeeder
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-HIRE", "توظيف مرشح"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-REQUISITION-APPROVAL", "اعتماد طلب شاغر"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-APPROVAL", "اعتماد خطاب عرض"),
+        (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-OVERRIDE-APPROVAL", "اعتماد عرض استثنائي (تجاوز الجدارة)"),
         (PolicyDomains.ComplianceDisciplinary, "DISCIPLINARY-APPROVAL", "إجراء تأديبي"),
         (PolicyDomains.ITTickets, "IT-TICKET", "تذكرة IT")
     ];

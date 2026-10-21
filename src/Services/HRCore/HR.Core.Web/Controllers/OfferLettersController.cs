@@ -52,7 +52,7 @@ public class OfferLettersController(
 
 {
 
-    public async Task<IActionResult> Index(OfferStatus? status, string? searchTerm)
+    public async Task<IActionResult> Index(OfferStatus? status, string? searchTerm, bool meritOverride = false)
 
     {
 
@@ -71,6 +71,9 @@ public class OfferLettersController(
         if (status is OfferStatus s)
 
             query = query.Where(o => o.Status == s);
+
+        if (meritOverride)
+            query = query.Where(o => o.IsMeritOverride);
 
 
 
@@ -108,7 +111,9 @@ public class OfferLettersController(
 
             Status = status,
 
-            SearchTerm = searchTerm
+            SearchTerm = searchTerm,
+
+            MeritOverrideOnly = meritOverride
 
         });
 

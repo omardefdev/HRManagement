@@ -21,6 +21,14 @@
         </div>
     </div>
     <div class="card-body">
+        @if (offer.IsMeritOverride)
+        {
+            <div class="alert alert-warning">
+                <span class="badge bg-warning text-dark ms-1">عرض استثنائي — تجاوز الجدارة</span>
+                <div class="mt-2"><strong>المبرر:</strong> @offer.MeritOverrideReason</div>
+                <div class="form-text">يتطلب اعتماد ثلاث خطوات بمعتمدين مختلفين (RECRUITMENT-OFFER-OVERRIDE-APPROVAL).</div>
+            </div>
+        }
         <dl class="row mb-0">
             <dt class="col-sm-3">المتقدم</dt><dd class="col-sm-9">@(app?.ApplicantFullName ?? "—")</dd>
             <dt class="col-sm-3">الراتب المعروض</dt><dd class="col-sm-9">@offer.OfferedSalary.ToString("N2")</dd>

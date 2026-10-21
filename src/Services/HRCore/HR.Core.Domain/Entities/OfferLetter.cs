@@ -55,4 +55,48 @@ public class OfferLetter : AuditableEntity
 
     [Display(Name = "معرف سير العمل")]
     public Guid? WorkflowInstanceId { get; set; }
+
+    /// <summary>HCM-027: offer skips merit order — approved through RECRUITMENT-OFFER-OVERRIDE-APPROVAL.</summary>
+    [Display(Name = "عرض استثنائي — تجاوز الجدارة")]
+    public bool IsMeritOverride { get; set; }
+
+    [StringLength(1000)]
+    [Display(Name = "مبرر تجاوز الجدارة")]
+    public string? MeritOverrideReason { get; set; }
+
+    /// <summary>HCM-027: days the offer stays open once issued (ExpiryDate = IssuedDate + ValidityDays).</summary>
+    [Display(Name = "مدة صلاحية العرض (أيام)")]
+    public int ValidityDays { get; set; } = 14;
+
+    [StringLength(1000)]
+    [Display(Name = "سبب الرفض")]
+    public string? DeclineReason { get; set; }
+
+    [Display(Name = "تاريخ الرفض")]
+    public DateTime? DeclinedAt { get; set; }
+
+    /// <summary>HCM-027: <c>Candidate</c> or <c>HrOnBehalf</c> (see <see cref="OfferDeclinedBy"/>).</summary>
+    [StringLength(20)]
+    [Display(Name = "رفض بواسطة")]
+    public string? DeclinedBy { get; set; }
+
+    [StringLength(1000)]
+    [Display(Name = "سبب الإلغاء")]
+    public string? RevokeReason { get; set; }
+
+    [Display(Name = "تاريخ الإلغاء")]
+    public DateTime? RevokedAt { get; set; }
+
+    [Display(Name = "تاريخ انتهاء الصلاحية الفعلي")]
+    public DateTime? ExpiredAt { get; set; }
+}
+
+/// <summary>HCM-027: values of <see cref="OfferLetter.DeclinedBy"/>.</summary>
+public static class OfferDeclinedBy
+{
+    /// <summary>Reserved for candidate self-service (PLAN-30).</summary>
+    public const string Candidate = "Candidate";
+    public const string HrOnBehalf = "HrOnBehalf";
+
+    public static bool IsValid(string? value) => value is Candidate or HrOnBehalf;
 }
