@@ -54,7 +54,7 @@
     "service": "Admin.Logistics",
     "context": "AdminLogisticsDbContext",
     "database": "admin_db",
-    "dbset_count": 11,
+    "dbset_count": 13,
     "entity_sets": [
       {
         "entity": "Asset",
@@ -97,6 +97,14 @@
         "set": "IntegrationMessageReceipts"
       },
       {
+        "entity": "EmployeeOrgUnitSnapshot",
+        "set": "EmployeeOrgUnitSnapshots"
+      },
+      {
+        "entity": "OrgUnitSnapshot",
+        "set": "OrgUnitSnapshots"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
@@ -106,15 +114,17 @@
       "AssetLossReports",
       "Assets",
       "AuditLogs",
+      "EmployeeOrgUnitSnapshots",
       "IntegrationMessageReceipts",
       "InventoryItems",
       "MaintenanceRecords",
+      "OrgUnitSnapshots",
       "ReceiptRecords",
       "SupplyOrderLines",
       "SupplyOrders",
       "Vendors"
     ],
-    "business_table_count": 9,
+    "business_table_count": 11,
     "infrastructure_tables": [
       "AuditLogs",
       "IntegrationMessageReceipts"
@@ -357,7 +367,7 @@
     "service": "File.Storage",
     "context": "FileStorageDbContext",
     "database": "file_storage_db",
-    "dbset_count": 11,
+    "dbset_count": 12,
     "entity_sets": [
       {
         "entity": "FileRecord",
@@ -396,6 +406,10 @@
         "set": "FileReferenceOutbox"
       },
       {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       },
@@ -415,11 +429,13 @@
       "FileScanResults",
       "FileScanWorkItems",
       "Files",
-      "IdempotencyRecords"
+      "IdempotencyRecords",
+      "IntegrationMessageReceipts"
     ],
     "business_table_count": 10,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "IntegrationMessageReceipts"
     ],
     "source": "src/Services/FileStorage/File.Storage.Infrastructure/Data/FileStorageDbContext.cs",
     "snapshot_source": "src/Services/FileStorage/File.Storage.Infrastructure/Migrations/FileStorageDbContextModelSnapshot.cs"
@@ -578,7 +594,7 @@
     "service": "HR.Core",
     "context": "HRCoreDbContext",
     "database": "hr_core_db",
-    "dbset_count": 64,
+    "dbset_count": 90,
     "entity_sets": [
       {
         "entity": "Employee",
@@ -655,6 +671,26 @@
       {
         "entity": "WorkforcePlan",
         "set": "WorkforcePlans"
+      },
+      {
+        "entity": "WorkforcePlanLine",
+        "set": "WorkforcePlanLines"
+      },
+      {
+        "entity": "FinanceBudgetImportBatch",
+        "set": "FinanceBudgetImportBatches"
+      },
+      {
+        "entity": "FinanceBudgetLine",
+        "set": "FinanceBudgetLines"
+      },
+      {
+        "entity": "JobCatalogImportBatch",
+        "set": "JobCatalogImportBatches"
+      },
+      {
+        "entity": "JobCatalogImportLine",
+        "set": "JobCatalogImportLines"
       },
       {
         "entity": "HrStatisticReport",
@@ -769,6 +805,38 @@
         "set": "ReferenceCatalogEntries"
       },
       {
+        "entity": "LegislationSource",
+        "set": "LegislationSources"
+      },
+      {
+        "entity": "LegislationKeyArticle",
+        "set": "LegislationKeyArticles"
+      },
+      {
+        "entity": "LegislationInstrumentLink",
+        "set": "LegislationInstrumentLinks"
+      },
+      {
+        "entity": "LegislationSourceAlias",
+        "set": "LegislationSourceAliases"
+      },
+      {
+        "entity": "LegalRegime",
+        "set": "LegalRegimes"
+      },
+      {
+        "entity": "BenefitPlan",
+        "set": "BenefitPlans"
+      },
+      {
+        "entity": "ServiceRegimeException",
+        "set": "ServiceRegimeExceptions"
+      },
+      {
+        "entity": "EmploymentRegimeTransition",
+        "set": "EmploymentRegimeTransitions"
+      },
+      {
         "entity": "OrgUnitVersion",
         "set": "OrgUnitVersions"
       },
@@ -779,6 +847,58 @@
       {
         "entity": "FundedPosition",
         "set": "FundedPositions"
+      },
+      {
+        "entity": "EstablishmentChangeRequest",
+        "set": "EstablishmentChangeRequests"
+      },
+      {
+        "entity": "EstablishmentChangeLog",
+        "set": "EstablishmentChangeLogs"
+      },
+      {
+        "entity": "JobCatalogVersion",
+        "set": "JobCatalogVersions"
+      },
+      {
+        "entity": "FundedPositionVersion",
+        "set": "FundedPositionVersions"
+      },
+      {
+        "entity": "RecruitmentRequisition",
+        "set": "RecruitmentRequisitions"
+      },
+      {
+        "entity": "OfferLetter",
+        "set": "OfferLetters"
+      },
+      {
+        "entity": "SelectionCommitteeSession",
+        "set": "SelectionCommitteeSessions"
+      },
+      {
+        "entity": "SelectionCommitteeMember",
+        "set": "SelectionCommitteeMembers"
+      },
+      {
+        "entity": "RecruitmentAppeal",
+        "set": "RecruitmentAppeals"
+      },
+      {
+        "entity": "RecruitmentInterviewSlot",
+        "set": "RecruitmentInterviewSlots"
+      },
+      {
+        "entity": "RecruitmentInterviewPanelMember",
+        "set": "RecruitmentInterviewPanelMembers"
+      },
+      {
+        "entity": "RecruitmentAssessmentCriteria",
+        "set": "RecruitmentAssessmentCriteria"
+      },
+      {
+        "entity": "RecruitmentAssessmentScore",
+        "set": "RecruitmentAssessmentScores"
       },
       {
         "entity": "PolicyTemplate",
@@ -843,6 +963,7 @@
       "ApprovalSteps",
       "ApprovedCVs",
       "AuditLogs",
+      "BenefitPlans",
       "CareerPathSteps",
       "CareerPaths",
       "CitizenApplications",
@@ -860,10 +981,16 @@
       "EmployeeProfiles",
       "Employees",
       "EmploymentRecords",
+      "EmploymentRegimeTransitions",
       "EmploymentStatusHistories",
+      "EstablishmentChangeLogs",
+      "EstablishmentChangeRequests",
       "ExportJobs",
       "FieldInspectionVisits",
       "FileReferenceOutbox",
+      "FinanceBudgetImportBatches",
+      "FinanceBudgetLines",
+      "FundedPositionVersions",
       "FundedPositions",
       "HrStatisticReports",
       "InboxState",
@@ -871,8 +998,17 @@
       "InternalApplications",
       "InternalVacancies",
       "JobCatalogEntries",
+      "JobCatalogImportBatches",
+      "JobCatalogImportLines",
+      "JobCatalogVersions",
       "KeyPositions",
+      "LegalRegimes",
+      "LegislationInstrumentLinks",
+      "LegislationKeyArticles",
+      "LegislationSourceAliases",
+      "LegislationSources",
       "MasterDataDuplicateCases",
+      "OfferLetters",
       "OrgUnitVersions",
       "OrgUnits",
       "OutboxMessage",
@@ -888,9 +1024,18 @@
       "PolicyWorkflowBindings",
       "PublicJobPostings",
       "Qualifications",
+      "RecruitmentAppeals",
       "RecruitmentApplications",
+      "RecruitmentAssessmentCriteria",
+      "RecruitmentAssessmentScores",
+      "RecruitmentInterviewPanelMembers",
+      "RecruitmentInterviewSlots",
+      "RecruitmentRequisitions",
       "ReferenceCatalogEntries",
       "SeedPackApplications",
+      "SelectionCommitteeMembers",
+      "SelectionCommitteeSessions",
+      "ServiceRegimeExceptions",
       "ShiftAssignments",
       "ShiftRosters",
       "Shifts",
@@ -904,9 +1049,10 @@
       "WorkflowDefinitions",
       "WorkflowDelegations",
       "WorkflowInstances",
+      "WorkforcePlanLines",
       "WorkforcePlans"
     ],
-    "business_table_count": 62,
+    "business_table_count": 88,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",
@@ -1021,7 +1167,7 @@
     "service": "HR.Movements",
     "context": "MovementsDbContext",
     "database": "hr_movements_db",
-    "dbset_count": 16,
+    "dbset_count": 18,
     "entity_sets": [
       {
         "entity": "TransferRequest",
@@ -1046,6 +1192,14 @@
       {
         "entity": "LoanAssignmentRequest",
         "set": "LoanAssignmentRequests"
+      },
+      {
+        "entity": "PromotionRequest",
+        "set": "PromotionRequests"
+      },
+      {
+        "entity": "DelegationRequest",
+        "set": "DelegationRequests"
       },
       {
         "entity": "TransferApproval",
@@ -1090,6 +1244,7 @@
     ],
     "snapshot_tables": [
       "AuditLogs",
+      "DelegationRequests",
       "DistributionPlans",
       "IdempotencyRecords",
       "InboxState",
@@ -1102,6 +1257,7 @@
       "OutboxMessage",
       "OutboxState",
       "ProcessInterventions",
+      "PromotionRequests",
       "SecondmentRequests",
       "SecondmentSagaStates",
       "TransferApprovals",
@@ -1109,7 +1265,7 @@
       "TransferRequests",
       "TransferSagaStates"
     ],
-    "business_table_count": 14,
+    "business_table_count": 16,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",

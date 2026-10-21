@@ -5,15 +5,15 @@
 | الخدمة | DbContext | قاعدة البيانات | DbSet | جداول الأعمال | جداول البنية | المصدر |
 |---|---|---|---:|---:|---|---|
 | البوابة والتدقيق (Gateway Audit) | `GatewayAuditDbContext` | `gateway_audit_db` | 7 | 7 | - | `src/Gateway/HRManagement.Gateway/Data/GatewayAuditDbContext.cs` |
-| اللوجستيات الإدارية (Admin.Logistics) | `AdminLogisticsDbContext` | `admin_db` | 11 | 9 | AuditLogs, IntegrationMessageReceipts | `src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Data/AdminLogisticsDbContext.cs` |
+| اللوجستيات الإدارية (Admin.Logistics) | `AdminLogisticsDbContext` | `admin_db` | 13 | 11 | AuditLogs, IntegrationMessageReceipts | `src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Data/AdminLogisticsDbContext.cs` |
 | الدليل والمصادقة (Auth.Directory) | `AuthDirectoryDbContext` | `auth_directory_db` | 10 | 8 | AuditLogs, IntegrationMessageReceipts | `src/Services/AuthDirectory/Auth.Directory.Infrastructure/Data/AuthDirectoryDbContext.cs` |
 | الامتثال والشكاوى (Compliance) | `ComplianceDbContext` | `compliance_db` | 14 | 12 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/Compliance/Compliance.Infrastructure/Data/ComplianceDbContext.cs` |
 | التحليلات (Dev.Analytics) | `AnalyticsDbContext` | `analytics_db` | 10 | 8 | AuditLogs, IntegrationMessageReceipts | `src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Data/AnalyticsDbContext.cs` |
-| تخزين الملفات (File.Storage) | `FileStorageDbContext` | `file_storage_db` | 11 | 10 | AuditLogs | `src/Services/FileStorage/File.Storage.Infrastructure/Data/FileStorageDbContext.cs` |
+| تخزين الملفات (File.Storage) | `FileStorageDbContext` | `file_storage_db` | 12 | 10 | AuditLogs, IntegrationMessageReceipts | `src/Services/FileStorage/File.Storage.Infrastructure/Data/FileStorageDbContext.cs` |
 | العقود والخدمة (HR.Contracts) | `ContractsDbContext` | `hr_contracts_db` | 25 | 23 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs` |
-| النواة والموظفون (HR.Core) | `HRCoreDbContext` | `hr_core_db` | 64 | 62 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs` |
+| النواة والموظفون (HR.Core) | `HRCoreDbContext` | `hr_core_db` | 90 | 88 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs` |
 | الصحة المهنية (HR.Health) | `HealthDbContext` | `hr_health_db` | 15 | 13 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRHealth/HR.Health.Infrastructure/Data/HealthDbContext.cs` |
-| الحركات والتنقلات (HR.Movements) | `MovementsDbContext` | `hr_movements_db` | 16 | 14 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRMovements/HR.Movements.Infrastructure/Data/MovementsDbContext.cs` |
+| الحركات والتنقلات (HR.Movements) | `MovementsDbContext` | `hr_movements_db` | 18 | 16 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRMovements/HR.Movements.Infrastructure/Data/MovementsDbContext.cs` |
 | التدريب والتعلم (HR.Training) | `TrainingDbContext` | `hr_training_db` | 17 | 16 | AuditLogs, InboxState, OutboxMessage, OutboxState | `src/Services/HRTraining/HR.Training.Infrastructure/Data/TrainingDbContext.cs` |
 | الهويات والبطاقات (IDCard) | `IDCardDbContext` | `idcard_db` | 10 | 8 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/IDCard/IDCard.Infrastructure/Data/IDCardDbContext.cs` |
 | البنية التقنية (IT.Infra) | `ITInfraDbContext` | `it_infra_db` | 12 | 10 | AuditLogs, IntegrationMessageReceipts | `src/Services/ITInfrastructure/IT.Infra.Infrastructure/Data/ITInfraDbContext.cs` |
@@ -28,7 +28,7 @@
 
 ### اللوجستيات الإدارية (Admin.Logistics)
 
-`Asset`, `AssetAssignment`, `AssetLossReport`, `SupplyOrder`, `SupplyOrderLine`, `InventoryItem`, `MaintenanceRecord`, `Vendor`, `ReceiptRecord`, `IntegrationMessageReceipt`, `EntityAuditLog`
+`Asset`, `AssetAssignment`, `AssetLossReport`, `SupplyOrder`, `SupplyOrderLine`, `InventoryItem`, `MaintenanceRecord`, `Vendor`, `ReceiptRecord`, `IntegrationMessageReceipt`, `EmployeeOrgUnitSnapshot`, `OrgUnitSnapshot`, `EntityAuditLog`
 
 ### الدليل والمصادقة (Auth.Directory)
 
@@ -44,7 +44,7 @@
 
 ### تخزين الملفات (File.Storage)
 
-`FileRecord`, `FileReferenceRecord`, `FileAccessGrant`, `FileAccessAuditLog`, `FilePurgeWorkItem`, `FileScanWorkItem`, `FileScanResult`, `FileReconcileException`, `FileReferenceOutboxMessage`, `EntityAuditLog`, `IdempotencyRecord`
+`FileRecord`, `FileReferenceRecord`, `FileAccessGrant`, `FileAccessAuditLog`, `FilePurgeWorkItem`, `FileScanWorkItem`, `FileScanResult`, `FileReconcileException`, `FileReferenceOutboxMessage`, `IntegrationMessageReceipt`, `EntityAuditLog`, `IdempotencyRecord`
 
 ### العقود والخدمة (HR.Contracts)
 
@@ -52,7 +52,7 @@
 
 ### النواة والموظفون (HR.Core)
 
-`Employee`, `EmployeeCorrection`, `EmployeeProfile`, `EmploymentRecord`, `EmployeeDocument`, `Qualification`, `ContactInfo`, `EmploymentStatusHistory`, `OrgUnit`, `Tenant`, `TenantAssignmentRule`, `TenantQuarantineEntry`, `SodRule`, `ConflictingRolePair`, `ApprovalDelegation`, `PerformanceEvaluation`, `ApprovedCV`, `IntegrationMessageReceipt`, `WorkforcePlan`, `HrStatisticReport`, `DailyAttendanceRecord`, `FieldInspectionVisit`, `DiwanCorrespondence`, `RecruitmentApplication`, `ApprovalRequest`, `ApprovalStep`, `Shift`, `ShiftRoster`, `ShiftAssignment`, `CareerPath`, `CareerPathStep`, `KeyPosition`, `SuccessionPlan`, `SuccessorCandidate`, `InternalVacancy`, `InternalApplication`, `PublicJobPosting`, `CitizenApplication`, `EntityAuditLog`, `FileReferenceOutboxMessage`, `ExportJob`, `MasterDataDuplicateCase`, `WorkflowDefinition`, `WorkflowInstance`, `WorkflowDelegation`, `SignatureRecord`, `ReferenceCatalogEntry`, `OrgUnitVersion`, `JobCatalogEntry`, `FundedPosition`, `PolicyTemplate`, `PolicyTemplateVersion`, `PolicyRule`, `PolicyFactsSchemaEntity`, `PolicyPublication`, `PolicySimulationRun`, `PolicyEnforcementLedger`, `PolicyWorkflowBinding`, `CodePolicyTemplate`, `CodePolicyVersion`, `CodePolicyRule`, `CodeSequenceCounter`, `CodeIssuance`, `SeedPackApplication`
+`Employee`, `EmployeeCorrection`, `EmployeeProfile`, `EmploymentRecord`, `EmployeeDocument`, `Qualification`, `ContactInfo`, `EmploymentStatusHistory`, `OrgUnit`, `Tenant`, `TenantAssignmentRule`, `TenantQuarantineEntry`, `SodRule`, `ConflictingRolePair`, `ApprovalDelegation`, `PerformanceEvaluation`, `ApprovedCV`, `IntegrationMessageReceipt`, `WorkforcePlan`, `WorkforcePlanLine`, `FinanceBudgetImportBatch`, `FinanceBudgetLine`, `JobCatalogImportBatch`, `JobCatalogImportLine`, `HrStatisticReport`, `DailyAttendanceRecord`, `FieldInspectionVisit`, `DiwanCorrespondence`, `RecruitmentApplication`, `ApprovalRequest`, `ApprovalStep`, `Shift`, `ShiftRoster`, `ShiftAssignment`, `CareerPath`, `CareerPathStep`, `KeyPosition`, `SuccessionPlan`, `SuccessorCandidate`, `InternalVacancy`, `InternalApplication`, `PublicJobPosting`, `CitizenApplication`, `EntityAuditLog`, `FileReferenceOutboxMessage`, `ExportJob`, `MasterDataDuplicateCase`, `WorkflowDefinition`, `WorkflowInstance`, `WorkflowDelegation`, `SignatureRecord`, `ReferenceCatalogEntry`, `LegislationSource`, `LegislationKeyArticle`, `LegislationInstrumentLink`, `LegislationSourceAlias`, `LegalRegime`, `BenefitPlan`, `ServiceRegimeException`, `EmploymentRegimeTransition`, `OrgUnitVersion`, `JobCatalogEntry`, `FundedPosition`, `EstablishmentChangeRequest`, `EstablishmentChangeLog`, `JobCatalogVersion`, `FundedPositionVersion`, `RecruitmentRequisition`, `OfferLetter`, `SelectionCommitteeSession`, `SelectionCommitteeMember`, `RecruitmentAppeal`, `RecruitmentInterviewSlot`, `RecruitmentInterviewPanelMember`, `RecruitmentAssessmentCriteria`, `RecruitmentAssessmentScore`, `PolicyTemplate`, `PolicyTemplateVersion`, `PolicyRule`, `PolicyFactsSchemaEntity`, `PolicyPublication`, `PolicySimulationRun`, `PolicyEnforcementLedger`, `PolicyWorkflowBinding`, `CodePolicyTemplate`, `CodePolicyVersion`, `CodePolicyRule`, `CodeSequenceCounter`, `CodeIssuance`, `SeedPackApplication`
 
 ### الصحة المهنية (HR.Health)
 
@@ -60,7 +60,7 @@
 
 ### الحركات والتنقلات (HR.Movements)
 
-`TransferRequest`, `MovementNotice`, `DistributionPlan`, `MovementExecutionRecord`, `SecondmentRequest`, `LoanAssignmentRequest`, `TransferApproval`, `TransferFinancialImpact`, `MovementChecklist`, `OrgUnitSnapshot`, `IdempotencyRecord`, `IntegrationMessageReceipt`, `ProcessIntervention`, `TransferSagaState`, `SecondmentSagaState`, `EntityAuditLog`
+`TransferRequest`, `MovementNotice`, `DistributionPlan`, `MovementExecutionRecord`, `SecondmentRequest`, `LoanAssignmentRequest`, `PromotionRequest`, `DelegationRequest`, `TransferApproval`, `TransferFinancialImpact`, `MovementChecklist`, `OrgUnitSnapshot`, `IdempotencyRecord`, `IntegrationMessageReceipt`, `ProcessIntervention`, `TransferSagaState`, `SecondmentSagaState`, `EntityAuditLog`
 
 ### التدريب والتعلم (HR.Training)
 

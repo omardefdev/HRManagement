@@ -1,7 +1,7 @@
 # PLAN-26 — معايير التقييم ودورة المقابلة وسلامة طلب الشاغر (PLAN-HCM-D)
 
 **Scope:** HCM-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-03, G-08, G-11، وجزء من G-20 (إغلاق التقديم بالتاريخ)  
-**Status:** Proposed  
+**Status:** Implemented (acceptance evidence pending — AC-HCM-26h only; a–g, i Pass on 2026-10-21)  
 **Priority:** P0 (المعايير) / P1 (المقابلة وسلامة الطلب)  
 **Depends on:** خط أساس محلي (فرع git + بناء + اختبارات). PLAN-25 مؤجلة لعدم توفر خادم بعد؛ بيئة التطوير (`IsLabScale=true`) كافية لتشغيل الاعتمادات محلياً  
 **Related cards:** HCM-001, EST-001, GOV-001
@@ -164,3 +164,60 @@ $env:RUN_ACCEPTANCE = "true"; dotnet test src/Tests/HRManagement.AcceptanceTests
 ## Effort estimate
 
 8–10 أيام عمل: المعايير (2.5)، الدرجات (2)، المقابلة (2)، سلامة الطلب والتتابع (2)، الإغلاق الآلي (0.5)، القبول (1).
+
+---
+
+## Implementation notes / deviations
+
+**Branch:** `feature/plan-26-assessment-interview-requisition`. Session 1 (A, B, C, F1) — `reports/plan26-session1-handoff.md`; session 2 (D, E, F2, G, H) — commits `3bb4ea5`, `2ca5a97`, `303c35f`, `05a45bf`, `5c34b21` and this docs commit.
+Execution guide: [PLAN-26-EXECUTION](execution/PLAN-26-EXECUTION.md). Validation: `scripts/hcm026-validate.ps1`.
+
+### ما نُفّذ
+
+| Workstream | التنفيذ |
+|------------|---------|
+| A — المعايير | `AssessmentCriteriaItem` + `AssessmentStage` + `AssessmentCriteriaSerializer` (يقرأ الصيغة القديمة `name/weight`) + `AssessmentCriteriaRules`؛ `RecruitmentAssessmentCriteriaService` (إصدارات غير قابلة للتعديل، إصدار نشط واحد، الإصدار المُقفل يتطلب سبباً ≥ 10 + `HrCoreApprove` + تدقيق)؛ بوابة النشر `RequireCriteriaBeforePublish`؛ لوحة المعايير مع مجموع أوزان حي (JS بلا معالجات inline). |
+| B — الدرجات | `RecruitmentAssessmentScore` (فريد لكل طلب/مقيّم/بند)؛ `RecruitmentScoringService`: تحقق المدى والمفاتيح وCOI والمتقدم نفسه وعضو اللجنة المتعارض والمرحلة؛ الدرجة = Σ(score/max×weight) لكل مقيّم، النهائية = متوسط المقيّمين المكتملين (منزلتان، AwayFromZero)؛ الانتقال إلى «مُقيَّم» آلي فقط بعد `MinAssessors`؛ أُزيل `RecordAssessment` من الواجهة. |
+| C — المقابلة | `InterviewMode`/`InterviewOutcome`/`Rescheduled`، لجنة مقابلة (`RecruitmentInterviewPanelMember`)، جدولة/إعادة جدولة (`MaxInterviewReschedules`)/إلغاء/إكمال؛ لا رجوع من `Assessed/Ranked`؛ بوابة المقابلة (بنود Interview تتطلب حضوراً)؛ `/careers` يعرض المقابلات المجدولة فقط. |
+| D — سلامة الطلب | `BlockingStatuses` (+Published) + فهرس فريد جزئي مع فحص تكرار قبل الإنشاء؛ `CancelAsync` (Approved/Published: `HrCoreApprove` + سبب ≥ 10، مرفوض مع مرشح معيّن/عرض مقبول) بتتابع في حفظ واحد؛ `CloseAsync` يرفض مع عرض قيد الإجراء ثم يرفض الطلبات المفتوحة؛ تجميد المنصب يلغي الطلب أو يُمنع مع عرض `Issued`/مقبول غير محوّل. |
+| E — فترة التقديم | `ApplicationClosingDate` إلزامي عند أول نشر (≥ اليوم + `MinPostingDays`=7) ويُنسخ للإعلان والشاغر؛ `ExtendClosingDate` (تمديد فقط + سبب + تدقيق، يعيد فتح التقديم)؛ `RecruitmentIntakeCloseJob` (قفل استشاري `8675312`) يغلق التقديم ويُبقي الطلب منشوراً؛ شارة «التقديم مغلق». |
+| F — البذور | معايير بالصيغة الجديدة ونشطة، درجات متسقة مع الصيغة ومقابلة «حضر» للطلبات المُقيَّمة/المرتبة (session 1)؛ تواريخ إغلاق (session 2). |
+
+### الترحيلات
+
+| Migration | التغيير | خطوة بيانات |
+|-----------|---------|-------------|
+| `HCM026_CriteriaGovernance` | `IsActive`, `LockedAt`, `ChangeReason`, `ApprovedBy` + فهرس فريد جزئي للإصدار النشط | تفعيل أعلى إصدار لكل طلب؛ قفل الإصدارات المستخدمة بدرجات قديمة |
+| `HCM026_AssessmentScores` | جدول `RecruitmentAssessmentScores` | — |
+| `HCM026_InterviewLifecycle` | حقول دورة المقابلة + `RecruitmentInterviewPanelMembers` | — |
+| `HCM026_RequisitionIntegrity` | حقول الإلغاء + `ApplicationClosingDate` + `IntakeClosedAt` + `IX_RecruitmentRequisitions_Tenant_Position_Blocking` | فحص تكرار (`RAISE EXCEPTION`) قبل إنشاء الفهرس — لا تعديل بيانات |
+
+### الانحرافات (Deviations)
+
+1. **FK سلسلة إعادة الجدولة `NO ACTION` لا `RESTRICT`:** RESTRICT في PostgreSQL يُفحص فوراً فيكسر حذف الطلب المتتابع عبر سلسلة؛ NO ACTION يُفحص في نهاية الجملة.
+2. **بوابة المقابلة في commit 4 لا 3:** تعتمد على `InterviewOutcome`.
+3. **قفل الإصدارات القديمة في الترحيل:** الإصدارات المرتبطة بدرجات `RecordAssessment` قديمة تُعامَل كمُقفلة.
+4. **لا إجراءات `Activate`/`Details` في متحكم المعايير:** الإصدار الجديد ينشط عند إنشائه، والبنود تُعرض داخل اللوحة.
+5. **الأرقام تُرسل كنصوص وتُحلَّل بثقافة ثابتة** (`InvariantDecimal`) لأن ثقافة الطلب `ar-SY`.
+6. **`datetime-local` بتوقيت الخادم** ثم UTC، اتساقاً مع العرض `ToLocalTime()`.
+7. **أي مستخدم `HrCoreWrite` يمكنه التقييم** (ربط اللجنة بالدرجات في PLAN-28).
+8. **تاريخ الإغلاق في نموذج النشر:** الطلب المعتمد لا يُعدَّل، لذا يقبل نموذج النشر التاريخ عند أول نشر.
+9. **تاريخ إغلاق بذور القبول = ReferenceDate + سنتان (2028-08-01)** بدل +30 يوماً: ReferenceDate = 2026-08-01 فتاريخ +30 منقضٍ ويغلق كل الإعلانات عند الإقلاع.
+10. **إعلانات `PublicJobPostings/Edit` المشتقة من طلب** كانت ممنوعة التعديل كلياً؛ أُبقي ذلك (أشد من «قراءة فقط») مع رسالة توجّه إلى صفحة الطلب.
+11. **لا فحص عروض عند تقديم طلب تغيير الملاك:** `EstablishmentChangeLifecycleService.SubmitForApprovalAsync` لا يتحقق من الحمولة، فالفحص عند التطبيق فقط.
+12. **AC-HCM-26h الحي يُتخطّى:** لا يوجد معتمد `hr-core` مركزي ثانٍ في كتالوج الشخصيات لخطوة 1 من `ESTABLISHMENT-CHANGE-APPROVAL` (SoD)؛ التتابع مثبت على PostgreSQL في `Hcm026EstablishmentCascadeIntegrationTests`.
+13. **الحالات السالبة في القبول تُثبت بقاعدة البيانات:** رسائل TempData لا تمر عبر البوابة (انظر «مشاكل مكتشفة»).
+
+### مشاكل مكتشفة خارج النطاق (pre-existing)
+
+- **رسائل TempData لا تصل عبر البوابة:** `GatewayUpstreamCookieForwarding` يمرّر كوكيز `.AspNetCore.Antiforgery.*` فقط، فيُسقط `.AspNetCore.Mvc.CookieTempDataProvider` وتضيع كل تنبيهات النجاح/الخطأ بعد إعادة التوجيه في كل الوحدات.
+- **`PublicCareersController` `[HttpGet("{id}")]` بلا قيد:** المسارات ذات المقطع الواحد مثل `/ui/hr-core/RecruitmentApplications` تُطابق Careers Details (أولوية المسارات المعرّفة بالسمات) فتُرجع 404؛ `/Index` الصريح يعمل.
+- إخفاقات اختبارات سابقة غير مرتبطة: `Syr001OfferLegalSourceTests.OfferSubmit_succeeds_with_law50`، `Syr001ProductionBindingTests.AddHrLegislationRegister_resolves_provider`، `EstablishmentHireIntegrationTests` ×2، و`HRCoreJwtBearer`/`CrossTenantApiPenetration` (تحتاج Postgres تطوير على 5433).
+
+### مفتوح لخطط لاحقة
+
+- `// PLAN-27: reserve list` في `RecruitmentRequisitionLifecycleService.CloseAsync`.
+- `// PLAN-30: notify …` في `RecruitmentInterviewService.CompleteAsync` و`RecruitmentRequisitionCascade.StageCancellationAsync`.
+- PLAN-28: ربط المقيّمين بأعضاء لجنة الاختيار.
+- تفعيل `MinAssessors=2` في الإنتاج عبر الإعدادات.
+
