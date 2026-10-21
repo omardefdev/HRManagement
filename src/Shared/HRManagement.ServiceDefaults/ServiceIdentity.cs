@@ -45,6 +45,8 @@ public static class ServiceScopes
     public const string FileStorageReferences = "file-storage.references";
     public const string DsarSubjectRead = "dsar.subject.read";
     public const string EvidenceIngest = "evidence.ingest";
+    /// <summary>HCM-027: HR.Core reads Payroll grade bounds for offer letters.</summary>
+    public const string PayrollGradesRead = "payroll.grades.read";
 }
 
 /// <summary>Authorization policy names for service-to-service endpoints (IAM-004).</summary>
@@ -55,4 +57,5 @@ public static class ServicePolicies
     public const string FileStorageReferences = "Service.FileStorageReferences";
     public const string DsarSubjectRead = "Service.DsarSubjectRead";
     public const string EvidenceIngest = "Service.EvidenceIngest";
+    public const string PayrollGradeLookup = "Service.PayrollGradeLookup";
 }

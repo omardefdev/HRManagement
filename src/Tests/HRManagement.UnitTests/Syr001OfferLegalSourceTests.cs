@@ -43,7 +43,8 @@ public class Syr001OfferLegalSourceTests
             validator,
             Mock.Of<IWorkflowStarter>(),
             config,
-            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
+            new FakePayrollGradeLookup());
 
         return (db, offerService);
     }

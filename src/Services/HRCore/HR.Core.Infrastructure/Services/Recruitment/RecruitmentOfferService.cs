@@ -3,6 +3,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Integration;
 using HR.Core.Infrastructure.Services.Policy;
 using HR.Core.Infrastructure.Services.Workflow;
 using HRManagement.ServiceDefaults.CodeGeneration;
@@ -24,7 +25,8 @@ public sealed class RecruitmentOfferService(
     RecruitmentLegalSourceValidator legalSourceValidator,
     IWorkflowStarter workflowStarter,
     IConfiguration configuration,
-    IOptions<RecruitmentOptions> recruitmentOptions)
+    IOptions<RecruitmentOptions> recruitmentOptions,
+    IPayrollGradeLookup payrollGradeLookup)
 {
     public const string OfferApprovalWorkflowCode = "RECRUITMENT-OFFER-APPROVAL";
 
@@ -45,10 +47,13 @@ public sealed class RecruitmentOfferService(
         Guid? actorUserId = null,
         bool isMeritOverride = false,
         string? meritOverrideReason = null,
+        string? gradeDeviationReason = null,
+        string? salaryJustification = null,
         CancellationToken ct = default)
     {
         var app = await db.RecruitmentApplications
             .Include(a => a.Requisition)
+                .ThenInclude(r => r!.FundedPosition)
             .FirstOrDefaultAsync(a => a.Id == applicationId, ct);
         if (app is null) return (null, "الطلب غير موجود.");
         if (app.RequisitionId is not Guid requisitionId || app.Requisition?.FundedPositionId is null)
@@ -77,6 +82,18 @@ public sealed class RecruitmentOfferService(
         if (RecruitmentLegalSourceRules.IsEmpty(app.Requisition.LegalSourceId))
             return (null, RecruitmentLegalSourceRules.RequisitionMissingLegalSourceForOfferMessage);
 
+        // HCM-027 (E): grade from the funded position, salary within the Payroll grade bounds.
+        var (terms, termsError) = await CheckTermsAsync(
+            offeredSalary,
+            gradeCode,
+            app.Requisition.FundedPosition?.GradeCode,
+            proposedStartDate,
+            gradeDeviationReason,
+            salaryJustification,
+            ct);
+        if (termsError is not null)
+            return (null, termsError);
+
         var code = await codeGenerator.GenerateAsync(CodeGenerationRequests.OfferLetter(), ct);
         var offer = new OfferLetter
         {
@@ -85,12 +102,18 @@ public sealed class RecruitmentOfferService(
             OfferNumber = code.Code,
             Status = OfferStatus.Draft,
             OfferedSalary = offeredSalary,
-            GradeCode = gradeCode,
+            GradeCode = terms!.Grade,
             ProposedStartDate = proposedStartDate,
             ValidityDays = validity,
             LegalSourceId = app.Requisition.LegalSourceId!.Trim(),
             IsMeritOverride = isMeritOverride,
             MeritOverrideReason = isMeritOverride ? meritOverrideReason!.Trim() : null,
+            GradeDeviationReason = terms.GradeDeviationReason,
+            SalaryUnverified = terms.SalaryUnverified,
+            SalaryJustification = terms.SalaryJustification,
+            GradeMinSalary = terms.MinSalary,
+            GradeMaxSalary = terms.MaxSalary,
+            SalaryCheckedAt = terms.CheckedAt,
             CreatedBy = actorUserId
         };
 
@@ -137,7 +160,7 @@ public sealed class RecruitmentOfferService(
             if (IsLabScale())
             {
                 offer.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-                    offer.IsMeritOverride ? OfferOverrideApprovalWorkflowCode : OfferApprovalWorkflowCode,
+                    offer.IsExceptionOffer ? OfferOverrideApprovalWorkflowCode : OfferApprovalWorkflowCode,
                     "OfferLetter",
                     offer.Id,
                     offer.TenantId,
@@ -165,7 +188,8 @@ public sealed class RecruitmentOfferService(
             "Issue",
             offer.RecruitmentApplicationId,
             policyContextJson,
-            offer.IsMeritOverride);
+            offer.IsMeritOverride,
+            offer.IsExceptionOffer);
         policyRequest.Mode = mode;
         policyRequest.ActorUserId = actorUserId;
         policyRequest.ActorUserName = actorUserName;
@@ -342,6 +366,92 @@ public sealed class RecruitmentOfferService(
             ChangedFields = JsonSerializer.Serialize(changes)
         });
 
+    /// <summary>Validated offer terms (HCM-027 E).</summary>
+    private sealed record OfferTerms(
+        string Grade,
+        string? GradeDeviationReason,
+        bool SalaryUnverified,
+        string? SalaryJustification,
+        decimal? MinSalary,
+        decimal? MaxSalary,
+        DateTime? CheckedAt);
+
+    /// <summary>
+    /// HCM-027 (E1/E3/E4): start date window, grade from the funded position (a different grade needs a reason),
+    /// salary within the Payroll grade bounds at the proposed start date. When Payroll is unavailable the offer
+    /// may proceed only with a salary justification and is flagged <see cref="OfferLetter.SalaryUnverified"/>.
+    /// </summary>
+    private async Task<(OfferTerms? Terms, string? Error)> CheckTermsAsync(
+        decimal offeredSalary,
+        string? gradeCode,
+        string? positionGrade,
+        DateTime proposedStartDate,
+        string? gradeDeviationReason,
+        string? salaryJustification,
+        CancellationToken ct)
+    {
+        var startError = OfferTermsRules.ValidateStartDate(
+            proposedStartDate, DateOnly.FromDateTime(DateTime.UtcNow), recruitmentOptions.Value.MaxStartDays);
+        if (startError is not null)
+            return (null, startError);
+
+        var grade = OfferTermsRules.ResolveGrade(gradeCode, positionGrade);
+        if (grade is null)
+            return (null, OfferTermsRules.MissingGradeMessage);
+
+        string? deviationReason = null;
+        if (OfferTermsRules.IsGradeDeviation(grade, positionGrade))
+        {
+            deviationReason = gradeDeviationReason?.Trim();
+            if (deviationReason is null || deviationReason.Length < OfferTermsRules.MinGradeDeviationReasonLength)
+                return (null, OfferTermsRules.GradeDeviationReasonMessage);
+            if (deviationReason.Length > OfferTermsRules.MaxGradeDeviationReasonLength)
+                return (null, $"مبرر اختلاف الدرجة يجب ألا يتجاوز {OfferTermsRules.MaxGradeDeviationReasonLength} حرف.");
+        }
+
+        var lookup = await payrollGradeLookup.GetAsync(grade, DateOnly.FromDateTime(proposedStartDate), ct);
+        switch (lookup)
+        {
+            case PayrollGradeLookupResult.Found found:
+                if (!OfferTermsRules.IsSalaryInRange(offeredSalary, found.MinSalary, found.MaxSalary))
+                    return (null, OfferTermsRules.SalaryOutOfRangeMessage(grade, found.MinSalary, found.MaxSalary));
+                return (new OfferTerms(grade, deviationReason, false, null, found.MinSalary, found.MaxSalary, DateTime.UtcNow), null);
+
+            case PayrollGradeLookupResult.NotFound:
+                return (null, OfferTermsRules.GradeNotFoundMessage(grade));
+
+            default:
+                var justification = salaryJustification?.Trim();
+                if (justification is null || justification.Length < OfferTermsRules.MinSalaryJustificationLength)
+                    return (null, OfferTermsRules.SalaryJustificationMessage);
+                if (justification.Length > OfferTermsRules.MaxSalaryJustificationLength)
+                    return (null, $"مبرر الراتب يجب ألا يتجاوز {OfferTermsRules.MaxSalaryJustificationLength} حرف.");
+                return (new OfferTerms(grade, deviationReason, true, justification, null, null, null), null);
+        }
+    }
+
+    /// <summary>
+    /// HCM-027 (E5): grade of the application's funded position and its Payroll bounds at
+    /// <paramref name="asOf"/>, for the offer form hint.
+    /// </summary>
+    public async Task<(string? PositionGrade, PayrollGradeLookupResult? Lookup)> GetOfferTermsHintAsync(
+        Guid applicationId,
+        DateOnly asOf,
+        CancellationToken ct = default)
+    {
+        var positionGrade = await db.RecruitmentApplications
+            .AsNoTracking()
+            .Where(a => a.Id == applicationId)
+            .Select(a => a.Requisition != null && a.Requisition.FundedPosition != null
+                ? a.Requisition.FundedPosition.GradeCode
+                : null)
+            .FirstOrDefaultAsync(ct);
+        if (string.IsNullOrWhiteSpace(positionGrade))
+            return (null, null);
+
+        return (positionGrade, await payrollGradeLookup.GetAsync(positionGrade, asOf, ct));
+    }
+
     /// <summary>
     /// HCM-027: lowest rank among the requisition's applications that can still receive an offer
     /// (Ranked or ReserveListed, ranked, no pending appeal); null when none.
@@ -388,4 +498,4 @@ public sealed class RecruitmentOfferService(
         return bool.TryParse(value, out var parsed) && parsed;
     }
 }
-
+

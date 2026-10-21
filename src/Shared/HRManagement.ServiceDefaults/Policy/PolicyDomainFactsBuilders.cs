@@ -119,7 +119,8 @@ public static class PolicyDomainFactsBuilders
         string action,
         Guid recruitmentApplicationId,
         string? contextJson = null,
-        bool isMeritOverride = false) =>
+        bool isMeritOverride = false,
+        bool isExceptionOffer = false) =>
         new()
         {
             Domain = PolicyDomains.CoreRecruitment,
@@ -132,7 +133,9 @@ public static class PolicyDomainFactsBuilders
             {
                 ["action"] = action,
                 ["recruitmentApplicationId"] = recruitmentApplicationId.ToString(),
-                ["isMeritOverride"] = isMeritOverride ? "true" : "false"
+                ["isMeritOverride"] = isMeritOverride ? "true" : "false",
+                // HCM-027 (E1): merit override, grade deviation or unverified salary.
+                ["isExceptionOffer"] = isExceptionOffer || isMeritOverride ? "true" : "false"
             }
         };
 

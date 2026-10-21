@@ -92,7 +92,8 @@ public class Hcm022RecruitmentWorkflowsUiTests
             new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
             starter,
             config,
-            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
+            new FakePayrollGradeLookup());
 
         var (success, error) = await offerService.SubmitForApprovalAsync(offer.Id, CreatorId, "creator");
         Assert.True(success, error);

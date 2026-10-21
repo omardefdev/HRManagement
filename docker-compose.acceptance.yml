@@ -54,6 +54,11 @@ services:
     environment:
       <<: *acceptance-service
       HrGateway__PublicBaseUrl: http://localhost:6200
+      # HCM-027 (E2): offer salary bounds from Payroll pay grades (S2S, scope payroll.grades.read).
+      # Dev/acceptance only; without Integration__PayrollBaseUrl HR.Core treats Payroll as unavailable.
+      Integration__PayrollBaseUrl: http://payroll-web:8080
+      ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: file-storage.references payroll.grades.read
     volumes: *acceptance-dp-volumes
 
   hr-contracts-web:

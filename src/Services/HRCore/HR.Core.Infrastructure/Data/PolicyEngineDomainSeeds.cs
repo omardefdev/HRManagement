@@ -237,6 +237,14 @@ public static class PolicyEngineDomainSeeds
             """{"all":[{"field":"action","operator":"Equals","value":"Issue"},{"field":"isMeritOverride","operator":"Equals","value":"true"}]}""",
             """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-OFFER-OVERRIDE-APPROVAL"}}]""", ct);
 
+        // HCM-027 (E1): the exception trigger is generalised to grade deviation and unverified salary.
+        // A separate rule (instead of rewriting R-OFF-OVERRIDE) so databases seeded by session 1 pick it up.
+        await EnsureFactsFieldAsync(db, PolicyDomains.CoreRecruitment, "isExceptionOffer", "bool", "عرض استثنائي", ct);
+        await AddRuleIfMissingAsync(db, PolicyDomains.CoreRecruitment, "R-OFF-EXCEPTION",
+            "إصدار عرض استثنائي (جدارة/درجة/راتب غير متحقق) → workflow", 8,
+            """{"all":[{"field":"action","operator":"Equals","value":"Issue"},{"field":"isExceptionOffer","operator":"Equals","value":"true"}]}""",
+            """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-OFFER-OVERRIDE-APPROVAL"}}]""", ct);
+
         await AddRuleIfMissingAsync(db, PolicyDomains.CoreRecruitment, "R-OFF-ISSUE",
             "إصدار عرض → workflow", 10,
             """{"all":[{"field":"action","operator":"Equals","value":"Issue"}]}""",

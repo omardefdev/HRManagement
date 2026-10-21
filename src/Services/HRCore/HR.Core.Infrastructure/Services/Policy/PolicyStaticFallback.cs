@@ -149,8 +149,9 @@ public static class PolicyStaticFallback
                         Effect = PolicyEffect.TriggerWorkflow,
                         Params = new Dictionary<string, string>
                         {
-                            // HCM-027: mirrors R-OFF-OVERRIDE (priority 9) / R-OFF-ISSUE (priority 10).
-                            ["workflowCode"] = GetBool(request.Facts, "isMeritOverride")
+                            // HCM-027: mirrors R-OFF-EXCEPTION (8) / R-OFF-OVERRIDE (9) / R-OFF-ISSUE (10).
+                            ["workflowCode"] = GetBool(request.Facts, "isExceptionOffer")
+                                || GetBool(request.Facts, "isMeritOverride")
                                 ? "RECRUITMENT-OFFER-OVERRIDE-APPROVAL"
                                 : "RECRUITMENT-OFFER-APPROVAL"
                         }

@@ -35,6 +35,12 @@ public sealed class RecruitmentOptions
     /// </summary>
     public int OfferValidityDays { get; set; } = 14;
 
+    /// <summary>
+    /// HCM-027 (E4): <c>Recruitment:MaxStartDays</c> — the proposed start date must be within this many days
+    /// of today (UTC), default 90.
+    /// </summary>
+    public int MaxStartDays { get; set; } = 90;
+
     /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();
 }

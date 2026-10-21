@@ -2312,6 +2312,18 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("GradeDeviationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("GradeMaxSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("GradeMinSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<bool>("IsConvertedToEmployee")
                         .HasColumnType("boolean");
 
@@ -2349,6 +2361,16 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SalaryCheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SalaryJustification")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("SalaryUnverified")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");

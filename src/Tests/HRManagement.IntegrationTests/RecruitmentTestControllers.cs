@@ -32,7 +32,9 @@ internal static class RecruitmentTestControllers
                 validator,
                 Mock.Of<IWorkflowStarter>(),
                 configuration,
-                Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+                Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
+                // HCM-027: these tests do not exercise offer terms; Payroll is reported unavailable.
+                new HR.Core.Infrastructure.Integration.UnavailablePayrollGradeLookup()),
             new RecruitmentAppealService(
                 db,
                 Mock.Of<IPolicyOrchestrator>(),

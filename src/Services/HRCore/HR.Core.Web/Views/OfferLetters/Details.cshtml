@@ -21,18 +21,60 @@
         </div>
     </div>
     <div class="card-body">
-        @if (offer.IsMeritOverride)
+        @if (offer.IsExceptionOffer)
         {
             <div class="alert alert-warning">
-                <span class="badge bg-warning text-dark ms-1">عرض استثنائي — تجاوز الجدارة</span>
-                <div class="mt-2"><strong>المبرر:</strong> @offer.MeritOverrideReason</div>
+                @if (offer.IsMeritOverride)
+                {
+                    <span class="badge bg-warning text-dark ms-1">عرض استثنائي — تجاوز الجدارة</span>
+                }
+                @if (offer.IsGradeDeviation)
+                {
+                    <span class="badge bg-warning text-dark ms-1">عرض استثنائي — اختلاف الدرجة</span>
+                }
+                @if (offer.SalaryUnverified)
+                {
+                    <span class="badge bg-danger ms-1">راتب غير متحقق منه</span>
+                }
+                @if (offer.IsMeritOverride)
+                {
+                    <div class="mt-2"><strong>مبرر تجاوز الجدارة:</strong> @offer.MeritOverrideReason</div>
+                }
+                @if (offer.IsGradeDeviation)
+                {
+                    <div class="mt-2"><strong>مبرر اختلاف الدرجة:</strong> @offer.GradeDeviationReason</div>
+                }
+                @if (offer.SalaryUnverified)
+                {
+                    <div class="mt-2"><strong>مبرر الراتب:</strong> @offer.SalaryJustification</div>
+                    <div class="form-text">تعذّر التحقق من حدود الدرجة في الرواتب عند إنشاء العرض.</div>
+                }
                 <div class="form-text">يتطلب اعتماد ثلاث خطوات بمعتمدين مختلفين (RECRUITMENT-OFFER-OVERRIDE-APPROVAL).</div>
             </div>
         }
         <dl class="row mb-0">
             <dt class="col-sm-3">المتقدم</dt><dd class="col-sm-9">@(app?.ApplicantFullName ?? "—")</dd>
             <dt class="col-sm-3">الراتب المعروض</dt><dd class="col-sm-9">@offer.OfferedSalary.ToString("N2")</dd>
-            <dt class="col-sm-3">الدرجة</dt><dd class="col-sm-9">@(offer.GradeCode ?? "—")</dd>
+            <dt class="col-sm-3">الدرجة</dt>
+            <dd class="col-sm-9">
+                @(offer.GradeCode ?? "—")
+                @if (offer.FundedPosition?.GradeCode is string positionGrade)
+                {
+                    <span class="text-muted">(درجة المنصب: @positionGrade)</span>
+                }
+            </dd>
+            <dt class="col-sm-3">حدود الدرجة</dt>
+            <dd class="col-sm-9">
+                @if (offer.GradeMinSalary is decimal gMin && offer.GradeMaxSalary is decimal gMax)
+                {
+                    @(HR.Core.Domain.Services.OfferTermsRules.FormatAmount(gMin) + "–" + HR.Core.Domain.Services.OfferTermsRules.FormatAmount(gMax))
+                    <span class="text-muted">(تحقق في @(offer.SalaryCheckedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—"))</span>
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </dd>
             <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd")</dd>
             <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@(offer.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(offer.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</dd>

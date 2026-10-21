@@ -455,6 +455,8 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.Status })
                   .HasFilter("\"Status\" IN (2, 3)")
                   .IsUnique();
+            entity.Property(e => e.GradeMinSalary).HasPrecision(18, 2);
+            entity.Property(e => e.GradeMaxSalary).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<ApprovalRequest>(entity =>

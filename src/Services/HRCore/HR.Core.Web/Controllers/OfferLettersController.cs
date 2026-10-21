@@ -73,7 +73,7 @@ public class OfferLettersController(
             query = query.Where(o => o.Status == s);
 
         if (meritOverride)
-            query = query.Where(o => o.IsMeritOverride);
+            query = query.Where(o => o.IsMeritOverride || o.GradeDeviationReason != null || o.SalaryUnverified);
 
 
 

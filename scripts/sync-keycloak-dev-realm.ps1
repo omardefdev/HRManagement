@@ -510,11 +510,12 @@ Ensure-ClientScope -Name "file-storage.references" -Description "File.Storage re
 Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-hr-core" | Out-Null
 Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-payroll" | Out-Null
 Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-file-storage" | Out-Null
+Ensure-ClientScope -Name "payroll.grades.read" -Description "HR.Core offer salary bounds from Payroll pay grades (S2S, HCM-027)" -Audience "api-payroll" | Out-Null
 Ensure-ClientScope -Name "directory.sync" -Description "Auth.Directory synchronization (S2S)" -Audience "api-auth-directory" | Out-Null
 Ensure-ClientScope -Name "evidence.ingest" -Description "Gateway evidence ingestion (S2S)" -Audience "hr-gateway-client" | Out-Null
 
 Write-Host "Service clients:"
-Ensure-ServiceClient -ClientId "svc-hr-core" -OptionalScopes @("file-storage.references")
+Ensure-ServiceClient -ClientId "svc-hr-core" -OptionalScopes @("file-storage.references", "payroll.grades.read")
 Ensure-ServiceClient -ClientId "svc-hr-contracts" -OptionalScopes @("file-storage.references")
 Ensure-ServiceClient -ClientId "svc-hr-health" -OptionalScopes @()
 Ensure-ServiceClient -ClientId "svc-hr-movements" -OptionalScopes @("hr-core.lookup")

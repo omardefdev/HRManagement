@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using HR.Core.Domain.Enums;
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Legal;
@@ -89,6 +90,40 @@ public class OfferLetter : AuditableEntity
 
     [Display(Name = "تاريخ انتهاء الصلاحية الفعلي")]
     public DateTime? ExpiredAt { get; set; }
+
+    /// <summary>HCM-027 (E1): set when the offered grade differs from the funded position's grade.</summary>
+    [StringLength(500)]
+    [Display(Name = "مبرر اختلاف الدرجة")]
+    public string? GradeDeviationReason { get; set; }
+
+    /// <summary>HCM-027 (E3): the Payroll grade lookup was unavailable when the draft was created.</summary>
+    [Display(Name = "راتب غير متحقق منه")]
+    public bool SalaryUnverified { get; set; }
+
+    [StringLength(1000)]
+    [Display(Name = "مبرر الراتب غير المتحقق منه")]
+    public string? SalaryJustification { get; set; }
+
+    /// <summary>HCM-027 (E3): Payroll grade bounds at the proposed start date (snapshot).</summary>
+    [Display(Name = "الحد الأدنى للدرجة")]
+    public decimal? GradeMinSalary { get; set; }
+
+    [Display(Name = "الحد الأقصى للدرجة")]
+    public decimal? GradeMaxSalary { get; set; }
+
+    [Display(Name = "تاريخ التحقق من الراتب")]
+    public DateTime? SalaryCheckedAt { get; set; }
+
+    /// <summary>HCM-027 (E1): grade differs from the funded position (a reason was recorded).</summary>
+    [NotMapped]
+    public bool IsGradeDeviation => !string.IsNullOrWhiteSpace(GradeDeviationReason);
+
+    /// <summary>
+    /// HCM-027 (E1): merit override, grade deviation or unverified salary — approved through
+    /// RECRUITMENT-OFFER-OVERRIDE-APPROVAL (three distinct approvers).
+    /// </summary>
+    [NotMapped]
+    public bool IsExceptionOffer => IsMeritOverride || IsGradeDeviation || SalaryUnverified;
 }
 
 /// <summary>HCM-027: values of <see cref="OfferLetter.DeclinedBy"/>.</summary>

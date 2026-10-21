@@ -14,6 +14,11 @@ services:
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
       Keycloak__AdditionalValidAudiences: api-hr-core;hr-gateway-client
+      # HCM-027 (E2): offer salary bounds from Payroll pay grades (S2S, scope payroll.grades.read).
+      # Dev/acceptance only; without Integration__PayrollBaseUrl HR.Core treats Payroll as unavailable.
+      Integration__PayrollBaseUrl: http://payroll-web:8080
+      ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: file-storage.references payroll.grades.read
 
   hr-contracts-web:
     environment:

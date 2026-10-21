@@ -97,6 +97,12 @@ public static class ServiceAuthorizationExtensions
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DsarSubjectRead)
                 && IsAllowedClient(ctx.User, ServiceClientIds.Compliance)));
 
+            // HCM-027: HR.Core validates offer salaries against Payroll grade bounds.
+            options.AddPolicy(ServicePolicies.PayrollGradeLookup, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.PayrollGradesRead)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrCore)));
+
             // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
             options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)

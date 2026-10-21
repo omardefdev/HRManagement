@@ -1,6 +1,7 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Integration;
 using HR.Core.Infrastructure.Services.Establishment;
 using HR.Core.Infrastructure.Services.Legal;
 using HR.Core.Infrastructure.Services.Policy;
@@ -56,7 +57,8 @@ internal static class Hcm027TestSupport
         HRCoreDbContext db,
         IConfiguration? config = null,
         IPolicyOrchestrator? orchestrator = null,
-        RecruitmentOptions? options = null)
+        RecruitmentOptions? options = null,
+        IPayrollGradeLookup? gradeLookup = null)
     {
         var codeGenerator = new Mock<ICodeGenerator>();
         codeGenerator
@@ -70,7 +72,8 @@ internal static class Hcm027TestSupport
             new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
             CreateStarter(db),
             config ?? Config(),
-            Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions()));
+            Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions()),
+            gradeLookup ?? new FakePayrollGradeLookup());
     }
 
     public static WorkflowStarter CreateStarter(HRCoreDbContext db) =>

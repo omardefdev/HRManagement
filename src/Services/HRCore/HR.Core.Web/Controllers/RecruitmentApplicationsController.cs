@@ -83,6 +83,18 @@ public class RecruitmentApplicationsController(
 
         var scoringPanel = await BuildScoringPanelAsync(app);
 
+        // HCM-027 (E5): grade pre-filled from the funded position + Payroll range hint (server-side lookup).
+        var defaultStartDate = DateTime.UtcNow.Date.AddDays(30);
+        string? positionGrade = null;
+        PayrollGradeLookupResult? gradeLookup = null;
+        if (app.RequisitionId.HasValue && app.ActiveOfferLetter is null
+            && OfferEligibilityRules.OfferableStatuses.Contains(app.Status))
+        {
+            (positionGrade, gradeLookup) = await offerService.GetOfferTermsHintAsync(
+                app.Id, DateOnly.FromDateTime(defaultStartDate));
+        }
+        var gradeFound = gradeLookup as PayrollGradeLookupResult.Found;
+
         if (!string.IsNullOrWhiteSpace(app.Requisition?.LegalSourceId))
         {
             var legalSource = await legislationProvider.GetByIdAsync(app.Requisition.LegalSourceId);
@@ -116,7 +128,13 @@ public class RecruitmentApplicationsController(
             InterviewSlots = interviews,
             BestAvailableRank = bestAvailableRank,
             RequiresMeritOverride = app.Rank is null || app.Rank != bestAvailableRank,
-            DefaultOfferValidityDays = offerService.DefaultValidityDays
+            DefaultOfferValidityDays = offerService.DefaultValidityDays,
+            PositionGradeCode = positionGrade,
+            GradeMinSalary = gradeFound?.MinSalary,
+            GradeMaxSalary = gradeFound?.MaxSalary,
+            PayrollLookupUnavailable = gradeLookup is PayrollGradeLookupResult.Unavailable,
+            PositionGradeNotInScale = gradeLookup is PayrollGradeLookupResult.NotFound,
+            DefaultProposedStartDate = defaultStartDate
         });
     }
 
@@ -389,7 +407,9 @@ public class RecruitmentApplicationsController(
             form.ValidityDays,
             ParseUserId(User),
             form.IsMeritOverride,
-            form.MeritOverrideReason);
+            form.MeritOverrideReason,
+            form.GradeDeviationReason,
+            form.SalaryJustification);
 
         if (offer is null)
         {

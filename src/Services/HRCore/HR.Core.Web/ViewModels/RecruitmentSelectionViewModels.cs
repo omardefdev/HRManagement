@@ -27,6 +27,17 @@ public class RecruitmentApplicationDetailsViewModel
     public bool RequiresMeritOverride { get; set; }
     /// <summary>HCM-027: default for «مدة صلاحية العرض (أيام)» (Recruitment:OfferValidityDays).</summary>
     public int DefaultOfferValidityDays { get; set; } = 14;
+    /// <summary>HCM-027 (E5): grade of the funded position — pre-fills the offer grade.</summary>
+    public string? PositionGradeCode { get; set; }
+    /// <summary>HCM-027 (E5): Payroll bounds of the position grade at the default start date (null when not looked up).</summary>
+    public decimal? GradeMinSalary { get; set; }
+    public decimal? GradeMaxSalary { get; set; }
+    /// <summary>HCM-027 (E5): the Payroll lookup was unavailable — a salary justification will be required.</summary>
+    public bool PayrollLookupUnavailable { get; set; }
+    /// <summary>HCM-027 (E5): Payroll answered that the position grade is not in the active salary scale.</summary>
+    public bool PositionGradeNotInScale { get; set; }
+    /// <summary>HCM-027 (E4): default proposed start date for the offer form.</summary>
+    public DateTime DefaultProposedStartDate { get; set; } = DateTime.UtcNow.Date.AddDays(30);
 }
 
 public class RecruitmentAppealWorkflowActionViewModel
@@ -75,6 +86,16 @@ public class CreateOfferForm
     [Display(Name = "مبرر تجاوز الجدارة")]
     [StringLength(1000)]
     public string? MeritOverrideReason { get; set; }
+
+    /// <summary>HCM-027 (E1): required when the grade differs from the funded position.</summary>
+    [Display(Name = "مبرر اختلاف الدرجة")]
+    [StringLength(500)]
+    public string? GradeDeviationReason { get; set; }
+
+    /// <summary>HCM-027 (E3): required when the Payroll grade lookup is unavailable.</summary>
+    [Display(Name = "مبرر الراتب")]
+    [StringLength(1000)]
+    public string? SalaryJustification { get; set; }
 }
 
 public class OfferLettersIndexViewModel
@@ -82,7 +103,7 @@ public class OfferLettersIndexViewModel
     public IReadOnlyList<OfferLetter> Offers { get; set; } = [];
     public OfferStatus? Status { get; set; }
     public string? SearchTerm { get; set; }
-    /// <summary>HCM-027: only merit override (exception) offers.</summary>
+    /// <summary>HCM-027: only exception offers (merit override, grade deviation, unverified salary).</summary>
     public bool MeritOverrideOnly { get; set; }
 }
 

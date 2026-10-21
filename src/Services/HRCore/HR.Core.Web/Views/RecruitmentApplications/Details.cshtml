@@ -237,21 +237,46 @@
                     <p class="mb-2 text-muted">
                         <strong>المرجع القانوني (من طلب الشاغر):</strong> @ViewBag.RequisitionLegalSourceLabel
                     </p>
+                    @if (Model.GradeMinSalary is decimal gradeMin && Model.GradeMaxSalary is decimal gradeMax)
+                    {
+                        <div class="alert alert-info py-2">
+                            حدود الدرجة @Model.PositionGradeCode في سلّم الرواتب الساري:
+                            <strong>@HR.Core.Domain.Services.OfferTermsRules.FormatAmount(gradeMin)–@HR.Core.Domain.Services.OfferTermsRules.FormatAmount(gradeMax)</strong>
+                        </div>
+                    }
+                    else if (Model.PayrollLookupUnavailable)
+                    {
+                        <div class="alert alert-warning py-2">
+                            تعذّر التحقق من حدود الدرجة في الرواتب حالياً. يمكن إنشاء العرض بمبرر للراتب
+                            (@HR.Core.Domain.Services.OfferTermsRules.MinSalaryJustificationLength حرفاً على الأقل)، ويصبح عرضاً استثنائياً بمسار اعتماد من ثلاث خطوات.
+                        </div>
+                    }
+                    else if (Model.PositionGradeNotInScale)
+                    {
+                        <div class="alert alert-danger py-2">@HR.Core.Domain.Services.OfferTermsRules.GradeNotFoundMessage(Model.PositionGradeCode!)</div>
+                    }
                     <form asp-action="CreateOffer" method="post" class="row g-2 align-items-end">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="ApplicationId" value="@app.Id" />
                     <div class="col-md-2">
-                        <label class="form-label">الراتب المعروض</label>
-                        <input type="number" name="OfferedSalary" class="form-control" min="0.01" step="0.01" required />
+                        <label class="form-label" for="OfferedSalary">الراتب المعروض</label>
+                        <input type="number" name="OfferedSalary" id="OfferedSalary" class="form-control" step="0.01" required
+                               min="@(Model.GradeMinSalary?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0.01")"
+                               max="@(Model.GradeMaxSalary?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">الدرجة</label>
-                        <input type="text" name="GradeCode" class="form-control" maxlength="50" />
+                        <label class="form-label" for="GradeCode">الدرجة</label>
+                        <input type="text" name="GradeCode" id="GradeCode" class="form-control" maxlength="50" value="@Model.PositionGradeCode" />
+                        @if (Model.PositionGradeCode is not null)
+                        {
+                            <div class="form-text">من المنصب الممول</div>
+                        }
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">تاريخ المباشرة</label>
-                        <input type="date" name="ProposedStartDate" class="form-control"
-                               value="@DateTime.UtcNow.Date.AddDays(30).ToString("yyyy-MM-dd")" required />
+                        <label class="form-label" for="ProposedStartDate">تاريخ المباشرة</label>
+                        <input type="date" name="ProposedStartDate" id="ProposedStartDate" class="form-control"
+                               min="@DateTime.UtcNow.Date.ToString("yyyy-MM-dd")"
+                               value="@Model.DefaultProposedStartDate.ToString("yyyy-MM-dd")" required />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="ValidityDays">مدة صلاحية العرض (أيام)</label>
@@ -274,6 +299,19 @@
                             <label class="form-label" for="MeritOverrideReason">مبرر تجاوز الجدارة</label>
                             <textarea name="MeritOverrideReason" id="MeritOverrideReason" class="form-control" rows="3"
                                       maxlength="1000" minlength="@HR.Core.Domain.Services.OfferEligibilityRules.MinMeritOverrideReasonLength"></textarea>
+                        </div>
+                    }
+                    <div class="col-md-6">
+                        <label class="form-label" for="GradeDeviationReason">مبرر اختلاف الدرجة (إن اختلفت عن درجة المنصب)</label>
+                        <textarea name="GradeDeviationReason" id="GradeDeviationReason" class="form-control" rows="2" maxlength="500"></textarea>
+                        <div class="form-text">اختلاف الدرجة يجعل العرض استثنائياً بمسار اعتماد من ثلاث خطوات.</div>
+                    </div>
+                    @if (Model.PayrollLookupUnavailable)
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label" for="SalaryJustification">مبرر الراتب (الرواتب غير متاحة)</label>
+                            <textarea name="SalaryJustification" id="SalaryJustification" class="form-control" rows="2" maxlength="1000"
+                                      minlength="@HR.Core.Domain.Services.OfferTermsRules.MinSalaryJustificationLength" required></textarea>
                         </div>
                     }
                     <div class="col-md-2">
@@ -319,7 +357,7 @@
                     <tr>
                         <td>
                             <a asp-controller="OfferLetters" asp-action="Details" asp-route-id="@past.Id">@past.OfferNumber</a>
-                            @if (past.IsMeritOverride)
+                            @if (past.IsExceptionOffer)
                             {
                                 <span class="badge bg-warning text-dark ms-1">استثنائي</span>
                             }
