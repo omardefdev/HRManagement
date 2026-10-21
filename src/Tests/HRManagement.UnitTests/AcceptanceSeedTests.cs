@@ -66,6 +66,31 @@ public class AcceptanceSeedTests
     }
 
     [Fact]
+    public async Task Acceptance_seed_published_requisitions_have_closing_dates()
+    {
+        // HCM-026 (F2): published requisitions, their postings and vacancies share the seeded closing date.
+        var options = new DbContextOptionsBuilder<HRCoreDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var db = new HRCoreDbContext(options);
+        await AcceptanceDataSeeder.SeedAsync(db, NullLogger.Instance);
+
+        var published = await db.RecruitmentRequisitions.IgnoreQueryFilters()
+            .Where(r => r.Status == HR.Core.Domain.Enums.RequisitionStatus.Published)
+            .ToListAsync();
+        Assert.NotEmpty(published);
+        Assert.All(published, r => Assert.NotNull(r.ApplicationClosingDate));
+        Assert.All(published, r => Assert.True(r.ApplicationClosingDate > DateOnly.FromDateTime(DateTime.UtcNow)));
+
+        var ids = published.Select(r => r.Id).ToList();
+        var postings = await db.PublicJobPostings.IgnoreQueryFilters().Where(p => p.RequisitionId != null && ids.Contains(p.RequisitionId.Value)).ToListAsync();
+        var vacancies = await db.InternalVacancies.IgnoreQueryFilters().Where(v => v.RequisitionId != null && ids.Contains(v.RequisitionId.Value)).ToListAsync();
+        Assert.NotEmpty(postings);
+        Assert.All(postings, p => Assert.Equal(published.Single(r => r.Id == p.RequisitionId).ApplicationClosingDate, p.ClosingDate));
+        Assert.All(vacancies, v => Assert.Equal(published.Single(r => r.Id == v.RequisitionId).ApplicationClosingDate, v.ClosingDate));
+    }
+
+    [Fact]
     public void AcceptanceSeedIds_are_stable()
     {
         Assert.Equal("AGENCY-A", AcceptanceSeedIds.AgencyACode);

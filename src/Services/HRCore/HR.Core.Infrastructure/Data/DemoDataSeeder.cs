@@ -597,6 +597,8 @@ public static class DemoDataSeeder
                 RequestedDate = now.AddDays(-(i + 1)),
                 ApprovedDate = i >= 1 ? now.AddDays(-i) : null,
                 PublishedAt = i == 2 ? now.AddDays(-1) : null,
+                // HCM-026 (F2): published demo requisition gets a 30-day application window (copied to the posting).
+                ApplicationClosingDate = i == 2 ? DateOnly.FromDateTime(now).AddDays(30) : null,
                 JustificationNotes = "طلب شاغر تجريبي لاختبار دورة التوظيف.",
                 VacancyCount = 1,
                 CreatedAt = now,

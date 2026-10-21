@@ -521,6 +521,10 @@ public static class AcceptanceDataSeeder
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>HCM-026 (F2): closing date of seeded published requisitions (copied to postings and vacancies).</summary>
+    internal static readonly DateOnly AcceptanceSeedApplicationClosingDate =
+        DateOnly.FromDateTime(AcceptanceSeedCatalog.ReferenceDate).AddYears(2);
+
     private static async Task SeedRecruitmentRequisitionsAsync(
         HRCoreDbContext db,
         AcceptanceAgency agency,
@@ -559,6 +563,9 @@ public static class AcceptanceDataSeeder
                 VacancyCount = 1,
                 LegalSourceId = isPrimary ? HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004 : null,
                 PublishingChannel = isPrimary ? RecruitmentPublishingChannel.Both : RecruitmentPublishingChannel.PublicOnly,
+                // HCM-026: ReferenceDate (2026-08-01) + 30 days is already past, which would close intake on every
+                // seeded posting at startup; a deterministic date two years out keeps acceptance intake open.
+                ApplicationClosingDate = isPrimary ? AcceptanceSeedApplicationClosingDate : null,
                 CreatedAt = AcceptanceSeedCatalog.ReferenceDate.AddMonths(-1),
                 UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
             };
