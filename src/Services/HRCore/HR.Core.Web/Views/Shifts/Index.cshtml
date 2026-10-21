@@ -1,27 +1,59 @@
-@model IReadOnlyList<HR.Core.Domain.Entities.Shift>
+@model HR.Core.Web.ViewModels.ShiftsIndexViewModel
+@using HR.Core.Domain.Enums
 @{ ViewData["Title"] = "الورديات"; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">الورديات</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm">إضافة وردية</a>
     </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="الرمز أو الاسم..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">النوع</label>
+                <select name="shiftType" class="form-select">
+                    <option value="">— الكل —</option>
+                    @foreach (ShiftType t in Enum.GetValues<ShiftType>())
+                    {
+                        if (Model.ShiftType == t) { <option value="@((int)t)" selected="selected">@Html.HrEnumDisplay(t)</option> }
+                        else { <option value="@((int)t)">@Html.HrEnumDisplay(t)</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="isActive" class="form-select">
+                    <option value="">— الكل —</option>
+                    @if (Model.IsActive == true) { <option value="true" selected>مفعّلة</option> } else { <option value="true">مفعّلة</option> }
+                    @if (Model.IsActive == false) { <option value="false" selected>موقوفة</option> } else { <option value="false">موقوفة</option> }
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>الرمز</th><th>الاسم</th><th>النوع</th><th>من</th><th>إلى</th><th>الحالة</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items)
                 {
                     <tr>
                         <td>@x.Code</td>
                         <td>@x.NameAr</td>
-                        <td>@Html.DisplayFor(_ => x.ShiftType)</td>
+                        <td>@Html.HrEnumDisplay(x.ShiftType)</td>
                         <td>@x.StartTime.ToString("HH:mm")</td>
                         <td>@x.EndTime.ToString("HH:mm")</td>
                         <td>@(x.IsActive ? "مفعّلة" : "موقوفة")</td>
                         <td><a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-outline-secondary btn-xs">تعديل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد ورديات</td></tr> }
+                @if (!Model.Items.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد ورديات</td></tr> }
             </tbody>
         </table>
     </div>

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Payroll.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,10 @@ using Payroll.Infrastructure.Data;
 
 namespace Payroll.Web.Controllers;
 
-public class FraudAlertsController(PayrollDbContext db, PaymentHoldService holdService) : Controller
+public class FraudAlertsController(
+    PayrollDbContext db,
+    PaymentHoldService holdService,
+    IEmployeeLookup employeeLookup) : Controller
 {
     private Guid RequireUserId()
     {
@@ -21,13 +25,29 @@ public class FraudAlertsController(PayrollDbContext db, PaymentHoldService holdS
             : throw new UnauthorizedAccessException("Missing user identity claim.");
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? status, string? severity, string? category, Guid? employeeId, DateTime? detectedFrom, DateTime? detectedTo)
     {
-        var items = await db.FraudAlerts.AsNoTracking()
-            .Where(a => a.Status == FraudAlertStatus.Open || a.Status == FraudAlertStatus.UnderReview)
-            .OrderByDescending(a => a.DetectedAtUtc)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync();
+        var query = db.FraudAlerts.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(a => a.Status == status.Trim());
+        else
+            query = query.Where(a => a.Status == FraudAlertStatus.Open || a.Status == FraudAlertStatus.UnderReview);
+        if (!string.IsNullOrWhiteSpace(severity)) query = query.Where(a => a.Severity == severity.Trim());
+        if (!string.IsNullOrWhiteSpace(category)) query = query.Where(a => a.Category == category.Trim());
+        if (employeeId.HasValue) query = query.Where(a => a.EmployeeId == employeeId.Value);
+        if (detectedFrom.HasValue) query = query.Where(a => a.DetectedAtUtc >= detectedFrom.Value);
+        if (detectedTo.HasValue) query = query.Where(a => a.DetectedAtUtc <= detectedTo.Value);
+
+        var items = await query.OrderByDescending(a => a.DetectedAtUtc).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.Status = status;
+        ViewBag.Severity = severity;
+        ViewBag.Category = category;
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.DetectedFrom = detectedFrom;
+        ViewBag.DetectedTo = detectedTo;
+        ViewBag.EmployeeNames = await employeeLookup.GetEmployeeDisplayNamesAsync(
+            items.Select(a => a.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
+            HttpContext.RequestAborted);
         return View(items);
     }
 
@@ -35,6 +55,8 @@ public class FraudAlertsController(PayrollDbContext db, PaymentHoldService holdS
     {
         var alert = await db.FraudAlerts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
         if (alert is null) return NotFound();
+        ViewBag.EmployeeName = await employeeLookup.GetEmployeeDisplayNameAsync(
+            alert.EmployeeId, HttpContext.RequestAborted) ?? "غير متاح";
         return View(alert);
     }
 

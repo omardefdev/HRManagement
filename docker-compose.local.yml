@@ -8,9 +8,12 @@ services:
 
   hr-core-web:
     environment:
+      SEED_ACCEPTANCE: ${SEED_ACCEPTANCE:-false}
+      Seed__Acceptance: ${SEED_ACCEPTANCE:-false}
       HrGateway__PublicBaseUrl: http://localhost:5200
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+      Keycloak__AdditionalValidAudiences: api-hr-core;hr-gateway-client
 
   hr-contracts-web:
     environment:
@@ -32,6 +35,8 @@ services:
 
   payroll-web:
     environment:
+      SEED_ACCEPTANCE: ${SEED_ACCEPTANCE:-false}
+      Seed__Acceptance: ${SEED_ACCEPTANCE:-false}
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
 
   idcard-web:
@@ -47,6 +52,11 @@ services:
   admin-logistics-web:
     environment:
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-admin-logistics
+      ServiceIdentity__ClientSecret: dev-svc-secret-local-only
+      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow file-storage.references
 
   it-infra-web:
     environment:

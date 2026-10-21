@@ -27,7 +27,12 @@ public static class AuditHashChain
             e.StatusCode.ToString(CultureInfo.InvariantCulture),
             e.ElapsedMs.ToString(CultureInfo.InvariantCulture),
             e.Decision ?? "",
-            e.ClientIp ?? "");
+            e.ClientIp ?? "",
+            e.TenantId?.ToString("D") ?? "",
+            e.ScopeOrgUnitId?.ToString("D") ?? "",
+            e.Reason ?? "",
+            e.ResourceType ?? "",
+            e.ResourceId ?? "");
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(bytes).ToLowerInvariant();

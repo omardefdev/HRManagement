@@ -8,9 +8,12 @@ public static class TenantContextServiceCollectionExtensions
     /// <summary>Registers <see cref="ITenantContext"/> and tenant EF interceptors (TEN-001/002).</summary>
     public static IServiceCollection AddTenantContext(this IServiceCollection services)
     {
-        services.AddScoped<ITenantContext, TenantContext>();
-        services.AddScoped<TenantIdStampInterceptor>();
-        services.AddScoped<NpgsqlTenantSessionInterceptor>();
+        // Singleton: resolves tenant per request via IHttpContextAccessor / TenantIdFlow (safe with DbContext pooling).
+        services.AddMemoryCache();
+        services.AddSingleton<ITenantContext, TenantContext>();
+        services.AddSingleton<IPlatformTenantSessionStore, MemoryPlatformTenantSessionStore>();
+        services.AddSingleton<TenantIdStampInterceptor>();
+        services.AddSingleton<NpgsqlTenantSessionInterceptor>();
         return services;
     }
 }

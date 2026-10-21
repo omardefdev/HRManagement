@@ -6,10 +6,13 @@ using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Infrastructure.Repositories;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.TestSupport.CodeGeneration;
 using MediatR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace HRManagement.IntegrationTests;
 
@@ -26,6 +29,7 @@ public class HireCaseIntegrationTests
         services.AddDbContext<ContractsDbContext>(o => o.UseSqlite(connection));
         services.AddScoped<IContractsRepository, ContractsRepository>();
         services.AddSingleton<IEventPublisher>(spy);
+        services.ReplaceCodeGenerationClientWithFake();
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssemblyContaining<ProcessCandidateAcceptedHandler>();

@@ -22,6 +22,9 @@ public sealed class FileStorageOptions
 
     public int PresignedUrlExpiryMinutes { get; set; } = 60;
 
+    /// <summary>Default FileAccessGrant lifetime in hours (SEC-003 AC-29).</summary>
+    public int GrantDefaultLifetimeHours { get; set; } = 24;
+
     public int InitRetryCount { get; set; } = 5;
 
     public int InitRetryDelaySeconds { get; set; } = 3;

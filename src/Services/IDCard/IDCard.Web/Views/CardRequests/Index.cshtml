@@ -12,10 +12,10 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.EmployeeId</td>
+                        <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
                         <td>@x.RequestDate.ToString("yyyy/MM/dd")</td>
-                        <td>@x.Purpose</td>
-                        <td>@x.Status</td>
+                        <td>@Html.HrEnumDisplay(x.Purpose)</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>

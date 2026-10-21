@@ -127,6 +127,38 @@ public static class SodMatrixDefaults
             FinancialThreshold = DefaultPayrollThreshold,
             RequiredApprovalCount = 1,
             CreatedAt = SeedCreatedAt.AddTicks(5813)
+        },
+        new SodRule
+        {
+            Id = Guid.Parse("a1000001-0001-4000-8000-000000000016"),
+            EntityType = "AssetAssignment",
+            MakerRole = "admin-logistics",
+            CheckerRole = "hr-management-approver",
+            RequireDifferentActors = true,
+            RequiredApprovalCount = 1,
+            CreatedAt = SeedCreatedAt.AddTicks(5816)
+        },
+        new SodRule
+        {
+            Id = Guid.Parse("a1000001-0001-4000-8000-000000000017"),
+            EntityType = "SupplyOrder",
+            MakerRole = "admin-logistics",
+            CheckerRole = "admin-logistics",
+            RequireDifferentActors = true,
+            RequiredApprovalCount = 1,
+            CreatedAt = SeedCreatedAt.AddTicks(5819)
+        },
+        new SodRule
+        {
+            Id = Guid.Parse("a1000001-0001-4000-8000-000000000018"),
+            EntityType = "PaymentBatch",
+            MakerRole = "payroll-poster",
+            CheckerRole = "payroll-approver",
+            PosterRole = "payroll-poster",
+            RequireDifferentActors = true,
+            FinancialThreshold = DefaultPayrollThreshold,
+            RequiredApprovalCount = 1,
+            CreatedAt = SeedCreatedAt.AddTicks(5822)
         }
     ];
 

@@ -39,7 +39,7 @@ public class TransferExecutedConsumer : IConsumer<ITransferExecuted>
         foreach (var a in openAssignments)
         {
             a.ReturnedAt = returnedAt;
-            a.ConditionOnAssign = $"[إعادة بسبب نقل] من {m.FromOrgUnitId} إلى {m.ToOrgUnitId} — {returnedAt:yyyy-MM-dd}";
+            a.ReturnNotes = $"[إعادة بسبب نقل] من {m.FromOrgUnitId} إلى {m.ToOrgUnitId} — {returnedAt:yyyy-MM-dd}";
         }
 
         if (assetIds.Count > 0)
@@ -54,5 +54,24 @@ public class TransferExecutedConsumer : IConsumer<ITransferExecuted>
 
         if (openAssignments.Count > 0)
             await _db.SaveChangesAsync(context.CancellationToken);
+
+        var snap = await _db.EmployeeOrgUnitSnapshots.FindAsync([m.EmployeeId], context.CancellationToken);
+        if (snap is null)
+        {
+            _db.EmployeeOrgUnitSnapshots.Add(new HRManagement.SharedKernel.Entities.EmployeeOrgUnitSnapshot
+            {
+                EmployeeId = m.EmployeeId,
+                TenantId = m.TenantId ?? Guid.Empty,
+                PrimaryOrgUnitId = m.ToOrgUnitId
+            });
+        }
+        else
+        {
+            snap.PrimaryOrgUnitId = m.ToOrgUnitId;
+            if (m.TenantId is { } tenantId)
+                snap.TenantId = tenantId;
+        }
+
+        await _db.SaveChangesAsync(context.CancellationToken);
     }
 }

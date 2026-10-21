@@ -1,0 +1,188 @@
+W12.1 IAM-002 snapshots في Admin.Logistics"]
+  W121 --> W122["W12.2 AssetOrgScopeGuard + فلتر القوائم"]
+  W122 --> W123["W12.3 Ac32LogisticsScopeTests + BOLA POST"]
+  W123 --> W124["W12.4 لقطة قبل/بعد على AssetLossReport"]
+  W124 --> W125["W12.5 اختبارات مسار الفقد + workflow consumers"]
+  W125 --> W126["W12.6 بذرة عهدة قبول + أدلة حية AC-32/33"]
+  W126 --> GATE["DoD: AC-32/33 = Pass + CAP-ORG-01/CAP-LOG-01"]
+```
+
+---
+
+## الوضع الحالي (مرجع سريع)
+
+| المكوّن | المسار | الحالة |
+|---------|--------|--------|
+| إسناد/استرداد/فقد/استرداد أصل | [AssetsController.cs](src/Services/AdminLogistics/Admin.Logistics.Web/Controllers/AssetsController.cs) | منفّذ — **بلا** `ForbidIfEmployeeOutOfScopeAsync` |
+| حالات العهدة | [AssetAssignmentStatus.cs](src/Services/AdminLogistics/Admin.Logistics.Domain/Enums/AssetAssignmentStatus.cs) | منفّذ |
+| تقرير فقد + consumers | [AssetLossReport.cs](src/Services/AdminLogistics/Admin.Logistics.Domain/Entities/AssetLossReport.cs), [AssetLossWorkflowConsumers.cs](src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Consumers/AssetLossWorkflowConsumers.cs) | منفّذ — ملاحظات فقط لا snapshot |
+| نمط IAM-002 مرجعي | [HR.Training IAM002 migration](src/Services/HRTraining/HR.Training.Infrastructure/Migrations/20260801205411_IAM002_OrgScopeSnapshots.cs) + consumers | **غير منسوخ** إلى Logistics |
+| حارس BOLA | [EmployeeOrgScopeGuard.cs](src/Shared/HRManagement.ServiceDefaults/EmployeeOrgScopeGuard.cs) | موجود — **غير موصول** |
+| اختبارات مجال | [Fun005IdentityAssetsItTests.cs](src/Tests/HRManagement.UnitTests/Fun005IdentityAssetsItTests.cs), [AssetLostRulesTests.cs](src/Tests/HRManagement.UnitTests/AssetLostRulesTests.cs) | جزئي — لا AC-32/33 |
+| BOLA arch يتخطى POST | [BolaArchitectureTests.cs](src/Tests/HRManagement.UnitTests/Architecture/BolaArchitectureTests.cs) | فجوة على `AssignToEmployee`/`MarkLost` |
+
+---
+
+## W12.1 — IAM-002 Org Scope Snapshots في Admin.Logistics
+
+**الهدف:** تمكين `OrgScopeResolver` و`EmployeeOrgScopeGuard` داخل Logistics دون استعلام HR.Core عبر الشبكة.
+
+**النمط المرجعي:** HR.Training — [TrainingDbContext.cs](src/Services/HRTraining/HR.Training.Infrastructure/Data/TrainingDbContext.cs) + [EmployeeCreatedConsumer.cs](src/Services/HRTraining/HR.Training.Infrastructure/Consumers/EmployeeCreatedConsumer.cs) + [OrgUnitChangedConsumer.cs](src/Services/HRTraining/HR.Training.Infrastructure/Consumers/OrgUnitChangedConsumer.cs) + [TransferExecutedConsumer.cs](src/Services/HRTraining/HR.Training.Infrastructure/Consumers/TransferExecutedConsumer.cs).
+
+**خطوات:**
+
+1. إضافة `DbSet<EmployeeOrgUnitSnapshot>` و`DbSet<OrgUnitSnapshot>` إلى [AdminLogisticsDbContext.cs](src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Data/AdminLogisticsDbContext.cs) (كيانات مشتركة من `HRManagement.SharedKernel.Entities`).
+2. migration جديدة `IAM002_OrgScopeSnapshots` (نفس فهارس Training: `MaterializedPath`, `PrimaryOrgUnitId`).
+3. consumers جديدة تحت `Admin.Logistics.Infrastructure/Consumers/`:
+   - `EmployeeCreatedConsumer` — upsert snapshot
+   - `OrgUnitChangedConsumer` — upsert/remove org unit
+   - `TransferExecutedConsumer` — **تحديث** snapshot للموظف (بالإضافة إلى إرجاع العهدة الموجود)
+4. **Backfill عند الإقلاع:** في [Program.cs](src/Services/AdminLogistics/Admin.Logistics.Web/Program.cs) (أو seeder idempotent) — مزامنة أولية من أحداث `PublishAllOrgUnits` / استعلام HR.Core عبر `IEmployeeLookup` إن وُجد؛ البديل الأبسط: الاعتماد على consumers + إعادة نشر التكامل من PLAN-00 seed (OrgUnit + Employee events موجودة بعد البذرة).
+5. تسجيل consumers في MassTransit (نفس نمط [Program.cs](src/Services/AdminLogistics/Admin.Logistics.Web/Program.cs) الحالي).
+
+**تحقق W12.1:** بعد `acceptance-up.ps1`، جداول `EmployeeOrgUnitSnapshots`/`OrgUnitSnapshots` في قاعدة logistics تحتوي موظفي `emp-br1`/`emp-br2` بـ`PrimaryOrgUnitId` صحيح.
+
+---
+
+## W12.2 — حراس نطاق العهدة + فلتر القوائم (AC-32)
+
+**قاعدة النطاق (من PLAN-12):** `Asset` بلا `OrgUnitId` — **مرساة النطاق** = موظف الحائز النشط (`AssetAssignment` مفتوح `Active`/`PendingApproval`)؛ إن لم يوجد حائز → **Unrestricted فقط** (مركز/HR) يعدّل؛ الفرع الشقيق **403**.
+
+**خطوات:**
+
+1. إنشاء `AssetOrgScopeGuard` في `Admin.Logistics.Web/Helpers/` (أو `HRManagement.ServiceDefaults` إن أُريد إعادة استخدام):
+   - `ResolveAnchorEmployeeIdAsync(assetId)` — open assignment → `EmployeeId`
+   - `ForbidIfAssetOutOfScopeAsync(Controller, User, assetId, db snapshots)` — يستدعي `EmployeeOrgScopeGuard` على المرساة؛ إن لا مرساة و`MustFilter` → `Forbid()`
+   - `ForbidIfEmployeeOutOfScopeAsync` على `employeeId` في `AssignToEmployee` (منع إسناد لموظف خارج النطاق)
+2. توصيل الحراس في [AssetsController.cs](src/Services/AdminLogistics/Admin.Logistics.Web/Controllers/AssetsController.cs):
+   - `Details`, `Edit` (GET/POST)
+   - `AssignToEmployee`, `ReturnAssignment`, `MarkLost`, `RecoverAsset`, `CancelAsset`
+   - `HandoverReceiptPdf` (قراءة حساسة)
+3. فلتر `Index` في `AssetsController`: join open assignments → employee snapshot → `WhereInOrgScope` ([OrgScopeControllerExtensions.cs](src/Shared/HRManagement.ServiceDefaults/OrgScopeControllerExtensions.cs))؛ الأصول غير المُسنَدة تظهر لـ Unrestricted فقط.
+4. [AdminExtendedControllers.cs](src/Services/AdminLogistics/Admin.Logistics.Web/Controllers/AdminExtendedControllers.cs) — `AssetAssignmentsController.Index/Details`: فلتر عبر `EmployeeId` snapshot.
+5. رسائل الرفض: redirect + TempData (نمط UX الحالي) للـ MVC؛ **403** للطلبات API إن وُجدت.
+
+```mermaid
+sequenceDiagram
+  participant User as BranchManager_BR2
+  participant Assets as AssetsController
+  participant Guard as AssetOrgScopeGuard
+  participant Snap as EmployeeOrgUnitSnapshots
+  participant Resolver as OrgScopeResolver
+  User->>Assets: POST MarkLost(asset_BR1)
+  Assets->>Guard: ForbidIfAssetOutOfScope
+  Guard->>Snap: openAssignment.EmployeeId
+  Guard->>Resolver: scope vs PrimaryOrgUnitId
+  Resolver-->>Guard: sibling denied
+  Guard-->>User: 403 Forbid
+```
+
+**تحقق W12.2:** مستخدم `branch-mgr-br2` (من PLAN-00 personas) يحصل 403 على عهدة `emp-br1`؛ `branch-mgr-br1` و`hr-center` ينجحان.
+
+---
+
+## W12.3 — اختبارات AC-32 + إغلاق فجوة BOLA
+
+**ملفات جديدة:**
+
+- `src/Tests/HRManagement.IntegrationTests/Ac32LogisticsOrgScopeTests.cs` — InMemory أو Testcontainers logistics DB + snapshots مبذورة:
+  - **موجب:** مالك الفرع يُسنِد/يسترد؛ مركز Unrestricted ينجح
+  - **سالب:** فرع شقيق → 403 على Assign/Return/MarkLost/Recover/Details
+- `src/Tests/HRManagement.AcceptanceTests/Scenarios/Ac32LogisticsScopeLiveTests.cs` — حي عبر Gateway + Keycloak personas
+
+**تعديل:** [BolaArchitectureTests.cs](src/Tests/HRManagement.UnitTests/Architecture/BolaArchitectureTests.cs) — إضافة AssetsController POST actions إلى قائمة الإجراءات التي **يجب** أن تستدعي guard (أو assertion منفصل `LogisticsCustodyScopeTests`).
+
+**إعادة استخدام:** [Iam002OrgScopeTests.cs](src/Tests/HRManagement.UnitTests/Iam002OrgScopeTests.cs), [OrgScopeResolverTests.cs](src/Tests/HRManagement.UnitTests/OrgScopeResolverTests.cs) — لا تغيير؛ Ac32 يثبت **تطبيق** Logistics.
+
+**تحقق W12.3:** `dotnet test --filter "FullyQualifiedName~Ac32"` يمرّ (integration + acceptance عند توفر PLAN-00).
+
+---
+
+## W12.4 — لقطة حالة قبل/بعد للفقد والتسوية (AC-33)
+
+**الفجوة:** [AssetLossReport.cs](src/Services/AdminLogistics/Admin.Logistics.Domain/Entities/AssetLossReport.cs) يخزّن `Notes`/`EvidenceRef` فقط؛ [AssetLostRules.ApplyLost](src/Services/AdminLogistics/Admin.Logistics.Domain/Services/AssetLostRules.cs) يكتب `ReturnNotes` نصّية.
+
+**خطوات:**
+
+1. حقول جديدة على `AssetLossReport` (migration `AssetLossStateSnapshot`):
+   - `BeforeAssetStatus` (`AssetStatus`)
+   - `BeforeOpenAssignmentIds` (JSON array أو `BeforeStateJson` موحّد)
+   - `AfterAssetStatus`, `AfterStateJson` — تُملأ عند `ApplyLost`/`Recover`
+   - `SettlementApprovedAt`, `SettlementApprovedBy` (اختياري — من حدث workflow)
+2. `AssetLossStateCapture` في Domain — يلتقط عند إنشاء التقرير في `MarkLost`:
+   ```json
+   { "assetStatus": "InUse", "openAssignments": [{ "id", "employeeId", "status" }] }
+   ```
+3. تحديث `AssetLostRules.ApplyLost` و`Recover` لملء `After*`؛ consumer [AssetLossApprovedConsumer](src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Consumers/AssetLossWorkflowConsumers.cs) يمرّ عبر نفس المسار.
+4. **سيناريو القبول:** استخدام أصل **privileged** (`IsPrivileged=true`) لإجبار مسار الموافقة + دليل (`EvidenceRef`/`LossFileId`) — يتوافق مع سالب AC-33 «لا تسوية بلا اعتماد/أدلة».
+5. عرض Before/After في `Assets/Details` (قسم تقارير الفقد) — minimal UI للمراجعة البشرية في الأدلة.
+
+**تحقق W12.4:** بعد approve workflow، DB يُظهر `BeforeAssetStatus != AfterAssetStatus` وJSON غير فارغ؛ reject يترك `Before*` دون `After*`.
+
+---
+
+## W12.5 — اختبارات مسار الفقد + workflow (AC-33)
+
+**ملفات:**
+
+- `src/Tests/HRManagement.UnitTests/Ac33AssetLossStateTests.cs` — capture + ApplyLost + Recover + reject unchanged
+- `src/Tests/HRManagement.IntegrationTests/Ac33AssetLossWorkflowTests.cs` — MassTransit test harness:
+  - `IAssetLossApproved` → Confirmed + snapshot
+  - `IAssetLossRejected` → Rejected + asset unchanged
+- `src/Tests/HRManagement.AcceptanceTests/Scenarios/Ac33AssetLossLiveTests.cs` — رحلة حية: MarkLost → موافقة workflow persona → verify DB + evidence
+
+**إعادة استخدام:** [AssetLostRulesTests.cs](src/Tests/HRManagement.UnitTests/AssetLostRulesTests.cs), [Fun005IdentityAssetsItTests.cs](src/Tests/HRManagement.UnitTests/Fun005IdentityAssetsItTests.cs) — توسيع assertions للحقول الجديدة.
+
+**تحقق W12.5:** `dotnet test --filter "FullyQualifiedName~Ac33"` يمرّ.
+
+---
+
+## W12.6 — بذرة عهدة قبول + أدلة حية
+
+**بذرة (في `AcceptanceDataSeeder` — PLAN-00 أو extension PLAN-12):**
+
+- أصل privileged `ACCEPT-ASSET-BR1` في Tenant-A
+- إسناد نشط لـ `emp-br1` (AcceptanceSeedIds)
+- ملف دليل وهمي/مرتبط بـ File.Storage إن لزم AC-33
+
+**سكربت:** `scripts/acceptance-logistics-custody.ps1`
+
+- AC-32: تسجيل HTTP 403 لـ `branch-mgr-br2` + نجاح `branch-mgr-br1` + `hr-center`
+- AC-33: MarkLost → approve → export before/after JSON + evidence refs
+
+**عقد الأدلة** (PLAN-00):
+
+```
+acceptance-evidence/AC-32/metadata.json, steps.md, http/, db-checks/, result.md
+acceptance-evidence/AC-33/metadata.json, steps.md, http/, before-after.json, audit/, result.md
+```
+
+**تحقق W12.6:** `EvidenceRecorder` ينتج الحزم الثمانية؛ `result.md` = `Pass` لكل AC.
+
+---
+
+## تعريف الإنجاز (DoD)
+
+- Admin.Logistics يملك snapshots IAM-002 وconsumers متزامنة
+- جميع إجراءات العهدة الحساسة محمية؛ الفرع الشقيق **403**؛ المالك والمركز ينجحان
+- `AssetLossReport` يحفظ لقطة before/after منظّمة + أدلة + مسار اعتماد للأصول privileged
+- `Ac32*` و`Ac33*` tests خضراء؛ أدلة `acceptance-evidence/AC-32` و`AC-33` = Pass
+- [THESIS_CAPABILITY_TRUTH_REGISTER_CURRENT.md](docs/THESIS_CAPABILITY_TRUTH_REGISTER_CURRENT.md): CAP-ORG-01 / CAP-LOG-01 → «متحقق» (أو «منفّذ ومُثبت»)
+
+---
+
+## خارج النطاق / مؤجّل
+
+- **Receipt lineage** (CAP-LOG-02) — مغطى في FUN-005 منفصل
+- **Arabic handover PDF** — AC-36 في PLAN-13
+- إضافة `OrgUnitId` دائم على `Asset` — غير مطلوب إذا مرساة الحائز كافية لـ AC-32
+- فرض workflow على أصول non-privileged — يبقى سلوكاً حالياً؛ AC-33 يختبر المسار privileged
+
+---
+
+## ترتيب التنفيذ الموصى به
+
+1. W12.1 → W12.2 (AC-32 blocking)
+2. W12.3 (اختبار AC-32)
+3. W12.4 → W12.5 (AC-33)
+4. W12.6 (أدلة حية — يتطلب PLAN-00/01 جاهزين)

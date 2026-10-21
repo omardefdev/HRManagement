@@ -1,0 +1,24 @@
+@model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyEnforcementLedger>
+@{ ViewData["Title"] = "سجل تطبيق السياسات"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">Enforcement Ledger</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>وقت</th><th>Domain</th><th>Action</th><th>Mode</th><th>Workflow</th><th>Hash</th></tr></thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    <tr>
+                        <td>@x.OccurredAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@x.Domain</td>
+                        <td>@x.Action</td>
+                        <td>@x.Mode</td>
+                        <td>@(x.WorkflowInstanceId?.ToString() ?? "—")</td>
+                        <td><code>@x.FactsHash</code></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<p><a asp-action="Index">العودة</a></p>

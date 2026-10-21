@@ -2,6 +2,8 @@ using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Application.Models;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.SharedKernel.ViewModels;
@@ -26,7 +28,10 @@ public class GetAdministrativeDecisionByIdHandler(IContractsRepository repositor
         repository.GetAdministrativeDecisionAsync(request.Id, cancellationToken);
 }
 
-public class CreateAdministrativeDecisionHandler(IContractsRepository repository, IEventPublisher eventPublisher) : IRequestHandler<CreateAdministrativeDecisionCommand, Guid>
+public class CreateAdministrativeDecisionHandler(
+    IContractsRepository repository,
+    IEventPublisher eventPublisher,
+    ICodeGenerationClient codeClient) : IRequestHandler<CreateAdministrativeDecisionCommand, Guid>
 {
     public async Task<Guid> Handle(CreateAdministrativeDecisionCommand request, CancellationToken cancellationToken)
     {
@@ -50,6 +55,7 @@ public class CreateAdministrativeDecisionHandler(IContractsRepository repository
                 TransactionType = ServiceTransactionType.JobUpdate,
                 Notes = "تسجيل قرار إداري"
             };
+            await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
             await repository.AddAsync(transaction, cancellationToken);
         }
         await repository.SaveChangesAsync(cancellationToken);

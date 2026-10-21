@@ -16,11 +16,11 @@ public class CultureController : ControllerBase
     public IActionResult SetCulture([FromQuery] string culture, [FromQuery] string? returnUrl = null)
     {
         if (string.IsNullOrWhiteSpace(culture))
-            return BadRequest("culture query parameter is required.");
+            return BadRequest("معلمة culture مطلوبة.");
 
         var supported = HrLocalizationExtensions.SupportedCultures;
         if (!supported.Any(c => c.Name.Equals(culture, StringComparison.OrdinalIgnoreCase)))
-            return BadRequest($"Culture '{culture}' is not supported. Supported: {string.Join(", ", supported.Select(c => c.Name))}");
+            return BadRequest($"الثقافة '{culture}' غير مدعومة. المدعوم: {string.Join(", ", supported.Select(c => c.Name))}");
 
         Response.Cookies.Append(
             HrLocalizationExtensions.CultureCookieName,
@@ -35,7 +35,7 @@ public class CultureController : ControllerBase
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return LocalRedirect(returnUrl);
 
-        return Ok(new { culture, message = "Culture updated." });
+        return Ok(new { culture, message = "تم تحديث الثقافة." });
     }
 
     [HttpGet]

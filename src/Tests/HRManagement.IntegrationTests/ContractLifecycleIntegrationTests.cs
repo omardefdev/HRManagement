@@ -27,6 +27,7 @@ public class ContractLifecycleIntegrationTests
         var spy = new SpyEventPublisher();
         var services = new ServiceCollection();
         services.AddLogging();
+        IntegrationTestHelpers.AddDeterministicServiceClients(services);
         services.AddDbContext<ContractsDbContext>(o => o.UseSqlite(connection));
         services.AddScoped<IContractsRepository, ContractsRepository>();
         services.AddSingleton<IEventPublisher>(spy);

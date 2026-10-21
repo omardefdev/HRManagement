@@ -1,11 +1,42 @@
 @model IEnumerable<Payroll.Domain.Entities.PayrollConfiguration>
+@using Payroll.Domain.Enums
 @{
     ViewData["Title"] = "الأطر القانونية للرواتب";
+    var q = ViewBag.Q as string;
+    bool? isActive = ViewBag.IsActive;
+    var publicationStatus = ViewBag.PublicationStatus as PayrollConfigPublicationStatus?;
 }
 <div class="card">
     <div class="card-header"><h3 class="card-title">الأطر القانونية للرواتب (إصدارات PAY-002)</h3></div>
-    <div class="card-body table-responsive p-0">
-        <table class="table table-hover">
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <input type="text" name="q" value="@q" class="form-control form-control-sm" placeholder="بحث بالرمز أو الاسم..." />
+            </div>
+            <div class="col-auto">
+                <select name="isActive" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    <option value="true" selected="@(isActive == true ? "selected" : null)">نشط</option>
+                    <option value="false" selected="@(isActive == false ? "selected" : null)">غير نشط</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="publicationStatus" class="form-select form-select-sm">
+                    <option value="">كل حالات النشر</option>
+                    @foreach (var item in Enum.GetValues<PayrollConfigPublicationStatus>())
+                    {
+                        <option value="@item" selected="@(publicationStatus == item ? "selected" : null)">@Html.HrEnumDisplay(item)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body table-responsive p-0 border-top-0 pt-0">
+        <table class="table table-hover mb-0">
             <thead>
                 <tr>
                     <th>الكود</th>
@@ -20,25 +51,25 @@
             <tbody>
             @foreach (var item in Model)
             {
-                <tr class="@(item.PublicationStatus == Payroll.Domain.Enums.PayrollConfigPublicationStatus.Superseded ? "table-secondary" : null)">
+                <tr class="@(item.PublicationStatus == PayrollConfigPublicationStatus.Superseded ? "table-secondary" : null)">
                     <td>@item.Code</td>
                     <td>v@item.VersionNumber</td>
                     <td>@item.NameAr</td>
                     <td>@item.RegimeCode</td>
-                    <td>@item.PublicationStatus</td>
+                    <td>@Html.HrEnumDisplay(item.PublicationStatus)</td>
                     <td>@(item.IsActive ? "نعم" : "لا")</td>
                     <td>
                         <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">تفاصيل</a>
                         <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary">@(item.IsImmutable ? "نسخة جديدة" : "تعديل")</a>
-                        @if (!item.IsActive && item.PublicationStatus == Payroll.Domain.Enums.PayrollConfigPublicationStatus.Published)
+                        @if (!item.IsActive && item.PublicationStatus == PayrollConfigPublicationStatus.Published)
                         {
                             <form asp-action="Activate" asp-route-id="@item.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-sm btn-success">تفعيل</button>
                             </form>
                         }
-                        @if (item.PublicationStatus is Payroll.Domain.Enums.PayrollConfigPublicationStatus.Draft
-                            or Payroll.Domain.Enums.PayrollConfigPublicationStatus.Approved)
+                        @if (item.PublicationStatus is PayrollConfigPublicationStatus.Draft
+                            or PayrollConfigPublicationStatus.Approved)
                         {
                             <form asp-action="Publish" asp-route-id="@item.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()

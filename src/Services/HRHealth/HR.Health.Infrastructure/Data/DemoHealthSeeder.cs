@@ -1,6 +1,7 @@
 using HR.Health.Domain.Entities;
 using HR.Health.Domain.Enums;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ namespace HR.Health.Infrastructure.Data;
 /// </summary>
 public static class DemoHealthSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
 
     private static readonly string[] MedicalHistories =
     [
@@ -94,8 +95,8 @@ public static class DemoHealthSeeder
             || await db.InsuranceContracts.AnyAsync(ct))
             return;
 
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("health");
+        var now = AcceptanceSeedExecution.UtcNow;
         var today = DateOnly.FromDateTime(now);
 
         var medicalRecords = SeedMedicalRecords(db, rng, now, today);
@@ -119,9 +120,9 @@ public static class DemoHealthSeeder
         DateTime now,
         DateOnly today)
     {
-        var records = new List<MedicalRecord>(200);
+        var records = new List<MedicalRecord>(DemoSeedIds.EmployeeCount);
 
-        for (var i = 0; i < 200; i++)
+        for (var i = 0; i < DemoSeedIds.EmployeeCount; i++)
         {
             var monthsAgo = rng.Next(1, 24);
             var examDate = today.AddMonths(-monthsAgo);
@@ -220,7 +221,10 @@ public static class DemoHealthSeeder
         DateTime now,
         DateOnly today)
     {
-        for (var i = 0; i < 150; i++)
+        var checkCount = AcceptanceSeedExecution.IsAcceptance
+            ? Math.Max(10, (DemoSeedIds.EmployeeCount * 16 + 50) / 100)
+            : 150;
+        for (var i = 0; i < checkCount; i++)
         {
             var empIndex = i % DemoSeedIds.EmployeeCount;
             var daysAgo = rng.Next(5, 540);

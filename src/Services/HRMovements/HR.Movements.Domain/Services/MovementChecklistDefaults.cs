@@ -21,6 +21,9 @@ public static class MovementChecklistDefaults
             (MovementKind.Secondment, MovementChecklistStep.Ended) => ("hr-movements", 24, true),
             (MovementKind.Loan, MovementChecklistStep.Executed) => ("hr-movements", 24, true),
             (MovementKind.Loan, MovementChecklistStep.Ended) => ("hr-movements", 24, true),
+            (MovementKind.Promotion, MovementChecklistStep.Executed) => ("hr-movements", 1, true),
+            (MovementKind.Delegation, MovementChecklistStep.Executed) => ("hr-movements", 1, true),
+            (MovementKind.Delegation, MovementChecklistStep.Ended) => ("hr-movements", 24, true),
             _ => ("hr-movements", 48, false)
         };
 
@@ -46,6 +49,19 @@ public static class MovementChecklistDefaults
             MovementChecklistStep.Ended
         ],
         MovementKind.Loan =>
+        [
+            MovementChecklistStep.RequestRecorded,
+            MovementChecklistStep.Approved,
+            MovementChecklistStep.Executed,
+            MovementChecklistStep.Ended
+        ],
+        MovementKind.Promotion =>
+        [
+            MovementChecklistStep.RequestRecorded,
+            MovementChecklistStep.Approved,
+            MovementChecklistStep.Executed
+        ],
+        MovementKind.Delegation =>
         [
             MovementChecklistStep.RequestRecorded,
             MovementChecklistStep.Approved,

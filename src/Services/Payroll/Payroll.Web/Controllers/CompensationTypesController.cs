@@ -12,9 +12,16 @@ public class CompensationTypesController : Controller
 
     public CompensationTypesController(PayrollDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q)
     {
-        var items = await _db.CompensationTypes.AsNoTracking().OrderBy(x => x.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        var query = _db.CompensationTypes.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(x => x.Code.Contains(term) || x.NameAr.Contains(term) || (x.NameEn != null && x.NameEn.Contains(term)));
+        }
+        var items = await query.OrderBy(x => x.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.Q = q;
         return View(items);
     }
 

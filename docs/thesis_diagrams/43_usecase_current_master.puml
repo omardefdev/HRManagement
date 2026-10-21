@@ -1,0 +1,56 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات الاستخدام المرجعية لخط الأساس الحالي
+left to right direction
+actor "مسؤول المنصة" as Platform
+actor "الإدارة المركزية" as Central
+actor "مدير الفرع" as Branch
+actor "موظف المجال" as Officer
+actor "الرواتب والخزينة" as Treasury
+actor "الأمن والخصوصية" as Security
+actor "الموظف" as Employee
+actor "المواطن" as Citizen
+rectangle "منصة HRManagement متعددة الجهات" {
+  usecase "تهيئة الجهة وإسناد البيانات\nوالحجر والمصالحة" as Tenant
+  usecase "الهيكل المؤرخ والوظائف\nالممولة وخطة القوى العاملة" as Org
+  usecase "دورة حياة الموظف\nوالعقود والحركات" as Lifecycle
+  usecase "السياسات وسير العمل\nوالتوقيع وتوليد الرموز" as Governance
+  usecase "الرواتب والتمويل\nوالدفع والتسوية" as Payroll
+  usecase "التوريد والمخزون\nوالأصول والعهد" as Logistics
+  usecase "الملفات والخصوصية\nوثقة الخدمات" as Privacy
+  usecase "الخدمة الذاتية\nوالتوظيف العام" as Portals
+}
+Platform --> Tenant
+Central --> Org
+Central --> Governance
+Central --> Lifecycle
+Branch --> Lifecycle
+Branch --> Logistics
+Officer --> Lifecycle
+Officer --> Logistics
+Treasury --> Payroll
+Security --> Privacy
+Employee --> Portals
+Citizen --> Portals
+@enduml

@@ -900,6 +900,10 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<Guid?>("PayGradeId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("RegimeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 

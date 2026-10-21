@@ -4,6 +4,9 @@ using Compliance.Domain.Services;
 using Compliance.Infrastructure.Data;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Integration;
+using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.ViewModels;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +15,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Compliance.Web.Controllers;
 
-public class LegalCasesController(ComplianceDbContext db, IPublishEndpoint publish) : Controller
+public class LegalCasesController(
+    ComplianceDbContext db,
+    IPublishEndpoint publish,
+    ICodeGenerationClient codeClient) : Controller
 {
     public async Task<IActionResult> Index() =>
         View(await db.LegalCases.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
@@ -24,6 +30,16 @@ public class LegalCasesController(ComplianceDbContext db, IPublishEndpoint publi
     public async Task<IActionResult> Create(LegalCase model)
     {
         if (!ModelState.IsValid) return View(model);
+
+        var (ok, caseNumber, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
+            codeClient, CodeGenerationRequests.LegalCase());
+        if (!ok)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "تعذّر توليد رقم القضية");
+            return View(model);
+        }
+
+        model.CaseNumber = caseNumber!;
         db.LegalCases.Add(model);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تسجيل القضية";
@@ -51,10 +67,10 @@ public class LegalCasesController(ComplianceDbContext db, IPublishEndpoint publi
         var entity = await db.LegalCases.FindAsync(id);
         if (entity is null) return NotFound();
 
-        entity.CaseNumber = model.CaseNumber;
         entity.Subject = model.Subject;
         entity.Parties = model.Parties;
         entity.Status = model.Status;
+        // CaseNumber immutable (COD-001)
         entity.CourtDetails = model.CourtDetails;
         entity.AssignedTo = model.AssignedTo;
         await db.SaveChangesAsync();
@@ -115,10 +131,21 @@ public class LegalCasesController(ComplianceDbContext db, IPublishEndpoint publi
     }
 }
 
-public class DisciplinaryActionsController(ComplianceDbContext db, IPublishEndpoint publish, IFileReferenceClient fileRefs) : Controller
+public class DisciplinaryActionsController(
+    ComplianceDbContext db,
+    IPublishEndpoint publish,
+    IFileReferenceClient fileRefs,
+    IHrCoreLookupClient hrCoreLookup) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.DisciplinaryActions.AsNoTracking().OrderByDescending(x => x.IssuedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index()
+    {
+        var items = await db.DisciplinaryActions.AsNoTracking()
+            .OrderByDescending(x => x.IssuedAt)
+            .Take(SearchFilterBase.MaxPageSize)
+            .ToListAsync();
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(items.Select(x => x.EmployeeId));
+        return View(items);
+    }
 
     public IActionResult Create()
     {
@@ -202,7 +229,25 @@ public class DisciplinaryActionsController(ComplianceDbContext db, IPublishEndpo
             .Include(x => x.Complaint)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (model is null) return NotFound();
+        ViewBag.EmployeeName = (await ResolveEmployeeNamesAsync([model.EmployeeId]))
+            .GetValueOrDefault(model.EmployeeId, "غير متاح");
         return View(model);
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        try
+        {
+            foreach (var row in await hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList()))
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<DisciplinaryActionsController>>()
+                .LogWarning(ex, "Employee name lookup failed for disciplinary actions.");
+        }
+        return result;
     }
 
     public async Task<IActionResult> Edit(Guid id)

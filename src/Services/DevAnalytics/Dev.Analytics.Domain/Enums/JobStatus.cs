@@ -1,3 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Dev.Analytics.Domain.Enums;
 
-public enum JobStatus { Ok, Failed }
+public enum JobStatus
+{
+    [Display(Name = "ناجح")]
+    Ok,
+    [Display(Name = "فشل")]
+    Failed,
+}

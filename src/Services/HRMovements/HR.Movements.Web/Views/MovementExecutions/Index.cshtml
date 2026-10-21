@@ -10,7 +10,7 @@
             {
                 var type = r.TransferRequestId != null ? "نقل" : r.SecondmentRequestId != null ? "انتداب" : "—";
                 <tr>
-                    <td>@r.EmployeeId</td>
+                    <td><span data-hr-employee-id="@r.EmployeeId">جاري التحميل...</span></td>
                     <td>@type</td>
                     <td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td>
                     <td>@r.ExecutedBy</td>

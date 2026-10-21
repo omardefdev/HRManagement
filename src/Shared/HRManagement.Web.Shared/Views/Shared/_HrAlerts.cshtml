@@ -1,3 +1,4 @@
+<div data-hr-alerts>
 @if (TempData["Success"] is string ok && !string.IsNullOrWhiteSpace(ok))
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -5,7 +6,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
     </div>
 }
-@if (TempData["Error"] is string err && !string.IsNullOrWhiteSpace(err))
+@if (TempData["Error"] is string err && !string.IsNullOrWhiteSpace(err)
+     && !string.Equals(TempData["ShowDialog"] as string, "true", StringComparison.OrdinalIgnoreCase))
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fas fa-exclamation-circle"></i> @err
@@ -26,3 +28,4 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
     </div>
 }
+</div>

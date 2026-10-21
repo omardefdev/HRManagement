@@ -1,11 +1,18 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HRManagement.SharedKernel.Exports;
 
 public enum ExportJobStatus
 {
+    [Display(Name = "قيد الانتظار")]
     Pending = 0,
+    [Display(Name = "قيد التنفيذ")]
     Running = 1,
+    [Display(Name = "مكتمل")]
     Completed = 2,
+    [Display(Name = "فشل")]
     Failed = 3,
+    [Display(Name = "ملغى")]
     Cancelled = 4
 }
 

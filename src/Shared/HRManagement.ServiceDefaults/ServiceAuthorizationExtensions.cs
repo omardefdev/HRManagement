@@ -78,7 +78,8 @@ public static class ServiceAuthorizationExtensions
                 || (ServiceCallerPrincipal.IsServiceAccount(ctx.User)
                     && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
                     && IsAllowedClient(ctx.User, ServiceClientIds.Payroll, ServiceClientIds.HrContracts,
-                        ServiceClientIds.HrMovements, ServiceClientIds.Gateway))));
+                        ServiceClientIds.HrMovements, ServiceClientIds.AdminLogistics, ServiceClientIds.Compliance,
+                        ServiceClientIds.Gateway))));
 
             options.AddPolicy(ServicePolicies.FileStorageReferences, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
@@ -88,7 +89,13 @@ public static class ServiceAuthorizationExtensions
                     ServiceClientIds.HrContracts,
                     ServiceClientIds.HrTraining,
                     ServiceClientIds.IdCard,
-                    ServiceClientIds.RecordsArchive)));
+                    ServiceClientIds.RecordsArchive,
+                    ServiceClientIds.AdminLogistics)));
+
+            options.AddPolicy(ServicePolicies.DsarSubjectRead, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DsarSubjectRead)
+                && IsAllowedClient(ctx.User, ServiceClientIds.Compliance)));
 
             // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
             options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>

@@ -1,6 +1,7 @@
 using Dev.Analytics.Domain.Entities;
 using Dev.Analytics.Domain.Enums;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Exports;
 using HRManagement.SharedKernel.Tenancy;
@@ -14,7 +15,10 @@ namespace Dev.Analytics.Infrastructure.Data;
 /// </summary>
 public static class DemoAnalyticsSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
+    private static string ScopedCode(string code) => AcceptanceSeedExecution.CurrentAgency is { } agency
+        ? $"{agency.Code}-{code}"
+        : code;
 
     private static readonly string[] DashboardNames =
     [
@@ -95,8 +99,8 @@ public static class DemoAnalyticsSeeder
         if (await db.Dashboards.AnyAsync(ct))
             return;
 
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("analytics");
+        var now = AcceptanceSeedExecution.UtcNow;
 
         await SeedDashboardsAsync(db, rng, now, ct);
         await SeedReportsAsync(db, rng, now, ct);
@@ -174,6 +178,8 @@ public static class DemoAnalyticsSeeder
         for (var i = 0; i < KpiDefs.Length; i++)
         {
             var (code, name, target) = KpiDefs[i];
+            if (code == "KPI-HEADCOUNT" && AcceptanceSeedExecution.IsAcceptance)
+                target = DemoSeedIds.EmployeeCount;
             var measuredAt = now.AddDays(-rng.Next(0, 14));
             var variance = (decimal)(rng.NextDouble() * 0.2 - 0.05);
 
@@ -181,7 +187,7 @@ public static class DemoAnalyticsSeeder
             {
                 Id = DemoSeedIds.Named($"kpi-{code.ToLowerInvariant()}"),
                 TenantId = TenantId,
-                Code = code,
+                Code = ScopedCode(code),
                 Name = name,
                 Definition = $"تعريف تجريبي للمؤشر: {name}",
                 TargetValue = target,

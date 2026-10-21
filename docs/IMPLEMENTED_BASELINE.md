@@ -31,7 +31,7 @@
 - YARP: مسارات `/health/upstreams/{service}` → `/health` على كل cluster (انظر `appsettings.json`).
 - لوحة رئيسية مع جلب حالة الخدمات (`HomeController.UpstreamHealth`).
 - صفحة مسار الفصل: `Views/Home/SeparationJourney.cshtml`.
-- مسار التوظيف الجديد: `Home/HireJourney` → `JourneyDetails` (`new-hire`) مع `UiPath` لمعالج التعيين.
+- مسار التوظيف الجديد: `Home/HireJourney` → `JourneyDetails` (`new-hire`) — **مرحلتان**: HCM-001 (12 خطوة توظيف + `/careers`) ثم FUN-001 (معالج التعيين والخدمات).
 - تضمين جزئي من RCL: `HRManagement.Web.Shared` (`_HrSharedFooter`).
 - إعدادات dev للجلسة: `HrAuth` cookie في `appsettings.Development.json` — انظر [`UI_CHECKLIST_RESULTS.md`](./UI_CHECKLIST_RESULTS.md).
 

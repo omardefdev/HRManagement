@@ -1,0 +1,62 @@
+{
+  "ok": false,
+  "scannedAtUtc": "2026-08-25T07:40:50.3264543Z",
+  "checks": [
+    {
+      "name": "employees-national-id-no-digit-plaintext",
+      "passed": false,
+      "detail": {
+        "plaintextDigitRows": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist"
+      }
+    },
+    {
+      "name": "employees-national-id-hash-present",
+      "passed": false,
+      "detail": {
+        "missingHashRows": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist"
+      }
+    },
+    {
+      "name": "seed-hash-ACC010000001",
+      "passed": true,
+      "detail": {
+        "matches": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist",
+        "hash": "735dd36fedf3646933fed307289697a8d581d5c03b50550b4884eeaed3f7b2c4"
+      }
+    },
+    {
+      "name": "seed-hash-ACC010000002",
+      "passed": true,
+      "detail": {
+        "matches": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist",
+        "hash": "ebb4bda02df058324d50ea61ea1a3758734a94938904af5a04432bb246d13e60"
+      }
+    },
+    {
+      "name": "seed-hash-ACC010000003",
+      "passed": true,
+      "detail": {
+        "matches": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist",
+        "hash": "beb991fe4020a4365e01b3d3d92b8e33a922511db263168002353bce18c3afce"
+      }
+    },
+    {
+      "name": "seed-hash-ACC020000001",
+      "passed": true,
+      "detail": {
+        "matches": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist",
+        "hash": "e73f6a476595bf8057686ac17e63133a951862b35586cd6ef63be8db27e19bdc"
+      }
+    },
+    {
+      "name": "hr-core-logs-no-known-national-ids",
+      "passed": true,
+      "detail": {
+        "matches": 0
+      }
+    }
+  ],
+  "warnings": [
+    "RecruitmentApplications contains digit plaintext NationalId rows: psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  role \"postgres\" does not exist (out of AC-26 Employee scope)"
+  ]
+}

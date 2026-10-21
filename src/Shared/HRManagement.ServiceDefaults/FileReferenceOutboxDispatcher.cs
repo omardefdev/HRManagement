@@ -1,5 +1,6 @@
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -156,8 +157,11 @@ public static class FileReferenceOutboxServiceCollectionExtensions
     /// <summary>
     /// Holder-side durable file reference registration: outbox rows + dispatcher that delivers via HTTP.
     /// Call after AddDbContext and AddHrFileReferenceClient (replaces IFileReferenceClient with outbox writer).
+    /// Set <c>FileReferenceOutbox:Enabled=false</c> to skip the background dispatcher (dev/UAT).
     /// </summary>
-    public static IServiceCollection AddFileReferenceOutbox<TContext>(this IServiceCollection services)
+    public static IServiceCollection AddFileReferenceOutbox<TContext>(
+        this IServiceCollection services,
+        IConfiguration? configuration = null)
         where TContext : DbContext
     {
         services.AddScoped<HttpFileReferenceClient>();
@@ -166,7 +170,11 @@ public static class FileReferenceOutboxServiceCollectionExtensions
                 sp.GetRequiredService<TContext>(),
                 sp.GetService<ITenantContext>()));
         services.AddScoped<IFileReferenceClient, OutboxFileReferenceClient>();
-        services.AddHostedService<FileReferenceOutboxDispatcherJob<TContext>>();
+
+        var enabled = configuration?.GetValue("FileReferenceOutbox:Enabled", true) ?? true;
+        if (enabled)
+            services.AddHostedService<FileReferenceOutboxDispatcherJob<TContext>>();
+
         return services;
     }
 }

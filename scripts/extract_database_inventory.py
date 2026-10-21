@@ -65,6 +65,8 @@ def snapshot_tables(snapshot: Path | None) -> list[str]:
 
 def extract_context(path: Path) -> dict[str, object] | None:
     text = path.read_text(encoding="utf-8-sig", errors="ignore")
+    if re.search(r"\babstract\s+class\s+\w+DbContext\b", text):
+        return None
     context_match = re.search(r"class\s+(\w+DbContext)\b", text)
     if not context_match:
         return None

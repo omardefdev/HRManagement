@@ -18,6 +18,7 @@ public class HealthEmployeeCreatedConsumerTests
         public string EmploymentType { get; init; } = "";
         public Guid? TenantId { get; init; }
         public Guid? PrimaryOrgUnitId { get; init; }
+        public string? CorrelationId { get; init; }
     }
 
     [Fact]

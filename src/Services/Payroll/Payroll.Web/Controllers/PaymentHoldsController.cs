@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Payroll.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,10 @@ using Payroll.Infrastructure.Data;
 
 namespace Payroll.Web.Controllers;
 
-public class PaymentHoldsController(PayrollDbContext db, PaymentHoldService holdService) : Controller
+public class PaymentHoldsController(
+    PayrollDbContext db,
+    PaymentHoldService holdService,
+    IEmployeeLookup employeeLookup) : Controller
 {
     private Guid RequireUserId()
     {
@@ -20,12 +24,24 @@ public class PaymentHoldsController(PayrollDbContext db, PaymentHoldService hold
             : throw new UnauthorizedAccessException("Missing user identity claim.");
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(Guid? employeeId, string? status, string? holdType, DateTime? heldFrom, DateTime? heldTo)
     {
-        var items = await db.PaymentHolds.AsNoTracking()
-            .OrderByDescending(h => h.HeldAtUtc)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync();
+        var query = db.PaymentHolds.AsNoTracking().AsQueryable();
+        if (employeeId.HasValue) query = query.Where(h => h.EmployeeId == employeeId.Value);
+        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(h => h.Status == status.Trim());
+        if (!string.IsNullOrWhiteSpace(holdType)) query = query.Where(h => h.HoldType == holdType.Trim());
+        if (heldFrom.HasValue) query = query.Where(h => h.HeldAtUtc >= heldFrom.Value);
+        if (heldTo.HasValue) query = query.Where(h => h.HeldAtUtc <= heldTo.Value);
+
+        var items = await query.OrderByDescending(h => h.HeldAtUtc).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.Status = status;
+        ViewBag.HoldType = holdType;
+        ViewBag.HeldFrom = heldFrom;
+        ViewBag.HeldTo = heldTo;
+        ViewBag.EmployeeNames = await employeeLookup.GetEmployeeDisplayNamesAsync(
+            items.Select(h => h.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
+            HttpContext.RequestAborted);
         return View(items);
     }
 
@@ -33,6 +49,8 @@ public class PaymentHoldsController(PayrollDbContext db, PaymentHoldService hold
     {
         var hold = await db.PaymentHolds.AsNoTracking().FirstOrDefaultAsync(h => h.Id == id);
         if (hold is null) return NotFound();
+        ViewBag.EmployeeName = await employeeLookup.GetEmployeeDisplayNameAsync(
+            hold.EmployeeId, HttpContext.RequestAborted) ?? "غير متاح";
         return View(hold);
     }
 

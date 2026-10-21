@@ -9,7 +9,7 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>موظف</th><th>تاريخ النفاذ</th><th>السبب</th><th></th></tr></thead>
             <tbody>
-            @foreach (var x in Model) { <tr><td>@x.EmployeeId</td><td>@x.EffectiveDate</td><td>@(x.Reason ?? "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td></tr> }
+            @foreach (var x in Model) { <tr><td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td><td>@x.EffectiveDate</td><td>@(x.Reason ?? "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td></tr> }
             @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد سجلات</td></tr> }
             </tbody>
         </table>

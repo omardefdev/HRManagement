@@ -1,0 +1,865 @@
+{
+  "schemaVersion": "acceptance-v2",
+  "referenceDate": "2026-08-01",
+  "personas": [
+    {
+      "id": "platform-admin",
+      "username": "acc-platform-admin",
+      "passwordEnv": "ACCEPTANCE_PLATFORM_ADMIN_PASSWORD",
+      "roles": [
+        "platform-admin"
+      ],
+      "tenantCode": "PLATFORM",
+      "tenantId": "00000000-0000-4000-8000-000000000001",
+      "purpose": "Platform administration across agencies",
+      "scenarios": [
+        "AC-05"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "platform-auditor",
+      "username": "acc-platform-auditor",
+      "passwordEnv": "ACCEPTANCE_PLATFORM_AUDITOR_PASSWORD",
+      "roles": [
+        "auditor"
+      ],
+      "tenantCode": "PLATFORM",
+      "tenantId": "00000000-0000-4000-8000-000000000001",
+      "purpose": "Independent platform audit",
+      "enabled": true
+    },
+    {
+      "id": "central-a",
+      "username": "acc-central-a",
+      "passwordEnv": "ACCEPTANCE_CENTRAL_A_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 0,
+      "purpose": "Central HR full-tenant reader and maker",
+      "scenarios": [
+        "AC-01",
+        "AC-03"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-management-approver",
+      "username": "acc-a-management-approver",
+      "passwordEnv": "ACCEPTANCE_A_MANAGEMENT_APPROVER_PASSWORD",
+      "roles": [
+        "hr-management-approver"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 1,
+      "purpose": "Management approval checker",
+      "scenarios": [
+        "AC-09",
+        "AC-14"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-supervisory-reader",
+      "username": "acc-a-supervisory-reader",
+      "passwordEnv": "ACCEPTANCE_A_SUPERVISORY_READER_PASSWORD",
+      "roles": [
+        "hr-core-supervisory"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 2,
+      "purpose": "Supervisory cadre reader",
+      "enabled": true
+    },
+    {
+      "id": "a-executive-reader",
+      "username": "acc-a-executive-reader",
+      "passwordEnv": "ACCEPTANCE_A_EXECUTIVE_READER_PASSWORD",
+      "roles": [
+        "hr-core-executive"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 3,
+      "purpose": "Executive cadre reader",
+      "enabled": true
+    },
+    {
+      "id": "a-contracts-maker",
+      "username": "acc-a-contracts-maker",
+      "passwordEnv": "ACCEPTANCE_A_CONTRACTS_MAKER_PASSWORD",
+      "roles": [
+        "hr-contracts"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 4,
+      "purpose": "Contracts, leave and advance maker",
+      "scenarios": [
+        "AC-08"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-contracts-checker",
+      "username": "acc-a-contracts-checker",
+      "passwordEnv": "ACCEPTANCE_A_CONTRACTS_CHECKER_PASSWORD",
+      "roles": [
+        "hr-contracts"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 5,
+      "purpose": "Independent contracts checker",
+      "scenarios": [
+        "AC-08"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-movements",
+      "username": "acc-a-movements",
+      "passwordEnv": "ACCEPTANCE_A_MOVEMENTS_PASSWORD",
+      "roles": [
+        "hr-movements"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 6,
+      "purpose": "Transfer and movement maker",
+      "scenarios": [
+        "AC-09"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-training",
+      "username": "acc-a-training",
+      "passwordEnv": "ACCEPTANCE_A_TRAINING_PASSWORD",
+      "roles": [
+        "hr-training"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 7,
+      "purpose": "Training operations",
+      "enabled": true
+    },
+    {
+      "id": "a-health",
+      "username": "acc-a-health",
+      "passwordEnv": "ACCEPTANCE_A_HEALTH_PASSWORD",
+      "roles": [
+        "hr-health"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 8,
+      "purpose": "Occupational health operations",
+      "enabled": true
+    },
+    {
+      "id": "a-clinician",
+      "username": "acc-a-clinician",
+      "passwordEnv": "ACCEPTANCE_A_CLINICIAN_PASSWORD",
+      "roles": [
+        "hr-health",
+        "hr-health-clinical"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 9,
+      "purpose": "Restricted clinical data operator",
+      "scenarios": [
+        "AC-26"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "payroll-processor",
+      "username": "e2e-payroll-processor",
+      "passwordEnv": "ACCEPTANCE_E2E_PAYROLL_PROCESSOR_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-processor"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 10,
+      "purpose": "Payroll maker and calculator",
+      "scenarios": [
+        "AC-12",
+        "AC-21",
+        "AC-22"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "payroll-approver",
+      "username": "e2e-payroll-approver",
+      "passwordEnv": "ACCEPTANCE_E2E_PAYROLL_APPROVER_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-approver"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 11,
+      "purpose": "Independent payroll approver",
+      "scenarios": [
+        "AC-12",
+        "AC-24",
+        "AC-25"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-payroll-poster",
+      "username": "acc-a-payroll-poster",
+      "passwordEnv": "ACCEPTANCE_A_PAYROLL_POSTER_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-poster"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 12,
+      "purpose": "Payroll posting operator",
+      "enabled": true
+    },
+    {
+      "id": "a-payroll-reverser",
+      "username": "acc-a-payroll-reverser",
+      "passwordEnv": "ACCEPTANCE_A_PAYROLL_REVERSER_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-reverser"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 13,
+      "purpose": "Payroll reversal operator",
+      "enabled": true
+    },
+    {
+      "id": "a-idcard",
+      "username": "acc-a-idcard",
+      "passwordEnv": "ACCEPTANCE_A_IDCARD_PASSWORD",
+      "roles": [
+        "idcard"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 14,
+      "purpose": "Identity card operations",
+      "enabled": true
+    },
+    {
+      "id": "a-archive",
+      "username": "acc-a-archive",
+      "passwordEnv": "ACCEPTANCE_A_ARCHIVE_PASSWORD",
+      "roles": [
+        "records-archive",
+        "file-storage"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 15,
+      "purpose": "Records and archive operations",
+      "enabled": true
+    },
+    {
+      "id": "a-logistics-maker",
+      "username": "acc-a-logistics-maker",
+      "passwordEnv": "ACCEPTANCE_A_LOGISTICS_MAKER_PASSWORD",
+      "roles": [
+        "admin-logistics"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 16,
+      "purpose": "Asset and supply maker",
+      "scenarios": [
+        "AC-32"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-logistics-checker",
+      "username": "acc-a-logistics-checker",
+      "passwordEnv": "ACCEPTANCE_A_LOGISTICS_CHECKER_PASSWORD",
+      "roles": [
+        "admin-logistics"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 17,
+      "purpose": "Independent logistics checker",
+      "scenarios": [
+        "AC-33"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-it",
+      "username": "acc-a-it",
+      "passwordEnv": "ACCEPTANCE_A_IT_PASSWORD",
+      "roles": [
+        "it-infra"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 18,
+      "purpose": "IT infrastructure operations",
+      "enabled": true
+    },
+    {
+      "id": "a-analytics",
+      "username": "acc-a-analytics",
+      "passwordEnv": "ACCEPTANCE_A_ANALYTICS_PASSWORD",
+      "roles": [
+        "dev-analytics"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 19,
+      "purpose": "Analytics and KPI reader",
+      "enabled": true
+    },
+    {
+      "id": "a-compliance",
+      "username": "acc-a-compliance",
+      "passwordEnv": "ACCEPTANCE_A_COMPLIANCE_PASSWORD",
+      "roles": [
+        "compliance"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 20,
+      "purpose": "Compliance and privacy operator",
+      "enabled": true
+    },
+    {
+      "id": "a-directory-maker",
+      "username": "acc-a-directory-maker",
+      "passwordEnv": "ACCEPTANCE_A_DIRECTORY_MAKER_PASSWORD",
+      "roles": [
+        "auth-directory"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 21,
+      "purpose": "Directory role assignment maker",
+      "enabled": true
+    },
+    {
+      "id": "a-directory-checker",
+      "username": "acc-a-directory-checker",
+      "passwordEnv": "ACCEPTANCE_A_DIRECTORY_CHECKER_PASSWORD",
+      "roles": [
+        "hr-admin"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 22,
+      "purpose": "Independent directory assignment checker",
+      "enabled": true
+    },
+    {
+      "id": "a-file-custodian",
+      "username": "acc-a-file-custodian",
+      "passwordEnv": "ACCEPTANCE_A_FILE_CUSTODIAN_PASSWORD",
+      "roles": [
+        "file-storage"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 23,
+      "purpose": "File scanning and access grant operator",
+      "enabled": true
+    },
+    {
+      "id": "auditor",
+      "username": "acc-auditor",
+      "passwordEnv": "ACCEPTANCE_AUDITOR_PASSWORD",
+      "roles": [
+        "auditor"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 24,
+      "purpose": "Agency A independent audit reader",
+      "enabled": true
+    },
+    {
+      "id": "br1-mgr",
+      "username": "acc-br1-mgr",
+      "passwordEnv": "ACCEPTANCE_BR1_MGR_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core",
+        "admin-logistics"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "RIF",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "RIF",
+      "purpose": "Rural Damascus branch manager",
+      "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000102",
+      "scenarios": [
+        "AC-02",
+        "AC-04"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "br2-mgr",
+      "username": "acc-br2-mgr",
+      "passwordEnv": "ACCEPTANCE_BR2_MGR_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core",
+        "admin-logistics"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "ALEP",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "ALEP",
+      "purpose": "Aleppo branch manager",
+      "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000104",
+      "enabled": true
+    },
+    {
+      "id": "a-homs-mgr",
+      "username": "acc-a-homs-mgr",
+      "passwordEnv": "ACCEPTANCE_A_HOMS_MGR_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HOMS",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "HOMS",
+      "scopeOrgUnitId": "ba0ddbaf-6177-fc4b-b229-d50649ca85c9",
+      "purpose": "Homs branch manager",
+      "enabled": true
+    },
+    {
+      "id": "a-hama-mgr",
+      "username": "acc-a-hama-mgr",
+      "passwordEnv": "ACCEPTANCE_A_HAMA_MGR_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HAMA",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "HAMA",
+      "scopeOrgUnitId": "539b45c2-8dde-0742-8286-7568a9d2de58",
+      "purpose": "Hama branch manager",
+      "enabled": true
+    },
+    {
+      "id": "a-lat-mgr",
+      "username": "acc-a-lat-mgr",
+      "passwordEnv": "ACCEPTANCE_A_LAT_MGR_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "LAT",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "LAT",
+      "scopeOrgUnitId": "1c8cd8e2-e4e0-e442-afb3-8fedc2b7bfe0",
+      "purpose": "Latakia branch manager",
+      "enabled": true
+    },
+    {
+      "id": "a-tar-mgr",
+      "username": "acc-a-tar-mgr",
+      "passwordEnv": "ACCEPTANCE_A_TAR_MGR_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "TAR",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "TAR",
+      "scopeOrgUnitId": "459da137-60bd-1e44-a3f8-2f1908481ad1",
+      "purpose": "Tartous branch manager",
+      "enabled": true
+    },
+    {
+      "id": "employee-a",
+      "username": "acc-employee-a",
+      "passwordEnv": "ACCEPTANCE_EMPLOYEE_A_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "RIF",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "RIF",
+      "purpose": "Rural Damascus employee self-service",
+      "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000102",
+      "enabled": true
+    },
+    {
+      "id": "a-employee-alep",
+      "username": "acc-a-employee-alep",
+      "passwordEnv": "ACCEPTANCE_A_EMPLOYEE_ALEP_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "ALEP",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "ALEP",
+      "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000104",
+      "purpose": "Aleppo employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "a-employee-homs",
+      "username": "acc-a-employee-homs",
+      "passwordEnv": "ACCEPTANCE_A_EMPLOYEE_HOMS_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HOMS",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "HOMS",
+      "scopeOrgUnitId": "ba0ddbaf-6177-fc4b-b229-d50649ca85c9",
+      "purpose": "Homs employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "a-employee-hama",
+      "username": "acc-a-employee-hama",
+      "passwordEnv": "ACCEPTANCE_A_EMPLOYEE_HAMA_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HAMA",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "HAMA",
+      "scopeOrgUnitId": "539b45c2-8dde-0742-8286-7568a9d2de58",
+      "purpose": "Hama employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "a-employee-lat",
+      "username": "acc-a-employee-lat",
+      "passwordEnv": "ACCEPTANCE_A_EMPLOYEE_LAT_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "LAT",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "LAT",
+      "scopeOrgUnitId": "1c8cd8e2-e4e0-e442-afb3-8fedc2b7bfe0",
+      "purpose": "Latakia employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "a-employee-tar",
+      "username": "acc-a-employee-tar",
+      "passwordEnv": "ACCEPTANCE_A_EMPLOYEE_TAR_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "TAR",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "TAR",
+      "scopeOrgUnitId": "459da137-60bd-1e44-a3f8-2f1908481ad1",
+      "purpose": "Tartous employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "outsider-b",
+      "username": "acc-outsider-b",
+      "passwordEnv": "ACCEPTANCE_OUTSIDER_B_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 0,
+      "purpose": "Agency B HR user and cross-tenant negative",
+      "scenarios": [
+        "AC-03"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "b-approver",
+      "username": "acc-b-approver",
+      "passwordEnv": "ACCEPTANCE_B_APPROVER_PASSWORD",
+      "roles": [
+        "hr-management-approver"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 1,
+      "purpose": "Agency B management approver",
+      "enabled": true
+    },
+    {
+      "id": "b-payroll-processor",
+      "username": "acc-b-payroll-processor",
+      "passwordEnv": "ACCEPTANCE_B_PAYROLL_PROCESSOR_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-processor"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 2,
+      "purpose": "Agency B payroll processor",
+      "enabled": true
+    },
+    {
+      "id": "b-payroll-approver",
+      "username": "acc-b-payroll-approver",
+      "passwordEnv": "ACCEPTANCE_B_PAYROLL_APPROVER_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-approver"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 3,
+      "purpose": "Agency B payroll approver",
+      "enabled": true
+    },
+    {
+      "id": "b-logistics",
+      "username": "acc-b-logistics",
+      "passwordEnv": "ACCEPTANCE_B_LOGISTICS_PASSWORD",
+      "roles": [
+        "admin-logistics"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 4,
+      "purpose": "Agency B logistics operator",
+      "enabled": true
+    },
+    {
+      "id": "b-branch-manager",
+      "username": "acc-b-branch-manager",
+      "passwordEnv": "ACCEPTANCE_B_BRANCH_MANAGER_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "ALEP",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "ALEP",
+      "scopeOrgUnitId": "0f272293-2a14-3a44-a4d7-d80d18a72baf",
+      "purpose": "Agency B Aleppo branch manager",
+      "enabled": true
+    },
+    {
+      "id": "b-employee",
+      "username": "acc-b-employee",
+      "passwordEnv": "ACCEPTANCE_B_EMPLOYEE_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "ALEP",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "ALEP",
+      "scopeOrgUnitId": "0f272293-2a14-3a44-a4d7-d80d18a72baf",
+      "purpose": "Agency B employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "b-auditor",
+      "username": "acc-b-auditor",
+      "passwordEnv": "ACCEPTANCE_B_AUDITOR_PASSWORD",
+      "roles": [
+        "auditor"
+      ],
+      "tenantCode": "AGENCY-B",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 5,
+      "purpose": "Agency B independent auditor",
+      "enabled": true
+    },
+    {
+      "id": "c-hr",
+      "username": "acc-c-hr",
+      "passwordEnv": "ACCEPTANCE_C_HR_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-C",
+      "tenantId": "a0000003-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 0,
+      "purpose": "Agency C HR user",
+      "enabled": true
+    },
+    {
+      "id": "c-payroll",
+      "username": "acc-c-payroll",
+      "passwordEnv": "ACCEPTANCE_C_PAYROLL_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-processor"
+      ],
+      "tenantCode": "AGENCY-C",
+      "tenantId": "a0000003-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 1,
+      "purpose": "Agency C payroll operator",
+      "enabled": true
+    },
+    {
+      "id": "c-branch-manager",
+      "username": "acc-c-branch-manager",
+      "passwordEnv": "ACCEPTANCE_C_BRANCH_MANAGER_PASSWORD",
+      "roles": [
+        "branch-manager",
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-C",
+      "tenantId": "a0000003-0000-4000-8000-000000000001",
+      "employeeSiteCode": "RIF",
+      "employeeOrdinal": 0,
+      "scopeSiteCode": "RIF",
+      "scopeOrgUnitId": "bad12392-45c8-3f45-a865-ef65ce46fc51",
+      "purpose": "Agency C Rural Damascus branch manager",
+      "enabled": true
+    },
+    {
+      "id": "c-employee",
+      "username": "acc-c-employee",
+      "passwordEnv": "ACCEPTANCE_C_EMPLOYEE_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-C",
+      "tenantId": "a0000003-0000-4000-8000-000000000001",
+      "employeeSiteCode": "RIF",
+      "employeeOrdinal": 1,
+      "scopeSiteCode": "RIF",
+      "scopeOrgUnitId": "bad12392-45c8-3f45-a865-ef65ce46fc51",
+      "purpose": "Agency C employee self-service",
+      "enabled": true
+    },
+    {
+      "id": "negative-disabled",
+      "username": "acc-negative-disabled",
+      "passwordEnv": "ACCEPTANCE_NEGATIVE_DISABLED_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "enabled": false,
+      "fixture": "disabled",
+      "purpose": "Authentication rejection for a disabled account"
+    },
+    {
+      "id": "negative-no-tenant",
+      "username": "acc-negative-no-tenant",
+      "passwordEnv": "ACCEPTANCE_NEGATIVE_NO_TENANT_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": null,
+      "enabled": true,
+      "fixture": "missing-tenant",
+      "purpose": "Authorization rejection when tenant claim is absent"
+    },
+    {
+      "id": "negative-quarantined",
+      "username": "acc-negative-quarantined",
+      "passwordEnv": "ACCEPTANCE_NEGATIVE_QUARANTINED_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-C",
+      "tenantId": "a0000003-0000-4000-8000-000000000001",
+      "enabled": false,
+      "fixture": "quarantined",
+      "purpose": "Authentication rejection for a quarantined account"
+    },
+    {
+      "id": "negative-invalid-scope",
+      "username": "acc-negative-invalid-scope",
+      "passwordEnv": "ACCEPTANCE_NEGATIVE_INVALID_SCOPE_PASSWORD",
+      "roles": [
+        "branch-manager"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "enabled": true,
+      "fixture": "invalid-scope",
+      "scopeOrgUnitId": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      "purpose": "Authorization rejection for an unknown organizational scope"
+    }
+  ]
+}

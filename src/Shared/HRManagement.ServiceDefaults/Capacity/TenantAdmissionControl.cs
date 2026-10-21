@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
 
 namespace HRManagement.ServiceDefaults.Capacity;
@@ -12,7 +13,9 @@ public sealed class TenantQuota
 /// <summary>CAP-002: admission decision.</summary>
 public enum AdmissionDecision
 {
+    [Display(Name = "قبول")]
     Admit,
+    [Display(Name = "رفض")]
     Reject
 }
 

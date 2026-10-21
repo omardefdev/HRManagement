@@ -1,67 +1,104 @@
-@model IList<Payroll.Domain.Entities.ArrearsLedgerEntry>
-@{
-    ViewData["Title"] = "دفتر المتأخرات";
-    Guid? filterEmployee = ViewBag.EmployeeId as Guid?;
-}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0"><i class="fas fa-balance-scale"></i> دفتر المتأخرات</h3>
-    </div>
-    <div class="card-body">
-        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
-        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
-        <form method="get" class="row g-2 mb-3">
-            <div class="col-md-6">
-                <label class="form-label">تصفية بالموظف</label>
-                <input type="text" name="employeeId" class="form-control" value="@(filterEmployee?.ToString() ?? "")" placeholder="EmployeeId (Guid)" />
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">تصفية</button>
-                <a asp-action="Index" class="btn btn-secondary ms-2">مسح</a>
-            </div>
-        </form>
-    </div>
-    <div class="card-body p-0 border-top-0 pt-0">
-        <table class="table table-striped mb-0">
-            <thead>
-                <tr>
-                    <th>الموظف</th>
-                    <th>تشغيل الرواتب</th>
-                    <th>المستحق</th>
-                    <th>المدفوع</th>
-                    <th>المتأخرات</th>
-                    <th>الحالة</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var e in Model)
-                {
-                    var badge = e.Status.ToString() switch
-                    {
-                        "FullyPaid" => "bg-success",
-                        "PartiallyPaid" => "bg-warning",
-                        _ => "bg-secondary"
-                    };
-                    <tr>
-                        <td>@e.EmployeeId</td>
-                        <td>@e.PayrollRunId</td>
-                        <td>@e.OriginalAmount.ToString("N2")</td>
-                        <td>@e.PaidAmount.ToString("N2")</td>
-                        <td><strong>@e.ArrearsAmount.ToString("N2")</strong></td>
-                        <td><span class="badge @badge">@e.Status</span></td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@e.Id" class="btn btn-primary btn-xs" aria-label="تفاصيل">
-                                <i aria-hidden="true" class="fas fa-eye"></i>
-                            </a>
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد قيود متأخرات</td></tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
+@model IList<Payroll.Domain.Entities.ArrearsLedgerEntry>
+@using Payroll.Domain.Enums
+@{
+    ViewData["Title"] = "دفتر المتأخرات";
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+    var selectedStatus = ViewBag.Status as ArrearsLedgerStatus?;
+    var payrollRunId = ViewBag.PayrollRunId as Guid?;
+    DateTime? createdFrom = ViewBag.CreatedFrom;
+    DateTime? createdTo = ViewBag.CreatedTo;
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-balance-scale"></i> دفتر المتأخرات</h3>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">كل الحالات</option>
+                    @foreach (var item in Enum.GetValues<ArrearsLedgerStatus>())
+                    {
+                        <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@Html.HrEnumDisplay(item)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">تشغيل الرواتب</label>
+                <select name="payrollRunId" class="form-select form-select-sm" asp-items="ViewBag.PayrollRuns">
+                    <option value="">كل التشغيلات</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">أُنشئ من</label>
+                <input type="date" name="createdFrom" value="@createdFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">أُنشئ إلى</label>
+                <input type="date" name="createdTo" value="@createdTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>الموظف</th>
+                    <th>تشغيل الرواتب</th>
+                    <th>المستحق</th>
+                    <th>المدفوع</th>
+                    <th>المتأخرات</th>
+                    <th>الحالة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    var badge = e.Status.ToString() switch
+                    {
+                        "FullyPaid" => "bg-success",
+                        "PartiallyPaid" => "bg-warning",
+                        _ => "bg-secondary"
+                    };
+                    <tr>
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(e.EmployeeId, employeeNames.GetValueOrDefault(e.EmployeeId)))</td>
+                        <td>@e.PayrollRunId</td>
+                        <td>@e.OriginalAmount.ToString("N2")</td>
+                        <td>@e.PaidAmount.ToString("N2")</td>
+                        <td><strong>@e.ArrearsAmount.ToString("N2")</strong></td>
+                        <td><span class="badge @badge">@Html.HrEnumDisplay(e.Status)</span></td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@e.Id" class="btn btn-primary btn-xs" aria-label="تفاصيل">
+                                <i aria-hidden="true" class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد قيود متأخرات</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

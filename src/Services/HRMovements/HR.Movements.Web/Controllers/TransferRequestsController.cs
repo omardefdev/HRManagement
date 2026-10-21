@@ -8,8 +8,10 @@ using HR.Movements.Domain.Entities;
 using HR.Movements.Domain.Enums;
 using HR.Movements.Domain.Services;
 using HR.Movements.Infrastructure.Data;
+using HR.Movements.Infrastructure.Services;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.SharedKernel.Enums;
+using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using HRManagement.SharedKernel.ViewModels;
 
@@ -19,11 +21,16 @@ public class TransferRequestsController : Controller
 {
     private readonly MovementsDbContext _db;
     private readonly IPublishEndpoint _publish;
+    private readonly IHrCoreActiveRegimeClient _activeRegimeClient;
 
-    public TransferRequestsController(MovementsDbContext db, IPublishEndpoint publish)
+    public TransferRequestsController(
+        MovementsDbContext db,
+        IPublishEndpoint publish,
+        IHrCoreActiveRegimeClient activeRegimeClient)
     {
         _db = db;
         _publish = publish;
+        _activeRegimeClient = activeRegimeClient;
     }
 
     /// <summary>FUN-003: source AND target must both be in scope (closes IDOR OR-gap).</summary>
@@ -83,6 +90,13 @@ public class TransferRequestsController : Controller
         // compares approver against requester.
         model.RequestedBy = ParseUserId(User);
         model.Status = ApprovalStatus.Pending;
+        await SnapshotSourceRegimeAsync(model);
+        var regimeError = MovementRegimeValidationService.ValidateTransferRegimeFields(model);
+        if (regimeError is not null)
+        {
+            ModelState.AddModelError(string.Empty, regimeError);
+            return View(model);
+        }
         _db.TransferRequests.Add(model);
         await _db.SaveChangesAsync();
 
@@ -149,6 +163,18 @@ public class TransferRequestsController : Controller
         t.ToOrgUnitId = model.ToOrgUnitId;
         t.Reason = model.Reason;
         t.EffectiveDate = model.EffectiveDate == default ? t.EffectiveDate : model.EffectiveDate;
+        t.TargetLegalRegimeId = model.TargetLegalRegimeId;
+        t.TransitionDecisionRef = model.TransitionDecisionRef;
+        t.ConditionCode = model.ConditionCode;
+        t.ConflictNotes = model.ConflictNotes;
+        if (string.IsNullOrWhiteSpace(t.SourceLegalRegimeId))
+            await SnapshotSourceRegimeAsync(t);
+        var regimeError = MovementRegimeValidationService.ValidateTransferRegimeFields(t);
+        if (regimeError is not null)
+        {
+            TempData["Error"] = regimeError;
+            return View(model);
+        }
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث طلب النقل";
         return RedirectToAction(nameof(Details), new { id });
@@ -188,6 +214,15 @@ public class TransferRequestsController : Controller
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (string.IsNullOrWhiteSpace(t.SourceLegalRegimeId))
+            await SnapshotSourceRegimeAsync(t);
+        var approveRegimeError = MovementRegimeValidationService.ValidateTransferRegimeFields(t);
+        if (approveRegimeError is not null)
+        {
+            TempData["Error"] = approveRegimeError;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -299,6 +334,16 @@ public class TransferRequestsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        if (string.IsNullOrWhiteSpace(t.SourceLegalRegimeId))
+            await SnapshotSourceRegimeAsync(t);
+        var regimeError = MovementRegimeValidationService.ValidateTransferRegimeFields(t);
+        if (regimeError is not null)
+        {
+            TempData["Error"] = regimeError;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        await _db.SaveChangesAsync();
+
         var executedAt = DateTime.UtcNow;
         var by = ParseUserId(User);
 
@@ -351,6 +396,11 @@ public class TransferRequestsController : Controller
             ExecutedAt = executedAt,
             SalaryChange = salaryChange,
             AllowanceChange = allowanceChange,
+            t.SourceLegalRegimeId,
+            t.TargetLegalRegimeId,
+            t.TransitionDecisionRef,
+            t.ConditionCode,
+            t.ConflictNotes,
             CorrelationId = correlation,
             TenantId = TenantIdFlow.Get()
         });
@@ -393,5 +443,14 @@ public class TransferRequestsController : Controller
 
         TempData["Error"] = "لا يمكن إلغاء الطلب في حالته الحالية";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private async Task SnapshotSourceRegimeAsync(TransferRequest transfer)
+    {
+        if (transfer.EmployeeId == Guid.Empty)
+            return;
+
+        var regimes = await _activeRegimeClient.GetActiveRegimesAsync([transfer.EmployeeId]);
+        transfer.SourceLegalRegimeId = regimes.FirstOrDefault()?.LegalRegimeId;
     }
 }

@@ -1,0 +1,21 @@
+@model IReadOnlyList<HR.Core.Web.ViewModels.WorkflowStepViewModel>
+
+<ul class="list-inline mb-0">
+    @foreach (var step in Model)
+    {
+        var badgeClass = step.State switch
+        {
+            "completed" => "bg-secondary",
+            "current" => "bg-warning text-dark",
+            _ => "bg-light text-dark"
+        };
+        <li class="list-inline-item">
+            <span class="badge @badgeClass" title="@step.RoleRequired">@step.Name</span>
+        </li>
+        @if (step != Model.Last())
+        {
+            <li class="list-inline-item">→</li>
+        }
+    }
+</ul>
+

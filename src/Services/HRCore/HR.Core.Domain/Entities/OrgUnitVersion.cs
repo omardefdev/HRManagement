@@ -6,11 +6,17 @@ namespace HR.Core.Domain.Entities;
 /// <summary>ORG-001: type of structural change that produced this version.</summary>
 public enum OrgOperationType
 {
+    [Display(Name = "إنشاء")]
     Create = 0,
+    [Display(Name = "إعادة تسمية")]
     Rename = 1,
+    [Display(Name = "نقل")]
     Move = 2,
+    [Display(Name = "دمج")]
     Merge = 3,
+    [Display(Name = "مقسّمة")]
     Split = 4,
+    [Display(Name = "إغلاق")]
     Close = 5
 }
 
@@ -44,6 +50,10 @@ public class OrgUnitVersion : AuditableEntity
     /// <summary>Parent org unit at this point in time.</summary>
     [Display(Name = "الوحدة الأم")]
     public Guid? ParentId { get; set; }
+
+    /// <summary>Unit head at this point in time (ORG-001 as-of).</summary>
+    [Display(Name = "رئيس الوحدة")]
+    public Guid? HeadEmployeeId { get; set; }
 
     /// <summary>Type of change that produced this version.</summary>
     [Display(Name = "نوع العملية")]

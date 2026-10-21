@@ -14,13 +14,13 @@
             <dd class="col-sm-9">@Model.Description</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Severity)</dt>
-            <dd class="col-sm-9">@Model.Severity</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Severity)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportedAt)</dt>
             <dd class="col-sm-9">@Model.ReportedAt.ToString("yyyy/MM/dd HH:mm")</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
-            <dd class="col-sm-9">@Model.Status</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.HandledBy)</dt>
             <dd class="col-sm-9">@Model.HandledBy</dd>

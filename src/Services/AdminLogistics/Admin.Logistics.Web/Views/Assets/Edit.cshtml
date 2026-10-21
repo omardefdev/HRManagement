@@ -1,12 +1,36 @@
-@model Asset
-@{ ViewData["Title"] = "تعديل الأصل"; }
+@model Admin.Logistics.Web.ViewModels.AssetEditFormViewModel
+@{ ViewData["Title"] = "تعديل الأصل"; var originLocked = Model.OriginReceiptRecordId.HasValue || Model.IsLegacyEntry; }
 <div class="card">
     <form asp-action="Edit" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="OriginReceiptRecordId" />
+        <input type="hidden" asp-for="IsLegacyEntry" />
+        <input type="hidden" asp-for="LegacyEntryReason" />
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="TagNumber" class="form-label"></label><input asp-for="TagNumber" class="form-control" /></div>
+            @if (Model.IsLegacyEntry)
+            {
+                <div class="alert alert-secondary py-2">
+                    <span class="badge bg-secondary">أصل قديم/هبة</span>
+                    @(Model.LegacyEntryReason ?? "—")
+                </div>
+            }
+            else if (Model.OriginReceiptRecordId is Guid receiptId)
+            {
+                <div class="alert alert-secondary py-2">
+                    <strong>مصدر التوريد (سجل الاستلام):</strong>
+                    <a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@receiptId">
+                        استلام @Model.OriginReceiptReceivedAt?.ToString("yyyy/MM/dd") — @(Model.OriginReceiptItemsReceived ?? "—")
+                    </a>
+                    <span class="text-muted small">(للقراءة فقط)</span>
+                </div>
+            }
+            <div class="mb-3">
+                <label asp-for="TagNumber" class="form-label"></label>
+                <input asp-for="TagNumber" class="form-control" readonly />
+                <div class="form-text">يُولَّد تلقائياً عند الإنشاء ولا يمكن تغييره (COD-001).</div>
+            </div>
             <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
             <div class="mb-3"><label asp-for="Category" class="form-label"></label><input asp-for="Category" class="form-control" /></div>
             <div class="mb-3"><label asp-for="Brand" class="form-label"></label><input asp-for="Brand" class="form-control" /></div>
@@ -14,6 +38,23 @@
             <div class="mb-3"><label asp-for="PurchaseDate" class="form-label"></label><input asp-for="PurchaseDate" class="form-control" type="datetime-local" /></div>
             <div class="mb-3"><label asp-for="Value" class="form-label"></label><input asp-for="Value" class="form-control" type="number" step="0.01" /></div>
             <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<AssetStatus>()"></select></div>
+            <div class="alert alert-info py-2 mb-3">
+                @if (Model.IsPrivileged)
+                {
+                    <span class="badge bg-warning text-dark">مميز</span>
+                }
+                التصنيف «مميز» يُحدَّد تلقائياً بسياسة العهدة الوطنية (القيمة، الفئة، …).
+            </div>
+            @if (!originLocked)
+            {
+                <div class="mb-3">
+                    <label asp-for="OriginReceiptRecordId" class="form-label"></label>
+                    <select asp-for="OriginReceiptRecordId" class="form-select" asp-items="ViewBag.ReceiptRecords">
+                        <option value="">— بدون —</option>
+                    </select>
+                    <div class="form-text">للأصول الجديدة يُفضّل الإنشاء من مسار «سجل الاستلام».</div>
+                </div>
+            }
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">حفظ</button>
@@ -21,4 +62,4 @@
         </div>
     </form>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts { <partial name="_ValidationScriptsPartial" /> @await Html.PartialAsync("_ValidationDialogTrigger") }

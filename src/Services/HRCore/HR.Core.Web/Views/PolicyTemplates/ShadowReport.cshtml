@@ -1,0 +1,24 @@
+@model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyEnforcementLedger>
+@{ ViewData["Title"] = "تقرير Shadow — 7 أيام"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">Shadow diffs</h3>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">العودة</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>وقت</th><th>Domain</th><th>Action</th><th>Diffs</th></tr></thead>
+            <tbody>
+                @foreach (var l in Model)
+                {
+                    <tr>
+                        <td>@l.OccurredAt.ToLocalTime()</td>
+                        <td><code>@l.Domain</code></td>
+                        <td>@l.Action</td>
+                        <td><code class="small">@(l.ShadowDiffJson ?? "—")</code></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

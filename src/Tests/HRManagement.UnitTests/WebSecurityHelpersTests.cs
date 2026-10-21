@@ -58,7 +58,56 @@ public class WebSecurityHelpersTests
         context.Request.Path = "/ui/hr-core/Reports/ExportEmployeesCsv";
         context.Request.Headers[GatewayCallerProof.ProofHeader] = proof;
         context.Request.Headers[GatewayCallerProof.TimestampHeader] = ts;
+        context.Request.Headers[GatewayCallerProof.PathHeader] =
+            request.Headers.GetValues(GatewayCallerProof.PathHeader).Single();
 
         Assert.True(GatewayCallerProof.Validate(context, config, enforce: true));
+    }
+
+    [Fact]
+    public void GatewayCallerProof_roundtrip_with_explicit_transformed_path()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["GatewayCallerProof:Secret"] = "test-secret-key" })
+            .Build();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "http://hr-core-web:8080/");
+        const string transformedPath = "/api/lookup/employees?q=%D9%81%D8%B1%D8%B9&page=1";
+
+        GatewayCallerProof.Sign(request, config, transformedPath);
+
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Path = "/api/lookup/employees";
+        context.Request.QueryString = new QueryString("?q=%D9%81%D8%B1%D8%B9&page=1");
+        context.Request.Headers[GatewayCallerProof.ProofHeader] =
+            request.Headers.GetValues(GatewayCallerProof.ProofHeader).Single();
+        context.Request.Headers[GatewayCallerProof.TimestampHeader] =
+            request.Headers.GetValues(GatewayCallerProof.TimestampHeader).Single();
+        context.Request.Headers[GatewayCallerProof.PathHeader] =
+            request.Headers.GetValues(GatewayCallerProof.PathHeader).Single();
+
+        Assert.True(GatewayCallerProof.Validate(context, config, enforce: true));
+    }
+
+    [Fact]
+    public void GatewayCallerProof_rejects_replay_for_a_different_path()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["GatewayCallerProof:Secret"] = "test-secret-key" })
+            .Build();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "http://hr-core-web:8080/api/lookup/employees");
+        GatewayCallerProof.Sign(request, config);
+
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Path = "/api/lookup/org-units";
+        context.Request.Headers[GatewayCallerProof.ProofHeader] =
+            request.Headers.GetValues(GatewayCallerProof.ProofHeader).Single();
+        context.Request.Headers[GatewayCallerProof.TimestampHeader] =
+            request.Headers.GetValues(GatewayCallerProof.TimestampHeader).Single();
+        context.Request.Headers[GatewayCallerProof.PathHeader] =
+            request.Headers.GetValues(GatewayCallerProof.PathHeader).Single();
+
+        Assert.False(GatewayCallerProof.Validate(context, config, enforce: true));
     }
 }

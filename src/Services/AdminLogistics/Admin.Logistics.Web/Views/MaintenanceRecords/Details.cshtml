@@ -5,7 +5,7 @@
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">الأصل</dt><dd class="col-sm-9">@Model.Asset?.TagNumber — @Model.Asset?.Name</dd>
-            <dt class="col-sm-3">نوع الصيانة</dt><dd class="col-sm-9">@Model.MaintenanceType</dd>
+            <dt class="col-sm-3">نوع الصيانة</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.MaintenanceType)</dd>
             <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@Model.PerformedAt?.ToString("yyyy/MM/dd")</dd>
             <dt class="col-sm-3">نفذ بواسطة</dt><dd class="col-sm-9">@(Model.PerformedBy ?? "—")</dd>
             <dt class="col-sm-3">التكلفة</dt><dd class="col-sm-9">@Model.Cost</dd>

@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "خريطة ERD المختصرة لقاعدة hr_core_db\nHR.Core"
+title "خريطة ERD المختصرة لقاعدة hrcore_db\nHR.Core"
 
 entity "ApprovalRequests\nApprovalRequest" as T01 {
   * Id
@@ -43,158 +43,322 @@ entity "CitizenApplications\nCitizenApplication" as T06 {
     PublicJobPostingId
     TenantId
 }
-entity "ContactInfos\nContactInfo" as T07 {
+entity "CodeIssuances\nCodeIssuance" as T07 {
+  * Id
+    PolicyVersionId
+    TenantId
+}
+entity "CodePolicyRules\nCodePolicyRule" as T08 {
+  * Id
+    CodePolicyTemplateId
+    CodePolicyVersionId
+    TenantId
+}
+entity "CodePolicyTemplates\nCodePolicyTemplate" as T09 {
+  * Id
+    TenantId
+}
+entity "CodePolicyVersions\nCodePolicyVersion" as T10 {
+  * Id
+    CodePolicyTemplateId
+    TenantId
+}
+entity "CodeSequenceCounters\nCodeSequenceCounter" as T11 {
+  * Id
+    TenantId
+}
+entity "ContactInfos\nContactInfo" as T12 {
   * Id
     EmployeeId
     TenantId
 }
-entity "DailyAttendanceRecords\nDailyAttendanceRecord" as T08 {
+entity "DailyAttendanceRecords\nDailyAttendanceRecord" as T13 {
   * Id
     EmployeeId
     TenantId
 }
-entity "DiwanCorrespondences\nDiwanCorrespondence" as T09 {
+entity "DiwanCorrespondences\nDiwanCorrespondence" as T14 {
   * Id
     RelatedEmployeeId
     ServiceTransactionId
     TenantId
 }
-entity "Employees\nEmployee" as T10 {
+entity "Employees\nEmployee" as T15 {
   * Id
+    MergedIntoEmployeeId
     NationalId
     PhotoFileId
     PrimaryContactId
     PrimaryOrgUnitId
     TenantId
 }
-entity "EmployeeDocuments\nEmployeeDocument" as T11 {
+entity "EmployeeCorrections\nEmployeeCorrection" as T16 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "EmployeeDocuments\nEmployeeDocument" as T17 {
   * Id
     EmployeeId
     FileId
     TenantId
 }
-entity "EmployeeProfiles\nEmployeeProfile" as T12 {
+entity "EmployeeProfiles\nEmployeeProfile" as T18 {
   * Id
     EmployeeId
     TenantId
 }
-entity "EmploymentRecords\nEmploymentRecord" as T13 {
+entity "EmploymentRecords\nEmploymentRecord" as T19 {
   * Id
     EmployeeId
     OrgUnitId
     TenantId
 }
-entity "EmploymentStatusHistories\nEmploymentStatusHistory" as T14 {
+entity "EmploymentStatusHistories\nEmploymentStatusHistory" as T20 {
   * Id
     EmployeeId
     EmploymentRecordId
     TenantId
 }
-entity "FieldInspectionVisits\nFieldInspectionVisit" as T15 {
+entity "FieldInspectionVisits\nFieldInspectionVisit" as T21 {
   * Id
     LeadInspectorId
     TenantId
 }
-entity "HrStatisticReports\nHrStatisticReport" as T16 {
+entity "FundedPositions\nFundedPosition" as T22 {
+  * Id
+    JobCatalogEntryId
+    OccupantEmployeeId
+    OrgUnitId
+    TenantId
+}
+entity "HrStatisticReports\nHrStatisticReport" as T23 {
   * Id
     OrgUnitId
     TenantId
 }
-entity "InternalApplications\nInternalApplication" as T17 {
+entity "InternalApplications\nInternalApplication" as T24 {
   * Id
     EmployeeId
     InternalVacancyId
     TenantId
 }
-entity "InternalVacancies\nInternalVacancy" as T18 {
+entity "InternalVacancies\nInternalVacancy" as T25 {
   * Id
     OrgUnitId
     TenantId
 }
-entity "KeyPositions\nKeyPosition" as T19 {
+entity "JobCatalogEntries\nJobCatalogEntry" as T26 {
+  * Id
+    TenantId
+}
+entity "KeyPositions\nKeyPosition" as T27 {
   * Id
     CurrentHolderEmployeeId
     OrgUnitId
     TenantId
 }
-entity "OrgUnits\nOrgUnit" as T20 {
+entity "MasterDataDuplicateCases\nMasterDataDuplicateCase" as T28 {
+  * Id
+    ResolvedIntoEmployeeId
+    TenantId
+}
+entity "OrgUnits\nOrgUnit" as T29 {
   * Id
     HeadEmployeeId
     ParentId
     TenantId
 }
-entity "PerformanceEvaluations\nPerformanceEvaluation" as T21 {
+entity "OrgUnitVersions\nOrgUnitVersion" as T30 {
+  * Id
+    OrgUnitId
+    ParentId
+    TenantId
+}
+entity "PerformanceEvaluations\nPerformanceEvaluation" as T31 {
   * Id
     EmployeeId
     EvaluatorId
     TenantId
 }
-entity "PublicJobPostings\nPublicJobPosting" as T22 {
+entity "PolicyEnforcementLedgers\nPolicyEnforcementLedger" as T32 {
+  * Id
+    ActorUserId
+    CorrelationId
+    PolicyVersionId
+    TenantId
+    WorkflowInstanceId
+}
+entity "PolicyFactsSchemas\nPolicyFactsSchemaEntity" as T33 {
   * Id
     TenantId
 }
-entity "Qualifications\nQualification" as T23 {
+entity "PolicyPublications\nPolicyPublication" as T34 {
+  * Id
+    CheckerUserId
+    MakerUserId
+    PolicyTemplateVersionId
+    RolledBackFromVersionId
+    TenantId
+}
+entity "PolicyRules\nPolicyRule" as T35 {
+  * Id
+    PolicyTemplateVersionId
+    TenantId
+}
+entity "PolicySimulationRuns\nPolicySimulationRun" as T36 {
+  * Id
+    PolicyTemplateVersionId
+    RunByUserId
+    TenantId
+}
+entity "PolicyTemplates\nPolicyTemplate" as T37 {
+  * Id
+    TenantId
+}
+entity "PolicyTemplateVersions\nPolicyTemplateVersion" as T38 {
+  * Id
+    PolicyTemplateId
+    TenantId
+}
+entity "PolicyWorkflowBindings\nPolicyWorkflowBinding" as T39 {
+  * Id
+    TenantId
+    WorkflowDefinitionId
+}
+entity "PublicJobPostings\nPublicJobPosting" as T40 {
+  * Id
+    TenantId
+}
+entity "Qualifications\nQualification" as T41 {
   * Id
     EmployeeId
     FileId
     TenantId
 }
-entity "RecruitmentApplications\nRecruitmentApplication" as T24 {
+entity "RecruitmentApplications\nRecruitmentApplication" as T42 {
   * Id
     HiredEmployeeId
     NationalId
     TenantId
 }
-entity "Shifts\nShift" as T25 {
+entity "SeedPackApplications\nSeedPackApplication" as T43 {
+  * Id
+    PackId
+    TenantId
+}
+entity "Shifts\nShift" as T44 {
   * Id
     TenantId
 }
-entity "ShiftAssignments\nShiftAssignment" as T26 {
+entity "ShiftAssignments\nShiftAssignment" as T45 {
   * Id
     EmployeeId
     ShiftId
     ShiftRosterId
     TenantId
 }
-entity "ShiftRosters\nShiftRoster" as T27 {
+entity "ShiftRosters\nShiftRoster" as T46 {
   * Id
     OrgUnitId
     TenantId
 }
-entity "SuccessionPlans\nSuccessionPlan" as T28 {
+entity "SuccessionPlans\nSuccessionPlan" as T47 {
   * Id
     KeyPositionId
     TenantId
 }
-entity "SuccessorCandidates\nSuccessorCandidate" as T29 {
+entity "SuccessorCandidates\nSuccessorCandidate" as T48 {
   * Id
     EmployeeId
     SuccessionPlanId
     TenantId
 }
-entity "WorkforcePlans\nWorkforcePlan" as T30 {
+entity "WorkflowDefinitions\nWorkflowDefinition" as T49 {
+  * Id
+    TenantId
+}
+entity "WorkflowDelegations\nWorkflowDelegation" as T50 {
+  * Id
+    DelegateId
+    PrincipalId
+    TenantId
+}
+entity "WorkflowInstances\nWorkflowInstance" as T51 {
+  * Id
+    ApprovalRequestId
+    DefinitionId
+    EntityId
+    TenantId
+}
+entity "WorkforcePlans\nWorkforcePlan" as T52 {
   * Id
     OrgUnitId
     TenantId
 }
-entity "AuditLogs\nEntityAuditLog" as T31 {
+entity "FileReferenceOutbox\nFileReferenceOutboxMessage" as T53 {
+  * Id
+    FileId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T54 {
   * Id
     EntityId
     TenantId
     UserId
 }
-entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T32 {
+entity "ExportJobs\nExportJob" as T55 {
+  * Id
+    RequestedByUserId
+    ResultFileId
+    TenantId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T56 {
   * Id
     MessageId
     TenantId
 }
-entity "InboxState\nInboxState" as T33 {
+entity "ReferenceCatalogEntries\nReferenceCatalogEntry" as T57 {
+  * Id
+    TenantId
+}
+entity "ApprovalDelegations\nApprovalDelegation" as T58 {
+  * Id
+    DelegateId
+    PrincipalId
+    TenantId
+}
+entity "ConflictingRolePairs\nConflictingRolePair" as T59 {
+  * Id
+}
+entity "SodRules\nSodRule" as T60 {
+  * Id
+}
+entity "SignatureRecords\nSignatureRecord" as T61 {
+  * Id
+    SubjectId
+    TenantId
+}
+entity "Tenants\nTenant" as T62 {
+  * Id
+}
+entity "TenantAssignmentRules\nTenantAssignmentRule" as T63 {
+  * Id
+    TargetTenantId
+}
+entity "TenantQuarantineEntries\nTenantQuarantineEntry" as T64 {
+  * Id
+    AssignedTenantId
+    RecordId
+    ResolvedByUserId
+}
+entity "InboxState\nInboxState" as T65 {
   * Id
     ConsumerId
     LockId
     MessageId
 }
-entity "OutboxMessage\nOutboxMessage" as T34 {
+entity "OutboxMessage\nOutboxMessage" as T66 {
   * SequenceNumber
     ConversationId
     CorrelationId
@@ -205,43 +369,54 @@ entity "OutboxMessage\nOutboxMessage" as T34 {
     OutboxId
     RequestId
 }
-entity "OutboxState\nOutboxState" as T35 {
+entity "OutboxState\nOutboxState" as T67 {
   * OutboxId
     LockId
 }
 
 T02 }o--|| T01 : ApprovalRequestId
-T03 }o--|| T10 : EmployeeId
+T03 }o--|| T15 : EmployeeId
 T05 }o--|| T04 : CareerPathId
-T06 }o--|| T22 : PublicJobPostingId
-T07 }o--|| T10 : EmployeeId
-T08 }o--|| T10 : EmployeeId
-T09 }o--|| T10 : RelatedEmployeeId
-T10 }o--|| T20 : PrimaryOrgUnitId
-T11 }o--|| T10 : EmployeeId
-T12 }o--|| T10 : EmployeeId
-T13 }o--|| T10 : EmployeeId
-T13 }o--|| T20 : OrgUnitId
-T14 }o--|| T10 : EmployeeId
-T14 }o--|| T13 : EmploymentRecordId
-T16 }o--|| T20 : OrgUnitId
-T17 }o--|| T10 : EmployeeId
-T17 }o--|| T18 : InternalVacancyId
-T18 }o--|| T20 : OrgUnitId
-T19 }o--|| T20 : OrgUnitId
-T20 }o--|| T10 : HeadEmployeeId
-T20 }o--|| T20 : ParentId
-T21 }o--|| T10 : EmployeeId
-T23 }o--|| T10 : EmployeeId
-T24 }o--|| T10 : HiredEmployeeId
-T26 }o--|| T10 : EmployeeId
-T26 }o--|| T25 : ShiftId
-T26 }o--|| T27 : ShiftRosterId
-T27 }o--|| T20 : OrgUnitId
-T28 }o--|| T19 : KeyPositionId
-T29 }o--|| T10 : EmployeeId
-T29 }o--|| T28 : SuccessionPlanId
-T30 }o--|| T20 : OrgUnitId
+T06 }o--|| T40 : PublicJobPostingId
+T08 }o--|| T09 : CodePolicyTemplateId
+T08 }o--|| T10 : CodePolicyVersionId
+T10 }o--|| T09 : CodePolicyTemplateId
+T12 }o--|| T15 : EmployeeId
+T13 }o--|| T15 : EmployeeId
+T14 }o--|| T15 : RelatedEmployeeId
+T15 }o--|| T29 : PrimaryOrgUnitId
+T16 }o--|| T15 : EmployeeId
+T17 }o--|| T15 : EmployeeId
+T18 }o--|| T15 : EmployeeId
+T19 }o--|| T15 : EmployeeId
+T19 }o--|| T29 : OrgUnitId
+T20 }o--|| T15 : EmployeeId
+T20 }o--|| T19 : EmploymentRecordId
+T22 }o--|| T26 : JobCatalogEntryId
+T22 }o--|| T15 : OccupantEmployeeId
+T22 }o--|| T29 : OrgUnitId
+T23 }o--|| T29 : OrgUnitId
+T24 }o--|| T15 : EmployeeId
+T24 }o--|| T25 : InternalVacancyId
+T25 }o--|| T29 : OrgUnitId
+T27 }o--|| T29 : OrgUnitId
+T29 }o--|| T15 : HeadEmployeeId
+T29 }o--|| T29 : ParentId
+T30 }o--|| T29 : OrgUnitId
+T31 }o--|| T15 : EmployeeId
+T34 }o--|| T38 : PolicyTemplateVersionId
+T35 }o--|| T38 : PolicyTemplateVersionId
+T38 }o--|| T37 : PolicyTemplateId
+T41 }o--|| T15 : EmployeeId
+T42 }o--|| T15 : HiredEmployeeId
+T45 }o--|| T15 : EmployeeId
+T45 }o--|| T44 : ShiftId
+T45 }o--|| T46 : ShiftRosterId
+T46 }o--|| T29 : OrgUnitId
+T47 }o--|| T27 : KeyPositionId
+T48 }o--|| T15 : EmployeeId
+T48 }o--|| T47 : SuccessionPlanId
+T52 }o--|| T29 : OrgUnitId
 
 note bottom
 الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.

@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة hr_contracts_db\nHR.Contracts / ContractsDbContext"
+title "ERD الكامل لقاعدة contracts_db\nHR.Contracts / ContractsDbContext"
 
 entity "AdministrativeDecisions\nAdministrativeDecision" as T01 {
   * Id : uuid
@@ -100,23 +100,68 @@ entity "ServiceTransactionStateHistories\nServiceTransactionStateHistory" as T16
     TenantId : uuid
     TransactionId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T17 {
+entity "HireCaseSagaStates\nHireCaseSagaState" as T17 {
+  * CorrelationId : uuid
+    BusinessCorrelationId : text
+    ContractId : uuid
+    EmployeeId : uuid
+    RecruitmentApplicationId : uuid
+    ServiceTransactionId : uuid
+    TenantId : uuid
+    TimeoutTokenId : uuid
+}
+entity "SeparationSagaStates\nSeparationSagaState" as T18 {
+  * CorrelationId : uuid
+    BusinessCorrelationId : text
+    ContractId : uuid
+    EmployeeId : uuid
+    SeparationRecordId : uuid
+    TenantId : uuid
+    TimeoutTokenId : uuid
+}
+entity "IdempotencyRecords\nIdempotencyRecord" as T19 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "EmployeeOrgUnitSnapshots\nEmployeeOrgUnitSnapshot" as T20 {
+  * EmployeeId : uuid
+    PrimaryOrgUnitId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T21 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
 }
-entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T18 {
+entity "ExportJobs\nExportJob" as T22 {
+  * Id : uuid
+    RequestedByUserId : uuid
+    ResultFileId : uuid
+    TenantId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T23 {
+  * Id : uuid
+    MessageId : text
+    TenantId : uuid
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T24 {
   * Id : uuid
     ParentId : uuid
+    TenantId : uuid
 }
-entity "InboxState\nInboxState" as T19 {
+entity "ProcessInterventions\nProcessIntervention" as T25 {
+  * Id : uuid
+    CorrelationId : uuid
+    TenantId : uuid
+}
+entity "InboxState\nInboxState" as T26 {
   * Id : bigint
     ConsumerId : uuid
     LockId : uuid
     MessageId : uuid
 }
-entity "OutboxMessage\nOutboxMessage" as T20 {
+entity "OutboxMessage\nOutboxMessage" as T27 {
   * SequenceNumber : bigint
     ConversationId : uuid
     CorrelationId : uuid
@@ -127,7 +172,7 @@ entity "OutboxMessage\nOutboxMessage" as T20 {
     OutboxId : uuid
     RequestId : uuid
 }
-entity "OutboxState\nOutboxState" as T21 {
+entity "OutboxState\nOutboxState" as T28 {
   * OutboxId : uuid
     LockId : uuid
 }

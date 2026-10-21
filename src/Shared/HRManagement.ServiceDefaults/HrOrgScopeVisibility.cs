@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 
@@ -88,14 +89,17 @@ public enum OrgScopeClaimKind
 
     /// <summary>Admin / hr-core / non-branch roles — unrestricted.</summary>
 
+    [Display(Name = "غير محدد النطاق")]
     NotScoped,
 
     /// <summary>Branch manager with a valid scope_org_unit_id claim.</summary>
 
+    [Display(Name = "ساري")]
     Valid,
 
     /// <summary>Branch manager missing or invalid claim — fail-closed.</summary>
 
+    [Display(Name = "مطالبة غير صالحة")]
     InvalidClaim
 
 }
@@ -140,9 +144,7 @@ public static class HrOrgScopeVisibility
 
         user.IsInRole(HrManagementRoles.BranchManager)
 
-        && !user.IsInRole(HrManagementRoles.Admin)
-
-        && !user.IsInRole(HrManagementRoles.HrCore);
+        && !user.IsInRole(HrManagementRoles.Admin);
 
 
 

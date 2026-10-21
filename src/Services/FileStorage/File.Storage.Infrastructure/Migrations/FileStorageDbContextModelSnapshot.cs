@@ -533,6 +533,50 @@ namespace File.Storage.Infrastructure.Migrations
                     b.ToTable("FileReferenceOutbox", (string)null);
                 });
 
+            modelBuilder.Entity("HRManagement.SharedKernel.Entities.IntegrationMessageReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConsumerType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MessageId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "MessageId", "ConsumerType")
+                        .IsUnique()
+                        .HasDatabaseName("IX_IntegrationMessageReceipts_Tenant_Message_Consumer");
+
+                    b.ToTable("IntegrationMessageReceipts", (string)null);
+                });
+
             modelBuilder.Entity("HRManagement.ServiceDefaults.IdempotencyRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -614,6 +658,9 @@ namespace File.Storage.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("FileId")

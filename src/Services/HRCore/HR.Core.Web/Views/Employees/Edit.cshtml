@@ -134,9 +134,11 @@
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">معتمد ثانٍ (مطلوب لتعديل البيانات القانونية)</label>
-                <input type="text" name="secondApproverId" class="form-control" placeholder="GUID للمعتمد الثاني" />
-                <div class="form-text">مطلوب عند تغيير الرقم الوطني أو الاسم أو تاريخ الميلاد أو تاريخ التعيين</div>
+                <label asp-for="CorrectionReason" class="form-label"></label>
+                <textarea asp-for="CorrectionReason" class="form-control" rows="2"
+                          placeholder="اكتب سبب التصحيح عند تغيير الرقم الوطني أو الاسم أو التاريخ"></textarea>
+                <span asp-validation-for="CorrectionReason" class="text-danger"></span>
+                <div class="form-text">التعديلات القانونية تنشئ طلباً مستقلاً، ويعتمدها مستخدم مخول مختلف دون إدخال أي معرف تقني.</div>
             </div>
         </div>
         <div class="card-footer">

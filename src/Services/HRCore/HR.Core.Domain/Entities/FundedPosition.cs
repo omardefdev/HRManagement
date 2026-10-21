@@ -46,7 +46,10 @@ public class FundedPosition : BaseEntity
 
 public enum FundedPositionStatus
 {
+    [Display(Name = "شاغر")]
     Vacant,
+    [Display(Name = "مشغول")]
     Occupied,
+    [Display(Name = "مجمد")]
     Frozen
 }

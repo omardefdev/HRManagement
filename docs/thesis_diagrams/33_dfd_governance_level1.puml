@@ -1,0 +1,49 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title DFD المستوى الأول لحوكمة الجهة والسياسات والرموز
+left to right direction
+actor "مسؤول المنصة" as Platform
+actor "مدير الجهة" as Agency
+rectangle "1.0 تهيئة الجهة" as P1
+rectangle "2.0 إدارة السياسات" as P2
+rectangle "3.0 توليد الرموز" as P3
+rectangle "4.0 إدارة البيانات المرجعية" as P4
+database "D1 الجهات والوحدات" as D1
+database "D2 إصدارات السياسات وقواعدها" as D2
+database "D3 عدادات الرموز والسجل" as D3
+database "D4 الحزم الوطنية وتطبيقاتها" as D4
+queue "أحداث التكامل" as Bus
+Platform --> P1 : AgencyManifest
+P1 --> D1 : جهة وشجرة أولية
+P1 --> D4 : نتيجة تطبيق الحزم
+Agency --> P2 : مسودة / نشر / محاكاة
+P2 --> D2 : نسخة وقواعد ودفتر إنفاذ
+Agency --> P3 : نوع الرمز وسياق الجهة
+P3 --> D3 : حجز وتسلسل ونتيجة
+Agency --> P4 : قيم وبدائل محلية
+P4 --> D4 : طبقة وطنية + طبقة الجهة
+P1 --> Bus : AgencyOnboarded
+P2 --> Bus : PolicyPublished
+P3 --> Bus : CodeGenerated
+@enduml

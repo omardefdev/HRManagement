@@ -4,6 +4,7 @@ using HR.Core.Web.Controllers;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HRManagement.UnitTests;
 
@@ -99,5 +100,36 @@ public class Sec002LookupProtectionTests
         Assert.False(
             Regex.IsMatch(source, @"\[AllowAnonymous[^\]]*\]\s*(?:\[[^\]]+\]\s*)*public\s+class\s+LookupApiController"),
             "LookupApiController class must not have [AllowAnonymous]");
+    }
+
+    [Fact]
+    public void LookupApiController_batch_endpoints_require_HrCoreLookup_and_limit_batch_size()
+    {
+        var batchMethods = new[]
+        {
+            nameof(LookupApiController.GetEmployeesByIds),
+            nameof(LookupApiController.GetOrgUnitsByIds)
+        };
+
+        foreach (var methodName in batchMethods)
+        {
+            var method = typeof(LookupApiController).GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
+            Assert.NotNull(method);
+
+            var post = method!.GetCustomAttribute<HttpPostAttribute>();
+            Assert.NotNull(post);
+            Assert.EndsWith("by-ids", post!.Template, StringComparison.Ordinal);
+
+            var authorize = typeof(LookupApiController).GetCustomAttribute<AuthorizeAttribute>(inherit: true);
+            Assert.NotNull(authorize);
+            Assert.Equal(HrManagementPolicies.HrCoreLookup, authorize!.Policy);
+        }
+
+        var controllerPath = Path.Combine(
+            ResolveRepoRoot(),
+            "src", "Services", "HRCore", "HR.Core.Web", "Controllers", "LookupApiController.cs");
+        var source = System.IO.File.ReadAllText(controllerPath);
+        Assert.Contains("SearchFilterBase.LookupMaxPageSize", source, StringComparison.Ordinal);
+        Assert.Contains("BadRequest", source, StringComparison.Ordinal);
     }
 }

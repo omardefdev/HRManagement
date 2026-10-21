@@ -3,14 +3,19 @@ using HR.Contracts.Application;
 using HR.Contracts.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Seeding;
 using HR.Contracts.Infrastructure.Consumers;
 using HR.Contracts.Infrastructure.Data;
+using HRManagement.ServiceDefaults.Integration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("HR.Contracts.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrContracts);
@@ -33,7 +38,10 @@ builder.Services.AddDbContext<ContractsDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ContractsDbContext>());
 builder.Services.AddHrContractsApplication();
 builder.Services.AddHrContractsInfrastructure(builder.Configuration);
+builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
+builder.Services.AddHrCoreLookupClient(builder.Configuration);
+builder.Services.AddHrCoreActiveRegimeClient(builder.Configuration);
 
 builder.Services.Configure<HR.Contracts.Infrastructure.Sagas.SeparationSagaOptions>(
     builder.Configuration.GetSection(HR.Contracts.Infrastructure.Sagas.SeparationSagaOptions.SectionName));
@@ -69,23 +77,31 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<ContractsDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 try
 {
-    using var scope = app.Services.CreateScope();
-    HRManagement.ServiceDefaults.TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
-    try
+    if (seedProfile != SeedProfile.None)
     {
-        var contractsDb = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
-        await ContractsDataSeeder.SeedAsync(contractsDb);
-        if (app.Environment.IsDevelopment())
-            await DemoContractsSeeder.SeedAsync(contractsDb);
-    }
-    finally
-    {
-        HRManagement.ServiceDefaults.TenantIdFlow.Set(null);
+        using var scope = app.Services.CreateScope();
+        HRManagement.ServiceDefaults.TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
+        try
+        {
+            var contractsDb = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
+            if (seedProfile == SeedProfile.Acceptance)
+                await AcceptanceContractsSeeder.SeedAsync(contractsDb);
+            else
+            {
+                await ContractsDataSeeder.SeedAsync(contractsDb);
+                await DemoContractsSeeder.SeedAsync(contractsDb);
+            }
+        }
+        finally
+        {
+            HRManagement.ServiceDefaults.TenantIdFlow.Set(null);
+        }
     }
 }
-catch (Exception ex)
+catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
 {
     app.Logger.LogWarning(ex, "HR.Contracts seed skipped.");
 }
@@ -99,6 +115,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -114,4 +131,3 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
-

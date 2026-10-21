@@ -161,12 +161,62 @@ public class Phase5Tests
         Assert.False(SupplyOrderWorkflowRules.CanApprove(SupplyOrderStatus.Approved));
 
     [Fact]
-    public void CanFulfill_Approved_ReturnsTrue() =>
-        Assert.True(SupplyOrderWorkflowRules.CanFulfill(SupplyOrderStatus.Approved));
+    public void CanApprove_order_rejects_requester_as_approver()
+    {
+        var requesterId = Guid.NewGuid();
+        var order = new SupplyOrder { Status = SupplyOrderStatus.Pending, RequestedBy = requesterId };
+        Assert.True(SupplyOrderWorkflowRules.CanApprove(order, Guid.NewGuid()));
+        Assert.False(SupplyOrderWorkflowRules.CanApprove(order, requesterId));
+    }
 
     [Fact]
-    public void CanFulfill_Pending_ReturnsFalse() =>
-        Assert.False(SupplyOrderWorkflowRules.CanFulfill(SupplyOrderStatus.Pending));
+    public void CanFulfill_Approved_with_content_ReturnsTrue()
+    {
+        var order = new SupplyOrder { Status = SupplyOrderStatus.Approved, Items = "أجهزة" };
+        Assert.True(SupplyOrderWorkflowRules.CanFulfill(order));
+    }
+
+    [Fact]
+    public void CanFulfill_Approved_without_content_ReturnsFalse()
+    {
+        var order = new SupplyOrder { Status = SupplyOrderStatus.Approved };
+        Assert.False(SupplyOrderWorkflowRules.CanFulfill(order));
+    }
+
+    [Fact]
+    public void CanFulfill_Pending_ReturnsFalse()
+    {
+        var order = new SupplyOrder { Status = SupplyOrderStatus.Pending, Items = "x" };
+        Assert.False(SupplyOrderWorkflowRules.CanFulfill(order));
+    }
+
+    [Fact]
+    public void CanEditContent_Pending_and_Approved_only()
+    {
+        Assert.True(SupplyOrderWorkflowRules.CanEditContent(SupplyOrderStatus.Pending));
+        Assert.True(SupplyOrderWorkflowRules.CanEditContent(SupplyOrderStatus.Approved));
+        Assert.False(SupplyOrderWorkflowRules.CanEditContent(SupplyOrderStatus.Fulfilled));
+        Assert.False(SupplyOrderWorkflowRules.CanEditContent(SupplyOrderStatus.Closed));
+    }
+
+    [Fact]
+    public void CanClose_when_fully_received_or_text_order_with_receipt()
+    {
+        var withLines = new SupplyOrder
+        {
+            Status = SupplyOrderStatus.Fulfilled,
+            Lines = [new SupplyOrderLine { QtyRequested = 2, QtyReceived = 2 }]
+        };
+        Assert.True(SupplyOrderWorkflowRules.CanClose(withLines, 1));
+
+        var textOnly = new SupplyOrder { Status = SupplyOrderStatus.Fulfilled, Items = "مواد مكتبية" };
+        Assert.True(SupplyOrderWorkflowRules.CanClose(textOnly, 1));
+        Assert.False(SupplyOrderWorkflowRules.CanClose(textOnly, 0));
+    }
+
+    [Fact]
+    public void SupplyOrderStatus_includes_Closed() =>
+        Assert.True(Enum.IsDefined(typeof(SupplyOrderStatus), SupplyOrderStatus.Closed));
 
     [Fact]
     public void CanCancel_Pending_ReturnsTrue() =>
@@ -275,10 +325,10 @@ public class Phase5Tests
     #region Event SchemaVersion
 
     [Fact]
-    public void ICardIssued_SchemaVersion_Is1()
+    public void ICardIssued_SchemaVersion_Is2()
     {
         ICardIssued msg = new CardIssuedStub();
-        Assert.Equal(1, msg.SchemaVersion);
+        Assert.Equal(2, msg.SchemaVersion);
     }
 
     [Fact]
@@ -294,6 +344,7 @@ public class Phase5Tests
         public Guid IssuedCardId { get; init; }
         public string SerialNumber { get; init; } = "TEST";
         public DateTime IssuedAt { get; init; } = DateTime.UtcNow;
+        public string? CorrelationId { get; init; }
     }
 
     private class TransactionArchivedStub : ITransactionArchived

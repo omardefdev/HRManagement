@@ -25,21 +25,17 @@
 
                     <dt class="col-sm-4">الحالة</dt>
                     <dd class="col-sm-8">
-                        @switch (Model.Status)
-                        {
-                            case HRManagement.SharedKernel.Enums.ApprovalStatus.Pending:
-                                <span class="badge text-bg-warning">معلق</span>
-                                break;
-                            case HRManagement.SharedKernel.Enums.ApprovalStatus.Approved:
-                                <span class="badge text-bg-success">موافق عليه</span>
-                                break;
-                            case HRManagement.SharedKernel.Enums.ApprovalStatus.Rejected:
-                                <span class="badge text-bg-danger">مرفوض</span>
-                                break;
-                            case HRManagement.SharedKernel.Enums.ApprovalStatus.Cancelled:
-                                <span class="badge text-bg-secondary">ملغى</span>
-                                break;
+                        @{
+                            var statusBadge = Model.Status switch
+                            {
+                                HRManagement.SharedKernel.Enums.ApprovalStatus.Pending => "text-bg-warning",
+                                HRManagement.SharedKernel.Enums.ApprovalStatus.Approved => "text-bg-success",
+                                HRManagement.SharedKernel.Enums.ApprovalStatus.Rejected => "text-bg-danger",
+                                HRManagement.SharedKernel.Enums.ApprovalStatus.Cancelled => "text-bg-secondary",
+                                _ => "text-bg-secondary"
+                            };
                         }
+                        <span class="badge @statusBadge">@Html.HrEnumDisplay(Model.Status)</span>
                     </dd>
 
                     <dt class="col-sm-4">المستوى الحالي</dt>
@@ -66,18 +62,16 @@
                                 <td>@step.Level</td>
                                 <td>@step.RoleRequired</td>
                                 <td>
-                                    @switch (step.Status)
-                                    {
-                                        case HRManagement.SharedKernel.Enums.ApprovalStatus.Pending:
-                                            <span class="badge text-bg-warning">معلق</span>
-                                            break;
-                                        case HRManagement.SharedKernel.Enums.ApprovalStatus.Approved:
-                                            <span class="badge text-bg-success">موافق</span>
-                                            break;
-                                        case HRManagement.SharedKernel.Enums.ApprovalStatus.Rejected:
-                                            <span class="badge text-bg-danger">مرفوض</span>
-                                            break;
+                                    @{
+                                        var stepBadge = step.Status switch
+                                        {
+                                            HRManagement.SharedKernel.Enums.ApprovalStatus.Pending => "text-bg-warning",
+                                            HRManagement.SharedKernel.Enums.ApprovalStatus.Approved => "text-bg-success",
+                                            HRManagement.SharedKernel.Enums.ApprovalStatus.Rejected => "text-bg-danger",
+                                            _ => "text-bg-secondary"
+                                        };
                                     }
+                                    <span class="badge @stepBadge">@Html.HrEnumDisplay(step.Status)</span>
                                 </td>
                                 <td>@(step.ReviewedByName ?? "—")</td>
                                 <td dir="ltr">@(step.ReviewedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>

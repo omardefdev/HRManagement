@@ -15,7 +15,7 @@ param(
     [int]$PostgresPort = 5432,
     [string]$PostgresUser = "postgres",
     [string]$PostgresPassword = $env:PGPASSWORD,
-    [string]$HrCoreDatabase = "hr_core",
+    [string]$HrCoreDatabase = "hr_core_db",
     [string]$ReportPath = ".\reports\tenant-reconcile-$(Get-Date -Format 'yyyyMMdd-HHmmss').json"
 )
 
@@ -23,27 +23,27 @@ $ErrorActionPreference = "Stop"
 $DefaultTenantId = "00000000-0000-4000-8000-000000000001"
 
 $services = @(
-    @{ Name = "HRCore"; Database = "hr_core"; Tables = @("Employees", "OrgUnits", "ApprovalRequests") },
-    @{ Name = "HRContracts"; Database = "hr_contracts"; Tables = @("Contracts", "LeaveRequests", "SeparationRecords", "OrgUnitSnapshots") },
-    @{ Name = "Payroll"; Database = "payroll"; Tables = @("PayrollRuns", "SalaryLines", "EmployeePayProfiles") },
-    @{ Name = "HRMovements"; Database = "hr_movements"; Tables = @("TransferRequests", "MovementNotices") },
-    @{ Name = "HRTraining"; Database = "hr_training"; Tables = @("TrainingCourses", "TrainingEnrollments") },
-    @{ Name = "HRHealth"; Database = "hr_health"; Tables = @("MedicalRecords") },
-    @{ Name = "AuthDirectory"; Database = "auth_directory"; Tables = @("AuthUsers", "Roles") },
-    @{ Name = "FileStorage"; Database = "file_storage"; Tables = @("Files") },
-    @{ Name = "IDCard"; Database = "idcard"; Tables = @("IssuedCards", "CardRequests") },
-    @{ Name = "Compliance"; Database = "compliance"; Tables = @("Complaints", "AuditFindings") },
-    @{ Name = "RecordsArchive"; Database = "records_archive"; Tables = @("ArchiveItems") },
-    @{ Name = "AdminLogistics"; Database = "admin_logistics"; Tables = @("Assets") },
-    @{ Name = "ITInfra"; Database = "it_infra"; Tables = @("ServerDevices") },
-    @{ Name = "DevAnalytics"; Database = "dev_analytics"; Tables = @("Reports", "KPIs") }
+    @{ Name = "HRCore"; Database = "hr_core_db"; Tables = @("Employees", "OrgUnits", "ApprovalRequests") },
+    @{ Name = "HRContracts"; Database = "hr_contracts_db"; Tables = @("Contracts", "LeaveRequests", "SeparationRecords", "OrgUnitSnapshots") },
+    @{ Name = "Payroll"; Database = "payroll_db"; Tables = @("PayrollRuns", "SalaryLines", "EmployeePayProfiles") },
+    @{ Name = "HRMovements"; Database = "hr_movements_db"; Tables = @("TransferRequests", "MovementNotices") },
+    @{ Name = "HRTraining"; Database = "hr_training_db"; Tables = @("TrainingCourses", "TrainingEnrollments") },
+    @{ Name = "HRHealth"; Database = "hr_health_db"; Tables = @("MedicalRecords") },
+    @{ Name = "AuthDirectory"; Database = "auth_directory_db"; Tables = @("AuthUsers", "Roles") },
+    @{ Name = "FileStorage"; Database = "file_storage_db"; Tables = @("Files") },
+    @{ Name = "IDCard"; Database = "idcard_db"; Tables = @("IssuedCards", "CardRequests") },
+    @{ Name = "Compliance"; Database = "compliance_db"; Tables = @("Complaints", "AuditFindings") },
+    @{ Name = "RecordsArchive"; Database = "archive_db"; Tables = @("ArchiveItems") },
+    @{ Name = "AdminLogistics"; Database = "admin_db"; Tables = @("Assets") },
+    @{ Name = "ITInfra"; Database = "it_infra_db"; Tables = @("ServerDevices") },
+    @{ Name = "DevAnalytics"; Database = "analytics_db"; Tables = @("Reports", "KPIs", "ReadModels") }
 )
 
 # Sample parent/child pairs for cross-tenant FK orphan detection
 $parentChildChecks = @(
-    @{ Database = "hr_core"; Child = "Employees"; ChildFk = "PrimaryOrgUnitId"; Parent = "OrgUnits"; ParentPk = "Id" },
-    @{ Database = "payroll"; Child = "SalaryLines"; ChildFk = "PayrollRunId"; Parent = "PayrollRuns"; ParentPk = "Id" },
-    @{ Database = "hr_contracts"; Child = "LeaveRequests"; ChildFk = "EmployeeId"; Parent = $null; ParentPk = $null } # employee lives in other DB — skip FK
+    @{ Database = "hr_core_db"; Child = "Employees"; ChildFk = "PrimaryOrgUnitId"; Parent = "OrgUnits"; ParentPk = "Id" },
+    @{ Database = "payroll_db"; Child = "SalaryLines"; ChildFk = "PayrollRunId"; Parent = "PayrollRuns"; ParentPk = "Id" },
+    @{ Database = "hr_contracts_db"; Child = "LeaveRequests"; ChildFk = "EmployeeId"; Parent = $null; ParentPk = $null }
 )
 
 function Invoke-PgScalar([string]$Database, [string]$Sql) {
@@ -51,6 +51,11 @@ function Invoke-PgScalar([string]$Database, [string]$Sql) {
     $out = & psql -h $PostgresHost -p $PostgresPort -U $PostgresUser -d $Database -t -A -c $Sql 2>&1
     if ($LASTEXITCODE -ne 0) { throw "psql failed on $Database : $out" }
     return ($out | Out-String).Trim()
+}
+
+function Test-PgTableExists([string]$Database, [string]$Table) {
+    $sql = 'SELECT to_regclass(''public."{0}"'') IS NOT NULL;' -f $Table
+    return (Invoke-PgScalar $Database $sql) -eq "t"
 }
 
 Write-Host "=== TEN-003 Tenant Reconciliation ===" -ForegroundColor Cyan
@@ -80,8 +85,7 @@ foreach ($svc in $services) {
     }
 
     foreach ($table in $svc.Tables) {
-        $exists = Invoke-PgScalar $svc.Database "SELECT to_regclass('public.\"$table\"') IS NOT NULL;"
-        if ($exists -ne "t") {
+        if (-not (Test-PgTableExists $svc.Database $table)) {
             Write-Warning "$($svc.Name).$table missing — skipped"
             continue
         }
@@ -139,9 +143,9 @@ WHERE "ServiceName" = '$($svc.Name)' AND "TableName" = '$table' AND "ResolvedAt"
 
 foreach ($pair in $parentChildChecks) {
     if (-not $pair.Parent) { continue }
-    $childExists = Invoke-PgScalar $pair.Database "SELECT to_regclass('public.\"$($pair.Child)\"') IS NOT NULL;"
-    $parentExists = Invoke-PgScalar $pair.Database "SELECT to_regclass('public.\"$($pair.Parent)\"') IS NOT NULL;"
-    if ($childExists -ne "t" -or $parentExists -ne "t") { continue }
+    $childExists = Test-PgTableExists $pair.Database $pair.Child
+    $parentExists = Test-PgTableExists $pair.Database $pair.Parent
+    if (-not $childExists -or -not $parentExists) { continue }
 
     $mismatch = Invoke-PgScalar $pair.Database @"
 SELECT COUNT(*)

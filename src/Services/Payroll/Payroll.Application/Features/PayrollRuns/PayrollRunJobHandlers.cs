@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using HRManagement.SharedKernel.SeparationOfDuties;
 using Payroll.Application.Abstractions;
 using Payroll.Application.Options;
 using Payroll.Application.Services;
@@ -89,6 +90,7 @@ public class StartPayrollRunJobHandler(
         var profiles = await repository.EmployeePayProfiles
             .Where(p => p.IsActive)
             .Include(p => p.PayGrade)
+            .AsNoTracking()
             .OrderBy(p => p.EmployeeId)
             .ToListAsync(cancellationToken);
 
@@ -241,9 +243,14 @@ public class ResumePayrollRunJobHandler(
         job.Error = null;
         job.LeaseOwner = Environment.MachineName;
         job.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
+        job.ProcessedEmployeeCount = job.Partitions
+            .Where(p => p.Status == PayrollRunPartitionStatus.Completed)
+            .Sum(p => p.EmployeeCount);
         foreach (var p in job.Partitions.Where(p => p.Status != PayrollRunPartitionStatus.Completed))
         {
             p.Status = PayrollRunPartitionStatus.Pending;
+            p.ProcessedCount = 0;
+            p.CursorEmployeeId = null;
             p.WorkerId = null;
             p.Error = null;
         }
@@ -343,12 +350,14 @@ public class ValidatePayrollRunHandler(IPayrollRepository repository)
 /// Hands a posted batch to the disbursement channel. This is the only entry point to the paying
 /// side of a run, so the pre-disbursement controls are enforced here.
 /// </summary>
-public record ProcessPaymentBatchCommand(Guid PaymentBatchId) : IRequest<(bool Success, string? Error)>;
+public record ProcessPaymentBatchCommand(Guid PaymentBatchId, Guid ActorId) : IRequest<(bool Success, string? Error)>;
 
 public class ProcessPaymentBatchHandler(
     IPayrollRepository repository,
     IPaymentDisbursementGate disbursementGate,
-    IPaymentOrderCoordinator paymentOrderCoordinator)
+    IPaymentOrderCoordinator paymentOrderCoordinator,
+    SeparationOfDutiesService sod,
+    IMediator mediator)
     : IRequestHandler<ProcessPaymentBatchCommand, (bool Success, string? Error)>
 {
     public async Task<(bool Success, string? Error)> Handle(
@@ -364,6 +373,23 @@ public class ProcessPaymentBatchHandler(
         var run = await repository.GetPayrollRunAsync(batch.PayrollRunId, includeLines: false, cancellationToken);
         if (run is null || run.Status != PayrollRunStatus.Posted)
             return (false, "التشغيل يجب أن يكون مرحّلاً قبل الصرف.");
+
+        await mediator.Send(new Fraud.RunPayrollFraudScanCommand(run.Id), cancellationToken);
+
+        var latestApproval = run.Approvals
+            .Where(a => a.Decision == ApprovalDecision.Approved)
+            .OrderByDescending(a => a.DecidedAt)
+            .FirstOrDefault();
+
+        var (allowed, sodError) = PayrollSodGuard.ValidatePaymentBatchDisburse(
+            sod,
+            request.ActorId,
+            batch.Id,
+            batchCreatorId: null,
+            run.CreatedBy,
+            latestApproval?.ApproverId);
+        if (!allowed)
+            return (false, sodError);
 
         // Active payment holds and unresolved fraud alerts block the whole batch. These controls
         // existed but sat off the disbursement path, so a held employee was still paid.
@@ -387,7 +413,7 @@ public class ProcessPaymentBatchHandler(
         }
 
         await repository.SaveChangesAsync(cancellationToken);
-        await paymentOrderCoordinator.EnsureAndSubmitOrdersAsync(batch.Id, cancellationToken);
+        await paymentOrderCoordinator.EnsureAndSubmitOrdersAsync(batch.Id, cancellationToken: cancellationToken);
         return (true, null);
     }
 }

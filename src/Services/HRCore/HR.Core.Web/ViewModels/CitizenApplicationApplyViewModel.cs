@@ -27,4 +27,11 @@ public class CitizenApplicationApplyViewModel
 
     [Display(Name = "نبذة/مسوّغات")]
     public string? CoverNote { get; set; }
+
+    [Display(Name = "موافقة معالجة البيانات")]
+    [Range(typeof(bool), "true", "true", ErrorMessage = "يجب الموافقة على معالجة البيانات.")]
+    public bool PrivacyConsent { get; set; }
+
+    [Display(Name = "حقل أمان")]
+    public string? Website { get; set; }
 }

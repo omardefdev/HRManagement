@@ -35,8 +35,8 @@
                         }
                     </dd>
 
-                    <dt class="col-sm-4">معرّف الموظف</dt>
-                    <dd class="col-sm-8">@(Model.EmployeeId?.ToString() ?? "—")</dd>
+                    <dt class="col-sm-4">الموظف المرتبط</dt>
+                    <dd class="col-sm-8">@(ViewBag.EmployeeName as string ?? "غير متاح")</dd>
 
                     <dt class="col-sm-4">معرّف Keycloak</dt>
                     <dd class="col-sm-8">@(Model.KeycloakUserId ?? "—")</dd>

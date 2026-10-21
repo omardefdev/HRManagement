@@ -14,6 +14,7 @@ title "خريطة ERD المختصرة لقاعدة analytics_db\nDev.Analytics"
 
 entity "AnalyticsEvents\nAnalyticsEvent" as T01 {
   * Id
+    OrgUnitId
     TenantId
 }
 entity "Dashboards\nDashboard" as T02 {
@@ -47,6 +48,17 @@ entity "AuditLogs\nEntityAuditLog" as T08 {
     EntityId
     TenantId
     UserId
+}
+entity "ExportJobs\nExportJob" as T09 {
+  * Id
+    RequestedByUserId
+    ResultFileId
+    TenantId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T10 {
+  * Id
+    MessageId
+    TenantId
 }
 
 T03 }o--|| T06 : TargetReadModelId

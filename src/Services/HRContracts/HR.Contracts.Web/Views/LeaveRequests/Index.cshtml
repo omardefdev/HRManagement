@@ -1,6 +1,14 @@
 @model IReadOnlyList<LeaveRequest>
 @using HRManagement.SharedKernel.Enums
-@{ ViewData["Title"] = "طلبات الإجازة"; }
+@using HR.Contracts.Domain.Enums
+@{
+    ViewData["Title"] = "طلبات الإجازة";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var statusFilter = ViewBag.StatusFilter as ApprovalStatus?;
+    var leaveTypeFilter = ViewBag.LeaveTypeFilter as LeaveType?;
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-calendar-alt"></i> طلبات الإجازة</h3>
@@ -9,6 +17,36 @@
     <div class="card-body">
         @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">جميع الحالات</option>
+                    @foreach (var s in Enum.GetValues<ApprovalStatus>())
+                    {
+                        <option value="@s" selected="@(statusFilter == s ? "selected" : null)">@Html.HrEnumDisplay(s)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="leaveType" class="form-select form-select-sm">
+                    <option value="">جميع الأنواع</option>
+                    @foreach (var lt in Enum.GetValues<LeaveType>())
+                    {
+                        <option value="@lt" selected="@(leaveTypeFilter == lt ? "selected" : null)">@Html.HrEnumDisplay(lt)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button></div>
+        </form>
     </div>
     <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
@@ -17,12 +55,12 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.EmployeeId</td>
-                        <td>@x.LeaveType</td>
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
+                        <td>@Html.HrEnumDisplay(x.LeaveType)</td>
                         <td>@x.StartDate.ToString("yyyy/MM/dd")</td>
                         <td>@x.EndDate.ToString("yyyy/MM/dd")</td>
                         <td>@x.DurationDays</td>
-                        <td>@x.Status</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td>
                             @if (x.Status == ApprovalStatus.Pending)
                             {

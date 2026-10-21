@@ -13,7 +13,7 @@
         <table class="table table-borderless table-sm w-auto">
             <tr><th>الوحدة التنظيمية</th><td>@Model.OrgUnitId</td></tr>
             <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate</td></tr>
-            <tr><th>الحالة</th><td><span class="badge bg-info">@Model.Status</span></td></tr>
+            <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
             <tr><th>أنشئ بواسطة</th><td>@(Model.CreatedBy?.ToString() ?? "—")</td></tr>
         </table>
 

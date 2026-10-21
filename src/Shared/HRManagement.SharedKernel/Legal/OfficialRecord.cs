@@ -5,10 +5,15 @@ namespace HRManagement.SharedKernel.Legal;
 /// <summary>LEG-001: official record lifecycle status.</summary>
 public enum OfficialRecordStatus
 {
+    [Display(Name = "نشط")]
     Active = 0,
+    [Display(Name = "مؤرشف")]
     Archived = 1,
+    [Display(Name = "بانتظار التصرف")]
     PendingDisposition = 2,
+    [Display(Name = "مُستَبعَد")]
     Disposed = 3,
+    [Display(Name = "تحت حجز قانوني")]
     UnderLegalHold = 4
 }
 

@@ -1,105 +1,72 @@
 @model IEnumerable<HR.Contracts.Domain.Entities.ServiceTransaction>
-
-@functions {
-
-    static string EmployeeDisplay(string? notes, Guid employeeId)
-
-    {
-
-        if (string.IsNullOrWhiteSpace(notes))
-
-            return employeeId.ToString();
-
-        var sep = notes.IndexOf(" — ", StringComparison.Ordinal);
-
-        return sep > 0 ? notes[..sep] : notes;
-
-    }
-
+@using HR.Contracts.Domain.Enums
+@{
+    ViewData["Title"] = "معاملات التعيين";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var stateFilter = ViewBag.StateFilter as ServiceTransactionState?;
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
 }
 
-@{ ViewData["Title"] = "معاملات التعيين"; }
-
 <div class="card">
-
     <div class="card-header d-flex justify-content-between align-items-center">
-
-        <h3 class="card-title"><i class="fas fa-user-plus"></i> معاملات التعيين المفتوحة</h3>
-
+        <h3 class="card-title mb-0"><i class="fas fa-user-plus"></i> معاملات التعيين المفتوحة</h3>
     </div>
-
     <div class="card-body">
-
         @if (TempData["Error"] is string err)
-
         {
-
             <div class="alert alert-warning">@err</div>
-
         }
-
         @if (TempData["Success"] is string ok)
-
         {
-
             <div class="alert alert-success">@ok</div>
-
         }
-
         <p class="text-muted">تُنشأ المعاملات تلقائياً عند التعيين من <strong>طلبات التوظيف</strong> في النواة.</p>
-
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <select name="state" class="form-select form-select-sm">
+                    <option value="">جميع الحالات</option>
+                    @foreach (var s in Enum.GetValues<ServiceTransactionState>())
+                    {
+                        <option value="@s" selected="@(stateFilter == s ? "selected" : null)">@Html.HrEnumDisplay(s)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button></div>
+        </form>
         <div class="table-responsive">
-
-        <table class="table table-striped">
-
+        <table class="table table-striped mb-0">
             <thead>
-
             <tr><th>الموظف</th><th>الحالة</th><th>ملاحظات</th><th></th></tr>
-
             </thead>
-
             <tbody>
-
             @foreach (var t in Model)
-
             {
-
                 <tr>
-
-                    <td>@EmployeeDisplay(t.Notes, t.EmployeeId)</td>
-
-                    <td>@t.State</td>
-
-                    <td>@t.Notes</td>
-
+                    <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(t.EmployeeId, employeeNames.GetValueOrDefault(t.EmployeeId)))</td>
+                    <td>@Html.HrEnumDisplay(t.State)</td>
+                    <td>@(t.Notes ?? "—")</td>
                     <td>
-
                         <a asp-action="Step2" asp-route-transactionId="@t.Id" class="btn btn-sm btn-outline-primary">متابعة</a>
-
                         <a asp-controller="ServiceTransactions" asp-action="Details" asp-route-id="@t.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a>
-
                     </td>
-
                 </tr>
-
             }
-
             @if (!Model.Any())
-
             {
-
-                <tr><td colspan="4" class="text-center text-muted">لا توجد معاملات مفتوحة</td></tr>
-
+                <tr><td colspan="4" class="text-center text-muted py-4">لا توجد معاملات مفتوحة</td></tr>
             }
-
             </tbody>
-
         </table>
-
         </div>
-
     </div>
-
 </div>
-
-

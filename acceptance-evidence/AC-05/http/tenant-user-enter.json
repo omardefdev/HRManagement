@@ -1,0 +1,8 @@
+{
+  "step": "tenant-user-enter",
+  "method": "POST",
+  "url": "/api/platform/enter-tenant",
+  "statusCode": 405,
+  "capturedAtUtc": "2026-08-24T17:48:09.6244884Z",
+  "body": ""
+}

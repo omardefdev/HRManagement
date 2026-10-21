@@ -1,0 +1,26 @@
+@model IEnumerable<HR.Core.Domain.Entities.CodeGeneration.CodeIssuance>
+@{
+    ViewData["Title"] = "سجل إصدارات الرموز";
+}
+<div class="card">
+    <div class="card-header">
+        <a asp-action="Index" class="btn btn-link">← سياسات الترميز</a>
+        <h3 class="card-title">سجل الإصدارات</h3>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead><tr><th>النوع</th><th>الرمز</th><th>النطاق</th><th>التاريخ</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model)
+            {
+                <tr>
+                    <td>@i.EntityKind</td>
+                    <td><code>@i.Code</code></td>
+                    <td>@i.SequenceScope</td>
+                    <td>@i.IssuedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

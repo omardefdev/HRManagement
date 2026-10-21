@@ -3,7 +3,11 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0">تعديل دورة إلكترونية</h3>
-        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('تأكيد الحذف؟');">
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+              data-hr-confirm="تأكيد الحذف؟"
+              data-hr-confirm-title="تأكيد الحذف"
+              data-hr-confirm-variant="danger"
+              data-hr-confirm-label="حذف">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
         </form>

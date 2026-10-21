@@ -29,6 +29,8 @@
 
     <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
 
+    <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+
   </ItemGroup>
 
 </Project>

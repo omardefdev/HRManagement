@@ -7,7 +7,7 @@
     </div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">التاريخ</dt><dd class="col-sm-9">@Model.EntryDate.ToString("yyyy/MM/dd HH:mm")</dd>
             <dt class="col-sm-3">كود الحالة</dt><dd class="col-sm-9">@(Model.StatusCode ?? "—")</dd>
             <dt class="col-sm-3">ملاحظات</dt><dd class="col-sm-9">@(Model.Notes ?? "—")</dd>

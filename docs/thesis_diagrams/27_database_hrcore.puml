@@ -2,88 +2,98 @@
 !theme plain
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName Arial
-skinparam defaultFontSize 18
 skinparam shadowing false
 skinparam roundcorner 8
 skinparam linetype ortho
 skinparam dpi 170
 skinparam ArrowColor #24465A
-skinparam EntityBorderColor #0F6B73
-skinparam EntityBackgroundColor #F4FAFA
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
 
-title "ERD منطقي مختصر لقاعدة HR.Core\nHR.Core bounded context"
+title ERD مفاهيمي مختصر للنواة الحالية HR.Core
+left to right direction
 
-entity "Employee\nالموظف" as Employee {
+entity "Tenant\nالجهة" as Tenant {
   * Id : uuid <<PK>>
-  --
-  NationalId : string <<UQ>>
-  PrimaryOrgUnitId : uuid <<FK>>
+  Code : text <<UQ>>
+}
+entity "TenantAssignmentRule\nقاعدة الإسناد" as AssignmentRule {
+  * Id : uuid <<PK>>
+  TenantId : uuid <<FK>>
+}
+entity "TenantQuarantineEntry\nسجل الحجر" as Quarantine {
+  * Id : uuid <<PK>>
+  CandidateTenantId : uuid
 }
 entity "OrgUnit\nالوحدة التنظيمية" as OrgUnit {
   * Id : uuid <<PK>>
-  --
-  Code : string <<UQ>>
+  TenantId : uuid <<FK>>
   ParentId : uuid <<FK>>
-  HeadEmployeeId : uuid <<FK>>
 }
-entity "EmployeeProfile\nالملف الشخصي" as Profile {
-  * Id : uuid <<PK>>
-  EmployeeId : uuid <<FK>>
-}
-entity "EmploymentRecord\nالسجل الوظيفي" as Employment {
-  * Id : uuid <<PK>>
-  EmployeeId : uuid <<FK>>
-  OrgUnitId : uuid <<FK>>
-}
-entity "EmployeeDocument\nوثيقة الموظف" as Document {
-  * Id : uuid <<PK>>
-  EmployeeId : uuid <<FK>>
-}
-entity "Qualification\nالمؤهل" as Qualification {
-  * Id : uuid <<PK>>
-  EmployeeId : uuid <<FK>>
-}
-entity "ApprovalRequest\nطلب اعتماد" as Approval {
-  * Id : uuid <<PK>>
-  EntityType : string
-  EntityId : uuid
-}
-entity "ApprovalStep\nخطوة اعتماد" as ApprovalStep {
-  * Id : uuid <<PK>>
-  ApprovalRequestId : uuid <<FK>>
-  Level : int
-}
-entity "ShiftRoster\nجدول المناوبات" as Roster {
+entity "OrgUnitVersion\nنسخة الهيكل المؤرخة" as OrgVersion {
   * Id : uuid <<PK>>
   OrgUnitId : uuid <<FK>>
+  ValidFrom : timestamp
 }
-entity "ShiftAssignment\nتكليف مناوبة" as Assignment {
+entity "Employee\nالموظف" as Employee {
   * Id : uuid <<PK>>
-  ShiftRosterId : uuid <<FK>>
-  EmployeeId : uuid <<FK>>
-  ShiftId : uuid <<FK>>
+  TenantId : uuid <<FK>>
+  PrimaryOrgUnitId : uuid <<FK>>
+  NationalIdEncrypted : bytes
+  NationalIdHash : text
 }
-entity "RecruitmentApplication\nطلب توظيف" as Recruitment {
+entity "JobCatalogEntry\nدليل الوظائف" as Job {
   * Id : uuid <<PK>>
-  HiredEmployeeId : uuid <<FK nullable>>
+  TenantId : uuid <<FK>>
+}
+entity "FundedPosition\nوظيفة ممولة" as Position {
+  * Id : uuid <<PK>>
+  JobCatalogEntryId : uuid <<FK>>
+  OrgUnitId : uuid <<FK>>
+}
+entity "WorkforcePlan\nخطة القوى العاملة" as Workforce {
+  * Id : uuid <<PK>>
+  TenantId : uuid <<FK>>
+}
+entity "PolicyTemplateVersion\nإصدار السياسة" as Policy {
+  * Id : uuid <<PK>>
+  TenantId : uuid <<FK>>
+  Status : enum
+}
+entity "WorkflowDefinition\nتعريف سير العمل" as Workflow {
+  * Id : uuid <<PK>>
+  TenantId : uuid <<FK>>
+}
+entity "CodePolicyVersion\nسياسة الرمز" as CodePolicy {
+  * Id : uuid <<PK>>
+  TenantId : uuid <<FK>>
 }
 
+Tenant ||--o{ OrgUnit
+Tenant ||--o{ Employee
+Tenant ||--o{ AssignmentRule
+AssignmentRule ..> Quarantine
+OrgUnit ||--o{ OrgVersion
 OrgUnit ||--o{ Employee : PrimaryOrgUnit
-OrgUnit ||--o{ OrgUnit : Parent / Children
-Employee ||--o{ Profile
-Employee ||--o{ Employment
-OrgUnit ||--o{ Employment
-Employee ||--o{ Document
-Employee ||--o{ Qualification
-Approval ||--o{ ApprovalStep
-OrgUnit ||--o{ Roster
-Roster ||--o{ Assignment
-Employee ||--o{ Assignment
-Employee ||--o{ Recruitment : hired employee
+OrgUnit ||--o{ Position
+Job ||--o{ Position
+Workforce ..> Position
+Policy ..> Workflow
+CodePolicy ..> OrgUnit
 
-note right of Employee
-Employee وOrgUnit هما المرجعان المركزيان داخل HR.Core.
-الخدمات الأخرى تستقبل EmployeeId وOrgUnitId
-أو OrgUnitSnapshot، ولا تنشئ FK عابراً لقواعد البيانات.
+note bottom of Employee
+هذا عرض مفاهيمي للكيانات المحورية لا قائمة جداول نهائية.
+يعتمد ملحق ERD المستخرج من Migration Snapshot مرجعاً بنيوياً كاملاً.
 end note
 @enduml

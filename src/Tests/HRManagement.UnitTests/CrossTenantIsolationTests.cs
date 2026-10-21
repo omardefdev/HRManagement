@@ -10,12 +10,15 @@ namespace HRManagement.UnitTests;
 
 public class CrossTenantIsolationTests
 {
-    private static ITenantContext FixedTenant(Guid tenantId, bool platformAdmin = false)
+    private static ITenantContext FixedTenant(Guid? tenantId, bool platformAdmin = false)
     {
         var mock = new Mock<ITenantContext>();
         mock.Setup(t => t.TenantId).Returns(tenantId);
         mock.Setup(t => t.IsPlatformOperator).Returns(platformAdmin);
-        mock.Setup(t => t.RequireTenantId()).Returns(tenantId);
+        if (tenantId.HasValue)
+            mock.Setup(t => t.RequireTenantId()).Returns(tenantId.Value);
+        else
+            mock.Setup(t => t.RequireTenantId()).Throws<InvalidOperationException>();
         return mock.Object;
     }
 
@@ -79,7 +82,7 @@ public class CrossTenantIsolationTests
     }
 
     [Fact]
-    public async Task Platform_admin_bypass_sees_all_tenants()
+    public async Task Platform_admin_without_session_sees_no_tenant_rows()
     {
         var tenantA = Guid.NewGuid();
         var tenantB = Guid.NewGuid();
@@ -107,10 +110,54 @@ public class CrossTenantIsolationTests
             await seedB.SaveChangesAsync();
         }
 
+        var admin = FixedTenant(null, platformAdmin: true);
+        await using var readAdmin = CreateDb(admin, dbName);
+        var names = await readAdmin.Employees.Select(e => e.FullName).ToListAsync();
+        Assert.Empty(names);
+    }
+
+    [Fact]
+    public async Task Platform_admin_impersonating_sees_only_target_tenant()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        var dbName = $"impersonate-{Guid.NewGuid()}";
+
+        await using (var seedA = CreateDb(FixedTenant(tenantA), dbName))
+        {
+            seedA.Employees.Add(new Employee
+            {
+                TenantId = tenantA,
+                FullName = "A",
+                NationalId = $"A-{Guid.NewGuid():N}"[..20]
+            });
+            await seedA.SaveChangesAsync();
+        }
+
+        await using (var seedB = CreateDb(FixedTenant(tenantB), dbName))
+        {
+            seedB.Employees.Add(new Employee
+            {
+                TenantId = tenantB,
+                FullName = "B",
+                NationalId = $"B-{Guid.NewGuid():N}"[..20]
+            });
+            await seedB.SaveChangesAsync();
+        }
+
         var admin = FixedTenant(tenantA, platformAdmin: true);
-        await using var db = CreateDb(admin, dbName);
-        var all = await db.Employees.IgnoreTenantFilter(admin).Select(e => e.FullName).OrderBy(x => x).ToListAsync();
-        Assert.Equal(["A", "B"], all);
+        await using var readAdmin = CreateDb(admin, dbName);
+        var names = await readAdmin.Employees.Select(e => e.FullName).ToListAsync();
+        Assert.Equal(["A"], names);
+    }
+
+    [Fact]
+    public void TenantFilterBypass_requires_impersonation_session()
+    {
+        var adminNoSession = FixedTenant(null, platformAdmin: true);
+        using var db = CreateDb(adminNoSession);
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            db.Employees.IgnoreTenantFilter(adminNoSession).ToList());
     }
 
     [Fact]

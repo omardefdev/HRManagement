@@ -13,9 +13,9 @@
                 {
                     <tr>
                         <td>@x.Title</td>
-                        <td>@x.Severity</td>
+                        <td>@Html.HrEnumDisplay(x.Severity)</td>
                         <td>@x.ReportedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td>@x.Status</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>
                 }

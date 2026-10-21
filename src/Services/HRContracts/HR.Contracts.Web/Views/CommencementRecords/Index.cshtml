@@ -1,18 +1,49 @@
 @model IReadOnlyList<CommencementRecord>
-@{ ViewData["Title"] = "أذونات المباشرة"; }
+@{
+    ViewData["Title"] = "أذونات المباشرة";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+    var startFrom = ViewBag.StartFrom as DateOnly?;
+    var startTo = ViewBag.StartTo as DateOnly?;
+    var contractId = ViewBag.ContractId as Guid?;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-play-circle"></i> أذونات المباشرة</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <input type="date" name="startFrom" value="@startFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" placeholder="من تاريخ" title="من تاريخ" />
+            </div>
+            <div class="col-auto">
+                <input type="date" name="startTo" value="@startTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" placeholder="إلى تاريخ" title="إلى تاريخ" />
+            </div>
+            <div class="col-auto">
+                <input type="text" name="contractId" value="@contractId" class="form-control form-control-sm" placeholder="معرف العقد" />
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button></div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>الموظف</th><th>البداية</th><th>العقد</th><th></th></tr></thead>
             <tbody>
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.EmployeeId</td>
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                         <td>@x.StartDate.ToString("yyyy/MM/dd")</td>
                         <td>@(x.ContractId?.ToString() ?? "—")</td>
                         <td>

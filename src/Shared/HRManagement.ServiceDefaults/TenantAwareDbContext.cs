@@ -26,8 +26,8 @@ public abstract class TenantAwareDbContext : DbContext
     /// </summary>
     public Guid EffectiveTenantId => _tenantContext.TenantId ?? Guid.Empty;
 
-    /// <summary>When true, global query filters admit all tenants (platform-admin / design-time).</summary>
-    public bool BypassTenantFilter => _tenantContext.IsPlatformOperator;
+    /// <summary>When true, global query filters admit all tenants (design-time tooling only).</summary>
+    public bool BypassTenantFilter => _tenantContext is DesignTimeTenantContext;
 
     protected ITenantContext TenantContext => _tenantContext;
 }

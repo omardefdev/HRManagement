@@ -17,49 +17,104 @@ entity "AuditFindings\nAuditFinding" as T01 {
     AuditId : uuid
     TenantId : uuid
 }
-entity "Complaints\nComplaint" as T02 {
+entity "CollectiveGrievances\nCollectiveGrievance" as T02 {
   * Id : uuid
+    OwnerId : uuid
     TenantId : uuid
 }
-entity "ComplaintFollowUps\nComplaintFollowUp" as T03 {
+entity "Complaints\nComplaint" as T03 {
+  * Id : uuid
+    EvidenceFileId : uuid
+    ReporterProtectedId : uuid
+    TenantId : uuid
+}
+entity "ComplaintFollowUps\nComplaintFollowUp" as T04 {
   * Id : uuid
     ComplaintId : uuid
     TenantId : uuid
 }
-entity "ComplianceRecommendations\nComplianceRecommendation" as T04 {
+entity "ComplianceRecommendations\nComplianceRecommendation" as T05 {
   * Id : uuid
     ComplaintId : uuid
     FindingId : uuid
     ResponsibleUnitId : uuid
     TenantId : uuid
 }
-entity "DisciplinaryActions\nDisciplinaryAction" as T05 {
+entity "DisciplinaryActions\nDisciplinaryAction" as T06 {
   * Id : uuid
     ComplaintId : uuid
     EmployeeId : uuid
+    EvidenceFileId : uuid
     TenantId : uuid
 }
-entity "LegalCases\nLegalCase" as T06 {
+entity "DsarRequests\nDsarRequest" as T07 {
   * Id : uuid
+    SubjectEmployeeId : uuid
     TenantId : uuid
 }
-entity "LegalReferrals\nLegalReferral" as T07 {
+entity "InvestigationChecklists\nInvestigationChecklist" as T08 {
   * Id : uuid
     ComplaintId : uuid
     TenantId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T08 {
+entity "LegalCases\nLegalCase" as T09 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "LegalReferrals\nLegalReferral" as T10 {
+  * Id : uuid
+    ComplaintId : uuid
+    TenantId : uuid
+}
+entity "UnionEngagements\nUnionEngagement" as T11 {
+  * Id : uuid
+    TenantId : uuid
+    WaveId : text
+}
+entity "AuditLogs\nEntityAuditLog" as T12 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
 }
+entity "ExportJobs\nExportJob" as T13 {
+  * Id : uuid
+    RequestedByUserId : uuid
+    ResultFileId : uuid
+    TenantId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T14 {
+  * Id : uuid
+    MessageId : text
+    TenantId : uuid
+}
+entity "InboxState\nInboxState" as T15 {
+  * Id : bigint
+    ConsumerId : uuid
+    LockId : uuid
+    MessageId : uuid
+}
+entity "OutboxMessage\nOutboxMessage" as T16 {
+  * SequenceNumber : bigint
+    ConversationId : uuid
+    CorrelationId : uuid
+    InboxConsumerId : uuid
+    InboxMessageId : uuid
+    InitiatorId : uuid
+    MessageId : uuid
+    OutboxId : uuid
+    RequestId : uuid
+}
+entity "OutboxState\nOutboxState" as T17 {
+  * OutboxId : uuid
+    LockId : uuid
+}
 
-T03 }o--|| T02 : ComplaintId
-T04 }o--|| T02 : ComplaintId
-T04 }o--|| T01 : FindingId
-T05 }o--|| T02 : ComplaintId
-T07 }o--|| T02 : ComplaintId
+T04 }o--|| T03 : ComplaintId
+T05 }o--|| T03 : ComplaintId
+T05 }o--|| T01 : FindingId
+T06 }o--|| T03 : ComplaintId
+T10 }o--|| T03 : ComplaintId
 
 note bottom
 يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.

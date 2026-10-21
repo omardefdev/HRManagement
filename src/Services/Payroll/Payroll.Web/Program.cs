@@ -4,6 +4,9 @@ using Payroll.Infrastructure.Consumers;
 using Payroll.Infrastructure.Data;
 using Payroll.Infrastructure;
 using HRManagement.ServiceDefaults;
+using HRManagement.Documents.QuestPdf;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.NationalScope;
 using HRManagement.ServiceDefaults.LegalControl;
 using HRManagement.ServiceDefaults.ModuleCatalog;
@@ -42,6 +45,7 @@ using HRManagement.ServiceDefaults.SovVendor;
 using HRManagement.ServiceDefaults.ArcCriticality;
 using HRManagement.ServiceDefaults.ArcReference;
 using HRManagement.ServiceDefaults.Connectors;
+using HRManagement.ServiceDefaults.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
@@ -86,7 +90,9 @@ builder.AddSovPentest();
 builder.AddSovVendor();
 builder.AddArcCriticality();
 builder.AddArcReference();
+builder.AddHrLocalization();
 
+builder.Services.AddHrQuestPdfDocuments();
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModulePayroll);
 builder.Services.AddHrOpenApi("Payroll API");
@@ -106,6 +112,7 @@ builder.Services.AddDbContext<PayrollDbContext>((sp, options) =>
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<PayrollDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 
 builder.Services.AddPayrollInfrastructure(builder.Configuration);
 builder.Services.AddServiceMassTransit(
@@ -120,16 +127,22 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<PayrollDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 HRManagement.ServiceDefaults.TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
 try
 {
-    await SeedPayrollDataAsync(app.Services);
-
-    if (app.Environment.IsDevelopment())
+    if (seedProfile == SeedProfile.Demo)
     {
+        await SeedPayrollDataAsync(app.Services);
         using var demoScope = app.Services.CreateScope();
         var demoDb = demoScope.ServiceProvider.GetRequiredService<PayrollDbContext>();
         await Payroll.Infrastructure.Data.DemoPayrollSeeder.SeedAsync(demoDb);
+    }
+    else if (seedProfile == SeedProfile.Acceptance)
+    {
+        using var acceptanceScope = app.Services.CreateScope();
+        var acceptanceDb = acceptanceScope.ServiceProvider.GetRequiredService<PayrollDbContext>();
+        await AcceptancePayrollSeeder.SeedAsync(acceptanceDb);
     }
 }
 finally
@@ -146,6 +159,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -177,16 +191,18 @@ static async Task SeedPayrollDataAsync(IServiceProvider services)
     if (await db.PayrollConfigurations.AnyAsync()) return;
 
     var law50 = Payroll.Domain.Services.PayrollRegimeSeed.CreateLaw50Configuration(isActive: true);
+    var law53 = Payroll.Domain.Services.PayrollRegimeSeed.CreateLaw53Configuration(isActive: false);
     var civil = Payroll.Domain.Services.PayrollRegimeSeed.CreateCivilServiceConfiguration(isActive: false);
 
-    db.PayrollConfigurations.AddRange(law50, civil);
+    db.PayrollConfigurations.AddRange(law50, law53, civil);
     await db.SaveChangesAsync();
 
     db.OfficialHolidays.AddRange(
         Payroll.Domain.Services.PayrollRegimeSeed.CreateDefaultHolidays(law50.Id));
     db.OfficialHolidays.AddRange(
+        Payroll.Domain.Services.PayrollRegimeSeed.CreateDefaultHolidays(law53.Id));
+    db.OfficialHolidays.AddRange(
         Payroll.Domain.Services.PayrollRegimeSeed.CreateDefaultHolidays(civil.Id));
 
     await db.SaveChangesAsync();
 }
-

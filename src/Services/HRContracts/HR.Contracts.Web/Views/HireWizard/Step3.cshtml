@@ -1,14 +1,63 @@
 @model HR.Contracts.Domain.Entities.ServiceTransaction
+@using HRManagement.ServiceDefaults
 @{ ViewData["Title"] = "معالج التعيين - اعتماد"; }
+@{
+    var canSubmit = User.IsInRole(HrManagementRoles.Admin)
+                    || User.IsInRole(HrManagementRoles.HrCore)
+                    || User.IsInRole(HrManagementRoles.HrContracts);
+    var canApprove = User.IsInRole(HrManagementRoles.Admin)
+                     || User.IsInRole(HrManagementRoles.HrManagementApprover);
+    var canExecute = User.IsInRole(HrManagementRoles.Admin)
+                     || User.IsInRole(HrManagementRoles.HrCore)
+                     || User.IsInRole(HrManagementRoles.HrContracts);
+}
 <div class="card">
     <div class="card-header"><h3>اعتماد الإدارة العليا</h3></div>
     <div class="card-body">
-        <p>الحالة الحالية: <strong>@Model.State</strong></p>
-        <form asp-action="Step3Approve" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="transactionId" value="@Model.Id" />
-            <button type="submit" class="btn btn-success">اعتماد وبدء التنفيذ</button>
-        </form>
-        <a asp-action="Step4" asp-route-transactionId="@Model.Id" class="btn btn-link mt-2">تخطي إلى الإكمال</a>
+        <p>الحالة الحالية: <strong>@Html.HrEnumDisplay(Model.State)</strong></p>
+        @if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.InProcess && canSubmit)
+        {
+            <form asp-action="Step3SubmitForApproval" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="transactionId" value="@Model.Id" />
+                <button type="submit" class="btn btn-primary" title="رفع المعاملة إلى الإدارة العليا لمراجعتها واعتمادها">رفع للاعتماد</button>
+            </form>
+        }
+        else if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.PendingApproval && canApprove)
+        {
+            <form asp-action="Step3Approve" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="transactionId" value="@Model.Id" />
+                <button type="submit" class="btn btn-success" title="اعتماد المعاملة بعد مراجعة بياناتها ونقلها إلى حالة معتمدة">اعتماد المعاملة</button>
+            </form>
+        }
+        else if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.Approved && canExecute)
+        {
+            <form asp-action="Step3Execute" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="transactionId" value="@Model.Id" />
+                <button type="submit" class="btn btn-primary" title="بدء تنفيذ المعاملة بعد اعتماد الإدارة العليا">بدء التنفيذ</button>
+            </form>
+        }
+        else if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.InProcess)
+        {
+            <div class="alert alert-info mb-0">المعاملة قيد المعالجة وتنتظر رفعها للاعتماد من مستخدم مخول.</div>
+        }
+        else if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.PendingApproval)
+        {
+            <div class="alert alert-warning mb-0">المعاملة بانتظار حساب اعتماد الإدارة العليا.</div>
+        }
+        else if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.Approved)
+        {
+            <div class="alert alert-info mb-0">تم الاعتماد، وتنتظر حساباً مخولاً بدء التنفيذ.</div>
+        }
+        else
+        {
+            <div class="alert alert-info mb-0">تمت معالجة هذه المرحلة أو لا تسمح الحالة الحالية بتنفيذها مرة أخرى.</div>
+        }
+        @if (Model.State == HR.Contracts.Domain.Enums.ServiceTransactionState.Executing)
+        {
+            <a asp-action="Step4" asp-route-transactionId="@Model.Id" class="btn btn-primary mt-2" title="فتح قائمة التحقق وإكمال إجراءات التعيين">متابعة الإكمال</a>
+        }
     </div>
 </div>

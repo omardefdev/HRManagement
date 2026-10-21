@@ -39,9 +39,12 @@ DR إقليم ثانوي = **OPS-004**.
 
 | التاريخ | المسار | RPO ملحوظ | RTO ملحوظ | ملاحظات |
 |---|---|---|---|---|
+| 2026-08-24 | AC-34 acceptance-backup-restore.ps1 | logical dump | see acceptance-evidence/AC-34/timing.json | relationship-checks.json |
 | | dump كامل | | | |
 | | PITR drill | | | |
 | | MinIO drill | | | |
+
+**PLAN-13 (AC-34):** `pwsh scripts/acceptance-backup-restore.ps1` — logical backup + throwaway restore + `verify-restore-relationships.sh` → `acceptance-evidence/AC-34/`.
 
 ## إغلاق البطاقة
 

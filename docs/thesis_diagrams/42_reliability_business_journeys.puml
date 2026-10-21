@@ -1,0 +1,48 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title الاعتمادية حسب رحلات الأعمال العابرة للخدمات
+component "التعيين" as Hire
+component "النقل" as Move
+component "الفصل" as Separation
+component "الرواتب" as Pay
+component "العهد" as Assets
+queue "Outbox / RabbitMQ / Inbox" as Flow
+component "إعادة المحاولة" as Retry
+component "التسوية اليدوية" as Reconcile
+component "المراقبة والتنبيه" as Observe
+Hire --> Flow : أحداث بدء الخدمة
+Move --> Flow : تغيير الوحدة وآثاره
+Separation --> Flow : إيقاف العقد والبطاقة والراتب
+Pay --> Flow : نتائج الصرف والتقارير
+Assets --> Flow : تسليم أو فقد أو إرجاع
+Flow --> Retry : فشل مؤقت
+Retry --> Reconcile : استنفاد المحاولات
+Flow --> Observe : correlation + status
+Reconcile --> Observe : قرار التسوية
+note bottom
+لا تعني المعمارية الموزعة معاملة واحدة بين كل القواعد؛
+تتحقق الاعتمادية بالتتبع، وعدم التكرار، والتسوية،
+مع تحديد RTO/RPO مؤسسياً وتجربتهما قبل الإنتاج.
+end note
+@enduml

@@ -22,6 +22,16 @@ public class InternalApplication : AuditableEntity
     [Display(Name = "مسوّغات الترشّح")]
     public string? Motivation { get; set; }
 
+    [Display(Name = "طلب الشاغر")]
+    public Guid? RequisitionId { get; set; }
+
+    public virtual RecruitmentRequisition? Requisition { get; set; }
+
+    [Display(Name = "طلب التوظيف المرتبط")]
+    public Guid? PromotedRecruitmentApplicationId { get; set; }
+
+    public virtual RecruitmentApplication? PromotedRecruitmentApplication { get; set; }
+
     public virtual InternalVacancy? InternalVacancy { get; set; }
     public virtual Employee? Employee { get; set; }
 }

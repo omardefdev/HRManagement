@@ -48,7 +48,7 @@ public class AdministrativeDecisionViewModel
 
 
 
-    [Display(Name = "الموظف المتعلق")]
+    [Display(Name = "الموظف المرتبط (اختياري)")]
 
     public Guid? RelatedEmployeeId { get; set; }
 

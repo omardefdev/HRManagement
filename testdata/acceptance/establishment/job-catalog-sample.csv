@@ -1,0 +1,4 @@
+TitleAr,TitleEn,DescriptionAr,GradeCode,JobClassificationCode,IsActive,LegacyJobCode
+مدير إداري,Admin Manager,,GR-05,JC-ADM,true,
+محلل,Analyst,,GR-05,JC-ADM,true,
+كاتب,Clerk,,GR-05,JC-ADM,true,

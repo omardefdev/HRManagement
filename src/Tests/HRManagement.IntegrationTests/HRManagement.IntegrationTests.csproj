@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HRManagement.TestSupport\HRManagement.TestSupport.csproj" />
     <ProjectReference Include="..\..\Services\Payroll\Payroll.Web\Payroll.Web.csproj" />
     <ProjectReference Include="..\..\Services\Payroll\Payroll.Infrastructure\Payroll.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\HRCore\HR.Core.Web\HR.Core.Web.csproj" />
@@ -32,7 +33,9 @@
     <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Web\HR.Contracts.Web.csproj" />
     <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Infrastructure\HR.Contracts.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Infrastructure\Admin.Logistics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Web\Admin.Logistics.Web.csproj" />
     <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infra.Infrastructure\IT.Infra.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Application\Dev.Analytics.Application.csproj" />
     <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Infrastructure\Dev.Analytics.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\RecordsArchive\Records.Archive.Infrastructure\Records.Archive.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Infrastructure\Auth.Directory.Infrastructure.csproj" />

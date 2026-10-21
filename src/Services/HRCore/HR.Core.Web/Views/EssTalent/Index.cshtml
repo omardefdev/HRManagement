@@ -12,11 +12,18 @@
         }
         @foreach (var v in Model)
         {
+            var req = v.Requisition;
+            var position = req?.FundedPosition;
             <div class="border rounded p-3 mb-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <h5 class="mb-1">@v.Title</h5>
-                        <div class="text-muted small">@(v.OrgUnit?.NameAr ?? "—") @(v.ClosingDate != null ? $"• يُغلق في {v.ClosingDate:yyyy-MM-dd}" : "")</div>
+                        <div class="text-muted small">
+                            @(req?.RequisitionNumber is string rn ? $"طلب {rn} • " : "")
+                            @(v.OrgUnit?.NameAr ?? "—")
+                            @(position?.GradeCode is string grade ? $" • درجة {grade}" : "")
+                            @(v.ClosingDate != null ? $" • يُغلق في {v.ClosingDate:yyyy-MM-dd}" : "")
+                        </div>
                         @if (!string.IsNullOrWhiteSpace(v.Description)) { <p class="mb-1 mt-2">@v.Description</p> }
                         @if (!string.IsNullOrWhiteSpace(v.RequiredQualifications)) { <p class="mb-0 small"><strong>المؤهلات:</strong> @v.RequiredQualifications</p> }
                     </div>

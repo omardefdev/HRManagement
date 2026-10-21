@@ -121,4 +121,46 @@
   <data name="Home" xml:space="preserve">
     <value>الرئيسية</value>
   </data>
+  <data name="RequestId" xml:space="preserve">
+    <value>معرّف الطلب:</value>
+  </data>
+  <data name="ErrorOccurred" xml:space="preserve">
+    <value>حدث خطأ أثناء معالجة طلبك.</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>هل أنت متأكد من الحذف؟</value>
+  </data>
+  <data name="NoRecords" xml:space="preserve">
+    <value>لا توجد سجلات</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>تفاصيل</value>
+  </data>
+  <data name="Hostname" xml:space="preserve">
+    <value>اسم المضيف</value>
+  </data>
+  <data name="IpAddress" xml:space="preserve">
+    <value>عنوان IP</value>
+  </data>
+  <data name="CronSchedule" xml:space="preserve">
+    <value>جدولة Cron</value>
+  </data>
+  <data name="LegalHold" xml:space="preserve">
+    <value>حجز قانوني</value>
+  </data>
+  <data name="Kpi" xml:space="preserve">
+    <value>مؤشر أداء</value>
+  </data>
+  <data name="Etl" xml:space="preserve">
+    <value>استخراج وتحويل</value>
+  </data>
+  <data name="ReadModels" xml:space="preserve">
+    <value>نماذج القراءة</value>
+  </data>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>مرحباً</value>
+  </data>
+  <data name="WelcomeMessage" xml:space="preserve">
+    <value>نظام إدارة الموارد البشرية — لوحة الوحدة</value>
+  </data>
 </root>

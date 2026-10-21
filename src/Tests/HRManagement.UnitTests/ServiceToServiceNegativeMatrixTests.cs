@@ -150,8 +150,31 @@ public class ServiceToServiceNegativeMatrixTests
     {
         var auth = BuildAuthService();
         var svc = ServiceAccount(ServiceClientIds.HrCore, ServiceScopes.FileStorageReferences, audience: ServiceApiAudiences.FileStorage);
-        var result = await auth.AuthorizeAsync(svc, ServicePolicies.FileStorageReferences);
+        var moduleResult = await auth.AuthorizeAsync(svc, HrManagementPolicies.ModuleFileStorage);
+        var actionResult = await auth.AuthorizeAsync(svc, ServicePolicies.FileStorageReferences);
+
+        Assert.True(moduleResult.Succeeded);
+        Assert.True(actionResult.Succeeded);
+    }
+
+    [Fact]
+    public async Task DsarSubjectRead_ComplianceWithScope_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var svc = ServiceAccount(ServiceClientIds.Compliance, ServiceScopes.DsarSubjectRead);
+        var result = await auth.AuthorizeAsync(svc, ServicePolicies.DsarSubjectRead);
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task DsarSubjectRead_WrongServiceOrInteractiveUser_Fails()
+    {
+        var auth = BuildAuthService();
+        var wrongService = ServiceAccount(ServiceClientIds.Payroll, ServiceScopes.DsarSubjectRead);
+        var interactive = InteractiveUser(HrManagementRoles.Compliance);
+
+        Assert.False((await auth.AuthorizeAsync(wrongService, ServicePolicies.DsarSubjectRead)).Succeeded);
+        Assert.False((await auth.AuthorizeAsync(interactive, ServicePolicies.DsarSubjectRead)).Succeeded);
     }
 
     [Fact]

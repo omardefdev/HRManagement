@@ -1,7 +1,12 @@
+using HR.Core.Domain.Entities.CodeGeneration;
 using HR.Core.Domain.Entities;
+using HR.Core.Domain.Entities.Seeding;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Entities.Policy;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Legal;
+using HRManagement.SharedKernel.Benefits;
 using HRManagement.SharedKernel.MasterData;
 using HRManagement.SharedKernel.Signatures;
 using HRManagement.SharedKernel.Tenancy;
@@ -35,6 +40,11 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<ApprovedCV> ApprovedCVs => Set<ApprovedCV>();
     public DbSet<IntegrationMessageReceipt> IntegrationMessageReceipts => Set<IntegrationMessageReceipt>();
     public DbSet<WorkforcePlan> WorkforcePlans => Set<WorkforcePlan>();
+    public DbSet<WorkforcePlanLine> WorkforcePlanLines => Set<WorkforcePlanLine>();
+    public DbSet<FinanceBudgetImportBatch> FinanceBudgetImportBatches => Set<FinanceBudgetImportBatch>();
+    public DbSet<FinanceBudgetLine> FinanceBudgetLines => Set<FinanceBudgetLine>();
+    public DbSet<JobCatalogImportBatch> JobCatalogImportBatches => Set<JobCatalogImportBatch>();
+    public DbSet<JobCatalogImportLine> JobCatalogImportLines => Set<JobCatalogImportLine>();
     public DbSet<HrStatisticReport> HrStatisticReports => Set<HrStatisticReport>();
     public DbSet<DailyAttendanceRecord> DailyAttendanceRecords => Set<DailyAttendanceRecord>();
     public DbSet<FieldInspectionVisit> FieldInspectionVisits => Set<FieldInspectionVisit>();
@@ -63,9 +73,42 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<WorkflowDelegation> WorkflowDelegations => Set<WorkflowDelegation>();
     public DbSet<SignatureRecord> SignatureRecords => Set<SignatureRecord>();
     public DbSet<ReferenceCatalogEntry> ReferenceCatalogEntries => Set<ReferenceCatalogEntry>();
+    public DbSet<LegislationSource> LegislationSources => Set<LegislationSource>();
+    public DbSet<LegislationKeyArticle> LegislationKeyArticles => Set<LegislationKeyArticle>();
+    public DbSet<LegislationInstrumentLink> LegislationInstrumentLinks => Set<LegislationInstrumentLink>();
+    public DbSet<LegislationSourceAlias> LegislationSourceAliases => Set<LegislationSourceAlias>();
+    public DbSet<LegalRegime> LegalRegimes => Set<LegalRegime>();
+    public DbSet<BenefitPlan> BenefitPlans => Set<BenefitPlan>();
+    public DbSet<ServiceRegimeException> ServiceRegimeExceptions => Set<ServiceRegimeException>();
+    public DbSet<EmploymentRegimeTransition> EmploymentRegimeTransitions => Set<EmploymentRegimeTransition>();
     public DbSet<OrgUnitVersion> OrgUnitVersions => Set<OrgUnitVersion>();
     public DbSet<JobCatalogEntry> JobCatalogEntries => Set<JobCatalogEntry>();
     public DbSet<FundedPosition> FundedPositions => Set<FundedPosition>();
+    public DbSet<EstablishmentChangeRequest> EstablishmentChangeRequests => Set<EstablishmentChangeRequest>();
+    public DbSet<EstablishmentChangeLog> EstablishmentChangeLogs => Set<EstablishmentChangeLog>();
+    public DbSet<JobCatalogVersion> JobCatalogVersions => Set<JobCatalogVersion>();
+    public DbSet<FundedPositionVersion> FundedPositionVersions => Set<FundedPositionVersion>();
+    public DbSet<RecruitmentRequisition> RecruitmentRequisitions => Set<RecruitmentRequisition>();
+    public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
+    public DbSet<SelectionCommitteeSession> SelectionCommitteeSessions => Set<SelectionCommitteeSession>();
+    public DbSet<SelectionCommitteeMember> SelectionCommitteeMembers => Set<SelectionCommitteeMember>();
+    public DbSet<RecruitmentAppeal> RecruitmentAppeals => Set<RecruitmentAppeal>();
+    public DbSet<RecruitmentInterviewSlot> RecruitmentInterviewSlots => Set<RecruitmentInterviewSlot>();
+    public DbSet<RecruitmentAssessmentCriteria> RecruitmentAssessmentCriteria => Set<RecruitmentAssessmentCriteria>();
+    public DbSet<PolicyTemplate> PolicyTemplates => Set<PolicyTemplate>();
+    public DbSet<PolicyTemplateVersion> PolicyTemplateVersions => Set<PolicyTemplateVersion>();
+    public DbSet<PolicyRule> PolicyRules => Set<PolicyRule>();
+    public DbSet<PolicyFactsSchemaEntity> PolicyFactsSchemas => Set<PolicyFactsSchemaEntity>();
+    public DbSet<PolicyPublication> PolicyPublications => Set<PolicyPublication>();
+    public DbSet<PolicySimulationRun> PolicySimulationRuns => Set<PolicySimulationRun>();
+    public DbSet<PolicyEnforcementLedger> PolicyEnforcementLedgers => Set<PolicyEnforcementLedger>();
+    public DbSet<PolicyWorkflowBinding> PolicyWorkflowBindings => Set<PolicyWorkflowBinding>();
+    public DbSet<CodePolicyTemplate> CodePolicyTemplates => Set<CodePolicyTemplate>();
+    public DbSet<CodePolicyVersion> CodePolicyVersions => Set<CodePolicyVersion>();
+    public DbSet<CodePolicyRule> CodePolicyRules => Set<CodePolicyRule>();
+    public DbSet<CodeSequenceCounter> CodeSequenceCounters => Set<CodeSequenceCounter>();
+    public DbSet<CodeIssuance> CodeIssuances => Set<CodeIssuance>();
+    public DbSet<SeedPackApplication> SeedPackApplications => Set<SeedPackApplication>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -127,6 +170,10 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasOne(e => e.OrgUnit)
                   .WithMany()
                   .HasForeignKey(e => e.OrgUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.LegalRegime)
+                  .WithMany()
+                  .HasForeignKey(e => e.LegalRegimeId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -235,10 +282,75 @@ public class HRCoreDbContext : TenantAwareDbContext
 
         modelBuilder.Entity<WorkforcePlan>(entity =>
         {
+            entity.Property(e => e.LegalSourceId).HasMaxLength(100);
             entity.HasOne(e => e.OrgUnit)
                   .WithMany()
                   .HasForeignKey(e => e.OrgUnitId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WorkforcePlanLine>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.WorkforcePlanId });
+            entity.Property(e => e.GradeCode).HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.HasOne(e => e.WorkforcePlan)
+                  .WithMany(p => p.Lines)
+                  .HasForeignKey(e => e.WorkforcePlanId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.JobCatalogEntry)
+                  .WithMany()
+                  .HasForeignKey(e => e.JobCatalogEntryId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<FinanceBudgetImportBatch>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.FiscalYear, e.ImportedAt });
+            entity.Property(e => e.SourceFileName).HasMaxLength(260);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.ErrorSummary).HasMaxLength(2000);
+        });
+
+        modelBuilder.Entity<FinanceBudgetLine>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.BatchId, e.CostCenter });
+            entity.Property(e => e.CostCenter).HasMaxLength(50);
+            entity.Property(e => e.GradeCode).HasMaxLength(20);
+            entity.Property(e => e.ExternalReference).HasMaxLength(100);
+            entity.HasOne(e => e.Batch)
+                  .WithMany(b => b.Lines)
+                  .HasForeignKey(e => e.BatchId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<JobCatalogImportBatch>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.ImportedAt });
+            entity.Property(e => e.SourceFileName).HasMaxLength(260);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.ImportMode).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.ErrorSummary).HasMaxLength(2000);
+            entity.HasOne(e => e.EstablishmentChangeRequest)
+                  .WithMany()
+                  .HasForeignKey(e => e.EstablishmentChangeRequestId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<JobCatalogImportLine>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.BatchId, e.LineNumber });
+            entity.Property(e => e.TitleAr).HasMaxLength(200);
+            entity.Property(e => e.TitleEn).HasMaxLength(200);
+            entity.Property(e => e.DescriptionAr).HasMaxLength(2000);
+            entity.Property(e => e.GradeCode).HasMaxLength(20);
+            entity.Property(e => e.JobClassificationCode).HasMaxLength(100);
+            entity.Property(e => e.LegacyJobCode).HasMaxLength(20);
+            entity.Property(e => e.ValidationError).HasMaxLength(500);
+            entity.HasOne(e => e.Batch)
+                  .WithMany(b => b.Lines)
+                  .HasForeignKey(e => e.BatchId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<HrStatisticReport>(entity =>
@@ -272,6 +384,57 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.HiredEmployeeId)
                   .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Requisition)
+                  .WithMany()
+                  .HasForeignKey(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.CriteriaVersion)
+                  .WithMany()
+                  .HasForeignKey(e => e.CriteriaVersionId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.ActiveOfferLetter)
+                  .WithMany()
+                  .HasForeignKey(e => e.ActiveOfferLetterId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId });
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId, e.Rank })
+                  .IsUnique()
+                  .HasFilter("\"Rank\" IS NOT NULL AND \"RequisitionId\" IS NOT NULL");
+            entity.Property(e => e.NationalIdHash).HasMaxLength(64);
+            entity.Property(e => e.AppealStatus).HasConversion<string>().HasMaxLength(32);
+            entity.HasOne(e => e.SourceInternalApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.SourceInternalApplicationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<RecruitmentAssessmentCriteria>(entity =>
+        {
+            entity.HasOne(e => e.Requisition)
+                  .WithMany()
+                  .HasForeignKey(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId, e.VersionNumber }).IsUnique();
+        });
+
+        modelBuilder.Entity<OfferLetter>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.OfferNumber }).IsUnique();
+            entity.HasOne(e => e.RecruitmentApplication)
+                  .WithMany(a => a.OfferLetters)
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.FundedPosition)
+                  .WithMany()
+                  .HasForeignKey(e => e.FundedPositionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.LegalSource)
+                  .WithMany()
+                  .HasForeignKey(e => e.LegalSourceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.Status })
+                  .HasFilter("\"Status\" IN (2, 3)")
+                  .IsUnique();
         });
 
         modelBuilder.Entity<ApprovalRequest>(entity =>
@@ -363,6 +526,13 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.OrgUnitId)
                   .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Requisition)
+                  .WithOne(r => r.InternalVacancy)
+                  .HasForeignKey<InternalVacancy>(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId })
+                  .IsUnique()
+                  .HasFilter("\"RequisitionId\" IS NOT NULL");
             entity.HasMany(e => e.Applications)
                   .WithOne(a => a.InternalVacancy)
                   .HasForeignKey(a => a.InternalVacancyId)
@@ -375,11 +545,29 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.EmployeeId)
                   .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Requisition)
+                  .WithMany()
+                  .HasForeignKey(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.PromotedRecruitmentApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.PromotedRecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => new { e.InternalVacancyId, e.EmployeeId }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.EmployeeId, e.RequisitionId })
+                  .IsUnique()
+                  .HasFilter("\"RequisitionId\" IS NOT NULL");
         });
 
         modelBuilder.Entity<PublicJobPosting>(entity =>
         {
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId })
+                  .IsUnique()
+                  .HasFilter("\"RequisitionId\" IS NOT NULL");
+            entity.HasOne(e => e.Requisition)
+                  .WithOne(r => r.PublicJobPosting)
+                  .HasForeignKey<PublicJobPosting>(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Restrict);
             entity.HasMany(e => e.Applications)
                   .WithOne(a => a.PublicJobPosting)
                   .HasForeignKey(a => a.PublicJobPostingId)
@@ -389,6 +577,66 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.Entity<CitizenApplication>(entity =>
         {
             entity.HasIndex(e => e.ReferenceNumber).IsUnique();
+            entity.HasOne(e => e.Requisition)
+                  .WithMany()
+                  .HasForeignKey(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.PromotedRecruitmentApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.PromotedRecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId });
+            entity.HasIndex(e => new { e.TenantId, e.NationalId, e.RequisitionId })
+                  .IsUnique()
+                  .HasFilter("\"RequisitionId\" IS NOT NULL");
+            entity.HasIndex(e => new { e.TenantId, e.NationalIdHash, e.RequisitionId })
+                  .IsUnique()
+                  .HasFilter("\"RequisitionId\" IS NOT NULL AND \"NationalIdHash\" IS NOT NULL");
+            entity.Property(e => e.NationalIdHash).HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<SelectionCommitteeSession>(entity =>
+        {
+            entity.HasOne(e => e.Requisition)
+                  .WithMany()
+                  .HasForeignKey(e => e.RequisitionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId, e.CommitteeDate });
+        });
+
+        modelBuilder.Entity<SelectionCommitteeMember>(entity =>
+        {
+            entity.HasOne(e => e.Session)
+                  .WithMany(s => s.Members)
+                  .HasForeignKey(e => e.SessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Employee)
+                  .WithMany()
+                  .HasForeignKey(e => e.EmployeeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TenantId, e.SessionId, e.EmployeeId }).IsUnique();
+        });
+
+        modelBuilder.Entity<RecruitmentAppeal>(entity =>
+        {
+            entity.HasOne(e => e.RecruitmentApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.Status });
+        });
+
+        modelBuilder.Entity<RecruitmentInterviewSlot>(entity =>
+        {
+            entity.HasOne(e => e.RecruitmentApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CitizenApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.CitizenApplicationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.ScheduledAt });
         });
 
         modelBuilder.Entity<WorkflowDefinition>(entity =>
@@ -413,6 +661,61 @@ public class HRCoreDbContext : TenantAwareDbContext
         {
             entity.HasIndex(e => new { e.PrincipalId, e.DelegateId, e.ActiveFrom });
             entity.HasIndex(e => new { e.IsRevoked, e.ActiveUntil });
+        });
+
+        modelBuilder.Entity<PolicyTemplate>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Domain, e.Scope });
+            entity.Property(e => e.Domain).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.SubjectType).HasMaxLength(100);
+            entity.Property(e => e.Scope).HasConversion<string>().HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<PolicyTemplateVersion>(entity =>
+        {
+            entity.HasIndex(e => new { e.PolicyTemplateId, e.VersionNumber }).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.EffectiveFrom });
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.HasOne(e => e.PolicyTemplate)
+                  .WithMany(t => t.Versions)
+                  .HasForeignKey(e => e.PolicyTemplateId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PolicyRule>(entity =>
+        {
+            entity.HasOne(e => e.PolicyTemplateVersion)
+                  .WithMany(v => v.Rules)
+                  .HasForeignKey(e => e.PolicyTemplateVersionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.RuleKey).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<PolicyFactsSchemaEntity>(entity =>
+        {
+            entity.HasIndex(e => e.Domain).IsUnique();
+            entity.Property(e => e.Domain).HasMaxLength(100);
+            entity.Property(e => e.SubjectType).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<PolicyEnforcementLedger>(entity =>
+        {
+            entity.HasIndex(e => new { e.Domain, e.OccurredAt });
+            entity.HasIndex(e => e.CorrelationId);
+            entity.Property(e => e.Domain).HasMaxLength(100);
+            entity.Property(e => e.Action).HasMaxLength(64);
+            entity.Property(e => e.CorrelationId).HasMaxLength(128);
+            entity.Property(e => e.FactsHash).HasMaxLength(64);
+            entity.Property(e => e.Mode).HasConversion<string>().HasMaxLength(16);
+        });
+
+        modelBuilder.Entity<PolicyWorkflowBinding>(entity =>
+        {
+            entity.HasIndex(e => new { e.Domain, e.WorkflowCode }).IsUnique();
+            entity.Property(e => e.Domain).HasMaxLength(100);
+            entity.Property(e => e.WorkflowCode).HasMaxLength(50);
         });
 
         modelBuilder.Entity<OrgUnitVersion>(entity =>
@@ -461,7 +764,160 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<EstablishmentChangeRequest>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.RequestNumber }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.Status });
+            entity.HasIndex(e => e.TargetEntityId);
+            entity.Property(e => e.RequestNumber).HasMaxLength(50);
+            entity.Property(e => e.PayloadJson).IsRequired();
+            entity.Property(e => e.LegalSourceId).HasMaxLength(100);
+            entity.Property(e => e.DecisionReference).HasMaxLength(100);
+            entity.Property(e => e.JustificationNotes).HasMaxLength(500);
+            entity.Property(e => e.ChangeType).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.HasOne(e => e.LegalSource)
+                  .WithMany()
+                  .HasForeignKey(e => e.LegalSourceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EstablishmentChangeLog>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.EntityType, e.EntityId });
+            entity.HasIndex(e => e.ChangeRequestId);
+            entity.Property(e => e.EntityType).HasMaxLength(64);
+            entity.Property(e => e.LegalSourceId).HasMaxLength(100);
+            entity.Property(e => e.DecisionReference).HasMaxLength(100);
+            entity.Property(e => e.ChangeType).HasConversion<string>().HasMaxLength(32);
+            entity.HasOne(e => e.ChangeRequest)
+                  .WithMany()
+                  .HasForeignKey(e => e.ChangeRequestId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<JobCatalogVersion>(entity =>
+        {
+            entity.HasIndex(e => new { e.JobCatalogEntryId, e.ValidFrom });
+            entity.HasIndex(e => new { e.TenantId, e.JobCatalogEntryId, e.ValidFrom });
+            entity.Property(e => e.JobCode).HasMaxLength(20);
+            entity.Property(e => e.TitleAr).HasMaxLength(200);
+            entity.Property(e => e.TitleEn).HasMaxLength(200);
+            entity.Property(e => e.GradeCode).HasMaxLength(20);
+            entity.Property(e => e.OccupationalGroup).HasMaxLength(100);
+            entity.Property(e => e.OperationType).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.LegalSourceId).HasMaxLength(100);
+            entity.Property(e => e.DecisionReference).HasMaxLength(100);
+            entity.HasOne(e => e.JobCatalogEntry)
+                  .WithMany()
+                  .HasForeignKey(e => e.JobCatalogEntryId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FundedPositionVersion>(entity =>
+        {
+            entity.HasIndex(e => new { e.FundedPositionId, e.ValidFrom });
+            entity.HasIndex(e => new { e.TenantId, e.FundedPositionId, e.ValidFrom });
+            entity.HasIndex(e => new { e.TenantId, e.OrgUnitId, e.ValidFrom });
+            entity.Property(e => e.PositionCode).HasMaxLength(30);
+            entity.Property(e => e.GradeCode).HasMaxLength(20);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.CostCenter).HasMaxLength(50);
+            entity.Property(e => e.FreezeReason).HasMaxLength(500);
+            entity.Property(e => e.OperationType).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.LegalSourceId).HasMaxLength(100);
+            entity.Property(e => e.DecisionReference).HasMaxLength(100);
+            entity.HasOne(e => e.FundedPosition)
+                  .WithMany()
+                  .HasForeignKey(e => e.FundedPositionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RecruitmentRequisition>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionNumber }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.Status });
+            entity.HasIndex(e => e.FundedPositionId);
+            entity.Property(e => e.RequisitionNumber).HasMaxLength(50);
+            entity.Property(e => e.JobTitle).HasMaxLength(200);
+            entity.Property(e => e.JustificationNotes).HasMaxLength(500);
+            entity.Property(e => e.LegalSourceId).HasMaxLength(100);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_RecruitmentRequisitions_VacancyCount",
+                "\"VacancyCount\" >= 0 AND \"VacancyCount\" <= 1"));
+            entity.HasOne(e => e.FundedPosition)
+                  .WithMany()
+                  .HasForeignKey(e => e.FundedPositionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.LegalSource)
+                  .WithMany()
+                  .HasForeignKey(e => e.LegalSourceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(e => e.PublishingChannel).HasConversion<string>().HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<CodePolicyTemplate>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.EntityKind, e.Scope });
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.EntityKind).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.Scope).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.PolicyKey).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<CodePolicyVersion>(entity =>
+        {
+            entity.HasIndex(e => new { e.CodePolicyTemplateId, e.VersionNumber }).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.EffectiveFrom });
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.SequenceReset).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.FallbackPrefix).HasMaxLength(20);
+            entity.HasOne(e => e.Template)
+                  .WithMany(t => t.Versions)
+                  .HasForeignKey(e => e.CodePolicyTemplateId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CodePolicyRule>(entity =>
+        {
+            entity.HasOne(e => e.Template)
+                  .WithMany(t => t.Rules)
+                  .HasForeignKey(e => e.CodePolicyTemplateId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Version)
+                  .WithMany()
+                  .HasForeignKey(e => e.CodePolicyVersionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(e => e.RuleKey).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<CodeSequenceCounter>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.EntityKind, e.ScopeKey, e.Year }).IsUnique();
+            entity.Property(e => e.EntityKind).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.ScopeKey).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<CodeIssuance>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.EntityKind, e.Code }).IsUnique();
+            entity.HasIndex(e => e.IssuedAt);
+            entity.Property(e => e.EntityKind).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.Code).HasMaxLength(128);
+            entity.Property(e => e.SequenceScope).HasMaxLength(256);
+        });
+
         modelBuilder.ApplyConfiguration(new Configurations.MasterData.ReferenceCatalogEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.LegislationSourceConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.LegislationKeyArticleConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.LegislationInstrumentLinkConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.LegislationSourceAliasConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.LegalRegimeConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.BenefitPlanConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.ServiceRegimeExceptionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Legal.EmploymentRegimeTransitionConfiguration());
 
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureFileReferenceOutbox();

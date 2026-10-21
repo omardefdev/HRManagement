@@ -3,7 +3,6 @@
     <PackageReference Include="MassTransit" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="ClosedXML" />
-    <PackageReference Include="QuestPDF" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
@@ -14,6 +13,7 @@
     <ProjectReference Include="..\Payroll.Domain\Payroll.Domain.csproj" />
     <ProjectReference Include="..\Payroll.Application\Payroll.Application.csproj" />
     <ProjectReference Include="..\Payroll.Infrastructure\Payroll.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.Documents.QuestPdf\HRManagement.Documents.QuestPdf.csproj" />
     <ProjectReference Include="..\..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
@@ -21,5 +21,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\..\..\docs\str-scope\envelope-matrix.json" Link="NationalScope\envelope-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\docs\frd\anomaly-rules.json" Link="docs\frd\anomaly-rules.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

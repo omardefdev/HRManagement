@@ -5,9 +5,13 @@
         <h3 class="card-title mb-0">عقد التأمين</h3>
         <div>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  data-hr-confirm="هل أنت متأكد من الحذف؟"
+                  data-hr-confirm-title="تأكيد الحذف"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="حذف">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
+                <button type="submit" class="btn btn-danger btn-sm">حذف</button>
             </form>
         </div>
     </div>

@@ -1,4 +1,5 @@
-@model SupplyOrder
+@model Admin.Logistics.Web.ViewModels.SupplyOrderFormViewModel
+@using Admin.Logistics.Domain.Enums
 @{ ViewData["Title"] = "تعديل طلب التجهيز"; }
 <div class="card">
     <form asp-action="Edit" method="post">
@@ -7,15 +8,18 @@
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <div class="mb-3">
+                <label class="form-label">الحالة</label>
+                <div><span class="badge bg-secondary">@Html.HrEnumDisplay(Model.Status)</span></div>
+                <div class="form-text">تغيير الحالة من صفحة التفاصيل (موافقة / تنفيذ / إلغاء / إغلاق).</div>
+            </div>
+            <div class="mb-3">
                 <label class="form-label">طالب الطلب</label>
                 <input class="form-control" value="@Model.RequestedBy" disabled />
                 <div class="form-text">يُسجَّل طالب الطلب من هوية الجلسة ولا يُعدَّل.</div>
             </div>
             <div class="mb-3"><label asp-for="OrgUnitId" class="form-label"></label><select asp-for="OrgUnitId" class="form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select></div>
             <div class="mb-3"><label asp-for="Items" class="form-label"></label><textarea asp-for="Items" class="form-control" rows="3"></textarea></div>
-            <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<SupplyOrderStatus>()"></select></div>
-            <div class="mb-3"><label asp-for="OrderedAt" class="form-label"></label><input asp-for="OrderedAt" class="form-control" type="datetime-local" /></div>
-            <div class="mb-3"><label asp-for="FulfilledAt" class="form-label"></label><input asp-for="FulfilledAt" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="OrderedAt" class="form-label"></label><input asp-for="OrderedAt" class="form-control" type="datetime-local" step="60" /></div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">حفظ</button>

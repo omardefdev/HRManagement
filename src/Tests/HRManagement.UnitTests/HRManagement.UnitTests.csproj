@@ -49,13 +49,16 @@
     <ProjectReference Include="..\..\Services\IDCard\IDCard.Infrastructure\IDCard.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Domain\Admin.Logistics.Domain.csproj" />
     <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Infrastructure\Admin.Logistics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Web\Admin.Logistics.Web.csproj" />
     <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infrastructure.Domain\IT.Infrastructure.Domain.csproj" />
     <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infra.Infrastructure\IT.Infra.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Application\Dev.Analytics.Application.csproj" />
     <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Domain\Dev.Analytics.Domain.csproj" />
     <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Infrastructure\Dev.Analytics.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Domain\File.Storage.Domain.csproj" />
     <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Infrastructure\File.Storage.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Gateway\HRManagement.Gateway\HRManagement.Gateway.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.Documents.QuestPdf\HRManagement.Documents.QuestPdf.csproj" />
     <ProjectReference Include="..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
     <ProjectReference Include="..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Shared\HRManagement.Integration.Abstractions\HRManagement.Integration.Abstractions.csproj" />

@@ -19,11 +19,17 @@ $failures = @()
 
 $requiredFiles = @(
     "docs/EST_001_ESTABLISHMENT.md",
+    "docs/acceptance-plans/PLAN-14-establishment-ui.md",
     "scripts/est001-validate.ps1",
     "src/Tests/HRManagement.UnitTests/Est001EstablishmentTests.cs",
     "src/Services/HRCore/HR.Core.Domain/Entities/JobCatalogEntry.cs",
     "src/Services/HRCore/HR.Core.Domain/Entities/FundedPosition.cs",
     "src/Services/HRCore/HR.Core.Domain/Services/EstablishmentService.cs",
+    "src/Services/HRCore/HR.Core.Web/Controllers/JobCatalogController.cs",
+    "src/Services/HRCore/HR.Core.Web/Controllers/FundedPositionsController.cs",
+    "src/Services/HRCore/HR.Core.Web/Services/EstablishmentScopeService.cs",
+    "src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Index.cshtml",
+    "src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Index.cshtml",
     "src/Services/HRCore/HR.Core.Infrastructure/Migrations/20260731171000_EST001_Establishment.cs"
 )
 
@@ -61,6 +67,19 @@ if (Test-Path $svcFile) {
     $svc = Get-Content -Raw -Path $svcFile
     if ($svc -notmatch "AssignEmployee") { $failures += "EstablishmentService must have AssignEmployee" }
     if ($svc -notmatch "funded position|Frozen|Vacant") { $failures += "service must validate funded position" }
+}
+
+# Validate Lookup API + picker wiring
+$lookupFile = Resolve-RepoPath "src/Services/HRCore/HR.Core.Web/Controllers/LookupApiController.cs"
+if (Test-Path $lookupFile) {
+    $lookup = Get-Content -Raw -Path $lookupFile
+    if ($lookup -notmatch 'job-catalog') { $failures += "LookupApiController must expose job-catalog lookup" }
+}
+
+$pickerFile = Resolve-RepoPath "src/Shared/HRManagement.Web.Shared/wwwroot/js/entity-pickers.js"
+if (Test-Path $pickerFile) {
+    $picker = Get-Content -Raw -Path $pickerFile
+    if ($picker -notmatch 'initJobCatalogPicker') { $failures += "entity-pickers.js must define initJobCatalogPicker" }
 }
 
 # Validate DbContext has DbSets

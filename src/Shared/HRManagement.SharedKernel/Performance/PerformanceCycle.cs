@@ -56,17 +56,26 @@ public class PerformanceCycle : BaseEntity
 
 public enum CycleStatus
 {
+    [Display(Name = "مسودة")]
     Draft = 0,
+    [Display(Name = "نشط")]
     Active = 1,
+    [Display(Name = "قيد المراجعة")]
     InReview = 2,
+    [Display(Name = "معايرة")]
     Calibrating = 3,
+    [Display(Name = "مغلق")]
     Closed = 4,
+    [Display(Name = "ملغى")]
     Cancelled = 5
 }
 
 public enum CyclePhase
 {
+    [Display(Name = "تخطيط")]
     Planning = 0,
+    [Display(Name = "مراجعة")]
     Review = 1,
+    [Display(Name = "معايرة")]
     Calibration = 2
 }

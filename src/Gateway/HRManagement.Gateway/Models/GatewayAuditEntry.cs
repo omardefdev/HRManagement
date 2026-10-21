@@ -18,6 +18,21 @@ public sealed class GatewayAuditEntry
     public string? ClientIp { get; set; }
     public string? UserAgent { get; set; }
 
+    /// <summary>JWT tenant_id at decision time (AC-03).</summary>
+    public Guid? TenantId { get; set; }
+
+    /// <summary>Caller scope_org_unit_id when scoped (AC-03).</summary>
+    public Guid? ScopeOrgUnitId { get; set; }
+
+    /// <summary>Denial reason e.g. org-scope-denied (AC-03).</summary>
+    public string? Reason { get; set; }
+
+    /// <summary>Resource type e.g. Employee, OrgUnit (AC-03).</summary>
+    public string? ResourceType { get; set; }
+
+    /// <summary>Resource identifier (AC-03).</summary>
+    public string? ResourceId { get; set; }
+
     /// <summary>OBS-003 hash-chain key (single active chain = "default").</summary>
     public string ChainKey { get; set; } = "default";
 

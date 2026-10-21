@@ -13,11 +13,13 @@ HR Management Microservices System
 ## التوثيق
 
 - [مخططات قواعد البيانات (Mermaid ERD)](docs/database/README.md) — 13 قاعدة بيانات، علاقات داخلية ومنطقية بين الخدمات.
+- [ARC-003 — دراسة جودة ووثوقية المعمارية](docs/ARC_003_RELIABILITY_AND_DB_MODEL_STUDY.md) — مقارنة قاعدة بيانات مركزية vs Database-per-Service.
 - [خط الأساس المنفّذ](docs/IMPLEMENTED_BASELINE.md) — ما تم إنجازه في الشيفرة.
 - [ما يظل للمنتج الكامل](docs/REMAINING_IMPLEMENTATION.md) — فجوات ومسار إكمال.
 - [تجهيز الإصدار / staging](docs/RELEASE_READINESS_STAGING.md) — تحقق تلقائي ويدوي قبل الإنتاج.
 - [نطاق المنتج v1](docs/RELEASE_PRODUCT_SCOPE.md) — ما داخل الإصدار وما مؤجّل.
 - [File Storage Platform](docs/FILE_SERVICE.md) — رفع الملفات عبر `/api/files` وإدارة FileId.
+- [BLD-002 Docker build](docs/BLD_002_DOCKER_BUILD.md) — بناء Docker سريع (layer cache + NuGet cache mount).
 
 ## البنية المعمارية
 
@@ -42,33 +44,62 @@ HR Management Microservices System
 
 ## التشغيل
 
-### 1. تشغيل البنية التحتية
+### 1. التطوير اليومي (BLD-002 — موصى به)
 
-```bash
-docker-compose up -d
+البنية التحتية في Docker، الخدمات عبر `dotnet run` (يستخدم ذاكرة NuGet المحلية — أسرع):
+
+```powershell
+pwsh scripts/dev-infra-up.ps1
+pwsh scripts/dev-run-hrcore.ps1
 ```
 
-هذا سيشغل:
-- PostgreSQL على المنفذ **5433** (على المضيف) لتفادي التعارض مع PostgreSQL المحلي على 5432؛ الجداول تُنشأ عند تشغيل كل خدمة عبر ترحيلات EF
-- RabbitMQ على المنفذ 5672 (الإدارة: 15672)
-- Keycloak على المنفذ 8080
+إعادة بناء **خدمة Docker واحدة** فقط عند الحاجة:
 
-إذا شغّلت **PostgreSQL محلياً** على المنفذ 5432 بدلاً من حاوية Docker، اضبط `Port=5432` في سلاسل الاتصال (أو User Secrets) لكل خدمة؛ حينها لا حاجة لخدمة `postgresql` في Compose.
+```powershell
+pwsh scripts/dev-build-service.ps1 -Service hr-core-web
+pwsh scripts/dev-build-service.ps1 -Service admin-logistics-web -Profile logistics
+```
 
-### 2. بناء المشروع
+**Profile تطوير خفيف — العهدة والسياسات (~11 حاوية بدلاً من 20):**
+
+```powershell
+pwsh scripts/dev-profile-up.ps1 -Profile logistics
+pwsh scripts/dev-profile-down.ps1 -Profile logistics
+```
+
+متغيرات البيئة الموصى بها: `DOCKER_BUILDKIT=1`، `COMPOSE_PARALLEL_LIMIT=2` (راجع [BLD-002](docs/BLD_002_DOCKER_BUILD.md)).
+
+### 2. تشغيل البنية التحتية فقط
+
+```bash
+docker compose up -d
+```
+
+هذا يشغّل PostgreSQL و RabbitMQ و Keycloak و MinIO و ClamAV **بدون** حاويات الخدمات (.NET). للحصول على كل الخدمات في Docker:
+
+```bash
+pwsh scripts/docker-generate-build-manifest.ps1
+docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.local.yml -f docker-compose.dev-profiles.yml -f docker-compose.full-stack-gateway.yml --profile full-stack up -d --build
+```
+
+- PostgreSQL على المنفذ **5433** (على المضيف)
+- RabbitMQ على المنفذ **5673** (الإدارة: **15673**)
+- Keycloak على المنفذ **8088**
+
+### 3. بناء المشروع
 
 ```bash
 dotnet build HRManagement.slnx
 ```
 
-### 3. تشغيل خدمة معينة
+### 4. تشغيل خدمة معينة
 
 ```bash
 cd src/Services/HRCore/HR.Core.Web
 dotnet run --urls="http://localhost:5010"
 ```
 
-### 4. تشغيل البوابة
+### 5. تشغيل البوابة
 
 ```bash
 cd src/Gateway/HRManagement.Gateway

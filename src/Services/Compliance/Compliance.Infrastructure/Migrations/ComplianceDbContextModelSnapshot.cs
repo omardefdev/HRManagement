@@ -368,6 +368,9 @@ namespace Compliance.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<Guid?>("SubjectCitizenApplicationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("SubjectEmployeeId")
                         .HasColumnType("uuid");
 
@@ -385,6 +388,8 @@ namespace Compliance.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "SubjectCitizenApplicationId");
 
                     b.HasIndex("TenantId", "Status", "RequestedAt");
 

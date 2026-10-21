@@ -154,7 +154,7 @@
       "exceptionId": "EX-STR005-SIM-INCIDENT-WINDOW",
       "declaredBy": "security",
       "reviewerRole": "change",
-      "expiresOn": "2026-08-15",
+      "expiresOn": "2026-09-15",
       "status": "Declared",
       "reason": "Emergency change window post-incident — simulation seed"
     }

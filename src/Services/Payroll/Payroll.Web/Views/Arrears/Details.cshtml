@@ -16,7 +16,7 @@
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
         <table class="table table-bordered">
-            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>تشغيل الرواتب</th><td>@Model.PayrollRunId</td></tr>
             <tr class="table-light"><th>المستحق (Entitled)</th><td><strong>@entitled.ToString("N2")</strong></td></tr>
             <tr><th>المدفوع (Paid)</th><td>@paid.ToString("N2")</td></tr>
@@ -26,7 +26,7 @@
             <tr><th>الحالة</th>
                 <td>
                     <span class="badge @(Model.Status == ArrearsLedgerStatus.FullyPaid ? "bg-success" : Model.Status == ArrearsLedgerStatus.PartiallyPaid ? "bg-warning" : "bg-secondary")">
-                        @Model.Status
+                        @Html.HrEnumDisplay(Model.Status)
                     </span>
                 </td>
             </tr>

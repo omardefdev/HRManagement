@@ -1,0 +1,10 @@
+@model HRManagement.Web.Shared.Models.EmployeeDisplayNameModel
+@using HRManagement.ServiceDefaults.Integration
+@if (HrLookupDisplayHelper.IsResolvedEmployeeName(Model.ResolvedName))
+{
+    <span>@Model.ResolvedName</span>
+}
+else
+{
+    <span data-hr-employee-id="@Model.EmployeeId">غير متاح</span>
+}

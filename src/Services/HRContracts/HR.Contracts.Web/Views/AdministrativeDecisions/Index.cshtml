@@ -1,11 +1,25 @@
 @model IReadOnlyList<AdministrativeDecision>
-@{ ViewData["Title"] = "القرارات الإدارية"; }
+@{ ViewData["Title"] = "القرارات الإدارية"; var q = ViewBag.Q as string; var issuedFrom = ViewBag.IssuedFrom as DateOnly?; var issuedTo = ViewBag.IssuedTo as DateOnly?; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-gavel"></i> القرارات الإدارية</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <input type="text" name="q" value="@q" class="form-control form-control-sm" placeholder="بحث بالموضوع أو الرقم..." />
+            </div>
+            <div class="col-auto">
+                <input type="date" name="issuedFrom" value="@issuedFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" title="من تاريخ" />
+            </div>
+            <div class="col-auto">
+                <input type="date" name="issuedTo" value="@issuedTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" title="إلى تاريخ" />
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i> بحث</button></div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>الرقم</th><th>الموضوع</th><th>التاريخ</th><th></th></tr></thead>
             <tbody>

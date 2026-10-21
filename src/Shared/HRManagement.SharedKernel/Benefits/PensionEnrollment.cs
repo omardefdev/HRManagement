@@ -36,8 +36,12 @@ public class PensionEnrollment : BaseEntity
 
 public enum PensionEnrollmentStatus
 {
+    [Display(Name = "نشط")]
     Active = 0,
+    [Display(Name = "موقوف")]
     Suspended = 1,
+    [Display(Name = "منتهي")]
     Terminated = 2,
+    [Display(Name = "متقاعد")]
     Retired = 3
 }

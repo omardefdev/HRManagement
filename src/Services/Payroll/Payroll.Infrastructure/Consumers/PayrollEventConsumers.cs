@@ -50,7 +50,12 @@ public class SeparationPartyConsumer(IMediator mediator, PayrollDbContext db) : 
             else
             {
                 await mediator.Send(new HandleSeparationCompletedCommand(
-                    m.EmployeeId, m.SeparationType, m.EffectiveDate, m.SeparationRecordId, m.RemainingLeaveDays),
+                    m.EmployeeId,
+                    m.SeparationType,
+                    m.EffectiveDate,
+                    m.SeparationRecordId,
+                    m.RemainingLeaveDays,
+                    m.PayrollRegimeCode),
                     context.CancellationToken);
                 var eosId = await db.EndOfServiceSettlements.AsNoTracking()
                     .Where(e => e.SeparationRecordId == m.SeparationRecordId)
@@ -114,7 +119,7 @@ public class TransferPartyConsumer(IMediator mediator) : IConsumer<IExecuteTrans
             if (!m.Compensate)
             {
                 await mediator.Send(new HandleTransferExecutedCommand(
-                    m.EmployeeId, m.FromOrgUnitId, m.ToOrgUnitId, m.ExecutedAt, m.SalaryChange, m.AllowanceChange),
+                    m.EmployeeId, m.FromOrgUnitId, m.ToOrgUnitId, m.ExecutedAt, m.SalaryChange, m.AllowanceChange, m.PayrollRegimeCode),
                     context.CancellationToken);
             }
 
@@ -214,7 +219,7 @@ public class TransferExecutedConsumer(IMediator mediator) : IConsumer<ITransferE
     {
         var m = context.Message;
         await mediator.Send(new HandleTransferExecutedCommand(
-            m.EmployeeId, m.FromOrgUnitId, m.ToOrgUnitId, m.ExecutedAt, m.SalaryChange, m.AllowanceChange),
+            m.EmployeeId, m.FromOrgUnitId, m.ToOrgUnitId, m.ExecutedAt, m.SalaryChange, m.AllowanceChange, m.PayrollRegimeCode),
             context.CancellationToken);
     }
 }
@@ -272,7 +277,10 @@ public class AdvanceApprovedConsumer(IMediator mediator, PayrollDbContext db) : 
 public class EmployeeCreatedConsumer(IMediator mediator) : IConsumer<IEmployeeCreated>
 {
     public async Task Consume(ConsumeContext<IEmployeeCreated> context) =>
-        await mediator.Send(new HandleEmployeeCreatedCommand(context.Message.EmployeeId, context.Message.PrimaryOrgUnitId), context.CancellationToken);
+        await mediator.Send(new HandleEmployeeCreatedCommand(
+            context.Message.EmployeeId,
+            context.Message.PrimaryOrgUnitId,
+            context.Message.PayrollRegimeCode), context.CancellationToken);
 }
 
 public class SecondmentExecutedConsumer(IMediator mediator) : IConsumer<ISecondmentExecuted>

@@ -18,48 +18,72 @@ entity "AuditLogs\nEntityAuditLog" as T01 {
     TenantId : uuid
     UserId : uuid
 }
-entity "ArchiveIndexEntries\nArchiveIndexEntry" as T02 {
+entity "ExportJobs\nExportJob" as T02 {
+  * Id : uuid
+    RequestedByUserId : uuid
+    ResultFileId : uuid
+    TenantId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T03 {
+  * Id : uuid
+    MessageId : text
+    TenantId : uuid
+}
+entity "ArchiveChecklists\nArchiveChecklist" as T04 {
+  * Id : uuid
+    CorrelationId : uuid
+    TenantId : uuid
+}
+entity "ArchiveIndexEntries\nArchiveIndexEntry" as T05 {
   * Id : uuid
     ArchiveItemId : uuid
     TenantId : uuid
 }
-entity "ArchiveItems\nArchiveItem" as T03 {
+entity "ArchiveItems\nArchiveItem" as T06 {
   * Id : uuid
     ClassificationId : uuid
     TenantId : uuid
 }
-entity "DigitalFileRecords\nDigitalFileRecord" as T04 {
+entity "CustodyEvents\nCustodyEvent" as T07 {
+  * Id : uuid
+    ActorUserId : uuid
+    ArchiveItemId : uuid
+    TenantId : uuid
+}
+entity "DigitalFileRecords\nDigitalFileRecord" as T08 {
   * Id : uuid
     ArchiveItemId : uuid
     FileId : uuid
     TenantId : uuid
 }
-entity "DisposalRecords\nDisposalRecord" as T05 {
+entity "DisposalRecords\nDisposalRecord" as T09 {
+  * Id : uuid
+    ApprovalEvidenceFileId : uuid
+    ArchiveItemId : uuid
+    TenantId : uuid
+}
+entity "DocumentClassifications\nDocumentClassification" as T10 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "LoanRecords\nLoanRecord" as T11 {
   * Id : uuid
     ArchiveItemId : uuid
     TenantId : uuid
 }
-entity "DocumentClassifications\nDocumentClassification" as T06 {
-  * Id : uuid
-    TenantId : uuid
-}
-entity "LoanRecords\nLoanRecord" as T07 {
-  * Id : uuid
-    ArchiveItemId : uuid
-    TenantId : uuid
-}
-entity "PhysicalFileRecords\nPhysicalFileRecord" as T08 {
+entity "PhysicalFileRecords\nPhysicalFileRecord" as T12 {
   * Id : uuid
     ArchiveItemId : uuid
     TenantId : uuid
 }
 
-T02 }o--|| T03 : ArchiveItemId
-T03 }o--|| T06 : ClassificationId
-T04 }o--|| T03 : ArchiveItemId
-T05 }o--|| T03 : ArchiveItemId
-T07 }o--|| T03 : ArchiveItemId
-T08 }o--|| T03 : ArchiveItemId
+T05 }o--|| T06 : ArchiveItemId
+T06 }o--|| T10 : ClassificationId
+T07 }o--|| T06 : ArchiveItemId
+T08 }o--|| T06 : ArchiveItemId
+T09 }o--|| T06 : ArchiveItemId
+T11 }o--|| T06 : ArchiveItemId
+T12 }o--|| T06 : ArchiveItemId
 
 note bottom
 يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.

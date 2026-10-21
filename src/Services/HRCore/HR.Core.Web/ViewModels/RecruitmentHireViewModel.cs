@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HR.Core.Domain.Entities;
 using HRManagement.SharedKernel.Enums;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -6,19 +7,37 @@ namespace HR.Core.Web.ViewModels;
 
 public enum RecruitmentHireMode
 {
+    [Display(Name = "إنشاء جديد")]
     CreateNew,
+    [Display(Name = "ربط موجود")]
     LinkExisting
 }
 
 public class RecruitmentHireViewModel
 {
+    public static IReadOnlyList<(string Code, string Label)> EmploymentCategories { get; } =
+    [
+        ("PERMANENT", "توظيف دائم"),
+        ("TEMPORARY", "توظيف مؤقت"),
+        ("CONTRACT", "عقد"),
+        ("INTERNSHIP", "تدريب عملي")
+    ];
+
     public Guid ApplicationId { get; set; }
+
+    public Guid? RequisitionId { get; set; }
+
+    [Display(Name = "رقم طلب الشاغر")]
+    public string? RequisitionNumber { get; set; }
 
     [Display(Name = "اسم المتقدم")]
     public string ApplicantFullName { get; set; } = string.Empty;
 
     [Display(Name = "الوظيفة")]
     public string AppliedPosition { get; set; } = string.Empty;
+
+    [Display(Name = "الوحدة التنظيمية")]
+    public string? OrgUnitName { get; set; }
 
     [Display(Name = "طريقة التعيين")]
     public RecruitmentHireMode Mode { get; set; } = RecruitmentHireMode.CreateNew;
@@ -57,11 +76,36 @@ public class RecruitmentHireViewModel
     public DateOnly? ExpectedStartDate { get; set; }
 
     [Display(Name = "فئة التوظيف")]
-    public string EmploymentCategory { get; set; } = "DEFAULT";
+    public string EmploymentCategory { get; set; } = "PERMANENT";
 
     public SelectList? OrgUnits { get; set; }
     public SelectList? Employees { get; set; }
 
+    public static RecruitmentHireViewModel FromApplication(
+        RecruitmentApplication app,
+        RecruitmentRequisition? requisition = null,
+        FundedPosition? fundedPosition = null)
+    {
+        var (first, middle, last) = SplitApplicantName(app.ApplicantFullName);
+        var orgUnitId = fundedPosition?.OrgUnitId ?? requisition?.FundedPosition?.OrgUnitId;
+        return new RecruitmentHireViewModel
+        {
+            ApplicationId = app.Id,
+            RequisitionId = app.RequisitionId,
+            RequisitionNumber = requisition?.RequisitionNumber,
+            ApplicantFullName = app.ApplicantFullName,
+            AppliedPosition = requisition?.JobTitle ?? app.AppliedPosition,
+            OrgUnitName = fundedPosition?.OrgUnit?.NameAr ?? requisition?.FundedPosition?.OrgUnit?.NameAr,
+            NationalId = app.NationalId ?? string.Empty,
+            FirstName = first,
+            MiddleName = middle,
+            LastName = last,
+            PrimaryOrgUnitId = orgUnitId,
+            ExpectedStartDate = DateOnly.FromDateTime(DateTime.UtcNow)
+        };
+    }
+
+    [Obsolete("Use FromApplication(RecruitmentApplication, ...)")]
     public static RecruitmentHireViewModel FromApplication(
         Guid applicationId,
         string applicantFullName,

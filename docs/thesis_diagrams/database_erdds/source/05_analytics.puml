@@ -14,6 +14,7 @@ title "ERD الكامل لقاعدة analytics_db\nDev.Analytics / AnalyticsDbCo
 
 entity "AnalyticsEvents\nAnalyticsEvent" as T01 {
   * Id : uuid
+    OrgUnitId : uuid
     TenantId : uuid
 }
 entity "Dashboards\nDashboard" as T02 {
@@ -47,6 +48,17 @@ entity "AuditLogs\nEntityAuditLog" as T08 {
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
+}
+entity "ExportJobs\nExportJob" as T09 {
+  * Id : uuid
+    RequestedByUserId : uuid
+    ResultFileId : uuid
+    TenantId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T10 {
+  * Id : uuid
+    MessageId : text
+    TenantId : uuid
 }
 
 T03 }o--|| T06 : TargetReadModelId

@@ -390,7 +390,12 @@ public sealed class FilesApiController(
     [Authorize(Policy = HrManagementPolicies.FileStorageForceDelete)]
     public async Task<ActionResult<object>> ProcessScan(CancellationToken cancellationToken)
     {
-        var completed = await filePlatform.ProcessScanQueueAsync(cancellationToken);
+        var completed = 0;
+        await AdvisoryLeaderElection.TryRunAsLeaderAsync(
+            db,
+            AdvisoryLockKeys.FileScanProcessor,
+            async ct => completed = await filePlatform.ProcessScanQueueAsync(ct),
+            cancellationToken);
         return Ok(new { completed });
     }
 

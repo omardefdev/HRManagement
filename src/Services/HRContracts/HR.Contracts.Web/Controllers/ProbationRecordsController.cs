@@ -1,22 +1,57 @@
 using HR.Contracts.Application.Features.Lookup;
 using HR.Contracts.Application.Features.ProbationRecords;
 using HR.Contracts.Application.Models;
+using HR.Contracts.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using HR.Contracts.Web.ViewModels;
 using MediatR;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace HR.Contracts.Web.Controllers;
 
 public class ProbationRecordsController : Controller
 {
     private readonly IMediator _mediator;
-    public ProbationRecordsController(IMediator mediator) => _mediator = mediator;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public async Task<IActionResult> Index()
+    public ProbationRecordsController(IMediator mediator, IHrCoreLookupClient hrCoreLookup)
+    {
+        _mediator = mediator;
+        _hrCoreLookup = hrCoreLookup;
+    }
+
+    public async Task<IActionResult> Index(ProbationResult? result, Guid? employeeId)
     {
         var items = await _mediator.Send(new GetProbationRecordsQuery());
+        if (result.HasValue)
+            items = items.Where(x => x.Result == result.Value).ToList();
+        if (employeeId.HasValue)
+            items = items.Where(x => x.EmployeeId == employeeId.Value).ToList();
+
+        ViewBag.ResultFilter = result;
+        ViewBag.EmployeeId = employeeId;
+        var nameIds = items.Select(x => x.EmployeeId).ToList();
+        if (employeeId.HasValue)
+            nameIds.Add(employeeId.Value);
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(nameIds);
         return View(items);
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        try
+        {
+            foreach (var row in await _hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList()))
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<ProbationRecordsController>>()
+                .LogWarning(ex, "Employee name lookup failed for probation records.");
+        }
+        return result;
     }
 
     private async Task PopulateContractsAsync(ProbationRecordViewModel vm)

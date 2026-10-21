@@ -1,0 +1,9 @@
+{
+  "correlationId": "272958eb-6589-4b57-922f-2517f63a5145",
+  "user": "acc-br1-mgr",
+  "tenantId": "a0000001-0000-4000-8000-000000000001",
+  "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000102",
+  "reason": "org-scope-denied",
+  "resourceType": "Employee",
+  "resourceId": "a0000001-0000-4000-8000-000000000203"
+}

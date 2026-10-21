@@ -126,7 +126,7 @@ public static class PayrollPartitionInputLoader
 
                 .Where(d => idSet.Contains(d.EmployeeId)
 
-                            && d.AppliedInRunId == null
+                            && (d.AppliedInRunId == null || d.AppliedInRunId == run.Id)
 
                             && (d.DueDate == null || d.DueDate <= periodEnd)),
 
@@ -140,7 +140,8 @@ public static class PayrollPartitionInputLoader
 
                 .AsNoTracking()
 
-                .Where(a => idSet.Contains(a.EmployeeId) && a.PayrollRunId == null),
+                .Where(a => idSet.Contains(a.EmployeeId)
+                            && (a.PayrollRunId == null || a.PayrollRunId == run.Id)),
 
             cancellationToken);
 
@@ -154,7 +155,7 @@ public static class PayrollPartitionInputLoader
 
                 .Where(a => idSet.Contains(a.EmployeeId)
 
-                            && a.AppliedInRunId == null
+                            && (a.AppliedInRunId == null || a.AppliedInRunId == run.Id)
 
                             && a.PeriodStart <= periodEnd
 

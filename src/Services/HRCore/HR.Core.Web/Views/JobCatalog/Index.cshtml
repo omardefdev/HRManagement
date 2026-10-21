@@ -1,0 +1,76 @@
+@model HR.Core.Web.ViewModels.JobCatalogIndexViewModel
+@{ ViewData["Title"] = "دليل الوظائف"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0"><i class="fas fa-book"></i> دليل الوظائف (EST-001)</h3>
+        <div class="d-flex gap-2">
+            <a asp-action="Import" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-csv"></i> استيراد CSV</a>
+            <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="SearchTerm" value="@Model.SearchTerm" class="form-control" placeholder="رمز أو مسمى..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">رمز الدرجة</label>
+                <select name="GradeCode" class="form-select" data-hr-picker="reference-grade"
+                        data-placeholder="كل الدرجات...">
+                    @if (!string.IsNullOrWhiteSpace(Model.GradeCode))
+                    {
+                        <option value="@Model.GradeCode" selected>@Model.GradeCode</option>
+                    }
+                    else
+                    {
+                        <option value="">— الكل —</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="IsActive" class="form-select">
+                    <option value="">— الكل —</option>
+                    @if (Model.IsActive == true) { <option value="true" selected>نشط</option> } else { <option value="true">نشط</option> }
+                    @if (Model.IsActive == false) { <option value="false" selected>معطّل</option> } else { <option value="false">معطّل</option> }
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>رمز الوظيفة</th>
+                    <th>المسمى</th>
+                    <th>الدرجة</th>
+                    <th>المجموعة</th>
+                    <th>نشط</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td><strong>@item.JobCode</strong></td>
+                    <td><a asp-action="Details" asp-route-id="@item.Id">@item.TitleAr</a></td>
+                    <td>@item.GradeCode</td>
+                    <td>@(item.OccupationalGroup ?? "—")</td>
+                    <td>@(item.IsActive ? "نعم" : "لا")</td>
+                    <td><a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning">تعديل</a></td>
+                </tr>
+            }
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-4">لا توجد سجلات</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

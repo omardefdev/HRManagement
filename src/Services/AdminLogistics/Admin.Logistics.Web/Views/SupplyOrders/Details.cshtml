@@ -1,30 +1,164 @@
 @model SupplyOrder
-@{ ViewData["Title"] = "تفاصيل طلب التجهيز"; }
+@using Admin.Logistics.Domain.Enums
+@using Admin.Logistics.Domain.Services
+@{
+    ViewData["Title"] = "تفاصيل طلب التجهيز";
+    var receipts = ViewBag.ReceiptRecords as IReadOnlyList<ReceiptRecord> ?? Array.Empty<ReceiptRecord>();
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var receiptCount = ViewBag.ReceiptCount as int? ?? receipts.Count;
+    var isFullyReceived = ViewBag.IsFullyReceived as bool? ?? SupplyReceiptRules.IsFullyReceived(Model);
+    var canClose = ViewBag.CanClose as bool? ?? SupplyOrderWorkflowRules.CanClose(Model, receiptCount);
+    var canEditContent = ViewBag.CanEditContent as bool? ?? SupplyOrderWorkflowRules.CanEditContent(Model.Status);
+    var canApprove = ViewBag.CanApprove as bool? ?? false;
+    var approveBlockedReason = ViewBag.ApproveBlockedReason as string;
+    string EmpName(Guid? id) => id is Guid g && employeeNames.TryGetValue(g, out var n) ? n : id?.ToString() ?? "—";
+}
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلب تجهيز</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">طلب تجهيز</h3>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-secondary">@Html.HrEnumDisplay(Model.Status)</span>
+            @if (Model.Status == SupplyOrderStatus.Fulfilled)
+            {
+                if (isFullyReceived)
+                {
+                    <span class="badge bg-success">استلام مكتمل</span>
+                }
+                else if (receiptCount > 0)
+                {
+                    <span class="badge bg-warning text-dark">استلام جزئي</span>
+                }
+                else
+                {
+                    <span class="badge bg-info text-dark">بانتظار الاستلام</span>
+                }
+            }
+        </div>
+    </div>
     <div class="card-body">
+        @if (Model.Status == SupplyOrderStatus.Fulfilled)
+        {
+            <p class="text-muted small">«مُنفَّذ» يعني أُمر بالتوريد — أكمل الاستلام ثم يُغلق الطلب تلقائياً عند اكتمال الكميات.</p>
+        }
         <dl class="row mb-0">
-            <dt class="col-sm-3">طالب الطلب</dt><dd class="col-sm-9">@Model.RequestedBy</dd>
-            <dt class="col-sm-3">الوحدة التنظيمية</dt><dd class="col-sm-9">@Model.OrgUnitId</dd>
+            <dt class="col-sm-3">طالب الطلب</dt>
+            <dd class="col-sm-9">
+                @if (Model.RequestedBy is Guid reqId && employeeNames.TryGetValue(reqId, out var reqName) && HrLookupDisplayHelper.IsResolvedEmployeeName(reqName))
+                {
+                    <span>@reqName</span>
+                }
+                else
+                {
+                    <span data-hr-employee-id="@Model.RequestedBy">@EmpName(Model.RequestedBy)</span>
+                }
+            </dd>
+            <dt class="col-sm-3">الوحدة التنظيمية</dt><dd class="col-sm-9"><span data-hr-org-unit-id="@Model.OrgUnitId">@Model.OrgUnitId</span></dd>
             <dt class="col-sm-3">التفاصيل</dt><dd class="col-sm-9">@(Model.Items ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Model.OrderedAt?.ToString("yyyy/MM/dd")</dd>
             <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@(Model.FulfilledAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
         </dl>
     </div>
 </div>
-<div class="btn-group mb-3">
-    @if (Model.Status == SupplyOrderStatus.Pending)
+
+<div class="card mb-3">
+    <div class="card-header">بنود الطلب</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>SKU</th><th>مطلوب</th><th>مستلم</th><th>تكلفة</th><th>رسملة</th></tr></thead>
+            <tbody>
+                @foreach (var line in Model.Lines)
+                {
+                    <tr>
+                        <td>@(line.Sku ?? line.InventoryItem?.Sku ?? "—")</td>
+                        <td>@line.QtyRequested</td>
+                        <td>@line.QtyReceived</td>
+                        <td>@(line.UnitCost?.ToString("N2") ?? "—")</td>
+                        <td>@(line.IsCapitalizable ? "نعم" : "لا")</td>
+                    </tr>
+                }
+                @if (!Model.Lines.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا بنود</td></tr> }
+            </tbody>
+        </table>
+    </div>
+    @if (canEditContent)
     {
-        <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success">موافقة</button></form>
+        <div class="card-footer">
+            <form asp-action="AddLine" method="post" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="col-md-2"><label class="form-label">SKU</label><input name="sku" class="form-control" /></div>
+                <div class="col-md-2"><label class="form-label">الكمية</label><input name="qtyRequested" type="number" min="1" class="form-control" required /></div>
+                <div class="col-md-2"><label class="form-label">تكلفة الوحدة</label><input name="unitCost" type="number" step="0.01" class="form-control" /></div>
+                <div class="col-md-2 form-check mt-4"><input name="isCapitalizable" type="checkbox" class="form-check-input" id="cap" value="true" /><label class="form-check-label" for="cap">قابل للرسملة</label></div>
+                <div class="col-md-auto"><button type="submit" class="btn btn-sm btn-primary">إضافة بند</button></div>
+            </form>
+        </div>
+    }
+</div>
+
+@if (receipts.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header">سجلات الاستلام</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>تاريخ</th><th>المواد</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var rr in receipts)
+                    {
+                        <tr>
+                            <td>@rr.ReceivedAt?.ToString("yyyy/MM/dd")</td>
+                            <td>@(rr.ItemsReceived ?? "—")</td>
+                            <td><a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@rr.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="btn-group mb-3 flex-wrap">
+    @if (!string.IsNullOrWhiteSpace(approveBlockedReason))
+    {
+        <div class="alert alert-info w-100 mb-2 py-2">@approveBlockedReason</div>
+    }
+    @if (canApprove)
+    {
+        <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline"
+              data-hr-confirm="الموافقة على هذا الطلب؟"
+              data-hr-confirm-title="موافقة على الطلب"
+              data-hr-confirm-label="موافقة">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success">موافقة</button></form>
     }
     @if (Model.Status == SupplyOrderStatus.Approved)
     {
-        <form asp-action="Fulfill" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary">تنفيذ</button></form>
+        <form asp-action="Fulfill" asp-route-id="@Model.Id" method="post" class="d-inline"
+              data-hr-confirm="تنفيذ الطلب والانتقال لتسجيل الاستلام؟"
+              data-hr-confirm-title="تنفيذ الطلب"
+              data-hr-confirm-label="تنفيذ">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary">تنفيذ</button></form>
+    }
+    @if (Model.Status == SupplyOrderStatus.Fulfilled)
+    {
+        <a asp-controller="ReceiptRecords" asp-action="CreateFromOrder" asp-route-supplyOrderId="@Model.Id" class="btn btn-primary">تسجيل الاستلام</a>
+    }
+    @if (canClose)
+    {
+        <form asp-action="Close" asp-route-id="@Model.Id" method="post" class="d-inline"
+              data-hr-confirm="إغلاق الطلب؟ لن يُسمح باستلام إضافي."
+              data-hr-confirm-title="إغلاق الطلب"
+              data-hr-confirm-label="إغلاق">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-secondary">إغلاق الطلب</button></form>
     }
     @if (Model.Status == SupplyOrderStatus.Pending || Model.Status == SupplyOrderStatus.Approved)
     {
-        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد؟')">إلغاء</button></form>
+        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline"
+              data-hr-confirm="هل أنت متأكد من إلغاء الطلب؟"
+              data-hr-confirm-title="إلغاء الطلب"
+              data-hr-confirm-variant="danger"
+              data-hr-confirm-label="إلغاء">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger">إلغاء</button></form>
     }
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+    @if (canEditContent)
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+    }
 </div>
 <p><a asp-action="Index">العودة</a></p>

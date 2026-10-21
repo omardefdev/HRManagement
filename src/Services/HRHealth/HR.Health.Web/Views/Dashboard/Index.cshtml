@@ -1,0 +1,31 @@
+@{ ViewData["Title"] = "لوحة تحكم الصحة"; }
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner"><h3>@ViewBag.MedicalRecords</h3><p>السجلات الطبية</p></div>
+            <div class="icon"><i class="fas fa-notes-medical"></i></div>
+            <a asp-controller="MedicalRecords" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner"><h3>@ViewBag.PeriodicMedicalChecks</h3><p>الفحوصات الدورية</p></div>
+            <div class="icon"><i class="fas fa-heartbeat"></i></div>
+            <a asp-controller="PeriodicMedicalChecks" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner"><h3>@ViewBag.InsuranceCards</h3><p>بطاقات التأمين</p></div>
+            <div class="icon"><i class="fas fa-id-card-alt"></i></div>
+            <a asp-controller="InsuranceCards" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+            <div class="inner"><h3>@ViewBag.WorkplaceAccidents</h3><p>حوادث العمل</p></div>
+            <div class="icon"><i class="fas fa-hard-hat"></i></div>
+            <a asp-controller="WorkplaceSafety" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+</div>

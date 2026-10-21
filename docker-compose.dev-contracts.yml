@@ -1,0 +1,169 @@
+# BLD-002-ext: dev-contracts profile — hire/separation sagas, attachments, gateway subset.
+# App services: hr-core, hr-contracts, payroll, idcard, records-archive, admin-logistics,
+#               it-infra, auth-directory, file-storage, gateway.
+services:
+  hr-contracts-web:
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      minio:
+        condition: service_started
+    environment:
+      Services__HRCore__BaseUrl: http://hr-core-web:8080
+      FileStorage__Provider: Minio
+      FileStorage__Endpoint: minio:9000
+      FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
+      FileStorage__SecretKey: ${MINIO_ROOT_PASSWORD:-hrminio_secret_change_me}
+      FileStorage__UseSsl: "false"
+      ServiceIdentity__ClientId: svc-hr-contracts
+      ServiceIdentity__ClientSecret: ${SVC_HR_CONTRACTS_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: file-storage.references
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  hr-gateway:
+    environment:
+      ASPNETCORE_ALLOWEDHOSTS: "*"
+      ReverseProxy__Clusters__hr-core-cluster__Destinations__destination1__Address: http://hr-core-web:8080
+      ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
+      ReverseProxy__Clusters__payroll-cluster__Destinations__destination1__Address: http://payroll-web:8080
+      ReverseProxy__Clusters__idcard-cluster__Destinations__destination1__Address: http://idcard-web:8080
+      ReverseProxy__Clusters__records-archive-cluster__Destinations__destination1__Address: http://records-archive-web:8080
+      ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
+      ReverseProxy__Clusters__it-infra-cluster__Destinations__destination1__Address: http://it-infra-web:8080
+      ReverseProxy__Clusters__auth-directory-cluster__Destinations__destination1__Address: http://auth-directory-web:8080
+      ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
+      Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
+      Gateway__EnabledModules__0: hr-core
+      Gateway__EnabledModules__1: hr-contracts
+      Gateway__EnabledModules__2: payroll
+      Gateway__EnabledModules__3: idcard
+      Gateway__EnabledModules__4: records-archive
+      Gateway__EnabledModules__5: admin-logistics
+      Gateway__EnabledModules__6: it-infra
+      Gateway__EnabledModules__7: auth-directory
+      Gateway__EnabledModules__8: file-storage
+    depends_on:
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      hr-contracts-web:
+        condition: service_started
+      payroll-web:
+        condition: service_started
+      idcard-web:
+        condition: service_started
+      records-archive-web:
+        condition: service_started
+      admin-logistics-web:
+        condition: service_started
+      it-infra-web:
+        condition: service_started
+      auth-directory-web:
+        condition: service_started
+      file-storage-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  hr-core-web:
+    environment:
+      FileReferenceOutbox__Enabled: "false"
+      LeaveScheduleReconciler__Enabled: "false"
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+
+  payroll-web:
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  idcard-web:
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  records-archive-web:
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  auth-directory-web:
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  it-infra-web:
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  admin-logistics-web:
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      file-storage-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  file-storage-web:
+    deploy:
+      resources:
+        limits:
+          memory: 384M

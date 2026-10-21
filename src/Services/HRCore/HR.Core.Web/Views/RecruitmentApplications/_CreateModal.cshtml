@@ -22,9 +22,12 @@
                         <span asp-validation-for="NationalId" class="text-danger"></span>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="AppliedPosition" class="form-label"></label>
-                        <input asp-for="AppliedPosition" class="form-control" />
-                        <span asp-validation-for="AppliedPosition" class="text-danger"></span>
+                        <label asp-for="RequisitionId" class="form-label"></label>
+                        <select asp-for="RequisitionId" asp-items="Model.PublishedRequisitions" class="form-select">
+                            <option value="">— اختر طلب شاغر منشور —</option>
+                        </select>
+                        <span asp-validation-for="RequisitionId" class="text-danger"></span>
+                        <div class="form-text">يُعرض فقط طلبات الشاغر المنشورة على مناصب شاغرة.</div>
                     </div>
                     <div class="mb-3">
                         <label asp-for="Notes" class="form-label"></label>

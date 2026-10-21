@@ -177,7 +177,7 @@ public class AdditionalConsumerIntegrationTests
         db.ChangeTracker.Clear();
         var assignment = await db.AssetAssignments.AsNoTracking().FirstAsync(a => a.EmployeeId == empId);
         Assert.NotNull(assignment.ReturnedAt);
-        Assert.Contains("نقل", assignment.ConditionOnAssign ?? string.Empty);
+        Assert.Contains("نقل", assignment.ReturnNotes ?? string.Empty);
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public class AdditionalConsumerIntegrationTests
         db.ChangeTracker.Clear();
         var assignment = await db.AssetAssignments.AsNoTracking().FirstAsync(a => a.EmployeeId == empId);
         Assert.NotNull(assignment.ReturnedAt);
-        Assert.Contains("نقل", assignment.ConditionOnAssign ?? string.Empty);
+        Assert.Contains("نقل", assignment.ReturnNotes ?? string.Empty);
         // Duplicate delivery must not re-annotate (Tier-B / business effect); receipts asserted in IdempotentConsumerTests with inbox filter.
     }
 }

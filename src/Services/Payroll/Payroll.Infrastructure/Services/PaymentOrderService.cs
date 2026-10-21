@@ -10,6 +10,7 @@ public sealed class PaymentOrderService(PayrollDbContext db)
     /// <summary>Creates one order per salary line; skips when idempotency key already exists (48h dedup window).</summary>
     public async Task<IReadOnlyList<PaymentOrder>> EnsureOrdersForBatchAsync(
         Guid paymentBatchId,
+        IReadOnlyDictionary<Guid, decimal>? amountOverrides = null,
         CancellationToken cancellationToken = default)
     {
         var batch = await db.PaymentBatches
@@ -30,6 +31,12 @@ public sealed class PaymentOrderService(PayrollDbContext db)
         var created = new List<PaymentOrder>();
         foreach (var line in batch.PayrollRun.SalaryLines)
         {
+            var amount = amountOverrides?.TryGetValue(line.EmployeeId, out var overrideAmount) == true
+                ? overrideAmount
+                : line.NetPay;
+            if (amount <= 0)
+                continue;
+
             var key = BuildIdempotencyKey(batch.PayrollRunId, line.Id);
             if (await db.PaymentOrders.AnyAsync(o => o.IdempotencyKey == key, cancellationToken))
                 continue;
@@ -41,7 +48,7 @@ public sealed class PaymentOrderService(PayrollDbContext db)
                 PaymentBatchId = batch.Id,
                 SalaryLineId = line.Id,
                 EmployeeId = line.EmployeeId,
-                Amount = line.NetPay,
+                Amount = amount,
                 BeneficiaryIban = ibans.GetValueOrDefault(line.EmployeeId),
                 Status = PaymentOrderStatus.Draft
             };

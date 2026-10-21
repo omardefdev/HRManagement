@@ -2,6 +2,7 @@ using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Legal;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,11 @@ public class TransferSagaState : SagaStateMachineInstance
     public DateTime ExecutedAt { get; set; }
     public decimal? SalaryChange { get; set; }
     public decimal? AllowanceChange { get; set; }
+    public string? SourceLegalRegimeId { get; set; }
+    public string? TargetLegalRegimeId { get; set; }
+    public string? TransitionDecisionRef { get; set; }
+    public string? ConditionCode { get; set; }
+    public string? ConflictNotes { get; set; }
     public string? BusinessCorrelationId { get; set; }
     public string PendingParties { get; set; } = "";
     public string CompletedParties { get; set; } = "";
@@ -82,6 +88,11 @@ public class TransferStateMachine : MassTransitStateMachine<TransferSagaState>
                     ctx.Saga.ExecutedAt = ctx.Message.ExecutedAt;
                     ctx.Saga.SalaryChange = ctx.Message.SalaryChange;
                     ctx.Saga.AllowanceChange = ctx.Message.AllowanceChange;
+                    ctx.Saga.SourceLegalRegimeId = ctx.Message.SourceLegalRegimeId;
+                    ctx.Saga.TargetLegalRegimeId = ctx.Message.TargetLegalRegimeId;
+                    ctx.Saga.TransitionDecisionRef = ctx.Message.TransitionDecisionRef;
+                    ctx.Saga.ConditionCode = ctx.Message.ConditionCode;
+                    ctx.Saga.ConflictNotes = ctx.Message.ConflictNotes;
                     ctx.Saga.BusinessCorrelationId = ctx.Message.CorrelationId;
                     ctx.Saga.TenantId = ctx.Message.TenantId ?? Guid.Empty;
                     ctx.Saga.PendingParties = string.Join(',', opts.MandatoryParties);
@@ -208,6 +219,8 @@ public class TransferStateMachine : MassTransitStateMachine<TransferSagaState>
 
     private static async Task Dispatch(BehaviorContext<TransferSagaState> ctx)
     {
+        var toRegime = ctx.Saga.TargetLegalRegimeId ?? ctx.Saga.SourceLegalRegimeId;
+        var payrollRegimeCode = ServiceRegimeToPayrollMapper.MapToPayrollCode(toRegime);
         foreach (var party in Split(ctx.Saga.PendingParties))
         {
             await ctx.Publish<IExecuteTransferParty>(new
@@ -220,6 +233,7 @@ public class TransferStateMachine : MassTransitStateMachine<TransferSagaState>
                 ctx.Saga.ExecutedAt,
                 ctx.Saga.SalaryChange,
                 ctx.Saga.AllowanceChange,
+                PayrollRegimeCode = payrollRegimeCode,
                 CorrelationId = ctx.Saga.BusinessCorrelationId,
                 TenantId = ctx.Saga.TenantId == Guid.Empty ? (Guid?)null : ctx.Saga.TenantId,
                 Compensate = false
@@ -255,6 +269,7 @@ public class TransferStateMachine : MassTransitStateMachine<TransferSagaState>
 
     private static async Task PublishFinal(BehaviorContext<TransferSagaState> ctx)
     {
+        var toRegime = ctx.Saga.TargetLegalRegimeId ?? ctx.Saga.SourceLegalRegimeId;
         await ctx.Publish<ITransferExecuted>(new
         {
             ctx.Saga.EmployeeId,
@@ -264,6 +279,12 @@ public class TransferStateMachine : MassTransitStateMachine<TransferSagaState>
             TransferRequestId = ctx.Saga.TransferRequestId,
             ctx.Saga.SalaryChange,
             ctx.Saga.AllowanceChange,
+            FromLegalRegimeId = ctx.Saga.SourceLegalRegimeId,
+            ToLegalRegimeId = toRegime,
+            PayrollRegimeCode = ServiceRegimeToPayrollMapper.MapToPayrollCode(toRegime),
+            TransitionDecisionRef = ctx.Saga.TransitionDecisionRef,
+            ConditionCode = ctx.Saga.ConditionCode,
+            ConflictNotes = ctx.Saga.ConflictNotes,
             CorrelationId = Guid.TryParse(ctx.Saga.BusinessCorrelationId, out var c) ? c : (Guid?)null,
             SourceSystem = "TransferSaga",
             TenantId = ctx.Saga.TenantId == Guid.Empty ? (Guid?)null : ctx.Saga.TenantId

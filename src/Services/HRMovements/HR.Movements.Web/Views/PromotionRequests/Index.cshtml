@@ -1,0 +1,32 @@
+@model IReadOnlyList<HR.Movements.Domain.Entities.PromotionRequest>
+@using HR.Movements.Domain.Enums
+@{ ViewData["Title"] = "طلبات الترفيع"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">طلبات الترفيع</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">طلب جديد</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>موظف</th><th>من</th><th>إلى</th><th>النفاذ</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
+                    <td>@x.FromGrade/@x.FromStep</td>
+                    <td>@x.ToGrade/@x.ToStep</td>
+                    <td>@x.EffectiveDate</td>
+                    <td>@Html.HrEnumDisplay(x.Status)</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-3">لا توجد طلبات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

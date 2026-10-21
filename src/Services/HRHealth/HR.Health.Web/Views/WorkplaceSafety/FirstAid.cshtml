@@ -5,7 +5,7 @@
     <div class="card-body">
         <form asp-action="CreateFirstAid" method="post" class="row g-2">
             @Html.AntiForgeryToken()
-            <div class="col-md-2"><label class="form-label">معرّف الموظف</label><input name="EmployeeId" class="form-control" required /></div>
+            <div class="col-md-2"><label class="form-label">الموظف</label><select name="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..." required><option value="">— اختر موظف —</option></select></div>
             <div class="col-md-3"><label class="form-label">اسم الموظف</label><input name="EmployeeName" class="form-control" /></div>
             <div class="col-md-2"><label class="form-label">تاريخ التدريب</label><input name="TrainingDate" type="date" class="form-control" value="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required /></div>
             <div class="col-md-2"><label class="form-label">الجهة المدرِّبة</label><input name="Provider" class="form-control" /></div>
@@ -27,7 +27,7 @@
                 {
                     <tr>
                         <td>@x.TrainingDate.ToString("yyyy-MM-dd")</td>
-                        <td>@(x.EmployeeName ?? x.EmployeeId.ToString())</td>
+                        <td><span data-hr-employee-id="@x.EmployeeId">@(x.EmployeeName ?? "جاري التحميل...")</span></td>
                         <td>@(x.Provider ?? "—")</td>
                         <td>@(x.CertificateNo ?? "—")</td>
                         <td>@(x.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")</td>

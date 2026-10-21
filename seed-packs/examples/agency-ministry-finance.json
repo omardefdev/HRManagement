@@ -1,0 +1,63 @@
+{
+  "packId": "onb-ministry-finance-v1",
+  "agencyId": "agency-ministry-finance",
+  "releaseDigest": "sha256:onb-ministry-finance-v1-20260805",
+  "reviewerRoles": ["platform-owner", "security-reviewer"],
+  "rollbackRef": "rollback/onb-ministry-finance-v1",
+  "tenant": {
+    "displayName": "وزارة المالية",
+    "archetype": "ministry",
+    "governorateCode": "SY-01"
+  },
+  "identity": {
+    "realm": "agency-ministry-finance",
+    "adminBootstrapRef": "vault://bootstrap/agency-ministry-finance"
+  },
+  "roles": {
+    "catalogRef": "roles/national-catalog-v1",
+    "sodMatrixRef": "roles/sod-matrix-v1"
+  },
+  "policies": {
+    "policyPackIds": ["policy-ministry-finance-v1"],
+    "codePackIds": ["code-ministry-finance-v1"],
+    "preserveNationalMandatory": true
+  },
+  "workflows": {
+    "workflowPackIds": ["NATIONAL-WF-v1"]
+  },
+  "referenceSubset": {
+    "catalogKinds": ["Grade", "Geography", "Bank", "ContractType", "JobClassification"]
+  },
+  "orgStructure": {
+    "units": [
+      { "code": "HQ", "nameAr": "المركز" },
+      { "code": "BR1", "parentCode": "HQ", "nameAr": "فرع 1" }
+    ]
+  },
+  "language": {
+    "primaryLocale": "ar-SY",
+    "rtlFirst": true,
+    "secondaryLocales": ["en-SY"]
+  },
+  "calendar": {
+    "timezone": "Asia/Damascus",
+    "holidayPolicyRef": "docs/syr/holiday-calendar-policy.json"
+  },
+  "integrations": {
+    "connectorProfiles": ["payroll-sy-v1"]
+  },
+  "retention": {
+    "matrixRef": "docs/syr/records-retention-matrix.json"
+  },
+  "monitoring": {
+    "observabilityProfile": "gov-standard-v1"
+  },
+  "backup": {
+    "scheduleRef": "backup/gov-daily-v1",
+    "restoreTestRequired": true
+  },
+  "support": {
+    "serviceDeskTier": "L2",
+    "onCallRef": "oncall/gov-platform"
+  }
+}

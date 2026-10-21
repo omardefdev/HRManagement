@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "خريطة ERD المختصرة لقاعدة auth_directory_db\nAuth.Directory"
+title "خريطة ERD المختصرة لقاعدة authdirectory_db\nAuth.Directory"
 
 entity "AuthAuditLogs\nAuthAuditLog" as T01 {
   * Id
@@ -58,6 +58,11 @@ entity "AuditLogs\nEntityAuditLog" as T09 {
     EntityId
     TenantId
     UserId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T10 {
+  * Id
+    MessageId
+    TenantId
 }
 
 T02 }o--|| T03 : UserId

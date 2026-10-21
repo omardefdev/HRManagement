@@ -2,85 +2,104 @@
 !theme plain
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName Arial
-skinparam defaultFontSize 18
 skinparam shadowing false
 skinparam roundcorner 8
 skinparam linetype ortho
-top to bottom direction
 skinparam dpi 170
 skinparam ArrowColor #24465A
-skinparam EntityBorderColor #0F6B73
-skinparam EntityBackgroundColor #F4FAFA
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
 
-title "ERD منطقي مختصر لقاعدة Payroll\nPayroll bounded context"
+title ERD مفاهيمي مختصر للرواتب والخزينة الحالية
+left to right direction
 
-entity "PayrollRun\nدورة الراتب" as Run {
+entity "PayrollConfigurationVersion\nإصدار الإعداد" as Config {
   * Id : uuid <<PK>>
-  Period : date
+  TenantId : uuid
   Status : enum
 }
-entity "SalaryLine\nسطر الراتب" as Line {
+entity "PayrollRun\nدورة الراتب" as Run {
+  * Id : uuid <<PK>>
+  TenantId : uuid
+  ConfigurationVersionId : uuid <<FK>>
+  Status : enum
+}
+entity "PayrollRunInputSnapshot\nلقطة المدخلات" as Snapshot {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK>>
+  InputHash : text
+}
+entity "PayrollRunJob\nمهمة الحساب" as Job {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK>>
+  Status : enum
+}
+entity "PayrollRunPartition\nقسم التنفيذ" as Partition {
+  * Id : uuid <<PK>>
+  PayrollRunJobId : uuid <<FK>>
+  Checkpoint : text
+}
+entity "SalaryLine\nسطر الراتب" as SalaryLine {
   * Id : uuid <<PK>>
   PayrollRunId : uuid <<FK>>
   EmployeeId : uuid <<identifier>>
 }
-entity "SalaryLineComponent\nمكوّن السطر" as Component {
-  * Id : uuid <<PK>>
-  SalaryLineId : uuid <<FK>>
-  ComponentType : enum
-}
-entity "EmployeePayProfile\nملف أجر الموظف" as PayProfile {
-  * Id : uuid <<PK>>
-  EmployeeId : uuid <<identifier>>
-  PayGradeId : uuid <<FK nullable>>
-  IsActive : bool
-}
-entity "SalaryScale\nسلم الرواتب" as Scale {
-  * Id : uuid <<PK>>
-  Code : string <<UQ>>
-}
-entity "PayGrade\nدرجة الأجر" as Grade {
-  * Id : uuid <<PK>>
-  SalaryScaleId : uuid <<FK>>
-  GradeCode : string
-}
-entity "DeductionRecord\nحسم" as Deduction {
-  * Id : uuid <<PK>>
-  AppliedInRunId : uuid <<FK nullable>>
-}
-entity "PayrollAdjustment\nتعديل راتب" as Adjustment {
-  * Id : uuid <<PK>>
-  PayrollRunId : uuid <<FK nullable>>
-  EmployeeId : uuid <<identifier>>
-}
-entity "PayrollRunApproval\nاعتماد الدورة" as RunApproval {
+entity "FundingDecision\nقرار التمويل" as Funding {
   * Id : uuid <<PK>>
   PayrollRunId : uuid <<FK>>
 }
-entity "PaymentBatch\nدفعة دفع" as Batch {
+entity "ArrearsLedgerEntry\nقيد المتأخرات" as Arrears {
+  * Id : uuid <<PK>>
+  EmployeeId : uuid <<identifier>>
+}
+entity "PaymentBatch\nدفعة الصرف" as Batch {
   * Id : uuid <<PK>>
   PayrollRunId : uuid <<FK>>
 }
-entity "PayslipDelivery\nتسليم القسيمة" as Payslip {
+entity "PaymentOrder\nأمر الدفع" as PaymentOrder {
   * Id : uuid <<PK>>
-  SalaryLineId : uuid <<FK>>
+  PaymentBatchId : uuid <<FK>>
+}
+entity "BankStatementLine\nسطر الكشف المصرفي" as BankLine {
+  * Id : uuid <<PK>>
+  PaymentOrderId : uuid <<FK nullable>>
+}
+entity "FraudAlert\nتنبيه الاحتيال" as Fraud {
+  * Id : uuid <<PK>>
+  PayrollRunId : uuid <<FK>>
+}
+entity "PaymentHold\nحجز الدفع" as Hold {
+  * Id : uuid <<PK>>
+  FraudAlertId : uuid <<FK>>
 }
 
-Run ||--o{ Line
-Line ||--o{ Component
-Scale ||--o{ Grade
-Grade ||--o{ PayProfile
-Run ||--o{ Deduction : AppliedInRun
-Run ||--o{ Adjustment
-Run ||--o{ RunApproval
+Config ||--o{ Run
+Run ||--|| Snapshot
+Run ||--o{ Job
+Job ||--o{ Partition
+Run ||--o{ SalaryLine
+Run ||--o{ Funding
+Funding ..> Arrears : الصرف الجزئي
 Run ||--o{ Batch
-Line ||--o{ Payslip
-PayProfile -[hidden]down-> Run
+Batch ||--o{ PaymentOrder
+PaymentOrder ||--o{ BankLine : التسوية
+Run ||--o{ Fraud
+Fraud ||--o{ Hold
 
-note right of PayProfile
-EmployeeId وOrgUnitId معرفات تكاملية.
-لا يعتمد Payroll على FK إلى HR.Core.
-ويستقبل آثار العقود والإجازات والنقل
-والصحة عبر أحداث موثقة قابلة لإعادة المعالجة.
+note bottom of Run
+يفصل النموذج بين الحساب والترحيل والصرف، ويحفظ لقطة ثابتة للمدخلات،
+ويدعم الاستئناف والمتأخرات والتسوية والحجز. الاعتماد القانوني والتكامل
+المصرفي الحي خارج نطاق النتائج المثبتة في النسخة الحالية.
 end note
 @enduml

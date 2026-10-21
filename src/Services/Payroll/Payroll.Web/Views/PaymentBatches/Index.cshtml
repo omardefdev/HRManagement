@@ -1,11 +1,59 @@
 @model IReadOnlyList<Payroll.Domain.Entities.PaymentBatch>
-@{ ViewData["Title"] = "دفعات الصرف"; }
+@using Payroll.Domain.Enums
+@{
+    ViewData["Title"] = "دفعات الصرف";
+    var payrollRunId = ViewBag.PayrollRunId as Guid?;
+    var selectedStatus = ViewBag.Status as PaymentBatchStatus?;
+    DateTime? processedFrom = ViewBag.ProcessedFrom;
+    DateTime? processedTo = ViewBag.ProcessedTo;
+    bool? hasBankReference = ViewBag.HasBankReference;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">دفعات الصرف</h3>
         <span class="text-muted small">تُنشأ دفعات الصرف تلقائياً عند ترحيل تشغيل رواتب معتمد.</span>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-2">
+                <label class="form-label">تشغيل الرواتب</label>
+                <select name="payrollRunId" class="form-select form-select-sm" asp-items="ViewBag.PayrollRuns">
+                    <option value="">كل التشغيلات</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">كل الحالات</option>
+                    @foreach (var item in Enum.GetValues<PaymentBatchStatus>())
+                    {
+                        <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@Html.HrEnumDisplay(item)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">معالجة من</label>
+                <input type="date" name="processedFrom" value="@processedFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">معالجة إلى</label>
+                <input type="date" name="processedTo" value="@processedTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">مرجع بنكي</label>
+                <select name="hasBankReference" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    <option value="true" selected="@(hasBankReference == true ? "selected" : null)">يوجد</option>
+                    <option value="false" selected="@(hasBankReference == false ? "selected" : null)">لا يوجد</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>تشغيل</th><th>المبلغ</th><th>مرجع بنكي</th><th>معالجة</th></tr></thead>
             <tbody>

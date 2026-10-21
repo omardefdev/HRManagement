@@ -14,9 +14,8 @@ public class OrgUnitListViewModel
 public class OrgUnitCreateViewModel
 {
     [Display(Name = "رمز الوحدة")]
-    [Required(ErrorMessage = "رمز الوحدة مطلوب")]
     [StringLength(50)]
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
 
     [Display(Name = "الاسم بالعربي")]
     [Required(ErrorMessage = "الاسم بالعربي مطلوب")]

@@ -9,6 +9,9 @@
 **/*.user
 **/*.suo
 **/.dockerignore
+.nuget/
+tmp/
+artifacts/
 
 # Secrets and credentials — must never enter image layers (SEC-004)
 .env
@@ -30,9 +33,29 @@ logs/
 # Non-runtime content (Dockerfiles COPY full repo context)
 # NOTE: docs/*.json matrices are runtime content (copied by ServiceDefaults) — do not exclude docs/.
 scripts/
-docker/
 tests/
 src/Tests/
+deploy/
+terraform/
+perf/
+chaos/
+testdata/**
+!testdata/acceptance/
+!testdata/acceptance/personas.json
+!testdata/str004/
+!testdata/str004/agencies/
+!testdata/str004/agencies/*.json
+agent-transcripts/
+.cursor/
+**/*.trx
+**/coveragereport/
 *.md
 !README.md
 docs/**/*.md
+docs/output/
+docs/thesis_diagrams/
+
+# Docker runtime assets (exclude observability/keycloak blobs; keep BLD-002 build inputs)
+docker/**
+!docker/build-manifest/**
+!docker/DotnetService.Dockerfile

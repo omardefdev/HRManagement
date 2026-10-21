@@ -2,6 +2,13 @@
 @{
     ViewData["Title"] = Model.Title;
     Layout = "_PublicLayout";
+    var isLegacy = ViewBag.IsLegacyPosting as bool? == true;
+    var applyModel = ViewBag.ApplyModel as HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel
+        ?? new HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel { PublicJobPostingId = Model.Id };
+}
+@if (isLegacy)
+{
+    <div class="alert alert-warning mb-3">إعلان قديم غير مرتبط بطلب شاغر — يُفضّل التقديم على الإعلانات المرتبطة بطلبات منشورة.</div>
 }
 <div class="careers-card mb-4">
     <div class="card-body">
@@ -10,6 +17,12 @@
             <i class="fas fa-building ms-1"></i> @(Model.Entity ?? "—")
             @if (!string.IsNullOrWhiteSpace(Model.Location)) { <span>• <i class="fas fa-map-marker-alt ms-1"></i> @Model.Location</span> }
         </p>
+        @if (Model.Requisition is not null)
+        {
+            <p class="text-muted mb-2">
+                <i class="fas fa-file-alt ms-1"></i> طلب الشاغر: <strong>@Model.Requisition.RequisitionNumber</strong>
+            </p>
+        }
         @if (Model.ClosingDate != null)
         {
             <p style="color:#6b1f2a;"><i class="fas fa-clock ms-1"></i> آخر موعد للتقديم: @Model.ClosingDate.Value.ToString("dd-MM-yyyy")</p>
@@ -30,16 +43,44 @@
 <div class="careers-card">
     <div class="card-body">
         <h5 style="color:#6b1f2a; font-weight:700; margin-bottom:1.25rem;"><i class="fas fa-paper-plane ms-2"></i> تقديم طلب توظيف</h5>
-        <form asp-action="Apply" method="post" class="careers-form">
+        <form asp-action="Apply" method="post" class="careers-form" aria-label="نموذج تقديم طلب توظيف">
             @Html.AntiForgeryToken()
             <input type="hidden" name="PublicJobPostingId" value="@Model.Id" />
+            <div class="visually-hidden" aria-hidden="true">
+                <label for="website-hp">لا تملأ هذا الحقل</label>
+                <input id="website-hp" name="Website" tabindex="-1" autocomplete="off" />
+            </div>
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="row g-3">
-                <div class="col-md-6"><label class="form-label">الاسم الكامل</label><input name="FullName" class="form-control" required /></div>
-                <div class="col-md-6"><label class="form-label">الرقم الوطني</label><input name="NationalId" class="form-control" required /></div>
-                <div class="col-md-6"><label class="form-label">رقم الهاتف</label><input name="Phone" class="form-control" /></div>
-                <div class="col-md-6"><label class="form-label">البريد الإلكتروني</label><input name="Email" type="email" class="form-control" /></div>
-                <div class="col-12"><label class="form-label">نبذة / مسوّغات</label><textarea name="CoverNote" class="form-control" rows="3"></textarea></div>
+                <div class="col-md-6">
+                    <label class="form-label" for="apply-fullname">الاسم الكامل</label>
+                    <input id="apply-fullname" name="FullName" class="form-control" value="@applyModel.FullName" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="apply-nationalid">الرقم الوطني</label>
+                    <input id="apply-nationalid" name="NationalId" class="form-control" value="@applyModel.NationalId" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="apply-phone">رقم الهاتف</label>
+                    <input id="apply-phone" name="Phone" class="form-control" value="@applyModel.Phone" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="apply-email">البريد الإلكتروني</label>
+                    <input id="apply-email" name="Email" type="email" class="form-control" value="@applyModel.Email" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="apply-cover">نبذة / مسوّغات</label>
+                    <textarea id="apply-cover" name="CoverNote" class="form-control" rows="3">@applyModel.CoverNote</textarea>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="privacy-consent" name="PrivacyConsent" value="true" required @(applyModel.PrivacyConsent ? "checked" : "") />
+                        <label class="form-check-label" for="privacy-consent">
+                            أوافق على معالجة بياناتي لغرض التوظيف —
+                            <a asp-action="Privacy" target="_blank">إشعار الخصوصية</a>
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="mt-3">
                 <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1"></i> إرسال الطلب</button>

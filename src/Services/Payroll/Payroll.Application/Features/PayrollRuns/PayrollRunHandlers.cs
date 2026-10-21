@@ -6,6 +6,7 @@ using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 using Payroll.Domain.Services;
 using Payroll.Domain.Services.Engine;
+using HRManagement.SharedKernel.SeparationOfDuties;
 
 namespace Payroll.Application.Features.PayrollRuns;
 
@@ -104,7 +105,7 @@ public class SubmitPayrollRunForReviewHandler(IPayrollRepository repository)
 public record ApprovePayrollRunCommand(Guid PayrollRunId, Guid ApproverId, string? Role, string? Notes)
     : IRequest<(bool Success, string? Error)>;
 
-public class ApprovePayrollRunHandler(IPayrollRepository repository)
+public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationOfDutiesService sod)
     : IRequestHandler<ApprovePayrollRunCommand, (bool Success, string? Error)>
 {
     public async Task<(bool Success, string? Error)> Handle(
@@ -114,8 +115,21 @@ public class ApprovePayrollRunHandler(IPayrollRepository repository)
         repository.ClearChangeTracker();
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: false, cancellationToken);
         if (run is null) return (false, "التشغيل غير موجود.");
-        if (run.CreatedBy.HasValue && request.ApproverId == run.CreatedBy.Value)
+
+        if (run.CreatedBy is Guid creatorId && creatorId == request.ApproverId)
             return (false, "لا يمكن لمنشئ التشغيل اعتماد نفس التشغيل.");
+
+        var (allowed, sodError) = PayrollSodGuard.ValidatePayrollRunAction(
+            sod,
+            SodAction.Check,
+            request.ApproverId,
+            request.Role,
+            run.Id,
+            run.CreatedBy,
+            null,
+            run.TotalNetPay);
+        if (!allowed)
+            return (false, sodError);
 
         try
         {
@@ -165,7 +179,8 @@ public record PostPayrollRunCommand(Guid PayrollRunId, Guid PosterId) : IRequest
 
 public class PostPayrollRunHandler(
     IPayrollRepository repository,
-    IPayrollEventPublisher eventPublisher)
+    IPayrollEventPublisher eventPublisher,
+    SeparationOfDutiesService sod)
     : IRequestHandler<PostPayrollRunCommand, (bool Success, string? Error)>
 {
     public async Task<(bool Success, string? Error)> Handle(
@@ -180,8 +195,18 @@ public class PostPayrollRunHandler(
             .Where(a => a.Decision == ApprovalDecision.Approved)
             .OrderByDescending(a => a.DecidedAt)
             .FirstOrDefault();
-        if (latestApproval?.ApproverId.HasValue == true && latestApproval.ApproverId.Value == request.PosterId)
-            return (false, "لا يمكن لنفس المستخدم اعتماد التشغيل ثم ترحيله.");
+
+        var (allowed, sodError) = PayrollSodGuard.ValidatePayrollRunAction(
+            sod,
+            SodAction.Post,
+            request.PosterId,
+            "payroll-poster",
+            run.Id,
+            run.CreatedBy,
+            latestApproval?.ApproverId,
+            run.TotalNetPay);
+        if (!allowed)
+            return (false, sodError);
 
         var hasClosedAudit = await repository.PayrollAuditRecords
             .AnyAsync(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Closed, cancellationToken);

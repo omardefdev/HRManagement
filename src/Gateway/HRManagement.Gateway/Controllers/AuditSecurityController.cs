@@ -16,6 +16,7 @@ namespace HRManagement.Gateway.Controllers;
 public sealed class AuditSecurityController(
     ISecurityAuditPublisher publisher,
     IAuditChainVerifier chainVerifier,
+    IJourneyRebuildService journeyRebuild,
     GatewayAuditDbContext db,
     AuditWormExporter wormExporter) : ControllerBase
 {
@@ -38,7 +39,7 @@ public sealed class AuditSecurityController(
     public async Task<IActionResult> Ingest([FromBody] IngestRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.EventType))
-            return BadRequest("EventType required");
+            return BadRequest("EventType مطلوب.");
 
         await publisher.PublishAsync(new SecurityAuditEvent
         {
@@ -57,7 +58,7 @@ public sealed class AuditSecurityController(
     public async Task<ActionResult<object>> CreateHold([FromBody] LegalHoldRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.Reason))
-            return BadRequest("Reason required");
+            return BadRequest("Reason مطلوب.");
 
         var hold = new AuditLegalHold
         {
@@ -87,6 +88,20 @@ public sealed class AuditSecurityController(
         return result.Ok
             ? Ok(new { ok = true, checkedCount = result.Checked })
             : StatusCode(StatusCodes.Status409Conflict, new { ok = false, checkedCount = result.Checked, error = result.Error });
+    }
+
+    [HttpGet("journey/{correlationId}")]
+    public async Task<ActionResult<JourneyRebuildResult>> RebuildJourney(string correlationId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(correlationId) || correlationId.Length < 8)
+            return BadRequest("correlationId مطلوب (8+ chars).");
+
+        var auth = Request.Headers.Authorization.ToString();
+        var journey = await journeyRebuild.RebuildAsync(correlationId.Trim(), auth, ct);
+        if (journey.HttpEvents.Count == 0 && journey.PolicyEvents.Count == 0 && journey.SecurityEvents.Count == 0)
+            return NotFound(new { message = "لا أحداث لهذا المعرّف.", correlationId });
+
+        return Ok(journey);
     }
 
     [HttpPost("worm-export")]

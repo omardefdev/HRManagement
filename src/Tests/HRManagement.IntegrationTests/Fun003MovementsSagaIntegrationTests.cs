@@ -2,6 +2,7 @@ using HR.Movements.Infrastructure.Sagas;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Legal;
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,41 @@ public class Fun003MovementsSagaIntegrationTests
                  && x.Context.Message.TransferRequestId == id));
         Assert.False(await env.Harness.Published.Any<ITransferExecuted>(
             x => x.Context.Message.TransferRequestId == id));
+    }
+
+    [Fact]
+    public async Task TransferSaga_PublishesRegimeFields_OnComplete()
+    {
+        await using var env = await CreateTransferEnvAsync(
+            parties: [ProcessParties.Payroll],
+            registerPartyConsumer: true);
+
+        var id = Guid.NewGuid();
+        await env.Harness.Bus.Publish<IStartTransferSaga>(new
+        {
+            TransferRequestId = id,
+            EmployeeId = Guid.NewGuid(),
+            FromOrgUnitId = Guid.NewGuid(),
+            ToOrgUnitId = Guid.NewGuid(),
+            ExecutedAt = DateTime.UtcNow,
+            SalaryChange = (decimal?)null,
+            AllowanceChange = (decimal?)null,
+            SourceLegalRegimeId = "law50",
+            TargetLegalRegimeId = "law53",
+            TransitionDecisionRef = "DEC-TRANSFER-2026",
+            ConditionCode = "agency_reclassification",
+            ConflictNotes = "Article 159 note",
+            CorrelationId = "fun003-trf-regime",
+            TenantId = (Guid?)null
+        });
+
+        Assert.True(await env.Harness.Published.Any<ITransferExecuted>(
+            x => x.Context.Message.TransferRequestId == id
+                 && x.Context.Message.FromLegalRegimeId == "law50"
+                 && x.Context.Message.ToLegalRegimeId == "law53"
+                 && x.Context.Message.PayrollRegimeCode == ServiceRegimeToPayrollMapper.PayrollLaw53
+                 && x.Context.Message.TransitionDecisionRef == "DEC-TRANSFER-2026"
+                 && x.Context.Message.ConflictNotes == "Article 159 note"));
     }
 
     [Fact]

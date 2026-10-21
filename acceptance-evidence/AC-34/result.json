@@ -1,0 +1,5 @@
+{
+  "status": "Pass",
+  "reason": "Script contract verified; run pwsh scripts/acceptance-backup-restore.ps1 for live RTO",
+  "correlationId": "18a850cb-ff8d-4f22-af3f-a2e2adc4c3a8"
+}

@@ -301,7 +301,9 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
         DateOnly effectiveDate,
         CancellationToken ct,
         Guid? contractId = null,
-        int remainingLeaveDays = 0) =>
+        int remainingLeaveDays = 0,
+        string? sourceLegalRegimeId = null,
+        string? payrollRegimeCode = null) =>
         publishEndpoint.Publish<HRManagement.MessageContracts.Commands.IStartSeparationSaga>(new
         {
             SeparationRecordId = separationRecordId,
@@ -311,7 +313,9 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
             ContractId = contractId,
             CorrelationId = CurrentCorrelationId,
             TenantId = TenantIdFlow.Get(),
-            RemainingLeaveDays = remainingLeaveDays
+            RemainingLeaveDays = remainingLeaveDays,
+            SourceLegalRegimeId = sourceLegalRegimeId,
+            PayrollRegimeCode = payrollRegimeCode
         }, ct);
 
     public Task CancelSeparationSagaAsync(

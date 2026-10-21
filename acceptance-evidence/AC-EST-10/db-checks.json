@@ -1,0 +1,11 @@
+{
+  "orgUnitId": "a0000001-0000-4000-8000-000000000102",
+  "fiscalYear": 2026,
+  "funded": 278,
+  "occupied": 256,
+  "vacant": 22,
+  "frozen": 0,
+  "deficit": 2,
+  "source": "FundedPosition",
+  "analyticsNotUsed": true
+}

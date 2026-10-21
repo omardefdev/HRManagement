@@ -4,7 +4,7 @@
 #   pwsh scripts/nfr-k6-run.ps1 -Scenario gateway-mixed -Profile load
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('smoke', 'gateway-mixed', 'lookup-list', 'payroll-run', 'export-async', 'org-tree')]
+    [ValidateSet('smoke', 'gateway-mixed', 'lookup-list', 'lookup-list-scoped', 'payroll-run', 'export-async', 'org-tree')]
     [string]$Scenario,
 
     [ValidateSet('smoke', 'load', 'soak', 'spike', 'stress')]

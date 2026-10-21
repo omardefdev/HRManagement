@@ -1,8 +1,12 @@
 @model (HR.Contracts.Domain.Entities.ServiceTransaction Txn, IReadOnlyList<HR.Contracts.Domain.Entities.HireChecklist> Checklist)
+@using HRManagement.ServiceDefaults
 @{
     ViewData["Title"] = "معالج التعيين - إكمال";
     var labels = ViewBag.ChecklistLabels as Dictionary<HR.Contracts.Domain.Enums.HireStep, string> ?? new();
     var allDone = Model.Checklist.All(c => c.IsCompleted);
+    var canSubmit = (User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrContracts))
+                    && allDone
+                    && Model.Txn.State == HR.Contracts.Domain.Enums.ServiceTransactionState.Executing;
 }
 <div class="card">
     <div class="card-header"><h3>إكمال وأرشفة التعيين</h3></div>
@@ -13,11 +17,25 @@
                 <li class="list-group-item">@(labels.GetValueOrDefault(item.Step, item.Step.ToString())) — @(item.IsCompleted ? "✓" : "…")</li>
             }
         </ul>
-        <form asp-action="Step4Complete" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
-            <button type="submit" class="btn btn-primary" @(allDone ? "" : "disabled")>إكمال المعاملة</button>
-        </form>
-        @if (!allDone) { <p class="text-warning mt-2">أكمل جميع بنود قائمة التحقق قبل الإغلاق.</p> }
+        @if (canSubmit)
+        {
+            <form asp-action="Step4Complete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
+                <button type="submit" class="btn btn-primary" title="إغلاق المعاملة ونشر اكتمال التعيين">إكمال المعاملة</button>
+            </form>
+        }
+        else if (!allDone)
+        {
+            <p class="text-warning mt-2">أكمل جميع بنود قائمة التحقق قبل الإغلاق.</p>
+        }
+        else if (Model.Txn.State != HR.Contracts.Domain.Enums.ServiceTransactionState.Executing)
+        {
+            <p class="text-info mt-2">قائمة التحقق مكتملة، لكن لا يمكن الإغلاق قبل أن تكون المعاملة قيد التنفيذ.</p>
+        }
+        else
+        {
+            <p class="text-info mt-2">تحتاج عملية الإغلاق إلى حساب مخول من العقود.</p>
+        }
     </div>
 </div>

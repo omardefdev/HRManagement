@@ -1,9 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Localization;
 
 namespace HR.Core.Domain.Entities;
 
-public class OrgUnit : AuditableEntity
+public class OrgUnit : AuditableEntity, ILocalizedName
 {
     [Display(Name = "رمز الوحدة")]
     [Required(ErrorMessage = "رمز الوحدة مطلوب")]

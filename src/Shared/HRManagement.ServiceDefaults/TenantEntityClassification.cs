@@ -1,4 +1,5 @@
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using HRManagement.SharedKernel.Tenancy;
 
@@ -23,7 +24,12 @@ public static class TenantEntityClassification
         typeof(TenantAssignmentRule),
         typeof(TenantQuarantineEntry),
         typeof(SodRule),
-        typeof(ConflictingRolePair)
+        typeof(ConflictingRolePair),
+        typeof(LegislationSource),
+        typeof(LegislationKeyArticle),
+        typeof(LegislationInstrumentLink),
+        typeof(LegislationSourceAlias),
+        typeof(LegalRegime)
     ];
 
     public static IReadOnlyCollection<Type> GlobalEntityTypes => GlobalEntities;

@@ -18,6 +18,19 @@
       "dpiaRef": "PRV_001_DPIA_IDENTITY.md"
     },
     {
+      "id": "pa-hcm-public-recruitment",
+      "service": "HR.Core",
+      "purpose": "Public careers portal intake and candidate tracking",
+      "legalBasis": "Public recruitment procedure / applicant consent",
+      "dataCategories": ["PII", "Contact", "Application"],
+      "dataSubjects": ["Applicants"],
+      "recipients": ["Compliance(DSAR)", "HR.Core(selection)"],
+      "retentionPolicy": "ret-recruitment-application",
+      "securityMeasures": ["TenantIsolation", "NationalIdHash", "RateLimit", "ConsentCheckbox", "AuditRedact"],
+      "highRisk": true,
+      "dpiaRef": "PRV_001_DPIA_RECRUITMENT.md"
+    },
+    {
       "id": "pa-payroll-compensation",
       "service": "Payroll",
       "purpose": "Compensation calculation and payment batching",

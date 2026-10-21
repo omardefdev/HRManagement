@@ -1,0 +1,52 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام الهيكل المؤرخ والوظائف الممولة
+left to right direction
+actor "مسؤول التنظيم" as OrgAdmin
+actor "المعتمد المركزي" as Approver
+actor "مخطط القوى العاملة" as Planner
+actor "المالية" as Finance
+actor "مدير الفرع" as Branch
+rectangle "الهيكل والملاك" {
+  usecase "اقتراح إنشاء أو نقل أو دمج\nأو تقسيم أو إغلاق وحدة" as U1
+  usecase "تحليل الأثر ومنع الدورات" as U2
+  usecase "اعتماد تاريخ النفاذ" as U3
+  usecase "الاستعلام كما في تاريخ" as U4
+  usecase "إدارة دليل الوظائف" as U5
+  usecase "تعريف وظيفة ممولة" as U6
+  usecase "إعداد خطة القوى العاملة" as U7
+  usecase "مقارنة الممول والمشغول والشاغر" as U8
+}
+OrgAdmin --> U1
+U1 .> U2 : <<include>>
+Approver --> U3
+U3 .> U2 : <<include>>
+OrgAdmin --> U4
+Branch --> U4
+Planner --> U5
+Finance --> U6
+U6 .> U5 : <<include>>
+Planner --> U7
+U7 .> U8 : <<include>>
+@enduml

@@ -28,7 +28,7 @@ public class EvaluationsController : Controller
         _orgScope = orgScope;
     }
 
-    public async Task<IActionResult> Index(Guid? employeeId, SearchFilterBase? filter, bool showCreate = false)
+    public async Task<IActionResult> Index(Guid? employeeId, int? year, string? status, SearchFilterBase? filter, bool showCreate = false)
     {
         filter ??= new SearchFilterBase();
         filter.NormalizePaging();
@@ -55,6 +55,12 @@ public class EvaluationsController : Controller
         if (employeeId.HasValue)
             query = query.Where(e => e.EmployeeId == employeeId.Value);
 
+        if (year is int y)
+            query = query.Where(e => e.Year == y);
+
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(e => e.Status == status);
+
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
             var term = filter.SearchTerm.Trim();
@@ -72,8 +78,12 @@ public class EvaluationsController : Controller
             .ToListAsync();
 
         Employee? employee = null;
+        string? filterEmployeeName = null;
         if (employeeId.HasValue)
+        {
             employee = await _context.Employees.FindAsync(employeeId.Value);
+            filterEmployeeName = employee?.FullName;
+        }
 
         var vm = new EvaluationListViewModel
         {
@@ -81,7 +91,10 @@ public class EvaluationsController : Controller
             Filter = filter,
             EmployeeId = employeeId,
             Employee = employee,
-            ShowCreateModal = showCreate
+            ShowCreateModal = showCreate,
+            Year = year,
+            Status = status,
+            FilterEmployeeName = filterEmployeeName
         };
 
         if (employeeId.HasValue && employee != null)

@@ -1,0 +1,59 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title DFD لحجر الملفات والفحص والمنح والخصوصية
+left to right direction
+actor "خدمة المجال أو المستخدم" as Caller
+actor "ماسح البرمجيات الضارة" as Scanner
+actor "مسؤول الخصوصية" as Privacy
+actor "المدقق" as Auditor
+rectangle "1.0 تحقق النوع وارفع إلى الحجر" as P1
+rectangle "2.0 فحص وإعادة محاولة" as P2
+rectangle "3.0 تنقية CDR وترقية النظيف" as P3
+rectangle "4.0 تقييم المنحة وإصدار رابط مؤقت" as P4
+rectangle "5.0 معالجة طلب صاحب البيانات" as P5
+database "D1 بيانات الملف وحالة الفحص" as D1
+database "D2 حاوية الحجر" as D2
+database "D3 المخزن النشط" as D3
+database "D4 منح الوصول وسجل التدقيق" as D4
+database "D5 طلبات DSAR والقرارات" as D5
+Caller --> P1 : الملف والمرجع
+P1 --> D1
+P1 --> D2
+P2 --> Scanner
+Scanner --> P2 : Clean أو Infected أو Error
+P2 --> D1
+P2 --> P3 : Clean فقط
+P3 --> D3
+P3 --> D1 : Active وSha256
+Caller --> P4
+D1 --> P4
+D4 --> P4
+P4 --> Caller : رفض أو presigned URL
+P4 --> D4 : أثر الوصول
+Caller --> P5 : طلب DSAR
+Privacy --> P5 : قرار ومعالجة
+P5 --> D5
+Auditor --> D4
+Auditor --> D5
+@enduml

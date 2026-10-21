@@ -13,7 +13,7 @@ public class InboundServiceTransactionTests
     {
         await using var db = CreateDb();
         var repo = new ContractsRepository(db);
-        var handler = new ProcessLeaveRequestedHandler(repo);
+        var handler = new ProcessLeaveRequestedHandler(repo, CodeGenerationTestSupport.CreateClient());
         var requestId = Guid.NewGuid();
         var employeeId = Guid.NewGuid();
 
@@ -38,7 +38,7 @@ public class InboundServiceTransactionTests
     {
         await using var db = CreateDb();
         var repo = new ContractsRepository(db);
-        var handler = new ProcessAdvanceRequestedHandler(repo);
+        var handler = new ProcessAdvanceRequestedHandler(repo, CodeGenerationTestSupport.CreateClient());
         var requestId = Guid.NewGuid();
         var employeeId = Guid.NewGuid();
 
@@ -60,7 +60,7 @@ public class InboundServiceTransactionTests
     {
         await using var db = CreateDb();
         var repo = new ContractsRepository(db);
-        var handler = new ProcessJobChangeRequestedHandler(repo);
+        var handler = new ProcessJobChangeRequestedHandler(repo, CodeGenerationTestSupport.CreateClient());
         var requestId = Guid.NewGuid();
         var employeeId = Guid.NewGuid();
 

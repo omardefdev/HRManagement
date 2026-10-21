@@ -1,6 +1,7 @@
 @model HRManagement.Gateway.Models.GatewayJourneyDetailsViewModel
 @{
     ViewData["Title"] = $"{Model.Journey.Title} — دليل تشغيلي";
+    string? currentPhase = null;
 }
 
 <div class="gateway-page-header">
@@ -12,6 +13,18 @@
 <ol class="list-group list-group-numbered gateway-step-list">
     @foreach (var step in Model.Steps)
     {
+        var phaseKey = step.Step.PhaseKey;
+        if (!string.IsNullOrWhiteSpace(phaseKey) && !string.Equals(phaseKey, currentPhase, StringComparison.OrdinalIgnoreCase))
+        {
+            currentPhase = phaseKey;
+            if (!string.IsNullOrWhiteSpace(step.Step.PhaseTitleAr))
+            {
+                <li class="list-group-item gateway-journey-phase-header">
+                    <h2 class="h5 mb-0">@step.Step.PhaseTitleAr</h2>
+                </li>
+            }
+        }
+
         <li class="list-group-item d-flex justify-content-between align-items-start">
             <div class="ms-2 me-auto">
                 <div class="fw-bold">@step.Step.Title</div>
@@ -26,7 +39,11 @@
                 }
             </div>
 
-            @if (step.HasModule && step.Module is not null)
+            @if (step.CanOpenPublic && !string.IsNullOrWhiteSpace(step.PublicHref))
+            {
+                <a class="btn btn-sm gateway-btn-primary" href="@step.PublicHref">فتح</a>
+            }
+            else if (step.HasModule && step.Module is not null)
             {
                 @if (step.IsAuthorized)
                 {

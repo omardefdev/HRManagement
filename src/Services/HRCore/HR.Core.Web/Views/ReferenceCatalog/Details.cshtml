@@ -1,0 +1,123 @@
+@model HR.Core.Web.ViewModels.ReferenceCatalogDetailsViewModel
+@using HRManagement.SharedKernel.MasterData
+@{
+    ViewData["Title"] = Model.Entry.Code;
+    var replacementPicker = Model.Entry.CatalogKind == CatalogKind.Grade
+        ? "reference-grade"
+        : "reference-job-classification";
+    var replacementPlaceholder = Model.Entry.CatalogKind == CatalogKind.Grade
+        ? "اختر الدرجة البديلة (اختياري)..."
+        : "اختر التصنيف البديل (اختياري)...";
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0"><i class="fas fa-database"></i> @Model.Entry.Code — @Model.Entry.NameAr</h3>
+        <div class="d-flex gap-2">
+            @if (Model.CanMutate)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Entry.Id" class="btn btn-outline-warning btn-sm">تعديل</a>
+            }
+            <a asp-action="Index" asp-route-kind="@Model.Entry.CatalogKind" class="btn btn-outline-secondary btn-sm">القائمة</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.IsPlatformOwned)
+        {
+            <div class="alert alert-info">سجل المرجع الوطني (المنصة) — قراءة فقط.</div>
+        }
+        <dl class="row">
+            <dt class="col-sm-3">النوع</dt>
+            <dd class="col-sm-9">@Model.Entry.CatalogKind</dd>
+            <dt class="col-sm-3">الرمز</dt>
+            <dd class="col-sm-9"><strong>@Model.Entry.Code</strong></dd>
+            <dt class="col-sm-3">الاسم بالعربية</dt>
+            <dd class="col-sm-9">@Model.Entry.NameAr</dd>
+            <dt class="col-sm-3">الاسم بالإنجليزية</dt>
+            <dd class="col-sm-9">@(Model.Entry.NameEn ?? "—")</dd>
+            <dt class="col-sm-3">نشط</dt>
+            <dd class="col-sm-9">@(Model.Entry.IsActive ? "نعم" : "لا")</dd>
+            <dt class="col-sm-3">صالح من</dt>
+            <dd class="col-sm-9">@(Model.Entry.ValidFrom?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dt class="col-sm-3">صالح حتى</dt>
+            <dd class="col-sm-9">@(Model.Entry.ValidTo?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dt class="col-sm-3">الإصدار</dt>
+            <dd class="col-sm-9">@Model.Entry.Version</dd>
+        </dl>
+
+        <h5 class="mt-4">تحليل الأثر</h5>
+        @if (Model.Impact.Count == 0)
+        {
+            <p class="text-muted mb-0">لا توجد سجلات تابعة.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-bordered">
+                <thead><tr><th>الكيان</th><th>عدد السجلات المتأثرة</th></tr></thead>
+                <tbody>
+                @foreach (var row in Model.Impact)
+                {
+                    <tr>
+                        <td>@row.Entity</td>
+                        <td>@row.AffectedCount</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        @if (Model.CanMutate)
+        {
+            <div class="mt-4 border-top pt-4">
+                @if (Model.Entry.IsActive)
+                {
+                    <h5 class="mb-2">تعطيل الرمز</h5>
+                    <p class="text-muted small mb-3">
+                        يوقف هذا الرمز عن الظهور في القوائم المنسدلة. لا يُحذف من السجل — يُعطَّل فقط.
+                        @if (Model.Impact.Count == 0)
+                        {
+                            <span>يمكن التعطيل لأنه غير مستخدم في دليل الوظائف أو سجلات أخرى.</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">لا يمكن التعطيل طالما توجد سجلات تابعة أعلاه.</span>
+                        }
+                    </p>
+                    @if (Model.Impact.Count == 0)
+                    {
+                        <form asp-action="Deactivate" asp-route-id="@Model.Entry.Id" method="post"
+                              onsubmit="return confirm('تأكيد تعطيل هذا الرمز؟');">
+                            @Html.AntiForgeryToken()
+                            <div class="row g-2 align-items-end" style="max-width: 560px;">
+                                <div class="col-md-8">
+                                    <label for="replacedByCode" class="form-label">استُبدل برمز (اختياري)</label>
+                                    <select id="replacedByCode" name="replacedByCode" class="form-select"
+                                            data-hr-picker="@replacementPicker"
+                                            data-exclude-code="@Model.Entry.Code"
+                                            data-placeholder="@replacementPlaceholder">
+                                        <option value="">— بدون استبدال —</option>
+                                    </select>
+                                    <div class="form-text">
+                                        إن كان هذا الرمز يُستبدل برمز آخر، اختر البديل من المرجع الوطني.
+                                        اتركه فارغاً إذا أردت التعطيل فقط.
+                                    </div>
+                                </div>
+                                <div class="col-md-auto">
+                                    <button type="submit" class="btn btn-outline-danger">تعطيل الرمز</button>
+                                </div>
+                            </div>
+                        </form>
+                    }
+                }
+                else
+                {
+                    <h5 class="mb-2">إعادة التفعيل</h5>
+                    <p class="text-muted small mb-3">هذا الرمز معطّل حالياً. يمكن إعادة تفعيله ليظهر مجدداً في القوائم.</p>
+                    <form asp-action="Reactivate" asp-route-id="@Model.Entry.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-success btn-sm">إعادة تفعيل</button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>

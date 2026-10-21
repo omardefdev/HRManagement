@@ -1,5 +1,7 @@
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Legal;
 using HR.Core.Web.ViewModels;
+using HRManagement.SharedKernel.Legal;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Services;
@@ -12,7 +14,11 @@ public interface IEmployeeDetailsViewBuilder
         EmployeeDetailsModalState? modalState = null);
 }
 
-public class EmployeeDetailsViewBuilder(HRCoreDbContext context) : IEmployeeDetailsViewBuilder
+public class EmployeeDetailsViewBuilder(
+    HRCoreDbContext context,
+    IServiceRegimeProvider serviceRegimeProvider,
+    ILegislationRegisterProvider legislationProvider,
+    ServiceRegimeTransitionService transitionService) : IEmployeeDetailsViewBuilder
 {
     public async Task<EmployeeDetailsViewModel?> BuildAsync(
         Guid employeeId,
@@ -25,17 +31,36 @@ public class EmployeeDetailsViewBuilder(HRCoreDbContext context) : IEmployeeDeta
 
         if (employee == null) return null;
 
+        var employmentRecords = await context.EmploymentRecords
+            .Where(r => r.EmployeeId == employeeId)
+            .OrderByDescending(r => r.StartDate)
+            .ToListAsync();
+
         var vm = new EmployeeDetailsViewModel
         {
             Employee = employee,
             Qualifications = await context.Qualifications.Where(q => q.EmployeeId == employeeId).ToListAsync(),
             Contacts = await context.ContactInfos.Where(c => c.EmployeeId == employeeId).ToListAsync(),
             Documents = await context.EmployeeDocuments.Where(d => d.EmployeeId == employeeId).ToListAsync(),
-            EmploymentRecords = await context.EmploymentRecords.Where(r => r.EmployeeId == employeeId).OrderByDescending(r => r.StartDate).ToListAsync(),
+            EmploymentRecords = employmentRecords,
             Evaluations = await context.PerformanceEvaluations.Where(ev => ev.EmployeeId == employeeId).OrderByDescending(ev => ev.Year).ToListAsync(),
             StatusHistory = await context.EmploymentStatusHistories.Where(h => h.EmployeeId == employeeId).OrderByDescending(h => h.ChangedAt).ToListAsync(),
-            Profile = await context.EmployeeProfiles.FirstOrDefaultAsync(p => p.EmployeeId == employeeId)
+            Profile = await context.EmployeeProfiles.FirstOrDefaultAsync(p => p.EmployeeId == employeeId),
+            RegimeTransitions = await transitionService.ListForEmployeeAsync(employeeId)
         };
+
+        var currentRecord = employmentRecords.FirstOrDefault(r => r.EndDate is null)
+                            ?? employmentRecords.FirstOrDefault();
+        if (currentRecord?.LegalRegimeId is string regimeId)
+        {
+            var regime = await serviceRegimeProvider.GetByIdAsync(regimeId);
+            vm.ServiceRegimeLabel = regime?.DisplayLabel ?? regimeId;
+            if (regime?.ResolvedLegalSourceId is string legalSourceId)
+            {
+                var legalSource = await legislationProvider.GetByIdAsync(legalSourceId);
+                vm.ServiceRegimeLegalSourceLabel = legalSource?.DisplayLabel ?? legalSourceId;
+            }
+        }
 
         vm.QualificationCreate = new QualificationCreateViewModel
         {

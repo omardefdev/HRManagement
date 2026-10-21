@@ -74,7 +74,8 @@ public record HandleSeparationCompletedCommand(
     string SeparationType,
     DateTime EffectiveDate,
     Guid? SeparationRecordId,
-    int RemainingLeaveDays = 0) : IRequest;
+    int RemainingLeaveDays = 0,
+    string? PayrollRegimeCode = null) : IRequest;
 
 public class HandleSeparationCompletedHandler(IPayrollRepository repository)
     : IRequestHandler<HandleSeparationCompletedCommand>
@@ -102,7 +103,7 @@ public class HandleSeparationCompletedHandler(IPayrollRepository repository)
                             && d.DeductionType == "AdvanceRecovery")
                 .SumAsync(d => d.Amount, cancellationToken);
 
-            var config = await repository.GetActiveConfigurationAsync(cancellationToken);
+            var config = await ResolveConfigurationAsync(repository, request.PayrollRegimeCode, cancellationToken);
             var settlement = EndOfServiceCalculation.CreateSettlement(
                 request.EmployeeId,
                 request.SeparationRecordId,
@@ -136,6 +137,21 @@ public class HandleSeparationCompletedHandler(IPayrollRepository repository)
 
         await repository.SaveChangesAsync(cancellationToken);
     }
+
+    private static async Task<PayrollConfiguration?> ResolveConfigurationAsync(
+        IPayrollRepository repository,
+        string? payrollRegimeCode,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(payrollRegimeCode))
+        {
+            var byRegime = await repository.GetConfigurationByRegimeCodeAsync(payrollRegimeCode, cancellationToken);
+            if (byRegime is not null)
+                return byRegime;
+        }
+
+        return await repository.GetActiveConfigurationAsync(cancellationToken);
+    }
 }
 
 public record HandleTransferExecutedCommand(
@@ -144,7 +160,8 @@ public record HandleTransferExecutedCommand(
     Guid ToOrgUnitId,
     DateTime ExecutedAt,
     decimal? SalaryChange,
-    decimal? AllowanceChange) : IRequest;
+    decimal? AllowanceChange,
+    string? PayrollRegimeCode = null) : IRequest;
 
 public class HandleTransferExecutedHandler(IPayrollRepository repository)
     : IRequestHandler<HandleTransferExecutedCommand>
@@ -170,6 +187,8 @@ public class HandleTransferExecutedHandler(IPayrollRepository repository)
         if (profile is not null)
         {
             profile.OrgUnitId = request.ToOrgUnitId;
+            if (!string.IsNullOrWhiteSpace(request.PayrollRegimeCode))
+                profile.RegimeCode = request.PayrollRegimeCode;
             if (salaryChange != 0)
             {
                 await repository.AddAsync(
@@ -490,7 +509,10 @@ public class HandleDisciplinaryActionHandler(IPayrollRepository repository)
     }
 }
 
-public record HandleEmployeeCreatedCommand(Guid EmployeeId, Guid? OrgUnitId = null) : IRequest;
+public record HandleEmployeeCreatedCommand(
+    Guid EmployeeId,
+    Guid? OrgUnitId = null,
+    string? PayrollRegimeCode = null) : IRequest;
 
 public class HandleEmployeeCreatedHandler(IPayrollRepository repository)
     : IRequestHandler<HandleEmployeeCreatedCommand>
@@ -504,6 +526,7 @@ public class HandleEmployeeCreatedHandler(IPayrollRepository repository)
         {
             EmployeeId = request.EmployeeId,
             OrgUnitId = request.OrgUnitId,
+            RegimeCode = request.PayrollRegimeCode,
             BaseSalary = 0,
             EffectiveFrom = DateTime.UtcNow,
             IsActive = false

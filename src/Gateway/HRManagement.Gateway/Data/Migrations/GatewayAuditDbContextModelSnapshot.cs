@@ -155,6 +155,24 @@ namespace HRManagement.Gateway.Data.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("Reason")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ResourceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ResourceType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("ScopeOrgUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CorrelationId");
@@ -166,6 +184,8 @@ namespace HRManagement.Gateway.Data.Migrations
                     b.HasIndex("SequenceNumber");
 
                     b.HasIndex("StatusCode");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("ChainKey", "SequenceNumber");
 

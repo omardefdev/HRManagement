@@ -7,8 +7,8 @@ namespace Admin.Logistics.Domain.Entities;
 [Display(Name = "سجل الصيانة")]
 public class MaintenanceRecord : BaseEntity
 {
-    [Required]
     [Display(Name = "الأصل")]
+    [Required(ErrorMessage = "يجب اختيار الأصل")]
     public Guid AssetId { get; set; }
 
     [Display(Name = "نوع الصيانة")]
@@ -26,5 +26,5 @@ public class MaintenanceRecord : BaseEntity
     [Display(Name = "ملاحظات")]
     public string? Notes { get; set; }
 
-    public Asset Asset { get; set; } = default!;
+    public Asset? Asset { get; set; }
 }

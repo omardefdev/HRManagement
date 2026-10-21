@@ -29,7 +29,7 @@ actor "مدير الفرع" as BranchManager
 actor "الإدارة المركزية" as Central
 actor "مسؤول الرواتب" as Payroll
 actor "مدير النظام" as Admin
-rectangle "نظام إدارة الموارد البشرية\\nHRManagement" as System
+rectangle "نظام إدارة الموارد البشرية\nHRManagement" as System
 Citizen --> System : طلب توظيف وتتبع طلب
 Employee --> System : خدمات ذاتية وتعلّم
 BranchHr --> System : معاملات موظفي الفرع

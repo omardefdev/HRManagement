@@ -423,6 +423,15 @@
         "resolved": "8.0.0",
         "contentHash": "ne1843evDugl0md7Fjzy6QjJrzsjh46ZKbhf8GwBXb5f/gw97J4bxMs0NQKifDuThh/f0bZ0e62NPl1jzTuRqA=="
       },
+      "dev.analytics.application": {
+        "type": "Project",
+        "dependencies": {
+          "Dev.Analytics.Domain": "[1.0.0, )",
+          "Dev.Analytics.Infrastructure": "[1.0.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.10, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
+        }
+      },
       "dev.analytics.domain": {
         "type": "Project",
         "dependencies": {

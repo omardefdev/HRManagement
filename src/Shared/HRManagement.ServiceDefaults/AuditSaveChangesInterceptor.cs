@@ -3,13 +3,16 @@ using System.Security.Claims;
 using System.Text.Json;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace HRManagement.ServiceDefaults;
 
-public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContextAccessor) : SaveChangesInterceptor
+public sealed class AuditSaveChangesInterceptor(
+    IHttpContextAccessor httpContextAccessor,
+    ITenantContext? tenantContext = null) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(
         DbContextEventData eventData, InterceptionResult<int> result)
@@ -43,7 +46,8 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             if (entry.Entity is EntityAuditLog)
                 continue;
 
-            if (entry.Entity is BaseEntity baseEntity)
+            if (entry.Entity is BaseEntity baseEntity
+                && entry.State is EntityState.Added or EntityState.Modified)
                 baseEntity.UpdatedAt = now;
 
             if (entry.Entity is AuditableEntity auditable)
@@ -64,6 +68,9 @@ public sealed class AuditSaveChangesInterceptor(IHttpContextAccessor httpContext
             {
                 var auditLog = new EntityAuditLog
                 {
+                    TenantId = be.TenantId != Guid.Empty
+                        ? be.TenantId
+                        : tenantContext?.TenantId ?? Guid.Empty,
                     EntityType = entry.Entity.GetType().Name,
                     EntityId = be.Id,
                     Action = entry.State switch

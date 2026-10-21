@@ -1,38 +1,96 @@
-@model IReadOnlyList<Payroll.Domain.Entities.PaymentHold>
-@{ ViewData["Title"] = "حجوزات الصرف"; }
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">حجوزات الصرف</h3>
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-striped mb-0">
-            <thead>
-            <tr>
-                <th>الموظف</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th>السبب</th>
-                <th>وقت الحجز</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var x in Model)
-            {
-                <tr>
-                    <td>@x.EmployeeId</td>
-                    <td>@x.HoldType</td>
-                    <td>@x.Status</td>
-                    <td class="text-truncate" style="max-width:280px">@x.Reason</td>
-                    <td>@x.HeldAtUtc.ToString("yyyy/MM/dd HH:mm")</td>
-                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-primary">تفاصيل</a></td>
-                </tr>
-            }
-            @if (!Model.Any())
-            {
-                <tr><td colspan="6" class="text-center text-muted py-3">لا توجد حجوزات</td></tr>
-            }
-            </tbody>
-        </table>
-    </div>
-</div>
+@model IReadOnlyList<Payroll.Domain.Entities.PaymentHold>
+@using Payroll.Domain.Constants
+@{
+    ViewData["Title"] = "حجوزات الصرف";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+    var status = ViewBag.Status as string;
+    var holdType = ViewBag.HoldType as string;
+    DateTime? heldFrom = ViewBag.HeldFrom;
+    DateTime? heldTo = ViewBag.HeldTo;
+    var statusOptions = new[] { PaymentHoldStatus.Active, PaymentHoldStatus.Released };
+    var holdTypeOptions = new[] { PaymentHoldType.Fraud, PaymentHoldType.ProofOfLife, PaymentHoldType.Manual };
+}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">حجوزات الصرف</h3>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">كل الحالات</option>
+                    @foreach (var item in statusOptions)
+                    {
+                        <option value="@item" selected="@(status == item ? "selected" : null)">@Html.HrStoredEnumDisplay("Code", item)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">نوع الحجز</label>
+                <select name="holdType" class="form-select form-select-sm">
+                    <option value="">كل الأنواع</option>
+                    @foreach (var item in holdTypeOptions)
+                    {
+                        <option value="@item" selected="@(holdType == item ? "selected" : null)">@Html.HrStoredEnumDisplay("Code", item)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">حُجز من</label>
+                <input type="date" name="heldFrom" value="@heldFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">حُجز إلى</label>
+                <input type="date" name="heldTo" value="@heldTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>النوع</th>
+                <th>الحالة</th>
+                <th>السبب</th>
+                <th>وقت الحجز</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
+                    <td>@Html.HrStoredEnumDisplay("Code", x.HoldType)</td>
+                    <td>@Html.HrStoredEnumDisplay("Code", x.Status)</td>
+                    <td class="text-truncate" style="max-width:280px">@x.Reason</td>
+                    <td>@x.HeldAtUtc.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-primary">تفاصيل</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-3">لا توجد حجوزات</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

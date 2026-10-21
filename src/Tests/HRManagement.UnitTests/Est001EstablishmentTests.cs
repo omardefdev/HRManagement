@@ -199,6 +199,61 @@ public class Est001EstablishmentTests
     }
 
     [Fact]
+    public void Create_catalog_then_position_via_service_freeze_unfreeze()
+    {
+        var svc = new EstablishmentService();
+        var catalog = new JobCatalogEntry
+        {
+            TenantId = Guid.NewGuid(),
+            JobCode = "ADM-01",
+            TitleAr = "موظف إداري",
+            GradeCode = "G5",
+            IsActive = true
+        };
+
+        var pos = new FundedPosition
+        {
+            TenantId = catalog.TenantId,
+            PositionCode = "POS-TMP",
+            GradeCode = catalog.GradeCode,
+            FTE = 1.0m,
+            BudgetYear = 2026,
+            Status = FundedPositionStatus.Vacant,
+            OrgUnitId = Guid.NewGuid(),
+            JobCatalogEntryId = catalog.Id
+        };
+
+        Assert.Equal(FundedPositionStatus.Vacant, pos.Status);
+        Assert.True(svc.FreezePosition(pos, "Budget hold").Success);
+        Assert.Equal(FundedPositionStatus.Frozen, pos.Status);
+        Assert.True(svc.UnfreezePosition(pos).Success);
+        Assert.Equal(FundedPositionStatus.Vacant, pos.Status);
+    }
+
+    [Fact]
+    public void Ui_artifacts_exist()
+    {
+        Assert.True(System.IO.File.Exists(RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "JobCatalogController.cs")));
+        Assert.True(System.IO.File.Exists(RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "FundedPositionsController.cs")));
+        Assert.True(System.IO.File.Exists(RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Services", "EstablishmentScopeService.cs")));
+        Assert.True(System.IO.File.Exists(RepoPaths.Resolve("src", "Shared", "HRManagement.Web.Shared", "wwwroot", "js", "entity-pickers.js")));
+    }
+
+    [Fact]
+    public void Lookup_api_contains_job_catalog()
+    {
+        var src = System.IO.File.ReadAllText(RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "LookupApiController.cs"));
+        Assert.Contains("job-catalog", src, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Entity_pickers_contains_job_catalog_picker()
+    {
+        var js = System.IO.File.ReadAllText(RepoPaths.Resolve("src", "Shared", "HRManagement.Web.Shared", "wwwroot", "js", "entity-pickers.js"));
+        Assert.Contains("initJobCatalogPicker", js, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Docs_exist()
     {
         Assert.True(System.IO.File.Exists(RepoPaths.Resolve("docs", "EST_001_ESTABLISHMENT.md")));

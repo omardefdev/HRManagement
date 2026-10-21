@@ -1,0 +1,164 @@
+# Acceptance v2 override. Always run with COMPOSE_PROJECT_NAME=hrm-acceptance.
+x-acceptance-service: &acceptance-service
+  ASPNETCORE_ENVIRONMENT: Acceptance
+  Seed__Profile: Acceptance
+  DataProtection__KeyRingPath: /var/hrm/dpkeys
+  Keycloak__AdditionalValidIssuers: http://localhost:6388/realms/hrmanagement
+  GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
+
+x-acceptance-dp-volumes: &acceptance-dp-volumes
+  - acceptance_data_protection:/var/hrm/dpkeys
+
+services:
+  postgresql:
+    container_name: !reset null
+    ports: !override
+      - "6433:5432"
+    # pg_isready also succeeds against the temporary server used by the official
+    # image during first-time initialization. Wait for postgres to become PID 1
+    # so dependent services cannot start during the final initialization restart.
+    healthcheck:
+      test: ["CMD-SHELL", "test \"$$(cat /proc/1/comm)\" = postgres && pg_isready -U \"$$POSTGRES_USER\" -d postgres"]
+
+  rabbitmq:
+    container_name: !reset null
+    ports: !override
+      - "6573:5672"
+      - "15683:15672"
+
+  minio:
+    container_name: !reset null
+    ports: !override
+      - "6900:9000"
+      - "6901:9001"
+
+  clamav:
+    container_name: !reset null
+    ports: !override
+      - "53310:3310"
+
+  keycloak:
+    container_name: !reset null
+    ports: !override
+      - "6388:8080"
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 6388
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+
+  hr-core-web:
+    container_name: !reset null
+    ports: !override
+      - "6210:8080"
+    environment:
+      <<: *acceptance-service
+      HrGateway__PublicBaseUrl: http://localhost:6200
+    volumes: *acceptance-dp-volumes
+
+  hr-contracts-web:
+    container_name: !reset null
+    ports: !override
+      - "6220:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  hr-health-web:
+    container_name: !reset null
+    ports: !override
+      - "6230:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  hr-movements-web:
+    container_name: !reset null
+    ports: !override
+      - "6240:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  hr-training-web:
+    container_name: !reset null
+    ports: !override
+      - "6250:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  payroll-web:
+    container_name: !reset null
+    ports: !override
+      - "6260:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  idcard-web:
+    container_name: !reset null
+    ports: !override
+      - "6270:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  records-archive-web:
+    container_name: !reset null
+    ports: !override
+      - "6280:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  admin-logistics-web:
+    container_name: !reset null
+    ports: !override
+      - "6290:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  it-infra-web:
+    container_name: !reset null
+    ports: !override
+      - "6300:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  dev-analytics-web:
+    container_name: !reset null
+    ports: !override
+      - "6310:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  compliance-web:
+    container_name: !reset null
+    ports: !override
+      - "6320:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  auth-directory-web:
+    container_name: !reset null
+    ports: !override
+      - "6330:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  file-storage-web:
+    container_name: !reset null
+    ports: !override
+      - "6340:8080"
+    environment: *acceptance-service
+    volumes: *acceptance-dp-volumes
+
+  hr-gateway:
+    container_name: !reset null
+    ports: !override
+      - "6200:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Acceptance
+      DataProtection__KeyRingPath: /var/hrm/dpkeys
+      HrAuth__BehindGateway: "false"
+      Keycloak__PublicAuthority: http://localhost:6388/realms/hrmanagement
+      GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
+      RateLimiting__PermitLimitPerMinute: "2000"
+    volumes: *acceptance-dp-volumes
+
+volumes:
+  acceptance_data_protection:

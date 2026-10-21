@@ -67,17 +67,12 @@ public class SeparationCompletedConsumer : IConsumer<ISeparationCompleted>
 
 
         foreach (var a in open)
-
         {
-
             a.ReturnedAt = DateTime.UtcNow;
-
+            a.Status = AssetAssignmentStatus.Returned;
             var asset = await _db.Assets.FirstOrDefaultAsync(x => x.Id == a.AssetId, context.CancellationToken);
-
             if (asset is not null)
-
                 asset.Status = AssetStatus.InStorage;
-
         }
 
 

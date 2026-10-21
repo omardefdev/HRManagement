@@ -11,17 +11,17 @@
         @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
 
         <table class="table table-borderless table-sm w-auto">
-            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>الدورة</th><td>@(Model.Course?.TitleAr ?? Model.CourseId.ToString())</td></tr>
-            <tr><th>رشّح بواسطة</th><td>@(Model.NominatedBy?.ToString() ?? "—")</td></tr>
+            <tr><th>رشّح بواسطة</th><td>@(Model.NominatedBy.HasValue ? "مستخدم النظام" : "—")</td></tr>
             <tr><th>تاريخ الترشيح</th><td>@Model.NominatedAt.ToString("yyyy/MM/dd")</td></tr>
-            <tr><th>الحالة</th><td><span class="badge bg-info">@Model.Status</span></td></tr>
+            <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
         </table>
 
         @if (ViewBag.Enrollment != null)
         {
             var enrollment = (HR.Training.Domain.Entities.TrainingEnrollment)ViewBag.Enrollment;
-            <p class="text-success mt-2"><i class="fas fa-check"></i> الموظف مسجل في الدورة — الحالة: @enrollment.Status</p>
+            <p class="text-success mt-2"><i class="fas fa-check"></i> الموظف مسجل في الدورة — الحالة: @Html.HrEnumDisplay(enrollment.Status)</p>
         }
 
         @if (Model.Status == ApprovalStatus.Pending)

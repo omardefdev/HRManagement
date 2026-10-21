@@ -84,6 +84,18 @@ public class Pay003ResumablePayrollRunTests
         var e1 = Guid.NewGuid();
         var e2 = Guid.NewGuid();
         await SeedEmployeesAsync(db, e1, e2);
+        var firstEmployee = await db.EmployeePayProfiles
+            .OrderBy(p => p.EmployeeId)
+            .Select(p => p.EmployeeId)
+            .FirstAsync();
+        db.DeductionRecords.Add(new DeductionRecord
+        {
+            EmployeeId = firstEmployee,
+            DeductionType = "AC-RESUME",
+            Amount = 125m,
+            DueDate = new DateOnly(2026, 8, 15)
+        });
+        await db.SaveChangesAsync();
 
         var (created, runId, _) = await mediator.Send(new CreatePayrollRunCommand(
             new DateTime(2026, 6, 1), new DateTime(2026, 6, 30), DateTime.UtcNow));
@@ -163,7 +175,7 @@ public class Pay003ResumablePayrollRunTests
         Assert.True(created);
 
         // Create job+snapshot manually with one completed partition employee already saved
-        var start = await mediator.Send(new StartPayrollRunJobCommand(runId!.Value, PartitionSize: 1));
+        var start = await mediator.Send(new StartPayrollRunJobCommand(runId!.Value, PartitionSize: 2));
         Assert.True(start.Success, start.Error);
         Assert.Equal(2, start.LinesGenerated);
 
@@ -177,7 +189,8 @@ public class Pay003ResumablePayrollRunTests
         job.ResultsValidated = false;
         var last = job.Partitions.OrderBy(p => p.PartitionIndex).Last();
         last.Status = PayrollRunPartitionStatus.Pending;
-        last.ProcessedCount = 0;
+        last.ProcessedCount = 1;
+        job.ProcessedEmployeeCount = 1;
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
         run.ResultsFrozen = false;
         run.ValidatedAtCalculate = false;
@@ -198,6 +211,14 @@ public class Pay003ResumablePayrollRunTests
         Assert.True(resume.Success, resume.Error);
         Assert.Equal(1, resume.LinesGenerated);
         Assert.Equal(2, await db.SalaryLines.CountAsync(l => l.PayrollRunId == runId));
+        Assert.Equal(2, await db.PayrollRunJobs
+            .Where(j => j.Id == job.Id)
+            .Select(j => j.ProcessedEmployeeCount)
+            .SingleAsync());
+        Assert.Equal(0, await db.SalaryLines
+            .Where(l => l.PayrollRunId == runId)
+            .GroupBy(l => l.EmployeeId)
+            .CountAsync(group => group.Count() > 1));
     }
 
     [Fact]
@@ -421,10 +442,11 @@ public class Pay003ResumablePayrollRunTests
             ValidatedAtCalculate = true,
             ResultsFrozen = true
         };
+        var employeeId = Guid.NewGuid();
         run.SalaryLines.Add(new SalaryLine
         {
             PayrollRunId = run.Id,
-            EmployeeId = Guid.NewGuid(),
+            EmployeeId = employeeId,
             GrossPay = 1000m,
             TotalDeductions = 100m,
             NetPay = 900m
@@ -445,6 +467,23 @@ public class Pay003ResumablePayrollRunTests
             Status = AuditStatus.Closed,
             Findings = "ok"
         });
+        var job = new PayrollRunJob
+        {
+            PayrollRunId = run.Id,
+            Status = PayrollRunJobStatus.Completed,
+            Phase = PayrollRunJobPhase.Validate,
+            ResultsValidated = true,
+            TotalEmployeeCount = 1,
+            ProcessedEmployeeCount = 1
+        };
+        job.InputSnapshots.Add(new PayrollRunInputSnapshot
+        {
+            EmployeeId = employeeId,
+            ProfileVersion = "v1",
+            InputFingerprint = "test-fingerprint",
+            SortOrder = 0
+        });
+        db.PayrollRunJobs.Add(job);
         await db.SaveChangesAsync();
 
         var poster = Guid.NewGuid();
@@ -457,7 +496,7 @@ public class Pay003ResumablePayrollRunTests
 
         // Paying submits the batch to the channel. It must not report money as paid here: this
         // step used to write Processed straight to the database with no transfer attempted.
-        var (payOk, payErr) = await mediator.Send(new ProcessPaymentBatchCommand(batch.Id));
+        var (payOk, payErr) = await mediator.Send(new ProcessPaymentBatchCommand(batch.Id, Guid.NewGuid()));
         Assert.True(payOk, payErr);
 
         db.ChangeTracker.Clear();

@@ -34,6 +34,16 @@
 1. `nfr-chaos-worker-crash.sh` ثم PAY-003 resume.
 2. `nfr-chaos-safe-abort.ps1` تحت latency — Pause/Cancel يجب أن يترك حالة متسقة.
 
+## AC-18 consumer catch-up (PLAN-05)
+
+Acceptance proof for stopped MassTransit consumer + lag + catch-up:
+
+```powershell
+pwsh scripts/acceptance-consumer-catchup.ps1 -EmployeeId <guid> -TenantId <guid>
+```
+
+Pair with `Ac18ConsumerCatchUpTests` (`RUN_ACCEPTANCE=true`) and evidence under `acceptance-evidence/AC-18/`. Related inbox/outbox scripts: `acceptance-inbox-duplicate.ps1`, `acceptance-rabbit-outbox-chaos.ps1`, `acceptance-correlation-trace.ps1`.
+
 ## Partial region
 
 نفّذ [OPS_DR_VERIFICATION.md](./OPS_DR_VERIFICATION.md) / `dr-failover-drill.sh` كصف في [NFR_GAME_DAY_CALENDAR.md](./NFR_GAME_DAY_CALENDAR.md).

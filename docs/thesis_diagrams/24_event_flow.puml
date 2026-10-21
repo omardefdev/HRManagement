@@ -29,12 +29,10 @@ component Payroll
 component "Records.Archive" as Archive
 component "Auth.Directory" as Directory
 component "Dev.Analytics" as Analytics
-queue "RabbitMQ\\nEvents" as Bus
+queue "RabbitMQ\nEvents" as Bus
 Core --> Bus : IEmployeeCreated
-Contracts --> Bus : IHireCaseCompleted
-ISeparationCompleted
-Moves --> Bus : ITransferExecuted
-ISecondmentExecuted
+Contracts --> Bus : IHireCaseCompleted\nISeparationCompleted
+Moves --> Bus : ITransferExecuted\nISecondmentExecuted
 Payroll --> Bus : IPayrollProcessed
 Bus --> Archive : hire / separation archive
 Bus --> Directory : user / movement update

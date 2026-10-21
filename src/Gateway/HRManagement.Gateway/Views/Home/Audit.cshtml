@@ -6,16 +6,16 @@
 }
 <div class="gateway-page-header">
     <h1 class="gateway-page-title">سجل التدقيق التشغيلي</h1>
-    <p class="gateway-page-subtitle">عرض آخر العمليات مع مرشحات الحالة وتتبع بواسطة معرّف الترابط.</p>
+    <p class="gateway-page-subtitle">يعرض السجل العمليات ضمن نطاق زمني محدد. استخدم معرّف الترابط لربط الطلبات المتتابعة في رحلة واحدة.</p>
 </div>
 
 <form method="get" class="row g-2 mb-3">
     <div class="col-md-2">
         <select class="form-select" name="statusCode">
             <option value="">الكل</option>
-            <option value="401" selected="@(req.StatusCode == 401)">401</option>
-            <option value="403" selected="@(req.StatusCode == 403)">403</option>
-            <option value="502" selected="@(req.StatusCode == 502)">502</option>
+            <option value="401" selected="@(req.StatusCode == 401 ? "selected" : null)">401</option>
+            <option value="403" selected="@(req.StatusCode == 403 ? "selected" : null)">403</option>
+            <option value="502" selected="@(req.StatusCode == 502 ? "selected" : null)">502</option>
         </select>
     </div>
     <div class="col-md-4">
@@ -23,9 +23,9 @@
     </div>
     <div class="col-md-2">
         <select class="form-select" name="timeRange">
-            <option value="1h" selected="@(req.TimeRange == "1h")">آخر ساعة</option>
-            <option value="24h" selected="@(string.IsNullOrEmpty(req.TimeRange) || req.TimeRange == "24h")">آخر 24 ساعة</option>
-            <option value="7d" selected="@(req.TimeRange == "7d")">آخر 7 أيام</option>
+            <option value="1h" selected="@(req.TimeRange == "1h" ? "selected" : null)">آخر ساعة</option>
+            <option value="24h" selected="@(string.IsNullOrEmpty(req.TimeRange) || req.TimeRange == "24h" ? "selected" : null)">آخر 24 ساعة</option>
+            <option value="7d" selected="@(req.TimeRange == "7d" ? "selected" : null)">آخر 7 أيام</option>
         </select>
     </div>
     <div class="col-md-2">
@@ -37,6 +37,11 @@
     </div>
     <input type="hidden" name="page" value="1" />
 </form>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-warning">@Model.Error</div>
+}
 
 <div class="row g-3 mb-4">
     <div class="col-md-3">
@@ -85,7 +90,7 @@
         {
             <tr>
                 <td>@row.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
-                <td>@row.Decision</td>
+                <td>@HRManagement.Gateway.Models.GatewayAuditDisplay.Decision(row.Decision)</td>
                 <td>@row.StatusCode</td>
                 <td>@row.Method</td>
                 <td><code>@row.Path</code></td>

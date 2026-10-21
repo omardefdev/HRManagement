@@ -124,6 +124,24 @@ public class AuditInterceptor_Tests
     }
 
     [Fact]
+    public void UnchangedTrackedEntity_DoesNotChangeUpdatedAt()
+    {
+        var (options, _) = CreateTestSetup(Guid.NewGuid());
+
+        using var db = new TestAuditDbContext(options);
+        var entity = new TestAuditableEntity { Name = "Stable" };
+        db.TestEntities.Add(entity);
+        db.SaveChanges();
+        var persistedUpdatedAt = entity.UpdatedAt;
+
+        db.TestEntities.Add(new TestAuditableEntity { Name = "Other" });
+        db.SaveChanges();
+
+        Assert.Equal(persistedUpdatedAt, entity.UpdatedAt);
+        Assert.Equal(EntityState.Unchanged, db.Entry(entity).State);
+    }
+
+    [Fact]
     public void AddEntity_CreatesAuditLog()
     {
         var (options, _) = CreateTestSetup(Guid.NewGuid());

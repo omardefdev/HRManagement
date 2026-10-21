@@ -19,7 +19,7 @@
                         <td>@x.Target</td>
                         <td>@x.Schedule</td>
                         <td>@x.LastRunAt</td>
-                        <td>@x.Status</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>
                 }

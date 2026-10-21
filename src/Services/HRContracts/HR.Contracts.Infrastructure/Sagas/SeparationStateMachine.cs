@@ -20,6 +20,8 @@ public class SeparationSagaState : SagaStateMachineInstance
     public DateTime EffectiveDate { get; set; }
     public Guid? ContractId { get; set; }
     public int RemainingLeaveDays { get; set; }
+    public string? SourceLegalRegimeId { get; set; }
+    public string? PayrollRegimeCode { get; set; }
     public string? BusinessCorrelationId { get; set; }
     public string PendingParties { get; set; } = "";
     public string CompletedParties { get; set; } = "";
@@ -89,6 +91,8 @@ public class SeparationStateMachine : MassTransitStateMachine<SeparationSagaStat
                     ctx.Saga.EffectiveDate = ctx.Message.EffectiveDate;
                     ctx.Saga.ContractId = ctx.Message.ContractId;
                     ctx.Saga.RemainingLeaveDays = ctx.Message.RemainingLeaveDays;
+                    ctx.Saga.SourceLegalRegimeId = ctx.Message.SourceLegalRegimeId;
+                    ctx.Saga.PayrollRegimeCode = ctx.Message.PayrollRegimeCode;
                     ctx.Saga.BusinessCorrelationId = ctx.Message.CorrelationId;
                     ctx.Saga.TenantId = ctx.Message.TenantId ?? Guid.Empty;
                     ctx.Saga.PendingParties = string.Join(',', opts.MandatoryParties);
@@ -247,7 +251,9 @@ public class SeparationStateMachine : MassTransitStateMachine<SeparationSagaStat
                 CorrelationId = ctx.Saga.BusinessCorrelationId,
                 TenantId = ctx.Saga.TenantId == Guid.Empty ? (Guid?)null : ctx.Saga.TenantId,
                 Compensate = false,
-                RemainingLeaveDays = ctx.Saga.RemainingLeaveDays
+                RemainingLeaveDays = ctx.Saga.RemainingLeaveDays,
+                ctx.Saga.SourceLegalRegimeId,
+                ctx.Saga.PayrollRegimeCode
             });
         }
     }
@@ -264,7 +270,9 @@ public class SeparationStateMachine : MassTransitStateMachine<SeparationSagaStat
             SourceSystem = "SeparationSaga",
             ctx.Saga.ContractId,
             SeparationRecordId = ctx.Saga.SeparationRecordId,
-            TenantId = ctx.Saga.TenantId == Guid.Empty ? (Guid?)null : ctx.Saga.TenantId
+            TenantId = ctx.Saga.TenantId == Guid.Empty ? (Guid?)null : ctx.Saga.TenantId,
+            ctx.Saga.SourceLegalRegimeId,
+            ctx.Saga.PayrollRegimeCode
         });
 
         await ctx.Publish<ISeparationSagaFinalized>(new
@@ -306,7 +314,9 @@ public class SeparationStateMachine : MassTransitStateMachine<SeparationSagaStat
                 CorrelationId = ctx.Saga.BusinessCorrelationId,
                 TenantId = ctx.Saga.TenantId == Guid.Empty ? (Guid?)null : ctx.Saga.TenantId,
                 Compensate = true,
-                RemainingLeaveDays = ctx.Saga.RemainingLeaveDays
+                RemainingLeaveDays = ctx.Saga.RemainingLeaveDays,
+                ctx.Saga.SourceLegalRegimeId,
+                ctx.Saga.PayrollRegimeCode
             });
         }
     }

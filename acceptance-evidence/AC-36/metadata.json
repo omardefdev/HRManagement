@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-36 Arabic PDF visual",
+  "personaId": "ops",
+  "correlationId": "9d02ff78-aacf-4b8b-bca6-5d99e3dcef33",
+  "capturedAtUtc": "2026-08-24T17:16:39.9136059Z",
+  "environment": {
+    "gateway": "http://localhost:5200",
+    "keycloak": "http://localhost:8088",
+    "runAcceptance": true
+  },
+  "gitSha": "9cb3705e67386023af6b16e14977c116276d0664"
+}

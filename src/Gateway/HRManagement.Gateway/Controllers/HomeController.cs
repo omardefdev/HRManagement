@@ -3,8 +3,10 @@ using HRManagement.Gateway.Models;
 using HRManagement.Gateway.Services;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
 
 namespace HRManagement.Gateway.Controllers;
 
@@ -15,16 +17,18 @@ public class HomeController(
     IGatewayAuditQueryService auditQueryService,
     GatewayRequestMetricsStore metricsStore,
     IHttpClientFactory httpClientFactory,
+    IAuthorizationService authorizationService,
     IConfiguration configuration,
     ILogger<HomeController> logger) : Controller
 {
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var modules = moduleCatalog.Modules;
+        var moduleAccess = await ResolveModuleAccessAsync(modules);
         var statuses = await healthProbeService.ProbeAsync(
             modules,
             $"{Request.Scheme}://{Request.Host.Value}",
-            IsAuthorizedForModule,
+            module => moduleAccess.GetValueOrDefault(module.Slug),
             cancellationToken);
         var list = modules.Select(m => statuses[m.Slug]).ToList();
 
@@ -38,7 +42,7 @@ public class HomeController(
         var moduleMetrics = metricsStore.GetModuleStats();
         var moduleStats = moduleMetrics.Select(m => new ModuleRequestStat
         {
-            ModuleName = m.ModuleName,
+            ModuleName = moduleCatalog.FindBySlug(m.ModuleName)?.DisplayNameAr ?? m.ModuleName,
             RequestCount = m.RequestCount,
             ErrorCount = m.ErrorCount,
             AvgLatencyMs = m.AvgLatencyMs,
@@ -68,7 +72,14 @@ public class HomeController(
         {
             using var client = httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(3);
-            var json = await client.GetFromJsonAsync<System.Text.Json.JsonElement>(url, ct);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            if (!string.IsNullOrWhiteSpace(accessToken))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            GatewayCallerProof.Sign(request, configuration);
+            using var response = await client.SendAsync(request, ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken: ct);
             return json.TryGetProperty(jsonProperty, out var prop) ? prop.GetInt32() : -1;
         }
         catch (Exception ex)
@@ -91,23 +102,34 @@ public class HomeController(
     }
 
     [HttpGet]
-    public IActionResult JourneyDetails(string id)
+    public async Task<IActionResult> JourneyDetails(string id)
     {
         var journey = journeyCatalog.FindById(id);
         if (journey is null)
             return NotFound();
+
+        var modules = journey.Steps
+            .Select(step => string.IsNullOrWhiteSpace(step.ModuleSlug) ? null : moduleCatalog.FindBySlug(step.ModuleSlug))
+            .Where(module => module is not null)
+            .Cast<GatewayModule>()
+            .DistinctBy(module => module.Slug)
+            .ToList();
+        var moduleAccess = await ResolveModuleAccessAsync(modules);
 
         var steps = journey.Steps.Select(step =>
         {
             var module = string.IsNullOrWhiteSpace(step.ModuleSlug)
                 ? null
                 : moduleCatalog.FindBySlug(step.ModuleSlug);
+            var canOpenPublic = GatewayJourneyPublicPaths.TryResolve(step.GatewayPublicPath, out var publicHref);
             return new GatewayJourneyStepStatus
             {
                 Step = step,
                 Module = module,
                 HasModule = module is not null,
-                IsAuthorized = module is not null && IsAuthorizedForModule(module)
+                IsAuthorized = module is not null && moduleAccess.GetValueOrDefault(module.Slug),
+                CanOpenPublic = canOpenPublic,
+                PublicHref = canOpenPublic ? publicHref : null
             };
         }).ToList();
 
@@ -119,12 +141,12 @@ public class HomeController(
     }
 
     [HttpGet]
-    public IActionResult OpenModule(string slug, string? uiPath = null)
+    public async Task<IActionResult> OpenModule(string slug, string? uiPath = null)
     {
         var module = moduleCatalog.FindBySlug(slug);
         if (module is null)
             return NotFound();
-        if (!IsAuthorizedForModule(module))
+        if (!await IsAuthorizedForModuleAsync(module))
             return Forbid();
 
         var allowedPrefix = module.UiPath.TrimEnd('/') + "/";
@@ -149,10 +171,11 @@ public class HomeController(
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> UpstreamHealth(CancellationToken cancellationToken)
     {
+        var moduleAccess = await ResolveModuleAccessAsync(moduleCatalog.Modules);
         var statuses = await healthProbeService.ProbeAsync(
             moduleCatalog.Modules,
             $"{Request.Scheme}://{Request.Host.Value}",
-            IsAuthorizedForModule,
+            module => moduleAccess.GetValueOrDefault(module.Slug),
             cancellationToken);
         return Json(statuses.Values.Select(x => new
         {
@@ -170,10 +193,11 @@ public class HomeController(
     [HttpGet]
     public async Task<IActionResult> Operations(string? correlationId, CancellationToken cancellationToken)
     {
+        var moduleAccess = await ResolveModuleAccessAsync(moduleCatalog.Modules);
         var statuses = await healthProbeService.ProbeAsync(
             moduleCatalog.Modules,
             $"{Request.Scheme}://{Request.Host.Value}",
-            IsAuthorizedForModule,
+            module => moduleAccess.GetValueOrDefault(module.Slug),
             cancellationToken);
         var ordered = statuses.Values.OrderBy(x => x.Module.Name).ToList();
         ViewData["Metrics"] = metricsStore.Snapshot();
@@ -259,10 +283,17 @@ public class HomeController(
         return View();
     }
 
-    private bool IsAuthorizedForModule(GatewayModule module)
+    private async Task<bool> IsAuthorizedForModuleAsync(GatewayModule module)
     {
-        if (User.IsInRole(HrManagementRoles.Admin))
-            return true;
-        return User.IsInRole(module.RequiredRole);
+        var result = await authorizationService.AuthorizeAsync(User, resource: null, module.Policy);
+        return result.Succeeded;
+    }
+
+    private async Task<Dictionary<string, bool>> ResolveModuleAccessAsync(IEnumerable<GatewayModule> modules)
+    {
+        var result = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        foreach (var module in modules)
+            result[module.Slug] = await IsAuthorizedForModuleAsync(module);
+        return result;
     }
 }

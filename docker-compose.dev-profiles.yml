@@ -1,0 +1,32 @@
+# BLD-002-ext: dev profiles — subset of app services (infra has no profile in docker-compose.yml).
+# Usage: see scripts/dev-profile-up.ps1
+services:
+  hr-core-web:
+    profiles: ["full-stack", "dev-logistics", "dev-payroll", "dev-contracts"]
+
+  hr-gateway:
+    profiles: ["full-stack", "dev-logistics", "dev-payroll", "dev-contracts"]
+
+  hr-contracts-web:
+    profiles: ["full-stack", "dev-contracts"]
+
+  admin-logistics-web:
+    profiles: ["full-stack", "dev-logistics", "dev-contracts"]
+
+  file-storage-web:
+    profiles: ["full-stack", "dev-logistics", "dev-contracts"]
+
+  payroll-web:
+    profiles: ["full-stack", "dev-payroll", "dev-contracts"]
+
+  idcard-web:
+    profiles: ["full-stack", "dev-contracts"]
+
+  records-archive-web:
+    profiles: ["full-stack", "dev-contracts"]
+
+  it-infra-web:
+    profiles: ["full-stack", "dev-contracts"]
+
+  auth-directory-web:
+    profiles: ["full-stack", "dev-contracts"]

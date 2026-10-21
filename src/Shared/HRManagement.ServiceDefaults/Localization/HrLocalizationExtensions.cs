@@ -28,8 +28,7 @@ public static class HrLocalizationExtensions
             options.RequestCultureProviders =
             [
                 new QueryStringRequestCultureProvider(),
-                new CookieRequestCultureProvider { CookieName = CultureCookieName },
-                new AcceptLanguageHeaderRequestCultureProvider()
+                new CookieRequestCultureProvider { CookieName = CultureCookieName }
             ];
         });
         services.AddSingleton<ICalendarService, DamascusCalendarService>();

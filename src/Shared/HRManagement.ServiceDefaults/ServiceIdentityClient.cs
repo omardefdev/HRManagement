@@ -145,12 +145,15 @@ public static class ServiceIdentityServiceCollectionExtensions
         bool forwardActingUser = false)
     {
         services.AddServiceIdentityClient();
+        services.AddHttpContextAccessor();
+        services.AddTransient<ForwardTenantHandler>();
         var builder = services.AddHttpClient(name, client =>
         {
             if (baseAddress is not null)
                 client.BaseAddress = baseAddress;
             client.Timeout = InterServiceTimeout;
         }).AddHttpMessageHandler<ServiceAuthHandler>()
+            .AddHttpMessageHandler<ForwardTenantHandler>()
             .AddHrOutboundResilience();
 
         if (forwardActingUser)
@@ -179,6 +182,29 @@ public sealed class ForwardActingUserHandler(Microsoft.AspNetCore.Http.IHttpCont
                 ?? context.User.FindFirst("sub")?.Value;
             if (!string.IsNullOrWhiteSpace(sub) && !request.Headers.Contains(HeaderName))
                 request.Headers.TryAddWithoutValidation(HeaderName, sub);
+        }
+
+        return base.SendAsync(request, cancellationToken);
+    }
+}
+
+/// <summary>
+/// Forwards the active tenant into <see cref="TenantIdMiddleware.HeaderName"/> for authenticated S2S calls.
+/// Does not modify the service Bearer token attached by <see cref="ServiceAuthHandler"/>.
+/// </summary>
+public sealed class ForwardTenantHandler(Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor)
+    : DelegatingHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        if (!request.Headers.Contains(TenantIdMiddleware.HeaderName))
+        {
+            var tenantId = httpContextAccessor.HttpContext?.Items[TenantIdMiddleware.ItemKey] as Guid?
+                ?? TenantIdFlow.Get();
+            if (tenantId.HasValue)
+                request.Headers.TryAddWithoutValidation(TenantIdMiddleware.HeaderName, tenantId.Value.ToString("D"));
         }
 
         return base.SendAsync(request, cancellationToken);

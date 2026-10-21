@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة file_storage_db\nFile.Storage / FileStorageDbContext"
+title "ERD الكامل لقاعدة filestorage_db\nFile.Storage / FileStorageDbContext"
 
 entity "FileAccessAuditLogs\nFileAccessAuditLog" as T01 {
   * Id : uuid
@@ -18,23 +18,59 @@ entity "FileAccessAuditLogs\nFileAccessAuditLog" as T01 {
     TenantId : uuid
     UserId : uuid
 }
-entity "Files\nFileRecord" as T02 {
-  * Id : uuid
-    TenantId : uuid
-}
-entity "FileReferences\nFileReferenceRecord" as T03 {
+entity "FilePurgeWorkItems\nFilePurgeWorkItem" as T02 {
   * Id : uuid
     FileId : uuid
     TenantId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T04 {
+entity "FileReconcileExceptions\nFileReconcileException" as T03 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "Files\nFileRecord" as T04 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "FileReferences\nFileReferenceRecord" as T05 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "FileScanResults\nFileScanResult" as T06 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "FileScanWorkItems\nFileScanWorkItem" as T07 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "FileReferenceOutbox\nFileReferenceOutboxMessage" as T08 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "IdempotencyRecords\nIdempotencyRecord" as T09 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T10 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
 }
+entity "FileAccessGrants\nFileAccessGrant" as T11 {
+  * Id : uuid
+    FileId : uuid
+    GranteeId : text
+    HolderId : text
+    TenantId : uuid
+}
 
-T03 }o--|| T02 : FileId
+T05 }o--|| T04 : FileId
 
 note bottom
 يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.

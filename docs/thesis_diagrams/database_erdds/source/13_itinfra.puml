@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة it_infra_db\nIT.Infra / ITInfraDbContext"
+title "ERD الكامل لقاعدة itinfra_db\nIT.Infra / ITInfraDbContext"
 
 entity "AuditLogs\nEntityAuditLog" as T01 {
   * Id : uuid
@@ -35,20 +35,34 @@ entity "ITSupportTickets\nITSupportTicket" as T05 {
   * Id : uuid
     TenantId : uuid
 }
-entity "SecurityIncidents\nSecurityIncident" as T06 {
+entity "LegacySystems\nLegacySystemRecord" as T06 {
   * Id : uuid
     TenantId : uuid
 }
-entity "ServerDevices\nServerDevice" as T07 {
+entity "MediaDestructionCertificates\nMediaDestructionCertificate" as T07 {
+  * Id : uuid
+    LegacySystemId : uuid
+    TenantId : uuid
+}
+entity "SecurityIncidents\nSecurityIncident" as T08 {
   * Id : uuid
     TenantId : uuid
 }
-entity "SystemPermissionRecords\nSystemPermissionRecord" as T08 {
+entity "ServerDevices\nServerDevice" as T09 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "ShadowOperationChecks\nShadowOperationCheck" as T10 {
+  * Id : uuid
+    LegacySystemId : uuid
+    TenantId : uuid
+}
+entity "SystemPermissionRecords\nSystemPermissionRecord" as T11 {
   * Id : uuid
     TenantId : uuid
     UserId : uuid
 }
-entity "UserDevices\nUserDevice" as T09 {
+entity "UserDevices\nUserDevice" as T12 {
   * Id : uuid
     TenantId : uuid
 }

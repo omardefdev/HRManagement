@@ -31,7 +31,19 @@ Need "src/Tests/HRManagement.UnitTests/L10n001LocalizationTests.cs" | Out-Null
 
 foreach ($program in @(
     "src/Gateway/HRManagement.Gateway/Program.cs",
-    "src/Services/HRCore/HR.Core.Web/Program.cs"
+    "src/Services/HRCore/HR.Core.Web/Program.cs",
+    "src/Services/Payroll/Payroll.Web/Program.cs",
+    "src/Services/Compliance/Compliance.Web/Program.cs",
+    "src/Services/HRContracts/HR.Contracts.Web/Program.cs",
+    "src/Services/HRTraining/HR.Training.Web/Program.cs",
+    "src/Services/HRMovements/HR.Movements.Web/Program.cs",
+    "src/Services/HRHealth/HR.Health.Web/Program.cs",
+    "src/Services/IDCard/IDCard.Web/Program.cs",
+    "src/Services/ITInfrastructure/IT.Infra.Web/Program.cs",
+    "src/Services/DevAnalytics/Dev.Analytics.Web/Program.cs",
+    "src/Services/AuthDirectory/Auth.Directory.Web/Program.cs",
+    "src/Services/AdminLogistics/Admin.Logistics.Web/Program.cs",
+    "src/Services/RecordsArchive/Records.Archive.Web/Program.cs"
 )) {
     $path = Need $program
     if (Test-Path $path) {

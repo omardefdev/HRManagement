@@ -25,8 +25,8 @@ title نموذج التفويض ونطاق الفرع
 actor "مدير مركزي" as Central
 actor "مدير الفرع A" as A
 actor "مدير الفرع B" as B
-rectangle "Keycloak\\nRoles + scope_org_unit_id" as Identity
-rectangle "HrOrgScopeVisibility\\nOrgScopeService" as Scope
+rectangle "Keycloak\nRoles + scope_org_unit_id" as Identity
+rectangle "HrOrgScopeVisibility\nOrgScopeService" as Scope
 database "HR.Core: OrgUnit Tree" as Tree
 rectangle "واجهات الخدمات" as Apps
 Central --> Identity : role مركزي

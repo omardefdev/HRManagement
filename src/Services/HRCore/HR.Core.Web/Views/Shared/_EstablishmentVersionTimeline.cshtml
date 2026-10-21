@@ -1,0 +1,34 @@
+@model IReadOnlyList<object>
+@{
+    var items = Model;
+}
+@if (items.Any())
+{
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th>صالح من</th>
+                <th>صالح حتى</th>
+                <th>نوع العملية</th>
+                <th>مرجع قانوني</th>
+                <th>مرجع القرار</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (dynamic item in items)
+            {
+                <tr>
+                    <td>@(((DateTime)item.ValidFrom).ToString("yyyy-MM-dd HH:mm"))</td>
+                    <td>@(item.ValidTo is DateTime vt ? vt.ToString("yyyy-MM-dd HH:mm") : "—")</td>
+                    <td>@item.OperationType</td>
+                    <td>@(item.LegalSourceId ?? "—")</td>
+                    <td>@(item.DecisionReference ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-muted mb-0">لا يوجد خط زمني بعد.</p>
+}

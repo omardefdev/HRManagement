@@ -5,7 +5,7 @@
 | ADR + جرد | [ADR-UX-002-a11y.md](./ADR-UX-002-a11y.md), [UX_A11Y_INVENTORY.md](./UX_A11Y_INVENTORY.md) | Ready |
 | Skip / landmarks / chrome names | `_HrSharedLayout`, Gateway `_Layout`, `_PublicLayout` | OK |
 | Focus-visible + print CSS | `syrian-theme.css` | OK |
-| Modals / spinner SR | `_DeleteConfirmation`, `_OrgUnitTreeModal` | OK |
+| Modals / spinner SR | `_HrConfirmModal`, `_OrgUnitTreeModal` | OK |
 | Search label + a11y forms JS | `_HrSearchBar`, `a11y-forms.js` | OK |
 | جداول متجاوبة | CSS `:has()` + `table-responsive` على Indexes حرجة | OK |
 | أسماء أزرار الأيقونة | `fix-icon-button-aria.py` + `check-icon-button-names.py` في CI | OK |

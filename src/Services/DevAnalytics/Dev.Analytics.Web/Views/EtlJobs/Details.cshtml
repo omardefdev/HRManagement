@@ -14,7 +14,7 @@
             <dd class="col-sm-9">@Model.LastRun</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
-            <dd class="col-sm-9">@Model.Status</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Log)</dt>
             <dd class="col-sm-9"><pre>@Model.Log</pre></dd>

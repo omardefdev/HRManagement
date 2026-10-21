@@ -10,6 +10,10 @@
 </div>
 <div class="btn-group mb-3">
     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
-    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد؟')">حذف</button></form>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+          data-hr-confirm="هل أنت متأكد من الحذف؟"
+          data-hr-confirm-title="تأكيد الحذف"
+          data-hr-confirm-variant="danger"
+          data-hr-confirm-label="حذف">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger">حذف</button></form>
 </div>
 <p><a asp-action="Index">العودة</a></p>

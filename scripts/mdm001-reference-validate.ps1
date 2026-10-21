@@ -73,6 +73,8 @@ Assert-FileContains "$RepoRoot\src\Services\HRCore\HR.Core.Domain\Entities\Caree
 Write-Host "`n--- Seed & Scripts ---"
 Assert-FileExists "$RepoRoot\docker\seed\mdm-reference-seed.sql" "Seed SQL"
 Assert-FileExists "$RepoRoot\scripts\mdm001-migrate-freetext-to-codes.sql" "Free-text migration SQL"
+Assert-FileExists "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\MdmReferenceSeeder.cs" "MdmReferenceSeeder C#"
+Assert-FileExists "$RepoRoot\seed-packs\national-mdm-sy-v1\catalog.json" "National MDM JSON pack"
 
 Write-Host "`n--- Docs & Tests ---"
 Assert-FileExists "$RepoRoot\docs\MDM_001_REFERENCE_DATA.md" "Documentation"

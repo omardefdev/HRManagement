@@ -1,0 +1,8 @@
+{
+  "step": "get-sibling-employee",
+  "method": "GET",
+  "url": "/api/hr-core/api/lookup/employees/a0000001-0000-4000-8000-000000000203",
+  "statusCode": 403,
+  "capturedAtUtc": "2026-08-24T17:48:09.6120624Z",
+  "body": ""
+}

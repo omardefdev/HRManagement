@@ -12,7 +12,7 @@
     <li class="nav-item"><a asp-controller="AuditFindings" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-search"></i><p>نتائج التدقيق</p></a></li>
     <li class="nav-item"><a asp-controller="ComplianceRecommendations" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-list"></i><p>توصيات الامتثال</p></a></li>
     <li class="nav-item"><a asp-controller="LegalReferrals" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-share-square"></i><p>الإحالات القانونية</p></a></li>
-    <li class="nav-item"><a asp-controller="Export" asp-action="ExportComplaintsCsv" class="nav-link"><i class="nav-icon fas fa-file-export"></i><p>تصدير البيانات</p></a></li>
+    <li class="nav-item"><a asp-controller="Export" asp-action="ComplaintsCsv" class="nav-link"><i class="nav-icon fas fa-file-export"></i><p>تصدير البيانات</p></a></li>
     @await Html.PartialAsync("_HrModuleNav")
 }
 

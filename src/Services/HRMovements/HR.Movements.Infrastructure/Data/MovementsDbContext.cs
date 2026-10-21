@@ -18,6 +18,8 @@ public class MovementsDbContext : TenantAwareDbContext
     public DbSet<MovementExecutionRecord> MovementExecutionRecords => Set<MovementExecutionRecord>();
     public DbSet<SecondmentRequest> SecondmentRequests => Set<SecondmentRequest>();
     public DbSet<LoanAssignmentRequest> LoanAssignmentRequests => Set<LoanAssignmentRequest>();
+    public DbSet<PromotionRequest> PromotionRequests => Set<PromotionRequest>();
+    public DbSet<DelegationRequest> DelegationRequests => Set<DelegationRequest>();
     public DbSet<TransferApproval> TransferApprovals => Set<TransferApproval>();
     public DbSet<TransferFinancialImpact> TransferFinancialImpacts => Set<TransferFinancialImpact>();
     public DbSet<MovementChecklist> MovementChecklists => Set<MovementChecklist>();
@@ -39,6 +41,11 @@ public class MovementsDbContext : TenantAwareDbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.CancellationReason).HasMaxLength(500);
+            entity.Property(e => e.SourceLegalRegimeId).HasMaxLength(50);
+            entity.Property(e => e.TargetLegalRegimeId).HasMaxLength(50);
+            entity.Property(e => e.TransitionDecisionRef).HasMaxLength(200);
+            entity.Property(e => e.ConditionCode).HasMaxLength(100);
+            entity.Property(e => e.ConflictNotes).HasMaxLength(1000);
 
             entity.HasMany(e => e.ExecutionRecords)
                   .WithOne(r => r.TransferRequest)
@@ -104,6 +111,31 @@ public class MovementsDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<PromotionRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CancellationReason).HasMaxLength(500);
+            entity.Property(e => e.SourceLegalRegimeId).HasMaxLength(50);
+            entity.Property(e => e.TransitionDecisionRef).HasMaxLength(200);
+
+            entity.HasMany(e => e.ExecutionRecords)
+                  .WithOne(r => r.PromotionRequest)
+                  .HasForeignKey(r => r.PromotionRequestId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<DelegationRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CancellationReason).HasMaxLength(500);
+            entity.Property(e => e.HostOrg).HasMaxLength(256);
+
+            entity.HasMany(e => e.ExecutionRecords)
+                  .WithOne(r => r.DelegationRequest)
+                  .HasForeignKey(r => r.DelegationRequestId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<TransferApproval>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -136,6 +168,11 @@ public class MovementsDbContext : TenantAwareDbContext
             e.Property(x => x.CurrentState).HasMaxLength(64);
             e.Property(x => x.PendingParties).HasMaxLength(500);
             e.Property(x => x.CompletedParties).HasMaxLength(500);
+            e.Property(x => x.SourceLegalRegimeId).HasMaxLength(50);
+            e.Property(x => x.TargetLegalRegimeId).HasMaxLength(50);
+            e.Property(x => x.TransitionDecisionRef).HasMaxLength(200);
+            e.Property(x => x.ConditionCode).HasMaxLength(100);
+            e.Property(x => x.ConflictNotes).HasMaxLength(1000);
         });
         modelBuilder.Entity<SecondmentSagaState>(e =>
         {

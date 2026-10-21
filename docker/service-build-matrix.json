@@ -1,0 +1,107 @@
+[
+  {
+    "service": "hr-core-web",
+    "projectCsproj": "src/Services/HRCore/HR.Core.Web/HR.Core.Web.csproj",
+    "assemblyName": "HR.Core.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "hr-contracts-web",
+    "projectCsproj": "src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj",
+    "assemblyName": "HR.Contracts.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "hr-gateway",
+    "projectCsproj": "src/Gateway/HRManagement.Gateway/HRManagement.Gateway.csproj",
+    "assemblyName": "HRManagement.Gateway.dll",
+    "needsKrb5": "false",
+    "gatewayAuditDir": "true"
+  },
+  {
+    "service": "hr-health-web",
+    "projectCsproj": "src/Services/HRHealth/HR.Health.Web/HR.Health.Web.csproj",
+    "assemblyName": "HR.Health.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "hr-movements-web",
+    "projectCsproj": "src/Services/HRMovements/HR.Movements.Web/HR.Movements.Web.csproj",
+    "assemblyName": "HR.Movements.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "hr-training-web",
+    "projectCsproj": "src/Services/HRTraining/HR.Training.Web/HR.Training.Web.csproj",
+    "assemblyName": "HR.Training.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "payroll-web",
+    "projectCsproj": "src/Services/Payroll/Payroll.Web/Payroll.Web.csproj",
+    "assemblyName": "Payroll.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "idcard-web",
+    "projectCsproj": "src/Services/IDCard/IDCard.Web/IDCard.Web.csproj",
+    "assemblyName": "IDCard.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "records-archive-web",
+    "projectCsproj": "src/Services/RecordsArchive/Records.Archive.Web/Records.Archive.Web.csproj",
+    "assemblyName": "Records.Archive.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "admin-logistics-web",
+    "projectCsproj": "src/Services/AdminLogistics/Admin.Logistics.Web/Admin.Logistics.Web.csproj",
+    "assemblyName": "Admin.Logistics.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "it-infra-web",
+    "projectCsproj": "src/Services/ITInfrastructure/IT.Infra.Web/IT.Infra.Web.csproj",
+    "assemblyName": "IT.Infra.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "dev-analytics-web",
+    "projectCsproj": "src/Services/DevAnalytics/Dev.Analytics.Web/Dev.Analytics.Web.csproj",
+    "assemblyName": "Dev.Analytics.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "compliance-web",
+    "projectCsproj": "src/Services/Compliance/Compliance.Web/Compliance.Web.csproj",
+    "assemblyName": "Compliance.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "auth-directory-web",
+    "projectCsproj": "src/Services/AuthDirectory/Auth.Directory.Web/Auth.Directory.Web.csproj",
+    "assemblyName": "Auth.Directory.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  },
+  {
+    "service": "file-storage-web",
+    "projectCsproj": "src/Services/FileStorage/File.Storage.Web/File.Storage.Web.csproj",
+    "assemblyName": "File.Storage.Web.dll",
+    "needsKrb5": "true",
+    "gatewayAuditDir": "false"
+  }
+]

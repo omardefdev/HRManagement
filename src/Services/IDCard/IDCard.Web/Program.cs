@@ -1,6 +1,10 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Seeding;
 using IDCard.Infrastructure.Consumers;
 using IDCard.Infrastructure.Data;
 
@@ -9,6 +13,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("IDCard.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleIdCard);
@@ -30,8 +35,12 @@ builder.Services.AddDbContext<IDCardDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<IDCardDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
+builder.Services.AddHrCodeGeneration(builder.Configuration);
+builder.Services.AddHrPolicyPublishedConsumer();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureConsumers: x => x.AddConsumer<HRManagement.ServiceDefaults.Policy.PolicyPublishedConsumer>(),
     configureOutbox: x => x.AddPostgresOutbox<IDCardDbContext>(),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
@@ -43,16 +52,20 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<IDCardDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 
-if (app.Environment.IsDevelopment())
+if (seedProfile != SeedProfile.None)
 {
     try
     {
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IDCardDbContext>();
-        await DemoIDCardSeeder.SeedAsync(db);
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceIdCardSeeder.SeedAsync(db);
+        else
+            await DemoIDCardSeeder.SeedAsync(db);
     }
-    catch (Exception ex)
+    catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
     {
         app.Logger.LogWarning(ex, "IDCard demo seed skipped.");
     }
@@ -67,6 +80,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();

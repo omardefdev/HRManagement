@@ -13,6 +13,11 @@ public interface ISeparationCompleted
 
     Guid? TenantId => null;
 
+    /// <summary>SYR-009: HRCore service regime at separation.</summary>
+    string? SourceLegalRegimeId => null;
 
-    int SchemaVersion => 2;
+    /// <summary>SYR-009: mapped payroll regime for EOS config selection.</summary>
+    string? PayrollRegimeCode => null;
+
+    int SchemaVersion => 3;
 }

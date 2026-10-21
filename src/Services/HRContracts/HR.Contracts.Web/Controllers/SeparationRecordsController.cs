@@ -1,4 +1,5 @@
 using HR.Contracts.Application.Features.Lookup;
+using HR.Contracts.Domain.Enums;
 using HR.Contracts.Application.Features.SeparationRecords;
 using HR.Contracts.Application.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using HR.Contracts.Web.ViewModels;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 using MediatR;
 
 namespace HR.Contracts.Web.Controllers;
@@ -13,11 +15,31 @@ namespace HR.Contracts.Web.Controllers;
 public class SeparationRecordsController : Controller
 {
     private readonly IMediator _mediator;
-    public SeparationRecordsController(IMediator mediator) => _mediator = mediator;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public async Task<IActionResult> Index()
+    public SeparationRecordsController(IMediator mediator, IHrCoreLookupClient hrCoreLookup)
+    {
+        _mediator = mediator;
+        _hrCoreLookup = hrCoreLookup;
+    }
+
+    public async Task<IActionResult> Index(SeparationType? separationType, Guid? employeeId, bool? eventPublished)
     {
         var items = await _mediator.Send(new GetSeparationRecordsQuery());
+        if (separationType.HasValue)
+            items = items.Where(x => x.SeparationType == separationType.Value).ToList();
+        if (employeeId.HasValue)
+            items = items.Where(x => x.EmployeeId == employeeId.Value).ToList();
+        if (eventPublished.HasValue)
+            items = items.Where(x => x.SeparationEventPublished == eventPublished.Value).ToList();
+
+        ViewBag.SeparationTypeFilter = separationType;
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.EventPublished = eventPublished;
+        var nameIds = items.Select(x => x.EmployeeId).ToList();
+        if (employeeId.HasValue)
+            nameIds.Add(employeeId.Value);
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(nameIds);
         return View(items);
     }
 
@@ -25,7 +47,25 @@ public class SeparationRecordsController : Controller
     {
         var r = await _mediator.Send(new GetSeparationRecordByIdQuery(id));
         if (r == null) return NotFound();
+        ViewBag.EmployeeName = (await ResolveEmployeeNamesAsync([r.EmployeeId]))
+            .GetValueOrDefault(r.EmployeeId, "غير متاح");
         return View(r);
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        try
+        {
+            foreach (var row in await _hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList()))
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<SeparationRecordsController>>()
+                .LogWarning(ex, "Employee name lookup failed for separation records.");
+        }
+        return result;
     }
 
     private async Task PopulateContractsAsync(SeparationRecordCreateViewModel vm)

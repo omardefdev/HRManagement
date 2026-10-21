@@ -22,5 +22,15 @@ public class WorkforcePlan : AuditableEntity
     [StringLength(32)]
     public string Status { get; set; } = "draft";
 
+    [Display(Name = "تاريخ الاعتماد")]
+    public DateTime? ApprovedAt { get; set; }
+
+    public Guid? ApprovedBy { get; set; }
+
+    [StringLength(100)]
+    public string? LegalSourceId { get; set; }
+
     public virtual OrgUnit? OrgUnit { get; set; }
+
+    public virtual ICollection<WorkforcePlanLine> Lines { get; set; } = new List<WorkforcePlanLine>();
 }

@@ -1,0 +1,30 @@
+@model Admin.Logistics.Web.ViewModels.AssetLegacyCreateFormViewModel
+@{ ViewData["Title"] = "أصل قديم / هبة"; }
+<div class="card">
+    <form asp-action="CreateLegacy" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="alert alert-warning">إدخال استثنائي — يتطلب سبباً ولا يربط بسجل استلام.</div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="alert alert-info">يُولَّد رقم العهدة تلقائياً عند الحفظ.</div>
+            <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" required /></div>
+            <div class="mb-3"><label asp-for="Category" class="form-label"></label><input asp-for="Category" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Brand" class="form-label"></label><input asp-for="Brand" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Model" class="form-label"></label><input asp-for="Model" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="PurchaseDate" class="form-label"></label><input asp-for="PurchaseDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="Value" class="form-label"></label><input asp-for="Value" class="form-control" type="number" step="0.01" /></div>
+            <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<AssetStatus>()"></select></div>
+            <div class="alert alert-info py-2 mb-0">التصنيف «مميز» يُحدَّد تلقائياً بسياسة العهدة الوطنية عند الحفظ.</div>
+            <div class="mb-3">
+                <label asp-for="LegacyEntryReason" class="form-label"></label>
+                <textarea asp-for="LegacyEntryReason" class="form-control" rows="2" required minlength="5" placeholder="مثال: هبة من جهة مانحة — موجود قبل النظام"></textarea>
+                <span asp-validation-for="LegacyEntryReason" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Create" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> @await Html.PartialAsync("_ValidationDialogTrigger") }

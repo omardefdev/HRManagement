@@ -1,25 +1,91 @@
-@model IReadOnlyList<ReceiptRecord>
+@model Admin.Logistics.Web.ViewModels.ReceiptRecordIndexViewModel
 @{ ViewData["Title"] = "سجلات الاستلام"; }
+@{
+    string FilterReceivedByLabel(Guid id) =>
+        !string.IsNullOrWhiteSpace(Model.FilterReceivedByName) && HrLookupDisplayHelper.IsResolvedEmployeeName(Model.FilterReceivedByName)
+            ? Model.FilterReceivedByName!
+            : id.ToString();
+}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            @if (Model.SupplyOrderId is Guid filterOrderId)
+            {
+                <input type="hidden" name="supplyOrderId" value="@filterOrderId" />
+            }
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="مواد أو SKU أو طلب..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">استلم بواسطة</label>
+                <select name="receivedBy" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— الكل —</option>
+                    @if (Model.ReceivedBy is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@FilterReceivedByLabel(empId)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" name="receivedFrom" value="@Model.ReceivedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" name="receivedTo" value="@Model.ReceivedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
+@if (Model.SupplyOrderId is Guid orderId)
+{
+    <div class="alert alert-info">
+        تصفية حسب طلب: @(Model.FilterSupplyOrderSummary ?? orderId.ToString())
+        <a asp-action="Index">عرض الكل</a>
+        | <a asp-controller="SupplyOrders" asp-action="Details" asp-route-id="@orderId">عودة للطلب</a>
+    </div>
+}
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">سجلات الاستلام</h3>
-        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
+    <div class="card-header"><h3 class="card-title mb-0">سجلات الاستلام</h3></div>
+    <div class="card-body border-bottom">
+        <div class="alert alert-info mb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>لتسجيل استلام جديد، افتح طلب التجهيز المنفّذ ثم استخدم «تسجيل الاستلام».</span>
+            <a asp-controller="SupplyOrders" asp-action="Index" class="btn btn-sm btn-primary">الذهاب إلى طلبات التجهيز</a>
+        </div>
     </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
-            <thead><tr><th>طلب التجهيز</th><th>تاريخ الاستلام</th><th>المواد</th><th></th></tr></thead>
+            <thead><tr><th>طلب التجهيز</th><th>تاريخ الاستلام</th><th>المواد</th><th>أصول مُنشأة</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items.Items)
                 {
+                    var count = Model.AssetCounts.GetValueOrDefault(x.Id);
                     <tr>
-                        <td>@(x.SupplyOrder?.Items ?? "—")</td>
+                        <td>
+                            @if (x.SupplyOrderId is Guid soId)
+                            {
+                                <a asp-controller="SupplyOrders" asp-action="Details" asp-route-id="@soId">@(x.SupplyOrder?.Items ?? "—")</a>
+                            }
+                            else { <span>—</span> }
+                        </td>
                         <td>@x.ReceivedAt?.ToString("yyyy/MM/dd")</td>
                         <td>@(x.ItemsReceived ?? "—")</td>
+                        <td>@(count > 0 ? count.ToString() : "—")</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا سجلات</td></tr> }
+                @if (!Model.Items.Items.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">لا سجلات</td></tr>
+                }
             </tbody>
         </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
     </div>
 </div>

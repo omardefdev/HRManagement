@@ -9,6 +9,7 @@ public interface ICardIssued
 
     Guid? TenantId => null;
 
+    string? CorrelationId { get; }
 
-    int SchemaVersion => 1;
+    int SchemaVersion => 2;
 }

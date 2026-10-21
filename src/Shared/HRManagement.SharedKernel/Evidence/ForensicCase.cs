@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HRManagement.SharedKernel.Evidence;
 
 /// <summary>
@@ -34,16 +36,24 @@ public class ForensicCase
 
 public enum ForensicCaseSeverity
 {
+    [Display(Name = "منخفض")]
     Low,
+    [Display(Name = "متوسط")]
     Medium,
+    [Display(Name = "عالي")]
     High,
+    [Display(Name = "حرج")]
     Critical
 }
 
 public enum ForensicCaseStatus
 {
+    [Display(Name = "مفتوح")]
     Open,
+    [Display(Name = "قيد التنفيذ")]
     InProgress,
+    [Display(Name = "مغلق")]
     Closed,
+    [Display(Name = "مؤرشف")]
     Archived
 }

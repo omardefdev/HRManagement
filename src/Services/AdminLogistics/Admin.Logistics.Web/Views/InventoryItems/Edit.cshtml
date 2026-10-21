@@ -1,4 +1,4 @@
-@model InventoryItem
+@model Admin.Logistics.Web.ViewModels.InventoryItemFormViewModel
 @{ ViewData["Title"] = "تعديل عنصر المخزون"; }
 <div class="card">
     <form asp-action="Edit" method="post">
@@ -6,7 +6,7 @@
         <input type="hidden" asp-for="Id" />
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="Sku" class="form-label"></label><input asp-for="Sku" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Sku" class="form-label"></label><input asp-for="Sku" class="form-control" readonly /></div>
             <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
             <div class="mb-3"><label asp-for="Quantity" class="form-label"></label><input asp-for="Quantity" class="form-control" type="number" /></div>
             <div class="mb-3"><label asp-for="Unit" class="form-label"></label><input asp-for="Unit" class="form-control" /></div>

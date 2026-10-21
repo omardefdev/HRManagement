@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "خريطة ERD المختصرة لقاعدة hr_contracts_db\nHR.Contracts"
+title "خريطة ERD المختصرة لقاعدة contracts_db\nHR.Contracts"
 
 entity "AdministrativeDecisions\nAdministrativeDecision" as T01 {
   * Id
@@ -100,23 +100,68 @@ entity "ServiceTransactionStateHistories\nServiceTransactionStateHistory" as T16
     TenantId
     TransactionId
 }
-entity "AuditLogs\nEntityAuditLog" as T17 {
+entity "HireCaseSagaStates\nHireCaseSagaState" as T17 {
+  * CorrelationId
+    BusinessCorrelationId
+    ContractId
+    EmployeeId
+    RecruitmentApplicationId
+    ServiceTransactionId
+    TenantId
+    TimeoutTokenId
+}
+entity "SeparationSagaStates\nSeparationSagaState" as T18 {
+  * CorrelationId
+    BusinessCorrelationId
+    ContractId
+    EmployeeId
+    SeparationRecordId
+    TenantId
+    TimeoutTokenId
+}
+entity "IdempotencyRecords\nIdempotencyRecord" as T19 {
+  * Id
+    TenantId
+}
+entity "EmployeeOrgUnitSnapshots\nEmployeeOrgUnitSnapshot" as T20 {
+  * EmployeeId
+    PrimaryOrgUnitId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T21 {
   * Id
     EntityId
     TenantId
     UserId
 }
-entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T18 {
+entity "ExportJobs\nExportJob" as T22 {
+  * Id
+    RequestedByUserId
+    ResultFileId
+    TenantId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T23 {
+  * Id
+    MessageId
+    TenantId
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T24 {
   * Id
     ParentId
+    TenantId
 }
-entity "InboxState\nInboxState" as T19 {
+entity "ProcessInterventions\nProcessIntervention" as T25 {
+  * Id
+    CorrelationId
+    TenantId
+}
+entity "InboxState\nInboxState" as T26 {
   * Id
     ConsumerId
     LockId
     MessageId
 }
-entity "OutboxMessage\nOutboxMessage" as T20 {
+entity "OutboxMessage\nOutboxMessage" as T27 {
   * SequenceNumber
     ConversationId
     CorrelationId
@@ -127,7 +172,7 @@ entity "OutboxMessage\nOutboxMessage" as T20 {
     OutboxId
     RequestId
 }
-entity "OutboxState\nOutboxState" as T21 {
+entity "OutboxState\nOutboxState" as T28 {
   * OutboxId
     LockId
 }

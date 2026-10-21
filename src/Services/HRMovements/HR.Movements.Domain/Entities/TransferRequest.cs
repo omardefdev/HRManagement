@@ -51,4 +51,21 @@ public class TransferRequest : AuditableEntity
     public ICollection<MovementExecutionRecord> ExecutionRecords { get; set; } = [];
     public ICollection<TransferApproval> Approvals { get; set; } = [];
     public ICollection<TransferFinancialImpact> FinancialImpacts { get; set; } = [];
+
+    /// <summary>SYR-008: snapshot of employee regime at request time.</summary>
+    [MaxLength(50)]
+    public string? SourceLegalRegimeId { get; set; }
+
+    /// <summary>SYR-008: target regime when cross-regime transfer.</summary>
+    [MaxLength(50)]
+    public string? TargetLegalRegimeId { get; set; }
+
+    [MaxLength(200)]
+    public string? TransitionDecisionRef { get; set; }
+
+    [MaxLength(100)]
+    public string? ConditionCode { get; set; }
+
+    [MaxLength(1000)]
+    public string? ConflictNotes { get; set; }
 }

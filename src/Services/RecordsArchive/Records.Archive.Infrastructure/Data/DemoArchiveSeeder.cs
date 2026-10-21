@@ -1,4 +1,5 @@
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Records.Archive.Domain.Entities;
@@ -9,7 +10,10 @@ namespace Records.Archive.Infrastructure.Data;
 /// <summary>Populates demo archive classifications, items, files, loans, and custody events.</summary>
 public static class DemoArchiveSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
+    private static string ScopedCode(string code) => AcceptanceSeedExecution.CurrentAgency is { } agency
+        ? $"{agency.Code}-{code}"
+        : code;
 
     private static readonly (string Code, string NameAr, int Years)[] Classifications =
     [
@@ -48,8 +52,8 @@ public static class DemoArchiveSeeder
         if (await db.DocumentClassifications.AnyAsync(ct))
             return;
 
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("records-archive");
+        var now = AcceptanceSeedExecution.UtcNow;
 
         for (var i = 0; i < Classifications.Length; i++)
         {
@@ -58,11 +62,11 @@ public static class DemoArchiveSeeder
             {
                 Id = DemoSeedIds.DocumentClassificationId(i),
                 TenantId = TenantId,
-                Code = code,
+                Code = ScopedCode(code),
                 NameAr = nameAr,
                 NameEn = code,
                 RetentionYears = years,
-                RetentionCode = $"ret-{code.ToLowerInvariant()}",
+                RetentionCode = ScopedCode($"ret-{code.ToLowerInvariant()}"),
                 CreatedAt = now.AddDays(-365),
                 UpdatedAt = now,
             });
@@ -70,8 +74,9 @@ public static class DemoArchiveSeeder
 
         await db.SaveChangesAsync(ct);
 
-        var itemIds = new Guid[300];
-        for (var i = 0; i < 300; i++)
+        var itemCount = AcceptanceSeedExecution.IsAcceptance ? DemoSeedIds.EmployeeCount : 300;
+        var itemIds = new Guid[itemCount];
+        for (var i = 0; i < itemCount; i++)
         {
             itemIds[i] = DemoSeedIds.Named($"archive-item-{i}");
             var daysAgo = rng.Next(30, 900);
@@ -83,7 +88,7 @@ public static class DemoArchiveSeeder
                 Id = itemIds[i],
                 TenantId = TenantId,
                 Title = $"وثيقة أرشيفية رقم {i + 1:D4}",
-                ReferenceNumber = $"ARC-2026-{i + 1:D5}",
+                ReferenceNumber = ScopedCode($"ARC-2026-{i + 1:D5}"),
                 ClassificationId = DemoSeedIds.DocumentClassificationId(classIdx),
                 StorageLocation = StorageLocations[i % StorageLocations.Length],
                 Format = format,
@@ -99,9 +104,10 @@ public static class DemoArchiveSeeder
 
         await db.SaveChangesAsync(ct);
 
-        for (var i = 0; i < 200; i++)
+        var physicalCount = AcceptanceSeedExecution.IsAcceptance ? Math.Max(1, itemCount * 2 / 5) : 200;
+        for (var i = 0; i < physicalCount; i++)
         {
-            var itemIdx = i % 300;
+            var itemIdx = i % itemCount;
             db.PhysicalFileRecords.Add(new PhysicalFileRecord
             {
                 TenantId = TenantId,
@@ -114,9 +120,10 @@ public static class DemoArchiveSeeder
             });
         }
 
-        for (var i = 0; i < 250; i++)
+        var digitalCount = AcceptanceSeedExecution.IsAcceptance ? Math.Max(1, itemCount * 13 / 20) : 250;
+        for (var i = 0; i < digitalCount; i++)
         {
-            var itemIdx = (i + 50) % 300;
+            var itemIdx = (i + 50) % itemCount;
             db.DigitalFileRecords.Add(new DigitalFileRecord
             {
                 TenantId = TenantId,
@@ -130,11 +137,12 @@ public static class DemoArchiveSeeder
         }
 
         // ~200 items get 2 index entries, ~100 get 1 → 500 total
+        var indexTarget = AcceptanceSeedExecution.IsAcceptance ? itemCount + itemCount / 2 : 500;
         var indexCount = 0;
-        for (var i = 0; i < 300 && indexCount < 500; i++)
+        for (var i = 0; i < itemCount && indexCount < indexTarget; i++)
         {
-            var entriesForItem = i < 200 ? 2 : 1;
-            for (var e = 0; e < entriesForItem && indexCount < 500; e++)
+            var entriesForItem = i < itemCount / 2 ? 2 : 1;
+            for (var e = 0; e < entriesForItem && indexCount < indexTarget; e++)
             {
                 db.ArchiveIndexEntries.Add(new ArchiveIndexEntry
                 {
@@ -165,7 +173,7 @@ public static class DemoArchiveSeeder
             db.LoanRecords.Add(new LoanRecord
             {
                 TenantId = TenantId,
-                ArchiveItemId = itemIds[i * 7 % 300],
+                ArchiveItemId = itemIds[i * 7 % itemCount],
                 Borrower = DemoNameBank.FullName(person.First, person.Middle, person.Last),
                 LoanDate = loanDate,
                 DueDate = dueDate,
@@ -182,7 +190,7 @@ public static class DemoArchiveSeeder
             db.CustodyEvents.Add(new CustodyEvent
             {
                 TenantId = TenantId,
-                ArchiveItemId = itemIds[i * 5 % 300],
+                ArchiveItemId = itemIds[i * 5 % itemCount],
                 Action = CustodyActions[i % CustodyActions.Length],
                 EvidenceRef = i % 3 == 0 ? $"EVD-ARC-{i + 1:D4}" : null,
                 ActorUserId = DemoSeedIds.EmployeeId(i % 40),

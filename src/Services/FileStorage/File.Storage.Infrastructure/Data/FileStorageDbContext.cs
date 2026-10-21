@@ -22,6 +22,7 @@ public class FileStorageDbContext : TenantAwareDbContext
     public DbSet<FileScanResult> FileScanResults => Set<FileScanResult>();
     public DbSet<FileReconcileException> FileReconcileExceptions => Set<FileReconcileException>();
     public DbSet<FileReferenceOutboxMessage> FileReferenceOutbox => Set<FileReferenceOutboxMessage>();
+    public DbSet<IntegrationMessageReceipt> IntegrationMessageReceipts => Set<IntegrationMessageReceipt>();
     public DbSet<EntityAuditLog> AuditLogs => Set<EntityAuditLog>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
@@ -107,6 +108,7 @@ public class FileStorageDbContext : TenantAwareDbContext
         });
 
         modelBuilder.ConfigureFileReferenceOutbox();
+        modelBuilder.ConfigureIntegrationMessageReceipts();
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureIdempotencyRecords();
         modelBuilder.ConfigureTenantQueryFilters(this);

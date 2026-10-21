@@ -23,14 +23,41 @@ public class DelegationsController : Controller
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(
+        Guid? principalId,
+        Guid? delegateId,
+        string? entityTypeScope,
+        bool? activeOnly,
+        DateTime? from,
+        DateTime? to)
     {
-        var items = await _db.ApprovalDelegations
-            .AsNoTracking()
-            .OrderByDescending(d => d.ActiveFrom)
-            .Take(200)
-            .ToListAsync();
-        return View(items);
+        var query = _db.ApprovalDelegations.AsNoTracking().AsQueryable();
+        if (principalId is Guid pid)
+            query = query.Where(d => d.PrincipalId == pid);
+        if (delegateId is Guid did)
+            query = query.Where(d => d.DelegateId == did);
+        if (!string.IsNullOrWhiteSpace(entityTypeScope))
+            query = query.Where(d => d.EntityTypeScope == entityTypeScope);
+        if (activeOnly == true)
+            query = query.Where(d => !d.IsRevoked && d.ActiveUntil >= DateTime.UtcNow && d.ActiveFrom <= DateTime.UtcNow);
+        else if (activeOnly == false)
+            query = query.Where(d => d.IsRevoked || d.ActiveUntil < DateTime.UtcNow || d.ActiveFrom > DateTime.UtcNow);
+        if (from is DateTime f)
+            query = query.Where(d => d.ActiveUntil >= f);
+        if (to is DateTime t)
+            query = query.Where(d => d.ActiveFrom <= t);
+
+        var items = await query.OrderByDescending(d => d.ActiveFrom).Take(200).ToListAsync();
+        return View(new DelegationsIndexViewModel
+        {
+            Items = items,
+            PrincipalId = principalId,
+            DelegateId = delegateId,
+            EntityTypeScope = entityTypeScope,
+            ActiveOnly = activeOnly,
+            From = from,
+            To = to
+        });
     }
 
     public IActionResult Create()

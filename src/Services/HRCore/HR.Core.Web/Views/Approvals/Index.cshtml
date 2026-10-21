@@ -62,21 +62,17 @@
                             <td>@(req.RequestedByName ?? "—")</td>
                             <td dir="ltr">@req.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
-                                @switch (req.Status)
-                                {
-                                    case HRManagement.SharedKernel.Enums.ApprovalStatus.Pending:
-                                        <span class="badge text-bg-warning">معلق</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.ApprovalStatus.Approved:
-                                        <span class="badge text-bg-success">موافق عليه</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.ApprovalStatus.Rejected:
-                                        <span class="badge text-bg-danger">مرفوض</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.ApprovalStatus.Cancelled:
-                                        <span class="badge text-bg-secondary">ملغى</span>
-                                        break;
+                                @{
+                                    var reqBadge = req.Status switch
+                                    {
+                                        HRManagement.SharedKernel.Enums.ApprovalStatus.Pending => "text-bg-warning",
+                                        HRManagement.SharedKernel.Enums.ApprovalStatus.Approved => "text-bg-success",
+                                        HRManagement.SharedKernel.Enums.ApprovalStatus.Rejected => "text-bg-danger",
+                                        HRManagement.SharedKernel.Enums.ApprovalStatus.Cancelled => "text-bg-secondary",
+                                        _ => "text-bg-secondary"
+                                    };
                                 }
+                                <span class="badge @reqBadge">@Html.HrEnumDisplay(req.Status)</span>
                             </td>
                             <td>@(req.ReviewedByName ?? "—")</td>
                             <td>

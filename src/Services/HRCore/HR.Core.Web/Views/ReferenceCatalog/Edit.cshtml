@@ -1,0 +1,55 @@
+@model HR.Core.Web.ViewModels.ReferenceCatalogEditViewModel
+@{ ViewData["Title"] = $"تعديل {Model.KindLabel}"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">تعديل @Model.KindLabel</h3></div>
+    @if (Model.IsReadOnly)
+    {
+        <div class="card-body">
+            <div class="alert alert-warning mb-0">سجل المرجع الوطني (المنصة) للقراءة فقط — أنشئ نسخة محلية برمز جديد عند الحاجة.</div>
+        </div>
+        <div class="card-footer">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link">عودة</a>
+        </div>
+    }
+    else
+    {
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="Kind" />
+            <input type="hidden" asp-for="Code" />
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="mb-3">
+                    <label class="form-label">الرمز</label>
+                    <input class="form-control" value="@Model.Code" readonly />
+                    <div class="form-text">الرمز ثابت بعد الإنشاء.</div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="NameAr" class="form-label"></label>
+                        <input asp-for="NameAr" class="form-control" />
+                        <span asp-validation-for="NameAr" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="NameEn" class="form-label"></label>
+                        <input asp-for="NameEn" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="ValidFrom" class="form-label"></label>
+                        <input asp-for="ValidFrom" class="form-control" type="date" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="ValidTo" class="form-label"></label>
+                        <input asp-for="ValidTo" class="form-control" type="date" />
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="submit" class="btn btn-primary">حفظ</button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link">إلغاء</a>
+            </div>
+        </form>
+    }
+</div>
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

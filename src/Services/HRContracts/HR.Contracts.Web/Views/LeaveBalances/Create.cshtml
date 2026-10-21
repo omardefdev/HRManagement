@@ -14,7 +14,7 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label asp-for="LeaveType" class="form-label"></label>
-                    <select asp-for="LeaveType" asp-items="Html.GetEnumSelectList<LeaveType>()" class="form-select"></select>
+                    <select asp-for="LeaveType" asp-items="Html.HrEnumSelectList<LeaveType>()" class="form-select"></select>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label asp-for="Year" class="form-label"></label>

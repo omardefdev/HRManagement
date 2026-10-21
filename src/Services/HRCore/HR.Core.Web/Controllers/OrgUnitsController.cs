@@ -7,6 +7,9 @@ using HR.Core.Infrastructure;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
+using HR.Core.Infrastructure.Services.OrgStructure;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Core.Web.Controllers;
@@ -21,19 +24,25 @@ public class OrgUnitsController : Controller
     private readonly OrgUnitPathService _pathService;
     private readonly HR.Core.Infrastructure.Integration.OrgUnitIntegrationService _integration;
     private readonly IOrgUnitHierarchyCache _hierarchyCache;
+    private readonly ICodeGenerator _codeGenerator;
+    private readonly IOrgUnitVersionService _versionService;
 
     public OrgUnitsController(
         HRCoreDbContext context,
         OrgScopeService orgScope,
         OrgUnitPathService pathService,
         HR.Core.Infrastructure.Integration.OrgUnitIntegrationService integration,
-        IOrgUnitHierarchyCache hierarchyCache)
+        IOrgUnitHierarchyCache hierarchyCache,
+        ICodeGenerator codeGenerator,
+        IOrgUnitVersionService versionService)
     {
         _context = context;
         _orgScope = orgScope;
         _pathService = pathService;
         _integration = integration;
         _hierarchyCache = hierarchyCache;
+        _codeGenerator = codeGenerator;
+        _versionService = versionService;
     }
 
     public async Task<IActionResult> Index(SearchFilterBase filter)
@@ -147,9 +156,27 @@ public class OrgUnitsController : Controller
             return View(vm);
         }
 
+        var parentCode = "00";
+        if (vm.ParentId.HasValue)
+        {
+            var parent = await _context.OrgUnits.AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == vm.ParentId.Value);
+            if (parent is not null)
+                parentCode = parent.Code;
+        }
+
+        var codeResult = await _codeGenerator.GenerateAsync(new CodeGenerationRequest
+        {
+            EntityKind = CodeEntityKind.OrgUnit,
+            Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ParentCode"] = parentCode
+            }
+        });
+
         var orgUnit = new OrgUnit
         {
-            Code = vm.Code,
+            Code = codeResult.Code,
             NameAr = vm.NameAr,
             NameEn = vm.NameEn,
             ParentId = vm.ParentId,
@@ -160,6 +187,7 @@ public class OrgUnitsController : Controller
         await _context.SaveChangesAsync();
         await _pathService.AssignPathOnCreateAsync(orgUnit);
         _hierarchyCache.InvalidateTenant(orgUnit.TenantId);
+        await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Create, DateTime.UtcNow);
         await _integration.PublishOrgUnitChangedAsync(orgUnit);
         await _context.SaveChangesAsync();
 
@@ -206,6 +234,10 @@ public class OrgUnitsController : Controller
         if (orgUnit == null) return NotFound();
         var postScope = await _orgScope.GetAllowedOrgUnitIdsAsync(User);
         if (this.ForbidIfOrgUnitOutOfScope(postScope, orgUnit.Id) is { } postDenied) return postDenied;
+
+        var beforeName = orgUnit.NameAr;
+        var beforeHead = orgUnit.HeadEmployeeId;
+
         if (vm.ParentId.HasValue && !postScope.CanAccess(vm.ParentId))
         {
             ModelState.AddModelError(nameof(vm.ParentId), "الوحدة الأب خارج نطاق صلاحيتك");
@@ -214,7 +246,7 @@ public class OrgUnitsController : Controller
         }
 
         var parentChanged = orgUnit.ParentId != vm.ParentId;
-        orgUnit.Code = vm.Code;
+        // Code is immutable after issuance (COD-001)
         orgUnit.NameAr = vm.NameAr;
         orgUnit.NameEn = vm.NameEn;
         orgUnit.HeadEmployeeId = vm.HeadEmployeeId;
@@ -234,6 +266,8 @@ public class OrgUnitsController : Controller
             _hierarchyCache.InvalidateTenant(orgUnit.TenantId);
             await _integration.PublishManyOrgUnitsChangedAsync(affected);
             await _context.SaveChangesAsync();
+            await _context.Entry(orgUnit).ReloadAsync();
+            await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, DateTime.UtcNow);
         }
         else
         {
@@ -241,6 +275,9 @@ public class OrgUnitsController : Controller
             _hierarchyCache.InvalidateTenant(orgUnit.TenantId);
             await _integration.PublishOrgUnitChangedAsync(orgUnit);
             await _context.SaveChangesAsync();
+
+            if (beforeName != orgUnit.NameAr || beforeHead != orgUnit.HeadEmployeeId)
+                await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Rename, DateTime.UtcNow);
         }
 
         TempData["Success"] = $"تم تحديث الوحدة التنظيمية {orgUnit.NameAr} بنجاح";

@@ -50,8 +50,15 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsLegacyEntry")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsPrivileged")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LegacyEntryReason")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("Model")
                         .HasColumnType("text");
@@ -59,6 +66,12 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("OriginReceiptRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OriginSupplyOrderLineId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("PurchaseDate")
                         .HasColumnType("timestamp with time zone");
@@ -84,6 +97,10 @@ namespace Admin.Logistics.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OriginReceiptRecordId");
+
+                    b.HasIndex("OriginSupplyOrderLineId");
+
                     b.HasIndex("TenantId", "TagNumber")
                         .IsUnique();
 
@@ -102,9 +119,6 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<DateTime>("AssignedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("ConditionOnAssign")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -121,8 +135,28 @@ namespace Admin.Logistics.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<int?>("HandoverCondition")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HandoverConditionNotes")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid?>("HandoverFileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReturnFileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReturnNotes")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<DateTime?>("ReturnedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -131,6 +165,9 @@ namespace Admin.Logistics.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
                         .HasColumnType("uuid");
 
                     b.Property<uint>("xmin")
@@ -146,6 +183,91 @@ namespace Admin.Logistics.Infrastructure.Migrations
                         .HasFilter("\"ReturnedAt\" IS NULL");
 
                     b.ToTable("AssetAssignments");
+                });
+
+            modelBuilder.Entity("Admin.Logistics.Domain.Entities.AssetLossReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("AfterAssetStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AfterStateJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("BeforeAssetStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BeforeStateJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ConfirmedLostAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Context")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EvidenceRef")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid?>("LossFileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RecoveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecoveryNotes")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("SettlementApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SettlementApprovedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 0");
+
+                    b.ToTable("AssetLossReports");
                 });
 
             modelBuilder.Entity("Admin.Logistics.Domain.Entities.InventoryItem", b =>
@@ -252,8 +374,14 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("InventoryItemId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ItemsReceived")
                         .HasColumnType("text");
+
+                    b.Property<int?>("QuantityReceived")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("ReceivedAt")
                         .HasColumnType("timestamp with time zone");
@@ -271,6 +399,8 @@ namespace Admin.Logistics.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
 
                     b.HasIndex("SupplyOrderId");
 
@@ -321,6 +451,51 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.ToTable("SupplyOrders");
                 });
 
+            modelBuilder.Entity("Admin.Logistics.Domain.Entities.SupplyOrderLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InventoryItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCapitalizable")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("QtyReceived")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QtyRequested")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sku")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("SupplyOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("SupplyOrderId");
+
+                    b.ToTable("SupplyOrderLines");
+                });
+
             modelBuilder.Entity("Admin.Logistics.Domain.Entities.Vendor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -355,6 +530,25 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Vendors");
+                });
+
+            modelBuilder.Entity("HRManagement.SharedKernel.Entities.EmployeeOrgUnitSnapshot", b =>
+                {
+                    b.Property<Guid>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PrimaryOrgUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("EmployeeId");
+
+                    b.HasIndex("PrimaryOrgUnitId");
+
+                    b.ToTable("EmployeeOrgUnitSnapshots");
                 });
 
             modelBuilder.Entity("HRManagement.SharedKernel.Entities.EntityAuditLog", b =>
@@ -438,10 +632,71 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.ToTable("IntegrationMessageReceipts", (string)null);
                 });
 
+            modelBuilder.Entity("HRManagement.SharedKernel.Entities.OrgUnitSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MaterializedPath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("TenantId", "MaterializedPath");
+
+                    b.ToTable("OrgUnitSnapshots");
+                });
+
+            modelBuilder.Entity("Admin.Logistics.Domain.Entities.Asset", b =>
+                {
+                    b.HasOne("Admin.Logistics.Domain.Entities.ReceiptRecord", "OriginReceiptRecord")
+                        .WithMany()
+                        .HasForeignKey("OriginReceiptRecordId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Admin.Logistics.Domain.Entities.SupplyOrderLine", "OriginSupplyOrderLine")
+                        .WithMany()
+                        .HasForeignKey("OriginSupplyOrderLineId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("OriginReceiptRecord");
+
+                    b.Navigation("OriginSupplyOrderLine");
+                });
+
             modelBuilder.Entity("Admin.Logistics.Domain.Entities.AssetAssignment", b =>
                 {
                     b.HasOne("Admin.Logistics.Domain.Entities.Asset", "Asset")
                         .WithMany("Assignments")
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Asset");
+                });
+
+            modelBuilder.Entity("Admin.Logistics.Domain.Entities.AssetLossReport", b =>
+                {
+                    b.HasOne("Admin.Logistics.Domain.Entities.Asset", "Asset")
+                        .WithMany("LossReports")
                         .HasForeignKey("AssetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -462,10 +717,35 @@ namespace Admin.Logistics.Infrastructure.Migrations
 
             modelBuilder.Entity("Admin.Logistics.Domain.Entities.ReceiptRecord", b =>
                 {
+                    b.HasOne("Admin.Logistics.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Admin.Logistics.Domain.Entities.SupplyOrder", "SupplyOrder")
                         .WithMany()
                         .HasForeignKey("SupplyOrderId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("SupplyOrder");
+                });
+
+            modelBuilder.Entity("Admin.Logistics.Domain.Entities.SupplyOrderLine", b =>
+                {
+                    b.HasOne("Admin.Logistics.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Admin.Logistics.Domain.Entities.SupplyOrder", "SupplyOrder")
+                        .WithMany("Lines")
+                        .HasForeignKey("SupplyOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
 
                     b.Navigation("SupplyOrder");
                 });
@@ -474,7 +754,14 @@ namespace Admin.Logistics.Infrastructure.Migrations
                 {
                     b.Navigation("Assignments");
 
+                    b.Navigation("LossReports");
+
                     b.Navigation("MaintenanceRecords");
+                });
+
+            modelBuilder.Entity("Admin.Logistics.Domain.Entities.SupplyOrder", b =>
+                {
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }

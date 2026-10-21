@@ -12,28 +12,39 @@ skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
 title "خريطة ERD المختصرة لقاعدة payroll_db\nPayroll"
 
-entity "AuditLogs\nEntityAuditLog" as T01 {
+entity "IdempotencyRecords\nIdempotencyRecord" as T01 {
+  * Id
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T02 {
   * Id
     EntityId
     TenantId
     UserId
 }
-entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T02 {
+entity "ExportJobs\nExportJob" as T03 {
+  * Id
+    RequestedByUserId
+    ResultFileId
+    TenantId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T04 {
   * Id
     MessageId
     TenantId
 }
-entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T03 {
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T05 {
   * Id
     ParentId
+    TenantId
 }
-entity "InboxState\nInboxState" as T04 {
+entity "InboxState\nInboxState" as T06 {
   * Id
     ConsumerId
     LockId
     MessageId
 }
-entity "OutboxMessage\nOutboxMessage" as T05 {
+entity "OutboxMessage\nOutboxMessage" as T07 {
   * SequenceNumber
     ConversationId
     CorrelationId
@@ -44,139 +55,241 @@ entity "OutboxMessage\nOutboxMessage" as T05 {
     OutboxId
     RequestId
 }
-entity "OutboxState\nOutboxState" as T06 {
+entity "OutboxState\nOutboxState" as T08 {
   * OutboxId
     LockId
 }
-entity "AbsenceDeductions\nAbsenceDeduction" as T07 {
+entity "AbsenceDeductions\nAbsenceDeduction" as T09 {
   * Id
     AppliedInRunId
     EmployeeId
     TenantId
 }
-entity "AllowanceRecords\nAllowanceRecord" as T08 {
+entity "AllowanceRecords\nAllowanceRecord" as T10 {
   * Id
     AllowanceTypeId
     EmployeeId
     TenantId
 }
-entity "CompensationTypes\nCompensationType" as T09 {
+entity "ArrearsLedgerEntries\nArrearsLedgerEntry" as T11 {
+  * Id
+    EmployeeId
+    PayrollRunId
+    SettledByBatchId
+    TenantId
+}
+entity "BankStatementLines\nBankStatementLine" as T12 {
+  * Id
+    MatchedPaymentOrderId
+    TenantId
+}
+entity "CompensationTypes\nCompensationType" as T13 {
   * Id
     TenantId
 }
-entity "DeductionRecords\nDeductionRecord" as T10 {
+entity "DeductionRecords\nDeductionRecord" as T14 {
   * Id
     AppliedInRunId
     EmployeeId
     TenantId
 }
-entity "DeductionTypes\nDeductionType" as T11 {
+entity "DeductionTypes\nDeductionType" as T15 {
   * Id
     TenantId
 }
-entity "EmployeePayProfiles\nEmployeePayProfile" as T12 {
+entity "DisbursementPriorityRules\nDisbursementPriorityRule" as T16 {
+  * Id
+    RuleSetId
+    TenantId
+}
+entity "EmployeePayProfiles\nEmployeePayProfile" as T17 {
   * Id
     EmployeeId
     OrgUnitId
     PayGradeId
     TenantId
 }
-entity "EmployeePayProfileHistories\nEmployeePayProfileHistory" as T13 {
+entity "EmployeePayProfileHistories\nEmployeePayProfileHistory" as T18 {
   * Id
     EmployeeId
     PayGradeId
     SourceProfileId
     TenantId
 }
-entity "EndOfServiceSettlements\nEndOfServiceSettlement" as T14 {
+entity "EndOfServiceSettlements\nEndOfServiceSettlement" as T19 {
   * Id
     EmployeeId
     SeparationRecordId
     TenantId
 }
-entity "OfficialHolidays\nOfficialHoliday" as T15 {
+entity "FraudAlerts\nFraudAlert" as T20 {
+  * Id
+    EmployeeId
+    OwnerId
+    PaymentHoldId
+    PayrollRunId
+    RuleId
+    TenantId
+}
+entity "FundingDecisions\nFundingDecision" as T21 {
+  * Id
+    PayrollRunId
+    PriorityRuleSetId
+    TenantId
+}
+entity "LegalAttestations\nLegalAttestation" as T22 {
   * Id
     PayrollConfigurationId
     TenantId
 }
-entity "PayGrades\nPayGrade" as T16 {
+entity "LegalDecisionRecords\nLegalDecisionRecord" as T23 {
+  * Id
+    DecisionId
+    RuleId
+    TenantId
+}
+entity "OfficialHolidays\nOfficialHoliday" as T24 {
+  * Id
+    PayrollConfigurationId
+    TenantId
+}
+entity "PayGrades\nPayGrade" as T25 {
   * Id
     SalaryScaleId
     TenantId
 }
-entity "PaymentBatches\nPaymentBatch" as T17 {
+entity "PaymentBatches\nPaymentBatch" as T26 {
   * Id
+    FundingDecisionId
+    PayrollRunId
+    ReversesBatchId
+    TenantId
+}
+entity "PaymentHolds\nPaymentHold" as T27 {
+  * Id
+    EmployeeId
+    EvidenceRecordId
+    FraudAlertId
     PayrollRunId
     TenantId
 }
-entity "PayrollAdjustments\nPayrollAdjustment" as T18 {
+entity "PaymentOrders\nPaymentOrder" as T28 {
+  * Id
+    EmployeeId
+    PaymentBatchId
+    PayrollRunId
+    SalaryLineId
+    TenantId
+}
+entity "PayrollAdjustments\nPayrollAdjustment" as T29 {
   * Id
     EmployeeId
     PayrollRunId
     TenantId
 }
-entity "PayrollAuditRecords\nPayrollAuditRecord" as T19 {
+entity "PayrollAuditRecords\nPayrollAuditRecord" as T30 {
   * Id
     AuditorId
     PayrollRunId
     TenantId
 }
-entity "PayrollConfigurations\nPayrollConfiguration" as T20 {
+entity "PayrollConfigChangeNotices\nPayrollConfigChangeNotice" as T31 {
   * Id
+    PayrollConfigurationId
+    SupersedesConfigurationId
     TenantId
 }
-entity "PayrollRuns\nPayrollRun" as T21 {
+entity "PayrollConfigurations\nPayrollConfiguration" as T32 {
   * Id
+    SupersedesConfigurationId
+    TenantId
+}
+entity "PayrollRuns\nPayrollRun" as T33 {
+  * Id
+    PayrollConfigurationId
     SourceRunId
     TenantId
 }
-entity "PayrollRunApprovals\nPayrollRunApproval" as T22 {
+entity "PayrollRunApprovals\nPayrollRunApproval" as T34 {
   * Id
     ApproverId
     PayrollRunId
     TenantId
 }
-entity "PayslipDeliveries\nPayslipDelivery" as T23 {
+entity "PayrollRunInputSnapshots\nPayrollRunInputSnapshot" as T35 {
+  * Id
+    EmployeeId
+    EmployeePayProfileId
+    PayrollConfigurationId
+    PayrollRunJobId
+    TenantId
+}
+entity "PayrollRunJobs\nPayrollRunJob" as T36 {
+  * Id
+    PayrollRunId
+    TenantId
+}
+entity "PayrollRunPartitions\nPayrollRunPartition" as T37 {
+  * Id
+    CursorEmployeeId
+    PayrollRunJobId
+    TenantId
+    WorkerId
+}
+entity "PayslipDeliveries\nPayslipDelivery" as T38 {
   * Id
     SalaryLineId
     TenantId
 }
-entity "SalaryLines\nSalaryLine" as T24 {
+entity "ProofOfLifeRecords\nProofOfLifeRecord" as T39 {
+  * Id
+    EmployeeId
+    TenantId
+}
+entity "SalaryLines\nSalaryLine" as T40 {
   * Id
     EmployeeId
     PayrollRunId
     TenantId
 }
-entity "SalaryLineComponents\nSalaryLineComponent" as T25 {
+entity "SalaryLineComponents\nSalaryLineComponent" as T41 {
   * Id
     ReferenceId
     SalaryLineId
     TenantId
 }
-entity "SalaryScales\nSalaryScale" as T26 {
+entity "SalaryScales\nSalaryScale" as T42 {
   * Id
     TenantId
 }
-entity "TaxBrackets\nTaxBracket" as T27 {
+entity "TaxBrackets\nTaxBracket" as T43 {
   * Id
     PayrollConfigurationId
     TenantId
 }
 
-T08 }o--|| T09 : AllowanceTypeId
-T10 }o--|| T21 : AppliedInRunId
-T12 }o--|| T16 : PayGradeId
-T13 }o--|| T12 : SourceProfileId
-T15 }o--|| T20 : PayrollConfigurationId
-T16 }o--|| T26 : SalaryScaleId
-T17 }o--|| T21 : PayrollRunId
-T18 }o--|| T21 : PayrollRunId
-T19 }o--|| T21 : PayrollRunId
-T22 }o--|| T21 : PayrollRunId
-T23 }o--|| T24 : SalaryLineId
-T24 }o--|| T21 : PayrollRunId
-T25 }o--|| T24 : SalaryLineId
-T27 }o--|| T20 : PayrollConfigurationId
+T10 }o--|| T13 : AllowanceTypeId
+T14 }o--|| T33 : AppliedInRunId
+T17 }o--|| T25 : PayGradeId
+T18 }o--|| T17 : SourceProfileId
+T21 }o--|| T33 : PayrollRunId
+T22 }o--|| T32 : PayrollConfigurationId
+T24 }o--|| T32 : PayrollConfigurationId
+T25 }o--|| T42 : SalaryScaleId
+T26 }o--|| T21 : FundingDecisionId
+T26 }o--|| T33 : PayrollRunId
+T29 }o--|| T33 : PayrollRunId
+T30 }o--|| T33 : PayrollRunId
+T31 }o--|| T32 : PayrollConfigurationId
+T33 }o--|| T32 : PayrollConfigurationId
+T34 }o--|| T33 : PayrollRunId
+T35 }o--|| T36 : PayrollRunJobId
+T36 }o--|| T33 : PayrollRunId
+T37 }o--|| T36 : PayrollRunJobId
+T38 }o--|| T40 : SalaryLineId
+T40 }o--|| T33 : PayrollRunId
+T41 }o--|| T40 : SalaryLineId
+T43 }o--|| T32 : PayrollConfigurationId
 
 note bottom
 الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.

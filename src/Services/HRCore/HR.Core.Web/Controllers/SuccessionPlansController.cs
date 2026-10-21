@@ -19,13 +19,22 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
             await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.SuccessionPlans.AsNoTracking()
+    public async Task<IActionResult> Index(Guid? keyPositionId, int? year)
+    {
+        var query = db.SuccessionPlans.AsNoTracking()
             .Include(p => p.KeyPosition)
             .Include(p => p.Candidates)
-            .OrderByDescending(p => p.Year)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync());
+            .AsQueryable();
+        if (keyPositionId is Guid kpid)
+            query = query.Where(p => p.KeyPositionId == kpid);
+        if (year is int y)
+            query = query.Where(p => p.Year == y);
+
+        var items = await query.OrderByDescending(p => p.Year).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.KeyPositions = new SelectList(
+            await db.KeyPositions.AsNoTracking().OrderBy(k => k.Title).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Title", keyPositionId);
+        return View(new SuccessionPlansIndexViewModel { Items = items, KeyPositionId = keyPositionId, Year = year });
+    }
 
     public async Task<IActionResult> Create()
     {

@@ -1,11 +1,30 @@
 @using HR.Core.Domain.Enums
 @model HR.Core.Domain.Entities.PublicJobPosting
 @{ ViewData["Title"] = "تفاصيل الإعلان وطلبات المواطنين"; }
+@if (Model.RequisitionId.HasValue)
+{
+    <div class="alert alert-info">
+        إعلان مشتق من طلب شاغر
+        @if (Model.Requisition is not null)
+        {
+            <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@Model.RequisitionId">@Model.Requisition.RequisitionNumber</a>
+            <span class="badge bg-secondary ms-2">@Model.Requisition.Status</span>
+        }
+        — الحقول الأساسية للإعلان للقراءة فقط.
+    </div>
+}
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0">@Model.Title</h3>
         <div>
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">تعديل</a>
+            @if (!Model.RequisitionId.HasValue)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">تعديل</a>
+            }
+            @if (Model.RequisitionId is Guid reqId)
+            {
+                <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@reqId" class="btn btn-outline-primary btn-sm">طلب الشاغر</a>
+            }
             <a asp-action="Index" class="btn btn-link">رجوع</a>
         </div>
     </div>
@@ -23,29 +42,71 @@
     <div class="card-header"><h5 class="mb-0">طلبات المواطنين (@Model.Applications.Count)</h5></div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
-            <thead><tr><th>الرقم المرجعي</th><th>الاسم</th><th>الرقم الوطني</th><th>الهاتف</th><th>التاريخ</th><th>الحالة</th><th>تغيير</th></tr></thead>
+            <thead><tr><th>الرقم المرجعي</th><th>الاسم</th><th>طلب الشاغر</th><th>الرقم الوطني</th><th>الهاتف</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th></tr></thead>
             <tbody>
                 @foreach (var a in Model.Applications.OrderByDescending(a => a.SubmittedAt))
                 {
                     <tr>
                         <td>@a.ReferenceNumber</td>
                         <td>@a.FullName</td>
+                        <td>
+                            @if (a.RequisitionId is Guid citizenReqId)
+                            {
+                                <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@citizenReqId">@(a.Requisition?.RequisitionNumber ?? "—")</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">قديم</span>
+                            }
+                        </td>
                         <td>@a.NationalId</td>
                         <td>@(a.Phone ?? "—")</td>
                         <td>@a.SubmittedAt.ToString("yyyy-MM-dd")</td>
                         <td>@Html.DisplayFor(_ => a.Status)</td>
                         <td>
-                            <form asp-action="ChangeApplicationStatus" method="post" class="d-flex gap-1">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@a.Id" />
-                                <input type="hidden" name="postingId" value="@Model.Id" />
-                                <select name="status" asp-items="Html.GetEnumSelectList<CitizenApplicationStatus>()" class="form-control form-control-sm"></select>
-                                <button type="submit" class="btn btn-outline-primary btn-sm">تحديث</button>
-                            </form>
+                            <div class="d-flex flex-column gap-1">
+                                @if (a.RequisitionId.HasValue && !a.ConflictOfInterestDeclared)
+                                {
+                                    <form asp-action="DeclareCitizenCoi" method="post" class="d-flex align-items-center gap-1 mb-1">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@a.Id" />
+                                        <input type="hidden" name="postingId" value="@Model.Id" />
+                                        <div class="form-check form-check-inline mb-0">
+                                            <input class="form-check-input" type="checkbox" id="coi_@a.Id" required />
+                                            <label class="form-check-label small" for="coi_@a.Id">إقرار COI</label>
+                                        </div>
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">تسجيل</button>
+                                    </form>
+                                }
+                                else if (a.RequisitionId.HasValue && a.ConflictOfInterestDeclared)
+                                {
+                                    <span class="badge bg-success small">COI ✓</span>
+                                }
+                                <form asp-action="ChangeApplicationStatus" method="post" class="d-flex gap-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@a.Id" />
+                                    <input type="hidden" name="postingId" value="@Model.Id" />
+                                    <select name="status" asp-items="Html.GetEnumSelectList<CitizenApplicationStatus>()" class="form-control form-control-sm"></select>
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">تحديث</button>
+                                </form>
+                                @if (a.RequisitionId.HasValue && a.PromotedRecruitmentApplicationId is null
+                                     && a.Status is CitizenApplicationStatus.UnderReview or CitizenApplicationStatus.Shortlisted)
+                                {
+                                    <form asp-controller="RecruitmentApplications" asp-action="PromoteFromCitizen" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="citizenApplicationId" value="@a.Id" />
+                                        <button type="submit" class="btn btn-outline-success btn-sm">إضافة للمسار الداخلي</button>
+                                    </form>
+                                }
+                                else if (a.PromotedRecruitmentApplicationId is Guid promotedId)
+                                {
+                                    <a asp-controller="RecruitmentApplications" asp-action="Index" class="btn btn-link btn-sm p-0">محوّل — عرض المسار الداخلي</a>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }
-                @if (!Model.Applications.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا طلبات</td></tr> }
+                @if (!Model.Applications.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا طلبات</td></tr> }
             </tbody>
         </table>
     </div>

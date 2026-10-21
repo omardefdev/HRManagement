@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "خريطة ERD المختصرة لقاعدة file_storage_db\nFile.Storage"
+title "خريطة ERD المختصرة لقاعدة filestorage_db\nFile.Storage"
 
 entity "FileAccessAuditLogs\nFileAccessAuditLog" as T01 {
   * Id
@@ -18,23 +18,59 @@ entity "FileAccessAuditLogs\nFileAccessAuditLog" as T01 {
     TenantId
     UserId
 }
-entity "Files\nFileRecord" as T02 {
-  * Id
-    TenantId
-}
-entity "FileReferences\nFileReferenceRecord" as T03 {
+entity "FilePurgeWorkItems\nFilePurgeWorkItem" as T02 {
   * Id
     FileId
     TenantId
 }
-entity "AuditLogs\nEntityAuditLog" as T04 {
+entity "FileReconcileExceptions\nFileReconcileException" as T03 {
+  * Id
+    FileId
+    TenantId
+}
+entity "Files\nFileRecord" as T04 {
+  * Id
+    TenantId
+}
+entity "FileReferences\nFileReferenceRecord" as T05 {
+  * Id
+    FileId
+    TenantId
+}
+entity "FileScanResults\nFileScanResult" as T06 {
+  * Id
+    FileId
+    TenantId
+}
+entity "FileScanWorkItems\nFileScanWorkItem" as T07 {
+  * Id
+    FileId
+    TenantId
+}
+entity "FileReferenceOutbox\nFileReferenceOutboxMessage" as T08 {
+  * Id
+    FileId
+    TenantId
+}
+entity "IdempotencyRecords\nIdempotencyRecord" as T09 {
+  * Id
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T10 {
   * Id
     EntityId
     TenantId
     UserId
 }
+entity "FileAccessGrants\nFileAccessGrant" as T11 {
+  * Id
+    FileId
+    GranteeId
+    HolderId
+    TenantId
+}
 
-T03 }o--|| T02 : FileId
+T05 }o--|| T04 : FileId
 
 note bottom
 الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.

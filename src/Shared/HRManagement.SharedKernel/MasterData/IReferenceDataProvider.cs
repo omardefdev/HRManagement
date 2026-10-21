@@ -12,4 +12,11 @@ public interface IReferenceDataProvider
     /// following the <see cref="ReferenceCatalogEntry.ReplacedByCode"/> chain.
     /// </summary>
     Task<ReferenceCatalogEntry?> ResolveEffectiveAsync(CatalogKind kind, string code, DateTime asOfDate, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ReferenceCatalogEntry>> SearchActiveAsync(
+        CatalogKind kind,
+        string? query,
+        int skip,
+        int take,
+        CancellationToken ct = default);
 }

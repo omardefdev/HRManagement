@@ -11,7 +11,19 @@
 
         <table class="table table-borderless table-sm w-auto">
             <tr><th>السنة</th><td>@Model.Year</td></tr>
-            <tr><th>الوحدة التنظيمية</th><td>@(Model.OrgUnitId?.ToString() ?? "عام")</td></tr>
+            <tr>
+                <th>الوحدة التنظيمية</th>
+                <td>
+                    @if (Model.OrgUnitId.HasValue)
+                    {
+                        <span data-hr-org-unit-id="@Model.OrgUnitId">جاري التحميل...</span>
+                    }
+                    else
+                    {
+                        <span>عام</span>
+                    }
+                </td>
+            </tr>
             <tr><th>معتمدة؟</th><td>@(Model.ApprovedAt != null ? $"نعم — {Model.ApprovedAt:yyyy/MM/dd}" : "لا")</td></tr>
         </table>
 

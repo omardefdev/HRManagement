@@ -23,7 +23,7 @@
             <dt class="col-sm-3">الوحدة المسؤولة</dt>
             <dd class="col-sm-9">@(Model.ResponsibleUnitId?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">الحالة</dt>
-            <dd class="col-sm-9"><span class="badge text-bg-info">@Model.Status</span></dd>
+            <dd class="col-sm-9"><span class="badge text-bg-info">@Html.HrEnumDisplay(Model.Status)</span></dd>
         </dl>
     </div>
 </div>

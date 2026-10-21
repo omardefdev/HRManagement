@@ -21,6 +21,7 @@ using Payroll.Infrastructure.Integration;
 using Payroll.Infrastructure.Repositories;
 using Payroll.Web.Controllers;
 using System.Security.Claims;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace HRManagement.IntegrationTests;
 
@@ -120,7 +121,10 @@ public class PayrollRunLifecycleIntegrationTests
         db.PayrollRuns.Add(run);
         await db.SaveChangesAsync();
 
-        var controller = new PayrollRunsController(db, Mock.Of<IMediator>());
+        var controller = new PayrollRunsController(
+            db,
+            Mock.Of<IMediator>(),
+            Mock.Of<IHrCoreLookupClient>());
         var line = new SalaryLine
         {
             PayrollRunId = run.Id,

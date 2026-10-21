@@ -2,6 +2,8 @@ using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Application.Models;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.SharedKernel.ViewModels;
@@ -32,7 +34,10 @@ public class GetProbationRecordByIdHandler(IContractsRepository repository) : IR
         repository.ProbationRecords.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 }
 
-public class CreateProbationRecordHandler(IContractsRepository repository, IEventPublisher eventPublisher) : IRequestHandler<CreateProbationRecordCommand, Guid>
+public class CreateProbationRecordHandler(
+    IContractsRepository repository,
+    IEventPublisher eventPublisher,
+    ICodeGenerationClient codeClient) : IRequestHandler<CreateProbationRecordCommand, Guid>
 {
     public async Task<Guid> Handle(CreateProbationRecordCommand request, CancellationToken cancellationToken)
     {
@@ -55,6 +60,7 @@ public class CreateProbationRecordHandler(IContractsRepository repository, IEven
             TransactionType = ServiceTransactionType.Confirmation,
             Notes = "تسجيل نتيجة فترة التجربة"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
         await repository.AddAsync(transaction, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         await eventPublisher.PublishConfirmationApprovedAsync(

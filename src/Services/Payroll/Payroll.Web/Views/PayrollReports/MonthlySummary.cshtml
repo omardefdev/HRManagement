@@ -28,7 +28,7 @@
                             {
                                 <tr>
                                     <td>@r.RunDate.ToString("yyyy/MM/dd")</td>
-                                    <td>@r.Status</td>
+                                    <td>@Html.HrEnumDisplay(r.Status)</td>
                                     <td>@r.TotalNetPay.ToString("N2")</td>
                                     <td>
                                         <a asp-action="PayrollRegister" asp-route-payrollRunId="@r.Id" class="btn btn-success btn-xs" aria-label="ملف"><i aria-hidden="true" class="fas fa-file-excel"></i></a>

@@ -8,7 +8,7 @@
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
-            <div class="mb-3"><label asp-for="LeaveType" class="form-label"></label><select asp-for="LeaveType" class="form-control" asp-items="Html.GetEnumSelectList<LeaveType>()"></select></div>
+            <div class="mb-3"><label asp-for="LeaveType" class="form-label"></label><select asp-for="LeaveType" class="form-control" asp-items="Html.HrEnumSelectList<LeaveType>()"></select></div>
             <div class="row">
                 <div class="col-md-4 mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /></div>
                 <div class="col-md-4 mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /></div>
@@ -16,7 +16,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">الحالة</label>
-                <input class="form-control" value="@Model.Status" disabled />
+                <input class="form-control" value="@EnumDisplayExtensions.GetDisplayName(Model.Status)" disabled />
                 <div class="form-text">تتغيّر الحالة عبر إجراء الموافقة أو الرفض فقط.</div>
             </div>
             <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>

@@ -1,6 +1,67 @@
-@model IReadOnlyList<Admin.Logistics.Domain.Entities.Vendor>
+@model Admin.Logistics.Web.ViewModels.VendorIndexViewModel
 @{ ViewData["Title"] = "الموردون"; }
-<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">الموردون</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
-<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الاسم</th><th>الاتصال</th><th>الدولة</th><th></th></tr></thead><tbody>
-@foreach (var x in Model){<tr><td>@x.Name</td><td>@x.ContactInfo</td><td>@x.Country</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
-@if(!Model.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            <div class="col-md-4">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="اسم أو اتصال أو دولة..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الدولة</label>
+                <select name="country" class="form-select" data-hr-picker="select" data-placeholder="— الكل —" asp-items="ViewBag.Countries">
+                    <option value="">— الكل —</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input type="checkbox" name="hasContactOnly" value="true" class="form-check-input" id="hasContactOnly" @(Model.HasContactOnly ? "checked" : null) />
+                    <label class="form-check-label" for="hasContactOnly">لديه معلومات اتصال</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="missingContactOnly" value="true" class="form-check-input" id="missingContactOnly" @(Model.MissingContactOnly ? "checked" : null) />
+                    <label class="form-check-label" for="missingContactOnly">بدون معلومات اتصال</label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الموردون</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الاتصال</th>
+                    <th>الدولة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model.Items.Items)
+                {
+                    <tr>
+                        <td>@x.Name</td>
+                        <td>@(string.IsNullOrWhiteSpace(x.ContactInfo) ? "—" : x.ContactInfo)</td>
+                        <td>@(x.Country ?? "—")</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Items.Items.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-4">لا توجد</td></tr>
+                }
+            </tbody>
+        </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
+    </div>
+</div>

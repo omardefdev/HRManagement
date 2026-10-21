@@ -1,7 +1,7 @@
 @model LoanRecord
 @{ ViewData["Title"] = "تفاصيل الإعارة"; }
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">إعارة</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">إعارة</h3><span class="badge bg-secondary">@Html.HrEnumDisplay(Model.Status)</span></div>
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">عنصر الأرشيف</dt><dd class="col-sm-9">@Model.ArchiveItem?.Title</dd>

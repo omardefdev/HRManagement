@@ -3,6 +3,7 @@ using File.Storage.Domain.Entities;
 using File.Storage.Domain.Enums;
 using File.Storage.Infrastructure.Data;
 using HRManagement.FileStorage;
+using HRManagement.ServiceDefaults;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -581,6 +582,7 @@ public sealed class FilePlatformService(
     {
         var now = DateTime.UtcNow;
         var items = await db.FileScanWorkItems
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.BackgroundQueueProcessing)
             .Where(x => x.Status == FileScanWorkItemStatus.Pending && x.NextAttemptAt <= now)
             .OrderBy(x => x.NextAttemptAt)
             .Take(batchSize)
@@ -589,7 +591,10 @@ public sealed class FilePlatformService(
         var completed = 0;
         foreach (var item in items)
         {
-            var file = await db.Files.FirstOrDefaultAsync(x => x.Id == item.FileId, cancellationToken);
+            FileReference? obsoleteReference = null;
+            var file = await db.Files
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.BackgroundQueueProcessing)
+                .FirstOrDefaultAsync(x => x.Id == item.FileId, cancellationToken);
             if (file is null || file.IsDeleted)
             {
                 item.Status = FileScanWorkItemStatus.Succeeded;
@@ -681,8 +686,7 @@ public sealed class FilePlatformService(
                     if (!string.Equals(oldRef.Bucket, promoted.Bucket, StringComparison.Ordinal)
                         || !string.Equals(oldRef.ObjectKey, promoted.ObjectKey, StringComparison.Ordinal))
                     {
-                        try { await storage.DeleteAsync(oldRef, cancellationToken); }
-                        catch { /* best-effort quarantine cleanup */ }
+                        obsoleteReference = oldRef;
                     }
                 }
 
@@ -693,6 +697,7 @@ public sealed class FilePlatformService(
             }
             catch (Exception ex)
             {
+                obsoleteReference = null;
                 item.Attempt++;
                 item.LastError = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
                 if (item.Attempt >= MaxScanAttempts)
@@ -720,6 +725,14 @@ public sealed class FilePlatformService(
             }
 
             await db.SaveChangesAsync(cancellationToken);
+
+            // The database is the source of truth for the object's current location. Delete the
+            // obsolete quarantine copy only after that location has been committed successfully.
+            if (obsoleteReference is not null)
+            {
+                try { await storage.DeleteAsync(obsoleteReference, cancellationToken); }
+                catch { /* best-effort quarantine cleanup */ }
+            }
         }
 
         return completed;

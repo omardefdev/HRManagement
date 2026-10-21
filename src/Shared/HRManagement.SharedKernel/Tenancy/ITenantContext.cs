@@ -11,6 +11,9 @@ public interface ITenantContext
     /// <summary>True when the caller holds the platform-admin role (cross-tenant, audited).</summary>
     bool IsPlatformOperator { get; }
 
+    /// <summary>True when platform-admin has an active audited enter-tenant session.</summary>
+    bool IsPlatformImpersonating => IsPlatformOperator && TenantId.HasValue;
+
     /// <summary>Returns <see cref="TenantId"/> or throws when tenant context is required.</summary>
     Guid RequireTenantId();
 }

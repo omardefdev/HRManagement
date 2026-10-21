@@ -18,6 +18,9 @@ public class DsarRequest : AuditableEntity
     [Display(Name = "معرّف الموظف")]
     public Guid? SubjectEmployeeId { get; set; }
 
+    [Display(Name = "طلب المواطن")]
+    public Guid? SubjectCitizenApplicationId { get; set; }
+
     /// <summary>SHA-256 hex of national ID when employee id is unknown (never store raw).</summary>
     [Display(Name = "تجزئة الرقم الوطني")]
     [StringLength(64)]

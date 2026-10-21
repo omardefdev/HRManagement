@@ -31,6 +31,11 @@ public class PayrollRepository(PayrollDbContext db) : IPayrollRepository
     public IQueryable<PayrollRunPartition> PayrollRunPartitions => db.PayrollRunPartitions;
     public IQueryable<PayrollRunInputSnapshot> PayrollRunInputSnapshots => db.PayrollRunInputSnapshots;
     public IQueryable<PaymentBatch> PaymentBatches => db.PaymentBatches;
+    public IQueryable<PaymentOrder> PaymentOrders => db.PaymentOrders;
+    public IQueryable<FundingDecision> FundingDecisions => db.FundingDecisions;
+    public IQueryable<DisbursementPriorityRule> DisbursementPriorityRules => db.DisbursementPriorityRules;
+    public IQueryable<FraudAlert> FraudAlerts => db.FraudAlerts;
+    public IQueryable<PaymentHold> PaymentHolds => db.PaymentHolds;
 
     public Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct)
     {
@@ -46,6 +51,14 @@ public class PayrollRepository(PayrollDbContext db) : IPayrollRepository
             .Include(c => c.TaxBrackets)
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.IsActive
+                && c.PublicationStatus == PayrollConfigPublicationStatus.Published, ct);
+
+    public Task<PayrollConfiguration?> GetConfigurationByRegimeCodeAsync(string regimeCode, CancellationToken ct) =>
+        db.PayrollConfigurations
+            .Include(c => c.TaxBrackets)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c =>
+                (c.RegimeCode == regimeCode || c.Code == regimeCode)
                 && c.PublicationStatus == PayrollConfigPublicationStatus.Published, ct);
 
     public async Task<PayrollConfiguration?> GetPublishedConfigurationForPeriodAsync(

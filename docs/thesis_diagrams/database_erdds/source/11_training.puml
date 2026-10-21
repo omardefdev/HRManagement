@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة hr_training_db\nHR.Training / TrainingDbContext"
+title "ERD الكامل لقاعدة training_db\nHR.Training / TrainingDbContext"
 
 entity "CourseModules\nCourseModule" as T01 {
   * Id : uuid
@@ -47,55 +47,91 @@ entity "QualificationCodes\nQualificationCode" as T07 {
   * Id : uuid
     TenantId : uuid
 }
-entity "TrainingCourses\nTrainingCourse" as T08 {
+entity "TrainingChecklists\nTrainingChecklist" as T08 {
+  * Id : uuid
+    EnrollmentId : uuid
+    TenantId : uuid
+}
+entity "TrainingCourses\nTrainingCourse" as T09 {
   * Id : uuid
     ProviderId : uuid
     TenantId : uuid
 }
-entity "TrainingEnrollments\nTrainingEnrollment" as T09 {
+entity "TrainingEnrollments\nTrainingEnrollment" as T10 {
   * Id : uuid
     CertificateFileId : uuid
     CourseId : uuid
     EmployeeId : uuid
     TenantId : uuid
 }
-entity "TrainingNominations\nTrainingNomination" as T10 {
+entity "TrainingNominations\nTrainingNomination" as T11 {
   * Id : uuid
     CourseId : uuid
     EmployeeId : uuid
     TenantId : uuid
     TrainingPlanId : uuid
 }
-entity "TrainingPlans\nTrainingPlan" as T11 {
+entity "TrainingPlans\nTrainingPlan" as T12 {
   * Id : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "TrainingProviders\nTrainingProvider" as T12 {
+entity "TrainingProviders\nTrainingProvider" as T13 {
   * Id : uuid
     TenantId : uuid
 }
-entity "TrainingResults\nTrainingResult" as T13 {
+entity "TrainingResults\nTrainingResult" as T14 {
   * Id : uuid
     EnrollmentId : uuid
     TenantId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T14 {
+entity "EmployeeOrgUnitSnapshots\nEmployeeOrgUnitSnapshot" as T15 {
+  * EmployeeId : uuid
+    PrimaryOrgUnitId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T16 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T17 {
+  * Id : uuid
+    ParentId : uuid
+    TenantId : uuid
+}
+entity "InboxState\nInboxState" as T18 {
+  * Id : bigint
+    ConsumerId : uuid
+    LockId : uuid
+    MessageId : uuid
+}
+entity "OutboxMessage\nOutboxMessage" as T19 {
+  * SequenceNumber : bigint
+    ConversationId : uuid
+    CorrelationId : uuid
+    InboxConsumerId : uuid
+    InboxMessageId : uuid
+    InitiatorId : uuid
+    MessageId : uuid
+    OutboxId : uuid
+    RequestId : uuid
+}
+entity "OutboxState\nOutboxState" as T20 {
+  * OutboxId : uuid
+    LockId : uuid
 }
 
 T01 }o--|| T02 : ELearningCourseId
 T03 }o--|| T04 : HR.Training.Domain.Entities.LearningCertificate, LearningEnrollmentId
 T04 }o--|| T02 : ELearningCourseId
 T05 }o--|| T01 : CourseModuleId
-T08 }o--|| T12 : ProviderId
-T09 }o--|| T08 : CourseId
-T10 }o--|| T08 : CourseId
-T10 }o--|| T11 : TrainingPlanId
-T13 }o--|| T09 : HR.Training.Domain.Entities.TrainingResult, EnrollmentId
+T09 }o--|| T13 : ProviderId
+T10 }o--|| T09 : CourseId
+T11 }o--|| T09 : CourseId
+T11 }o--|| T12 : TrainingPlanId
+T14 }o--|| T10 : HR.Training.Domain.Entities.TrainingResult, EnrollmentId
 
 note bottom
 يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.

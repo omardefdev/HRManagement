@@ -18,8 +18,24 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
             await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.KeyPositions.AsNoTracking().Include(k => k.OrgUnit).OrderByDescending(k => k.Criticality).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? orgUnitId, string? q, int? minCriticality)
+    {
+        var query = db.KeyPositions.AsNoTracking().Include(k => k.OrgUnit).AsQueryable();
+        if (orgUnitId is Guid ou)
+            query = query.Where(k => k.OrgUnitId == ou);
+        if (minCriticality is int mc)
+            query = query.Where(k => k.Criticality >= mc);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(k => k.Title.Contains(term) || (k.Notes != null && k.Notes.Contains(term)));
+        }
+
+        var items = await query.OrderByDescending(k => k.Criticality).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.OrgUnits = new SelectList(
+            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+        return View(new KeyPositionsIndexViewModel { Items = items, OrgUnitId = orgUnitId, Q = q, MinCriticality = minCriticality });
+    }
 
     public async Task<IActionResult> Create()
     {

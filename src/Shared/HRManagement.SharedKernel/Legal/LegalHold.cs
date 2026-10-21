@@ -5,7 +5,9 @@ namespace HRManagement.SharedKernel.Legal;
 /// <summary>LEG-001: legal hold status.</summary>
 public enum LegalHoldStatus
 {
+    [Display(Name = "نشط")]
     Active = 0,
+    [Display(Name = "مُرفَع")]
     Released = 1
 }
 

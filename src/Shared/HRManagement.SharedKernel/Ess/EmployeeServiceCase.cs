@@ -49,26 +49,44 @@ public class EmployeeServiceCase : BaseEntity
 
 public enum ServiceCaseType
 {
+    [Display(Name = "تصحيح ملف")]
     ProfileCorrection = 0,
+    [Display(Name = "طلب إجازة")]
     LeaveRequest = 1,
+    [Display(Name = "طلب سلفة")]
     AdvanceRequest = 2,
+    [Display(Name = "طلب مستند")]
     DocumentRequest = 3,
+    [Display(Name = "استفسار قسيمة")]
     PayslipQuery = 4,
+    [Display(Name = "استفسار مزايا")]
     BenefitEnquiry = 5,
+    [Display(Name = "التحاق تعليمي")]
     LearningEnrollment = 6,
+    [Display(Name = "بدل بطاقة")]
     CardReplacement = 7,
+    [Display(Name = "استفسار عام")]
     GeneralInquiry = 8,
+    [Display(Name = "أخرى")]
     Other = 99
 }
 
 public enum ServiceCaseStatus
 {
+    [Display(Name = "مُرسَل")]
     Submitted = 0,
+    [Display(Name = "مُقرّ")]
     Acknowledged = 1,
+    [Display(Name = "قيد التنفيذ")]
     InProgress = 2,
+    [Display(Name = "بانتظار الاعتماد")]
     PendingApproval = 3,
+    [Display(Name = "محلول")]
     Resolved = 4,
+    [Display(Name = "مغلق")]
     Closed = 5,
+    [Display(Name = "منسحب")]
     Withdrawn = 6,
+    [Display(Name = "مرفوض")]
     Rejected = 7
 }

@@ -112,4 +112,15 @@ public class GatewayRoutingConfigurationTests
         var catalog = new GatewayModuleCatalog(config);
         Assert.Equal(14, catalog.Modules.Count);
     }
+
+    [Fact]
+    public void Careers_public_route_allows_anonymous_access()
+    {
+        var config = LoadGatewayConfiguration();
+        var route = config.GetSection("ReverseProxy:Routes:careers-public");
+        Assert.True(route.Exists());
+        Assert.Equal("Anonymous", route["AuthorizationPolicy"]);
+        Assert.Equal("hr-core-cluster", route["ClusterId"]);
+        Assert.Contains("/careers/", route["Match:Path"] ?? string.Empty, StringComparison.Ordinal);
+    }
 }

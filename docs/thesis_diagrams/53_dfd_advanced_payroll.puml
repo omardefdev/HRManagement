@@ -1,0 +1,59 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title DFD للرواتب والتمويل والدفع والتسوية
+left to right direction
+actor "مشغل الرواتب" as Operator
+actor "المعتمد المالي" as Approver
+actor "الخزينة" as Treasury
+actor "المصرف أو قناة الدفع" as Bank
+actor "المدقق" as Auditor
+rectangle "1.0 حل إصدار القاعدة وتجميد المدخلات" as P1
+rectangle "2.0 الحساب المقسم ونقاط التحقق" as P2
+rectangle "3.0 التحقق والاعتماد والترحيل" as P3
+rectangle "4.0 قرار التمويل والصرف الجزئي" as P4
+rectangle "5.0 أوامر الدفع والإرسال" as P5
+rectangle "6.0 التسوية والمتأخرات والحجوزات" as P6
+database "D1 الإعدادات واللقطات" as D1
+database "D2 المهام والأقسام وأسطر الراتب" as D2
+database "D3 الدفعات والأوامر" as D3
+database "D4 المتأخرات وكشوف المصرف" as D4
+database "D5 تنبيهات الاحتيال وحجوزات الدفع" as D5
+Operator --> P1
+P1 --> D1
+P1 --> P2
+P2 --> D2
+Approver --> P3
+D2 --> P3
+P3 --> D3 : PaymentBatch Pending
+Treasury --> P4 : المبلغ وقواعد الأولوية
+P4 --> D4 : ArrearsLedger
+P4 --> P5
+P5 --> D3 : PaymentOrders
+P5 --> Bank : ملف أو API موقع
+Bank --> P6 : إقرار وكشف تسوية
+P6 --> D3
+P6 --> D4
+Auditor --> P6 : مراجعة أو حجز
+P6 --> D5
+@enduml

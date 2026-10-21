@@ -13,7 +13,7 @@ public static class HttpClientResilienceExtensions
         int circuitBreakFailures = 5,
         int circuitBreakSeconds = 30)
     {
-        var timeout = Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120)));
+        var timeout = global::Polly.Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120)));
 
         var breaker = HttpPolicyExtensions
             .HandleTransientHttpError()

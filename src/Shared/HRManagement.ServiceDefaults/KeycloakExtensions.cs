@@ -229,6 +229,15 @@ public static class KeycloakExtensions
         if (!string.IsNullOrWhiteSpace(apiAudience) && !audiences.Contains(apiAudience, StringComparer.Ordinal))
             audiences.Add(apiAudience);
 
+        // Modules behind the gateway receive the interactive OIDC access token minted for
+        // hr-gateway-client and must accept that audience alongside their api-* resource audience.
+        if (configuration.GetValue("HrAuth:BehindGateway", false))
+        {
+            const string gatewayAudience = "hr-gateway-client";
+            if (!audiences.Contains(gatewayAudience, StringComparer.Ordinal))
+                audiences.Add(gatewayAudience);
+        }
+
         return audiences.Count > 0 ? audiences : null;
     }
 }

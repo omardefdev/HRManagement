@@ -1,0 +1,149 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.ServiceRegimeException>
+@using HR.Core.Domain.Entities
+@{
+    ViewData["Title"] = "استثناءات نظام الخدمة";
+    var legalLabels = ViewBag.LegalSourceLabels as IDictionary<string, string> ?? new Dictionary<string, string>();
+    var regimeOptions = ViewBag.RegimeOptions as SelectList ?? new SelectList(Enumerable.Empty<object>());
+    var legalDecisionOptions = ViewBag.LegalDecisionOptions as SelectList ?? new SelectList(Enumerable.Empty<object>());
+    var filter = ViewBag.Filter as ServiceRegimeExceptionType?;
+}
+
+<div class="card mb-3">
+    <div class="card-body d-flex flex-wrap gap-2">
+        <a asp-action="Index" class="btn btn-sm @(filter is null ? "btn-primary" : "btn-outline-primary")">الكل</a>
+        <a asp-action="Index" asp-route-filter="@ServiceRegimeExceptionType.Article159Conflict" class="btn btn-sm @(filter == ServiceRegimeExceptionType.Article159Conflict ? "btn-primary" : "btn-outline-primary")">المادة 159</a>
+        <a asp-action="Index" asp-route-filter="@ServiceRegimeExceptionType.UnclassifiedRegime" class="btn btn-sm @(filter == ServiceRegimeExceptionType.UnclassifiedRegime ? "btn-primary" : "btn-outline-primary")">غير مصنّف</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> استثناءات نظام الخدمة المفتوحة</h3>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>الموظف</th>
+                    <th>النوع</th>
+                    <th>المصدر</th>
+                    <th>المرجع القانوني</th>
+                    <th>السبب</th>
+                    <th>التاريخ</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var isArticle159 = item.ExceptionType == ServiceRegimeExceptionType.Article159Conflict;
+                    <tr>
+                        <td>@(item.Employee?.FullName ?? item.EmployeeId.ToString())</td>
+                        <td>@item.ExceptionType</td>
+                        <td>@item.SourceContext</td>
+                        <td>@(item.LegalSourceId is null ? "—" : (legalLabels.TryGetValue(item.LegalSourceId, out var label) ? label : item.LegalSourceId))</td>
+                        <td>@item.Reason</td>
+                        <td>@item.CreatedAt.ToString("yyyy/MM/dd")</td>
+                        <td>
+                            <button type="button" class="btn btn-primary btn-xs" data-bs-toggle="modal" data-bs-target="#resolveModal-@item.Id">
+                                حل
+                            </button>
+                        </td>
+                    </tr>
+
+                    <div class="modal fade" id="resolveModal-@item.Id" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                @if (isArticle159)
+                                {
+                                    <form asp-action="ResolveArticle159" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">حل المادة 159 — @(item.Employee?.FullName)</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            @if (!string.IsNullOrEmpty(item.ConflictingEntitlementsJson))
+                                            {
+                                                <div class="mb-2"><label class="form-label">التعارض المسجّل</label><pre class="small bg-light p-2">@item.ConflictingEntitlementsJson</pre></div>
+                                            }
+                                            <div class="mb-2">
+                                                <label class="form-label">قرار GOV-002</label>
+                                                <select name="legalDecisionId" class="form-select" asp-items="legalDecisionOptions" required></select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">نظام الخدمة (اختياري — لتطبيق انتقال)</label>
+                                                <select name="resolvedRegimeId" class="form-select" asp-items="regimeOptions"></select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">مرجع القرار/المرسوم (اختياري)</label>
+                                                <input name="transitionDecisionRef" class="form-control" />
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">ملاحظات المادة 159</label>
+                                                <textarea name="conflictNotes" class="form-control" rows="2"></textarea>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">ملاحظة الحل</label>
+                                                <textarea name="resolution" class="form-control" rows="2" required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary">حفظ</button>
+                                        </div>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="Resolve" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">حل استثناء — @(item.Employee?.FullName)</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-2">
+                                                <label class="form-label">نظام الخدمة</label>
+                                                <select name="resolvedRegimeId" class="form-select" asp-items="regimeOptions" required></select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">مرجع القرار/المرسوم</label>
+                                                <input name="transitionDecisionRef" class="form-control" required />
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">ساري من</label>
+                                                <input name="effectiveFrom" type="date" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required />
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">رمز الشرط (اختياري)</label>
+                                                <input name="conditionCode" class="form-control" placeholder="agency_reclassification" />
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">ملاحظات المادة 159 (اختياري)</label>
+                                                <textarea name="conflictNotes" class="form-control" rows="2"></textarea>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">ملاحظة الحل</label>
+                                                <textarea name="resolution" class="form-control" rows="2" required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary">حفظ</button>
+                                        </div>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد استثناءات مفتوحة</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+

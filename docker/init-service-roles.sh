@@ -93,6 +93,15 @@ revoke_cross_db() {
 
 echo "IAM-004: creating per-service PostgreSQL roles..."
 
+# PostgreSQL grants CONNECT to PUBLIC by default. Revoke that implicit grant so
+# each service can reach only the database explicitly granted below.
+for db in hr_core_db hr_contracts_db hr_health_db hr_movements_db hr_training_db \
+          payroll_db idcard_db archive_db admin_db it_infra_db analytics_db \
+          compliance_db auth_directory_db file_storage_db gateway_audit_db keycloak_db; do
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
+    -c "REVOKE CONNECT ON DATABASE $db FROM PUBLIC;"
+done
+
 create_service_roles hr_core hr_core_db \
   "$(pass_for "${POSTGRES_HR_CORE_APP_PASSWORD:-}")" \
   "$(pass_for "${POSTGRES_HR_CORE_MIGRATOR_PASSWORD:-}")"

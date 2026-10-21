@@ -11,45 +11,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
-public class WorkforcePlansController(HRCoreDbContext db) : Controller
-{
-    public async Task<IActionResult> Index() =>
-        View(await db.WorkforcePlans.AsNoTracking().Include(p => p.OrgUnit).OrderByDescending(x => x.FiscalYear).Take(SearchFilterBase.MaxPageSize).ToListAsync());
-
-    public async Task<IActionResult> Create()
-    {
-        ViewBag.OrgUnits = new SelectList(await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
-        var y = DateTime.UtcNow.Year;
-        return View(new WorkforcePlanCreateViewModel { FiscalYear = y });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(WorkforcePlanCreateViewModel vm)
-    {
-        if (!ModelState.IsValid)
-        {
-            ViewBag.OrgUnits = new SelectList(await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
-            return View(vm);
-        }
-        db.WorkforcePlans.Add(new WorkforcePlan
-        {
-            Title = vm.Title,
-            FiscalYear = vm.FiscalYear,
-            OrgUnitId = vm.OrgUnitId,
-            Summary = vm.Summary,
-            Status = "draft"
-        });
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم حفظ خطة القوى العاملة";
-        return RedirectToAction(nameof(Index));
-    }
-}
-
 public class HrStatisticReportsController(HRCoreDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.HrStatisticReports.AsNoTracking().Include(r => r.OrgUnit).OrderByDescending(x => x.PeriodEnd).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? orgUnitId, DateOnly? periodFrom, DateOnly? periodTo, string? q)
+    {
+        var query = db.HrStatisticReports.AsNoTracking().Include(r => r.OrgUnit).AsQueryable();
+        if (orgUnitId is Guid ou)
+            query = query.Where(r => r.OrgUnitId == ou);
+        if (periodFrom is DateOnly pf)
+            query = query.Where(r => r.PeriodEnd >= pf);
+        if (periodTo is DateOnly pt)
+            query = query.Where(r => r.PeriodStart <= pt);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(r =>
+                r.Title.Contains(term) ||
+                (r.MetricsSummary != null && r.MetricsSummary.Contains(term)));
+        }
+
+        var items = await query.OrderByDescending(x => x.PeriodEnd).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.OrgUnits = new SelectList(
+            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+        return View(new HrStatisticReportsIndexViewModel { Items = items, OrgUnitId = orgUnitId, PeriodFrom = periodFrom, PeriodTo = periodTo, Q = q });
+    }
 
     public async Task<IActionResult> Create()
     {
@@ -86,7 +71,7 @@ public class DailyAttendanceRecordsController(
     HR.Core.Infrastructure.Integration.AttendanceIntegrationService attendance,
     HR.Core.Infrastructure.OrgScopeService orgScope) : Controller
 {
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(Guid? employeeId, DateOnly? dateFrom, DateOnly? dateTo, DailyAttendanceStatus? status)
     {
         var query = db.DailyAttendanceRecords.AsNoTracking().Include(a => a.Employee).AsQueryable();
         var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
@@ -94,7 +79,29 @@ public class DailyAttendanceRecordsController(
         if (scope.MustFilter)
             query = query.Where(a => a.Employee != null && a.Employee.PrimaryOrgUnitId.HasValue && scope.AllowedOrgUnitIds.Contains(a.Employee.PrimaryOrgUnitId.Value));
 
-        return View(await query.OrderByDescending(x => x.AttendanceDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+        if (employeeId is Guid eid)
+            query = query.Where(a => a.EmployeeId == eid);
+        if (dateFrom is DateOnly df)
+            query = query.Where(a => a.AttendanceDate >= df);
+        if (dateTo is DateOnly dt)
+            query = query.Where(a => a.AttendanceDate <= dt);
+        if (status is DailyAttendanceStatus st)
+            query = query.Where(a => a.Status == st);
+
+        string? filterEmployeeName = null;
+        if (employeeId is Guid empId)
+            filterEmployeeName = await db.Employees.AsNoTracking().Where(e => e.Id == empId).Select(e => e.FullName).FirstOrDefaultAsync();
+
+        var items = await query.OrderByDescending(x => x.AttendanceDate).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        return View(new DailyAttendanceRecordsIndexViewModel
+        {
+            Items = items,
+            EmployeeId = employeeId,
+            FilterEmployeeName = filterEmployeeName,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            Status = status
+        });
     }
 
     public async Task<IActionResult> Details(Guid id)
@@ -281,8 +288,27 @@ public class DailyAttendanceRecordsController(
 
 public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.FieldInspectionVisits.AsNoTracking().OrderByDescending(x => x.VisitDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(string? status, DateOnly? visitFrom, DateOnly? visitTo, string? q)
+    {
+        var query = db.FieldInspectionVisits.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(v => v.Status == status);
+        if (visitFrom is DateOnly vf)
+            query = query.Where(v => v.VisitDate >= vf);
+        if (visitTo is DateOnly vt)
+            query = query.Where(v => v.VisitDate <= vt);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(v =>
+                v.Title.Contains(term) ||
+                (v.Location != null && v.Location.Contains(term)) ||
+                (v.Summary != null && v.Summary.Contains(term)));
+        }
+
+        var items = await query.OrderByDescending(x => x.VisitDate).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        return View(new FieldInspectionVisitsIndexViewModel { Items = items, Status = status, VisitFrom = visitFrom, VisitTo = visitTo, Q = q });
+    }
 
     public IActionResult Create() =>
         View(new FieldInspectionVisitCreateViewModel { VisitDate = DateOnly.FromDateTime(DateTime.UtcNow) });
@@ -309,8 +335,47 @@ public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
 
 public class DiwanCorrespondencesController(HRCoreDbContext db, HR.Core.Infrastructure.Integration.DiwanIntegrationService integration) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.DiwanCorrespondences.AsNoTracking().Include(c => c.RelatedEmployee).OrderByDescending(x => x.RegisteredAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(
+        CorrespondenceDirection? direction,
+        string? q,
+        DateTime? registeredFrom,
+        DateTime? registeredTo,
+        Guid? relatedEmployeeId)
+    {
+        var query = db.DiwanCorrespondences.AsNoTracking().Include(c => c.RelatedEmployee).AsQueryable();
+        if (direction is CorrespondenceDirection dir)
+            query = query.Where(c => c.Direction == dir);
+        if (registeredFrom is DateTime rf)
+            query = query.Where(c => c.RegisteredAt >= rf);
+        if (registeredTo is DateTime rt)
+            query = query.Where(c => c.RegisteredAt <= rt);
+        if (relatedEmployeeId is Guid reid)
+            query = query.Where(c => c.RelatedEmployeeId == reid);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(c =>
+                c.ReferenceNumber.Contains(term) ||
+                c.Subject.Contains(term) ||
+                (c.ExternalParty != null && c.ExternalParty.Contains(term)));
+        }
+
+        string? filterEmployeeName = null;
+        if (relatedEmployeeId is Guid empId)
+            filterEmployeeName = await db.Employees.AsNoTracking().Where(e => e.Id == empId).Select(e => e.FullName).FirstOrDefaultAsync();
+
+        var items = await query.OrderByDescending(x => x.RegisteredAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        return View(new DiwanCorrespondencesIndexViewModel
+        {
+            Items = items,
+            Direction = direction,
+            Q = q,
+            RegisteredFrom = registeredFrom,
+            RegisteredTo = registeredTo,
+            RelatedEmployeeId = relatedEmployeeId,
+            FilterEmployeeName = filterEmployeeName
+        });
+    }
 
     public async Task<IActionResult> Create()
     {

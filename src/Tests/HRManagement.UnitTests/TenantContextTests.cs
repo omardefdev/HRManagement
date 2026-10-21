@@ -81,6 +81,36 @@ public class TenantContextTests
         Assert.Throws<InvalidOperationException>(() => ctx.RequireTenantId());
     }
 
+    [Fact]
+    public void Platform_admin_without_impersonation_has_null_tenant()
+    {
+        var accessor = CreateAccessor(tenantId: null, isPlatformAdmin: true);
+        var ctx = new TenantContext(accessor);
+        Assert.Null(ctx.TenantId);
+        Assert.True(ctx.IsPlatformOperator);
+        Assert.False(((ITenantContext)ctx).IsPlatformImpersonating);
+    }
+
+    [Fact]
+    public void Platform_admin_with_session_item_resolves_tenant()
+    {
+        var targetTenant = Guid.NewGuid();
+        var http = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.Role, HrManagementRoles.PlatformAdmin)], "test"))
+        };
+        http.Items[PlatformTenantSessionMiddleware.ItemKey] = new PlatformTenantSessionEntry(
+            targetTenant, "audit", DateTimeOffset.UtcNow, null);
+
+        var accessor = new Mock<IHttpContextAccessor>();
+        accessor.Setup(a => a.HttpContext).Returns(http);
+        var ctx = new TenantContext(accessor.Object);
+
+        Assert.Equal(targetTenant, ctx.TenantId);
+        Assert.True(((ITenantContext)ctx).IsPlatformImpersonating);
+    }
+
     private static IHttpContextAccessor CreateAccessor(Guid? tenantId, bool isPlatformAdmin)
     {
         var claims = new List<Claim>();
@@ -224,6 +254,7 @@ public class TenantIdStampInterceptorTests
     private sealed class StampDbContext(DbContextOptions options) : DbContext(options)
     {
         public DbSet<StampEntity> Entities => Set<StampEntity>();
+        public DbSet<EntityAuditLog> AuditLogs => Set<EntityAuditLog>();
     }
 
     [Fact]
@@ -326,6 +357,56 @@ public class TenantIdStampInterceptorTests
         using var db = new StampDbContext(options);
         db.Entities.Add(new StampEntity { Name = "a" });
         Assert.Throws<InvalidOperationException>(() => db.SaveChanges());
+    }
+
+    [Fact]
+    public void Background_audit_inherits_explicit_entity_tenant()
+    {
+        var tenantId = Guid.NewGuid();
+        var tenantCtx = new Mock<ITenantContext>();
+        tenantCtx.Setup(t => t.TenantId).Returns((Guid?)null);
+        var httpContext = new Mock<IHttpContextAccessor>();
+
+        var options = new DbContextOptionsBuilder<StampDbContext>()
+            .UseInMemoryDatabase($"Stamp_{Guid.NewGuid()}")
+            .AddInterceptors(
+                new AuditSaveChangesInterceptor(httpContext.Object),
+                new TenantIdStampInterceptor(tenantCtx.Object))
+            .Options;
+
+        using var db = new StampDbContext(options);
+        var entity = new StampEntity { Name = "background", TenantId = tenantId };
+        db.Entities.Add(entity);
+        db.SaveChanges();
+
+        var audit = Assert.Single(db.AuditLogs.Where(x => x.EntityId == entity.Id));
+        Assert.Equal(tenantId, audit.TenantId);
+    }
+
+    [Fact]
+    public void Request_audit_inherits_ambient_tenant_before_entity_stamp_runs()
+    {
+        var tenantId = Guid.NewGuid();
+        var tenantCtx = new Mock<ITenantContext>();
+        tenantCtx.Setup(t => t.TenantId).Returns(tenantId);
+        tenantCtx.Setup(t => t.IsPlatformOperator).Returns(false);
+        var httpContext = new Mock<IHttpContextAccessor>();
+
+        var options = new DbContextOptionsBuilder<StampDbContext>()
+            .UseInMemoryDatabase($"Stamp_{Guid.NewGuid()}")
+            .AddInterceptors(
+                new AuditSaveChangesInterceptor(httpContext.Object, tenantCtx.Object),
+                new TenantIdStampInterceptor(tenantCtx.Object))
+            .Options;
+
+        using var db = new StampDbContext(options);
+        var entity = new StampEntity { Name = "request" };
+        db.Entities.Add(entity);
+        db.SaveChanges();
+
+        var audit = Assert.Single(db.AuditLogs.Where(x => x.EntityId == entity.Id));
+        Assert.Equal(tenantId, entity.TenantId);
+        Assert.Equal(tenantId, audit.TenantId);
     }
 }
 

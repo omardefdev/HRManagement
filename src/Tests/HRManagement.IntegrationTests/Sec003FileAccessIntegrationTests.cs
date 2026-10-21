@@ -38,11 +38,15 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
 
     public async ValueTask DisposeAsync() => await _connection.DisposeAsync();
 
+    private FileAccessGrantService CreateGrantService(FileStorageDbContext db, Guid tenantId) =>
+        new(db, new FixedTenant(tenantId),
+            Microsoft.Extensions.Options.Options.Create(new HRManagement.FileStorage.FileStorageOptions()));
+
     [Fact]
     public async Task Upload_Creates_AccessGrant()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
 
         var grant = await grants.CreateGrantAsync(
@@ -65,7 +69,7 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task Cross_Tenant_Access_Denied()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
         var grant = await grants.CreateGrantAsync(
             fileId, "bucket/key", "HR.Core", "Employee", UploaderId.ToString(),
@@ -81,7 +85,7 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task Grantee_Can_Access_Private_File()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
         var grant = await grants.CreateGrantAsync(
             fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString(),
@@ -96,7 +100,7 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task Non_Owner_Denied_Private_File()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
         var grant = await grants.CreateGrantAsync(
             fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString(),
@@ -111,7 +115,7 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task Revoked_Grant_Denied()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
         await grants.CreateGrantAsync(
             fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString(),
@@ -130,7 +134,7 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task Admin_Can_Access_And_Delete()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
         var grant = await grants.CreateGrantAsync(
             fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString());
@@ -146,7 +150,7 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task Presigned_Url_Lifetime_Capped_At_300()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
         var grant = await grants.CreateGrantAsync(
             fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString(),
@@ -163,11 +167,66 @@ public class Sec003FileAccessIntegrationTests : IAsyncDisposable
     public async Task No_Grant_Means_Deny()
     {
         await using var db = CreateDb(TenantA);
-        var grants = new FileAccessGrantService(db, new FixedTenant(TenantA));
+        var grants = CreateGrantService(db, TenantA);
         var fileId = await SeedFileAsync(db);
 
         var found = await grants.FindActiveGrantByFileAsync(fileId);
         Assert.Null(found);
+    }
+
+    [Fact]
+    public async Task Expired_grant_denies_presign_and_logs()
+    {
+        await using var db = CreateDb(TenantA);
+        var grants = CreateGrantService(db, TenantA);
+        var fileId = await SeedFileAsync(db);
+        var grant = await grants.CreateGrantAsync(
+            fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString(),
+            FileVisibility.Private, UploaderId.ToString());
+        grant.ExpiresAtUtc = DateTime.UtcNow.AddMinutes(-1);
+        await db.SaveChangesAsync();
+
+        var decision = _policy.Evaluate(AuthenticatedUser(UploaderId), grant, TenantA);
+        Assert.False(decision.Allowed);
+        Assert.Equal("grant-expired", decision.Reason);
+
+        db.FileAccessAuditLogs.Add(new FileAccessAuditLog
+        {
+            TenantId = TenantA,
+            FileId = fileId,
+            Action = "access-denied",
+            DecisionAllowed = false,
+            DecisionReason = decision.Reason
+        });
+        await db.SaveChangesAsync();
+        var log = await db.FileAccessAuditLogs.AsNoTracking().OrderByDescending(x => x.CreatedAt).FirstAsync();
+        Assert.Equal("grant-expired", log.DecisionReason);
+    }
+
+    [Fact]
+    public async Task Wrong_grantee_denies_and_logs()
+    {
+        await using var db = CreateDb(TenantA);
+        var grants = CreateGrantService(db, TenantA);
+        var fileId = await SeedFileAsync(db);
+        var grant = await grants.CreateGrantAsync(
+            fileId, "bucket/key", "File.Storage", "Uploader", UploaderId.ToString(),
+            FileVisibility.Private, UploaderId.ToString());
+
+        var stranger = AuthenticatedUser(Guid.NewGuid());
+        var decision = _policy.Evaluate(stranger, grant, TenantA);
+        Assert.False(decision.Allowed);
+        Assert.Equal("wrong-grantee", decision.Reason);
+
+        db.FileAccessAuditLogs.Add(new FileAccessAuditLog
+        {
+            TenantId = TenantA,
+            FileId = fileId,
+            Action = "access-denied",
+            DecisionAllowed = false,
+            DecisionReason = decision.Reason
+        });
+        await db.SaveChangesAsync();
     }
 
     [Fact]

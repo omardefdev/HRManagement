@@ -10,56 +10,81 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة admin_db\nAdmin.Logistics / AdminLogisticsDbContext"
+title "ERD الكامل لقاعدة adminlogistics_db\nAdmin.Logistics / AdminLogisticsDbContext"
 
 entity "Assets\nAsset" as T01 {
   * Id : uuid
+    OriginReceiptRecordId : uuid
+    OriginSupplyOrderLineId : uuid
     TenantId : uuid
 }
 entity "AssetAssignments\nAssetAssignment" as T02 {
   * Id : uuid
     AssetId : uuid
     EmployeeId : uuid
+    HandoverFileId : uuid
+    ReturnFileId : uuid
     TenantId : uuid
+    WorkflowInstanceId : uuid
 }
-entity "InventoryItems\nInventoryItem" as T03 {
+entity "AssetLossReports\nAssetLossReport" as T03 {
+  * Id : uuid
+    AssetId : uuid
+    LossFileId : uuid
+    TenantId : uuid
+    WorkflowInstanceId : uuid
+}
+entity "InventoryItems\nInventoryItem" as T04 {
   * Id : uuid
     TenantId : uuid
 }
-entity "MaintenanceRecords\nMaintenanceRecord" as T04 {
+entity "MaintenanceRecords\nMaintenanceRecord" as T05 {
   * Id : uuid
     AssetId : uuid
     TenantId : uuid
 }
-entity "ReceiptRecords\nReceiptRecord" as T05 {
+entity "ReceiptRecords\nReceiptRecord" as T06 {
   * Id : uuid
+    InventoryItemId : uuid
     SupplyOrderId : uuid
     TenantId : uuid
 }
-entity "SupplyOrders\nSupplyOrder" as T06 {
+entity "SupplyOrders\nSupplyOrder" as T07 {
   * Id : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "Vendors\nVendor" as T07 {
+entity "SupplyOrderLines\nSupplyOrderLine" as T08 {
+  * Id : uuid
+    InventoryItemId : uuid
+    SupplyOrderId : uuid
+    TenantId : uuid
+}
+entity "Vendors\nVendor" as T09 {
   * Id : uuid
     TenantId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T08 {
+entity "AuditLogs\nEntityAuditLog" as T10 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
 }
-entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T09 {
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T11 {
   * Id : uuid
     MessageId : text
     TenantId : uuid
 }
 
+T01 }o--|| T06 : OriginReceiptRecordId
+T01 }o--|| T08 : OriginSupplyOrderLineId
 T02 }o--|| T01 : AssetId
-T04 }o--|| T01 : AssetId
-T05 }o--|| T06 : SupplyOrderId
+T03 }o--|| T01 : AssetId
+T05 }o--|| T01 : AssetId
+T06 }o--|| T04 : InventoryItemId
+T06 }o--|| T07 : SupplyOrderId
+T08 }o--|| T04 : InventoryItemId
+T08 }o--|| T07 : SupplyOrderId
 
 note bottom
 يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.

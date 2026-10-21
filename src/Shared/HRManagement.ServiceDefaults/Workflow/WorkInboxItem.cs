@@ -52,27 +52,42 @@ public class WorkInboxItem
 
 public enum WorkItemType
 {
+    [Display(Name = "اعتماد")]
     Approval = 0,
+    [Display(Name = "مهمة")]
     Task = 1,
+    [Display(Name = "مراجعة")]
     Review = 2,
+    [Display(Name = "إقرار")]
     Acknowledgement = 3,
+    [Display(Name = "معلومات")]
     Information = 4
 }
 
 public enum WorkItemPriority
 {
+    [Display(Name = "منخفضة")]
     Low = 0,
+    [Display(Name = "عادية")]
     Normal = 1,
+    [Display(Name = "عالية")]
     High = 2,
+    [Display(Name = "عاجلة")]
     Urgent = 3
 }
 
 public enum WorkItemStatus
 {
+    [Display(Name = "قيد الانتظار")]
     Pending = 0,
+    [Display(Name = "قيد التنفيذ")]
     InProgress = 1,
+    [Display(Name = "مكتمل")]
     Completed = 2,
+    [Display(Name = "مُفوَّض")]
     Delegated = 3,
+    [Display(Name = "مُصعَّد")]
     Escalated = 4,
+    [Display(Name = "ملغى")]
     Cancelled = 5
 }

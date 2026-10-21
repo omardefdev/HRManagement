@@ -1,4 +1,4 @@
-@model IReadOnlyList<HRManagement.SharedKernel.SeparationOfDuties.ApprovalDelegation>
+@model HR.Core.Web.ViewModels.DelegationsIndexViewModel
 @{
     ViewData["Title"] = "تفويضات الاعتماد المؤقتة";
 }
@@ -7,6 +7,42 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">@ViewData["Title"]</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm">تفويض جديد</a>
+    </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">المفوِّض</label>
+                <input type="text" name="principalId" value="@Model.PrincipalId" class="form-control" placeholder="معرّف المستخدم" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">المفوَّض</label>
+                <input type="text" name="delegateId" value="@Model.DelegateId" class="form-control" placeholder="معرّف المستخدم" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">نطاق الكيان</label>
+                <input type="text" name="entityTypeScope" value="@Model.EntityTypeScope" class="form-control" placeholder="نوع الكيان" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="activeOnly" class="form-select">
+                    <option value="">— الكل —</option>
+                    @if (Model.ActiveOnly == true) { <option value="true" selected>نشط فقط</option> } else { <option value="true">نشط فقط</option> }
+                    @if (Model.ActiveOnly == false) { <option value="false" selected>غير نشط</option> } else { <option value="false">غير نشط</option> }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من</label>
+                <input type="datetime-local" name="from" value="@Model.From?.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى</label>
+                <input type="datetime-local" name="to" value="@Model.To?.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
     </div>
     <div class="card-body table-responsive">
         <table class="table table-sm table-striped">
@@ -22,7 +58,7 @@
                 </tr>
             </thead>
             <tbody>
-            @foreach (var d in Model)
+            @foreach (var d in Model.Items)
             {
                 <tr>
                     <td><code>@d.PrincipalId</code></td>
@@ -41,6 +77,10 @@
                         }
                     </td>
                 </tr>
+            }
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-4">لا توجد تفويضات</td></tr>
             }
             </tbody>
         </table>

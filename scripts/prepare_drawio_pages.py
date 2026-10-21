@@ -19,11 +19,17 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-INPUT = Path(r"C:\Users\omard\OneDrive\Documents\usecase\dfd-hr-system.drawio")
-SOURCE_DIR = ROOT / "docs" / "thesis_diagrams" / "source"
+INPUT_CANDIDATES = (
+    Path(r"C:\Users\omard\OneDrive\Documents\usecase\نهائي\dfd-hr-system.drawio"),
+    Path(r"C:\Users\omard\OneDrive\Documents\usecase\dfd-hr-system.drawio"),
+    ROOT / "docs" / "thesis_diagrams" / "source" / "dfd-hr-system.drawio",
+)
+INPUT = next((path for path in INPUT_CANDIDATES if path.exists()), INPUT_CANDIDATES[-1])
+SOURCE_DIR = ROOT / "tmp" / "dfd_reference"
 ORIGINAL = SOURCE_DIR / "dfd-hr-system_original.drawio"
-CORRECTED = SOURCE_DIR / "dfd-hr-system.drawio"
-HTML = ROOT / "tmp" / "drawio_dfd_renderer.html"
+CORRECTED = SOURCE_DIR / "dfd-hr-system_reference.drawio"
+HTML = ROOT / "tmp" / "drawio_dfd_reference_renderer.html"
+MANIFEST = ROOT / "tmp" / "drawio_dfd_reference_manifest.json"
 
 
 def repair_mojibake(value: str) -> str:
@@ -71,9 +77,19 @@ def main() -> int:
             {
                 "index": index,
                 "name": diagram.get("name", f"Page {index}"),
+                "filename": f"reference-dfd-{index:02d}.png",
                 "model": xml_text(model),
             }
         )
+
+    MANIFEST.write_text(
+        json.dumps(
+            [{key: value for key, value in page.items() if key != "model"} for page in pages],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     page_json = json.dumps(pages, ensure_ascii=False).replace("</", "<\\/")
     html_text = f"""<!doctype html>
@@ -81,7 +97,7 @@ def main() -> int:
 <head>
   <meta charset="utf-8">
   <title>HRManagement DFD</title>
-  <script src="/tmp/mxClient.js"></script>
+  <script src="mxClient.js"></script>
   <style>
     html, body {{ margin: 0; padding: 0; background: #ffffff; }}
     #canvas {{ display: block; background: #ffffff; overflow: hidden; }}
@@ -118,6 +134,7 @@ def main() -> int:
       container.style.height = height + 'px';
       graph.view.setTranslate(margin - bounds.x, margin - bounds.y);
       graph.refresh();
+      document.body.dataset.ready = 'true';
       document.title = page.name;
     }}
 
@@ -130,7 +147,7 @@ def main() -> int:
 </html>
 """
     HTML.write_text(html_text, encoding="utf-8")
-    print(json.dumps({"pages": len(pages), "corrected": str(CORRECTED), "renderer": str(HTML)}, ensure_ascii=False))
+    print(json.dumps({"pages": len(pages), "corrected": str(CORRECTED), "renderer": str(HTML), "manifest": str(MANIFEST)}, ensure_ascii=False))
     return 0
 
 

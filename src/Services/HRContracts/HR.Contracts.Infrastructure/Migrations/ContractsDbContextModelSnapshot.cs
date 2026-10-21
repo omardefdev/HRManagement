@@ -742,6 +742,10 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("PayrollRegimeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Reason")
                         .HasColumnType("text");
 
@@ -750,6 +754,10 @@ namespace HR.Contracts.Infrastructure.Migrations
 
                     b.Property<string>("SeparationType")
                         .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SourceLegalRegimeId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
@@ -964,6 +972,10 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<string>("LastFaultReason")
                         .HasColumnType("text");
 
+                    b.Property<string>("PayrollRegimeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("PendingParties")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -981,6 +993,10 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<string>("SeparationType")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("SourceLegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");

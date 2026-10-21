@@ -1,5 +1,6 @@
 @model HR.Core.Web.ViewModels.EmployeeListViewModel
 @using HRManagement.SharedKernel
+@using HR.Core.Web.Services
 @{
     ViewData["Title"] = "إدارة الموظفين";
 }
@@ -100,32 +101,35 @@
                             <td>
                                 <a asp-action="Details" asp-route-id="@emp.Id">@emp.FullName</a>
                             </td>
-                            <td>@PiiMask.NationalId(emp.NationalId)</td>
-                            <td>@(emp.PrimaryOrgUnit?.NameAr ?? "—")</td>
+                            <td>@EmployeeNationalIdPresentation.ResolveDisplayNationalId(emp, User)</td>
                             <td>
-                                @switch (emp.CurrentStatus)
+                                @if (ViewBag.OrgUnitLabels is IReadOnlyDictionary<Guid, string> labels
+                                    && emp.PrimaryOrgUnitId is Guid unitId
+                                    && labels.TryGetValue(unitId, out var unitLabel))
                                 {
-                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Active:
-                                        <span class="badge bg-success">نشط</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Suspended:
-                                        <span class="badge bg-warning">موقوف</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Terminated:
-                                        <span class="badge bg-danger">منتهي</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Retired:
-                                        <span class="badge bg-secondary">متقاعد</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.OnLeave:
-                                        <span class="badge bg-info">في إجازة</span>
-                                        break;
-                                    case HRManagement.SharedKernel.Enums.EmploymentStatus.Seconded:
-                                        <span class="badge bg-primary">منتدب</span>
-                                        break;
+                                    @unitLabel
+                                }
+                                else
+                                {
+                                    @(emp.PrimaryOrgUnit?.NameAr ?? "—")
                                 }
                             </td>
-                            <td>@(emp.Cadre == HRManagement.SharedKernel.Enums.EmployeeCadre.Supervisory ? "إشرافي" : "تنفيذي")</td>
+                            <td>
+                                @{
+                                    var empStatusBadge = emp.CurrentStatus switch
+                                    {
+                                        HRManagement.SharedKernel.Enums.EmploymentStatus.Active => "bg-success",
+                                        HRManagement.SharedKernel.Enums.EmploymentStatus.Suspended => "bg-warning",
+                                        HRManagement.SharedKernel.Enums.EmploymentStatus.Terminated => "bg-danger",
+                                        HRManagement.SharedKernel.Enums.EmploymentStatus.Retired => "bg-secondary",
+                                        HRManagement.SharedKernel.Enums.EmploymentStatus.OnLeave => "bg-info",
+                                        HRManagement.SharedKernel.Enums.EmploymentStatus.Seconded => "bg-primary",
+                                        _ => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @empStatusBadge">@Html.HrEnumDisplay(emp.CurrentStatus)</span>
+                            </td>
+                            <td>@Html.HrEnumDisplay(emp.Cadre)</td>
                             <td>@(emp.HireDate?.ToString("yyyy/MM/dd") ?? "—")</td>
                             <td>
                                 <a asp-action="Details" asp-route-id="@emp.Id" class="btn btn-info btn-xs" title="تفاصيل">
@@ -153,4 +157,3 @@
         @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Employees))
     </div>
 </div>
-

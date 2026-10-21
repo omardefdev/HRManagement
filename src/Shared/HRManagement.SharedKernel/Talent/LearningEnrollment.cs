@@ -55,22 +55,36 @@ public class LearningEnrollment : BaseEntity
 
 public enum LearningType
 {
+    [Display(Name = "تدريب")]
     Training = 0,
+    [Display(Name = "ورشة")]
     Workshop = 1,
+    [Display(Name = "مؤتمر")]
     Conference = 2,
+    [Display(Name = "شهادة")]
     Certification = 3,
+    [Display(Name = "تعلّم إلكتروني")]
     ELearning = 4,
+    [Display(Name = "أثناء العمل")]
     OnTheJob = 5,
+    [Display(Name = "إرشاد")]
     Mentoring = 6
 }
 
 public enum EnrollmentStatus
 {
+    [Display(Name = "مرشّح")]
     Nominated = 0,
+    [Display(Name = "معتمد")]
     Approved = 1,
+    [Display(Name = "قيد التنفيذ")]
     InProgress = 2,
+    [Display(Name = "مكتمل")]
     Completed = 3,
+    [Display(Name = "فشل")]
     Failed = 4,
+    [Display(Name = "ملغى")]
     Cancelled = 5,
+    [Display(Name = "منسحب")]
     Withdrawn = 6
 }

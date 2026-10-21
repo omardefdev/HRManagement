@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Features.PayrollRuns;
 using Payroll.Domain.Entities;
+using Payroll.Web.ViewModels;
 using Payroll.Domain.Enums;
 using Payroll.Domain.Services;
 using Payroll.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
 using System.Security.Claims;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace Payroll.Web.Controllers;
 
@@ -17,11 +19,13 @@ public class PayrollRunsController : Controller
 {
     private readonly PayrollDbContext _db;
     private readonly IMediator _mediator;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public PayrollRunsController(PayrollDbContext db, IMediator mediator)
+    public PayrollRunsController(PayrollDbContext db, IMediator mediator, IHrCoreLookupClient hrCoreLookup)
     {
         _db = db;
         _mediator = mediator;
+        _hrCoreLookup = hrCoreLookup;
     }
 
     private Guid RequireUserId()
@@ -32,24 +36,48 @@ public class PayrollRunsController : Controller
             : throw new UnauthorizedAccessException("Missing user identity claim.");
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(
+        PayrollRunStatus? status,
+        DateTime? periodFrom,
+        DateTime? periodTo,
+        int page = 1,
+        int pageSize = SearchFilterBase.DefaultPageSize)
     {
-        var items = await _db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        page = Math.Max(1, page);
+        pageSize = pageSize is < 5 or > 100 ? SearchFilterBase.DefaultPageSize : pageSize;
+        var query = _db.PayrollRuns.AsNoTracking().AsQueryable();
+        if (status.HasValue)
+            query = query.Where(r => r.Status == status.Value);
+        if (periodFrom.HasValue)
+            query = query.Where(r => r.PeriodEnd >= periodFrom.Value);
+        if (periodTo.HasValue)
+            query = query.Where(r => r.PeriodStart <= periodTo.Value);
+
+        var totalCount = await query.CountAsync();
+        var items = await query.OrderByDescending(r => r.RunDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        ViewBag.PayrollStatus = status;
+        ViewBag.PeriodFrom = periodFrom;
+        ViewBag.PeriodTo = periodTo;
+        ViewBag.Page = page;
+        ViewBag.PageSize = pageSize;
+        ViewBag.TotalCount = totalCount;
         return View(items);
     }
 
-    public IActionResult Create() => View(new PayrollRun
+    public IActionResult Create() => View(new PayrollRunFormViewModel
     {
         RunDate = DateTime.UtcNow,
         PeriodStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc),
-        PeriodEnd = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month), 0, 0, 0, DateTimeKind.Utc),
-        Status = PayrollRunStatus.Draft
+        PeriodEnd = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month), 0, 0, 0, DateTimeKind.Utc)
     });
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Idempotent]
-    public async Task<IActionResult> Create(PayrollRun model)
+    public async Task<IActionResult> Create(PayrollRunFormViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
 
@@ -97,8 +125,29 @@ public class PayrollRunsController : Controller
             .OrderByDescending(j => j.CreatedAt)
             .FirstOrDefaultAsync();
         ViewBag.Job = job;
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(run.SalaryLines.Select(line => line.EmployeeId));
 
         return View(run);
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        if (result.Count == 0)
+            return result;
+
+        try
+        {
+            var rows = await _hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList(), HttpContext.RequestAborted);
+            foreach (var row in rows)
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<PayrollRunsController>>()
+                .LogWarning(ex, "Employee name lookup failed for payroll details.");
+        }
+        return result;
     }
 
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
@@ -213,7 +262,7 @@ public class PayrollRunsController : Controller
     [Authorize(Policy = HrManagementPolicies.PayrollPost)]
     public async Task<IActionResult> ProcessPayment(Guid batchId, Guid runId)
     {
-        var (success, error) = await _mediator.Send(new ProcessPaymentBatchCommand(batchId));
+        var (success, error) = await _mediator.Send(new ProcessPaymentBatchCommand(batchId, RequireUserId()));
         TempData[success ? "Success" : "Error"] = success ? "تم صرف الدفعة" : error;
         return RedirectToAction(nameof(Details), new { id = runId });
     }
@@ -262,7 +311,7 @@ public class PayrollRunsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    [Authorize(Policy = HrManagementPolicies.PayrollReverse)]
     public async Task<IActionResult> ReverseRun(Guid id)
     {
         var (success, error) = await _mediator.Send(new ReversePayrollRunCommand(id));

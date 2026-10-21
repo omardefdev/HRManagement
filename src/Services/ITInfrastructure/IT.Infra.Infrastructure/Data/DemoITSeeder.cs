@@ -1,4 +1,5 @@
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Tenancy;
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
@@ -9,7 +10,7 @@ namespace IT.Infra.Infrastructure.Data;
 /// <summary>Populates demo servers, user devices, backups, incidents, tickets, and permissions.</summary>
 public static class DemoITSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
 
     private static readonly string[] ServerPurposes =
     [
@@ -64,15 +65,17 @@ public static class DemoITSeeder
         if (await db.ServerDevices.AnyAsync(ct))
             return;
 
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("it-infra");
+        var now = AcceptanceSeedExecution.UtcNow;
 
         for (var i = 0; i < 15; i++)
         {
             db.ServerDevices.Add(new ServerDevice
             {
                 TenantId = TenantId,
-                Hostname = $"srv-demo-{(i + 1):D2}.hr.gov.sy",
+                Hostname = AcceptanceSeedExecution.CurrentAgency is { } agency
+                    ? $"srv-{agency.Code.ToLowerInvariant()}-{(i + 1):D2}.acceptance.local"
+                    : $"srv-demo-{(i + 1):D2}.hr.gov.sy",
                 IpAddress = $"10.10.{(i / 5) + 1}.{10 + i}",
                 Os = OperatingSystems[i % OperatingSystems.Length],
                 Purpose = ServerPurposes[i],

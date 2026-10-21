@@ -1,0 +1,61 @@
+# BLD-002-ext: full-stack gateway overrides (all modules). Omit this file for dev-logistics profile.
+services:
+  hr-gateway:
+    environment:
+      ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
+      ReverseProxy__Clusters__hr-health-cluster__Destinations__destination1__Address: http://hr-health-web:8080
+      ReverseProxy__Clusters__hr-movements-cluster__Destinations__destination1__Address: http://hr-movements-web:8080
+      ReverseProxy__Clusters__hr-training-cluster__Destinations__destination1__Address: http://hr-training-web:8080
+      ReverseProxy__Clusters__payroll-cluster__Destinations__destination1__Address: http://payroll-web:8080
+      ReverseProxy__Clusters__idcard-cluster__Destinations__destination1__Address: http://idcard-web:8080
+      ReverseProxy__Clusters__records-archive-cluster__Destinations__destination1__Address: http://records-archive-web:8080
+      ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
+      ReverseProxy__Clusters__it-infra-cluster__Destinations__destination1__Address: http://it-infra-web:8080
+      ReverseProxy__Clusters__dev-analytics-cluster__Destinations__destination1__Address: http://dev-analytics-web:8080
+      ReverseProxy__Clusters__compliance-cluster__Destinations__destination1__Address: http://compliance-web:8080
+      ReverseProxy__Clusters__auth-directory-cluster__Destinations__destination1__Address: http://auth-directory-web:8080
+      ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
+      Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
+      Gateway__EnabledModules__0: hr-core
+      Gateway__EnabledModules__1: hr-contracts
+      Gateway__EnabledModules__2: hr-health
+      Gateway__EnabledModules__3: hr-movements
+      Gateway__EnabledModules__4: hr-training
+      Gateway__EnabledModules__5: payroll
+      Gateway__EnabledModules__6: idcard
+      Gateway__EnabledModules__7: records-archive
+      Gateway__EnabledModules__8: admin-logistics
+      Gateway__EnabledModules__9: it-infra
+      Gateway__EnabledModules__10: dev-analytics
+      Gateway__EnabledModules__11: compliance
+      Gateway__EnabledModules__12: auth-directory
+      Gateway__EnabledModules__13: file-storage
+    depends_on:
+      hr-core-web:
+        condition: service_started
+      hr-contracts-web:
+        condition: service_started
+      hr-movements-web:
+        condition: service_started
+      hr-training-web:
+        condition: service_started
+      payroll-web:
+        condition: service_started
+      idcard-web:
+        condition: service_started
+      records-archive-web:
+        condition: service_started
+      admin-logistics-web:
+        condition: service_started
+      it-infra-web:
+        condition: service_started
+      dev-analytics-web:
+        condition: service_started
+      compliance-web:
+        condition: service_started
+      auth-directory-web:
+        condition: service_started
+      file-storage-web:
+        condition: service_started

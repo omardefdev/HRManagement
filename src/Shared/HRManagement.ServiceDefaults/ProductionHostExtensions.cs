@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,8 @@ namespace HRManagement.ServiceDefaults;
 
 public static class ProductionHostExtensions
 {
+    /// <summary>Gateway YARP prefix for the anonymous citizen careers portal (distinct from /ui/hr-core).</summary>
+    public const string PublicCareersGatewayPrefix = "/careers";
     /// <summary>
     /// Registers forwarded headers (reverse proxy), optional CORS, and graceful shutdown timeout (OPS-001).
     /// Call <see cref="UseHrProductionMiddleware"/> early in the pipeline when enabled.
@@ -68,24 +71,81 @@ public static class ProductionHostExtensions
 
     public static WebApplication UseHrProductionMiddleware(this WebApplication app, IConfiguration configuration)
     {
-        var pathBase = configuration["ASPNETCORE_PATHBASE"]
-                       ?? Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE");
-        if (!string.IsNullOrWhiteSpace(pathBase))
-            app.UsePathBase(pathBase);
-
         if (configuration.GetValue("UseForwardedHeaders", false))
         {
             app.UseHrConnectionOrigin();
             app.UseForwardedHeaders();
         }
 
+        // Validate gateway proof on the raw proxied path before PathBase rewriting (/careers/*, /ui/*).
+        app.UseHrGatewayCallerProof();
+        app.UseHrConfiguredPathBase(configuration);
+
         if (configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is { Length: > 0 })
             app.UseCors("HrManagement");
 
         app.UseHrConcurrencyConflictHandling();
-        app.UseHrGatewayCallerProof();
         app.UseHrSecurityHeaders();
 
         return app;
+    }
+
+    /// <summary>
+    /// Applies the public module path base even when the reverse proxy forwards only
+    /// the catch-all remainder. This keeps generated MVC links and redirects under
+    /// paths such as /ui/hr-core instead of leaking them to the gateway root.
+    /// </summary>
+    public static IApplicationBuilder UseHrConfiguredPathBase(
+        this IApplicationBuilder app,
+        IConfiguration configuration)
+    {
+        var configuredValue = configuration["ASPNETCORE_PATHBASE"]
+                              ?? Environment.GetEnvironmentVariable("ASPNETCORE_PATHBASE");
+        if (string.IsNullOrWhiteSpace(configuredValue))
+            return app;
+
+        var normalizedValue = configuredValue.Trim();
+        if (!normalizedValue.StartsWith('/'))
+            normalizedValue = "/" + normalizedValue;
+        normalizedValue = normalizedValue.TrimEnd('/');
+        if (normalizedValue.Length == 0)
+            return app;
+
+        var configuredPathBase = new PathString(normalizedValue);
+        var publicCareersPathBase = new PathString(PublicCareersGatewayPrefix);
+        return app.Use(async (context, next) =>
+        {
+            var originalPathBase = context.Request.PathBase;
+            var originalPath = context.Request.Path;
+
+            // /careers is proxied anonymously at the gateway root. Do not stamp /ui/{module}
+            // or generated links and static assets will require HR login.
+            if (!context.Request.PathBase.HasValue
+                && context.Request.Path.StartsWithSegments(publicCareersPathBase, out var careersRemainder))
+            {
+                context.Request.PathBase = publicCareersPathBase;
+                context.Request.Path = careersRemainder.HasValue ? careersRemainder : new PathString("/");
+            }
+            else if (context.Request.Path.StartsWithSegments(configuredPathBase, out var remainingPath))
+            {
+                if (!context.Request.PathBase.HasValue)
+                    context.Request.PathBase = configuredPathBase;
+                context.Request.Path = remainingPath;
+            }
+            else if (!context.Request.PathBase.HasValue)
+            {
+                context.Request.PathBase = configuredPathBase;
+            }
+
+            try
+            {
+                await next(context);
+            }
+            finally
+            {
+                context.Request.PathBase = originalPathBase;
+                context.Request.Path = originalPath;
+            }
+        });
     }
 }

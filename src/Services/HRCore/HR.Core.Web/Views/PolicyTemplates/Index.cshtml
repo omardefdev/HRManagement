@@ -1,0 +1,50 @@
+@model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyTemplate>
+@{ ViewData["Title"] = "قوالب السياسات"; var domains = ViewBag.Domains as IReadOnlyList<(string Domain, string Service, string MigrationStatus)>; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">محرك السياسات</h3>
+        <div>
+            <a asp-action="ShadowReport" class="btn btn-sm btn-outline-warning me-1">Shadow report</a>
+            <a asp-action="Ledger" class="btn btn-sm btn-outline-secondary">سجل التطبيق</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Domain</th><th>الاسم</th><th>النطاق</th><th>إصدارات</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var t in Model)
+                {
+                    <tr>
+                        <td><code>@t.Domain</code></td>
+                        <td>@t.Name</td>
+                        <td>@t.Scope</td>
+                        <td>@t.Versions.Count</td>
+                        <td><a asp-action="Details" asp-route-id="@t.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+@if (domains is not null)
+{
+    <div class="card mt-3">
+        <div class="card-header">سجل Domains — حالة الترحيل</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Domain</th><th>Service</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var d in domains)
+                    {
+                        <tr>
+                            <td><code>@d.Domain</code></td>
+                            <td>@d.Service</td>
+                            <td><span class="badge bg-secondary">@d.MigrationStatus</span></td>
+                        <td><a asp-action="CreateDraft" asp-route-domain="@d.Domain" asp-route-subjectType="@d.Domain.Split('.').Last()" class="btn btn-xs btn-link">مسودة</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

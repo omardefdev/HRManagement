@@ -1,0 +1,54 @@
+@model IEnumerable<HR.Core.Domain.Entities.CodeGeneration.CodePolicyTemplate>
+@{
+    ViewData["Title"] = "سياسات الترميز";
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">سياسات الترميز (COD-001)</h3>
+        <a asp-action="Issuances" class="btn btn-outline-secondary btn-sm">سجل الإصدارات</a>
+    </div>
+    <div class="card-body">
+        @if (TempData["PreviewCode"] is string preview)
+        {
+            <div class="alert alert-info">معاينة: <strong>@preview</strong></div>
+        }
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>النوع</th>
+                    <th>الاسم</th>
+                    <th>النطاق</th>
+                    <th>إصدار منشور</th>
+                    <th>معاينة</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var t in Model)
+            {
+                var published = t.Versions.FirstOrDefault(v => v.Status == HR.Core.Domain.Entities.CodeGeneration.CodePolicyVersionStatus.Published);
+                <tr>
+                    <td>@t.EntityKind</td>
+                    <td>@t.Name</td>
+                    <td>@t.Scope</td>
+                    <td>@(published?.VersionNumber.ToString() ?? "—")</td>
+                    <td>
+                        <form asp-action="Preview" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="entityKind" value="@t.EntityKind" />
+                            @if (t.EntityKind == HRManagement.SharedKernel.CodeGeneration.CodeEntityKind.OrgUnit)
+                            {
+                                <input name="parentCode" class="form-control form-control-sm d-inline-block w-auto" placeholder="ParentCode" value="00" />
+                            }
+                            @if (t.EntityKind == HRManagement.SharedKernel.CodeGeneration.CodeEntityKind.ArchiveReference)
+                            {
+                                <input name="entityPrefix" class="form-control form-control-sm d-inline-block w-auto" placeholder="Prefix" value="HIRE" />
+                            }
+                            <button type="submit" class="btn btn-sm btn-secondary">معاينة</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

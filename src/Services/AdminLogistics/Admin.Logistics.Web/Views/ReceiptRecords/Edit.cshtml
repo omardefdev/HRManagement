@@ -1,4 +1,4 @@
-@model ReceiptRecord
+@model Admin.Logistics.Web.ViewModels.ReceiptRecordFormViewModel
 @{ ViewData["Title"] = "تعديل الاستلام"; var orders = (SelectList)ViewBag.Orders; }
 <div class="card">
     <form asp-action="Edit" method="post">
@@ -10,6 +10,8 @@
             <div class="mb-3"><label asp-for="ReceivedBy" class="form-label"></label><input asp-for="ReceivedBy" class="form-control" /></div>
             <div class="mb-3"><label asp-for="ReceivedAt" class="form-label"></label><input asp-for="ReceivedAt" class="form-control" type="datetime-local" /></div>
             <div class="mb-3"><label asp-for="ItemsReceived" class="form-label"></label><textarea asp-for="ItemsReceived" class="form-control" rows="3"></textarea></div>
+            <div class="mb-3"><label asp-for="InventoryItemId" class="form-label"></label><select asp-for="InventoryItemId" asp-items="(SelectList)ViewBag.InventoryItems" class="form-control"><option value="">— بدون —</option></select></div>
+            <div class="mb-3"><label asp-for="QuantityReceived" class="form-label"></label><input asp-for="QuantityReceived" class="form-control" type="number" min="1" /></div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">حفظ</button>

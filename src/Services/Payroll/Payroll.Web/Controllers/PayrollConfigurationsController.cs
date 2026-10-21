@@ -14,15 +14,23 @@ namespace Payroll.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.ModulePayroll)]
 public class PayrollConfigurationsController(PayrollDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.PayrollConfigurations
-            .AsNoTracking()
-            .Include(c => c.TaxBrackets)
-            .OrderByDescending(c => c.IsActive)
-            .ThenBy(c => c.Code)
-            .ThenByDescending(c => c.VersionNumber)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync());
+    public async Task<IActionResult> Index(string? q, bool? isActive, PayrollConfigPublicationStatus? publicationStatus)
+    {
+        var query = db.PayrollConfigurations.AsNoTracking().Include(c => c.TaxBrackets).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(c => c.Code.Contains(term) || c.NameAr.Contains(term));
+        }
+        if (isActive.HasValue) query = query.Where(c => c.IsActive == isActive.Value);
+        if (publicationStatus.HasValue) query = query.Where(c => c.PublicationStatus == publicationStatus.Value);
+        var items = await query.OrderByDescending(c => c.IsActive).ThenBy(c => c.Code).ThenByDescending(c => c.VersionNumber)
+            .Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.Q = q;
+        ViewBag.IsActive = isActive;
+        ViewBag.PublicationStatus = publicationStatus;
+        return View(items);
+    }
 
     public async Task<IActionResult> Details(Guid id)
     {

@@ -1,0 +1,20 @@
+# Optional isolated Postgres for AC-34 DR drill (port 5434).
+services:
+  postgres-dr-drill:
+    image: postgres:16-alpine
+    container_name: hrm-postgres-dr-drill
+    environment:
+      POSTGRES_USER: hrmanagement
+      POSTGRES_PASSWORD: hrmanagement
+    ports:
+      - "5434:5432"
+    volumes:
+      - hrm_dr_drill_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hrmanagement"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hrm_dr_drill_pg:

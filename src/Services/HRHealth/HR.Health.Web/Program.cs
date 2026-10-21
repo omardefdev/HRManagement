@@ -1,6 +1,9 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Tenancy;
 using HR.Health.Infrastructure.Consumers;
 using HR.Health.Infrastructure.Data;
@@ -10,6 +13,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("HR.Health.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrHealth);
@@ -31,6 +35,7 @@ builder.Services.AddDbContext<HealthDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<HealthDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     configureOutbox: x => x.AddPostgresOutbox<HealthDbContext>(),
@@ -43,8 +48,9 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<HealthDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 
-if (app.Environment.IsDevelopment())
+if (seedProfile != SeedProfile.None)
 {
     try
     {
@@ -52,15 +58,18 @@ if (app.Environment.IsDevelopment())
         TenantIdFlow.Set(TenantDefaults.DefaultTenantId);
         try
         {
-            await DemoHealthSeeder.SeedAsync(
-                demoScope.ServiceProvider.GetRequiredService<HealthDbContext>());
+            var db = demoScope.ServiceProvider.GetRequiredService<HealthDbContext>();
+            if (seedProfile == SeedProfile.Acceptance)
+                await AcceptanceHealthSeeder.SeedAsync(db);
+            else
+                await DemoHealthSeeder.SeedAsync(db);
         }
         finally
         {
             TenantIdFlow.Set(null);
         }
     }
-    catch (Exception ex)
+    catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
     {
         app.Logger.LogWarning(ex, "HR.Health demo seed skipped.");
     }
@@ -75,6 +84,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -90,4 +100,3 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
-

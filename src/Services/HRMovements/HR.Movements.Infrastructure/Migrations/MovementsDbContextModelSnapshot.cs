@@ -22,6 +22,65 @@ namespace HR.Movements.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("HR.Movements.Domain.Entities.DelegationRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("HostOrg")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Terms")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DelegationRequests");
+                });
+
             modelBuilder.Entity("HR.Movements.Domain.Entities.DistributionPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -199,6 +258,9 @@ namespace HR.Movements.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("DelegationRequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
@@ -214,6 +276,9 @@ namespace HR.Movements.Infrastructure.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("PromotionRequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("SecondmentRequestId")
                         .HasColumnType("uuid");
 
@@ -228,7 +293,11 @@ namespace HR.Movements.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DelegationRequestId");
+
                     b.HasIndex("LoanAssignmentRequestId");
+
+                    b.HasIndex("PromotionRequestId");
 
                     b.HasIndex("SecondmentRequestId");
 
@@ -277,6 +346,75 @@ namespace HR.Movements.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MovementNotices");
+                });
+
+            modelBuilder.Entity("HR.Movements.Domain.Entities.PromotionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("EffectiveDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("FromGrade")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FromStep")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceLegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ToGrade")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ToStep")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TransitionDecisionRef")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PromotionRequests");
                 });
 
             modelBuilder.Entity("HR.Movements.Domain.Entities.SecondmentRequest", b =>
@@ -431,6 +569,14 @@ namespace HR.Movements.Infrastructure.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ConditionCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ConflictNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -458,14 +604,26 @@ namespace HR.Movements.Infrastructure.Migrations
                     b.Property<Guid?>("RequestedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SourceLegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TargetLegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ToOrgUnitId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("TransitionDecisionRef")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -568,6 +726,14 @@ namespace HR.Movements.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ConditionCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ConflictNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -599,6 +765,14 @@ namespace HR.Movements.Infrastructure.Migrations
                     b.Property<decimal?>("SalaryChange")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("SourceLegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TargetLegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
@@ -610,6 +784,10 @@ namespace HR.Movements.Infrastructure.Migrations
 
                     b.Property<Guid>("TransferRequestId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("TransitionDecisionRef")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1000,9 +1178,19 @@ namespace HR.Movements.Infrastructure.Migrations
 
             modelBuilder.Entity("HR.Movements.Domain.Entities.MovementExecutionRecord", b =>
                 {
+                    b.HasOne("HR.Movements.Domain.Entities.DelegationRequest", "DelegationRequest")
+                        .WithMany("ExecutionRecords")
+                        .HasForeignKey("DelegationRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("HR.Movements.Domain.Entities.LoanAssignmentRequest", "LoanAssignmentRequest")
                         .WithMany("ExecutionRecords")
                         .HasForeignKey("LoanAssignmentRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HR.Movements.Domain.Entities.PromotionRequest", "PromotionRequest")
+                        .WithMany("ExecutionRecords")
+                        .HasForeignKey("PromotionRequestId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("HR.Movements.Domain.Entities.SecondmentRequest", "SecondmentRequest")
@@ -1015,7 +1203,11 @@ namespace HR.Movements.Infrastructure.Migrations
                         .HasForeignKey("TransferRequestId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("DelegationRequest");
+
                     b.Navigation("LoanAssignmentRequest");
+
+                    b.Navigation("PromotionRequest");
 
                     b.Navigation("SecondmentRequest");
 
@@ -1056,7 +1248,17 @@ namespace HR.Movements.Infrastructure.Migrations
                         .HasPrincipalKey("MessageId", "ConsumerId");
                 });
 
+            modelBuilder.Entity("HR.Movements.Domain.Entities.DelegationRequest", b =>
+                {
+                    b.Navigation("ExecutionRecords");
+                });
+
             modelBuilder.Entity("HR.Movements.Domain.Entities.LoanAssignmentRequest", b =>
+                {
+                    b.Navigation("ExecutionRecords");
+                });
+
+            modelBuilder.Entity("HR.Movements.Domain.Entities.PromotionRequest", b =>
                 {
                     b.Navigation("ExecutionRecords");
                 });

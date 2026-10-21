@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HR.Core.Web.ViewModels;
 
@@ -11,10 +12,12 @@ public class RecruitmentApplicationCreateViewModel
     [Display(Name = "الرقم الوطني")]
     public string? NationalId { get; set; }
 
-    [Required]
-    [Display(Name = "الوظيفة المتقدم لها")]
-    public string AppliedPosition { get; set; } = string.Empty;
+    [Required(ErrorMessage = "يجب اختيار طلب شاغر منشور.")]
+    [Display(Name = "طلب الشاغر")]
+    public Guid RequisitionId { get; set; }
 
     [Display(Name = "ملاحظات")]
     public string? Notes { get; set; }
+
+    public SelectList? PublishedRequisitions { get; set; }
 }

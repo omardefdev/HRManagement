@@ -49,22 +49,36 @@ public class EmployeeRelationCase : BaseEntity
 
 public enum RelationCaseType
 {
+    [Display(Name = "تظلم")]
     Grievance = 0,
+    [Display(Name = "تأديب")]
     Discipline = 1,
+    [Display(Name = "تحقيق")]
     Investigation = 2,
+    [Display(Name = "إبلاغ")]
     Whistleblower = 3,
+    [Display(Name = "حادث عمل")]
     WorkplaceIncident = 4,
+    [Display(Name = "شكوى")]
     Complaint = 5,
+    [Display(Name = "استئناف")]
     Appeal = 6
 }
 
 public enum RelationCaseStatus
 {
+    [Display(Name = "مفتوح")]
     Open = 0,
+    [Display(Name = "قيد التحقيق")]
     UnderInvestigation = 1,
+    [Display(Name = "بانتظار جلسة")]
     PendingHearing = 2,
+    [Display(Name = "إجراء متخذ")]
     ActionTaken = 3,
+    [Display(Name = "استئناف مقدّم")]
     AppealFiled = 4,
+    [Display(Name = "مغلق")]
     Closed = 5,
+    [Display(Name = "مرفوض")]
     Dismissed = 6
 }

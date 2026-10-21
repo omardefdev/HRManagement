@@ -1,6 +1,8 @@
 @model Payroll.Domain.Entities.FraudAlert
 @using Payroll.Domain.Constants
-@{ ViewData["Title"] = "تفاصيل تنبيه الاحتيال"; }
+@{
+    ViewData["Title"] = "تفاصيل تنبيه الاحتيال";
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">تنبيه @Model.RuleId</h3>
@@ -13,10 +15,10 @@
         <table class="table table-bordered">
             <tr><th>القاعدة</th><td>@Model.RuleId</td></tr>
             <tr><th>الفئة</th><td>@Model.Category</td></tr>
-            <tr><th>الخطورة</th><td>@Model.Severity</td></tr>
-            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الخطورة</th><td>@Html.HrStoredEnumDisplay("Code", Model.Severity)</td></tr>
+            <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>تشغيل الرواتب</th><td>@(Model.PayrollRunId?.ToString() ?? "—")</td></tr>
-            <tr><th>الحالة</th><td>@Model.Status</td></tr>
+            <tr><th>الحالة</th><td>@Html.HrStoredEnumDisplay("Code", Model.Status)</td></tr>
             <tr><th>المالك</th><td>@(Model.OwnerId?.ToString() ?? "—")</td></tr>
             <tr><th>التفاصيل</th><td>@(Model.Details ?? "—")</td></tr>
             <tr><th>حجز الصرف</th><td>@(Model.PaymentHoldId?.ToString() ?? "—")</td></tr>
@@ -48,8 +50,8 @@
                     <div class="col-md-3">
                         <label class="form-label">الحالة المستهدفة</label>
                         <select name="targetStatus" class="form-select">
-                            <option value="@FraudAlertStatus.Resolved">Resolved</option>
-                            <option value="@FraudAlertStatus.Dismissed">Dismissed</option>
+                            <option value="@FraudAlertStatus.Resolved">محلول</option>
+                            <option value="@FraudAlertStatus.Dismissed">مُستبعد</option>
                         </select>
                     </div>
                     <div class="col-md-3">

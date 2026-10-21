@@ -1,0 +1,64 @@
+@model HR.Core.Web.ViewModels.WorkflowPanelViewModel
+@{
+    var controller = ViewData["WorkflowController"] as string ?? "RecruitmentRequisitions";
+    var approveAction = ViewData["WorkflowApproveAction"] as string ?? "ApproveWorkflow";
+    var rejectAction = ViewData["WorkflowRejectAction"] as string ?? "RejectWorkflow";
+    var entityId = ViewData["WorkflowEntityId"] as Guid? ?? Guid.Empty;
+    var entityIdFieldName = ViewData["WorkflowEntityIdFieldName"] as string ?? "EntityId";
+    var confirmReject = ViewData["WorkflowConfirmReject"] as string ?? "تأكيد الرفض؟";
+    var approveLabel = ViewData["WorkflowApproveLabel"] as string ?? "اعتماد";
+    var rejectLabel = ViewData["WorkflowRejectLabel"] as string ?? "رفض";
+    var extraFieldName = ViewData["WorkflowExtraFieldName"] as string;
+    var extraFieldValue = ViewData["WorkflowExtraFieldValue"] as Guid?;
+}
+
+<div class="card mt-3 border-warning">
+    <div class="card-header bg-warning bg-opacity-10">
+        <strong>إجراء الاعتماد — @Model.CurrentStepName</strong>
+    </div>
+    <div class="card-body">
+        <form asp-controller="@controller"
+              asp-action="@approveAction"
+              asp-route-id="@entityId"
+              method="post"
+              class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="@entityIdFieldName" value="@entityId" />
+            @if (!string.IsNullOrEmpty(extraFieldName) && extraFieldValue is Guid extraId)
+            {
+                <input type="hidden" name="@extraFieldName" value="@extraId" />
+            }
+            <div class="col-md-8">
+                <label class="form-label" for="approveComments">ملاحظات (اختياري)</label>
+                <input type="text" class="form-control" id="approveComments" name="Comments" maxlength="500" />
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-sm">@approveLabel</button>
+            </div>
+        </form>
+
+        @if (Model.CanReject)
+        {
+            <form asp-controller="@controller"
+                  asp-action="@rejectAction"
+                  asp-route-id="@entityId"
+                  method="post"
+                  class="row g-2 align-items-end mt-2"
+                  onsubmit="return confirm('@confirmReject');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="@entityIdFieldName" value="@entityId" />
+                @if (!string.IsNullOrEmpty(extraFieldName) && extraFieldValue is Guid extraIdReject)
+                {
+                    <input type="hidden" name="@extraFieldName" value="@extraIdReject" />
+                }
+                <div class="col-md-8">
+                    <label class="form-label" for="rejectComments">سبب الرفض</label>
+                    <input type="text" class="form-control" id="rejectComments" name="Comments" maxlength="500" />
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">@rejectLabel</button>
+                </div>
+            </form>
+        }
+    </div>
+</div>

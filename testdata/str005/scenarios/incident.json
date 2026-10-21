@@ -10,7 +10,7 @@
   "exceptionId": "EX-STR005-SIM-INCIDENT-WINDOW",
   "riskId": "RK-STR005-INCIDENT-DRIFT",
   "rel003Alignment": "Emergency path in REL_003_CHANGE_PROCESS — post-facto review window",
-  "postReviewBy": "2026-08-15",
+  "postReviewBy": "2026-09-15",
   "outcome": "Approved",
   "notes": "Security + Change seats; exception expires with review"
 }

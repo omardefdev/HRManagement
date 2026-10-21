@@ -7,7 +7,7 @@
     </div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">تاريخ النفاذ</dt><dd class="col-sm-9">@Model.EffectiveDate</dd>
             <dt class="col-sm-3">السبب</dt><dd class="col-sm-9">@(Model.Reason ?? "—")</dd>
             <dt class="col-sm-3">المستندات</dt><dd class="col-sm-9">@(Model.Documents ?? "—")</dd>

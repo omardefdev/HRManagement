@@ -1,3 +1,17 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Admin.Logistics.Domain.Enums;
 
-public enum AssetStatus { InUse, InStorage, Maintenance, Disposed, Lost }
+public enum AssetStatus
+{
+    [Display(Name = "قيد الاستخدام")]
+    InUse,
+    [Display(Name = "في المخزن")]
+    InStorage,
+    [Display(Name = "صيانة")]
+    Maintenance,
+    [Display(Name = "مُستَبعَد")]
+    Disposed,
+    [Display(Name = "مفقود")]
+    Lost,
+}

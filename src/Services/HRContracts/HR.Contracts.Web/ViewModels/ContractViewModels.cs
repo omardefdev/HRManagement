@@ -8,8 +8,8 @@ namespace HR.Contracts.Web.ViewModels;
 
 public class ContractCreateViewModel
 {
-    [Display(Name = "معرّف الموظف")]
-    [Required(ErrorMessage = "معرّف الموظف مطلوب")]
+    [Display(Name = "الموظف")]
+    [Required(ErrorMessage = "اختيار الموظف مطلوب")]
     public Guid EmployeeId { get; set; }
 
     [Display(Name = "نوع العقد")]
@@ -39,10 +39,14 @@ public class ContractCreateViewModel
     public string? Terms { get; set; }
 
     [Display(Name = "الموقّع")]
+    [BindNever]
+    [ValidateNever]
     public Guid? SignedBy { get; set; }
 
     [Display(Name = "تاريخ التوقيع")]
     [DataType(DataType.Date)]
+    [BindNever]
+    [ValidateNever]
     public DateOnly? SignedDate { get; set; }
 
     [Display(Name = "فترة الاختبار (أشهر)")]

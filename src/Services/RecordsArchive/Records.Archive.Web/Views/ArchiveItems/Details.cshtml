@@ -5,12 +5,12 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between">
         <h3 class="mb-0">@Model.Title</h3>
-        @if (Model.IsOnLegalHold) { <span class="badge bg-warning">Legal Hold</span> }
+        @if (Model.IsOnLegalHold) { <span class="badge bg-warning">حجز قانوني</span> }
     </div>
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">المرجع</dt><dd class="col-sm-9">@Model.ReferenceNumber</dd>
-            <dt class="col-sm-3">النوع</dt><dd class="col-sm-9">@Model.Format</dd>
+            <dt class="col-sm-3">النوع</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.Format)</dd>
             <dt class="col-sm-3">مكان التخزين</dt><dd class="col-sm-9">@Model.StorageLocation</dd>
             <dt class="col-sm-3">الاحتفاظ (سنوات)</dt><dd class="col-sm-9">@Model.RetentionPeriodYears</dd>
             <dt class="col-sm-3">اكتمال</dt><dd class="col-sm-9"><code class="small">@(Model.CompletenessAttestation ?? "—")</code></dd>
@@ -22,8 +22,8 @@
             <form asp-action="PlaceLegalHold" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
-                <input type="text" name="reason" placeholder="سبب Hold" class="form-control form-control-sm d-inline-block w-auto" />
-                <button type="submit" class="btn btn-sm btn-warning">Legal Hold</button>
+                <input type="text" name="reason" placeholder="سبب الحجز" class="form-control form-control-sm d-inline-block w-auto" />
+                <button type="submit" class="btn btn-sm btn-warning">حجز قانوني</button>
             </form>
         }
         else
@@ -31,7 +31,7 @@
             <form asp-action="ReleaseLegalHold" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
-                <button type="submit" class="btn btn-sm btn-outline-secondary">رفع Hold</button>
+                <button type="submit" class="btn btn-sm btn-outline-secondary">رفع الحجز</button>
             </form>
         }
         <form asp-action="AttestCompleteness" method="post" class="d-inline">

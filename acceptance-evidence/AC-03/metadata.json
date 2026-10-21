@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-03 sibling org-scope denial",
+  "personaId": "br1-mgr",
+  "correlationId": "272958eb-6589-4b57-922f-2517f63a5145",
+  "capturedAtUtc": "2026-08-24T17:48:09.4117003Z",
+  "environment": {
+    "gateway": "http://localhost:5200",
+    "keycloak": "http://localhost:8088",
+    "runAcceptance": true
+  },
+  "gitSha": "9cb3705e67386023af6b16e14977c116276d0664"
+}

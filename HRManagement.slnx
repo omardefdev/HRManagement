@@ -20,6 +20,7 @@
     <Project Path="src/Services/Compliance/Compliance.Web/Compliance.Web.csproj" />
   </Folder>
   <Folder Name="/src/Services/DevAnalytics/">
+    <Project Path="src/Services/DevAnalytics/Dev.Analytics.Application/Dev.Analytics.Application.csproj" />
     <Project Path="src/Services/DevAnalytics/Dev.Analytics.Domain/Dev.Analytics.Domain.csproj" />
     <Project Path="src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Dev.Analytics.Infrastructure.csproj" />
     <Project Path="src/Services/DevAnalytics/Dev.Analytics.Web/Dev.Analytics.Web.csproj" />
@@ -77,6 +78,7 @@
     <Project Path="src/Services/FileStorage/File.Storage.Web/File.Storage.Web.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/HRManagement.Documents.QuestPdf/HRManagement.Documents.QuestPdf.csproj" />
     <Project Path="src/Shared/HRManagement.FileStorage/HRManagement.FileStorage.csproj" />
     <Project Path="src/Shared/HRManagement.Integration.Abstractions/HRManagement.Integration.Abstractions.csproj" />
     <Project Path="src/Shared/HRManagement.Integration.FileAdapters/HRManagement.Integration.FileAdapters.csproj" />
@@ -90,5 +92,6 @@
     <Project Path="src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj" />
     <Project Path="src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj" />
     <Project Path="src/Tests/HRManagement.E2E/HRManagement.E2E.csproj" />
+    <Project Path="src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj" />
   </Folder>
 </Solution>

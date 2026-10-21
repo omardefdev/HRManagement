@@ -16,9 +16,13 @@
                         <td>@x.Description</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-xs btn-warning" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
-                            <form asp-action="Delete" asp-route-id="@x.Id" method="post" class="d-inline">
+                            <form asp-action="Delete" asp-route-id="@x.Id" method="post" class="d-inline"
+                                  data-hr-confirm="هل أنت متأكد من الحذف؟"
+                                  data-hr-confirm-title="تأكيد الحذف"
+                                  data-hr-confirm-variant="danger"
+                                  data-hr-confirm-label="حذف">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('هل أنت متأكد من الحذف؟')" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
+                                <button type="submit" class="btn btn-xs btn-danger" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
                             </form>
                         </td>
                     </tr>

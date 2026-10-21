@@ -5,7 +5,11 @@
         <h3 class="card-title mb-0">@Model.Name</h3>
         <div>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">تعديل</a>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('حذف؟')">حذف</button></form>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  data-hr-confirm="حذف؟"
+                  data-hr-confirm-title="تأكيد الحذف"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="حذف">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-danger btn-sm">حذف</button></form>
             <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
         </div>
     </div>

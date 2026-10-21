@@ -16,6 +16,7 @@ using HR.Movements.Domain.Entities;
 using HR.Movements.Infrastructure.Data;
 using HR.Movements.Web.Controllers;
 using HRManagement.SharedKernel.Enums;
+using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using MassTransit;
 using MediatR;
@@ -111,7 +112,7 @@ public class SoDPolicyIntegrationTests
         await db.SaveChangesAsync();
 
         var http = new DefaultHttpContext { User = User(creator, "hr-management-approver") };
-        var controller = new TransferRequestsController(db, Mock.Of<IPublishEndpoint>())
+        var controller = new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), Mock.Of<IHrCoreActiveRegimeClient>())
         {
             ControllerContext = new ControllerContext { HttpContext = http },
             TempData = TempData(http)

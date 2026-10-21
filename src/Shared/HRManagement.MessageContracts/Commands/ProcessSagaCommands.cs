@@ -31,7 +31,9 @@ public interface IExecuteSeparationParty
     Guid? TenantId { get; }
     bool Compensate { get; }
     int RemainingLeaveDays { get; }
-    int SchemaVersion => 2;
+    string? SourceLegalRegimeId => null;
+    string? PayrollRegimeCode => null;
+    int SchemaVersion => 3;
 }
 
 public interface ISeparationPartyCompleted
@@ -66,7 +68,9 @@ public interface IStartSeparationSaga
     string? CorrelationId { get; }
     Guid? TenantId { get; }
     int RemainingLeaveDays { get; }
-    int SchemaVersion => 2;
+    string? SourceLegalRegimeId => null;
+    string? PayrollRegimeCode => null;
+    int SchemaVersion => 3;
 }
 
 public interface IResumeSeparationSaga
@@ -173,10 +177,11 @@ public interface IExecuteTransferParty
     DateTime ExecutedAt { get; }
     decimal? SalaryChange { get; }
     decimal? AllowanceChange { get; }
+    string? PayrollRegimeCode => null;
     string? CorrelationId { get; }
     Guid? TenantId { get; }
     bool Compensate { get; }
-    int SchemaVersion => 1;
+    int SchemaVersion => 2;
 }
 
 public interface ITransferPartyCompleted
@@ -210,9 +215,14 @@ public interface IStartTransferSaga
     DateTime ExecutedAt { get; }
     decimal? SalaryChange { get; }
     decimal? AllowanceChange { get; }
+    string? SourceLegalRegimeId => null;
+    string? TargetLegalRegimeId => null;
+    string? TransitionDecisionRef => null;
+    string? ConditionCode => null;
+    string? ConflictNotes => null;
     string? CorrelationId { get; }
     Guid? TenantId { get; }
-    int SchemaVersion => 1;
+    int SchemaVersion => 2;
 }
 
 public interface IResumeTransferSaga

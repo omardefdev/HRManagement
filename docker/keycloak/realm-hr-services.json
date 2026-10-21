@@ -82,6 +82,15 @@
       "protocol": "openid-connect"
     },
     {
+      "clientId": "svc-admin-logistics",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${SVC_ADMIN_LOGISTICS_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
       "clientId": "svc-file-storage",
       "enabled": true,
       "publicClient": false,
@@ -118,6 +127,11 @@
     },
     {
       "name": "hr-core.lookup",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true" }
+    },
+    {
+      "name": "hr-core.workflow",
       "protocol": "openid-connect",
       "attributes": { "include.in.token.scope": "true" }
     },

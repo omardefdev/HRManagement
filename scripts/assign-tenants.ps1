@@ -16,7 +16,7 @@ param(
     [int]$PostgresPort = 5432,
     [string]$PostgresUser = "postgres",
     [string]$PostgresPassword = $env:PGPASSWORD,
-    [string]$HrCoreDatabase = "hr_core",
+    [string]$HrCoreDatabase = "hr_core_db",
     [string]$ReportPath = ".\reports\tenant-assignment-$(Get-Date -Format 'yyyyMMdd-HHmmss').json",
     [switch]$DryRun
 )
@@ -25,20 +25,20 @@ $ErrorActionPreference = "Stop"
 $DefaultTenantId = "00000000-0000-4000-8000-000000000001"
 
 $services = @(
-    @{ Name = "HRCore"; Database = "hr_core"; Tables = @("Employees", "OrgUnits", "ApprovalRequests", "PerformanceEvaluations", "WorkforcePlans", "DailyAttendanceRecords", "RecruitmentApplications", "Shifts", "CareerPaths", "KeyPositions", "SuccessionPlans", "InternalVacancies", "PublicJobPostings", "CitizenApplications") },
-    @{ Name = "HRContracts"; Database = "hr_contracts"; Tables = @("Contracts", "LeaveRequests", "SeparationRecords", "ContractTypes", "OrgUnitSnapshots", "ServiceTransactions") },
-    @{ Name = "Payroll"; Database = "payroll"; Tables = @("PayrollRuns", "SalaryLines", "EmployeePayProfiles", "PayGrades", "PaymentBatches") },
-    @{ Name = "HRMovements"; Database = "hr_movements"; Tables = @("TransferRequests", "MovementNotices") },
-    @{ Name = "HRTraining"; Database = "hr_training"; Tables = @("TrainingCourses", "TrainingEnrollments") },
-    @{ Name = "HRHealth"; Database = "hr_health"; Tables = @("MedicalRecords") },
-    @{ Name = "AuthDirectory"; Database = "auth_directory"; Tables = @("AuthUsers", "Roles") },
-    @{ Name = "FileStorage"; Database = "file_storage"; Tables = @("Files") },
-    @{ Name = "IDCard"; Database = "idcard"; Tables = @("IssuedCards", "CardRequests", "CardDesigns") },
-    @{ Name = "Compliance"; Database = "compliance"; Tables = @("Complaints", "AuditFindings", "DisciplinaryActions") },
-    @{ Name = "RecordsArchive"; Database = "records_archive"; Tables = @("ArchiveItems", "LoanRecords") },
-    @{ Name = "AdminLogistics"; Database = "admin_logistics"; Tables = @("Assets", "Vendors", "InventoryItems") },
-    @{ Name = "ITInfra"; Database = "it_infra"; Tables = @("ServerDevices", "ITSupportTickets") },
-    @{ Name = "DevAnalytics"; Database = "dev_analytics"; Tables = @("Reports", "Dashboards", "KPIs") }
+    @{ Name = "HRCore"; Database = "hr_core_db"; Tables = @("Employees", "OrgUnits", "ApprovalRequests", "PerformanceEvaluations", "WorkforcePlans", "DailyAttendanceRecords", "RecruitmentApplications", "Shifts", "CareerPaths", "KeyPositions", "SuccessionPlans", "InternalVacancies", "PublicJobPostings", "CitizenApplications") },
+    @{ Name = "HRContracts"; Database = "hr_contracts_db"; Tables = @("Contracts", "LeaveRequests", "SeparationRecords", "ContractTypes", "OrgUnitSnapshots", "ServiceTransactions") },
+    @{ Name = "Payroll"; Database = "payroll_db"; Tables = @("PayrollRuns", "SalaryLines", "EmployeePayProfiles", "PayGrades", "PaymentBatches") },
+    @{ Name = "HRMovements"; Database = "hr_movements_db"; Tables = @("TransferRequests", "MovementNotices") },
+    @{ Name = "HRTraining"; Database = "hr_training_db"; Tables = @("TrainingCourses", "TrainingEnrollments") },
+    @{ Name = "HRHealth"; Database = "hr_health_db"; Tables = @("MedicalRecords") },
+    @{ Name = "AuthDirectory"; Database = "auth_directory_db"; Tables = @("AuthUsers", "Roles") },
+    @{ Name = "FileStorage"; Database = "file_storage_db"; Tables = @("Files") },
+    @{ Name = "IDCard"; Database = "idcard_db"; Tables = @("IssuedCards", "CardRequests", "CardDesigns") },
+    @{ Name = "Compliance"; Database = "compliance_db"; Tables = @("Complaints", "AuditFindings", "DisciplinaryActions") },
+    @{ Name = "RecordsArchive"; Database = "archive_db"; Tables = @("ArchiveItems", "LoanRecords") },
+    @{ Name = "AdminLogistics"; Database = "admin_db"; Tables = @("Assets", "Vendors", "InventoryItems") },
+    @{ Name = "ITInfra"; Database = "it_infra_db"; Tables = @("ServerDevices", "ITSupportTickets") },
+    @{ Name = "DevAnalytics"; Database = "analytics_db"; Tables = @("Reports", "Dashboards", "KPIs", "ReadModels", "AnalyticsEvents") }
 )
 
 function New-PgConnection([string]$Database) {
@@ -63,6 +63,11 @@ function Invoke-PgNonQuery([string]$Database, [string]$Sql) {
     $out = & psql -h $PostgresHost -p $PostgresPort -U $PostgresUser -d $Database -t -A -c $Sql 2>&1
     if ($LASTEXITCODE -ne 0) { throw "psql failed on $Database : $out" }
     return ($out | Out-String).Trim()
+}
+
+function Test-PgTableExists([string]$Database, [string]$Table) {
+    $sql = 'SELECT to_regclass(''public."{0}"'') IS NOT NULL;' -f $Table
+    return (Invoke-PgScalar $Database $sql) -eq "t"
 }
 
 Write-Host "=== TEN-003 Tenant Assignment $(if ($DryRun) { '(DRY-RUN)' } else { '' }) ===" -ForegroundColor Cyan
@@ -155,8 +160,7 @@ if ($rulesRaw) {
         if (-not $tenantId) { continue }
         $whereExtra = if ($cond) { "AND ($cond)" } else { "" }
         # Apply against HRCore first; other DBs handled in service loop via matching table names
-        $exists = Invoke-PgScalar $HrCoreDatabase "SELECT to_regclass('public.\"$table\"') IS NOT NULL;"
-        if ($exists -eq "t") {
+        if (Test-PgTableExists $HrCoreDatabase $table) {
             $sql = @"
 UPDATE "$table"
 SET "TenantId" = '$tenantId'
@@ -178,8 +182,7 @@ foreach ($svc in $services) {
     }
 
     foreach ($table in $svc.Tables) {
-        $exists = Invoke-PgScalar $svc.Database "SELECT to_regclass('public.\"$table\"') IS NOT NULL;"
-        if ($exists -ne "t") {
+        if (-not (Test-PgTableExists $svc.Database $table)) {
             $svcReport.Tables += [ordered]@{ Table = $table; Skipped = $true; Reason = "table missing" }
             continue
         }

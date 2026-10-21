@@ -1,5 +1,9 @@
 using System.Globalization;
 using HRManagement.ServiceDefaults.Localization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace HRManagement.UnitTests;
 
@@ -36,6 +40,19 @@ public class L10n001LocalizationTests
     {
         Assert.False(string.IsNullOrWhiteSpace(HrLocalizationExtensions.CultureCookieName));
         Assert.Equal(".HrManagement.Culture", HrLocalizationExtensions.CultureCookieName);
+    }
+
+    [Fact]
+    public void Request_culture_uses_cookie_and_query_only_not_browser_accept_language()
+    {
+        var services = new ServiceCollection();
+        services.AddHrLocalization();
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<RequestLocalizationOptions>>().Value;
+        Assert.Equal(2, options.RequestCultureProviders.Count);
+        Assert.DoesNotContain(
+            options.RequestCultureProviders,
+            p => p is AcceptLanguageHeaderRequestCultureProvider);
     }
 
     [Fact]

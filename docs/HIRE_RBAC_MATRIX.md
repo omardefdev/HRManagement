@@ -5,6 +5,9 @@
 
 | خطوة DFD | النشاط | دور Keycloak | سياسة ASP.NET |
 |----------|--------|--------------|---------------|
+| P0.x | طلب شاغر / نشر / اختيار / عرض | `hr-core` | `Module.HrCore`, `HrCore.Write` / `HrCore.Approve` |
+| P0.x | بوابة المواطن `/careers` | *(عام)* | بدون تسجيل HR |
+| P0.x | ترشّح ESS | `hr-core` (Ess) | `Module.Ess` |
 | P1.1 | استلام مرشح / معاملة تعيين | `hr-contracts`, `hr-core` | `Module.HrContracts`, `HrContracts.HireExecute` (معالج) |
 | P1.2 | تصنيف وعقد ومباشرة | `hr-contracts` | `HrContracts.Approve` (تفعيل عقد) |
 | P2.1 | ملف شخصي | `hr-core` | `HrCore.Write` |
@@ -19,6 +22,14 @@
 | المسار | الوصف |
 |--------|--------|
 | `/Home/HireJourney` | دليل مسار `new-hire` |
+| `/Home/JourneyDetails/new-hire` | مسار التوظيف الكامل (مرحلتان: HCM-001 + FUN-001) |
+| `/careers` | بوابة المواطن — تقديم على إعلانات منشورة (عام) |
+| `/ui/hr-core/RecruitmentRequisitions` | طلبات الشاغر ونشر الإعلان |
+| `/ui/hr-core/RecruitmentApplications` | طلبات HR، اختيار، تعيين (OfferAccepted) |
+| `/ui/hr-core/PublicJobPostings` | PromoteFromCitizen |
+| `/ui/hr-core/TalentMarketplace` | PromoteFromInternal (HR — اختياري) |
+| `/ui/hr-core/EssTalent` | ترشّح ESS (ModuleEss — اختياري) |
+| `/ui/hr-core/OfferLetters` | خطابات العرض |
 | `/ui/hr-contracts/HireWizard` | معالج التعيين (قائمة تحقق + إكمال) |
 
 ## أدوار تشغيلية مقترحة في Keycloak

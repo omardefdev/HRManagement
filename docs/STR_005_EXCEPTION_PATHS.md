@@ -16,6 +16,6 @@
 | exceptionId | expiresOn | status |
 |---|---|---|
 | EX-STR005-SIM-LAW-INTERIM | 2026-10-30 | Declared |
-| EX-STR005-SIM-INCIDENT-WINDOW | 2026-08-15 | Declared |
+| EX-STR005-SIM-INCIDENT-WINDOW | 2026-09-15 | Declared |
 
 راجع [ADR-STR-005](ADR-STR-005-program-governance-boards.md).

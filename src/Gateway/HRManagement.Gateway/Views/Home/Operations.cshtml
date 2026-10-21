@@ -133,7 +133,7 @@
                     {
                         <tr>
                             <td>@item.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
-                            <td>@item.Decision</td>
+                            <td>@HRManagement.Gateway.Models.GatewayAuditDisplay.Decision(item.Decision)</td>
                             <td>@item.StatusCode</td>
                             <td>@item.Method</td>
                             <td><code>@item.Path</code></td>
@@ -144,7 +144,7 @@
                 </table>
             </div>
             <div class="mt-2">
-                <a class="btn btn-sm gateway-btn-ghost" href="/ops/audit-search?correlationId=@Uri.EscapeDataString(correlationId)&timeRange=all&pageSize=100">عرض البيانات النصية</a>
+                <a class="btn btn-sm gateway-btn-ghost" href="/ops/audit-search?correlationId=@Uri.EscapeDataString(correlationId)&timeRange=7d&pageSize=100">عرض البيانات النصية</a>
             </div>
         }
     </div>

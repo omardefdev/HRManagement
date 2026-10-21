@@ -26,8 +26,9 @@ from docx.shared import Cm, Inches, Pt, RGBColor
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "docs" / "THESIS_GRADUATION_FINAL.md"
-CATALOG_SOURCE = ROOT / "docs" / "THESIS_REQUIREMENTS_CATALOG.md"
+SOURCE = ROOT / "docs" / "THESIS_GRADUATION_CURRENT.md"
+CATALOG_SOURCE = ROOT / "docs" / "THESIS_REQUIREMENTS_CATALOG_CURRENT.md"
+TRUTH_REGISTER_SOURCE = ROOT / "docs" / "THESIS_CAPABILITY_TRUTH_REGISTER_CURRENT.md"
 OUT_DIR = ROOT / "docs" / "output"
 ASSET_DIR = ROOT / "tmp" / "thesis_assets"
 CURATED_DIAGRAM_DIR = ROOT / "docs" / "thesis_diagrams" / "rendered"
@@ -39,7 +40,7 @@ DATABASE_DIAGRAM_DIR = ROOT / "docs" / "thesis_diagrams" / "rendered"
 DATABASE_FULL_ERD_DIR = ROOT / "docs" / "thesis_diagrams" / "database_erdds" / "rendered"
 DATABASE_FULL_ERD_MANIFEST = ROOT / "docs" / "thesis_diagrams" / "database_erdds" / "manifest.json"
 DATABASE_COMPACT_ERD_DIR = ROOT / "docs" / "thesis_diagrams" / "database_erdds" / "compact_rendered"
-OUTPUT = OUT_DIR / "HRManagement_Graduation_Thesis_Academic_Revised.docx"
+OUTPUT = OUT_DIR / "HRManagement_Graduation_Thesis_2026_Current.docx"
 
 ARABIC_FONT = "Simplified Arabic"
 ENGLISH_FONT = "Times New Roman"
@@ -56,6 +57,7 @@ TABLE_HEADER = "E8EEF5"
 RISK = "FCE8E6"
 SUCCESS = "E3F2E8"
 TABLE_COUNTERS = {1: 0, 2: 0, 3: 0}
+FIGURE_COUNTERS: dict[str, int] = {}
 
 
 @dataclass(frozen=True)
@@ -135,9 +137,9 @@ FIGURES = {
     "event_flow": Figure("الشكل (3-25)", "مخطط تدفق الأحداث بين الخدمات", "36_event_flow.png", 3),
     "ownership": Figure("الشكل (3-26)", "مخطط ملكية البيانات بين الخدمات", "37_ownership.png", 3),
     "database_landscape": Figure("الشكل (3-27)", "منظومة قواعد البيانات المملوكة للخدمات", "47_database_landscape.png", 3),
-    "database_hrcore": Figure("الشكل (3-28)", "ERD منطقي مختصر لقاعدة HR.Core", "48_database_hrcore.png", 3),
-    "database_contracts": Figure("الشكل (3-29)", "ERD منطقي مختصر لقاعدة HR.Contracts", "49_database_contracts.png", 3),
-    "database_payroll": Figure("الشكل (3-30)", "ERD منطقي مختصر لقاعدة Payroll", "50_database_payroll.png", 3),
+    "database_hrcore": Figure("الشكل (3-28)", "ERD مفاهيمي مختصر لقاعدة HR.Core", "48_database_hrcore.png", 3),
+    "database_contracts": Figure("الشكل (3-29)", "ERD مفاهيمي مختصر لقاعدة HR.Contracts", "49_database_contracts.png", 3),
+    "database_payroll": Figure("الشكل (3-30)", "ERD مفاهيمي مختصر لقاعدة Payroll", "50_database_payroll.png", 3),
     "database_integration": Figure("الشكل (3-31)", "تواصل قواعد البيانات عبر الأحداث والمعرفات", "51_database_integration.png", 3),
     "database_full_gateway": Figure("الشكل (م-6)", "ERD الكامل لقاعدة Gateway Audit", "52_erd_gateway_audit.png", 3),
     "database_full_admin": Figure("الشكل (م-7)", "ERD الكامل لقاعدة Admin.Logistics", "53_erd_admin_logistics.png", 3),
@@ -166,6 +168,33 @@ FIGURES = {
     "database_compact_idcard": Figure("الشكل (3-41)", "ERD مختصر لقاعدة IDCard", "76_erd_compact_idcard.png", 3),
     "database_compact_it": Figure("الشكل (3-42)", "ERD مختصر لقاعدة IT.Infra", "77_erd_compact_it.png", 3),
     "database_compact_archive": Figure("الشكل (3-43)", "ERD مختصر لقاعدة Records.Archive", "78_erd_compact_archive.png", 3),
+    "tenant_context": Figure("الشكل (3-44)", "سياق المنصة متعددة الجهات والإدارات", "100_tenant_context.png", 3),
+    "usecase_platform": Figure("الشكل (3-45)", "حالات استخدام حوكمة المنصة والجهة", "101_usecase_platform.png", 3),
+    "dfd_governance": Figure("الشكل (3-46)", "DFD لحوكمة الجهة والسياسات والرموز", "102_dfd_governance.png", 3),
+    "activity_onboarding": Figure("الشكل (3-47)", "مخطط نشاط تهيئة جهة جديدة", "103_activity_onboarding.png", 3),
+    "activity_policy": Figure("الشكل (3-48)", "مخطط نشاط دورة حياة السياسة", "104_activity_policy.png", 3),
+    "sequence_policy": Figure("الشكل (3-49)", "مخطط تسلسل إنفاذ سياسة حية", "105_sequence_policy.png", 3),
+    "sequence_code": Figure("الشكل (3-50)", "مخطط تسلسل توليد رمز مؤسسي", "106_sequence_code.png", 3),
+    "activity_asset": Figure("الشكل (3-51)", "مخطط نشاط عهدة الأصل والفقد والإرجاع", "107_activity_asset.png", 3),
+    "sequence_asset": Figure("الشكل (3-52)", "مخطط تسلسل اعتماد عهدة أصل", "108_sequence_asset.png", 3),
+    "component_governance": Figure("الشكل (3-53)", "مكونات حوكمة المنصة والخدمات المشتركة", "109_component_governance.png", 3),
+    "security_rls": Figure("الشكل (3-54)", "طبقات عزل الجهة والنطاق التنظيمي", "110_security_rls.png", 3),
+    "reliability_journeys": Figure("الشكل (3-55)", "الاعتمادية حسب رحلات الأعمال العابرة للخدمات", "111_reliability_journeys.png", 3),
+    "usecase_current_master": Figure("الشكل (3-56)", "حالات الاستخدام المرجعية لخط الأساس الحالي", "112_usecase_current_master.png", 3),
+    "usecase_tenant_assignment": Figure("الشكل (3-57)", "حالات استخدام إسناد الجهة والحجر والمصالحة", "113_usecase_tenant_assignment.png", 3),
+    "usecase_temporal_org": Figure("الشكل (3-58)", "حالات استخدام الهيكل المؤرخ والوظائف الممولة", "114_usecase_temporal_org.png", 3),
+    "usecase_policy_workflow": Figure("الشكل (3-59)", "حالات استخدام السياسة وسير العمل والتوقيع والرموز", "115_usecase_policy_workflow.png", 3),
+    "usecase_advanced_payroll": Figure("الشكل (3-60)", "حالات استخدام الرواتب والخزينة المتقدمة", "116_usecase_advanced_payroll.png", 3),
+    "usecase_logistics_lineage": Figure("الشكل (3-61)", "حالات استخدام التوريد وتتبع الأصل والعهدة", "117_usecase_logistics_lineage.png", 3),
+    "usecase_security_files": Figure("الشكل (3-62)", "حالات استخدام الخصوصية والملفات وثقة الخدمات", "118_usecase_security_files.png", 3),
+    "dfd_current_level0": Figure("الشكل (3-63)", "DFD المرجعي للمستوى صفر في خط الأساس الحالي", "119_dfd_current_level0.png", 3),
+    "dfd_tenant_assignment": Figure("الشكل (3-64)", "DFD لإسناد الجهة والحجر والمصالحة", "120_dfd_tenant_assignment.png", 3),
+    "dfd_policy_workflow": Figure("الشكل (3-65)", "DFD للسياسة وسير العمل والرموز", "121_dfd_policy_workflow.png", 3),
+    "dfd_advanced_payroll": Figure("الشكل (3-66)", "DFD للرواتب والتمويل والدفع والتسوية", "122_dfd_advanced_payroll.png", 3),
+    "dfd_logistics_lineage": Figure("الشكل (3-67)", "DFD للتوريد والاستلام وتتبع الأصل والعهدة", "123_dfd_logistics_lineage.png", 3),
+    "dfd_file_security": Figure("الشكل (3-68)", "DFD لحجر الملفات والفحص والمنح والخصوصية", "124_dfd_file_security.png", 3),
+    "sequence_payroll_resumable": Figure("الشكل (3-69)", "تسلسل تشغيل الرواتب القابل للاستئناف والصرف", "125_sequence_payroll_resumable.png", 3),
+    "activity_tenant_reconciliation": Figure("الشكل (3-70)", "نشاط إسناد بيانات الجهة والحجر والمصالحة", "126_activity_tenant_reconciliation.png", 3),
 }
 
 
@@ -195,6 +224,33 @@ CURATED_DIAGRAM_MAP = {
     "security": "23_security_scope.png",
     "event_flow": "24_event_flow.png",
     "ownership": "25_data_ownership.png",
+    "tenant_context": "31_tenant_context.png",
+    "usecase_platform": "32_usecase_platform_governance.png",
+    "dfd_governance": "33_dfd_governance_level1.png",
+    "activity_onboarding": "34_activity_agency_onboarding.png",
+    "activity_policy": "35_activity_policy_lifecycle.png",
+    "sequence_policy": "36_sequence_policy_enforcement.png",
+    "sequence_code": "37_sequence_code_generation.png",
+    "activity_asset": "38_activity_asset_custody.png",
+    "sequence_asset": "39_sequence_asset_assignment.png",
+    "component_governance": "40_component_platform_governance.png",
+    "security_rls": "41_security_tenant_rls.png",
+    "reliability_journeys": "42_reliability_business_journeys.png",
+    "usecase_current_master": "43_usecase_current_master.png",
+    "usecase_tenant_assignment": "44_usecase_tenant_assignment.png",
+    "usecase_temporal_org": "45_usecase_temporal_org.png",
+    "usecase_policy_workflow": "46_usecase_policy_workflow.png",
+    "usecase_advanced_payroll": "47_usecase_advanced_payroll.png",
+    "usecase_logistics_lineage": "48_usecase_logistics_lineage.png",
+    "usecase_security_files": "49_usecase_security_files.png",
+    "dfd_current_level0": "50_dfd_current_level0.png",
+    "dfd_tenant_assignment": "51_dfd_tenant_assignment.png",
+    "dfd_policy_workflow": "52_dfd_policy_workflow.png",
+    "dfd_advanced_payroll": "53_dfd_advanced_payroll.png",
+    "dfd_logistics_lineage": "54_dfd_logistics_lineage.png",
+    "dfd_file_security": "55_dfd_file_security.png",
+    "sequence_payroll_resumable": "56_sequence_payroll_resumable.png",
+    "activity_tenant_reconciliation": "57_activity_tenant_reconciliation.png",
 }
 
 
@@ -262,32 +318,85 @@ DATABASE_COMPACT_ERD_MAP = {
     "database_compact_idcard": "12_idcard_compact.png",
     "database_compact_it": "13_itinfra_compact.png",
     "database_compact_archive": "15_archive_compact.png",
+    "database_contracts": "07_contracts_compact.png",
+    "database_hrcore": "08_hrcore_compact.png",
+    "database_payroll": "14_payroll_compact.png",
 }
 
 
+def relabel_figures(keys: list[str], prefix: str, chapter: int = 3) -> None:
+    for index, key in enumerate(keys, 1):
+        current = FIGURES[key]
+        FIGURES[key] = Figure(f"الشكل ({prefix}-{index})", current.title, current.filename, chapter)
+
+
+relabel_figures(["generic_architecture", "layers", "events"], "2", 2)
+relabel_figures(
+    [
+        "solution", "tenant_context", "scope", "usecase", "usecase_platform", "dfd", "dfd_governance",
+        "usecase_org", "usecase_lifecycle", "usecase_payroll", "usecase_people", "usecase_portals",
+        "activity_hire", "activity_contract", "activity_leave", "activity_movement", "activity_separation",
+        "activity_payroll", "activity_onboarding", "activity_policy", "activity_asset", "sequence_hire",
+        "sequence_contract", "sequence_movement", "sequence_separation", "sequence_payroll", "sequence_policy",
+        "sequence_code", "sequence_asset", "domain", "erd", "component", "component_governance",
+        "deployment_formal", "security", "security_rls", "event_flow", "ownership", "reliability_journeys",
+        "rbac", "trace", "usecase_current_master", "usecase_tenant_assignment", "usecase_temporal_org",
+        "usecase_policy_workflow", "usecase_advanced_payroll", "usecase_logistics_lineage",
+        "usecase_security_files", "dfd_current_level0", "dfd_tenant_assignment", "dfd_policy_workflow",
+        "dfd_advanced_payroll", "dfd_logistics_lineage", "dfd_file_security", "sequence_payroll_resumable",
+        "activity_tenant_reconciliation", "database_landscape", "database_hrcore", "database_contracts", "database_payroll",
+        "database_integration", "database_compact_gateway", "database_compact_admin", "database_compact_auth",
+        "database_compact_compliance", "database_compact_analytics", "database_compact_files",
+        "database_compact_health", "database_compact_movements", "database_compact_training",
+        "database_compact_idcard", "database_compact_it", "database_compact_archive", "deployment", "tests",
+    ],
+    "3",
+)
+relabel_figures(list(USECASE_DRAWIO_MAP), "ج")
+relabel_figures(
+    ["dfd_main", "dfd_new_employee", "dfd_transfer", "dfd_medical", "dfd_training", "dfd_payroll", "dfd_complaint", "dfd_separation", "dfd_dictionary"],
+    "د",
+)
+relabel_figures(DATABASE_FULL_ERD_KEYS, "ح")
+
+FIGURE_CATALOG_KEYS = [
+    "generic_architecture", "events", "solution", "tenant_context", "scope", "usecase", "usecase_platform",
+    "dfd", "dfd_governance", "usecase_org", "usecase_lifecycle", "usecase_payroll", "usecase_people",
+    "usecase_portals", "activity_hire", "activity_contract", "activity_leave", "activity_movement",
+    "activity_separation", "activity_payroll", "activity_onboarding", "activity_policy", "activity_asset",
+    "sequence_hire", "sequence_contract", "sequence_movement", "sequence_separation", "sequence_payroll",
+    "sequence_policy", "sequence_code", "sequence_asset", "domain", "erd", "component", "component_governance",
+    "deployment_formal", "security", "security_rls", "event_flow", "ownership", "reliability_journeys", "rbac",
+    "trace", "usecase_current_master", "usecase_tenant_assignment", "usecase_temporal_org",
+    "usecase_policy_workflow", "usecase_advanced_payroll", "usecase_logistics_lineage",
+    "usecase_security_files", "dfd_current_level0", "dfd_tenant_assignment", "dfd_policy_workflow",
+    "dfd_advanced_payroll", "dfd_logistics_lineage", "dfd_file_security", "sequence_payroll_resumable",
+    "activity_tenant_reconciliation", "database_landscape", "database_hrcore", "database_contracts", "database_payroll",
+    "database_integration", *DATABASE_COMPACT_ERD_MAP.keys(), "deployment", "tests", *USECASE_DRAWIO_MAP.keys(),
+    "dfd_main", "dfd_new_employee", "dfd_transfer", "dfd_medical", "dfd_training", "dfd_payroll",
+    "dfd_complaint", "dfd_separation", "dfd_dictionary", *DATABASE_FULL_ERD_KEYS,
+]
+
+
 FIGURE_AFTER_HEADING = {
-    "## 1.6": "institution",
-    "## 2.2": "generic_architecture",
-    "## 2.3": "layers",
-    "## 2.4": "events",
+    "## 2.4": "generic_architecture",
+    "## 2.5": "events",
     "## 3.2": "solution",
-    "## 3.5": "data",
-    "## 3.6": "scope",
-    "### 3.7.1": "lifecycle",
-    "## 3.10": "security",
-    "## 3.11": "deployment",
+    "## 3.6": "tenant_context",
+    "## 3.7": "component_governance",
+    "## 3.11": "security_rls",
+    "## 3.12": "deployment",
 }
 
 
 CITATION_NOTES = {
     "## 2.1": "تُعرض المفاهيم في هذا القسم بوصفها إطاراً لإدارة دورة حياة الموظف والبيانات التنظيمية، مع الاستناد إلى مبادئ النمذجة الموجهة بالمجال [1].",
-    "## 2.2": "يعتمد هذا العرض على أدبيات الخدمات المصغرة التي تشدد على استقلالية النشر وحدود المجال، وعلى ضرورة موازنة ذلك مع كلفة التشغيل والتكامل [2][3].",
-    "## 2.3": "يستند مفهوم السياق المحدود وفصل مسؤوليات المجال إلى المرجع المؤسس في التصميم الموجه بالمجال [1].",
-    "## 2.4": "تستند مفاهيم الرسائل، إعادة المحاولة، والمستهلكين إلى وثائق RabbitMQ وMassTransit الرسمية [7][8].",
-    "## 2.6": "تستند وظيفة البوابة العكسية وتوجيه المسارات إلى وثائق YARP الرسمية [6].",
-    "## 2.7": "تُعرض مفاهيم OpenID Connect والأدوار والسياسات بالاستناد إلى وثائق Keycloak وإطار التحكم بالوصول القائم على السمات [9][14].",
-    "## 2.8": "تستند الخيارات المتعلقة بـ EF Core وPostgreSQL إلى وثائقهما الرسمية [5][10].",
-    "## 2.9": "تُعرض مبادئ الحاويات والرصد التشغيلي بالاستناد إلى Docker Compose وOpenTelemetry [11][12].",
+    "## 2.3": "يميز النموذج بين عزل الجهة ونطاق الوحدة التنظيمية، ويستند دفاع قاعدة البيانات إلى مرشحات EF Core وسياسات PostgreSQL [5][10].",
+    "## 2.4": "يعتمد هذا العرض على أدبيات الخدمات المصغرة والتصميم الموجه بالمجال التي تشدد على استقلالية النشر وحدود الملكية [1][2][3].",
+    "## 2.5": "تستند مفاهيم الرسائل وإعادة المحاولة والمستهلكين إلى وثائق RabbitMQ وMassTransit الرسمية [7][8].",
+    "## 2.6": "تستند الخيارات المتعلقة بملكية البيانات وEF Core وPostgreSQL إلى مراجع البيانات الموزعة والوثائق الرسمية [5][10][22].",
+    "## 2.8": "تُعرض مفاهيم OpenID Connect والأدوار والسياسات بالاستناد إلى وثائق Keycloak وإطار التحكم بالوصول القائم على السمات [9][14][35][36].",
+    "## 2.9": "تستند مبادئ الاستمرارية والتعافي إلى إرشادات NIST ومراجع هندسة الاعتمادية [25][32].",
     "## 2.10": "يستند اختيار محاور الجودة والتقييم إلى نموذج ISO/IEC 25010، مع تمييز الاختبار الوظيفي عن قياس الأداء [13].",
     "## 3.1": "يعرض هذا الفصل بيئة التنفيذ والبنية الناتجة عن مراحل التحليل والتصميم، ويستند توصيف المكونات إلى وثائق المشروع وتقارير التحقق المعتمدة [15][16].",
 }
@@ -301,21 +410,21 @@ TABLE_TITLES = {
     "## 3.2": ["مؤشرات بنية النظام المنفذ"],
     "## 3.3": ["خدمات المنظومة وقواعد بياناتها"],
     "## 3.4": ["مؤشرات تنفيذ الخدمات ومكونات العرض والبيانات"],
-    "## 3.9": ["عينة من عقود أحداث التكامل"],
-    "### 3.16.1": ["الكيانات الأساسية في خدمة HR.Core"],
-    "### 3.16.2": ["الكيانات الأساسية في خدمة HR.Contracts"],
-    "### 3.16.3": ["الكيانات الأساسية في خدمة Payroll"],
-    "### 3.16.4": ["الكيانات الأساسية في خدمة HR.Health"],
-    "### 3.16.5": ["الكيانات الأساسية في خدمة HR.Movements"],
-    "### 3.16.6": ["الكيانات الأساسية في خدمة HR.Training"],
-    "### 3.16.7": ["الكيانات الأساسية في خدمة IDCard"],
-    "### 3.16.9": ["الكيانات الأساسية في خدمة Admin.Logistics"],
-    "### 3.16.10": ["الكيانات الأساسية في خدمة IT.Infra"],
-    "### 3.16.11": ["الكيانات الأساسية في خدمة Dev.Analytics"],
-    "### 3.16.12": ["الكيانات الأساسية في خدمة Compliance"],
-    "### 3.16.13": ["الكيانات الأساسية في خدمة Auth.Directory"],
-    "### 3.16.14": ["الكيانات الأساسية في خدمة File.Storage"],
-    "## 3.17": ["تحليل المخاطر والضوابط"],
+    "## 3.10": ["عينة من عقود أحداث التكامل"],
+    "### 3.18.1": ["الكيانات الأساسية في خدمة HR.Core"],
+    "### 3.18.2": ["الكيانات الأساسية في خدمة HR.Contracts"],
+    "### 3.18.3": ["الكيانات الأساسية في خدمة Payroll"],
+    "### 3.18.4": ["الكيانات الأساسية في خدمة HR.Health"],
+    "### 3.18.5": ["الكيانات الأساسية في خدمة HR.Movements"],
+    "### 3.18.6": ["الكيانات الأساسية في خدمة HR.Training"],
+    "### 3.18.7": ["الكيانات الأساسية في خدمة IDCard"],
+    "### 3.18.9": ["الكيانات الأساسية في خدمة Admin.Logistics"],
+    "### 3.18.10": ["الكيانات الأساسية في خدمة IT.Infra"],
+    "### 3.18.11": ["الكيانات الأساسية في خدمة Dev.Analytics"],
+    "### 3.18.12": ["الكيانات الأساسية في خدمة Compliance"],
+    "### 3.18.13": ["الكيانات الأساسية في خدمة Auth.Directory"],
+    "### 3.18.14": ["الكيانات الأساسية في خدمة File.Storage"],
+    "## 3.16": ["تحليل المخاطر والضوابط"],
 }
 
 
@@ -462,12 +571,12 @@ def make_figures() -> None:
     _centered(draw, (200, 720, 1600, 885), "Docker Compose, health endpoints, production overrides\nand disabled automatic migrations", _font(ARIAL_PATH, 29, True), GRAY)
     image.save(ASSET_DIR / FIGURES["deployment"].filename)
 
-    image, draw = _canvas("Verification evidence: successful unit execution with declared remaining limits")
-    _box(draw, (135, 235, 735, 585), "491 / 491\nunit tests passed\n.NET 10 Release", "2D7A4B", 47)
-    _box(draw, (1065, 235, 1665, 585), "Scope tests\nbranch subtree\nallow / deny\nauth forwarding\nUTC normalization", TEAL, 33)
+    image, draw = _canvas("Verification evidence: current results and declared remaining limits")
+    _box(draw, (135, 235, 735, 585), "Release build\n0 errors\n2416 unit tests passed\n5 failed", "2D7A4B", 39)
+    _box(draw, (1065, 235, 1665, 585), "Integration\n158 passed / 7 failed\n47 skipped\nE2E: 2 passed", TEAL, 33)
     _arrow(draw, (735, 410), (1065, 410))
     draw.rounded_rectangle((360, 750, 1440, 890), radius=22, fill="#FCE8E6", outline="#9B1C1C", width=3)
-    _centered(draw, (360, 750, 1440, 890), "Performance, end-to-end and Testcontainers\nremain outside this measured run", _font(ARIAL_PATH, 26, True), "9B1C1C")
+    _centered(draw, (360, 750, 1440, 890), "Docker-dependent RLS, Testcontainers and performance\nremain outside this measured run", _font(ARIAL_PATH, 26, True), "9B1C1C")
     image.save(ASSET_DIR / FIGURES["tests"].filename)
 
     make_formal_figures()
@@ -476,12 +585,12 @@ def make_figures() -> None:
         source_path = CURATED_DIAGRAM_DIR / source_name
         if source_path.exists():
             shutil.copyfile(source_path, ASSET_DIR / FIGURES[key].filename)
-    # The approved Draw.io workbook is the source of truth for the DFD package.
+    # Retain the earlier Draw.io DFD package for historical traceability.
     for key, source_name in DRAWIO_DIAGRAM_MAP.items():
         source_path = DRAWIO_DIAGRAM_DIR / source_name
         if source_path.exists():
             shutil.copyfile(source_path, ASSET_DIR / FIGURES[key].filename)
-    # The approved use-case workbook contains the 21 organizational-sector diagrams.
+    # Retain the earlier 21-sector use-case workbook for historical traceability.
     for key, source_name in USECASE_DRAWIO_MAP.items():
         source_path = USECASE_DRAWIO_DIR / source_name
         if source_path.exists():
@@ -792,6 +901,18 @@ def set_cell_margins(cell, top: int = 85, left: int = 115, bottom: int = 85, rig
 def set_table_geometry(table, widths: list[int]) -> None:
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
+    tbl_pr = table._tbl.tblPr
+    tbl_w = tbl_pr.find(qn("w:tblW"))
+    if tbl_w is None:
+        tbl_w = OxmlElement("w:tblW")
+        insert_before_first(tbl_pr, tbl_w, ("w:jc", "w:tblCellSpacing", "w:tblInd", "w:tblBorders", "w:shd", "w:tblLayout"))
+    tbl_w.set(qn("w:w"), str(sum(widths)))
+    tbl_w.set(qn("w:type"), "dxa")
+    tbl_layout = tbl_pr.find(qn("w:tblLayout"))
+    if tbl_layout is None:
+        tbl_layout = OxmlElement("w:tblLayout")
+        insert_before_first(tbl_pr, tbl_layout, ("w:tblCellMar", "w:tblLook", "w:tblCaption", "w:tblDescription"))
+    tbl_layout.set(qn("w:type"), "fixed")
     grid = table._tbl.tblGrid
     grid_cols = list(grid.gridCol_lst)
     for column, width in zip(grid_cols, widths):
@@ -932,6 +1053,7 @@ def add_running_header(section) -> None:
 
 
 def configure_section(section) -> None:
+    section.orientation = WD_ORIENT.PORTRAIT
     section.page_width = Cm(21)
     section.page_height = Cm(29.7)
     section.right_margin = Cm(3)
@@ -942,8 +1064,35 @@ def configure_section(section) -> None:
     section.footer_distance = Cm(1.15)
 
 
+def begin_landscape_section(doc: Document, horizontal_margin: float = 1.5) -> object:
+    section = doc.add_section(WD_SECTION.NEW_PAGE)
+    section.orientation = WD_ORIENT.LANDSCAPE
+    section.page_width = Cm(29.7)
+    section.page_height = Cm(21)
+    section.right_margin = Cm(horizontal_margin)
+    section.left_margin = Cm(horizontal_margin)
+    section.top_margin = Cm(1.6)
+    section.bottom_margin = Cm(1.6)
+    section.header_distance = Cm(0.75)
+    section.footer_distance = Cm(0.75)
+    continue_page_numbering(section)
+    add_running_header(section)
+    add_page_number_footer(section)
+    return section
+
+
+def begin_portrait_section(doc: Document) -> object:
+    section = doc.add_section(WD_SECTION.NEW_PAGE)
+    configure_section(section)
+    continue_page_numbering(section)
+    add_running_header(section)
+    add_page_number_footer(section)
+    return section
+
+
 ASCII_WORD_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-LTR_INLINE_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:/#+'-")
+ZWSP = "\u200b"
+LTR_INLINE_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:/#+'-") | {ZWSP}
 LTR_LEADING_CHARS = set(".#")
 LRM = "\u200e"
 
@@ -1036,6 +1185,12 @@ def add_inline(paragraph, text: str, size: float = 13.5, color: str = INK) -> No
             add_directional_text(paragraph, piece, size, color, isolate_ltr=isolate_ltr)
 
 
+def add_table_wrap_points(text: str) -> str:
+    """Add invisible wrap opportunities to long technical identifiers in table cells."""
+    text = re.sub(r"([,;/._-])(?=[A-Za-z0-9])", rf"\1{ZWSP}", text)
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", ZWSP, text)
+
+
 def add_para(doc: Document, text: str = "", style: str | None = None, alignment: WD_ALIGN_PARAGRAPH = WD_ALIGN_PARAGRAPH.RIGHT, before: float = 0, after: float = 7, size: float = 13.5) -> object:
     p = doc.add_paragraph(style=style) if style else doc.add_paragraph()
     bidi(p, alignment)
@@ -1109,6 +1264,16 @@ def add_caption(doc: Document, label: str, title: str, table: bool = False) -> N
 
 def add_figure(doc: Document, figure_key: str, max_width: float = 5.92, max_height: float = 7.05) -> None:
     figure = FIGURES[figure_key]
+    if figure_key in USECASE_DRAWIO_MAP:
+        prefix = "ج"
+    elif figure_key in DRAWIO_DIAGRAM_MAP and figure_key != "dfd":
+        prefix = "د"
+    elif figure_key in DATABASE_FULL_ERD_MAP:
+        prefix = "ح"
+    else:
+        prefix = str(figure.chapter)
+    FIGURE_COUNTERS[prefix] = FIGURE_COUNTERS.get(prefix, 0) + 1
+    label = f"الشكل ({prefix}-{FIGURE_COUNTERS[prefix]})"
     path = ASSET_DIR / figure.filename
     with Image.open(path) as bitmap:
         width_px, height_px = bitmap.size
@@ -1125,8 +1290,8 @@ def add_figure(doc: Document, figure_key: str, max_width: float = 5.92, max_heig
     run.add_picture(str(path), width=Inches(width_in), height=Inches(height_in))
     shape = doc.inline_shapes[-1]
     shape._inline.docPr.set("descr", figure.title)
-    shape._inline.docPr.set("title", figure.label)
-    add_caption(doc, figure.label, figure.title, table=False)
+    shape._inline.docPr.set("title", label)
+    add_caption(doc, label, figure.title, table=False)
     source_text = (
         "المصدر: إعداد الباحثين استناداً إلى نموذج البيانات النهائي المعتمد لكل سياق خدمة."
         if figure_key in DATABASE_DIAGRAM_MAP or figure_key in DATABASE_FULL_ERD_MAP or figure_key in DATABASE_COMPACT_ERD_MAP
@@ -1147,21 +1312,32 @@ def add_figure(doc: Document, figure_key: str, max_width: float = 5.92, max_heig
         set_run(run, 10.5, color=GRAY)
 
 
-def add_table(doc: Document, rows: list[list[str]], title: str, chapter: int, table_no: int, label_override: str | None = None) -> None:
+def add_table(
+    doc: Document,
+    rows: list[list[str]],
+    title: str,
+    chapter: int,
+    table_no: int,
+    label_override: str | None = None,
+    column_weights: list[float] | None = None,
+) -> None:
     if not rows:
         return
-    width_total = 8780
+    width_total = 14000 if doc.sections[-1].orientation == WD_ORIENT.LANDSCAPE else 8300
     columns = len(rows[0])
-    weights = [1] * columns
-    if columns == 2:
-        weights = [3, 7]
-    elif columns == 3:
-        weights = [2, 4, 4]
-    elif columns == 4:
-        weights = [2, 3, 3, 2]
-    elif columns >= 5:
-        weights = [2] * columns
-        weights[0] = 1
+    weights = column_weights or [1] * columns
+    if column_weights is None:
+        if columns == 2:
+            weights = [3, 7]
+        elif columns == 3:
+            weights = [2, 4, 4]
+        elif columns == 4:
+            weights = [2, 3, 3, 2]
+        elif columns >= 5:
+            weights = [2] * columns
+            weights[0] = 1
+    elif len(column_weights) != columns:
+        raise ValueError("column_weights must match the table column count")
     widths = [max(850, int(width_total * item / sum(weights))) for item in weights]
     widths[-1] += width_total - sum(widths)
     if label_override is None:
@@ -1180,7 +1356,7 @@ def add_table(doc: Document, rows: list[list[str]], title: str, chapter: int, ta
             p.paragraph_format.space_before = Pt(0)
             p.paragraph_format.space_after = Pt(0)
             p.paragraph_format.line_spacing = 1.05
-            add_inline(p, value, 10.5 if row_index else 11)
+            add_inline(p, add_table_wrap_points(value), 10.5 if row_index else 11)
             if row_index == 0:
                 set_cell_shading(cell, TABLE_HEADER)
                 for run in p.runs:
@@ -1206,7 +1382,7 @@ def add_metadata_table(doc: Document, rows: list[list[str]]) -> None:
             p.paragraph_format.space_before = Pt(0)
             p.paragraph_format.space_after = Pt(0)
             p.paragraph_format.line_spacing = 1.05
-            add_inline(p, value, 10.4 if col_index else 10.8)
+            add_inline(p, add_table_wrap_points(value), 10.4 if col_index else 10.8)
             if row_index == 0:
                 set_cell_shading(cell, TABLE_HEADER)
                 for run in p.runs:
@@ -1343,18 +1519,18 @@ def add_front_matter(doc: Document) -> None:
 
     add_heading(doc, "الملخص", 1)
     add_para(doc, "تعالج هذه الأطروحة مشكلة تشتت بيانات وإجراءات الموارد البشرية في المؤسسات التي تجمع إدارة مركزية وإدارات فرعية. تحتاج الإدارة المركزية إلى رؤية شاملة واعتماد القرارات ومراقبة الامتثال، بينما تحتاج الفروع إلى تنفيذ العمليات اليومية ضمن نطاق تنظيمي مضبوط لا يتيح الاطلاع على بيانات الفروع الأخرى.")
-    add_para(doc, "يقدم المشروع منصة HRManagement لإدارة الموارد البشرية وفق نموذج يجمع مركزية الحوكمة ولا مركزية التنفيذ. يتكون الحل من 14 خدمة مستقلة خلف بوابة موحدة، و15 قاعدة بيانات تطبيقية تشمل قاعدة تدقيق البوابة، مع قاعدة بنية تحتية منفصلة للهوية عبر Keycloak. طُورت الخدمات باستخدام .NET 10 وASP.NET Core MVC، وتخزن البيانات في PostgreSQL، ويعتمد التكامل على RabbitMQ/MassTransit، وتدار الهوية عبر Keycloak، وتعمل البوابة عبر YARP، بينما يستخدم Docker Compose للتشغيل المحلي.")
-    add_para(doc, "تتمثل مساهمة المشروع في ترجمة الهيكل التنظيمي إلى نموذج صلاحيات قابل للتنفيذ: لا تُقيَّد أدوار الإدارة المركزية بنطاق فرع، في حين يُقيَّد مدير الفرع بواسطة محدد النطاق التنظيمي scope_org_unit_id، وتتولى خدمة OrgScopeService توسيع الصلاحية لتشمل الوحدة الجذرية وتفرعاتها. وقد رُبط هذا التصميم بمعايير قبول واختبارات آلية للنطاق التنظيمي.")
-    add_para(doc, "أُجري التحقق في بيئة Release باستخدام .NET 10، ونجحت 491 من أصل 491 اختبار وحدة، إضافة إلى 50 من أصل 50 اختبار تكامل لا يعتمد على الحاويات. لم تشمل الدراسة قياس أداء أو اختبار قبول ميدانياً، ولذلك تُعرض هذه الجوانب بوصفها أعمال تحقق لاحقة تتطلب بيئة تشغيل متكاملة وبيانات تجريبية معتمدة. وتقدم النتائج الإصدار v1 بوصفه أساساً هندسياً قابلاً للتوسع، لا منتجاً إنتاجياً مكتملاً.")
-    add_para(doc, "الكلمات المفتاحية: إدارة الموارد البشرية، الإدارة المركزية، الإدارات الفرعية، الخدمات المصغرة، النطاق التنظيمي، Keycloak، RabbitMQ، PostgreSQL، .NET.", after=0)
+    add_para(doc, "يقدم المشروع منصة HRManagement لإدارة الموارد البشرية وفق نموذج يجمع مركزية الحوكمة ولا مركزية التنفيذ. صيغت 108 متطلبات وظيفية و30 متطلباً غير وظيفي، ثم وزعت المسؤوليات على 14 خدمة مجال خلف بوابة موحدة و15 سياق بيانات تطبيقي تشمل تدقيق البوابة، مع مخزن هوية مستقل عبر Keycloak. يتضمن نموذج البيانات 274 DbSet، وتتبادل الخدمات 72 واجهة لعقود الرسائل. طُورت المنصة باستخدام .NET 10 وASP.NET Core MVC وPostgreSQL وRabbitMQ/MassTransit وYARP، مع ملفات Docker Compose للتشغيل.")
+    add_para(doc, "تتمثل المساهمة الأولى في الجمع بين عزل الجهة ونطاقها التنظيمي: يحدد tenant_id المؤسسة، ويحدد scope_org_unit_id جذر الفرع داخلها. ويكمل ذلك مسار لإسناد البيانات القديمة وحجر الملتبس منها ومصالحته. وتشمل المساهمة الثانية هيكلاً تنظيمياً مؤرخاً ووظائف ممولة وخطة قوى عاملة، ومحرك سياسات قابلاً للإصدار والمحاكاة والإنفاذ والربط بسير عمل وتوقيع، وتوليداً مركزياً للرموز، وحزم تهيئة وطنية ومحلية. كما توسع نموذج الرواتب إلى إصدارات ثابتة ولقطات مدخلات وحساب قابل للاستئناف وتمويل وصرف جزئي ومتأخرات وأوامر دفع وتسوية وحجوزات، مع التصريح بأن الاعتماد القانوني والتكامل المالي الحي خارج نتائج الدراسة.")
+    add_para(doc, "نجح بناء الحل في وضع Release من دون أخطاء. وفي تشغيل التحقق الحالي نجح 2416 من 2421 اختبار وحدة، ونجح 158 اختبار تكامل وفشل 7 وتخطى 47، كما نجح اختباران من اختبارات النهاية إلى النهاية وتخطى 55. كشفت النتائج فجوات معلنة في نطاق جزء من اللوجستيات وسلامة الربط، وفي تهيئة بيئة بعض اختبارات السياسات والرموز، إضافة إلى انتهاء دليل اختبار مؤقت. لم يتوفر Docker daemon لتشغيل Testcontainers وRLS الحية، ولم ينفذ قياس أداء أو قبول ميداني؛ لذلك تفرق الأطروحة بين القدرة المنفذة والتحقق المكتمل ولا تعرض المنصة كمنتج إنتاجي معتمد.")
+    add_para(doc, "الكلمات المفتاحية: إدارة الموارد البشرية، الإدارة المركزية، الإدارات الفرعية، تعدد الجهات، الخدمات المصغرة، السياسات الحية، النطاق التنظيمي، Keycloak، RabbitMQ، PostgreSQL، .NET.", after=0)
     doc.add_page_break()
 
     add_heading(doc, "Abstract", 1)
     english = [
         "This thesis addresses fragmented human-resources data and workflows in institutions that operate through a central administration and multiple branches. Central HR requires global visibility and governance, while branch administrations need to execute daily work without seeing data that belongs to other branches.",
-        "HRManagement is an integrated platform that combines centralized governance with scoped branch operations. The implementation contains 14 independently bounded services behind a single gateway, 15 application databases including gateway auditing, and a separate Keycloak infrastructure database. The solution uses .NET 10, ASP.NET Core MVC, PostgreSQL, RabbitMQ/MassTransit, YARP, Keycloak, and Docker Compose.",
-        "The central contribution is an executable organizational-scope model. Central roles retain institution-wide visibility, whereas branch managers are constrained through the scope_org_unit_id claim, and OrgScopeService expands their scope to the root unit and its descendants. This design is linked to explicit acceptance criteria and automated organizational-scope tests.",
-        "A Release verification run on .NET 10 completed 491 of 491 unit tests and 50 of 50 container-independent integration tests successfully. The study does not claim a field user-acceptance study or a performance benchmark; these remain future verification activities requiring an integrated environment and approved test data.",
+        "HRManagement is an integrated platform that combines centralized governance with scoped branch operations. The study defines 108 functional and 30 non-functional requirements and allocates them across 14 bounded domain services, 15 application data contexts, 274 declared DbSets, and 72 message-contract interfaces. The solution uses .NET 10, ASP.NET Core MVC, PostgreSQL, RabbitMQ/MassTransit, YARP, Keycloak, and Docker Compose.",
+        "The contribution combines tenant isolation with organizational scope and adds governed tenant assignment and quarantine, dated organizational structures, funded positions, versioned policies linked to workflows, institutional code generation, and repeatable agency onboarding. The payroll model covers immutable configuration versions, input snapshots, resumable processing, partial disbursement, arrears, payment orders, reconciliation, fraud alerts, and payment holds, without claiming legal certification or live treasury integration.",
+        "The current Release build completed with no errors. Verification passed 2,416 of 2,421 unit tests, passed 158 integration tests with 7 failures and 47 skips, and passed 2 end-to-end tests with 55 skips. The disclosed gaps concern logistics scope and binding guards, test-environment substitutes for policy and code-generation clients, and an expired temporary evidence fixture. Docker-dependent RLS and Testcontainers runs, performance benchmarks, disaster-recovery exercises, and field acceptance remain explicitly unverified.",
     ]
     for paragraph in english:
         p = doc.add_paragraph()
@@ -1365,7 +1541,7 @@ def add_front_matter(doc: Document) -> None:
         set_run(run, 12, color=INK, font=ENGLISH_FONT, rtl=False)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    run = p.add_run("Keywords: Human Resources Management, central administration, branch administration, microservices, organizational scope, Keycloak, RabbitMQ, PostgreSQL, .NET.")
+    run = p.add_run("Keywords: Human Resources Management, central administration, branch administration, multi-tenancy, microservices, live policies, organizational scope, Keycloak, RabbitMQ, PostgreSQL, .NET.")
     set_run(run, 12, bold=True, color=INK, font=ENGLISH_FONT, rtl=False)
     doc.add_page_break()
 
@@ -1374,10 +1550,14 @@ def add_front_matter(doc: Document) -> None:
     doc.add_page_break()
 
     add_heading(doc, "قائمة الأشكال", 1)
-    add_catalog(doc, [(figure.label, figure.title) for figure in FIGURES.values()])
+    figure_marker = doc.add_paragraph("[[FIGURE_CATALOG_PLACEHOLDER]]")
+    bidi(figure_marker, WD_ALIGN_PARAGRAPH.RIGHT)
     doc.add_page_break()
 
     add_heading(doc, "قائمة الجداول", 1)
+    marker = doc.add_paragraph("[[TABLE_CATALOG_PLACEHOLDER]]")
+    bidi(marker, WD_ALIGN_PARAGRAPH.RIGHT)
+    return
     table_catalog = [
         ("الجدول (1-1)", "كتالوج المتطلبات الوظيفية التفصيلي"),
         ("الجدول (1-2)", "المتطلبات غير الوظيفية ومعايير تحققها"),
@@ -1421,8 +1601,32 @@ def add_front_matter(doc: Document) -> None:
         ("الجدول (م-4)", "قائمة تدقيق نزاهة النتائج والبيانات"),
         ("الجدول (م-5)", "سجل النتائج القابلة لإعادة التشغيل"),
     ]
+    table_catalog = [
+        ("الجدول (1-1)", "أصحاب المصلحة ونطاق الوصول"),
+        ("الجدول (1-2)", "تصنيف حالة المتطلبات"),
+        ("الجدول (1-3)", "كتالوج المتطلبات الوظيفية التفصيلي"),
+        ("الجدول (1-4)", "المتطلبات غير الوظيفية ومعايير تحققها"),
+        ("الجدول (1-5)", "خلاصة تتبع المتطلبات إلى التنفيذ والتحقق"),
+        ("الجدول (1-6)", "تحليل الجدوى والكلفة التشغيلية"),
+        ("الجدول (1-7)", "أسئلة الدراسة وأدوات التقويم"),
+        ("الجدول (2-1)", "مقارنة التطبيق الأحادي وخدمات المجال"),
+        ("الجدول (2-2)", "مقارنة نقدية لنماذج نظم الموارد البشرية"),
+        ("الجدول (3-1)", "مؤشرات خط الأساس الحالي"),
+        ("الجدول (3-2)", "مجموعات خدمات المنظومة"),
+        ("الجدول (3-3)", "الرحلات الحرجة وآثارها"),
+        ("الجدول (3-4)", "حالات الوصول في نموذج الجهة والمركز والفروع"),
+        ("الجدول (3-5)", "توصيف قواعد البيانات وسياقات ملكية البيانات"),
+        ("الجدول (3-6)", "نتائج البناء والاختبارات الحالية"),
+        ("الجدول (3-7)", "تحليل المخاطر والإجراءات المطلوبة"),
+        ("الجدول (ب-1)", "تغطية حزمة حالات الاستخدام المؤسسية"),
+        ("الجدول (ب-2)", "تفسير علاقات حالات الاستخدام"),
+        ("الجدول (م-1)", "مصفوفة التتبع الكاملة"),
+        ("الجدول (م-2)", "دليل الخدمات ومجالات الملكية"),
+        ("الجدول (م-3)", "مطابقة الأطروحة مع المنهجية المرجعية"),
+        ("الجدول (م-4)", "قائمة تدقيق نزاهة النتائج"),
+        ("الجدول (م-5)", "سجل النتائج القابلة لإعادة التشغيل"),
+    ]
     add_catalog(doc, table_catalog)
-    doc.add_page_break()
 
 
 def add_catalog(doc: Document, items: Iterable[tuple[str, str]]) -> None:
@@ -1443,7 +1647,69 @@ def add_catalog(doc: Document, items: Iterable[tuple[str, str]]) -> None:
     set_repeat_table_header(table.rows[0])
 
 
+def materialize_table_catalog(doc: Document) -> None:
+    marker = next((p for p in doc.paragraphs if p.text.strip() == "[[TABLE_CATALOG_PLACEHOLDER]]"), None)
+    if marker is None:
+        return
+    items: list[tuple[str, str]] = []
+    pattern = re.compile(r"^(الجدول\s*\([^)]+\)):\s*(.+)$")
+    for paragraph in doc.paragraphs:
+        match = pattern.match(paragraph.text.strip())
+        if match:
+            items.append((match.group(1), match.group(2)))
+    table = doc.add_table(rows=len(items) + 1, cols=2)
+    set_table_geometry(table, [2100, 6680])
+    set_table_borders(table)
+    values = [["الرقم", "العنوان"], *[[label, title] for label, title in items]]
+    for row_index, row_values in enumerate(values):
+        for cell, value in zip(table.rows[row_index].cells, row_values):
+            paragraph = cell.paragraphs[0]
+            bidi(paragraph, WD_ALIGN_PARAGRAPH.RIGHT)
+            paragraph.paragraph_format.space_after = Pt(0)
+            add_inline(paragraph, value, 11)
+            if row_index == 0:
+                set_cell_shading(cell, TABLE_HEADER)
+                for run in paragraph.runs:
+                    set_run(run, 11, bold=True, color=INK)
+    set_repeat_table_header(table.rows[0])
+    marker._p.addprevious(table._tbl)
+    marker._element.getparent().remove(marker._element)
+
+
+def materialize_figure_catalog(doc: Document) -> None:
+    marker = next((p for p in doc.paragraphs if p.text.strip() == "[[FIGURE_CATALOG_PLACEHOLDER]]"), None)
+    if marker is None:
+        return
+    items: list[tuple[str, str]] = []
+    pattern = re.compile(r"^(الشكل\s*\([^)]+\)):\s*(.+)$")
+    for paragraph in doc.paragraphs:
+        match = pattern.match(paragraph.text.strip())
+        if match:
+            items.append((match.group(1), match.group(2)))
+    table = doc.add_table(rows=len(items) + 1, cols=2)
+    set_table_geometry(table, [2100, 6680])
+    set_table_borders(table)
+    values = [["الرقم", "العنوان"], *[[label, title] for label, title in items]]
+    for row_index, row_values in enumerate(values):
+        for cell, value in zip(table.rows[row_index].cells, row_values):
+            paragraph = cell.paragraphs[0]
+            bidi(paragraph, WD_ALIGN_PARAGRAPH.RIGHT)
+            paragraph.paragraph_format.space_after = Pt(0)
+            add_inline(paragraph, value, 11)
+            if row_index == 0:
+                set_cell_shading(cell, TABLE_HEADER)
+                for run in paragraph.runs:
+                    set_run(run, 11, bold=True, color=INK)
+    set_repeat_table_header(table.rows[0])
+    marker._p.addprevious(table._tbl)
+    marker._element.getparent().remove(marker._element)
+
+
 def add_toc_outline(doc: Document) -> None:
+    p = doc.add_paragraph()
+    bidi(p, WD_ALIGN_PARAGRAPH.RIGHT)
+    add_field(p, ' TOC \\o "1-3" \\h \\z \\u ', "يُحدّث فهرس المحتويات تلقائياً عند فتح المستند أو قبل تصديره إلى PDF.")
+    return
     entries = [
         ("الفصل الأول: المقدمة", 0),
         ("1.1 تمهيد", 1), ("1.2 مشكلة المشروع", 1), ("1.3 فكرة المشروع", 1),
@@ -1518,7 +1784,7 @@ def add_evaluation_framework(doc: Document) -> None:
         ["سؤال الدراسة", "أداة التقويم", "حدود الاستدلال"],
         ["هل يدعم النظام المركز والفروع؟", "نموذج الأدوار والنطاق التنظيمي وحالات قبول المركز والفرع", "تحقق وظيفي آلي؛ لا يمثل دراسة استخدام ميدانية"],
         ["هل تحترم الخدمات حدود البيانات؟", "نماذج ملكية البيانات وعقود الأحداث وآليات Outbox/Inbox", "تقويم تصميمي وتشغيلي لا يقيس زمن الاستجابة تحت حمل"],
-        ["هل تحقق الوظائف معايير القبول؟", "491 اختبار وحدة و50 اختبار تكامل مستقل عن الحاويات", "لا يشمل E2E أو Testcontainers أو اختبار الأداء"],
+        ["هل تحقق الوظائف معايير القبول؟", "نتائج الوحدة والتكامل وE2E الحالية مع إظهار النجاح والفشل والتخطي", "لا يشمل Testcontainers وRLS الحية أو اختبار الأداء"],
     ]
     add_table(doc, rows, "مصفوفة أسئلة الدراسة وأدوات التقويم", 1, 7)
     add_callout(doc, "حدود التقويم:", "تثبت الاختبارات الآلية صحة السلوك الذي تغطيه ضمن بيئة التحقق، ولا تُستخدم بديلاً عن اختبار الأداء أو القبول الميداني أو الاعتماد القانوني.")
@@ -1528,12 +1794,12 @@ def add_feasibility_detail(doc: Document) -> None:
     add_heading(doc, "1.11 دراسة جدوى موسعة", 2)
     add_para(doc, "الجدوى لا تعني أن البرمجيات مفتوحة المصدر بلا تكلفة. فاختيار PostgreSQL، RabbitMQ، Keycloak، وDocker يخفض رسوم الترخيص الابتدائية، لكنه ينقل جزءاً من الكلفة إلى الاستضافة، المراقبة، النسخ الاحتياطي، إدارة الهوية، تدريب فريق التشغيل، واختبار التحديثات. لذلك يفصل التحليل بين كلفة التملك وبين قرار شراء منتج HRMS جاهز.")
     rows = [
-        ["البعد", "الفائدة في الإصدار v1", "الكلفة أو القيد الذي يجب إدارته"],
+        ["البعد", "الفائدة في النسخة الحالية", "الكلفة أو القيد الذي يجب إدارته"],
         ["تقني", "حدود خدمة واضحة وقاعدة بيانات لكل خدمة", "تشغيل 14 خدمة وبنية رسائل ومراقبة"],
         ["اقتصادي", "تراخيص أولية منخفضة للتقنيات الأساسية", "خوادم، نسخ احتياطي، مراقبة، ودعم فني"],
         ["تشغيلي", "مركزية الحوكمة مع تنفيذ الفروع ضمن نطاق", "تدريب المستخدمين وحوكمة الأدوار والبيانات"],
         ["أمني", "Keycloak وسياسات وعزل مجالات حساسة", "تدوير الأسرار، مراجعة الصلاحيات، وتمارين الاستعادة"],
-        ["قانوني", "تهيئة قواعد الرواتب بحسب نظام قانوني قابل للضبط", "لا يدعي v1 اعتماد محرك رواتب قانوني نهائي"],
+        ["قانوني", "تهيئة قواعد الرواتب بحسب نظام قانوني قابل للضبط", "لا تدعي النسخة الحالية اعتماد محرك رواتب قانوني نهائي"],
     ]
     add_table(doc, rows, "تحليل جدوى التكلفة والمنفعة والقيود التشغيلية", 1, 6)
     add_callout(doc, "قرار النطاق:", "يبرر اتساع النظام الحاجة إلى معمارية قابلة للتطور، لكنه لا يبرر ادعاء النشر الإنتاجي قبل استكمال اختبارات الأداء والتكامل الحي وسياسات المؤسسة.", fill="FFF7E6")
@@ -1550,7 +1816,38 @@ def add_related_work(doc: Document) -> None:
         ["بوابة فرعية مستقلة", "استقلال تنفيذ الفرع", "خطر تشتت البيانات وتجاوز الصلاحية", "نطاق تنظيمي موحد مع منع الفروع الشقيقة"],
     ]
     add_table(doc, rows, "مقارنة نقدية لنماذج نظم الموارد البشرية", 2, 2)
-    add_para(doc, "لا تقدم الدراسة الخدمات المصغرة بوصفها غاية بحد ذاتها. فالمراجع المعمارية تشير إلى أن تقسيم الخدمات يعالج حدود المجال واستقلال النشر، لكنه يتطلب انضباطاً في العقود والرصد والاسترداد ومعالجة فشل الاتصال [2][21][22]. لهذا يستخدم المشروع عقود أحداث، إعادة محاولة، Correlation ID، وأنماط idempotency في نقاط محددة، مع إقرار أن التغطية الكاملة لهذه المخاطر تتجاوز الدليل المقاس في v1.")
+    add_heading(doc, "2.11.1 مقارنة مع منتجات HRMS فعلية", 3)
+    add_para(doc, "تستخدم المقارنة الآتية صفحات المنتجات الرسمية لتحديد النطاق المعلن، ولا تمثل اختبار شراء أو تقييماً مستقلاً لجودة المنتج. كما لا تقارن الأسعار أو الأداء أو الامتثال المحلي، لأن ذلك يحتاج عروضاً تعاقدية وبيئات تجريبية متكافئة. الغرض هو تحديد موضع المشروع بين حزم سحابية مؤسسية ومنصات معيارية قابلة للتخصيص [43]-[48].")
+    begin_landscape_section(doc)
+    products = [
+        ["المنتج", "النطاق الذي تعلنه الجهة المنتجة", "نمط المنصة", "صلة المقارنة بالمشروع", "حد المقارنة"],
+        ["SAP SuccessFactors Employee Central", "الموارد البشرية الأساسية، العمليات الموحدة، الخدمة الذاتية وسير العمل", "خدمة سحابية مؤسسية ضمن حزمة HCM", "مرجع لاتساع Core HR والعمل متعدد البلدان", "لم تختبر الأطروحة التهيئة المحلية أو التكلفة أو الأداء"],
+        ["Oracle Fusion Cloud HCM", "منصة موحدة للموارد البشرية والمواهب والقوى العاملة مع منتج رواتب ضمن الحزمة", "حزمة سحابية مؤسسية مترابطة", "مرجع لتوحيد البيانات والعمليات المالية والبشرية", "لا تقارن الدراسة موصلات Oracle أو التغطية القانونية السورية"],
+        ["Workday HCM", "نواة موارد بشرية وعمليات وأتمتة ومواهب وتعلم وتخطيط قوى عاملة", "منصة HCM سحابية موحدة", "مرجع للتكوين والتحليلات ودورة القوى العاملة", "لا تتوافر تجربة تشغيل متكافئة تسمح بحكم أداء أو سهولة استخدام"],
+        ["Odoo Employees and HR", "تطبيقات معيارية للموظفين والتوظيف والإجازات والتقييمات ضمن مجموعة أعمال قابلة للتوسعة", "منصة تطبيقات معيارية ومتكاملة", "مرجع للتركيب التدريجي والتخصيص", "لا يعني التشابه الوظيفي تطابق الحوكمة أو العزل أو العمق المالي"],
+        ["OrangeHRM", "إدارة الأفراد والتوظيف والتهيئة والأداء والإجازات، مع إصدار Starter مفتوح المصدر", "حل HR معياري بإصدارات مختلفة", "مرجع لبدء منخفض الكلفة ووظائف HR المعتادة", "لا تقارن الدراسة الإضافات التجارية أو قابلية التوسع المؤسسي عملياً"],
+        ["HRManagement", "14 خدمة مجال، تعدد جهات، مركز وفروع، سياسة حية، رموز، بيانات مرجعية، رواتب ولوجستيات وملفات", "منصة مخصصة بخدمات وقواعد مملوكة للمجالات", "يركز على الحوكمة المحلية والعزل القابل للتنفيذ والتوسع الوظيفي", "مشروع v1 بلا اعتماد إنتاجي أو قياس أداء أو تكامل خارجي حي"],
+    ]
+    add_table(
+        doc,
+        products,
+        "مقارنة نطاقية مع أنظمة HRMS مسماة",
+        2,
+        3,
+        column_weights=[1.8, 3.4, 2.1, 2.7, 2.4],
+    )
+    begin_portrait_section(doc)
+    add_para(doc, "لا تستنتج الدراسة تفوق HRManagement على هذه المنتجات؛ فالمنتجات المؤسسية تملك نضجاً سوقياً وخدمات دعم وتحديثات لا يثبتها مشروع تخرج. تتمثل خصوصية المشروع في قابلية تمثيل الجهة والمركز والفروع، وربط Tenant بالنطاق التنظيمي، وإتاحة سياسات ورموز وتهيئة محلية ضمن ملكية بيانات مستقلة. وفي المقابل يتحمل المشروع كلفة تشغيل وتحقق وتوطين وصيانة كان المنتج الجاهز سيوزع جزءاً منها على المزود.")
+    decision_rows = [
+        ["معيار القرار", "منتج HRMS جاهز", "HRManagement مخصص"],
+        ["سرعة البدء", "أعلى عادة عند ملاءمة العمليات القياسية", "يحتاج تهيئة واختباراً وتشغيلاً مؤسسياً"],
+        ["تخصيص الحوكمة المحلية", "مرتبط بحدود المنتج والعقد", "مرن لأن نموذج الجهة والسياسة والرمز جزء من التصميم"],
+        ["المسؤولية التشغيلية", "جزء كبير لدى المزود في SaaS", "تقع على المؤسسة وفريق المشروع"],
+        ["السيادة والتكامل", "تحددها خيارات الاستضافة والموصلات", "قابلة للضبط مع كلفة تنفيذ واعتماد أعلى"],
+        ["الدليل المتاح هنا", "صفحات رسمية فقط، بلا تجربة مقارنة", "تصميم وتنفيذ واختبارات معلنة مع فجوات صريحة"],
+    ]
+    add_table(doc, decision_rows, "مصفوفة قرار الشراء أو البناء", 2, 4)
+    add_para(doc, "لا تقدم الدراسة الخدمات المصغرة بوصفها غاية بحد ذاتها. فالمراجع المعمارية تشير إلى أن تقسيم الخدمات يعالج حدود المجال واستقلال النشر، لكنه يتطلب انضباطاً في العقود والرصد والاسترداد ومعالجة فشل الاتصال [2][21][22]. لهذا يستخدم المشروع عقود أحداث وإعادة محاولة وCorrelation ID وأنماط idempotency، مع إقرار أن التغطية الكاملة لهذه المخاطر تتجاوز الدليل المقاس في النسخة الحالية.")
     add_para(doc, "وتشير أدبيات هندسة البرمجيات التشغيلية إلى أن قابلية المراقبة والاختبار والتعافي جزء من قرار المعمارية، وليست إضافات لاحقة [29][30][31][32][33]. لذلك تضع الأطروحة نتائج اختبارات الوحدة في موضعها الصحيح، ولا تستبدل بها اختبارات حمل أو قبول ميداني غير منفذة.")
     add_heading(doc, "2.12 الأمن والحوكمة كمتطلبات تصميم", 2)
     add_para(doc, "توصي مراجع التحكم بالوصول بالجمع بين هوية المستخدم، دوره، وسياق الوصول بدلاً من التعامل مع الدور كقائمة صلاحيات مجردة [14][23]. ويطبق المشروع هذا المبدأ عملياً عبر الدور وclaim النطاق التنظيمي؛ وبذلك لا يكفي أن يكون المستخدم مدير فرع، بل يجب أن يحمل جذر الوحدة الذي يسمح له برؤية تفرعات محددة. وتبقى سياسات الاحتفاظ والنسخ والاستعادة قرارات مؤسسية يجب اعتمادها قبل الإنتاج [24][25].")
@@ -1558,8 +1855,8 @@ def add_related_work(doc: Document) -> None:
 
 
 def add_approved_usecase_package(doc: Document, table_no: int) -> int:
-    """Insert the approved 21-diagram package and its corrected case evidence."""
-    add_heading(doc, "1.9.2.1 حزمة مخططات حالات الاستخدام المعتمدة", 3)
+    """Insert the retained sector package as historical analysis evidence."""
+    add_heading(doc, "ملحق (ج): الحزمة القطاعية السابقة لحالات الاستخدام", 2)
     try:
         analysis = json.loads(USECASE_ANALYSIS_SOURCE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -1568,7 +1865,7 @@ def add_approved_usecase_package(doc: Document, table_no: int) -> int:
 
     include_total = sum(int(item.get("include_count", 0)) for item in analysis.get("groups", []))
     extend_total = sum(int(item.get("extend_count", 0)) for item in analysis.get("groups", []))
-    add_para(doc, f"تتكون الحزمة المعتمدة من {analysis.get('diagram_count', 0)} مخططاً قطاعياً توثق {analysis.get('case_count', 0)} حالة استخدام ضمن {analysis.get('department_count', 0)} إدارات عليا. وتتضمن النماذج {include_total} علاقة Include و{extend_total} علاقة Extend. استُخدمت هذه الحزمة لتفصيل المتطلبات الوظيفية إلى أدوار وقرارات وإجراءات قابلة للتتبع، مع تحديد حالة كل متطلب في كتالوج النطاق ومعايير القبول.")
+    add_para(doc, f"تحتفظ الأطروحة بهذه الحزمة لأنها توثق التحليل القطاعي السابق في {analysis.get('diagram_count', 0)} مخططاً و{analysis.get('case_count', 0)} حالة استخدام ضمن {analysis.get('department_count', 0)} إدارات عليا، وتتضمن {include_total} علاقة Include و{extend_total} علاقة Extend. لكنها ليست المرجع الوحيد لخط الأساس الحالي؛ إذ سبقت قدرات تعدد الجهات وإسنادها وحجرها، والهيكل المؤرخ، والسياسات والرموز، والرواتب والخزينة والملفات الحديثة. لذلك تعتمد الرسوم المرجعية في الفصل الثالث، وتستخدم هذه الحزمة لتتبع أصل العمليات والأدوار فقط.")
     rows = [["الشكل", "الإدارة والفرع", "التغطية التحليلية", "الخدمات وعائلات المتطلبات"]]
     for item, figure_key in zip(analysis.get("groups", []), USECASE_DRAWIO_MAP):
         rows.append([
@@ -1577,14 +1874,15 @@ def add_approved_usecase_package(doc: Document, table_no: int) -> int:
             f"{item.get('case_count', 0)} حالة | Include: {item.get('include_count', 0)} | Extend: {item.get('extend_count', 0)}",
             f"{item.get('services', '-')}\n{item.get('requirements', '-')}",
         ])
-    add_table(doc, rows, "تغطية مخططات حالات الاستخدام وربطها بعائلات المتطلبات", 1, table_no)
+    add_table(doc, rows, "تغطية الحزمة القطاعية السابقة وربطها بعائلات المتطلبات", 3, table_no, label_override="الجدول (ج-1)")
     table_no += 1
-    add_callout(doc, "نطاق النماذج:", "تمثل الحالات الـ247 نطاق التحليل المؤسسي وتفصيل تفاعل الممثلين. أما إدراج الحالة ضمن الإصدار v1 فيحدده كتالوج المتطلبات ومصفوفة التتبع ونتيجة التحقق المرتبطة بها.", fill="FFF7E6")
+    begin_portrait_section(doc)
+    add_callout(doc, "قاعدة الاستخدام:", "تمثل الحالات الـ247 تفصيلاً قطاعياً مهماً، لكنها تقرأ مع الحزمة المرجعية الحالية في الفصل الثالث وسجل الحقيقة. لا يعد غياب قدرة حديثة من الرسم القديم دليلاً على غيابها من خط الأساس، ولا يعد وجود حالة قديمة دليلاً على اكتمال تنفيذها.", fill="FFF7E6")
     doc.add_page_break()
     for figure_key in USECASE_DRAWIO_MAP:
         add_figure(doc, figure_key)
 
-    add_heading(doc, "1.9.2.2 تفسير العلاقات ونماذج الحالات الحرجة", 3)
+    add_heading(doc, "ملحق (ج-2): تفسير العلاقات ونماذج الحالات الحرجة", 3)
     relation_rows = [
         ["العلاقة", "المعنى التحليلي", "قاعدة استخدامها", "مثال من الحزمة"],
         ["Association", "تفاعل الممثل مباشرة مع الحالة", "تستخدم عندما يبدأ الممثل الإجراء أو يراجعه", "قسم العقود يستعرض بيانات المتقدمين"],
@@ -1592,7 +1890,7 @@ def add_approved_usecase_package(doc: Document, table_no: int) -> int:
         ["Extend", "سلوك شرطي يضاف عند تحقق سبب محدد", "لا ينفذ في كل مرة، ويجب توثيق شرط التفعيل", "الإحالة القانونية تمتد من إنهاء الخدمة عند وجود نزاع"],
         ["لوحة/شاشة رئيسية", "نقطة دخول ومتابعة وليست تجميعاً إلزامياً لكل العمليات", "لا تربط تلقائياً بعلاقات Include مع كل الإجراءات", "متابعة التوظيف والخدمة والعقود"],
     ]
-    add_table(doc, relation_rows, "التفسير المنهجي لعلاقات حالات الاستخدام", 1, table_no)
+    add_table(doc, relation_rows, "التفسير المنهجي لعلاقات حالات الاستخدام", 3, table_no, label_override="الجدول (ج-2)")
     table_no += 1
 
     selected = [
@@ -1629,13 +1927,83 @@ def add_approved_usecase_package(doc: Document, table_no: int) -> int:
     return table_no
 
 
+def add_dfd_appendix(doc: Document) -> None:
+    begin_landscape_section(doc)
+    add_heading(doc, "ملحق (د): حزمة DFD القطاعية السابقة", 2)
+    add_para(doc, "تحتفظ هذه الحزمة بمستويات DFD للعمليات الجوهرية كما كانت في خط الأساس السابق. وتحافظ على أثر تحليل التعيين والنقل والصحة والتدريب والرواتب والشكاوى والفصل، لكنها لا تمثل وحدها تعدد الجهات والحجر والسياسات والرموز والرواتب والخزينة والملفات الحديثة. حزمة DFD المرجعية الحالية معروضة في الفصل الثالث، ويقرأ هذا الملحق بوصفه تفصيلاً تاريخياً للعمليات لا بديلاً عنها.")
+    keys = (
+        "dfd_main", "dfd_new_employee", "dfd_transfer", "dfd_medical", "dfd_training",
+        "dfd_payroll", "dfd_complaint", "dfd_separation", "dfd_dictionary",
+    )
+    for index, key in enumerate(keys):
+        add_figure(doc, key, max_width=9.5, max_height=4.45)
+        if index < len(keys) - 1:
+            doc.add_page_break()
+    begin_portrait_section(doc)
+
+
+def capability_truth_rows() -> list[list[str]]:
+    if not TRUTH_REGISTER_SOURCE.exists():
+        return []
+    lines = TRUTH_REGISTER_SOURCE.read_text(encoding="utf-8").splitlines()
+    index = 0
+    while index + 1 < len(lines):
+        line = lines[index].strip()
+        if line.startswith("|") and re.match(r"^\|?\s*:?-{3,}", lines[index + 1].strip()):
+            table_lines = [line]
+            index += 2
+            while index < len(lines) and lines[index].strip().startswith("|"):
+                table_lines.append(lines[index].strip())
+                index += 1
+            return markdown_rows(table_lines)
+        index += 1
+    return []
+
+
+def add_capability_truth_register(doc: Document) -> None:
+    rows = capability_truth_rows()
+    if not rows:
+        return
+    begin_landscape_section(doc, horizontal_margin=1.1)
+    add_heading(doc, "ملحق (ب): سجل الحقيقة الموحد لقدرات النظام", 2)
+    add_para(doc, "يربط هذا السجل القدرة بحالتها ومالكها وكياناتها وحد التكامل ودليلها وموضع تحليلها. وهو المرجع الذي يحسم التعارض بين وجود مكون برمجي وبين اكتمال التحقق أو القبول المؤسسي؛ فلا يعرض كيان أو وثيقة تصميم أو اختبار متخطى بوصفه نتيجة ناجحة.")
+    add_table(doc, rows, "سجل الحقيقة الموحد للقدرات والحدود والأدلة", 3, 1, label_override="الجدول (ب-1)")
+    add_callout(doc, "قاعدة الحالة:", "تستخدم أربع حالات فقط: منفذ ومتحقق، منفذ ولم يكتمل التحقق، منفذ جزئياً، ومخطط أو مؤجل. ويعود تفسير كل حالة إلى الدليل وحدوده في السطر نفسه.", fill="FFF7E6")
+    begin_portrait_section(doc)
+
+
+def requirement_status(requirement_id: str, evidence: str = "") -> str:
+    verified = {"FR-EMP-04", "FR-TRN-03", "FR-TEN-05"}
+    partial = {"FR-ORG-08", "FR-LOG-02", "FR-LOG-03", "FR-LOG-04", "FR-OPS-05", "FR-OPS-06"}
+    if requirement_id in verified:
+        return "منفذ ومتحقق"
+    if requirement_id in partial:
+        return "منفذ جزئياً"
+    return "منفذ ولم يكتمل التحقق"
+
+
 def add_requirements_catalog(doc: Document) -> None:
     """Render the detailed, reviewable requirements catalog as part of chapter one."""
     add_heading(doc, "1.9.1 كتالوج المتطلبات التفصيلي", 3)
-    add_para(doc, "يربط هذا القسم كل سلوك جوهري بممثل وقاعدة عمل وخدمة مالكة ومعيار قبول. تشير الحالة «منفذ في v1» إلى أن المتطلب دخل نطاق الإصدار الأول وارتبط بنتيجة تحقق موثقة، ولا تعني اكتمال الجاهزية الإنتاجية. أما المتطلبات المؤجلة فتظهر صراحة في حدود النطاق وخطة التطوير.")
+    add_para(doc, "يربط هذا القسم كل سلوك جوهري بممثل وقاعدة عمل وخدمة مالكة ومعيار قبول. تستخدم الحالة أربع درجات موحدة: منفذ ومتحقق، منفذ ولم يكتمل التحقق، منفذ جزئياً، ومخطط أو مؤجل. وتظهر فجوات البيئة والتكامل والقبول المؤسسي صراحة في الدليل، فلا تساوي كلمة التنفيذ الجاهزية الإنتاجية.")
     if not CATALOG_SOURCE.exists():
         add_callout(doc, "تنبيه:", "لم يعثر المولد على كتالوج المتطلبات التفصيلي.", fill="FFF7E6")
         return
+
+    doc.add_section(WD_SECTION.NEW_PAGE)
+    landscape = doc.sections[-1]
+    landscape.orientation = WD_ORIENT.LANDSCAPE
+    landscape.page_width = Cm(29.7)
+    landscape.page_height = Cm(21)
+    landscape.right_margin = Cm(1.5)
+    landscape.left_margin = Cm(1.5)
+    landscape.top_margin = Cm(1.6)
+    landscape.bottom_margin = Cm(1.6)
+    landscape.header_distance = Cm(0.75)
+    landscape.footer_distance = Cm(0.75)
+    continue_page_numbering(landscape)
+    add_running_header(landscape)
+    add_page_number_footer(landscape)
 
     lines = CATALOG_SOURCE.read_text(encoding="utf-8").splitlines()
     table_no = 1
@@ -1645,7 +2013,8 @@ def add_requirements_catalog(doc: Document) -> None:
         line = lines[index].strip()
         if line.startswith("## "):
             current_title = strip_markdown(line[3:])
-            add_heading(doc, f"1.9.1 {current_title}", 3)
+            suffix = "1" if current_title == "المتطلبات الوظيفية" else "2"
+            add_heading(doc, f"1.9.1.{suffix} {current_title}", 3)
             index += 1
             continue
         if line and not line.startswith("#") and not line.startswith("|") and line != "---":
@@ -1660,10 +2029,53 @@ def add_requirements_catalog(doc: Document) -> None:
                 index += 1
             rows = markdown_rows(table_lines)
             title = "المتطلبات غير الوظيفية ومعايير تحققها" if "غير الوظيفية" in current_title else "كتالوج المتطلبات الوظيفية التفصيلي"
+            if "غير الوظيفية" not in current_title and rows and len(rows[0]) == 7:
+                rows = [rows[0][:-1] + ["الحالة", rows[0][-1]]] + [
+                    row[:-1] + [requirement_status(row[0], row[-1]), row[-1]] for row in rows[1:]
+                ]
             add_table(doc, rows, title, 1, table_no)
             table_no += 1
             continue
         index += 1
+
+    add_heading(doc, "1.9.2 مصفوفة التتبع المختصرة", 3)
+    add_para(doc, "تنقل المخططات إلى الفصل الثالث، بينما يثبت هذا الجدول منذ الفصل الأول أن كل متطلب حرج يملك حالة استخدام أو رحلة، ومكوناً مسؤولاً، ودليل تحقق أو قيداً معلناً. وترد المصفوفة الكاملة في الملحق.")
+    rows = [
+        ["المتطلب", "الحالة أو الرحلة", "التنفيذ", "دليل التحقق الحالي"],
+        ["FR-TEN-03", "عزل الجهة", "TenantContext وTenantAwareDbContext", "اختبارات TEN؛ RLS الحية مؤجلة"],
+        ["FR-ORG-05", "نطاق الفرع", "OrgScopeService وscope_org_unit_id", "اختبارات النطاق؛ تغطية اللوجستيات قيد الإغلاق"],
+        ["FR-POL-04", "إنفاذ السياسة", "Policy API وPolicyEnforceClient", "اختبارات وحدة؛ بديل عميل التكامل مطلوب"],
+        ["FR-CODE-03", "توليد الرمز", "Code API وسجل التوليد", "اختبارات وحدة؛ تهيئة التكامل مطلوبة"],
+        ["FR-HIRE-05", "اكتمال التعيين", "عقود أحداث ومستهلكون", "اختبارات قواعد ومستهلكين"],
+        ["FR-LOG-02", "عهدة الأصل", "AssetAssignment workflow", "اختبارات أمنية كشفت فجوة نطاق معلنة"],
+        ["NFR-24", "سلامة الربط", "DTO/Commands واختبارات معمارية", "14 حالة لوجستية ما زالت فاشلة"],
+    ]
+    add_table(doc, rows, "خلاصة تتبع المتطلبات إلى التنفيذ والتحقق", 1, table_no)
+    truth = capability_truth_rows()
+    if len(truth) > 1:
+        status_counts: dict[str, int] = {}
+        for row in truth[1:]:
+            if len(row) >= 3:
+                status_counts[row[2]] = status_counts.get(row[2], 0) + 1
+        add_heading(doc, "1.9.3 سجل الحقيقة الموحد", 3)
+        add_para(doc, "يكمل سجل الحقيقة كتالوج المتطلبات بربط كل قدرة عابرة للمجالات بمالكها وكياناتها وواجهتها أو حدثها ودليلها وحد الاستدلال. ويعرض الملحق (ب) السجل كاملاً، بينما تلخص المصفوفة الآتية توزيع الحالات من دون تحويل العدد إلى مقياس جودة.")
+        status_rows = [["الحالة", "عدد القدرات", "التفسير"]]
+        explanations = {
+            "منفذ ومتحقق": "يسنده دليل ناجح ضمن البيئة المعلنة",
+            "منفذ ولم يكتمل التحقق": "المسار قائم وتبقى بيئة حية أو تكامل أو قبول",
+            "منفذ جزئياً": "توجد قدرة جوهرية مع حلقة أو حارس أو اعتماد ناقص",
+            "مخطط أو مؤجل": "لا يعرض بوصفه منجزاً في خط الأساس الحالي",
+        }
+        for status in ("منفذ ومتحقق", "منفذ ولم يكتمل التحقق", "منفذ جزئياً", "مخطط أو مؤجل"):
+            status_rows.append([status, str(status_counts.get(status, 0)), explanations[status]])
+        add_table(doc, status_rows, "توزيع قدرات سجل الحقيقة بحسب مستوى الإثبات", 1, table_no + 1)
+    doc.add_section(WD_SECTION.NEW_PAGE)
+    portrait = doc.sections[-1]
+    configure_section(portrait)
+    continue_page_numbering(portrait)
+    add_running_header(portrait)
+    add_page_number_footer(portrait)
+    return
 
     add_heading(doc, "1.9.2 مخططات حالات الاستخدام وتدفق البيانات", 3)
     add_para(doc, "تجسد المخططات الآتية منظور التحليل قبل الانتقال إلى البنية البرمجية. وهي تفصل بين من يطلب الإجراء، ومن يعتمد القرار، ومن ينفذ الأثر داخل نطاق مؤسسي مضبوط.")
@@ -1747,7 +2159,7 @@ def catalog_nonfunctional_rows() -> list[list[str]]:
 
 
 def add_requirement_cards(doc: Document) -> None:
-    add_heading(doc, "ملحق (ب): بطاقات المتطلبات الوظيفية", 2)
+    add_heading(doc, "ملحق (هـ): بطاقات المتطلبات الوظيفية", 2)
     add_para(doc, "تقدم هذه البطاقات مستوى التحليل الذي لا يمكن أن تحمله الجداول العامة وحدها. كل بطاقة تحدد الممثل والسلوك وقاعدة العمل والخدمة المالكة ودليل القبول، وتتعامل مع غياب الشرط المسبق بوصفه منعاً للاعتماد أو للنشر مع حفظ أثر تدقيق مناسب.")
     current_domain = ""
     for row in catalog_functional_rows():
@@ -1760,7 +2172,7 @@ def add_requirement_cards(doc: Document) -> None:
         heading = add_heading(doc, f"{requirement_id}: {behavior}", 3)
         keep_with_next(heading)
         add_metadata_table(doc, [
-            ["الحالة", "منفذ في v1 وفق معيار القبول ونتيجة التحقق"],
+            ["الحالة", requirement_status(requirement_id, evidence)],
             ["الممثل", actor],
             ["السلوك المطلوب", behavior],
             ["الشرط أو قاعدة العمل", rule],
@@ -1774,7 +2186,7 @@ def add_requirement_cards(doc: Document) -> None:
 
 def add_quality_cards(doc: Document) -> None:
     doc.add_page_break()
-    add_heading(doc, "ملحق (ج): بطاقات المتطلبات غير الوظيفية", 2)
+    add_heading(doc, "ملحق (و): بطاقات المتطلبات غير الوظيفية", 2)
     add_para(doc, "المتطلبات غير الوظيفية في هذا الملحق لا تحول أهداف الجودة إلى نتائج مزعومة. عند وجود تنفيذ أو اختبار يشار إليه كدليل، وعند غياب القياس تبقى القيمة هدف قبول أو بنداً مؤجلاً.")
     for row in catalog_nonfunctional_rows():
         if len(row) < 4:
@@ -1796,23 +2208,23 @@ def add_quality_cards(doc: Document) -> None:
 
 def add_service_profiles(doc: Document) -> None:
     doc.add_page_break()
-    add_heading(doc, "ملحق (د): بطاقات ملكية البيانات للخدمات", 2)
+    add_heading(doc, "ملحق (ز): بطاقات ملكية البيانات للخدمات", 2)
     add_para(doc, "تعرض البطاقات الآتية ملكية كل خدمة للبيانات ودورها في نموذج المركز والفروع. وهي مكملة لمخططات ERD؛ إذ توضح حدود المجال وسبب منع الوصلات المباشرة بين قواعد بيانات الخدمات.")
     profiles = [
-        ("HR.Core", "الموظف المرجعي والوحدات والتوظيف وESS", "Employee, OrgUnit, EmploymentRecord, CitizenApplication", "EmployeeCreated, TransferExecuted", "مرجع النطاق التنظيمي للمركز والفروع"),
+        ("HR.Core", "الجهة والموظف والهيكل المؤرخ والوظائف الممولة والتوظيف والسياسات وسير العمل والرموز والتهيئة", "Tenant, TenantAssignmentRule, TenantQuarantineEntry, Employee, OrgUnitVersion, FundedPosition, WorkforcePlan, PolicyTemplateVersion, WorkflowInstance, CodeIssuance", "EmployeeCreated, PolicyPublished, AgencyOnboarded", "مرجع الجهة والنطاق التنظيمي للمركز والفروع وحوكمة الإسناد والحجر"),
         ("HR.Contracts", "العقود والمباشرة والإجازات والسلف والفصل", "Contract, LeaveRequest, AdvanceRequest, SeparationRecord", "ContractActivated, SeparationCompleted", "تنفيذ معاملات الموظفين ضمن صلاحيات الخدمة"),
-        ("Payroll", "دورات الرواتب والتعديلات والأجر", "PayrollRun, SalaryLine, PayrollAdjustment, PayGrade", "PayrollProcessed", "بيانات مالية لا تعرض إلا للدور المخول"),
+        ("Payroll", "إصدارات إعدادات الرواتب واللقطات والحساب القابل للاستئناف والتمويل والمتأخرات والدفع والتسوية ومكافحة الاحتيال", "PayrollConfiguration, PayrollRunInputSnapshot, PayrollRunJob, PayrollRunPartition, SalaryLine, FundingDecision, ArrearsLedgerEntry, PaymentOrder, BankStatementLine, FraudAlert, PaymentHold", "PayrollProcessed وأحداث الدفع والتسوية", "بيانات مالية لا تعرض إلا للدور المخول مع فصل الواجبات"),
         ("HR.Health", "السجل الصحي واللجان والسلامة", "MedicalRecord, MedicalRecommendation, WorkplaceAccident", "MedicalRecommendationIssued", "عزل صحي وصلاحيات مقيدة"),
         ("HR.Movements", "النقل والانتداب والتوزيع", "TransferRequest, SecondmentRequest, DistributionPlan", "TransferExecuted, SecondmentExecuted", "يغير الإسناد التنظيمي عبر حدث موثق"),
         ("HR.Training", "التدريب والتعلم الإلكتروني", "TrainingCourse, TrainingEnrollment, LearningCertificate", "TrainingCompleted", "خطة تدريب مرتبطة بالموظف والوحدة"),
         ("IDCard", "طلبات وإصدار وإبطال البطاقات", "CardRequest, IssuedCard, CardDeliveryRecord", "CardIssued", "يرتبط بالتعيين والفصل دون ملكية ملف الموظف"),
         ("Records.Archive", "الأرشفة والاحتفاظ والإتلاف", "ArchiveItem, RecordDisposal, LoanRecord", "HireCaseCompleted, SeparationCompleted", "حفظ الأثر الإداري للمعاملات"),
-        ("Admin.Logistics", "العهد والأصول والمخزون", "Asset, AssetAssignment, InventoryItem", "TransferExecuted, SeparationCompleted", "استرداد العهد عند الحركة أو الفصل"),
+        ("Admin.Logistics", "العهد والأصول والمخزون والتوريد وبلاغات الفقد", "Asset, AssetAssignment, AssetLossReport, SupplyOrderLine", "AssetAssignmentApproved, TransferExecuted, SeparationCompleted", "استرداد العهد عند الحركة أو الفصل ضمن نطاق الجهة"),
         ("IT.Infra", "الأجهزة والدعم والنسخ والحوادث", "UserDevice, ITSupportTicket, BackupJob, SecurityIncident", "EmployeeCreated, SeparationCompleted", "تشغيل تقني مع فصل بيانات الموارد البشرية"),
         ("Dev.Analytics", "التقارير ولوحات القياس", "AnalyticsEvent, Dashboard, KPI, Report", "PayrollProcessed, TrainingCompleted", "يدعم رؤية مركزية بمؤشرات مجمعة"),
         ("Compliance", "الشكاوى والتدقيق والانضباط", "Complaint, AuditFinding, DisciplinaryAction", "DisciplinaryActionTaken", "بيانات حساسة بصلاحية امتثال"),
         ("Auth.Directory", "المستخدمون والدليل والأدوار", "AuthUser, DirectoryEntry, Role, AuthAuditLog", "EmployeeCreated, SecondmentExecuted", "ربط الهوية بالدور والنطاق التنظيمي"),
-        ("File.Storage", "الملفات والمراجع وسجل الوصول", "FileRecord, FileReferenceRecord, FileAccessAuditLog", "مرجع FileId", "لا تملك قرار أعمال؛ تحفظ الملف تحت سياسات الوصول"),
+        ("File.Storage", "حجر الملفات والفحص والتنقية والترقية والمراجع والمنح وسجل الوصول", "FileRecord, FileScanWorkItem, FileScanResult, FileReferenceRecord, FileAccessGrant, FileAccessAuditLog", "مرجع FileId وحالة ScanStatus", "لا تملك قرار أعمال؛ تحفظ الملف وتفشل مغلقاً حتى النظافة ومنحة الوصول"),
     ]
     for service, responsibility, entities, events, branch_role in profiles:
         heading = add_heading(doc, service, 3)
@@ -1831,15 +2243,15 @@ def add_service_profiles(doc: Document) -> None:
 def add_verification_protocol(doc: Document, new_page: bool = True) -> None:
     if new_page:
         doc.add_page_break()
-    add_heading(doc, "ملحق (ز): بروتوكول التحقق وحالات القبول", 2)
+    add_heading(doc, "ملحق (ط): بروتوكول التحقق وحالات القبول", 2)
     add_para(doc, "يوضح هذا الملحق كيفية تحويل المتطلبات إلى حالات تحقق قابلة لإعادة التشغيل. وتميز خانة الحالة بين اختبار نُفذ وسُجلت نتيجته، وبين حالة قبول مخططة تتطلب بنية حاويات أو بيانات تجريبية معتمدة قبل إدراجها ضمن النتائج.")
     cases = [
         ("VT-01", "بناء Release", "بناء الحل في وضع Release دون أخطاء تجميع", "dotnet build / Release", "ينفذ في بيئة .NET 10 ويوثق الخرج"),
-        ("VT-02", "اختبارات الوحدة", "تشغيل قواعد المجال والسياسات والمستهلكين", "HRManagement.UnitTests", "491/491 ناجح ضمن بيئة التحقق الموثقة"),
-        ("VT-03", "تغطية الاختبار", "جمع تقرير Cobertura لاختبارات الوحدة", "XPlat Code Coverage", "4.09% line coverage على مستوى الحل؛ نتيجة منخفضة موثقة وليست هدف قبول"),
-        ("VT-04", "تكامل دون Docker", "اختبار الرسائل والقواعد التي تستخدم SQLite/InMemory", "IntegrationTests Category!=Testcontainers", "50/50 ناجح في نحو 54 ثانية"),
+        ("VT-02", "اختبارات الوحدة", "تشغيل قواعد المجال والسياسات والحراس المعمارية", "HRManagement.UnitTests", "2416 ناجح و5 فاشلة؛ لا يقبل الخط قبل إغلاق الفشل الأمني"),
+        ("VT-03", "تغطية الاختبار", "جمع تقرير Cobertura لاختبارات الوحدة", "XPlat Code Coverage", "يعاد القياس بعد استقرار الخط؛ لا تستخدم نسبة قديمة"),
+        ("VT-04", "اختبارات التكامل", "اختبار البنية والرسائل والعملاء المشتركين", "HRManagement.IntegrationTests", "158 ناجح و7 فاشلة و47 متخطاة"),
         ("VT-05", "تكامل PostgreSQL", "تشغيل Testcontainers وترحيل قاعدة اختبار", "RUN_TESTCONTAINERS=true", "يتطلب Docker daemon"),
-        ("VT-06", "E2E البوابة", "تشغيل Playwright بعد إقلاع المكدس", "RUN_PLAYWRIGHT_E2E=true", "يتطلب Docker وحسابات اختبار"),
+        ("VT-06", "E2E البوابة", "تشغيل المسارات بعد إقلاع المكدس", "HRManagement.E2ETests", "2 ناجح و55 متخطاة؛ يتطلب المكدس الحي"),
         ("VT-07", "وصول المركز", "يرى الدور المركزي كل الوحدات وفق الصلاحية", "TS-04 + لقطة واجهة", "قبول عند غياب قيد فرعي"),
         ("VT-08", "نطاق الفرع", "يرى مدير الفرع الجذر والتفرعات فقط", "TS-01", "قبول عند تكوين مجموعة الوحدات الصحيحة"),
         ("VT-09", "منع الفرع الشقيق", "يرفض استعلام وحدة خارج مجموعة الفرع", "TS-03", "قبول عند الرفض وتسجيل الأثر"),
@@ -1849,6 +2261,10 @@ def add_verification_protocol(doc: Document, new_page: bool = True) -> None:
         ("VT-13", "أداء القراءة", "قياس P50/P95 لقائمة موظفين مقيدة بالنطاق", "k6 أو أداة حمل موثقة", "هدف قبول فقط حتى ظهور نتيجة مقاسة"),
         ("VT-14", "أداء التعيين", "قياس المسار مع بيانات تجريبية معلنة", "سيناريو Gateway", "لا ينسب الأداء للإنتاج قبل القياس"),
         ("VT-15", "استعادة النسخ", "استعادة نسخة قاعدة خدمة في بيئة معزولة", "BACKUP_POSTGRES runbook", "قبول بعد توثيق زمن الاستعادة والبيانات"),
+        ("VT-16", "إسناد الجهة والحجر", "تشغيل Dry Run ثم الإسناد والمصالحة على نسخة بيانات تجريبية", "TEN-003 assign/reconcile", "كل سجل منسوب أو محجور، والعدد والمراجع متطابقة"),
+        ("VT-17", "استئناف الرواتب", "إيقاف job أثناء قسم ثم استئنافه ومنع سطر مكرر", "PAY-003 payroll job tests", "اكتمال الأقسام وتجميد النتائج مع حفظ checkpoints"),
+        ("VT-18", "حجر الملفات", "فشل الماسح ومنع التنزيل ثم ترقية ملف نظيف", "FILE-002 scan lifecycle", "لا رابط قبل Clean ومنحة صالحة؛ تشغيل الماسح الحي مطلوب"),
+        ("VT-19", "ثقة الخدمات", "رفض جمهور أو نطاق أو هوية غير مخولة لكل مسار S2S", "IAM-004 trust matrix", "قبول بعد تشغيل مصفوفة الرفض في بيئة Keycloak وقواعد ورسائل حية"),
     ]
     for case_id, name, objective, mechanism, status in cases:
         heading = add_heading(doc, f"{case_id}: {name}", 3)
@@ -1866,139 +2282,168 @@ def add_verification_protocol(doc: Document, new_page: bool = True) -> None:
 
 def add_submission_integrity_appendix(doc: Document) -> None:
     doc.add_page_break()
-    add_heading(doc, "ملحق (ي): قائمة نزاهة النتائج والبيانات", 2)
+    add_heading(doc, "ملحق (ك): قائمة نزاهة النتائج والبيانات", 2)
     add_para(doc, "تلخص هذه القائمة ضوابط عرض النتائج وحماية البيانات، وتمنع الالتباس بين الوظائف المنفذة والمتطلبات المخططة، وبين التحقق الآلي والاعتماد الميداني أو القانوني.")
     rows = [
         ["عنصر المراجعة", "قاعدة القبول", "الحالة الموثقة"],
-        ["نتائج الاختبار", "تذكر النتيجة والأمر والبيئة، لا العدد وحده", "491/491 للوحدة و50/50 للتكامل غير المعتمد على Docker"],
+        ["نتائج الاختبار", "تذكر النتيجة والأمر والبيئة، لا العدد وحده", "2416/2421 للوحدة؛ التكامل 158 ناجحاً و7 فاشلة و47 متخطاة؛ E2E اختباران ناجحان و55 متخطاة"],
         ["اختبارات التكامل والأداء", "لا تعرض كمنجزة من دون سجل تشغيل", "معلنة كتحقق لاحق يحتاج Docker أو أداة حمل"],
-        ["الرواتب", "يفصل بين قواعد تشغيلية ومحرك قانوني مصدق", "v1 تشغيلية وقابلة للتهيئة، لا محرك قانوني نهائي"],
+        ["الرواتب", "يفصل بين قواعد تشغيلية ومحرك قانوني مصدق", "النسخة الحالية تشغيلية وقابلة للتهيئة، لا محرك قانوني نهائي"],
         ["المركز والفروع", "يثبت بالسياسة والنطاق واختبارات المنع", "موثق بـ OrgScopeService وTS-01..04"],
         ["البيانات الحساسة", "لا تستخدم بيانات أشخاص حقيقيين في اللقطات أو الاختبار", "تعتمد بيانات Seed أو بيانات مجهولة"],
         ["المراجع", "كل ادعاء نظري أو معياري يملك استشهاداً", "IEEE مع مراجع تقنية وأكاديمية ومعيارية"],
         ["الرسوم والجداول", "كل رسم بعنوان ومصدر وقابل للتتبع", "مرتبطة بنماذج التحليل والتصميم المعتمدة"],
-        ["حدود v1", "تظهر في المتن والخاتمة والملاحق", "موثقة ولا تقدم كميزات مكتملة"],
+        ["حدود النسخة الحالية", "تظهر في المتن والخاتمة والملاحق", "موثقة ولا تقدم كميزات مكتملة"],
     ]
-    add_table(doc, rows, "قائمة تدقيق نزاهة النتائج والبيانات", 3, 22, label_override="الجدول (م-4)")
+    add_table(doc, rows, "قائمة تدقيق نزاهة النتائج والبيانات", 3, 22, label_override="الجدول (ك-1)")
 
 
 def add_execution_log_appendix(doc: Document) -> None:
     doc.add_page_break()
-    add_heading(doc, "ملحق (ك): سجل تشغيل التحقق", 2)
+    add_heading(doc, "ملحق (ل): سجل تشغيل التحقق", 2)
     add_para(doc, "يسجل هذا الملحق إجراءات التحقق التي اعتمدت عليها النتائج، بما يتيح إعادة الاختبار وتمييز النتائج المقاسة عن الجوانب المخططة. نُفذت الإجراءات في بيئة Windows باستخدام .NET 10 وفي وضع Release.")
     rows = [
         ["المعرف", "الأمر أو الأداة", "النتيجة الفعلية", "ملاحظة تفسيرية"],
-        ["RUN-01", "dotnet build HRManagement.slnx -c Release --no-restore", "نجح: 0 أخطاء، 119 تحذيراً", "التحذيرات تشمل حزم ذات تنبيهات أمنية ومراجع مكررة"],
-        ["RUN-02", "UnitTests + XPlat Code Coverage", "491/491 ناجح، نحو 4 ثوانٍ", "تغطية الخطوط المجمعة 4.09% على مستوى الحل"],
-        ["RUN-03", "IntegrationTests Category!=Testcontainers", "50/50 ناجح، نحو 54 ثانية", "تكامل لا يحتاج Docker daemon"],
-        ["RUN-04", "docker version", "غير متاح", "لم تشغل Testcontainers أو E2E"],
-        ["RUN-05", "k6 availability", "غير مثبت", "لم ينتج قياس أداء ولا يعرض كأنه منفذ"],
-        ["RUN-06", "Open XML validation + accessibility audit", "0 أخطاء بنيوية و0 ملاحظات إتاحة", "تحقق بنيوي من مستند التسليم"],
-        ["RUN-07", "Word Export + PDF review", "PDF A4 صالح ومراجعة صفحات مصورة", "تحقق بصري من الاتساق الطباعي"],
+        ["RUN-01", "dotnet build HRManagement.slnx -c Release --no-restore", "نجح: 0 أخطاء و4 تحذيرات", "خط الأساس الحالي يبنى في وضع Release"],
+        ["RUN-02", "HRManagement.UnitTests", "2416 ناجح و5 فاشلة", "الفشل يتضمن حراساً أمنية وfixture مؤقتاً منتهي الصلاحية"],
+        ["RUN-03", "HRManagement.IntegrationTests", "158 ناجح و7 فاشلة و47 متخطاة", "تهيئة مصادقة وبدائل Policy/Code مطلوبة"],
+        ["RUN-04", "HRManagement.E2ETests", "2 ناجح و55 متخطاة", "المكدس الحي غير متاح"],
+        ["RUN-05", "docker version", "العميل موجود وdaemon غير متاح", "لم تشغل Testcontainers أو RLS الحية"],
+        ["RUN-06", "قياس الأداء", "غير منفذ", "لا يعرض زمن استجابة أو حمل مفترض"],
+        ["RUN-07", "Open XML validation + accessibility audit", "ينفذ بعد توليد النسخة النهائية", "تحقق بنيوي من مستند التسليم"],
+        ["RUN-08", "Word Export + PDF review", "ينفذ بعد تحديث الحقول", "تحقق بصري من RTL والجداول والمخططات"],
     ]
-    add_table(doc, rows, "سجل النتائج القابلة لإعادة التشغيل", 3, 23, label_override="الجدول (م-5)")
+    add_table(doc, rows, "سجل النتائج القابلة لإعادة التشغيل", 3, 23, label_override="الجدول (ل-1)")
 
 
 def add_formal_design_models(doc: Document) -> None:
-    """Insert the core UML and data-design evidence after the operational flows."""
-    add_heading(doc, "3.7.8 مخططات التحليل والتصميم الرسمية", 2)
-    add_para(doc, "تترجم المخططات التالية المتطلبات إلى نماذج قابلة للمراجعة، وتوثق القرارات المتعلقة بتسلسل التعيين وحدود المجال والصلاحيات التنظيمية قبل عرض تفاصيل التنفيذ.")
-    add_heading(doc, "3.7.8.1 حالات الاستخدام القطاعية", 3)
-    add_para(doc, "تستخرج حالات الاستخدام القطاعية من كتالوج المتطلبات، وتغطي المجالات التي تتمتع بتدفق مستخدمين مستقل أو بصلاحيات خاصة. الهدف منها تقديم خريطة تحليلية قابلة للنقاش، لا تكرار كل شاشة في النظام.")
-    for key in ("usecase_org", "usecase_lifecycle", "usecase_payroll", "usecase_people", "usecase_portals"):
+    """Insert the current analysis and design package in chapter three."""
+    add_heading(doc, "3.4.1 مخططات التحليل والتصميم الرسمية", 3)
+    add_para(doc, "تأتي هذه المخططات بعد تثبيت المشكلة والمتطلبات والإطار النظري، ولذلك توضع في الفصل التطبيقي لا في الفصل الأول. تعرض الخرائط الشاملة في المتن، بينما تنقل الحزم القطاعية الكبيرة إلى الملاحق مع إحالة صريحة إليها.")
+    add_heading(doc, "3.4.1.1 السياق وحالات الاستخدام المرجعية", 3)
+    add_para(doc, "أعيد بناء الحزمة المرجعية الحالية بعد توسع النظام. يبدأ المخطط الشامل بالممثلين والقدرات الكبرى، ثم تفصل المخططات القطاعية إسناد الجهة والهيكل المؤرخ والسياسة وسير العمل والرواتب والخزينة واللوجستيات والملفات. وتطابق حزمة DFD هذه الحدود نفسها، لذلك لا تعتمد الأطروحة على الرسوم القطاعية السابقة بوصفها وصفاً كاملاً للنسخة الحالية.")
+    for key in (
+        "usecase_current_master", "usecase_tenant_assignment", "usecase_temporal_org",
+        "usecase_policy_workflow", "usecase_advanced_payroll", "usecase_logistics_lineage",
+        "usecase_security_files", "usecase_lifecycle", "usecase_people", "usecase_portals",
+    ):
         add_figure(doc, key)
-    add_heading(doc, "3.7.8.2 مخططات النشاط", 3)
-    add_para(doc, "تمثل مخططات النشاط نقاط القرار والتحقق ومسار الحالة الناجح. الحالات البديلة، مثل الرفض أو نقص الموافقة، تعيد المعاملة إلى سجلها ولا تنشر الأثر التشغيلي إلى الخدمات التابعة.")
-    add_figure(doc, "activity_hire")
-    for key in ("activity_contract", "activity_leave", "activity_movement", "activity_separation", "activity_payroll"):
+    begin_landscape_section(doc)
+    add_heading(doc, "3.4.1.2 حزمة DFD المرجعية الحالية", 3)
+    dfd_keys = (
+        "dfd_current_level0", "dfd_tenant_assignment", "dfd_policy_workflow",
+        "dfd_advanced_payroll", "dfd_logistics_lineage", "dfd_file_security",
+    )
+    for index, key in enumerate(dfd_keys):
+        add_figure(doc, key, max_width=9.45, max_height=5.55)
+        if index < len(dfd_keys) - 1:
+            doc.add_page_break()
+    begin_portrait_section(doc)
+    add_callout(doc, "الحزمة التفصيلية:", "تقدم مخططات الفصل الثالث الحزمة المرجعية الحالية. ويعرض الملحق (ج) الحزمة القطاعية السابقة لحالات الاستخدام، بينما يعرض الملحق (د) مستويات DFD السابقة لأغراض التتبع التاريخي.")
+
+    add_heading(doc, "3.4.1.3 مخططات النشاط", 3)
+    add_para(doc, "تمثل مخططات النشاط نقاط القرار والتحقق والمسارات البديلة. ولا ينشر الأثر العابر للخدمات قبل اكتمال الشرط أو الاعتماد الذي تحدده رحلة العمل.")
+    for key in ("activity_hire", "activity_contract", "activity_leave", "activity_movement", "activity_separation", "activity_payroll", "activity_onboarding", "activity_tenant_reconciliation", "activity_policy", "activity_asset"):
         add_figure(doc, key)
-    add_heading(doc, "3.7.8.3 مخططات التسلسل والأحداث", 3)
-    add_para(doc, "تظهر مخططات التسلسل حدود الاستدعاء المتزامن والأثر غير المتزامن. فلا يشارك النظام قاعدة بيانات بين خدمتين، بل ينشر حقيقة عمل موقعة بالمعرفات ويستقبلها مستهلك قابل لإعادة المعالجة.")
-    add_figure(doc, "sequence_hire")
-    for key in ("sequence_contract", "sequence_movement", "sequence_separation", "sequence_payroll"):
+
+    add_heading(doc, "3.4.1.4 مخططات التسلسل", 3)
+    add_para(doc, "تميز مخططات التسلسل بين قرار متزامن يحتاج نتيجة فورية، مثل إنفاذ السياسة أو توليد الرمز، وبين حدث غير متزامن يعلن حقيقة ثبتت محلياً.")
+    for key in ("sequence_hire", "sequence_contract", "sequence_movement", "sequence_separation", "sequence_payroll"):
         add_figure(doc, key)
-    add_heading(doc, "3.7.8.4 نموذج المجال والتصميم المنطقي للبيانات", 3)
-    add_para(doc, "يوضح نموذج المجال أن Employee وOrgUnit هما مرجعان مركزيان، في حين تبقى العقود والمعاملات في سياقات محدودة منفصلة. لذلك لا يفرض النظام علاقات مفاتيح أجنبية بين قواعد بيانات الخدمات، بل يستخدم المعرفات والأحداث لضبط حدود الملكية والاتساق النهائي.")
-    add_figure(doc, "domain")
-    add_figure(doc, "erd")
+    begin_landscape_section(doc)
+    add_figure(doc, "sequence_payroll_resumable", max_width=9.35, max_height=5.45)
+    begin_portrait_section(doc)
+    for key in ("sequence_policy", "sequence_code", "sequence_asset"):
+        add_figure(doc, key)
+
+    add_heading(doc, "3.4.1.5 نموذج المجال والحدود المعمارية", 3)
+    add_para(doc, "يوضح نموذج المجال أن Tenant وOrgUnit وEmployee مراجع نواة، بينما تبقى حقائق العقد والراتب والصحة والحركة والعهد في سياقاتها. وتستخدم الخدمات معرفات وأحداثاً من دون مفاتيح أجنبية عابرة للقواعد.")
+    for key in ("domain", "erd", "component", "deployment_formal", "security", "event_flow", "ownership", "reliability_journeys", "scope", "rbac", "trace"):
+        add_figure(doc, key)
     rows = [
         ["المجال", "الكيانات المحورية", "ملكية البيانات", "مرجع التكامل"],
-        ["HR.Core", "Employee, OrgUnit, EmploymentRecord", "hr_core_db", "EmployeeId وOrgUnitId"],
+        ["HR.Core", "Tenant, TenantAssignmentRule, TenantQuarantineEntry, OrgUnitVersion, FundedPosition, PolicyVersion, WorkflowInstance", "hr_core_db", "TenantId وEmployeeId وOrgUnitId وإصدارات الحوكمة"],
         ["HR.Contracts", "Contract, LeaveRequest, SeparationRecord", "hr_contracts_db", "EmployeeId وأحداث التعيين/الفصل"],
-        ["Payroll", "PayrollRun, SalaryLine, PayrollAdjustment", "payroll_db", "EmployeeId وأحداث الأثر المالي"],
+        ["Payroll", "PayrollRunJob, InputSnapshot, SalaryLine, FundingDecision, ArrearsLedgerEntry, PaymentOrder, FraudAlert", "payroll_db", "EmployeeId وإصدار القاعدة وأحداث الأثر المالي"],
         ["HR.Health", "MedicalRecord, MedicalRecommendation", "hr_health_db", "EmployeeId بصلاحيات صحية"],
-        ["Records.Archive", "ArchiveItem, RecordDisposal", "archive_db", "ReferenceNumber وأحداث الأرشفة"],
+        ["Admin.Logistics", "Asset, AssetAssignment, AssetLossReport", "admin_db", "EmployeeId وAssetTag وأحداث العهد"],
     ]
-    add_table(doc, rows, "ERD منطقي مختصر وملكية البيانات في المجالات الجوهرية", 3, 7)
-    add_heading(doc, "3.7.8.5 البنية والمكونات والتشغيل", 3)
-    add_para(doc, "توثق مخططات المكونات والنشر والأحداث وملكية البيانات الحدود التي تفسر لماذا يحتاج المشروع إلى بوابة موحدة ورسائل وعقود قابلة للإصدار ومراقبة تشغيلية. وتبقى كل خدمة مالكة لقاعدتها؛ فلا يخلق المخطط علاقة قاعدة مشتركة تحت اسم التكامل.")
-    for key in ("component", "deployment_formal", "event_flow", "ownership"):
-        add_figure(doc, key)
-    add_heading(doc, "3.7.8.6 الصلاحيات والتتبع", 3)
-    add_figure(doc, "rbac")
-    add_figure(doc, "trace")
+    add_table(doc, rows, "ملكية البيانات والمراجع التكاملية في المجالات الجوهرية", 3, 5)
     add_callout(doc, "قاعدة تفسير المخططات:", "صلاحية الدور لا تكفي وحدها لإتاحة البيانات. فمدير الفرع يحتاج الدور المناسب مع جذر تنظيمي صالح؛ وبعد ذلك توسع الخدمة النطاق إلى التفرعات وتمنع الوحدات الشقيقة.")
 
 
 def add_test_evidence(doc: Document) -> None:
-    add_heading(doc, "3.12 الاختبارات والتحقق", 2)
-    add_para(doc, "تتوزع استراتيجية التحقق على اختبارات الوحدة واختبارات التكامل واختبارات النهاية إلى النهاية. يعرض هذا القسم نتائج بناء Release واختبارات الوحدة واختبارات التكامل المستقلة عن الحاويات. أما اختبارات Testcontainers وE2E وقياس الحمل فتتطلب بيئة تشغيل متكاملة، ولذلك لم تدخل ضمن النتائج المقاسة في هذه الدراسة.")
-    add_code(doc, "dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --no-restore --configuration Release --nologo")
+    add_heading(doc, "3.13 الاختبارات والتحقق", 2)
+    add_para(doc, "أعيد تشغيل البناء وحزم الاختبار على خط الأساس الحالي بتاريخ 2026/08/16. تعرض النتائج كما ظهرت من دون تحويل الاختبار المتخطى إلى ناجح أو إخفاء الاختبار الأمني الفاشل. وتعني نتيجة Release أن الشيفرة بُنيت في وضع الإصدار، ولا تعني وحدها جاهزية التشغيل الإنتاجي.")
+    add_code(doc, "dotnet build HRManagement.slnx --configuration Release --no-restore\ndotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --configuration Release --no-restore\ndotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --configuration Release --no-restore\ndotnet test src/Tests/HRManagement.E2ETests/HRManagement.E2ETests.csproj --configuration Release --no-restore")
     rows = [
         ["عنصر التحقق", "النتيجة", "الدلالة"],
-        ["بناء الحل", "نجح: 0 أخطاء، 119 تحذيراً", "تحذيرات حزم وأيضاً مراجع حزم مكررة تحتاج معالجة"],
-        ["بيئة التشغيل", ".NET 10 / Release", "تشغيل متكرر خارج وضع التصحيح"],
-        ["إجمالي اختبارات الوحدة", "491", "يشمل قواعد المجال، الأمن، الأحداث، البوابة والنطاق التنظيمي"],
-        ["الاختبارات الناجحة", "491", "لا توجد اختبارات فاشلة أو متخطاة في التشغيل الموثق"],
-        ["مدة الاختبار", "نحو 4 ثوانٍ", "زمن تنفيذ الاختبارات، وليس مقياس أداء للنظام"],
-        ["تكامل دون Docker", "50/50 ناجح، نحو 54 ثانية", "اختبارات فئة Category!=Testcontainers"],
-        ["تغطية الوحدة", "4.09% line coverage على مستوى الحل", "قياس منخفض؛ لا يعامل كمؤشر جودة كافٍ ويحتاج توسعة"],
-        ["Testcontainers وE2E", "غير مشغلة", "Docker daemon غير متاح في بيئة التحقق"],
-        ["اختبار الأداء", "غير مقاس", "k6 غير مثبت ولا توجد بيئة Gateway حية"],
+        ["بناء الحل", "نجح: 0 أخطاء و4 تحذيرات", "يمر خط البناء الحالي في وضع Release"],
+        ["اختبارات الوحدة", "2416 ناجح، 5 فاشلة، 0 متخطى؛ المجموع 2421", "الفشل دليل حراسة أمني/معماري أو بيانات اختبار، وليس نتيجة مخفية"],
+        ["اختبارات التكامل", "158 ناجح، 7 فاشلة، 47 متخطاة؛ المجموع 212", "تحتاج الإخفاقات تهيئة مخطط مصادقة وبدائل عملاء Policy/Code Generation"],
+        ["اختبارات E2E", "2 ناجح، 0 فاشل، 55 متخطاة؛ المجموع 57", "المسارات التي تتطلب المكدس الحي لم تشغل"],
+        ["Docker daemon", "غير متاح", "لم تشغل Testcontainers ولا اختبارات PostgreSQL RLS الحية"],
+        ["اختبار الأداء", "غير منفذ", "لا يقدم التقرير زمناً أو حملاً مفترضاً"],
+        ["اختبار القبول الميداني", "غير منفذ", "لا تستنتج سهولة الاستخدام أو رضا المستخدم من الاختبارات الآلية"],
     ]
-    add_table(doc, rows, "نتيجة تشغيل اختبارات الوحدة", 3, 4)
+    add_table(doc, rows, "نتائج البناء والاختبارات الحالية", 3, 6)
     add_figure(doc, "tests")
-    add_para(doc, "أظهرت دورة التحقق حاجة طبقة المصادقة المشتركة إلى تثبيت سلوك عدم تمرير ملفات الارتباط عند غياب خدمة المصادقة، كما ثُبت تحويل قيم DateTime غير المحددة إلى UTC. عولجت الحالتان ضمن الطبقات المشتركة وأعيد تشغيل الاختبارات بنجاح، من دون تغيير قواعد الأعمال.")
+    add_para(doc, "كشفت اختبارات الوحدة الحالية غياب حارس النطاق التنظيمي عن استعلام لعهد الأصول، واكتشفت مجموعة اختبار الربط الواسع 14 إجراء في Admin.Logistics تحتاج أوامر أو نماذج ربط أضيق. كما انتهت صلاحية دليل STR-005 المؤقت الذي أعد للاختبار؛ ويعالج بتجديد بيانات الاختبار أو تثبيت الساعة، ولا يصنف وحده كخلل في وظيفة إنتاجية. أما اختبارات التكامل فتحتاج تسجيل بدائل IPolicyEnforceClient وICodeGenerationClient ومخطط مصادقة للاختبار قبل إعادة التشغيل.")
+    add_para(doc, "اعتمد الفريق بعض التسهيلات والبدائل مؤقتاً لأغراض الاختبار، ولذلك لا تعاملها الأطروحة كقرارات إنتاجية ولا تستنتج منها ضعفاً وظيفياً مستقلاً. وفي الوقت نفسه تبقى نتيجة الاختبار كما سجلت: لا يحول القصد المؤقت الاختبار الفاشل إلى ناجح، بل يوثق سبب الفشل وشرط إعادة التحقق عند تثبيت بيئة الاختبار المستهدفة.")
 
-    add_heading(doc, "3.13 التحقق من نموذج المركز والفروع", 2)
-    add_para(doc, "يمثل النموذج المؤسسي متعدد المستويات القيمة الفارقة للمشروع؛ لذلك صيغت حالات قبول مستقلة للتحقق من وصول المركز، وتوسيع نطاق الفرع إلى وحداته التابعة، ومنع الوصول إلى الفروع الشقيقة. ترتبط الحالات الآتية بسياسات HrOrgScopeVisibility وخدمة OrgScopeService.")
+    add_heading(doc, "3.13.1 التحقق من نموذج الجهة والمركز والفروع", 3)
+    add_para(doc, "يمثل العزل متعدد المستويات القيمة الفارقة للمشروع، ولذلك تفصل المصفوفة بين السلوك الذي نجح في اختبارات النواة وبين المسار الذي ما زال يحتاج إغلاقاً أو بيئة PostgreSQL حية.")
     rows = [
         ["المعرّف", "الحالة", "السلوك المتوقع", "الدليل", "النتيجة"],
-        ["TS-01", "مدير فرع", "إرجاع الوحدة الجذرية وكل التفرعات فقط", "OrgScopeService_expands_branch_subtree", "نجح"],
-        ["TS-02", "طلب داخل النطاق", "السماح بوحدة موجودة ضمن مجموعة الوحدات المسموحة", "CanAccessOrgUnit_Respects_Allowed_Set", "نجح"],
-        ["TS-03", "طلب خارج النطاق", "رفض وحدة تنظيمية غير موجودة ضمن مجموعة الفرع", "CanAccessOrgUnit_Respects_Allowed_Set", "نجح"],
-        ["TS-04", "مدير مركزي", "عدم فرض نطاق فرع على الدور الإداري المركزي", "BranchManager_Is_Scoped_Admin_Is_Not", "نجح"],
+        ["TS-01", "إدارة مركزية", "الوصول إلى وحدات الجهة كلها من دون عبور جهة أخرى", "اختبارات Tenant وOrgScope", "ناجح ضمن الوحدة"],
+        ["TS-02", "مدير فرع", "إرجاع الجذر وكل التفرعات فقط", "OrgScopeService وHrOrgScopeVisibility", "ناجح ضمن الوحدة"],
+        ["TS-03", "فرع شقيق", "رفض وحدة خارج مجموعة الفرع", "اختبارات السماح والمنع", "ناجح ضمن الوحدة"],
+        ["TS-04", "جهة أخرى", "رفض tenant مختلف حتى مع معرف وحدة صالح", "Tenant query filters", "ناجح مع تحقق RLS حي مؤجل"],
+        ["TS-05", "عهد الأصول", "تصفية الاستعلام بالنطاق التنظيمي", "اختبار الحارس المعماري", "فاشل ويحتاج إصلاحاً"],
+        ["TS-06", "RLS", "رفض الاستعلام داخل PostgreSQL عند tenant مخالف", "Testcontainers/PostgreSQL", "غير منفذ لغياب Docker"],
     ]
-    add_table(doc, rows, "حالات التحقق من نموذج المركز والفروع", 3, 3)
-    add_para(doc, "توضح هذه الحالات أن المركز والفروع ليسا مجرد تمييز في واجهة المستخدم. فالدور branch-manager وclaim المسمى scope_org_unit_id يحددان الجذر التنظيمي، ثم توسع الخدمة النطاق إلى الأبناء. أما الأدوار المركزية فلا تحصل على هذا القيد. وتبقى التوصية الإنتاجية هي توسيع الاختبار ليغطي كل استعلام وواجهة حساسة، لا الاكتفاء بالنواة المشتركة.")
+    add_table(doc, rows, "حالات التحقق من نموذج الجهة والمركز والفروع", 3, 7)
+    add_callout(doc, "قرار القبول:", "لا يعد عزل الجهات والفروع مقبولاً للإنتاج قبل نجاح TS-05 وتشغيل TS-06 وتوسيع العينة إلى الاستعلامات الحساسة في الخدمات الأربع عشرة.", fill="FFF7E6")
 
 
 def add_results_section(doc: Document) -> None:
     add_heading(doc, "3.14 النتائج", 2)
-    add_para(doc, "حقق المشروع منصة موارد بشرية متعددة الخدمات تتوافق مع نموذج المركز والفروع المحدد في المتطلبات. يتكون التنفيذ من 14 خدمة مستقلة و15 سياق بيانات تطبيقي و34 عقد حدث تكامل، وقد نجح 491 اختبار وحدة و50 اختبار تكامل مستقل عن الحاويات. كما تغطي نماذج التحليل 21 مخطط حالات استخدام و247 حالة موصوفة. وتدل هذه النتائج على اتساع النطاق واتساق الوظائف التي شملها التحقق، لكنها لا تمثل قياس أداء أو دراسة رضا مستخدمين أو اعتماداً إنتاجياً.")
+    requirement_count = len(catalog_functional_rows())
+    capability_count = max(0, len(capability_truth_rows()) - 1)
+    add_para(doc, f"حقق المشروع منصة موارد بشرية متعددة الجهات تربط الحوكمة المركزية بالتنفيذ المقيد في الفروع. يضم خط الأساس 14 خدمة مجال و15 سياق بيانات و274 DbSet و72 واجهة لعقود الرسائل، ويوثق {requirement_count} متطلباً وظيفياً و{capability_count} قدرة في سجل الحقيقة. وتجمع الحزمة المرجعية الحالية حالات الاستخدام وDFD للجهة والحجر والهيكل المؤرخ والسياسات وسير العمل والرواتب والخزينة واللوجستيات والملفات، بينما تحتفظ الحزمة القطاعية السابقة بـ247 حالة بوصفها أثراً تحليلياً. تثبت هذه الأرقام اتساع السطح، لكن نتائج الاختبار وحدود القبول هي التي تحدد مستوى الثقة ولا تسمح بتحويل الاتساع إلى ادعاء جاهزية.")
     rows = [
         ["البعد", "النتيجة المثبتة", "ما لا تدعيه الدراسة"],
-        ["الحوكمة التنظيمية", "رؤية مركزية مع نطاقات فروع وتفرعات", "اعتماد سياسي أو إداري فعلي داخل مؤسسة"],
-        ["العزل المعماري", "خدمات وقواعد بيانات مستقلة وعقود أحداث", "صفر اتساق متأخر في كل حالة تشغيلية"],
-        ["الجودة الوظيفية", "491 اختبار وحدة و50 اختبار تكامل ناجح", "تغطية اختبار كاملة أو أداء تحت حمل"],
-        ["التشغيل", "Docker Compose وHealth checks وتهيئة إنتاج", "نشر إنتاجي حي ومراقبة طويلة الأمد"],
+        ["الحوكمة التنظيمية", "Tenant للجهة وOrgScope للمركز والفروع", "قبول مؤسسي حي أو اكتمال RLS قبل تشغيله"],
+        ["حوكمة نقل البيانات", "قواعد إسناد وحجر ومصالحة للسجلات غير المنسوبة", "تشغيل ترحيل مؤسسة حية وتوقيع تقارير قبل وبعد"],
+        ["الهيكل والملاك", "OrgUnitVersion ودليل وظائف ووظائف ممولة وخطة قوى عاملة", "اعتماد مالي خارجي أو قبول ميداني للملاك"],
+        ["حوكمة القواعد", "سياسات حية وإصدارات ومحاكاة ودفتر إنفاذ", "اعتماد كل سياسة قانونياً أو إدارياً"],
+        ["الرواتب والخزينة", "إصدارات ولقطات وتشغيل قابل للاستئناف وتمويل ومتأخرات وأوامر وحجوزات", "محرك قانوني مصدق أو قنوات دفع ومصارف حية أو أداء مقاس"],
+        ["العزل المعماري", "خدمات وقواعد مستقلة وعقود وأحداث", "انعدام التأخر أو التعارض في كل سيناريو فشل"],
+        ["الجودة الوظيفية", "2416 اختبار وحدة و158 اختبار تكامل ناجحاً", "خلو خط الأساس من الفشل أو تغطية كاملة"],
+        ["التجربة العربية", "واجهات RTL وتقارير PDF عربية بخط مضمّن", "دراسة قابلية استخدام مع مستخدمين فعليين"],
+        ["التشغيل", "Compose وصور موحدة وHealth checks", "نشر إنتاجي حي أو أداء وRTO/RPO مقاسة"],
     ]
-    add_table(doc, rows, "حدود تفسير نتائج المشروع", 3, 5)
+    add_table(doc, rows, "حدود تفسير نتائج المشروع", 3, 8)
 
 
 def add_governance_section(doc: Document) -> None:
-    add_heading(doc, "3.19 حوكمة البيانات والقيود المتبقية", 2)
-    add_para(doc, "تتعامل المنظومة مع بيانات الموظفين والصحة والرواتب والشكاوى، ولذلك لا تكفي المصادقة وحدها لحمايتها. يطبق الإصدار v1 إدارة الهوية بواسطة Keycloak وOIDC وJWT، وسياسات قائمة على الأدوار والنطاق التنظيمي، ووظائف تدقيق، مع عزل مجالات الصحة والرواتب والامتثال. ويتطلب النشر الإنتاجي سياسة احتفاظ معتمدة، وإدارة آمنة لأسرار التشغيل، ونسخاً احتياطية مجربة الاستعادة، ومراجعة دورية للصلاحيات، وسجل وصول تفصيلي للبيانات الحساسة.")
+    add_heading(doc, "3.19 حوكمة البيانات وقرار الجاهزية", 2)
+    add_para(doc, "تتعامل المنظومة مع بيانات الهوية والصحة والرواتب والشكاوى والملفات، ولذلك لا تكفي المصادقة وحدها. يجمع التصميم بين Keycloak وسياسات الدور والجهة والنطاق، وTenantAwareDbContext وRLS، وتشفير الرقم الوطني، ودورة فحص الملفات ومنح الوصول، ودفاتر التدقيق والإنفاذ. وتتطلب الجاهزية سياسة احتفاظ ومفاتيح وأسرار ونسخاً مجربة ومراجعة صلاحيات واختبارات عزل حية.")
     rows = [
         ["القيد أو الخطر", "الحالة الحالية", "إجراء قبل الإنتاج"],
-        ["حزم NuGet ذات تحذيرات أمنية", "ظهرت تحذيرات OpenTelemetry وSQLitePCLRaw أثناء التشغيل", "تحديث الحزم وتوثيق أثر التغيير وإعادة الاختبار"],
-        ["قياس الأداء", "خارج نطاق القياس الموثق", "اختبار حمل لسيناريوهات التعيين والفصل والرواتب"],
-        ["تكامل حي مع جهات خارجية", "غير منفذ في v1", "عقود تكامل وتجربة بيئة اختبار معزولة"],
-        ["اختبارات Testcontainers وE2E", "مصممة ولم تدخل ضمن القياس الموثق", "تشغيلها ضمن CI مع Docker/Testcontainers"],
-        ["إدارة الاحتفاظ والاستعادة", "كيانات وخدمات مساندة موجودة", "سياسة زمنية وتمارين استعادة موثقة"],
+        ["حارس نطاق عهد الأصول", "اختبار أمني فاشل", "تطبيق OrgScope على الاستعلام وإعادة مجموعة الاختبار"],
+        ["Mass Assignment في اللوجستيات", "14 إجراء كشفها الاختبار", "استخدام أوامر وDTO محددة وAllow-list للربط"],
+        ["بدائل Policy/Code في التكامل", "تهيئة الاختبار ناقصة", "تسجيل fakes موحدة واختبار حالات السماح والمنع والفشل"],
+        ["دليل STR-005 المؤقت", "انتهت صلاحيته المقصودة للاختبار", "تثبيت الساعة أو تجديد fixture من دون تغيير قاعدة العمل"],
+        ["RLS وTestcontainers", "غير مشغلة لغياب Docker daemon", "تشغيلها في CI على PostgreSQL فعلي"],
+        ["إسناد الجهة والحجر", "النموذج ودليل التشغيل موجودان بلا ترحيل قبول حي", "Dry Run ونسخة احتياطية ومصالحة وتوقيع أصحاب البيانات"],
+        ["الرواتب والخزينة", "المسارات والسجلات الداخلية موجودة", "اعتماد قانوني ومالي واختبار أداء وتكامل قناة دفع وتسوية حي"],
+        ["ثقة الخدمات وفحص الملفات", "جرد هويات ونطاقات ودورة حجر وفحص موجودة", "اختبار رفض شامل وتشغيل ماسح مؤسسي وانتهاء المنح"],
+        ["قياس الأداء والقبول", "غير منفذ", "اختبار حمل معلن وPilot ببيانات تجريبية معتمدة"],
+        ["الاحتفاظ والاستعادة", "آليات ووثائق موجودة دون تمرين قبول كامل", "سياسة زمنية وتمرين استعادة رحلة عمل"],
     ]
-    add_table(doc, rows, "القيود المعلنة وخطة المعالجة", 3, 6)
-    add_callout(doc, "مبدأ النزاهة العلمية:", "لا تصف الأطروحة الإصدار v1 بأنه منتج إنتاجي مكتمل، بل كمنصة أولية ذات أساس معماري واختبارات وحدة ناجحة وخطة واضحة لسد فجوات التشغيل والقياس.", fill="FFF7E6")
+    add_table(doc, rows, "القيود المعلنة وخطة الإغلاق", 3, 9)
+    add_callout(doc, "قرار الجاهزية:", "المنصة أساس مؤسسي واسع وليست جاهزة بعد للنشر الإنتاجي العام. يصبح القرار قابلاً للمراجعة بعد إغلاق الاختبارات الفاشلة وتشغيل العزل الحي والأداء والاستعادة والقبول الميداني.", fill="FFF7E6")
 
 
 def add_database_design_section(doc: Document) -> None:
@@ -2007,7 +2452,8 @@ def add_database_design_section(doc: Document) -> None:
     add_para(doc, "اختيرت في HRManagement منهجية قاعدة بيانات مملوكة لكل خدمة (Database per Service) ضمن سياقات محدودة (Bounded Contexts). والسبب ليس توزيع الجداول لمجرد التوزيع، بل فصل دورة حياة مجالات مختلفة الحساسية والتغير: بيانات الموظف والهيكل التنظيمي في HR.Core، العقود والإجازات في HR.Contracts، الرواتب في Payroll، والملفات الصحية في HR.Health. يتيح هذا الفصل امتلاك كل خدمة لنموذجها وترحيلاتها وصلاحياتها، ويقلل أثر تغيير مخطط مجال على مجال آخر، ويدعم النشر المستقل والتوسع التدريجي ومبدأ أقل صلاحية.")
     add_para(doc, "لا يعني هذا الاختيار أن كل خدمة تعمل بمعزل عن بقية المنظومة. فالخدمات لا تنفذ استعلامات مباشرة إلى قواعد بعضها ولا تنشئ مفاتيح أجنبية عابرة للحدود. بدلاً من ذلك تستخدم EmployeeId وOrgUnitId والمعرفات المرجعية الثابتة، وقد تحتفظ الخدمة التابعة بلقطة تنظيمية مثل OrgUnitSnapshot عندما تحتاج قراءة مستقرة. وتبقى ملكية السجل الأصلي في الخدمة التي تعرف قواعده، بينما تتولى الخدمات الأخرى آثارها المحلية وفق عقود التكامل.")
     add_para(doc, "اعتمد التصميم PostgreSQL موفراً افتراضياً لقواعد البيانات التطبيقية عبر Npgsql وترحيلات مستقلة لكل سياق. ويستخدم SQLite في بعض اختبارات التكامل أو التشغيل المحلي الخفيف عند تمرير سلسلة اتصال من نمط Data Source=. يخدم هذا البديل أغراض الاختبار، في حين يبقى PostgreSQL المحرك المستهدف للنشر، مع ضرورة اعتماد سياسات الترحيل والنسخ الاحتياطي والاستعادة في البيئة الفعلية.")
-    add_figure(doc, "database_landscape")
+    begin_landscape_section(doc)
+    add_figure(doc, "database_landscape", max_width=9.25, max_height=6.15)
     try:
         inventory = json.loads(DATABASE_INVENTORY_SOURCE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -2022,9 +2468,13 @@ def add_database_design_section(doc: Document) -> None:
         ])
     add_table(doc, rows, "توصيف قواعد البيانات وسياقات ملكية البيانات", 3, 8)
     add_para(doc, "يلخص الجدول نموذج البيانات النهائي لكل سياق، ويبين مجموعات الكيانات وجداول الأعمال وجداول البنية المشتركة. ويمثل هذا التوصيف التصميم المنطقي المنفذ، في حين يتطلب إثبات جاهزية النشر تنفيذ الترحيلات واختبارات الاستعادة في بيئة تشغيل معتمدة.")
-    add_figure(doc, "database_hrcore")
-    add_figure(doc, "database_contracts")
-    add_figure(doc, "database_payroll")
+    doc.add_page_break()
+    add_figure(doc, "database_hrcore", max_width=9.25, max_height=6.15)
+    doc.add_page_break()
+    add_figure(doc, "database_contracts", max_width=9.25, max_height=6.15)
+    doc.add_page_break()
+    add_figure(doc, "database_payroll", max_width=9.25, max_height=6.15)
+    begin_portrait_section(doc)
 
     add_heading(doc, "3.5.2 آلية التواصل بين قواعد البيانات", 3)
     add_para(doc, "تتواصل قواعد البيانات بصورة غير مباشرة عبر طبقة التكامل القائمة على RabbitMQ وMassTransit. تنشر الخدمة المالكة للحقيقة حدثاً بعد تثبيت معاملتها المحلية، مثل IEmployeeCreated أو IContractActivated أو ITransferExecuted أو IPayrollProcessed. تستهلك الخدمات المعنية الحدث وتكتب أثرها في قاعدتها الخاصة. وبذلك يصبح التواصل موجهاً بالحقائق والأحداث، لا بربط الجداول أو تنفيذ Join عابر لقواعد البيانات.")
@@ -2032,10 +2482,25 @@ def add_database_design_section(doc: Document) -> None:
     add_para(doc, "توجد حدود تكامل أخرى واضحة: يحتفظ File.Storage ببيانات وصفية للملف بينما يخزن MinIO المحتوى الثنائي، ويؤدي Keycloak دور مخزن الهوية الخارجي، وتملك Gateway قاعدة مستقلة لتدقيق طلبات البوابة. أما الأرشيف والتحليلات فيستهلكان أحداثاً أو معرفات مرجعية دون امتلاك السجلات المصدرية للموظف أو العقد أو الراتب.")
     add_figure(doc, "database_integration")
     add_callout(doc, "قرار التصميم وحدوده:", "تحقق قاعدة بيانات لكل خدمة استقلالية المجال وتقليل الصلاحيات، لكنه يفرض اتساقاً نهائياً وحاجة إلى مراقبة الرسائل والتسوية. لذلك يوصى قبل الإنتاج بإضافة اختبارات تكامل للحالات الفاشلة، وقياس زمن انتشار الأحداث، وتمارين نسخ احتياطي واستعادة لكل قاعدة.", fill="FFF7E6")
-    add_heading(doc, "3.5.3 خرائط ERD المختصرة للخدمات المساندة", 3)
-    add_para(doc, "بعد عرض ERD المختصر للخدمات الجوهرية HR.Core وHR.Contracts وPayroll، تعرض الأشكال التالية الخرائط المنطقية المختصرة لبقية سياقات البيانات. تركز الرسوم على أسماء الجداول والمفاتيح والعلاقات الداخلية، بينما يقدم ملحق (و) النموذج الكامل لكل قاعدة بيانات.")
+    add_heading(doc, "3.5.3 تقويم الطوبولوجيا بحسب رحلات الأعمال", 3)
+    add_para(doc, "طبقت الدراسة النقدية لقاعدة بيانات لكل خدمة على الرحلات التي تحدد نجاح الأعمال، لا على عدد الجداول. وتفصل بين الملكية المنطقية، التي تحققت عبر السياقات والصلاحيات والترحيلات، وبين استقلال مجال الفشل الفيزيائي الذي تحدده بيئة النشر ولم يثبت في التشغيل الحالي. كما تميز بين نجاح المعاملة المحلية واكتمال الأثر العابر للخدمات ضمن مهلة مقبولة.")
+    reliability_rows = [
+        ["الرحلة", "البيانات المالكة", "التبعيات الإلزامية", "إمكان الاستمرار الجزئي", "اختبار القبول المطلوب"],
+        ["التعيين", "HR.Core وHR.Contracts", "العقد وقائمة التحقق", "يمكن تأخير التحليلات والتدريب مع إظهار الأثر المعلق", "فصل الوسيط ثم إعادة النشر ومنع التكرار"],
+        ["النقل", "HR.Movements ثم HR.Core", "اعتماد الحركة وتحديث الإسناد", "تتوقف قرارات النطاق حتى اتساق الوحدة", "منع ظهور الموظف في فرعين واستعادة الإسقاط"],
+        ["الفصل", "HR.Contracts", "قرار الإنهاء", "تستمر القراءة مع تنبيه آثار البطاقة والراتب والعهد", "تسوية كل مستهلك وإثبات الإغلاق"],
+        ["الرواتب", "Payroll", "الإصدار واللقطة والحساب والاعتماد", "يمكن فصل الدفع عن الترحيل", "استئناف job وتسوية الأوامر والمتأخرات والعكس"],
+        ["الملفات", "File.Storage وMinIO", "الحجر والفحص والمنحة", "تبقى المعاملة بلا ملف متاح حتى النظافة", "فشل الماسح ومنع التنزيل وانتهاء المنحة"],
+    ]
+    begin_landscape_section(doc)
+    add_table(doc, reliability_rows, "تطبيق دراسة الاعتمادية على رحلات النظام الحرجة", 3, 9)
+    begin_portrait_section(doc)
+    add_para(doc, "لا تتضمن النتائج الحالية حقن أعطال أو قياس احتمال نجاح رحلة أو زمن استعادة. لذلك تبقى فرضيات انخفاض نطاق العطل أو زيادة كلفة التبعيات قابلة للاختبار، ولا تعرض كحقيقة مقاسة. ويلزم عند النشر توثيق منصة استضافة كل قاعدة، وارتباط مجالات الفشل، وتزامن النسخ، وترتيب استعادة الأحداث والملفات.")
+    add_heading(doc, "3.5.4 خرائط ERD المختصرة للخدمات المساندة", 3)
+    add_para(doc, "بعد عرض ERD المختصر للخدمات الجوهرية HR.Core وHR.Contracts وPayroll، تعرض الأشكال التالية الخرائط المنطقية المختصرة لبقية سياقات البيانات. تركز الرسوم على أسماء الجداول والمفاتيح والعلاقات الداخلية، بينما يقدم ملحق (ح) النموذج الكامل لكل قاعدة بيانات.")
     for key in DATABASE_COMPACT_ERD_MAP:
-        add_figure(doc, key)
+        if key not in {"database_hrcore", "database_contracts", "database_payroll"}:
+            add_figure(doc, key)
 
 
 def add_complete_database_erdds(doc: Document) -> None:
@@ -2060,7 +2525,7 @@ def add_complete_database_erdds(doc: Document) -> None:
     continue_page_numbering(section)
     add_running_header(section)
     add_page_number_footer(section)
-    add_heading(doc, "ملحق (و): مخططات ERD الكاملة لكل قواعد البيانات", 2)
+    add_heading(doc, "ملحق (ح): مخططات ERD الكاملة لكل قواعد البيانات", 2)
     add_para(doc, "يضم هذا الملحق مخططاً مستقلاً لكل سياق من سياقات البيانات الخمسة عشر. تعكس المخططات نموذج البيانات النهائي، وتعرض الجداول والمفاتيح الأساسية وحقول المفاتيح الأجنبية والعلاقات الداخلية. أما EmployeeId وOrgUnitId وأشباههما عندما تشير إلى خدمة أخرى فتظهر كمعرفات تكاملية، لأن المعمارية لا تنشئ مفاتيح أجنبية عابرة لقواعد الخدمات.")
     for item, figure_key in zip(manifest, DATABASE_FULL_ERD_KEYS):
         add_heading(doc, f"{item['service_ar']} ({item['service']}) - {item['database']}", 3)
@@ -2098,21 +2563,12 @@ def parse_and_render_source(doc: Document) -> None:
             paragraph_parts = []
 
     def inject_after_chapter_one() -> None:
-        add_feasibility_detail(doc)
         add_evaluation_framework(doc)
 
     def inject_after_chapter_three() -> None:
         add_governance_section(doc)
 
     def normalize_heading_number(heading: str) -> str:
-        if heading.startswith("3.14 التحديات"):
-            return heading.replace("3.14", "3.15", 1)
-        if heading.startswith("3.15 التوصيات"):
-            return heading.replace("3.15", "3.16", 1)
-        if heading.startswith("3.16"):
-            return heading.replace("3.16", "3.17", 1)
-        if heading.startswith("3.17"):
-            return heading.replace("3.17", "3.18", 1)
         return heading
 
     index = 0
@@ -2123,7 +2579,7 @@ def parse_and_render_source(doc: Document) -> None:
         if line.startswith("# الفصل الأول"):
             active = True
             current_chapter = 1
-            begin_chapter(doc, "الفصل الأول", "المقدمة", first=True)
+            begin_chapter(doc, "الفصل الأول", "الإطار العام للمشروع", first=True)
             index += 1
             continue
         if line.startswith("# الفصل الثاني"):
@@ -2132,7 +2588,7 @@ def parse_and_render_source(doc: Document) -> None:
                 inject_after_chapter_one()
             active = True
             current_chapter = 2
-            begin_chapter(doc, "الفصل الثاني", "الدراسة النظرية")
+            begin_chapter(doc, "الفصل الثاني", "الأساس النظري والدراسة المقارنة")
             index += 1
             continue
         if line.startswith("# الفصل الثالث"):
@@ -2141,7 +2597,7 @@ def parse_and_render_source(doc: Document) -> None:
                 add_related_work(doc)
             active = True
             current_chapter = 3
-            begin_chapter(doc, "الفصل الثالث", "التطبيق العملي")
+            begin_chapter(doc, "الفصل الثالث", "التحليل والتصميم والتنفيذ والتحقق")
             index += 1
             continue
         if line.startswith("# الخاتمة"):
@@ -2183,12 +2639,12 @@ def parse_and_render_source(doc: Document) -> None:
                 add_database_design_section(doc)
                 database_section_added = True
 
-            if heading.startswith("3.12 الاختبارات"):
+            if heading.startswith("3.13 الاختبارات"):
                 add_test_evidence(doc)
                 skip_level = level
                 index += 1
                 continue
-            if heading.startswith("3.13 النتائج"):
+            if heading.startswith("3.14 النتائج"):
                 add_results_section(doc)
                 skip_level = level
                 index += 1
@@ -2199,7 +2655,7 @@ def parse_and_render_source(doc: Document) -> None:
                 skip_level = level
                 index += 1
                 continue
-            if heading.startswith("3.8 واجهات") and not formal_models_added:
+            if heading.startswith("3.5 تصميم قواعد البيانات") and not formal_models_added:
                 add_formal_design_models(doc)
                 formal_models_added = True
 
@@ -2317,43 +2773,54 @@ def add_back_matter(doc: Document) -> None:
     doc.add_page_break()
     add_heading(doc, "المراجع", 1)
     references = [
-        "[1] Evans, E. (2003). Domain-Driven Design: Tackling Complexity in the Heart of Software. Addison-Wesley.",
-        "[2] Newman, S. (2021). Building Microservices (2nd ed.). O'Reilly Media.",
-        "[3] Fowler, M., & Lewis, J. Microservices: a definition of this new architectural term. martinfowler.com. تم الاطلاع في 2026/07/10.",
-        "[4] Microsoft Learn. ASP.NET Core documentation. https://learn.microsoft.com/aspnet/core/ . تم الاطلاع في 2026/07/10.",
-        "[5] Microsoft Learn. Entity Framework Core documentation. https://learn.microsoft.com/ef/core/ . تم الاطلاع في 2026/07/10.",
-        "[6] Microsoft Learn. YARP Reverse Proxy documentation. https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/ . تم الاطلاع في 2026/07/10.",
-        "[7] MassTransit. Documentation: consumers, retry and transactional outbox. https://masstransit.io/documentation . تم الاطلاع في 2026/07/10.",
-        "[8] RabbitMQ. Documentation: messaging and AMQP concepts. https://www.rabbitmq.com/docs . تم الاطلاع في 2026/07/10.",
-        "[9] Keycloak. Documentation: OpenID Connect and authorization. https://www.keycloak.org/documentation . تم الاطلاع في 2026/07/10.",
-        "[10] PostgreSQL Global Development Group. PostgreSQL 16 Documentation. https://www.postgresql.org/docs/16/ . تم الاطلاع في 2026/07/10.",
-        "[11] Docker. Docker Compose documentation. https://docs.docker.com/compose/ . تم الاطلاع في 2026/07/10.",
-        "[12] OpenTelemetry. Documentation and observability concepts. https://opentelemetry.io/docs/ . تم الاطلاع في 2026/07/10.",
-        "[13] ISO/IEC 25010:2023. Systems and software engineering - Product quality model.",
-        "[14] Hu, V. C., et al. (2014). Guide to Attribute Based Access Control (ABAC) Definition and Considerations. NIST SP 800-162.",
-        "[15] فريق مشروع HRManagement. وثيقة تحليل المتطلبات ومصفوفة أحداث التكامل ونطاق الإصدار الأول، 2026.",
-        "[16] فريق مشروع HRManagement. وثيقة التصميم المعماري وتقرير التنفيذ والتحقق البرمجي، 2026.",
-        "[17] منهجية إعداد مشاريع التخرج، كلية الهندسة المعلوماتية، جامعة حمص، 2026.",
-        "[18] Kavanagh, M. J., & Johnson, R. D. (2020). Human Resource Information Systems: Basics, Applications, and Future Directions (4th ed.). SAGE.",
-        "[19] Marler, J. H., & Boudreau, J. W. (2017). An evidence-based review of HR Analytics. The International Journal of Human Resource Management, 28(1), 3-26.",
-        "[20] Stone, D. L., Deadrick, D. L., Lukaszewski, K. M., & Johnson, R. (2015). The influence of technology on the future of human resource management. Human Resource Management Review, 25(2), 216-231.",
-        "[21] Richards, M., & Ford, N. (2020). Fundamentals of Software Architecture. O'Reilly Media.",
-        "[22] Kleppmann, M. (2017). Designing Data-Intensive Applications. O'Reilly Media.",
-        "[23] NIST SP 800-63-3. Digital Identity Guidelines. National Institute of Standards and Technology, 2017.",
-        "[24] ISO/IEC 27001:2022. Information security, cybersecurity and privacy protection - Information security management systems.",
-        "[25] NIST SP 800-34 Rev. 1. Contingency Planning Guide for Federal Information Systems. National Institute of Standards and Technology, 2010.",
-        "[26] ISO 30414:2018. Human resource management - Guidelines for internal and external human capital reporting.",
-        "[27] OWASP. Application Security Verification Standard 4.0.3, 2021.",
-        "[28] OWASP. OWASP Top 10: The Ten Most Critical Web Application Security Risks, 2021.",
-        "[29] Bass, L., Clements, P., & Kazman, R. (2021). Software Architecture in Practice (4th ed.). Addison-Wesley.",
-        "[30] Richardson, C. (2018). Microservices Patterns. Manning.",
-        "[31] Pahl, C., & Jamshidi, P. (2016). Microservices: A Systematic Mapping Study. CLOSER 2016.",
-        "[32] Beyer, B., Jones, C., Petoff, J., & Murphy, N. R. (2016). Site Reliability Engineering. O'Reilly Media.",
-        "[33] Forsgren, N., Humble, J., & Kim, G. (2018). Accelerate. IT Revolution Press.",
-        "[34] ISO/IEC 27002:2022. Information security, cybersecurity and privacy protection - Information security controls.",
-        "[35] Hardt, D. (2012). The OAuth 2.0 Authorization Framework. IETF RFC 6749.",
-        "[36] Sakimura, N., Bradley, J., Jones, M., de Medeiros, B., & Mortimore, C. (2014). OpenID Connect Core 1.0.",
-        "[37] NIST SP 800-53 Rev. 5. Security and Privacy Controls for Information Systems and Organizations. National Institute of Standards and Technology, 2020.",
+        "[1] E. Evans, Domain-Driven Design: Tackling Complexity in the Heart of Software. Boston, MA, USA: Addison-Wesley, 2003.",
+        "[2] S. Newman, Building Microservices, 2nd ed. Sebastopol, CA, USA: O'Reilly Media, 2021.",
+        "[3] J. Lewis and M. Fowler, \"Microservices: A definition of this new architectural term,\" martinfowler.com, Mar. 25, 2014. [Online]. Available: https://martinfowler.com/articles/microservices.html. [Accessed: Aug. 16, 2026].",
+        "[4] Microsoft, \"ASP.NET Core documentation.\" [Online]. Available: https://learn.microsoft.com/aspnet/core/. [Accessed: Aug. 16, 2026].",
+        "[5] Microsoft, \"Entity Framework Core documentation.\" [Online]. Available: https://learn.microsoft.com/ef/core/. [Accessed: Aug. 16, 2026].",
+        "[6] Microsoft, \"YARP reverse proxy documentation.\" [Online]. Available: https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/. [Accessed: Aug. 16, 2026].",
+        "[7] MassTransit, \"MassTransit documentation: Consumers, retry, and transactional outbox.\" [Online]. Available: https://masstransit.io/documentation. [Accessed: Aug. 16, 2026].",
+        "[8] Broadcom, \"RabbitMQ documentation.\" [Online]. Available: https://www.rabbitmq.com/docs. [Accessed: Aug. 16, 2026].",
+        "[9] Keycloak, \"Keycloak documentation.\" [Online]. Available: https://www.keycloak.org/documentation. [Accessed: Aug. 16, 2026].",
+        "[10] PostgreSQL Global Development Group, \"PostgreSQL documentation: Row security policies.\" [Online]. Available: https://www.postgresql.org/docs/current/ddl-rowsecurity.html. [Accessed: Aug. 16, 2026].",
+        "[11] Docker, Inc., \"Docker Compose documentation.\" [Online]. Available: https://docs.docker.com/compose/. [Accessed: Aug. 16, 2026].",
+        "[12] OpenTelemetry Authors, \"OpenTelemetry documentation.\" [Online]. Available: https://opentelemetry.io/docs/. [Accessed: Aug. 16, 2026].",
+        "[13] Systems and Software Engineering - Systems and Software Quality Requirements and Evaluation (SQuaRE) - Product Quality Model, ISO/IEC 25010:2023, 2023.",
+        "[14] V. C. Hu et al., Guide to Attribute Based Access Control (ABAC) Definition and Considerations, NIST SP 800-162, National Institute of Standards and Technology, 2014.",
+        "[15] فريق مشروع HRManagement، \"تحليل المتطلبات ومصفوفة أحداث التكامل ونطاق الإصدار الأول،\" وثيقة داخلية، 2026.",
+        "[16] فريق مشروع HRManagement، \"التصميم المعماري وتقرير التنفيذ والتحقق البرمجي،\" وثيقة داخلية، 2026.",
+        "[17] كلية الهندسة المعلوماتية، جامعة حمص، \"منهجية إعداد مشاريع التخرج،\" دليل أكاديمي، 2026.",
+        "[18] M. J. Kavanagh and R. D. Johnson, Human Resource Information Systems: Basics, Applications, and Future Directions, 4th ed. Thousand Oaks, CA, USA: SAGE, 2020.",
+        "[19] J. H. Marler and J. W. Boudreau, \"An evidence-based review of HR analytics,\" The International Journal of Human Resource Management, vol. 28, no. 1, pp. 3-26, 2017.",
+        "[20] D. L. Stone, D. L. Deadrick, K. M. Lukaszewski, and R. Johnson, \"The influence of technology on the future of human resource management,\" Human Resource Management Review, vol. 25, no. 2, pp. 216-231, 2015.",
+        "[21] M. Richards and N. Ford, Fundamentals of Software Architecture. Sebastopol, CA, USA: O'Reilly Media, 2020.",
+        "[22] M. Kleppmann, Designing Data-Intensive Applications. Sebastopol, CA, USA: O'Reilly Media, 2017.",
+        "[23] Digital Identity Guidelines, NIST SP 800-63-3, National Institute of Standards and Technology, 2017.",
+        "[24] Information Security, Cybersecurity and Privacy Protection - Information Security Management Systems - Requirements, ISO/IEC 27001:2022, 2022.",
+        "[25] M. Swanson et al., Contingency Planning Guide for Federal Information Systems, NIST SP 800-34 Rev. 1, National Institute of Standards and Technology, 2010.",
+        "[26] Human Resource Management - Guidelines for Internal and External Human Capital Reporting, ISO 30414:2018, 2018.",
+        "[27] OWASP Foundation, \"Application Security Verification Standard 4.0.3,\" 2021. [Online]. Available: https://owasp.org/www-project-application-security-verification-standard/. [Accessed: Aug. 16, 2026].",
+        "[28] OWASP Foundation, \"OWASP Top 10: The ten most critical web application security risks,\" 2021. [Online]. Available: https://owasp.org/www-project-top-ten/. [Accessed: Aug. 16, 2026].",
+        "[29] L. Bass, P. Clements, and R. Kazman, Software Architecture in Practice, 4th ed. Boston, MA, USA: Addison-Wesley, 2021.",
+        "[30] C. Richardson, Microservices Patterns. Shelter Island, NY, USA: Manning, 2018.",
+        "[31] C. Pahl and P. Jamshidi, \"Microservices: A systematic mapping study,\" in Proc. CLOSER, Rome, Italy, 2016, pp. 137-146.",
+        "[32] B. Beyer, C. Jones, J. Petoff, and N. R. Murphy, Site Reliability Engineering. Sebastopol, CA, USA: O'Reilly Media, 2016.",
+        "[33] N. Forsgren, J. Humble, and G. Kim, Accelerate. Portland, OR, USA: IT Revolution Press, 2018.",
+        "[34] Information Security, Cybersecurity and Privacy Protection - Information Security Controls, ISO/IEC 27002:2022, 2022.",
+        "[35] D. Hardt, The OAuth 2.0 Authorization Framework, IETF RFC 6749, Oct. 2012.",
+        "[36] N. Sakimura, J. Bradley, M. Jones, B. de Medeiros, and C. Mortimore, \"OpenID Connect Core 1.0,\" OpenID Foundation, Nov. 2014.",
+        "[37] Security and Privacy Controls for Information Systems and Organizations, NIST SP 800-53 Rev. 5, National Institute of Standards and Technology, 2020.",
+        "[38] فريق مشروع HRManagement، \"ADR-001: نموذج الجهة والوحدة التنظيمية وعزل Tenant،\" قرار معماري داخلي، 2026.",
+        "[39] فريق مشروع HRManagement، \"دراسة اعتمادية قواعد البيانات بحسب رحلات الأعمال،\" دراسة داخلية، 2026.",
+        "[40] فريق مشروع HRManagement، \"سجل السياسات وتوليد الرموز وحزم التهيئة المؤسسية،\" وثائق تصميم داخلية، 2026.",
+        "[41] فريق مشروع HRManagement، \"جرد سياقات البيانات ومخططات الترحيل المؤرخة،\" دليل تصميم داخلي، 2026.",
+        "[42] فريق مشروع HRManagement، \"خط أساس المتطلبات وسجل الحقيقة ومصفوفة حالات الاستخدام والتتبع،\" وثيقة داخلية، 2026.",
+        "[43] SAP, \"SAP SuccessFactors Employee Central.\" [Online]. Available: https://www.sap.com/products/hcm/successfactors-employee-central.html. [Accessed: Aug. 16, 2026].",
+        "[44] Oracle, \"Oracle Fusion Cloud Human Resources.\" [Online]. Available: https://www.oracle.com/human-capital-management/human-resources/. [Accessed: Aug. 16, 2026].",
+        "[45] Workday, Inc., \"Human Capital Management software.\" [Online]. Available: https://www.workday.com/en-us/products/human-capital-management/overview.html. [Accessed: Aug. 16, 2026].",
+        "[46] Odoo S.A., \"Odoo Employees features.\" [Online]. Available: https://www.odoo.com/app/employees-features. [Accessed: Aug. 16, 2026].",
+        "[47] OrangeHRM, Inc., \"OrangeHRM human resource management software.\" [Online]. Available: https://orangehrm.com/. [Accessed: Aug. 16, 2026].",
+        "[48] Oracle, \"Oracle Fusion Cloud Payroll.\" [Online]. Available: https://www.oracle.com/human-capital-management/payroll/. [Accessed: Aug. 16, 2026].",
     ]
     for ref in references:
         p = doc.add_paragraph()
@@ -2362,49 +2829,52 @@ def add_back_matter(doc: Document) -> None:
         p.paragraph_format.space_after = Pt(5)
         add_inline(p, ref, 12.2)
 
-    doc.add_page_break()
+    begin_landscape_section(doc)
     add_heading(doc, "الملاحق", 1)
     add_heading(doc, "ملحق (أ): مصفوفة تتبع المتطلبات", 2)
     fr_rows = [["المتطلب", "المجال", "الخدمة المالكة", "دليل القبول أو التحقق"]]
     for row in catalog_functional_rows():
         if len(row) >= 7:
             fr_rows.append([row[0], row[1], row[5], row[6]])
-    add_table(doc, fr_rows, "مصفوفة التتبع الكاملة للمتطلبات الوظيفية", 3, 8, label_override="الجدول (م-1)")
+    add_table(doc, fr_rows, "مصفوفة التتبع الكاملة للمتطلبات الوظيفية", 3, 8, label_override="الجدول (أ-1)")
 
+    add_capability_truth_register(doc)
+    add_approved_usecase_package(doc, 1)
+    add_dfd_appendix(doc)
     add_requirement_cards(doc)
     add_quality_cards(doc)
     add_service_profiles(doc)
 
-    add_heading(doc, "ملحق (هـ): دليل الخدمات ومجالات الملكية", 2)
+    add_heading(doc, "ملحق (ز-2): ملخص الخدمات ومجالات الملكية", 3)
     services = [
         ["الخدمة", "الملكية الوظيفية"],
-        ["HR.Core", "الموظف المرجعي، الوحدات التنظيمية، التوظيف، ESS"],
+        ["HR.Core", "الجهة والموظف والوحدات والتوظيف والسياسات والرموز والتهيئة وESS"],
         ["HR.Contracts", "العقود والمباشرة والإجازات والسلف والفصل"],
-        ["Payroll", "ملفات الأجور ودورات الرواتب والتعديلات"],
+        ["Payroll", "إصدارات القواعد واللقطات والدورات القابلة للاستئناف والتمويل والمتأخرات وأوامر الدفع والتسوية والحجوزات"],
         ["HR.Health", "السجلات واللجان والصحة المهنية"],
         ["HR.Movements", "النقل والانتداب"],
         ["HR.Training", "التدريب والتعلم الإلكتروني"],
         ["IDCard", "تصميم وإصدار وإبطال البطاقات"],
         ["Records.Archive", "الأرشفة الرقمية والفيزيائية"],
-        ["Admin.Logistics", "العهد والأصول والمخزون"],
+        ["Admin.Logistics", "العهد والأصول والمخزون والتوريد وبلاغات الفقد"],
         ["IT.Infra", "الأجهزة والدعم والنسخ الاحتياطي والحوادث"],
         ["Dev.Analytics", "التقارير ولوحات المؤشرات"],
         ["Compliance", "الشكاوى والتدقيق والإجراءات التأديبية"],
         ["Auth.Directory", "الدليل المحلي والأدوار وسجلات المصادقة"],
-        ["File.Storage", "الملفات والمراجع وتدقيق الوصول"],
+        ["File.Storage", "حجر الملفات والفحص والتنقية والمراجع ومنح الوصول وتدقيقه"],
     ]
-    add_table(doc, services, "دليل الخدمات ومجالات ملكية البيانات", 3, 9, label_override="الجدول (م-2)")
+    add_table(doc, services, "دليل الخدمات ومجالات ملكية البيانات", 3, 9, label_override="الجدول (ز-1)")
 
     add_complete_database_erdds(doc)
 
     add_verification_protocol(doc, new_page=False)
 
-    add_heading(doc, "ملحق (ح): إعادة تشغيل اختبارات التحقق", 2)
-    add_para(doc, "لإعادة اختبارات الوحدة، يستخدم الأمر التالي بعد استعادة الحزم وبناء المشروع. سجلت بيئة التحقق 491 اختبار وحدة ناجحاً من أصل 491، إضافة إلى 50 اختبار تكامل مستقلاً عن الحاويات ناجحاً من أصل 50.")
-    add_code(doc, "dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --no-restore --configuration Release --nologo")
-    add_para(doc, "أما Testcontainers واختبارات النهاية إلى النهاية فتحتاج توفر Docker daemon والاعتماديات التشغيلية. لا ينبغي إدراج نتيجة لها في التقرير قبل تشغيلها في بيئة تفي بهذه المتطلبات.")
+    add_heading(doc, "ملحق (ط-2): إعادة تشغيل اختبارات التحقق", 3)
+    add_para(doc, "تعاد حزم الوحدة والتكامل والنهاية إلى النهاية في وضع Release، وتسجل نتائج النجاح والفشل والتخطي كل على حدة. سجل التشغيل الحالي 2416 اختبار وحدة ناجحاً و5 فاشلة، و158 اختبار تكامل ناجحاً و7 فاشلة و47 متخطاة، واختبارين E2E ناجحين و55 متخطاة.")
+    add_code(doc, "dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --no-restore --configuration Release --nologo\ndotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --no-restore --configuration Release --nologo\ndotnet test src/Tests/HRManagement.E2ETests/HRManagement.E2ETests.csproj --no-restore --configuration Release --nologo")
+    add_para(doc, "تحتاج Testcontainers واختبارات PostgreSQL RLS إلى Docker daemon. لا تحول الاختبارات المتخطاة إلى ناجحة، ولا تستخدم نتائج نسخة سابقة مكان الخط الحالي.")
 
-    add_heading(doc, "ملحق (ط): مطابقة بنية الأطروحة مع المنهجية المرجعية", 2)
+    add_heading(doc, "ملحق (ي): مطابقة بنية الأطروحة مع المنهجية المرجعية", 2)
     methodology = [
         ["بند المنهجية", "موضعه في الأطروحة"],
         ["الغلاف العربي والإنكليزي", "الصفحات الأولى"],
@@ -2416,7 +2886,7 @@ def add_back_matter(doc: Document) -> None:
         ["الخاتمة والاختصارات", "بعد الفصل الثالث"],
         ["المراجع والملاحق", "نهاية الوثيقة"],
     ]
-    add_table(doc, methodology, "مطابقة البنية مع منهجية إعداد مشاريع التخرج", 3, 10, label_override="الجدول (م-3)")
+    add_table(doc, methodology, "مطابقة البنية مع منهجية إعداد مشاريع التخرج", 3, 10, label_override="الجدول (ي-1)")
     add_submission_integrity_appendix(doc)
     add_execution_log_appendix(doc)
 
@@ -2434,6 +2904,7 @@ def main() -> None:
     if not SOURCE.exists():
         raise FileNotFoundError(f"Source thesis was not found: {SOURCE}")
     TABLE_COUNTERS.update({1: 0, 2: 0, 3: 0})
+    FIGURE_COUNTERS.clear()
     make_figures()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     doc = Document()
@@ -2446,6 +2917,8 @@ def main() -> None:
     add_front_matter(doc)
     parse_and_render_source(doc)
     add_back_matter(doc)
+    materialize_figure_catalog(doc)
+    materialize_table_catalog(doc)
     doc.save(OUTPUT)
     print(OUTPUT)
 

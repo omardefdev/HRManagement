@@ -34,12 +34,16 @@ public sealed class GatewayAuditDbContext(DbContextOptions<GatewayAuditDbContext
         e.Property(x => x.Decision).HasMaxLength(32);
         e.Property(x => x.ClientIp).HasMaxLength(128);
         e.Property(x => x.UserAgent).HasMaxLength(512);
+        e.Property(x => x.Reason).HasMaxLength(128);
+        e.Property(x => x.ResourceType).HasMaxLength(64);
+        e.Property(x => x.ResourceId).HasMaxLength(128);
         e.Property(x => x.ChainKey).HasMaxLength(64).HasDefaultValue("default");
         e.Property(x => x.PrevHash).HasMaxLength(128);
         e.Property(x => x.EventHash).HasMaxLength(128);
         e.HasIndex(x => x.OccurredAtUtc);
         e.HasIndex(x => new { x.OccurredAtUtc, x.Id }).HasDatabaseName("IX_gateway_audit_entries_OccurredAt_Id");
         e.HasIndex(x => x.CorrelationId);
+        e.HasIndex(x => x.TenantId);
         e.HasIndex(x => x.StatusCode);
         e.HasIndex(x => x.SequenceNumber);
         e.HasIndex(x => new { x.ChainKey, x.SequenceNumber });

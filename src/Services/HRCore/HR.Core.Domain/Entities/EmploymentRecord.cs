@@ -49,6 +49,12 @@ public class EmploymentRecord : AuditableEntity
     [StringLength(50)]
     public string? JobClassificationCode { get; set; }
 
+    /// <summary>SYR-003: service regime assigned at hire (from offer legal source lineage).</summary>
+    [Display(Name = "نظام الخدمة")]
+    [StringLength(50)]
+    public string? LegalRegimeId { get; set; }
+
     public virtual Employee? Employee { get; set; }
     public virtual OrgUnit? OrgUnit { get; set; }
+    public virtual HRManagement.SharedKernel.Legal.LegalRegime? LegalRegime { get; set; }
 }

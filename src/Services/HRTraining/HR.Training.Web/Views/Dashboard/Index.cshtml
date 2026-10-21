@@ -1,0 +1,31 @@
+@{ ViewData["Title"] = "لوحة تحكم التدريب"; }
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+            <div class="inner"><h3>@ViewBag.TrainingCourses</h3><p>الدورات</p></div>
+            <div class="icon"><i class="fas fa-book"></i></div>
+            <a asp-controller="TrainingCourses" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+            <div class="inner"><h3>@ViewBag.TrainingEnrollments</h3><p>التسجيلات</p></div>
+            <div class="icon"><i class="fas fa-user-check"></i></div>
+            <a asp-controller="TrainingEnrollments" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+            <div class="inner"><h3>@ViewBag.TrainingPlans</h3><p>خطط التدريب</p></div>
+            <div class="icon"><i class="fas fa-calendar-alt"></i></div>
+            <a asp-controller="TrainingPlans" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-primary">
+            <div class="inner"><h3>@ViewBag.ELearningCourses</h3><p>الدورات الإلكترونية</p></div>
+            <div class="icon"><i class="fas fa-laptop"></i></div>
+            <a asp-controller="ELearningCourses" asp-action="Index" class="small-box-footer">عرض الكل <i class="fas fa-arrow-circle-left"></i></a>
+        </div>
+    </div>
+</div>

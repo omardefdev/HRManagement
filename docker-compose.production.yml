@@ -436,6 +436,9 @@ services:
       RabbitMQ__Password: ${RABBITMQ_ADMIN_LOGISTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-admin-logistics
       ServiceIdentity__ClientSecret: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:?SVC_ADMIN_LOGISTICS_CLIENT_SECRET required}
+      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow file-storage.references
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
     healthcheck: *app-healthcheck
     depends_on:
       postgresql:

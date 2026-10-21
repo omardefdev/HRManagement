@@ -486,6 +486,19 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
+      "admin.logistics.web": {
+        "type": "Project",
+        "dependencies": {
+          "Admin.Logistics.Domain": "[1.0.0, )",
+          "Admin.Logistics.Infrastructure": "[1.0.0, )",
+          "HRManagement.Documents.QuestPdf": "[1.0.0, )",
+          "HRManagement.MessageContracts": "[1.0.0, )",
+          "HRManagement.ServiceDefaults": "[1.0.0, )",
+          "HRManagement.SharedKernel": "[1.0.0, )",
+          "HRManagement.Web.Shared": "[1.0.0, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
+        }
+      },
       "auth.directory.domain": {
         "type": "Project",
         "dependencies": {
@@ -523,6 +536,15 @@
           "MassTransit.RabbitMQ": "[8.5.10, )",
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
+        }
+      },
+      "dev.analytics.application": {
+        "type": "Project",
+        "dependencies": {
+          "Dev.Analytics.Domain": "[1.0.0, )",
+          "Dev.Analytics.Infrastructure": "[1.0.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
@@ -646,6 +668,7 @@
           "ClosedXML": "[0.105.0, )",
           "HR.Core.Domain": "[1.0.0, )",
           "HR.Core.Infrastructure": "[1.0.0, )",
+          "HRManagement.Documents.QuestPdf": "[1.0.0, )",
           "HRManagement.FileStorage": "[1.0.0, )",
           "HRManagement.Integration.FileAdapters": "[1.0.0, )",
           "HRManagement.MessageContracts": "[1.0.0, )",
@@ -653,7 +676,6 @@
           "HRManagement.SharedKernel": "[1.0.0, )",
           "HRManagement.Web.Shared": "[1.0.0, )",
           "MassTransit": "[8.5.10, )",
-          "QuestPDF": "[2026.2.4, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )",
           "SkiaSharp": "[3.119.0, )",
           "Swashbuckle.AspNetCore": "[10.2.3, )"
@@ -716,6 +738,13 @@
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.10, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
+        }
+      },
+      "hrmanagement.documents.questpdf": {
+        "type": "Project",
+        "dependencies": {
+          "QuestPDF": "[2026.2.4, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
@@ -800,6 +829,8 @@
       "hrmanagement.testsupport": {
         "type": "Project",
         "dependencies": {
+          "HRManagement.ServiceDefaults": "[1.0.0, )",
+          "HRManagement.SharedKernel": "[1.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
@@ -857,6 +888,7 @@
           "FluentValidation": "[12.1.1, )",
           "FluentValidation.DependencyInjectionExtensions": "[12.1.1, )",
           "HRManagement.MessageContracts": "[1.0.0, )",
+          "HRManagement.ServiceDefaults": "[1.0.0, )",
           "HRManagement.SharedKernel": "[1.0.0, )",
           "MediatR": "[14.2.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.10, )",

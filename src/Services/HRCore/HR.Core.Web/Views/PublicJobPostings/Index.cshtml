@@ -1,18 +1,53 @@
-@model IReadOnlyList<HR.Core.Domain.Entities.PublicJobPosting>
+@model HR.Core.Web.ViewModels.PublicJobPostingsIndexViewModel
+@using HR.Core.Domain.Enums
 @{ ViewData["Title"] = "إعلانات التوظيف العامة"; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">إعلانات التوظيف العامة (بوابة المواطن)</h3>
-        <a asp-action="Create" class="btn btn-primary btn-sm">إعلان جديد</a>
+        <a asp-controller="RecruitmentRequisitions" asp-action="Index" class="btn btn-primary btn-sm">طلبات الشاغر</a>
+    </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="العنوان أو الوصف..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الجهة</label>
+                <input type="text" name="entity" value="@Model.Entity" class="form-control" placeholder="اسم الجهة..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="isPublished" class="form-select">
+                    <option value="">— الكل —</option>
+                    @if (Model.IsPublished == true) { <option value="true" selected>منشور</option> } else { <option value="true">منشور</option> }
+                    @if (Model.IsPublished == false) { <option value="false" selected>مخفي</option> } else { <option value="false">مخفي</option> }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إغلاق من</label>
+                <input type="date" name="closingFrom" value="@Model.ClosingFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إغلاق إلى</label>
+                <input type="date" name="closingTo" value="@Model.ClosingTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
     </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
-            <thead><tr><th>العنوان</th><th>الجهة</th><th>الإغلاق</th><th>الحالة</th><th>الطلبات</th><th></th></tr></thead>
+            <thead><tr><th>العنوان</th><th>رقم الطلب</th><th>حالة الطلب</th><th>الجهة</th><th>الإغلاق</th><th>الحالة</th><th>الطلبات</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items)
                 {
                     <tr>
                         <td>@x.Title</td>
+                        <td>@(x.Requisition?.RequisitionNumber ?? "—")</td>
+                        <td>@(x.Requisition?.Status.ToString() ?? "legacy")</td>
                         <td>@(x.Entity ?? "—")</td>
                         <td>@(x.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</td>
                         <td>@(x.IsPublished ? "منشور" : "مخفي")</td>
@@ -20,7 +55,7 @@
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا إعلانات</td></tr> }
+                @if (!Model.Items.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا إعلانات</td></tr> }
             </tbody>
         </table>
     </div>

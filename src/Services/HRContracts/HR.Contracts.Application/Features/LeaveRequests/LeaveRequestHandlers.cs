@@ -4,6 +4,9 @@ using HR.Contracts.Application.Models;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +44,10 @@ public class GetLeaveRequestByIdHandler(IContractsRepository repository) : IRequ
         repository.GetLeaveRequestAsync(request.Id, cancellationToken);
 }
 
-public class CreateLeaveRequestHandler(IContractsRepository repository) : IRequestHandler<CreateLeaveRequestCommand, Guid>
+public class CreateLeaveRequestHandler(
+    IContractsRepository repository,
+    IPolicyEnforceClient policyClient,
+    ICodeGenerationClient codeClient) : IRequestHandler<CreateLeaveRequestCommand, Guid>
 {
     public async Task<Guid> Handle(CreateLeaveRequestCommand request, CancellationToken cancellationToken)
     {
@@ -54,10 +60,18 @@ public class CreateLeaveRequestHandler(IContractsRepository repository) : IReque
             throw new ValidationException(leaveError);
         }
 
+        var leaveId = Guid.NewGuid();
+        var policyResult = await policyClient.EnforceAsync(
+            PolicyDomainFactsBuilders.ForLeaveRequest(leaveId, null, vm.EmployeeId, durationDays, vm.LeaveType.ToString(), "Create"),
+            cancellationToken);
+        if (!policyResult.Allowed)
+            throw new ValidationException(policyResult.Decision.DenyReason ?? "مرفوض بسياسة الإجازات");
+
         // A new request is always Pending with no approver, whatever the caller supplied.
         // Taking these from the request allowed a self-approved leave that debited no balance.
         var entity = new LeaveRequest
         {
+            Id = leaveId,
             EmployeeId = vm.EmployeeId,
             LeaveType = vm.LeaveType,
             StartDate = vm.StartDate,
@@ -74,6 +88,7 @@ public class CreateLeaveRequestHandler(IContractsRepository repository) : IReque
             TransactionType = ServiceTransactionType.LeaveAdvance,
             Notes = "تسجيل طلب إجازة"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
         await repository.AddAsync(entity, cancellationToken);
         await repository.AddAsync(transaction, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

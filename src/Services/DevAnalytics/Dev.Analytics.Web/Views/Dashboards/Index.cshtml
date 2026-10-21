@@ -20,7 +20,7 @@
     </div>
     <div class="col-md-4 mb-3">
         <div class="card h-100">
-            <div class="card-header">مؤشرات (KPI)</div>
+            <div class="card-header">مؤشرات الأداء</div>
             <ul class="list-group list-group-flush small">
                 @foreach (var k in Model.Kpis)
                 {
@@ -35,11 +35,11 @@
     </div>
     <div class="col-md-4 mb-3">
         <div class="card h-100">
-            <div class="card-header">وظائف ETL الأخيرة</div>
+            <div class="card-header">مهام ETL الأخيرة</div>
             <ul class="list-group list-group-flush small">
                 @foreach (var j in Model.Jobs)
                 {
-                    <li class="list-group-item d-flex justify-content-between align-items-center"><span>@j.Name <span class="text-muted">(@j.Status)</span></span><a asp-controller="EtlJobs" asp-action="Details" asp-route-id="@j.Id" class="btn btn-sm btn-info">تفاصيل</a></li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center"><span>@j.Name <span class="text-muted">(@Html.HrEnumDisplay(j.Status))</span></span><a asp-controller="EtlJobs" asp-action="Details" asp-route-id="@j.Id" class="btn btn-sm btn-info">تفاصيل</a></li>
                 }
                 @if (!Model.Jobs.Any())
                 {

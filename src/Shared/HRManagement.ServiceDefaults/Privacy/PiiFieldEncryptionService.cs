@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 
 namespace HRManagement.ServiceDefaults.Privacy;
 
@@ -11,7 +13,9 @@ public interface IPiiFieldEncryptionService
     bool IsProtected(string value);
 }
 
-public sealed class PiiFieldEncryptionService(IDataProtectionProvider provider) : IPiiFieldEncryptionService
+public sealed class PiiFieldEncryptionService(
+    IDataProtectionProvider provider,
+    ILogger<PiiFieldEncryptionService> logger) : IPiiFieldEncryptionService
 {
     private const string Purpose = "HRManagement.PiiField.v1";
     private readonly IDataProtector _protector = provider.CreateProtector(Purpose);
@@ -33,10 +37,12 @@ public sealed class PiiFieldEncryptionService(IDataProtectionProvider provider) 
         {
             return _protector.Unprotect(protectedText);
         }
-        catch
+        catch (Exception ex)
         {
-            // Legacy plaintext row before encryption rollout.
-            return protectedText;
+            logger.LogCritical(ex, "Unable to decrypt a protected PII value. The Data Protection key ring is unavailable or incompatible.");
+            throw new CryptographicException(
+                "تعذر فك تشفير البيانات المحمية. تحقق من استمرارية مفاتيح حماية البيانات قبل متابعة التشغيل.",
+                ex);
         }
     }
 

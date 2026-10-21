@@ -1,15 +1,11 @@
-using System.Net.Http.Json;
-using Microsoft.Extensions.Configuration;
+using HRManagement.ServiceDefaults.Integration;
 using Payroll.Application.Abstractions;
 
 namespace Payroll.Infrastructure.Integration;
 
-/// <summary>Resolves employee display names via HR.Core lookup using a service JWT (IAM-004).</summary>
-public sealed class EmployeeLookupService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
-    : IEmployeeLookup
+/// <summary>Resolves employee display names via HR.Core batch lookup using a service JWT (IAM-004).</summary>
+public sealed class EmployeeLookupService(IHrCoreLookupClient lookupClient) : IEmployeeLookup
 {
-    public const string HttpClientName = "HrCoreLookup";
-
     public async Task<string?> GetEmployeeDisplayNameAsync(Guid employeeId, CancellationToken ct)
     {
         var dict = await GetEmployeeDisplayNamesAsync([employeeId], ct);
@@ -20,30 +16,25 @@ public sealed class EmployeeLookupService(IHttpClientFactory httpClientFactory, 
         IEnumerable<Guid> employeeIds,
         CancellationToken ct)
     {
-        var result = new Dictionary<Guid, string>();
-        var client = httpClientFactory.CreateClient(HttpClientName);
+        var ids = employeeIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, string>();
 
-        foreach (var id in employeeIds.Distinct())
+        try
         {
-            try
+            var items = await lookupClient.GetEmployeesByIdsAsync(ids, ct);
+            var result = items.ToDictionary(i => i.Id, i => i.Label);
+            foreach (var id in ids)
             {
-                // Prefer named-client BaseAddress; fall back to Integration:HrCoreBaseUrl for legacy config.
-                var path = client.BaseAddress is not null
-                    ? $"api/lookup/employees/{id}"
-                    : $"{(configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/') ?? "http://localhost:5010")}/api/lookup/employees/{id}";
+                if (!result.ContainsKey(id))
+                    result[id] = "غير متاح";
+            }
 
-                var item = await client.GetFromJsonAsync<LookupItemDto>(path, ct);
-                if (item is not null)
-                    result[id] = item.Label;
-            }
-            catch
-            {
-                result[id] = id.ToString()[..8];
-            }
+            return result;
         }
-
-        return result;
+        catch
+        {
+            return ids.ToDictionary(id => id, _ => "غير متاح");
+        }
     }
-
-    private sealed record LookupItemDto(Guid Id, string Label, string? Sublabel);
 }

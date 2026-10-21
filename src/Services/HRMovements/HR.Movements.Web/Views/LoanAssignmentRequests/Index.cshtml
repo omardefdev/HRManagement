@@ -17,7 +17,7 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.EmployeeId</td><td>@x.LendingOrgUnitId</td><td>@x.BorrowingOrgUnitId</td><td>@x.StartDate</td><td>@x.EndDate</td><td>@x.Status</td>
+                    <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td><td><span data-hr-org-unit-id="@x.LendingOrgUnitId">جاري التحميل...</span></td><td><span data-hr-org-unit-id="@x.BorrowingOrgUnitId">جاري التحميل...</span></td><td>@x.StartDate</td><td>@x.EndDate</td><td>@Html.HrEnumDisplay(x.Status)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                 </tr>
             }

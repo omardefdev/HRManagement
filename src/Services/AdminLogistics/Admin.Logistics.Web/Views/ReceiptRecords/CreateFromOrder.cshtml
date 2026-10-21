@@ -1,0 +1,71 @@
+@model Admin.Logistics.Web.ViewModels.CreateReceiptFromOrderViewModel
+@{ ViewData["Title"] = "تسجيل استلام من طلب تجهيز"; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">استلام طلب تجهيز</h3></div>
+    <div class="card-body">
+        <p class="text-muted mb-3">@(Model.OrderSummary ?? "—")</p>
+        @if (ViewBag.NoLinesFallback == true)
+        {
+            <div class="alert alert-warning">لا بنود structured على هذا الطلب — سيُسجَّل استلام ملخّص فقط.</div>
+        }
+        <form asp-action="CreateFromOrder" method="post"
+              data-hr-confirm="تأكيد تسجيل كميات الاستلام؟"
+              data-hr-confirm-title="تسجيل الاستلام"
+              data-hr-confirm-label="تسجيل">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="SupplyOrderId" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label asp-for="ReceivedAt" class="form-label">تاريخ الاستلام</label>
+                    <input asp-for="ReceivedAt" class="form-control" type="datetime-local" step="60" />
+                </div>
+                <div class="col-md-8">
+                    <label asp-for="ReceivedBy" class="form-label">استلم بواسطة</label>
+                    <select asp-for="ReceivedBy" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                        @if (Model.ReceivedBy is Guid empId)
+                        {
+                            <option value="@empId" selected="selected">@empId</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            @if (Model.Lines.Count > 0)
+            {
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>مطلوب</th>
+                            <th>مستلم</th>
+                            <th>رسملة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Lines.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    @(Model.Lines[i].Sku ?? "—")
+                                    <input type="hidden" asp-for="Lines[i].LineId" />
+                                    <input type="hidden" asp-for="Lines[i].Sku" />
+                                    <input type="hidden" asp-for="Lines[i].QtyRequested" />
+                                    <input type="hidden" asp-for="Lines[i].IsCapitalizable" />
+                                    <input type="hidden" asp-for="Lines[i].InventoryItemId" />
+                                </td>
+                                <td>@Model.Lines[i].QtyRequested</td>
+                                <td><input asp-for="Lines[i].QtyReceived" class="form-control form-control-sm" type="number" min="0" max="@Model.Lines[i].QtyRequested" /></td>
+                                <td>@(Model.Lines[i].IsCapitalizable ? "نعم" : "لا")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">تسجيل الاستلام</button>
+                <a asp-controller="SupplyOrders" asp-action="Details" asp-route-id="@Model.SupplyOrderId" class="btn btn-secondary">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

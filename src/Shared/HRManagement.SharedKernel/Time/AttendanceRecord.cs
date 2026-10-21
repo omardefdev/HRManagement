@@ -47,10 +47,16 @@ public class AttendanceRecord : BaseEntity
 
 public enum AttendanceStatus
 {
+    [Display(Name = "حاضر")]
     Present = 0,
+    [Display(Name = "غائب")]
     Absent = 1,
+    [Display(Name = "إجازة")]
     Leave = 2,
+    [Display(Name = "عطلة")]
     Holiday = 3,
+    [Display(Name = "راحة")]
     Rest = 4,
+    [Display(Name = "مهمة")]
     Mission = 5
 }

@@ -22,7 +22,8 @@ public class G4SandboxPaymentCycleIntegrationTests
         await using var __ = root;
 
         var empId = Guid.NewGuid();
-        db.EmployeePayProfiles.Add(TestDataFactory.CreateActivePayProfile(empId, 5000m));
+        var profile = TestDataFactory.CreateActivePayProfile(empId, 5000m);
+        db.EmployeePayProfiles.Add(profile);
         var config = PayrollRegimeSeed.CreateLaw50Configuration(isActive: true);
         config.ContentHash = PayrollConfigurationHashService.ComputeContentHash(config);
         config.EffectiveFrom = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -48,6 +49,25 @@ public class G4SandboxPaymentCycleIntegrationTests
         });
         db.PayrollRuns.Add(run);
 
+        var job = new PayrollRunJob
+        {
+            PayrollRunId = run.Id,
+            Status = PayrollRunJobStatus.Completed,
+            Phase = PayrollRunJobPhase.Validate,
+            ResultsValidated = true,
+            TotalEmployeeCount = 1,
+            ProcessedEmployeeCount = 1
+        };
+        job.InputSnapshots.Add(new PayrollRunInputSnapshot
+        {
+            EmployeeId = empId,
+            EmployeePayProfileId = profile.Id,
+            ProfileVersion = "v1",
+            InputFingerprint = "sandbox-fingerprint",
+            SortOrder = 0
+        });
+        db.PayrollRunJobs.Add(job);
+
         var batch = new PaymentBatch
         {
             PayrollRunId = run.Id,
@@ -62,7 +82,7 @@ public class G4SandboxPaymentCycleIntegrationTests
         const string treasuryAck = "TREASURY-SANDBOX-ACK-001";
         const string settlementRef = "BANK-SETTLE-001";
 
-        var (submitted, submitErr) = await mediator.Send(new ProcessPaymentBatchCommand(batch.Id));
+        var (submitted, submitErr) = await mediator.Send(new ProcessPaymentBatchCommand(batch.Id, Guid.NewGuid()));
         Assert.True(submitted, submitErr);
 
         db.ChangeTracker.Clear();

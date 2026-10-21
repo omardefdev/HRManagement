@@ -17,11 +17,26 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
         if (context.ActionDescriptor.EndpointMetadata.Any(m => m is IAllowAnonymous))
             return;
 
+        // Service endpoints carry their own client/scope policy. Requiring an interactive
+        // module role as well would make every valid client_credentials call impossible.
+        if (context.ActionDescriptor.EndpointMetadata
+            .OfType<IAuthorizeData>()
+            .Any(m => m.Policy?.StartsWith("Service.", StringComparison.Ordinal) == true))
+            return;
+
         var controller = context.RouteData.Values["controller"]?.ToString() ?? "";
         if (controller.StartsWith("Ess", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "EssPortal", StringComparison.OrdinalIgnoreCase)
+            // The hire wizard has explicit policies per stage: management approval at Step3
+            // and contracts approval at Step4. Do not override those with the broad module role.
+            || string.Equals(controller, "HireWizard", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "LookupApi", StringComparison.OrdinalIgnoreCase)
-            // IAM-004: S2S endpoints authorize via Service.* policies, not module roles.
+            // IAM-004: S2S API controllers carry their own Service.* / HrCoreWrite policies.
+            || string.Equals(controller, "CodeGeneration", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(controller, "Policies", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(controller, "Onboarding", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(controller, "TenantQuarantine", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(controller, "EmployeeLifecycleInternal", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "DirectoryInternalSync", StringComparison.OrdinalIgnoreCase))
             return;
 

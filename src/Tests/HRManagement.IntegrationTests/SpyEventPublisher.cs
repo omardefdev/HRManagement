@@ -14,6 +14,7 @@ public sealed class SpyEventPublisher : IEventPublisher
     public int HireCaseCompletedCount { get; private set; }
     public int HireSagaStartedCount { get; private set; }
     public Guid? LastHireServiceTransactionId { get; private set; }
+    public Guid? LastRecruitmentApplicationId { get; private set; }
     public Guid? LastCancelledSeparationRecordId { get; private set; }
 
     public Contract? LastActivatedContract { get; private set; }
@@ -107,6 +108,7 @@ public sealed class SpyEventPublisher : IEventPublisher
     {
         HireSagaStartedCount++;
         LastHireServiceTransactionId = serviceTransactionId;
+        LastRecruitmentApplicationId = recruitmentApplicationId;
         return Task.CompletedTask;
     }
 
@@ -130,7 +132,9 @@ public sealed class SpyEventPublisher : IEventPublisher
         DateOnly effectiveDate,
         CancellationToken ct,
         Guid? contractId = null,
-        int remainingLeaveDays = 0)
+        int remainingLeaveDays = 0,
+        string? sourceLegalRegimeId = null,
+        string? payrollRegimeCode = null)
     {
         SeparationSagaStartedCount++;
         SeparationCompletedCount++; // legacy assertion alias: orchestration started

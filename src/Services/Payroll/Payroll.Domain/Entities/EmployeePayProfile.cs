@@ -49,6 +49,11 @@ public class EmployeePayProfile : BaseEntity
     [Display(Name = "المصرف")]
     public string? BankName { get; set; }
 
+    /// <summary>SYR-007: payroll legal regime code mapped from HRCore service regime.</summary>
+    [MaxLength(50)]
+    [Display(Name = "رمز النظام القانوني")]
+    public string? RegimeCode { get; set; }
+
     /// <summary>Set once the account has been confirmed with the bank; settlement requires it.</summary>
     [Display(Name = "تاريخ التحقق من الحساب")]
     public DateTime? BankAccountVerifiedAt { get; set; }

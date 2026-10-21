@@ -1,12 +1,15 @@
 @model IList<Payroll.Domain.Entities.EmployeePayProfileHistory>
 
-@{ ViewData["Title"] = "سجل ملف الراتب"; var employeeId = ViewBag.EmployeeId; }
+@{
+    ViewData["Title"] = "سجل ملف الراتب";
+    var employeeId = (Guid)ViewBag.EmployeeId;
+}
 
 <div class="card">
 
     <div class="card-header d-flex justify-content-between">
 
-        <h3 class="card-title">سجل الراتب — @employeeId</h3>
+        <h3 class="card-title">سجل الراتب — @await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, ViewBag.EmployeeName as string))</h3>
 
         <a asp-action="Index" class="btn btn-secondary btn-sm">رجوع</a>
 

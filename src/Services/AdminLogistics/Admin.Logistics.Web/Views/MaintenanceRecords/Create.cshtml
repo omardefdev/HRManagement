@@ -1,21 +1,49 @@
-@model MaintenanceRecord
-@{ ViewData["Title"] = "إضافة سجل صيانة"; var assets = (SelectList)ViewBag.Assets; }
+@model Admin.Logistics.Web.ViewModels.MaintenanceRecordFormViewModel
+@{
+    ViewData["Title"] = "إضافة سجل صيانة";
+    var lockedAssetId = (Guid)ViewBag.LockedAssetId!;
+    var lockedAssetLabel = (string)ViewBag.LockedAssetLabel!;
+}
 <div class="card">
-    <form asp-action="Create" method="post">
+    <form asp-action="Create" asp-route-assetId="@lockedAssetId" method="post">
         @Html.AntiForgeryToken()
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="AssetId" class="form-label"></label><select asp-for="AssetId" asp-items="assets" class="form-control"></select></div>
-            <div class="mb-3"><label asp-for="MaintenanceType" class="form-label"></label><select asp-for="MaintenanceType" class="form-control" asp-items="Html.GetEnumSelectList<MaintenanceType>()"></select></div>
-            <div class="mb-3"><label asp-for="PerformedAt" class="form-label"></label><input asp-for="PerformedAt" class="form-control" type="datetime-local" /></div>
-            <div class="mb-3"><label asp-for="PerformedBy" class="form-label"></label><input asp-for="PerformedBy" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="Cost" class="form-label"></label><input asp-for="Cost" class="form-control" type="number" step="0.01" /></div>
-            <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="3"></textarea></div>
+            <input type="hidden" asp-for="AssetId" data-val="false" />
+            <div class="mb-3">
+                <label class="form-label">الأصل</label>
+                <input class="form-control" readonly value="@lockedAssetLabel" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="MaintenanceType" class="form-label"></label>
+                <select asp-for="MaintenanceType" class="form-control" asp-items="Html.GetEnumSelectList<MaintenanceType>()"></select>
+                <span asp-validation-for="MaintenanceType" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PerformedAt" class="form-label"></label>
+                <input asp-for="PerformedAt" class="form-control" type="datetime-local" />
+                <span asp-validation-for="PerformedAt" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PerformedBy" class="form-label"></label>
+                <input asp-for="PerformedBy" class="form-control" />
+                <span asp-validation-for="PerformedBy" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Cost" class="form-label"></label>
+                <input asp-for="Cost" class="form-control" type="number" step="0.01" />
+                <span asp-validation-for="Cost" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">حفظ</button>
-            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+            <a asp-controller="Assets" asp-action="Details" asp-route-id="@lockedAssetId" class="btn btn-secondary">إلغاء</a>
         </div>
     </form>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts { <partial name="_ValidationScriptsPartial" /> @await Html.PartialAsync("_ValidationDialogTrigger") }

@@ -13,9 +13,17 @@ public class ContractTypesController : Controller
 
     public ContractTypesController(ContractsDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q)
     {
-        var items = await _db.ContractTypes.AsNoTracking().OrderBy(t => t.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        var query = _db.ContractTypes.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(t => t.Code.Contains(term) || t.NameAr.Contains(term) || (t.NameEn != null && t.NameEn.Contains(term)));
+        }
+
+        var items = await query.OrderBy(t => t.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.Q = q;
         return View(items);
     }
 

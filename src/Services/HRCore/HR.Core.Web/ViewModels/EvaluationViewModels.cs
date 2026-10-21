@@ -12,6 +12,9 @@ public class EvaluationListViewModel
     public Employee? Employee { get; set; }
     public EvaluationCreateViewModel CreateModel { get; set; } = new();
     public bool ShowCreateModal { get; set; }
+    public int? Year { get; set; }
+    public string? Status { get; set; }
+    public string? FilterEmployeeName { get; set; }
 }
 
 public class EvaluationCreateViewModel

@@ -1,17 +1,62 @@
-@model IReadOnlyList<Payroll.Domain.Entities.DeductionRecord>
-@{ ViewData["Title"] = "الخصومات"; }
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">الخصومات</h3>
-        <a asp-action="Create" class="btn btn-primary btn-sm">خصم جديد</a>
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-striped mb-0">
-            <thead><tr><th>موظف</th><th>النوع</th><th>المبلغ</th></tr></thead>
-            <tbody>
-            @foreach (var x in Model) { <tr><td>@x.EmployeeId</td><td>@x.DeductionType</td><td>@x.Amount</td></tr> }
-            @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-3">لا توجد خصومات</td></tr> }
-            </tbody>
-        </table>
-    </div>
-</div>
+@model IReadOnlyList<Payroll.Domain.Entities.DeductionRecord>
+@{
+    ViewData["Title"] = "الخصومات";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+    var deductionType = ViewBag.DeductionType as string;
+    var appliedInRunId = ViewBag.AppliedInRunId as Guid?;
+    DateOnly? dueFrom = ViewBag.DueFrom;
+    DateOnly? dueTo = ViewBag.DueTo;
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الخصومات</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">خصم جديد</a>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">نوع الخصم</label>
+                <input type="text" name="deductionType" value="@deductionType" class="form-control form-control-sm" placeholder="نوع الخصم" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">تشغيل الرواتب</label>
+                <select name="appliedInRunId" class="form-select form-select-sm" asp-items="ViewBag.PayrollRuns">
+                    <option value="">كل التشغيلات</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">استحقاق من</label>
+                <input type="date" name="dueFrom" value="@dueFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">استحقاق إلى</label>
+                <input type="date" name="dueTo" value="@dueTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>موظف</th><th>النوع</th><th>المبلغ</th></tr></thead>
+            <tbody>
+            @foreach (var x in Model) { <tr><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td><td>@x.DeductionType</td><td>@x.Amount</td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-3">لا توجد خصومات</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -110,6 +110,10 @@ public class EmployeeEditViewModel
 
     public EmployeeCadre Cadre { get; set; }
 
+    [Display(Name = "سبب التصحيح")]
+    [StringLength(500)]
+    public string? CorrectionReason { get; set; }
+
 
 
     public SelectList? OrgUnits { get; set; }

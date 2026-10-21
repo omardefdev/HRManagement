@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة auth_directory_db\nAuth.Directory / AuthDirectoryDbContext"
+title "ERD الكامل لقاعدة authdirectory_db\nAuth.Directory / AuthDirectoryDbContext"
 
 entity "AuthAuditLogs\nAuthAuditLog" as T01 {
   * Id : uuid
@@ -58,6 +58,11 @@ entity "AuditLogs\nEntityAuditLog" as T09 {
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T10 {
+  * Id : uuid
+    MessageId : text
+    TenantId : uuid
 }
 
 T02 }o--|| T03 : UserId

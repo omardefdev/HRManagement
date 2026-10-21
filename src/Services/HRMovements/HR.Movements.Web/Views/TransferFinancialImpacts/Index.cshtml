@@ -9,7 +9,7 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>طلب النقل</th><th>موظف</th><th>فرق راتب</th><th>فرق بدلات</th><th>التاريخ</th></tr></thead>
             <tbody>
-            @foreach (var x in Model) { <tr><td>@x.TransferRequestId</td><td>@x.EmployeeId</td><td>@x.SalaryChange</td><td>@x.AllowanceChange</td><td>@x.CalculatedAt.ToString("yyyy/MM/dd")</td></tr> }
+            @foreach (var x in Model) { <tr><td>@x.TransferRequestId</td><td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td><td>@x.SalaryChange</td><td>@x.AllowanceChange</td><td>@x.CalculatedAt.ToString("yyyy/MM/dd")</td></tr> }
             @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا توجد سجلات</td></tr> }
             </tbody>
         </table>

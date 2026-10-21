@@ -9,53 +9,56 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
-public class TalentMarketplaceController(HRCoreDbContext db) : Controller
+public class TalentMarketplaceController(
+    HRCoreDbContext db) : Controller
 {
-    private async Task PopulateOrgUnits() =>
+    private async Task PopulateOrgUnits(Guid? selected = null) =>
         ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", selected);
 
-    public async Task<IActionResult> Index() =>
-        View(await db.InternalVacancies.AsNoTracking()
-            .Include(v => v.OrgUnit)
-            .Include(v => v.Applications)
-            .OrderByDescending(v => v.CreatedAt)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync());
-
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Index(Guid? orgUnitId, bool? isOpen, DateOnly? closingFrom, DateOnly? closingTo)
     {
-        await PopulateOrgUnits();
-        return View(new InternalVacancyCreateViewModel());
+        var query = db.InternalVacancies.AsNoTracking()
+            .Include(v => v.OrgUnit)
+            .Include(v => v.Requisition)
+            .Include(v => v.Applications)
+            .AsQueryable();
+        if (orgUnitId is Guid ou)
+            query = query.Where(v => v.OrgUnitId == ou);
+        if (isOpen is bool open)
+            query = query.Where(v => v.IsOpen == open);
+        if (closingFrom is DateOnly cf)
+            query = query.Where(v => v.ClosingDate >= cf);
+        if (closingTo is DateOnly ct)
+            query = query.Where(v => v.ClosingDate <= ct);
+
+        var items = await query.OrderByDescending(v => v.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        await PopulateOrgUnits(orgUnitId);
+        return View(new TalentMarketplaceIndexViewModel { Items = items, OrgUnitId = orgUnitId, IsOpen = isOpen, ClosingFrom = closingFrom, ClosingTo = closingTo });
+    }
+
+    public IActionResult Create()
+    {
+        TempData["Info"] = "تم إيقاف إنشاء الشواغر الداخلية يدوياً. أنشئ طلب شاغر وانشره داخلياً من مسار طلبات الشواغر.";
+        return RedirectToAction("Index", "RecruitmentRequisitions");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(InternalVacancyCreateViewModel vm)
-    {
-        if (!ModelState.IsValid)
-        {
-            await PopulateOrgUnits();
-            return View(vm);
-        }
-        db.InternalVacancies.Add(new InternalVacancy
-        {
-            Title = vm.Title,
-            OrgUnitId = vm.OrgUnitId,
-            Description = vm.Description,
-            RequiredQualifications = vm.RequiredQualifications,
-            ClosingDate = vm.ClosingDate,
-            IsOpen = vm.IsOpen
-        });
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم نشر الشاغر الداخلي";
-        return RedirectToAction(nameof(Index));
-    }
+    public IActionResult Create(InternalVacancyCreateViewModel vm) =>
+        RedirectToAction("Index", "RecruitmentRequisitions");
 
     public async Task<IActionResult> Edit(Guid id)
     {
         var vacancy = await db.InternalVacancies.FindAsync(id);
-        if (vacancy == null) return NotFound();
+        if (vacancy is null) return NotFound();
+
+        if (vacancy.IsDerivedFromRequisition || vacancy.RequisitionId.HasValue)
+        {
+            TempData["Error"] = "الشواغر المشتقة من طلبات الشواغر تُدار من مسار طلبات الشواغر.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         await PopulateOrgUnits();
         return View(new InternalVacancyEditViewModel
         {
@@ -75,7 +78,14 @@ public class TalentMarketplaceController(HRCoreDbContext db) : Controller
     {
         if (id != vm.Id) return BadRequest();
         var vacancy = await db.InternalVacancies.FindAsync(id);
-        if (vacancy == null) return NotFound();
+        if (vacancy is null) return NotFound();
+
+        if (vacancy.IsDerivedFromRequisition || vacancy.RequisitionId.HasValue)
+        {
+            TempData["Error"] = "الشواغر المشتقة من طلبات الشواغر للقراءة فقط.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateOrgUnits();
@@ -96,10 +106,11 @@ public class TalentMarketplaceController(HRCoreDbContext db) : Controller
     {
         var vacancy = await db.InternalVacancies
             .Include(v => v.OrgUnit)
+            .Include(v => v.Requisition)
             .Include(v => v.Applications).ThenInclude(a => a.Employee)
             .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id);
-        if (vacancy == null) return NotFound();
+        if (vacancy is null) return NotFound();
         return View(vacancy);
     }
 
@@ -108,7 +119,7 @@ public class TalentMarketplaceController(HRCoreDbContext db) : Controller
     public async Task<IActionResult> ChangeApplicationStatus(Guid id, Guid vacancyId, InternalApplicationStatus status)
     {
         var application = await db.InternalApplications.FindAsync(id);
-        if (application == null) return NotFound();
+        if (application is null) return NotFound();
         application.Status = status;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث حالة الترشّح";
@@ -120,7 +131,12 @@ public class TalentMarketplaceController(HRCoreDbContext db) : Controller
     public async Task<IActionResult> Delete(Guid id)
     {
         var vacancy = await db.InternalVacancies.FindAsync(id);
-        if (vacancy == null) return NotFound();
+        if (vacancy is null) return NotFound();
+        if (vacancy.IsDerivedFromRequisition || vacancy.RequisitionId.HasValue)
+        {
+            TempData["Error"] = "لا يمكن حذف شاغر مرتبط بطلب شاغر.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
         db.InternalVacancies.Remove(vacancy);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حذف الشاغر";

@@ -1,7 +1,44 @@
 @using HRManagement.Web.Shared.Models
+@using HRManagement.ServiceDefaults
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@functions {
+    private static string? PolicyFor(string slug) => slug switch
+    {
+        "hr-contracts" => HrManagementPolicies.ModuleHrContracts,
+        "hr-health" => HrManagementPolicies.ModuleHrHealth,
+        "hr-movements" => HrManagementPolicies.ModuleHrMovements,
+        "hr-training" => HrManagementPolicies.ModuleHrTraining,
+        "payroll" => HrManagementPolicies.ModulePayroll,
+        "idcard" => HrManagementPolicies.ModuleIdCard,
+        "records-archive" => HrManagementPolicies.ModuleRecordsArchive,
+        "admin-logistics" => HrManagementPolicies.ModuleAdminLogistics,
+        "it-infra" => HrManagementPolicies.ModuleItInfra,
+        "dev-analytics" => HrManagementPolicies.ModuleDevAnalytics,
+        "compliance" => HrManagementPolicies.ModuleCompliance,
+        "auth-directory" => HrManagementPolicies.ModuleAuthDirectory,
+        _ => null
+    };
+}
+@{ var renderedAny = false; }
 @foreach (var module in HrModuleCatalog.AllModules)
 {
-    <li><a class="dropdown-item" href="@module.UiPath"><i class="@module.IconClass"></i> @module.TitleAr</a></li>
+    var policy = PolicyFor(module.Slug);
+    var allowed = policy is not null && (await AuthorizationService.AuthorizeAsync(Context.User, policy)).Succeeded;
+    if (allowed)
+    {
+        renderedAny = true;
+        <li><a class="dropdown-item" href="@module.UiPath"><i class="@module.IconClass"></i> @module.TitleAr</a></li>
+    }
 }
-<li><hr class="dropdown-divider" /></li>
-<li><a class="dropdown-item" href="/ui/hr-core"><i class="fas fa-users"></i> نواة الموارد البشرية</a></li>
+@if ((await AuthorizationService.AuthorizeAsync(Context.User, HrManagementPolicies.ModuleHrCore)).Succeeded)
+{
+    if (renderedAny)
+    {
+        <li><hr class="dropdown-divider" /></li>
+    }
+    <li><a class="dropdown-item" href="/ui/hr-core"><i class="fas fa-users"></i> نواة الموارد البشرية</a></li>
+}
+@if ((await AuthorizationService.AuthorizeAsync(Context.User, HrManagementPolicies.ModuleEss)).Succeeded)
+{
+    <li><a class="dropdown-item" href="/ui/hr-core/EssPortal"><i class="fas fa-user-circle"></i> بوابة الموظف</a></li>
+}

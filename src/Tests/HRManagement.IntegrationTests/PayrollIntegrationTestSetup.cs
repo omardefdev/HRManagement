@@ -1,3 +1,5 @@
+using HRManagement.TestSupport;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
@@ -13,6 +15,7 @@ internal static class PayrollIntegrationTestSetup
 {
     public static void AddPayrollConsumerServices(IServiceCollection services)
     {
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddScoped<IPayrollRepository, PayrollRepository>();
         services.AddPayrollApplication();
 
@@ -32,7 +35,7 @@ internal static class PayrollIntegrationTestSetup
         services.AddSingleton<IHostEnvironment>(_ =>
         {
             var env = new Mock<IHostEnvironment>();
-            env.Setup(e => e.ContentRootPath).Returns(Directory.GetCurrentDirectory());
+            env.Setup(e => e.ContentRootPath).Returns(RepoPaths.Root);
             env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
             env.Setup(e => e.ApplicationName).Returns("Payroll.IntegrationTests");
             return env.Object;

@@ -1,11 +1,31 @@
 @model IList<Payroll.Domain.Entities.PayGrade>
-@{ ViewData["Title"] = "الدرجات الوظيفية"; }
+@{
+    ViewData["Title"] = "الدرجات الوظيفية";
+    var scaleId = ViewBag.ScaleId as Guid?;
+    var q = ViewBag.Q as string;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-layer-group"></i> الدرجات الوظيفية</h3>
-        <a asp-action="Create" asp-route-scaleId="@ViewBag.ScaleId" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
+        <a asp-action="Create" asp-route-scaleId="@scaleId" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
     </div>
-    <div class="card-body">@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }</div>
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <select name="scaleId" class="form-select form-select-sm" asp-items="ViewBag.Scales">
+                    <option value="">كل الجداول</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <input type="text" name="q" value="@q" class="form-control form-control-sm" placeholder="بحث بالرمز أو الاسم..." />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
     <div class="card-body p-0 border-top-0 pt-0">
         <div class="table-responsive">
 <table class="table table-striped mb-0">
@@ -18,7 +38,11 @@
                         <td>@g.BaseSalary.ToString("N2")</td><td>@g.MinSalary.ToString("N2")</td><td>@g.MaxSalary.ToString("N2")</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@g.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
-                            <form asp-action="Delete" asp-route-id="@g.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('حذف؟')" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button></form>
+                            <form asp-action="Delete" asp-route-id="@g.Id" method="post" class="d-inline"
+                                  data-hr-confirm="حذف؟"
+                                  data-hr-confirm-title="تأكيد الحذف"
+                                  data-hr-confirm-variant="danger"
+                                  data-hr-confirm-label="حذف">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger btn-xs" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button></form>
                         </td>
                     </tr>
                 }

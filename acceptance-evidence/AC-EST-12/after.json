@@ -1,0 +1,291 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "7b77d570-4750-48eb-9b51-59854020ac50",
+  "httpObservationCount": 2,
+  "lastHttpObservation": {
+    "step": "finance-reconciliation",
+    "method": "GET",
+    "url": "/api/hr-core/api/establishment/finance/reconciliation?fiscalYear=2026\u0026batchId=cc29868d-1f91-430f-a8aa-51fb1014acd3\u0026orgUnitId=a0000001-0000-4000-8000-000000000102",
+    "statusCode": 200,
+    "capturedAtUtc": "2026-09-03T22:43:32.1755422Z",
+    "body": {
+      "fiscalYear": 2026,
+      "batchId": "cc29868d-1f91-430f-a8aa-51fb1014acd3",
+      "rows": [
+        {
+          "costCenter": "CC-BR1-01",
+          "importedCount": 12,
+          "importedFTE": 12,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": 11,
+          "fteVariance": 11
+        },
+        {
+          "costCenter": "CC-BR1-02",
+          "importedCount": 8,
+          "importedFTE": 8,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": 7,
+          "fteVariance": 7
+        },
+        {
+          "costCenter": "CC-BR1-03",
+          "importedCount": 5,
+          "importedFTE": 5,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": 4,
+          "fteVariance": 4
+        },
+        {
+          "costCenter": "CC-RIF-01",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-02",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-03",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-04",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-05",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-06",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-07",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-08",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-09",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-10",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-11",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-12",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-13",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-14",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-15",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-16",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-17",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 14,
+          "actualFundedFTE": 14,
+          "countVariance": -14,
+          "fteVariance": -14
+        },
+        {
+          "costCenter": "CC-RIF-18",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-19",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-RIF-20",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 13,
+          "actualFundedFTE": 13,
+          "countVariance": -13,
+          "fteVariance": -13
+        },
+        {
+          "costCenter": "CC-VAC-03",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": -1,
+          "fteVariance": -1
+        },
+        {
+          "costCenter": "CC-VAC-04",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": -1,
+          "fteVariance": -1
+        },
+        {
+          "costCenter": "CC-VAC-05",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": -1,
+          "fteVariance": -1
+        },
+        {
+          "costCenter": "CC-VAC-06",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 0.5,
+          "countVariance": -1,
+          "fteVariance": -0.5
+        },
+        {
+          "costCenter": "CC-VAC-07",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": -1,
+          "fteVariance": -1
+        },
+        {
+          "costCenter": "CC-VAC-08",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": -1,
+          "fteVariance": -1
+        },
+        {
+          "costCenter": "CC-VAC-11",
+          "importedCount": 0,
+          "importedFTE": 0,
+          "actualFundedCount": 1,
+          "actualFundedFTE": 1,
+          "countVariance": -1,
+          "fteVariance": -1
+        }
+      ]
+    }
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

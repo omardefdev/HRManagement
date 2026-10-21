@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -65,38 +66,11 @@ public sealed class LeaveScheduleReconcilerJob(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Data.HRCoreDbContext>();
 
-        if (!db.Database.IsNpgsql())
-        {
-            // No advisory locks outside PostgreSQL (tests use SQLite/in-memory); run unguarded.
-            await ReconcileAsync(scope, cancellationToken);
-            return;
-        }
-
-        await using var connection = db.Database.GetDbConnection();
-        await db.Database.OpenConnectionAsync(cancellationToken);
-        try
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = $"SELECT pg_try_advisory_lock({AdvisoryLockKey})";
-            var acquired = await command.ExecuteScalarAsync(cancellationToken) as bool? ?? false;
-            if (!acquired)
-                return;
-
-            try
-            {
-                await ReconcileAsync(scope, cancellationToken);
-            }
-            finally
-            {
-                await using var unlock = connection.CreateCommand();
-                unlock.CommandText = $"SELECT pg_advisory_unlock({AdvisoryLockKey})";
-                await unlock.ExecuteScalarAsync(cancellationToken);
-            }
-        }
-        finally
-        {
-            await db.Database.CloseConnectionAsync();
-        }
+        await AdvisoryLeaderElection.TryRunAsLeaderAsync(
+            db,
+            AdvisoryLockKey,
+            ct => ReconcileAsync(scope, ct),
+            cancellationToken);
     }
 
     private static Task ReconcileAsync(IServiceScope scope, CancellationToken cancellationToken)

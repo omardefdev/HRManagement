@@ -1,0 +1,12 @@
+{
+  "packId": "code-ministry-finance-v1",
+  "policies": [
+    {
+      "policyKey": "FIN-ORG-UNIT",
+      "entityKind": "OrgUnit",
+      "nameAr": "ترميز وحدات وزارة المالية",
+      "prefix": "FIN",
+      "segmentsJson": "[{\"kind\":\"Literal\",\"value\":\"FIN-\"},{\"kind\":\"Field\",\"value\":\"ParentCode\"},{\"kind\":\"Literal\",\"value\":\".\"},{\"kind\":\"Sequence\",\"padWidth\":2,\"scopeFields\":[\"ParentCode\"]}]"
+    }
+  ]
+}

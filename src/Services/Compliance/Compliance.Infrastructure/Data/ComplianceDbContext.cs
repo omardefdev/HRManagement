@@ -53,6 +53,7 @@ public class ComplianceDbContext : TenantAwareDbContext
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
             entity.Property(e => e.DiscoveryPackageJson).HasColumnType("text");
             entity.Property(e => e.SubjectNationalIdHash).HasMaxLength(64);
+            entity.HasIndex(e => new { e.TenantId, e.SubjectCitizenApplicationId });
             entity.Property(e => e.Notes).HasMaxLength(2000);
         });
 

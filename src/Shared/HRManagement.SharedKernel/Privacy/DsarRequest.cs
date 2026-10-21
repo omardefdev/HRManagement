@@ -1,27 +1,44 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HRManagement.SharedKernel.Privacy;
 
 /// <summary>PRV-002: statutory individual-rights request types.</summary>
 public enum DsarRequestType
 {
+    [Display(Name = "وصول")]
     Access = 0,
+    [Display(Name = "تصحيح")]
     Correction = 1,
+    [Display(Name = "تقييد")]
     Restriction = 2,
+    [Display(Name = "محو")]
     Deletion = 3,
+    [Display(Name = "اعتراض")]
     Objection = 4,
+    [Display(Name = "استئناف")]
     Appeal = 5
 }
 
 /// <summary>PRV-002: DSAR lifecycle status (extends GOV-001 baseline).</summary>
 public enum DsarRequestStatus
 {
+    [Display(Name = "مستلم")]
     Received = 0,
+    [Display(Name = "التحقق من الهوية")]
     IdentityVerification = 1,
+    [Display(Name = "قيد المعالجة")]
     InProgress = 2,
+    [Display(Name = "بانتظار المراجعة")]
     PendingReview = 3,
+    [Display(Name = "مُنفَّذ")]
     Fulfilled = 4,
+    [Display(Name = "منفّذ جزئياً")]
     PartiallyFulfilled = 5,
+    [Display(Name = "مرفوض")]
     Rejected = 6,
+    [Display(Name = "استئناف مفتوح")]
     AppealOpen = 7,
+    [Display(Name = "مغلق")]
     Closed = 8
 }
 

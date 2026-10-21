@@ -35,6 +35,14 @@ public class SeparationRecord : AuditableEntity
     /// <summary>تم نشر حدث إكمال الفصل إلى الأنظمة الأخرى (رواتب، أرشيف، إلخ).</summary>
     public bool SeparationEventPublished { get; set; }
 
+    /// <summary>SYR-009: snapshot of HRCore service regime at separation submit.</summary>
+    [MaxLength(50)]
+    public string? SourceLegalRegimeId { get; set; }
+
+    /// <summary>SYR-009: mapped payroll regime code for EOS bridge.</summary>
+    [MaxLength(32)]
+    public string? PayrollRegimeCode { get; set; }
+
     /// <summary>FUN-002: soft-cancel — history retained (no hard delete).</summary>
     public bool IsCancelled { get; set; }
 

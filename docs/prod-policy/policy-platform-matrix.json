@@ -50,8 +50,8 @@
     { "id": "PAY-002", "status": "Satisfied", "note": "Payroll rules Done" },
     { "id": "GOV-002", "status": "Satisfied", "note": "Legal register Done" },
     { "id": "STR-002", "status": "Satisfied", "note": "Control catalog production binding Done" },
-    { "id": "live-policy-engine", "status": "Blocked", "note": "Lab contracts only" },
-    { "id": "live-workflow-runtime", "status": "Blocked", "note": "Lab workflow defs only" },
+    { "id": "live-policy-engine", "status": "Satisfied", "note": "PROD001ab HRCore PolicyOrchestrator + enforce API + ledger" },
+    { "id": "live-workflow-runtime", "status": "Satisfied", "note": "PROD001ab TriggerWorkflow unified in PolicyOrchestrator" },
     { "id": "live-form-designer", "status": "Blocked", "note": "Lab form templates only" },
     { "id": "PROD-002", "status": "Satisfied", "note": "Agency self-admin production binding Done" },
     { "id": "ONB-001", "status": "Satisfied", "note": "Agency provisioning manifest pack Done" }

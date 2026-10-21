@@ -57,6 +57,49 @@
         if (statusEl) statusEl.textContent = message || 'جاري الرفع...';
     }
 
+    function findParentForm(element) {
+        var node = element;
+        while (node && node !== document.body) {
+            if (node.tagName === 'FORM') return node;
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    function getUploadProgressFlag(form) {
+        if (!form) return null;
+        return form.querySelector('[data-upload-in-progress-flag]');
+    }
+
+    function setFormUploading(form, uploading) {
+        if (!form) return;
+        var flag = getUploadProgressFlag(form);
+        if (flag) flag.value = uploading ? '1' : '0';
+        form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (btn) {
+            btn.disabled = uploading;
+        });
+    }
+
+    function setWidgetUploading(widgetRoot, uploading) {
+        if (!widgetRoot) return;
+        if (uploading) {
+            widgetRoot.setAttribute('data-uploading', '1');
+        } else {
+            widgetRoot.removeAttribute('data-uploading');
+        }
+        var form = findParentForm(widgetRoot);
+        var activeCount = form
+            ? form.querySelectorAll('[data-file-upload-widget][data-uploading="1"]').length
+            : 0;
+        if (form) {
+            if (uploading || activeCount > 0) {
+                setFormUploading(form, true);
+            } else {
+                setFormUploading(form, false);
+            }
+        }
+    }
+
     function setError(pickerRoot, message) {
         var zone = getZone(pickerRoot);
         zone.classList.add('is-error');
@@ -75,7 +118,17 @@
         });
         if (!response.ok) {
             var text = await response.text();
-            throw new Error(text || 'فشل رفع الملف');
+            var message = text || 'فشل رفع الملف';
+            try {
+                var body = JSON.parse(text);
+                if (body && body.error) {
+                    message = body.error;
+                    if (window.hrSharedUi && window.hrSharedUi.showConflictAlert) {
+                        window.hrSharedUi.showConflictAlert(message, 'تعذّر رفع الملف');
+                    }
+                }
+            } catch (_) { /* plain text */ }
+            throw new Error(message);
         }
         return response.json();
     }
@@ -202,6 +255,7 @@
 
                 showFileState(pickerRoot, file.name, 'جاري الرفع...');
                 setUploading(pickerRoot, 'جاري الرفع...');
+                setWidgetUploading(root, true);
 
                 try {
                     var result = await uploadFile(file, uploadUrl);
@@ -219,6 +273,8 @@
                     fileInput.value = '';
                     showEmptyState(pickerRoot);
                     setError(pickerRoot, err.message || 'فشل الرفع');
+                } finally {
+                    setWidgetUploading(root, false);
                 }
             }
         });

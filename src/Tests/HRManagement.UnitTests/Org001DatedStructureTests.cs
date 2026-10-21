@@ -68,7 +68,14 @@ public class Org001DatedStructureTests
     }
 
     [Fact]
-    public void Rename_creates_version_with_new_name()
+    public void OrgUnitVersion_has_HeadEmployeeId()
+    {
+        var version = new OrgUnitVersion { HeadEmployeeId = Guid.NewGuid() };
+        Assert.NotNull(version.HeadEmployeeId);
+    }
+
+    [Fact]
+    public void Rename_closes_prior_version_and_opens_new_unit_test()
     {
         var orgUnitId = Guid.NewGuid();
         var tenantId = Guid.NewGuid();

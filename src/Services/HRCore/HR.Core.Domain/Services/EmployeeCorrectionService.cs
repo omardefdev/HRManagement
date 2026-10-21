@@ -9,6 +9,10 @@ public static class EmployeeCorrectionService
     private static readonly HashSet<string> LegalFields = new(StringComparer.OrdinalIgnoreCase)
     {
         nameof(Employee.NationalId),
+        nameof(Employee.FirstName),
+        nameof(Employee.MiddleName),
+        nameof(Employee.LastName),
+        nameof(Employee.FullName),
         nameof(Employee.BirthDate),
         nameof(Employee.HireDate),
         "DateOfBirth",

@@ -1,14 +1,17 @@
 using File.Storage.Infrastructure.Data;
+using HRManagement.FileStorage;
 using HRManagement.SharedKernel.Files;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace File.Storage.Infrastructure.Services;
 
 /// <summary>SEC-003: persist and resolve object-level file access grants.</summary>
 public sealed class FileAccessGrantService(
     FileStorageDbContext db,
-    ITenantContext tenantContext)
+    ITenantContext tenantContext,
+    IOptions<FileStorageOptions> fileStorageOptions)
 {
     public async Task<FileAccessGrant> CreateGrantAsync(
         Guid fileId,
@@ -26,6 +29,8 @@ public sealed class FileAccessGrantService(
         if (existing is not null)
             return existing;
 
+        var now = DateTime.UtcNow;
+        var lifetimeHours = Math.Clamp(fileStorageOptions.Value.GrantDefaultLifetimeHours, 1, 24 * 365);
         var grant = new FileAccessGrant
         {
             TenantId = tenantContext.RequireTenantId(),
@@ -36,7 +41,9 @@ public sealed class FileAccessGrantService(
             HolderId = holderId,
             Visibility = visibility,
             GranteeId = granteeId,
-            PresignedUrlMaxLifetimeSeconds = Math.Clamp(presignedUrlMaxLifetimeSeconds ?? 300, 1, 300)
+            PresignedUrlMaxLifetimeSeconds = Math.Clamp(presignedUrlMaxLifetimeSeconds ?? 300, 1, 300),
+            CreatedAtUtc = now,
+            ExpiresAtUtc = now.AddHours(lifetimeHours)
         };
 
         db.FileAccessGrants.Add(grant);

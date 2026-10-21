@@ -1,0 +1,45 @@
+{
+  "step": "gap-br1",
+  "method": "GET",
+  "url": "/api/hr-core/api/establishment/gap-analysis?orgUnitId=a0000001-0000-4000-8000-000000000102\u0026fiscalYear=2026",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-09-04T16:06:12.4062448Z",
+  "body": {
+    "orgUnitId": "a0000001-0000-4000-8000-000000000102",
+    "fiscalYear": 2026,
+    "asOf": null,
+    "source": "FundedPosition",
+    "summary": {
+      "plannedTotal": 280,
+      "plannedFTETotal": 280,
+      "actual": {
+        "fundedCount": 278,
+        "fundedFTE": 277.5,
+        "occupiedCount": 256,
+        "vacantCount": 22,
+        "frozenCount": 0
+      },
+      "deficitCount": 2,
+      "surplusCount": 0,
+      "deficitFTE": 2.5,
+      "surplusFTE": 0,
+      "lines": [
+        {
+          "gradeCode": null,
+          "jobCatalogEntryId": null,
+          "plannedCount": 280,
+          "plannedFTE": 280,
+          "fundedCount": 278,
+          "fundedFTE": 277.5,
+          "occupiedCount": 256,
+          "vacantCount": 22,
+          "frozenCount": 0,
+          "deficitCount": 2,
+          "surplusCount": 0,
+          "deficitFTE": 2.5,
+          "surplusFTE": 0
+        }
+      ]
+    }
+  }
+}

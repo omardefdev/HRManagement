@@ -2,58 +2,71 @@
 !theme plain
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName Arial
-skinparam defaultFontSize 18
 skinparam shadowing false
 skinparam roundcorner 8
 skinparam linetype ortho
 skinparam dpi 170
 skinparam ArrowColor #24465A
-skinparam DatabaseBorderColor #0F6B73
-skinparam DatabaseBackgroundColor #EAF6F6
-skinparam QueueBorderColor #B36B00
-skinparam QueueBackgroundColor #FFF4DD
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
 
-title "تواصل قواعد البيانات عبر الأحداث والمعرفات\nCross-database integration without shared foreign keys"
+title تواصل قواعد البيانات الحالية عبر السياق والأحداث والمعرفات
+left to right direction
 
-database "hr_core_db\nEmployee / OrgUnit" as Core
-database "hr_contracts_db\nContract / Leave / Separation" as Contracts
-database "hr_movements_db\nTransfer / Secondment" as Movements
-database "hr_health_db\nMedicalRecommendation" as Health
-database "hr_training_db\nTrainingResult" as Training
-database "payroll_db\nPayrollRun / SalaryLine" as Payroll
-database "idcard_db\nIssuedCard" as Card
-database "auth_directory_db\nDirectoryEntry" as Auth
-database "archive_db\nArchiveItem" as Archive
-database "analytics_db\nAnalyticsEvent / ReadModel" as Analytics
+rectangle "TenantContext\ntenant_id + scope_org_unit_id" as TenantContext
+component "Policy Engine\nWorkflow + Enforcement" as Policy
+component "Code Generation\nVersion + Counter" as Codes
+package "خدمات مقيدة بسياق الجهة والنطاق" as Scoped {
+  database "HR.Core\nTenant / Employee / OrgUnit" as Core
+  database "HR.Contracts\nContract / Leave / Separation" as Contracts
+  database "HR.Movements\nTransfer / Secondment" as Movements
+  database "Payroll\nRun / Funding / Payment" as Payroll
+  database "Admin.Logistics\nSupply / Receipt / Asset" as Logistics
+  database "File.Storage\nQuarantine / Grant / Audit" as Files
+}
+database "Records.Archive\nArchiveItem" as Archive
+database "Dev.Analytics\nRead models" as Analytics
 queue "RabbitMQ / MassTransit\nOutbox + Inbox + retry" as Bus
 
-Core --> Bus : IEmployeeCreated\nIOrgUnitChanged\nIEmployeeStatusChanged
-Bus --> Contracts : employee/org snapshot
-Bus --> Health : IEmployeeCreated
-Bus --> Card : IEmployeeCreated
-Bus --> Auth : IEmployeeCreated
-Bus --> Analytics : employee/org events
+TenantContext ..> Scoped
+Core --> Policy
+Core --> Codes
+Core --> Bus
+Contracts --> Bus
+Movements --> Bus
+Payroll --> Bus
+Logistics --> Bus
+Files --> Bus
+Bus --> Archive
+Bus --> Analytics
+Bus --> Payroll
+Bus --> Logistics
 
-Contracts --> Bus : IContractActivated\nIHireCaseCompleted\nILeaveApproved\nIAdvanceApproved\nISeparationCompleted
-Bus --> Payroll : contract / leave / separation effects
-Bus --> Card : ISeparationCompleted
-Bus --> Auth : separation / account state
-Bus --> Archive : transaction archive
+note top of Bus
+حقائق الموظف والجهة والتهيئة، والعقود والحركات،
+والرواتب والدفع، والعهد، وفحص الملفات وترقيتها.
+end note
 
-Movements --> Bus : ITransferExecuted\nISecondmentExecuted
-Bus --> Payroll : movement financial impact
-Bus --> Auth : directory scope update
-Bus --> Core : employment status update
+note right of Policy
+يطبق TenantContext على جميع المسارات المحمية.
+وتستدعي النواة عمليات تقييم السياسات وإنفاذها،
+ومعاينة الرموز وتوليدها من المحركين المشتركين.
+end note
 
-Health --> Bus : IMedicalRecommendationIssued
-Bus --> Payroll : health-related adjustment
-Training --> Bus : ITrainingCompleted
-Bus --> Payroll : training-related adjustment
-Payroll --> Bus : IPayrollProcessed
-Bus --> Analytics : payroll read model
-
-note bottom
-التواصل بين القواعد يتم بثلاثة عناصر: معرف الكيان، نسخة محدودة من السياق (Snapshot)، ورسالة حدث.
-لا تنفذ خدمة استعلاماً مباشراً على قاعدة خدمة أخرى، ولا تشترك قواعد الخدمات في FK أو DbContext.
+note bottom of Bus
+لا توجد استعلامات أو مفاتيح أجنبية عابرة لقواعد الخدمات.
+يحمل كل أثر معرف الجهة والكيان وCorrelationId، ويعالج التكرار محلياً.
+ويظل اكتمال الرحلة قابلاً للمراقبة والتسوية بعد نجاح المعاملة المحلية.
 end note
 @enduml

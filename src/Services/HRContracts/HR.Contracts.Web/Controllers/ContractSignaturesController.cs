@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Web.ViewModels;
@@ -47,12 +48,19 @@ public class ContractSignaturesController : Controller
         if (!await _db.Contracts.AnyAsync(c => c.Id == vm.ContractId))
             return NotFound();
 
+        var signerClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (!Guid.TryParse(signerClaim, out var signerId))
+        {
+            ModelState.AddModelError(string.Empty, "تعذر تحديد حساب الموقّع الحالي.");
+            return View(vm);
+        }
+
         if (!ModelState.IsValid) return View(vm);
 
         _db.ContractSignatures.Add(new ContractSignature
         {
             ContractId = vm.ContractId,
-            SignedBy = vm.SignedBy,
+            SignedBy = signerId,
             SignedAt = vm.SignedAt,
             SignatureType = vm.SignatureType,
             SignatureData = string.IsNullOrWhiteSpace(vm.SignatureData) ? null : vm.SignatureData.Trim()

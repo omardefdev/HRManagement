@@ -11,11 +11,22 @@ public class SalaryScalesController : Controller
     private readonly PayrollDbContext _db;
     public SalaryScalesController(PayrollDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, bool? isActive, DateTime? effectiveFrom, DateTime? effectiveTo)
     {
-        var items = await _db.SalaryScales.AsNoTracking()
-            .Include(s => s.PayGrades)
-            .OrderBy(s => s.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        var query = _db.SalaryScales.AsNoTracking().Include(s => s.PayGrades).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(s => s.Code.Contains(term) || s.NameAr.Contains(term));
+        }
+        if (isActive.HasValue) query = query.Where(s => s.IsActive == isActive.Value);
+        if (effectiveFrom.HasValue) query = query.Where(s => s.EffectiveFrom >= effectiveFrom.Value);
+        if (effectiveTo.HasValue) query = query.Where(s => s.EffectiveFrom <= effectiveTo.Value);
+        var items = await query.OrderBy(s => s.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.Q = q;
+        ViewBag.IsActive = isActive;
+        ViewBag.EffectiveFrom = effectiveFrom;
+        ViewBag.EffectiveTo = effectiveTo;
         return View(items);
     }
 

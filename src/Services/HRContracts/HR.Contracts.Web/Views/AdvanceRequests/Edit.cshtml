@@ -12,7 +12,7 @@
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
             <div class="mb-3">
                 <label class="form-label">الحالة</label>
-                <input class="form-control" value="@Model.Status" disabled />
+                <input class="form-control" value="@EnumDisplayExtensions.GetDisplayName(Model.Status)" disabled />
                 <div class="form-text">تتغيّر الحالة عبر إجراء الموافقة أو الرفض فقط.</div>
             </div>
         </div>

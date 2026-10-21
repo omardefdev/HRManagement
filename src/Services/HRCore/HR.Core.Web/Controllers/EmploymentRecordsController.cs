@@ -8,6 +8,7 @@ using HR.Core.Infrastructure;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Core.Web.Controllers;
@@ -17,11 +18,16 @@ public class EmploymentRecordsController : Controller
 {
     private readonly HRCoreDbContext _context;
     private readonly OrgScopeService _orgScope;
+    private readonly IServiceRegimeProvider _serviceRegimeProvider;
 
-    public EmploymentRecordsController(HRCoreDbContext context, OrgScopeService orgScope)
+    public EmploymentRecordsController(
+        HRCoreDbContext context,
+        OrgScopeService orgScope,
+        IServiceRegimeProvider serviceRegimeProvider)
     {
         _context = context;
         _orgScope = orgScope;
+        _serviceRegimeProvider = serviceRegimeProvider;
     }
 
     public async Task<IActionResult> Index(Guid employeeId)
@@ -41,7 +47,15 @@ public class EmploymentRecordsController : Controller
             .AsNoTracking()
             .ToListAsync();
 
+        var regimeLabels = new Dictionary<string, string>();
+        foreach (var regimeId in records.Select(r => r.LegalRegimeId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+        {
+            var regime = await _serviceRegimeProvider.GetByIdAsync(regimeId!);
+            regimeLabels[regimeId!] = regime?.DisplayLabel ?? regimeId!;
+        }
+
         ViewBag.Employee = employee;
+        ViewBag.RegimeLabels = regimeLabels;
         return View(records);
     }
 

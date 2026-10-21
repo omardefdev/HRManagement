@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using HRManagement.SharedKernel.SeparationOfDuties;
 using Payroll.Application.Frd;
 using Payroll.Application.Services;
 using Payroll.Domain.Services;
@@ -25,6 +26,7 @@ public static class DependencyInjection
 
         services.AddScoped<FraudAnomalyEngine>();
         services.AddScoped<PaymentHoldService>();
+        services.AddSingleton<SeparationOfDutiesService>();
 
         return services;
     }

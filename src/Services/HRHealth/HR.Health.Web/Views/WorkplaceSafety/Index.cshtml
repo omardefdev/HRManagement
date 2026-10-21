@@ -17,7 +17,7 @@
                 {
                     <tr>
                         <td>@x.AccidentDate.ToString("yyyy-MM-dd")</td>
-                        <td>@(x.EmployeeName ?? x.EmployeeId.ToString())</td>
+                        <td><span data-hr-employee-id="@x.EmployeeId">@(x.EmployeeName ?? "جاري التحميل...")</span></td>
                         <td>@x.Location</td>
                         <td>@Html.DisplayFor(_ => x.Severity)</td>
                         <td>@x.RelatedSickLeaveDays</td>

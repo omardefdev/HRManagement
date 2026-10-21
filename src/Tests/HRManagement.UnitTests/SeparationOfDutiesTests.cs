@@ -55,6 +55,31 @@ public class SeparationOfDutiesTests
     }
 
     [Fact]
+    public void SodService_DeniesPaymentBatchDisburseForRunApprover()
+    {
+        var creator = Guid.NewGuid();
+        var approver = Guid.NewGuid();
+        var poster = approver;
+        var sod = CreateSod();
+
+        var result = sod.ValidateAction(
+            poster, "payroll-poster", "PaymentBatch", Guid.NewGuid(),
+            SodAction.Post, creator, approver);
+
+        Assert.False(result.Allowed);
+    }
+
+    [Fact]
+    public void SodMatrix_includes_PaymentBatch_rule()
+    {
+        var rule = SodMatrixDefaults.CreateDefaultRules()
+            .FirstOrDefault(r => r.EntityType == "PaymentBatch");
+        Assert.NotNull(rule);
+        Assert.Equal("payroll-approver", rule!.CheckerRole);
+        Assert.Equal("payroll-poster", rule.PosterRole);
+    }
+
+    [Fact]
     public void SodService_DeniesConflictingRoleAssignment()
     {
         var sod = CreateSod();

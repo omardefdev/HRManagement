@@ -1,25 +1,28 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using HR.Core.Infrastructure.Data;
-using HRManagement.SharedKernel.Enums;
+using HR.Core.Web.Services;
+using HRManagement.ServiceDefaults.Workflow;
 
 namespace HR.Core.Web.Controllers;
 
 [Route("api/stats")]
 [ApiController]
 [Authorize]
-public class StatsApiController : ControllerBase
+public class StatsApiController(HrCoreWorkInboxService inboxService) : ControllerBase
 {
-    private readonly HRCoreDbContext _context;
-
-    public StatsApiController(HRCoreDbContext context) => _context = context;
-
     [HttpGet("pending-approvals")]
     public async Task<IActionResult> PendingApprovals(CancellationToken ct)
     {
-        var count = await _context.ApprovalRequests
-            .CountAsync(r => r.Status == ApprovalStatus.Pending, ct);
-        return Ok(new { count });
+        var userId = WorkflowPanelBuilder.ParseUserId(User);
+        if (userId is null)
+            return Ok(new { count = 0, legacyCount = 0, workflowCount = 0 });
+
+        var breakdown = await inboxService.GetPendingBreakdownAsync(User, ct);
+        return Ok(new
+        {
+            count = breakdown.Total,
+            legacyCount = breakdown.LegacyCount,
+            workflowCount = breakdown.WorkflowCount
+        });
     }
 }

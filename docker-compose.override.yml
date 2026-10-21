@@ -1,6 +1,11 @@
 # docker-compose.override.yml
-# .NET microservice containers are NOT included here.
-# During development, services run locally via dotnet run or the IDE.
-# Only infrastructure dependencies (PostgreSQL, RabbitMQ, Keycloak) are managed by Docker Compose.
+# BLD-002 dev workflow: infrastructure runs in Docker; .NET services run locally via dotnet run or the IDE.
+# Full stack in containers: docker compose --profile full-stack -f docker-compose.yml -f docker-compose.services.yml up -d
+# Rebuild one service: scripts/dev-build-service.ps1 -Service hr-core-web
+#
+# Optional future hot-reload bind mount (Phase 2):
+# hr-core-web:
+#   volumes:
+#     - ./src/Services/HRCore:/src/Services/HRCore:ro
 
 services: {}

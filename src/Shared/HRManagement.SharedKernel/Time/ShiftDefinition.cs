@@ -56,9 +56,14 @@ public class ShiftDefinition : BaseEntity
 
 public enum ShiftType
 {
+    [Display(Name = "اعتيادي")]
     Regular = 0,
+    [Display(Name = "ليلية")]
     Night = 1,
+    [Display(Name = "مقسّمة")]
     Split = 2,
+    [Display(Name = "مستمر")]
     Continuous = 3,
+    [Display(Name = "مرن")]
     Flexible = 4
 }

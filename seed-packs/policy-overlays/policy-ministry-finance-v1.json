@@ -1,0 +1,13 @@
+{
+  "packId": "policy-ministry-finance-v1",
+  "rules": [
+    {
+      "domain": "Contracts.Leave",
+      "ruleKey": "R-FIN-LEAVE-NOTE",
+      "name": "وزارة المالية — ملاحظة إجازة",
+      "priority": 20,
+      "whenJson": "{\"all\":[{\"field\":\"leaveType\",\"operator\":\"Equals\",\"value\":\"Annual\"}]}",
+      "thenJson": "[{\"effect\":\"RequireEvidence\"}]"
+    }
+  ]
+}

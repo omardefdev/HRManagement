@@ -1,0 +1,67 @@
+@model HR.Core.Web.ViewModels.JobCatalogFormViewModel
+@{
+    var isEdit = Model is HR.Core.Web.ViewModels.JobCatalogEditViewModel editModel && editModel.Id != Guid.Empty;
+}
+<div class="row">
+    @if (isEdit)
+    {
+        <div class="col-md-4 mb-3">
+            <label asp-for="JobCode" class="form-label"></label>
+            <input asp-for="JobCode" class="form-control" readonly />
+            <span asp-validation-for="JobCode" class="text-danger"></span>
+        </div>
+    }
+    <div class="col-md-4 mb-3">
+        <label asp-for="GradeCode" class="form-label"></label>
+        <select asp-for="GradeCode" class="form-select" data-hr-picker="reference-grade"
+                data-placeholder="اختر الدرجة من المرجع الوطني...">
+            @if (!string.IsNullOrWhiteSpace(Model.GradeCode))
+            {
+                <option value="@Model.GradeCode" selected>@Model.GradeCode</option>
+            }
+            else
+            {
+                <option value="">— اختر الدرجة —</option>
+            }
+        </select>
+        <span asp-validation-for="GradeCode" class="text-danger"></span>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label asp-for="OccupationalGroup" class="form-label"></label>
+        <select asp-for="OccupationalGroup" class="form-select" data-hr-picker="reference-job-classification"
+                data-placeholder="اختر التصنيف الوظيفي...">
+            @if (!string.IsNullOrWhiteSpace(Model.OccupationalGroup))
+            {
+                <option value="@Model.OccupationalGroup" selected>@Model.OccupationalGroup</option>
+            }
+            else
+            {
+                <option value="">— اختر التصنيف —</option>
+            }
+        </select>
+        <span asp-validation-for="OccupationalGroup" class="text-danger"></span>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="TitleAr" class="form-label"></label>
+        <input asp-for="TitleAr" class="form-control" />
+        <span asp-validation-for="TitleAr" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="TitleEn" class="form-label"></label>
+        <input asp-for="TitleEn" class="form-control" />
+    </div>
+</div>
+<div class="mb-3">
+    <label asp-for="DescriptionAr" class="form-label"></label>
+    <textarea asp-for="DescriptionAr" class="form-control" rows="3"></textarea>
+</div>
+<div class="form-check mb-3">
+    <input asp-for="IsActive" class="form-check-input" />
+    <label asp-for="IsActive" class="form-check-label"></label>
+</div>
+@if (!isEdit)
+{
+    <p class="text-muted small mb-0">يُولَّد رمز الوظيفة تلقائياً عند تطبيق طلب التغيير.</p>
+}

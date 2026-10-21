@@ -1,0 +1,23 @@
+@{
+    var showValidationDialog = ViewData["ShowValidationDialog"] as bool? == true
+        || (ViewContext.ViewData.ModelState.ErrorCount > 0 && string.Equals(Context.Request.Method, "POST", StringComparison.OrdinalIgnoreCase));
+    if (!showValidationDialog)
+    {
+        return;
+    }
+
+    var messages = ViewContext.ViewData.ModelState.Values
+        .SelectMany(v => v.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToList();
+    var dialogMessage = messages.Count > 0
+        ? string.Join("\n", messages)
+        : "تعذّر حفظ البيانات. راجع الحقول المميزة.";
+}
+<div id="hrValidationDialog"
+     hidden
+     data-show="true"
+     data-title="تعذّر الحفظ"
+     data-message="@dialogMessage"></div>

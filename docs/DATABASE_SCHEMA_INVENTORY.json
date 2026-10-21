@@ -4,17 +4,47 @@
     "service": "Gateway Audit",
     "context": "GatewayAuditDbContext",
     "database": "gateway_audit_db",
-    "dbset_count": 1,
+    "dbset_count": 7,
     "entity_sets": [
       {
         "entity": "GatewayAuditEntry",
         "set": "AuditEntries"
+      },
+      {
+        "entity": "SecurityAuditEvent",
+        "set": "SecurityAuditEvents"
+      },
+      {
+        "entity": "AuditLegalHold",
+        "set": "AuditLegalHolds"
+      },
+      {
+        "entity": "EvidenceRecord",
+        "set": "EvidenceRecords"
+      },
+      {
+        "entity": "EvidenceArtifact",
+        "set": "EvidenceArtifacts"
+      },
+      {
+        "entity": "EvidencePackExport",
+        "set": "EvidencePackExports"
+      },
+      {
+        "entity": "GatewayAuditChainState",
+        "set": "AuditChainStates"
       }
     ],
     "snapshot_tables": [
-      "gateway_audit_entries"
+      "EvidenceArtifacts",
+      "EvidencePackExports",
+      "EvidenceRecords",
+      "audit_legal_holds",
+      "gateway_audit_chain_state",
+      "gateway_audit_entries",
+      "security_audit_events"
     ],
-    "business_table_count": 1,
+    "business_table_count": 7,
     "infrastructure_tables": [],
     "source": "src/Gateway/HRManagement.Gateway/Data/GatewayAuditDbContext.cs",
     "snapshot_source": "src/Gateway/HRManagement.Gateway/Data/Migrations/GatewayAuditDbContextModelSnapshot.cs"
@@ -24,7 +54,7 @@
     "service": "Admin.Logistics",
     "context": "AdminLogisticsDbContext",
     "database": "admin_db",
-    "dbset_count": 9,
+    "dbset_count": 11,
     "entity_sets": [
       {
         "entity": "Asset",
@@ -35,8 +65,16 @@
         "set": "AssetAssignments"
       },
       {
+        "entity": "AssetLossReport",
+        "set": "AssetLossReports"
+      },
+      {
         "entity": "SupplyOrder",
         "set": "SupplyOrders"
+      },
+      {
+        "entity": "SupplyOrderLine",
+        "set": "SupplyOrderLines"
       },
       {
         "entity": "InventoryItem",
@@ -65,16 +103,18 @@
     ],
     "snapshot_tables": [
       "AssetAssignments",
+      "AssetLossReports",
       "Assets",
       "AuditLogs",
       "IntegrationMessageReceipts",
       "InventoryItems",
       "MaintenanceRecords",
       "ReceiptRecords",
+      "SupplyOrderLines",
       "SupplyOrders",
       "Vendors"
     ],
-    "business_table_count": 7,
+    "business_table_count": 9,
     "infrastructure_tables": [
       "AuditLogs",
       "IntegrationMessageReceipts"
@@ -87,7 +127,7 @@
     "service": "Auth.Directory",
     "context": "AuthDirectoryDbContext",
     "database": "auth_directory_db",
-    "dbset_count": 9,
+    "dbset_count": 10,
     "entity_sets": [
       {
         "entity": "AuthUser",
@@ -122,6 +162,10 @@
         "set": "AuthAuditLogs"
       },
       {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
@@ -133,13 +177,15 @@
       "AuthUsers",
       "DirectoryEntries",
       "DirectorySyncRecords",
+      "IntegrationMessageReceipts",
       "PermissionPolicies",
       "Roles",
       "UserRoles"
     ],
     "business_table_count": 8,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "IntegrationMessageReceipts"
     ],
     "source": "src/Services/AuthDirectory/Auth.Directory.Infrastructure/Data/AuthDirectoryDbContext.cs",
     "snapshot_source": "src/Services/AuthDirectory/Auth.Directory.Infrastructure/Migrations/AuthDirectoryDbContextModelSnapshot.cs"
@@ -149,7 +195,7 @@
     "service": "Compliance",
     "context": "ComplianceDbContext",
     "database": "compliance_db",
-    "dbset_count": 8,
+    "dbset_count": 14,
     "entity_sets": [
       {
         "entity": "Complaint",
@@ -180,23 +226,60 @@
         "set": "ComplaintFollowUps"
       },
       {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
+      },
+      {
+        "entity": "ExportJob",
+        "set": "ExportJobs"
+      },
+      {
+        "entity": "DsarRequest",
+        "set": "DsarRequests"
+      },
+      {
+        "entity": "InvestigationChecklist",
+        "set": "InvestigationChecklists"
+      },
+      {
+        "entity": "UnionEngagement",
+        "set": "UnionEngagements"
+      },
+      {
+        "entity": "CollectiveGrievance",
+        "set": "CollectiveGrievances"
       }
     ],
     "snapshot_tables": [
       "AuditFindings",
       "AuditLogs",
+      "CollectiveGrievances",
       "ComplaintFollowUps",
       "Complaints",
       "ComplianceRecommendations",
       "DisciplinaryActions",
+      "DsarRequests",
+      "ExportJobs",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "InvestigationChecklists",
       "LegalCases",
-      "LegalReferrals"
+      "LegalReferrals",
+      "OutboxMessage",
+      "OutboxState",
+      "UnionEngagements"
     ],
-    "business_table_count": 7,
+    "business_table_count": 12,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OutboxMessage",
+      "OutboxState"
     ],
     "source": "src/Services/Compliance/Compliance.Infrastructure/Data/ComplianceDbContext.cs",
     "snapshot_source": "src/Services/Compliance/Compliance.Infrastructure/Migrations/ComplianceDbContextModelSnapshot.cs"
@@ -206,7 +289,7 @@
     "service": "Dev.Analytics",
     "context": "AnalyticsDbContext",
     "database": "analytics_db",
-    "dbset_count": 8,
+    "dbset_count": 10,
     "entity_sets": [
       {
         "entity": "Report",
@@ -237,6 +320,14 @@
         "set": "DataRefreshSchedules"
       },
       {
+        "entity": "ExportJob",
+        "set": "ExportJobs"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
@@ -247,13 +338,16 @@
       "Dashboards",
       "DataRefreshSchedules",
       "ETLJobs",
+      "ExportJobs",
+      "IntegrationMessageReceipts",
       "KPIs",
       "ReadModels",
       "Reports"
     ],
-    "business_table_count": 7,
+    "business_table_count": 8,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "IntegrationMessageReceipts"
     ],
     "source": "src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Data/AnalyticsDbContext.cs",
     "snapshot_source": "src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Migrations/AnalyticsDbContextModelSnapshot.cs"
@@ -263,7 +357,7 @@
     "service": "File.Storage",
     "context": "FileStorageDbContext",
     "database": "file_storage_db",
-    "dbset_count": 4,
+    "dbset_count": 11,
     "entity_sets": [
       {
         "entity": "FileRecord",
@@ -274,21 +368,56 @@
         "set": "FileReferences"
       },
       {
+        "entity": "FileAccessGrant",
+        "set": "FileAccessGrants"
+      },
+      {
         "entity": "FileAccessAuditLog",
         "set": "FileAccessAuditLogs"
       },
       {
+        "entity": "FilePurgeWorkItem",
+        "set": "FilePurgeWorkItems"
+      },
+      {
+        "entity": "FileScanWorkItem",
+        "set": "FileScanWorkItems"
+      },
+      {
+        "entity": "FileScanResult",
+        "set": "FileScanResults"
+      },
+      {
+        "entity": "FileReconcileException",
+        "set": "FileReconcileExceptions"
+      },
+      {
+        "entity": "FileReferenceOutboxMessage",
+        "set": "FileReferenceOutbox"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
+      },
+      {
+        "entity": "IdempotencyRecord",
+        "set": "IdempotencyRecords"
       }
     ],
     "snapshot_tables": [
       "AuditLogs",
       "FileAccessAuditLogs",
+      "FileAccessGrants",
+      "FilePurgeWorkItems",
+      "FileReconcileExceptions",
+      "FileReferenceOutbox",
       "FileReferences",
-      "Files"
+      "FileScanResults",
+      "FileScanWorkItems",
+      "Files",
+      "IdempotencyRecords"
     ],
-    "business_table_count": 3,
+    "business_table_count": 10,
     "infrastructure_tables": [
       "AuditLogs"
     ],
@@ -300,7 +429,7 @@
     "service": "HR.Contracts",
     "context": "ContractsDbContext",
     "database": "hr_contracts_db",
-    "dbset_count": 18,
+    "dbset_count": 25,
     "entity_sets": [
       {
         "entity": "Contract",
@@ -371,8 +500,36 @@
         "set": "OrgUnitSnapshots"
       },
       {
+        "entity": "EmployeeOrgUnitSnapshot",
+        "set": "EmployeeOrgUnitSnapshots"
+      },
+      {
+        "entity": "IdempotencyRecord",
+        "set": "IdempotencyRecords"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
+        "entity": "ProcessIntervention",
+        "set": "ProcessInterventions"
+      },
+      {
+        "entity": "SeparationSagaState",
+        "set": "SeparationSagaStates"
+      },
+      {
+        "entity": "HireCaseSagaState",
+        "set": "HireCaseSagaStates"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
+      },
+      {
+        "entity": "ExportJob",
+        "set": "ExportJobs"
       }
     ],
     "snapshot_tables": [
@@ -384,8 +541,13 @@
       "ContractSignatures",
       "ContractTypes",
       "Contracts",
+      "EmployeeOrgUnitSnapshots",
+      "ExportJobs",
+      "HireCaseSagaStates",
       "HireChecklists",
+      "IdempotencyRecords",
       "InboxState",
+      "IntegrationMessageReceipts",
       "LeaveBalances",
       "LeavePolicies",
       "LeaveRequests",
@@ -393,15 +555,18 @@
       "OutboxMessage",
       "OutboxState",
       "ProbationRecords",
+      "ProcessInterventions",
       "SeparationChecklists",
       "SeparationRecords",
+      "SeparationSagaStates",
       "ServiceTransactionStateHistories",
       "ServiceTransactions"
     ],
-    "business_table_count": 17,
+    "business_table_count": 23,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",
+      "IntegrationMessageReceipts",
       "OutboxMessage",
       "OutboxState"
     ],
@@ -413,11 +578,15 @@
     "service": "HR.Core",
     "context": "HRCoreDbContext",
     "database": "hr_core_db",
-    "dbset_count": 32,
+    "dbset_count": 64,
     "entity_sets": [
       {
         "entity": "Employee",
         "set": "Employees"
+      },
+      {
+        "entity": "EmployeeCorrection",
+        "set": "EmployeeCorrections"
       },
       {
         "entity": "EmployeeProfile",
@@ -446,6 +615,30 @@
       {
         "entity": "OrgUnit",
         "set": "OrgUnits"
+      },
+      {
+        "entity": "Tenant",
+        "set": "Tenants"
+      },
+      {
+        "entity": "TenantAssignmentRule",
+        "set": "TenantAssignmentRules"
+      },
+      {
+        "entity": "TenantQuarantineEntry",
+        "set": "TenantQuarantineEntries"
+      },
+      {
+        "entity": "SodRule",
+        "set": "SodRules"
+      },
+      {
+        "entity": "ConflictingRolePair",
+        "set": "ConflictingRolePairs"
+      },
+      {
+        "entity": "ApprovalDelegation",
+        "set": "ApprovalDelegations"
       },
       {
         "entity": "PerformanceEvaluation",
@@ -542,9 +735,110 @@
       {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
+      },
+      {
+        "entity": "FileReferenceOutboxMessage",
+        "set": "FileReferenceOutbox"
+      },
+      {
+        "entity": "ExportJob",
+        "set": "ExportJobs"
+      },
+      {
+        "entity": "MasterDataDuplicateCase",
+        "set": "MasterDataDuplicateCases"
+      },
+      {
+        "entity": "WorkflowDefinition",
+        "set": "WorkflowDefinitions"
+      },
+      {
+        "entity": "WorkflowInstance",
+        "set": "WorkflowInstances"
+      },
+      {
+        "entity": "WorkflowDelegation",
+        "set": "WorkflowDelegations"
+      },
+      {
+        "entity": "SignatureRecord",
+        "set": "SignatureRecords"
+      },
+      {
+        "entity": "ReferenceCatalogEntry",
+        "set": "ReferenceCatalogEntries"
+      },
+      {
+        "entity": "OrgUnitVersion",
+        "set": "OrgUnitVersions"
+      },
+      {
+        "entity": "JobCatalogEntry",
+        "set": "JobCatalogEntries"
+      },
+      {
+        "entity": "FundedPosition",
+        "set": "FundedPositions"
+      },
+      {
+        "entity": "PolicyTemplate",
+        "set": "PolicyTemplates"
+      },
+      {
+        "entity": "PolicyTemplateVersion",
+        "set": "PolicyTemplateVersions"
+      },
+      {
+        "entity": "PolicyRule",
+        "set": "PolicyRules"
+      },
+      {
+        "entity": "PolicyFactsSchemaEntity",
+        "set": "PolicyFactsSchemas"
+      },
+      {
+        "entity": "PolicyPublication",
+        "set": "PolicyPublications"
+      },
+      {
+        "entity": "PolicySimulationRun",
+        "set": "PolicySimulationRuns"
+      },
+      {
+        "entity": "PolicyEnforcementLedger",
+        "set": "PolicyEnforcementLedgers"
+      },
+      {
+        "entity": "PolicyWorkflowBinding",
+        "set": "PolicyWorkflowBindings"
+      },
+      {
+        "entity": "CodePolicyTemplate",
+        "set": "CodePolicyTemplates"
+      },
+      {
+        "entity": "CodePolicyVersion",
+        "set": "CodePolicyVersions"
+      },
+      {
+        "entity": "CodePolicyRule",
+        "set": "CodePolicyRules"
+      },
+      {
+        "entity": "CodeSequenceCounter",
+        "set": "CodeSequenceCounters"
+      },
+      {
+        "entity": "CodeIssuance",
+        "set": "CodeIssuances"
+      },
+      {
+        "entity": "SeedPackApplication",
+        "set": "SeedPackApplications"
       }
     ],
     "snapshot_tables": [
+      "ApprovalDelegations",
       "ApprovalRequests",
       "ApprovalSteps",
       "ApprovedCVs",
@@ -552,36 +846,67 @@
       "CareerPathSteps",
       "CareerPaths",
       "CitizenApplications",
+      "CodeIssuances",
+      "CodePolicyRules",
+      "CodePolicyTemplates",
+      "CodePolicyVersions",
+      "CodeSequenceCounters",
+      "ConflictingRolePairs",
       "ContactInfos",
       "DailyAttendanceRecords",
       "DiwanCorrespondences",
+      "EmployeeCorrections",
       "EmployeeDocuments",
       "EmployeeProfiles",
       "Employees",
       "EmploymentRecords",
       "EmploymentStatusHistories",
+      "ExportJobs",
       "FieldInspectionVisits",
+      "FileReferenceOutbox",
+      "FundedPositions",
       "HrStatisticReports",
       "InboxState",
       "IntegrationMessageReceipts",
       "InternalApplications",
       "InternalVacancies",
+      "JobCatalogEntries",
       "KeyPositions",
+      "MasterDataDuplicateCases",
+      "OrgUnitVersions",
       "OrgUnits",
       "OutboxMessage",
       "OutboxState",
       "PerformanceEvaluations",
+      "PolicyEnforcementLedgers",
+      "PolicyFactsSchemas",
+      "PolicyPublications",
+      "PolicyRules",
+      "PolicySimulationRuns",
+      "PolicyTemplateVersions",
+      "PolicyTemplates",
+      "PolicyWorkflowBindings",
       "PublicJobPostings",
       "Qualifications",
       "RecruitmentApplications",
+      "ReferenceCatalogEntries",
+      "SeedPackApplications",
       "ShiftAssignments",
       "ShiftRosters",
       "Shifts",
+      "SignatureRecords",
+      "SodRules",
       "SuccessionPlans",
       "SuccessorCandidates",
+      "TenantAssignmentRules",
+      "TenantQuarantineEntries",
+      "Tenants",
+      "WorkflowDefinitions",
+      "WorkflowDelegations",
+      "WorkflowInstances",
       "WorkforcePlans"
     ],
-    "business_table_count": 30,
+    "business_table_count": 62,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",
@@ -597,7 +922,7 @@
     "service": "HR.Health",
     "context": "HealthDbContext",
     "database": "hr_health_db",
-    "dbset_count": 13,
+    "dbset_count": 15,
     "entity_sets": [
       {
         "entity": "MedicalRecord",
@@ -648,29 +973,45 @@
         "set": "IntegrationMessageReceipts"
       },
       {
+        "entity": "OrgUnitSnapshot",
+        "set": "OrgUnitSnapshots"
+      },
+      {
+        "entity": "EmployeeOrgUnitSnapshot",
+        "set": "EmployeeOrgUnitSnapshots"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
     ],
     "snapshot_tables": [
       "AuditLogs",
+      "EmployeeOrgUnitSnapshots",
       "FirstAidTrainingRecords",
       "HealthRetirementRecords",
       "HealthStatusEntries",
+      "InboxState",
       "InsuranceCards",
       "InsuranceContracts",
       "IntegrationMessageReceipts",
       "MedicalCommitteeReports",
       "MedicalRecommendations",
       "MedicalRecords",
+      "OrgUnitSnapshots",
+      "OutboxMessage",
+      "OutboxState",
       "PeriodicMedicalChecks",
       "SafetyInspections",
       "WorkplaceAccidents"
     ],
-    "business_table_count": 11,
+    "business_table_count": 13,
     "infrastructure_tables": [
       "AuditLogs",
-      "IntegrationMessageReceipts"
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OutboxMessage",
+      "OutboxState"
     ],
     "source": "src/Services/HRHealth/HR.Health.Infrastructure/Data/HealthDbContext.cs",
     "snapshot_source": "src/Services/HRHealth/HR.Health.Infrastructure/Migrations/HealthDbContextModelSnapshot.cs"
@@ -680,7 +1021,7 @@
     "service": "HR.Movements",
     "context": "MovementsDbContext",
     "database": "hr_movements_db",
-    "dbset_count": 10,
+    "dbset_count": 16,
     "entity_sets": [
       {
         "entity": "TransferRequest",
@@ -715,8 +1056,32 @@
         "set": "TransferFinancialImpacts"
       },
       {
+        "entity": "MovementChecklist",
+        "set": "MovementChecklists"
+      },
+      {
         "entity": "OrgUnitSnapshot",
         "set": "OrgUnitSnapshots"
+      },
+      {
+        "entity": "IdempotencyRecord",
+        "set": "IdempotencyRecords"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
+        "entity": "ProcessIntervention",
+        "set": "ProcessInterventions"
+      },
+      {
+        "entity": "TransferSagaState",
+        "set": "TransferSagaStates"
+      },
+      {
+        "entity": "SecondmentSagaState",
+        "set": "SecondmentSagaStates"
       },
       {
         "entity": "EntityAuditLog",
@@ -726,18 +1091,31 @@
     "snapshot_tables": [
       "AuditLogs",
       "DistributionPlans",
+      "IdempotencyRecords",
+      "InboxState",
+      "IntegrationMessageReceipts",
       "LoanAssignmentRequests",
+      "MovementChecklists",
       "MovementExecutionRecords",
       "MovementNotices",
       "OrgUnitSnapshots",
+      "OutboxMessage",
+      "OutboxState",
+      "ProcessInterventions",
       "SecondmentRequests",
+      "SecondmentSagaStates",
       "TransferApprovals",
       "TransferFinancialImpacts",
-      "TransferRequests"
+      "TransferRequests",
+      "TransferSagaStates"
     ],
-    "business_table_count": 9,
+    "business_table_count": 14,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OutboxMessage",
+      "OutboxState"
     ],
     "source": "src/Services/HRMovements/HR.Movements.Infrastructure/Data/MovementsDbContext.cs",
     "snapshot_source": "src/Services/HRMovements/HR.Movements.Infrastructure/Migrations/MovementsDbContextModelSnapshot.cs"
@@ -747,7 +1125,7 @@
     "service": "HR.Training",
     "context": "TrainingDbContext",
     "database": "hr_training_db",
-    "dbset_count": 14,
+    "dbset_count": 17,
     "entity_sets": [
       {
         "entity": "TrainingCourse",
@@ -802,6 +1180,18 @@
         "set": "LearningCertificates"
       },
       {
+        "entity": "TrainingChecklist",
+        "set": "TrainingChecklists"
+      },
+      {
+        "entity": "OrgUnitSnapshot",
+        "set": "OrgUnitSnapshots"
+      },
+      {
+        "entity": "EmployeeOrgUnitSnapshot",
+        "set": "EmployeeOrgUnitSnapshots"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
@@ -810,11 +1200,17 @@
       "AuditLogs",
       "CourseModules",
       "ELearningCourses",
+      "EmployeeOrgUnitSnapshots",
+      "InboxState",
       "LearningCertificates",
       "LearningEnrollments",
       "Lessons",
       "MissionFiles",
+      "OrgUnitSnapshots",
+      "OutboxMessage",
+      "OutboxState",
       "QualificationCodes",
+      "TrainingChecklists",
       "TrainingCourses",
       "TrainingEnrollments",
       "TrainingNominations",
@@ -822,9 +1218,12 @@
       "TrainingProviders",
       "TrainingResults"
     ],
-    "business_table_count": 13,
+    "business_table_count": 16,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "InboxState",
+      "OutboxMessage",
+      "OutboxState"
     ],
     "source": "src/Services/HRTraining/HR.Training.Infrastructure/Data/TrainingDbContext.cs",
     "snapshot_source": "src/Services/HRTraining/HR.Training.Infrastructure/Migrations/TrainingDbContextModelSnapshot.cs"
@@ -834,7 +1233,7 @@
     "service": "IDCard",
     "context": "IDCardDbContext",
     "database": "idcard_db",
-    "dbset_count": 8,
+    "dbset_count": 10,
     "entity_sets": [
       {
         "entity": "CardDesign",
@@ -865,6 +1264,14 @@
         "set": "CardPermissionSets"
       },
       {
+        "entity": "CardChecklist",
+        "set": "CardChecklists"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
@@ -872,16 +1279,25 @@
     "snapshot_tables": [
       "AccessPermissions",
       "AuditLogs",
+      "CardChecklists",
       "CardDeliveryRecords",
       "CardDesigns",
       "CardPermissionSets",
       "CardRequests",
+      "InboxState",
+      "IntegrationMessageReceipts",
       "IssuedCards",
-      "OfficialSealRecords"
+      "OfficialSealRecords",
+      "OutboxMessage",
+      "OutboxState"
     ],
-    "business_table_count": 7,
+    "business_table_count": 8,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "InboxState",
+      "IntegrationMessageReceipts",
+      "OutboxMessage",
+      "OutboxState"
     ],
     "source": "src/Services/IDCard/IDCard.Infrastructure/Data/IDCardDbContext.cs",
     "snapshot_source": "src/Services/IDCard/IDCard.Infrastructure/Migrations/IDCardDbContextModelSnapshot.cs"
@@ -891,7 +1307,7 @@
     "service": "IT.Infra",
     "context": "ITInfraDbContext",
     "database": "it_infra_db",
-    "dbset_count": 9,
+    "dbset_count": 12,
     "entity_sets": [
       {
         "entity": "ServerDevice",
@@ -922,6 +1338,18 @@
         "set": "EnvironmentConfigurations"
       },
       {
+        "entity": "LegacySystemRecord",
+        "set": "LegacySystems"
+      },
+      {
+        "entity": "ShadowOperationCheck",
+        "set": "ShadowOperationChecks"
+      },
+      {
+        "entity": "MediaDestructionCertificate",
+        "set": "MediaDestructionCertificates"
+      },
+      {
         "entity": "IntegrationMessageReceipt",
         "set": "IntegrationMessageReceipts"
       },
@@ -936,12 +1364,15 @@
       "EnvironmentConfigurations",
       "ITSupportTickets",
       "IntegrationMessageReceipts",
+      "LegacySystems",
+      "MediaDestructionCertificates",
       "SecurityIncidents",
       "ServerDevices",
+      "ShadowOperationChecks",
       "SystemPermissionRecords",
       "UserDevices"
     ],
-    "business_table_count": 7,
+    "business_table_count": 10,
     "infrastructure_tables": [
       "AuditLogs",
       "IntegrationMessageReceipts"
@@ -954,7 +1385,7 @@
     "service": "Payroll",
     "context": "PayrollDbContext",
     "database": "payroll_db",
-    "dbset_count": 24,
+    "dbset_count": 40,
     "entity_sets": [
       {
         "entity": "PayrollRun",
@@ -987,6 +1418,38 @@
       {
         "entity": "PaymentBatch",
         "set": "PaymentBatches"
+      },
+      {
+        "entity": "PaymentOrder",
+        "set": "PaymentOrders"
+      },
+      {
+        "entity": "BankStatementLine",
+        "set": "BankStatementLines"
+      },
+      {
+        "entity": "FundingDecision",
+        "set": "FundingDecisions"
+      },
+      {
+        "entity": "DisbursementPriorityRule",
+        "set": "DisbursementPriorityRules"
+      },
+      {
+        "entity": "ArrearsLedgerEntry",
+        "set": "ArrearsLedgerEntries"
+      },
+      {
+        "entity": "PayrollRunJob",
+        "set": "PayrollRunJobs"
+      },
+      {
+        "entity": "PayrollRunPartition",
+        "set": "PayrollRunPartitions"
+      },
+      {
+        "entity": "PayrollRunInputSnapshot",
+        "set": "PayrollRunInputSnapshots"
       },
       {
         "entity": "SalaryScale",
@@ -1025,6 +1488,18 @@
         "set": "OfficialHolidays"
       },
       {
+        "entity": "LegalDecisionRecord",
+        "set": "LegalDecisionRecords"
+      },
+      {
+        "entity": "LegalAttestation",
+        "set": "LegalAttestations"
+      },
+      {
+        "entity": "PayrollConfigChangeNotice",
+        "set": "PayrollConfigChangeNotices"
+      },
+      {
         "entity": "EmployeePayProfileHistory",
         "set": "EmployeePayProfileHistories"
       },
@@ -1039,6 +1514,26 @@
       {
         "entity": "AbsenceDeduction",
         "set": "AbsenceDeductions"
+      },
+      {
+        "entity": "FraudAlert",
+        "set": "FraudAlerts"
+      },
+      {
+        "entity": "PaymentHold",
+        "set": "PaymentHolds"
+      },
+      {
+        "entity": "ProofOfLifeRecord",
+        "set": "ProofOfLifeRecords"
+      },
+      {
+        "entity": "IdempotencyRecord",
+        "set": "IdempotencyRecords"
+      },
+      {
+        "entity": "ExportJob",
+        "set": "ExportJobs"
       },
       {
         "entity": "OrgUnitSnapshot",
@@ -1056,33 +1551,49 @@
     "snapshot_tables": [
       "AbsenceDeductions",
       "AllowanceRecords",
+      "ArrearsLedgerEntries",
       "AuditLogs",
+      "BankStatementLines",
       "CompensationTypes",
       "DeductionRecords",
       "DeductionTypes",
+      "DisbursementPriorityRules",
       "EmployeePayProfileHistories",
       "EmployeePayProfiles",
       "EndOfServiceSettlements",
+      "ExportJobs",
+      "FraudAlerts",
+      "FundingDecisions",
+      "IdempotencyRecords",
       "InboxState",
       "IntegrationMessageReceipts",
+      "LegalAttestations",
+      "LegalDecisionRecords",
       "OfficialHolidays",
       "OrgUnitSnapshots",
       "OutboxMessage",
       "OutboxState",
       "PayGrades",
       "PaymentBatches",
+      "PaymentHolds",
+      "PaymentOrders",
       "PayrollAdjustments",
       "PayrollAuditRecords",
+      "PayrollConfigChangeNotices",
       "PayrollConfigurations",
       "PayrollRunApprovals",
+      "PayrollRunInputSnapshots",
+      "PayrollRunJobs",
+      "PayrollRunPartitions",
       "PayrollRuns",
       "PayslipDeliveries",
+      "ProofOfLifeRecords",
       "SalaryLineComponents",
       "SalaryLines",
       "SalaryScales",
       "TaxBrackets"
     ],
-    "business_table_count": 22,
+    "business_table_count": 38,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",
@@ -1098,7 +1609,7 @@
     "service": "Records.Archive",
     "context": "ArchiveDbContext",
     "database": "archive_db",
-    "dbset_count": 8,
+    "dbset_count": 12,
     "entity_sets": [
       {
         "entity": "ArchiveItem",
@@ -1129,23 +1640,44 @@
         "set": "DocumentClassifications"
       },
       {
+        "entity": "ArchiveChecklist",
+        "set": "ArchiveChecklists"
+      },
+      {
+        "entity": "CustodyEvent",
+        "set": "CustodyEvents"
+      },
+      {
+        "entity": "ExportJob",
+        "set": "ExportJobs"
+      },
+      {
+        "entity": "IntegrationMessageReceipt",
+        "set": "IntegrationMessageReceipts"
+      },
+      {
         "entity": "EntityAuditLog",
         "set": "AuditLogs"
       }
     ],
     "snapshot_tables": [
+      "ArchiveChecklists",
       "ArchiveIndexEntries",
       "ArchiveItems",
       "AuditLogs",
+      "CustodyEvents",
       "DigitalFileRecords",
       "DisposalRecords",
       "DocumentClassifications",
+      "ExportJobs",
+      "IntegrationMessageReceipts",
       "LoanRecords",
       "PhysicalFileRecords"
     ],
-    "business_table_count": 7,
+    "business_table_count": 10,
     "infrastructure_tables": [
-      "AuditLogs"
+      "AuditLogs",
+      "IntegrationMessageReceipts"
     ],
     "source": "src/Services/RecordsArchive/Records.Archive.Infrastructure/Data/ArchiveDbContext.cs",
     "snapshot_source": "src/Services/RecordsArchive/Records.Archive.Infrastructure/Migrations/ArchiveDbContextModelSnapshot.cs"

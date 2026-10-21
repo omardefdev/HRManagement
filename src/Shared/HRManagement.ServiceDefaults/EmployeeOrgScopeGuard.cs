@@ -28,6 +28,10 @@ public static class EmployeeOrgScopeGuard
             .Select(e => e.PrimaryOrgUnitId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return controller.ForbidIfOrgUnitOutOfScope(scope, primaryOrgUnitId);
+        return controller.ForbidIfOrgUnitOutOfScope(
+            scope,
+            primaryOrgUnitId,
+            resourceType: "Employee",
+            resourceId: employeeId.ToString("D"));
     }
 }

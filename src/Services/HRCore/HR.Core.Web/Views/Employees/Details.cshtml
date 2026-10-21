@@ -39,15 +39,19 @@
                 <h3 class="profile-username mt-3">@emp.FullName</h3>
                 <p class="text-muted">@(emp.PrimaryOrgUnit?.NameAr ?? "بدون وحدة")</p>
                 <div class="mb-2">
-                    @switch (emp.CurrentStatus)
-                    {
-                        case HRManagement.SharedKernel.Enums.EmploymentStatus.Active: <span class="badge bg-success">نشط</span> break;
-                        case HRManagement.SharedKernel.Enums.EmploymentStatus.Suspended: <span class="badge bg-warning">موقوف</span> break;
-                        case HRManagement.SharedKernel.Enums.EmploymentStatus.Terminated: <span class="badge bg-danger">منتهي</span> break;
-                        case HRManagement.SharedKernel.Enums.EmploymentStatus.Retired: <span class="badge bg-secondary">متقاعد</span> break;
-                        case HRManagement.SharedKernel.Enums.EmploymentStatus.OnLeave: <span class="badge bg-info">في إجازة</span> break;
-                        case HRManagement.SharedKernel.Enums.EmploymentStatus.Seconded: <span class="badge bg-primary">منتدب</span> break;
+                    @{
+                        var empStatusBadge = emp.CurrentStatus switch
+                        {
+                            HRManagement.SharedKernel.Enums.EmploymentStatus.Active => "bg-success",
+                            HRManagement.SharedKernel.Enums.EmploymentStatus.Suspended => "bg-warning",
+                            HRManagement.SharedKernel.Enums.EmploymentStatus.Terminated => "bg-danger",
+                            HRManagement.SharedKernel.Enums.EmploymentStatus.Retired => "bg-secondary",
+                            HRManagement.SharedKernel.Enums.EmploymentStatus.OnLeave => "bg-info",
+                            HRManagement.SharedKernel.Enums.EmploymentStatus.Seconded => "bg-primary",
+                            _ => "bg-secondary"
+                        };
                     }
+                    <span class="badge @empStatusBadge">@Html.HrEnumDisplay(emp.CurrentStatus)</span>
                 </div>
                 <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-primary btn-sm">
                     <i class="fas fa-edit"></i> تعديل
@@ -59,14 +63,54 @@
             <div class="card-header"><h3 class="card-title">البيانات الأساسية</h3></div>
             <div class="card-body p-0">
                 <table class="table table-sm">
-                    <tr><th>الرقم الوطني</th><td>@emp.NationalId</td></tr>
+                    <tr><th>الرقم الوطني</th><td>@Model.DisplayNationalId</td></tr>
                     <tr><th>تاريخ الميلاد</th><td>@emp.BirthDate.ToString("yyyy/MM/dd")</td></tr>
                     <tr><th>الجنس</th><td>@(emp.Gender == HRManagement.SharedKernel.Enums.Gender.Male ? "ذكر" : emp.Gender == HRManagement.SharedKernel.Enums.Gender.Female ? "أنثى" : "آخر")</td></tr>
-                    <tr><th>الحالة الاجتماعية</th><td>@(emp.MaritalStatus switch { HRManagement.SharedKernel.Enums.MaritalStatus.Single => "أعزب", HRManagement.SharedKernel.Enums.MaritalStatus.Married => "متزوج", HRManagement.SharedKernel.Enums.MaritalStatus.Divorced => "مطلق", _ => "أرمل" })</td></tr>
+                    <tr><th>الحالة الاجتماعية</th><td>@Html.HrEnumDisplay(emp.MaritalStatus)</td></tr>
                     <tr><th>تاريخ التعيين</th><td>@(emp.HireDate?.ToString("yyyy/MM/dd") ?? "—")</td></tr>
+                    @if (!string.IsNullOrWhiteSpace(Model.ServiceRegimeLabel))
+                    {
+                        <tr><th>نظام الخدمة</th><td>@Model.ServiceRegimeLabel</td></tr>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.ServiceRegimeLegalSourceLabel))
+                    {
+                        <tr><th>المرجع التشريعي</th><td>@Model.ServiceRegimeLegalSourceLabel</td></tr>
+                    }
                 </table>
             </div>
         </div>
+
+        @if (Model.RegimeTransitions.Any())
+        {
+            <div class="card mt-3">
+                <div class="card-header"><h3 class="card-title">تاريخ انتقالات نظام الخدمة</h3></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>من</th>
+                                <th>إلى</th>
+                                <th>ساري من</th>
+                                <th>مرجع القرار</th>
+                                <th>ملاحظات 159</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.RegimeTransitions)
+                            {
+                                <tr>
+                                    <td>@(t.FromRegimeId ?? "—")</td>
+                                    <td>@t.ToRegimeId</td>
+                                    <td>@t.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+                                    <td>@t.TransitionDecisionRef</td>
+                                    <td>@(string.IsNullOrWhiteSpace(t.ConflictNotes) ? "—" : t.ConflictNotes)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
     </div>
 
     <div class="col-md-8">

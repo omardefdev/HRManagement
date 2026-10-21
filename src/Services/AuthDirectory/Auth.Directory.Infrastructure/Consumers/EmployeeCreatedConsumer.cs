@@ -2,6 +2,7 @@ using Auth.Directory.Domain.Entities;
 using Auth.Directory.Infrastructure.Data;
 using Auth.Directory.Infrastructure.Keycloak;
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,9 +32,11 @@ public class EmployeeCreatedConsumer : IConsumer<IEmployeeCreated>
     public async Task Consume(ConsumeContext<IEmployeeCreated> context)
     {
         var m = context.Message;
+        var correlationId = context.Headers.Get<string>(CorrelationIdMiddleware.HeaderName)
+            ?? context.CorrelationId?.ToString();
         _logger.LogInformation(
-            "Auth.Directory: EmployeeCreated EmployeeId={EmployeeId}, FullName={FullName}",
-            m.EmployeeId, m.FullName);
+            "Auth.Directory: EmployeeCreated EmployeeId={EmployeeId}, FullName={FullName}, CorrelationId={CorrelationId}",
+            m.EmployeeId, m.FullName, correlationId);
 
         if (await _db.AuthUsers.AnyAsync(u => u.EmployeeId == m.EmployeeId))
             return;

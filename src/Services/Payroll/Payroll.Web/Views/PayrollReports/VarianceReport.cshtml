@@ -1,5 +1,11 @@
 @model IReadOnlyList<Payroll.Web.Controllers.PayrollReportsController.PayrollVarianceRow>
-@{ ViewData["Title"] = "تقرير التباين"; var baseline = ViewBag.BaselineRun; var comparison = ViewBag.ComparisonRun; }
+@{
+    ViewData["Title"] = "تقرير التباين";
+    var baseline = ViewBag.BaselineRun;
+    var comparison = ViewBag.ComparisonRun;
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+}
 <div class="card" dir="rtl">
     <div class="card-header"><h3 class="card-title">تقرير تباين تشغيلي</h3></div>
     <div class="card-body">
@@ -11,7 +17,7 @@
             @foreach (var row in Model)
             {
                 <tr>
-                    <td>@row.EmployeeId</td>
+                    <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(row.EmployeeId, employeeNames.GetValueOrDefault(row.EmployeeId)))</td>
                     <td>@row.BaselineNet</td>
                     <td>@row.ComparisonNet</td>
                     <td>@row.Variance</td>

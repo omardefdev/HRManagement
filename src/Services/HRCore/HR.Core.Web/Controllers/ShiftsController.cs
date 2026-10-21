@@ -1,4 +1,5 @@
 using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
 using HRManagement.SharedKernel.ViewModels;
@@ -9,8 +10,22 @@ namespace HR.Core.Web.Controllers;
 
 public class ShiftsController(HRCoreDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.Shifts.AsNoTracking().OrderBy(s => s.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(string? q, ShiftType? shiftType, bool? isActive)
+    {
+        var query = db.Shifts.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(s => s.Code.Contains(term) || s.NameAr.Contains(term));
+        }
+        if (shiftType is ShiftType st)
+            query = query.Where(s => s.ShiftType == st);
+        if (isActive is bool active)
+            query = query.Where(s => s.IsActive == active);
+
+        var items = await query.OrderBy(s => s.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        return View(new ShiftsIndexViewModel { Items = items, Q = q, ShiftType = shiftType, IsActive = isActive });
+    }
 
     public IActionResult Create() => View(new ShiftCreateViewModel());
 

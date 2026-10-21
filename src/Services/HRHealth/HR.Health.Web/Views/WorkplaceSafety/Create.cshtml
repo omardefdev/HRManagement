@@ -6,7 +6,7 @@
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><input asp-for="EmployeeId" class="form-control" /><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label">الموظف</label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
             <div class="mb-3"><label asp-for="EmployeeName" class="form-label"></label><input asp-for="EmployeeName" class="form-control" /><span asp-validation-for="EmployeeName" class="text-danger"></span></div>
             <div class="mb-3"><label asp-for="AccidentDate" class="form-label"></label><input asp-for="AccidentDate" class="form-control" type="date" /><span asp-validation-for="AccidentDate" class="text-danger"></span></div>
             <div class="mb-3"><label asp-for="Location" class="form-label"></label><input asp-for="Location" class="form-control" /><span asp-validation-for="Location" class="text-danger"></span></div>

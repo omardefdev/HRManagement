@@ -1,0 +1,80 @@
+@model HR.Core.Web.ViewModels.ReferenceCatalogIndexViewModel
+@using HRManagement.SharedKernel.MasterData
+@{ ViewData["Title"] = "المرجع الوطني (MDM)"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0"><i class="fas fa-database"></i> المرجع الوطني — @Model.KindLabel</h3>
+        @if (Model.CanWrite)
+        {
+            <a asp-action="Create" asp-route-kind="@Model.Kind" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> إضافة رمز
+            </a>
+        }
+    </div>
+    <div class="card-body border-bottom">
+        <ul class="nav nav-pills mb-3">
+            <li class="nav-item">
+                <a class="nav-link @(Model.Kind == CatalogKind.Grade ? "active" : "")"
+                   asp-action="Index" asp-route-kind="Grade">الدرجات</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(Model.Kind == CatalogKind.JobClassification ? "active" : "")"
+                   asp-action="Index" asp-route-kind="JobClassification">التصنيفات الوظيفية</a>
+            </li>
+        </ul>
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="kind" value="@Model.Kind" />
+            <div class="col-md-4">
+                <label class="form-label">بحث</label>
+                <input type="text" name="SearchTerm" value="@Model.SearchTerm" class="form-control" placeholder="رمز أو اسم..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="IsActive" class="form-select">
+                    <option value="">— الكل —</option>
+                    @if (Model.IsActive == true) { <option value="true" selected>نشط</option> } else { <option value="true">نشط</option> }
+                    @if (Model.IsActive == false) { <option value="false" selected>معطّل</option> } else { <option value="false">معطّل</option> }
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" asp-route-kind="@Model.Kind" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>الرمز</th>
+                    <th>الاسم</th>
+                    <th>نشط</th>
+                    <th>المصدر</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td><strong>@item.Entry.Code</strong></td>
+                    <td><a asp-action="Details" asp-route-id="@item.Entry.Id">@item.Entry.NameAr</a></td>
+                    <td>@(item.Entry.IsActive ? "نعم" : "لا")</td>
+                    <td>@(item.IsPlatformOwned ? "وطني (قراءة)" : "محلي")</td>
+                    <td class="text-nowrap">
+                        <a asp-action="Details" asp-route-id="@item.Entry.Id" class="btn btn-sm btn-outline-info">تفاصيل</a>
+                        @if (item.CanMutate)
+                        {
+                            <a asp-action="Edit" asp-route-id="@item.Entry.Id" class="btn btn-sm btn-outline-warning">تعديل</a>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted py-4">لا توجد سجلات</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

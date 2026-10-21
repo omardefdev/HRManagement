@@ -5,6 +5,8 @@ using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HRManagement.SharedKernel.SeparationOfDuties;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.SharedKernel.ViewModels;
@@ -40,7 +42,9 @@ public class GetAdvanceRequestByIdHandler(IContractsRepository repository) : IRe
         repository.GetAdvanceRequestAsync(request.Id, cancellationToken);
 }
 
-public class CreateAdvanceRequestHandler(IContractsRepository repository) : IRequestHandler<CreateAdvanceRequestCommand, Guid>
+public class CreateAdvanceRequestHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<CreateAdvanceRequestCommand, Guid>
 {
     public async Task<Guid> Handle(CreateAdvanceRequestCommand request, CancellationToken cancellationToken)
     {
@@ -66,6 +70,7 @@ public class CreateAdvanceRequestHandler(IContractsRepository repository) : IReq
             TransactionType = ServiceTransactionType.LeaveAdvance,
             Notes = "تسجيل طلب سلفة"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
         await repository.AddAsync(entity, cancellationToken);
         await repository.AddAsync(transaction, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

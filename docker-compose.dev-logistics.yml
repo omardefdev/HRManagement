@@ -1,0 +1,58 @@
+# BLD-002-ext: dev-logistics profile overrides (gateway modules + depends_on).
+services:
+  admin-logistics-web:
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      file-storage-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  hr-gateway:
+    environment:
+      ASPNETCORE_ALLOWEDHOSTS: "*"
+      ReverseProxy__Clusters__hr-core-cluster__Destinations__destination1__Address: http://hr-core-web:8080
+      ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
+      ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
+      Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Gateway__EnabledModules__0: hr-core
+      Gateway__EnabledModules__1: admin-logistics
+      Gateway__EnabledModules__2: file-storage
+    depends_on:
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      admin-logistics-web:
+        condition: service_started
+      file-storage-web:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  hr-core-web:
+    environment:
+      FileReferenceOutbox__Enabled: "false"
+      LeaveScheduleReconciler__Enabled: "false"
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+
+  file-storage-web:
+    deploy:
+      resources:
+        limits:
+          memory: 384M

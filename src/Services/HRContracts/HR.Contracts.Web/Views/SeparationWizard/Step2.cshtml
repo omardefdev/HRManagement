@@ -21,8 +21,8 @@
             <div class="col-md-6">
                 <h5>بيانات الفصل</h5>
                 <table class="table table-bordered">
-                    <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
-                    <tr><th>العقد</th><td>@(Model.ContractId?.ToString() ?? "—")</td></tr>
+                    <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
+                    <tr><th>العقد</th><td>@(Model.ContractId.HasValue ? "مرتبط بعقد" : "بدون عقد")</td></tr>
                     <tr><th>نوع الإنهاء</th><td>@Model.SeparationType</td></tr>
                     <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate.ToString("yyyy/MM/dd")</td></tr>
                     <tr><th>السبب</th><td>@(Model.Reason ?? "—")</td></tr>

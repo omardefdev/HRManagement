@@ -41,7 +41,9 @@ public static class ServiceScopes
 {
     public const string DirectorySync = "directory.sync";
     public const string HrCoreLookup = "hr-core.lookup";
+    public const string HrCoreWorkflow = "hr-core.workflow";
     public const string FileStorageReferences = "file-storage.references";
+    public const string DsarSubjectRead = "dsar.subject.read";
     public const string EvidenceIngest = "evidence.ingest";
 }
 
@@ -51,5 +53,6 @@ public static class ServicePolicies
     public const string DirectorySync = "Service.DirectorySync";
     public const string HrCoreLookupS2S = "Service.HrCoreLookup";
     public const string FileStorageReferences = "Service.FileStorageReferences";
+    public const string DsarSubjectRead = "Service.DsarSubjectRead";
     public const string EvidenceIngest = "Service.EvidenceIngest";
 }

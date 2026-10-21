@@ -8,10 +8,23 @@
         <a asp-action="Index" class="btn btn-outline-secondary btn-sm">العودة للقائمة</a>
     </div>
     <div class="card-body">
-        <p class="text-muted mb-3">الوظيفة: <strong>@Model.AppliedPosition</strong></p>
+        <p class="text-muted mb-3">
+            @if (!string.IsNullOrWhiteSpace(Model.RequisitionNumber))
+            {
+                <span>طلب الشاغر: <strong>@Model.RequisitionNumber</strong></span>
+                <span class="mx-2">|</span>
+            }
+            الوظيفة: <strong>@Model.AppliedPosition</strong>
+            @if (!string.IsNullOrWhiteSpace(Model.OrgUnitName))
+            {
+                <span class="mx-2">|</span>
+                <span>الوحدة: <strong>@Model.OrgUnitName</strong></span>
+            }
+        </p>
         <form asp-action="Hire" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="ApplicationId" />
+            <input type="hidden" asp-for="RequisitionId" />
             <input type="hidden" asp-for="ApplicantFullName" />
             <input type="hidden" asp-for="AppliedPosition" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
@@ -89,8 +102,14 @@
                     <input asp-for="ExpectedStartDate" type="date" class="form-control" />
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label asp-for="EmploymentCategory" class="form-label"></label>
-                    <input asp-for="EmploymentCategory" class="form-control" />
+                            <label asp-for="EmploymentCategory" class="form-label"></label>
+                            <select asp-for="EmploymentCategory" class="form-select">
+                                @foreach (var category in RecruitmentHireViewModel.EmploymentCategories)
+                                {
+                                    <option value="@category.Code">@category.Label</option>
+                                }
+                            </select>
+                            <div class="form-text">تحدد الفئة نوع العلاقة الوظيفية التي ستظهر في العقد.</div>
                 </div>
             </div>
 

@@ -1,0 +1,52 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title DFD للسياسة وسير العمل والرموز
+left to right direction
+actor "مسؤولو الحوكمة" as Admin
+actor "خدمة المجال" as Service
+actor "المعتمد" as Approver
+rectangle "1.0 إعداد ومحاكاة السياسة" as P1
+rectangle "2.0 نشر وتقييم أو إنفاذ" as P2
+rectangle "3.0 ربط وبدء سير العمل" as P3
+rectangle "4.0 اعتماد وتوقيع" as P4
+rectangle "5.0 معاينة أو توليد رمز" as P5
+database "D1 إصدارات السياسات والقواعد" as D1
+database "D2 دفتر الإنفاذ والروابط" as D2
+database "D3 تعريفات ومثيلات سير العمل" as D3
+database "D4 التوقيعات والأثر" as D4
+database "D5 أنماط الرموز والعدادات والإصدارات" as D5
+Admin --> P1 : مسودة وحقائق
+P1 --> D1
+Service --> P2 : tenant وfacts وcorrelation
+D1 --> P2
+P2 --> D2 : القرار وإصدار السياسة
+P2 --> P3 : requirements وbinding
+P3 --> D3
+Approver --> P4 : موافقة أو رفض
+P4 --> D3
+P4 --> D4
+Service --> P5 : النوع والسياق
+P5 --> D5
+P5 --> Service : الرمز والبيانات الوصفية
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام إسناد الجهة والحجر والمصالحة
+left to right direction
+actor "مسؤول منصة البيانات" as DataAdmin
+actor "مسؤول المنصة" as Platform
+actor "المدقق" as Auditor
+actor "مالك الجهة" as Agency
+rectangle "حوكمة بيانات الجهة" {
+  usecase "تعريف قاعدة إسناد" as U1
+  usecase "معاينة Dry Run" as U2
+  usecase "إسناد السجلات الواضحة" as U3
+  usecase "حجر السجلات الملتبسة" as U4
+  usecase "مصالحة العدد والمراجع" as U5
+  usecase "حل سجل محجور" as U6
+  usecase "التراجع من نسخة احتياطية" as U7
+  usecase "مراجعة أثر القرار" as U8
+}
+DataAdmin --> U1
+DataAdmin --> U2
+U2 .> U3 : <<include>>
+U3 .> U4 : <<extend>>
+U3 .> U5 : <<include>>
+Platform --> U6
+Platform --> U7
+Auditor --> U5
+Auditor --> U8
+Agency --> U8
+U6 .> U8 : <<include>>
+@enduml

@@ -1,45 +1,32 @@
-using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Records.Archive.Domain.Entities;
-using Records.Archive.Domain.Enums;
-using Records.Archive.Infrastructure.Data;
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using MassTransit;
+using Microsoft.Extensions.Logging;
+using Records.Archive.Infrastructure.Data;
 
 namespace Records.Archive.Infrastructure.Consumers;
 
-public class SeparationCompletedConsumer : IConsumer<ISeparationCompleted>
+public class SeparationCompletedConsumer(
+    ArchiveDbContext db,
+    ICodeGenerationClient codeClient,
+    ILogger<SeparationCompletedConsumer> logger) : IConsumer<ISeparationCompleted>
 {
-    private readonly ArchiveDbContext _db;
-    private readonly ILogger<SeparationCompletedConsumer> _logger;
-
-    public SeparationCompletedConsumer(ArchiveDbContext db, ILogger<SeparationCompletedConsumer> logger)
-    {
-        _db = db;
-        _logger = logger;
-    }
-
     public async Task Consume(ConsumeContext<ISeparationCompleted> context)
     {
         var m = context.Message;
-        var reference = $"SEP-{m.EmployeeId}";
+        var title = $"ملف فصل الموظف {m.EmployeeId} — {m.SeparationType} [{m.EmployeeId:N}]";
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Records.Archive: SeparationCompleted EmployeeId={EmployeeId}, Type={SeparationType}",
             m.EmployeeId, m.SeparationType);
 
-        if (await _db.ArchiveItems.AnyAsync(x => x.ReferenceNumber == reference))
+        if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        _db.ArchiveItems.Add(new ArchiveItem
-        {
-            Title = $"ملف فصل الموظف {m.EmployeeId} — {m.SeparationType}",
-            ReferenceNumber = reference,
-            Format = ArchiveFormat.Digital,
-            StorageLocation = "HRContracts/Separations",
-            RetentionPeriodYears = 10
-        });
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "SEP", context.CancellationToken);
+        if (reference is null) return;
 
-        await _db.SaveChangesAsync();
+        db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(title, reference, "HRContracts/Separations"));
+        await db.SaveChangesAsync(context.CancellationToken);
     }
 }

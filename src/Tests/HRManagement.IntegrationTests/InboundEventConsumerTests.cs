@@ -42,7 +42,7 @@ public class InboundEventConsumerTests
         db.ChangeTracker.Clear();
         var tx = await db.ServiceTransactions.FindAsync(txId);
         Assert.NotNull(tx);
-        Assert.Equal("DIWAN-2026-001", tx!.ReferenceNumber);
+        Assert.Contains("DIWAN-2026-001", tx!.Notes);
     }
 
     private static async Task<MassTransitTestScope> CreateContractsScopeAsync()
@@ -50,6 +50,7 @@ public class InboundEventConsumerTests
         var scope = await MassTransitTestScope.CreateAsync(
             (services, connections) =>
             {
+                IntegrationTestHelpers.AddDeterministicServiceClients(services);
                 var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
                 connection.Open();
                 connections.Add(connection);

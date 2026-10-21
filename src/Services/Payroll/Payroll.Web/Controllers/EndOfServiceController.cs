@@ -1,6 +1,7 @@
 using MediatR;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Payroll.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +17,16 @@ public class EndOfServiceController : Controller
 {
     private readonly PayrollDbContext _db;
     private readonly IMediator _mediator;
+    private readonly IEmployeeLookup _employeeLookup;
 
-    public EndOfServiceController(PayrollDbContext db, IMediator mediator)
+    public EndOfServiceController(
+        PayrollDbContext db,
+        IMediator mediator,
+        IEmployeeLookup employeeLookup)
     {
         _db = db;
         _mediator = mediator;
+        _employeeLookup = employeeLookup;
     }
     private Guid RequireUserId()
     {
@@ -30,10 +36,22 @@ public class EndOfServiceController : Controller
             : throw new UnauthorizedAccessException("Missing user identity claim.");
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(Guid? employeeId, EosStatus? status, DateTime? calculatedFrom, DateTime? calculatedTo)
     {
-        var items = await _db.EndOfServiceSettlements.AsNoTracking()
-            .OrderByDescending(e => e.CalculatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        var query = _db.EndOfServiceSettlements.AsNoTracking().AsQueryable();
+        if (employeeId.HasValue) query = query.Where(e => e.EmployeeId == employeeId.Value);
+        if (status.HasValue) query = query.Where(e => e.Status == status.Value);
+        if (calculatedFrom.HasValue) query = query.Where(e => e.CalculatedAt >= calculatedFrom.Value);
+        if (calculatedTo.HasValue) query = query.Where(e => e.CalculatedAt <= calculatedTo.Value);
+
+        var items = await query.OrderByDescending(e => e.CalculatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.Status = status;
+        ViewBag.CalculatedFrom = calculatedFrom;
+        ViewBag.CalculatedTo = calculatedTo;
+        ViewBag.EmployeeNames = await _employeeLookup.GetEmployeeDisplayNamesAsync(
+            items.Select(e => e.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
+            HttpContext.RequestAborted);
         return View(items);
     }
 
@@ -41,6 +59,8 @@ public class EndOfServiceController : Controller
     {
         var e = await _db.EndOfServiceSettlements.FindAsync(id);
         if (e is null) return NotFound();
+        ViewBag.EmployeeName = await _employeeLookup.GetEmployeeDisplayNameAsync(
+            e.EmployeeId, HttpContext.RequestAborted) ?? "غير متاح";
         return View(e);
     }
 

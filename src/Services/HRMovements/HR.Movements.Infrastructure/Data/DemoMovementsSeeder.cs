@@ -2,6 +2,7 @@ using HR.Movements.Domain.Entities;
 using HR.Movements.Domain.Enums;
 using HR.Movements.Domain.Services;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace HR.Movements.Infrastructure.Data;
 /// <summary>Populates demo transfers, secondments, loans, and related movement records.</summary>
 public static class DemoMovementsSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
 
     private static readonly string[] TransferReasons =
     [
@@ -39,11 +40,12 @@ public static class DemoMovementsSeeder
         MovementsDbContext db,
         CancellationToken ct = default)
     {
+        var previousTenantId = TenantIdFlow.Get();
         TenantIdFlow.Set(TenantId);
         try
         {
-            var rng = new Random(42);
-            var now = DateTime.UtcNow;
+            var rng = AcceptanceSeedExecution.CreateRandom("movements");
+            var now = AcceptanceSeedExecution.UtcNow;
             var today = DateOnly.FromDateTime(now);
 
             await SeedIntegrationAsync(db, now, ct);
@@ -62,7 +64,7 @@ public static class DemoMovementsSeeder
         }
         finally
         {
-            TenantIdFlow.Set(null);
+            TenantIdFlow.Set(previousTenantId);
         }
     }
 
@@ -90,10 +92,13 @@ public static class DemoMovementsSeeder
         DateOnly today,
         CancellationToken ct)
     {
-        // 20 Approved, 10 Pending, 10 Rejected
-        var statuses = Enumerable.Repeat(ApprovalStatus.Approved, 20)
-            .Concat(Enumerable.Repeat(ApprovalStatus.Pending, 10))
-            .Concat(Enumerable.Repeat(ApprovalStatus.Rejected, 10))
+        var statuses = Enumerable.Range(0, AcceptanceSeedExecution.TransferCount)
+            .Select(i => (i % 4) switch
+            {
+                0 or 1 => ApprovalStatus.Approved,
+                2 => ApprovalStatus.Pending,
+                _ => ApprovalStatus.Rejected
+            })
             .ToArray();
 
         var employeeIndices = Enumerable.Range(0, DemoSeedIds.EmployeeCount)
@@ -235,13 +240,15 @@ public static class DemoMovementsSeeder
         DateOnly today,
         CancellationToken ct)
     {
-        var statuses = new[]
-        {
-            SecondmentStatus.Pending, SecondmentStatus.Pending, SecondmentStatus.Pending,
-            SecondmentStatus.Approved, SecondmentStatus.Approved, SecondmentStatus.Approved, SecondmentStatus.Approved,
-            SecondmentStatus.Active, SecondmentStatus.Active, SecondmentStatus.Active, SecondmentStatus.Active, SecondmentStatus.Active,
-            SecondmentStatus.Closed, SecondmentStatus.Closed, SecondmentStatus.Closed,
-        };
+        var statuses = Enumerable.Range(0, AcceptanceSeedExecution.SecondmentCount)
+            .Select(i => (i % 5) switch
+            {
+                0 => SecondmentStatus.Pending,
+                1 => SecondmentStatus.Approved,
+                2 or 3 => SecondmentStatus.Active,
+                _ => SecondmentStatus.Closed
+            })
+            .ToArray();
 
         var employeeIndices = Enumerable.Range(0, DemoSeedIds.EmployeeCount)
             .OrderBy(_ => rng.Next())
@@ -280,13 +287,15 @@ public static class DemoMovementsSeeder
         DateOnly today,
         CancellationToken ct)
     {
-        var statuses = new[]
-        {
-            LoanAssignmentStatus.Pending, LoanAssignmentStatus.Pending,
-            LoanAssignmentStatus.Approved, LoanAssignmentStatus.Approved,
-            LoanAssignmentStatus.Active, LoanAssignmentStatus.Active, LoanAssignmentStatus.Active,
-            LoanAssignmentStatus.Closed,
-        };
+        var statuses = Enumerable.Range(0, AcceptanceSeedExecution.LoanCount)
+            .Select(i => (i % 4) switch
+            {
+                0 => LoanAssignmentStatus.Pending,
+                1 => LoanAssignmentStatus.Approved,
+                2 => LoanAssignmentStatus.Active,
+                _ => LoanAssignmentStatus.Closed
+            })
+            .ToArray();
 
         var employeeIndices = Enumerable.Range(0, DemoSeedIds.EmployeeCount)
             .OrderBy(_ => rng.Next())

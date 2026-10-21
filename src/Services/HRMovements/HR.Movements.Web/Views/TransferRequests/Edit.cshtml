@@ -14,6 +14,26 @@
                 <div class="form-text">يُسجَّل مقدّم الطلب من هوية الجلسة ولا يُعدَّل.</div>
             </div>
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea><span asp-validation-for="Reason" class="text-danger"></span></div>
+            <div class="mb-3">
+                <label asp-for="SourceLegalRegimeId" class="form-label">نظام الخدمة الحالي</label>
+                <input asp-for="SourceLegalRegimeId" class="form-control" readonly />
+            </div>
+            <div class="mb-3">
+                <label asp-for="TargetLegalRegimeId" class="form-label">نظام الخدمة الهدف (اختياري — للنقل بين أنظمة)</label>
+                <input asp-for="TargetLegalRegimeId" class="form-control" placeholder="law50 / law53 / special_*" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="TransitionDecisionRef" class="form-label">مرجع القرار/المرسوم</label>
+                <input asp-for="TransitionDecisionRef" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConditionCode" class="form-label">رمز شرط الانتقال</label>
+                <input asp-for="ConditionCode" class="form-control" placeholder="agency_reclassification" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConflictNotes" class="form-label">ملاحظات المادة 159 (اختياري)</label>
+                <textarea asp-for="ConflictNotes" class="form-control" rows="2"></textarea>
+            </div>
         </div>
         <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ التعديلات</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
     </form>

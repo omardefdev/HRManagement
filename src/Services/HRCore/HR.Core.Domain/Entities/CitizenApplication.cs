@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Enums;
+using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Entities;
 
 namespace HR.Core.Domain.Entities;
@@ -9,6 +10,16 @@ public class CitizenApplication : AuditableEntity
 {
     [Display(Name = "الإعلان الوظيفي")]
     public Guid PublicJobPostingId { get; set; }
+
+    [Display(Name = "طلب الشاغر")]
+    public Guid? RequisitionId { get; set; }
+
+    public virtual RecruitmentRequisition? Requisition { get; set; }
+
+    [Display(Name = "طلب التوظيف الداخلي المرتبط")]
+    public Guid? PromotedRecruitmentApplicationId { get; set; }
+
+    public virtual RecruitmentApplication? PromotedRecruitmentApplication { get; set; }
 
     [Required]
     [Display(Name = "الرقم المرجعي")]
@@ -23,7 +34,18 @@ public class CitizenApplication : AuditableEntity
     [Required(ErrorMessage = "الرقم الوطني مطلوب")]
     [Display(Name = "الرقم الوطني")]
     [StringLength(20)]
+    [AuditRedact]
     public string NationalId { get; set; } = string.Empty;
+
+    [Display(Name = "تجزئة الرقم الوطني")]
+    [StringLength(64)]
+    public string? NationalIdHash { get; set; }
+
+    [Display(Name = "حجز قانوني")]
+    public bool LegalHold { get; set; }
+
+    [Display(Name = "تاريخ إخفاء الهوية")]
+    public DateTime? AnonymizedAt { get; set; }
 
     [Display(Name = "رقم الهاتف")]
     [StringLength(20)]
@@ -41,6 +63,12 @@ public class CitizenApplication : AuditableEntity
 
     [Display(Name = "الحالة")]
     public CitizenApplicationStatus Status { get; set; } = CitizenApplicationStatus.Received;
+
+    [Display(Name = "إقرار تعارض المصالح")]
+    public bool ConflictOfInterestDeclared { get; set; }
+
+    [Display(Name = "تاريخ إقرار COI")]
+    public DateTime? ConflictOfInterestDeclaredAt { get; set; }
 
     public virtual PublicJobPosting? PublicJobPosting { get; set; }
 }

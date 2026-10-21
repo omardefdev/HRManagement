@@ -1,5 +1,6 @@
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Domain.Entities;
+using HR.Contracts.Domain.Enums;
 using HR.Contracts.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,9 +13,14 @@ public class LeavePoliciesController : Controller
     private readonly IContractsRepository _repo;
     public LeavePoliciesController(IContractsRepository repo) => _repo = repo;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(LeaveType? leaveType)
     {
-        var policies = await _repo.LeavePolicies.AsNoTracking().OrderBy(p => p.LeaveType).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        var query = _repo.LeavePolicies.AsNoTracking();
+        if (leaveType.HasValue)
+            query = query.Where(p => p.LeaveType == leaveType.Value);
+
+        var policies = await query.OrderBy(p => p.LeaveType).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.LeaveTypeFilter = leaveType;
         return View(policies);
     }
 

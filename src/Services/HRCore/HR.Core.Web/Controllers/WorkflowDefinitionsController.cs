@@ -76,7 +76,7 @@ public class WorkflowDefinitionsController : ControllerBase
         if (def is null) return NotFound();
 
         if (def.IsPublished)
-            return BadRequest("Cannot edit a published definition. Create a new version instead.");
+            return BadRequest("لا يمكن تعديل تعريف منشور. أنشئ إصدارًا جديدًا بدلاً من ذلك.");
 
         def.Name = request.Name ?? def.Name;
         def.Description = request.Description ?? def.Description;
@@ -101,11 +101,11 @@ public class WorkflowDefinitionsController : ControllerBase
         if (def is null) return NotFound();
 
         if (def.IsPublished)
-            return BadRequest("Already published.");
+            return BadRequest("منشور مسبقًا.");
 
         var steps = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(def.StepsJson);
         if (steps is null || steps.Count == 0)
-            return BadRequest("Cannot publish a definition with no steps.");
+            return BadRequest("لا يمكن نشر تعريف بدون خطوات.");
 
         def.IsPublished = true;
         await _context.SaveChangesAsync();
@@ -121,7 +121,7 @@ public class WorkflowDefinitionsController : ControllerBase
         if (def is null) return NotFound();
 
         if (def.IsPublished)
-            return BadRequest("Cannot delete a published definition.");
+            return BadRequest("لا يمكن حذف تعريف منشور.");
 
         _context.WorkflowDefinitions.Remove(def);
         await _context.SaveChangesAsync();

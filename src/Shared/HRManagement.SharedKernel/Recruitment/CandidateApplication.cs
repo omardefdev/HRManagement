@@ -38,14 +38,24 @@ public class CandidateApplication : BaseEntity
 
 public enum ApplicationStatus
 {
+    [Display(Name = "مُرسَل")]
     Submitted = 0,
+    [Display(Name = "قيد الفرز")]
     UnderScreening = 1,
+    [Display(Name = "في القائمة المختصرة")]
     Shortlisted = 2,
+    [Display(Name = "مقابلة مجدولة")]
     InterviewScheduled = 3,
+    [Display(Name = "مُقيَّم")]
     Assessed = 4,
+    [Display(Name = "مُصنَّف")]
     Ranked = 5,
+    [Display(Name = "عرض مُقدَّم")]
     OfferExtended = 6,
+    [Display(Name = "مقبول")]
     Accepted = 7,
+    [Display(Name = "مرفوض")]
     Rejected = 8,
+    [Display(Name = "منسحب")]
     Withdrawn = 9
 }

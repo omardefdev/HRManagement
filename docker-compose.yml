@@ -1,3 +1,5 @@
+# BLD-002: set DOCKER_BUILDKIT=1 and COMPOSE_PARALLEL_LIMIT=2 (dev) or 4 (CI).
+# Default `docker compose up` starts infrastructure only; use --profile full-stack for all services.
 services:
   postgresql:
     image: postgres:16-alpine
@@ -95,9 +97,15 @@ services:
     restart: unless-stopped
 
   hr-core-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/HRCore/HR.Core.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/HRCore/HR.Core.Web/HR.Core.Web.csproj
+        ASSEMBLY_NAME: HR.Core.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-hr-core-web
     ports:
       - "5010:8080"
@@ -134,9 +142,15 @@ services:
     restart: unless-stopped
 
   hr-contracts-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/HRContracts/HR.Contracts.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj
+        ASSEMBLY_NAME: HR.Contracts.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-hr-contracts-web
     ports:
       - "5020:8080"
@@ -151,6 +165,7 @@ services:
       RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
     depends_on:
@@ -163,9 +178,15 @@ services:
     restart: unless-stopped
 
   hr-gateway:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Gateway/HRManagement.Gateway/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Gateway/HRManagement.Gateway/HRManagement.Gateway.csproj
+        ASSEMBLY_NAME: HRManagement.Gateway.dll
+        NEEDS_KRB5: "false"
+        GATEWAY_AUDIT_DIR: "true"
     container_name: hrm-hr-gateway
     ports:
       - "${GATEWAY_HTTP_PORT:-5200}:8080"
@@ -188,8 +209,6 @@ services:
       keycloak:
         condition: service_started
       hr-core-web:
-        condition: service_started
-      hr-contracts-web:
         condition: service_started
     restart: unless-stopped
 

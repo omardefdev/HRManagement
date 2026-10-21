@@ -1,0 +1,106 @@
+using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
+
+namespace HR.Core.Domain.Services;
+
+/// <summary>HCM-004: selection pipeline transitions and gates.</summary>
+public static class SelectionWorkflowRules
+{
+    private static readonly Dictionary<RecruitmentApplicationStatus, HashSet<RecruitmentApplicationStatus>> AllowedTransitions = new()
+    {
+        [RecruitmentApplicationStatus.Submitted] =
+            [RecruitmentApplicationStatus.UnderReview, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.UnderReview] =
+            [RecruitmentApplicationStatus.Shortlisted, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.Shortlisted] =
+            [RecruitmentApplicationStatus.InterviewScheduled, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.InterviewScheduled] =
+            [RecruitmentApplicationStatus.Assessed, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.Assessed] =
+            [RecruitmentApplicationStatus.Ranked, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.Ranked] =
+            [RecruitmentApplicationStatus.OfferExtended, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.OfferExtended] =
+            [RecruitmentApplicationStatus.OfferAccepted, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.OfferAccepted] =
+            [RecruitmentApplicationStatus.Hired, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.Rejected] =
+            [RecruitmentApplicationStatus.UnderReview],
+        [RecruitmentApplicationStatus.Hired] = [],
+        [RecruitmentApplicationStatus.Withdrawn] = []
+    };
+
+    public static bool CanTransition(
+        RecruitmentApplication application,
+        RecruitmentApplicationStatus to,
+        bool legacyHireWithoutOffer = false)
+    {
+        if (!AllowedTransitions.TryGetValue(application.Status, out var targets) || !targets.Contains(to))
+        {
+            if (legacyHireWithoutOffer
+                && application.Status == RecruitmentApplicationStatus.Shortlisted
+                && to == RecruitmentApplicationStatus.Hired
+                && application.RequisitionId is null)
+                return true;
+
+            return false;
+        }
+
+        return ValidateTransitionGate(application, to) is null;
+    }
+
+    public static string? ValidateTransitionGate(RecruitmentApplication application, RecruitmentApplicationStatus to)
+    {
+        if (to == RecruitmentApplicationStatus.Shortlisted && !application.ConflictOfInterestDeclared)
+            return "يجب إقرار عدم تعارض المصالح قبل الإدراج في القائمة المختصرة.";
+
+        if (to == RecruitmentApplicationStatus.Assessed)
+        {
+            if (application.AssessmentScore is null)
+                return "يجب تسجيل درجة التقييم.";
+            if (application.CriteriaVersionId is null)
+                return "يجب اختيار إصدار معايير التقييم.";
+        }
+
+        if (to == RecruitmentApplicationStatus.Ranked && application.Rank is null)
+            return "يجب تعيين ترتيب المرشح.";
+
+        if (!RecruitmentAppealWorkflowRules.CanRank(application)
+            && to is RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.OfferExtended)
+            return "لا يمكن الترتيب أو إصدار العرض أثناء استئناف معلق.";
+
+        if (!RecruitmentAppealWorkflowRules.CanOffer(application)
+            && to == RecruitmentApplicationStatus.OfferExtended)
+            return "لا يمكن إصدار العرض أثناء استئناف معلق.";
+
+        if (to == RecruitmentApplicationStatus.OfferExtended && application.ActiveOfferLetterId is null)
+            return "يجب إنشاء مسودة خطاب عرض أولاً.";
+
+        if (to == RecruitmentApplicationStatus.OfferAccepted)
+        {
+            if (application.ActiveOfferLetter is { Status: not OfferStatus.Accepted })
+                return "يجب قبول خطاب العرض أولاً.";
+        }
+
+        return null;
+    }
+
+    public static IReadOnlyList<RecruitmentApplicationStatus> GetAllowedTargets(
+        RecruitmentApplication application,
+        bool legacyHireWithoutOffer = false)
+    {
+        if (!AllowedTransitions.TryGetValue(application.Status, out var targets))
+            return [];
+
+        var list = targets
+            .Where(t => ValidateTransitionGate(application, t) is null)
+            .ToList();
+
+        if (legacyHireWithoutOffer
+            && application.Status == RecruitmentApplicationStatus.Shortlisted
+            && application.RequisitionId is null)
+            list.Add(RecruitmentApplicationStatus.Hired);
+
+        return list;
+    }
+}

@@ -32,8 +32,8 @@ foreach ($need in @(
     @{ Id = "PAY-002"; Status = "Satisfied" },
     @{ Id = "GOV-002"; Status = "Satisfied" },
     @{ Id = "STR-002"; Status = "Satisfied" },
-    @{ Id = "live-policy-engine"; Status = "Blocked" },
-    @{ Id = "live-workflow-runtime"; Status = "Blocked" },
+    @{ Id = "live-policy-engine"; Status = "Satisfied" },
+    @{ Id = "live-workflow-runtime"; Status = "Satisfied" },
     @{ Id = "live-form-designer"; Status = "Blocked" },
     @{ Id = "PROD-002"; Status = "Satisfied" },
     @{ Id = "ONB-001"; Status = "Satisfied" }

@@ -24,4 +24,6 @@ public class SupplyOrder : AuditableEntity
 
     [Display(Name = "تاريخ التنفيذ")]
     public DateTime? FulfilledAt { get; set; }
+
+    public ICollection<SupplyOrderLine> Lines { get; set; } = new List<SupplyOrderLine>();
 }

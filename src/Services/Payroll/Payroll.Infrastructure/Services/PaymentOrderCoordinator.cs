@@ -9,9 +9,13 @@ public sealed class PaymentOrderCoordinator(
     PayrollDbContext db,
     PaymentOrderService paymentOrders) : IPaymentOrderCoordinator
 {
-    public async Task EnsureAndSubmitOrdersAsync(Guid paymentBatchId, CancellationToken cancellationToken = default)
+    public async Task EnsureAndSubmitOrdersAsync(
+        Guid paymentBatchId,
+        IReadOnlyDictionary<Guid, decimal>? amountOverrides = null,
+        CancellationToken cancellationToken = default)
     {
-        var orders = await paymentOrders.EnsureOrdersForBatchAsync(paymentBatchId, cancellationToken);
+        var orders = await paymentOrders.EnsureOrdersForBatchAsync(
+            paymentBatchId, amountOverrides, cancellationToken);
         foreach (var order in orders)
             await paymentOrders.TryAdvanceStatusAsync(order.Id, PaymentOrderStatus.Submitted, cancellationToken: cancellationToken);
 

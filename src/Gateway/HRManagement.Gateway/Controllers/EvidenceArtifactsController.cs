@@ -30,9 +30,9 @@ public sealed class EvidenceArtifactsController(IEvidenceRepositoryService repos
     public async Task<ActionResult<EvidenceArtifact>> Ingest([FromBody] IngestBody body, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(body.ArtifactId) || string.IsNullOrWhiteSpace(body.CardId))
-            return BadRequest("ArtifactId and CardId are required.");
+            return BadRequest("ArtifactId و CardId مطلوبان.");
         if (string.IsNullOrWhiteSpace(body.ContentBase64))
-            return BadRequest("ContentBase64 is required.");
+            return BadRequest("ContentBase64 مطلوب.");
 
         byte[] content;
         try
@@ -41,7 +41,7 @@ public sealed class EvidenceArtifactsController(IEvidenceRepositoryService repos
         }
         catch (FormatException)
         {
-            return BadRequest("ContentBase64 is invalid.");
+            return BadRequest("ContentBase64 غير صالح.");
         }
 
         var artifact = await repository.IngestAsync(
@@ -79,7 +79,7 @@ public sealed class EvidenceArtifactsController(IEvidenceRepositoryService repos
     public async Task<ActionResult<EvidencePackExport>> ExportPack([FromBody] ExportBody body, CancellationToken ct)
     {
         if (body.CardIds is null || body.CardIds.Length == 0)
-            return BadRequest("CardIds required.");
+            return BadRequest("CardIds مطلوب.");
 
         var by = User.FindFirstValue("sub") ?? User.Identity?.Name ?? "unknown";
         var pack = await repository.ExportPackAsync(

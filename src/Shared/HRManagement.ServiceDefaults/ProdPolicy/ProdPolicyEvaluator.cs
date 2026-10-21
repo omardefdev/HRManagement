@@ -32,7 +32,16 @@ public static class ProdPolicyEvaluator
         failures.AddRange(EvaluateSigning(matrix.Signing, matrix.PolicyPlatformPolicyVersion));
 
         if (liveEngineClaim)
-            failures.Add("LivePolicyEngineClaim forbidden until PROD-001a-e policy platform workers");
+        {
+            var engineOk = matrix.Blockers.Any(b =>
+                string.Equals(b.Id, "live-policy-engine", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(b.Status, "Satisfied", StringComparison.OrdinalIgnoreCase));
+            var wfOk = matrix.Blockers.Any(b =>
+                string.Equals(b.Id, "live-workflow-runtime", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(b.Status, "Satisfied", StringComparison.OrdinalIgnoreCase));
+            if (!engineOk || !wfOk)
+                failures.Add("LivePolicyEngineClaim requires live-policy-engine and live-workflow-runtime Satisfied");
+        }
 
         return failures;
     }
@@ -45,8 +54,8 @@ public static class ProdPolicyEvaluator
                      ("PAY-002", "Satisfied"),
                      ("GOV-002", "Satisfied"),
                      ("STR-002", "Satisfied"),
-                     ("live-policy-engine", "Blocked"),
-                     ("live-workflow-runtime", "Blocked"),
+                     ("live-policy-engine", "Satisfied"),
+                     ("live-workflow-runtime", "Satisfied"),
                      ("live-form-designer", "Blocked"),
                      ("PROD-002", "Satisfied"),
                      ("ONB-001", "Satisfied")

@@ -1,0 +1,34 @@
+@model Admin.Logistics.Web.ViewModels.AssignmentEvidenceViewModel
+@using Admin.Logistics.Web.Services
+@{
+    var assignment = Model.Assignment;
+    var asset = Model.Asset ?? assignment.Asset;
+    var requiresEvidence = AssetAssignmentDisplay.RequiresEvidenceDisplay(assignment, asset);
+    var missingRequired = AssetAssignmentDisplay.HasMissingRequiredEvidence(assignment, asset);
+    var hasValidText = Admin.Logistics.Domain.Services.AssetHandoverRules.HasProof(assignment.EvidenceRef, null);
+}
+
+@if (!requiresEvidence)
+{
+    <span class="text-muted">غير مطلوب</span>
+}
+else if (missingRequired)
+{
+    <span>—</span>
+    <small class="text-muted d-block">مطلوب للأصول المميزة</small>
+}
+else
+{
+    @if (hasValidText)
+    {
+        <span>@assignment.EvidenceRef!.Trim()</span>
+    }
+    @if (assignment.HandoverFileId is Guid fileId)
+    {
+        @if (hasValidText)
+        {
+            <span class="text-muted"> · </span>
+        }
+        @await Html.PartialAsync("_FileDisplayLink", (fileId, "ملف التسليم"))
+    }
+}

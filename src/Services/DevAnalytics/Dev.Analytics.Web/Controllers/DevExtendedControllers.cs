@@ -1,3 +1,4 @@
+using Dev.Analytics.Application.Services;
 using Dev.Analytics.Domain.Entities;
 using Dev.Analytics.Domain.Enums;
 using Dev.Analytics.Domain.Services;
@@ -146,7 +147,7 @@ public class EtlJobsController(AnalyticsDbContext db) : Controller
     }
 }
 
-public class ReadModelsController(AnalyticsDbContext db) : Controller
+public class ReadModelsController(AnalyticsDbContext db, ReadModelReconciliationService reconciliation) : Controller
 {
     public async Task<IActionResult> Index() =>
         View(await db.ReadModels.AsNoTracking().OrderBy(x => x.Name).Take(SearchFilterBase.MaxPageSize).ToListAsync());
@@ -199,25 +200,17 @@ public class ReadModelsController(AnalyticsDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Rebuild(Guid id, Guid? orgUnitId)
     {
-        var model = await db.ReadModels.FindAsync(id);
-        if (model is null) return NotFound();
-
-        var eventName = model.SourceEventName;
-        var events = await db.AnalyticsEvents.AsNoTracking()
-            .Where(e => eventName == null || e.EventName == eventName)
-            .OrderBy(e => e.OccurredAt).ThenBy(e => e.Id)
-            .ToListAsync();
-
-        var projection = AnalyticsProjectionRules.BuildHeadcountProjection(events, orgUnitId);
-        var fingerprint = AnalyticsProjectionRules.Fingerprint(
-            orgUnitId.HasValue ? events.Where(e => e.OrgUnitId == orgUnitId) : events);
-
-        model.Schema = projection;
-        model.LastFingerprint = fingerprint;
-        model.LastRefreshed = DateTime.UtcNow;
-        await db.SaveChangesAsync();
-        TempData["Success"] = $"أُعيد البناء — fingerprint={fingerprint[..12]}…";
-        return RedirectToAction(nameof(Details), new { id });
+        try
+        {
+            var report = await reconciliation.ReconcileAsync(id, orgUnitId, dryRun: false, forceRebuild: true);
+            TempData["Success"] =
+                $"أُعيد البناء — fingerprint={report.AfterFingerprint[..Math.Min(12, report.AfterFingerprint.Length)]}…";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 }
 

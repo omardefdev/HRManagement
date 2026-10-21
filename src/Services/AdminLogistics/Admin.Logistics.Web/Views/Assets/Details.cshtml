@@ -1,76 +1,534 @@
 @model Admin.Logistics.Domain.Entities.Asset
-@{ ViewData["Title"] = Model.Name; }
+@using Admin.Logistics.Domain.Enums
+@using Admin.Logistics.Domain.Services
+@using Admin.Logistics.Web.Services
+@using Admin.Logistics.Web.ViewModels
+@{
+    ViewData["Title"] = Model.Name;
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    var assignDraft = ViewBag.AssignDraft as AssignToEmployeeDraft;
+    var returnDraft = ViewBag.ReturnDraft as ReturnAssignmentDraft;
+    var lossDraft = ViewBag.LossDraft as ReportLossDraft;
+    var formScrollTo = ViewBag.FormScrollTo as string;
+    var openAssignment = Model.Assignments.FirstOrDefault(a => a.ReturnedAt == null && a.Status == AssetAssignmentStatus.Active);
+    var pendingAssignment = Model.Assignments.FirstOrDefault(a => a.ReturnedAt == null && a.Status == AssetAssignmentStatus.PendingApproval);
+    var pendingLossReport = Model.LossReports.FirstOrDefault(r => r.Status == AssetLossReportStatus.PendingApproval);
+    var canAssign = !Model.IsCancelled
+        && Model.Status is not AssetStatus.Disposed and not AssetStatus.Lost
+        && openAssignment is null && pendingAssignment is null && pendingLossReport is null;
+    var defaultLossContext = openAssignment is not null
+        ? AssetLossContext.WithOpenAssignment
+        : Model.Status == AssetStatus.Maintenance
+            ? AssetLossContext.InMaintenance
+            : AssetLossContext.InStorage;
+    var requiresLossApproval = AssetLostRules.RequiresLossApproval(Model);
+    var canMarkLost = AssetLostRules.CanRequestLoss(Model, pendingLossReport);
+    var canRecover = AssetLostRules.CanRecover(Model);
+    var lossHistory = Model.LossReports.OrderByDescending(r => r.CreatedAt).ToList();
+    var recentMaintenance = Model.MaintenanceRecords.OrderByDescending(m => m.PerformedAt).Take(5).ToList();
+    string EmpName(Guid id) => employeeNames.TryGetValue(id, out var n) ? n : id.ToString();
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="btn-group">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-warning btn-sm">تعديل</a>
+        <a asp-controller="MaintenanceRecords" asp-action="Create" asp-route-assetId="@Model.Id" class="btn btn-outline-secondary btn-sm">إضافة صيانة</a>
+        @if (!Model.IsCancelled && openAssignment is null && pendingAssignment is null)
+        {
+            <form asp-action="CancelAsset" method="post" class="d-inline"
+                  data-hr-confirm="إلغاء هذا الأصل؟"
+                  data-hr-confirm-title="إلغاء الأصل"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="إلغاء">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="reason" value="إلغاء من واجهة التفاصيل" />
+                <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء الأصل</button>
+            </form>
+        }
+    </div>
+    <a asp-action="Index" class="btn btn-link">العودة للقائمة</a>
+</div>
+
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h3 class="mb-0">@Model.Name</h3>
-        <span class="badge bg-secondary">@Model.Status</span>
+        <div class="d-flex gap-2">
+            @if (Model.IsLegacyEntry)
+            {
+                <span class="badge bg-secondary">أصل قديم/هبة</span>
+            }
+            @if (Model.IsPrivileged)
+            {
+                <span class="badge bg-warning text-dark">أصل مميز</span>
+            }
+            @if (Model.IsCancelled)
+            {
+                <span class="badge bg-danger">ملغى</span>
+            }
+            <span class="badge bg-secondary">@Html.HrEnumDisplay(Model.Status)</span>
+        </div>
     </div>
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">رقم العهدة</dt><dd class="col-sm-9">@Model.TagNumber</dd>
-            <dt class="col-sm-3">الفئة</dt><dd class="col-sm-9">@Model.Category</dd>
-            <dt class="col-sm-3">الماركة / الموديل</dt><dd class="col-sm-9">@Model.Brand @Model.Model</dd>
+            <dt class="col-sm-3">الفئة</dt><dd class="col-sm-9">@(Model.Category ?? "—")</dd>
+            <dt class="col-sm-3">الماركة / الموديل</dt><dd class="col-sm-9">@(string.Join(" ", new[] { Model.Brand, Model.Model }.Where(s => !string.IsNullOrWhiteSpace(s))) is { Length: > 0 } t ? t : "—")</dd>
+            <dt class="col-sm-3">تاريخ الشراء</dt><dd class="col-sm-9">@(Model.PurchaseDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">القيمة</dt><dd class="col-sm-9">@(Model.Value?.ToString("N2") ?? "—")</dd>
+            @if (Model.IsLegacyEntry)
+            {
+                <dt class="col-sm-3">مصدر التوريد (سجل الاستلام)</dt>
+                <dd class="col-sm-9">
+                    <span class="badge bg-secondary">أصل قديم/هبة</span>
+                    @(Model.LegacyEntryReason ?? "—")
+                </dd>
+            }
+            else if (Model.OriginReceiptRecordId is Guid receiptId)
+            {
+                <dt class="col-sm-3">مصدر التوريد (سجل الاستلام)</dt>
+                <dd class="col-sm-9">
+                    <a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@receiptId">
+                        استلام @Model.OriginReceiptRecord?.ReceivedAt?.ToString("yyyy/MM/dd") — @(Model.OriginReceiptRecord?.ItemsReceived ?? "—")
+                    </a>
+                    @if (Model.OriginReceiptRecord?.SupplyOrderId is Guid soId)
+                    {
+                        <span class="text-muted ms-2">(<a asp-controller="SupplyOrders" asp-action="Details" asp-route-id="@soId">طلب تجهيز</a>)</span>
+                    }
+                </dd>
+            }
+            @if (Model.IsCancelled)
+            {
+                <dt class="col-sm-3">تاريخ الإلغاء</dt><dd class="col-sm-9">@(Model.CancelledAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">سبب الإلغاء</dt><dd class="col-sm-9">@(Model.CancellationReason ?? "—")</dd>
+            }
         </dl>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">تسليم عهدة لموظف</div>
-    <div class="card-body">
-        <form asp-action="AssignToEmployee" method="post" class="row g-2">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@Model.Id" />
-            <div class="col-md-4">
-                <label class="form-label">معرّف الموظف </label>
-                <input type="text" name="employeeId" class="form-control" required  />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">إعادة متوقعة</label>
-                <input type="date" name="dueBackDate" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">الحالة عند التسليم</label>
-                <input type="text" name="conditionOnAssign" class="form-control" />
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">تسليم</button>
-            </div>
-        </form>
+@if (pendingAssignment is not null)
+{
+    <div class="card mb-3 border-warning">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span>بانتظار الموافقة</span>
+            <span class="badge bg-warning text-dark">@Html.HrEnumDisplay(pendingAssignment.Status)</span>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">الموظف</dt>
+                <dd class="col-sm-9">
+                    @if (employeeNames.TryGetValue(pendingAssignment.EmployeeId, out var pendingEmpName) && HrLookupDisplayHelper.IsResolvedEmployeeName(pendingEmpName))
+                    {
+                        <span>@pendingEmpName</span>
+                    }
+                    else
+                    {
+                        <span data-hr-employee-id="@pendingAssignment.EmployeeId">غير متاح</span>
+                    }
+                </dd>
+                <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@pendingAssignment.AssignedAt.ToString("yyyy/MM/dd")</dd>
+                <dt class="col-sm-3">الدليل</dt>
+                <dd class="col-sm-9">@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = pendingAssignment, Asset = Model })</dd>
+            </dl>
+            <p class="text-muted small mb-0 mt-2">لا يمكن الاسترداد حتى اكتمال الموافقة في HR.Core.</p>
+        </div>
     </div>
-</div>
+}
+
+@if (openAssignment is not null)
+{
+    <div class="card mb-3 border-primary">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span>الحائز الحالي</span>
+            <a asp-action="HandoverReceiptPdf" asp-route-assignmentId="@openAssignment.Id" class="btn btn-sm btn-outline-primary">تحميل محضر</a>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-3">
+                <dt class="col-sm-3">الموظف</dt>
+                <dd class="col-sm-9">
+                    @if (employeeNames.TryGetValue(openAssignment.EmployeeId, out var openEmpName) && HrLookupDisplayHelper.IsResolvedEmployeeName(openEmpName))
+                    {
+                        <span>@openEmpName</span>
+                    }
+                    else
+                    {
+                        <span data-hr-employee-id="@openAssignment.EmployeeId">غير متاح</span>
+                    }
+                </dd>
+                <dt class="col-sm-3">تاريخ التسليم</dt><dd class="col-sm-9">@openAssignment.AssignedAt.ToString("yyyy/MM/dd")</dd>
+                <dt class="col-sm-3">إعادة متوقعة</dt><dd class="col-sm-9">@(openAssignment.DueBackDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">الحالة عند التسليم</dt><dd class="col-sm-9">@AssetAssignmentDisplay.FormatHandoverCondition(openAssignment)</dd>
+                @if (!string.IsNullOrWhiteSpace(openAssignment.ReturnNotes))
+                {
+                    <dt class="col-sm-3">ملاحظات الإعادة</dt><dd class="col-sm-9">@AssetAssignmentDisplay.FormatReturnNotesHtml(openAssignment.ReturnNotes)</dd>
+                }
+                <dt class="col-sm-3">الدليل</dt>
+                <dd class="col-sm-9">@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = openAssignment, Asset = Model })</dd>
+            </dl>
+            <form id="return-form" asp-action="ReturnAssignment" method="post" class="row g-2 align-items-end"
+                  data-hr-asset-form="return" data-hr-requires-proof="@(Model.IsPrivileged ? "true" : "false")"
+                  data-hr-confirm="تأكيد استرداد العهدة؟"
+                  data-hr-confirm-title="استرداد العهدة"
+                  data-hr-confirm-label="استرداد">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="assignmentId" value="@openAssignment.Id" />
+                <input type="hidden" name="assetId" value="@Model.Id" />
+                <input type="hidden" name="returnUploadInProgress" value="0" data-upload-in-progress-flag />
+                @if (Model.IsPrivileged)
+                {
+                    <div class="col-md-4">
+                        <label class="form-label">مرجع الدليل (نص أو ملف)</label>
+                        <input type="text" name="evidenceRef" class="form-control" maxlength="256" placeholder="مثال: EVD-2026-001 أو رقم محضر"
+                               value="@returnDraft?.EvidenceRef" />
+                        <div class="form-text">اختياري إذا رفعت ملفاً — يكفي مرجع نصي أو ملف.</div>
+                    </div>
+                    <div class="col-md-4">
+                        @{
+                            ViewData["FileUploadName"] = "returnFileId";
+                            ViewData["FileUploadLabel"] = "ملف الاسترداد";
+                            ViewData["FileUploadAccept"] = "application/pdf,image/*";
+                        }
+                        @await Html.PartialAsync("_FileUploadWidget", returnDraft?.ReturnFileId ?? openAssignment.ReturnFileId)
+                    </div>
+                }
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-success">استرداد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (canAssign)
+{
+    <div class="card mb-3" id="assign-form-card">
+        <div class="card-header">تسليم عهدة لموظف</div>
+        <div class="card-body">
+            <form id="assign-form" asp-action="AssignToEmployee" method="post" class="row g-2"
+                  data-hr-asset-form="assign" data-hr-requires-proof="@(Model.IsPrivileged ? "true" : "false")"
+                  data-hr-confirm="تأكيد تسليم العهدة للموظف؟"
+                  data-hr-confirm-title="تسليم عهدة"
+                  data-hr-confirm-label="تسليم">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="handoverUploadInProgress" value="0" data-upload-in-progress-flag />
+                <div class="col-md-4">
+                    <label class="form-label">الموظف</label>
+                    <select name="employeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..." required>
+                        <option value=""></option>
+                        @if (assignDraft?.EmployeeId is Guid empId && empId != Guid.Empty)
+                        {
+                            <option value="@empId" selected="selected">@EmpName(empId)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">إعادة متوقعة</label>
+                    <input type="date" name="dueBackDate" class="form-control"
+                           value="@(assignDraft?.DueBackDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">الحالة عند التسليم</label>
+                    <select name="handoverCondition" class="form-select" data-hr-picker="select">
+                        @foreach (AssetHandoverCondition c in Enum.GetValues<AssetHandoverCondition>())
+                        {
+                            var sel = (assignDraft?.HandoverCondition ?? AssetHandoverCondition.Good) == c;
+                            if (sel)
+                            {
+                                <option value="@((int)c)" selected="selected">@Html.HrEnumDisplay(c)</option>
+                            }
+                            else
+                            {
+                                <option value="@((int)c)">@Html.HrEnumDisplay(c)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">ملاحظات الحالة</label>
+                    <input type="text" name="handoverConditionNotes" class="form-control" maxlength="256" placeholder="ملاحظات اختيارية (مثلاً: خدش بسيط)"
+                           value="@assignDraft?.HandoverConditionNotes" />
+                </div>
+                @if (Model.IsPrivileged)
+                {
+                    <div class="col-md-2">
+                        <label class="form-label">مرجع الدليل (نص أو ملف)</label>
+                        <input type="text" name="evidenceRef" class="form-control" maxlength="256" placeholder="مثال: EVD-2026-001 أو رقم محضر"
+                               value="@assignDraft?.EvidenceRef" />
+                        <div class="form-text">اختياري إذا رفعت ملفاً — يكفي مرجع نصي أو ملف المحضر.</div>
+                    </div>
+                    <div class="col-md-4">
+                        @{
+                            ViewData["FileUploadName"] = "handoverFileId";
+                            ViewData["FileUploadLabel"] = "مسح محضر التسليم";
+                            ViewData["FileUploadAccept"] = "application/pdf,image/*";
+                        }
+                        @await Html.PartialAsync("_FileUploadWidget", assignDraft?.HandoverFileId)
+                    </div>
+                }
+                @if (!Model.IsPrivileged)
+                {
+                    <div class="col-12"><p class="text-muted small mb-0">الدليل غير مطلوب لهذا الأصل.</p></div>
+                }
+                @if (AssetApprovalRules.RequiresApproval(Model))
+                {
+                    <div class="col-12"><p class="text-info small mb-0">يتطلب هذا الأصل موافقة قبل التفعيل.</p></div>
+                }
+                <div class="col-md-auto d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">تسليم</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (pendingLossReport is not null)
+{
+    <div class="alert alert-warning">
+        طلب فقدان بانتظار الموافقة.
+        @if (pendingLossReport.WorkflowInstanceId is Guid wfId)
+        {
+            <a href="/ui/hr-core/Approvals/Review?workflowInstanceId=@wfId" class="alert-link">عرض الموافقة</a>
+        }
+    </div>
+}
+
+@if (canMarkLost)
+{
+    <div class="card mb-3 border-warning">
+        <div class="card-header">تقرير فقدان أصل</div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">يُغلق العهد المفتوح ويُمنع التسليم لاحقاً. @(requiresLossApproval ? "يتطلب هذا الأصل موافقة قبل تأكيد الفقدان." : "يُطبَّق الفقدان فوراً.")</p>
+            @if (openAssignment is not null)
+            {
+                <div class="alert alert-info py-2 small">العهدة حالياً مع: <strong>
+                    @if (employeeNames.TryGetValue(openAssignment.EmployeeId, out var holderName) && HrLookupDisplayHelper.IsResolvedEmployeeName(holderName))
+                    {
+                        <span>@holderName</span>
+                    }
+                    else
+                    {
+                        <span data-hr-employee-id="@openAssignment.EmployeeId">غير متاح</span>
+                    }
+                </strong></div>
+            }
+            <form id="loss-form" asp-action="MarkLost" method="post" class="row g-2 align-items-end"
+                  data-hr-asset-form="loss" data-hr-requires-proof="@((Model.IsPrivileged || requiresLossApproval) ? "true" : "false")"
+                  data-hr-confirm="@(requiresLossApproval ? "إرسال طلب الفقدان للموافقة؟" : "تأكيد وسم الأصل مفقوداً؟")"
+                  data-hr-confirm-title="تقرير فقدان أصل"
+                  data-hr-confirm-variant="warning"
+                  data-hr-confirm-label="تأكيد"
+                  data-hr-confirm-cancel="إلغاء">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="lossUploadInProgress" value="0" data-upload-in-progress-flag />
+                <div class="col-md-2">
+                    <label class="form-label">السبب</label>
+                    <select name="reason" class="form-select" data-hr-picker="select" required>
+                        @foreach (AssetLossReason r in Enum.GetValues<AssetLossReason>())
+                        {
+                            var sel = (lossDraft?.Reason ?? AssetLossReason.Other) == r;
+                            if (sel)
+                            {
+                                <option value="@((int)r)" selected="selected">@Html.HrEnumDisplay(r)</option>
+                            }
+                            else
+                            {
+                                <option value="@((int)r)">@Html.HrEnumDisplay(r)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">السياق</label>
+                    <select name="context" class="form-select" data-hr-picker="select" required>
+                        @foreach (AssetLossContext c in Enum.GetValues<AssetLossContext>())
+                        {
+                            var ctx = lossDraft?.Context ?? defaultLossContext;
+                            if (c == ctx)
+                            {
+                                <option value="@((int)c)" selected="selected">@Html.HrEnumDisplay(c)</option>
+                            }
+                            else
+                            {
+                                <option value="@((int)c)">@Html.HrEnumDisplay(c)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">ملاحظات</label>
+                    <input type="text" name="notes" class="form-control" maxlength="256" placeholder="تفاصيل اختيارية"
+                           value="@lossDraft?.Notes" />
+                </div>
+                @if (Model.IsPrivileged || requiresLossApproval)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">مرجع الدليل @(Model.IsPrivileged ? "(إلزامي)" : "")</label>
+                        <input type="text" name="evidenceRef" class="form-control" maxlength="256"
+                               value="@lossDraft?.EvidenceRef" placeholder="مثال: EVD-2026-001" />
+                        <div class="form-text">اختياري إذا رفعت ملفاً — يكفي مرجع نصي أو ملف.</div>
+                    </div>
+                    <div class="col-md-4">
+                        @{
+                            ViewData["FileUploadName"] = "lossFileId";
+                            ViewData["FileUploadLabel"] = "ملف دليل الفقدان";
+                            ViewData["FileUploadAccept"] = "application/pdf,image/*";
+                        }
+                        @await Html.PartialAsync("_FileUploadWidget", lossDraft?.LossFileId)
+                    </div>
+                }
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-outline-warning">@(requiresLossApproval ? "إرسال تقرير فقدان" : "تأكيد الفقدان")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (canRecover)
+{
+    <div class="card mb-3 border-success">
+        <div class="card-header">إيجاد الأصل / إلغاء وسم الفقدان</div>
+        <div class="card-body">
+            <form asp-action="RecoverAsset" method="post" class="row g-2 align-items-end"
+                  data-hr-confirm="تأكيد إيجاد الأصل وإعادته للمخزن؟"
+                  data-hr-confirm-title="استرداد أصل مفقود"
+                  data-hr-confirm-variant="warning">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="col-md-6">
+                    <label class="form-label">ملاحظات الاسترداد (إلزامي)</label>
+                    <input type="text" name="recoveryNotes" class="form-control" required minlength="5" maxlength="256" placeholder="مثال: وُجد في المستودع الفرعي" />
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-success">استرداد للمخزن</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (lossHistory.Any())
+{
+    <div class="card mb-3">
+        <div class="card-header">سجل الفقدان</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>التاريخ</th><th>الحالة</th><th>التفاصيل</th><th>قبل/بعد</th></tr></thead>
+                <tbody>
+                    @foreach (var lr in lossHistory)
+                    {
+                        <tr>
+                            <td>@lr.CreatedAt.ToString("yyyy/MM/dd")</td>
+                            <td>@Html.HrEnumDisplay(lr.Status)</td>
+                            <td>@AssetLossDisplay.FormatReport(lr)</td>
+                            <td><small class="text-muted">@AssetLossDisplay.FormatStateSnapshot(lr)</small></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
 
 <div class="card mb-3">
     <div class="card-header">سجل التسليم</div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
-            <thead><tr><th>الموظف</th><th>تاريخ التسليم</th><th>إعادة</th><th></th></tr></thead>
+            <thead>
+                <tr>
+                    <th>الموظف</th>
+                    <th>الحالة</th>
+                    <th>تاريخ التسليم</th>
+                    <th>إعادة متوقعة</th>
+                    <th>إعادة</th>
+                    <th>الدليل</th>
+                    <th>ملاحظات الإعادة</th>
+                    <th></th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var a in Model.Assignments.OrderByDescending(x => x.AssignedAt))
                 {
                     <tr>
-                        <td>@a.EmployeeId</td>
-                        <td>@a.AssignedAt.ToString("yyyy/MM/dd")</td>
-                        <td>@(a.ReturnedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
                         <td>
-                            @if (a.ReturnedAt is null)
+                            @if (employeeNames.TryGetValue(a.EmployeeId, out var assignEmpName) && HrLookupDisplayHelper.IsResolvedEmployeeName(assignEmpName))
                             {
-                                <form asp-action="ReturnAssignment" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="assignmentId" value="@a.Id" />
-                                    <input type="hidden" name="assetId" value="@Model.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-success">استرداد</button>
-                                </form>
+                                <span>@assignEmpName</span>
+                            }
+                            else
+                            {
+                                <span data-hr-employee-id="@a.EmployeeId">غير متاح</span>
+                            }
+                        </td>
+                        <td>@Html.HrEnumDisplay(a.Status)</td>
+                        <td>@a.AssignedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@(a.DueBackDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@(a.ReturnedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = a, Asset = Model })</td>
+                        <td>@AssetAssignmentDisplay.FormatReturnNotesHtml(a.ReturnNotes)</td>
+                        <td>
+                            @if (a.Status == AssetAssignmentStatus.Active)
+                            {
+                                <a asp-action="HandoverReceiptPdf" asp-route-assignmentId="@a.Id" class="btn btn-sm btn-outline-primary">محضر</a>
                             }
                         </td>
                     </tr>
                 }
                 @if (!Model.Assignments.Any())
                 {
-                    <tr><td colspan="4" class="text-center text-muted py-3">لا سجلات</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-3">لا سجلات</td></tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
 
-<p><a asp-action="Index">العودة</a></p>
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>سجل الصيانة</span>
+        <a asp-controller="MaintenanceRecords" asp-action="Index" asp-route-assetId="@Model.Id" class="btn btn-sm btn-link">عرض الكل</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>النوع</th><th>التاريخ</th><th>التكلفة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var m in recentMaintenance)
+                {
+                    <tr>
+                        <td>@Html.HrEnumDisplay(m.MaintenanceType)</td>
+                        <td>@m.PerformedAt?.ToString("yyyy/MM/dd")</td>
+                        <td>@(m.Cost?.ToString("N2") ?? "—")</td>
+                        <td><a asp-controller="MaintenanceRecords" asp-action="Details" asp-route-id="@m.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!recentMaintenance.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-3">لا سجلات صيانة</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(formScrollTo))
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var target = document.getElementById('@(formScrollTo)-form') || document.getElementById('@(formScrollTo)-form-card');
+            if (!target) return;
+            function scrollToForm() {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            var flash = document.getElementById('hrFlashDialog');
+            if (flash && flash.dataset.show === 'true') {
+                var modal = document.getElementById('hrConfirmModal');
+                if (modal) {
+                    modal.addEventListener('hidden.bs.modal', function () { scrollToForm(); }, { once: true });
+                }
+            } else {
+                scrollToForm();
+            }
+        });
+    </script>
+}

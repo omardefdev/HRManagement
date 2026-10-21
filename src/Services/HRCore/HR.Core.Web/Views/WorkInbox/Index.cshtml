@@ -1,0 +1,101 @@
+@model HR.Core.Web.ViewModels.WorkInboxIndexViewModel
+@using HRManagement.ServiceDefaults.Workflow
+@{
+    ViewData["Title"] = "صندوق العمل";
+    var items = Model.FilteredItems;
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-inbox"></i> @ViewData["Title"]</h3>
+        <div class="card-tools">
+            <span class="badge text-bg-primary">@Model.PendingCount معلّق</span>
+            @if (Model.WorkflowCount > 0)
+            {
+                <span class="badge text-bg-info">@Model.WorkflowCount مسار</span>
+            }
+            @if (Model.LegacyCount > 0)
+            {
+                <span class="badge text-bg-secondary">@Model.LegacyCount legacy</span>
+            }
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-4">
+                <input type="text" name="entityType" value="@Model.EntityTypeFilter" class="form-control form-control-sm" placeholder="تصفية حسب النوع (مثال: شاغر، عرض)" />
+            </div>
+            <div class="col-md-3">
+                <select name="source" class="form-select form-select-sm">
+                    <option value="">كل المصادر</option>
+                    <option value="hr-core" selected="@(Model.SourceFilter == "hr-core")">مسارات workflow</option>
+                    <option value="legacy-approval" selected="@(Model.SourceFilter == "legacy-approval")">اعتمادات legacy</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-default"><i class="fas fa-filter"></i> تصفية</button>
+            </div>
+        </form>
+
+        @if (!items.Any())
+        {
+            <div class="alert alert-info mb-0">لا توجد عناصر قابلة للتنفيذ في صندوقك حالياً.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>العنوان</th>
+                            <th>المصدر</th>
+                            <th>الأولوية</th>
+                            <th>العمر (أيام)</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@item.Title</strong>
+                                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                                    {
+                                        <br /><small class="text-muted">@item.Description</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.SourceSystem == "legacy-approval")
+                                    {
+                                        <span class="badge text-bg-secondary">legacy</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-info">workflow</span>
+                                    }
+                                </td>
+                                <td><span class="badge text-bg-light">@item.Priority</span></td>
+                                <td>@item.AgingDays</td>
+                                <td dir="ltr">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(item.DeepLink))
+                                    {
+                                        <a href="/ui/hr-core@(item.DeepLink)" class="btn btn-primary btn-xs">
+                                            <i class="fas fa-external-link-alt"></i> فتح
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+    <div class="card-footer text-muted small">
+        <a asp-controller="Approvals" asp-action="Pending"><i class="fas fa-gavel"></i> اعتمادات legacy (قائمة منفصلة)</a>
+        · افتح العنصر من «فتح» لاعتماد/رفض من صفحة التفاصيل (PLAN-21/22).
+    </div>
+</div>

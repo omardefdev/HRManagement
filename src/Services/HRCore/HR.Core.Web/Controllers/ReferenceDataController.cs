@@ -209,6 +209,9 @@ public class ReferenceDataController : ControllerBase
 
         Task<int> CountByCode(string entity, string code, CancellationToken c) => entity switch
         {
+            "JobCatalogEntry.GradeCode" => _db.JobCatalogEntries.CountAsync(e => e.GradeCode == code, c),
+            "JobCatalogEntry.OccupationalGroup" => _db.JobCatalogEntries.CountAsync(
+                e => e.OccupationalGroup == code, c),
             "EmploymentRecord" => _db.EmploymentRecords.CountAsync(r => r.JobClassificationCode == code, c),
             "CareerPathStep" => _db.CareerPathSteps.CountAsync(s => s.JobClassificationCode == code, c),
             _ => Task.FromResult(0)

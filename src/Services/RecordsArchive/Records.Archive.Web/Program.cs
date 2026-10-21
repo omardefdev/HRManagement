@@ -1,6 +1,10 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Seeding;
 using Records.Archive.Infrastructure.Consumers;
 using Records.Archive.Infrastructure.Data;
 
@@ -9,6 +13,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("Records.Archive.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleRecordsArchive);
@@ -30,6 +35,8 @@ builder.Services.AddDbContext<ArchiveDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ArchiveDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
+builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Records.Archive.Infrastructure.ExportJobs.IArchiveExportJobService, Records.Archive.Infrastructure.ExportJobs.ArchiveExportJobService>();
 builder.Services.AddServiceMassTransit(
@@ -44,16 +51,20 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<ArchiveDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 try
 {
-    if (app.Environment.IsDevelopment())
+    if (seedProfile != SeedProfile.None)
     {
         using var scope = app.Services.CreateScope();
         var archiveDb = scope.ServiceProvider.GetRequiredService<ArchiveDbContext>();
-        await DemoArchiveSeeder.SeedAsync(archiveDb);
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceArchiveSeeder.SeedAsync(archiveDb);
+        else
+            await DemoArchiveSeeder.SeedAsync(archiveDb);
     }
 }
-catch (Exception ex)
+catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
 {
     app.Logger.LogWarning(ex, "Records.Archive demo seed skipped.");
 }
@@ -67,6 +78,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();

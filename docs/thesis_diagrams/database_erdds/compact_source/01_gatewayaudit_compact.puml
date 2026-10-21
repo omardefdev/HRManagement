@@ -12,9 +12,38 @@ skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
 title "خريطة ERD المختصرة لقاعدة gateway_audit_db\nGateway Audit"
 
-entity "gateway_audit_entries\nGatewayAuditEntry" as T01 {
+entity "audit_legal_holds\nAuditLegalHold" as T01 {
   * Id
     CorrelationId
+}
+entity "gateway_audit_chain_state\nGatewayAuditChainState" as T02 {
+  * ChainKey
+}
+entity "gateway_audit_entries\nGatewayAuditEntry" as T03 {
+  * Id
+    CorrelationId
+}
+entity "security_audit_events\nSecurityAuditEvent" as T04 {
+  * Id
+    CorrelationId
+    TenantId
+}
+entity "EvidenceArtifacts\nEvidenceArtifact" as T05 {
+  * Id
+    ArtifactId
+    CardId
+    ControlId
+}
+entity "EvidencePackExports\nEvidencePackExport" as T06 {
+  * Id
+    PackId
+}
+entity "EvidenceRecords\nEvidenceRecord" as T07 {
+  * Id
+    CausationId
+    CorrelationId
+    TenantId
+    TimeZoneId
 }
 
 

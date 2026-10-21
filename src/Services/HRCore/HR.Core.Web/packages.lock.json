@@ -41,12 +41,6 @@
           "Newtonsoft.Json": "13.0.3"
         }
       },
-      "QuestPDF": {
-        "type": "Direct",
-        "requested": "[2026.2.4, )",
-        "resolved": "2026.2.4",
-        "contentHash": "fajBdRJFr3hu2Mr6mEVsXjvVKD9Q/Q6hfPEUMpV/xlwxWdFebmpGdi0FLQTApMvpapy72v9dvcGuk7e7NQmQyQ=="
-      },
       "SkiaSharp": {
         "type": "Direct",
         "requested": "[3.119.0, )",
@@ -555,6 +549,13 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
+      "hrmanagement.documents.questpdf": {
+        "type": "Project",
+        "dependencies": {
+          "QuestPDF": "[2026.2.4, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
+        }
+      },
       "hrmanagement.filestorage": {
         "type": "Project",
         "dependencies": {
@@ -833,6 +834,12 @@
         "requested": "[7.2.4, )",
         "resolved": "7.2.4",
         "contentHash": "bw00Ck5sh6ekduDE3mnCo1ohzuad946uslCDEENu3091+6UKnBuKLo4e+yaNcCzXxOZCXWY2gV4a35+K1d4LDA=="
+      },
+      "QuestPDF": {
+        "type": "CentralTransitive",
+        "requested": "[2026.2.4, )",
+        "resolved": "2026.2.4",
+        "contentHash": "fajBdRJFr3hu2Mr6mEVsXjvVKD9Q/Q6hfPEUMpV/xlwxWdFebmpGdi0FLQTApMvpapy72v9dvcGuk7e7NQmQyQ=="
       },
       "Serilog.AspNetCore": {
         "type": "CentralTransitive",

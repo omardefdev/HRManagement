@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Admin.Logistics.Domain\Admin.Logistics.Domain.csproj" />
     <ProjectReference Include="..\Admin.Logistics.Infrastructure\Admin.Logistics.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\HRManagement.Documents.QuestPdf\HRManagement.Documents.QuestPdf.csproj" />
     <ProjectReference Include="..\..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />

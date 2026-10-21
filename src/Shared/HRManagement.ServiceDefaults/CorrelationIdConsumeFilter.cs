@@ -18,6 +18,21 @@ public sealed class CorrelationIdConsumeFilter<T> : IFilter<ConsumeContext<T>>
         if (!string.IsNullOrWhiteSpace(correlationId))
             CorrelationIdFlow.Set(correlationId);
 
-        await next.Send(context);
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                using (Serilog.Context.LogContext.PushProperty("CorrelationId", correlationId))
+                    await next.Send(context);
+            }
+            else
+            {
+                await next.Send(context);
+            }
+        }
+        finally
+        {
+            CorrelationIdFlow.Set(null);
+        }
     }
 }

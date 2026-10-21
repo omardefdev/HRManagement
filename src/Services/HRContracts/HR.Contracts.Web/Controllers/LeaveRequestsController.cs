@@ -2,12 +2,14 @@ using System.Security.Claims;
 using FluentValidation;
 using HR.Contracts.Application.Features.LeaveRequests;
 using HR.Contracts.Application.Models;
+using HR.Contracts.Domain.Enums;
 using HR.Contracts.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using HR.Contracts.Web.ViewModels;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
+using HRManagement.ServiceDefaults.Integration;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,11 +19,16 @@ public class LeaveRequestsController : Controller
 {
     private readonly IMediator _mediator;
     private readonly ContractsDbContext _db;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public LeaveRequestsController(IMediator mediator, ContractsDbContext db)
+    public LeaveRequestsController(
+        IMediator mediator,
+        ContractsDbContext db,
+        IHrCoreLookupClient hrCoreLookup)
     {
         _mediator = mediator;
         _db = db;
+        _hrCoreLookup = hrCoreLookup;
     }
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
@@ -30,14 +37,44 @@ public class LeaveRequestsController : Controller
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(ApprovalStatus? status, LeaveType? leaveType, Guid? employeeId)
     {
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
         var items = await _mediator.Send(new GetLeaveRequestsQuery());
         if (scope.MustFilter)
             items = items.Where(x => x.OrgUnitId.HasValue && scope.AllowedOrgUnitIds.Contains(x.OrgUnitId.Value)).ToList();
+        if (status.HasValue)
+            items = items.Where(x => x.Status == status.Value).ToList();
+        if (leaveType.HasValue)
+            items = items.Where(x => x.LeaveType == leaveType.Value).ToList();
+        if (employeeId.HasValue)
+            items = items.Where(x => x.EmployeeId == employeeId.Value).ToList();
+
+        ViewBag.StatusFilter = status;
+        ViewBag.LeaveTypeFilter = leaveType;
+        ViewBag.EmployeeId = employeeId;
+        var nameIds = items.Select(x => x.EmployeeId).ToList();
+        if (employeeId.HasValue)
+            nameIds.Add(employeeId.Value);
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(nameIds);
         return View(items);
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        try
+        {
+            foreach (var row in await _hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList()))
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<LeaveRequestsController>>()
+                .LogWarning(ex, "Employee name lookup failed for leave requests.");
+        }
+        return result;
     }
 
     public IActionResult Create() => View(new LeaveRequestViewModel());

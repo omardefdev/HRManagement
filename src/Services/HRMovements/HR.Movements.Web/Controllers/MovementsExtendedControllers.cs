@@ -3,9 +3,11 @@ using HR.Movements.Domain.Entities;
 using HR.Movements.Domain.Enums;
 using HR.Movements.Domain.Services;
 using HR.Movements.Infrastructure.Data;
+using HR.Movements.Infrastructure.Services;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.ViewModels;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
@@ -875,6 +877,350 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         }
 
         TempData["Error"] = "لا يمكن إلغاء الطلب في حالته الحالية";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+}
+
+public class PromotionRequestsController(
+    MovementsDbContext db,
+    IPublishEndpoint publish,
+    IHrCoreActiveRegimeClient activeRegimeClient) : Controller
+{
+    private static Guid? ParseUserId(ClaimsPrincipal user)
+    {
+        var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
+        return Guid.TryParse(v, out var g) ? g : null;
+    }
+
+    public async Task<IActionResult> Index() =>
+        View(await db.PromotionRequests.AsNoTracking().OrderByDescending(x => x.EffectiveDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+
+    public IActionResult Create() => View(new PromotionRequest
+    {
+        EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
+        Status = PromotionRequestStatus.Pending
+    });
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(PromotionRequest model)
+    {
+        var regimes = await activeRegimeClient.GetActiveRegimesAsync([model.EmployeeId]);
+        model.SourceLegalRegimeId = regimes.FirstOrDefault()?.LegalRegimeId;
+
+        var regimeError = PromotionRegimeValidationService.Validate(model);
+        if (regimeError is not null)
+            ModelState.AddModelError(string.Empty, regimeError);
+
+        if (!ModelState.IsValid) return View(model);
+
+        model.RequestedBy ??= ParseUserId(User);
+        model.Status = PromotionRequestStatus.Pending;
+        db.PromotionRequests.Add(model);
+        await db.SaveChangesAsync();
+
+        foreach (var step in MovementChecklistDefaults.CreateFor(MovementKind.Promotion, model.Id))
+            db.MovementChecklists.Add(step);
+        await db.SaveChangesAsync();
+
+        var recorded = await db.MovementChecklists.FirstAsync(c =>
+            c.CorrelationId == model.Id && c.Step == MovementChecklistStep.RequestRecorded);
+        MovementWorkflowRules.MarkStep(recorded, ParseUserId(User), $"promotion:{model.Id}:recorded");
+        await db.SaveChangesAsync();
+
+        TempData["Success"] = "تم تسجيل طلب الترفيع";
+        return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Details(Guid id)
+    {
+        var item = await db.PromotionRequests
+            .Include(x => x.ExecutionRecords)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (item is null) return NotFound();
+        ViewBag.Checklist = await db.MovementChecklists.AsNoTracking()
+            .Where(c => c.CorrelationId == id && c.MovementKind == MovementKind.Promotion)
+            .OrderBy(c => c.Step)
+            .ToListAsync();
+        return View(item);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    public async Task<IActionResult> Approve(Guid id)
+    {
+        var item = await db.PromotionRequests.FindAsync(id);
+        if (item is null) return NotFound();
+        if (item.IsCancelled || item.Status != PromotionRequestStatus.Pending)
+        {
+            TempData["Error"] = "الطلب ليس قيد الانتظار";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var by = ParseUserId(User);
+        if (by is null)
+        {
+            TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (item.RequestedBy.HasValue && by.Value == item.RequestedBy.Value)
+        {
+            TempData["Error"] = "لا يمكن للمنشئ اعتماد عمله الخاص.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var regimeError = PromotionRegimeValidationService.Validate(item);
+        if (regimeError is not null)
+        {
+            TempData["Error"] = regimeError;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        item.Status = PromotionRequestStatus.Approved;
+        var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
+            c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Approved);
+        if (approved is not null && !approved.IsCompleted)
+            MovementWorkflowRules.MarkStep(approved, by, $"promotion:{item.Id}:approved");
+        await db.SaveChangesAsync();
+        TempData["Success"] = "تم اعتماد الترفيع";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Execute(Guid id)
+    {
+        var item = await db.PromotionRequests.FindAsync(id);
+        if (item is null) return NotFound();
+        if (item.IsCancelled || item.Status != PromotionRequestStatus.Approved)
+        {
+            TempData["Error"] = "يجب اعتماد الطلب قبل التنفيذ";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (!MovementWorkflowRules.IsEffectiveDateReached(item.EffectiveDate))
+        {
+            TempData["Error"] = $"لا يمكن تنفيذ الترفيع قبل تاريخ النفاذ {item.EffectiveDate:yyyy-MM-dd}";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var checklist = await db.MovementChecklists
+            .Where(c => c.CorrelationId == id && c.MovementKind == MovementKind.Promotion)
+            .ToListAsync();
+        if (!MovementWorkflowRules.PreExecuteChecklistComplete(checklist))
+        {
+            TempData["Error"] = "أكمل خطوات الحوكمة الإلزامية قبل التنفيذ";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var executedAt = DateTime.UtcNow;
+        var by = ParseUserId(User);
+        item.Status = PromotionRequestStatus.Executed;
+        db.MovementExecutionRecords.Add(new MovementExecutionRecord
+        {
+            PromotionRequestId = item.Id,
+            EmployeeId = item.EmployeeId,
+            ExecutedAt = executedAt,
+            Notes = $"ترفيع {item.FromGrade}/{item.FromStep} -> {item.ToGrade}/{item.ToStep}"
+        });
+        var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
+        if (executedStep is not null && !executedStep.IsCompleted)
+            MovementWorkflowRules.MarkStep(executedStep, by, $"promotion:{item.Id}:executed");
+        await db.SaveChangesAsync();
+
+        await publish.Publish<IPromotionExecuted>(new
+        {
+            PromotionRequestId = item.Id,
+            item.EmployeeId,
+            item.SourceLegalRegimeId,
+            item.FromGrade,
+            item.ToGrade,
+            item.FromStep,
+            item.ToStep,
+            item.TransitionDecisionRef,
+            EffectiveDate = item.EffectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            CorrelationId = Guid.NewGuid(),
+            SourceSystem = "HR.Movements"
+        });
+        TempData["Success"] = "تم تنفيذ الترفيع ونشر الحدث";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+}
+
+public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+{
+    private static Guid? ParseUserId(ClaimsPrincipal user)
+    {
+        var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
+        return Guid.TryParse(v, out var g) ? g : null;
+    }
+
+    public async Task<IActionResult> Index() =>
+        View(await db.DelegationRequests.AsNoTracking().OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+
+    public IActionResult Create() => View(new DelegationRequest
+    {
+        StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+        EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)),
+        Status = DelegationRequestStatus.Pending
+    });
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(DelegationRequest model)
+    {
+        var regimeError = MovementRegimeValidationService.ValidatePreservingMovement("delegation", null);
+        if (regimeError is not null)
+            ModelState.AddModelError(string.Empty, regimeError);
+
+        if (!ModelState.IsValid) return View(model);
+
+        model.RequestedBy ??= ParseUserId(User);
+        model.Status = DelegationRequestStatus.Pending;
+        db.DelegationRequests.Add(model);
+        await db.SaveChangesAsync();
+
+        foreach (var step in MovementChecklistDefaults.CreateFor(MovementKind.Delegation, model.Id))
+            db.MovementChecklists.Add(step);
+        await db.SaveChangesAsync();
+
+        var recorded = await db.MovementChecklists.FirstAsync(c =>
+            c.CorrelationId == model.Id && c.Step == MovementChecklistStep.RequestRecorded);
+        MovementWorkflowRules.MarkStep(recorded, ParseUserId(User), $"delegation:{model.Id}:recorded");
+        await db.SaveChangesAsync();
+
+        TempData["Success"] = "تم تسجيل طلب الندب";
+        return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Details(Guid id)
+    {
+        var item = await db.DelegationRequests
+            .Include(x => x.ExecutionRecords)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (item is null) return NotFound();
+        ViewBag.Checklist = await db.MovementChecklists.AsNoTracking()
+            .Where(c => c.CorrelationId == id && c.MovementKind == MovementKind.Delegation)
+            .OrderBy(c => c.Step)
+            .ToListAsync();
+        return View(item);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    public async Task<IActionResult> Approve(Guid id)
+    {
+        var item = await db.DelegationRequests.FindAsync(id);
+        if (item is null) return NotFound();
+        if (item.IsCancelled || item.Status != DelegationRequestStatus.Pending)
+        {
+            TempData["Error"] = "الطلب ليس قيد الانتظار";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var by = ParseUserId(User);
+        if (by is null)
+        {
+            TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (item.RequestedBy.HasValue && by.Value == item.RequestedBy.Value)
+        {
+            TempData["Error"] = "لا يمكن للمنشئ اعتماد عمله الخاص.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        item.Status = DelegationRequestStatus.Approved;
+        var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
+            c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Approved);
+        if (approved is not null && !approved.IsCompleted)
+            MovementWorkflowRules.MarkStep(approved, by, $"delegation:{item.Id}:approved");
+        await db.SaveChangesAsync();
+        TempData["Success"] = "تم اعتماد الندب";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Execute(Guid id)
+    {
+        var item = await db.DelegationRequests.FindAsync(id);
+        if (item is null) return NotFound();
+        if (item.IsCancelled || item.Status != DelegationRequestStatus.Approved)
+        {
+            TempData["Error"] = "يجب اعتماد الطلب قبل التنفيذ";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (!MovementWorkflowRules.IsEffectiveDateReached(item.StartDate))
+        {
+            TempData["Error"] = $"لا يمكن تنفيذ الندب قبل تاريخ البداية {item.StartDate:yyyy-MM-dd}";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var checklist = await db.MovementChecklists
+            .Where(c => c.CorrelationId == id && c.MovementKind == MovementKind.Delegation)
+            .ToListAsync();
+        if (!MovementWorkflowRules.PreExecuteChecklistComplete(checklist))
+        {
+            TempData["Error"] = "أكمل خطوات الحوكمة الإلزامية قبل التنفيذ";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var executedAt = DateTime.UtcNow;
+        var by = ParseUserId(User);
+        item.Status = DelegationRequestStatus.Active;
+        db.MovementExecutionRecords.Add(new MovementExecutionRecord
+        {
+            DelegationRequestId = item.Id,
+            EmployeeId = item.EmployeeId,
+            ExecutedAt = executedAt,
+            Notes = $"تفعيل ندب لدى {item.HostOrg}"
+        });
+        var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
+        if (executedStep is not null && !executedStep.IsCompleted)
+            MovementWorkflowRules.MarkStep(executedStep, by, $"delegation:{item.Id}:executed");
+        await db.SaveChangesAsync();
+
+        await publish.Publish<IDelegationExecuted>(new
+        {
+            DelegationRequestId = item.Id,
+            item.EmployeeId,
+            item.HostOrg,
+            StartDate = item.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            EndDate = item.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            CorrelationId = Guid.NewGuid(),
+            SourceSystem = "HR.Movements"
+        });
+        TempData["Success"] = "تم تنفيذ الندب ونشر الحدث";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Close(Guid id)
+    {
+        var item = await db.DelegationRequests.FindAsync(id);
+        if (item is null) return NotFound();
+        if (item.IsCancelled || item.Status == DelegationRequestStatus.Closed)
+        {
+            TempData["Error"] = "الطلب مغلق أو ملغى";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        item.Status = DelegationRequestStatus.Closed;
+        var ended = await db.MovementChecklists.FirstOrDefaultAsync(c =>
+            c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Ended);
+        if (ended is not null && !ended.IsCompleted)
+            MovementWorkflowRules.MarkStep(ended, ParseUserId(User), $"delegation:{item.Id}:ended");
+        await db.SaveChangesAsync();
+        TempData["Success"] = "تم إغلاق الندب";
         return RedirectToAction(nameof(Details), new { id });
     }
 }

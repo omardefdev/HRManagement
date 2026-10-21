@@ -87,6 +87,7 @@
     <None Include="..\..\..\docs\arc-reference\reference-architecture-matrix.json" Link="ArcReference\reference-architecture-matrix.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\..\docs\prd-product\capability-map.json" Link="ProductCapability\capability-map.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\..\docs\prd-product\agency-archetypes.json" Link="ProductCapability\agency-archetypes.json" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="..\..\..\testdata\acceptance\personas.json" LogicalName="HRManagement.Acceptance.personas.json" />
   </ItemGroup>
 
 </Project>

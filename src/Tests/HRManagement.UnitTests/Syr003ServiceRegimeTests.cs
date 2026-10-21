@@ -22,9 +22,12 @@ public class Syr003ServiceRegimeTests
     }
 
     [Fact]
-    public void LegalRegime_extends_BaseEntity()
+    public void LegalRegime_is_global_register_entity_with_string_key()
     {
-        Assert.True(typeof(LegalRegime).IsSubclassOf(typeof(BaseEntity)));
+        Assert.False(typeof(BaseEntity).IsAssignableFrom(typeof(LegalRegime)));
+        var keyProp = typeof(LegalRegime).GetProperty(nameof(LegalRegime.LegalRegimeId));
+        Assert.NotNull(keyProp);
+        Assert.Equal(typeof(string), keyProp!.PropertyType);
     }
 
     [Fact]
@@ -45,6 +48,7 @@ public class Syr003ServiceRegimeTests
         Assert.Contains("EffectiveTo", props);
         Assert.Contains("TransitionDecisionRef", props);
         Assert.Contains("IsActive", props);
+        Assert.Contains("ResolvedLegalSourceId", props);
         Assert.Contains("ConflictNotes", props);
     }
 

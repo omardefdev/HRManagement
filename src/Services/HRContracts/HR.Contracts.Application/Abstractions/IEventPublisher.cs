@@ -36,7 +36,9 @@ public interface IEventPublisher
         DateOnly effectiveDate,
         CancellationToken ct,
         Guid? contractId = null,
-        int remainingLeaveDays = 0);
+        int remainingLeaveDays = 0,
+        string? sourceLegalRegimeId = null,
+        string? payrollRegimeCode = null);
 
     /// <summary>FUN-002: abort in-flight separation saga with party compensate.</summary>
     Task CancelSeparationSagaAsync(

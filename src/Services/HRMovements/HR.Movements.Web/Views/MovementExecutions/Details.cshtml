@@ -7,7 +7,7 @@
     </div>
     <div class="card-body">
         <table class="table table-borderless table-sm w-auto">
-            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>وقت التنفيذ</th><td>@Model.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td></tr>
             <tr><th>المنفذ</th><td>@(Model.ExecutedBy?.ToString() ?? "—")</td></tr>
             @if (Model.TransferRequestId != null) { <tr><th>طلب النقل</th><td><a asp-controller="TransferRequests" asp-action="Details" asp-route-id="@Model.TransferRequestId">@Model.TransferRequestId</a></td></tr> }

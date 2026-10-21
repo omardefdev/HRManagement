@@ -8,7 +8,7 @@
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
             <div class="mb-3"><label asp-for="ContractId" class="form-label"></label><select asp-for="ContractId" asp-items="Model.Contracts" class="form-control"><option value="">— بدون —</option></select></div>
-            <div class="mb-3"><label asp-for="SeparationType" class="form-label"></label><select asp-for="SeparationType" class="form-control" asp-items="Html.GetEnumSelectList<SeparationType>()"></select></div>
+            <div class="mb-3"><label asp-for="SeparationType" class="form-label"></label><select asp-for="SeparationType" class="form-control" asp-items="Html.HrEnumSelectList<SeparationType>()"></select></div>
             <div class="mb-3"><label asp-for="EffectiveDate" class="form-label"></label><input asp-for="EffectiveDate" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
             <div class="mb-3">

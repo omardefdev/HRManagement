@@ -1,0 +1,89 @@
+@model HR.Core.Web.ViewModels.RecruitmentRequisitionsIndexViewModel
+@using HR.Core.Domain.Enums
+@{ ViewData["Title"] = "طلبات الشاغر"; }
+
+@functions {
+    string StatusBadgeClass(RequisitionStatus status) => status switch
+    {
+        RequisitionStatus.Draft => "bg-secondary",
+        RequisitionStatus.PendingApproval => "bg-warning text-dark",
+        RequisitionStatus.Approved => "bg-info text-dark",
+        RequisitionStatus.Published => "bg-success",
+        RequisitionStatus.Closed => "bg-dark",
+        RequisitionStatus.Cancelled => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">طلبات الشاغر</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">طلب شاغر جديد</a>
+    </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">المسمى الوظيفي</label>
+                <input type="text" name="jobTitle" value="@Model.JobTitle" class="form-control" placeholder="بحث..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select">
+                    <option value="">— الكل —</option>
+                    @foreach (RequisitionStatus s in Enum.GetValues<RequisitionStatus>())
+                    {
+                        if (Model.Status == s)
+                        {
+                            <option value="@s" selected>@s</option>
+                        }
+                        else
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">سنة الموازنة</label>
+                <input type="number" name="budgetYear" value="@Model.BudgetYear" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>رقم الطلب</th>
+                    <th>المسمى</th>
+                    <th>المنصب</th>
+                    <th>الوحدة</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الطلب</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model.Items)
+                {
+                    <tr>
+                        <td>@x.RequisitionNumber</td>
+                        <td>@x.JobTitle</td>
+                        <td>@(x.FundedPosition?.PositionCode ?? "—")</td>
+                        <td>@(x.FundedPosition?.OrgUnit?.NameAr ?? "—")</td>
+                        <td><span class="badge @StatusBadgeClass(x.Status)">@x.Status</span></td>
+                        <td>@x.RequestedDate.ToString("yyyy-MM-dd")</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Items.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا طلبات شاغر</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

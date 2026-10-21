@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
 using HRManagement.SharedKernel.ViewModels;
@@ -10,39 +11,59 @@ namespace HR.Core.Web.Controllers;
 
 public class PublicJobPostingsController(HRCoreDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.PublicJobPostings.AsNoTracking()
+    public async Task<IActionResult> Index(bool? isPublished, string? entity, string? q, DateOnly? closingFrom, DateOnly? closingTo)
+    {
+        var query = db.PublicJobPostings.AsNoTracking()
             .Include(p => p.Applications)
-            .OrderByDescending(p => p.CreatedAt)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync());
+            .Include(p => p.Requisition)
+            .AsQueryable();
+        if (isPublished is bool pub)
+            query = query.Where(p => p.IsPublished == pub);
+        if (!string.IsNullOrWhiteSpace(entity))
+            query = query.Where(p => p.Entity != null && p.Entity.Contains(entity.Trim()));
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(p =>
+                p.Title.Contains(term) ||
+                (p.Description != null && p.Description.Contains(term)) ||
+                (p.Location != null && p.Location.Contains(term)));
+        }
+        if (closingFrom is DateOnly cf)
+            query = query.Where(p => p.ClosingDate >= cf);
+        if (closingTo is DateOnly ct)
+            query = query.Where(p => p.ClosingDate <= ct);
 
-    public IActionResult Create() => View(new PublicJobPostingCreateViewModel());
+        var items = await query.OrderByDescending(p => p.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        return View(new PublicJobPostingsIndexViewModel { Items = items, IsPublished = isPublished, Entity = entity, Q = q, ClosingFrom = closingFrom, ClosingTo = closingTo });
+    }
+
+    public IActionResult Create()
+    {
+        TempData["Info"] = "يُنشأ الإعلان العام من طلب شاغر معتمد عبر «نشر الإعلان» في تفاصيل الطلب.";
+        return RedirectToAction("Index", "RecruitmentRequisitions");
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(PublicJobPostingCreateViewModel vm)
+    public IActionResult Create(PublicJobPostingCreateViewModel vm)
     {
-        if (!ModelState.IsValid) return View(vm);
-        db.PublicJobPostings.Add(new PublicJobPosting
-        {
-            Title = vm.Title,
-            Entity = vm.Entity,
-            Location = vm.Location,
-            Description = vm.Description,
-            Requirements = vm.Requirements,
-            ClosingDate = vm.ClosingDate,
-            IsPublished = vm.IsPublished
-        });
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم نشر الإعلان الوظيفي العام";
-        return RedirectToAction(nameof(Index));
+        TempData["Info"] = "يُنشأ الإعلان العام من طلب شاغر معتمد — لا إنشاء يدوي.";
+        return RedirectToAction("Index", "RecruitmentRequisitions");
     }
 
     public async Task<IActionResult> Edit(Guid id)
     {
-        var posting = await db.PublicJobPostings.FindAsync(id);
+        var posting = await db.PublicJobPostings
+            .Include(p => p.Requisition)
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (posting == null) return NotFound();
+        if (posting.RequisitionId.HasValue)
+        {
+            TempData["Error"] = "إعلان مشتق من طلب شاغر — عدّل الطلب في حالة مسودة أو legacy فقط.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         return View(new PublicJobPostingEditViewModel
         {
             Id = posting.Id,
@@ -63,6 +84,12 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
         if (id != vm.Id) return BadRequest();
         var posting = await db.PublicJobPostings.FindAsync(id);
         if (posting == null) return NotFound();
+        if (posting.RequisitionId.HasValue)
+        {
+            TempData["Error"] = "لا يمكن تعديل إعلان مشتق من طلب شاغر.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         if (!ModelState.IsValid) return View(vm);
         posting.Title = vm.Title;
         posting.Entity = vm.Entity;
@@ -80,6 +107,8 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
     {
         var posting = await db.PublicJobPostings
             .Include(p => p.Applications)
+                .ThenInclude(a => a.Requisition)
+            .Include(p => p.Requisition)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
         if (posting == null) return NotFound();
@@ -91,10 +120,32 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
     public async Task<IActionResult> ChangeApplicationStatus(Guid id, Guid postingId, CitizenApplicationStatus status)
     {
         var application = await db.CitizenApplications.FindAsync(id);
-        if (application == null) return NotFound();
+        if (application is null) return NotFound();
+
+        var error = CitizenSelectionWorkflowRules.ValidateTransition(application, status);
+        if (error is not null)
+        {
+            TempData["Error"] = error;
+            return RedirectToAction(nameof(Details), new { id = postingId });
+        }
+
         application.Status = status;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث حالة الطلب";
+        return RedirectToAction(nameof(Details), new { id = postingId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeclareCitizenCoi(Guid id, Guid postingId)
+    {
+        var application = await db.CitizenApplications.FindAsync(id);
+        if (application is null) return NotFound();
+
+        application.ConflictOfInterestDeclared = true;
+        application.ConflictOfInterestDeclaredAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        TempData["Success"] = "تم تسجيل إقرار عدم تعارض المصالح";
         return RedirectToAction(nameof(Details), new { id = postingId });
     }
 
@@ -104,6 +155,12 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
     {
         var posting = await db.PublicJobPostings.FindAsync(id);
         if (posting == null) return NotFound();
+        if (posting.RequisitionId.HasValue)
+        {
+            TempData["Error"] = "لا يمكن حذف إعلان مشتق — أغلق طلب الشاغر بدلاً من ذلك.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         db.PublicJobPostings.Remove(posting);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حذف الإعلان";

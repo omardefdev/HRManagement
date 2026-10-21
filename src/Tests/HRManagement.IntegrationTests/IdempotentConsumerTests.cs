@@ -66,14 +66,14 @@ public class IdempotentConsumerTests
         await IntegrationTestHelpers.AssertConsumedAsync<ITransferExecuted>(scope.Harness);
         db.ChangeTracker.Clear();
         var assignment = await db.AssetAssignments.AsNoTracking().FirstAsync(a => a.EmployeeId == empId);
-        var firstAnnotation = assignment.ConditionOnAssign;
-        Assert.False(string.IsNullOrEmpty(firstAnnotation));
+        var firstReturnNotes = assignment.ReturnNotes;
+        Assert.False(string.IsNullOrEmpty(firstReturnNotes));
 
         await PublishWithTenantAsync(scope, payload, messageId);
         await Task.Delay(500);
         db.ChangeTracker.Clear();
         assignment = await db.AssetAssignments.AsNoTracking().FirstAsync(a => a.EmployeeId == empId);
-        Assert.Equal(firstAnnotation, assignment.ConditionOnAssign);
+        Assert.Equal(firstReturnNotes, assignment.ReturnNotes);
         Assert.Equal(1, await db.IntegrationMessageReceipts.CountAsync());
     }
 

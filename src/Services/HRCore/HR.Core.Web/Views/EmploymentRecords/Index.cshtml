@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "السجل الوظيفي";
     var employee = (HR.Core.Domain.Entities.Employee)ViewBag.Employee;
+    var regimeLabels = ViewBag.RegimeLabels as IDictionary<string, string> ?? new Dictionary<string, string>();
 }
 
 <div class="card">
@@ -22,6 +23,7 @@
                     <th>من</th>
                     <th>إلى</th>
                     <th>نوع التوظيف</th>
+                    <th>نظام الخدمة</th>
                     <th>الحالة</th>
                     <th>إجراءات</th>
                 </tr>
@@ -34,8 +36,9 @@
                         <td>@(r.OrgUnit?.NameAr ?? "—")</td>
                         <td>@r.StartDate.ToString("yyyy/MM/dd")</td>
                         <td>@(r.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td>
-                        <td>@r.EmploymentType</td>
-                        <td>@r.Status @(r.ApprovedBy != null ? "✓ معتمد" : "")</td>
+                        <td>@Html.HrEnumDisplay(r.EmploymentType)</td>
+                        <td>@(r.LegalRegimeId is null ? "—" : (regimeLabels.TryGetValue(r.LegalRegimeId, out var label) ? label : r.LegalRegimeId))</td>
+                        <td>@EnumDisplayExtensions.GetStoredEnumDisplayName("EmploymentStatus", r.Status) @(r.ApprovedBy != null ? "✓ معتمد" : "")</td>
                         <td>
                             @if (r.ApprovedBy == null)
                             {
@@ -53,7 +56,7 @@
                 }
                 @if (!Model.Any())
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد سجلات وظيفية</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سجلات وظيفية</td></tr>
                 }
             </tbody>
         </table>

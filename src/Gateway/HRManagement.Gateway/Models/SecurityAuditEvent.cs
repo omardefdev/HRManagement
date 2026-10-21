@@ -22,6 +22,9 @@ public static class SecurityAuditEventTypes
     public const string PayrollOverride = "PayrollOverride";
     public const string PrivilegedGateway = "PrivilegedGateway";
     public const string AuditPurge = "AuditPurge";
+    public const string OrgScopeDenied = "OrgScopeDenied";
+    public const string PlatformEnterTenant = "PlatformEnterTenant";
+    public const string PlatformExitTenant = "PlatformExitTenant";
 }
 
 /// <summary>OBS-003 legal hold preventing retention purge.</summary>

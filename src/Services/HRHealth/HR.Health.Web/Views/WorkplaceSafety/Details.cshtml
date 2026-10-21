@@ -10,7 +10,7 @@
     </div>
     <div class="card-body">
         <dl class="row">
-            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@(Model.EmployeeName ?? Model.EmployeeId.ToString())</dd>
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">@(Model.EmployeeName ?? "جاري التحميل...")</span></dd>
             <dt class="col-sm-3">التاريخ</dt><dd class="col-sm-9">@Model.AccidentDate.ToString("yyyy-MM-dd")</dd>
             <dt class="col-sm-3">الموقع</dt><dd class="col-sm-9">@Model.Location</dd>
             <dt class="col-sm-3">الخطورة</dt><dd class="col-sm-9">@Html.DisplayFor(m => m.Severity)</dd>

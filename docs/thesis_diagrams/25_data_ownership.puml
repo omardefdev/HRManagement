@@ -22,12 +22,12 @@ skinparam SequenceParticipantBorderColor #24465A
 skinparam SequenceParticipantBackgroundColor #F4F7F8
 
 title ملكية البيانات وعلاقاتها المنطقية
-database "hr_core_db\\nEmployee, OrgUnit" as CoreDb
-database "hr_contracts_db\\nContract, Leave, Separation" as ContractDb
-database "payroll_db\\nPayrollRun, SalaryLine" as PayDb
-database "movements_db\\nTransfer, Secondment" as MoveDb
-database "health_db\\nMedicalRecord" as HealthDb
-database "auth_directory_db\\nAuthUser, DirectoryEntry" as AuthDb
+database "hr_core_db\nEmployee, OrgUnit" as CoreDb
+database "hr_contracts_db\nContract, Leave, Separation" as ContractDb
+database "payroll_db\nPayrollRun, SalaryLine" as PayDb
+database "movements_db\nTransfer, Secondment" as MoveDb
+database "health_db\nMedicalRecord" as HealthDb
+database "auth_directory_db\nAuthUser, DirectoryEntry" as AuthDb
 queue "RabbitMQ" as Bus
 CoreDb ..> ContractDb : EmployeeId reference
 CoreDb ..> PayDb : EmployeeId reference

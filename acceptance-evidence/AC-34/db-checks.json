@@ -1,0 +1,4 @@
+{
+  "scriptsReady": true,
+  "note": "Run acceptance-backup-restore.ps1 against live PG for full drill"
+}

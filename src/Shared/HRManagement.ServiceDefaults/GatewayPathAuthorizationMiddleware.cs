@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using HRManagement.ServiceDefaults.ModuleCatalog;
+using HRManagement.SharedKernel.Tenancy;
 
 namespace HRManagement.ServiceDefaults;
 
@@ -41,6 +42,12 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
     {
         var path = context.Request.Path;
         var method = context.Request.Method;
+
+        if (context.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+        {
+            await next(context);
+            return;
+        }
 
         // SEC-001: upstream health proxies — allow loopback callers (internal probe) without auth.
         string effectivePolicy;
@@ -95,6 +102,14 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         var result = await authorization.AuthorizeAsync(context.User, resource: null, effectivePolicy);
         if (result.Succeeded)
         {
+            if (RequiresTenantClaim(context, path, moduleSegment)
+                && !HasValidTenantClaim(context.User))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsync("Forbidden: missing or invalid tenant_id claim.");
+                return;
+            }
+
             await next(context);
             return;
         }
@@ -123,9 +138,15 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
 
         if (string.Equals(moduleSegment, "hr-core", StringComparison.OrdinalIgnoreCase))
         {
-            // Shared pickers: any authenticated user (controller enforces HrCoreLookup; no NationalId returned).
-            if (pathValue.Contains("/api/lookup", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(httpMethod, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
+            // Platform reconciliation is governed by the approval policy for reads and writes.
+            if (pathValue.Contains("/api/tenant-quarantine", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = HrManagementPolicies.TenantQuarantineReconcile;
+                return true;
+            }
+
+            // Shared pickers and table hydration: any authenticated user (controller enforces HrCoreLookup).
+            if (pathValue.Contains("/api/lookup", StringComparison.OrdinalIgnoreCase))
             {
                 policy = HrManagementPolicies.HrCoreLookup;
                 return true;
@@ -139,23 +160,52 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
 
             if (IsMutating(httpMethod))
             {
-                policy = HrManagementPolicies.HrCoreWrite;
+                if (pathValue.Contains("/api/onboarding/", StringComparison.OrdinalIgnoreCase))
+                    policy = HrManagementPolicies.HrCoreApprove;
+                else if (pathValue.Contains("/api/policies/enforce", StringComparison.OrdinalIgnoreCase)
+                    || (pathValue.Contains("/api/workflow-instances/", StringComparison.OrdinalIgnoreCase)
+                        && (pathValue.EndsWith("/approve", StringComparison.OrdinalIgnoreCase)
+                            || pathValue.EndsWith("/reject", StringComparison.OrdinalIgnoreCase)))
+                    || IsHrCoreWorkflowMvcAction(pathValue))
+                    policy = HrManagementPolicies.HrCoreBranchOperation;
+                else
+                    policy = HrManagementPolicies.HrCoreWrite;
                 return true;
             }
         }
 
+        if (string.Equals(moduleSegment, "hr-contracts", StringComparison.OrdinalIgnoreCase)
+            && pathValue.Contains("/HireWizard", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsMutating(httpMethod)
+                && pathValue.Contains("/Step3Approve", StringComparison.OrdinalIgnoreCase))
+                policy = HrManagementPolicies.HrManagementApprove;
+            else if (IsMutating(httpMethod)
+                     && pathValue.Contains("/Step3SubmitForApproval", StringComparison.OrdinalIgnoreCase))
+                policy = HrManagementPolicies.HrContractsHireExecute;
+            else if (IsMutating(httpMethod)
+                     && pathValue.Contains("/Step3Execute", StringComparison.OrdinalIgnoreCase))
+                policy = HrManagementPolicies.HrContractsHireExecute;
+            else if (IsMutating(httpMethod)
+                     && pathValue.Contains("/Step4Complete", StringComparison.OrdinalIgnoreCase))
+                policy = HrManagementPolicies.HrContractsApprove;
+            else
+                policy = HrManagementPolicies.HrContractsHireView;
+            return true;
+        }
+
         if (string.Equals(moduleSegment, "hr-contracts", StringComparison.OrdinalIgnoreCase) && IsMutating(httpMethod))
         {
-            if (pathValue.Contains("/HireWizard", StringComparison.OrdinalIgnoreCase))
-                policy = HrManagementPolicies.HrContractsHireExecute;
-            else
-                policy = HrManagementPolicies.HrContractsApprove;
+            policy = HrManagementPolicies.HrContractsApprove;
             return true;
         }
 
         if (string.Equals(moduleSegment, "payroll", StringComparison.OrdinalIgnoreCase) && IsMutating(httpMethod))
         {
-            policy = HrManagementPolicies.PayrollProcess;
+            // Controllers own action-level process/approve/post/reverse authorization. The gateway
+            // verifies module membership and must not incorrectly require the processor role for
+            // an approver's POST.
+            policy = HrManagementPolicies.ModulePayroll;
             return true;
         }
 
@@ -170,7 +220,11 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             return false;
 
         if (p.StartsWith("/ui/payroll", StringComparison.OrdinalIgnoreCase)
-            || p.StartsWith("/api/payroll", StringComparison.OrdinalIgnoreCase))
+            || p.StartsWith("/api/payroll", StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith("/ui/hr-core", StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith("/api/hr-core", StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith("/ui/ess", StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith("/api/ess", StringComparison.OrdinalIgnoreCase))
         {
             policy = HrManagementPolicies.ModuleEss;
             return true;
@@ -197,6 +251,11 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         string.Equals(httpMethod, HttpMethods.Post, StringComparison.OrdinalIgnoreCase)
         || string.Equals(httpMethod, HttpMethods.Put, StringComparison.OrdinalIgnoreCase)
         || string.Equals(httpMethod, HttpMethods.Delete, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>MVC workflow approve/reject actions (PLAN-21..24) use branch-operation policy, not write.</summary>
+    private static bool IsHrCoreWorkflowMvcAction(string pathValue) =>
+        pathValue.Contains("/ApproveWorkflow", StringComparison.OrdinalIgnoreCase)
+        || pathValue.Contains("/RejectWorkflow", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryGetPolicy(PathString path, out string moduleSegment, out string policyName)
     {
@@ -232,6 +291,29 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         }
 
         return false;
+    }
+
+    private static bool RequiresTenantClaim(HttpContext context, PathString path, string moduleSegment)
+    {
+        if (context.User.IsInRole(HrManagementRoles.PlatformAdmin))
+            return false;
+
+        if (IsUpstreamHealthPath(path))
+            return false;
+
+        var pathValue = path.Value ?? "";
+        if (pathValue.StartsWith("/api/platform/", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return !string.IsNullOrEmpty(moduleSegment)
+            || pathValue.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+            || pathValue.StartsWith("/ui/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasValidTenantClaim(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var value = user.FindFirst(TenantContext.TenantClaimType)?.Value;
+        return Guid.TryParse(value, out _);
     }
 }
 

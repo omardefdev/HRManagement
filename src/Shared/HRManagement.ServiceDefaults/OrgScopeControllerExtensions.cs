@@ -1,55 +1,48 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-
-
 
 namespace HRManagement.ServiceDefaults;
 
-
-
 /// <summary>
-
 /// Controller helpers for fail-closed org scope (IAM-002).
-
 /// </summary>
-
 public static class OrgScopeControllerExtensions
-
 {
-
     /// <summary>
-
     /// Returns Forbid when scope is denied; otherwise null (continue).
-
     /// </summary>
-
     public static IActionResult? ForbidIfOrgScopeDenied(this ControllerBase controller, OrgAccessScope scope)
+    {
+        if (!scope.IsDenied)
+            return null;
 
-        => scope.IsDenied ? controller.Forbid() : null;
-
-
+        OrgScopeDenialContext.Record(
+            controller.HttpContext,
+            controller.User,
+            reason: "org-scope-denied");
+        return controller.Forbid();
+    }
 
     /// <summary>
-
     /// Returns Forbid when the org unit is outside scope (or scope is denied).
-
     /// </summary>
-
     public static IActionResult? ForbidIfOrgUnitOutOfScope(
-
         this ControllerBase controller,
-
         OrgAccessScope scope,
-
-        Guid? orgUnitId)
-
+        Guid? orgUnitId,
+        string? resourceType = null,
+        string? resourceId = null)
     {
+        if (!scope.IsDenied && scope.CanAccess(orgUnitId))
+            return null;
 
-        if (scope.IsDenied || !scope.CanAccess(orgUnitId))
-
-            return controller.Forbid();
-
-        return null;
-
+        OrgScopeDenialContext.Record(
+            controller.HttpContext,
+            controller.User,
+            reason: "org-scope-denied",
+            resourceType: resourceType ?? (orgUnitId.HasValue ? "OrgUnit" : null),
+            resourceId: resourceId ?? orgUnitId?.ToString("D"));
+        return controller.Forbid();
     }
 
 

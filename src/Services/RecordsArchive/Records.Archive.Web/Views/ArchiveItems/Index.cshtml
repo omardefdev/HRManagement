@@ -12,7 +12,7 @@
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@x.Id">@x.Title</a></td>
                         <td>@x.ReferenceNumber</td>
-                        <td>@x.Format</td>
+                        <td>@Html.HrEnumDisplay(x.Format)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                     </tr>
                 }

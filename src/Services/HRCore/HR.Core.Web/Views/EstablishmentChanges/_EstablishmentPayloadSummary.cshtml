@@ -1,0 +1,64 @@
+@model HR.Core.Web.Services.EstablishmentPayloadSummaryViewModel
+@if (Model is null)
+{
+    <p class="text-muted">لا يوجد ملخص متاح.</p>
+}
+else
+{
+    @if (Model.SummaryRows.Count > 0)
+    {
+        <table class="table table-sm table-bordered mb-3">
+            <tbody>
+            @foreach (var row in Model.SummaryRows)
+            {
+                <tr>
+                    <th style="width:30%">@row.Label</th>
+                    <td>
+                        @row.Value
+                        @if (!string.IsNullOrWhiteSpace(row.ReferenceLabel))
+                        {
+                            <span class="text-muted"> — @row.ReferenceLabel</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    @if (Model.BulkPreviewRows.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>المسمى</th>
+                        <th>الدرجة</th>
+                        <th>التصنيف</th>
+                        <th>رمز الوظيفة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.BulkPreviewRows)
+                {
+                    <tr>
+                        <td>@row.TitleAr</td>
+                        <td>@row.GradeCode@if (!string.IsNullOrWhiteSpace(row.GradeLabel)) { <span class="text-muted"> — @row.GradeLabel</span> }</td>
+                        <td>@row.JobClassificationCode@if (!string.IsNullOrWhiteSpace(row.ClassificationLabel)) { <span class="text-muted"> — @row.ClassificationLabel</span> }</td>
+                        <td>@row.JobCodeNote</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.BulkOverflowNote))
+        {
+            <p class="text-muted small mb-0">@Model.BulkOverflowNote</p>
+        }
+    }
+
+    @if (Model.SummaryRows.Count == 0 && Model.BulkPreviewRows.Count == 0)
+    {
+        <p class="text-muted">لا يوجد ملخص متاح.</p>
+    }
+}

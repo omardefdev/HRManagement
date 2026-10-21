@@ -1,0 +1,115 @@
+{
+  "version": "2.0.0",
+  "packId": "acceptance-v2",
+  "referenceDate": "2026-08-01",
+  "description": "Canonical multi-agency institutional acceptance data pack",
+  "totals": {
+    "tenants": 3,
+    "orgUnits": 98,
+    "employees": 1617,
+    "payableEmployees": 1489,
+    "currentContracts": 1531,
+    "separations": 86,
+    "personas": 55
+  },
+  "tenants": [
+    {
+      "id": "a0000001-0000-4000-8000-000000000001",
+      "code": "AGENCY-A",
+      "nameAr": "المؤسسة العامة للخدمات الإدارية",
+      "orgUnits": 61,
+      "employees": 1210,
+      "sites": {
+        "HQ": 326,
+        "RIF": 271,
+        "ALEP": 213,
+        "HOMS": 167,
+        "HAMA": 103,
+        "LAT": 79,
+        "TAR": 51
+      },
+      "volumes": {
+        "payableEmployees": 1102,
+        "currentContracts": 1138,
+        "separations": 72,
+        "leaveRequests": 314,
+        "advances": 130,
+        "transfers": 90,
+        "secondments": 34,
+        "loans": 22,
+        "trainingEnrollments": 315,
+        "issuedCards": 930,
+        "assets": 330,
+        "assetAssignments": 235,
+        "complianceCases": 67,
+        "dsarRequests": 18,
+        "files": 84
+      }
+    },
+    {
+      "id": "a0000002-0000-4000-8000-000000000001",
+      "code": "AGENCY-B",
+      "nameAr": "الهيئة العامة للتنمية المؤسسية",
+      "orgUnits": 24,
+      "employees": 271,
+      "sites": {
+        "HQ": 118,
+        "ALEP": 73,
+        "HOMS": 49,
+        "HAMA": 31
+      },
+      "volumes": {
+        "payableEmployees": 257,
+        "currentContracts": 261,
+        "separations": 10,
+        "leaveRequests": 71,
+        "advances": 34,
+        "transfers": 21,
+        "secondments": 8,
+        "loans": 5,
+        "trainingEnrollments": 70,
+        "issuedCards": 215,
+        "assets": 80,
+        "assetAssignments": 57,
+        "complianceCases": 16,
+        "dsarRequests": 4,
+        "files": 24
+      }
+    },
+    {
+      "id": "a0000003-0000-4000-8000-000000000001",
+      "code": "AGENCY-C",
+      "nameAr": "مؤسسة الخدمات الفنية",
+      "orgUnits": 13,
+      "employees": 136,
+      "sites": {
+        "HQ": 63,
+        "RIF": 44,
+        "LAT": 29
+      },
+      "volumes": {
+        "payableEmployees": 130,
+        "currentContracts": 132,
+        "separations": 4,
+        "leaveRequests": 35,
+        "advances": 16,
+        "transfers": 9,
+        "secondments": 3,
+        "loans": 3,
+        "trainingEnrollments": 35,
+        "issuedCards": 105,
+        "assets": 40,
+        "assetAssignments": 28,
+        "complianceCases": 7,
+        "dsarRequests": 2,
+        "files": 12
+      }
+    }
+  ],
+  "personasFile": "personas.json",
+  "generatedKeycloakRealm": "docker/keycloak/import/realm-hrmanagement.json",
+  "localAccountGuide": ".acceptance/accounts.local.md",
+  "composeProject": "hrm-acceptance",
+  "gatewayUrl": "http://localhost:6200",
+  "keycloakUrl": "http://localhost:6388"
+}

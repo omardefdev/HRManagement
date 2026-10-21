@@ -18,8 +18,19 @@ public static class ReferenceImpactAnalyzer
     {
         var results = new List<ImpactResult>();
 
+        if (entry.CatalogKind == CatalogKind.Grade)
+        {
+            var jobCatalogCount = await countByCode("JobCatalogEntry.GradeCode", entry.Code, ct);
+            if (jobCatalogCount > 0)
+                results.Add(new ImpactResult("JobCatalogEntry", jobCatalogCount));
+        }
+
         if (entry.CatalogKind == CatalogKind.JobClassification)
         {
+            var jobCatalogCount = await countByCode("JobCatalogEntry.OccupationalGroup", entry.Code, ct);
+            if (jobCatalogCount > 0)
+                results.Add(new ImpactResult("JobCatalogEntry", jobCatalogCount));
+
             var employmentCount = await countByCode("EmploymentRecord", entry.Code, ct);
             if (employmentCount > 0)
                 results.Add(new ImpactResult("EmploymentRecord", employmentCount));

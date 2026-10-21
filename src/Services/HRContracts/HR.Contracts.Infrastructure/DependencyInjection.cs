@@ -5,6 +5,7 @@ using HR.Contracts.Infrastructure.Messaging;
 using HR.Contracts.Infrastructure.Repositories;
 using HR.Contracts.Infrastructure.Services;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Policy;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HR.Contracts.Infrastructure;
@@ -21,6 +22,17 @@ public static class DependencyInjection
         services.AddScoped<IEventPublisher, MassTransitEventPublisher>();
         services.AddScoped<IContractsExportJobService, ContractsExportJobService>();
 
+        if (configuration is not null)
+        {
+            services.AddHrPolicyEnforceClient(configuration);
+            services.AddExportJobInfrastructure(configuration);
+        }
+        else
+        {
+            services.Configure<HRManagement.SharedKernel.Exports.ExportJobOptions>(_ => { });
+            services.AddSingleton<IExportArtifactStore, LocalExportArtifactStore>();
+        }
+
         var hrCoreBase = configuration?["Services:HRCore:BaseUrl"] ?? configuration?["HrCore:BaseUrl"];
         if (!string.IsNullOrWhiteSpace(hrCoreBase))
         {
@@ -30,14 +42,6 @@ public static class DependencyInjection
         else
         {
             services.AddSingleton<IEmployeeLifecycleGate, PassThroughEmployeeLifecycleGate>();
-        }
-
-        if (configuration is not null)
-            services.AddExportJobInfrastructure(configuration);
-        else
-        {
-            services.Configure<HRManagement.SharedKernel.Exports.ExportJobOptions>(_ => { });
-            services.AddSingleton<IExportArtifactStore, LocalExportArtifactStore>();
         }
 
         return services;

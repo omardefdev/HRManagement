@@ -1,10 +1,16 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HRManagement.SharedKernel.Payroll;
 
 public enum ArrearsStatus
 {
+    [Display(Name = "مفتوح")]
     Open,
+    [Display(Name = "مسدّد جزئياً")]
     PartiallySettled,
+    [Display(Name = "مسدّد")]
     Settled,
+    [Display(Name = "شُطب")]
     WrittenOff
 }
 

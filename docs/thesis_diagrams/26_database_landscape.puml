@@ -7,54 +7,72 @@ skinparam roundcorner 8
 skinparam linetype ortho
 skinparam dpi 170
 skinparam ArrowColor #24465A
-skinparam DatabaseBorderColor #0F6B73
-skinparam DatabaseBackgroundColor #EAF6F6
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
 skinparam ComponentBorderColor #24465A
 skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
 
-title "منظومة قواعد البيانات المملوكة للخدمات\nHRManagement database ownership landscape"
+title منظومة قواعد البيانات الحالية وملكية الخدمات
+left to right direction
+cloud "Keycloak\nمخزن الهوية" as Keycloak
+component "Gateway / YARP" as Gateway
+rectangle "TenantContext\ntenant_id + scope_org_unit_id" as TenantContext
+queue "RabbitMQ / MassTransit\nOutbox + Inbox" as Bus
+storage "MinIO\nالمحتوى الثنائي" as Minio
 
-component "البوابة المركزية\nYARP Gateway" as Gateway
-database "gateway_audit_db\nGatewayAuditDbContext" as GatewayDb
-queue "RabbitMQ / MassTransit\nIntegration bus" as Bus
-cloud "Keycloak\nهوية خارجية" as Keycloak
-cloud "MinIO\nالملفات الثنائية" as Minio
+package "السياقات الجوهرية" {
+  database "gateway_audit_db\nGateway Audit" as GatewayDb
+  database "hr_core_db\nHR.Core" as CoreDb
+  database "hr_contracts_db\nHR.Contracts" as ContractsDb
+  database "payroll_db\nPayroll" as PayrollDb
+}
+package "سياقات دورة حياة الموظف" {
+  database "hr_health_db\nHR.Health" as HealthDb
+  database "hr_movements_db\nHR.Movements" as MovementsDb
+  database "hr_training_db\nHR.Training" as TrainingDb
+  database "idcard_db\nIDCard" as CardDb
+}
+package "السياقات المساندة" {
+  database "admin_db\nAdmin.Logistics" as LogisticsDb
+  database "auth_directory_db\nAuth.Directory" as DirectoryDb
+  database "compliance_db\nCompliance" as ComplianceDb
+  database "analytics_db\nDev.Analytics" as AnalyticsDb
+  database "it_infra_db\nIT.Infra" as ItDb
+  database "archive_db\nRecords.Archive" as ArchiveDb
+  database "file_storage_db\nFile.Storage" as FileDb
+}
 
-database "hr_core_db\nHR.Core\nالموظفون والوحدات" as Core
-database "hr_contracts_db\nHR.Contracts\nالعقود والخدمة" as Contracts
-database "payroll_db\nPayroll\nالرواتب والتعويضات" as Payroll
-database "hr_health_db\nHR.Health\nالصحة المهنية" as Health
-database "hr_movements_db\nHR.Movements\nالحركات" as Movements
-database "hr_training_db\nHR.Training\nالتدريب" as Training
-database "idcard_db\nIDCard\nالهويات" as IDCard
-database "auth_directory_db\nAuth.Directory\nالدليل" as Auth
-database "file_storage_db\nFile.Storage\nبيانات الملفات" as FileDb
-database "archive_db\nRecords.Archive\nالأرشيف" as Archive
-database "compliance_db\nCompliance\nالشكاوى والامتثال" as Compliance
-database "analytics_db\nDev.Analytics\nالنماذج التحليلية" as Analytics
-database "admin_db\nAdmin.Logistics\nاللوجستيات" as Admin
-database "it_infra_db\nIT.Infra\nالبنية التقنية" as IT
-
-Gateway --> GatewayDb : تدقيق البوابة
 Gateway --> Keycloak : OIDC / JWT
-Gateway --> Core : HTTP / UI
-Gateway --> Contracts : HTTP / UI
-Gateway --> Payroll : HTTP / UI
-Gateway --> Bus : نشر/استهلاك عبر الخدمات
+Gateway --> GatewayDb : تدقيق الطلبات
+Gateway --> TenantContext : استخراج سياق الجهة والنطاق
+TenantContext ..> CoreDb
+TenantContext ..> ContractsDb
+TenantContext ..> PayrollDb
+CoreDb --> Bus
+ContractsDb --> Bus
+MovementsDb --> Bus
+PayrollDb --> Bus
+Bus --> ArchiveDb
+Bus --> AnalyticsDb
+FileDb --> Minio : بيانات وصفية + كائنات
 
-Core --> Bus : IEmployeeCreated\nIOrgUnitChanged
-Contracts --> Bus : IContractActivated\nISeparationCompleted
-Movements --> Bus : ITransferExecuted
-Health --> Bus : IMedicalRecommendationIssued
-Training --> Bus : ITrainingCompleted
-Payroll --> Bus : IPayrollProcessed
-Bus --> Archive : أحداث الأرشفة
-Bus --> Analytics : أحداث التحليل
-FileDb --> Minio : metadata + object storage
-
-note bottom of Core
-كل خدمة تملك DbContext وترحيلاتها وقاعدة بياناتها.
-لا توجد وصلة FK مباشرة بين قواعد الخدمات.
-التكامل بين الخدمات يتم عبر معرفات وأحداث منشورة.
+note top of Bus
+أحداث الموظف والجهة والسياسة والرمز،
+والتعيين والعقد والإجازة والفصل،
+والنقل والراتب والدفع.
+end note
+note bottom of TenantContext
+تملك كل خدمة سياقها وترحيلاتها. يطبق العزل عبر مرشح الجهة،
+ونطاق الوحدة التنظيمية، وسياسات PostgreSQL RLS حيث توافرت.
+ولا تنشأ مفاتيح أجنبية عابرة لقواعد الخدمات.
 end note
 @enduml

@@ -45,34 +45,61 @@
 
 @if (totalPages > 1)
 {
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-        <div class="text-muted">
-            عرض صفحة @pageIndex من @totalPages@if (totalCount > 0) { <text> (إجمالي @totalCount سجل)</text> }
+    <div class="hr-pagination d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="hr-pagination-summary">
+            عرض صفحة <strong>@pageIndex</strong> من <strong>@totalPages</strong>@if (totalCount > 0) { <text> — إجمالي <strong>@totalCount</strong> سجل</text> }
         </div>
-        <nav aria-label="التنقل بين الصفحات">
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item @(hasPrev ? "" : "disabled")">
-                    @{
+        <nav class="hr-pagination-nav" aria-label="التنقل بين الصفحات">
+            <ul class="hr-pagination-list">
+                <li>
+                    @if (hasPrev)
+                    {
                         routeValues["page"] = pageIndex - 1;
+                        <a class="hr-pagination-btn hr-pagination-prev" href="@Url.Action(action, controller, routeValues)" aria-label="السابق">
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            <span>السابق</span>
+                        </a>
                     }
-                    <a class="page-link" href="@Url.Action(action, controller, routeValues)" aria-label="السابق">
-                        <i class="fas fa-chevron-right"></i> السابق
-                    </a>
+                    else
+                    {
+                        <span class="hr-pagination-btn hr-pagination-prev disabled" aria-disabled="true">
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            <span>السابق</span>
+                        </span>
+                    }
                 </li>
                 @for (int i = Math.Max(1, pageIndex - 2); i <= Math.Min(totalPages, pageIndex + 2); i++)
                 {
                     routeValues["page"] = i;
-                    <li class="page-item @(i == pageIndex ? "active" : "")">
-                        <a class="page-link" href="@Url.Action(action, controller, routeValues)">@i</a>
-                    </li>
-                }
-                <li class="page-item @(hasNext ? "" : "disabled")">
-                    @{
-                        routeValues["page"] = pageIndex + 1;
+                    if (i == pageIndex)
+                    {
+                        <li>
+                            <span class="hr-pagination-btn hr-pagination-num active" aria-current="page">@i</span>
+                        </li>
                     }
-                    <a class="page-link" href="@Url.Action(action, controller, routeValues)" aria-label="التالي">
-                        التالي <i class="fas fa-chevron-left"></i>
-                    </a>
+                    else
+                    {
+                        <li>
+                            <a class="hr-pagination-btn hr-pagination-num" href="@Url.Action(action, controller, routeValues)">@i</a>
+                        </li>
+                    }
+                }
+                <li>
+                    @if (hasNext)
+                    {
+                        routeValues["page"] = pageIndex + 1;
+                        <a class="hr-pagination-btn hr-pagination-next" href="@Url.Action(action, controller, routeValues)" aria-label="التالي">
+                            <span>التالي</span>
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="hr-pagination-btn hr-pagination-next disabled" aria-disabled="true">
+                            <span>التالي</span>
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        </span>
+                    }
                 </li>
             </ul>
         </nav>

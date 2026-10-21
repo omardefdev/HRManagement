@@ -50,6 +50,36 @@ public static class ConcurrencyExtensions
         return false;
     }
 
+    public static bool TryGetUniqueConstraintName(Exception exception, out string? constraintName)
+    {
+        constraintName = null;
+        for (Exception? ex = exception; ex is not null; ex = ex.InnerException)
+        {
+            if (string.Equals(ex.GetType().Name, "PostgresException", StringComparison.Ordinal))
+            {
+                constraintName = ex.GetType().GetProperty("ConstraintName")?.GetValue(ex) as string;
+                if (!string.IsNullOrWhiteSpace(constraintName))
+                    return true;
+            }
+
+            const string prefix = "duplicate key value violates unique constraint \"";
+            var msg = ex.Message;
+            var start = msg.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (start >= 0)
+            {
+                start += prefix.Length;
+                var end = msg.IndexOf('"', start);
+                if (end > start)
+                {
+                    constraintName = msg[start..end];
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public static bool IsConcurrencyConflict(Exception exception)
     {
         for (Exception? ex = exception; ex is not null; ex = ex.InnerException)

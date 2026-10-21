@@ -1,0 +1,37 @@
+@model HR.Core.Web.ViewModels.JobCatalogImportViewModel
+@using HR.Core.Domain.Entities
+@{ ViewData["Title"] = "استيراد دليل الوظائف"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0"><i class="fas fa-file-csv"></i> استيراد دليل الوظائف — CSV</h3>
+        <a asp-action="ImportTemplate" class="btn btn-outline-secondary btn-sm">تنزيل نموذج CSV</a>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            يُنشأ <strong>طلب تغيير جماعي</strong> كمسودة — أكمل الاعتماد من
+            <a asp-controller="EstablishmentChanges" asp-action="Index">طلبات تغيير الملاك</a>.
+        </div>
+        <p class="text-muted small">
+            الأعمدة: TitleAr, TitleEn, DescriptionAr, GradeCode, JobClassificationCode, IsActive, LegacyJobCode
+            (LegacyJobCode مسموح في وضع الترحيل فقط)
+        </p>
+        @if (TempData["Error"] is string err)
+        {
+            <div class="alert alert-danger" style="white-space: pre-line">@err</div>
+        }
+        <form asp-action="Import" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label asp-for="ImportMode" class="form-label"></label>
+                <select asp-for="ImportMode" class="form-select" asp-items="Html.GetEnumSelectList<JobCatalogImportMode>()"></select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="File" class="form-label"></label>
+                <input asp-for="File" class="form-control" type="file" accept=".csv,text/csv" />
+                <span asp-validation-for="File" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">استيراد وإنشاء مسودة</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

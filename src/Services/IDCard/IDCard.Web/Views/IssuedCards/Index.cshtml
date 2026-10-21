@@ -12,11 +12,11 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.EmployeeId</td>
+                        <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
                         <td>@x.CardDesign.Name</td>
                         <td>@x.SerialNumber</td>
                         <td>@x.IssuedAt.ToString("yyyy/MM/dd")</td>
-                        <td>@x.Status</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td class="small">
                             @(x.DeliveryRecord?.PrintedAt != null ? $"طباعة: {x.DeliveryRecord.PrintedAt:yyyy/MM/dd}" : "—")
                             <br />

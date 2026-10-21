@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة hr_health_db\nHR.Health / HealthDbContext"
+title "ERD الكامل لقاعدة health_db\nHR.Health / HealthDbContext"
 
 entity "FirstAidTrainingRecords\nFirstAidTrainingRecord" as T01 {
   * Id : uuid
@@ -68,16 +68,47 @@ entity "WorkplaceAccidents\nWorkplaceAccident" as T11 {
     MedicalRecordId : uuid
     TenantId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T12 {
+entity "EmployeeOrgUnitSnapshots\nEmployeeOrgUnitSnapshot" as T12 {
+  * EmployeeId : uuid
+    PrimaryOrgUnitId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T13 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
 }
-entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T13 {
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T14 {
   * Id : uuid
     MessageId : text
     TenantId : uuid
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T15 {
+  * Id : uuid
+    ParentId : uuid
+    TenantId : uuid
+}
+entity "InboxState\nInboxState" as T16 {
+  * Id : bigint
+    ConsumerId : uuid
+    LockId : uuid
+    MessageId : uuid
+}
+entity "OutboxMessage\nOutboxMessage" as T17 {
+  * SequenceNumber : bigint
+    ConversationId : uuid
+    CorrelationId : uuid
+    InboxConsumerId : uuid
+    InboxMessageId : uuid
+    InitiatorId : uuid
+    MessageId : uuid
+    OutboxId : uuid
+    RequestId : uuid
+}
+entity "OutboxState\nOutboxState" as T18 {
+  * OutboxId : uuid
+    LockId : uuid
 }
 
 T04 }o--|| T05 : InsuranceContractId

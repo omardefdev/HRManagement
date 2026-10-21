@@ -20,9 +20,13 @@ $failures = @()
 $requiredFiles = @(
     "src/Services/HRCore/HR.Core.Domain/Entities/OrgUnitVersion.cs",
     "src/Services/HRCore/HR.Core.Infrastructure/Migrations/20260731170000_ORG001_DatedOrgStructure.cs",
+    "src/Services/HRCore/HR.Core.Infrastructure/Migrations/20260824143317_ORG001_HeadOnVersion.cs",
+    "src/Services/HRCore/HR.Core.Infrastructure/Services/OrgStructure/OrgUnitVersionService.cs",
+    "src/Services/HRCore/HR.Core.Web/Controllers/OrgStructureApiController.cs",
     "docs/ORG_001_DATED_STRUCTURE.md",
     "scripts/org001-validate.ps1",
-    "src/Tests/HRManagement.UnitTests/Org001DatedStructureTests.cs"
+    "src/Tests/HRManagement.UnitTests/Org001DatedStructureTests.cs",
+    "src/Tests/HRManagement.UnitTests/OrgUnitVersionServiceTests.cs"
 )
 
 foreach ($rel in $requiredFiles) {
@@ -37,7 +41,21 @@ if (Test-Path $entityFile) {
     if ($content -notmatch "OrgUnitId") { $failures += "OrgUnitVersion missing OrgUnitId" }
     if ($content -notmatch "ValidFrom") { $failures += "OrgUnitVersion missing ValidFrom" }
     if ($content -notmatch "ValidTo") { $failures += "OrgUnitVersion missing ValidTo" }
+    if ($content -notmatch "HeadEmployeeId") { $failures += "OrgUnitVersion missing HeadEmployeeId" }
     if ($content -notmatch "OrgOperationType") { $failures += "OrgUnitVersion missing OperationType" }
+}
+
+$serviceFile = Resolve-RepoPath "src/Services/HRCore/HR.Core.Infrastructure/Services/OrgStructure/OrgUnitVersionService.cs"
+if (Test-Path $serviceFile) {
+    $svc = Get-Content -Raw -Path $serviceFile
+    if ($svc -notmatch "ResolveAsOfAsync") { $failures += "OrgUnitVersionService missing ResolveAsOfAsync" }
+    if ($svc -notmatch "BackfillMissingVersionsAsync") { $failures += "OrgUnitVersionService missing BackfillMissingVersionsAsync" }
+}
+
+$apiFile = Resolve-RepoPath "src/Services/HRCore/HR.Core.Web/Controllers/OrgStructureApiController.cs"
+if (Test-Path $apiFile) {
+    $api = Get-Content -Raw -Path $apiFile
+    if ($api -notmatch "as-of") { $failures += "OrgStructureApiController missing as-of route" }
 }
 
 $ctxFile = Resolve-RepoPath "src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs"

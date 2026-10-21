@@ -1,0 +1,44 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط تسلسل اعتماد عهدة أصل
+actor "موظف اللوجستيات" as Officer
+participant "Admin.Logistics" as Logistics
+participant "Policy Client" as Policy
+database "admin_db" as Db
+queue "RabbitMQ" as Bus
+participant "File.Storage" as Files
+Officer -> Logistics : إنشاء طلب عهدة
+Logistics -> Policy : تحقق من السياسة والنطاق
+Policy --> Logistics : Allow + approval requirements
+Logistics -> Db : حفظ الطلب
+Logistics -> Bus : AssetAssignmentRequested
+Bus --> Logistics : AssetAssignmentApproved / Rejected
+alt تمت الموافقة
+  Logistics -> Db : تفعيل العهدة وحفظ إثبات التسليم
+  Logistics -> Files : حفظ المحضر والمرفقات
+  Logistics -> Bus : AssetAssigned
+else تم الرفض
+  Logistics -> Db : حفظ القرار وسببه
+end
+@enduml

@@ -1,0 +1,11 @@
+{
+  "step": "enter-with-reason",
+  "method": "POST",
+  "url": "/api/platform/enter-tenant",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-08-24T17:48:10.0795323Z",
+  "body": {
+    "tenantId": "a0000001-0000-4000-8000-000000000001",
+    "enteredAtUtc": "2026-08-24T17:48:10.0603014\u002B00:00"
+  }
+}

@@ -10,7 +10,7 @@
 
 | الفئة | التعريف | EF filter | RLS | أمثلة |
 |---|---|---|---|---|
-| **global** | بنية منصة / عبر جهات | لا | لا | `Tenant`, `TenantAssignmentRule`, `TenantQuarantineEntry`, `SodRule`, `ConflictingRolePair`, `EntityAuditLog` |
+| **global** | بنية منصة / عبر جهات | لا | لا | `Tenant`, `TenantAssignmentRule`, `TenantQuarantineEntry`, `SodRule`, `ConflictingRolePair`, `LegislationSource`, `LegislationKeyArticle`, `LegislationInstrumentLink`, `LegislationSourceAlias`, `EntityAuditLog` |
 | **tenant-owned** | صف يخص جهة واحدة (`BaseEntity` غير global) | نعم | نعم | `Employee`, `Contract`, `PayrollRun`, `ExportJob`, … |
 | **tenant-scoped (non-BaseEntity)** | يحمل `TenantId` دون وراثة `BaseEntity` | نعم (صريح) | نعم | `IdempotencyRecord`, `OrgUnitSnapshot` |
 | **infra (MassTransit)** | جداول البنية التحتية للرسائل | لا | لا | `InboxState`, `OutboxState`, `OutboxMessage` |
@@ -20,6 +20,8 @@
 ### EntityAuditLog — global عمداً
 
 يحمل `TenantId` لكن يبقى بلا EF filter وبلا RLS حتى يتمكن `platform-admin` من المراجعة عبر الجهات. مسارات استعلام المستأجر **يجب** أن تضيف `.Where(e => e.TenantId == …)`.
+
+وصفه بأنه `global` يخص آلية الاستعلام فقط؛ يجب أن يحتفظ كل سجل بقيمة `TenantId` للكيان الأصلي، ولا تعد `Guid.Empty` قيمة جهة صالحة أو قيمة بديلة للمنصة.
 
 ### IntegrationMessageReceipt — tenant-owned
 
@@ -36,6 +38,10 @@
 ### Gateway audit DB
 
 `GatewayAuditDbContext` خارج نموذج الـ 14 خدمة. `SecurityAuditEvent.TenantId` اختياري (أحداث منصة).
+
+### SYR-001 legislation register — global
+
+`LegislationSources` وجداولها الفرعية في `hr_core_db` بلا `TenantId`: تشريع وطني واحد للمنصة. `RecruitmentRequisition` و`OfferLetter` (tenant-owned) يحملان `LegalSourceId` كـ FK nullable إلى `LegislationSources`.
 
 ## تطبيق RLS للجداول الجديدة (TEN-002B)
 

@@ -112,6 +112,13 @@ public sealed class E2ePersona
     public string DefaultPassword { get; set; } = "";
     public string[] Roles { get; set; } = [];
     public string TenantCode { get; set; } = "";
+    public string? TenantId { get; set; }
+    public string? ScopeOrgUnitId { get; set; }
+    public string? ScopeOrgUnitCode { get; set; }
+    public string? Purpose { get; set; }
+    public bool Enabled { get; set; } = true;
+    public string? Fixture { get; set; }
+    public string[] Scenarios { get; set; } = [];
 }
 
 public sealed class E2ePersonaFile

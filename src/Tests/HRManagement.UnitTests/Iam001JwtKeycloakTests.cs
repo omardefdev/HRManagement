@@ -129,6 +129,30 @@ public class Iam001JwtKeycloakTests
     }
 
     [Fact]
+    public void JwtBearer_behind_gateway_accepts_gateway_client_audience()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Keycloak:Authority"] = "https://kc.example.com/realms/hrmanagement",
+                ["ServiceIdentity:ApiAudience"] = "api-compliance",
+                ["HrAuth:BehindGateway"] = "true"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddAuthentication().AddKeycloakJwtBearer(config);
+        var sp = services.BuildServiceProvider();
+
+        var opts = sp.GetRequiredService<
+                Microsoft.Extensions.Options.IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        Assert.Contains("hr-gateway-client", opts.TokenValidationParameters.ValidAudiences!);
+        Assert.Contains("api-compliance", opts.TokenValidationParameters.ValidAudiences!);
+    }
+
+    [Fact]
     public void JwtBearer_clock_skew_is_two_minutes()
     {
         var config = new ConfigurationBuilder()

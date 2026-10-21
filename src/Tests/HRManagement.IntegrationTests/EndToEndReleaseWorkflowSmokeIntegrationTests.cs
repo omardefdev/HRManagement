@@ -136,6 +136,7 @@ public class EndToEndReleaseWorkflowSmokeIntegrationTests
         var inner = await MassTransitTestScope.CreateAsync(
             (services, connections) =>
             {
+                IntegrationTestHelpers.AddDeterministicServiceClients(services);
                 var contractsConn = new SqliteConnection("Data Source=:memory:");
                 contractsConn.Open();
                 connections.Add(contractsConn);

@@ -1,0 +1,149 @@
+@model HR.Core.Web.ViewModels.RecruitmentRequisitionCreateViewModel
+
+@{ ViewData["Title"] = "طلب شاغر جديد"; }
+
+<div class="card">
+
+    <div class="card-header"><h3 class="mb-0">طلب شاغر جديد (مسودة)</h3></div>
+
+    <div class="card-body">
+
+        <form asp-action="Create" method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+
+                <label asp-for="BudgetYear" class="form-label"></label>
+
+                <input asp-for="BudgetYear" class="form-control" type="number" />
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="ScopeOrgUnitId" class="form-label"></label>
+
+                @if (ViewBag.BranchScopeLocked == true)
+
+                {
+
+                    <select asp-for="ScopeOrgUnitId" asp-items="ViewBag.BranchScopes" class="form-select" disabled></select>
+
+                    <input type="hidden" asp-for="ScopeOrgUnitId" />
+
+                }
+
+                else
+
+                {
+
+                    <select asp-for="ScopeOrgUnitId"
+
+                            asp-items="ViewBag.BranchScopes"
+
+                            class="form-select"
+
+                            data-hr-picker="select"
+
+                            data-placeholder="اختر الفرع أو المركزية...">
+
+                        <option value="">— اختر الفرع أو المركزية —</option>
+
+                    </select>
+
+                }
+
+                <span asp-validation-for="ScopeOrgUnitId" class="text-danger"></span>
+
+                <div class="form-text">تُعرض المناصب الشاغرة ضمن الفرع أو المركزية المحدّدة فقط.</div>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="FundedPositionId" class="form-label"></label>
+
+                <select asp-for="FundedPositionId"
+
+                        class="form-select"
+
+                        data-hr-picker="vacant-position"
+
+                        data-placeholder="ابحث برمز المنصب أو المسمى أو الوحدة..."
+
+                        data-include-id="@(Model.FundedPositionId != Guid.Empty ? Model.FundedPositionId.ToString() : null)">
+
+                    <option value="">— اختر منصباً شاغراً —</option>
+
+                </select>
+
+                <span asp-validation-for="FundedPositionId" class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="JobTitle" class="form-label"></label>
+
+                <input asp-for="JobTitle" class="form-control" readonly
+                       placeholder="— يُعبأ تلقائياً من دليل الوظائف —" />
+
+                <span asp-validation-for="JobTitle" class="text-danger"></span>
+
+                <div class="form-text">يُشتق من دليل الوظائف عند اختيار المنصب ولا يمكن تعديله هنا.</div>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="JustificationNotes" class="form-label"></label>
+
+                <textarea asp-for="JustificationNotes" class="form-control"></textarea>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="LegalSourceId" class="form-label"></label>
+
+                <select asp-for="LegalSourceId"
+
+                        asp-items="ViewBag.LegalSources"
+
+                        class="form-select"
+
+                        data-hr-picker="select"
+
+                        data-placeholder="ابحث عن مرجع قانوني...">
+
+                    <option value="">— اختر مرجعاً قانونياً (اختياري في المسودة) —</option>
+
+                </select>
+
+                <span asp-validation-for="LegalSourceId" class="text-danger"></span>
+
+                <div class="form-text">مطلوب عند تقديم الطلب للاعتماد — من سجل SYR-001.</div>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="PublishingChannel" class="form-label"></label>
+
+                <select asp-for="PublishingChannel" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.RecruitmentPublishingChannel>()" class="form-select"></select>
+
+            </div>
+
+            <button type="submit" class="btn btn-primary">حفظ كمسودة</button>
+
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+
+        </form>
+
+    </div>
+
+</div>
+

@@ -1,0 +1,56 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام التوريد وتتبع الأصل والعهدة
+left to right direction
+actor "موظف التوريد" as Procurement
+actor "أمين المستودع" as Storekeeper
+actor "مسؤول الأصول" as AssetOfficer
+actor "المعتمد" as Approver
+actor "المستلم" as Recipient
+actor "الامتثال" as Compliance
+rectangle "Admin.Logistics" {
+  usecase "إنشاء أمر وخطوط توريد" as U1
+  usecase "استلام كمية وربطها بالسطر" as U2
+  usecase "زيادة المخزون أو إنشاء أصل" as U3
+  usecase "توليد AssetTag" as U4
+  usecase "طلب واعتماد عهدة" as U5
+  usecase "إثبات التسليم والتوقيع" as U6
+  usecase "إرجاع وفحص الأصل" as U7
+  usecase "تسجيل فقد وفتح تحقيق" as U8
+  usecase "تتبع النسب إلى محضر الاستلام" as U9
+}
+Procurement --> U1
+Storekeeper --> U2
+U2 .> U1 : <<include>>
+U2 .> U3 : <<include>>
+U3 .> U4 : <<extend>>
+AssetOfficer --> U5
+Approver --> U5
+Recipient --> U6
+U5 .> U6 : <<include>>
+AssetOfficer --> U7
+AssetOfficer --> U8
+Compliance --> U8
+U3 .> U9 : <<include>>
+@enduml

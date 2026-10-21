@@ -1,44 +1,29 @@
-using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Records.Archive.Domain.Entities;
-using Records.Archive.Domain.Enums;
-using Records.Archive.Infrastructure.Data;
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using MassTransit;
+using Microsoft.Extensions.Logging;
+using Records.Archive.Infrastructure.Data;
 
 namespace Records.Archive.Infrastructure.Consumers;
 
-public class ComplaintResolvedArchiveConsumer : IConsumer<IComplaintResolved>
+public class ComplaintResolvedArchiveConsumer(
+    ArchiveDbContext db,
+    ICodeGenerationClient codeClient,
+    ILogger<ComplaintResolvedArchiveConsumer> logger) : IConsumer<IComplaintResolved>
 {
-    private readonly ArchiveDbContext _db;
-    private readonly ILogger<ComplaintResolvedArchiveConsumer> _logger;
-
-    public ComplaintResolvedArchiveConsumer(ArchiveDbContext db, ILogger<ComplaintResolvedArchiveConsumer> logger)
-    {
-        _db = db;
-        _logger = logger;
-    }
-
     public async Task Consume(ConsumeContext<IComplaintResolved> context)
     {
         var m = context.Message;
-        var reference = $"CMP-RES-{m.ComplaintId:N}";
-        if (await _db.ArchiveItems.AnyAsync(x => x.ReferenceNumber == reference, context.CancellationToken))
+        var title = $"ملف شكوى — {m.Subject}: {m.Resolution} [{m.ComplaintId:N}]";
+        if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        _logger.LogInformation(
-            "Records.Archive: ComplaintResolved ComplaintId={ComplaintId}",
-            m.ComplaintId);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "CMP", context.CancellationToken);
+        if (reference is null) return;
 
-        _db.ArchiveItems.Add(new ArchiveItem
-        {
-            Title = $"ملف شكوى — {m.Subject}: {m.Resolution}",
-            ReferenceNumber = reference,
-            Format = ArchiveFormat.Digital,
-            StorageLocation = "Compliance/Complaints",
-            RetentionPeriodYears = 10
-        });
+        logger.LogInformation("Records.Archive: ComplaintResolved ComplaintId={ComplaintId} Ref={Reference}", m.ComplaintId, reference);
 
-        await _db.SaveChangesAsync(context.CancellationToken);
+        db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(title, reference, "Compliance/Complaints"));
+        await db.SaveChangesAsync(context.CancellationToken);
     }
 }

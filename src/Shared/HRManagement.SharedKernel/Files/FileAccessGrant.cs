@@ -5,9 +5,13 @@ namespace HRManagement.SharedKernel.Files;
 /// <summary>SEC-003: visibility level for a file access grant.</summary>
 public enum FileVisibility
 {
+    [Display(Name = "خاص")]
     Private = 0,
+    [Display(Name = "وحدة")]
     Module = 1,
+    [Display(Name = "جهة")]
     Tenant = 2,
+    [Display(Name = "عام")]
     Public = 3
 }
 
@@ -59,6 +63,9 @@ public class FileAccessGrant
     public bool IsRevoked { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>SEC-003 AC-29: grant validity window; expired grants deny presign/download.</summary>
+    public DateTime? ExpiresAtUtc { get; set; }
 
     public DateTime? RevokedAtUtc { get; set; }
 }

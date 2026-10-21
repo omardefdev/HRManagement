@@ -74,5 +74,92 @@ A specific funded slot in the establishment table.
 - `HR.Core.Domain/Services/EstablishmentService.cs`
 - `HR.Core.Infrastructure/Data/HRCoreDbContext.cs` (DbSets + configuration)
 - `HR.Core.Infrastructure/Migrations/20260731171000_EST001_Establishment.cs`
-- `scripts/est001-validate.ps1`
-- `Est001EstablishmentTests.cs`
+- `HR.Core.Web/Controllers/JobCatalogController.cs` — CRUD for job catalog (central write)
+- `HR.Core.Web/Controllers/FundedPositionsController.cs` — create/freeze/unfreeze funded positions
+- `HR.Core.Web/Services/EstablishmentScopeService.cs` — shared branch scope filtering
+- `GET /api/lookup/job-catalog` — searchable picker for catalog entries
+- `HR.Core.Web/Controllers/EstablishmentChangesController.cs` — governed change requests
+- `HR.Core.Infrastructure/Migrations/20260903215913_EST002_EstablishmentGovernance.cs`
+- `scripts/est002-validate.ps1`
+- `Est002EstablishmentGovernanceTests.cs`
+
+## UI (PLAN-EST-A)
+
+Operational screens under **الملاك والمناصب (EST-001)** in HR.Core:
+
+| Screen | Central HR | Branch manager |
+|--------|------------|----------------|
+| Job catalog Index/Details/Create/Edit | Yes | Forbid |
+| Funded positions Index/Details | Yes | Read-only (branch scope) |
+| Create position / Freeze / Unfreeze | Yes | Forbid |
+
+Vacant positions created via UI appear in **طلب شاغر جديد** (`GET /api/recruitment/vacant-positions`) only after an establishment change request reaches **Applied** status.
+
+## Governance (PLAN-EST-B / EST-002)
+
+Mutations from EST-A screens create **draft change requests** (`EstablishmentChangeRequest`) instead of writing live tables directly:
+
+| Component | Purpose |
+|-----------|---------|
+| `EstablishmentChangeRequest` | Unified change request with `PayloadJson`, legal source, WF link |
+| `EstablishmentChangeLog` | Append-only before/after snapshots on apply |
+| `EstablishmentChangeLifecycleService` | Draft / submit / apply / cancel |
+| `EstablishmentChangeApplier` | Applies approved payloads to catalog/positions |
+| Policy `Core.Establishment` + WF `ESTABLISHMENT-CHANGE-APPROVAL` | Approval path when enforcement ≠ Off |
+| `EstablishmentChangesController` | Index/Details + submit + **workflow approve/reject** (PLAN-24) |
+| `EstablishmentChangeWorkflowUiService` | Workflow panel on Details (PLAN-24) |
+| WorkInbox | Pending establishment changes with deep link to Details (PLAN-23/24) |
+
+When `PolicyEnforcementMode.Off` **without** `NationalScope:IsLabScale`, submit applies immediately (legacy dev shortcut). With **IsLabScale=true** (default lab) or Enforce/Shadow, submit starts `ESTABLISHMENT-CHANGE-APPROVAL`; completion triggers apply via handler.
+
+## Temporal (PLAN-EST-C / EST-003)
+
+Dated versions enable as-of queries without rewriting history:
+
+| Component | Purpose |
+|-----------|---------|
+| `JobCatalogVersion` / `FundedPositionVersion` | ValidFrom/ValidTo snapshots (ORG-001 pattern) |
+| `JobCatalogVersionService` / `FundedPositionVersionService` | Append on apply + occupancy |
+| `EstablishmentAsOfService` | Catalog/position/unit as-of aggregation |
+| `GET /api/establishment/*/as-of` | API for temporal reads |
+| Org as-of fix | `OrgUnitVersionService` uses position versions (AC-14) |
+
+## Planning (PLAN-EST-D / EST-004)
+
+Workforce planning and establishment gap reports from funded positions:
+
+| Component | Purpose |
+|-----------|---------|
+| `WorkforcePlanLine` | Structured plan targets (grade/catalog/count/FTE) |
+| `EstablishmentMetricsService` / `EstablishmentGapAnalysisService` | Funded/occupied/vacant/frozen vs plan |
+| `EstablishmentPlanningApiController` | `GET /api/establishment/gap-analysis` + plan gap |
+| Gap report UI | WorkforcePlans/Details + GapReport |
+| `FinanceBudgetImportBatch` / `FileFinanceBudgetPort` | Stub CSV import + cost-center reconciliation |
+
+## Bulk import (PLAN-EST-F / EST-006)
+
+Governed CSV import for job catalog entries:
+
+| Component | Purpose |
+|-----------|---------|
+| `JobCatalogImportBatch` / `JobCatalogImportLine` | Parsed CSV audit trail |
+| `FileJobCatalogPort` / `JobCatalogImportService` | Parse + MDM validate + draft change request |
+| `EstablishmentChangeType.BulkCreateJobCatalog` | Single governance cycle for N catalog rows |
+| `JobCatalog/Import` | Central HR upload UI + template download |
+
+CSV columns: `TitleAr`, `TitleEn`, `DescriptionAr`, `GradeCode`, `JobClassificationCode`, `IsActive`, `LegacyJobCode` (Migration mode only).
+
+Live external finance ERP integration remains deferred (CAP-EXT-01).
+
+## MDM admin UI (PLAN-EST-G / EST-007)
+
+Governed MVC screens for national reference codes used by job catalog pickers:
+
+| Component | Purpose |
+|-----------|---------|
+| `ReferenceCatalogAdminService` | List/create/update/deactivate + impact analysis |
+| `ReferenceCatalogController` + Views | Central HR UI for Grade + JobClassification |
+| `ReferenceImpactAnalyzer` | JobCatalog grade/group counts before deactivate |
+| Sidebar «المرجع الوطني (MDM)» | Governance navigation entry |
+
+Platform MDM rows are read-only; agency overlays are created on the current tenant. See [PLAN-20](acceptance-plans/PLAN-20-establishment-mdm-admin-ui.md).

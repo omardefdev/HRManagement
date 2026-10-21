@@ -29,8 +29,8 @@ node "بيئة Docker Compose أو إنتاج" {
   node "خدمات HRManagement" as Services
   node "Keycloak" as Keycloak
   queue "RabbitMQ" as Rabbit
-  database "PostgreSQL\\nقواعد متعددة" as Postgres
-  storage "MinIO\\nملفات" as Minio
+  database "PostgreSQL\nقواعد متعددة" as Postgres
+  storage "MinIO\nملفات" as Minio
 }
 Browser --> Network
 Network --> Gateway

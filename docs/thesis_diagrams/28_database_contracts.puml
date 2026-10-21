@@ -2,26 +2,38 @@
 !theme plain
 skinparam backgroundColor #FFFFFF
 skinparam defaultFontName Arial
-skinparam defaultFontSize 18
 skinparam shadowing false
 skinparam roundcorner 8
 skinparam linetype ortho
 skinparam dpi 170
 skinparam ArrowColor #24465A
-skinparam EntityBorderColor #0F6B73
-skinparam EntityBackgroundColor #F4FAFA
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
 
-title "ERD منطقي مختصر لقاعدة HR.Contracts\nContracts and service lifecycle"
+title ERD مفاهيمي مختصر للعقود ودورة الخدمة HR.Contracts
+left to right direction
 
-entity "ContractType\nنوع العقد" as ContractType {
-  * Id : uuid <<PK>>
-  Code : string <<UQ>>
-}
 entity "Contract\nالعقد" as Contract {
   * Id : uuid <<PK>>
-  ContractTypeId : uuid <<FK>>
+  TenantId : uuid
   EmployeeId : uuid <<identifier>>
+  ContractTypeId : uuid <<FK>>
   Status : enum
+}
+entity "ContractType\nنوع العقد" as ContractType {
+  * Id : uuid <<PK>>
+  TenantId : uuid
 }
 entity "ContractSignature\nتوقيع العقد" as Signature {
   * Id : uuid <<PK>>
@@ -31,19 +43,15 @@ entity "ProbationRecord\nفترة التجربة" as Probation {
   * Id : uuid <<PK>>
   ContractId : uuid <<FK>>
 }
-entity "CommencementRecord\nالمباشرة" as Commencement {
+entity "ServiceTransaction\nمعاملة الخدمة" as ServiceTx {
   * Id : uuid <<PK>>
-  ContractId : uuid <<FK>>
-}
-entity "ServiceTransaction\nمعاملة خدمة" as Transaction {
-  * Id : uuid <<PK>>
-  TransactionType : enum
+  TenantId : uuid
+  EmployeeId : uuid <<identifier>>
   State : enum
 }
 entity "HireChecklist\nقائمة التعيين" as HireChecklist {
   * Id : uuid <<PK>>
   ServiceTransactionId : uuid <<FK>>
-  Step : enum
 }
 entity "SeparationRecord\nإنهاء الخدمة" as Separation {
   * Id : uuid <<PK>>
@@ -52,17 +60,16 @@ entity "SeparationRecord\nإنهاء الخدمة" as Separation {
 entity "SeparationChecklist\nقائمة الإنهاء" as SeparationChecklist {
   * Id : uuid <<PK>>
   SeparationRecordId : uuid <<FK>>
-  Step : enum
 }
 entity "LeaveRequest\nطلب إجازة" as Leave {
   * Id : uuid <<PK>>
+  TenantId : uuid
   EmployeeId : uuid <<identifier>>
-  Status : enum
 }
 entity "AdvanceRequest\nطلب سلفة" as Advance {
   * Id : uuid <<PK>>
+  TenantId : uuid
   EmployeeId : uuid <<identifier>>
-  Amount : decimal
 }
 entity "AdvanceInstallmentPlan\nخطة التقسيط" as Installment {
   * Id : uuid <<PK>>
@@ -72,15 +79,13 @@ entity "AdvanceInstallmentPlan\nخطة التقسيط" as Installment {
 ContractType ||--o{ Contract
 Contract ||--o{ Signature
 Contract ||--o{ Probation
-Contract ||--o{ Commencement
 Contract ||--o{ Separation
-Transaction ||--o{ HireChecklist
+ServiceTx ||--o{ HireChecklist
 Separation ||--o{ SeparationChecklist
 Advance ||--o{ Installment
 
-note right of Contract
-EmployeeId مرجع تكاملي إلى HR.Core.
-التفعيل والنقل والإنهاء ينشر أحداثاً
-تستهلكها Payroll وIDCard وArchive وغيرها.
+note bottom of Contract
+EmployeeId وOrgUnitId معرفات تكاملية إلى HR.Core بلا FK عابر.
+وتنتشر آثار التعيين والإجازة والفصل عبر العقود المنشورة.
 end note
 @enduml

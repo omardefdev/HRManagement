@@ -11,6 +11,26 @@
             <div class="mb-3"><label asp-for="RequestDate" class="form-label"></label><input asp-for="RequestDate" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
             <div class="mb-3">
+                <label asp-for="SourceLegalRegimeId" class="form-label">نظام الخدمة الحالي</label>
+                <input asp-for="SourceLegalRegimeId" class="form-control" readonly placeholder="يُلتقط تلقائياً عند الحفظ" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="TargetLegalRegimeId" class="form-label">نظام الخدمة الهدف (اختياري — للنقل بين أنظمة)</label>
+                <input asp-for="TargetLegalRegimeId" class="form-control" placeholder="law50 / law53 / special_*" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="TransitionDecisionRef" class="form-label">مرجع القرار/المرسوم</label>
+                <input asp-for="TransitionDecisionRef" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConditionCode" class="form-label">رمز شرط الانتقال</label>
+                <input asp-for="ConditionCode" class="form-control" placeholder="agency_reclassification" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConflictNotes" class="form-label">ملاحظات المادة 159 (اختياري)</label>
+                <textarea asp-for="ConflictNotes" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="mb-3">
                 <label class="form-label">الحالة</label>
                 <input class="form-control" value="قيد الانتظار" disabled />
                 <div class="form-text">يُعتمد طلب النقل عبر إجراء الموافقة.</div>

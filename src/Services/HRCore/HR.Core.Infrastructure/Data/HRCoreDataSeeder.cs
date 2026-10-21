@@ -1,7 +1,9 @@
 using HR.Core.Domain.Entities;
+using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.NationalScope;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -22,9 +24,11 @@ public static class HRCoreDataSeeder
     {
         await SeedDefaultTenantAsync(db, serviceProvider, ct);
         await SeedShiftsAsync(db, ct);
-        await SeedPublicJobPostingsAsync(db, ct);
+        await SeedPublicJobPostingsAsync(db, serviceProvider, ct);
 
-        if (await db.OrgUnits.AnyAsync(ct))
+        if (await db.OrgUnits
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .AnyAsync(ct))
             return;
 
         var root = new OrgUnit
@@ -58,10 +62,14 @@ public static class HRCoreDataSeeder
         IServiceProvider? serviceProvider,
         CancellationToken ct)
     {
-        if (await db.Tenants.AnyAsync(t => t.Id == TenantDefaults.DefaultTenantId, ct))
+        if (await db.Tenants
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .AnyAsync(t => t.Id == TenantDefaults.DefaultTenantId, ct))
             return;
 
-        var nextCount = await db.Tenants.LongCountAsync(ct) + 1;
+        var nextCount = await db.Tenants
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .LongCountAsync(ct) + 1;
         var guard = serviceProvider?.GetService<INationalScopeGuard>();
         var err = guard?.CheckTenantCount(nextCount);
         if (err is not null)
@@ -84,7 +92,9 @@ public static class HRCoreDataSeeder
 
     private static async Task SeedShiftsAsync(HRCoreDbContext db, CancellationToken ct)
     {
-        if (await db.Shifts.AnyAsync(ct))
+        if (await db.Shifts
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .AnyAsync(ct))
             return;
 
         db.Shifts.AddRange(
@@ -95,9 +105,18 @@ public static class HRCoreDataSeeder
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task SeedPublicJobPostingsAsync(HRCoreDbContext db, CancellationToken ct)
+    private static async Task SeedPublicJobPostingsAsync(
+        HRCoreDbContext db,
+        IServiceProvider? serviceProvider,
+        CancellationToken ct)
     {
-        if (await db.PublicJobPostings.AnyAsync(ct))
+        var config = serviceProvider?.GetService<IConfiguration>();
+        if (config?.GetValue("Seed:IncludeSamplePosting", false) != true)
+            return;
+
+        if (await db.PublicJobPostings
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .AnyAsync(ct))
             return;
 
         db.PublicJobPostings.Add(new PublicJobPosting

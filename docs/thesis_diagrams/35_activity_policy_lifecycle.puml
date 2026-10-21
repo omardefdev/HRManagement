@@ -1,0 +1,43 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title مخطط نشاط دورة حياة السياسة
+start
+:إنشاء قالب وسياسة مسودة;
+:إضافة القواعد والحقائق الملزمة;
+:التحقق من الصياغة والتعارضات;
+if (المحاكاة ناجحة؟) then (نعم)
+  :اعتماد نسخة غير قابلة للتعديل;
+else (لا)
+  :إعادة المسودة مع أسباب الرفض;
+  stop
+endif
+if (وضع التشغيل؟) then (Shadow)
+  :تسجيل القرار دون منع المعاملة;
+else (Enforce)
+  :تطبيق Allow / Deny / Requirements;
+endif
+:حفظ Enforcement Ledger وCorrelationId;
+:ربط السياسة بسير العمل عند الحاجة;
+stop
+@enduml

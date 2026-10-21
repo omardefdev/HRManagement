@@ -1,10 +1,10 @@
 @model IssuedCard
 @{ ViewData["Title"] = "تفاصيل البطاقة"; }
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">@Model.SerialNumber</h3><span class="badge bg-secondary">@Model.Status</span></div>
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">@Model.SerialNumber</h3><span class="badge bg-secondary">@Html.HrEnumDisplay(Model.Status)</span></div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+    <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">التصميم</dt><dd class="col-sm-9">@Model.CardDesign?.Name</dd>
             <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd")</dd>
             <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(Model.ExpiresAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
@@ -44,7 +44,11 @@
     <form asp-action="MarkDelivered" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="deliveredTo" value="@Model.EmployeeId" /><button type="submit" class="btn btn-outline-primary">تسليم</button></form>
     @if (Model.Status == CardStatus.Active)
     {
-        <form asp-action="Revoke" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد؟')">إلغاء البطاقة</button></form>
+        <form asp-action="Revoke" asp-route-id="@Model.Id" method="post" class="d-inline"
+              data-hr-confirm="هل أنت متأكد من إلغاء البطاقة؟"
+              data-hr-confirm-title="إلغاء البطاقة"
+              data-hr-confirm-variant="danger"
+              data-hr-confirm-label="إلغاء">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger">إلغاء البطاقة</button></form>
     }
     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
 </div>

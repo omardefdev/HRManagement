@@ -1,0 +1,20 @@
+@model HR.Core.Web.ViewModels.JobCatalogFormViewModel
+@{ ViewData["Title"] = "إضافة دليل وظيفة"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">إضافة دليل وظيفة</h3></div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="alert alert-info">
+                يُحفظ الطلب ك<strong>مسودة</strong> في «طلبات تغيير الملاك». أكمل المرجع القانوني وتاريخ النفاذ ثم قدّم للاعتماد.
+            </div>
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <partial name="_JobCatalogFormFields" model="Model" />
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ مسودة</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

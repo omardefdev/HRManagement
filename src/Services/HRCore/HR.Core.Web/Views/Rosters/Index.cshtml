@@ -1,15 +1,39 @@
-@model IReadOnlyList<HR.Core.Domain.Entities.ShiftRoster>
+@model HR.Core.Web.ViewModels.RostersIndexViewModel
 @{ ViewData["Title"] = "جداول المناوبات"; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">جداول المناوبات</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm">جدول جديد</a>
     </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="عنوان الجدول..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الوحدة التنظيمية</label>
+                <select name="orgUnitId" asp-items="ViewBag.OrgUnits" class="form-select"><option value="">— الكل —</option></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الفترة من</label>
+                <input type="date" name="periodFrom" value="@Model.PeriodFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الفترة إلى</label>
+                <input type="date" name="periodTo" value="@Model.PeriodTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>العنوان</th><th>الوحدة</th><th>من</th><th>إلى</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items)
                 {
                     <tr>
                         <td>@x.Title</td>
@@ -19,7 +43,7 @@
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا توجد جداول</td></tr> }
+                @if (!Model.Items.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا توجد جداول</td></tr> }
             </tbody>
         </table>
     </div>

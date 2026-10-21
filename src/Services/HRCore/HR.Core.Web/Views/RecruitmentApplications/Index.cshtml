@@ -1,201 +1,164 @@
 @model HR.Core.Web.ViewModels.RecruitmentApplicationsIndexViewModel
-
-
-
 @using HR.Core.Domain.Enums
-
+@using HR.Core.Domain.Services
+@using HRManagement.ServiceDefaults
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
-
-
-@{ ViewData["Title"] = "التوظيف والاستقطاب"; var gateway = (Configuration["HrGateway:PublicBaseUrl"] ?? "http://localhost:5000").TrimEnd('/'); }
-
-
-
-<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلبات التوظيف</h3><button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRecruitmentModal">طلب جديد</button></div>
-
-
-
-<div class="card-body p-0"><table class="table mb-0 align-middle"><thead><tr><th>المتقدم</th><th>الوظيفة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>
-
-
-
-@foreach (var x in Model.Applications){
-
-
-
-<tr>
-
-
-
-<td>@x.ApplicantFullName</td>
-
-
-
-<td>@x.AppliedPosition</td>
-
-
-
-<td>@x.Status</td>
-
-
-
-<td>
-
-
-
-@if (x.Status != RecruitmentApplicationStatus.Hired){
-
-
-
-<div class="d-flex flex-wrap gap-1 align-items-center">
-
-
-
-@if (x.Status == RecruitmentApplicationStatus.Shortlisted){
-
-
-
-<a asp-action="Hire" asp-route-id="@x.Id" class="btn btn-sm btn-success">تعيين</a>
-
-
-
+@{
+    ViewData["Title"] = "التوظيف والاستقطاب";
+    var gateway = (Configuration["HrGateway:PublicBaseUrl"] ?? "http://localhost:5000").TrimEnd('/');
+    var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
+    var legacyHire = ViewBag.LegacyHireWithoutOffer as bool? ?? false;
 }
 
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">طلبات التوظيف</h3>
+        @if (canWrite)
+        {
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                    data-bs-target="#createRecruitmentModal" title="فتح نموذج طلب توظيف جديد">
+                <i class="fas fa-plus"></i> طلب جديد
+            </button>
+        }
+    </div>
 
+    <div class="card-body border-bottom">
+        <form method="get" asp-action="Index" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">بحث عام</label>
+                <input name="SearchTerm" value="@Model.Filter.SearchTerm" class="form-control" placeholder="اسم المتقدم أو الملاحظات" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">طلب الشاغر</label>
+                <select name="RequisitionId" asp-items="Model.RequisitionFilterOptions" class="form-select">
+                    <option value="">كل الطلبات</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="Status" class="form-select">
+                    <option value="">كل الحالات</option>
+                    @foreach (RecruitmentApplicationStatus s in Enum.GetValues<RecruitmentApplicationStatus>())
+                    {
+                        <option value="@s" selected="@(Model.Filter.Status == s.ToString() ? "selected" : null)">@Html.HrEnumDisplay(s)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">خطاب العرض</label>
+                <select name="HasOffer" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="true" selected="@(Model.Filter.HasOffer == true ? "selected" : null)">يوجد عرض</option>
+                    <option value="false" selected="@(Model.Filter.HasOffer == false ? "selected" : null)">بدون عرض</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" name="LegacyOnly" value="true" id="legacyOnly"
+                           @(Model.Filter.LegacyOnly ? "checked" : null) />
+                    <label class="form-check-label" for="legacyOnly">قديم فقط (بدون طلب شاغر)</label>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary" title="تطبيق الفلاتر"><i class="fas fa-search"></i> بحث</button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
 
-<form asp-action="SetStatus" method="post" class="d-inline">@Html.AntiForgeryToken()
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead><tr><th>المتقدم</th><th>طلب الشاغر</th><th>المسمى</th><th>الحالة</th><th>العرض</th><th>تاريخ التقديم</th><th>إجراءات</th></tr></thead>
+            <tbody>
+            @foreach (var application in Model.Applications)
+            {
+                var canHire = RecruitmentWorkflowRules.CanHire(application, legacyHire);
+                <tr>
+                    <td>@application.ApplicantFullName</td>
+                    <td>
+                        @if (application.RequisitionId is null)
+                        {
+                            <span class="badge bg-secondary">قديم</span>
+                        }
+                        else
+                        {
+                            <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@application.RequisitionId">
+                                @(application.Requisition?.RequisitionNumber ?? "—")
+                            </a>
+                        }
+                    </td>
+                    <td>@application.AppliedPosition</td>
+                    <td>@Html.HrEnumDisplay(application.Status)</td>
+                    <td>
+                        @if (application.ActiveOfferLetterId is Guid offerId)
+                        {
+                            <a asp-controller="OfferLetters" asp-action="Details" asp-route-id="@offerId">
+                                @(application.ActiveOfferLetter?.OfferNumber ?? "عرض")
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>@application.AppliedAt.ToLocalTime().ToString("yyyy/MM/dd")</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1 align-items-center">
+                            <a asp-action="Details" asp-route-id="@application.Id" class="btn btn-sm btn-outline-info" title="تفاصيل الطلب ومسار الاختيار">
+                                <i class="fas fa-eye"></i> تفاصيل
+                            </a>
+                            @if (application.Status != RecruitmentApplicationStatus.Hired)
+                            {
+                                @if (canWrite && canHire)
+                                {
+                                    <a asp-action="Hire" asp-route-id="@application.Id" class="btn btn-sm btn-success"
+                                       title="فتح بيانات التعيين والانتقال إلى معالج التعيين"><i class="fas fa-user-check"></i> تعيين</a>
+                                }
+                            }
+                            else if (application.HiredEmployeeId.HasValue)
+                            {
+                                <a href="@($"{gateway}/ui/hr-contracts/HireWizard/Continue?employeeId={application.HiredEmployeeId}")"
+                                   class="btn btn-sm btn-outline-primary" title="متابعة استكمال ملف التعيين">متابعة المعالج</a>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Applications.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-4">لا توجد طلبات مطابقة للفلاتر</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
 
-
-
-<input type="hidden" name="id" value="@x.Id" />
-
-
-
-<input type="hidden" name="status" value="@((int)RecruitmentApplicationStatus.UnderReview)" />
-
-
-
-<button type="submit" class="btn btn-sm btn-outline-secondary">مراجعة</button>
-
-
-
-</form>
-
-
-
-<form asp-action="SetStatus" method="post" class="d-inline">@Html.AntiForgeryToken()
-
-
-
-<input type="hidden" name="id" value="@x.Id" />
-
-
-
-<input type="hidden" name="status" value="@((int)RecruitmentApplicationStatus.Shortlisted)" />
-
-
-
-<button type="submit" class="btn btn-sm btn-outline-primary">مختصر</button>
-
-
-
-</form>
-
-
-
-<form asp-action="SetStatus" method="post" class="d-inline">@Html.AntiForgeryToken()
-
-
-
-<input type="hidden" name="id" value="@x.Id" />
-
-
-
-<input type="hidden" name="status" value="@((int)RecruitmentApplicationStatus.Rejected)" />
-
-
-
-<button type="submit" class="btn btn-sm btn-outline-danger">رفض</button>
-
-
-
-</form>
-
-
-
+    @if (Model.TotalCount > Model.Filter.PageSize)
+    {
+        var pages = (int)Math.Ceiling(Model.TotalCount / (double)Model.Filter.PageSize);
+        <nav class="p-3" aria-label="صفحات طلبات التوظيف"><ul class="pagination mb-0">
+            @for (var pageNumber = 1; pageNumber <= pages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == Model.Filter.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-Page="@pageNumber" asp-route-PageSize="@Model.Filter.PageSize"
+                       asp-route-SearchTerm="@Model.Filter.SearchTerm" asp-route-RequisitionId="@Model.Filter.RequisitionId"
+                       asp-route-LegacyOnly="@Model.Filter.LegacyOnly" asp-route-Status="@Model.Filter.Status"
+                       asp-route-HasOffer="@Model.Filter.HasOffer">@pageNumber</a>
+                </li>
+            }
+        </ul></nav>
+    }
 </div>
-
-
-
-} else {
-
-
-
-<div class="d-flex flex-wrap gap-1 align-items-center">
-
-
-
-<span class="text-muted">@(x.HiredEmployee != null ? x.HiredEmployee.FullName : "—")</span>
-
-
-
-@if (x.HiredEmployeeId.HasValue){
-
-
-
-<a href="@($"{gateway}/ui/hr-contracts/HireWizard/Continue?employeeId={x.HiredEmployeeId}")" class="btn btn-sm btn-outline-primary">متابعة المعالج</a>
-
-
-
-}
-
-
-
-</div>
-
-
-
-}
-
-
-
-</td>
-
-
-
-</tr>}
-
-
-
-@if(!Model.Applications.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد طلبات</td></tr>}</tbody></table></div></div>
-
-
 
 @await Html.PartialAsync("_CreateModal", Model.CreateModel)
 
-
-
 @section Scripts {
-
     @await Html.PartialAsync("_ValidationScriptsPartial")
-
     <script>
-
         document.addEventListener('DOMContentLoaded', function () {
-
             if (@Json.Serialize(Model.ShowCreateModal)) {
-
-                bootstrap.Modal.getOrCreateInstance(
-
-                    document.getElementById('createRecruitmentModal')).show();
-
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('createRecruitmentModal')).show();
             }
-
         });
-
     </script>
-
 }
-
-

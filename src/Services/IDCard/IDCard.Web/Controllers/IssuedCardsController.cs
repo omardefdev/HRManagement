@@ -8,6 +8,7 @@ using IDCard.Domain.Services;
 using IDCard.Infrastructure.Data;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.SharedKernel.ViewModels;
 
 namespace IDCard.Web.Controllers;
@@ -17,12 +18,18 @@ public class IssuedCardsController : Controller
     private readonly IDCardDbContext _db;
     private readonly IPublishEndpoint _publish;
     private readonly IFileReferenceClient _fileRefs;
+    private readonly ICodeGenerationClient _codeClient;
 
-    public IssuedCardsController(IDCardDbContext db, IPublishEndpoint publish, IFileReferenceClient fileRefs)
+    public IssuedCardsController(
+        IDCardDbContext db,
+        IPublishEndpoint publish,
+        IFileReferenceClient fileRefs,
+        ICodeGenerationClient codeClient)
     {
         _db = db;
         _publish = publish;
         _fileRefs = fileRefs;
+        _codeClient = codeClient;
     }
 
     public async Task<IActionResult> Index()
@@ -55,7 +62,6 @@ public class IssuedCardsController : Controller
         {
             IssuedAt = DateTime.UtcNow,
             Status = CardStatus.Active,
-            SerialNumber = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
             RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours
         });
     }
@@ -71,6 +77,15 @@ public class IssuedCardsController : Controller
         if (model.RevokeSlaHours <= 0)
             model.RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours;
 
+        var (ok, serial, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
+            _codeClient, CodeGenerationRequests.IdCardSerial());
+        if (!ok)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "تعذّر توليد الرقم التسلسلي");
+            return View(model);
+        }
+
+        model.SerialNumber = serial!;
         _db.IssuedCards.Add(model);
         await _db.SaveChangesAsync();
 
@@ -79,7 +94,8 @@ public class IssuedCardsController : Controller
             EmployeeId = model.EmployeeId,
             IssuedCardId = model.Id,
             SerialNumber = model.SerialNumber,
-            IssuedAt = model.IssuedAt
+            IssuedAt = model.IssuedAt,
+            CorrelationId = CorrelationIdFlow.Get()
         });
         await _db.SaveChangesAsync();
 
@@ -111,7 +127,7 @@ public class IssuedCardsController : Controller
         card.EmployeeId = model.EmployeeId;
         card.CardDesignId = model.CardDesignId;
         card.ExpiresAt = model.ExpiresAt;
-        card.SerialNumber = model.SerialNumber;
+        // SerialNumber immutable (COD-001)
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث البطاقة";
         return RedirectToAction(nameof(Details), new { id });
@@ -269,13 +285,21 @@ public class IssuedCardsController : Controller
             card.RevokedAt = DateTime.UtcNow;
         }
 
+        var (ok, serial, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
+            _codeClient, CodeGenerationRequests.IdCardSerial());
+        if (!ok)
+        {
+            TempData["Error"] = error ?? "تعذّر توليد الرقم التسلسلي";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         var replacement = new IssuedCard
         {
             EmployeeId = card.EmployeeId,
             CardDesignId = card.CardDesignId,
             IssuedAt = DateTime.UtcNow,
             Status = CardStatus.Active,
-            SerialNumber = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+            SerialNumber = serial!,
             ExpiresAt = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(card.CardDesign?.ValidityDays ?? 365)),
             ReplacesCardId = card.Id,
             RevokeSlaHours = card.RevokeSlaHours
@@ -288,7 +312,8 @@ public class IssuedCardsController : Controller
             EmployeeId = replacement.EmployeeId,
             IssuedCardId = replacement.Id,
             SerialNumber = replacement.SerialNumber,
-            IssuedAt = replacement.IssuedAt
+            IssuedAt = replacement.IssuedAt,
+            CorrelationId = CorrelationIdFlow.Get()
         });
         await _db.SaveChangesAsync();
 

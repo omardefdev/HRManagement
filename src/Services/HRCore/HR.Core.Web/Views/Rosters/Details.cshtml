@@ -54,7 +54,11 @@
                         <td>@a.OvertimeHours س / @(b?.OvertimeAmount) ل.س</td>
                         <td><strong>@(b?.TotalAllowance) ل.س</strong></td>
                         <td>
-                            <form asp-action="RemoveAssignment" method="post" onsubmit="return confirm('حذف الإسناد؟');">
+                            <form asp-action="RemoveAssignment" method="post"
+                                  data-hr-confirm="حذف الإسناد؟"
+                                  data-hr-confirm-title="تأكيد الحذف"
+                                  data-hr-confirm-variant="danger"
+                                  data-hr-confirm-label="حذف">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@a.Id" />
                                 <input type="hidden" name="rosterId" value="@Model.Id" />

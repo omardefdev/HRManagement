@@ -1,0 +1,85 @@
+@model HR.Core.Web.ViewModels.OfferLetterDetailsViewModel
+@using HR.Core.Domain.Enums
+@using HRManagement.ServiceDefaults
+
+@{
+    ViewData["Title"] = "تفاصيل خطاب العرض";
+    var offer = Model.Offer;
+    var app = offer.RecruitmentApplication;
+    var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">@offer.OfferNumber — @Html.HrEnumDisplay(offer.Status)</h3>
+        <div class="d-flex gap-1 flex-wrap">
+            @if (app is not null)
+            {
+                <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@app.Id" class="btn btn-outline-primary btn-sm">طلب التوظيف</a>
+            }
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">المتقدم</dt><dd class="col-sm-9">@(app?.ApplicantFullName ?? "—")</dd>
+            <dt class="col-sm-3">الراتب المعروض</dt><dd class="col-sm-9">@offer.OfferedSalary.ToString("N2")</dd>
+            <dt class="col-sm-3">الدرجة</dt><dd class="col-sm-9">@(offer.GradeCode ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@(offer.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(offer.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ القبول</dt><dd class="col-sm-9">@(offer.AcceptedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">مرجع قانوني</dt>
+            <dd class="col-sm-9">
+                @(ViewBag.LegalSourceLabel ?? "—")
+                @if (ViewBag.LegalSourceLabel is not null)
+                {
+                    <div class="form-text">يُورَّث من طلب الشاغر — غير قابل للتعديل في هذه المرحلة.</div>
+                }
+            </dd>
+        </dl>
+
+        @if (offer.Status == OfferStatus.PendingApproval)
+        {
+            ViewData["OfferId"] = offer.Id;
+            <partial name="_OfferWorkflowPanel" model="Model.Workflow" />
+        }
+    </div>
+    @if (canWrite && (Model.CanSubmit || Model.CanAccept || Model.CanDecline || Model.CanRevoke))
+    {
+        <div class="card-footer d-flex flex-wrap gap-2">
+            @if (Model.CanSubmit)
+            {
+                <form asp-action="SubmitOffer" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@offer.Id" />
+                    <button type="submit" class="btn btn-warning btn-sm">تقديم للاعتماد</button>
+                </form>
+            }
+            @if (Model.CanAccept)
+            {
+                <form asp-action="AcceptOffer" method="post" class="d-inline" onsubmit="return confirm('تأكيد قبول خطاب العرض؟');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@offer.Id" />
+                    <button type="submit" class="btn btn-success btn-sm">قبول العرض</button>
+                </form>
+            }
+            @if (Model.CanDecline)
+            {
+                <form asp-action="DeclineOffer" method="post" class="d-inline" onsubmit="return confirm('تأكيد رفض خطاب العرض؟');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@offer.Id" />
+                    <button type="submit" class="btn btn-outline-danger btn-sm">رفض العرض</button>
+                </form>
+            }
+            @if (Model.CanRevoke)
+            {
+                <form asp-action="Revoke" method="post" class="d-inline" onsubmit="return confirm('تأكيد إلغاء خطاب العرض؟');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@offer.Id" />
+                    <button type="submit" class="btn btn-danger btn-sm">إلغاء العرض</button>
+                </form>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,8 @@
+{
+  "step": "get-outsider-employee",
+  "method": "GET",
+  "url": "/api/hr-core/api/lookup/employees/a0000002-0000-4000-8000-000000000201",
+  "statusCode": 404,
+  "capturedAtUtc": "2026-08-24T17:48:09.6436259Z",
+  "body": "{\u0022type\u0022:\u0022https://tools.ietf.org/html/rfc9110#section-15.5.5\u0022,\u0022title\u0022:\u0022Not Found\u0022,\u0022status\u0022:404,\u0022traceId\u0022:\u002200-355e8d86a1a4fc9c69b33e9ef3ec1a0f-88f07cfc78719332-00\u0022}"
+}

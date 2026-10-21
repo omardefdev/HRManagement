@@ -1,6 +1,7 @@
 @model IList<HR.Contracts.Domain.Entities.ServiceTransaction>
 @using HR.Contracts.Domain.Enums
-@{ ViewData["Title"] = "المعاملات"; }
+@using HRManagement.SharedKernel.Localization
+@{ ViewData["Title"] = "المعاملات"; var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>(); var filterEmployeeId = ViewBag.EmployeeId as Guid?; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-exchange-alt"></i> المعاملات</h3>
@@ -13,7 +14,7 @@
                     <option value="">جميع الحالات</option>
                     @foreach (var s in Enum.GetValues<ServiceTransactionState>())
                     {
-                        <option value="@s" selected="@(ViewBag.StateFilter != null && (ServiceTransactionState)ViewBag.StateFilter == s)">@s</option>
+                        <option value="@s" selected="@(ViewBag.StateFilter != null && (ServiceTransactionState)ViewBag.StateFilter == s ? "selected" : null)">@EnumDisplayExtensions.GetDisplayName(s)</option>
                     }
                 </select>
             </div>
@@ -22,7 +23,16 @@
                     <option value="">جميع الأنواع</option>
                     @foreach (var t in Enum.GetValues<ServiceTransactionType>())
                     {
-                        <option value="@t" selected="@(ViewBag.TypeFilter != null && (ServiceTransactionType)ViewBag.TypeFilter == t)">@t</option>
+                        <option value="@t" selected="@(ViewBag.TypeFilter != null && (ServiceTransactionType)ViewBag.TypeFilter == t ? "selected" : null)">@EnumDisplayExtensions.GetDisplayName(t)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
                     }
                 </select>
             </div>
@@ -37,9 +47,9 @@
                 {
                     <tr>
                         <td>@(t.ReferenceNumber ?? t.Id.ToString()[..8])</td>
-                        <td>@t.EmployeeId</td>
-                        <td>@t.TransactionType</td>
-                        <td><span class="badge bg-info">@t.State</span></td>
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(t.EmployeeId, employeeNames.GetValueOrDefault(t.EmployeeId)))</td>
+                        <td>@Html.HrEnumDisplay(t.TransactionType)</td>
+                        <td><span class="badge bg-info">@Html.HrEnumDisplay(t.State)</span></td>
                         <td>@t.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
                         <td><a asp-action="Details" asp-route-id="@t.Id" class="btn btn-primary btn-xs" aria-label="تفاصيل"><i aria-hidden="true" class="fas fa-eye"></i></a></td>
                     </tr>

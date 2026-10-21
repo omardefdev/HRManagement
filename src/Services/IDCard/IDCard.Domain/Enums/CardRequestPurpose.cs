@@ -1,3 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace IDCard.Domain.Enums;
 
-public enum CardRequestPurpose { New, Replacement, Update }
+public enum CardRequestPurpose
+{
+    [Display(Name = "جديد")]
+    New,
+    [Display(Name = "بديل")]
+    Replacement,
+    [Display(Name = "تحديث")]
+    Update,
+}

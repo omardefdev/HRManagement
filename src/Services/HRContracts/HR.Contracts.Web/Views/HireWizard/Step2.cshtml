@@ -4,7 +4,7 @@
     var labels = ViewBag.ChecklistLabels as Dictionary<HR.Contracts.Domain.Enums.HireStep, string> ?? new();
 }
 <div class="card">
-    <div class="card-header"><h3>قائمة التحقق — @Model.Txn.State</h3></div>
+    <div class="card-header"><h3>قائمة التحقق — @Html.HrEnumDisplay(Model.Txn.State)</h3></div>
     <div class="card-body">
         <ul class="list-group mb-3">
             @foreach (var item in Model.Checklist)

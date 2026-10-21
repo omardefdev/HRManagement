@@ -1,0 +1,312 @@
+@model HR.Core.Web.ViewModels.RecruitmentRequisitionDetailsViewModel
+
+@using HR.Core.Domain.Enums
+
+@{ ViewData["Title"] = "تفاصيل طلب الشاغر"; var requisition = Model.Requisition; }
+
+
+
+@functions {
+
+    string StatusBadgeClass(RequisitionStatus status) => status switch
+
+    {
+
+        RequisitionStatus.Draft => "bg-secondary",
+
+        RequisitionStatus.PendingApproval => "bg-warning text-dark",
+
+        RequisitionStatus.Approved => "bg-info text-dark",
+
+        RequisitionStatus.Published => "bg-success",
+
+        RequisitionStatus.Closed => "bg-dark",
+
+        RequisitionStatus.Cancelled => "bg-danger",
+
+        _ => "bg-secondary"
+
+    };
+
+
+
+    string ChannelLabel(RecruitmentPublishingChannel channel) => channel switch
+
+    {
+
+        RecruitmentPublishingChannel.InternalOnly => "داخلي",
+
+        RecruitmentPublishingChannel.Both => "عام + داخلي",
+
+        _ => "عام"
+
+    };
+
+}
+
+
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <h3 class="mb-0">@requisition.RequisitionNumber — @requisition.JobTitle</h3>
+
+        <div class="d-flex gap-1 flex-wrap">
+
+            @if (Model.CanWrite && requisition.Status == RequisitionStatus.Draft)
+
+            {
+
+                <form asp-action="Submit" asp-route-id="@requisition.Id" method="post" class="d-inline">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-warning btn-sm">تقديم للاعتماد</button>
+
+                </form>
+
+                <a asp-action="Edit" asp-route-id="@requisition.Id" class="btn btn-primary btn-sm">تعديل</a>
+
+                <form asp-action="Delete" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('حذف مسودة طلب الشاغر؟');">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+
+                </form>
+
+                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء طلب الشاغر؟');">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
+
+                </form>
+
+            }
+
+            @if (Model.CanWrite && requisition.Status == RequisitionStatus.PendingApproval)
+
+            {
+
+                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء طلب الشاغر؟');">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
+
+                </form>
+
+            }
+
+            @if (Model.CanWrite && requisition.Status == RequisitionStatus.Approved)
+
+            {
+
+                @if (requisition.PublishingChannel is RecruitmentPublishingChannel.PublicOnly or RecruitmentPublishingChannel.Both)
+
+                {
+
+                    <form asp-action="Publish" asp-route-id="@requisition.Id" method="post" class="d-inline">
+
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-success btn-sm">نشر الإعلان العام</button>
+
+                    </form>
+
+                }
+
+                @if (requisition.PublishingChannel is RecruitmentPublishingChannel.InternalOnly or RecruitmentPublishingChannel.Both)
+
+                {
+
+                    <form asp-action="PublishInternal" asp-route-id="@requisition.Id" method="post" class="d-inline">
+
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-outline-success btn-sm">نشر الشاغر الداخلي</button>
+
+                    </form>
+
+                }
+
+                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء طلب الشاغر؟');">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
+
+                </form>
+
+            }
+
+            @if (Model.CanWrite && requisition.Status == RequisitionStatus.Published
+
+                 && requisition.PublishingChannel is RecruitmentPublishingChannel.InternalOnly or RecruitmentPublishingChannel.Both
+
+                 && requisition.InternalVacancyId is null)
+
+            {
+
+                <form asp-action="PublishInternal" asp-route-id="@requisition.Id" method="post" class="d-inline">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-outline-success btn-sm">نشر الشاغر الداخلي</button>
+
+                </form>
+
+            }
+
+            @if (Model.CanWrite && requisition.Status == RequisitionStatus.Published)
+
+            {
+
+                <form asp-action="Close" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إغلاق طلب الشاغر وإخفاء الإعلان؟');">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit" class="btn btn-dark btn-sm">إغلاق</button>
+
+                </form>
+
+                @if (requisition.PublicJobPostingId is Guid postingId)
+
+                {
+
+                    <a asp-controller="PublicJobPostings" asp-action="Details" asp-route-id="@postingId" class="btn btn-outline-info btn-sm">عرض الإعلان</a>
+
+                }
+
+                @if (requisition.InternalVacancyId is Guid internalId)
+
+                {
+
+                    <a asp-controller="TalentMarketplace" asp-action="Details" asp-route-id="@internalId" class="btn btn-outline-info btn-sm">عرض الشاغر الداخلي</a>
+
+                }
+
+            }
+
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">رجوع</a>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="mb-3">
+
+            <span class="badge @StatusBadgeClass(requisition.Status)">@requisition.Status</span>
+
+        </div>
+
+        <h6>المسار</h6>
+
+        <ul class="list-inline mb-4">
+
+            <li class="list-inline-item"><span class="badge @(requisition.RequestedDate != default ? "bg-secondary" : "bg-light text-dark")">مسودة</span></li>
+
+            <li class="list-inline-item">→</li>
+
+            <li class="list-inline-item"><span class="badge @(requisition.Status >= RequisitionStatus.PendingApproval ? "bg-warning text-dark" : "bg-light text-dark")">بانتظار الاعتماد</span></li>
+
+            <li class="list-inline-item">→</li>
+
+            <li class="list-inline-item"><span class="badge @(requisition.ApprovedDate.HasValue ? "bg-info text-dark" : "bg-light text-dark")">معتمد</span></li>
+
+            <li class="list-inline-item">→</li>
+
+            <li class="list-inline-item"><span class="badge @(requisition.PublishedAt.HasValue ? "bg-success" : "bg-light text-dark")">منشور</span></li>
+
+        </ul>
+
+
+
+        @{
+
+            ViewData["RequisitionId"] = requisition.Id;
+
+        }
+
+        <partial name="_RequisitionWorkflowPanel" model="Model.Workflow" />
+
+        @if (!Model.CanWrite && requisition.Status == RequisitionStatus.Approved)
+        {
+            <div class="alert alert-info mt-3 mb-0">
+                النشر والإلغاء من حساب موارد بشرية (مثل <strong>acc-central-a</strong>) — دور المعتمد يقتصر على المراجعة والاعتماد.
+            </div>
+        }
+
+        <dl class="row mt-4">
+
+            <dt class="col-sm-3">رقم الطلب</dt>
+
+            <dd class="col-sm-9">@requisition.RequisitionNumber</dd>
+
+            <dt class="col-sm-3">تاريخ الطلب</dt>
+
+            <dd class="col-sm-9">@requisition.RequestedDate.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+
+            <dt class="col-sm-3">تاريخ الاعتماد</dt>
+
+            <dd class="col-sm-9">@(requisition.ApprovedDate?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+
+            <dt class="col-sm-3">تاريخ النشر</dt>
+
+            <dd class="col-sm-9">@(requisition.PublishedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+
+            <dt class="col-sm-3">تاريخ الإغلاق</dt>
+
+            <dd class="col-sm-9">@(requisition.ClosedDate?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+
+            <dt class="col-sm-3">عدد الشواغر</dt>
+
+            <dd class="col-sm-9">@requisition.VacancyCount</dd>
+
+            <dt class="col-sm-3">قناة النشر</dt>
+
+            <dd class="col-sm-9"><span class="badge bg-light text-dark">@ChannelLabel(requisition.PublishingChannel)</span></dd>
+
+            <dt class="col-sm-3">المسمى الوظيفي</dt>
+
+            <dd class="col-sm-9">@requisition.JobTitle</dd>
+
+            <dt class="col-sm-3">رمز المنصب</dt>
+
+            <dd class="col-sm-9">@(requisition.FundedPosition?.PositionCode ?? "—")</dd>
+
+            <dt class="col-sm-3">الدرجة</dt>
+
+            <dd class="col-sm-9">@(requisition.FundedPosition?.GradeCode ?? "—")</dd>
+
+            <dt class="col-sm-3">سنة الموازنة</dt>
+
+            <dd class="col-sm-9">@(requisition.FundedPosition?.BudgetYear.ToString() ?? "—")</dd>
+
+            <dt class="col-sm-3">الوحدة التنظيمية</dt>
+
+            <dd class="col-sm-9">@(requisition.FundedPosition?.OrgUnit?.NameAr ?? "—")</dd>
+
+            <dt class="col-sm-3">حالة المنصب</dt>
+
+            <dd class="col-sm-9">@(requisition.FundedPosition?.Status.ToString() ?? "—")</dd>
+
+            <dt class="col-sm-3">مبررات الطلب</dt>
+
+            <dd class="col-sm-9">@(requisition.JustificationNotes ?? "—")</dd>
+
+            <dt class="col-sm-3">مرجع قانوني</dt>
+
+            <dd class="col-sm-9">@(ViewBag.LegalSourceLabel ?? "—")</dd>
+
+        </dl>
+
+    </div>
+
+</div>
+
+

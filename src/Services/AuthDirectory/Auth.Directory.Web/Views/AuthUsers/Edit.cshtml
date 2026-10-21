@@ -3,6 +3,7 @@
     ViewData["Title"] = "تعديل المستخدم";
     var allRoles = ViewBag.AllRoles as List<Auth.Directory.Domain.Entities.Role> ?? new();
     var assignedRoleIds = Model.UserRoles.Select(ur => ur.RoleId).ToHashSet();
+    var secondApprovers = ViewBag.SecondApprovers as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Array.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 }
 
 <div class="card">
@@ -60,8 +61,21 @@
 
             <div class="mb-3">
                 <label class="form-label">معتمد ثانٍ (مطلوب لمنح الأدوار الحساسة)</label>
-                <input type="text" name="secondApproverId" class="form-control" placeholder="GUID للمعتمد الثاني" />
-                <div class="form-text">مطلوب عند منح hr-admin أو platform-admin أو payroll-poster</div>
+                <select name="secondApproverId" class="form-select">
+                    <option value="">— اختر المعتمد الثاني عند الحاجة —</option>
+                    @foreach (var approver in secondApprovers)
+                    {
+                        if (approver.Selected)
+                        {
+                            <option value="@approver.Value" selected>@approver.Text</option>
+                        }
+                        else
+                        {
+                            <option value="@approver.Value">@approver.Text</option>
+                        }
+                    }
+                </select>
+                <div class="form-text">مطلوب عند منح الأدوار الحساسة، ويجب أن يكون المعتمد مختلفاً عن المانح وصاحب الحساب.</div>
             </div>
         </div>
         <div class="card-footer">

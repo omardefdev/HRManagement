@@ -1,3 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace IT.Infrastructure.Domain.Enums;
 
-public enum BackupStatus { Ok, Failed }
+public enum BackupStatus
+{
+    [Display(Name = "ناجح")]
+    Ok,
+    [Display(Name = "فشل")]
+    Failed,
+}

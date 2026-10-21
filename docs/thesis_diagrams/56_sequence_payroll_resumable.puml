@@ -1,0 +1,54 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title تسلسل تشغيل الرواتب القابل للاستئناف والصرف
+actor "مشغل الرواتب" as Operator
+participant "Payroll API" as Api
+participant "Payroll Job Worker" as Worker
+database "Payroll DB" as Db
+participant "Policy and Approval" as Approval
+participant "Payment Channel" as Channel
+Operator -> Api : Start(runId)
+Api -> Db : حل الإصدار وتثبيت InputSnapshot
+Api -> Db : إنشاء Job وPartitions وLease
+Api --> Operator : jobId
+loop كل قسم ثم موظف
+  Worker -> Db : الحصول على partition وcheckpoint
+  Worker -> Db : معاملة SalaryLine ومكوناته
+  Worker -> Db : تحديث cursor وProcessedCount
+end
+alt Pause أو lease منته
+  Operator -> Api : Pause أو Resume
+  Api -> Db : تغيير الحالة واستئناف غير المكتمل
+else اكتمل الحساب
+  Worker -> Db : Validate ثم ResultsFrozen
+end
+Operator -> Approval : طلب الاعتماد
+Approval --> Api : Approved
+Api -> Db : Post وإنشاء PaymentBatch Pending
+Operator -> Api : Process payment
+Api -> Db : FundingDecision وPaymentOrders
+Api -> Channel : إرسال أوامر الدفع
+Channel --> Api : Acknowledgement وStatement
+Api -> Db : Reconcile أو Arrears أو PaymentHold
+@enduml

@@ -1,0 +1,94 @@
+@model HR.Core.Web.ViewModels.SelectionCommitteeDetailsViewModel
+@using HRManagement.ServiceDefaults
+@{
+    ViewData["Title"] = "تفاصيل لجنة الاختيار";
+    var session = Model.Session;
+    var requisition = ViewBag.Requisition as HR.Core.Domain.Entities.RecruitmentRequisition;
+    var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
+}
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">لجنة الاختيار — @(requisition?.RequisitionNumber ?? "—")</h3>
+        <div class="d-flex gap-1 flex-wrap">
+            @if (requisition is not null)
+            {
+                <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@requisition.Id" class="btn btn-outline-secondary btn-sm">طلب الشاغر</a>
+            }
+            <a asp-action="Index" asp-route-requisitionId="@session.RequisitionId" class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">تاريخ الجلسة</dt>
+            <dd class="col-sm-9">@session.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">التوصية</dt>
+            <dd class="col-sm-9">@(session.Recommendation ?? "—")</dd>
+            <dt class="col-sm-3">النتائج</dt>
+            <dd class="col-sm-9">@(session.Findings ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الاعتماد</dt>
+            <dd class="col-sm-9">@(session.ApprovedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+        </dl>
+
+        @if (session.Members.Any())
+        {
+            <h5 class="mt-3">الأعضاء</h5>
+            <table class="table table-sm">
+                <thead><tr><th>الموظف</th><th>الدور</th><th>COI</th><th>انسحاب</th></tr></thead>
+                <tbody>
+                @foreach (var m in session.Members)
+                {
+                    <tr>
+                        <td>@m.EmployeeId</td>
+                        <td>@m.Role</td>
+                        <td>@(m.HasConflictOfInterest ? "نعم" : "لا")</td>
+                        <td>@(m.Recused ? "نعم" : "لا")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        ViewData["SessionId"] = session.Id;
+        <partial name="_CommitteeWorkflowPanel" model="Model.Workflow" />
+    </div>
+    @if (canWrite && Model.CanSubmit)
+    {
+        <div class="card-footer">
+            <form asp-action="Submit" asp-route-id="@session.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning btn-sm">تقديم للاعتماد</button>
+            </form>
+        </div>
+    }
+</div>
+
+@if (canWrite && session.ApprovedAt is null && session.WorkflowInstanceId is null)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">إضافة عضو</h5></div>
+        <div class="card-body">
+            <form asp-action="AddMember" method="post" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="sessionId" value="@session.Id" />
+                <input type="hidden" name="requisitionId" value="@session.RequisitionId" />
+                <div class="col-md-3">
+                    <label class="form-label">معرّف الموظف</label>
+                    <input type="text" name="employeeId" class="form-control" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">الدور</label>
+                    <input type="text" name="role" class="form-control" value="عضو" />
+                </div>
+                <div class="col-md-2 form-check mt-4">
+                    <input class="form-check-input" type="checkbox" name="hasConflictOfInterest" id="coi" value="true" />
+                    <label class="form-check-label" for="coi">تعارض مصالح</label>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+

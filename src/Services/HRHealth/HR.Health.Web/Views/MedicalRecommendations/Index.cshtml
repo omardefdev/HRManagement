@@ -12,8 +12,8 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.EmployeeId</td>
-                        <td>@x.RecommendationType</td>
+                        <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
+                        <td>@Html.HrEnumDisplay(x.RecommendationType)</td>
                         <td>@(x.IssuedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>
                     </tr>

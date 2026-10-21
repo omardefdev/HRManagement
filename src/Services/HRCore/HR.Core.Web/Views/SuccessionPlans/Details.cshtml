@@ -13,7 +13,11 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0">@(Model.KeyPosition?.Title ?? "خطة تعاقب") — @Model.Year</h3>
         <div>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('حذف الخطة؟');">
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  data-hr-confirm="حذف الخطة؟"
+                  data-hr-confirm-title="تأكيد الحذف"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="حذف">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
             </form>
@@ -51,13 +55,17 @@
                 @foreach (var c in Model.Candidates.OrderByDescending(c => c.Readiness))
                 {
                     <tr>
-                        <td>@(c.Employee?.FullName ?? c.EmployeeId.ToString())</td>
+                        <td><span data-hr-employee-id="@c.EmployeeId">@(c.Employee?.FullName ?? "جاري التحميل...")</span></td>
                         <td>@c.LatestEvaluationScore</td>
                         <td>@c.YearsInService</td>
                         <td>@(c.MeetsQualification ? "نعم" : "لا")</td>
                         <td><span class="badge @Badge(c.Readiness)">@Html.DisplayFor(_ => c.Readiness)</span></td>
                         <td>
-                            <form asp-action="RemoveCandidate" method="post" onsubmit="return confirm('حذف المرشّح؟');">
+                            <form asp-action="RemoveCandidate" method="post"
+                                  data-hr-confirm="حذف المرشّح؟"
+                                  data-hr-confirm-title="تأكيد الحذف"
+                                  data-hr-confirm-variant="danger"
+                                  data-hr-confirm-label="حذف">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@c.Id" />
                                 <input type="hidden" name="successionPlanId" value="@Model.Id" />

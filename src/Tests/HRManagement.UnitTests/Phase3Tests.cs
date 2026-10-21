@@ -250,7 +250,7 @@ public class Phase3Tests
     // ── Event Contracts ──
 
     [Fact]
-    public void ITransferExecuted_SchemaVersion_Is2()
+    public void ITransferExecuted_SchemaVersion_Is3()
     {
         ITransferExecuted msg = new TransferExecutedStub
         {
@@ -259,7 +259,7 @@ public class Phase3Tests
             ToOrgUnitId = Guid.NewGuid(),
             ExecutedAt = DateTime.UtcNow
         };
-        Assert.Equal(2, msg.SchemaVersion);
+        Assert.Equal(3, msg.SchemaVersion);
     }
 
     [Fact]

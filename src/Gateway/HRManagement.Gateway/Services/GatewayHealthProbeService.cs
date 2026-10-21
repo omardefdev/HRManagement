@@ -43,7 +43,7 @@ public sealed class GatewayHealthProbeService(
             var sw = Stopwatch.StartNew();
             try
             {
-                var probeUrl = $"{effectiveBaseUrl}{module.HealthPath}";
+                var probeUrl = ResolveProbeUrl(module, effectiveBaseUrl);
                 using var response = await client.GetAsync(probeUrl, cancellationToken);
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);
                 var healthy = response.IsSuccessStatusCode && body.Contains("Healthy", StringComparison.OrdinalIgnoreCase);
@@ -73,6 +73,20 @@ public sealed class GatewayHealthProbeService(
 
         memoryCache.Set(cacheKey, statuses, TimeSpan.FromSeconds(cacheSeconds));
         return statuses;
+    }
+
+    /// <summary>
+    /// Probes upstream /health directly via YARP cluster address (Docker/local),
+    /// avoiding gateway OIDC on /health/upstreams/* proxy paths.
+    /// </summary>
+    private string ResolveProbeUrl(GatewayModule module, string effectiveBaseUrl)
+    {
+        var clusterAddress = configuration[
+            $"ReverseProxy:Clusters:{module.Slug}-cluster:Destinations:destination1:Address"];
+        if (!string.IsNullOrWhiteSpace(clusterAddress))
+            return $"{clusterAddress.TrimEnd('/')}/health";
+
+        return $"{effectiveBaseUrl}{module.HealthPath}";
     }
 
     private static IReadOnlyDictionary<string, GatewayModuleStatus> MergeAuthorization(

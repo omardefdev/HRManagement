@@ -1,0 +1,39 @@
+@model HR.Core.Web.ViewModels.FinanceReconciliationViewModel
+@{ ViewData["Title"] = "مصالحة مراكز التكلفة"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">مصالحة الموازنة vs المناصب الممولة</h3>
+        <a asp-action="Import" class="btn btn-primary btn-sm">استيراد CSV</a>
+    </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2"><label class="form-label">السنة</label><input type="number" name="fiscalYear" value="@Model.FiscalYear" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label">الوحدة (اختياري)</label><select name="orgUnitId" asp-items="ViewBag.OrgUnits" class="form-select"><option value="">— الكل —</option></select></div>
+            <div class="col-auto"><button type="submit" class="btn btn-primary">عرض</button></div>
+        </form>
+    </div>
+    @if (Model.Result?.Rows is { Count: > 0 } rows)
+    {
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead><tr><th>مركز التكلفة</th><th>مستورد</th><th>ممول فعلي</th><th>فرق العدد</th><th>فرق FTE</th></tr></thead>
+                <tbody>
+                @foreach (var r in rows)
+                {
+                    <tr class="@(r.CountVariance != 0 ? "table-warning" : "")">
+                        <td>@r.CostCenter</td>
+                        <td>@r.ImportedCount</td>
+                        <td>@r.ActualFundedCount</td>
+                        <td>@r.CountVariance</td>
+                        <td>@r.FteVariance</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card-body text-muted">لا توجد بيانات مصالحة — استورد ملف CSV أولاً.</div>
+    }
+</div>

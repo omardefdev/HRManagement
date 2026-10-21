@@ -7,6 +7,9 @@
 | تعيين أصل ثانٍ مفتوح | رفض + فهرس فريد |
 | أصل Lost/Disposed | لا تعيين |
 | أصل IsPrivileged بلا EvidenceRef | رفض تسليم/إعادة/فقدان |
+| طلب فقدان معلّق (PendingApproval) | لا MarkLost ثانٍ؛ لا Assign |
+| رفض workflow فقدان | `AssetLossReport.Rejected`؛ الأصل دون تغيير |
+| RecoverAsset | Lost → InStorage؛ تقرير Confirmed → Recovered |
 | Directory sync فاشل | ProvisioningStatus=Failed؛ قائمة FailedProvisioning |
 | RetryProvision على غير Failed | رفض |
 | فصل مع بطاقة Active/Lost | revoke في party ACK |

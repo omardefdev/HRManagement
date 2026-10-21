@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Exports;
@@ -95,6 +96,10 @@ public static class DemoDataSeeder
 
         logger?.LogInformation("Seeding funded positions...");
         SeedFundedPositions(db, employees, orgIds, now);
+        await db.SaveChangesAsync(ct);
+
+        logger?.LogInformation("Seeding recruitment requisitions...");
+        SeedRecruitmentRequisitions(db, now);
         await db.SaveChangesAsync(ct);
 
         logger?.LogInformation("Seeding workforce plans, career paths, vacancies...");
@@ -562,6 +567,52 @@ public static class DemoDataSeeder
         }
     }
 
+    private static void SeedRecruitmentRequisitions(HRCoreDbContext db, DateTime now)
+    {
+        if (db.RecruitmentRequisitions.Any(r => r.TenantId == TenantId))
+            return;
+
+        var vacant = db.FundedPositions
+            .Include(p => p.JobCatalogEntry)
+            .Where(p => p.TenantId == TenantId && p.Status == FundedPositionStatus.Vacant)
+            .OrderBy(p => p.PositionCode)
+            .Take(3)
+            .ToList();
+
+        for (var i = 0; i < vacant.Count; i++)
+        {
+            var position = vacant[i];
+            var requisition = new RecruitmentRequisition
+            {
+                TenantId = TenantId,
+                RequisitionNumber = $"REQ-{now.Year}-{(i + 1):D5}",
+                FundedPositionId = position.Id,
+                JobTitle = position.JobCatalogEntry?.TitleAr ?? position.GradeCode,
+                Status = i switch
+                {
+                    1 => RequisitionStatus.Approved,
+                    2 => RequisitionStatus.Published,
+                    _ => RequisitionStatus.Draft
+                },
+                RequestedDate = now.AddDays(-(i + 1)),
+                ApprovedDate = i >= 1 ? now.AddDays(-i) : null,
+                PublishedAt = i == 2 ? now.AddDays(-1) : null,
+                JustificationNotes = "طلب شاغر تجريبي لاختبار دورة التوظيف.",
+                VacancyCount = 1,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            db.RecruitmentRequisitions.Add(requisition);
+
+            if (i == 2)
+            {
+                var posting = RecruitmentRequisitionService.MapToPublicJobPosting(requisition, position);
+                db.PublicJobPostings.Add(posting);
+                requisition.PublicJobPosting = posting;
+            }
+        }
+    }
+
     private static void SeedOrgExtras(
         HRCoreDbContext db, List<Employee> employees, Guid[] orgIds, DateTime now, Random rng)
     {
@@ -702,23 +753,35 @@ public static class DemoDataSeeder
         }
 
         // Additional public postings (HRCoreDataSeeder may have seeded one already)
+        var publishedRequisition = db.RecruitmentRequisitions
+            .Include(r => r.PublicJobPosting)
+            .FirstOrDefault(r => r.TenantId == TenantId && r.Status == RequisitionStatus.Published);
+
         for (var p = 0; p < 3; p++)
         {
-            var posting = new PublicJobPosting
+            PublicJobPosting posting;
+            if (p == 0 && publishedRequisition?.PublicJobPosting is not null)
             {
-                Id = DemoSeedIds.Named($"public-posting-{p}"),
-                TenantId = TenantId,
-                Title = $"وظيفة شاغرة — {DemoNameBank.JobTitles[15 + p]}",
-                Entity = "المؤسسة العامة",
-                Location = DemoNameBank.Cities[p],
-                Description = "إعلان توظيف عام",
-                Requirements = "جنسية سورية — مؤهل مناسب",
-                ClosingDate = DateOnly.FromDateTime(now.AddDays(45)),
-                IsPublished = true,
-                CreatedAt = now,
-                UpdatedAt = now,
-            };
-            db.PublicJobPostings.Add(posting);
+                posting = publishedRequisition.PublicJobPosting;
+            }
+            else
+            {
+                posting = new PublicJobPosting
+                {
+                    Id = DemoSeedIds.Named($"public-posting-{p}"),
+                    TenantId = TenantId,
+                    Title = $"وظيفة شاغرة — {DemoNameBank.JobTitles[15 + p]}",
+                    Entity = "المؤسسة العامة",
+                    Location = DemoNameBank.Cities[p],
+                    Description = "إعلان توظيف عام",
+                    Requirements = "جنسية سورية — مؤهل مناسب",
+                    ClosingDate = DateOnly.FromDateTime(now.AddDays(45)),
+                    IsPublished = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                db.PublicJobPostings.Add(posting);
+            }
 
             for (var c = 0; c < 17; c++)
             {
@@ -728,6 +791,7 @@ public static class DemoDataSeeder
                 {
                     TenantId = TenantId,
                     PublicJobPostingId = posting.Id,
+                    RequisitionId = posting.RequisitionId,
                     ReferenceNumber = $"CA-2026-{idx + 1:D4}",
                     FullName = DemoNameBank.FullName(first, middle, last),
                     NationalId = $"0202{(idx + 1):D7}",
@@ -742,15 +806,24 @@ public static class DemoDataSeeder
             }
         }
 
+        var publishedRequisitions = db.RecruitmentRequisitions
+            .Where(r => r.TenantId == TenantId)
+            .OrderBy(r => r.RequisitionNumber)
+            .ToList();
+
         for (var r = 0; r < 10; r++)
         {
             var (first, middle, last, _) = DemoNameBank.BuildPerson(4000 + r);
+            var requisition = r < 9 && publishedRequisitions.Count > 0
+                ? publishedRequisitions[r % publishedRequisitions.Count]
+                : null;
             db.RecruitmentApplications.Add(new RecruitmentApplication
             {
                 TenantId = TenantId,
                 ApplicantFullName = DemoNameBank.FullName(first, middle, last),
                 NationalId = $"0303{(r + 1):D7}",
-                AppliedPosition = DemoNameBank.JobTitles[20 + r % 10],
+                RequisitionId = requisition?.Id,
+                AppliedPosition = requisition?.JobTitle ?? DemoNameBank.JobTitles[20 + r % 10],
                 AppliedAt = now.AddDays(-rng.Next(5, 60)),
                 Status = (RecruitmentApplicationStatus)(r % 5),
                 Notes = "طلب توظيف",

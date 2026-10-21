@@ -4,9 +4,15 @@
 services:
 
   hr-contracts-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/HRContracts/HR.Contracts.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj
+        ASSEMBLY_NAME: HR.Contracts.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-hr-contracts-web
     ports:
       - "5020:8080"
@@ -20,6 +26,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
     depends_on:
@@ -29,9 +36,15 @@ services:
         condition: service_healthy
 
   hr-health-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/HRHealth/HR.Health.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/HRHealth/HR.Health.Web/HR.Health.Web.csproj
+        ASSEMBLY_NAME: HR.Health.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-hr-health-web
     ports:
       - "5030:8080"
@@ -45,6 +58,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
     depends_on:
       postgresql:
@@ -53,9 +67,15 @@ services:
         condition: service_healthy
 
   hr-movements-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/HRMovements/HR.Movements.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/HRMovements/HR.Movements.Web/HR.Movements.Web.csproj
+        ASSEMBLY_NAME: HR.Movements.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-hr-movements-web
     ports:
       - "5040:8080"
@@ -69,6 +89,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
     depends_on:
       postgresql:
@@ -77,9 +98,15 @@ services:
         condition: service_healthy
 
   hr-training-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/HRTraining/HR.Training.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/HRTraining/HR.Training.Web/HR.Training.Web.csproj
+        ASSEMBLY_NAME: HR.Training.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-hr-training-web
     ports:
       - "5050:8080"
@@ -93,6 +120,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
     depends_on:
@@ -102,9 +130,15 @@ services:
         condition: service_healthy
 
   payroll-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/Payroll/Payroll.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/Payroll/Payroll.Web/Payroll.Web.csproj
+        ASSEMBLY_NAME: Payroll.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-payroll-web
     ports:
       - "5060:8080"
@@ -113,12 +147,16 @@ services:
       ASPNETCORE_PATHBASE: /ui/payroll
       ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-payroll
+      ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.lookup
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
       RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
     depends_on:
       postgresql:
@@ -127,9 +165,15 @@ services:
         condition: service_healthy
 
   idcard-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/IDCard/IDCard.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/IDCard/IDCard.Web/IDCard.Web.csproj
+        ASSEMBLY_NAME: IDCard.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-idcard-web
     ports:
       - "5070:8080"
@@ -143,6 +187,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
     depends_on:
@@ -152,9 +197,15 @@ services:
         condition: service_healthy
 
   records-archive-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/RecordsArchive/Records.Archive.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/RecordsArchive/Records.Archive.Web/Records.Archive.Web.csproj
+        ASSEMBLY_NAME: Records.Archive.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-records-archive-web
     ports:
       - "5080:8080"
@@ -168,6 +219,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
     depends_on:
@@ -177,9 +229,15 @@ services:
         condition: service_healthy
 
   admin-logistics-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/AdminLogistics/Admin.Logistics.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/AdminLogistics/Admin.Logistics.Web/Admin.Logistics.Web.csproj
+        ASSEMBLY_NAME: Admin.Logistics.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-admin-logistics-web
     ports:
       - "5090:8080"
@@ -193,17 +251,35 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-admin-logistics
+      ServiceIdentity__ClientSecret: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      hr-core-web:
+        condition: service_started
+      file-storage-web:
+        condition: service_started
 
   it-infra-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/ITInfrastructure/IT.Infra.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/ITInfrastructure/IT.Infra.Web/IT.Infra.Web.csproj
+        ASSEMBLY_NAME: IT.Infra.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-it-infra-web
     ports:
       - "5100:8080"
@@ -217,6 +293,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
     depends_on:
       postgresql:
@@ -225,9 +302,15 @@ services:
         condition: service_healthy
 
   dev-analytics-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/DevAnalytics/Dev.Analytics.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/DevAnalytics/Dev.Analytics.Web/Dev.Analytics.Web.csproj
+        ASSEMBLY_NAME: Dev.Analytics.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-dev-analytics-web
     ports:
       - "5110:8080"
@@ -241,6 +324,7 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
     depends_on:
       postgresql:
@@ -249,9 +333,15 @@ services:
         condition: service_healthy
 
   compliance-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/Compliance/Compliance.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/Compliance/Compliance.Web/Compliance.Web.csproj
+        ASSEMBLY_NAME: Compliance.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-compliance-web
     ports:
       - "5120:8080"
@@ -265,8 +355,16 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Integration__PayrollBaseUrl: http://payroll-web:8080
+      Integration__FileStorageBaseUrl: http://file-storage-web:8080
+      ServiceIdentity__ClientId: svc-compliance
+      ServiceIdentity__ClientSecret: ${SVC_COMPLIANCE_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.lookup dsar.subject.read
+      ServiceIdentity__TokenEndpoint: http://keycloak:8080/realms/hrmanagement/protocol/openid-connect/token
     depends_on:
       postgresql:
         condition: service_healthy
@@ -274,9 +372,15 @@ services:
         condition: service_healthy
 
   auth-directory-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/AuthDirectory/Auth.Directory.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/AuthDirectory/Auth.Directory.Web/Auth.Directory.Web.csproj
+        ASSEMBLY_NAME: Auth.Directory.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-auth-directory-web
     ports:
       - "5130:8080"
@@ -290,8 +394,8 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
       HrAuth__BehindGateway: "true"
-      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -299,9 +403,15 @@ services:
         condition: service_healthy
 
   file-storage-web:
+    profiles: ["full-stack"]
     build:
       context: .
-      dockerfile: src/Services/FileStorage/File.Storage.Web/Dockerfile
+      dockerfile: docker/DotnetService.Dockerfile
+      args:
+        PROJECT_CSPROJ: src/Services/FileStorage/File.Storage.Web/File.Storage.Web.csproj
+        ASSEMBLY_NAME: File.Storage.Web.dll
+        NEEDS_KRB5: "true"
+        GATEWAY_AUDIT_DIR: "false"
     container_name: hrm-file-storage-web
     ports:
       - "5140:8080"
@@ -316,8 +426,8 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__RequireHttpsMetadata: "false"
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
+      Keycloak__AdditionalValidAudiences: api-file-storage;hr-gateway-client
       HrAuth__BehindGateway: "true"
-      FileStorage__Provider: Minio
       FileStorage__Endpoint: minio:9000
       # SEC-004: dev-only root defaults — production uses dedicated app key via :?required.
       FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
@@ -334,48 +444,4 @@ services:
       rabbitmq:
         condition: service_healthy
       minio:
-        condition: service_started
-
-  hr-gateway:
-    environment:
-      ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
-      ReverseProxy__Clusters__hr-health-cluster__Destinations__destination1__Address: http://hr-health-web:8080
-      ReverseProxy__Clusters__hr-movements-cluster__Destinations__destination1__Address: http://hr-movements-web:8080
-      ReverseProxy__Clusters__hr-training-cluster__Destinations__destination1__Address: http://hr-training-web:8080
-      ReverseProxy__Clusters__payroll-cluster__Destinations__destination1__Address: http://payroll-web:8080
-      ReverseProxy__Clusters__idcard-cluster__Destinations__destination1__Address: http://idcard-web:8080
-      ReverseProxy__Clusters__records-archive-cluster__Destinations__destination1__Address: http://records-archive-web:8080
-      ReverseProxy__Clusters__admin-logistics-cluster__Destinations__destination1__Address: http://admin-logistics-web:8080
-      ReverseProxy__Clusters__it-infra-cluster__Destinations__destination1__Address: http://it-infra-web:8080
-      ReverseProxy__Clusters__dev-analytics-cluster__Destinations__destination1__Address: http://dev-analytics-web:8080
-      ReverseProxy__Clusters__compliance-cluster__Destinations__destination1__Address: http://compliance-web:8080
-      ReverseProxy__Clusters__auth-directory-cluster__Destinations__destination1__Address: http://auth-directory-web:8080
-      ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
-      Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
-      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
-      Gateway__EnabledModules__0: hr-core
-      Gateway__EnabledModules__1: hr-contracts
-      Gateway__EnabledModules__2: hr-health
-      Gateway__EnabledModules__3: hr-movements
-      Gateway__EnabledModules__4: hr-training
-      Gateway__EnabledModules__5: payroll
-      Gateway__EnabledModules__6: idcard
-      Gateway__EnabledModules__7: records-archive
-      Gateway__EnabledModules__8: admin-logistics
-      Gateway__EnabledModules__9: it-infra
-      Gateway__EnabledModules__10: dev-analytics
-      Gateway__EnabledModules__11: compliance
-      Gateway__EnabledModules__12: auth-directory
-      Gateway__EnabledModules__13: file-storage
-    depends_on:
-      hr-contracts-web:
-        condition: service_started
-      hr-health-web:
-        condition: service_started
-      hr-movements-web:
-        condition: service_started
-      hr-training-web:
-        condition: service_started
-      payroll-web:
         condition: service_started

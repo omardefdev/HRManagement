@@ -1,18 +1,29 @@
 @model Payroll.Domain.Entities.PayrollRun
 
 @using Payroll.Domain.Enums
+@using HRManagement.ServiceDefaults
 
 @{ ViewData["Title"] = "تفاصيل تشغيل الرواتب"; }
+@{ var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>(); }
+@{
+    var isAdmin = User.IsInRole(HrManagementRoles.Admin);
+    var canProcess = isAdmin || User.IsInRole(HrManagementRoles.PayrollProcessor);
+    var canApprove = isAdmin || User.IsInRole(HrManagementRoles.PayrollApprover);
+    var canPost = isAdmin || User.IsInRole(HrManagementRoles.PayrollPoster);
+    var canReverse = isAdmin
+        || User.IsInRole(HrManagementRoles.PayrollPoster)
+        || User.IsInRole(HrManagementRoles.PayrollReverser);
+}
 
 <div class="card mb-3">
 
     <div class="card-header d-flex justify-content-between flex-wrap gap-2">
 
-        <h3 class="card-title mb-0">تشغيل @Model.RunDate.ToString("yyyy/MM/dd") — @Model.RunType</h3>
+        <h3 class="card-title mb-0">تشغيل @Model.RunDate.ToString("yyyy/MM/dd") — @Html.HrEnumDisplay(Model.RunType)</h3>
 
         <div>
 
-            @if (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated)
+            @if (canProcess && (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated))
             {
                 <a asp-action="AddSalaryLine" asp-route-payrollRunId="@Model.Id" class="btn btn-primary btn-sm">إضافة بند</a>
             }
@@ -25,7 +36,7 @@
 
     <div class="card-body">
 
-        <p>الحالة: <strong>@Model.Status</strong> — إجمالي صافي مسجل: <strong>@Model.TotalNetPay.ToString("N2")</strong>
+        <p>الحالة: <strong>@Html.HrEnumDisplay(Model.Status)</strong> — إجمالي صافي مسجل: <strong>@Model.TotalNetPay.ToString("N2")</strong>
             @if (Model.ResultsFrozen) { <span class="badge bg-secondary">نتائج مُجمّدة</span> }
             @if (Model.ValidatedAtCalculate) { <span class="badge bg-success">تم التحقق</span> }
         </p>
@@ -37,7 +48,7 @@
         {
             <div class="alert alert-light border mb-3">
                 <strong>مهمة الحساب (PAY-003 / PERF-001)</strong>
-                <div>الحالة: @job.Status — المرحلة: @job.Phase — محاولة: @job.Attempt</div>
+                <div>الحالة: @Html.HrEnumDisplay(job.Status) — المرحلة: @Html.HrEnumDisplay(job.Phase) — محاولة: @job.Attempt</div>
                 @if (job.TotalEmployeeCount > 0)
                 {
                     var pct = job.TotalEmployeeCount == 0 ? 0 : (100.0 * job.ProcessedEmployeeCount / job.TotalEmployeeCount);
@@ -62,11 +73,11 @@
                     <ul class="mb-2 mt-2">
                         @foreach (var p in job.Partitions.OrderBy(x => x.PartitionIndex))
                         {
-                            <li>قسم @p.PartitionIndex: @p.Status — @p.ProcessedCount/@p.EmployeeCount@(string.IsNullOrEmpty(p.WorkerId) ? "" : $" — {p.WorkerId}")</li>
+                            <li>قسم @p.PartitionIndex: @Html.HrEnumDisplay(p.Status) — @p.ProcessedCount/@p.EmployeeCount</li>
                         }
                     </ul>
                 }
-                @if (job.Status == PayrollRunJobStatus.Running)
+                @if (canProcess && job.Status == PayrollRunJobStatus.Running)
                 {
                     <form asp-action="PauseJob" method="post" class="d-inline me-1">
                         @Html.AntiForgeryToken()
@@ -75,7 +86,7 @@
                         <button type="submit" class="btn btn-warning btn-sm">إيقاف</button>
                     </form>
                 }
-                @if (job.Status is PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed)
+                @if (canProcess && (job.Status is PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed))
                 {
                     <form asp-action="ResumeJob" method="post" class="d-inline me-1">
                         @Html.AntiForgeryToken()
@@ -84,7 +95,7 @@
                         <button type="submit" class="btn btn-primary btn-sm">استئناف</button>
                     </form>
                 }
-                @if (job.Status is not (PayrollRunJobStatus.Completed or PayrollRunJobStatus.Cancelled)
+                @if (canProcess && job.Status is not (PayrollRunJobStatus.Completed or PayrollRunJobStatus.Cancelled)
                      && Model.Status is not (PayrollRunStatus.Posted or PayrollRunStatus.Reversed))
                 {
                     <form asp-action="CancelJob" method="post" class="d-inline me-1">
@@ -105,8 +116,8 @@
                     @foreach (var b in Model.PaymentBatches.OrderByDescending(x => x.CreatedAt))
                     {
                         <li>
-                            @b.BatchKind — @b.Status — @b.TotalAmount.ToString("N2")
-                            @if (b.Status == PaymentBatchStatus.Pending && Model.Status == PayrollRunStatus.Posted)
+                            @Html.HrEnumDisplay(b.BatchKind) — @Html.HrEnumDisplay(b.Status) — @b.TotalAmount.ToString("N2")
+                            @if (canPost && b.Status == PaymentBatchStatus.Pending && Model.Status == PayrollRunStatus.Posted)
                             {
                                 <form asp-action="ProcessPayment" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
@@ -123,11 +134,12 @@
 
         <div class="alert alert-light border mb-3">
             <strong>الأساس القانوني (PAY-002)</strong>
+            <div class="form-text mb-2">هو نسخة القواعد والشرائح الضريبية المعتمدة التي ثُبّتت للحساب، وليس ملاحظة يكتبها المستخدم أثناء التشغيل.</div>
             @if (Model.PayrollConfiguration is not null)
             {
                 <div>الإطار: @Model.PayrollConfiguration.RegimeCode — @Model.PayrollConfiguration.NameAr</div>
                 <div>الإصدار: v@Model.PayrollConfiguration.VersionNumber — @Model.PayrollConfiguration.PublicationStatus</div>
-                <div>العملة/التقريب: @Model.PayrollConfiguration.CurrencyCode / @Model.PayrollConfiguration.RoundingMode</div>
+                <div>العملة/التقريب: @Model.PayrollConfiguration.CurrencyCode / @Html.HrEnumDisplay(Model.PayrollConfiguration.RoundingMode)</div>
                 <div>البصمة: <code>@(Model.ConfigContentHash ?? Model.PayrollConfiguration.ContentHash ?? "—")</code></div>
                 <div>اعتماد/نشر: @(Model.PayrollConfiguration.ApprovedAt?.ToString("yyyy-MM-dd") ?? "—") / @(Model.PayrollConfiguration.PublishedAt?.ToString("yyyy-MM-dd") ?? "—")</div>
             }
@@ -141,7 +153,7 @@
             }
         </div>
 
-        @if (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated or PayrollRunStatus.Calculating)
+        @if (canProcess && (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated or PayrollRunStatus.Calculating))
 
         {
 
@@ -155,7 +167,7 @@
 
         }
 
-        @if (Model.Status is PayrollRunStatus.Calculated or PayrollRunStatus.Validating)
+        @if (canProcess && (Model.Status is PayrollRunStatus.Calculated or PayrollRunStatus.Validating))
         {
             <form asp-action="ValidateRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
                 @Html.AntiForgeryToken()
@@ -163,7 +175,7 @@
             </form>
         }
 
-        @if (Model.Status == PayrollRunStatus.Calculated)
+        @if (canProcess && Model.Status == PayrollRunStatus.Calculated)
 
         {
 
@@ -177,7 +189,7 @@
 
         }
 
-        @if (Model.Status == PayrollRunStatus.UnderReview)
+        @if (canApprove && Model.Status == PayrollRunStatus.UnderReview)
 
         {
 
@@ -199,7 +211,7 @@
 
         }
 
-        @if (Model.Status == PayrollRunStatus.Approved)
+        @if (canPost && Model.Status == PayrollRunStatus.Approved)
 
         {
 
@@ -213,15 +225,19 @@
 
         }
 
-        @if (Model.Status == PayrollRunStatus.Posted)
+        @if (canReverse && Model.Status == PayrollRunStatus.Posted)
 
         {
 
-            <form asp-action="ReverseRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2">
+            <form asp-action="ReverseRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2"
+                  data-hr-confirm="تأكيد عكس التشغيل؟"
+                  data-hr-confirm-title="عكس تشغيل الرواتب"
+                  data-hr-confirm-variant="warning"
+                  data-hr-confirm-label="عكس">
 
                 @Html.AntiForgeryToken()
 
-                <button type="submit" class="btn btn-danger" onclick="return confirm('تأكيد عكس التشغيل؟');"><i class="fas fa-undo"></i> عكس</button>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-undo"></i> عكس</button>
 
             </form>
 
@@ -261,7 +277,7 @@
 
                 {
 
-                    <tr><td>@a.Decision</td><td>@a.DecidedAt?.ToString("yyyy/MM/dd HH:mm")</td><td>@a.Notes</td></tr>
+                    <tr><td>@Html.HrEnumDisplay(a.Decision)</td><td>@a.DecidedAt?.ToString("yyyy/MM/dd HH:mm")</td><td>@a.Notes</td></tr>
 
                 }
 
@@ -385,9 +401,9 @@
 
                 {
 
-                    <tr data-bs-toggle="collapse" data-bs-target="#comp-@l.Id.ToString("N")" style="cursor:pointer;" title="انقر لعرض المكونات">
+                    <tr>
 
-                        <td>@l.EmployeeId</td>
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(l.EmployeeId, employeeNames.GetValueOrDefault(l.EmployeeId)))</td>
 
                         <td>@l.GrossPay.ToString("N2")</td>
 
@@ -395,9 +411,13 @@
 
                         <td><strong>@l.NetPay.ToString("N2")</strong></td>
 
-                        <td><span class="badge bg-secondary">@(ViewBag.ComponentCounts != null && ((Dictionary<Guid,int>)ViewBag.ComponentCounts).ContainsKey(l.Id) ? ((Dictionary<Guid,int>)ViewBag.ComponentCounts)[l.Id] : 0) مكوّن</span></td>
+                        <td>
+                            <button type="button" class="btn btn-outline-secondary btn-xs" data-bs-toggle="collapse" data-bs-target="#comp-@l.Id.ToString("N")" title="عرض مكونات بند الراتب">
+                                <i class="fas fa-list"></i> @(ViewBag.ComponentCounts != null && ((Dictionary<Guid,int>)ViewBag.ComponentCounts).ContainsKey(l.Id) ? ((Dictionary<Guid,int>)ViewBag.ComponentCounts)[l.Id] : 0) مكوّن
+                            </button>
+                        </td>
 
-                        <td><a asp-controller="PayrollReports" asp-action="Payslip" asp-route-salaryLineId="@l.Id" class="btn btn-outline-info btn-xs" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-file-pdf"></i> طباعة</a></td>
+                        <td><a asp-controller="PayrollReports" asp-action="Payslip" asp-route-salaryLineId="@l.Id" class="btn btn-outline-info btn-xs" target="_blank" title="فتح قسيمة الراتب للطباعة"><i class="fas fa-file-pdf"></i> طباعة</a></td>
 
                     </tr>
 
@@ -425,7 +445,7 @@
 
                                             <td>@c.ComponentName</td>
 
-                                            <td><span class="badge bg-@(c.ComponentType == SalaryComponentType.Deduction || c.ComponentType == SalaryComponentType.Tax ? "danger" : "success")">@c.ComponentType</span></td>
+                                            <td><span class="badge bg-@(c.ComponentType == SalaryComponentType.Deduction || c.ComponentType == SalaryComponentType.Tax ? "danger" : "success")">@Html.HrEnumDisplay(c.ComponentType)</span></td>
 
                                             <td class="text-end">@c.Amount.ToString("N2")</td>
 

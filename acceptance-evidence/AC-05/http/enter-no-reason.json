@@ -1,0 +1,8 @@
+{
+  "step": "enter-no-reason",
+  "method": "POST",
+  "url": "/api/platform/enter-tenant",
+  "statusCode": 400,
+  "capturedAtUtc": "2026-08-24T17:48:10.0590951Z",
+  "body": "reason is required."
+}

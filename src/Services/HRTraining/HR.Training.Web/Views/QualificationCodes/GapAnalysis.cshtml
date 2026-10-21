@@ -13,7 +13,7 @@
     <div class="card-body">
         <table class="table table-borderless table-sm w-auto">
             <tr><th>رمز التأهيل</th><td>@qc.TitleAr (@qc.Code)</td></tr>
-            <tr><th>الموظف</th><td>@employeeId</td></tr>
+            <tr><th>الموظف</th><td><span data-hr-employee-id="@employeeId">جاري التحميل...</span></td></tr>
             <tr><th>نسبة الإكتمال</th><td>
                 <div class="progress" style="min-width:200px">
                     <div class="progress-bar" style="width: @Model.CompletionPercentage%">@Model.CompletionPercentage%</div>

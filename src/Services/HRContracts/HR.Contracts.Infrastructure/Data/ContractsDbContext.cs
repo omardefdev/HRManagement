@@ -108,6 +108,8 @@ public class ContractsDbContext : TenantAwareDbContext
                   .HasConversion<string>()
                   .HasMaxLength(50);
             entity.Property(e => e.CancellationReason).HasMaxLength(500);
+            entity.Property(e => e.SourceLegalRegimeId).HasMaxLength(50);
+            entity.Property(e => e.PayrollRegimeCode).HasMaxLength(50);
         });
 
         modelBuilder.Entity<LeaveRequest>(entity =>
@@ -247,6 +249,8 @@ public class ContractsDbContext : TenantAwareDbContext
             e.Property(x => x.CurrentState).HasMaxLength(64);
             e.Property(x => x.PendingParties).HasMaxLength(500);
             e.Property(x => x.CompletedParties).HasMaxLength(500);
+            e.Property(x => x.SourceLegalRegimeId).HasMaxLength(50);
+            e.Property(x => x.PayrollRegimeCode).HasMaxLength(50);
         });
         modelBuilder.Entity<HR.Contracts.Infrastructure.Sagas.HireCaseSagaState>(e =>
         {

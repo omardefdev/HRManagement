@@ -18,45 +18,79 @@ entity "AuditLogs\nEntityAuditLog" as T01 {
     TenantId
     UserId
 }
-entity "AccessPermissions\nAccessPermission" as T02 {
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T02 {
+  * Id
+    MessageId
+    TenantId
+}
+entity "AccessPermissions\nAccessPermission" as T03 {
   * Id
     IssuedCardId
     TenantId
 }
-entity "CardDeliveryRecords\nCardDeliveryRecord" as T03 {
+entity "CardChecklists\nCardChecklist" as T04 {
+  * Id
+    CorrelationId
+    TenantId
+}
+entity "CardDeliveryRecords\nCardDeliveryRecord" as T05 {
   * Id
     IssuedCardId
+    ReceiptFileId
     TenantId
 }
-entity "CardDesigns\nCardDesign" as T04 {
+entity "CardDesigns\nCardDesign" as T06 {
   * Id
     TenantId
 }
-entity "CardPermissionSets\nCardPermissionSet" as T05 {
+entity "CardPermissionSets\nCardPermissionSet" as T07 {
   * Id
     TenantId
 }
-entity "CardRequests\nCardRequest" as T06 {
+entity "CardRequests\nCardRequest" as T08 {
   * Id
     EmployeeId
+    IssuedCardId
     TenantId
 }
-entity "IssuedCards\nIssuedCard" as T07 {
+entity "IssuedCards\nIssuedCard" as T09 {
   * Id
     CardDesignId
     DeliveryRecordId
     EmployeeId
+    ReplacesCardId
     TenantId
 }
-entity "OfficialSealRecords\nOfficialSealRecord" as T08 {
+entity "OfficialSealRecords\nOfficialSealRecord" as T10 {
   * Id
     SealFileId
     TenantId
 }
+entity "InboxState\nInboxState" as T11 {
+  * Id
+    ConsumerId
+    LockId
+    MessageId
+}
+entity "OutboxMessage\nOutboxMessage" as T12 {
+  * SequenceNumber
+    ConversationId
+    CorrelationId
+    InboxConsumerId
+    InboxMessageId
+    InitiatorId
+    MessageId
+    OutboxId
+    RequestId
+}
+entity "OutboxState\nOutboxState" as T13 {
+  * OutboxId
+    LockId
+}
 
-T02 }o--|| T07 : IssuedCardId
-T07 }o--|| T04 : CardDesignId
-T07 }o--|| T03 : IDCard.Domain.Entities.IssuedCard, DeliveryRecordId
+T03 }o--|| T09 : IssuedCardId
+T09 }o--|| T06 : CardDesignId
+T09 }o--|| T05 : IDCard.Domain.Entities.IssuedCard, DeliveryRecordId
 
 note bottom
 الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.

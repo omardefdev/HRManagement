@@ -1,11 +1,50 @@
 @model IReadOnlyList<Payroll.Domain.Entities.PayrollAuditRecord>
-@{ ViewData["Title"] = "مراجعة الرواتب"; }
+@using Payroll.Domain.Enums
+@{
+    ViewData["Title"] = "مراجعة الرواتب";
+    var payrollRunId = ViewBag.PayrollRunId as Guid?;
+    var selectedStatus = ViewBag.Status as AuditStatus?;
+    DateTime? createdFrom = ViewBag.CreatedFrom;
+    DateTime? createdTo = ViewBag.CreatedTo;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">سجلات المراجعة</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm">سجل جديد</a>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">تشغيل الرواتب</label>
+                <select name="payrollRunId" class="form-select form-select-sm" asp-items="ViewBag.PayrollRuns">
+                    <option value="">كل التشغيلات</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">كل الحالات</option>
+                    @foreach (var item in Enum.GetValues<AuditStatus>())
+                    {
+                        <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@Html.HrEnumDisplay(item)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">أُنشئ من</label>
+                <input type="date" name="createdFrom" value="@createdFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">أُنشئ إلى</label>
+                <input type="date" name="createdTo" value="@createdTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>تشغيل</th><th>الحالة</th><th>المدقق</th><th>أغلق بواسطة</th><th>ملاحظات</th><th></th></tr></thead>
             <tbody>
@@ -13,12 +52,12 @@
             {
                 <tr>
                     <td>@x.PayrollRunId</td>
-                    <td>@x.Status</td>
+                    <td>@Html.HrEnumDisplay(x.Status)</td>
                     <td>@(x.AuditorId?.ToString() ?? "—")</td>
                     <td>@(x.ClosedBy?.ToString() ?? "—")</td>
                     <td>@(x.Findings ?? "—")</td>
                     <td class="text-end">
-                        @if (x.Status == Payroll.Domain.Enums.AuditStatus.Open)
+                        @if (x.Status == AuditStatus.Open)
                         {
                             <form asp-action="CloseAudit" asp-route-id="@x.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()

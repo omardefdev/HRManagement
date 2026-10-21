@@ -7,9 +7,9 @@
         <input type="hidden" asp-for="ContractId" />
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="SignedBy" class="form-label"></label><input asp-for="SignedBy" class="form-control" /></div>
+            <div class="mb-3"><label class="form-label">الموقّع</label><input class="form-control" value="الحساب الحالي" disabled /></div>
             <div class="mb-3"><label asp-for="SignedAt" class="form-label"></label><input asp-for="SignedAt" class="form-control" type="datetime-local" /></div>
-            <div class="mb-3"><label asp-for="SignatureType" class="form-label"></label><select asp-for="SignatureType" class="form-control" asp-items="Html.GetEnumSelectList<SignatureType>()"></select></div>
+            <div class="mb-3"><label asp-for="SignatureType" class="form-label"></label><select asp-for="SignatureType" class="form-control" asp-items="Html.HrEnumSelectList<SignatureType>()"></select></div>
             <div class="mb-3"><label asp-for="SignatureData" class="form-label"></label><textarea asp-for="SignatureData" class="form-control" rows="2"></textarea></div>
         </div>
         <div class="card-footer">

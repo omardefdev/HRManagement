@@ -1,4 +1,5 @@
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Exports;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,10 @@ namespace Payroll.Infrastructure.Data;
 /// </summary>
 public static class DemoPayrollSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
+    private static string ScopedCode(string code) => AcceptanceSeedExecution.CurrentAgency is { } agency
+        ? $"{agency.Code}-{code}"
+        : code;
 
     private static readonly (string Code, string NameAr, decimal Base, decimal Min, decimal Max)[] GradeDefs =
     [
@@ -64,8 +68,8 @@ public static class DemoPayrollSeeder
 
     public static async Task SeedAsync(PayrollDbContext db, CancellationToken ct = default)
     {
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("payroll");
+        var now = AcceptanceSeedExecution.UtcNow;
 
         await SeedIntegrationAsync(db, now, ct);
 
@@ -119,7 +123,7 @@ public static class DemoPayrollSeeder
             {
                 Id = scaleId,
                 TenantId = TenantId,
-                Code = "GOV-2026",
+                Code = ScopedCode("GOV-2026"),
                 NameAr = "سلم رواتب القطاع العام 2026",
                 EffectiveFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 IsActive = true,
@@ -177,7 +181,6 @@ public static class DemoPayrollSeeder
             var span = (int)((def.Max - def.Base) / 1000);
             var salary = def.Base + (span <= 0 ? 0 : rng.Next(0, span + 1) * 1000);
             var yearsAgo = rng.Next(1, 12);
-            var orgIndex = i < 10 ? 0 : 1 + (i % 8);
 
             db.EmployeePayProfiles.Add(new EmployeePayProfile
             {
@@ -188,7 +191,7 @@ public static class DemoPayrollSeeder
                 BaseSalary = salary,
                 EffectiveFrom = now.AddYears(-yearsAgo),
                 IsActive = true,
-                OrgUnitId = DemoSeedIds.OrgUnitId(orgIndex),
+                OrgUnitId = DemoSeedIds.EmployeeOrgUnitId(i),
                 CreatedAt = now,
                 UpdatedAt = now,
             });
@@ -215,7 +218,7 @@ public static class DemoPayrollSeeder
             {
                 Id = id,
                 TenantId = TenantId,
-                Code = code,
+                Code = ScopedCode(code),
                 NameAr = nameAr,
                 NameEn = nameEn,
                 CalculationFormula = i < 4 ? "fixed" : "percent-of-base",
@@ -278,12 +281,12 @@ public static class DemoPayrollSeeder
         for (var i = 0; i < DeductionDefs.Length; i++)
         {
             var (code, nameAr, statutory, pct, fixedAmt) = DeductionDefs[i];
-            codes[i] = code;
+            codes[i] = ScopedCode(code);
             db.DeductionTypes.Add(new DeductionType
             {
                 Id = DemoSeedIds.Named($"deduction-type-{i}"),
                 TenantId = TenantId,
-                Code = code,
+                Code = codes[i],
                 NameAr = nameAr,
                 IsStatutory = statutory,
                 Percentage = pct,
@@ -337,15 +340,20 @@ public static class DemoPayrollSeeder
         CancellationToken ct)
     {
         var activeIndices = gradeSalaries.Keys.OrderBy(x => x).ToList();
-        var runIds = new Guid[6];
+        var runCount = AcceptanceSeedExecution.IsAcceptance ? 12 : 6;
+        var runIds = new Guid[runCount];
 
-        for (var month = 1; month <= 6; month++)
+        for (var month = 1; month <= runCount; month++)
         {
-            var runId = DemoSeedIds.Named($"payroll-run-2026-{month:D2}");
+            var periodStart = AcceptanceSeedExecution.IsAcceptance
+                ? new DateTime(2025, 8, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(month - 1)
+                : new DateTime(2026, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var runId = DemoSeedIds.Named($"payroll-run-{periodStart:yyyy-MM}");
             runIds[month - 1] = runId;
-            var periodStart = new DateTime(2026, month, 1, 0, 0, 0, DateTimeKind.Utc);
             var periodEnd = periodStart.AddMonths(1).AddDays(-1);
-            var status = month switch
+            var status = AcceptanceSeedExecution.IsAcceptance
+                ? PayrollRunStatus.Posted
+                : month switch
             {
                 <= 4 => PayrollRunStatus.Posted,
                 5 => PayrollRunStatus.Approved,

@@ -1,6 +1,118 @@
-@model IReadOnlyList<Admin.Logistics.Domain.Entities.AssetAssignment>
-@{ ViewData["Title"] = "عهدة الأصول"; }
-<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">العهدة</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
-<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الأصل</th><th>الموظف</th><th>التسليم</th><th>الإعادة</th><th></th></tr></thead><tbody>
-@foreach (var x in Model){<tr><td>@x.Asset?.TagNumber</td><td>@x.EmployeeId</td><td>@x.AssignedAt</td><td>@x.ReturnedAt</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
-@if(!Model.Any()){<tr><td colspan="5" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>
+@model Admin.Logistics.Web.ViewModels.AssetAssignmentIndexViewModel
+@using Admin.Logistics.Domain.Enums
+@{
+    ViewData["Title"] = "عهدة الأصول";
+    var names = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    string FilterEmployeeLabel(Guid id) =>
+        !string.IsNullOrWhiteSpace(Model.FilterEmployeeName) && HrLookupDisplayHelper.IsResolvedEmployeeName(Model.FilterEmployeeName)
+            ? Model.FilterEmployeeName!
+            : "غير متاح";
+}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            <div class="col-md-3">
+                <label class="form-label">بحث الأصل</label>
+                <input type="text" name="assetQ" value="@Model.AssetQ" class="form-control" placeholder="رقم أو اسم العهدة..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— الكل —</option>
+                    @if (Model.EmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@FilterEmployeeLabel(empId)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">حالة العهدة</label>
+                <select name="status" class="form-select" data-hr-picker="select" data-placeholder="— الكل —">
+                    <option value="">— الكل —</option>
+                    @foreach (AssetAssignmentStatus s in Enum.GetValues<AssetAssignmentStatus>())
+                    {
+                        if (Model.Status == s)
+                        {
+                            <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option>
+                        }
+                        else
+                        {
+                            <option value="@((int)s)">@Html.HrEnumDisplay(s)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من تاريخ التسليم</label>
+                <input type="date" name="assignedFrom" value="@Model.AssignedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى تاريخ التسليم</label>
+                <input type="date" name="assignedTo" value="@Model.AssignedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input type="checkbox" name="openOnly" value="true" class="form-check-input" id="openOnly" @(Model.OpenOnly ? "checked" : null) />
+                    <label class="form-check-label" for="openOnly">المفتوحة فقط</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="overdueOnly" value="true" class="form-check-input" id="overdueOnly" @(Model.OverdueOnly ? "checked" : null) />
+                    <label class="form-check-label" for="overdueOnly">متأخرة عن موعد الإعادة</label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">العهدة</h3></div>
+    <div class="card-body border-bottom">
+        <div class="alert alert-info mb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>لتسليم عهدة جديدة، افتح الأصل من صفحة الأصول ثم استخدم «تسليم عهدة لموظف».</span>
+            <a asp-controller="Assets" asp-action="Index" class="btn btn-sm btn-primary">الذهاب إلى الأصول</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>الأصل</th><th>الموظف</th><th>الحالة</th><th>التسليم</th><th>الإعادة</th><th>الدليل</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var x in Model.Items.Items)
+                {
+                    <tr>
+                        <td>
+                            @if (x.Asset is not null)
+                            {
+                                <a asp-controller="Assets" asp-action="Details" asp-route-id="@x.AssetId">@x.Asset.TagNumber — @x.Asset.Name</a>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (names.TryGetValue(x.EmployeeId, out var n) && HrLookupDisplayHelper.IsResolvedEmployeeName(n))
+                            {
+                                <span>@n</span>
+                            }
+                            else
+                            {
+                                <span data-hr-employee-id="@x.EmployeeId">غير متاح</span>
+                            }
+                        </td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
+                        <td>@x.AssignedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@(x.ReturnedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = x, Asset = x.Asset })</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Items.Items.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد</td></tr> }
+            </tbody>
+        </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
+    </div>
+</div>

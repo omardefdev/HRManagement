@@ -57,75 +57,96 @@ docker compose -f docker-compose.yml -f docker-compose.services.yml up -d --wait
 
 ---
 
-## 1) عملية التوظيف — المرجع السريع
+## 1) عملية التوظيف — المرجع السريع (HCM-001)
 
-### مسار الطلب (حالات)
+**الدليل التشغيلي في البوابة:** `http://localhost:5000/Home/JourneyDetails/new-hire` — مرحلتان: **التوظيف (HCM-001)** ثم **التمكين (FUN-001)**.
+
+### مسار الطلب (حالات — بعد HCM Plans 1–7)
 
 ```text
-Submitted → UnderReview → Shortlisted → Hired
-                ↓              ↓
-            Rejected       Rejected
+Draft → PendingApproval → Approved → Published
+    → Submitted → … → OfferExtended → OfferAccepted → Hired
+                              ↓
+                          Rejected / Withdrawn
 ```
 
-| الحالة | المعنى | الإجراءات المتاحة في القائمة |
-|--------|--------|------------------------------|
-| `Submitted` | طلب جديد | مراجعة، مختصر، رفض |
-| `UnderReview` | قيد المراجعة | مراجعة، مختصر، رفض |
-| `Shortlisted` | قائمة مختصرة | **تعيين**، مراجعة، مختصر، رفض |
-| `Hired` | تم التعيين | اسم الموظف + **متابعة المعالج** |
-| `Rejected` | مرفوض | — |
+| الحالة | المعنى | ملاحظة |
+|--------|--------|--------|
+| `Published` | إعلان منشور (عام/داخلي) | استقبال عبر `/careers` أو HR أو ESS |
+| `OfferAccepted` | قبول خطاب العرض | **زر التعيين** يظهر في تفاصيل الطلب |
+| `Hired` | تم التعيين وإغلاق الشاغر | يُفتح **معالج التعيين** (FUN-001) |
 
-> زر **تعيين** يظهر **فقط** عندما تكون الحالة `Shortlisted`.
+> زر **تعيين** في `RecruitmentApplications/Details` يظهر **فقط** عندما تكون الحالة `OfferAccepted`.
 
 ### الروابط الأساسية للتوظيف
 
 | الغرض | الرابط |
 |-------|--------|
-| قائمة الطلبات | `http://localhost:5000/ui/hr-core/RecruitmentApplications` |
-| طلب جديد | زر **طلب جديد** في قائمة `RecruitmentApplications` (نافذة منبثقة) — أو `.../RecruitmentApplications/Create` (يعيد التوجيه للقائمة مع فتح النافذة) |
-| نموذج التعيين | `.../RecruitmentApplications/Hire/{applicationId}` |
+| دليل المسار (بوابة) | `http://localhost:5000/Home/JourneyDetails/new-hire` |
+| طلبات الشاغر | `http://localhost:5000/ui/hr-core/RecruitmentRequisitions` |
+| منصب ممول + مسودة | `http://localhost:5000/ui/hr-core/RecruitmentRequisitions/Create` |
+| بوابة المواطن | `http://localhost:5000/careers` |
+| طلبات HR | `http://localhost:5000/ui/hr-core/RecruitmentApplications` |
+| إعلانات المواطنين | `http://localhost:5000/ui/hr-core/PublicJobPostings` |
+| القناة الداخلية (HR) | `http://localhost:5000/ui/hr-core/TalentMarketplace` *(اختياري)* |
+| ترشّح ESS | `http://localhost:5000/ui/hr-core/EssTalent` *(اختياري — ModuleEss)* |
+| خطابات العرض | `http://localhost:5000/ui/hr-core/OfferLetters` |
+| لجان الاختيار | `http://localhost:5000/ui/hr-core/SelectionCommittees` *(اختياري)* |
 | متابعة المعالج (بعد التعيين) | `http://localhost:5000/ui/hr-contracts/HireWizard/Continue?employeeId={id}` |
 | قائمة معاملات التعيين | `http://localhost:5000/ui/hr-contracts/HireWizard` |
 
 ---
 
-## 2) خطوات التوظيف — تفصيل الشاشات
+## 2) خطوات التوظيف — تفصيل الشاشات (مرحلة HCM-001)
 
 **الحساب:** `hr-core` أو `hr-admin`
 
-### الخطوة 1 — تسجيل طلب
+### المرحلة أ — من الشاغر الممول حتى قبول العرض
 
-**الشاشة:** قائمة `RecruitmentApplications` → زر **طلب جديد** (نافذة منبثقة)
+1. **التحقق من المنصب الممول** — `RecruitmentRequisitions/Create`: اختر منصباً `Vacant` (EST-001).
+2. **طلب الشاغر** — `RecruitmentRequisitions`: مسودة + **تقديم للاعتماد**.
+3. **اعتماد الطلب (PLAN-21)** — من `RecruitmentRequisitions/Details`:
+   - الخطوة 1: `acc-br1-mgr` (أو أي `hr-core` غير المنشئ) → **اعتماد**
+   - الخطوة 2: `acc-a-management-approver` → **اعتماد**
+   - المنشئ (`acc-central-a`) **لا يرى** أزرار الاعتماد على طلبه (SoD).
+4. **نشر الإعلان** — بعد `Approved`: **نشر الإعلان العام** / **نشر الشاغر الداخلي** حسب القناة.
+5. **التقديم** — مرشح خارجي عبر `/careers`؛ أو HR عبر `RecruitmentApplications`؛ أو `PromoteFromCitizen` من `PublicJobPostings`.
+6. **القناة الداخلية (اختياري)** — `TalentMarketplace` (HR) و/أو `EssTalent` (ESS) ثم `PromoteFromInternal`.
+7. **الاختيار** — COI، درجة، ترتيب في `RecruitmentApplications/Details`.
+   - **لجنة الاختيار (PLAN-22، اختياري):** `SelectionCommittees` → أعضاء (≥3 للنصاب) → **تقديم للاعتماد** → Details → 3 خطوات اعتماد.
+   - **استئناف (PLAN-22، اختياري):** رفض مرشح → FileAppeal → `acc-a-compliance` يعتمد من Details.
+8. **خطاب العرض (PLAN-22)** — `OfferLetters/Details`:
+   - **تقديم للاعتماد** → `acc-br1-mgr` → `acc-a-management-approver` → `Issued`
+   - المنشئ لا يعتمد عرضه (SoD) — ثم **قبول العرض** → `OfferAccepted`
 
-| الحقل | مطلوب؟ | ملاحظة |
-|-------|--------|--------|
-| اسم المتقدم | نعم | يُستخدم لتعبئة الاسم في نموذج التعيين |
-| الرقم الوطني | لا | يُنقل تلقائياً لنموذج التعيين إن وُجد |
-| الوظيفة المتقدم لها | نعم | تُستخدم كعنوان السجل الوظيفي الأولي |
+### صندوق العمل (PLAN-23 / WF-002)
 
-**تحقق:** يظهر الطلب في القائمة بحالة `Submitted`.
+**الصفحة:** `WorkInbox/Index` (القائمة الجانبية: **صندوق العمل**)
 
----
+- يجمع اعتمادات **workflow** المعلّقة (طلب شاغر، عرض، لجنة، استئناف) + **legacy** `ApprovalRequests` حسب دورك وSoD.
+- اضغط **فتح** للانتقال إلى صفحة Details المعتمدة (PLAN-21/22) — لا اعتماد inline من الصندوق في v1.
+- عداد البوابة (`pending-approvals`) يعكس workflow + legacy للمستخدم الحالي.
+- رابط **اعتمادات legacy** في أسفل الصندوق → `Approvals/Pending`.
 
-### الخطوة 2 — تجهيز الطلب للتعيين
+| Persona | ماذا يرى |
+|---------|----------|
+| `acc-br1-mgr` | خطوة 1 لطلبات الشاغر والعروض |
+| `acc-a-management-approver` | خطوة 2 فقط |
+| `acc-central-a` | لا يرى طلباته/عروضه (SoD) |
+| `acc-a-compliance` | استئنافات معيّنة له كمراجع مستقل |
 
-**الصفحة:** `RecruitmentApplications` (القائمة)
+### المرحلة ب — التعيين (نهاية HCM / بداية FUN-001)
 
-1. اضغط **مراجعة** → الحالة تصبح `UnderReview`
-2. اضغط **مختصر** → الحالة تصبح `Shortlisted`
-3. يظهر زر **تعيين** (أخضر)
+**الصفحة:** `RecruitmentApplications/Details` عند `OfferAccepted`
 
-**تحقق:** زر التعيين ظاهر فقط للطلبات `Shortlisted`.
+1. اضغط **تعيين** (Hire) — ينفّذ `RecruitmentHireClosureService`: شغل المنصب، إغلاق الشاغر، `ICandidateAccepted`.
+2. **تحقق:** الحالة `Hired` + اسم الموظف + زر **متابعة المعالج**.
 
-**أخطاء شائعة:** إذا ضغطت **تعيين** قبل **مختصر**، ستُعاد للقائمة برسالة: «يمكن التعيين فقط للطلبات في حالة القائمة المختصرة».
+**أخطاء شائعة:** إذا ضغطت **تعيين** قبل قبول العرض، ستُرفض العملية — أكمِل خطاب العرض أولاً.
 
----
+### الخطوة التالية — نموذج التعيين / HireWizard
 
-### الخطوة 3 — نموذج التعيين
-
-**الصفحة:** `RecruitmentApplications/Hire/{id}`
-
-يعرض بيانات الطلب (الاسم، الوظيفة) وخيارين عبر تبويبين:
+بعد `Hired`، يُوجَّه المتصفح إلى `HireWizard/Continue?employeeId=...` (أو **متابعة المعالج** من قائمة الطلبات).
 
 #### تبويب «إنشاء موظف جديد» (الافتراضي)
 

@@ -97,6 +97,30 @@
       "policyId": "ret-files-purge",
       "retentionDays": null,
       "residencyNote": "داخل Tenant؛ LegalHold/RetainUntil"
+    },
+    {
+      "id": "hrcore.citizenApplication.nationalId",
+      "entity": "HR.Core.Domain.Entities.CitizenApplication",
+      "field": "NationalId|NationalIdHash",
+      "classification": "PII",
+      "owner": "HR.Core / Recruitment",
+      "purpose": "تقديم عام وربط طلبات التوظيف",
+      "legalBasis": "موافقة المتقدم / إجراء توظيف عام",
+      "policyId": "ret-recruitment-application",
+      "retentionDays": 1095,
+      "residencyNote": "داخل Tenant؛ hash للتتبع؛ NationalId مشفّر"
+    },
+    {
+      "id": "hrcore.recruitmentApplication.nationalId",
+      "entity": "HR.Core.Domain.Entities.RecruitmentApplication",
+      "field": "NationalId|NationalIdHash",
+      "classification": "PII",
+      "owner": "HR.Core / Recruitment",
+      "purpose": "مسار التوظيف الداخلي والاختيار",
+      "legalBasis": "إجراء توظيف عام",
+      "policyId": "ret-recruitment-application",
+      "retentionDays": 1095,
+      "residencyNote": "داخل Tenant؛ anonymize بعد انتهاء الاحتفاظ"
     }
   ]
 }

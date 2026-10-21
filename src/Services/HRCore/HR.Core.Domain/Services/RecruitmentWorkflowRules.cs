@@ -1,24 +1,46 @@
+using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 
 namespace HR.Core.Domain.Services;
 
 public static class RecruitmentWorkflowRules
 {
-    private static readonly Dictionary<RecruitmentApplicationStatus, HashSet<RecruitmentApplicationStatus>> AllowedTransitions = new()
-    {
-        [RecruitmentApplicationStatus.Submitted] = [RecruitmentApplicationStatus.UnderReview, RecruitmentApplicationStatus.Rejected],
-        [RecruitmentApplicationStatus.UnderReview] = [RecruitmentApplicationStatus.Shortlisted, RecruitmentApplicationStatus.Rejected],
-        [RecruitmentApplicationStatus.Shortlisted] = [RecruitmentApplicationStatus.Hired, RecruitmentApplicationStatus.Rejected],
-        [RecruitmentApplicationStatus.Rejected] = [],
-        [RecruitmentApplicationStatus.Hired] = []
-    };
+    public static bool CanTransition(RecruitmentApplication application, RecruitmentApplicationStatus to, bool legacyHireWithoutOffer = false) =>
+        SelectionWorkflowRules.CanTransition(application, to, legacyHireWithoutOffer);
 
-    public static bool CanTransition(RecruitmentApplicationStatus from, RecruitmentApplicationStatus to)
-    {
-        if (from == to) return true;
-        return AllowedTransitions.TryGetValue(from, out var targets) && targets.Contains(to);
-    }
+    public static bool CanTransition(RecruitmentApplicationStatus from, RecruitmentApplicationStatus to) =>
+        SelectionWorkflowRules.CanTransition(
+            new RecruitmentApplication { Status = from },
+            to,
+            legacyHireWithoutOffer: true);
+
+    public static bool CanHire(RecruitmentApplication application, bool legacyHireWithoutOffer = false) =>
+        CanHire(application.Status, application.RequisitionId, application.ActiveOfferLetter, legacyHireWithoutOffer);
 
     public static bool CanHire(RecruitmentApplicationStatus status) =>
-        status == RecruitmentApplicationStatus.Shortlisted;
+        CanHire(status, requisitionId: null, activeOffer: null, legacyHireWithoutOffer: true);
+
+    public static bool CanHire(
+        RecruitmentApplicationStatus status,
+        Guid? requisitionId,
+        bool allowLegacyWithoutRequisition = true) =>
+        CanHire(status, requisitionId, activeOffer: null, legacyHireWithoutOffer: allowLegacyWithoutRequisition);
+
+    public static bool CanHire(
+        RecruitmentApplicationStatus status,
+        Guid? requisitionId,
+        OfferLetter? activeOffer,
+        bool legacyHireWithoutOffer = false)
+    {
+        if (status == RecruitmentApplicationStatus.Hired)
+            return false;
+
+        if (legacyHireWithoutOffer && requisitionId is null && status == RecruitmentApplicationStatus.Shortlisted)
+            return true;
+
+        if (status != RecruitmentApplicationStatus.OfferAccepted)
+            return false;
+
+        return activeOffer is { Status: OfferStatus.Accepted };
+    }
 }

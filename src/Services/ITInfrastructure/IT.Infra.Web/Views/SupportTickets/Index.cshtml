@@ -11,7 +11,7 @@
                 {
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@x.Id">@x.IssueSummary</a></td>
-                        <td>@x.Status</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td>@x.CreatedAt.ToString("yyyy/MM/dd")</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-secondary">فتح</a></td>
                     </tr>

@@ -1,6 +1,149 @@
-@model IReadOnlyList<Admin.Logistics.Domain.Entities.SupplyOrder>
-@{ ViewData["Title"] = "طلبات التجهيز"; }
-<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلبات التجهيز</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
-<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الحالة</th><th>تاريخ الطلب</th><th>التفاصيل</th><th></th></tr></thead><tbody>
-@foreach (var x in Model){ var it = x.Items; <tr><td>@x.Status</td><td>@x.OrderedAt</td><td>@(it != null && it.Length > 50 ? it[..50]+"…" : it)</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
-@if(!Model.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>
+@model Admin.Logistics.Web.ViewModels.SupplyOrderIndexViewModel
+@using Admin.Logistics.Domain.Enums
+@{
+    ViewData["Title"] = "طلبات التجهيز";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>();
+    string FilterRequesterLabel(Guid id) =>
+        !string.IsNullOrWhiteSpace(Model.FilterRequesterName) && HrLookupDisplayHelper.IsResolvedEmployeeName(Model.FilterRequesterName)
+            ? Model.FilterRequesterName!
+            : id.ToString();
+}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="تفاصيل أو SKU..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select" data-hr-picker="select" data-placeholder="— الكل —">
+                    <option value="">— الكل —</option>
+                    @foreach (SupplyOrderStatus s in Enum.GetValues<SupplyOrderStatus>())
+                    {
+                        if (Model.Status == s)
+                        {
+                            <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option>
+                        }
+                        else
+                        {
+                            <option value="@((int)s)">@Html.HrEnumDisplay(s)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">طالب الطلب</label>
+                <select name="requestedBy" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— الكل —</option>
+                    @if (Model.RequestedBy is Guid reqId)
+                    {
+                        <option value="@reqId" selected="selected">@FilterRequesterLabel(reqId)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الوحدة التنظيمية</label>
+                <select name="orgUnitId" class="form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة...">
+                    <option value="">— الكل —</option>
+                    @if (Model.OrgUnitId is Guid ouId)
+                    {
+                        <option value="@ouId" selected="selected">@ouId</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من تاريخ الطلب</label>
+                <input type="date" name="orderedFrom" value="@Model.OrderedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى تاريخ الطلب</label>
+                <input type="date" name="orderedTo" value="@Model.OrderedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من تاريخ التنفيذ</label>
+                <input type="date" name="fulfilledFrom" value="@Model.FulfilledFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى تاريخ التنفيذ</label>
+                <input type="date" name="fulfilledTo" value="@Model.FulfilledTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input type="checkbox" name="activeOnly" value="true" class="form-check-input" id="activeOnly" @(Model.ActiveOnly ? "checked" : null) />
+                    <label class="form-check-label" for="activeOnly">النشطة فقط (بدون مغلق/ملغى)</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="awaitingReceiptOnly" value="true" class="form-check-input" id="awaitingReceiptOnly" @(Model.AwaitingReceiptOnly ? "checked" : null) />
+                    <label class="form-check-label" for="awaitingReceiptOnly">بانتظار الاستلام (مُنفَّذ)</label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">طلبات التجهيز</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm">جديد</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>الحالة</th>
+                    <th>طالب الطلب</th>
+                    <th>الوحدة</th>
+                    <th>تاريخ الطلب</th>
+                    <th>التفاصيل</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model.Items.Items)
+                {
+                    var it = x.Items;
+                    <tr>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
+                        <td>
+                            @if (x.RequestedBy is Guid empId && employeeNames.TryGetValue(empId, out var n) && HrLookupDisplayHelper.IsResolvedEmployeeName(n))
+                            {
+                                <span>@n</span>
+                            }
+                            else if (x.RequestedBy is Guid rawId)
+                            {
+                                <span data-hr-employee-id="@rawId">@rawId</span>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (x.OrgUnitId is Guid orgId)
+                            {
+                                <span data-hr-org-unit-id="@orgId">@orgId</span>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td>@(x.OrderedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@(it != null && it.Length > 50 ? it[..50] + "…" : it ?? "—")</td>
+                        <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
+                    </tr>
+                }
+                @if (!Model.Items.Items.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">لا توجد</td></tr>
+                }
+            </tbody>
+        </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
+    </div>
+</div>

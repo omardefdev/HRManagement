@@ -1,4 +1,6 @@
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.SharedKernel.CodeGeneration;
 using MassTransit;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -96,7 +98,10 @@ public class LeaveAdvanceConsumersTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         await using var db = new ArchiveDbContext(options);
-        var consumer = new ArchiveLeaveApprovedConsumer(db);
+        var codeClient = new Mock<ICodeGenerationClient>();
+        codeClient.Setup(c => c.GenerateAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CodeGenerationResult { Code = "ARC-LEAVE-2026-00001" });
+        var consumer = new ArchiveLeaveApprovedConsumer(db, codeClient.Object);
 
         var message = Mock.Of<ILeaveApproved>(m =>
             m.TransactionId == Guid.NewGuid() &&

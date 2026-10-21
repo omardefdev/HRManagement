@@ -4,7 +4,11 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0">@Model.Title</h3>
         <div>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('حذف المسار؟');">
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  data-hr-confirm="حذف المسار؟"
+                  data-hr-confirm-title="تأكيد الحذف"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="حذف">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-danger btn-sm">حذف</button>
             </form>
@@ -46,7 +50,11 @@
                         <td>@s.MinYears</td>
                         <td>@(s.Requirements ?? "—")</td>
                         <td>
-                            <form asp-action="RemoveStep" method="post" onsubmit="return confirm('حذف المرحلة؟');">
+                            <form asp-action="RemoveStep" method="post"
+                                  data-hr-confirm="حذف المرحلة؟"
+                                  data-hr-confirm-title="تأكيد الحذف"
+                                  data-hr-confirm-variant="danger"
+                                  data-hr-confirm-label="حذف">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@s.Id" />
                                 <input type="hidden" name="careerPathId" value="@Model.Id" />

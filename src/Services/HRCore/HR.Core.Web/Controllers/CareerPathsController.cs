@@ -9,8 +9,18 @@ namespace HR.Core.Web.Controllers;
 
 public class CareerPathsController(HRCoreDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.CareerPaths.AsNoTracking().Include(p => p.Steps).OrderBy(p => p.Title).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(string? q)
+    {
+        var query = db.CareerPaths.AsNoTracking().Include(p => p.Steps).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(p => p.Title.Contains(term) || (p.Description != null && p.Description.Contains(term)));
+        }
+
+        var items = await query.OrderBy(p => p.Title).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        return View(new CareerPathsIndexViewModel { Items = items, Q = q });
+    }
 
     public IActionResult Create() => View(new CareerPathCreateViewModel());
 

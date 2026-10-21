@@ -8,7 +8,7 @@
             <dd class="col-sm-9">@Model.Title</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportType)</dt>
-            <dd class="col-sm-9">@Model.ReportType</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.ReportType)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Parameters)</dt>
             <dd class="col-sm-9">@Model.Parameters</dd>

@@ -23,8 +23,8 @@ skinparam SequenceParticipantBackgroundColor #F4F7F8
 
 title مخطط المكونات والخدمات
 actor "مستخدم" as User
-component "Gateway\\nYARP" as Gateway
-component "Keycloak\\nOIDC" as Keycloak
+component "Gateway\nYARP" as Gateway
+component "Keycloak\nOIDC" as Keycloak
 package "الخدمات الأساسية" {
   [HR.Core] as Core
   [HR.Contracts] as Contracts
@@ -37,8 +37,8 @@ package "الخدمات المساندة" {
   [Archive / ID / IT] as Support
   [Compliance / Analytics] as Gov
 }
-queue "RabbitMQ\\nMassTransit" as Bus
-database "قواعد PostgreSQL\\nمنفصلة" as Db
+queue "RabbitMQ\nMassTransit" as Bus
+database "قواعد PostgreSQL\nمنفصلة" as Db
 User --> Gateway
 Gateway --> Keycloak
 Gateway --> Core

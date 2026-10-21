@@ -15,11 +15,20 @@ public static class HrManagementAuthorizationExtensions
                 || c.User.IsInRole(HrManagementRoles.HrCore)
                 || c.User.IsInRole(HrManagementRoles.HrCoreSupervisory)
                 || c.User.IsInRole(HrManagementRoles.HrCoreExecutive)
-                || c.User.IsInRole(HrManagementRoles.BranchManager)));
+                || c.User.IsInRole(HrManagementRoles.BranchManager)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && (ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreLookup)
+                        || ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow)))));
             options.AddPolicy(HrManagementPolicies.ModuleEss, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrEmployee)));
-            AddModulePolicy(options, HrManagementPolicies.ModuleHrContracts, HrManagementRoles.HrContracts);
+            // The management checker must be able to open the contracts module to review
+            // pending hire cases; write and execution actions remain separately guarded.
+            options.AddPolicy(HrManagementPolicies.ModuleHrContracts, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrContracts)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
             options.AddPolicy(HrManagementPolicies.ModuleHrHealth, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrHealth)
@@ -34,12 +43,17 @@ public static class HrManagementAuthorizationExtensions
             AddModulePolicy(options, HrManagementPolicies.ModuleRecordsArchive, HrManagementRoles.RecordsArchive);
             AddModulePolicy(options, HrManagementPolicies.ModuleAdminLogistics, HrManagementRoles.AdminLogistics);
             AddModulePolicy(options, HrManagementPolicies.ModuleItInfra, HrManagementRoles.ItInfra);
-            AddModulePolicy(options, HrManagementPolicies.ModuleDevAnalytics, HrManagementRoles.DevAnalytics);
+            options.AddPolicy(HrManagementPolicies.ModuleDevAnalytics, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.DevAnalytics)
+                || c.User.IsInRole(HrManagementRoles.PlatformAdmin)));
             AddModulePolicy(options, HrManagementPolicies.ModuleCompliance, HrManagementRoles.Compliance);
             AddModulePolicy(options, HrManagementPolicies.ModuleAuthDirectory, HrManagementRoles.AuthDirectory);
             options.AddPolicy(HrManagementPolicies.ModuleFileStorage, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.FileStorage)));
+                || c.User.IsInRole(HrManagementRoles.FileStorage)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.FileStorageReferences))));
 
             // Gateway home: any signed-in user. Module paths still require module roles (middleware + downstream).
             options.AddPolicy(HrManagementPolicies.GatewayDashboard, p => p.RequireAuthenticatedUser());
@@ -50,18 +64,37 @@ public static class HrManagementAuthorizationExtensions
                 || c.User.IsInRole(HrManagementRoles.HrCore)
                 || c.User.IsInRole(HrManagementRoles.HrCoreSupervisory)
                 || c.User.IsInRole(HrManagementRoles.HrCoreExecutive)
-                || c.User.IsInRole(HrManagementRoles.BranchManager)));
+                || c.User.IsInRole(HrManagementRoles.BranchManager)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && (ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreLookup)
+                        || ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow)))));
 
             options.AddPolicy(HrManagementPolicies.HrCoreWrite, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrCore)));
+                || c.User.IsInRole(HrManagementRoles.HrCore)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
 
             options.AddPolicy(HrManagementPolicies.HrCoreDelete, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)));
 
             options.AddPolicy(HrManagementPolicies.HrCoreApprove, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrCore)));
+                || c.User.IsInRole(HrManagementRoles.HrCore)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+                || c.User.IsInRole(HrManagementRoles.PlatformAdmin)));
+
+            options.AddPolicy(HrManagementPolicies.TenantQuarantineReconcile, p => p.RequireRole(
+                HrManagementRoles.PlatformAdmin));
+
+            options.AddPolicy(HrManagementPolicies.HrCoreBranchOperation, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrCore)
+                || c.User.IsInRole(HrManagementRoles.BranchManager)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
 
             // Shared lookup — interactive users OR service tokens with hr-core.lookup (IAM-004).
             options.AddPolicy(HrManagementPolicies.HrCoreLookup, p => p.RequireAssertion(c =>
@@ -74,20 +107,18 @@ public static class HrManagementAuthorizationExtensions
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrContracts)));
 
-            // Payroll fine-grained: retain the legacy Payroll role temporarily while adding role separation.
+            // The base payroll role grants module access only. Operational roles are deliberately
+            // separate so a processor cannot approve or post the same run.
             options.AddPolicy(HrManagementPolicies.PayrollProcess, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.Payroll)
                 || c.User.IsInRole(HrManagementRoles.PayrollProcessor)));
 
             options.AddPolicy(HrManagementPolicies.PayrollApprove, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.Payroll)
                 || c.User.IsInRole(HrManagementRoles.PayrollApprover)));
 
             options.AddPolicy(HrManagementPolicies.PayrollPost, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.Payroll)
                 || c.User.IsInRole(HrManagementRoles.PayrollPoster)));
 
             options.AddPolicy(HrManagementPolicies.PayrollReverse, p => p.RequireAssertion(c =>
@@ -97,6 +128,12 @@ public static class HrManagementAuthorizationExtensions
 
             options.AddPolicy(HrManagementPolicies.HrManagementApprove, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
+
+            options.AddPolicy(HrManagementPolicies.HrContractsHireView, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrContracts)
+                || c.User.IsInRole(HrManagementRoles.HrCore)
                 || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
 
             options.AddPolicy(HrManagementPolicies.HrContractsHireExecute, p => p.RequireAssertion(c =>
@@ -120,6 +157,13 @@ public static class HrManagementAuthorizationExtensions
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.PlatformAdmin)
                 || c.User.IsInRole(HrManagementRoles.Compliance)));
+
+            options.AddPolicy(HrManagementPolicies.PiiViewNationalId, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || (!c.User.IsInRole(HrManagementRoles.BranchManager)
+                    && (c.User.IsInRole(HrManagementRoles.HrCore)
+                        || c.User.IsInRole(HrManagementRoles.HrCoreSupervisory)
+                        || c.User.IsInRole(HrManagementRoles.HrCoreExecutive)))));
         });
 
         services.AddServiceToServiceAuthorizationPolicies();

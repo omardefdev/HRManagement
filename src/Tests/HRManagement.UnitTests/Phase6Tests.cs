@@ -266,11 +266,11 @@ public class Phase6_EventSchemaTests
     }
 
     [Fact]
-    public void IEmployeeCreated_SchemaVersion_Is3()
+    public void IEmployeeCreated_SchemaVersion_Is6()
     {
-        // v3 replaced the raw NationalId with NationalIdHash.
+        // v6 adds LegalRegimeId + PayrollRegimeCode on the hire fan-out event.
         var e = new EmployeeCreatedStub();
-        Assert.Equal(3, ((HRManagement.MessageContracts.Events.IEmployeeCreated)e).SchemaVersion);
+        Assert.Equal(6, ((HRManagement.MessageContracts.Events.IEmployeeCreated)e).SchemaVersion);
     }
 
     private class PayrollProcessedStub : HRManagement.MessageContracts.Events.IPayrollProcessed
@@ -289,6 +289,7 @@ public class Phase6_EventSchemaTests
         public string EmploymentType { get; set; } = "";
         public Guid? TenantId { get; set; }
         public Guid? PrimaryOrgUnitId { get; set; }
+        public string? CorrelationId { get; set; }
     }
 }
 

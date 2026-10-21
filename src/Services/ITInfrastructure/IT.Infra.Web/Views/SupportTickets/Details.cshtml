@@ -4,7 +4,7 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between">
         <h3 class="card-title">@Model.IssueSummary</h3>
-        <span class="badge bg-info">@Model.Status</span>
+        <span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span>
     </div>
     <div class="card-body">
         <dl class="row">
@@ -15,7 +15,7 @@
             <dd class="col-sm-9">@Model.Description</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
-            <dd class="col-sm-9">@Model.Status</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportedBy)</dt>
             <dd class="col-sm-9">@Model.ReportedBy</dd>

@@ -38,6 +38,7 @@ public class CrossTenantBoundedContextIsolationTests
         var mock = new Mock<ITenantContext>();
         mock.Setup(t => t.TenantId).Returns(tenantId);
         mock.Setup(t => t.IsPlatformOperator).Returns(platformAdmin);
+        mock.Setup(t => t.IsPlatformImpersonating).Returns(platformAdmin && tenantId != Guid.Empty);
         mock.Setup(t => t.RequireTenantId()).Returns(tenantId);
         return mock.Object;
     }
@@ -87,6 +88,10 @@ public class CrossTenantBoundedContextIsolationTests
 
         var admin = FixedTenant(TenantA, platformAdmin: true);
         await using var adminDb = factory(admin, dbName);
+        var impersonatingRows = await set(adminDb).ToListAsync();
+        var impersonatingKeys = impersonatingRows.Select(key).OrderBy(x => x).ToList();
+        Assert.Equal(["A-row"], impersonatingKeys);
+
         var allRows = await set(adminDb).IgnoreTenantFilter(admin).ToListAsync();
         var all = allRows.Select(key).OrderBy(x => x).ToList();
         Assert.Equal(["A-row", "B-row"], all);

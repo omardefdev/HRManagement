@@ -15,6 +15,20 @@ public interface ITransferExecuted
 
     Guid? TenantId => null;
 
+    /// <summary>SYR-008: HRCore service regime before transfer.</summary>
+    string? FromLegalRegimeId => null;
 
-    int SchemaVersion => 2;
+    /// <summary>SYR-008: target service regime when cross-regime transfer.</summary>
+    string? ToLegalRegimeId => null;
+
+    /// <summary>SYR-008: mapped payroll regime code after transfer.</summary>
+    string? PayrollRegimeCode => null;
+
+    string? TransitionDecisionRef => null;
+
+    string? ConditionCode => null;
+
+    string? ConflictNotes => null;
+
+    int SchemaVersion => 3;
 }

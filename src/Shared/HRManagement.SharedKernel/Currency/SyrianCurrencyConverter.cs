@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HRManagement.SharedKernel.Currency;
 
 /// <summary>
@@ -52,6 +54,8 @@ public static class SyrianCurrencyConverter
 
 public enum CurrencyEra
 {
+    [Display(Name = "ليرة قديمة")]
     OldLira = 0,
+    [Display(Name = "ليرة جديدة")]
     NewLira = 1
 }

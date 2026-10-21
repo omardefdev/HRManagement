@@ -44,8 +44,8 @@ public class Prod001PolicyPlatformPackTests
         Assert.Equal("Satisfied", blockers["PAY-002"]);
         Assert.Equal("Satisfied", blockers["GOV-002"]);
         Assert.Equal("Satisfied", blockers["STR-002"]);
-        Assert.Equal("Blocked", blockers["live-policy-engine"]);
-        Assert.Equal("Blocked", blockers["live-workflow-runtime"]);
+        Assert.Equal("Satisfied", blockers["live-policy-engine"]);
+        Assert.Equal("Satisfied", blockers["live-workflow-runtime"]);
         Assert.Equal("Blocked", blockers["live-form-designer"]);
         Assert.Equal("Satisfied", blockers["PROD-002"]);
         Assert.Equal("Satisfied", blockers["ONB-001"]);

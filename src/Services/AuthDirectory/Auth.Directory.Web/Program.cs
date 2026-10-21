@@ -1,15 +1,19 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Seeding;
 using Auth.Directory.Infrastructure.Consumers;
 using Auth.Directory.Infrastructure.Data;
 using Auth.Directory.Infrastructure.Keycloak;
+using HRManagement.ServiceDefaults.Integration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("Auth.Directory.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAuthDirectory);
@@ -31,6 +35,7 @@ builder.Services.AddDbContext<AuthDirectoryDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddHttpClient<IKeycloakUserProvisioningService, KeycloakUserProvisioningService>();
+builder.Services.AddHrCoreLookupClient(builder.Configuration);
 builder.Services.AddScoped<HRManagement.SharedKernel.Interfaces.IDirectoryEntrySyncService, Auth.Directory.Infrastructure.Services.DirectoryEntrySyncService>();
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AuthDirectoryDbContext>());
 builder.Services.AddServiceMassTransit(
@@ -44,15 +49,19 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<AuthDirectoryDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 
-if (app.Environment.IsDevelopment())
+if (seedProfile != SeedProfile.None)
 {
     using var demoScope = app.Services.CreateScope();
     TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
     try
     {
-        await DemoAuthSeeder.SeedAsync(
-            demoScope.ServiceProvider.GetRequiredService<AuthDirectoryDbContext>());
+        var db = demoScope.ServiceProvider.GetRequiredService<AuthDirectoryDbContext>();
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceAuthSeeder.SeedAsync(db);
+        else
+            await DemoAuthSeeder.SeedAsync(db);
     }
     finally
     {
@@ -69,6 +78,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -84,4 +94,3 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
-

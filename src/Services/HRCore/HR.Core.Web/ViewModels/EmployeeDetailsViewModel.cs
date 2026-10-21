@@ -21,6 +21,20 @@ public class EmployeeDetailsViewModel
     public bool ShowContactCreateModal { get; set; }
     public bool ShowDocumentCreateModal { get; set; }
     public bool ShowEvaluationCreateModal { get; set; }
+
+    /// <summary>AC-26: masked or full national ID for display.</summary>
+    public string DisplayNationalId { get; set; } = string.Empty;
+
+    public bool CanViewFullNationalId { get; set; }
+
+    /// <summary>SYR-003: current employment record service regime (read-only).</summary>
+    public string? ServiceRegimeLabel { get; set; }
+
+    /// <summary>SYR-001: resolved legislation label for the current service regime.</summary>
+    public string? ServiceRegimeLegalSourceLabel { get; set; }
+
+    /// <summary>SYR-007: regime transition history (read-only).</summary>
+    public IReadOnlyList<EmploymentRegimeTransition> RegimeTransitions { get; set; } = [];
 }
 
 public class EmployeeDetailsModalState

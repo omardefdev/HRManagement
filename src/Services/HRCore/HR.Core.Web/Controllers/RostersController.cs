@@ -23,8 +23,26 @@ public class RostersController(HRCoreDbContext db) : Controller
             await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.ShiftRosters.AsNoTracking().Include(r => r.OrgUnit).OrderByDescending(r => r.PeriodStart).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? orgUnitId, DateOnly? periodFrom, DateOnly? periodTo, string? q)
+    {
+        var query = db.ShiftRosters.AsNoTracking().Include(r => r.OrgUnit).AsQueryable();
+        if (orgUnitId is Guid ou)
+            query = query.Where(r => r.OrgUnitId == ou);
+        if (periodFrom is DateOnly pf)
+            query = query.Where(r => r.PeriodEnd >= pf);
+        if (periodTo is DateOnly pt)
+            query = query.Where(r => r.PeriodStart <= pt);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(r => r.Title.Contains(term) || (r.Notes != null && r.Notes.Contains(term)));
+        }
+
+        var items = await query.OrderByDescending(r => r.PeriodStart).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.OrgUnits = new SelectList(
+            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+        return View(new RostersIndexViewModel { Items = items, OrgUnitId = orgUnitId, PeriodFrom = periodFrom, PeriodTo = periodTo, Q = q });
+    }
 
     public async Task<IActionResult> Create()
     {

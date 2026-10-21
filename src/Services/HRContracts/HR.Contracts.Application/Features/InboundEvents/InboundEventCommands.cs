@@ -4,6 +4,8 @@ using HR.Contracts.Application.Features.SeparationRecords;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using MediatR;
@@ -15,7 +17,8 @@ public record ProcessCandidateAcceptedCommand(
     Guid EmployeeId,
     string EmploymentCategory,
     DateOnly ExpectedStartDate,
-    string? FullName = null) : IRequest;
+    string? FullName = null,
+    Guid? RecruitmentApplicationId = null) : IRequest;
 public record ProcessProbationEvaluationCompletedCommand(Guid EmployeeId, Guid ContractId, ProbationResult Result, Guid? EvaluatedBy, DateOnly EvaluatedDate, string? Notes) : IRequest;
 public record ProcessLeaveRequestedCommand(Guid RequestId, Guid EmployeeId, LeaveType LeaveType, DateOnly StartDate, DateOnly EndDate, int DurationDays, string? Notes, Guid? OrgUnitId = null) : IRequest;
 public record ProcessAdvanceRequestedCommand(Guid RequestId, Guid EmployeeId, decimal Amount, string? Reason, Guid? OrgUnitId = null) : IRequest;
@@ -23,7 +26,9 @@ public record ProcessJobChangeRequestedCommand(Guid RequestId, Guid EmployeeId, 
 public record ProcessSeparationRequestCommand(Guid EmployeeId, SeparationType SeparationType, DateOnly EffectiveDate, string? Reason, string? Documents) : IRequest;
 public record ProcessTransactionRegisteredInDiwanCommand(Guid TransactionId, string DiwanNumber) : IRequest;
 
-public class ProcessCandidateAcceptedHandler(IContractsRepository repository) : IRequestHandler<ProcessCandidateAcceptedCommand>
+public class ProcessCandidateAcceptedHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<ProcessCandidateAcceptedCommand>
 {
     public async Task Handle(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken)
     {
@@ -64,8 +69,9 @@ public class ProcessCandidateAcceptedHandler(IContractsRepository repository) : 
             {
                 EmployeeId = request.EmployeeId,
                 TransactionType = ServiceTransactionType.Appointment,
-                Notes = BuildHireNotes(request.FullName, request.EmploymentCategory)
+                Notes = BuildHireNotes(request.FullName, request.EmploymentCategory, request.RecruitmentApplicationId)
             };
+            await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
             transaction.MoveTo(ServiceTransactionState.Submitted, byUserId: null, "Inbound employment event");
             transaction.MoveTo(ServiceTransactionState.UnderReview, byUserId: null, null);
             transaction.MoveTo(ServiceTransactionState.InProcess, byUserId: null, "بدء معالجة التعيين");
@@ -79,8 +85,8 @@ public class ProcessCandidateAcceptedHandler(IContractsRepository repository) : 
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.FullName))
-            transaction.Notes = BuildHireNotes(request.FullName, request.EmploymentCategory);
+        if (!string.IsNullOrWhiteSpace(request.FullName) || request.RecruitmentApplicationId.HasValue)
+            transaction.Notes = BuildHireNotes(request.FullName, request.EmploymentCategory, request.RecruitmentApplicationId);
 
         await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken);
         await HireCaseSupport.MarkCandidateReceivedAsync(repository, transaction.Id, cancellationToken);
@@ -88,13 +94,37 @@ public class ProcessCandidateAcceptedHandler(IContractsRepository repository) : 
         await repository.SaveChangesAsync(cancellationToken);
     }
 
-    private static string BuildHireNotes(string? fullName, string employmentCategory) =>
-        string.IsNullOrWhiteSpace(fullName)
+    private const string RecruitmentApplicationNotePrefix = "recruitmentApplicationId:";
+
+    private static string BuildHireNotes(string? fullName, string employmentCategory, Guid? recruitmentApplicationId)
+    {
+        var baseNote = string.IsNullOrWhiteSpace(fullName)
             ? $"مصدر توظيف: {employmentCategory}"
             : $"{fullName.Trim()} — مصدر توظيف: {employmentCategory}";
+
+        return recruitmentApplicationId is Guid appId
+            ? $"{baseNote} | {RecruitmentApplicationNotePrefix}{appId:D}"
+            : baseNote;
+    }
+
+    internal static Guid? ParseRecruitmentApplicationId(string? notes)
+    {
+        if (string.IsNullOrWhiteSpace(notes))
+            return null;
+
+        const string marker = RecruitmentApplicationNotePrefix;
+        var index = notes.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (index < 0)
+            return null;
+
+        var value = notes[(index + marker.Length)..].Split('|', ' ', ';')[0].Trim();
+        return Guid.TryParse(value, out var parsed) ? parsed : null;
+    }
 }
 
-public class ProcessProbationEvaluationCompletedHandler(IContractsRepository repository) : IRequestHandler<ProcessProbationEvaluationCompletedCommand>
+public class ProcessProbationEvaluationCompletedHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<ProcessProbationEvaluationCompletedCommand>
 {
     public async Task Handle(ProcessProbationEvaluationCompletedCommand request, CancellationToken cancellationToken)
     {
@@ -116,6 +146,7 @@ public class ProcessProbationEvaluationCompletedHandler(IContractsRepository rep
             TransactionType = ServiceTransactionType.Confirmation,
             Notes = "Inbound probation evaluation"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
         transaction.MoveTo(ServiceTransactionState.Submitted, null, null);
         transaction.MoveTo(ServiceTransactionState.UnderReview, null, null);
         transaction.MoveTo(ServiceTransactionState.InProcess, null, null);
@@ -125,7 +156,9 @@ public class ProcessProbationEvaluationCompletedHandler(IContractsRepository rep
     }
 }
 
-public class ProcessLeaveRequestedHandler(IContractsRepository repository) : IRequestHandler<ProcessLeaveRequestedCommand>
+public class ProcessLeaveRequestedHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<ProcessLeaveRequestedCommand>
 {
     public async Task Handle(ProcessLeaveRequestedCommand request, CancellationToken cancellationToken)
     {
@@ -140,6 +173,7 @@ public class ProcessLeaveRequestedHandler(IContractsRepository repository) : IRe
             TransactionType = ServiceTransactionType.LeaveAdvance,
             Notes = "Inbound ESS leave request"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
 
         var entity = new LeaveRequest
         {
@@ -162,7 +196,9 @@ public class ProcessLeaveRequestedHandler(IContractsRepository repository) : IRe
     }
 }
 
-public class ProcessAdvanceRequestedHandler(IContractsRepository repository) : IRequestHandler<ProcessAdvanceRequestedCommand>
+public class ProcessAdvanceRequestedHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<ProcessAdvanceRequestedCommand>
 {
     public async Task Handle(ProcessAdvanceRequestedCommand request, CancellationToken cancellationToken)
     {
@@ -177,6 +213,7 @@ public class ProcessAdvanceRequestedHandler(IContractsRepository repository) : I
             TransactionType = ServiceTransactionType.LeaveAdvance,
             Notes = "Inbound ESS advance request"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
 
         var entity = new AdvanceRequest
         {
@@ -196,7 +233,9 @@ public class ProcessAdvanceRequestedHandler(IContractsRepository repository) : I
     }
 }
 
-public class ProcessJobChangeRequestedHandler(IContractsRepository repository) : IRequestHandler<ProcessJobChangeRequestedCommand>
+public class ProcessJobChangeRequestedHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<ProcessJobChangeRequestedCommand>
 {
     public async Task Handle(ProcessJobChangeRequestedCommand request, CancellationToken cancellationToken)
     {
@@ -209,6 +248,7 @@ public class ProcessJobChangeRequestedHandler(IContractsRepository repository) :
             TransactionType = ServiceTransactionType.JobUpdate,
             Notes = "Inbound ESS job change request"
         };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
 
         await repository.AddAsync(new AdministrativeDecision
         {
@@ -224,7 +264,9 @@ public class ProcessJobChangeRequestedHandler(IContractsRepository repository) :
     }
 }
 
-public class ProcessSeparationRequestHandler(IContractsRepository repository) : IRequestHandler<ProcessSeparationRequestCommand>
+public class ProcessSeparationRequestHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<ProcessSeparationRequestCommand>
 {
     public async Task Handle(ProcessSeparationRequestCommand request, CancellationToken cancellationToken)
     {
@@ -246,12 +288,14 @@ public class ProcessSeparationRequestHandler(IContractsRepository repository) : 
             SeparationEventPublished = false
         };
         await repository.AddAsync(entity, cancellationToken);
-        await repository.AddAsync(new ServiceTransaction
+        var transaction = new ServiceTransaction
         {
             EmployeeId = request.EmployeeId,
             TransactionType = ServiceTransactionType.Separation,
             Notes = "Inbound separation request"
-        }, cancellationToken);
+        };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
+        await repository.AddAsync(transaction, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         await SeparationRecordSupport.SeedChecklistAsync(repository, entity.Id, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
@@ -268,7 +312,10 @@ public class ProcessTransactionRegisteredInDiwanHandler(IContractsRepository rep
             return;
         }
 
-        transaction.ReferenceNumber = request.DiwanNumber;
+        var diwanNote = $"Diwan: {request.DiwanNumber.Trim()}";
+        transaction.Notes = string.IsNullOrWhiteSpace(transaction.Notes)
+            ? diwanNote
+            : $"{transaction.Notes} | {diwanNote}";
         if (transaction.State == ServiceTransactionState.Completed)
         {
             transaction.MoveTo(ServiceTransactionState.Archived, null, "Registered in Diwan");

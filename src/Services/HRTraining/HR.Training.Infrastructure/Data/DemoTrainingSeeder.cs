@@ -2,6 +2,7 @@ using System.Text.Json;
 using HR.Training.Domain.Entities;
 using HR.Training.Domain.Enums;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,10 @@ namespace HR.Training.Infrastructure.Data;
 /// </summary>
 public static class DemoTrainingSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
+    private static string ScopedCode(string code) => AcceptanceSeedExecution.CurrentAgency is { } agency
+        ? $"{agency.Code}-{code}"
+        : code;
 
     private static readonly (string name, string country)[] Providers =
     [
@@ -99,8 +103,8 @@ public static class DemoTrainingSeeder
             || await db.TrainingCourses.CountAsync(ct) >= DemoSeedIds.TrainingCourseCount)
             return;
 
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+            var rng = AcceptanceSeedExecution.CreateRandom("training");
+            var now = AcceptanceSeedExecution.UtcNow;
         var today = DateOnly.FromDateTime(now);
 
         await SeedProvidersAsync(db, now, ct);
@@ -147,7 +151,7 @@ public static class DemoTrainingSeeder
             {
                 Id = DemoSeedIds.TrainingCourseId(i),
                 TenantId = TenantId,
-                Code = code,
+                Code = ScopedCode(code),
                 TitleAr = titleAr,
                 TitleEn = titleEn,
                 Description = $"دورة تدريبية حول: {titleAr}",
@@ -167,7 +171,7 @@ public static class DemoTrainingSeeder
         DateTime now,
         CancellationToken ct)
     {
-        for (var i = 0; i < 200; i++)
+        for (var i = 0; i < AcceptanceSeedExecution.TrainingEnrollmentCount; i++)
         {
             var empIndex = i % DemoSeedIds.EmployeeCount;
             var courseIndex = (i * 7 + 3) % DemoSeedIds.TrainingCourseCount;
@@ -192,7 +196,7 @@ public static class DemoTrainingSeeder
                     ? 60 + rng.Next(0, 41)
                     : null,
                 CertificateNo = status == EnrollmentStatus.Completed
-                    ? $"CERT-{enrolledAt.Year}-{(i + 1):D4}"
+                    ? ScopedCode($"CERT-{enrolledAt.Year}-{(i + 1):D4}")
                     : null,
                 CancelledAt = status == EnrollmentStatus.Cancelled ? enrolledAt.AddDays(rng.Next(2, 20)) : null,
                 CancellationReason = status == EnrollmentStatus.Cancelled ? "انسحاب الموظف أو تعارض الدوام" : null,
@@ -349,7 +353,7 @@ public static class DemoTrainingSeeder
             db.QualificationCodes.Add(new QualificationCode
             {
                 TenantId = TenantId,
-                Code = code,
+                Code = ScopedCode(code),
                 TitleAr = titleAr,
                 TitleEn = titleEn,
                 RequiredCourses = JsonSerializer.Serialize(required),
@@ -375,7 +379,8 @@ public static class DemoTrainingSeeder
             var courseId = DemoSeedIds.Named($"elearning-course-{i}");
             demoCourseIds.Add(courseId);
 
-            if (await db.ELearningCourses.AnyAsync(c => c.Id == courseId || c.Code == ELearningCatalog[i].code, ct))
+            var scopedCode = ScopedCode(ELearningCatalog[i].code);
+            if (await db.ELearningCourses.AnyAsync(c => c.Id == courseId || c.Code == scopedCode, ct))
                 continue;
 
             var (code, titleAr, category, hours) = ELearningCatalog[i];
@@ -383,7 +388,7 @@ public static class DemoTrainingSeeder
             {
                 Id = courseId,
                 TenantId = TenantId,
-                Code = code,
+                Code = scopedCode,
                 TitleAr = titleAr,
                 Description = $"محتوى تعلّم إلكتروني: {titleAr}",
                 Category = category,
@@ -493,7 +498,7 @@ public static class DemoTrainingSeeder
             {
                 TenantId = TenantId,
                 LearningEnrollmentId = enrollment.Id,
-                CertificateNo = $"ELC-{(enrollment.CompletedAt ?? now).Year}-{(i + 1):D4}",
+                CertificateNo = ScopedCode($"ELC-{(enrollment.CompletedAt ?? now).Year}-{(i + 1):D4}"),
                 IssuedAt = enrollment.CompletedAt ?? now,
                 CreatedAt = enrollment.CompletedAt ?? now,
                 UpdatedAt = now,

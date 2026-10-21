@@ -1,15 +1,35 @@
-@model IReadOnlyList<HR.Core.Domain.Entities.KeyPosition>
+@model HR.Core.Web.ViewModels.KeyPositionsIndexViewModel
 @{ ViewData["Title"] = "المناصب الحرجة"; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">المناصب الحرجة</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm">منصب جديد</a>
     </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="عنوان المنصب..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الوحدة التنظيمية</label>
+                <select name="orgUnitId" asp-items="ViewBag.OrgUnits" class="form-select"><option value="">— الكل —</option></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الأهمية من</label>
+                <input type="number" name="minCriticality" value="@Model.MinCriticality" class="form-control" min="1" max="5" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>المنصب</th><th>الوحدة</th><th>الأهمية</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items)
                 {
                     <tr>
                         <td>@x.Title</td>
@@ -18,7 +38,7 @@
                         <td><a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-outline-secondary btn-xs">تعديل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا مناصب</td></tr> }
+                @if (!Model.Items.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا مناصب</td></tr> }
             </tbody>
         </table>
     </div>

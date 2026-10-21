@@ -15,7 +15,7 @@
             <dt class="col-sm-3">الأطراف</dt>
             <dd class="col-sm-9">@(Model.Parties ?? "—")</dd>
             <dt class="col-sm-3">الحالة</dt>
-            <dd class="col-sm-9"><span class="badge text-bg-info">@Model.Status</span></dd>
+            <dd class="col-sm-9"><span class="badge text-bg-info">@Html.HrEnumDisplay(Model.Status)</span></dd>
             <dt class="col-sm-3">تفاصيل المحكمة</dt>
             <dd class="col-sm-9">@(Model.CourtDetails ?? "—")</dd>
             <dt class="col-sm-3">مسند إلى</dt>

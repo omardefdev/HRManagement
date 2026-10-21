@@ -4,6 +4,7 @@ using File.Storage.Infrastructure.Services;
 using HRManagement.FileStorage;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Files;
+using HRManagement.ServiceDefaults.Seeding;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +47,14 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<FileStorageDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
+if (seedProfile == SeedProfile.Acceptance)
+{
+    using var seedScope = app.Services.CreateScope();
+    await AcceptanceFileStorageSeeder.SeedAsync(
+        seedScope.ServiceProvider.GetRequiredService<FileStorageDbContext>(),
+        seedScope.ServiceProvider.GetRequiredService<IFileStorageService>());
+}
 
 if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");

@@ -48,3 +48,13 @@ Snapshot → Calculate → Validate → (Approve يدوي) → Post → Pay
 ## اختبارات البوابة
 
 `Pay003ResumablePayrollRunTests` + `Pay003ReconciliationTests`: ذرّية، استئناف، double-start، pause/resume، validate، partial post، تعارض إصدار، عكس تعويضي.
+
+**PLAN-06 (AC-21 / AC-22):**
+
+| AC | سكربت / اختبار | أدلة |
+|---|---|---|
+| AC-21 | `scripts/acceptance-payroll-determinism.ps1` + `Pay021DeterminismPostgreSqlTests` | `acceptance-evidence/AC-21/` — provenance، diff فارغ |
+| AC-22 | `scripts/acceptance-payroll-resume-chaos.ps1` (`RUN_CHAOS=true`) + `Pay022ResumePostgreSqlTests` | `acceptance-evidence/AC-22/` — partitions، line counts، lease |
+
+- **Provenance API:** `GET /api/payroll/runs/{id}/provenance` و `GET /api/payroll/jobs/{jobId}/input-snapshots` للمدقق (PAY-002 hash + PAY-003 snapshots).
+- **Chaos runbook:** `nfr-chaos-safe-abort.ps1` — checklist؛ الاستئناف الحي AC-22 عبر `acceptance-payroll-resume-chaos.ps1`.

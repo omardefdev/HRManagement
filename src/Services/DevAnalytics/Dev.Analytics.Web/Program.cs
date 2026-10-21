@@ -1,6 +1,9 @@
 using Dev.Analytics.Infrastructure.Consumers;
 using Dev.Analytics.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.Seeding;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +12,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("Dev.Analytics.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleDevAnalytics);
@@ -30,8 +34,11 @@ builder.Services.AddDbContext<AnalyticsDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AnalyticsDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Dev.Analytics.Infrastructure.ExportJobs.IAnalyticsExportJobService, Dev.Analytics.Infrastructure.ExportJobs.AnalyticsExportJobService>();
+builder.Services.AddSingleton<Dev.Analytics.Application.Services.IReadModelReconciliationStatusStore, Dev.Analytics.Application.Services.InMemoryReadModelReconciliationStatusStore>();
+builder.Services.AddScoped<Dev.Analytics.Application.Services.ReadModelReconciliationService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     consumerAssembly: typeof(PayrollProcessedConsumer).Assembly);
@@ -43,15 +50,19 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<AnalyticsDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 
-if (app.Environment.IsDevelopment())
+if (seedProfile != SeedProfile.None)
 {
     using var demoScope = app.Services.CreateScope();
     TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
     try
     {
-        await DemoAnalyticsSeeder.SeedAsync(
-            demoScope.ServiceProvider.GetRequiredService<AnalyticsDbContext>());
+        var db = demoScope.ServiceProvider.GetRequiredService<AnalyticsDbContext>();
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceAnalyticsSeeder.SeedAsync(db);
+        else
+            await DemoAnalyticsSeeder.SeedAsync(db);
     }
     finally
     {
@@ -68,6 +79,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -85,3 +97,4 @@ app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
 
+public partial class DevAnalyticsWebProgram { }

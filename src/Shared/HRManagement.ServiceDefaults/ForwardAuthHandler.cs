@@ -15,17 +15,35 @@ public sealed class ForwardAuthHandler(IHttpContextAccessor httpContextAccessor)
         CancellationToken cancellationToken)
     {
         var context = httpContextAccessor.HttpContext;
-        if (context is not null && request.Headers.Authorization is null)
+        if (context is not null)
         {
-            if (TryGetBearerFromAuthorizationHeader(context, out var bearer))
+            if (request.Headers.Authorization is null)
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+                if (TryGetBearerFromAuthorizationHeader(context, out var bearer))
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+                }
+                else if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is not null)
+                {
+                    var accessToken = await context.GetTokenAsync("access_token");
+                    if (!string.IsNullOrWhiteSpace(accessToken))
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
             }
-            else if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is not null)
+
+            var correlationId = context.Items[CorrelationIdMiddleware.ItemKey]?.ToString()
+                ?? CorrelationIdFlow.Get();
+            if (!string.IsNullOrWhiteSpace(correlationId)
+                && !request.Headers.Contains(CorrelationIdMiddleware.HeaderName))
             {
-                var accessToken = await context.GetTokenAsync("access_token");
-                if (!string.IsNullOrWhiteSpace(accessToken))
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                request.Headers.TryAddWithoutValidation(CorrelationIdMiddleware.HeaderName, correlationId);
+            }
+
+            var tenantId = context.Items[TenantIdMiddleware.ItemKey] as Guid?
+                ?? TenantIdFlow.Get();
+            if (tenantId.HasValue && !request.Headers.Contains(TenantIdMiddleware.HeaderName))
+            {
+                request.Headers.TryAddWithoutValidation(TenantIdMiddleware.HeaderName, tenantId.Value.ToString("D"));
             }
         }
 

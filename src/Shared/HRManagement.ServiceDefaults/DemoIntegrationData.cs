@@ -1,6 +1,7 @@
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Exports;
 using HRManagement.SharedKernel.Tenancy;
+using HRManagement.ServiceDefaults.Seeding;
 
 namespace HRManagement.ServiceDefaults;
 
@@ -10,7 +11,7 @@ namespace HRManagement.ServiceDefaults;
 /// </summary>
 public static class DemoIntegrationData
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
 
     private static readonly (string Code, string NameAr, int ParentIndex)[] OrgDefs =
     [
@@ -48,6 +49,21 @@ public static class DemoIntegrationData
 
     public static IReadOnlyList<OrgUnitSnapshot> BuildOrgUnitSnapshots()
     {
+        if (AcceptanceSeedExecution.CurrentAgency is { } agency)
+        {
+            return agency.OrgUnits
+                .Select(o => new OrgUnitSnapshot
+                {
+                    Id = o.Id,
+                    TenantId = o.TenantId,
+                    ParentId = o.ParentId,
+                    MaterializedPath = o.MaterializedPath,
+                    Code = o.Code,
+                    NameAr = o.NameAr,
+                })
+                .ToArray();
+        }
+
         var list = new List<OrgUnitSnapshot>(DemoSeedIds.OrgUnitCount);
         for (var i = 0; i < DemoSeedIds.OrgUnitCount && i < OrgDefs.Length; i++)
         {
@@ -77,6 +93,9 @@ public static class DemoIntegrationData
 
     public static IEnumerable<EntityAuditLog> BuildAuditLogs(int count, string entityTypePrefix, DateTime now)
     {
+        if (AcceptanceSeedExecution.IsAcceptance)
+            yield break;
+
         for (var i = 0; i < count; i++)
         {
             yield return new EntityAuditLog
@@ -123,6 +142,9 @@ public static class DemoIntegrationData
 
     public static IEnumerable<IntegrationMessageReceipt> BuildMessageReceipts(int count, string consumerType, DateTime now)
     {
+        if (AcceptanceSeedExecution.IsAcceptance)
+            yield break;
+
         for (var i = 0; i < count; i++)
         {
             yield return new IntegrationMessageReceipt

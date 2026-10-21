@@ -34,9 +34,7 @@
             </div>
             <div class="mb-3"><label asp-for="Terms" class="form-label"></label><textarea asp-for="Terms" class="form-control" rows="3"></textarea></div>
             <div class="row">
-                <div class="col-md-4 mb-3"><label asp-for="SignedBy" class="form-label"></label><input asp-for="SignedBy" class="form-control" /></div>
-                <div class="col-md-4 mb-3"><label asp-for="SignedDate" class="form-label"></label><input asp-for="SignedDate" class="form-control" type="date" /></div>
-                <div class="col-md-4 mb-3"><label asp-for="ProbationMonths" class="form-label"></label><input asp-for="ProbationMonths" class="form-control" type="number" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="ProbationMonths" class="form-label"></label><input asp-for="ProbationMonths" class="form-control" type="number" min="0" /></div>
             </div>
         </div>
         <div class="card-footer">

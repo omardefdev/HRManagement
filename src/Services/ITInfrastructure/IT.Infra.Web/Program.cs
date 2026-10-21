@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.Seeding;
 using IT.Infra.Infrastructure.Consumers;
 using IT.Infra.Infrastructure.Data;
 
@@ -8,6 +12,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("IT.Infra.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleItInfra);
@@ -44,6 +49,8 @@ else
 builder.Services.AddScoped<HRManagement.SharedKernel.Interfaces.IDirectoryEntrySyncService, IT.Infra.Infrastructure.Integration.HttpDirectoryEntrySyncClient>();
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ITInfraDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
+builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
@@ -55,16 +62,20 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<ITInfraDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 try
 {
-    if (app.Environment.IsDevelopment())
+    if (seedProfile != SeedProfile.None)
     {
         using var scope = app.Services.CreateScope();
         var itDb = scope.ServiceProvider.GetRequiredService<ITInfraDbContext>();
-        await DemoITSeeder.SeedAsync(itDb);
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceITSeeder.SeedAsync(itDb);
+        else
+            await DemoITSeeder.SeedAsync(itDb);
     }
 }
-catch (Exception ex)
+catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
 {
     app.Logger.LogWarning(ex, "IT.Infra demo seed skipped.");
 }
@@ -78,6 +89,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -93,4 +105,3 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
-

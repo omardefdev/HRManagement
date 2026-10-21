@@ -11,13 +11,13 @@
         @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
 
         <table class="table table-borderless table-sm w-auto">
-            <tr><th>الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>الوجهة</th><td>@Model.Destination</td></tr>
             <tr><th>من</th><td>@Model.StartDate</td></tr>
             <tr><th>إلى</th><td>@(Model.EndDate?.ToString() ?? "—")</td></tr>
             <tr><th>الغرض</th><td>@(Model.Purpose ?? "—")</td></tr>
             <tr><th>الجهة الراعية</th><td>@(Model.Sponsor ?? "—")</td></tr>
-            <tr><th>الحالة</th><td><span class="badge bg-info">@Model.Status</span></td></tr>
+            <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
         </table>
 
         <div class="mt-3 d-flex flex-wrap gap-2">

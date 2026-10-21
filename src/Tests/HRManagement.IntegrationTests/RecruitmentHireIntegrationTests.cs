@@ -1,11 +1,15 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Integration;
-using HRManagement.SharedKernel.Enums;
+using HR.Core.Infrastructure.Services.Recruitment;
+using HR.Core.Web.ViewModels;
+using HRManagement.SharedKernel.Legal;
 using MassTransit;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Moq;
 
 namespace HRManagement.IntegrationTests;
@@ -13,7 +17,111 @@ namespace HRManagement.IntegrationTests;
 [Collection("IntegrationSerial")]
 public class RecruitmentHireIntegrationTests
 {
-    private static (HRCoreDbContext Db, RecruitmentIntegrationService Service) CreateContext()
+    [Fact]
+    public async Task HireAndCreateEmployeeAsync_Uses_Requisition_JobTitle_And_OrgUnit()
+    {
+        await using var db = CreateContext();
+        await RecruitmentLegalSourceTestSupport.CreateValidatorAsync(db);
+        var org = new OrgUnit { Code = "OU-HIRE", NameAr = "دائرة HR", NameEn = "HR" };
+        db.OrgUnits.Add(org);
+        var position = new FundedPosition
+        {
+            PositionCode = "VAC-HIRE",
+            GradeCode = "G5",
+            BudgetYear = 2026,
+            Status = FundedPositionStatus.Vacant,
+            OrgUnitId = org.Id
+        };
+        db.FundedPositions.Add(position);
+        var req = new RecruitmentRequisition
+        {
+            RequisitionNumber = "REQ-HIRE",
+            FundedPositionId = position.Id,
+            JobTitle = "محلل نظم",
+            Status = RequisitionStatus.Published,
+            RequestedDate = DateTime.UtcNow,
+            VacancyCount = 1,
+            LegalSourceId = Syr001LegislationIds.Law50_2004
+        };
+        db.RecruitmentRequisitions.Add(req);
+        var app = new RecruitmentApplication
+        {
+            ApplicantFullName = "أحمد علي",
+            NationalId = "0101010101",
+            RequisitionId = req.Id,
+            Requisition = req,
+            AppliedPosition = req.JobTitle,
+            AppliedAt = DateTime.UtcNow,
+            Status = RecruitmentApplicationStatus.OfferAccepted
+        };
+        db.RecruitmentApplications.Add(app);
+        await db.SaveChangesAsync();
+
+        var offer = new OfferLetter
+        {
+            RecruitmentApplicationId = app.Id,
+            FundedPositionId = position.Id,
+            OfferNumber = "OFF-HIRE",
+            Status = OfferStatus.Accepted,
+            OfferedSalary = 4500,
+            ProposedStartDate = DateTime.UtcNow.AddDays(14),
+            AcceptedDate = DateTime.UtcNow,
+            LegalSourceId = Syr001LegislationIds.Law50_2004
+        };
+        db.OfferLetters.Add(offer);
+        await db.SaveChangesAsync();
+        app.ActiveOfferLetterId = offer.Id;
+        app.ActiveOfferLetter = offer;
+        await db.SaveChangesAsync();
+
+        var integration = await CreateIntegrationAsync(db);
+        var employee = await integration.HireAndCreateEmployeeAsync(
+            app,
+            "0101010101",
+            "أحمد",
+            null,
+            "علي",
+            DateTime.UtcNow.AddYears(-30),
+            HRManagement.SharedKernel.Enums.Gender.Male,
+            primaryOrgUnitId: null,
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            "PERMANENT");
+
+        Assert.Equal(org.Id, employee.PrimaryOrgUnitId);
+        var record = await db.EmploymentRecords.SingleAsync(e => e.EmployeeId == employee.Id);
+        Assert.Equal("محلل نظم", record.PositionTitle);
+
+        var reloadedPosition = await db.FundedPositions.AsNoTracking().SingleAsync(p => p.Id == position.Id);
+        Assert.Equal(FundedPositionStatus.Occupied, reloadedPosition.Status);
+
+        var vm = RecruitmentHireViewModel.FromApplication(app, req, position);
+        Assert.Equal("REQ-HIRE", vm.RequisitionNumber);
+        Assert.Equal("دائرة HR", vm.OrgUnitName);
+    }
+
+    private static async Task<RecruitmentIntegrationService> CreateIntegrationAsync(HRCoreDbContext db)
+    {
+        var publish = new Mock<IPublishEndpoint>();
+        publish.Setup(p => p.Publish(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Recruitment:LegacyHireWithoutOffer"] = "false",
+                ["Recruitment:RejectSiblingApplicationsOnHire"] = "true"
+            })
+            .Build();
+
+        return new RecruitmentIntegrationService(
+            await RecruitmentLegalSourceTestSupport.CreateHireClosureServiceAsync(
+                db,
+                publish.Object,
+                config,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<RecruitmentHireClosureService>.Instance));
+    }
+
+    private static HRCoreDbContext CreateContext()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -22,84 +130,6 @@ public class RecruitmentHireIntegrationTests
             .Options;
         var db = new HRCoreDbContext(options);
         db.Database.EnsureCreated();
-
-        var publish = new Mock<IPublishEndpoint>(MockBehavior.Loose);
-        publish.Setup(p => p.Publish(It.IsAny<It.IsAnyType>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var service = new RecruitmentIntegrationService(db, publish.Object);
-        return (db, service);
-    }
-
-    [Fact]
-    public async Task HireAndCreateEmployeeAsync_SetsHiredAndPublishesCandidateBeforeEmployeeCreated()
-    {
-        var (db, service) = CreateContext();
-        var app = new RecruitmentApplication
-        {
-            ApplicantFullName = "أحمد محمد علي",
-            AppliedPosition = "محلل نظم",
-            NationalId = "1234567890",
-            Status = RecruitmentApplicationStatus.Shortlisted,
-            AppliedAt = DateTime.UtcNow
-        };
-        db.RecruitmentApplications.Add(app);
-        await db.SaveChangesAsync();
-
-        var employee = await service.HireAndCreateEmployeeAsync(
-            app,
-            "1234567890",
-            "أحمد",
-            "محمد",
-            "علي",
-            new DateTime(1990, 1, 1),
-            Gender.Male,
-            null,
-            DateOnly.FromDateTime(DateTime.UtcNow),
-            "DEFAULT");
-
-        db.ChangeTracker.Clear();
-        var savedApp = await db.RecruitmentApplications.SingleAsync(a => a.Id == app.Id);
-        Assert.Equal(RecruitmentApplicationStatus.Hired, savedApp.Status);
-        Assert.Equal(employee.Id, savedApp.HiredEmployeeId);
-
-        var savedEmployee = await db.Employees.SingleAsync(e => e.Id == employee.Id);
-        Assert.Equal("أحمد محمد علي", savedEmployee.FullName);
-        Assert.True(await db.EmploymentRecords.AnyAsync(r => r.EmployeeId == employee.Id));
-        Assert.True(await db.EmploymentStatusHistories.AnyAsync(h => h.EmployeeId == employee.Id));
-    }
-
-    [Fact]
-    public async Task HireExistingEmployeeAsync_LinksApplicationWithoutCreatingEmployee()
-    {
-        var (db, service) = CreateContext();
-        var existing = new Employee
-        {
-            NationalId = "9988776655",
-            FirstName = "سارة",
-            LastName = "خالد",
-            FullName = "سارة خالد",
-            BirthDate = new DateTime(1988, 5, 5),
-            Gender = Gender.Female
-        };
-        db.Employees.Add(existing);
-
-        var app = new RecruitmentApplication
-        {
-            ApplicantFullName = "سارة خالد",
-            AppliedPosition = "محاسب",
-            Status = RecruitmentApplicationStatus.Shortlisted,
-            AppliedAt = DateTime.UtcNow
-        };
-        db.RecruitmentApplications.Add(app);
-        await db.SaveChangesAsync();
-
-        await service.HireExistingEmployeeAsync(app, existing.Id, DateOnly.FromDateTime(DateTime.UtcNow), "DEFAULT");
-
-        db.ChangeTracker.Clear();
-        var savedApp = await db.RecruitmentApplications.SingleAsync(a => a.Id == app.Id);
-        Assert.Equal(RecruitmentApplicationStatus.Hired, savedApp.Status);
-        Assert.Equal(existing.Id, savedApp.HiredEmployeeId);
-        Assert.Single(await db.Employees.ToListAsync());
+        return db;
     }
 }

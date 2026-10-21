@@ -1,7 +1,15 @@
 @using Admin.Logistics.Web
 @using Admin.Logistics.Web.Models
+@using Admin.Logistics.Web.ViewModels
+@using Admin.Logistics.Web.Services
 @using Admin.Logistics.Domain.Entities
 @using Admin.Logistics.Domain.Enums
+@using Admin.Logistics.Domain.Services
 @using Microsoft.AspNetCore.Mvc.Rendering
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, HRManagement.Web.Shared
+@using HRManagement.SharedKernel.ViewModels
+@using HRManagement.Web.Shared.Html
+@using HRManagement.SharedKernel.Localization
+@using HRManagement.ServiceDefaults.Integration
+@inject HRManagement.ServiceDefaults.IFileUrlProvider FileUrls

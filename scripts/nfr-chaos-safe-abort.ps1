@@ -17,6 +17,8 @@ $notes = @"
 3. Cancel or Resume after restore: .../cancel or .../resume
 4. Assert run state consistent; no duplicate salary lines
 
+**AC-22 (PLAN-06):** full kill/resume proof → scripts/acceptance-payroll-resume-chaos.ps1 (RUN_CHAOS=true)
+
 JobId=$JobId
 ACCESS_TOKEN required for live calls.
 "@

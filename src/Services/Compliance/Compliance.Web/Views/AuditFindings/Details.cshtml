@@ -13,23 +13,21 @@
             <dt class="col-sm-3">الوصف</dt>
             <dd class="col-sm-9">@(Model.Description ?? "—")</dd>
             <dt class="col-sm-3">الخطورة</dt>
-            <dd class="col-sm-9"><span class="badge text-bg-warning">@Model.Severity</span></dd>
+            <dd class="col-sm-9"><span class="badge text-bg-warning">@Html.HrEnumDisplay(Model.Severity)</span></dd>
             <dt class="col-sm-3">التوصية</dt>
             <dd class="col-sm-9">@(Model.Recommendation ?? "—")</dd>
             <dt class="col-sm-3">الحالة</dt>
             <dd class="col-sm-9">
-                @switch (Model.Status)
-                {
-                    case FindingStatus.Open:
-                        <span class="badge text-bg-danger">مفتوحة</span>
-                        break;
-                    case FindingStatus.Mitigated:
-                        <span class="badge text-bg-warning">مخففة</span>
-                        break;
-                    case FindingStatus.Closed:
-                        <span class="badge text-bg-success">مغلقة</span>
-                        break;
+                @{
+                    var findingBadge = Model.Status switch
+                    {
+                        FindingStatus.Open => "text-bg-danger",
+                        FindingStatus.Mitigated => "text-bg-warning",
+                        FindingStatus.Closed => "text-bg-success",
+                        _ => "text-bg-secondary"
+                    };
                 }
+                <span class="badge @findingBadge">@Html.HrEnumDisplay(Model.Status)</span>
             </dd>
             <dt class="col-sm-3">تاريخ الحل</dt>
             <dd class="col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
@@ -50,7 +48,7 @@
                     <tr>
                         <td>@rec.RecommendedAction</td>
                         <td>@rec.DueDate?.ToString("yyyy/MM/dd")</td>
-                        <td>@rec.Status</td>
+                        <td>@Html.HrEnumDisplay(rec.Status)</td>
                         <td><a asp-controller="ComplianceRecommendations" asp-action="Details" asp-route-id="@rec.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
                     </tr>
                 }

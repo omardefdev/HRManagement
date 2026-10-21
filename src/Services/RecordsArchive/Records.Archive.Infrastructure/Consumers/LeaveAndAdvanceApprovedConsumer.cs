@@ -1,31 +1,27 @@
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Records.Archive.Domain.Entities;
-using Records.Archive.Domain.Enums;
 using Records.Archive.Infrastructure.Data;
 
 namespace Records.Archive.Infrastructure.Consumers;
 
-public class LeaveApprovedConsumer(ArchiveDbContext db) : IConsumer<ILeaveApproved>
+public class LeaveApprovedConsumer(
+    ArchiveDbContext db,
+    ICodeGenerationClient codeClient) : IConsumer<ILeaveApproved>
 {
     public async Task Consume(ConsumeContext<ILeaveApproved> context)
     {
         var m = context.Message;
-        var reference = $"LEAVE-{m.LeaveRequestId}";
-        if (await db.ArchiveItems.AnyAsync(x => x.ReferenceNumber == reference, context.CancellationToken))
-        {
+        var title = $"قرار اعتماد إجازة للموظف {m.EmployeeId} [{m.LeaveRequestId:N}]";
+        if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
-        }
 
-        db.ArchiveItems.Add(new ArchiveItem
-        {
-            Title = $"قرار اعتماد إجازة للموظف {m.EmployeeId}",
-            ReferenceNumber = reference,
-            Format = ArchiveFormat.Digital,
-            StorageLocation = "HRContracts/LeaveApprovals",
-            RetentionPeriodYears = 10
-        });
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "LEAVE", context.CancellationToken);
+        if (reference is null) return;
+
+        db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
+            title, reference, "HRContracts/LeaveApprovals"));
 
         await db.SaveChangesAsync(context.CancellationToken);
 
@@ -41,25 +37,22 @@ public class LeaveApprovedConsumer(ArchiveDbContext db) : IConsumer<ILeaveApprov
     }
 }
 
-public class AdvanceApprovedConsumer(ArchiveDbContext db) : IConsumer<IAdvanceApproved>
+public class AdvanceApprovedConsumer(
+    ArchiveDbContext db,
+    ICodeGenerationClient codeClient) : IConsumer<IAdvanceApproved>
 {
     public async Task Consume(ConsumeContext<IAdvanceApproved> context)
     {
         var m = context.Message;
-        var reference = $"ADV-{m.AdvanceRequestId}";
-        if (await db.ArchiveItems.AnyAsync(x => x.ReferenceNumber == reference, context.CancellationToken))
-        {
+        var title = $"قرار اعتماد سلفة للموظف {m.EmployeeId} [{m.AdvanceRequestId:N}]";
+        if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
-        }
 
-        db.ArchiveItems.Add(new ArchiveItem
-        {
-            Title = $"قرار اعتماد سلفة للموظف {m.EmployeeId}",
-            ReferenceNumber = reference,
-            Format = ArchiveFormat.Digital,
-            StorageLocation = "HRContracts/AdvanceApprovals",
-            RetentionPeriodYears = 10
-        });
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "ADV", context.CancellationToken);
+        if (reference is null) return;
+
+        db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
+            title, reference, "HRContracts/AdvanceApprovals"));
 
         await db.SaveChangesAsync(context.CancellationToken);
 

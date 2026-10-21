@@ -1,0 +1,55 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام الخصوصية والملفات وثقة الخدمات
+left to right direction
+actor "خدمة المجال" as Service
+actor "مسؤول الأمن" as Security
+actor "مسؤول الخصوصية" as Privacy
+actor "صاحب البيانات" as Subject
+actor "المدقق" as Auditor
+rectangle "الأمن والخصوصية" {
+  usecase "رفع ملف إلى الحجر" as F1
+  usecase "فحص البرمجيات الضارة وCDR" as F2
+  usecase "ترقية الملف النظيف" as F3
+  usecase "منح وصول كائني مؤقت" as F4
+  usecase "تدقيق الوصول والحذف" as F5
+  usecase "تسجيل طلب DSAR" as D1
+  usecase "جمع القرار أو التصحيح أو المحو" as D2
+  usecase "إدارة تعارض الأدوار" as S1
+  usecase "إدارة جمهور ونطاق هوية الخدمة" as S2
+  usecase "اختبار رفض الاتصال غير المخول" as S3
+}
+Service --> F1
+F1 .> F2 : <<include>>
+F2 .> F3 : <<extend>>
+Service --> F4
+F4 .> F3 : <<include>>
+Auditor --> F5
+Subject --> D1
+Privacy --> D2
+D2 .> D1 : <<include>>
+Security --> S1
+Security --> S2
+S2 .> S3 : <<include>>
+@enduml

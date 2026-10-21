@@ -12,7 +12,7 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.OrgUnitId</td><td>@x.EffectiveDate</td><td>@x.Status</td>
+                    <td>@x.OrgUnitId</td><td>@x.EffectiveDate</td><td>@Html.HrEnumDisplay(x.Status)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                 </tr>
             }

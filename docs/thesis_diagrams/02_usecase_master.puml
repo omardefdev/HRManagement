@@ -30,14 +30,14 @@ actor "الموظف" as Employee
 actor "المواطن" as Citizen
 actor "مسؤول النظام" as Admin
 rectangle "HRManagement" {
-  usecase "إدارة الهيكل\\nوالنطاق التنظيمي" as UCOrg
-  usecase "إدارة الموظف\\nودورة حياته" as UCEmp
+  usecase "إدارة الهيكل\nوالنطاق التنظيمي" as UCOrg
+  usecase "إدارة الموظف\nودورة حياته" as UCEmp
   usecase "التوظيف والتعيين" as UCHire
-  usecase "العقود والإجازات\\nوالفصل" as UCContracts
-  usecase "الحركات والتدريب\\nوالصحة" as UCPeople
-  usecase "الرواتب والهوية\\nوالأرشفة" as UCOps
-  usecase "الخدمة الذاتية\\nوالتوظيف العام" as UCPortal
-  usecase "المراقبة والتدقيق\\nوالصلاحيات" as UCGov
+  usecase "العقود والإجازات\nوالفصل" as UCContracts
+  usecase "الحركات والتدريب\nوالصحة" as UCPeople
+  usecase "الرواتب والهوية\nوالأرشفة" as UCOps
+  usecase "الخدمة الذاتية\nوالتوظيف العام" as UCPortal
+  usecase "المراقبة والتدقيق\nوالصلاحيات" as UCGov
 }
 Central --> UCOrg
 Central --> UCEmp

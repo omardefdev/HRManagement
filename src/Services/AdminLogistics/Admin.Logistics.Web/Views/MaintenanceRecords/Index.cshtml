@@ -1,26 +1,86 @@
-@model IReadOnlyList<MaintenanceRecord>
+@model Admin.Logistics.Web.ViewModels.MaintenanceRecordIndexViewModel
+@using Admin.Logistics.Domain.Enums
 @{ ViewData["Title"] = "سجلات الصيانة"; }
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            @if (Model.AssetId is Guid filterAssetId)
+            {
+                <input type="hidden" name="assetId" value="@filterAssetId" />
+            }
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="رقم أصل أو منفّذ أو ملاحظات..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">نوع الصيانة</label>
+                <select name="maintenanceType" class="form-select" data-hr-picker="select" data-placeholder="— الكل —">
+                    <option value="">— الكل —</option>
+                    @foreach (MaintenanceType t in Enum.GetValues<MaintenanceType>())
+                    {
+                        if (Model.MaintenanceType == t)
+                        {
+                            <option value="@((int)t)" selected="selected">@Html.HrEnumDisplay(t)</option>
+                        }
+                        else
+                        {
+                            <option value="@((int)t)">@Html.HrEnumDisplay(t)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" name="performedFrom" value="@Model.PerformedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" name="performedTo" value="@Model.PerformedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
+@if (Model.AssetId is Guid assetId)
+{
+    <div class="alert alert-info">
+        تصفية حسب أصل: @(Model.FilterAssetLabel ?? assetId.ToString())
+        <a asp-action="Index">عرض الكل</a>
+        | <a asp-controller="Assets" asp-action="Details" asp-route-id="@assetId">عودة للأصل</a>
+    </div>
+}
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">سجلات الصيانة</h3>
-        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
+    <div class="card-header"><h3 class="card-title mb-0">سجلات الصيانة</h3></div>
+    <div class="card-body border-bottom">
+        <div class="alert alert-info mb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>لتسجيل صيانة جديدة، افتح الأصل من صفحة الأصول ثم استخدم «إضافة صيانة».</span>
+            <a asp-controller="Assets" asp-action="Index" class="btn btn-sm btn-primary">الذهاب إلى الأصول</a>
+        </div>
     </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>الأصل</th><th>النوع</th><th>التاريخ</th><th>التكلفة</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items.Items)
                 {
                     <tr>
-                        <td>@x.Asset?.TagNumber</td>
-                        <td>@x.MaintenanceType</td>
+                        <td><a asp-controller="Assets" asp-action="Details" asp-route-id="@x.AssetId">@x.Asset?.TagNumber</a></td>
+                        <td>@Html.HrEnumDisplay(x.MaintenanceType)</td>
                         <td>@x.PerformedAt?.ToString("yyyy/MM/dd")</td>
                         <td>@x.Cost</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا سجلات</td></tr> }
+                @if (!Model.Items.Items.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">لا سجلات</td></tr>
+                }
             </tbody>
         </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
     </div>
 </div>

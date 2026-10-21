@@ -6,7 +6,7 @@ namespace HR.Contracts.Web.ViewModels;
 
 public class SeparationRecordCreateViewModel
 {
-    [Display(Name = "معرّف الموظف")]
+    [Display(Name = "الموظف")]
     [Required]
     public Guid EmployeeId { get; set; }
 

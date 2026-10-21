@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.Seeding;
 using HR.Movements.Infrastructure.Data;
 using MassTransit;
 
@@ -8,6 +12,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("HR.Movements.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements);
@@ -28,6 +33,8 @@ builder.Services.AddDbContext<MovementsDbContext>((sp, options) =>
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<MovementsDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
+builder.Services.AddHrCoreActiveRegimeClient(builder.Configuration);
 
 builder.Services.Configure<HR.Movements.Infrastructure.Sagas.TransferSagaOptions>(
     builder.Configuration.GetSection(HR.Movements.Infrastructure.Sagas.TransferSagaOptions.SectionName));
@@ -38,6 +45,7 @@ builder.Services.AddServiceMassTransit(
     configureConsumers: x =>
     {
         x.AddConsumers(typeof(HR.Movements.Web.Consumers.OrgUnitChangedConsumer).Assembly);
+        x.AddConsumers(typeof(HR.Movements.Infrastructure.Consumers.InternalPlacementCompletedConsumer).Assembly);
         x.AddSagaStateMachine<HR.Movements.Infrastructure.Sagas.TransferStateMachine, HR.Movements.Infrastructure.Sagas.TransferSagaState>()
             .EntityFrameworkRepository(r =>
             {
@@ -57,22 +65,27 @@ builder.Services.AddServiceMassTransit(
     consumerAssembly: typeof(HR.Movements.Infrastructure.Consumers.TransferExecutedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
+builder.Services.AddOrgScopeAuthorization();
 builder.Services.AddHrServiceHealthChecks<MovementsDbContext>(builder.Configuration);
 
 var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<MovementsDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 
-if (app.Environment.IsDevelopment())
+if (seedProfile != SeedProfile.None)
 {
     try
     {
         using var demoScope = app.Services.CreateScope();
-        await DemoMovementsSeeder.SeedAsync(
-            demoScope.ServiceProvider.GetRequiredService<MovementsDbContext>());
+        var db = demoScope.ServiceProvider.GetRequiredService<MovementsDbContext>();
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceMovementsSeeder.SeedAsync(db);
+        else
+            await DemoMovementsSeeder.SeedAsync(db);
     }
-    catch (Exception ex)
+    catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
     {
         app.Logger.LogWarning(ex, "HR.Movements demo seed skipped.");
     }
@@ -87,6 +100,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -102,4 +116,3 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
-

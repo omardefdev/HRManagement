@@ -1,5 +1,6 @@
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Payroll.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -11,10 +12,29 @@ using System.Security.Claims;
 
 namespace Payroll.Web.Controllers;
 
-public class AllowanceRecordsController(PayrollDbContext db) : Controller
+public class AllowanceRecordsController(PayrollDbContext db, IEmployeeLookup employeeLookup) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.AllowanceRecords.AsNoTracking().Include(a => a.AllowanceType).OrderByDescending(x => x.EffectiveFrom).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? employeeId, Guid? allowanceTypeId, DateTime? effectiveFrom, DateTime? effectiveTo)
+    {
+        var query = db.AllowanceRecords.AsNoTracking().Include(a => a.AllowanceType).AsQueryable();
+        if (employeeId.HasValue) query = query.Where(x => x.EmployeeId == employeeId.Value);
+        if (allowanceTypeId.HasValue) query = query.Where(x => x.AllowanceTypeId == allowanceTypeId.Value);
+        if (effectiveFrom.HasValue) query = query.Where(x => x.EffectiveFrom >= effectiveFrom.Value);
+        if (effectiveTo.HasValue) query = query.Where(x => x.EffectiveFrom <= effectiveTo.Value);
+
+        var items = await query.OrderByDescending(x => x.EffectiveFrom).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.AllowanceTypeId = allowanceTypeId;
+        ViewBag.EffectiveFrom = effectiveFrom;
+        ViewBag.EffectiveTo = effectiveTo;
+        ViewBag.AllowanceTypes = new SelectList(
+            await db.CompensationTypes.AsNoTracking().OrderBy(x => x.Code).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "NameAr", allowanceTypeId);
+        ViewBag.EmployeeNames = await employeeLookup.GetEmployeeDisplayNamesAsync(
+            items.Select(x => x.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
+            HttpContext.RequestAborted);
+        return View(items);
+    }
 
     public async Task<IActionResult> Create()
     {
@@ -39,10 +59,31 @@ public class AllowanceRecordsController(PayrollDbContext db) : Controller
     }
 }
 
-public class DeductionRecordsController(PayrollDbContext db) : Controller
+public class DeductionRecordsController(PayrollDbContext db, IEmployeeLookup employeeLookup) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.DeductionRecords.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? employeeId, string? deductionType, Guid? appliedInRunId, DateOnly? dueFrom, DateOnly? dueTo)
+    {
+        var query = db.DeductionRecords.AsNoTracking().AsQueryable();
+        if (employeeId.HasValue) query = query.Where(x => x.EmployeeId == employeeId.Value);
+        if (!string.IsNullOrWhiteSpace(deductionType)) query = query.Where(x => x.DeductionType == deductionType.Trim());
+        if (appliedInRunId.HasValue) query = query.Where(x => x.AppliedInRunId == appliedInRunId.Value);
+        if (dueFrom.HasValue) query = query.Where(x => x.DueDate >= dueFrom.Value);
+        if (dueTo.HasValue) query = query.Where(x => x.DueDate <= dueTo.Value);
+
+        var items = await query.OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.DeductionType = deductionType;
+        ViewBag.AppliedInRunId = appliedInRunId;
+        ViewBag.DueFrom = dueFrom;
+        ViewBag.DueTo = dueTo;
+        ViewBag.PayrollRuns = new SelectList(
+            await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "RunDate", appliedInRunId);
+        ViewBag.EmployeeNames = await employeeLookup.GetEmployeeDisplayNamesAsync(
+            items.Select(x => x.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
+            HttpContext.RequestAborted);
+        return View(items);
+    }
 
     public async Task<IActionResult> Create()
     {
@@ -92,10 +133,29 @@ public class DeductionRecordsController(PayrollDbContext db) : Controller
     }
 }
 
-public class PayrollAdjustmentsController(PayrollDbContext db) : Controller
+public class PayrollAdjustmentsController(PayrollDbContext db, IEmployeeLookup employeeLookup) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.PayrollAdjustments.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? employeeId, Guid? payrollRunId, DateTime? createdFrom, DateTime? createdTo)
+    {
+        var query = db.PayrollAdjustments.AsNoTracking().AsQueryable();
+        if (employeeId.HasValue) query = query.Where(x => x.EmployeeId == employeeId.Value);
+        if (payrollRunId.HasValue) query = query.Where(x => x.PayrollRunId == payrollRunId.Value);
+        if (createdFrom.HasValue) query = query.Where(x => x.CreatedAt >= createdFrom.Value);
+        if (createdTo.HasValue) query = query.Where(x => x.CreatedAt <= createdTo.Value);
+
+        var items = await query.OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.PayrollRunId = payrollRunId;
+        ViewBag.CreatedFrom = createdFrom;
+        ViewBag.CreatedTo = createdTo;
+        ViewBag.PayrollRuns = new SelectList(
+            await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "RunDate", payrollRunId);
+        ViewBag.EmployeeNames = await employeeLookup.GetEmployeeDisplayNamesAsync(
+            items.Select(x => x.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
+            HttpContext.RequestAborted);
+        return View(items);
+    }
 
     public async Task<IActionResult> Create()
     {
@@ -155,8 +215,24 @@ public class PayrollAuditRecordsController(PayrollDbContext db) : Controller
             : throw new UnauthorizedAccessException("Missing user identity claim.");
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.PayrollAuditRecords.AsNoTracking().Include(a => a.PayrollRun).OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    public async Task<IActionResult> Index(Guid? payrollRunId, AuditStatus? status, DateTime? createdFrom, DateTime? createdTo)
+    {
+        var query = db.PayrollAuditRecords.AsNoTracking().Include(a => a.PayrollRun).AsQueryable();
+        if (payrollRunId.HasValue) query = query.Where(x => x.PayrollRunId == payrollRunId.Value);
+        if (status.HasValue) query = query.Where(x => x.Status == status.Value);
+        if (createdFrom.HasValue) query = query.Where(x => x.CreatedAt >= createdFrom.Value);
+        if (createdTo.HasValue) query = query.Where(x => x.CreatedAt <= createdTo.Value);
+
+        var items = await query.OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.PayrollRunId = payrollRunId;
+        ViewBag.Status = status;
+        ViewBag.CreatedFrom = createdFrom;
+        ViewBag.CreatedTo = createdTo;
+        ViewBag.PayrollRuns = new SelectList(
+            await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "RunDate", payrollRunId);
+        return View(items);
+    }
 
     public async Task<IActionResult> Create()
     {
@@ -229,10 +305,25 @@ public class PayrollAuditRecordsController(PayrollDbContext db) : Controller
 
 public class PaymentBatchesController(PayrollDbContext db) : Controller
 {
-    public async Task<IActionResult> Index() =>
-        View(await db.PaymentBatches.AsNoTracking()
-            .Include(p => p.PayrollRun)
-            .OrderByDescending(x => x.ProcessedAt ?? DateTime.MinValue)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync());
+    public async Task<IActionResult> Index(Guid? payrollRunId, PaymentBatchStatus? status, DateTime? processedFrom, DateTime? processedTo, bool? hasBankReference)
+    {
+        var query = db.PaymentBatches.AsNoTracking().Include(p => p.PayrollRun).AsQueryable();
+        if (payrollRunId.HasValue) query = query.Where(x => x.PayrollRunId == payrollRunId.Value);
+        if (status.HasValue) query = query.Where(x => x.Status == status.Value);
+        if (processedFrom.HasValue) query = query.Where(x => x.ProcessedAt >= processedFrom.Value);
+        if (processedTo.HasValue) query = query.Where(x => x.ProcessedAt <= processedTo.Value);
+        if (hasBankReference == true) query = query.Where(x => x.BankTransferReference != null && x.BankTransferReference != "");
+        if (hasBankReference == false) query = query.Where(x => x.BankTransferReference == null || x.BankTransferReference == "");
+
+        var items = await query.OrderByDescending(x => x.ProcessedAt ?? DateTime.MinValue).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.PayrollRunId = payrollRunId;
+        ViewBag.Status = status;
+        ViewBag.ProcessedFrom = processedFrom;
+        ViewBag.ProcessedTo = processedTo;
+        ViewBag.HasBankReference = hasBankReference;
+        ViewBag.PayrollRuns = new SelectList(
+            await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "RunDate", payrollRunId);
+        return View(items);
+    }
 }

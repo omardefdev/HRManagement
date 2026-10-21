@@ -1,0 +1,19 @@
+@model HR.Movements.Domain.Entities.PromotionRequest
+@{ ViewData["Title"] = "طلب ترفيع"; }
+<div class="card">
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-control form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="row">
+                <div class="col-md-3 mb-3"><label asp-for="FromGrade" class="form-label"></label><input asp-for="FromGrade" class="form-control" type="number" /></div>
+                <div class="col-md-3 mb-3"><label asp-for="FromStep" class="form-label"></label><input asp-for="FromStep" class="form-control" type="number" /></div>
+                <div class="col-md-3 mb-3"><label asp-for="ToGrade" class="form-label"></label><input asp-for="ToGrade" class="form-control" type="number" /></div>
+                <div class="col-md-3 mb-3"><label asp-for="ToStep" class="form-label"></label><input asp-for="ToStep" class="form-control" type="number" /></div>
+            </div>
+            <div class="mb-3"><label asp-for="TransitionDecisionRef" class="form-label"></label><input asp-for="TransitionDecisionRef" class="form-control" /><span asp-validation-for="TransitionDecisionRef" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="EffectiveDate" class="form-label"></label><input asp-for="EffectiveDate" class="form-control" type="date" /></div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div>
+    </form>
+</div>

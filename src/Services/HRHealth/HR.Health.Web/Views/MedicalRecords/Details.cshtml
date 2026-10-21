@@ -5,15 +5,19 @@
         <h3 class="card-title mb-0">الملف الطبي</h3>
         <div>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  data-hr-confirm="هل أنت متأكد من الحذف؟"
+                  data-hr-confirm-title="تأكيد الحذف"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="حذف">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
+                <button type="submit" class="btn btn-danger btn-sm">حذف</button>
             </form>
         </div>
     </div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9">@Model.EmployeeId</dd>
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">التاريخ الطبي</dt><dd class="col-sm-9">@(Model.MedicalHistory ?? "—")</dd>
             <dt class="col-sm-3">الحالات الحالية</dt><dd class="col-sm-9">@(Model.CurrentConditions ?? "—")</dd>
             <dt class="col-sm-3">الحساسيات</dt><dd class="col-sm-9">@(Model.Allergies ?? "—")</dd>
@@ -34,7 +38,7 @@
             {
                 <tr>
                     <td>@r.CommitteeDate</td>
-                    <td>@r.Recommendation</td>
+                    <td>@Html.HrEnumDisplay(r.Recommendation)</td>
                     <td><a asp-controller="MedicalCommitteeReports" asp-action="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
                 </tr>
             }

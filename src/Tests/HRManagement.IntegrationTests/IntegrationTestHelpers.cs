@@ -1,5 +1,7 @@
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;
+using HRManagement.TestSupport.CodeGeneration;
+using HRManagement.TestSupport.Policy;
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Data.Sqlite;
@@ -33,6 +35,12 @@ public sealed class TestDefaultTenantConsumeFilter<T> : IFilter<ConsumeContext<T
 
 public static class IntegrationTestHelpers
 {
+    public static void AddDeterministicServiceClients(IServiceCollection services)
+    {
+        services.ReplaceCodeGenerationClientWithFake();
+        services.ReplacePolicyEnforceClientWithFake();
+    }
+
     public static async Task AssertConsumedAsync<T>(
         ITestHarness harness,
         int minimumCount = 1,

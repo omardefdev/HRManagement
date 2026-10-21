@@ -8,3 +8,10 @@
 - `../usecase_drawio_rendered/`: الصور المعتمدة لمخططات حالات الاستخدام القطاعية.
 
 تتضمن الحزمة مخطط السياق، ومخطط المستوى الأول، وسبعة مخططات للمستوى الثاني، وقاموس البيانات.
+
+## مخططات ERD لقواعد البيانات
+
+- `database-erdds.drawio`: 16 صفحة (00 فهرس + 01–15 جداول وعلاقات FK؛ اسم إنجليزي مع ترجمة عربية تحته).
+- `erd-sample-one-to-many.drawio`: عينة أسلوب Crow's Foot (Asset → AssetAssignment).
+- إعادة التوليد: من جذر المستودع `python scripts/generate_database_erdd_drawio.py`.
+- المحلّل المشترك: `scripts/database_schema_parser.py` (يُستخدم أيضاً مع `scripts/generate_complete_database_erdds.py`).

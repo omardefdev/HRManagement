@@ -26,9 +26,15 @@ public interface IPayrollRepository
     IQueryable<PayrollRunPartition> PayrollRunPartitions { get; }
     IQueryable<PayrollRunInputSnapshot> PayrollRunInputSnapshots { get; }
     IQueryable<PaymentBatch> PaymentBatches { get; }
+    IQueryable<PaymentOrder> PaymentOrders { get; }
+    IQueryable<FundingDecision> FundingDecisions { get; }
+    IQueryable<DisbursementPriorityRule> DisbursementPriorityRules { get; }
+    IQueryable<FraudAlert> FraudAlerts { get; }
+    IQueryable<PaymentHold> PaymentHolds { get; }
 
     Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct);
     Task<PayrollConfiguration?> GetActiveConfigurationAsync(CancellationToken ct);
+    Task<PayrollConfiguration?> GetConfigurationByRegimeCodeAsync(string regimeCode, CancellationToken ct);
     Task<PayrollConfiguration?> GetPublishedConfigurationForPeriodAsync(DateTime periodStart, CancellationToken ct);
     Task<PayrollConfiguration?> GetConfigurationByIdAsync(Guid id, CancellationToken ct);
     Task<EmployeePayProfile?> GetActiveProfileAsync(Guid employeeId, CancellationToken ct);

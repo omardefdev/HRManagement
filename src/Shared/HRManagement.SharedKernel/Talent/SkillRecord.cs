@@ -49,10 +49,16 @@ public class SkillRecord : BaseEntity
 
 public enum SkillCategory
 {
+    [Display(Name = "تقني")]
     Technical = 0,
+    [Display(Name = "إداري")]
     Managerial = 1,
+    [Display(Name = "سلوكي")]
     Behavioral = 2,
+    [Display(Name = "قانوني")]
     Legal = 3,
+    [Display(Name = "لغوي")]
     Language = 4,
+    [Display(Name = "اختصاصي")]
     Specialized = 5
 }

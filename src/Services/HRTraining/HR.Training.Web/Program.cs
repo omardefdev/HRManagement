@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.ServiceDefaults.Policy;
+using HRManagement.ServiceDefaults.Seeding;
 using HR.Training.Infrastructure.Consumers;
 using HR.Training.Infrastructure.Data;
 
@@ -8,6 +11,7 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("HR.Training.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrTraining);
@@ -29,6 +33,7 @@ builder.Services.AddDbContext<TrainingDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<TrainingDbContext>());
+builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddServiceMassTransit(builder.Configuration,
     configureOutbox: x => x.AddPostgresOutbox<TrainingDbContext>(),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
@@ -41,15 +46,23 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<TrainingDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 try
 {
-    using var scope = app.Services.CreateScope();
-    var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
-    await ELearningSeeder.SeedAsync(trainingDb);
-    if (app.Environment.IsDevelopment())
-        await DemoTrainingSeeder.SeedAsync(trainingDb);
+    if (seedProfile != SeedProfile.None)
+    {
+        using var scope = app.Services.CreateScope();
+        var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
+        if (seedProfile == SeedProfile.Acceptance)
+            await AcceptanceTrainingSeeder.SeedAsync(trainingDb);
+        else
+        {
+            await ELearningSeeder.SeedAsync(trainingDb);
+            await DemoTrainingSeeder.SeedAsync(trainingDb);
+        }
+    }
 }
-catch (Exception ex)
+catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
 {
     app.Logger.LogWarning(ex, "HR.Training e-learning seed skipped.");
 }
@@ -63,6 +76,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -78,4 +92,3 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
-

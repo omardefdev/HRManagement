@@ -1,4 +1,5 @@
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Tenancy;
 using IDCard.Domain.Entities;
 using IDCard.Domain.Enums;
@@ -9,7 +10,7 @@ namespace IDCard.Infrastructure.Data;
 /// <summary>Populates demo card designs, issued cards, requests, deliveries, and access permissions.</summary>
 public static class DemoIDCardSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
 
     private static readonly (string Name, string Template, int ValidityDays)[] Designs =
     [
@@ -33,14 +34,15 @@ public static class DemoIDCardSeeder
         IDCardDbContext db,
         CancellationToken ct = default)
     {
+        var previousTenantId = TenantIdFlow.Get();
         TenantIdFlow.Set(TenantId);
         try
         {
             if (await db.CardDesigns.AnyAsync(ct))
                 return;
 
-            var rng = new Random(42);
-            var now = DateTime.UtcNow;
+            var rng = AcceptanceSeedExecution.CreateRandom("id-card");
+            var now = AcceptanceSeedExecution.UtcNow;
             var today = DateOnly.FromDateTime(now);
 
             await SeedDesignsAsync(db, now, ct);
@@ -51,7 +53,7 @@ public static class DemoIDCardSeeder
         }
         finally
         {
-            TenantIdFlow.Set(null);
+            TenantIdFlow.Set(previousTenantId);
         }
     }
 
@@ -82,7 +84,7 @@ public static class DemoIDCardSeeder
         DateOnly today,
         CancellationToken ct)
     {
-        const int issuedCount = 450;
+        var issuedCount = Math.Min(DemoSeedIds.EmployeeCount, AcceptanceSeedExecution.CardCount);
         var cards = new List<IssuedCard>(issuedCount);
 
         for (var i = 0; i < issuedCount; i++)
@@ -173,8 +175,8 @@ public static class DemoIDCardSeeder
         DateOnly today,
         CancellationToken ct)
     {
-        // 450 Processed (linked to issued cards) + 50 Pending
-        for (var i = 0; i < 450; i++)
+        // One processed request per issued card, plus a distinct pending population.
+        for (var i = 0; i < cards.Count; i++)
         {
             var card = cards[i];
             var requestDate = DateOnly.FromDateTime(card.IssuedAt).AddDays(-rng.Next(1, 14));
@@ -199,7 +201,9 @@ public static class DemoIDCardSeeder
             });
         }
 
-        for (var i = 450; i < 500; i++)
+        var pendingStart = cards.Count;
+        var pendingEnd = Math.Min(DemoSeedIds.EmployeeCount, pendingStart + Math.Max(5, cards.Count / 10));
+        for (var i = pendingStart; i < pendingEnd; i++)
         {
             var daysAgo = rng.Next(1, 30);
             var purpose = (CardRequestPurpose)(rng.Next(3));

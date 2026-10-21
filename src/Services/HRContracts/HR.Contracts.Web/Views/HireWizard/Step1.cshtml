@@ -6,8 +6,11 @@
         <form asp-action="Step1" method="post">
             @Html.AntiForgeryToken()
             <div class="mb-3">
-                <label class="form-label">معرّف الموظف</label>
-                <input type="text" name="employeeId" class="form-control" required placeholder="GUID" />
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..." required>
+                    <option value="">— اختر موظف —</option>
+                </select>
+                <div class="form-text">يُستخدم المعرّف داخلياً لربط المعاملة، ولا يُعرض للمستخدم.</div>
             </div>
             <button type="submit" class="btn btn-primary">التالي</button>
             <a asp-action="Index" class="btn btn-secondary">قائمة المعاملات</a>

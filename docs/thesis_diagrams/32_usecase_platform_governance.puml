@@ -1,0 +1,51 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام حوكمة المنصة والجهة
+left to right direction
+actor "مسؤول المنصة" as Platform
+actor "مدير الجهة" as Agency
+actor "مسؤول السياسات" as PolicyOfficer
+actor "مسؤول البيانات المرجعية" as MdmOfficer
+rectangle "الحوكمة المؤسسية" {
+  usecase "إنشاء جهة جديدة" as U1
+  usecase "معاينة خطة التهيئة" as U2
+  usecase "تطبيق الحزم الوطنية" as U3
+  usecase "نشر قالب سياسة" as U4
+  usecase "محاكاة أثر السياسة" as U5
+  usecase "فرض السياسة أو تشغيلها ظلياً" as U6
+  usecase "تهيئة أنماط توليد الرموز" as U7
+  usecase "توليد رمز مؤسسي فريد" as U8
+  usecase "إدارة القيم المرجعية ثنائية اللغة" as U9
+}
+Platform --> U1
+U1 .> U2 : <<include>>
+U1 .> U3 : <<include>>
+Agency --> U7
+PolicyOfficer --> U4
+U4 .> U5 : <<include>>
+U4 .> U6 : <<extend>>
+MdmOfficer --> U9
+Agency --> U8
+U8 .> U7 : <<include>>
+@enduml

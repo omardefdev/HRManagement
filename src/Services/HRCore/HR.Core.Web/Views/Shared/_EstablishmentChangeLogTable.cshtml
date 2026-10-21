@@ -1,0 +1,24 @@
+@model IReadOnlyList<HR.Core.Domain.Entities.EstablishmentChangeLog>
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th>التاريخ</th>
+            <th>نوع التغيير</th>
+            <th>المرجع القانوني</th>
+            <th>مرجع القرار</th>
+            <th>المنفّذ</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var log in Model)
+        {
+            <tr>
+                <td>@log.OccurredAt.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@log.ChangeType</td>
+                <td>@(log.LegalSourceId ?? "—")</td>
+                <td>@(log.DecisionReference ?? "—")</td>
+                <td>@(log.ActorUserId?.ToString() ?? "—")</td>
+            </tr>
+        }
+    </tbody>
+</table>

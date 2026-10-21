@@ -152,11 +152,22 @@ public class Sec003FileAuthorizationTests
     }
 
     [Fact]
-    public void Wrong_grantee_denied()
+    public async Task Wrong_grantee_denies_with_reason()
     {
         var grant = MakeGrant(visibility: FileVisibility.Private, granteeId: "user-123");
         var decision = _policy.Evaluate(AuthenticatedUser(sub: "user-999"), grant, requestTenantId: TenantA);
         Assert.False(decision.Allowed);
+        Assert.Equal("wrong-grantee", decision.Reason);
+    }
+
+    [Fact]
+    public void Expired_grant_denied()
+    {
+        var grant = MakeGrant(visibility: FileVisibility.Public);
+        grant.ExpiresAtUtc = DateTime.UtcNow.AddMinutes(-5);
+        var decision = _policy.Evaluate(Admin(), grant, requestTenantId: TenantA);
+        Assert.False(decision.Allowed);
+        Assert.Equal("grant-expired", decision.Reason);
     }
 
     // --- Delete restrictions ---

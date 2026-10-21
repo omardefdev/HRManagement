@@ -24,6 +24,17 @@ public class FineGrainedPolicyTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
     }
 
+    private static ClaimsPrincipal CreateServiceUser(string clientId, params string[] scopes)
+    {
+        var claims = new List<Claim>
+        {
+            new("azp", clientId),
+            new("preferred_username", $"service-account-{clientId}"),
+            new("scope", string.Join(' ', scopes))
+        };
+        return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
+    }
+
     [Fact]
     public async Task HrCoreReadOnly_AdminRole_Succeeds()
     {
@@ -57,6 +68,60 @@ public class FineGrainedPolicyTests
         var auth = BuildAuthService();
         var user = CreateUser(HrManagementRoles.HrCoreExecutive);
         var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreReadOnly);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task HrCoreReadOnly_ManagementApproverRole_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var user = CreateUser(HrManagementRoles.HrManagementApprover);
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreReadOnly);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task ModuleHrCore_ManagementApproverRole_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var user = CreateUser(HrManagementRoles.HrManagementApprover);
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.ModuleHrCore);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task ModuleHrCore_ServiceWorkflowScope_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.ModuleHrCore);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task HrCoreWrite_ServiceWorkflowScope_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreWrite);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task HrCoreBranchOperation_ManagementApproverRole_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var user = CreateUser(HrManagementRoles.HrManagementApprover);
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreBranchOperation);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task HrCoreBranchOperation_ServiceWorkflowScope_Succeeds()
+    {
+        var auth = BuildAuthService();
+        var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreBranchOperation);
         Assert.True(result.Succeeded);
     }
 

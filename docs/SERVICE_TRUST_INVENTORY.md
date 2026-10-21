@@ -15,7 +15,7 @@ Secrets are never stored in this file — only environment variable names.
 | Payroll | `svc-payroll` | (payroll) | `hr-core.lookup` |
 | IDCard | `svc-idcard` | (idcard) | `file-storage.references` |
 | Records.Archive | `svc-records-archive` | (archive) | `file-storage.references` |
-| Admin.Logistics | `svc-admin-logistics` | (admin) | — |
+| Admin.Logistics | `svc-admin-logistics` | (admin) | `hr-core.lookup`, `hr-core.workflow`, `file-storage.references` |
 | IT.Infra | `svc-it-infra` | (it-infra) | `directory.sync` |
 | Dev.Analytics | `svc-dev-analytics` | (analytics) | — |
 | Compliance | `svc-compliance` | (compliance) | — |
@@ -30,7 +30,7 @@ Gateway remains the only interactive OIDC client. Service clients use `client_cr
 | Resource API | Audience | Valid callers |
 |--------------|----------|---------------|
 | Auth.Directory internal sync | `api-auth-directory` | `svc-it-infra`, `svc-hr-core` |
-| HR.Core lookup | `api-hr-core` | `svc-payroll`, interactive users via gateway |
+| HR.Core lookup | `api-hr-core` | `svc-payroll`, `svc-hr-movements`, `svc-admin-logistics`, interactive users via gateway |
 | File.Storage references | `api-file-storage` | `svc-hr-core`, `svc-hr-contracts`, `svc-hr-training`, `svc-idcard`, `svc-records-archive` |
 
 Configure on each resource server:
@@ -49,6 +49,7 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
 |-------|----------|--------|
 | `directory.sync` | `POST /api/internal/directory/sync-employee` | `Service.DirectorySync` |
 | `hr-core.lookup` | `/api/lookup/**` (S2S) | `HrCore.Lookup` / `Service.HrCoreLookup` |
+| `hr-core.workflow` | `POST /api/workflow-instances` (S2S) | `HrCoreWrite` / service scope |
 | `file-storage.references` | `POST/DELETE /api/files/{id}/references` | `Service.FileStorageReferences` |
 
 ## PostgreSQL roles (per database)

@@ -1,0 +1,61 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام الرواتب والخزينة المتقدمة
+left to right direction
+actor "مسؤول إعدادات الرواتب" as Config
+actor "مشغل الرواتب" as Operator
+actor "المعتمد المالي" as Approver
+actor "الخزينة" as Treasury
+actor "مسؤول التسوية" as Reconcile
+actor "مدقق الاحتيال" as Fraud
+rectangle "Payroll" {
+  usecase "اعتماد ونشر إصدار القاعدة" as U1
+  usecase "تجميد لقطة المدخلات" as U2
+  usecase "بدء حساب مقسم ومتواز" as U3
+  usecase "إيقاف أو استئناف أو إلغاء" as U4
+  usecase "التحقق وتجميد النتائج" as U5
+  usecase "اعتماد وترحيل الدورة" as U6
+  usecase "تسجيل قرار التمويل" as U7
+  usecase "الصرف الجزئي وترحيل المتأخرات" as U8
+  usecase "إنشاء أوامر الدفع" as U9
+  usecase "الإقرار والتسوية المصرفية" as U10
+  usecase "إنشاء تنبيه أو حجز دفع" as U11
+  usecase "عكس تعويضي" as U12
+}
+Config --> U1
+Operator --> U2
+U2 .> U1 : <<include>>
+Operator --> U3
+Operator --> U4
+U3 .> U5 : <<include>>
+Approver --> U6
+U6 .> U5 : <<include>>
+Treasury --> U7
+U7 .> U8 : <<extend>>
+U6 .> U9 : <<include>>
+Reconcile --> U10
+U10 .> U9 : <<include>>
+Fraud --> U11
+Approver --> U12
+@enduml

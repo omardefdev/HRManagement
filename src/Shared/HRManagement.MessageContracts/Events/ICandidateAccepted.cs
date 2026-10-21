@@ -18,6 +18,14 @@ public interface ICandidateAccepted
 
     Guid? TenantId => null;
 
+    /// <summary>HCM-005: recruitment application lineage for hire saga wiring.</summary>
+    Guid? RecruitmentApplicationId => null;
 
-    int SchemaVersion => 2;
+    Guid? RequisitionId => null;
+
+    Guid? FundedPositionId => null;
+
+    Guid? OfferLetterId => null;
+
+    int SchemaVersion => 3;
 }

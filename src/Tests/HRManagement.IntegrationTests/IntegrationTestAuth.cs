@@ -17,6 +17,10 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
 {
     public const string TenantHeader = "X-Test-Tenant-Id";
     public const string RolesHeader = "X-Test-Roles";
+    public const string ServiceClientHeader = "X-Test-Service-Client";
+    public const string ServiceScopeHeader = "X-Test-Service-Scope";
+    public const string UserIdHeader = "X-Test-User-Id";
+    public const string ScopeOrgUnitHeader = "X-Test-Scope-Org-Unit-Id";
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -28,11 +32,44 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        if (Request.Headers.TryGetValue(ServiceClientHeader, out var serviceClientHeader)
+            && !string.IsNullOrWhiteSpace(serviceClientHeader.ToString()))
+        {
+            var clientId = serviceClientHeader.ToString()!;
+            var serviceClaims = new List<Claim>
+            {
+                new("preferred_username", $"service-account-{clientId}"),
+                new("azp", clientId),
+                new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString("D"))
+            };
+
+            if (Request.Headers.TryGetValue(ServiceScopeHeader, out var scopeHeader)
+                && !string.IsNullOrWhiteSpace(scopeHeader.ToString()))
+                serviceClaims.Add(new Claim("scope", scopeHeader.ToString()!));
+
+            if (Request.Headers.TryGetValue(TenantHeader, out var svcTenantHeader)
+                && Guid.TryParse(svcTenantHeader.ToString(), out var svcTenantId))
+                serviceClaims.Add(new Claim(TenantContext.TenantClaimType, svcTenantId.ToString("D")));
+            else
+                serviceClaims.Add(new Claim(TenantContext.TenantClaimType, TenantDefaults.DefaultTenantId.ToString("D")));
+
+            var serviceIdentity = new ClaimsIdentity(serviceClaims, Scheme.Name);
+            return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(serviceIdentity), Scheme.Name)));
+        }
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, "integration-test-user"),
             new(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString("D"))
         };
+
+        if (Request.Headers.TryGetValue(UserIdHeader, out var userIdHeader)
+            && Guid.TryParse(userIdHeader.ToString(), out var explicitUserId))
+        {
+            claims.RemoveAll(c => c.Type == ClaimTypes.NameIdentifier);
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, explicitUserId.ToString("D")));
+            claims.Add(new Claim("sub", explicitUserId.ToString("D")));
+        }
 
         if (Request.Headers.TryGetValue(TenantHeader, out var tenantHeader) &&
             Guid.TryParse(tenantHeader.ToString(), out var tenantId))
@@ -51,6 +88,12 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
 
         foreach (var role in roles)
             claims.Add(new Claim(ClaimTypes.Role, role));
+
+        if (Request.Headers.TryGetValue(ScopeOrgUnitHeader, out var scopeOrgUnitHeader)
+            && Guid.TryParse(scopeOrgUnitHeader.ToString(), out var scopeOrgUnitId))
+        {
+            claims.Add(new Claim(HrOrgScopeVisibility.ScopeOrgUnitClaimType, scopeOrgUnitId.ToString("D")));
+        }
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);

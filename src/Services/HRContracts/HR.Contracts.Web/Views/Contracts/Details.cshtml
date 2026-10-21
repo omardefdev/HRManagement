@@ -19,9 +19,9 @@
         </div>
     </div>
     <div class="card-body">
-        <p><span class="badge @StatusBadge()">@Model.Status</span></p>
+        <p><span class="badge @StatusBadge()">@Html.HrEnumDisplay(Model.Status)</span></p>
         <table class="table table-sm">
-            <tr><th>معرّف الموظف</th><td>@Model.EmployeeId</td></tr>
+            <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>نوع العقد</th><td>@Model.ContractType.NameAr (@Model.ContractType.Code)</td></tr>
             <tr><th>من</th><td>@Model.StartDate.ToString("yyyy/MM/dd")</td></tr>
             <tr><th>إلى</th><td>@(Model.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td></tr>
@@ -81,11 +81,15 @@
                 @foreach (var s in Model.Signatures)
                 {
                     <tr>
-                        <td>@s.SignedBy</td>
+                        <td>موقّع مسجل</td>
                         <td>@s.SignedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td>@s.SignatureType</td>
+                        <td>@Html.HrEnumDisplay(s.SignatureType)</td>
                         <td>
-                            <form asp-controller="ContractSignatures" asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('حذف التوقيع؟');">
+                            <form asp-controller="ContractSignatures" asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline"
+                                  data-hr-confirm="حذف التوقيع؟"
+                                  data-hr-confirm-title="تأكيد الحذف"
+                                  data-hr-confirm-variant="danger"
+                                  data-hr-confirm-label="حذف">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button>
                             </form>

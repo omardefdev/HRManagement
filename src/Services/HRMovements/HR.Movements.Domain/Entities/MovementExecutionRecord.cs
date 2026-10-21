@@ -29,7 +29,15 @@ public class MovementExecutionRecord : BaseEntity
     [Display(Name = "طلب الإعارة")]
     public Guid? LoanAssignmentRequestId { get; set; }
 
+    [Display(Name = "طلب الترفيع")]
+    public Guid? PromotionRequestId { get; set; }
+
+    [Display(Name = "طلب الندب")]
+    public Guid? DelegationRequestId { get; set; }
+
     public TransferRequest? TransferRequest { get; set; }
     public SecondmentRequest? SecondmentRequest { get; set; }
     public LoanAssignmentRequest? LoanAssignmentRequest { get; set; }
+    public PromotionRequest? PromotionRequest { get; set; }
+    public DelegationRequest? DelegationRequest { get; set; }
 }

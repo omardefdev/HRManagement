@@ -64,7 +64,17 @@ public sealed class PolicyPlatformClaimGuard(
     {
         if (!provider.Options.LivePolicyEngineClaim)
             return null;
-        var err = "LivePolicyEngineClaim forbidden until PROD-001a-e policy platform workers";
+
+        var engine = provider.Matrix.Blockers.FirstOrDefault(b =>
+            string.Equals(b.Id, "live-policy-engine", StringComparison.OrdinalIgnoreCase));
+        var workflow = provider.Matrix.Blockers.FirstOrDefault(b =>
+            string.Equals(b.Id, "live-workflow-runtime", StringComparison.OrdinalIgnoreCase));
+
+        if (string.Equals(engine?.Status, "Satisfied", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(workflow?.Status, "Satisfied", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        const string err = "LivePolicyEngineClaim requires live-policy-engine and live-workflow-runtime Satisfied";
         logger.LogError("PROD-001 engine claim: {Error}", err);
         return err;
     }

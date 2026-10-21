@@ -30,7 +30,10 @@
 
 </head>
 
-<body class="layout-fixed sidebar-expand-lg" dir="rtl" data-lookup-base="/ui/hr-core">
+<body class="layout-fixed sidebar-expand-lg" dir="rtl" data-lookup-base="/ui/hr-core"
+      data-nav-controller="@ViewContext.RouteData.Values["controller"]"
+      data-nav-action="@ViewContext.RouteData.Values["action"]"
+      data-module-slug="@(ViewData["CurrentModuleSlug"] ?? "default")">
 
     <a class="hr-skip-link" href="#main-content">تخطي إلى المحتوى</a>
 
@@ -175,6 +178,21 @@
     @await Html.PartialAsync("_HrPickerAssets")
 
     @await Html.PartialAsync("_OrgUnitTreeModal")
+
+    @await Html.PartialAsync("_HrConfirmModal")
+
+    @{
+        var flashDialogMessage = TempData["Error"] as string;
+        var flashShowDialog = string.Equals(TempData["ShowDialog"] as string, "true", StringComparison.OrdinalIgnoreCase);
+    }
+    @if (flashShowDialog && !string.IsNullOrWhiteSpace(flashDialogMessage))
+    {
+        <div id="hrFlashDialog"
+             hidden
+             data-show="true"
+             data-title="تعذّر الحفظ"
+             data-message="@flashDialogMessage"></div>
+    }
 
     <script src="~/js/display-names.js" asp-append-version="true"></script>
 

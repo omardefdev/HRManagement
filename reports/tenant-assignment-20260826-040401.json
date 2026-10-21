@@ -1,0 +1,518 @@
+{
+  "GeneratedAt": "2026-08-26T01:04:01.7767965Z",
+  "DryRun": true,
+  "DefaultTenantId": "00000000-0000-4000-8000-000000000001",
+  "Tenants": [
+    {
+      "Id": "a0000001-0000-4000-8000-000000000001",
+      "Code": "AGENCY-A"
+    },
+    {
+      "Id": "341a21cc-1cca-417d-84cd-6537cefbb36a",
+      "Code": "AGENCY-ACCEPTANCE-TEST"
+    },
+    {
+      "Id": "a0000002-0000-4000-8000-000000000001",
+      "Code": "AGENCY-B"
+    },
+    {
+      "Id": "a0000003-0000-4000-8000-000000000001",
+      "Code": "AGENCY-C"
+    }
+  ],
+  "Services": [
+    {
+      "ServiceName": "HRCore",
+      "Database": "hr_core_db",
+      "Tables": [
+        {
+          "Table": "Employees",
+          "TotalRows": 1619,
+          "AssignedRows": 1618,
+          "RemainingDefault": 1,
+          "Quarantined": 1,
+          "Checksum": "-265101137737867492875"
+        },
+        {
+          "Table": "OrgUnits",
+          "TotalRows": 102,
+          "AssignedRows": 100,
+          "RemainingDefault": 2,
+          "Quarantined": 2,
+          "Checksum": "-57278961766018536657"
+        },
+        {
+          "Table": "ApprovalRequests",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "PerformanceEvaluations",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "WorkforcePlans",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "DailyAttendanceRecords",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "RecruitmentApplications",
+          "TotalRows": 25,
+          "AssignedRows": 25,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "3930163136822263584"
+        },
+        {
+          "Table": "Shifts",
+          "TotalRows": 3,
+          "AssignedRows": 0,
+          "RemainingDefault": 3,
+          "Quarantined": 3,
+          "Checksum": "-22724842265502886556"
+        },
+        {
+          "Table": "CareerPaths",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "KeyPositions",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "SuccessionPlans",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "InternalVacancies",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "PublicJobPostings",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        },
+        {
+          "Table": "CitizenApplications",
+          "TotalRows": 0,
+          "AssignedRows": 0,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "0"
+        }
+      ]
+    },
+    {
+      "ServiceName": "HRContracts",
+      "Database": "hr_contracts_db",
+      "Tables": [
+        {
+          "Table": "Contracts",
+          "TotalRows": 1617,
+          "AssignedRows": 1617,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "47549622107845405677"
+        },
+        {
+          "Table": "LeaveRequests",
+          "TotalRows": 420,
+          "AssignedRows": 420,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "133307792944376582785"
+        },
+        {
+          "Table": "SeparationRecords",
+          "TotalRows": 86,
+          "AssignedRows": 86,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "1471128661766686438"
+        },
+        {
+          "Table": "ContractTypes",
+          "TotalRows": 15,
+          "AssignedRows": 15,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "6796995921632441627"
+        },
+        {
+          "Table": "OrgUnitSnapshots",
+          "TotalRows": 100,
+          "AssignedRows": 100,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-59738527642513143539"
+        },
+        {
+          "Table": "ServiceTransactions",
+          "TotalRows": 120,
+          "AssignedRows": 120,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-1241228055988724757"
+        }
+      ]
+    },
+    {
+      "ServiceName": "Payroll",
+      "Database": "payroll_db",
+      "Tables": [
+        {
+          "Table": "PayrollRuns",
+          "TotalRows": 65,
+          "AssignedRows": 65,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "24808140934425459553"
+        },
+        {
+          "Table": "SalaryLines",
+          "TotalRows": 25582,
+          "AssignedRows": 25582,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "674216447052835019434"
+        },
+        {
+          "Table": "EmployeePayProfiles",
+          "TotalRows": 1495,
+          "AssignedRows": 1495,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "139947024661198113035"
+        },
+        {
+          "Table": "PayGrades",
+          "TotalRows": 30,
+          "AssignedRows": 30,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-23045735883445143974"
+        },
+        {
+          "Table": "PaymentBatches",
+          "TotalRows": 39,
+          "AssignedRows": 39,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "16116002920740633386"
+        }
+      ]
+    },
+    {
+      "ServiceName": "HRMovements",
+      "Database": "hr_movements_db",
+      "Tables": [
+        {
+          "Table": "TransferRequests",
+          "TotalRows": 120,
+          "AssignedRows": 120,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-23156237768887273122"
+        },
+        {
+          "Table": "MovementNotices",
+          "TotalRows": 30,
+          "AssignedRows": 30,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "18406393316245262928"
+        }
+      ]
+    },
+    {
+      "ServiceName": "HRTraining",
+      "Database": "hr_training_db",
+      "Tables": [
+        {
+          "Table": "TrainingCourses",
+          "TotalRows": 90,
+          "AssignedRows": 90,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-3930991090224451536"
+        },
+        {
+          "Table": "TrainingEnrollments",
+          "TotalRows": 420,
+          "AssignedRows": 420,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-60728127414776870964"
+        }
+      ]
+    },
+    {
+      "ServiceName": "HRHealth",
+      "Database": "hr_health_db",
+      "Tables": [
+        {
+          "Table": "MedicalRecords",
+          "TotalRows": 1621,
+          "AssignedRows": 1621,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "66244829287974564836"
+        }
+      ]
+    },
+    {
+      "ServiceName": "AuthDirectory",
+      "Database": "auth_directory_db",
+      "Tables": [
+        {
+          "Table": "AuthUsers",
+          "TotalRows": 59,
+          "AssignedRows": 56,
+          "RemainingDefault": 3,
+          "Quarantined": 3,
+          "Checksum": "54846998189359545649"
+        },
+        {
+          "Table": "Roles",
+          "TotalRows": 108,
+          "AssignedRows": 81,
+          "RemainingDefault": 27,
+          "Quarantined": 27,
+          "Checksum": "30986183924360639002"
+        }
+      ]
+    },
+    {
+      "ServiceName": "FileStorage",
+      "Database": "file_storage_db",
+      "Tables": [
+        {
+          "Table": "Files",
+          "TotalRows": 124,
+          "AssignedRows": 124,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "7330516711435522318"
+        }
+      ]
+    },
+    {
+      "ServiceName": "IDCard",
+      "Database": "idcard_db",
+      "Tables": [
+        {
+          "Table": "IssuedCards",
+          "TotalRows": 1250,
+          "AssignedRows": 1250,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-22103036698897464670"
+        },
+        {
+          "Table": "CardRequests",
+          "TotalRows": 1378,
+          "AssignedRows": 1378,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-167856259557810116685"
+        },
+        {
+          "Table": "CardDesigns",
+          "TotalRows": 9,
+          "AssignedRows": 9,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-7831811277967903602"
+        }
+      ]
+    },
+    {
+      "ServiceName": "Compliance",
+      "Database": "compliance_db",
+      "Tables": [
+        {
+          "Table": "Complaints",
+          "TotalRows": 90,
+          "AssignedRows": 90,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "80344856407942440025"
+        },
+        {
+          "Table": "AuditFindings",
+          "TotalRows": 45,
+          "AssignedRows": 45,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "32932920028277327743"
+        },
+        {
+          "Table": "DisciplinaryActions",
+          "TotalRows": 60,
+          "AssignedRows": 60,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-102171918576012779370"
+        }
+      ]
+    },
+    {
+      "ServiceName": "RecordsArchive",
+      "Database": "archive_db",
+      "Tables": [
+        {
+          "Table": "ArchiveItems",
+          "TotalRows": 1617,
+          "AssignedRows": 1617,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "151798837872633455499"
+        },
+        {
+          "Table": "LoanRecords",
+          "TotalRows": 90,
+          "AssignedRows": 90,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "20710626500483376194"
+        }
+      ]
+    },
+    {
+      "ServiceName": "AdminLogistics",
+      "Database": "admin_db",
+      "Tables": [
+        {
+          "Table": "Assets",
+          "TotalRows": 450,
+          "AssignedRows": 450,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-58219203827261067477"
+        },
+        {
+          "Table": "Vendors",
+          "TotalRows": 60,
+          "AssignedRows": 60,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-45337522570383508545"
+        },
+        {
+          "Table": "InventoryItems",
+          "TotalRows": 301,
+          "AssignedRows": 301,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "170024810636486328028"
+        }
+      ]
+    },
+    {
+      "ServiceName": "ITInfra",
+      "Database": "it_infra_db",
+      "Tables": [
+        {
+          "Table": "ServerDevices",
+          "TotalRows": 45,
+          "AssignedRows": 45,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "24576612128223254611"
+        },
+        {
+          "Table": "ITSupportTickets",
+          "TotalRows": 304,
+          "AssignedRows": 304,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-45715571637532395693"
+        }
+      ]
+    },
+    {
+      "ServiceName": "DevAnalytics",
+      "Database": "analytics_db",
+      "Tables": [
+        {
+          "Table": "Reports",
+          "TotalRows": 60,
+          "AssignedRows": 60,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "33333464681016934338"
+        },
+        {
+          "Table": "Dashboards",
+          "TotalRows": 15,
+          "AssignedRows": 15,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "16941022904572536098"
+        },
+        {
+          "Table": "KPIs",
+          "TotalRows": 45,
+          "AssignedRows": 45,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-32364488390246893964"
+        },
+        {
+          "Table": "ReadModels",
+          "TotalRows": 12,
+          "AssignedRows": 12,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "-12438188928144273822"
+        },
+        {
+          "Table": "AnalyticsEvents",
+          "TotalRows": 5,
+          "AssignedRows": 5,
+          "RemainingDefault": 0,
+          "Quarantined": 0,
+          "Checksum": "6987830639711246569"
+        }
+      ]
+    }
+  ],
+  "QuarantineInserts": 36
+}

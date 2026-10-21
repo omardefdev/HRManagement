@@ -1,23 +1,42 @@
-@model Asset
 @{ ViewData["Title"] = "إضافة أصل"; }
-<div class="card">
-    <form asp-action="Create" method="post">
-        @Html.AntiForgeryToken()
-        <div class="card-body">
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="TagNumber" class="form-label"></label><input asp-for="TagNumber" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="Category" class="form-label"></label><input asp-for="Category" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="Brand" class="form-label"></label><input asp-for="Brand" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="Model" class="form-label"></label><input asp-for="Model" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="PurchaseDate" class="form-label"></label><input asp-for="PurchaseDate" class="form-control" type="datetime-local" /></div>
-            <div class="mb-3"><label asp-for="Value" class="form-label"></label><input asp-for="Value" class="form-control" type="number" step="0.01" /></div>
-            <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<AssetStatus>()"></select></div>
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">اختر مسار الإنشاء</h3></div>
+    <div class="card-body">
+        <p class="text-muted">الأصول الجديدة تتطلب سجل استلام مصدر، أو استثناء «أصل قديم / هبة» مع سبب.</p>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">من سجل استلام</h5>
+                        <p class="card-text small text-muted">المسار الافتراضي — يربط الأصل بسلسلة التوريد.</p>
+                        <form asp-action="CreateFromReceipt" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-3">
+                                <label class="form-label">سجل الاستلام</label>
+                                <select name="receiptId" class="form-select" asp-items="ViewBag.ReceiptRecords" required>
+                                    <option value="">— اختر —</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary"
+                                    data-hr-confirm="إنشاء أصل من هذا الاستلام؟"
+                                    data-hr-confirm-title="إنشاء أصل"
+                                    data-hr-confirm-label="إنشاء">متابعة</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">أصل قديم / هبة</h5>
+                        <p class="card-text small text-muted">استثناء — بدون سجل استلام، مع سبب إلزامي.</p>
+                        <a asp-action="CreateLegacy" class="btn btn-outline-secondary">فتح نموذج الإدخال الاستثنائي</a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-footer">
-            <button type="submit" class="btn btn-primary">حفظ</button>
-            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
-        </div>
-    </form>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Index" class="btn btn-link">إلغاء</a>
+    </div>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }

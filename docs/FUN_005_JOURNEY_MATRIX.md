@@ -19,8 +19,11 @@
 |---|---|---|---|---|
 | Assigned | نعم | admin-logistics | 24 | `AssignToEmployee` (حائز واحد) |
 | Returned | نعم | admin-logistics | 72 | `ReturnAssignment` |
-| Lost | لا | admin-logistics | 24 | `MarkLost` |
+| Lost | لا | admin-logistics | 24 | `MarkLost` → workflow للمميز؛ `AssetLossReport` |
+| Recover | لا | admin-logistics | 24 | `RecoverAsset` → InStorage |
 | SeparationReturn | نعم | admin-logistics | 48 | `SeparationCompletedConsumer` |
+
+**تصنيف «مميز»:** `Asset.IsPrivileged` = نتيجة إجراء سياسة `Classify` (SetField) عند الإنشاء/التعديل — ليس checkbox يدوياً. المعايير (قيمة، فئة، …) في محرك السياسات (`R-CLASSIFY-*`).
 
 ## ITProvision
 

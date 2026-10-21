@@ -69,7 +69,34 @@ $env:RUN_TESTCONTAINERS = "true"
 dotnet test src/Tests/HRManagement.IntegrationTests --filter "FullyQualifiedName~CrossTenantRls"
 ```
 
-## 5. التراجع (Rollback)
+## 5. حلّ الحجر (AC-08 API)
+
+بعد الإسناد، السجلات غير المحسومة تُحجَر وتُمنَع عمليات التشغيل (409 `QuarantinedRecord`) حتى قرار موثّق:
+
+```http
+GET  /api/hr-core/api/tenant-quarantine?resolved=false
+POST /api/hr-core/api/tenant-quarantine/{id}/resolve
+```
+
+Body للإسناد:
+
+```json
+{
+  "resolution": "AssignTenant",
+  "assignedTenantId": "<tenant-guid>",
+  "reason": "قرار مصالحة موثّق"
+}
+```
+
+قرارات أخرى: `KeepPlatform`، `Rollback`. يبدأ الم resolver بجدول `HRCore.Employees`؛ جداول أخرى تُوسَّع لاحقاً.
+
+سكربت قبول AC-08:
+
+```powershell
+pwsh scripts/acceptance-quarantine-flow.ps1
+```
+
+## 6. التراجع (Rollback)
 
 لكل جدول أُسند إلى جهة `@assignedTenantId`:
 
@@ -83,7 +110,7 @@ WHERE "TenantId" = @assignedTenantId;
 
 استعادة من النسخة الاحتياطية مفضّلة إذا تجاوز الإسناد نطاقاً غير متوقع.
 
-## 6. قائمة التوقيع (Sign-off)
+## 7. قائمة التوقيع (Sign-off)
 
 | الدور | الاسم | التاريخ | التوقيع |
 |-------|-------|---------|---------|
@@ -99,7 +126,7 @@ WHERE "TenantId" = @assignedTenantId;
 - تقرير اختبارات CrossTenant (وحدة + تكامل)
 - قائمة الحجر المفتوحة مع خطة القرار
 
-## 7. ملاحظات تشغيلية
+## 8. ملاحظات تشغيلية
 
 - لا تُشغّل الإسناد على الإنتاج قبل نجاح dry-run على نسخة حديثة من staging
 - مشغّل المنصة (`platform-admin`) فقط يتجاوز مرشحات EF عبر `IgnoreTenantFilter`

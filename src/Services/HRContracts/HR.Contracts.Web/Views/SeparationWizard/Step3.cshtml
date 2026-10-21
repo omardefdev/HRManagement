@@ -26,8 +26,8 @@
         </div>
 
         <div class="mb-3">
-            <strong>الموظف:</strong> @Model.EmployeeId<br />
-            <strong>نوع الإنهاء:</strong> @Model.SeparationType<br />
+            <strong>الموظف:</strong> @await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))<br />
+            <strong>نوع الإنهاء:</strong> @Html.HrEnumDisplay(Model.SeparationType)<br />
             <strong>تاريخ النفاذ:</strong> @Model.EffectiveDate.ToString("yyyy/MM/dd")
         </div>
 
@@ -38,9 +38,13 @@
         }
         else
         {
-            <form asp-action="Step3Execute" asp-route-id="@Model.Id" method="post">
+            <form asp-action="Step3Execute" asp-route-id="@Model.Id" method="post"
+                  data-hr-confirm="هل أنت متأكد من تنفيذ الفصل؟"
+                  data-hr-confirm-title="تنفيذ الفصل"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="تنفيذ الفصل">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من تنفيذ الفصل؟')"><i class="fas fa-bolt"></i> تنفيذ الفصل</button>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-bolt"></i> تنفيذ الفصل</button>
                 <a asp-action="Step2" asp-route-id="@Model.Id" class="btn btn-secondary">العودة</a>
             </form>
         }

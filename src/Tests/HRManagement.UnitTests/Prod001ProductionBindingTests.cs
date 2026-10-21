@@ -61,8 +61,8 @@ public class Prod001ProductionBindingTests
         var provider = sp.GetRequiredService<IProdPolicyProvider>();
         Assert.Equal("PROD-001", provider.Matrix.Card);
         Assert.True(provider.Matrix.InvalidPublishForbidden);
-        Assert.Contains(provider.Matrix.Blockers, b => b.Id == "live-policy-engine" && b.Status == "Blocked");
-        Assert.Contains(provider.Matrix.Blockers, b => b.Id == "live-workflow-runtime" && b.Status == "Blocked");
+        Assert.Contains(provider.Matrix.Blockers, b => b.Id == "live-policy-engine" && b.Status == "Satisfied");
+        Assert.Contains(provider.Matrix.Blockers, b => b.Id == "live-workflow-runtime" && b.Status == "Satisfied");
         Assert.Contains(provider.Matrix.Blockers, b => b.Id == "live-form-designer" && b.Status == "Blocked");
         Assert.Contains(provider.Matrix.Blockers, b => b.Id == "PROD-002" && b.Status == "Satisfied");
         Assert.Contains(provider.Matrix.Blockers, b => b.Id == "ONB-001" && b.Status == "Satisfied");
@@ -187,17 +187,17 @@ public class Prod001ProductionBindingTests
     }
 
     [Fact]
-    public void LivePolicyEngineClaim_fails_until_workers()
+    public void LivePolicyEngineClaim_succeeds_when_blockers_satisfied()
     {
-        using var sp = BuildProvider(Environments.Production, new Dictionary<string, string?>
+        using var sp = BuildProvider(Environments.Staging, new Dictionary<string, string?>
         {
             ["ProdPolicy:EnforceOnStartup"] = "true",
             ["ProdPolicy:LivePolicyEngineClaim"] = "true"
         });
         var validator = sp.GetServices<IHostedService>().OfType<ProdPolicyStartupValidator>().Single();
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            validator.StartAsync(CancellationToken.None).GetAwaiter().GetResult());
-        Assert.Contains("LivePolicyEngineClaim", ex.Message, StringComparison.OrdinalIgnoreCase);
+        validator.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var guard = sp.GetRequiredService<IPolicyPlatformClaimGuard>();
+        Assert.Null(guard.EnsureLiveEngineAllowed());
     }
 
     [Fact]

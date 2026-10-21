@@ -1,10 +1,11 @@
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
 namespace HRManagement.ServiceDefaults;
 
 /// <summary>
-/// Extracts <c>tenant_id</c> from the authenticated principal into <see cref="TenantIdFlow"/>.
+/// Extracts tenant into <see cref="TenantIdFlow"/> from JWT, platform impersonation, or gateway header.
 /// </summary>
 public sealed class TenantIdMiddleware(RequestDelegate next)
 {
@@ -13,8 +14,7 @@ public sealed class TenantIdMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var claim = context.User.FindFirst(TenantContext.TenantClaimType)?.Value;
-        Guid? tenantId = Guid.TryParse(claim, out var id) ? id : null;
+        Guid? tenantId = ResolveTenantId(context);
         TenantIdFlow.Set(tenantId);
 
         if (tenantId.HasValue)
@@ -28,6 +28,28 @@ public sealed class TenantIdMiddleware(RequestDelegate next)
         {
             TenantIdFlow.Set(null);
         }
+    }
+
+    internal static Guid? ResolveTenantId(HttpContext context)
+    {
+        if (context.User.IsInRole(HrManagementRoles.PlatformAdmin))
+        {
+            if (context.Items.TryGetValue(PlatformTenantSessionMiddleware.ItemKey, out var sessionItem)
+                && sessionItem is PlatformTenantSessionEntry session)
+                return session.TenantId;
+
+            return null;
+        }
+
+        var claim = context.User.FindFirst(TenantContext.TenantClaimType)?.Value;
+        if (Guid.TryParse(claim, out var id))
+            return id;
+
+        if (context.Request.Headers.TryGetValue(HeaderName, out var headerValues)
+            && Guid.TryParse(headerValues.FirstOrDefault(), out var headerId))
+            return headerId;
+
+        return null;
     }
 }
 

@@ -1,0 +1,31 @@
+@* UX-003: unified confirm / alert modal — included once in _HrSharedLayout *@
+<div id="hrConfirmDefaults"
+     data-hr-default-cancel="@Localizer["Cancel"].Value"
+     data-hr-default-confirm="@Localizer["Confirm"].Value"
+     data-hr-default-delete="@Localizer["Delete"].Value"
+     data-hr-default-confirm-delete="@Localizer["ConfirmDelete"].Value"
+     hidden></div>
+
+<div class="modal fade hr-confirm-modal" id="hrConfirmModal" tabindex="-1" aria-labelledby="hrConfirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" dir="rtl">
+        <div class="modal-content">
+            <div class="modal-header hr-confirm--warning" id="hrConfirmHeader">
+                <i class="fas fa-exclamation-triangle hr-confirm-icon" id="hrConfirmIcon" aria-hidden="true"></i>
+                <h5 class="modal-title" id="hrConfirmTitle">@Localizer["Confirm"]</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p id="hrConfirmMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="hrConfirmCancel">@Localizer["Cancel"]</button>
+                <button type="button" class="btn btn-primary" id="hrConfirmOk">@Localizer["Confirm"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Legacy delete flow: hidden form posted after hrConfirmModal approval *@
+<form id="hrConfirmDeleteForm" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+</form>

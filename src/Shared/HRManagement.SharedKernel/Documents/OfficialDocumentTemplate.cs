@@ -5,17 +5,24 @@ namespace HRManagement.SharedKernel.Documents;
 /// <summary>DOC-001: template format for official document generation.</summary>
 public enum OfficialDocumentFormat
 {
+    [Display(Name = "PDF/A")]
     PdfA = 0,
+    [Display(Name = "HTML")]
     Html = 1,
+    [Display(Name = "Word")]
     Docx = 2
 }
 
 /// <summary>DOC-001: template status lifecycle.</summary>
 public enum TemplateStatus
 {
+    [Display(Name = "مسودة")]
     Draft = 0,
+    [Display(Name = "نشط")]
     Active = 1,
+    [Display(Name = "مهمل")]
     Deprecated = 2,
+    [Display(Name = "مؤرشف")]
     Archived = 3
 }
 

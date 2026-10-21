@@ -35,9 +35,9 @@
     </li>
 
     <li class="nav-item">
-        <a asp-controller="Approvals" asp-action="Pending" class="nav-link">
-            <i class="nav-icon fas fa-gavel"></i>
-            <p>طلبات الموافقة</p>
+        <a asp-controller="WorkInbox" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-inbox"></i>
+            <p>صندوق العمل</p>
         </a>
     </li>
 
@@ -56,12 +56,20 @@
     </li>
 
     <li class="nav-header">التخطيط والحضور والديوان</li>
-    <li class="nav-item"><a asp-controller="WorkforcePlans" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-project-diagram"></i><p>خطط القوى العاملة</p></a></li>
     <li class="nav-item"><a asp-controller="HrStatisticReports" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chart-pie"></i><p>التقارير الإحصائية</p></a></li>
     <li class="nav-item"><a asp-controller="DailyAttendanceRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-calendar-check"></i><p>الحضور اليومي</p></a></li>
     <li class="nav-item"><a asp-controller="FieldInspectionVisits" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-check"></i><p>التفتيش الميداني</p></a></li>
     <li class="nav-item"><a asp-controller="DiwanCorrespondences" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-envelope-open-text"></i><p>سجل الديوان</p></a></li>
     <li class="nav-item"><a asp-controller="RecruitmentApplications" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>التوظيف والاستقطاب</p></a></li>
+    <li class="nav-item"><a asp-controller="RecruitmentRequisitions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-signature"></i><p>طلبات الشاغر</p></a></li>
+
+    <li class="nav-header">الملاك والمناصب (EST-001)</li>
+    <li class="nav-item"><a asp-controller="JobCatalog" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-book"></i><p>دليل الوظائف</p></a></li>
+    <li class="nav-item"><a asp-controller="FundedPositions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chair"></i><p>المناصب الممولة</p></a></li>
+    <li class="nav-item"><a asp-controller="EstablishmentChanges" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clipboard-check"></i><p>طلبات تغيير الملاك</p></a></li>
+    <li class="nav-item"><a asp-controller="WorkforcePlans" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-project-diagram"></i><p>خطط القوى العاملة</p></a></li>
+    <li class="nav-item"><a asp-controller="WorkforcePlans" asp-action="GapReport" class="nav-link"><i class="nav-icon fas fa-chart-bar"></i><p>تقرير فجوة الملاك</p></a></li>
+    <li class="nav-item"><a asp-controller="EstablishmentFinance" asp-action="Reconciliation" class="nav-link"><i class="nav-icon fas fa-balance-scale"></i><p>مصالحة الموازنة</p></a></li>
 
     <li class="nav-header">المناوبات والورديات</li>
     <li class="nav-item"><a asp-controller="Shifts" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-clock"></i><p>تعريف الورديات</p></a></li>
@@ -77,6 +85,20 @@
 
     <li class="nav-header">بوابة المواطن للتوظيف</li>
     <li class="nav-item"><a asp-controller="PublicJobPostings" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-globe"></i><p>الإعلانات وطلبات المواطنين</p></a></li>
+
+    <li class="nav-header">الحوكمة</li>
+    <li class="nav-item">
+        <a asp-controller="PolicyTemplates" asp-action="Index" class="nav-link">
+            <i class="nav-icon fas fa-balance-scale"></i>
+            <p>محرك السياسات</p>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a asp-controller="ReferenceCatalog" asp-action="Index" asp-route-kind="Grade" class="nav-link">
+            <i class="nav-icon fas fa-database"></i>
+            <p>المرجع الوطني (MDM)</p>
+        </a>
+    </li>
 
     @await Html.PartialAsync("_HrModuleNav")
 }

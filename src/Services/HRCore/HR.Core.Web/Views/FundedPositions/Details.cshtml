@@ -1,0 +1,121 @@
+@model HR.Core.Web.ViewModels.FundedPositionDetailsViewModel
+@using HR.Core.Domain.Entities
+@using HR.Core.Infrastructure.Services.Establishment
+@{
+    ViewData["Title"] = Model.Position.PositionCode;
+    var p = Model.Position;
+    var timeline = ViewBag.VersionTimeline as IReadOnlyList<FundedPositionVersionDto> ?? [];
+    var asOfSnapshot = ViewBag.AsOfSnapshot as FundedPositionVersionDto;
+}
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">@p.PositionCode</h3></div>
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end mb-3">
+            <div class="col-md-4">
+                <label class="form-label">عرض كما في تاريخ</label>
+                <input type="datetime-local" name="asOf" value="@(ViewBag.AsOfDate is DateTime d ? d.ToString("yyyy-MM-ddTHH:mm") : "")" class="form-control" />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-outline-primary">استعلام as-of</button>
+                <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-outline-secondary">الحالة الحالية</a>
+            </div>
+        </form>
+
+        @if (asOfSnapshot is not null)
+        {
+            <div class="alert alert-info">
+                <strong>كما في @(((DateTime)ViewBag.AsOfDate!).ToString("yyyy-MM-dd HH:mm")):</strong>
+                @asOfSnapshot.PositionCode — @asOfSnapshot.Status
+                @(asOfSnapshot.OccupantEmployeeId is Guid oid ? $" (مشغّل: {oid})" : "")
+            </div>
+        }
+
+        <table class="table table-sm">
+            <tr><th style="width:30%">رمز المنصب</th><td>@p.PositionCode</td></tr>
+            <tr><th>المسمى من الدليل</th><td>@(p.JobCatalogEntry?.TitleAr ?? "—")</td></tr>
+            <tr><th>رمز الدليل</th><td>@(p.JobCatalogEntry?.JobCode ?? "—")</td></tr>
+            <tr><th>رمز الدرجة</th><td>@p.GradeCode</td></tr>
+            <tr><th>سنة الموازنة</th><td>@p.BudgetYear</td></tr>
+            <tr><th>مكافئ الدوام الكامل</th><td>@p.FTE</td></tr>
+            <tr><th>الوحدة التنظيمية</th><td>@(p.OrgUnit?.NameAr ?? "—")</td></tr>
+            <tr><th>مركز التكلفة</th><td>@(p.CostCenter ?? "—")</td></tr>
+            <tr><th>الحالة</th><td>@p.Status</td></tr>
+            <tr><th>المشغّل</th><td>
+                @if (p.OccupantEmployeeId is Guid empId)
+                {
+                    <a asp-controller="Employees" asp-action="Details" asp-route-id="@empId">@(p.OccupantEmployee?.FullName ?? empId.ToString())</a>
+                }
+                else { <text>—</text> }
+            </td></tr>
+            @if (p.Status == FundedPositionStatus.Frozen)
+            {
+                <tr><th>سبب التجميد</th><td>@(p.FreezeReason ?? "—")</td></tr>
+                <tr><th>تاريخ التجميد</th><td>@(p.FreezeDate?.ToString("yyyy-MM-dd") ?? "—")</td></tr>
+            }
+        </table>
+
+        @if (Model.ActiveRequisitions.Any())
+        {
+            <h5 class="mt-4">طلبات شاغر نشطة</h5>
+            <ul>
+                @foreach (var r in Model.ActiveRequisitions)
+                {
+                    <li><a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@r.Id">@r.RequisitionNumber — @r.JobTitle (@r.Status)</a></li>
+                }
+            </ul>
+        }
+
+        @if (Model.CanMutate)
+        {
+            <hr />
+            @if (p.Status == FundedPositionStatus.Vacant)
+            {
+                <form asp-action="Freeze" asp-route-id="@p.Id" method="post" class="row g-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-8">
+                        <label asp-for="FreezeReason" class="form-label"></label>
+                        <input asp-for="FreezeReason" class="form-control" />
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="submit" class="btn btn-warning" onclick="return confirm('إنشاء طلب تجميد لهذا المنصب؟');">طلب تجميد</button>
+                    </div>
+                </form>
+            }
+            else if (p.Status == FundedPositionStatus.Frozen)
+            {
+                <form asp-action="Unfreeze" asp-route-id="@p.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success" onclick="return confirm('إنشاء طلب إلغاء تجميد؟');">طلب إلغاء التجميد</button>
+                </form>
+            }
+        }
+
+        @if (timeline.Any())
+        {
+            <h5 class="mt-4">الخط الزمني</h5>
+            <table class="table table-sm table-bordered">
+                <thead><tr><th>صالح من</th><th>صالح حتى</th><th>العملية</th><th>مرجع قانوني</th></tr></thead>
+                <tbody>
+                    @foreach (var v in timeline)
+                    {
+                        <tr>
+                            <td>@v.ValidFrom.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@(v.ValidTo?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                            <td>@v.OperationType</td>
+                            <td>@(v.LegalSourceId ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (Model.ChangeLogs.Any())
+        {
+            <h5 class="mt-4">سجل التغييرات (حوكمة)</h5>
+            <partial name="_EstablishmentChangeLogTable" model="Model.ChangeLogs" />
+        }
+    </div>
+    <div class="card-footer">
+        <a asp-action="Index" class="btn btn-secondary">العودة</a>
+    </div>
+</div>

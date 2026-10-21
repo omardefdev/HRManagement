@@ -25,11 +25,13 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label asp-for="ContractId" class="form-label"></label>
-                    <input asp-for="ContractId" class="form-control" />
+                    <select asp-for="ContractId" asp-items="Model.Contracts" class="form-select">
+                        <option value="">— بدون عقد —</option>
+                    </select>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label asp-for="SeparationType" class="form-label"></label>
-                    <select asp-for="SeparationType" asp-items="Html.GetEnumSelectList<SeparationType>()" class="form-select"></select>
+                    <select asp-for="SeparationType" asp-items="Html.HrEnumSelectList<SeparationType>()" class="form-select"></select>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label asp-for="EffectiveDate" class="form-label"></label>

@@ -38,3 +38,17 @@ public sealed class GatewayAuditRowViewModel
     public required string CorrelationId { get; init; }
     public required long ElapsedMs { get; init; }
 }
+
+public static class GatewayAuditDisplay
+{
+    public static string Decision(string? value) => value?.ToLowerInvariant() switch
+    {
+        "allowed" => "مسموح",
+        "forbidden" => "ممنوع",
+        "challenge" => "يتطلب تسجيل الدخول",
+        "client_error" => "خطأ في الطلب",
+        "server_error" => "خطأ في الخادم",
+        "sensitive_access" => "وصول حساس مسجل",
+        _ => string.IsNullOrWhiteSpace(value) ? "غير محدد" : value
+    };
+}

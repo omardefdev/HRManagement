@@ -3,6 +3,7 @@ using Compliance.Infrastructure.Data;
 using Compliance.Infrastructure.ExportJobs;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Exports;
+using HRManagement.SharedKernel.Localization;
 using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,7 @@ public class ExportController : Controller
         var csv = new System.Text.StringBuilder();
         csv.AppendLine("Id,FiledBy,Subject,Status,FiledAt,CreatedAt");
         foreach (var c in items)
-            csv.AppendLine($"{c.Id},\"{c.FiledBy}\",\"{c.Subject}\",{c.Status},{c.FiledAt:yyyy-MM-dd},{c.CreatedAt:yyyy-MM-dd}");
+            csv.AppendLine($"{c.Id},\"{c.FiledBy}\",\"{c.Subject}\",{EnumDisplayExtensions.GetDisplayName(c.Status)},{c.FiledAt:yyyy-MM-dd},{c.CreatedAt:yyyy-MM-dd}");
         return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "complaints.csv");
     }
 
@@ -60,7 +61,7 @@ public class ExportController : Controller
         foreach (var c in items)
         {
             ws.Cell(row, 1).Value = c.Id.ToString(); ws.Cell(row, 2).Value = c.FiledBy;
-            ws.Cell(row, 3).Value = c.Subject; ws.Cell(row, 4).Value = c.Status.ToString();
+            ws.Cell(row, 3).Value = c.Subject; ws.Cell(row, 4).Value = EnumDisplayExtensions.GetDisplayName(c.Status);
             ws.Cell(row, 5).Value = c.FiledAt.ToString("yyyy-MM-dd"); row++;
         }
         ws.Columns().AdjustToContents();

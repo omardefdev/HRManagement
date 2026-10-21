@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace HRManagement.ServiceDefaults;
@@ -21,6 +23,9 @@ public static class DbContextRegistrationExtensions
         string? connectionString,
         string migrationsAssembly)
     {
+        options = options.ConfigureWarnings(w =>
+            w.Log(CoreEventId.ManyServiceProvidersCreatedWarning));
+
         if (IsSqliteConnectionString(connectionString))
         {
             return options.UseSqlite(connectionString);
@@ -58,4 +63,24 @@ public static class DbContextRegistrationExtensions
     private static bool IsSqliteConnectionString(string? connectionString) =>
         !string.IsNullOrWhiteSpace(connectionString)
         && connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Pooled DbContext with a single EF model (avoids per-scope <c>IServiceProvider</c> churn / OOM on large models).
+    /// Interceptors resolved here must be registered as singletons.
+    /// </summary>
+    public static IServiceCollection AddHrDbContextPool<TContext>(
+        this IServiceCollection services,
+        string? connectionString,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configure = null,
+        int poolSize = 64)
+        where TContext : DbContext
+    {
+        services.AddDbContextPool<TContext>((sp, options) =>
+        {
+            options.UseHrDatabaseProvider(connectionString, typeof(TContext).Assembly.GetName().Name!);
+            configure?.Invoke(sp, options);
+        }, poolSize);
+
+        return services;
+    }
 }

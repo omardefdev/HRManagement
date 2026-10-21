@@ -1,6 +1,8 @@
 using ClosedXML.Excel;
+using HRManagement.Documents.QuestPdf;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Exports;
+using HRManagement.SharedKernel.Localization;
 using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using MediatR;
@@ -11,8 +13,6 @@ using Payroll.Application.Features.InboundEvents;
 using Payroll.Infrastructure.Data;
 using Payroll.Infrastructure.ExportJobs;
 using Payroll.Infrastructure.Integration;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using System.IO.Compression;
 
 namespace Payroll.Web.Controllers;
@@ -75,67 +75,31 @@ public class PayrollReportsController : Controller
             .ToListAsync();
 
         var employeeName = await _employeeLookup.GetEmployeeDisplayNameAsync(line.EmployeeId, CancellationToken.None)
-                           ?? line.EmployeeId.ToString();
+                           ?? "غير متاح";
 
-        var pdf = Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.A4);
-                page.Margin(30);
-                page.DefaultTextStyle(x => x.FontSize(12));
-                page.Content().Column(col =>
-                {
-                    col.Item().AlignCenter().Text("كشف راتب").Bold().FontSize(18);
-                    col.Item().PaddingVertical(5).LineHorizontal(1);
-                    col.Item().Text($"الموظف: {employeeName}");
-                    col.Item().Text($"المعرّف: {line.EmployeeId}");
-                    col.Item().Text($"الفترة: {line.PayrollRun.PeriodStart:yyyy/MM/dd} - {line.PayrollRun.PeriodEnd:yyyy/MM/dd}");
-                    if (!string.IsNullOrEmpty(line.PayrollRun.ConfigContentHash))
-                        col.Item().Text($"الأساس القانوني: {line.PayrollRun.ConfigContentHash[..Math.Min(16, line.PayrollRun.ConfigContentHash.Length)]}…");
-                    col.Item().PaddingVertical(10);
-
-                    col.Item().Table(table =>
-                    {
-                        table.ColumnsDefinition(c => { c.RelativeColumn(3); c.RelativeColumn(); c.RelativeColumn(); });
-                        table.Header(h =>
-                        {
-                            h.Cell().Text("البند").Bold();
-                            h.Cell().Text("النوع").Bold();
-                            h.Cell().AlignRight().Text("المبلغ").Bold();
-                        });
-                        foreach (var comp in components)
-                        {
-                            table.Cell().Text(comp.ComponentName);
-                            table.Cell().Text(comp.ComponentType.ToString());
-                            table.Cell().AlignRight().Text(comp.Amount.ToString("N2"));
-                        }
-                    });
-
-                    col.Item().PaddingVertical(10).LineHorizontal(1);
-                    col.Item().Row(r =>
-                    {
-                        r.RelativeItem().Text("الإجمالي:").Bold();
-                        r.ConstantItem(100).AlignRight().Text(line.GrossPay.ToString("N2")).Bold();
-                    });
-                    col.Item().Row(r =>
-                    {
-                        r.RelativeItem().Text("الخصومات:");
-                        r.ConstantItem(100).AlignRight().Text(line.TotalDeductions.ToString("N2"));
-                    });
-                    col.Item().Row(r =>
-                    {
-                        r.RelativeItem().Text("الصافي:").Bold().FontSize(14);
-                        r.ConstantItem(100).AlignRight().Text(line.NetPay.ToString("N2")).Bold().FontSize(14);
-                    });
-                });
-            });
-        });
-
-        var bytes = pdf.GeneratePdf();
+        var bytes = HrPayslipPdfGenerator.Generate(ToPayslipModel(line, line.PayrollRun, employeeName, components));
         await _mediator.Send(new MarkPayslipSentCommand(salaryLineId));
         return File(bytes, "application/pdf", $"payslip-{line.EmployeeId}-{line.PayrollRun.PeriodStart:yyyyMM}.pdf");
     }
+
+    private static PayslipPdfModel ToPayslipModel(
+        Payroll.Domain.Entities.SalaryLine line,
+        Payroll.Domain.Entities.PayrollRun run,
+        string employeeName,
+        IReadOnlyList<Payroll.Domain.Entities.SalaryLineComponent> components) =>
+        new(
+            employeeName,
+            line.EmployeeId,
+            run.PeriodStart,
+            run.PeriodEnd,
+            run.ConfigContentHash,
+            components.Select(c => new PayslipComponentLine(
+                c.ComponentName,
+                EnumDisplayExtensions.GetDisplayName(c.ComponentType),
+                c.Amount)).ToList(),
+            line.GrossPay,
+            line.TotalDeductions,
+            line.NetPay);
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -166,26 +130,8 @@ public class PayrollReportsController : Controller
                     .Take(SearchFilterBase.MaxPageSize)
                     .ToListAsync();
 
-                var employeeName = names.GetValueOrDefault(line.EmployeeId) ?? line.EmployeeId.ToString();
-                var pdf = Document.Create(container =>
-                {
-                    container.Page(page =>
-                    {
-                        page.Size(PageSizes.A4);
-                        page.Margin(30);
-                        page.Content().Column(col =>
-                        {
-                            col.Item().AlignCenter().Text("كشف راتب").Bold().FontSize(16);
-                            col.Item().Text($"الموظف: {employeeName}");
-                            col.Item().Text($"الفترة: {run.PeriodStart:yyyy/MM/dd} - {run.PeriodEnd:yyyy/MM/dd}");
-                            if (!string.IsNullOrEmpty(run.ConfigContentHash))
-                                col.Item().Text($"الأساس القانوني (بصمة): {run.ConfigContentHash[..Math.Min(16, run.ConfigContentHash.Length)]}…");
-                            col.Item().Text($"الصافي: {line.NetPay:N2}").Bold();
-                            foreach (var comp in components)
-                                col.Item().Text($"{comp.ComponentName}: {comp.Amount:N2}");
-                        });
-                    });
-                }).GeneratePdf();
+                var employeeName = names.GetValueOrDefault(line.EmployeeId) ?? "غير متاح";
+                var pdf = HrPayslipPdfGenerator.Generate(ToPayslipModel(line, run, employeeName, components));
 
                 var entry = archive.CreateEntry($"payslip-{employeeName}-{run.PeriodStart:yyyyMM}.pdf");
                 await using var entryStream = entry.Open();
@@ -204,6 +150,9 @@ public class PayrollReportsController : Controller
             .Include(r => r.SalaryLines)
             .FirstOrDefaultAsync(r => r.Id == payrollRunId);
         if (run is null) return NotFound();
+
+        var employeeNames = await _employeeLookup.GetEmployeeDisplayNamesAsync(
+            run.SalaryLines.Select(line => line.EmployeeId), HttpContext.RequestAborted);
 
         if (async || run.SalaryLines.Count > SearchFilterBase.MaxExportRows)
         {
@@ -226,7 +175,7 @@ public class PayrollReportsController : Controller
         int row = 2;
         foreach (var line in run.SalaryLines.OrderBy(l => l.EmployeeId))
         {
-            ws.Cell(row, 1).Value = line.EmployeeId.ToString();
+            ws.Cell(row, 1).Value = employeeNames.GetValueOrDefault(line.EmployeeId, "غير متاح");
             ws.Cell(row, 2).Value = line.GrossPay;
             ws.Cell(row, 3).Value = line.TotalDeductions;
             ws.Cell(row, 4).Value = line.NetPay;
@@ -389,7 +338,7 @@ public class PayrollReportsController : Controller
         var csv = new System.Text.StringBuilder();
         csv.AppendLine("EmployeeId,BaseSalary,NetSettlement,Status,CalculatedAt,CreatedAt");
         foreach (var e in items)
-            csv.AppendLine($"{e.EmployeeId},{e.BaseSalary},{e.NetSettlement},{e.Status},{e.CalculatedAt:yyyy-MM-dd},{e.CreatedAt:yyyy-MM-dd}");
+            csv.AppendLine($"{e.EmployeeId},{e.BaseSalary},{e.NetSettlement},{EnumDisplayExtensions.GetDisplayName(e.Status)},{e.CalculatedAt:yyyy-MM-dd},{e.CreatedAt:yyyy-MM-dd}");
         return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "eos-settlements.csv");
     }
 
@@ -414,7 +363,7 @@ public class PayrollReportsController : Controller
         foreach (var e in items)
         {
             ws.Cell(row, 1).Value = e.EmployeeId.ToString(); ws.Cell(row, 2).Value = (double)e.BaseSalary;
-            ws.Cell(row, 3).Value = (double)e.NetSettlement; ws.Cell(row, 4).Value = e.Status.ToString();
+            ws.Cell(row, 3).Value = (double)e.NetSettlement; ws.Cell(row, 4).Value = EnumDisplayExtensions.GetDisplayName(e.Status);
             ws.Cell(row, 5).Value = e.CalculatedAt.ToString("yyyy-MM-dd"); row++;
         }
         ws.Columns().AdjustToContents();
@@ -455,6 +404,8 @@ public class PayrollReportsController : Controller
         ViewBag.TotalBaseline = rows.Sum(r => r.BaselineNet);
         ViewBag.TotalComparison = rows.Sum(r => r.ComparisonNet);
         ViewBag.TotalVariance = rows.Sum(r => r.Variance);
+        ViewBag.EmployeeNames = await _employeeLookup.GetEmployeeDisplayNamesAsync(
+            rows.Select(r => r.EmployeeId), HttpContext.RequestAborted);
         return View(rows);
     }
 }

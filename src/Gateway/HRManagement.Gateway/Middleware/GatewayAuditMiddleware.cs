@@ -53,6 +53,24 @@ public sealed class GatewayAuditMiddleware(RequestDelegate next)
         var userName = context.User.Identity?.Name
             ?? context.User.FindFirstValue(ClaimTypes.Name)
             ?? context.User.FindFirstValue("preferred_username");
+
+        var denial = OrgScopeDenialContext.Get(context);
+        Guid? tenantId = denial?.TenantId;
+        if (!tenantId.HasValue)
+        {
+            var tenantClaim = context.User.FindFirstValue(TenantContext.TenantClaimType);
+            if (Guid.TryParse(tenantClaim, out var parsedTenant))
+                tenantId = parsedTenant;
+        }
+
+        Guid? scopeOrgUnitId = denial?.ScopeOrgUnitId;
+        if (!scopeOrgUnitId.HasValue)
+        {
+            var scopeClaim = context.User.FindFirstValue(HrOrgScopeVisibility.ScopeOrgUnitClaimType);
+            if (Guid.TryParse(scopeClaim, out var parsedScope))
+                scopeOrgUnitId = parsedScope;
+        }
+
         var entry = new GatewayAuditEntry
         {
             OccurredAtUtc = DateTimeOffset.UtcNow,
@@ -70,7 +88,12 @@ public sealed class GatewayAuditMiddleware(RequestDelegate next)
             {
                 var ua when ua.Length > 512 => ua[..512],
                 var ua => ua
-            }
+            },
+            TenantId = tenantId,
+            ScopeOrgUnitId = scopeOrgUnitId,
+            Reason = denial?.Reason,
+            ResourceType = denial?.ResourceType,
+            ResourceId = denial?.ResourceId
         };
 
         if (!auditQueue.TryEnqueue(entry))
@@ -89,6 +112,28 @@ public sealed class GatewayAuditMiddleware(RequestDelegate next)
                 CorrelationId = correlationId,
                 Resource = path.Length > 512 ? path[..512] : path,
                 DetailJson = $"{{\"status\":{statusCode},\"method\":\"{entry.Method}\"}}",
+                OccurredAtUtc = DateTimeOffset.UtcNow
+            });
+        }
+
+        if (decision == "forbidden" && denial is not null)
+        {
+            _ = securityAudit.PublishAsync(new SecurityAuditEvent
+            {
+                EventType = SecurityAuditEventTypes.OrgScopeDenied,
+                ActorSub = sub,
+                CorrelationId = correlationId,
+                TenantId = denial.TenantId,
+                Resource = denial.ResourceId ?? path,
+                DetailJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    reason = denial.Reason,
+                    scopeOrgUnitId = denial.ScopeOrgUnitId,
+                    resourceType = denial.ResourceType,
+                    resourceId = denial.ResourceId,
+                    statusCode,
+                    method = entry.Method
+                }),
                 OccurredAtUtc = DateTimeOffset.UtcNow
             });
         }

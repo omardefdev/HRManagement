@@ -37,6 +37,9 @@ public sealed class FileAccessPolicy : IFileAccessPolicy
         if (grant.IsRevoked)
             return FileAccessDecision.Deny("Grant revoked");
 
+        if (grant.ExpiresAtUtc is { } expiresAt && expiresAt < DateTime.UtcNow)
+            return FileAccessDecision.Deny("grant-expired");
+
         if (grant.TenantId != requestTenantId)
             return FileAccessDecision.Deny("Cross-tenant access denied");
 
@@ -48,6 +51,15 @@ public sealed class FileAccessPolicy : IFileAccessPolicy
 
         if (grant.Visibility == FileVisibility.Tenant && user.Identity?.IsAuthenticated == true)
             return FileAccessDecision.Allow("Tenant-wide visibility");
+
+        if (grant.Visibility == FileVisibility.Private && grant.GranteeId is not null)
+        {
+            if (IsGrantee(user, grant.GranteeId))
+                return FileAccessDecision.Allow("Explicit grantee");
+            if (IsHolder(user, grant))
+                return FileAccessDecision.Allow("Holder access");
+            return FileAccessDecision.Deny("wrong-grantee");
+        }
 
         if (grant.Visibility == FileVisibility.Module && IsInModule(user, grant.Module))
             return FileAccessDecision.Allow("Module access");

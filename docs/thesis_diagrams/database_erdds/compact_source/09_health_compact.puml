@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "خريطة ERD المختصرة لقاعدة hr_health_db\nHR.Health"
+title "خريطة ERD المختصرة لقاعدة health_db\nHR.Health"
 
 entity "FirstAidTrainingRecords\nFirstAidTrainingRecord" as T01 {
   * Id
@@ -68,16 +68,47 @@ entity "WorkplaceAccidents\nWorkplaceAccident" as T11 {
     MedicalRecordId
     TenantId
 }
-entity "AuditLogs\nEntityAuditLog" as T12 {
+entity "EmployeeOrgUnitSnapshots\nEmployeeOrgUnitSnapshot" as T12 {
+  * EmployeeId
+    PrimaryOrgUnitId
+    TenantId
+}
+entity "AuditLogs\nEntityAuditLog" as T13 {
   * Id
     EntityId
     TenantId
     UserId
 }
-entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T13 {
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T14 {
   * Id
     MessageId
     TenantId
+}
+entity "OrgUnitSnapshots\nOrgUnitSnapshot" as T15 {
+  * Id
+    ParentId
+    TenantId
+}
+entity "InboxState\nInboxState" as T16 {
+  * Id
+    ConsumerId
+    LockId
+    MessageId
+}
+entity "OutboxMessage\nOutboxMessage" as T17 {
+  * SequenceNumber
+    ConversationId
+    CorrelationId
+    InboxConsumerId
+    InboxMessageId
+    InitiatorId
+    MessageId
+    OutboxId
+    RequestId
+}
+entity "OutboxState\nOutboxState" as T18 {
+  * OutboxId
+    LockId
 }
 
 T04 }o--|| T05 : InsuranceContractId

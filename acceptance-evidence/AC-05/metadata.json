@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-05 platform enter-tenant",
+  "personaId": "platform-admin",
+  "correlationId": "c1742d9b-0da1-4711-aa87-d765b1703a0f",
+  "capturedAtUtc": "2026-08-24T17:48:09.8921884Z",
+  "environment": {
+    "gateway": "http://localhost:5200",
+    "keycloak": "http://localhost:8088",
+    "runAcceptance": true
+  },
+  "gitSha": "9cb3705e67386023af6b16e14977c116276d0664"
+}

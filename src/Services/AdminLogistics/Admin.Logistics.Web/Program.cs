@@ -1,5 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Localization;
+using HRManagement.Documents.QuestPdf;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Seeding;
+using Admin.Logistics.Infrastructure;
+using Admin.Logistics.Infrastructure.Abstractions;
 using Admin.Logistics.Infrastructure.Consumers;
 using Admin.Logistics.Infrastructure.Data;
 
@@ -8,7 +14,9 @@ builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 builder.AddHrDataProtection("Admin.Logistics.Web");
 builder.AddHrOpenTelemetry();
+builder.AddHrLocalization();
 
+builder.Services.AddHrQuestPdfDocuments();
 builder.Services.AddControllersWithViews()
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAdminLogistics);
 builder.Services.AddHrOpenApi("Admin.Logistics API");
@@ -16,6 +24,9 @@ builder.Services.AddHrOpenApi("Admin.Logistics API");
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTenantContext();
 builder.Services.AddHrFileUrlProvider(builder.Configuration);
+builder.Services.AddHrFileReferenceClient(builder.Configuration);
+builder.Services.AddAdminLogisticsInfrastructure(builder.Configuration);
+builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
 builder.Services.AddSignalR();
 
@@ -40,16 +51,29 @@ var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<AdminLogisticsDbContext>();
+var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 try
 {
+    using var scope = app.Services.CreateScope();
+    var logisticsDb = scope.ServiceProvider.GetRequiredService<AdminLogisticsDbContext>();
+
+    if (seedProfile == SeedProfile.Acceptance)
+        await AcceptanceLogisticsSeeder.SeedAsync(logisticsDb);
+    else if (seedProfile == SeedProfile.Demo)
+        await DemoLogisticsSeeder.SeedAsync(logisticsDb);
+
     if (app.Environment.IsDevelopment())
     {
-        using var scope = app.Services.CreateScope();
-        var logisticsDb = scope.ServiceProvider.GetRequiredService<AdminLogisticsDbContext>();
-        await DemoLogisticsSeeder.SeedAsync(logisticsDb);
+        var reclassifyOnStartup = app.Configuration.GetValue("Assets:ReclassifyOnStartup", true);
+        if (reclassifyOnStartup)
+        {
+            var classifier = scope.ServiceProvider.GetRequiredService<IAssetClassifier>();
+            var count = await classifier.ReclassifyAllAsync();
+            app.Logger.LogInformation("Asset policy reclassification applied to {Count} assets.", count);
+        }
     }
 }
-catch (Exception ex)
+catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
 {
     app.Logger.LogWarning(ex, "Admin.Logistics demo seed skipped.");
 }
@@ -63,6 +87,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();
 app.UseHrTenantId();
@@ -79,3 +104,4 @@ app.MapHrOpenTelemetryEndpoints();
 
 app.Run();
 
+public partial class AdminLogisticsWebProgram { }

@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Reflection;
-using HRManagement.SharedKernel.Recruitment;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Recruitment;
+using CoreRequisitionStatus = HR.Core.Domain.Enums.RequisitionStatus;
+using HRCoreRecruitmentRequisition = HR.Core.Domain.Entities.RecruitmentRequisition;
 
 namespace HRManagement.UnitTests;
 
@@ -21,7 +23,41 @@ public class Hcm001RecruitmentTests
     }
 
     [Fact]
-    public void RecruitmentRequisition_extends_BaseEntity()
+    public void HRCore_RecruitmentRequisition_extends_AuditableEntity()
+    {
+        Assert.True(typeof(HRCoreRecruitmentRequisition).IsSubclassOf(typeof(AuditableEntity)));
+    }
+
+    [Fact]
+    public void HRCore_RecruitmentRequisition_has_persisted_properties()
+    {
+        var props = typeof(HRCoreRecruitmentRequisition).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.Name).ToList();
+
+        Assert.Contains("RequisitionNumber", props);
+        Assert.Contains("FundedPositionId", props);
+        Assert.Contains("JobTitle", props);
+        Assert.Contains("Status", props);
+        Assert.Contains("RequestedDate", props);
+        Assert.Contains("ApprovedDate", props);
+        Assert.Contains("ClosedDate", props);
+        Assert.Contains("VacancyCount", props);
+        Assert.Contains("LegalSourceId", props);
+    }
+
+    [Fact]
+    public void HRCore_RequisitionStatus_enum_has_expected_values()
+    {
+        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Draft));
+        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.PendingApproval));
+        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Approved));
+        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Published));
+        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Closed));
+        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Cancelled));
+    }
+
+    [Fact]
+    public void SharedKernel_RecruitmentRequisition_extends_BaseEntity()
     {
         Assert.True(typeof(RecruitmentRequisition).IsSubclassOf(typeof(BaseEntity)));
     }

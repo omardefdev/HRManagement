@@ -16,6 +16,7 @@ tmp/
 # Secrets and local env
 .env
 .env.local
+.acceptance/
 *.pfx
 *.pem
 
@@ -41,7 +42,9 @@ chaos/certs/# OS
 .DS_Store
 Thumbs.db
 
-# Publish artifacts
+# Generated Docker restore layer (BLD-002)
+docker/build-manifest/
+
 **/publish/
 **/publish-test/
 artifacts/

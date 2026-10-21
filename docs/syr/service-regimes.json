@@ -89,5 +89,20 @@
     {"code": "loan", "name_ar": "إعارة", "name_en": "Loan", "preserves_regime": true},
     {"code": "transfer", "name_ar": "نقل", "name_en": "Transfer", "may_change_regime": true},
     {"code": "delegation", "name_ar": "ندب", "name_en": "Delegation", "preserves_regime": true}
+  ],
+  "promotion_rules": [
+    {"regime": "law50", "min_tenure_months": 24, "requires_vacancy": true, "bonus_code": "PROMOTION_BONUS", "grade_structure": "law50_categories_ranks"},
+    {"regime": "law53", "min_tenure_months": 24, "requires_vacancy": true, "bonus_code": "PROMOTION_BONUS", "grade_structure": "law53_categories_levels"},
+    {"regime": "special_banking", "min_tenure_months": 36, "requires_vacancy": true, "bonus_code": "PROMOTION_BONUS", "grade_structure": "banking_grades"},
+    {"regime": "special_judiciary", "min_tenure_months": 60, "requires_vacancy": true, "bonus_code": "PROMOTION_BONUS", "grade_structure": "judicial_ranks"}
+  ],
+  "separation_rules": [
+    {"regime": "law50", "allowed_types": ["resignation", "retirement", "termination"], "notice_days": 30, "pension_handoff": "GOSI"},
+    {"regime": "law53", "allowed_types": ["resignation", "contract_end", "termination"], "notice_days": 30, "pension_handoff": "GOIP"},
+    {"regime": "special_banking", "allowed_types": ["resignation", "termination"], "notice_days": 30, "pension_handoff": "GOSI"},
+    {"regime": "special_judiciary", "allowed_types": ["resignation", "retirement", "termination"], "notice_days": 60, "pension_handoff": "GOSI"}
+  ],
+  "article_159_patterns": [
+    {"pattern": "cross_regime_entitlement_overlap", "trigger": "transition_with_special_regime", "requires_legal_decision": true}
   ]
 }

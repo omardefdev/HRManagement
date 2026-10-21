@@ -2,6 +2,7 @@ using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Exports;
 using HRManagement.SharedKernel.Tenancy;
@@ -14,7 +15,10 @@ namespace HR.Contracts.Infrastructure.Data;
 /// </summary>
 public static class DemoContractsSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
+    private static string ScopedCode(string code) => AcceptanceSeedExecution.CurrentAgency is { } agency
+        ? $"{agency.Code}-{code}"
+        : code;
 
     private static readonly (string Code, string NameAr, string NameEn, string Description)[] ExtraContractTypes =
     [
@@ -26,8 +30,8 @@ public static class DemoContractsSeeder
 
     public static async Task SeedAsync(ContractsDbContext db, CancellationToken ct = default)
     {
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("contracts");
+        var now = AcceptanceSeedExecution.UtcNow;
 
         await EnsureContractTypesAsync(db, now, ct);
         await SeedIntegrationAsync(db, now, ct);
@@ -83,7 +87,7 @@ public static class DemoContractsSeeder
             {
                 Id = DemoSeedIds.ContractTypeId(0),
                 TenantId = TenantId,
-                Code = "DEFAULT",
+                Code = ScopedCode("DEFAULT"),
                 NameAr = "عقد افتراضي",
                 NameEn = "Default contract",
                 Description = "يُنشأ تلقائياً عند تسجيل موظف جديد",
@@ -103,7 +107,7 @@ public static class DemoContractsSeeder
             {
                 Id = typeId,
                 TenantId = TenantId,
-                Code = code,
+                Code = ScopedCode(code),
                 NameAr = nameAr,
                 NameEn = nameEn,
                 Description = description,
@@ -187,7 +191,7 @@ public static class DemoContractsSeeder
     private static async Task SeedProbationRecordsAsync(ContractsDbContext db, DateTime now, CancellationToken ct)
     {
         // First 50 employees = newer hires still on / recently through probation.
-        for (var i = 0; i < 50; i++)
+        for (var i = 0; i < Math.Min(DemoSeedIds.EmployeeCount, AcceptanceSeedExecution.ProbationCount); i++)
         {
             var start = DateOnly.FromDateTime(now.AddMonths(-6 + (i % 5)));
             var end = start.AddMonths(3);
@@ -307,7 +311,7 @@ public static class DemoContractsSeeder
             ApprovalStatus.Cancelled,
         };
 
-        for (var n = 0; n < 200; n++)
+        for (var n = 0; n < AcceptanceSeedExecution.LeaveRequestCount; n++)
         {
             var empIndex = n % DemoSeedIds.EmployeeCount;
             if (!DemoSeedIds.IsActiveEmployee(empIndex))
@@ -320,14 +324,13 @@ public static class DemoContractsSeeder
             var startDate = today.AddDays(-daysAgo);
             var leaveType = leaveTypes[n % leaveTypes.Length];
             var status = statuses[n % statuses.Length];
-            var orgIndex = 1 + (empIndex % 8);
 
             db.LeaveRequests.Add(new LeaveRequest
             {
                 Id = DemoSeedIds.Named($"leave-req-{n}"),
                 TenantId = TenantId,
                 EmployeeId = DemoSeedIds.EmployeeId(empIndex),
-                OrgUnitId = DemoSeedIds.OrgUnitId(orgIndex),
+                OrgUnitId = DemoSeedIds.EmployeeOrgUnitId(empIndex),
                 LeaveType = leaveType,
                 StartDate = startDate,
                 EndDate = startDate.AddDays(duration),
@@ -363,7 +366,7 @@ public static class DemoContractsSeeder
             .Where(DemoSeedIds.IsActiveEmployee)
             .ToList();
 
-        for (var n = 0; n < 30; n++)
+        for (var n = 0; n < AcceptanceSeedExecution.AdvanceCount; n++)
         {
             var empIndex = activeIndices[n % activeIndices.Count];
             var amount = 100_000m + rng.Next(1, 20) * 50_000m;
@@ -381,7 +384,7 @@ public static class DemoContractsSeeder
                 Id = advanceId,
                 TenantId = TenantId,
                 EmployeeId = DemoSeedIds.EmployeeId(empIndex),
-                OrgUnitId = DemoSeedIds.OrgUnitId(1 + empIndex % 8),
+                OrgUnitId = DemoSeedIds.EmployeeOrgUnitId(empIndex),
                 Amount = amount,
                 Reason = "سلفة على الراتب لظروف طارئة",
                 Status = status,
@@ -422,7 +425,7 @@ public static class DemoContractsSeeder
     {
         var terminatedIndices = Enumerable.Range(0, DemoSeedIds.EmployeeCount)
             .Where(i => DemoSeedIds.StatusBucket(i) >= 95)
-            .Take(25)
+            .Take(AcceptanceSeedExecution.SeparationCount)
             .ToList();
 
         var sepTypes = Enum.GetValues<SeparationType>();
@@ -545,7 +548,7 @@ public static class DemoContractsSeeder
                 TenantId = TenantId,
                 EmployeeId = DemoSeedIds.EmployeeId(empIndex),
                 TransactionType = txType,
-                ReferenceNumber = $"ST-2026-{(n + 1):D4}",
+                ReferenceNumber = $"DEMO-SRV-2026-{(n + 1):D4}",
                 Notes = txType switch
                 {
                     ServiceTransactionType.Appointment => "معاملة تعيين",

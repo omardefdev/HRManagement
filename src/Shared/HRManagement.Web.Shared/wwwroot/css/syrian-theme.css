@@ -619,7 +619,13 @@ a:hover {
     margin-inline-end: 0;
 }
 
-.form-select,
+/* Bootstrap .form-select uses a custom background arrow — native appearance causes double chevrons. */
+.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
 select.form-control {
     appearance: auto;
 }
@@ -712,8 +718,189 @@ button:focus:not(:focus-visible) {
     max-width: 100%;
 }
 
+/* UX-003: unified confirm / alert modal */
+.hr-confirm-modal .modal-content {
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(38, 15, 20, 0.25);
+}
+
+.hr-confirm-modal .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    border-bottom: 2px solid var(--sy-gold);
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, var(--sy-primary-darkest) 0%, var(--sy-primary-dark) 100%);
+    color: var(--sy-white);
+}
+
+.hr-confirm-modal .modal-header .modal-title {
+    color: var(--sy-white);
+    font-weight: 900;
+    margin: 0;
+    flex: 1;
+}
+
+.hr-confirm-modal .modal-header.hr-confirm--danger {
+    background: linear-gradient(135deg, var(--sy-primary-darkest) 0%, var(--sy-primary-dark) 100%);
+}
+
+.hr-confirm-modal .modal-header.hr-confirm--warning {
+    background: linear-gradient(135deg, var(--sy-primary-dark) 0%, var(--sy-primary) 100%);
+}
+
+.hr-confirm-modal .modal-header.hr-confirm--info {
+    background: linear-gradient(135deg, var(--sy-teal-darkest) 0%, var(--sy-teal-dark) 100%);
+}
+
+.hr-confirm-modal .hr-confirm-icon {
+    font-size: 1.25rem;
+    color: var(--sy-gold);
+    flex-shrink: 0;
+}
+
+.hr-confirm-modal .modal-body {
+    background-color: rgba(237, 235, 224, 0.45);
+    color: var(--sy-gray);
+    padding: 1.25rem 1.5rem;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.hr-confirm-modal .modal-body p {
+    margin: 0;
+    color: var(--sy-charcoal);
+}
+
+.hr-confirm-modal .modal-footer {
+    background-color: var(--sy-white);
+    border-top: 1px solid rgba(185, 167, 121, 0.35);
+    padding: 0.85rem 1.25rem;
+    gap: 0.5rem;
+}
+
+.hr-confirm-modal .hr-confirm-btn-danger {
+    background-color: var(--sy-primary-dark) !important;
+    border-color: var(--sy-primary-dark) !important;
+    color: var(--sy-white) !important;
+}
+
+.hr-confirm-modal .hr-confirm-btn-danger:hover,
+.hr-confirm-modal .hr-confirm-btn-danger:focus {
+    background-color: var(--sy-primary-darkest) !important;
+    border-color: var(--sy-primary-darkest) !important;
+}
+
+.hr-confirm-modal .modal-header .btn-close {
+    filter: invert(1) grayscale(1);
+    opacity: 0.85;
+}
+
+/* HR pagination — aligned with Syrian theme (replaces default Bootstrap blue) */
+.hr-pagination {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(185, 167, 121, 0.35);
+    background-color: rgba(237, 235, 224, 0.35);
+}
+
+.hr-pagination-summary {
+    color: rgba(61, 58, 59, 0.85);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.hr-pagination-summary strong {
+    color: var(--sy-charcoal);
+    font-weight: 900;
+}
+
+.hr-pagination-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.hr-pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 2.35rem;
+    min-height: 2.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    text-decoration: none;
+    color: var(--sy-teal-darkest);
+    background-color: var(--sy-white);
+    border: 1px solid rgba(66, 129, 119, 0.45);
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hr-pagination-btn:hover:not(.disabled):not(.active) {
+    color: var(--sy-white);
+    background-color: var(--sy-teal);
+    border-color: var(--sy-teal);
+}
+
+.hr-pagination-btn:focus-visible:not(.disabled):not(.active) {
+    outline: 3px solid var(--sy-gold);
+    outline-offset: 2px;
+}
+
+.hr-pagination-btn.active {
+    color: var(--sy-white);
+    background-color: var(--sy-primary);
+    border-color: var(--sy-primary);
+    box-shadow: 0 2px 6px rgba(107, 31, 42, 0.25);
+    cursor: default;
+}
+
+.hr-pagination-btn.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    color: rgba(61, 58, 59, 0.55);
+    background-color: rgba(237, 235, 224, 0.65);
+    border-color: rgba(185, 167, 121, 0.4);
+}
+
+.hr-pagination-prev,
+.hr-pagination-next {
+    padding-inline: 0.9rem;
+}
+
+.hr-pagination-num {
+    min-width: 2.35rem;
+    padding-inline: 0.55rem;
+}
+
+@media (max-width: 575.98px) {
+    .hr-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .hr-pagination-nav {
+        width: 100%;
+    }
+
+    .hr-pagination-list {
+        justify-content: center;
+    }
+}
+
 @media print {
     .hr-skip-link,
+    .hr-pagination,
     .app-header,
     .app-sidebar,
     .app-footer,

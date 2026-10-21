@@ -58,6 +58,13 @@ def main() -> int:
                 "actionIfExecuted": "Anonymize separated employees without LegalHold",
                 "note": "DATA-002 TryAnonymize — not auto-purged here",
             },
+            {
+                "policyId": "ret-recruitment-application",
+                "enabled": True,
+                "retentionDays": 1095,
+                "actionIfExecuted": "Anonymize CitizenApplications/RecruitmentApplications past requisition close + no LegalHold",
+                "note": "CandidateLifecycleController + gov001 dry-run flag",
+            },
         ],
         "inventoryRef": "docs/data-classification/inventory.json",
         "scheduleRef": "docs/GOV_001_RETENTION_SCHEDULE.md",

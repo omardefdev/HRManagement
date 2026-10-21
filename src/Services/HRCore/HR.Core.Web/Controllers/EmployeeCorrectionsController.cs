@@ -8,6 +8,7 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
+using HR.Core.Web.ViewModels;
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Enums;
 
@@ -23,7 +24,13 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
         Dictionary<string, JsonElement> Changes);
 
     [HttpGet]
-    public async Task<IActionResult> Index(Guid? employeeId, CancellationToken ct)
+    public async Task<IActionResult> Index(
+        Guid? employeeId,
+        ApprovalStatus? status,
+        bool? requiresLegalApproval,
+        DateTime? createdFrom,
+        DateTime? createdTo,
+        CancellationToken ct)
     {
         var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User, ct);
         if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
@@ -53,8 +60,30 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
             q = q.Where(c => allowedEmployees.Contains(c.EmployeeId));
         }
 
+        if (status is ApprovalStatus st)
+            q = q.Where(c => c.Status == st);
+        if (requiresLegalApproval is bool rla)
+            q = q.Where(c => c.RequiresLegalApproval == rla);
+        if (createdFrom is DateTime cf)
+            q = q.Where(c => c.RequestedAt >= cf);
+        if (createdTo is DateTime ct2)
+            q = q.Where(c => c.RequestedAt <= ct2);
+
+        string? filterEmployeeName = null;
+        if (employeeId is Guid empId)
+            filterEmployeeName = await db.Employees.AsNoTracking().Where(e => e.Id == empId).Select(e => e.FullName).FirstOrDefaultAsync(ct);
+
         var items = await q.OrderByDescending(c => c.RequestedAt).Take(100).ToListAsync(ct);
-        return View(items);
+        return View(new EmployeeCorrectionsIndexViewModel
+        {
+            Items = items,
+            EmployeeId = employeeId,
+            FilterEmployeeName = filterEmployeeName,
+            Status = status,
+            RequiresLegalApproval = requiresLegalApproval,
+            CreatedFrom = createdFrom,
+            CreatedTo = createdTo
+        });
     }
 
     [HttpPost]

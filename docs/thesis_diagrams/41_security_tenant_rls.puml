@@ -1,0 +1,45 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title طبقات عزل الجهة والنطاق التنظيمي
+actor "مستخدم" as User
+rectangle "Keycloak claims\nroles + tenant_id + scope_org_unit_id" as Claims
+rectangle "Gateway policies" as Gateway
+rectangle "Service authorization" as Authz
+rectangle "TenantAwareDbContext\nEF Core query filters" as Ef
+database "PostgreSQL\nRow-Level Security" as Rls
+database "Audit / Enforcement Ledger" as Audit
+User --> Claims : تسجيل الدخول
+Claims --> Gateway : JWT
+Gateway --> Authz : هوية موثقة
+Authz --> Ef : TenantContext + OrgScope
+Ef --> Rls : tenant session context
+Rls --> Audit : قرار وصول وأثر حساس
+note right of Rls
+دفاع متعدد الطبقات:
+1. الدور والسياسة
+2. نطاق الوحدة التنظيمية
+3. مرشح الجهة في EF Core
+4. RLS داخل PostgreSQL
+end note
+@enduml

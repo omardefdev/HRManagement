@@ -5,7 +5,11 @@
         <h3 class="card-title mb-0">@Model.TitleAr</h3>
         <div>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">تعديل</a>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('حذف الدورة؟')">حذف</button></form>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                  data-hr-confirm="حذف الدورة؟"
+                  data-hr-confirm-title="تأكيد الحذف"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="حذف">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-danger btn-sm">حذف</button></form>
             <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
         </div>
     </div>
@@ -23,7 +27,7 @@
             <h5 class="mt-3">التسجيلات (@Model.Enrollments.Count)</h5>
             <table class="table table-sm table-striped">
                 <thead><tr><th>الموظف</th><th>الحالة</th><th>التاريخ</th></tr></thead>
-                <tbody>@foreach (var e in Model.Enrollments) { <tr><td>@e.EmployeeId</td><td>@e.Status</td><td>@e.EnrolledAt.ToString("yyyy/MM/dd")</td></tr> }</tbody>
+                <tbody>@foreach (var e in Model.Enrollments) { <tr><td><span data-hr-employee-id="@e.EmployeeId">جاري التحميل...</span></td><td>@Html.HrEnumDisplay(e.Status)</td><td>@e.EnrolledAt.ToString("yyyy/MM/dd")</td></tr> }</tbody>
             </table>
         }
         @if (Model.Nominations.Any())
@@ -31,7 +35,7 @@
             <h5 class="mt-3">الترشيحات (@Model.Nominations.Count)</h5>
             <table class="table table-sm table-striped">
                 <thead><tr><th>الموظف</th><th>الحالة</th></tr></thead>
-                <tbody>@foreach (var n in Model.Nominations) { <tr><td>@n.EmployeeId</td><td>@n.Status</td></tr> }</tbody>
+                <tbody>@foreach (var n in Model.Nominations) { <tr><td><span data-hr-employee-id="@n.EmployeeId">جاري التحميل...</span></td><td>@Html.HrEnumDisplay(n.Status)</td></tr> }</tbody>
             </table>
         }
     </div>

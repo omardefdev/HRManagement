@@ -1,0 +1,7 @@
+{
+  "correlationId": "c1742d9b-0da1-4711-aa87-d765b1703a0f",
+  "user": "acc-platform-admin",
+  "tenantId": "a0000001-0000-4000-8000-000000000001",
+  "reason": "AC-05 acceptance audit review",
+  "eventType": "PlatformEnterTenant"
+}

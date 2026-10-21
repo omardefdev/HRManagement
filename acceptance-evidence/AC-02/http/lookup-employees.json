@@ -1,0 +1,22 @@
+{
+  "step": "lookup-employees",
+  "method": "GET",
+  "url": "/api/hr-core/api/lookup/employees?page=1\u0026pageSize=50",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-08-24T17:48:09.6143414Z",
+  "body": {
+    "items": [
+      {
+        "id": "a0000001-0000-4000-8000-000000000201",
+        "label": "\u0623\u062D\u0645\u062F \u0641\u0631\u06391",
+        "sublabel": "\u0627\u0644\u0641\u0631\u0639 \u0627\u0644\u0623\u0648\u0644"
+      },
+      {
+        "id": "a0000001-0000-4000-8000-000000000202",
+        "label": "\u0633\u0627\u0631\u0629 \u0642\u0633\u06451",
+        "sublabel": "\u0642\u0633\u0645 \u0627\u0644\u0641\u0631\u0639 \u0627\u0644\u0623\u0648\u0644"
+      }
+    ],
+    "hasMore": false
+  }
+}

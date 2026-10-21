@@ -1,13 +1,14 @@
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
 using IT.Infra.Infrastructure.Data;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace IT.Infra.Web.Controllers;
 
-public class UserDevicesController(ITInfraDbContext db) : Controller
+public class UserDevicesController(ITInfraDbContext db, ICodeGenerationClient codeClient) : Controller
 {
     public async Task<IActionResult> Index() =>
         View(await db.UserDevices.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync());
@@ -25,6 +26,16 @@ public class UserDevicesController(ITInfraDbContext db) : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(UserDevice model)
     {
+        var (tagOk, tag, tagError) = await CodeGenerationGateway.GenerateOrErrorAsync(
+            codeClient, CodeGenerationRequests.ItAssetTag());
+        if (!tagOk)
+        {
+            ModelState.AddModelError(string.Empty, tagError!);
+            return View(model);
+        }
+
+        model.AssetTag = tag!;
+
         if (!ModelState.IsValid) return View(model);
         db.UserDevices.Add(model);
         await db.SaveChangesAsync();
@@ -47,7 +58,7 @@ public class UserDevicesController(ITInfraDbContext db) : Controller
         if (!ModelState.IsValid) return View(model);
         var e = await db.UserDevices.FindAsync(id);
         if (e is null) return NotFound();
-        e.AssetTag = model.AssetTag;
+        // AssetTag immutable (COD-001)
         e.AssignedTo = model.AssignedTo;
         e.DeviceType = model.DeviceType;
         e.SerialNumber = model.SerialNumber;

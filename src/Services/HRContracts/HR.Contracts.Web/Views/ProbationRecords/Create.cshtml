@@ -12,8 +12,8 @@
                 <div class="col-md-6 mb-3"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" class="form-control" type="date" /></div>
                 <div class="col-md-6 mb-3"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" class="form-control" type="date" /></div>
             </div>
-            <div class="mb-3"><label asp-for="Result" class="form-label"></label><select asp-for="Result" class="form-control" asp-items="Html.GetEnumSelectList<ProbationResult>()"></select></div>
-            <div class="mb-3"><label asp-for="DecisionBy" class="form-label"></label><input asp-for="DecisionBy" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="Result" class="form-label"></label><select asp-for="Result" class="form-control" asp-items="Html.HrEnumSelectList<ProbationResult>()"></select></div>
+            <div class="mb-3"><label asp-for="DecisionBy" class="form-label"></label><select asp-for="DecisionBy" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
             <div class="mb-3"><label asp-for="DecisionDate" class="form-label"></label><input asp-for="DecisionDate" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
         </div>

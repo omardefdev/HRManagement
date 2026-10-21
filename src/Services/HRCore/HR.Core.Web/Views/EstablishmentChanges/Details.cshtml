@@ -1,0 +1,116 @@
+@model HR.Core.Web.ViewModels.EstablishmentChangeDetailsViewModel
+@using HR.Core.Domain.Entities
+@using HR.Core.Domain.Services
+@{ ViewData["Title"] = Model.Request.RequestNumber; var r = Model.Request; }
+
+@functions {
+    string StatusBadgeClass(EstablishmentChangeStatus status) => status switch
+    {
+        EstablishmentChangeStatus.Draft => "bg-secondary",
+        EstablishmentChangeStatus.PendingApproval => "bg-warning text-dark",
+        EstablishmentChangeStatus.Approved => "bg-info text-dark",
+        EstablishmentChangeStatus.Applied => "bg-success",
+        EstablishmentChangeStatus.Rejected => "bg-danger",
+        EstablishmentChangeStatus.Cancelled => "bg-dark",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">@r.RequestNumber — @r.ChangeType</h3>
+        <span class="badge @StatusBadgeClass(r.Status)">@r.Status</span>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <tr><th style="width:30%">نوع التغيير</th><td>@r.ChangeType</td></tr>
+            <tr><th>الحالة</th><td>@r.Status</td></tr>
+            <tr><th>الكيان المستهدف</th><td>@(r.TargetEntityId?.ToString() ?? "—")</td></tr>
+            <tr><th>الكيان الناتج</th><td>@(r.ResultEntityId?.ToString() ?? "—")</td></tr>
+            <tr><th>المرجع القانوني</th><td>@(Model.LegalSourceLabel ?? r.LegalSourceId ?? "—")</td></tr>
+            <tr><th>مرجع القرار</th><td>@(r.DecisionReference ?? "—")</td></tr>
+            <tr><th>مبررات</th><td>@(r.JustificationNotes ?? "—")</td></tr>
+            <tr><th>تاريخ الطلب</th><td>@r.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+            @if (r.AppliedAt is DateTime appliedAt)
+            {
+                <tr><th>تاريخ التطبيق</th><td>@appliedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+            }
+        </table>
+
+        @{
+            ViewData["ChangeRequestId"] = r.Id;
+        }
+        <partial name="_EstablishmentChangeWorkflowPanel" model="Model.Workflow" />
+
+        <h5 class="mt-4">ملخص الطلب</h5>
+        <partial name="_EstablishmentPayloadSummary" model="Model.PayloadSummary" />
+
+        <details class="mt-3">
+            <summary class="text-muted small">حمولة JSON (تشخيص)</summary>
+            <pre class="bg-light p-2 rounded small mt-2" dir="ltr">@r.PayloadJson</pre>
+        </details>
+
+        @if (EstablishmentChangeWorkflowRules.CanSubmit(r.Status) && Model.CanMutate)
+        {
+            <hr />
+            <h5>تقديم للاعتماد</h5>
+            <form asp-action="Submit" asp-route-id="@r.Id" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-6">
+                    <label asp-for="Submit.LegalSourceId" class="form-label"></label>
+                    <select asp-for="Submit.LegalSourceId"
+                            asp-items="ViewBag.LegalSources"
+                            class="form-select"
+                            data-hr-picker="select"
+                            data-placeholder="اختر المرجع القانوني...">
+                        <option value="">— اختر المرجع القانوني —</option>
+                    </select>
+                    <span asp-validation-for="Submit.LegalSourceId" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Submit.DecisionReference" class="form-label"></label>
+                    <input asp-for="Submit.DecisionReference" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Submit.EffectiveFrom" class="form-label"></label>
+                    <input asp-for="Submit.EffectiveFrom" class="form-control" type="datetime-local" />
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-warning">تقديم للاعتماد</button>
+                </div>
+            </form>
+        }
+
+        @if (EstablishmentChangeWorkflowRules.CanCancel(r.Status) && Model.CanMutate)
+        {
+            <form asp-action="Cancel" asp-route-id="@r.Id" method="post" class="mt-3 d-inline" onsubmit="return confirm('إلغاء طلب التغيير؟');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء الطلب</button>
+            </form>
+        }
+
+        @if (Model.ChangeLogs.Any())
+        {
+            <h5 class="mt-4">سجل التطبيق</h5>
+            <partial name="_EstablishmentChangeLogTable" model="Model.ChangeLogs" />
+        }
+    </div>
+    <div class="card-footer">
+        <a asp-action="Index" class="btn btn-secondary">العودة</a>
+        @if (r.Status == EstablishmentChangeStatus.Applied && r.ResultEntityId is Guid resultId)
+        {
+            @if (r.ChangeType is EstablishmentChangeType.CreateJobCatalog or EstablishmentChangeType.UpdateJobCatalog or EstablishmentChangeType.DeactivateJobCatalog)
+            {
+                <a asp-controller="JobCatalog" asp-action="Details" asp-route-id="@resultId" class="btn btn-outline-primary">عرض دليل الوظائف</a>
+            }
+            else if (r.ChangeType == EstablishmentChangeType.BulkCreateJobCatalog)
+            {
+                <a asp-controller="JobCatalog" asp-action="Index" class="btn btn-outline-primary">عرض دليل الوظائف</a>
+            }
+            else if (r.ChangeType is EstablishmentChangeType.CreateFundedPosition or EstablishmentChangeType.FreezeFundedPosition or EstablishmentChangeType.UnfreezeFundedPosition)
+            {
+                <a asp-controller="FundedPositions" asp-action="Details" asp-route-id="@resultId" class="btn btn-outline-primary">عرض المنصب</a>
+            }
+        }
+    </div>
+</div>

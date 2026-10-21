@@ -15,6 +15,30 @@ namespace HRManagement.IntegrationTests;
 public class Fun001HireSagaIntegrationTests
 {
     [Fact]
+    public async Task HireSaga_StartWithRecruitmentApplicationId_PropagatesToCompletedEvent()
+    {
+        await using var env = await CreateHireSagaEnvAsync(
+            parties: [ProcessParties.Payroll]);
+        var txnId = Guid.NewGuid();
+        var employeeId = Guid.NewGuid();
+        var appId = Guid.NewGuid();
+
+        await env.Harness.Bus.Publish<IStartHireSaga>(new
+        {
+            ServiceTransactionId = txnId,
+            EmployeeId = employeeId,
+            ContractId = (Guid?)null,
+            RecruitmentApplicationId = appId,
+            CorrelationId = "fun001-lineage",
+            TenantId = (Guid?)null
+        });
+
+        Assert.True(await env.Harness.Published.Any<IHireCaseCompleted>(
+            x => x.Context.Message.RecruitmentApplicationId == appId
+                 && x.Context.Message.ServiceTransactionId == txnId));
+    }
+
+    [Fact]
     public async Task HireSaga_HappyPath_IncludesAuthDirectory_ThenCompleted()
     {
         await using var env = await CreateHireSagaEnvAsync(

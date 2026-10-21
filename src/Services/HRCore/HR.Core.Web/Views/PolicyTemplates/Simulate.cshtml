@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "محاكاة سياسة";
+    var versionId = (Guid)ViewBag.VersionId;
+    var domain = ViewBag.Domain as string;
+    var decision = ViewBag.Decision as HRManagement.SharedKernel.Policy.PolicyDecision;
+    var factsJson = ViewBag.FactsJson as string ?? "{\"isPrivileged\":\"true\",\"value\":\"15000\"}";
+}
+<div class="card">
+    <div class="card-header">محاكاة — @domain</div>
+    <div class="card-body">
+        <form asp-action="Simulate" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="versionId" value="@versionId" />
+            <div class="mb-3">
+                <label class="form-label">Facts (JSON)</label>
+                <textarea name="factsJson" class="form-control font-monospace" rows="8">@factsJson</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">تشغيل</button>
+        </form>
+        @if (decision is not null)
+        {
+            <div class="alert alert-info mt-3">
+                <strong>Allowed:</strong> @decision.Allowed<br />
+                <strong>Effects:</strong> @string.Join(", ", decision.Effects)<br />
+                <strong>Explanations:</strong> @string.Join("؛ ", decision.Explanations)
+            </div>
+        }
+    </div>
+</div>

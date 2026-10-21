@@ -17,49 +17,104 @@ entity "AuditFindings\nAuditFinding" as T01 {
     AuditId
     TenantId
 }
-entity "Complaints\nComplaint" as T02 {
+entity "CollectiveGrievances\nCollectiveGrievance" as T02 {
   * Id
+    OwnerId
     TenantId
 }
-entity "ComplaintFollowUps\nComplaintFollowUp" as T03 {
+entity "Complaints\nComplaint" as T03 {
+  * Id
+    EvidenceFileId
+    ReporterProtectedId
+    TenantId
+}
+entity "ComplaintFollowUps\nComplaintFollowUp" as T04 {
   * Id
     ComplaintId
     TenantId
 }
-entity "ComplianceRecommendations\nComplianceRecommendation" as T04 {
+entity "ComplianceRecommendations\nComplianceRecommendation" as T05 {
   * Id
     ComplaintId
     FindingId
     ResponsibleUnitId
     TenantId
 }
-entity "DisciplinaryActions\nDisciplinaryAction" as T05 {
+entity "DisciplinaryActions\nDisciplinaryAction" as T06 {
   * Id
     ComplaintId
     EmployeeId
+    EvidenceFileId
     TenantId
 }
-entity "LegalCases\nLegalCase" as T06 {
+entity "DsarRequests\nDsarRequest" as T07 {
   * Id
+    SubjectEmployeeId
     TenantId
 }
-entity "LegalReferrals\nLegalReferral" as T07 {
+entity "InvestigationChecklists\nInvestigationChecklist" as T08 {
   * Id
     ComplaintId
     TenantId
 }
-entity "AuditLogs\nEntityAuditLog" as T08 {
+entity "LegalCases\nLegalCase" as T09 {
+  * Id
+    TenantId
+}
+entity "LegalReferrals\nLegalReferral" as T10 {
+  * Id
+    ComplaintId
+    TenantId
+}
+entity "UnionEngagements\nUnionEngagement" as T11 {
+  * Id
+    TenantId
+    WaveId
+}
+entity "AuditLogs\nEntityAuditLog" as T12 {
   * Id
     EntityId
     TenantId
     UserId
 }
+entity "ExportJobs\nExportJob" as T13 {
+  * Id
+    RequestedByUserId
+    ResultFileId
+    TenantId
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T14 {
+  * Id
+    MessageId
+    TenantId
+}
+entity "InboxState\nInboxState" as T15 {
+  * Id
+    ConsumerId
+    LockId
+    MessageId
+}
+entity "OutboxMessage\nOutboxMessage" as T16 {
+  * SequenceNumber
+    ConversationId
+    CorrelationId
+    InboxConsumerId
+    InboxMessageId
+    InitiatorId
+    MessageId
+    OutboxId
+    RequestId
+}
+entity "OutboxState\nOutboxState" as T17 {
+  * OutboxId
+    LockId
+}
 
-T03 }o--|| T02 : ComplaintId
-T04 }o--|| T02 : ComplaintId
-T04 }o--|| T01 : FindingId
-T05 }o--|| T02 : ComplaintId
-T07 }o--|| T02 : ComplaintId
+T04 }o--|| T03 : ComplaintId
+T05 }o--|| T03 : ComplaintId
+T05 }o--|| T01 : FindingId
+T06 }o--|| T03 : ComplaintId
+T10 }o--|| T03 : ComplaintId
 
 note bottom
 الخريطة المختصرة تعرض الجداول والعلاقات الأساسية؛ التفاصيل الكاملة في ملحق ERD.

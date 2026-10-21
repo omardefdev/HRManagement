@@ -1,0 +1,44 @@
+@model HR.Core.Domain.Entities.Policy.PolicyTemplate
+@{ ViewData["Title"] = Model.Name; }
+<div class="card mb-3">
+    <div class="card-header"><h3 class="mb-0">@Model.Name</h3></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Domain</dt><dd class="col-sm-9"><code>@Model.Domain</code></dd>
+            <dt class="col-sm-3">Subject</dt><dd class="col-sm-9">@Model.SubjectType</dd>
+            <dt class="col-sm-3">Scope</dt><dd class="col-sm-9">@Model.Scope</dd>
+        </dl>
+    </div>
+</div>
+@foreach (var v in Model.Versions.OrderByDescending(x => x.VersionNumber))
+{
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <span>إصدار @v.VersionNumber — @v.Status</span>
+            <span>
+                @if (v.Status == HR.Core.Domain.Entities.Policy.PolicyVersionStatus.Draft)
+                {
+                    <a asp-action="EditRules" asp-route-versionId="@v.Id" class="btn btn-sm btn-warning me-1">تحرير</a>
+                }
+                <a asp-action="Simulate" asp-route-versionId="@v.Id" class="btn btn-sm btn-primary">محاكاة</a>
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Rule</th><th>Priority</th><th>When</th><th>Then</th></tr></thead>
+                <tbody>
+                    @foreach (var r in v.Rules.OrderBy(x => x.Priority))
+                    {
+                        <tr>
+                            <td>@(r.Name ?? r.RuleKey)</td>
+                            <td>@r.Priority</td>
+                            <td><code class="small">@r.WhenJson</code></td>
+                            <td><code class="small">@r.ThenJson</code></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+<p><a asp-action="Index">العودة</a></p>

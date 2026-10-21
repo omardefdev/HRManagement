@@ -5,13 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
+using HRManagement.Documents.QuestPdf;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Exports;
+using HRManagement.SharedKernel.Localization;
 using HRManagement.SharedKernel.ViewModels;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using HR.Core.Infrastructure.ExportJobs;
 
 namespace HR.Core.Web.Controllers;
@@ -44,11 +45,13 @@ public class ReportsController : Controller
         var vm = new ReportsSummaryViewModel
         {
             TotalEmployees = await employees.CountAsync(ct),
-            ByStatus = await employees
+            ByStatus = (await employees
                 .GroupBy(e => e.CurrentStatus)
-                .Select(g => new ReportGroupItem { Label = g.Key.ToString(), Count = g.Count() })
+                .Select(g => new { Status = g.Key, Count = g.Count() })
                 .Take(SearchFilterBase.MaxPageSize)
-                .ToListAsync(ct),
+                .ToListAsync(ct))
+                .Select(g => new ReportGroupItem { Label = EnumDisplayExtensions.GetDisplayName(g.Status), Count = g.Count })
+                .ToList(),
             ByOrgUnit = await employees
                 .Where(e => e.PrimaryOrgUnit != null)
                 .GroupBy(e => e.PrimaryOrgUnit!.NameAr)
@@ -56,16 +59,20 @@ public class ReportsController : Controller
                 .OrderByDescending(x => x.Count)
                 .Take(SearchFilterBase.MaxPageSize)
                 .ToListAsync(ct),
-            ByCadre = await employees
+            ByCadre = (await employees
                 .GroupBy(e => e.Cadre)
-                .Select(g => new ReportGroupItem { Label = g.Key.ToString(), Count = g.Count() })
+                .Select(g => new { Cadre = g.Key, Count = g.Count() })
                 .Take(SearchFilterBase.MaxPageSize)
-                .ToListAsync(ct),
-            ByGender = await employees
+                .ToListAsync(ct))
+                .Select(g => new ReportGroupItem { Label = EnumDisplayExtensions.GetDisplayName(g.Cadre), Count = g.Count })
+                .ToList(),
+            ByGender = (await employees
                 .GroupBy(e => e.Gender)
-                .Select(g => new ReportGroupItem { Label = g.Key.ToString(), Count = g.Count() })
+                .Select(g => new { Gender = g.Key, Count = g.Count() })
                 .Take(SearchFilterBase.MaxPageSize)
-                .ToListAsync(ct)
+                .ToListAsync(ct))
+                .Select(g => new ReportGroupItem { Label = EnumDisplayExtensions.GetDisplayName(g.Gender), Count = g.Count })
+                .ToList()
         };
 
         return View(vm);
@@ -99,7 +106,7 @@ public class ReportsController : Controller
         var sb = new StringBuilder();
         sb.AppendLine("Id,NationalIdMasked,FullName,CurrentStatus,HireDate");
         foreach (var r in rows)
-            sb.AppendLine($"{r.Id},{Csv(PiiMask.NationalId(r.NationalId))},{Csv(r.FullName)},{r.CurrentStatus},{r.HireDate?.ToString("yyyy-MM-dd")}");
+            sb.AppendLine($"{r.Id},{Csv(PiiMask.NationalId(r.NationalId))},{Csv(r.FullName)},{Csv(EnumDisplayExtensions.GetDisplayName(r.CurrentStatus))},{r.HireDate?.ToString("yyyy-MM-dd")}");
 
         var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
         return File(bytes, "text/csv; charset=utf-8", $"employees-{DateTime.UtcNow:yyyyMMdd}.csv");
@@ -150,10 +157,10 @@ public class ReportsController : Controller
             var e = employees[i];
             ws.Cell(i + 2, 1).Value = PiiMask.NationalId(e.NationalId);
             ws.Cell(i + 2, 2).Value = e.FullName;
-            ws.Cell(i + 2, 3).Value = e.CurrentStatus.ToString();
+            ws.Cell(i + 2, 3).Value = EnumDisplayExtensions.GetDisplayName(e.CurrentStatus);
             ws.Cell(i + 2, 4).Value = e.HireDate?.ToString("yyyy-MM-dd") ?? "";
             ws.Cell(i + 2, 5).Value = e.PrimaryOrgUnit?.NameAr ?? "—";
-            ws.Cell(i + 2, 6).Value = e.Cadre.ToString();
+            ws.Cell(i + 2, 6).Value = EnumDisplayExtensions.GetDisplayName(e.Cadre);
         }
 
         ws.Columns().AdjustToContents();
@@ -170,7 +177,6 @@ public class ReportsController : Controller
     public async Task<IActionResult> ExportEmployeesPdf(string? status, Guid? orgUnitId, CancellationToken ct)
     {
         SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, "Reports/ExportEmployeesPdf");
-        QuestPDF.Settings.License = LicenseType.Community;
 
         var orgScope = await _orgScope.GetAllowedOrgUnitIdsAsync(User, ct);
         if (orgScope.IsDenied) return Forbid();
@@ -196,11 +202,7 @@ public class ReportsController : Controller
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4.Landscape());
-                page.Margin(1, Unit.Centimetre);
-                page.ContentFromRightToLeft();
-
-                page.Header().Text("تقرير الموظفين").FontSize(18).Bold().AlignCenter();
+                page.ConfigureOfficialPage("تقرير الموظفين", marginPoints: 28, pageSize: PageSizes.A4.Landscape());
 
                 page.Content().PaddingVertical(10).Table(table =>
                 {
@@ -223,18 +225,10 @@ public class ReportsController : Controller
                     foreach (var e in employees)
                     {
                         table.Cell().Text(e.FullName);
-                        table.Cell().Text(e.CurrentStatus.ToString());
+                        table.Cell().Text(EnumDisplayExtensions.GetDisplayName(e.CurrentStatus));
                         table.Cell().Text(e.HireDate?.ToString("yyyy-MM-dd") ?? "—");
                         table.Cell().Text(e.PrimaryOrgUnit?.NameAr ?? "—");
                     }
-                });
-
-                page.Footer().AlignCenter().Text(txt =>
-                {
-                    txt.Span("صفحة ");
-                    txt.CurrentPageNumber();
-                    txt.Span(" من ");
-                    txt.TotalPages();
                 });
             });
         });

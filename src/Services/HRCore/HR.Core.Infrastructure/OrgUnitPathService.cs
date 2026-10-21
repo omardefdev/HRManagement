@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Infrastructure.Data;
+using HRManagement.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure;
@@ -12,7 +13,9 @@ public class OrgUnitPathService(HRCoreDbContext db)
     /// <summary>Full-table repair only (startup/admin). Prefer AssignPathOnCreate / MoveSubtreeAsync on hot paths.</summary>
     public async Task RecomputeAllAsync(CancellationToken ct = default)
     {
-        var units = await db.OrgUnits.ToListAsync(ct);
+        var units = await db.OrgUnits
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.OrganizationMaintenance)
+            .ToListAsync(ct);
         var byId = units.ToDictionary(u => u.Id);
 
         foreach (var unit in units)

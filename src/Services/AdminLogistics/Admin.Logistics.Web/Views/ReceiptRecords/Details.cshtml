@@ -1,17 +1,135 @@
-@model ReceiptRecord
-@{ ViewData["Title"] = "تفاصيل الاستلام"; }
+@model Admin.Logistics.Web.ViewModels.ReceiptDetailsViewModel
+@{ ViewData["Title"] = "تفاصيل الاستلام"; var r = Model.Receipt; }
+@if (TempData["NextStep"] is string nextStep)
+{
+    <div class="alert alert-info">@nextStep</div>
+}
 <div class="card mb-3">
-    <div class="card-header"><h3 class="mb-0">سجل استلام</h3></div>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">سجل استلام</h3>
+        @if (Model.ExpectedCapitalizableCount > 0)
+        {
+            <span class="badge bg-secondary">@Model.LinkedAssetCount / @Model.ExpectedCapitalizableCount أصول مُنشأة</span>
+        }
+        else if (Model.LinkedAssetCount > 0)
+        {
+            <span class="badge bg-secondary">@Model.LinkedAssetCount أصل مرتبط</span>
+        }
+    </div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">طلب التجهيز</dt><dd class="col-sm-9">@(Model.SupplyOrder?.Items ?? "—")</dd>
-            <dt class="col-sm-3">استلم بواسطة</dt><dd class="col-sm-9">@Model.ReceivedBy</dd>
-            <dt class="col-sm-3">تاريخ الاستلام</dt><dd class="col-sm-9">@Model.ReceivedAt?.ToString("yyyy/MM/dd")</dd>
-            <dt class="col-sm-3">المواد المستلمة</dt><dd class="col-sm-9">@(Model.ItemsReceived ?? "—")</dd>
+            <dt class="col-sm-3">طلب التجهيز</dt>
+            <dd class="col-sm-9">
+                @if (r.SupplyOrderId is Guid soId)
+                {
+                    <a asp-controller="SupplyOrders" asp-action="Details" asp-route-id="@soId">@(r.SupplyOrder?.Items ?? soId.ToString())</a>
+                }
+                else { <span>—</span> }
+            </dd>
+            <dt class="col-sm-3">استلم بواسطة</dt>
+            <dd class="col-sm-9">
+                @if (r.ReceivedBy is Guid rb)
+                {
+                    if (Model.ReceivedByName is not null && HrLookupDisplayHelper.IsResolvedEmployeeName(Model.ReceivedByName))
+                    {
+                        <span>@Model.ReceivedByName</span>
+                    }
+                    else
+                    {
+                        <span data-hr-employee-id="@rb">@rb</span>
+                    }
+                }
+                else { <span>—</span> }
+            </dd>
+            <dt class="col-sm-3">تاريخ الاستلام</dt><dd class="col-sm-9">@r.ReceivedAt?.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">المواد المستلمة</dt><dd class="col-sm-9">@(r.ItemsReceived ?? "—")</dd>
+            <dt class="col-sm-3">عنصر المخزون</dt><dd class="col-sm-9">@(r.InventoryItem?.Name ?? "—")</dd>
+            <dt class="col-sm-3">الكمية المستلمة</dt><dd class="col-sm-9">@(r.QuantityReceived?.ToString() ?? "—")</dd>
         </dl>
     </div>
 </div>
+
+@if (Model.CapitalizableLines.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header">بنود قابلة للرسملة — إنشاء أصول</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr><th>البند</th><th>مستلم</th><th>أصول</th><th>متبقي</th><th>تكلفة</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in Model.CapitalizableLines)
+                    {
+                        <tr>
+                            <td>@line.Label</td>
+                            <td>@line.QtyReceived</td>
+                            <td>@line.AssetsCreated</td>
+                            <td>@line.Remaining</td>
+                            <td>@(line.UnitCost?.ToString("N2") ?? "—")</td>
+                            <td>
+                                @if (line.Remaining > 0)
+                                {
+                                    <form asp-controller="Assets" asp-action="CreateFromReceipt" method="post" class="d-inline"
+                                          data-hr-confirm="إنشاء أصل من هذا البند؟"
+                                          data-hr-confirm-title="إنشاء أصل"
+                                          data-hr-confirm-label="إنشاء">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="receiptId" value="@r.Id" />
+                                        <input type="hidden" name="supplyOrderLineId" value="@line.LineId" />
+                                        <button type="submit" class="btn btn-sm btn-primary">إنشاء أصل</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">مكتمل</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <div class="btn-group mb-3">
+        <form asp-controller="Assets" asp-action="CreateFromReceipt" method="post" class="d-inline"
+              data-hr-confirm="إنشاء أصل من هذا الاستلام؟"
+              data-hr-confirm-title="إنشاء أصل"
+              data-hr-confirm-label="إنشاء">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="receiptId" value="@r.Id" />
+            <button type="submit" class="btn btn-primary">إنشاء أصل من الاستلام</button>
+        </form>
+    </div>
+}
+
+@if (Model.LinkedAssets.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header">الأصول المرتبطة</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>رقم العهدة</th><th>الاسم</th><th>الحالة</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.LinkedAssets)
+                    {
+                        <tr>
+                            <td>@a.TagNumber</td>
+                            <td>@a.Name</td>
+                            <td>@Html.HrEnumDisplay(a.Status)</td>
+                            <td><a asp-controller="Assets" asp-action="Details" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
 <div class="btn-group mb-3">
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+    <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-warning">تعديل</a>
 </div>
 <p><a asp-action="Index">العودة</a></p>

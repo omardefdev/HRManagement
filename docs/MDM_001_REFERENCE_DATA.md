@@ -33,6 +33,22 @@ Covers 12 national dimensions:
 ### Fields per entry
 `Code`, `NameAr`, `NameEn`, `NameFr`, `ValidFrom`, `ValidTo`, `ReplacedByCode`, `SourceAuthority`, `StewardRole`, `IsActive`, `Version`
 
+## Admin UI (PLAN-20 / FR-MDM-03)
+
+Central HR (`HrCoreWrite` + unrestricted org scope) manages **Grade** and **JobClassification** via MVC:
+
+| Route | Screen |
+|-------|--------|
+| `GET /ReferenceCatalog?kind=Grade` | Index — search/filter |
+| `GET /ReferenceCatalog/Create?kind=Grade` | Create new code |
+| `GET /ReferenceCatalog/Edit/{id}` | Update names/dates (agency-owned only) |
+| `GET /ReferenceCatalog/Details/{id}` | Details + impact table |
+| `POST /ReferenceCatalog/Deactivate/{id}` | Deactivate (blocked when JobCatalog impact > 0) |
+
+Platform tenant entries (`TenantDefaults.DefaultTenantId`) are **read-only** for agency users; new codes are created on the current agency tenant. Pickers consume `/api/lookup/reference-data` — no JS change required after create.
+
+Service: `ReferenceCatalogAdminService` in Infrastructure; sidebar under **الحوكمة → المرجع الوطني (MDM)**.
+
 ## API Endpoints
 
 | Method | Route | Description |
@@ -54,8 +70,10 @@ Covers 12 national dimensions:
 - `ReferenceDataLifecycleService` enforces lifecycle rules
 
 ### Impact Analysis
-- `ReferenceImpactAnalyzer` counts dependent rows in `EmploymentRecords` and `CareerPathSteps` before deactivation
-- Extensible to additional FK columns
+- `ReferenceImpactAnalyzer` counts dependent rows before deactivation:
+  - **Grade:** `JobCatalogEntries.GradeCode`
+  - **JobClassification:** `JobCatalogEntries.OccupationalGroup`, `EmploymentRecords`, `CareerPathSteps`
+- Admin UI and API reject deactivation when any affected count > 0 (v1)
 
 ### Events
 - `IReferenceDataChanged` (MassTransit) published on create/update/deactivate

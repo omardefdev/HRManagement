@@ -3,8 +3,10 @@ using Auth.Directory.Domain.Entities;
 using Auth.Directory.Infrastructure.Data;
 using Auth.Directory.Infrastructure.Keycloak;
 using HRManagement.SharedKernel.SeparationOfDuties;
+using HRManagement.ServiceDefaults.Integration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using HRManagement.SharedKernel.ViewModels;
 
 namespace Auth.Directory.Web.Controllers;
@@ -13,11 +15,16 @@ public class AuthUsersController : Controller
 {
     private readonly AuthDirectoryDbContext _db;
     private readonly IKeycloakUserProvisioningService _keycloak;
+    private readonly IHrCoreLookupClient? _hrCoreLookup;
 
-    public AuthUsersController(AuthDirectoryDbContext db, IKeycloakUserProvisioningService keycloak)
+    public AuthUsersController(
+        AuthDirectoryDbContext db,
+        IKeycloakUserProvisioningService keycloak,
+        IHrCoreLookupClient? hrCoreLookup = null)
     {
         _db = db;
         _keycloak = keycloak;
+        _hrCoreLookup = hrCoreLookup;
     }
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
@@ -39,6 +46,7 @@ public class AuthUsersController : Controller
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user is null) return NotFound();
+        ViewBag.EmployeeName = await ResolveEmployeeNameAsync(user.EmployeeId);
         return View(user);
     }
 
@@ -50,7 +58,7 @@ public class AuthUsersController : Controller
 
         if (user is null) return NotFound();
 
-        ViewBag.AllRoles = await _db.Roles.AsNoTracking().OrderBy(r => r.Name).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync();
+        await PopulateEditLookupsAsync(id);
         return View(user);
     }
 
@@ -95,8 +103,21 @@ public class AuthUsersController : Controller
             {
                 if (!secondApprover.HasValue)
                 {
-                    TempData["Error"] = $"منح الدور الحساس '{role.Name}' يتطلب معرف معتمد ثانٍ (four-eyes).";
-                    ViewBag.AllRoles = allRoles.OrderBy(r => r.Name).ToList();
+                    TempData["Error"] = $"منح الدور الحساس '{role.Name}' يتطلب اختيار معتمد ثانٍ (اعتماد مزدوج).";
+                    await PopulateEditLookupsAsync(id, secondApproverId);
+                    return View(user);
+                }
+
+                var secondApproverIsValid = await _db.AuthUsers
+                    .AsNoTracking()
+                    .AnyAsync(u => u.Id == secondApprover.Value
+                        && u.IsActive
+                        && u.Id != user.Id
+                        && u.Id != assignorId.Value);
+                if (!secondApproverIsValid)
+                {
+                    TempData["Error"] = "اختر معتمداً ثانياً فعالاً ومختلفاً عن المانح وصاحب الحساب.";
+                    await PopulateEditLookupsAsync(id, secondApproverId);
                     return View(user);
                 }
 
@@ -122,7 +143,7 @@ public class AuthUsersController : Controller
             if (!guardResult.Allowed)
             {
                 TempData["Error"] = guardResult.DenialReason;
-                ViewBag.AllRoles = allRoles.OrderBy(r => r.Name).ToList();
+                await PopulateEditLookupsAsync(id, secondApproverId);
                 return View(user);
             }
 
@@ -195,6 +216,52 @@ public class AuthUsersController : Controller
 
         TempData["Success"] = "تم تحديث المستخدم";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private async Task PopulateEditLookupsAsync(Guid targetId, string? selectedSecondApproverId = null)
+    {
+        ViewBag.AllRoles = await _db.Roles
+            .AsNoTracking()
+            .OrderBy(r => r.Name)
+            .Take(SearchFilterBase.LookupMaxPageSize)
+            .ToListAsync();
+
+        var approverRows = await _db.AuthUsers
+            .AsNoTracking()
+            .Where(u => u.IsActive && u.Id != targetId)
+            .OrderBy(u => u.Username)
+            .Take(SearchFilterBase.LookupMaxPageSize)
+            .Select(u => new { u.Id, u.Username, u.Email })
+            .ToListAsync();
+        ViewBag.SecondApprovers = approverRows
+            .Select(u => new SelectListItem
+            {
+                Value = u.Id.ToString(),
+                Text = u.Username + " — " + u.Email,
+                Selected = u.Id.ToString() == selectedSecondApproverId
+            })
+            .ToList();
+    }
+
+    private async Task<string> ResolveEmployeeNameAsync(Guid? employeeId)
+    {
+        if (!employeeId.HasValue)
+            return "غير مرتبط بموظف";
+
+        try
+        {
+            if (_hrCoreLookup is null)
+                return "غير متاح";
+
+            var result = await _hrCoreLookup.GetEmployeesByIdsAsync([employeeId.Value], HttpContext.RequestAborted);
+            return result.FirstOrDefault()?.Label ?? "غير متاح";
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<AuthUsersController>>()
+                .LogWarning(ex, "Employee name lookup failed for auth user details.");
+            return "غير متاح";
+        }
     }
 
     [HttpPost]

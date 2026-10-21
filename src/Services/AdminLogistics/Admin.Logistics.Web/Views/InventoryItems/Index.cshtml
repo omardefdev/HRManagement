@@ -1,5 +1,50 @@
-@model IReadOnlyList<Admin.Logistics.Domain.Entities.InventoryItem>
+@model Admin.Logistics.Web.ViewModels.InventoryItemIndexViewModel
 @{ ViewData["Title"] = "المخزون"; }
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="رمز أو اسم..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الموقع</label>
+                <select name="location" class="form-select" data-hr-picker="select" data-placeholder="— الكل —" asp-items="ViewBag.Locations">
+                    <option value="">— الكل —</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الوحدة</label>
+                <select name="unit" class="form-select" data-hr-picker="select" data-placeholder="— الكل —" asp-items="ViewBag.Units">
+                    <option value="">— الكل —</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الكمية من</label>
+                <input type="number" name="quantityMin" value="@Model.QuantityMin" class="form-control" min="0" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الكمية إلى</label>
+                <input type="number" name="quantityMax" value="@Model.QuantityMax" class="form-control" min="0" />
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input type="checkbox" name="lowStockOnly" value="true" class="form-check-input" id="lowStockOnly" @(Model.LowStockOnly ? "checked" : null) />
+                    <label class="form-check-label" for="lowStockOnly">مخزون منخفض (عند أو تحت حد إعادة الطلب)</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="outOfStockOnly" value="true" class="form-check-input" id="outOfStockOnly" @(Model.OutOfStockOnly ? "checked" : null) />
+                    <label class="form-check-label" for="outOfStockOnly">نفد المخزون (كمية 0)</label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">عناصر المخزون</h3>
@@ -9,7 +54,7 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>SKU</th><th>الاسم</th><th>الكمية</th><th>الموقع</th><th>حد إعادة الطلب</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items.Items)
                 {
                     <tr>
                         <td>@x.Sku</td>
@@ -20,8 +65,9 @@
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا عناصر</td></tr> }
+                @if (!Model.Items.Items.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا عناصر</td></tr> }
             </tbody>
         </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
     </div>
 </div>

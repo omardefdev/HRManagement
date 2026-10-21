@@ -14,13 +14,13 @@
             <dd class="col-sm-9">@Model.AssignedTo</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.DeviceType)</dt>
-            <dd class="col-sm-9">@Model.DeviceType</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.DeviceType)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.SerialNumber)</dt>
             <dd class="col-sm-9">@Model.SerialNumber</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
-            <dd class="col-sm-9">@Model.Status</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
         </dl>
     </div>
     <div class="card-footer">

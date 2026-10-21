@@ -8,6 +8,7 @@ using HR.Contracts.Domain.Enums;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Web.ViewModels;
 using HRManagement.SharedKernel.ViewModels;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace HR.Contracts.Web.Controllers;
 
@@ -15,22 +16,36 @@ public class ContractsController : Controller
 {
     private readonly ContractsDbContext _db;
     private readonly IMediator _mediator;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public ContractsController(ContractsDbContext db, IMediator mediator)
+    public ContractsController(ContractsDbContext db, IMediator mediator, IHrCoreLookupClient hrCoreLookup)
     {
         _db = db;
         _mediator = mediator;
+        _hrCoreLookup = hrCoreLookup;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(ContractStatus? status, Guid? employeeId)
     {
-        var items = await _db.Contracts
+        var query = _db.Contracts
             .Include(c => c.ContractType)
-            .AsNoTracking()
+            .AsNoTracking();
+        if (status.HasValue)
+            query = query.Where(c => c.Status == status.Value);
+        if (employeeId.HasValue)
+            query = query.Where(c => c.EmployeeId == employeeId.Value);
+
+        var items = await query
             .OrderByDescending(c => c.CreatedAt)
             .Take(SearchFilterBase.MaxPageSize)
             .ToListAsync();
 
+        ViewBag.StatusFilter = status;
+        ViewBag.EmployeeId = employeeId;
+        var nameIds = items.Select(c => c.EmployeeId).ToList();
+        if (employeeId.HasValue)
+            nameIds.Add(employeeId.Value);
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(nameIds);
         return View(items);
     }
 
@@ -43,6 +58,8 @@ public class ContractsController : Controller
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (contract == null) return NotFound();
+        ViewBag.EmployeeName = (await ResolveEmployeeNamesAsync([contract.EmployeeId]))
+            .GetValueOrDefault(contract.EmployeeId, "غير متاح");
         return View(contract);
     }
 
@@ -75,8 +92,8 @@ public class ContractsController : Controller
             // Never from the request: activation is a workflow step, not a form field.
             Status = ContractStatus.Pending,
             Terms = string.IsNullOrWhiteSpace(vm.Terms) ? null : vm.Terms.Trim(),
-            SignedBy = vm.SignedBy,
-            SignedDate = vm.SignedDate,
+            SignedBy = null,
+            SignedDate = null,
             ProbationMonths = vm.ProbationMonths
         });
         await _db.SaveChangesAsync();
@@ -124,8 +141,7 @@ public class ContractsController : Controller
         // Status is intentionally not copied: editing contract details must not move it through
         // the lifecycle. Activation, expiry and termination each have their own guarded command.
         c.Terms = string.IsNullOrWhiteSpace(vm.Terms) ? null : vm.Terms.Trim();
-        c.SignedBy = vm.SignedBy;
-        c.SignedDate = vm.SignedDate;
+        // Signatures are recorded through ContractSignatures; never bind an account GUID here.
         c.ProbationMonths = vm.ProbationMonths;
 
         await _db.SaveChangesAsync();
@@ -164,5 +180,22 @@ public class ContractsController : Controller
 
         TempData["Success"] = "تم تفعيل العقد وإشعار الأنظمة المرتبطة";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        try
+        {
+            var rows = await _hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList());
+            foreach (var row in rows)
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<ContractsController>>()
+                .LogWarning(ex, "Employee name lookup failed for contracts page.");
+        }
+        return result;
     }
 }

@@ -1,0 +1,58 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title حالات استخدام السياسة وسير العمل والتوقيع والرموز
+left to right direction
+actor "مسؤول السياسات" as PolicyOfficer
+actor "مسؤول سير العمل" as WorkflowOfficer
+actor "مسؤول الرموز" as CodeOfficer
+actor "خدمة المجال" as Service
+actor "المعتمد" as Approver
+actor "المدقق" as Auditor
+rectangle "حوكمة القرار المؤسسي" {
+  usecase "إنشاء إصدار سياسة" as P1
+  usecase "محاكاة السياسة" as P2
+  usecase "نشر Shadow أو Enforce" as P3
+  usecase "تقييم أو إنفاذ القرار" as P4
+  usecase "ربط القرار بسير عمل" as W1
+  usecase "بدء مثيل مثبت الإصدار" as W2
+  usecase "اعتماد أو رفض أو تفويض" as W3
+  usecase "إثبات التوقيع" as W4
+  usecase "إصدار نمط رمز" as C1
+  usecase "معاينة أو توليد رمز" as C2
+  usecase "مراجعة دفتر الإنفاذ" as A1
+}
+PolicyOfficer --> P1
+P1 .> P2 : <<include>>
+P1 .> P3 : <<include>>
+Service --> P4
+WorkflowOfficer --> W1
+P4 .> W2 : <<extend>>
+W1 .> W2 : <<include>>
+Approver --> W3
+W3 .> W4 : <<extend>>
+CodeOfficer --> C1
+Service --> C2
+C2 .> C1 : <<include>>
+Auditor --> A1
+@enduml

@@ -2,7 +2,7 @@
     "card":  "MIG-002",
     "mode":  "runtime-production-binding",
     "ok":  true,
-    "mapCount":  15,
+    "mapCount":  21,
     "entityCount":  5,
     "failureCount":  0,
     "failures":  [

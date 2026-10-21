@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -38,6 +39,9 @@ public static class MassTransitExtensions
 
         services.AddMassTransit(x =>
         {
+            var endpointPrefix = ResolveEndpointPrefix(configuration);
+            x.SetEndpointNameFormatter(new KebabCaseEndpointNameFormatter(endpointPrefix, includeNamespace: false));
+
             if (consumerAssembly is not null)
                 x.AddConsumers(consumerAssembly);
 
@@ -89,6 +93,15 @@ public static class MassTransitExtensions
         });
 
         return services;
+    }
+
+    private static string ResolveEndpointPrefix(IConfiguration configuration)
+    {
+        var configured = configuration["MassTransit:EndpointPrefix"];
+        var applicationName = string.IsNullOrWhiteSpace(configured)
+            ? Assembly.GetEntryAssembly()?.GetName().Name ?? "hrmanagement"
+            : configured;
+        return Regex.Replace(applicationName.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
     }
 
     public static void AddConsumersFromAssembly(

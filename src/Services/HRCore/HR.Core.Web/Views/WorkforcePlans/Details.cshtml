@@ -1,0 +1,110 @@
+@model HR.Core.Web.ViewModels.WorkforcePlanDetailsViewModel
+@{
+    ViewData["Title"] = "تفاصيل خطة القوى العاملة";
+    var p = Model.Plan;
+    var gap = Model.GapSummary;
+}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@p.Title</h3>
+        <div>
+            <a asp-action="GapReport" asp-route-planId="@p.Id" asp-route-asOf="@Model.AsOf?.ToString("yyyy-MM-dd")" class="btn btn-outline-primary btn-sm">تقرير الفجوة</a>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">السنة المالية</dt><dd class="col-sm-9">@p.FiscalYear</dd>
+            <dt class="col-sm-3">الوحدة</dt><dd class="col-sm-9">@(p.OrgUnit?.NameAr ?? "—")</dd>
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@p.Status</dd>
+            <dt class="col-sm-3">الملخص</dt><dd class="col-sm-9">@(p.Summary ?? "—")</dd>
+        </dl>
+        <form method="get" class="row g-2 align-items-end mb-3">
+            <input type="hidden" name="id" value="@p.Id" />
+            <div class="col-auto">
+                <label class="form-label">استعلام as-of</label>
+                <input type="date" name="asOf" value="@Model.AsOf?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-secondary">تطبيق</button></div>
+        </form>
+        @if (gap is not null)
+        {
+            <div class="row text-center mb-3">
+                <div class="col"><div class="border rounded p-2"><strong>@gap.PlannedTotal</strong><br /><small>مخطط</small></div></div>
+                <div class="col"><div class="border rounded p-2"><strong>@gap.Actual.FundedCount</strong><br /><small>ممول</small></div></div>
+                <div class="col"><div class="border rounded p-2"><strong>@gap.Actual.OccupiedCount</strong><br /><small>مشغول</small></div></div>
+                <div class="col"><div class="border rounded p-2"><strong>@gap.Actual.VacantCount</strong><br /><small>شاغر</small></div></div>
+                <div class="col"><div class="border rounded p-2"><strong>@gap.Actual.FrozenCount</strong><br /><small>مجمد</small></div></div>
+                <div class="col"><div class="border rounded p-2 text-danger"><strong>@gap.DeficitCount</strong><br /><small>عجز</small></div></div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h4 class="mb-0">أهداف الخطة</h4></div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>الدرجة</th><th>العدد المخطط</th><th>FTE</th><th>ممول</th><th>مشغول</th><th>شاغر</th><th>مجمد</th><th>عجز</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var line in p.Lines)
+            {
+                var lg = gap?.Lines.FirstOrDefault(x => x.GradeCode == line.GradeCode && x.JobCatalogEntryId == line.JobCatalogEntryId);
+                <tr>
+                    <td>@(line.GradeCode ?? "—")</td>
+                    <td>@line.PlannedCount</td>
+                    <td>@line.PlannedFTE</td>
+                    <td>@(lg?.FundedCount.ToString() ?? "—")</td>
+                    <td>@(lg?.OccupiedCount.ToString() ?? "—")</td>
+                    <td>@(lg?.VacantCount.ToString() ?? "—")</td>
+                    <td>@(lg?.FrozenCount.ToString() ?? "—")</td>
+                    <td>@(lg?.DeficitCount.ToString() ?? "—")</td>
+                    <td>
+                        @if (Model.CanEdit)
+                        {
+                            <form asp-action="RemoveLine" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="planId" value="@p.Id" />
+                                <input type="hidden" name="lineId" value="@line.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!p.Lines.Any()) { <tr><td colspan="9" class="text-center text-muted">لا توجد أهداف</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.CanEdit)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h4 class="mb-0">إضافة هدف</h4></div>
+        <div class="card-body">
+            <form asp-action="AddLine" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="NewLine.PlanId" />
+                <div class="row g-2">
+                    <div class="col-md-2"><label asp-for="NewLine.GradeCode" class="form-label"></label><input asp-for="NewLine.GradeCode" class="form-control" /></div>
+                    <div class="col-md-3"><label class="form-label">دليل الوظيفة</label><select asp-for="NewLine.JobCatalogEntryId" asp-items="ViewBag.JobCatalog" class="form-select"><option value="">—</option></select></div>
+                    <div class="col-md-2"><label asp-for="NewLine.PlannedCount" class="form-label"></label><input asp-for="NewLine.PlannedCount" class="form-control" type="number" min="0" /></div>
+                    <div class="col-md-2"><label asp-for="NewLine.PlannedFTE" class="form-label"></label><input asp-for="NewLine.PlannedFTE" class="form-control" type="number" step="0.1" min="0" /></div>
+                    <div class="col-md-3 align-self-end"><button type="submit" class="btn btn-primary">إضافة</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h4 class="mb-0">اعتماد الخطة</h4></div>
+        <div class="card-body">
+            <form asp-action="Approve" method="post" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Approve.PlanId" />
+                <div class="col-md-4"><label asp-for="Approve.LegalSourceId" class="form-label">مرجع قانوني (SYR-001)</label><input asp-for="Approve.LegalSourceId" class="form-control" /></div>
+                <div class="col-auto"><button type="submit" class="btn btn-success">اعتماد</button></div>
+            </form>
+        </div>
+    </div>
+}

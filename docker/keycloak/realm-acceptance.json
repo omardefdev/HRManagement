@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "acceptance-v2",
+  "generatedBy": "scripts/prepare-keycloak-import.ps1 -Profile Acceptance",
+  "note": "Acceptance users and credentials are generated locally into the Git-ignored import directory.",
+  "extraRoles": ["auditor"],
+  "users": []
+}

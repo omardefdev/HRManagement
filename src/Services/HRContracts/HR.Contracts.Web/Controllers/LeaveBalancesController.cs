@@ -7,6 +7,7 @@ using HRManagement.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.SharedKernel.ViewModels;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace HR.Contracts.Web.Controllers;
 
@@ -14,14 +15,19 @@ public class LeaveBalancesController : Controller
 {
     private readonly IContractsRepository _repo;
     private readonly ContractsDbContext _db;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public LeaveBalancesController(IContractsRepository repo, ContractsDbContext db)
+    public LeaveBalancesController(
+        IContractsRepository repo,
+        ContractsDbContext db,
+        IHrCoreLookupClient hrCoreLookup)
     {
         _repo = repo;
         _db = db;
+        _hrCoreLookup = hrCoreLookup;
     }
 
-    public async Task<IActionResult> Index(Guid? employeeId, int? year)
+    public async Task<IActionResult> Index(Guid? employeeId, int? year, LeaveType? leaveType)
     {
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
         if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
@@ -38,6 +44,8 @@ public class LeaveBalancesController : Controller
         var query = _repo.LeaveBalances.AsNoTracking().Where(b => b.Year == currentYear);
         if (employeeId.HasValue)
             query = query.Where(b => b.EmployeeId == employeeId.Value);
+        if (leaveType.HasValue)
+            query = query.Where(b => b.LeaveType == leaveType.Value);
         else if (scope.MustFilter)
         {
             var allowedEmployees = _db.EmployeeOrgUnitSnapshots.AsNoTracking()
@@ -49,7 +57,28 @@ public class LeaveBalancesController : Controller
         var balances = await query.OrderBy(b => b.EmployeeId).ThenBy(b => b.LeaveType).Take(SearchFilterBase.MaxPageSize).ToListAsync();
         ViewBag.Year = currentYear;
         ViewBag.EmployeeId = employeeId;
+        ViewBag.LeaveTypeFilter = leaveType;
+        var nameIds = balances.Select(b => b.EmployeeId).ToList();
+        if (employeeId.HasValue)
+            nameIds.Add(employeeId.Value);
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(nameIds);
         return View(balances);
+    }
+
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
+    {
+        var result = ids.Distinct().ToDictionary(id => id, _ => "غير متاح");
+        try
+        {
+            foreach (var row in await _hrCoreLookup.GetEmployeesByIdsAsync(result.Keys.ToList()))
+                result[row.Id] = row.Label;
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<LeaveBalancesController>>()
+                .LogWarning(ex, "Employee name lookup failed for leave balances.");
+        }
+        return result;
     }
 
     public IActionResult Create()

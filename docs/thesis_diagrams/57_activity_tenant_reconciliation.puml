@@ -1,0 +1,49 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title نشاط إسناد بيانات الجهة والحجر والمصالحة
+start
+:أخذ نسخة احتياطية وتثبيت نطاق الترحيل;
+:تحميل الجهات والجذور وقواعد الإسناد;
+:تشغيل Dry Run دون كتابة;
+if (الخطة معتمدة؟) then (نعم)
+  :إسناد السجلات ذات الدلالة الفريدة;
+else (لا)
+  :تعديل القواعد أو إلغاء النافذة;
+  stop
+endif
+if (السجل بقي على الجهة الافتراضية؟) then (نعم)
+  :إنشاء أو تحديث سجل الحجر;
+else (لا)
+  :تسجيل سبب الإسناد والجهة;
+endif
+:تشغيل المصالحة والـchecksums;
+if (كل سجل منسوب أو محجور
+ولا مراجع عابرة للجهات؟) then (نعم)
+  :حفظ التقرير وتوقيع المراجعين;
+else (لا)
+  :إيقاف الإتاحة والتراجع أو المعالجة;
+endif
+:مراجعة سجلات الحجر وحلها بقرار مؤرخ;
+stop
+@enduml

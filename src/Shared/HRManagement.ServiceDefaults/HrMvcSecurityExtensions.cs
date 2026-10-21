@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Reflection;
 
 namespace HRManagement.ServiceDefaults;
 
@@ -25,6 +26,20 @@ public static class HrMvcSecurityExtensions
         services.Configure<MvcOptions>(options =>
         {
             options.Filters.Add<AutoValidateAntiforgeryUnlessApiFilter>();
+        });
+
+        // Every module is exposed through the same gateway host. An explicit per-assembly
+        // cookie name prevents one module's antiforgery cookie from shadowing another.
+        var assemblyName = Assembly.GetEntryAssembly()?.GetName().Name ?? "HRManagement";
+        var cookieSuffix = new string(assemblyName
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray());
+        services.AddAntiforgery(options =>
+        {
+            options.Cookie.Name = $".AspNetCore.Antiforgery.HRM-{cookieSuffix}";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         });
 
         // _HrSharedLayout injects IAgencyBrandingAccessor via _OrganizationBranding.

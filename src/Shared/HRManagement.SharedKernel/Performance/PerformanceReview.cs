@@ -54,19 +54,30 @@ public class PerformanceReview : BaseEntity
 
 public enum ReviewType
 {
+    [Display(Name = "ذاتي")]
     Self = 0,
+    [Display(Name = "مدير")]
     Manager = 1,
+    [Display(Name = "مصفوفة")]
     Matrix = 2,
+    [Display(Name = "زميل")]
     Peer = 3,
+    [Display(Name = "لجنة")]
     Committee = 4
 }
 
 public enum ReviewStatus
 {
+    [Display(Name = "لم يبدأ")]
     NotStarted = 0,
+    [Display(Name = "قيد التنفيذ")]
     InProgress = 1,
+    [Display(Name = "مُرسَل")]
     Submitted = 2,
+    [Display(Name = "مكتمل")]
     Completed = 3,
+    [Display(Name = "مُقرّ")]
     Acknowledged = 4,
+    [Display(Name = "مستأنف")]
     Appealed = 5
 }

@@ -1,0 +1,48 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title سياق المنصة متعددة الجهات والإدارات
+left to right direction
+actor "مسؤول المنصة" as Platform
+actor "مدير الجهة" as Agency
+actor "الإدارة المركزية" as Central
+actor "إدارة فرعية" as Branch
+actor "موظف" as Employee
+actor "مواطن" as Citizen
+cloud "موفر الهوية\nKeycloak" as Identity
+rectangle "منصة HRManagement" as System
+rectangle "حدود الجهة Tenant" as Tenant
+Platform --> System : تهيئة جهة وحزم وطنية
+Agency --> System : سياسات الجهة والهيكل
+Central --> System : حوكمة وقرارات شاملة
+Branch --> System : تشغيل ضمن الشجرة المخولة
+Employee --> System : خدمة ذاتية
+Citizen --> System : توظيف عام
+System --> Identity : OIDC / JWT
+System --> Tenant : tenant_id + OrgUnit scope
+note bottom of Tenant
+كل جهة تملك شجرتها التنظيمية وبياناتها التشغيلية،
+ولا تسمح مرشحات EF Core وسياسات PostgreSQL RLS
+بالعبور إلى جهة أخرى في المسارات المحمية.
+end note
+@enduml

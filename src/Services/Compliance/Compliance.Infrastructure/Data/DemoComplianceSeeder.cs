@@ -1,6 +1,7 @@
 using Compliance.Domain.Entities;
 using Compliance.Domain.Enums;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Exports;
@@ -15,7 +16,7 @@ namespace Compliance.Infrastructure.Data;
 /// </summary>
 public static class DemoComplianceSeeder
 {
-    private static readonly Guid TenantId = TenantDefaults.DefaultTenantId;
+    private static Guid TenantId => AcceptanceSeedExecution.TenantId;
 
     private static readonly string[] ComplaintSubjects =
     [
@@ -48,8 +49,8 @@ public static class DemoComplianceSeeder
         if (await db.Complaints.AnyAsync(ct))
             return;
 
-        var rng = new Random(42);
-        var now = DateTime.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("compliance");
+        var now = AcceptanceSeedExecution.UtcNow;
 
         var complaintIds = await SeedComplaintsAsync(db, rng, now, ct);
         await SeedFindingsAsync(db, rng, now, ct);
@@ -65,10 +66,10 @@ public static class DemoComplianceSeeder
         DateTime now,
         CancellationToken ct)
     {
-        var complaintIds = new List<Guid>(25);
+        var complaintIds = new List<Guid>(AcceptanceSeedExecution.ComplianceCaseCount);
         var statuses = Enum.GetValues<ComplaintStatus>();
 
-        for (var i = 0; i < 25; i++)
+        for (var i = 0; i < AcceptanceSeedExecution.ComplianceCaseCount; i++)
         {
             var empIndex = rng.Next(DemoSeedIds.EmployeeCount);
             var person = DemoNameBank.BuildPerson(empIndex);
@@ -261,7 +262,7 @@ public static class DemoComplianceSeeder
         var types = Enum.GetValues<DsarRequestType>();
         var statuses = Enum.GetValues<DsarRequestStatus>();
 
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < AcceptanceSeedExecution.DsarCount; i++)
         {
             var empIndex = rng.Next(DemoSeedIds.EmployeeCount);
             var daysAgo = rng.Next(3, 90);

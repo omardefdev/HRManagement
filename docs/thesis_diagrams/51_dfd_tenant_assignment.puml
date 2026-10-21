@@ -1,0 +1,55 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title DFD لإسناد الجهة والحجر والمصالحة
+left to right direction
+actor "مسؤول منصة البيانات" as Admin
+actor "المدقق ومالك الجهة" as Reviewer
+rectangle "1.0 بناء خطة Dry Run" as P1
+rectangle "2.0 تطبيق قواعد الإسناد" as P2
+rectangle "3.0 حجر السجلات الملتبسة" as P3
+rectangle "4.0 المصالحة والتحقق" as P4
+rectangle "5.0 حل الحجر أو التراجع" as P5
+database "D1 الجهات والوحدات" as D1
+database "D2 قواعد الإسناد" as D2
+database "D3 سجلات المجالات ذات TenantId" as D3
+database "D4 سجل الحجر" as D4
+database "D5 تقارير قبل وبعد وأثر القرار" as D5
+Admin --> P1 : نطاق الترحيل
+D1 --> P1
+D2 --> P1
+D3 --> P1
+P1 --> Admin : خطة وتعارضات
+Admin --> P2 : اعتماد التنفيذ
+P2 --> D3 : TenantId صحيح
+P2 --> P3 : سجل بلا دلالة فريدة
+P3 --> D4
+P2 --> P4
+D3 --> P4
+D4 --> P4
+P4 --> D5 : counts وorphans وcross-tenant
+Reviewer --> P5 : قرار موقع
+P5 --> D3
+P5 --> D4
+P5 --> D5
+@enduml

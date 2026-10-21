@@ -9,7 +9,7 @@
     {
         <tr>
             <td>@r.AttendanceDate</td>
-            <td>@r.Status</td>
+            <td>@Html.HrEnumDisplay(r.Status)</td>
             <td>@r.Notes</td>
         </tr>
     }

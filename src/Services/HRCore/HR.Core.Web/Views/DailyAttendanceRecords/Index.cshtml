@@ -1,6 +1,50 @@
-@model IReadOnlyList<HR.Core.Domain.Entities.DailyAttendanceRecord>
-@{ ViewData["Title"] = "الحضور اليومي"; }
-<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">الحضور</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
-<div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الموظف</th><th>اليوم</th><th>الحالة</th></tr></thead><tbody>
-@foreach (var x in Model){<tr><td>@x.Employee?.FullName</td><td>@x.AttendanceDate</td><td>@x.Status</td></tr>}
-@if(!Model.Any()){<tr><td colspan="3" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>
+@model HR.Core.Web.ViewModels.DailyAttendanceRecordsIndexViewModel
+@using HR.Core.Domain.Enums
+@{ ViewData["Title"] = "الحضور اليومي";
+   string FilterEmployeeLabel(Guid id) =>
+       !string.IsNullOrWhiteSpace(Model.FilterEmployeeName) ? Model.FilterEmployeeName! : id.ToString(); }
+<div class="card">
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">الحضور</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— الكل —</option>
+                    @if (Model.EmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@FilterEmployeeLabel(empId)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" name="dateFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" name="dateTo" value="@Model.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select">
+                    <option value="">— الكل —</option>
+                    @foreach (DailyAttendanceStatus s in Enum.GetValues<DailyAttendanceStatus>())
+                    {
+                        if (Model.Status == s) { <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option> }
+                        else { <option value="@((int)s)">@Html.HrEnumDisplay(s)</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0"><thead><tr><th>الموظف</th><th>اليوم</th><th>الحالة</th></tr></thead><tbody>
+        @foreach (var x in Model.Items){<tr><td>@x.Employee?.FullName</td><td>@x.AttendanceDate</td><td>@Html.HrEnumDisplay(x.Status)</td></tr>}
+        @if(!Model.Items.Any()){<tr><td colspan="3" class="text-center text-muted">لا توجد</td></tr>}</tbody></table>
+    </div>
+</div>

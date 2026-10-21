@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "ERD الكامل لقاعدة hr_core_db\nHR.Core / HRCoreDbContext"
+title "ERD الكامل لقاعدة hrcore_db\nHR.Core / HRCoreDbContext"
 
 entity "ApprovalRequests\nApprovalRequest" as T01 {
   * Id : uuid
@@ -43,158 +43,322 @@ entity "CitizenApplications\nCitizenApplication" as T06 {
     PublicJobPostingId : uuid
     TenantId : uuid
 }
-entity "ContactInfos\nContactInfo" as T07 {
+entity "CodeIssuances\nCodeIssuance" as T07 {
+  * Id : uuid
+    PolicyVersionId : uuid
+    TenantId : uuid
+}
+entity "CodePolicyRules\nCodePolicyRule" as T08 {
+  * Id : uuid
+    CodePolicyTemplateId : uuid
+    CodePolicyVersionId : uuid
+    TenantId : uuid
+}
+entity "CodePolicyTemplates\nCodePolicyTemplate" as T09 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "CodePolicyVersions\nCodePolicyVersion" as T10 {
+  * Id : uuid
+    CodePolicyTemplateId : uuid
+    TenantId : uuid
+}
+entity "CodeSequenceCounters\nCodeSequenceCounter" as T11 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "ContactInfos\nContactInfo" as T12 {
   * Id : uuid
     EmployeeId : uuid
     TenantId : uuid
 }
-entity "DailyAttendanceRecords\nDailyAttendanceRecord" as T08 {
+entity "DailyAttendanceRecords\nDailyAttendanceRecord" as T13 {
   * Id : uuid
     EmployeeId : uuid
     TenantId : uuid
 }
-entity "DiwanCorrespondences\nDiwanCorrespondence" as T09 {
+entity "DiwanCorrespondences\nDiwanCorrespondence" as T14 {
   * Id : uuid
     RelatedEmployeeId : uuid
     ServiceTransactionId : uuid
     TenantId : uuid
 }
-entity "Employees\nEmployee" as T10 {
+entity "Employees\nEmployee" as T15 {
   * Id : uuid
+    MergedIntoEmployeeId : uuid
     NationalId : text
     PhotoFileId : uuid
     PrimaryContactId : uuid
     PrimaryOrgUnitId : uuid
     TenantId : uuid
 }
-entity "EmployeeDocuments\nEmployeeDocument" as T11 {
+entity "EmployeeCorrections\nEmployeeCorrection" as T16 {
+  * Id : uuid
+    EmployeeId : uuid
+    TenantId : uuid
+}
+entity "EmployeeDocuments\nEmployeeDocument" as T17 {
   * Id : uuid
     EmployeeId : uuid
     FileId : uuid
     TenantId : uuid
 }
-entity "EmployeeProfiles\nEmployeeProfile" as T12 {
+entity "EmployeeProfiles\nEmployeeProfile" as T18 {
   * Id : uuid
     EmployeeId : uuid
     TenantId : uuid
 }
-entity "EmploymentRecords\nEmploymentRecord" as T13 {
+entity "EmploymentRecords\nEmploymentRecord" as T19 {
   * Id : uuid
     EmployeeId : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "EmploymentStatusHistories\nEmploymentStatusHistory" as T14 {
+entity "EmploymentStatusHistories\nEmploymentStatusHistory" as T20 {
   * Id : uuid
     EmployeeId : uuid
     EmploymentRecordId : uuid
     TenantId : uuid
 }
-entity "FieldInspectionVisits\nFieldInspectionVisit" as T15 {
+entity "FieldInspectionVisits\nFieldInspectionVisit" as T21 {
   * Id : uuid
     LeadInspectorId : uuid
     TenantId : uuid
 }
-entity "HrStatisticReports\nHrStatisticReport" as T16 {
+entity "FundedPositions\nFundedPosition" as T22 {
+  * Id : uuid
+    JobCatalogEntryId : uuid
+    OccupantEmployeeId : uuid
+    OrgUnitId : uuid
+    TenantId : uuid
+}
+entity "HrStatisticReports\nHrStatisticReport" as T23 {
   * Id : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "InternalApplications\nInternalApplication" as T17 {
+entity "InternalApplications\nInternalApplication" as T24 {
   * Id : uuid
     EmployeeId : uuid
     InternalVacancyId : uuid
     TenantId : uuid
 }
-entity "InternalVacancies\nInternalVacancy" as T18 {
+entity "InternalVacancies\nInternalVacancy" as T25 {
   * Id : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "KeyPositions\nKeyPosition" as T19 {
+entity "JobCatalogEntries\nJobCatalogEntry" as T26 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "KeyPositions\nKeyPosition" as T27 {
   * Id : uuid
     CurrentHolderEmployeeId : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "OrgUnits\nOrgUnit" as T20 {
+entity "MasterDataDuplicateCases\nMasterDataDuplicateCase" as T28 {
+  * Id : uuid
+    ResolvedIntoEmployeeId : uuid
+    TenantId : uuid
+}
+entity "OrgUnits\nOrgUnit" as T29 {
   * Id : uuid
     HeadEmployeeId : uuid
     ParentId : uuid
     TenantId : uuid
 }
-entity "PerformanceEvaluations\nPerformanceEvaluation" as T21 {
+entity "OrgUnitVersions\nOrgUnitVersion" as T30 {
+  * Id : uuid
+    OrgUnitId : uuid
+    ParentId : uuid
+    TenantId : uuid
+}
+entity "PerformanceEvaluations\nPerformanceEvaluation" as T31 {
   * Id : uuid
     EmployeeId : uuid
     EvaluatorId : uuid
     TenantId : uuid
 }
-entity "PublicJobPostings\nPublicJobPosting" as T22 {
+entity "PolicyEnforcementLedgers\nPolicyEnforcementLedger" as T32 {
+  * Id : uuid
+    ActorUserId : uuid
+    CorrelationId : text
+    PolicyVersionId : uuid
+    TenantId : uuid
+    WorkflowInstanceId : uuid
+}
+entity "PolicyFactsSchemas\nPolicyFactsSchemaEntity" as T33 {
   * Id : uuid
     TenantId : uuid
 }
-entity "Qualifications\nQualification" as T23 {
+entity "PolicyPublications\nPolicyPublication" as T34 {
+  * Id : uuid
+    CheckerUserId : uuid
+    MakerUserId : uuid
+    PolicyTemplateVersionId : uuid
+    RolledBackFromVersionId : uuid
+    TenantId : uuid
+}
+entity "PolicyRules\nPolicyRule" as T35 {
+  * Id : uuid
+    PolicyTemplateVersionId : uuid
+    TenantId : uuid
+}
+entity "PolicySimulationRuns\nPolicySimulationRun" as T36 {
+  * Id : uuid
+    PolicyTemplateVersionId : uuid
+    RunByUserId : uuid
+    TenantId : uuid
+}
+entity "PolicyTemplates\nPolicyTemplate" as T37 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "PolicyTemplateVersions\nPolicyTemplateVersion" as T38 {
+  * Id : uuid
+    PolicyTemplateId : uuid
+    TenantId : uuid
+}
+entity "PolicyWorkflowBindings\nPolicyWorkflowBinding" as T39 {
+  * Id : uuid
+    TenantId : uuid
+    WorkflowDefinitionId : uuid
+}
+entity "PublicJobPostings\nPublicJobPosting" as T40 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "Qualifications\nQualification" as T41 {
   * Id : uuid
     EmployeeId : uuid
     FileId : uuid
     TenantId : uuid
 }
-entity "RecruitmentApplications\nRecruitmentApplication" as T24 {
+entity "RecruitmentApplications\nRecruitmentApplication" as T42 {
   * Id : uuid
     HiredEmployeeId : uuid
     NationalId : text
     TenantId : uuid
 }
-entity "Shifts\nShift" as T25 {
+entity "SeedPackApplications\nSeedPackApplication" as T43 {
+  * Id : uuid
+    PackId : text
+    TenantId : uuid
+}
+entity "Shifts\nShift" as T44 {
   * Id : uuid
     TenantId : uuid
 }
-entity "ShiftAssignments\nShiftAssignment" as T26 {
+entity "ShiftAssignments\nShiftAssignment" as T45 {
   * Id : uuid
     EmployeeId : uuid
     ShiftId : uuid
     ShiftRosterId : uuid
     TenantId : uuid
 }
-entity "ShiftRosters\nShiftRoster" as T27 {
+entity "ShiftRosters\nShiftRoster" as T46 {
   * Id : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "SuccessionPlans\nSuccessionPlan" as T28 {
+entity "SuccessionPlans\nSuccessionPlan" as T47 {
   * Id : uuid
     KeyPositionId : uuid
     TenantId : uuid
 }
-entity "SuccessorCandidates\nSuccessorCandidate" as T29 {
+entity "SuccessorCandidates\nSuccessorCandidate" as T48 {
   * Id : uuid
     EmployeeId : uuid
     SuccessionPlanId : uuid
     TenantId : uuid
 }
-entity "WorkforcePlans\nWorkforcePlan" as T30 {
+entity "WorkflowDefinitions\nWorkflowDefinition" as T49 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "WorkflowDelegations\nWorkflowDelegation" as T50 {
+  * Id : uuid
+    DelegateId : uuid
+    PrincipalId : uuid
+    TenantId : uuid
+}
+entity "WorkflowInstances\nWorkflowInstance" as T51 {
+  * Id : uuid
+    ApprovalRequestId : uuid
+    DefinitionId : uuid
+    EntityId : uuid
+    TenantId : uuid
+}
+entity "WorkforcePlans\nWorkforcePlan" as T52 {
   * Id : uuid
     OrgUnitId : uuid
     TenantId : uuid
 }
-entity "AuditLogs\nEntityAuditLog" as T31 {
+entity "FileReferenceOutbox\nFileReferenceOutboxMessage" as T53 {
+  * Id : uuid
+    FileId : uuid
+    TenantId : uuid
+}
+entity "AuditLogs\nEntityAuditLog" as T54 {
   * Id : uuid
     EntityId : uuid
     TenantId : uuid
     UserId : uuid
 }
-entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T32 {
+entity "ExportJobs\nExportJob" as T55 {
+  * Id : uuid
+    RequestedByUserId : uuid
+    ResultFileId : uuid
+    TenantId : uuid
+}
+entity "IntegrationMessageReceipts\nIntegrationMessageReceipt" as T56 {
   * Id : uuid
     MessageId : text
     TenantId : uuid
 }
-entity "InboxState\nInboxState" as T33 {
+entity "ReferenceCatalogEntries\nReferenceCatalogEntry" as T57 {
+  * Id : uuid
+    TenantId : uuid
+}
+entity "ApprovalDelegations\nApprovalDelegation" as T58 {
+  * Id : uuid
+    DelegateId : uuid
+    PrincipalId : uuid
+    TenantId : uuid
+}
+entity "ConflictingRolePairs\nConflictingRolePair" as T59 {
+  * Id : uuid
+}
+entity "SodRules\nSodRule" as T60 {
+  * Id : uuid
+}
+entity "SignatureRecords\nSignatureRecord" as T61 {
+  * Id : uuid
+    SubjectId : text
+    TenantId : uuid
+}
+entity "Tenants\nTenant" as T62 {
+  * Id : uuid
+}
+entity "TenantAssignmentRules\nTenantAssignmentRule" as T63 {
+  * Id : uuid
+    TargetTenantId : uuid
+}
+entity "TenantQuarantineEntries\nTenantQuarantineEntry" as T64 {
+  * Id : uuid
+    AssignedTenantId : uuid
+    RecordId : uuid
+    ResolvedByUserId : uuid
+}
+entity "InboxState\nInboxState" as T65 {
   * Id : bigint
     ConsumerId : uuid
     LockId : uuid
     MessageId : uuid
 }
-entity "OutboxMessage\nOutboxMessage" as T34 {
+entity "OutboxMessage\nOutboxMessage" as T66 {
   * SequenceNumber : bigint
     ConversationId : uuid
     CorrelationId : uuid
@@ -205,43 +369,54 @@ entity "OutboxMessage\nOutboxMessage" as T34 {
     OutboxId : uuid
     RequestId : uuid
 }
-entity "OutboxState\nOutboxState" as T35 {
+entity "OutboxState\nOutboxState" as T67 {
   * OutboxId : uuid
     LockId : uuid
 }
 
 T02 }o--|| T01 : ApprovalRequestId
-T03 }o--|| T10 : EmployeeId
+T03 }o--|| T15 : EmployeeId
 T05 }o--|| T04 : CareerPathId
-T06 }o--|| T22 : PublicJobPostingId
-T07 }o--|| T10 : EmployeeId
-T08 }o--|| T10 : EmployeeId
-T09 }o--|| T10 : RelatedEmployeeId
-T10 }o--|| T20 : PrimaryOrgUnitId
-T11 }o--|| T10 : EmployeeId
-T12 }o--|| T10 : EmployeeId
-T13 }o--|| T10 : EmployeeId
-T13 }o--|| T20 : OrgUnitId
-T14 }o--|| T10 : EmployeeId
-T14 }o--|| T13 : EmploymentRecordId
-T16 }o--|| T20 : OrgUnitId
-T17 }o--|| T10 : EmployeeId
-T17 }o--|| T18 : InternalVacancyId
-T18 }o--|| T20 : OrgUnitId
-T19 }o--|| T20 : OrgUnitId
-T20 }o--|| T10 : HeadEmployeeId
-T20 }o--|| T20 : ParentId
-T21 }o--|| T10 : EmployeeId
-T23 }o--|| T10 : EmployeeId
-T24 }o--|| T10 : HiredEmployeeId
-T26 }o--|| T10 : EmployeeId
-T26 }o--|| T25 : ShiftId
-T26 }o--|| T27 : ShiftRosterId
-T27 }o--|| T20 : OrgUnitId
-T28 }o--|| T19 : KeyPositionId
-T29 }o--|| T10 : EmployeeId
-T29 }o--|| T28 : SuccessionPlanId
-T30 }o--|| T20 : OrgUnitId
+T06 }o--|| T40 : PublicJobPostingId
+T08 }o--|| T09 : CodePolicyTemplateId
+T08 }o--|| T10 : CodePolicyVersionId
+T10 }o--|| T09 : CodePolicyTemplateId
+T12 }o--|| T15 : EmployeeId
+T13 }o--|| T15 : EmployeeId
+T14 }o--|| T15 : RelatedEmployeeId
+T15 }o--|| T29 : PrimaryOrgUnitId
+T16 }o--|| T15 : EmployeeId
+T17 }o--|| T15 : EmployeeId
+T18 }o--|| T15 : EmployeeId
+T19 }o--|| T15 : EmployeeId
+T19 }o--|| T29 : OrgUnitId
+T20 }o--|| T15 : EmployeeId
+T20 }o--|| T19 : EmploymentRecordId
+T22 }o--|| T26 : JobCatalogEntryId
+T22 }o--|| T15 : OccupantEmployeeId
+T22 }o--|| T29 : OrgUnitId
+T23 }o--|| T29 : OrgUnitId
+T24 }o--|| T15 : EmployeeId
+T24 }o--|| T25 : InternalVacancyId
+T25 }o--|| T29 : OrgUnitId
+T27 }o--|| T29 : OrgUnitId
+T29 }o--|| T15 : HeadEmployeeId
+T29 }o--|| T29 : ParentId
+T30 }o--|| T29 : OrgUnitId
+T31 }o--|| T15 : EmployeeId
+T34 }o--|| T38 : PolicyTemplateVersionId
+T35 }o--|| T38 : PolicyTemplateVersionId
+T38 }o--|| T37 : PolicyTemplateId
+T41 }o--|| T15 : EmployeeId
+T42 }o--|| T15 : HiredEmployeeId
+T45 }o--|| T15 : EmployeeId
+T45 }o--|| T44 : ShiftId
+T45 }o--|| T46 : ShiftRosterId
+T46 }o--|| T29 : OrgUnitId
+T47 }o--|| T27 : KeyPositionId
+T48 }o--|| T15 : EmployeeId
+T48 }o--|| T47 : SuccessionPlanId
+T52 }o--|| T29 : OrgUnitId
 
 note bottom
 يعرض هذا المخطط نموذج البيانات النهائي للسياق، بما يشمل الجداول والمفاتيح والعلاقات الداخلية.

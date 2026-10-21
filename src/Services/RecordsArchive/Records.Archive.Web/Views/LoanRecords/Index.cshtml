@@ -2,6 +2,6 @@
 @{ ViewData["Title"] = "إعارة الأرشيف"; }
 <div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">الإعارات</h3><div><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a><form asp-action="OverdueLoanCheck" method="post" class="d-inline ms-2">@Html.AntiForgeryToken()<button type="submit" class="btn btn-warning btn-sm">تحديث المتأخرة</button></form></div></div>
 <div class="card-body p-0"><table class="table mb-0"><thead><tr><th>عنصر</th><th>مستعير</th><th>الحالة</th><th></th></tr></thead><tbody>
-@foreach (var x in Model){<tr><td>@(x.ArchiveItem?.Title ?? x.ArchiveItemId.ToString())</td><td>@x.Borrower</td><td>@x.Status</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
+@foreach (var x in Model){<tr><td>@(x.ArchiveItem?.Title ?? x.ArchiveItemId.ToString())</td><td>@x.Borrower</td><td>@Html.HrEnumDisplay(x.Status)</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
 @if(!Model.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}
 </tbody></table></div></div>

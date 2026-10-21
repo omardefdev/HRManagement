@@ -1,0 +1,71 @@
+@model HR.Core.Web.ViewModels.FundedPositionCreateViewModel
+@{ ViewData["Title"] = "منصب ممول جديد"; }
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">إنشاء منصب ممول شاغر</h3></div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="alert alert-info">يُولَّد رمز المنصب ومركز التكلفة تلقائياً عند الحفظ.</div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="BudgetYear" class="form-label"></label>
+                    <input asp-for="BudgetYear" class="form-control" type="number" />
+                    <span asp-validation-for="BudgetYear" class="text-danger"></span>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="FTE" class="form-label"></label>
+                    <input asp-for="FTE" class="form-control" type="number" step="0.01" />
+                    <span asp-validation-for="FTE" class="text-danger"></span>
+                    <div class="form-text">1.0 = دوام كامل، 0.5 = نصف دوام.</div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ScopeOrgUnitId" class="form-label"></label>
+                @if (ViewBag.BranchScopeLocked == true)
+                {
+                    <select asp-for="ScopeOrgUnitId" asp-items="ViewBag.BranchScopes" class="form-select" disabled></select>
+                    <input type="hidden" asp-for="ScopeOrgUnitId" />
+                }
+                else
+                {
+                    <select asp-for="ScopeOrgUnitId" asp-items="ViewBag.BranchScopes" class="form-select"
+                            data-hr-picker="select" data-placeholder="اختر الفرع أو المركزية...">
+                        <option value="">— اختر الفرع أو المركزية —</option>
+                    </select>
+                }
+                <span asp-validation-for="ScopeOrgUnitId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="OrgUnitId" class="form-label"></label>
+                <select asp-for="OrgUnitId" class="form-select" data-hr-picker="org-unit"
+                        data-placeholder="ابحث عن وحدة تنظيمية ضمن النطاق...">
+                    <option value="">— اختر الوحدة —</option>
+                </select>
+                <span asp-validation-for="OrgUnitId" class="text-danger"></span>
+                <div class="form-text">افتح القائمة لعرض الوحدات، أو اكتب حرفين للبحث.</div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="JobCatalogEntryId" class="form-label"></label>
+                <select asp-for="JobCatalogEntryId" class="form-select" data-hr-picker="job-catalog"
+                        data-placeholder="ابحث في دليل الوظائف...">
+                    <option value="">— اختر من الدليل —</option>
+                </select>
+                <span asp-validation-for="JobCatalogEntryId" class="text-danger"></span>
+                <div class="form-text">افتح القائمة لعرض الوظائف، أو اكتب حرفين للبحث.</div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="GradeCode" class="form-label"></label>
+                <input asp-for="GradeCode" class="form-control" readonly
+                       placeholder="— يُعبأ تلقائياً من دليل الوظائف —" />
+                <span asp-validation-for="GradeCode" class="text-danger"></span>
+                <div class="form-text">يُشتق من دليل الوظائف المختار ولا يمكن تعديله هنا.</div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">إنشاء</button>
+            <a asp-action="Index" class="btn btn-link">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { @await Html.PartialAsync("_ValidationScriptsPartial") }

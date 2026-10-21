@@ -50,6 +50,10 @@ using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Configuration.AddJsonFile("appsettings.Docker.json", optional: false, reloadOnChange: false);
+}
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
 // Must precede authentication: cookie and OIDC correlation state is encrypted with this key ring.
@@ -110,13 +114,20 @@ builder.Services.AddSingleton<IGatewayModuleCatalog, GatewayModuleCatalog>();
 builder.Services.AddSingleton<IGatewayJourneyCatalog, GatewayJourneyCatalog>();
 builder.Services.AddScoped<IGatewayHealthProbeService, GatewayHealthProbeService>();
 builder.Services.AddScoped<IGatewayAuditQueryService, GatewayAuditQueryService>();
+builder.Services.AddScoped<IJourneyRebuildService, JourneyRebuildService>();
+builder.Services.AddHttpClient("hr-core-journey", (sp, client) =>
+{
+    var baseUrl = sp.GetRequiredService<IConfiguration>()["Integration:HrCoreBaseUrl"] ?? "http://localhost:5010";
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 builder.Services.AddSingleton<GatewayRequestMetricsStore>();
 builder.Services.AddSingleton<EvidenceImmutabilityInterceptor>();
 builder.Services.AddDbContext<GatewayAuditDbContext>((sp, options) =>
 {
-    options.UseNpgsql(
+    options.UseHrDatabaseProvider(
         builder.Configuration.GetConnectionString("GatewayAuditDb"),
-        npgsql => npgsql.MigrationsAssembly(typeof(GatewayAuditDbContext).Assembly.FullName));
+        typeof(GatewayAuditDbContext).Assembly.FullName!);
     options.AddInterceptors(sp.GetRequiredService<EvidenceImmutabilityInterceptor>());
 });
 builder.Services.Configure<EvidenceRepositoryOptions>(
@@ -227,6 +238,7 @@ app.UseCookiePolicy(new CookiePolicyOptions
     HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always
 });
 app.UseAuthentication();
+app.UsePlatformTenantSession();
 app.UseHrTenantId();
 app.UseGatewayAccessTokenRefresh();
 app.UseAuthorization();

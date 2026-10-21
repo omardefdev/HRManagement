@@ -1,4 +1,5 @@
 using HR.Contracts.Application.Abstractions;
+using HR.Contracts.Application.Features.InboundEvents;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
@@ -102,11 +103,14 @@ public class PublishHireCaseHandler(IContractsRepository repository, IEventPubli
                 s => s.SetProperty(t => t.State, ServiceTransactionState.Completed),
                 cancellationToken);
 
+        var recruitmentApplicationId = ProcessCandidateAcceptedHandler.ParseRecruitmentApplicationId(transaction.Notes);
+
         await eventPublisher.StartHireSagaAsync(
             transaction.Id,
             transaction.EmployeeId,
             contract?.Id,
-            cancellationToken);
+            cancellationToken,
+            recruitmentApplicationId);
         await repository.SaveChangesAsync(cancellationToken);
 
         return (true, null);

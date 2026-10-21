@@ -6,6 +6,7 @@ using Payroll.Infrastructure.Repositories;
 using Payroll.Infrastructure.Services;
 using HRManagement.Integration.FileAdapters;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace Payroll.Infrastructure;
 
@@ -33,22 +34,13 @@ public static class DependencyInjection
             services.Configure<Payroll.Application.Options.PayrollBatchOptions>(
                 configuration.GetSection(Payroll.Application.Options.PayrollBatchOptions.SectionName));
             services.AddHrPayrollExternalIntegrations(configuration);
-
-            var hrCoreBase = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/');
-            if (!string.IsNullOrWhiteSpace(hrCoreBase))
-            {
-                services.AddServiceAuthenticatedClient(
-                    EmployeeLookupService.HttpClientName,
-                    new Uri(hrCoreBase + "/"));
-            }
-            else
-            {
-                services.AddHttpClient(EmployeeLookupService.HttpClientName);
-            }
+            services.AddHrCoreLookupClient(configuration);
+            services.AddHrCoreServiceRegimeClient(configuration);
         }
         else
         {
-            services.AddHttpClient(EmployeeLookupService.HttpClientName);
+            services.AddHttpClient(HrCoreLookupClient.HttpClientName);
+            services.AddScoped<IHrCoreLookupClient, HrCoreLookupClient>();
             services.Configure<HRManagement.SharedKernel.Exports.ExportJobOptions>(_ => { });
             services.AddSingleton<IExportArtifactStore, LocalExportArtifactStore>();
         }

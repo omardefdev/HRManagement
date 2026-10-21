@@ -31,5 +31,10 @@ public class PublicJobPosting : AuditableEntity
     [Display(Name = "منشور")]
     public bool IsPublished { get; set; } = true;
 
+    [Display(Name = "طلب الشاغر")]
+    public Guid? RequisitionId { get; set; }
+
+    public virtual RecruitmentRequisition? Requisition { get; set; }
+
     public virtual ICollection<CitizenApplication> Applications { get; set; } = new List<CitizenApplication>();
 }

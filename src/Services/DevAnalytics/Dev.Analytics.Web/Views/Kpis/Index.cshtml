@@ -1,6 +1,6 @@
 @model IReadOnlyList<Dev.Analytics.Domain.Entities.KPI>
 @{ ViewData["Title"] = "مؤشرات الأداء"; }
-<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">KPI</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
+<div class="card"><div class="card-header d-flex justify-content-between"><h3 class="mb-0">مؤشرات الأداء</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
 <div class="card-body p-0"><table class="table mb-0"><thead><tr><th>الرمز</th><th>الاسم</th><th>الهدف</th><th>الحالي</th><th>القياس</th><th></th></tr></thead><tbody>
 @foreach (var x in Model){<tr><td>@x.Code</td><td>@x.Name</td><td>@x.TargetValue</td><td>@x.CurrentValue</td><td>@x.MeasuredAt</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>}
 @if(!Model.Any()){<tr><td colspan="6" class="text-center text-muted">لا توجد</td></tr>}</tbody></table></div></div>

@@ -45,6 +45,13 @@ public static class EmploymentStatusRules
         [EmploymentStatus.Deceased] = new() { EmploymentStatus.Anonymized },
         [EmploymentStatus.Merged] = new(),
         [EmploymentStatus.Anonymized] = new(),
+        [EmploymentStatus.PendingActivation] = new()
+        {
+            EmploymentStatus.Active,
+            EmploymentStatus.Terminated,
+            EmploymentStatus.Resigned,
+            EmploymentStatus.Deceased
+        },
     };
 
     public static bool CanTransition(EmploymentStatus from, EmploymentStatus to)

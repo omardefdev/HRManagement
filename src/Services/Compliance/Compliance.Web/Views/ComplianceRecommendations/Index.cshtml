@@ -24,7 +24,7 @@
                     <td>@x.FindingId</td>
                     <td>@(x.RecommendedAction?.Length > 40 ? x.RecommendedAction[..40] + "…" : x.RecommendedAction)</td>
                     <td>@x.DueDate?.ToString("yyyy/MM/dd")</td>
-                    <td>@x.Status</td>
+                    <td>@Html.HrEnumDisplay(x.Status)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>
                 </tr>
             }

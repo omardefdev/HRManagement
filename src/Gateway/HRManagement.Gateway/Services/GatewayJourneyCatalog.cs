@@ -16,20 +16,130 @@ public sealed class GatewayJourneyCatalog : IGatewayJourneyCatalog
         {
             Id = "new-hire",
             Title = "مسار التوظيف الجديد",
-            Description = "تفعيل رحلة الموظف الجديد من التسجيل حتى التمكين التشغيلي.",
+            Description = "من الشاغر الممول والاختيار حتى التعيين وإكمال التمكين التشغيلي عبر الخدمات.",
             Category = "الدورة الوظيفية",
             Steps =
             [
-                new() { Title = "النواة", Description = "تسجيل الموظف والبيانات الأساسية.", ModuleSlug = "hr-core" },
-                new() { Title = "معالج التعيين", Description = "قائمة التحقق واعتماد معاملة التعيين.", ModuleSlug = "hr-contracts", UiPath = "/ui/hr-contracts/HireWizard" },
-                new() { Title = "العقود", Description = "إصدار/تفعيل العلاقة التعاقدية.", ModuleSlug = "hr-contracts" },
-                new() { Title = "الرواتب", Description = "ربط الدرجة وجدولة الأجر.", ModuleSlug = "payroll" },
-                new() { Title = "بطاقة الهوية", Description = "طلب وإصدار وتسليم البطاقة.", ModuleSlug = "idcard" },
-                new() { Title = "أرشفة التعيين", Description = "حفظ ملف التعيين في الأرشيف المؤسسي.", ModuleSlug = "records-archive" },
-                new() { Title = "الدليل والهوية", Description = "إنشاء حساب وربطه بالموظف.", ModuleSlug = "auth-directory" },
-                new() { Title = "تمكين تقنية المعلومات", Description = "حسابات وبريد وتجهيزات.", ModuleSlug = "it-infra" },
-                new() { Title = "التدريب التعريفي", Description = "إلحاق ببرامج التدريب الأساسية.", ModuleSlug = "hr-training", IsRequired = false },
-                new() { Title = "الفحص الصحي", Description = "تنفيذ الفحص عند الحاجة التنظيمية.", ModuleSlug = "hr-health", IsRequired = false }
+                new()
+                {
+                    Title = "التحقق من المنصب الممول",
+                    Description = "اختيار منصب شاغر (Vacant) مرتبط بالهيكل والدرجة قبل فتح طلب الشاغر.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/RecruitmentRequisitions/Create",
+                    PhaseKey = "recruitment",
+                    PhaseTitleAr = "مرحلة 1 — التوظيف (HCM-001)",
+                    Note = "EST-001: لا إعلان بدون منصب ممول."
+                },
+                new()
+                {
+                    Title = "طلب الشاغر",
+                    Description = "إنشاء مسودة طلب شاغر وربطها بالمنصب وتقديمها للاعتماد.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/RecruitmentRequisitions",
+                    PhaseKey = "recruitment"
+                },
+                new()
+                {
+                    Title = "نشر الإعلان",
+                    Description = "نشر عام (Publish) و/أو نشر داخلي (PublishInternal) حسب قناة الطلب.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/RecruitmentRequisitions",
+                    PhaseKey = "recruitment"
+                },
+                new()
+                {
+                    Title = "التقديم عبر بوابة المواطن",
+                    Description = "استقبال طلبات المرشحين الخارجيين على الوظائف المنشورة.",
+                    GatewayPublicPath = "/careers",
+                    PhaseKey = "recruitment",
+                    Note = "مسار عام — لا يتطلب تسجيل HR."
+                },
+                new()
+                {
+                    Title = "إدارة طلبات HR",
+                    Description = "إنشاء ومتابعة طلبات التوظيف الداخلية المرتبطة بطلبات شاغر منشورة.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/RecruitmentApplications",
+                    PhaseKey = "recruitment"
+                },
+                new()
+                {
+                    Title = "إعلانات HR للمواطنين",
+                    Description = "مراجعة طلبات المواطنين وتحويل المختصرين إلى مسار HR (PromoteFromCitizen).",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/PublicJobPostings",
+                    PhaseKey = "recruitment"
+                },
+                new()
+                {
+                    Title = "القناة الداخلية (HR)",
+                    Description = "متابعة الترشّحات الداخلية وتحويلها إلى مسار الاختيار (PromoteFromInternal).",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/TalentMarketplace",
+                    PhaseKey = "recruitment",
+                    IsRequired = false
+                },
+                new()
+                {
+                    Title = "ترشّح ESS",
+                    Description = "بوابة الموظف للترشّح على الشواغر الداخلية المنشورة.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/EssTalent",
+                    PhaseKey = "recruitment",
+                    IsRequired = false,
+                    Note = "يتطلب صلاحية ModuleEss."
+                },
+                new()
+                {
+                    Title = "الاختيار والتقييم",
+                    Description = "COI، درجة التقييم، الترتيب، والانتقال بين حالات الاختيار.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/RecruitmentApplications",
+                    PhaseKey = "recruitment"
+                },
+                new()
+                {
+                    Title = "لجنة الاختيار",
+                    Description = "جلسة لجنة مرتبطة بالطلب مع أعضاء وتعارض مصالح.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/SelectionCommittees",
+                    PhaseKey = "recruitment",
+                    IsRequired = false
+                },
+                new()
+                {
+                    Title = "خطاب العرض",
+                    Description = "إصدار خطاب العرض واعتماده ثم قبول المرشح.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/OfferLetters",
+                    PhaseKey = "recruitment"
+                },
+                new()
+                {
+                    Title = "التعيين وإغلاق الشاغر",
+                    Description = "تنفيذ Hire بعد قبول العرض — شغل المنصب وإغلاق الطلب.",
+                    ModuleSlug = "hr-core",
+                    UiPath = "/ui/hr-core/RecruitmentApplications",
+                    PhaseKey = "recruitment",
+                    Note = "زر التعيين يظهر فقط عند OfferAccepted."
+                },
+                new()
+                {
+                    Title = "معالج التعيين",
+                    Description = "قائمة التحقق واعتماد معاملة التعيين.",
+                    ModuleSlug = "hr-contracts",
+                    UiPath = "/ui/hr-contracts/HireWizard",
+                    PhaseKey = "onboarding",
+                    PhaseTitleAr = "مرحلة 2 — التمكين التشغيلي (FUN-001)"
+                },
+                new() { Title = "العقود", Description = "إصدار/تفعيل العلاقة التعاقدية.", ModuleSlug = "hr-contracts", PhaseKey = "onboarding" },
+                new() { Title = "الرواتب", Description = "ربط الدرجة وجدولة الأجر.", ModuleSlug = "payroll", PhaseKey = "onboarding" },
+                new() { Title = "بطاقة الهوية", Description = "طلب وإصدار وتسليم البطاقة.", ModuleSlug = "idcard", PhaseKey = "onboarding" },
+                new() { Title = "أرشفة التعيين", Description = "حفظ ملف التعيين في الأرشيف المؤسسي.", ModuleSlug = "records-archive", PhaseKey = "onboarding" },
+                new() { Title = "الدليل والهوية", Description = "إنشاء حساب وربطه بالموظف.", ModuleSlug = "auth-directory", PhaseKey = "onboarding" },
+                new() { Title = "تمكين تقنية المعلومات", Description = "حسابات وبريد وتجهيزات.", ModuleSlug = "it-infra", PhaseKey = "onboarding" },
+                new() { Title = "التدريب التعريفي", Description = "إلحاق ببرامج التدريب الأساسية.", ModuleSlug = "hr-training", PhaseKey = "onboarding", IsRequired = false },
+                new() { Title = "الفحص الصحي", Description = "تنفيذ الفحص عند الحاجة التنظيمية.", ModuleSlug = "hr-health", PhaseKey = "onboarding", IsRequired = false }
             ]
         },
         new()

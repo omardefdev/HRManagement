@@ -1,19 +1,57 @@
 @model IReadOnlyList<SeparationRecord>
-@{ ViewData["Title"] = "إنهاء الخدمة"; }
+@using HR.Contracts.Domain.Enums
+@{
+    ViewData["Title"] = "إنهاء الخدمة";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var separationTypeFilter = ViewBag.SeparationTypeFilter as SeparationType?;
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+    var eventPublished = ViewBag.EventPublished as bool?;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-user-times"></i> سجلات إنهاء الخدمة</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة</a>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-auto">
+                <select name="separationType" class="form-select form-select-sm">
+                    <option value="">جميع الأنواع</option>
+                    @foreach (var t in Enum.GetValues<SeparationType>())
+                    {
+                        <option value="@t" selected="@(separationTypeFilter == t ? "selected" : null)">@Html.HrEnumDisplay(t)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="eventPublished" class="form-select form-select-sm">
+                    <option value="">حالة النشر</option>
+                    <option value="true" selected="@(eventPublished == true ? "selected" : null)">تم النشر</option>
+                    <option value="false" selected="@(eventPublished == false ? "selected" : null)">لم يُنشر</option>
+                </select>
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button></div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>الموظف</th><th>النوع</th><th>النفاذ</th><th>حدث</th><th></th></tr></thead>
             <tbody>
                 @foreach (var r in Model)
                 {
                     <tr>
-                        <td>@r.EmployeeId</td>
-                        <td>@r.SeparationType</td>
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(r.EmployeeId, employeeNames.GetValueOrDefault(r.EmployeeId)))</td>
+                        <td>@Html.HrEnumDisplay(r.SeparationType)</td>
                         <td>@r.EffectiveDate.ToString("yyyy/MM/dd")</td>
                         <td>
                             @if (r.SeparationEventPublished) { <span class="badge bg-success">تم النشر</span> }

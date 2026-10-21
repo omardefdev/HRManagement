@@ -54,12 +54,25 @@ public class AdministrativeDecisionsController : Controller
 
 
 
-    public async Task<IActionResult> Index()
-
+    public async Task<IActionResult> Index(string? q, DateOnly? issuedFrom, DateOnly? issuedTo)
     {
 
         var items = await _mediator.Send(new GetAdministrativeDecisionsQuery());
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            items = items.Where(x =>
+                (x.Subject?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (x.DecisionNumber?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+        }
+        if (issuedFrom.HasValue)
+            items = items.Where(x => x.IssuedDate >= issuedFrom.Value).ToList();
+        if (issuedTo.HasValue)
+            items = items.Where(x => x.IssuedDate <= issuedTo.Value).ToList();
 
+        ViewBag.Q = q;
+        ViewBag.IssuedFrom = issuedFrom;
+        ViewBag.IssuedTo = issuedTo;
         return View(items);
 
     }

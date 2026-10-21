@@ -10,7 +10,7 @@ skinparam dpi 170
 skinparam EntityBorderColor #0F6B73
 skinparam EntityBackgroundColor #F4FAFA
 top to bottom direction
-title "خريطة ERD المختصرة لقاعدة it_infra_db\nIT.Infra"
+title "خريطة ERD المختصرة لقاعدة itinfra_db\nIT.Infra"
 
 entity "AuditLogs\nEntityAuditLog" as T01 {
   * Id
@@ -35,20 +35,34 @@ entity "ITSupportTickets\nITSupportTicket" as T05 {
   * Id
     TenantId
 }
-entity "SecurityIncidents\nSecurityIncident" as T06 {
+entity "LegacySystems\nLegacySystemRecord" as T06 {
   * Id
     TenantId
 }
-entity "ServerDevices\nServerDevice" as T07 {
+entity "MediaDestructionCertificates\nMediaDestructionCertificate" as T07 {
+  * Id
+    LegacySystemId
+    TenantId
+}
+entity "SecurityIncidents\nSecurityIncident" as T08 {
   * Id
     TenantId
 }
-entity "SystemPermissionRecords\nSystemPermissionRecord" as T08 {
+entity "ServerDevices\nServerDevice" as T09 {
+  * Id
+    TenantId
+}
+entity "ShadowOperationChecks\nShadowOperationCheck" as T10 {
+  * Id
+    LegacySystemId
+    TenantId
+}
+entity "SystemPermissionRecords\nSystemPermissionRecord" as T11 {
   * Id
     TenantId
     UserId
 }
-entity "UserDevices\nUserDevice" as T09 {
+entity "UserDevices\nUserDevice" as T12 {
   * Id
     TenantId
 }

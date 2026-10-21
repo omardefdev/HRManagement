@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
+using HRManagement.SharedKernel.Legal;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Payroll.Application.Abstractions;
 using Payroll.Application.Options;
 using Payroll.Domain.Entities;
@@ -39,13 +40,44 @@ public static class PayrollRunParallelCalculator
         if (configResult.Error != null) return (false, 0, jobId, configResult.Error);
         var config = configResult.Config!;
 
-        var profileIds = job.InputSnapshots.OrderBy(s => s.SortOrder).Select(s => s.EmployeeId).ToList();
+        var employeeIds = job.InputSnapshots.Select(s => s.EmployeeId).Distinct().ToList();
+        await using (var scope = scopeFactory.CreateAsyncScope())
+        {
+            var hrCoreClient = scope.ServiceProvider.GetService<IHrCoreServiceRegimeClient>();
+            var configuration = scope.ServiceProvider.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+            var blocksFinalPayroll = configuration?.GetValue("ServiceRegimes:BlocksFinalPayroll", true) ?? true;
+            var regimeError = await PayrollRegimeGovernance.ValidateEmployeesAsync(
+                run.RunType,
+                employeeIds,
+                hrCoreClient,
+                blocksFinalPayroll,
+                cancellationToken);
+            if (regimeError is not null)
+                return (false, 0, jobId, regimeError);
+        }
+
+        var profileIds = job.InputSnapshots.OrderBy(s => s.SortOrder)
+            .Select(s => s.EmployeePayProfileId)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+        var legacyEmployeeIds = job.InputSnapshots
+            .Where(s => !s.EmployeePayProfileId.HasValue)
+            .Select(s => s.EmployeeId)
+            .Distinct()
+            .ToList();
         var profiles = await repository.EmployeePayProfiles
-            .Where(p => profileIds.Contains(p.EmployeeId))
+            .Where(p => profileIds.Contains(p.Id)
+                || (legacyEmployeeIds.Contains(p.EmployeeId) && p.IsActive))
             .Include(p => p.PayGrade)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
-        var profileByEmp = profiles.ToDictionary(p => p.EmployeeId);
+        var profileById = profiles.ToDictionary(p => p.Id);
+        var legacyProfileByEmployee = profiles
+            .Where(p => legacyEmployeeIds.Contains(p.EmployeeId))
+            .GroupBy(p => p.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.UpdatedAt).First());
 
         var holidays = await repository.OfficialHolidays
             .Where(h => h.PayrollConfigurationId == null || h.PayrollConfigurationId == config.Id)
@@ -190,7 +222,11 @@ public static class PayrollRunParallelCalculator
                                 return;
                             }
 
-                            if (!profileByEmp.TryGetValue(snap.EmployeeId, out var profile))
+                            EmployeePayProfile? profile;
+                            var profileFound = snap.EmployeePayProfileId is Guid pinnedProfileId
+                                ? profileById.TryGetValue(pinnedProfileId, out profile)
+                                : legacyProfileByEmployee.TryGetValue(snap.EmployeeId, out profile);
+                            if (!profileFound || profile is null)
                             {
                                 await FailPartitionAsync(repo, partitionId, jobId,
                                     $"الملف غير موجود للموظف {snap.EmployeeId:N}.", cancellationToken);
@@ -283,7 +319,10 @@ public static class PayrollRunParallelCalculator
         finalJob.LastCheckpointAt = DateTime.UtcNow;
 
         var stop = Volatile.Read(ref stopRequested);
-        if (stop == 1)
+        // Pause is a durable operator decision. A worker can finish its last item
+        // between the final status check and this coordinator reload, so honor the
+        // persisted pause before any validation/finalization can mark the job complete.
+        if (stop == 1 || finalJob.Status == PayrollRunJobStatus.Paused)
         {
             finalJob.Status = PayrollRunJobStatus.Paused;
             await repository.SaveChangesAsync(cancellationToken);

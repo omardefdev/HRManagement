@@ -18,5 +18,12 @@ public class ReceiptRecord : BaseEntity
     [Display(Name = "المواد المستلمة")]
     public string? ItemsReceived { get; set; }
 
+    [Display(Name = "عنصر المخزون")]
+    public Guid? InventoryItemId { get; set; }
+
+    [Display(Name = "الكمية المستلمة")]
+    public int? QuantityReceived { get; set; }
+
     public SupplyOrder? SupplyOrder { get; set; }
+    public InventoryItem? InventoryItem { get; set; }
 }

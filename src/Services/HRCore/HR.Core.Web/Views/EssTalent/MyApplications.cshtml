@@ -8,17 +8,30 @@
     </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
-            <thead><tr><th>الشاغر</th><th>تاريخ الترشّح</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>الشاغر</th><th>طلب الشاغر</th><th>الدرجة</th><th>تاريخ الترشّح</th><th>الحالة</th><th>مسار الاختيار</th></tr></thead>
             <tbody>
                 @foreach (var a in Model)
                 {
+                    var req = a.InternalVacancy?.Requisition;
                     <tr>
                         <td>@(a.InternalVacancy?.Title ?? "—")</td>
+                        <td>@(req?.RequisitionNumber ?? "—")</td>
+                        <td>@(req?.FundedPosition?.GradeCode ?? "—")</td>
                         <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
                         <td>@Html.DisplayFor(_ => a.Status)</td>
+                        <td>
+                            @if (a.PromotedRecruitmentApplicationId is Guid promotedId)
+                            {
+                                <span class="badge bg-success">@a.PromotedRecruitmentApplication?.Status.ToString()</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-4">لم تترشّح بعد</td></tr> }
+                @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لم تترشّح بعد</td></tr> }
             </tbody>
         </table>
     </div>

@@ -264,6 +264,72 @@
       "disposition": "Map",
       "effectiveFrom": "2026-01-01",
       "provenance": "docs share codebook"
+    },
+    {
+      "mapId": "CM-ASSET-TAG-WILDCARD",
+      "sourceId": "legacy-logistics",
+      "sourceField": "ASSET_TAG",
+      "sourceValue": "*",
+      "targetField": "Asset.TagNumber",
+      "targetValue": "*",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "COD-001 preserve legacy asset tags — no re-generation on load"
+    },
+    {
+      "mapId": "CM-POSITION-CODE-WILDCARD",
+      "sourceId": "legacy-hr-batch",
+      "sourceField": "POSITION_CODE",
+      "sourceValue": "*",
+      "targetField": "FundedPosition.PositionCode",
+      "targetValue": "*",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "COD-001 preserve legacy position codes"
+    },
+    {
+      "mapId": "CM-ARCH-REF-WILDCARD",
+      "sourceId": "legacy-archive",
+      "sourceField": "ARCH_REF",
+      "sourceValue": "*",
+      "targetField": "ArchiveItem.ReferenceNumber",
+      "targetValue": "*",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "COD-001 preserve archive references"
+    },
+    {
+      "mapId": "CM-CASE-NO-WILDCARD",
+      "sourceId": "legacy-compliance",
+      "sourceField": "CASE_NO",
+      "sourceValue": "*",
+      "targetField": "LegalCase.CaseNumber",
+      "targetValue": "*",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "COD-001 preserve legal case numbers"
+    },
+    {
+      "mapId": "CM-TXN-REF-WILDCARD",
+      "sourceId": "legacy-contracts",
+      "sourceField": "TXN_REF",
+      "sourceValue": "*",
+      "targetField": "ServiceTransaction.ReferenceNumber",
+      "targetValue": "*",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "COD-001 preserve service transaction refs; null allowed for new-only rows"
+    },
+    {
+      "mapId": "CM-IT-ASSET-TAG-WILDCARD",
+      "sourceId": "legacy-it",
+      "sourceField": "ASSET_TAG",
+      "sourceValue": "*",
+      "targetField": "UserDevice.AssetTag",
+      "targetValue": "*",
+      "disposition": "Map",
+      "effectiveFrom": "2026-01-01",
+      "provenance": "COD-001 preserve IT asset tags"
     }
   ],
   "requiredCoverageDomains": [
@@ -271,7 +337,13 @@
     { "sourceId": "legacy-org-files", "sourceField": "ORG_CODE" },
     { "sourceId": "legacy-hr-batch", "sourceField": "JOB_TITLE" },
     { "sourceId": "legacy-payroll", "sourceField": "REGIME" },
-    { "sourceId": "legacy-hr-batch", "sourceField": "GENDER" }
+    { "sourceId": "legacy-hr-batch", "sourceField": "GENDER" },
+    { "sourceId": "legacy-logistics", "sourceField": "ASSET_TAG" },
+    { "sourceId": "legacy-hr-batch", "sourceField": "POSITION_CODE" },
+    { "sourceId": "legacy-archive", "sourceField": "ARCH_REF" },
+    { "sourceId": "legacy-compliance", "sourceField": "CASE_NO" },
+    { "sourceId": "legacy-contracts", "sourceField": "TXN_REF" },
+    { "sourceId": "legacy-it", "sourceField": "ASSET_TAG" }
   ],
   "blockers": [
     { "id": "MIG-001", "status": "Satisfied", "note": "Inventory gate Done" },

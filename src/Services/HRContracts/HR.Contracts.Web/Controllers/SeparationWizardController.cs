@@ -1,10 +1,14 @@
 using System.Security.Claims;
 using HR.Contracts.Application.Abstractions;
+using HR.Contracts.Application.Features.Lookup;
 using HR.Contracts.Application.Features.SeparationRecords;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HR.Contracts.Web.ViewModels;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Integration;
 using HRManagement.SharedKernel.ViewModels;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +20,19 @@ public class SeparationWizardController : Controller
 {
     private readonly IContractsRepository _repo;
     private readonly IMediator _mediator;
+    private readonly ICodeGenerationClient _codeClient;
+    private readonly IHrCoreLookupClient _hrCoreLookup;
 
-    public SeparationWizardController(IContractsRepository repo, IMediator mediator)
+    public SeparationWizardController(
+        IContractsRepository repo,
+        IMediator mediator,
+        ICodeGenerationClient codeClient,
+        IHrCoreLookupClient hrCoreLookup)
     {
         _repo = repo;
         _mediator = mediator;
+        _codeClient = codeClient;
+        _hrCoreLookup = hrCoreLookup;
     }
 
     private Guid? ParseUserId()
@@ -29,12 +41,20 @@ public class SeparationWizardController : Controller
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public IActionResult Step1() =>
-        View(new SeparationRecordCreateViewModel { EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow) });
+    public async Task<IActionResult> Step1()
+    {
+        var vm = new SeparationRecordCreateViewModel
+        {
+            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow)
+        };
+        await PopulateContractsAsync(vm);
+        return View(vm);
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Step1(SeparationRecordCreateViewModel vm)
     {
+        await PopulateContractsAsync(vm);
         if (!ModelState.IsValid) return View(vm);
 
         var model = new SeparationRecord
@@ -48,12 +68,14 @@ public class SeparationWizardController : Controller
             ApprovedBy = ParseUserId()
         };
         await _repo.AddAsync(model, default);
-        await _repo.AddAsync(new ServiceTransaction
+        var transaction = new ServiceTransaction
         {
             EmployeeId = model.EmployeeId,
             TransactionType = ServiceTransactionType.Separation,
             Notes = "معالج الفصل — تسجيل"
-        }, default);
+        };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, _codeClient, default);
+        await _repo.AddAsync(transaction, default);
         await _repo.SaveChangesAsync(default);
 
         foreach (var item in SeparationChecklistDefaults.CreateForRecord(model.Id))
@@ -76,6 +98,7 @@ public class SeparationWizardController : Controller
             .ToListAsync();
 
         ViewBag.Checklist = checklist;
+        ViewBag.EmployeeName = await ResolveEmployeeNameAsync(record.EmployeeId);
         return View(record);
     }
 
@@ -123,6 +146,7 @@ public class SeparationWizardController : Controller
     {
         var record = await _repo.SeparationRecords.FirstOrDefaultAsync(r => r.Id == id);
         if (record is null) return NotFound();
+        ViewBag.EmployeeName = await ResolveEmployeeNameAsync(record.EmployeeId);
         return View(record);
     }
 
@@ -152,6 +176,29 @@ public class SeparationWizardController : Controller
             .ToListAsync();
 
         ViewBag.Checklist = checklist;
+        ViewBag.EmployeeName = await ResolveEmployeeNameAsync(record.EmployeeId);
         return View(record);
+    }
+
+    private async Task<string> ResolveEmployeeNameAsync(Guid employeeId)
+    {
+        try
+        {
+            var result = await _hrCoreLookup.GetEmployeesByIdsAsync([employeeId], HttpContext.RequestAborted);
+            return result.FirstOrDefault()?.Label ?? "غير متاح";
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<SeparationWizardController>>()
+                .LogWarning(ex, "Employee name lookup failed for separation wizard.");
+            return "غير متاح";
+        }
+    }
+
+    private async Task PopulateContractsAsync(SeparationRecordCreateViewModel vm)
+    {
+        var contracts = await _mediator.Send(new GetContractsLookupQuery(vm.ContractId));
+        var items = contracts.Select(c => new { c.Id, Text = c.Label });
+        vm.Contracts = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(items, "Id", "Text", vm.ContractId);
     }
 }

@@ -35,6 +35,14 @@ public static class PayrollRegimeSeed
             isActive: isActive,
             brackets: Law50TaxBrackets);
 
+    public static PayrollConfiguration CreateLaw53Configuration(bool isActive = false) =>
+        CreateConfiguration(
+            code: "LAW_53_2021",
+            regimeCode: LegalRegimeCodes.Law53_2021,
+            nameAr: LegalRegimeCodes.DisplayNameAr(LegalRegimeCodes.Law53_2021),
+            isActive: isActive,
+            brackets: Law50TaxBrackets);
+
     public static PayrollConfiguration CreateCivilServiceConfiguration(bool isActive = false) =>
         CreateConfiguration(
             code: "CIVIL_SERVICE_2026",

@@ -26,6 +26,14 @@ public class InternalVacancy : AuditableEntity
     [Display(Name = "مفتوح للترشّح")]
     public bool IsOpen { get; set; } = true;
 
+    [Display(Name = "طلب الشاغر")]
+    public Guid? RequisitionId { get; set; }
+
+    public virtual RecruitmentRequisition? Requisition { get; set; }
+
+    [Display(Name = "مشتق من طلب شاغر")]
+    public bool IsDerivedFromRequisition { get; set; }
+
     public virtual OrgUnit? OrgUnit { get; set; }
     public virtual ICollection<InternalApplication> Applications { get; set; } = new List<InternalApplication>();
 }

@@ -57,12 +57,20 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<PayrollRunPartition> PayrollRunPartitions => _inner.PayrollRunPartitions;
         public IQueryable<PayrollRunInputSnapshot> PayrollRunInputSnapshots => _inner.PayrollRunInputSnapshots;
         public IQueryable<PaymentBatch> PaymentBatches => _inner.PaymentBatches;
+        public IQueryable<PaymentOrder> PaymentOrders => _inner.PaymentOrders;
+        public IQueryable<FundingDecision> FundingDecisions => _inner.FundingDecisions;
+        public IQueryable<DisbursementPriorityRule> DisbursementPriorityRules => _inner.DisbursementPriorityRules;
+        public IQueryable<FraudAlert> FraudAlerts => _inner.FraudAlerts;
+        public IQueryable<PaymentHold> PaymentHolds => _inner.PaymentHolds;
 
         public Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct) =>
             _inner.GetPayrollRunAsync(id, includeLines, ct);
 
         public Task<PayrollConfiguration?> GetActiveConfigurationAsync(CancellationToken ct) =>
             _inner.GetActiveConfigurationAsync(ct);
+
+        public Task<PayrollConfiguration?> GetConfigurationByRegimeCodeAsync(string regimeCode, CancellationToken ct) =>
+            _inner.GetConfigurationByRegimeCodeAsync(regimeCode, ct);
 
         public Task<PayrollConfiguration?> GetPublishedConfigurationForPeriodAsync(DateTime periodStart, CancellationToken ct) =>
             _inner.GetPublishedConfigurationForPeriodAsync(periodStart, ct);
@@ -247,7 +255,7 @@ public class OutboxAtomicityIntegrationTests
 
         public Task StartSeparationSagaAsync(
             Guid separationRecordId, Guid employeeId, string separationType, DateOnly effectiveDate, CancellationToken ct,
-            Guid? contractId = null, int remainingLeaveDays = 0) =>
+            Guid? contractId = null, int remainingLeaveDays = 0, string? sourceLegalRegimeId = null, string? payrollRegimeCode = null) =>
             Task.CompletedTask;
 
         public Task CancelSeparationSagaAsync(Guid separationRecordId, string reason, CancellationToken ct) =>

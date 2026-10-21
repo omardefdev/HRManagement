@@ -1,22 +1,200 @@
-@model IReadOnlyList<Admin.Logistics.Domain.Entities.Asset>
-@{ ViewData["Title"] = "الأصول والعهد"; }
+@model Admin.Logistics.Web.ViewModels.AssetIndexViewModel
+@using Admin.Logistics.Domain.Enums
+@{
+    ViewData["Title"] = "الأصول والعهد";
+    string FilterHolderLabel(Guid id) =>
+        !string.IsNullOrWhiteSpace(Model.FilterHolderEmployeeName) && HrLookupDisplayHelper.IsResolvedEmployeeName(Model.FilterHolderEmployeeName)
+            ? Model.FilterHolderEmployeeName!
+            : id.ToString();
+}
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="page" value="1" />
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="رقم أو اسم أو ماركة..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select" data-hr-picker="select" data-placeholder="— الكل —">
+                    <option value="">— الكل —</option>
+                    @foreach (AssetStatus s in Enum.GetValues<AssetStatus>())
+                    {
+                        if (Model.Status == s)
+                        {
+                            <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option>
+                        }
+                        else
+                        {
+                            <option value="@((int)s)">@Html.HrEnumDisplay(s)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الفئة</label>
+                <select name="category" class="form-select" data-hr-picker="select" data-placeholder="— الكل —" asp-items="ViewBag.Categories">
+                    <option value="">— الكل —</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الماركة</label>
+                <select name="brand" class="form-select" data-hr-picker="select" data-placeholder="— الكل —" asp-items="ViewBag.Brands">
+                    <option value="">— الكل —</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">الحائز الحالي</label>
+                <select name="holderEmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— الكل —</option>
+                    @if (Model.HolderEmployeeId is Guid holderId)
+                    {
+                        <option value="@holderId" selected="selected">@FilterHolderLabel(holderId)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">مصدر التوريد</label>
+                <select name="originKind" class="form-select" data-hr-picker="select" data-placeholder="— الكل —">
+                    <option value="">— الكل —</option>
+                    @if (Model.OriginKind == "receipt")
+                    {
+                        <option value="receipt" selected="selected">استلام</option>
+                    }
+                    else
+                    {
+                        <option value="receipt">استلام</option>
+                    }
+                    @if (Model.OriginKind == "legacy")
+                    {
+                        <option value="legacy" selected="selected">قديم / هبة</option>
+                    }
+                    else
+                    {
+                        <option value="legacy">قديم / هبة</option>
+                    }
+                    @if (Model.OriginKind == "none")
+                    {
+                        <option value="none" selected="selected">بدون مصدر (تدقيق)</option>
+                    }
+                    else
+                    {
+                        <option value="none">بدون مصدر (تدقيق)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">شراء من</label>
+                <input type="date" name="purchaseFrom" value="@Model.PurchaseFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">شراء إلى</label>
+                <input type="date" name="purchaseTo" value="@Model.PurchaseTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">القيمة من</label>
+                <input type="number" name="valueMin" value="@Model.ValueMin" class="form-control" min="0" step="0.01" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">القيمة إلى</label>
+                <input type="number" name="valueMax" value="@Model.ValueMax" class="form-control" min="0" step="0.01" />
+            </div>
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input type="checkbox" name="unassignedOnly" value="true" class="form-check-input" id="unassignedOnly" @(Model.UnassignedOnly ? "checked" : null) />
+                    <label class="form-check-label" for="unassignedOnly">غير مُسلّمة (بدون حائز)</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="assignedOnly" value="true" class="form-check-input" id="assignedOnly" @(Model.AssignedOnly ? "checked" : null) />
+                    <label class="form-check-label" for="assignedOnly">مُسلّمة (لدى موظف)</label>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input type="checkbox" name="privilegedOnly" value="true" class="form-check-input" id="privilegedOnly" @(Model.PrivilegedOnly ? "checked" : null) />
+                    <label class="form-check-label" for="privilegedOnly">مميزة فقط</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="activeOnly" value="true" class="form-check-input" id="activeOnly" @(Model.ActiveOnly ? "checked" : null) />
+                    <label class="form-check-label" for="activeOnly">النشطة فقط (بدون ملغاة/مُستَبعَدة)</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="showCancelled" value="true" class="form-check-input" id="showCancelled" @(Model.ShowCancelled ? "checked" : null) />
+                    <label class="form-check-label" for="showCancelled">عرض الملغاة</label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
+</div>
 <div class="card">
-    <div class="card-header"><h3 class="card-title mb-0">الأصول</h3></div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">الأصول</h3>
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> إضافة أصل</a>
+    </div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
-            <thead><tr><th>رقم العهدة</th><th>الاسم</th><th>الحالة</th><th></th></tr></thead>
+            <thead>
+                <tr>
+                    <th>رقم العهدة</th>
+                    <th>الاسم</th>
+                    <th>الفئة</th>
+                    <th>الحالة</th>
+                    <th>مصدر التوريد</th>
+                    <th>الحائز الحالي</th>
+                    <th></th>
+                </tr>
+            </thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items.Items)
                 {
-                    <tr>
+                    <tr class="@(x.IsCancelled ? "table-secondary" : null)">
                         <td><a asp-action="Details" asp-route-id="@x.Id">@x.TagNumber</a></td>
-                        <td>@x.Name</td>
-                        <td>@x.Status</td>
+                        <td>
+                            @x.Name
+                            @if (x.IsPrivileged) { <span class="badge bg-warning text-dark ms-1">مميز</span> }
+                            @if (x.IsCancelled) { <span class="badge bg-danger ms-1">ملغى</span> }
+                        </td>
+                        <td>@(x.Category ?? "—")</td>
+                        <td>@Html.HrEnumDisplay(x.Status)</td>
+                        <td>
+                            @if (x.IsLegacyEntry)
+                            {
+                                <span class="badge bg-secondary">قديم/هبة</span>
+                            }
+                            else if (x.OriginReceiptRecordId is Guid rid)
+                            {
+                                <a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@rid">استلام</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (x.OpenHolderEmployeeName is not null)
+                            {
+                                <span>@x.OpenHolderEmployeeName</span>
+                            }
+                            else if (x.OpenHolderEmployeeId is Guid empId)
+                            {
+                                <span data-hr-employee-id="@empId">غير متاح</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا أصول</td></tr> }
+                @if (!Model.Items.Items.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا أصول</td></tr> }
             </tbody>
         </table>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))
     </div>
 </div>

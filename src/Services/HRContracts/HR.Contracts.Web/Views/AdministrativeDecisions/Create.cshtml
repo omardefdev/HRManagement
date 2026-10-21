@@ -9,7 +9,11 @@
             <div class="mb-3"><label asp-for="Subject" class="form-label"></label><input asp-for="Subject" class="form-control" /></div>
             <div class="mb-3"><label asp-for="DecisionNumber" class="form-label"></label><input asp-for="DecisionNumber" class="form-control" /></div>
             <div class="mb-3"><label asp-for="IssuedDate" class="form-label"></label><input asp-for="IssuedDate" class="form-control" type="date" /></div>
-            <div class="mb-3"><label asp-for="RelatedEmployeeId" class="form-label"></label><input asp-for="RelatedEmployeeId" class="form-control" /></div>
+            <div class="mb-3">
+                <label asp-for="RelatedEmployeeId" class="form-label"></label>
+                <select asp-for="RelatedEmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— دون موظف محدد —</option></select>
+                <div class="form-text">يُستخدم الربط داخلياً ولا يظهر المعرّف التقني للمستخدم.</div>
+            </div>
             @{
                 ViewData["FileUploadName"] = "FileId";
                 ViewData["FileUploadAccept"] = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png";

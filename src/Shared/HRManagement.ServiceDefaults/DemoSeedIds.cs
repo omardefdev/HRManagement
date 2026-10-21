@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using HRManagement.ServiceDefaults.Seeding;
 
 namespace HRManagement.ServiceDefaults;
 
@@ -27,23 +28,32 @@ public static class DemoSeedIds
         Guid.Parse("11111111-1111-1111-1111-111111111109"), // 8 Public Relations
     ];
 
-    public static readonly Guid DefaultContractTypeId =
-        Guid.Parse("22222222-2222-2222-2222-222222222201");
+    public static Guid DefaultContractTypeId => AcceptanceSeedExecution.IsAcceptance
+        ? DeterministicGuid("contract-type-default")
+        : Guid.Parse("22222222-2222-2222-2222-222222222201");
 
-    public static readonly Guid DefaultSalaryScaleId =
-        Guid.Parse("33333333-3333-3333-3333-333333333301");
+    public static Guid DefaultSalaryScaleId => AcceptanceSeedExecution.IsAcceptance
+        ? DeterministicGuid("salary-scale-default")
+        : Guid.Parse("33333333-3333-3333-3333-333333333301");
 
-    public static int EmployeeCount => 500;
-    public static int OrgUnitCount => 30;
+    public static int EmployeeCount => AcceptanceSeedExecution.EmployeeCount;
+    public static int OrgUnitCount => AcceptanceSeedExecution.OrgUnitCount;
     public static int TrainingCourseCount => 30;
-    public static int AssetCount => 200;
+    public static int AssetCount => AcceptanceSeedExecution.AssetCount;
 
-    public static Guid EmployeeId(int index) => DeterministicGuid($"employee-{index}");
+    public static Guid EmployeeId(int index) => AcceptanceSeedExecution.CurrentAgency?.EmployeeAt(index).Id
+        ?? DeterministicGuid($"employee-{index}");
 
     public static Guid OrgUnitId(int index) =>
-        index >= 0 && index < KnownOrgUnitIds.Length
+        AcceptanceSeedExecution.CurrentAgency is { } agency
+            ? agency.OrgUnitAt(index).Id
+            : index >= 0 && index < KnownOrgUnitIds.Length
             ? KnownOrgUnitIds[index]
             : DeterministicGuid($"orgunit-{index}");
+
+    public static Guid EmployeeOrgUnitId(int employeeIndex) =>
+        AcceptanceSeedExecution.CurrentAgency?.EmployeeAt(employeeIndex).OrgUnitId
+        ?? OrgUnitId(1 + employeeIndex % Math.Max(1, OrgUnitCount - 1));
 
     public static Guid ContractId(int index) => DeterministicGuid($"contract-{index}");
     public static Guid TrainingCourseId(int index) => DeterministicGuid($"training-course-{index}");
@@ -53,10 +63,29 @@ public static class DemoSeedIds
     public static Guid TrainingProviderId(int index) => DeterministicGuid($"training-provider-{index}");
     public static Guid CardDesignId(int index) => DeterministicGuid($"card-design-{index}");
     public static Guid RoleId(int index) => DeterministicGuid($"role-{index}");
-    public static Guid AuthUserId(int index) => DeterministicGuid($"auth-user-{index}");
+    public static Guid AuthUserId(int index)
+    {
+        if (AcceptanceSeedExecution.CurrentAgency is { } agency)
+        {
+            var personas = AcceptancePersonaCatalog.Personas
+                .Where(persona => persona.Fixture is null
+                    && persona.Enabled
+                    && persona.StorageTenantId == agency.Id)
+                .ToArray();
+            if (personas.Length == 0)
+                throw new InvalidOperationException($"Acceptance tenant '{agency.Code}' has no active persona.");
+
+            var persona = personas[index % personas.Length];
+            return AcceptanceSeedCatalog.DeterministicGuid(
+                persona.Definition.TenantCode ?? "NO-TENANT",
+                $"auth-user:{persona.Id}");
+        }
+
+        return DeterministicGuid($"auth-user-{index}");
+    }
     public static Guid JobCatalogId(int index) => DeterministicGuid($"job-catalog-{index}");
     public static Guid PayGradeId(int index) =>
-        index is >= 0 and < 6
+        !AcceptanceSeedExecution.IsAcceptance && index is >= 0 and < 6
             ? Guid.Parse($"44444444-4444-4444-4444-44444444440{index + 1}")
             : DeterministicGuid($"pay-grade-{index}");
     public static Guid SalaryScaleId(int index) =>
@@ -67,17 +96,35 @@ public static class DemoSeedIds
     public static Guid Named(string name) => DeterministicGuid(name);
 
     /// <summary>Roughly top ~10% of workforce (directors / section heads).</summary>
-    public static bool IsSupervisor(int index) => index < 40 || index % 12 == 0;
+    public static bool IsSupervisor(int index) => AcceptanceSeedExecution.CurrentAgency?.EmployeeAt(index).IsSupervisor
+        ?? (index < 40 || index % 12 == 0);
 
     /// <summary>
     /// Status buckets per 100 employees: 85 Active, 5 OnLeave, 5 Seconded, 3 Terminated, 2 Retired.
     /// </summary>
-    public static int StatusBucket(int index) => index % 100;
+    public static int StatusBucket(int index)
+    {
+        var state = AcceptanceSeedExecution.CurrentAgency?.EmployeeAt(index).State;
+        return state switch
+        {
+            AcceptanceEmployeeState.Active => 10,
+            AcceptanceEmployeeState.Probation => 20,
+            AcceptanceEmployeeState.OnLeave => 87,
+            AcceptanceEmployeeState.Seconded => 92,
+            AcceptanceEmployeeState.Terminated => 96,
+            AcceptanceEmployeeState.Retired => 99,
+            _ => index % 100
+        };
+    }
 
-    public static bool IsActiveEmployee(int index) => StatusBucket(index) < 85;
+    public static bool IsActiveEmployee(int index) => AcceptanceSeedExecution.CurrentAgency?.EmployeeAt(index).IsPayable
+        ?? StatusBucket(index) < 85;
 
     private static Guid DeterministicGuid(string name)
     {
+        if (AcceptanceSeedExecution.CurrentAgency is { } agency)
+            name = $"{AcceptanceSeedCatalog.PackId}|{agency.Code}|{name}";
+
         var nsBytes = Namespace.ToByteArray();
         var nameBytes = Encoding.UTF8.GetBytes(name);
         var combined = new byte[nsBytes.Length + nameBytes.Length];

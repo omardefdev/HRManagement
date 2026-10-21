@@ -1,58 +1,107 @@
-@model IList<Payroll.Domain.Entities.EmployeePayProfile>
-
-@{ ViewData["Title"] = "ملفات الراتب"; }
-
-<div class="card">
-
-    <div class="card-header d-flex justify-content-between align-items-center">
-
-        <h3 class="card-title mb-0"><i class="fas fa-id-card"></i> ملفات الراتب</h3>
-
-        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
-
-    </div>
-
-    <div class="card-body">@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }</div>
-
-    <div class="card-body p-0 border-top-0 pt-0">
-
-        <table class="table table-striped mb-0">
-
-            <thead><tr><th>الموظف</th><th>الدرجة</th><th>الأساسي</th><th>من</th><th>إلى</th><th>فعّال</th><th></th></tr></thead>
-
-            <tbody>
-
-                @foreach (var p in Model)
-
-                {
-
-                    <tr>
-
-                        <td>@p.EmployeeId</td>
-
-                        <td>@p.PayGrade?.GradeNameAr</td>
-
-                        <td>@p.BaseSalary.ToString("N2")</td>
-
-                        <td>@p.EffectiveFrom.ToString("yyyy/MM/dd")</td>
-
-                        <td>@(p.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
-
-                        <td>@(p.IsActive ? "نعم" : "لا")</td>
-
-                        <td><a asp-action="History" asp-route-employeeId="@p.EmployeeId" class="btn btn-info btn-xs">السجل</a></td>
-
-                    </tr>
-
-                }
-
-                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد ملفات</td></tr> }
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
+@model IList<Payroll.Domain.Entities.EmployeePayProfile>
+
+@{
+    ViewData["Title"] = "ملفات الراتب";
+    var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
+                        ?? new Dictionary<Guid, string>();
+    var filterEmployeeId = ViewBag.EmployeeId as Guid?;
+    var payGradeId = ViewBag.PayGradeId as Guid?;
+    bool? isActive = ViewBag.IsActive;
+    DateTime? effectiveFrom = ViewBag.EffectiveFrom;
+    DateTime? effectiveTo = ViewBag.EffectiveTo;
+}
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <h3 class="card-title mb-0"><i class="fas fa-id-card"></i> ملفات الراتب</h3>
+
+        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
+
+    </div>
+
+    <div class="card-body">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">الموظف</label>
+                <select name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (filterEmployeeId is Guid empId)
+                    {
+                        <option value="@empId" selected="selected">@(employeeNames.GetValueOrDefault(empId, empId.ToString()))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">الدرجة</label>
+                <select name="payGradeId" class="form-select form-select-sm" asp-items="ViewBag.PayGrades">
+                    <option value="">كل الدرجات</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">فعّال</label>
+                <select name="isActive" class="form-select form-select-sm">
+                    <option value="">الكل</option>
+                    <option value="true" selected="@(isActive == true ? "selected" : null)">نعم</option>
+                    <option value="false" selected="@(isActive == false ? "selected" : null)">لا</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">ساري من</label>
+                <input type="date" name="effectiveFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">ساري إلى</label>
+                <input type="date" name="effectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card-body p-0 border-top-0 pt-0">
+
+        <table class="table table-striped mb-0">
+
+            <thead><tr><th>الموظف</th><th>الدرجة</th><th>الأساسي</th><th>من</th><th>إلى</th><th>فعّال</th><th></th></tr></thead>
+
+            <tbody>
+
+                @foreach (var p in Model)
+
+                {
+
+                    <tr>
+
+                        <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(p.EmployeeId, employeeNames.GetValueOrDefault(p.EmployeeId)))</td>
+
+                        <td>@p.PayGrade?.GradeNameAr</td>
+
+                        <td>@p.BaseSalary.ToString("N2")</td>
+
+                        <td>@p.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+
+                        <td>@(p.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
+
+                        <td>@(p.IsActive ? "نعم" : "لا")</td>
+
+                        <td><a asp-action="History" asp-route-employeeId="@p.EmployeeId" class="btn btn-info btn-xs">السجل</a></td>
+
+                    </tr>
+
+                }
+
+                @if (!Model.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا توجد ملفات</td></tr> }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+

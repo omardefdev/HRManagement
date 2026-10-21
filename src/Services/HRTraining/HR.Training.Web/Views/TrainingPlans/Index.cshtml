@@ -9,7 +9,24 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>السنة</th><th>الوحدة</th><th>اعتماد</th><th></th></tr></thead>
             <tbody>
-            @foreach (var x in Model) { <tr><td>@x.Year</td><td>@(x.OrgUnitId?.ToString() ?? "—")</td><td>@(x.ApprovedAt != null ? "معتمدة" : "—")</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td></tr> }
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td>@x.Year</td>
+                    <td>
+                        @if (x.OrgUnitId.HasValue)
+                        {
+                            <span data-hr-org-unit-id="@x.OrgUnitId">جاري التحميل...</span>
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </td>
+                    <td>@(x.ApprovedAt != null ? "معتمدة" : "—")</td>
+                    <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
+                </tr>
+            }
             @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد خطط</td></tr> }
             </tbody>
         </table>

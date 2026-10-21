@@ -17,6 +17,8 @@
 
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
+        <div class="alert alert-light border mb-3"><strong>الموظف:</strong> @await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</div>
+
         <h5 class="mb-3">حالة قائمة التحقق</h5>
         @if (checklist != null)
         {

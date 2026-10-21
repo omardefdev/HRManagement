@@ -51,50 +51,110 @@ jobs:
       matrix:
         include:
           - service: hr-gateway
-            dockerfile: src/Gateway/HRManagement.Gateway/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: hr-gateway
+            project_csproj: src/Gateway/HRManagement.Gateway/HRManagement.Gateway.csproj
+            assembly_name: HRManagement.Gateway.dll
+            needs_krb5: "false"
+            gateway_audit_dir: "true"
           - service: hr-core-web
-            dockerfile: src/Services/HRCore/HR.Core.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: hr-core-web
+            project_csproj: src/Services/HRCore/HR.Core.Web/HR.Core.Web.csproj
+            assembly_name: HR.Core.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: hr-contracts-web
-            dockerfile: src/Services/HRContracts/HR.Contracts.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: hr-contracts-web
+            project_csproj: src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj
+            assembly_name: HR.Contracts.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: hr-health-web
-            dockerfile: src/Services/HRHealth/HR.Health.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: hr-health-web
+            project_csproj: src/Services/HRHealth/HR.Health.Web/HR.Health.Web.csproj
+            assembly_name: HR.Health.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: hr-movements-web
-            dockerfile: src/Services/HRMovements/HR.Movements.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: hr-movements-web
+            project_csproj: src/Services/HRMovements/HR.Movements.Web/HR.Movements.Web.csproj
+            assembly_name: HR.Movements.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: hr-training-web
-            dockerfile: src/Services/HRTraining/HR.Training.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: hr-training-web
+            project_csproj: src/Services/HRTraining/HR.Training.Web/HR.Training.Web.csproj
+            assembly_name: HR.Training.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: payroll-web
-            dockerfile: src/Services/Payroll/Payroll.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: payroll-web
+            project_csproj: src/Services/Payroll/Payroll.Web/Payroll.Web.csproj
+            assembly_name: Payroll.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: idcard-web
-            dockerfile: src/Services/IDCard/IDCard.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: idcard-web
+            project_csproj: src/Services/IDCard/IDCard.Web/IDCard.Web.csproj
+            assembly_name: IDCard.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: records-archive-web
-            dockerfile: src/Services/RecordsArchive/Records.Archive.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: records-archive-web
+            project_csproj: src/Services/RecordsArchive/Records.Archive.Web/Records.Archive.Web.csproj
+            assembly_name: Records.Archive.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: admin-logistics-web
-            dockerfile: src/Services/AdminLogistics/Admin.Logistics.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: admin-logistics-web
+            project_csproj: src/Services/AdminLogistics/Admin.Logistics.Web/Admin.Logistics.Web.csproj
+            assembly_name: Admin.Logistics.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: it-infra-web
-            dockerfile: src/Services/ITInfrastructure/IT.Infra.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: it-infra-web
+            project_csproj: src/Services/ITInfrastructure/IT.Infra.Web/IT.Infra.Web.csproj
+            assembly_name: IT.Infra.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: dev-analytics-web
-            dockerfile: src/Services/DevAnalytics/Dev.Analytics.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: dev-analytics-web
+            project_csproj: src/Services/DevAnalytics/Dev.Analytics.Web/Dev.Analytics.Web.csproj
+            assembly_name: Dev.Analytics.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: compliance-web
-            dockerfile: src/Services/Compliance/Compliance.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: compliance-web
+            project_csproj: src/Services/Compliance/Compliance.Web/Compliance.Web.csproj
+            assembly_name: Compliance.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: auth-directory-web
-            dockerfile: src/Services/AuthDirectory/Auth.Directory.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: auth-directory-web
+            project_csproj: src/Services/AuthDirectory/Auth.Directory.Web/Auth.Directory.Web.csproj
+            assembly_name: Auth.Directory.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
           - service: file-storage-web
-            dockerfile: src/Services/FileStorage/File.Storage.Web/Dockerfile
+            dockerfile: docker/DotnetService.Dockerfile
             image: file-storage-web
+            project_csproj: src/Services/FileStorage/File.Storage.Web/File.Storage.Web.csproj
+            assembly_name: File.Storage.Web.dll
+            needs_krb5: "true"
+            gateway_audit_dir: "false"
     steps:
       - uses: actions/checkout@v4
 
@@ -107,12 +167,20 @@ jobs:
       - id: meta
         run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
+      - name: Generate Docker build manifest
+        run: pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1
+
       - id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
+          build-args: |
+            PROJECT_CSPROJ=${{ matrix.project_csproj }}
+            ASSEMBLY_NAME=${{ matrix.assembly_name }}
+            NEEDS_KRB5=${{ matrix.needs_krb5 }}
+            GATEWAY_AUDIT_DIR=${{ matrix.gateway_audit_dir }}
           # DEP-001: never push :latest for releases — only immutable SHA tag
           tags: |
             ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ steps.meta.outputs.tag }}

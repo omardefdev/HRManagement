@@ -9,7 +9,7 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>ملف طبي</th><th>التاريخ</th><th>التوصية</th><th></th></tr></thead>
             <tbody>
-            @foreach (var x in Model) { <tr><td>@x.MedicalRecordId</td><td>@x.CommitteeDate</td><td>@x.Recommendation</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td></tr> }
+            @foreach (var x in Model) { <tr><td>@x.MedicalRecordId</td><td>@x.CommitteeDate</td><td>@Html.HrEnumDisplay(x.Recommendation)</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td></tr> }
             @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد تقارير</td></tr> }
             </tbody>
         </table>

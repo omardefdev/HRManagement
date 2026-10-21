@@ -9,7 +9,7 @@
     "image": "01_gatewayaudit.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/01_gatewayaudit_compact.puml",
     "compact_image": "01_gatewayaudit_compact.png",
-    "entity_count": 1,
+    "entity_count": 7,
     "relationship_count": 0
   },
   {
@@ -17,25 +17,25 @@
     "service_ar": "اللوجستيات الإدارية",
     "service": "Admin.Logistics",
     "context": "AdminLogisticsDbContext",
-    "database": "admin_db",
+    "database": "adminlogistics_db",
     "source": "docs/thesis_diagrams/database_erdds/source/02_adminlogistics.puml",
     "image": "02_adminlogistics.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/02_adminlogistics_compact.puml",
     "compact_image": "02_adminlogistics_compact.png",
-    "entity_count": 9,
-    "relationship_count": 3
+    "entity_count": 11,
+    "relationship_count": 9
   },
   {
     "index": 3,
     "service_ar": "الدليل والمصادقة",
     "service": "Auth.Directory",
     "context": "AuthDirectoryDbContext",
-    "database": "auth_directory_db",
+    "database": "authdirectory_db",
     "source": "docs/thesis_diagrams/database_erdds/source/03_authdirectory.puml",
     "image": "03_authdirectory.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/03_authdirectory_compact.puml",
     "compact_image": "03_authdirectory_compact.png",
-    "entity_count": 9,
+    "entity_count": 10,
     "relationship_count": 3
   },
   {
@@ -48,7 +48,7 @@
     "image": "04_compliance.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/04_compliance_compact.puml",
     "compact_image": "04_compliance_compact.png",
-    "entity_count": 8,
+    "entity_count": 17,
     "relationship_count": 5
   },
   {
@@ -61,7 +61,7 @@
     "image": "05_analytics.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/05_analytics_compact.puml",
     "compact_image": "05_analytics_compact.png",
-    "entity_count": 8,
+    "entity_count": 10,
     "relationship_count": 1
   },
   {
@@ -69,12 +69,12 @@
     "service_ar": "تخزين الملفات",
     "service": "File.Storage",
     "context": "FileStorageDbContext",
-    "database": "file_storage_db",
+    "database": "filestorage_db",
     "source": "docs/thesis_diagrams/database_erdds/source/06_filestorage.puml",
     "image": "06_filestorage.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/06_filestorage_compact.puml",
     "compact_image": "06_filestorage_compact.png",
-    "entity_count": 4,
+    "entity_count": 11,
     "relationship_count": 1
   },
   {
@@ -82,12 +82,12 @@
     "service_ar": "العقود والخدمة",
     "service": "HR.Contracts",
     "context": "ContractsDbContext",
-    "database": "hr_contracts_db",
+    "database": "contracts_db",
     "source": "docs/thesis_diagrams/database_erdds/source/07_contracts.puml",
     "image": "07_contracts.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/07_contracts_compact.puml",
     "compact_image": "07_contracts_compact.png",
-    "entity_count": 21,
+    "entity_count": 28,
     "relationship_count": 9
   },
   {
@@ -95,25 +95,25 @@
     "service_ar": "النواة والموظفون",
     "service": "HR.Core",
     "context": "HRCoreDbContext",
-    "database": "hr_core_db",
+    "database": "hrcore_db",
     "source": "docs/thesis_diagrams/database_erdds/source/08_hrcore.puml",
     "image": "08_hrcore.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/08_hrcore_compact.puml",
     "compact_image": "08_hrcore_compact.png",
-    "entity_count": 35,
-    "relationship_count": 32
+    "entity_count": 67,
+    "relationship_count": 43
   },
   {
     "index": 9,
     "service_ar": "الصحة المهنية",
     "service": "HR.Health",
     "context": "HealthDbContext",
-    "database": "hr_health_db",
+    "database": "health_db",
     "source": "docs/thesis_diagrams/database_erdds/source/09_health.puml",
     "image": "09_health.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/09_health_compact.puml",
     "compact_image": "09_health_compact.png",
-    "entity_count": 13,
+    "entity_count": 18,
     "relationship_count": 3
   },
   {
@@ -121,12 +121,12 @@
     "service_ar": "الحركات والتنقلات",
     "service": "HR.Movements",
     "context": "MovementsDbContext",
-    "database": "hr_movements_db",
+    "database": "movements_db",
     "source": "docs/thesis_diagrams/database_erdds/source/10_movements.puml",
     "image": "10_movements.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/10_movements_compact.puml",
     "compact_image": "10_movements_compact.png",
-    "entity_count": 10,
+    "entity_count": 19,
     "relationship_count": 6
   },
   {
@@ -134,12 +134,12 @@
     "service_ar": "التدريب والتعلم",
     "service": "HR.Training",
     "context": "TrainingDbContext",
-    "database": "hr_training_db",
+    "database": "training_db",
     "source": "docs/thesis_diagrams/database_erdds/source/11_training.puml",
     "image": "11_training.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/11_training_compact.puml",
     "compact_image": "11_training_compact.png",
-    "entity_count": 14,
+    "entity_count": 20,
     "relationship_count": 9
   },
   {
@@ -152,7 +152,7 @@
     "image": "12_idcard.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/12_idcard_compact.puml",
     "compact_image": "12_idcard_compact.png",
-    "entity_count": 8,
+    "entity_count": 13,
     "relationship_count": 3
   },
   {
@@ -160,12 +160,12 @@
     "service_ar": "البنية التقنية",
     "service": "IT.Infra",
     "context": "ITInfraDbContext",
-    "database": "it_infra_db",
+    "database": "itinfra_db",
     "source": "docs/thesis_diagrams/database_erdds/source/13_itinfra.puml",
     "image": "13_itinfra.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/13_itinfra_compact.puml",
     "compact_image": "13_itinfra_compact.png",
-    "entity_count": 9,
+    "entity_count": 12,
     "relationship_count": 0
   },
   {
@@ -178,8 +178,8 @@
     "image": "14_payroll.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/14_payroll_compact.puml",
     "compact_image": "14_payroll_compact.png",
-    "entity_count": 27,
-    "relationship_count": 14
+    "entity_count": 43,
+    "relationship_count": 22
   },
   {
     "index": 15,
@@ -191,7 +191,7 @@
     "image": "15_archive.png",
     "compact_source": "docs/thesis_diagrams/database_erdds/compact_source/15_archive_compact.puml",
     "compact_image": "15_archive_compact.png",
-    "entity_count": 8,
-    "relationship_count": 6
+    "entity_count": 12,
+    "relationship_count": 7
   }
 ]

@@ -16,7 +16,8 @@ public sealed class PayrollEmployeeCalculationPackage
 public static class PayrollEmployeeCalculationUnit
 {
     public static string ComputeProfileVersion(EmployeePayProfile profile) =>
-        $"{profile.UpdatedAt:O}|{profile.BaseSalary:F2}|{profile.PayGradeId}|{profile.EffectiveFrom:O}|{profile.EffectiveTo:O}";
+        FormattableString.Invariant(
+            $"{profile.UpdatedAt:O}|{profile.BaseSalary:F2}|{profile.PayGradeId:D}|{profile.EffectiveFrom:O}|{profile.EffectiveTo:O}");
 
     public static PayrollEmployeeCalculationPackage Build(
         IPayrollEngine engine,

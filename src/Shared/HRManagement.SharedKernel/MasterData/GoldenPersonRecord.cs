@@ -5,8 +5,11 @@ namespace HRManagement.SharedKernel.MasterData;
 /// <summary>MDM-002: golden person record status.</summary>
 public enum GoldenPersonStatus
 {
+    [Display(Name = "نشط")]
     Active = 0,
+    [Display(Name = "مدمج")]
     Merged = 1,
+    [Display(Name = "متوفى")]
     Deceased = 2
 }
 

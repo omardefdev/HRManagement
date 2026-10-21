@@ -280,6 +280,7 @@ public class PayrollDbContext : TenantAwareDbContext
 
         modelBuilder.Entity<EmployeePayProfile>(entity =>
         {
+            entity.Property(e => e.RegimeCode).HasMaxLength(50);
             entity.HasIndex(e => e.EmployeeId)
                 .IsUnique()
                 .HasDatabaseName("IX_EmployeePayProfiles_OneActive")

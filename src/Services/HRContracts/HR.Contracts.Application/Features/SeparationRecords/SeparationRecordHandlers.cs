@@ -3,6 +3,9 @@ using HR.Contracts.Application.Models;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
+using HR.Contracts.Application.Services;
+using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.SharedKernel.Legal;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.SharedKernel.ViewModels;
@@ -50,7 +53,9 @@ public class GetSeparationRecordByIdHandler(IContractsRepository repository) : I
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 }
 
-public class CreateSeparationRecordHandler(IContractsRepository repository) : IRequestHandler<CreateSeparationRecordCommand, Guid>
+public class CreateSeparationRecordHandler(
+    IContractsRepository repository,
+    ICodeGenerationClient codeClient) : IRequestHandler<CreateSeparationRecordCommand, Guid>
 {
     public async Task<Guid> Handle(CreateSeparationRecordCommand request, CancellationToken cancellationToken)
     {
@@ -67,12 +72,14 @@ public class CreateSeparationRecordHandler(IContractsRepository repository) : IR
             SeparationEventPublished = false
         };
         await repository.AddAsync(entity, cancellationToken);
-        await repository.AddAsync(new ServiceTransaction
+        var transaction = new ServiceTransaction
         {
             EmployeeId = vm.EmployeeId,
             TransactionType = ServiceTransactionType.Separation,
             Notes = "تسجيل إنهاء خدمة"
-        }, cancellationToken);
+        };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
+        await repository.AddAsync(transaction, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         await SeparationRecordSupport.SeedChecklistAsync(repository, entity.Id, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
@@ -116,7 +123,8 @@ public class DeleteSeparationRecordHandler(IContractsRepository repository, IEve
 public class PublishSeparationHandler(
     IContractsRepository repository,
     IEventPublisher eventPublisher,
-    IEmployeeLifecycleGate lifecycleGate) : IRequestHandler<PublishSeparationCommand, (bool Success, string? Error)>
+    IEmployeeLifecycleGate lifecycleGate,
+    IHrCoreActiveRegimeClient activeRegimeClient) : IRequestHandler<PublishSeparationCommand, (bool Success, string? Error)>
 {
     public async Task<(bool Success, string? Error)> Handle(PublishSeparationCommand request, CancellationToken cancellationToken)
     {
@@ -152,6 +160,23 @@ public class PublishSeparationHandler(
             return (false, $"لا يمكن نشر الفصل: {summary}");
         }
 
+        if (string.IsNullOrWhiteSpace(entity.SourceLegalRegimeId))
+        {
+            var (sourceRegime, payrollCode, regimeError) =
+                await SeparationRegimeValidationService.SnapshotAndValidateAsync(
+                    entity.EmployeeId,
+                    entity.SeparationType.ToString(),
+                    activeRegimeClient,
+                    cancellationToken);
+
+            if (regimeError is not null)
+                return (false, regimeError);
+
+            entity.SourceLegalRegimeId = sourceRegime;
+            entity.PayrollRegimeCode = payrollCode;
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+
         var remainingLeaveDays = await SeparationRecordSupport.ComputeAnnualLeaveRemainingAsync(
             repository, entity.EmployeeId, entity.EffectiveDate, cancellationToken);
 
@@ -162,7 +187,9 @@ public class PublishSeparationHandler(
             entity.EffectiveDate,
             cancellationToken,
             contractId: entity.ContractId,
-            remainingLeaveDays: remainingLeaveDays);
+            remainingLeaveDays: remainingLeaveDays,
+            sourceLegalRegimeId: entity.SourceLegalRegimeId,
+            payrollRegimeCode: entity.PayrollRegimeCode);
         entity.SeparationEventPublished = true;
 
         // The transaction advances to Executing because the saga has started; it must not be

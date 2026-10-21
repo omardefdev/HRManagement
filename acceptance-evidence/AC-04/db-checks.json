@@ -1,0 +1,10 @@
+{
+  "layers": [
+    "gateway: tenant_id enforced (GatewayTenantBarrierTests)",
+    "service: org/tenant scope on lookup API",
+    "query: EF tenant filter",
+    "rls: CrossTenantRlsIntegrationTests with RUN_TESTCONTAINERS=true"
+  ],
+  "guessedEmployeeId": "a0000002-0000-4000-8000-000000000201",
+  "callerTenant": "a0000001-0000-4000-8000-000000000001"
+}

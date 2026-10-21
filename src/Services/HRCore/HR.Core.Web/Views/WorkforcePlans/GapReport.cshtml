@@ -1,0 +1,61 @@
+@model HR.Core.Web.ViewModels.EstablishmentGapReportViewModel
+@{ ViewData["Title"] = "تقرير فجوة الملاك"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">تقرير فجوة الملاك (FundedPosition)</h3>
+        <a asp-controller="WorkforcePlans" asp-action="Index" class="btn btn-secondary btn-sm">خطط القوى العاملة</a>
+    </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">الوحدة التنظيمية</label>
+                <select name="orgUnitId" asp-items="ViewBag.OrgUnits" class="form-select"><option value="">—</option></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">السنة المالية</label>
+                <input type="number" name="fiscalYear" value="@Model.FiscalYear" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">as-of (اختياري)</label>
+                <input type="date" name="asOf" value="@Model.AsOf?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">عرض</button>
+            </div>
+        </form>
+        <p class="text-muted small mt-2 mb-0">المصدر: المناصب الممولة (EST-001/EST-C) — لا يستخدم AnalyticsEvents.</p>
+    </div>
+    @if (Model.Summary is not null)
+    {
+        var g = Model.Summary;
+        <div class="card-body">
+            <h5>@(Model.OrgUnitName ?? "—") — @Model.FiscalYear</h5>
+            <div class="row text-center mb-3">
+                <div class="col"><strong>@g.PlannedTotal</strong><br /><small>مخطط</small></div>
+                <div class="col"><strong>@g.Actual.FundedCount</strong><br /><small>ممول</small></div>
+                <div class="col"><strong>@g.Actual.OccupiedCount</strong><br /><small>مشغول</small></div>
+                <div class="col"><strong>@g.Actual.VacantCount</strong><br /><small>شاغر</small></div>
+                <div class="col"><strong>@g.Actual.FrozenCount</strong><br /><small>مجمد</small></div>
+                <div class="col text-danger"><strong>@g.DeficitCount</strong><br /><small>عجز</small></div>
+                <div class="col text-success"><strong>@g.SurplusCount</strong><br /><small>فائض</small></div>
+            </div>
+            <table class="table table-sm">
+                <thead><tr><th>الدرجة</th><th>مخطط</th><th>ممول</th><th>مشغول</th><th>شاغر</th><th>مجمد</th><th>عجز</th></tr></thead>
+                <tbody>
+                @foreach (var line in g.Lines)
+                {
+                    <tr>
+                        <td>@(line.GradeCode ?? "—")</td>
+                        <td>@line.PlannedCount</td>
+                        <td>@line.FundedCount</td>
+                        <td>@line.OccupiedCount</td>
+                        <td>@line.VacantCount</td>
+                        <td>@line.FrozenCount</td>
+                        <td>@line.DeficitCount</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

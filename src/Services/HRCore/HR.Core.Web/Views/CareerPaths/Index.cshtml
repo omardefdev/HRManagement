@@ -1,15 +1,27 @@
-@model IReadOnlyList<HR.Core.Domain.Entities.CareerPath>
+@model HR.Core.Web.ViewModels.CareerPathsIndexViewModel
 @{ ViewData["Title"] = "المسارات الوظيفية"; }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">المسارات الوظيفية</h3>
         <a asp-action="Create" class="btn btn-primary btn-sm">مسار جديد</a>
     </div>
+    <div class="card-body border-bottom">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">بحث</label>
+                <input type="text" name="q" value="@Model.Q" class="form-control" placeholder="عنوان المسار..." />
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح</a>
+            </div>
+        </form>
+    </div>
     <div class="card-body p-0">
         <table class="table table-striped mb-0">
             <thead><tr><th>العنوان</th><th>عدد المراحل</th><th></th></tr></thead>
             <tbody>
-                @foreach (var x in Model)
+                @foreach (var x in Model.Items)
                 {
                     <tr>
                         <td>@x.Title</td>
@@ -17,7 +29,7 @@
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>
                 }
-                @if (!Model.Any()) { <tr><td colspan="3" class="text-center text-muted py-4">لا مسارات</td></tr> }
+                @if (!Model.Items.Any()) { <tr><td colspan="3" class="text-center text-muted py-4">لا مسارات</td></tr> }
             </tbody>
         </table>
     </div>

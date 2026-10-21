@@ -7,10 +7,10 @@
     </div>
     <div class="card-body">
         <dl class="row">
-            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Hostname)</dt>
+            <dt class="col-sm-3">اسم المضيف</dt>
             <dd class="col-sm-9">@Model.Hostname</dd>
 
-            <dt class="col-sm-3">@Html.DisplayNameFor(m => m.IpAddress)</dt>
+            <dt class="col-sm-3">عنوان IP</dt>
             <dd class="col-sm-9">@Model.IpAddress</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Os)</dt>
@@ -23,7 +23,7 @@
             <dd class="col-sm-9">@Model.Location</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
-            <dd class="col-sm-9">@Model.Status</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
         </dl>
     </div>
     <div class="card-footer">

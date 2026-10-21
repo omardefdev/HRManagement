@@ -18,12 +18,21 @@ public class PayGradesController : Controller
         ViewBag.Scales = new SelectList(scales, "Id", "NameAr");
     }
 
-    public async Task<IActionResult> Index(Guid? scaleId)
+    public async Task<IActionResult> Index(Guid? scaleId, string? q)
     {
-        var query = _db.PayGrades.Include(g => g.SalaryScale).AsNoTracking();
+        var query = _db.PayGrades.Include(g => g.SalaryScale).AsNoTracking().AsQueryable();
         if (scaleId.HasValue) query = query.Where(g => g.SalaryScaleId == scaleId.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(g => g.GradeCode.Contains(term) || g.GradeNameAr.Contains(term));
+        }
         var items = await query.OrderBy(g => g.SalaryScale.Code).ThenBy(g => g.GradeCode).Take(SearchFilterBase.MaxPageSize).ToListAsync();
         ViewBag.ScaleId = scaleId;
+        ViewBag.Q = q;
+        ViewBag.Scales = new SelectList(
+            await _db.SalaryScales.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.Code).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "NameAr", scaleId);
         return View(items);
     }
 

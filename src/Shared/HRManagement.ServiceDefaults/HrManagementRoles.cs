@@ -45,6 +45,9 @@ public static class HrManagementRoles
 
     /// <summary>مشغّل المنصة — عبور الجهات مع تدقيق (TEN-001).</summary>
     public const string PlatformAdmin = "platform-admin";
+
+    /// <summary>مدقق مستقل للقراءة والتحقق من الأدلة دون صلاحيات تشغيلية.</summary>
+    public const string Auditor = "auditor";
 }
 
 /// <summary>Authorization policy names (one per module).</summary>
@@ -77,6 +80,12 @@ public static class HrManagementPolicies
     public const string HrCoreDelete = "HrCore.Delete";
     public const string HrCoreApprove = "HrCore.Approve";
 
+    /// <summary>Cross-tenant quarantine reconciliation is restricted to platform operators.</summary>
+    public const string TenantQuarantineReconcile = "TenantQuarantine.Reconcile";
+
+    /// <summary>Scoped operational actions available to central HR and branch managers.</summary>
+    public const string HrCoreBranchOperation = "HrCore.BranchOperation";
+
     /// <summary>Lookup APIs shared across modules — any authenticated user (no NationalId in responses).</summary>
     public const string HrCoreLookup = "HrCore.Lookup";
 
@@ -88,6 +97,7 @@ public static class HrManagementPolicies
 
     public const string HrManagementApprove = "HrManagement.Approve";
 
+    public const string HrContractsHireView = "HrContracts.HireView";
     public const string HrContractsHireExecute = "HrContracts.HireExecute";
 
     /// <summary>Manage temporary approval delegations (IAM-003).</summary>
@@ -98,4 +108,7 @@ public static class HrManagementPolicies
 
     /// <summary>EVD-003: read evidence artifacts (independent assessor / assurance).</summary>
     public const string EvidenceRead = "Evidence.Read";
+
+    /// <summary>AC-26: view full national ID (not branch-manager scoped readers).</summary>
+    public const string PiiViewNationalId = "Pii.ViewNationalId";
 }

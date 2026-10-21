@@ -12,7 +12,7 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.EmployeeId</td>
+                        <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
                         <td>@x.CheckDate</td>
                         <td>@x.NextDue</td>
                         <td class="small">@x.Summary</td>

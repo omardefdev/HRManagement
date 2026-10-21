@@ -6,7 +6,10 @@ namespace Payroll.Application.Abstractions;
 /// </summary>
 public interface IPaymentOrderCoordinator
 {
-    Task EnsureAndSubmitOrdersAsync(Guid paymentBatchId, CancellationToken cancellationToken = default);
+    Task EnsureAndSubmitOrdersAsync(
+        Guid paymentBatchId,
+        IReadOnlyDictionary<Guid, decimal>? amountOverrides = null,
+        CancellationToken cancellationToken = default);
 
     Task AcknowledgeOrdersAsync(Guid paymentBatchId, string? channelReference, CancellationToken cancellationToken = default);
 

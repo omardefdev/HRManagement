@@ -1,0 +1,17 @@
+@{ ViewData["Title"] = "مسودة سياسة جديدة"; var domain = ViewBag.Domain as string; var subjectType = ViewBag.SubjectType as string; }
+<div class="card">
+    <div class="card-header">مسودة — @domain</div>
+    <div class="card-body">
+        <form asp-action="CreateDraft" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="domain" value="@domain" />
+            <input type="hidden" name="subjectType" value="@subjectType" />
+            <div class="mb-3">
+                <label class="form-label">الاسم</label>
+                <input name="name" class="form-control" value="مسودة @domain" required />
+            </div>
+            <button type="submit" class="btn btn-primary">إنشاء مسودة</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

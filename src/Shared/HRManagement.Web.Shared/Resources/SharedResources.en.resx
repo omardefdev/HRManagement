@@ -121,4 +121,46 @@
   <data name="Home" xml:space="preserve">
     <value>Home</value>
   </data>
+  <data name="RequestId" xml:space="preserve">
+    <value>Request ID:</value>
+  </data>
+  <data name="ErrorOccurred" xml:space="preserve">
+    <value>An error occurred while processing your request.</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete?</value>
+  </data>
+  <data name="NoRecords" xml:space="preserve">
+    <value>No records found</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Hostname" xml:space="preserve">
+    <value>Hostname</value>
+  </data>
+  <data name="IpAddress" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+  <data name="CronSchedule" xml:space="preserve">
+    <value>Cron Schedule</value>
+  </data>
+  <data name="LegalHold" xml:space="preserve">
+    <value>Legal Hold</value>
+  </data>
+  <data name="Kpi" xml:space="preserve">
+    <value>KPI</value>
+  </data>
+  <data name="Etl" xml:space="preserve">
+    <value>ETL</value>
+  </data>
+  <data name="ReadModels" xml:space="preserve">
+    <value>Read Models</value>
+  </data>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>Welcome</value>
+  </data>
+  <data name="WelcomeMessage" xml:space="preserve">
+    <value>Human Resources Management System — module dashboard</value>
+  </data>
 </root>

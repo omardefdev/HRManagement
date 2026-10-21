@@ -5,19 +5,28 @@ namespace HRManagement.SharedKernel.Notifications;
 /// <summary>COM-001: notification delivery channel.</summary>
 public enum NotificationChannel
 {
+    [Display(Name = "داخل التطبيق")]
     InApp = 0,
+    [Display(Name = "بريد إلكتروني")]
     Email = 1,
+    [Display(Name = "رسالة نصية")]
     Sms = 2,
+    [Display(Name = "إشعار فوري")]
     Push = 3
 }
 
 /// <summary>COM-001: notification delivery status.</summary>
 public enum NotificationStatus
 {
+    [Display(Name = "قيد الانتظار")]
     Pending = 0,
+    [Display(Name = "مُسلَّم")]
     Delivered = 1,
+    [Display(Name = "فشل")]
     Failed = 2,
+    [Display(Name = "منتهي الصلاحية")]
     Expired = 3,
+    [Display(Name = "مقروء")]
     Read = 4
 }
 

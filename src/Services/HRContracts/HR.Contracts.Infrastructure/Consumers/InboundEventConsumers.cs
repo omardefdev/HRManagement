@@ -29,7 +29,8 @@ public class CandidateAcceptedConsumer(IMediator mediator) : IConsumer<ICandidat
             context.Message.EmployeeId,
             context.Message.EmploymentCategory,
             DateOnly.FromDateTime(context.Message.ExpectedStartDate),
-            context.Message.FullName));
+            context.Message.FullName,
+            context.Message.RecruitmentApplicationId));
     }
 }
 

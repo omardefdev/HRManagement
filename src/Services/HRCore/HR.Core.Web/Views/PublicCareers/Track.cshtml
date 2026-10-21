@@ -11,16 +11,16 @@
                 <i class="fas fa-exclamation-circle ms-1"></i> لم يُعثر على طلب مطابق للرقم المرجعي والرقم الوطني.
             </div>
         }
-        <form asp-action="Track" method="post" class="careers-form">
+        <form asp-action="Track" method="post" class="careers-form" aria-label="نموذج تتبع طلب التوظيف">
             @Html.AntiForgeryToken()
             <div class="row g-3 align-items-end">
                 <div class="col-md-5">
-                    <label class="form-label">الرقم المرجعي</label>
-                    <input name="referenceNumber" class="form-control" placeholder="مثلاً: REF-20260612-ABC123" required />
+                    <label class="form-label" for="track-ref">الرقم المرجعي</label>
+                    <input id="track-ref" name="referenceNumber" class="form-control" placeholder="مثلاً: REF-20260612-ABC123" required />
                 </div>
                 <div class="col-md-5">
-                    <label class="form-label">الرقم الوطني</label>
-                    <input name="nationalId" class="form-control" required />
+                    <label class="form-label" for="track-nid">الرقم الوطني</label>
+                    <input id="track-nid" name="nationalId" class="form-control" required />
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn careers-btn-primary w-100"><i class="fas fa-search ms-1"></i> تتبّع</button>

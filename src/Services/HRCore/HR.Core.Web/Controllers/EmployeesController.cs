@@ -3,12 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text.Json;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.Services;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Tenancy;
+using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using HRManagement.SharedKernel.ViewModels;
@@ -23,19 +26,22 @@ public class EmployeesController : Controller
     private readonly HR.Core.Infrastructure.OrgScopeService _orgScope;
     private readonly IFileReferenceClient _fileRefs;
     private readonly IEmployeeDetailsViewBuilder _detailsBuilder;
+    private readonly TenantQuarantineGuard _quarantineGuard;
 
     public EmployeesController(
         HRCoreDbContext context,
         HR.Core.Infrastructure.Integration.EmployeeIntegrationService integration,
         HR.Core.Infrastructure.OrgScopeService orgScope,
         IFileReferenceClient fileRefs,
-        IEmployeeDetailsViewBuilder detailsBuilder)
+        IEmployeeDetailsViewBuilder detailsBuilder,
+        TenantQuarantineGuard quarantineGuard)
     {
         _context = context;
         _integration = integration;
         _orgScope = orgScope;
         _fileRefs = fileRefs;
         _detailsBuilder = detailsBuilder;
+        _quarantineGuard = quarantineGuard;
     }
 
     public async Task<IActionResult> Index(EmployeeSearchFilter filter)
@@ -50,15 +56,40 @@ public class EmployeesController : Controller
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
             var term = filter.SearchTerm.Trim();
-            query = query.Where(e =>
-                e.FullName.Contains(term) ||
-                e.NationalId.Contains(term) ||
-                e.FirstName.Contains(term) ||
-                e.LastName.Contains(term));
+            if (NationalIdSearch.LooksLikeNationalId(term))
+            {
+                var hash = NationalIdSearch.ComputeHash(term);
+                query = query.Where(e => e.NationalIdHash == hash);
+            }
+            else
+            {
+                query = query.Where(e =>
+                    e.FullName.Contains(term) ||
+                    e.FirstName.Contains(term) ||
+                    e.LastName.Contains(term));
+            }
         }
 
         if (filter.OrgUnitId.HasValue)
-            query = query.Where(e => e.PrimaryOrgUnitId == filter.OrgUnitId.Value);
+        {
+            var selectedPath = await _context.OrgUnits.AsNoTracking()
+                .Where(o => o.Id == filter.OrgUnitId.Value)
+                .Select(o => o.MaterializedPath)
+                .FirstOrDefaultAsync();
+
+            if (!string.IsNullOrWhiteSpace(selectedPath))
+            {
+                var descendantIds = _context.OrgUnits.AsNoTracking()
+                    .Where(o => o.MaterializedPath.StartsWith(selectedPath))
+                    .Select(o => o.Id);
+                query = query.Where(e => e.PrimaryOrgUnitId.HasValue
+                    && descendantIds.Contains(e.PrimaryOrgUnitId.Value));
+            }
+            else
+            {
+                query = query.Where(e => e.PrimaryOrgUnitId == filter.OrgUnitId.Value);
+            }
+        }
 
         if (!string.IsNullOrEmpty(filter.Status) && Enum.TryParse<EmploymentStatus>(filter.Status, out var status))
             query = query.Where(e => e.CurrentStatus == status);
@@ -74,7 +105,8 @@ public class EmployeesController : Controller
             query = query.Where(e => e.Cadre == restrictedCadre.Value);
 
         var orgScope = await _orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (orgScope.IsDenied) return Forbid();
+        if (this.ForbidIfOrgScopeDenied(orgScope) is { } scopeDenied)
+            return scopeDenied;
         if (orgScope.MustFilter)
             query = query.Where(e => e.PrimaryOrgUnitId.HasValue && orgScope.AllowedOrgUnitIds.Contains(e.PrimaryOrgUnitId.Value));
 
@@ -98,12 +130,14 @@ public class EmployeesController : Controller
             Filter = filter
         };
 
-        var filterUnits = _context.OrgUnits.AsQueryable();
+        var filterUnits = _context.OrgUnits.AsNoTracking().AsQueryable();
         if (orgScope.MustFilter)
             filterUnits = filterUnits.Where(o => orgScope.AllowedOrgUnitIds.Contains(o.Id));
+        var filterUnitRows = await filterUnits.ToListAsync();
         ViewBag.OrgUnits = new SelectList(
-            await filterUnits.OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
-            "Id", "NameAr", filter.OrgUnitId);
+            OrgUnitDisplayService.BuildOptions(filterUnitRows, filter.OrgUnitId),
+            "Value", "Text", filter.OrgUnitId?.ToString());
+        ViewBag.OrgUnitLabels = OrgUnitDisplayService.BuildLabels(filterUnitRows);
         ViewBag.CadreRestricted = HrCadreVisibility.GetRestrictedCadre(User);
 
         return View(vm);
@@ -120,6 +154,9 @@ public class EmployeesController : Controller
 
         var vm = await _detailsBuilder.BuildAsync(id, openModal);
         if (vm == null) return NotFound();
+
+        vm.DisplayNationalId = EmployeeNationalIdPresentation.ResolveDisplayNationalId(vm.Employee, User);
+        vm.CanViewFullNationalId = EmployeeNationalIdPresentation.CanViewFullNationalId(User);
 
         return View(vm);
     }
@@ -222,7 +259,7 @@ public class EmployeesController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> Edit(Guid id, EmployeeEditViewModel vm, string? secondApproverId)
+    public async Task<IActionResult> Edit(Guid id, EmployeeEditViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
 
@@ -236,6 +273,16 @@ public class EmployeesController : Controller
         var employee = await _context.Employees.FindAsync(id);
         if (employee == null) return NotFound();
         if (!await CanAccessEmployeeAsync(employee)) return Forbid();
+
+        try
+        {
+            await _quarantineGuard.ThrowIfQuarantinedAsync("Employees", employee.Id);
+        }
+        catch (QuarantinedRecordException ex)
+        {
+            return Conflict(new { errorCode = QuarantinedRecordException.ErrorCode, error = ex.Message });
+        }
+
         if (!await CanAssignOrgUnitAsync(vm.PrimaryOrgUnitId))
         {
             ModelState.AddModelError(nameof(vm.PrimaryOrgUnitId), "الوحدة التنظيمية خارج نطاق صلاحيتك");
@@ -255,21 +302,51 @@ public class EmployeesController : Controller
         if (!string.Equals(employee.NationalId, vm.NationalId, StringComparison.Ordinal))
             changedLegalFields.Add("NationalId");
         if (employee.BirthDate != vm.BirthDate)
-            changedLegalFields.Add("DateOfBirth");
+            changedLegalFields.Add(nameof(Employee.BirthDate));
         if (employee.HireDate != vm.HireDate)
-            changedLegalFields.Add("HireDate");
-        if (!string.Equals(employee.FirstName, vm.FirstName, StringComparison.Ordinal)
-            || !string.Equals(employee.LastName, vm.LastName, StringComparison.Ordinal))
-            changedLegalFields.Add("FullName");
+            changedLegalFields.Add(nameof(Employee.HireDate));
+        if (!string.Equals(employee.FirstName, vm.FirstName, StringComparison.Ordinal))
+            changedLegalFields.Add(nameof(Employee.FirstName));
+        if (!string.Equals(employee.MiddleName, vm.MiddleName, StringComparison.Ordinal))
+            changedLegalFields.Add(nameof(Employee.MiddleName));
+        if (!string.Equals(employee.LastName, vm.LastName, StringComparison.Ordinal))
+            changedLegalFields.Add(nameof(Employee.LastName));
 
-        Guid? secondApprover = Guid.TryParse(secondApproverId, out var sa) ? sa : null;
-        var legalCheck = LegalDataChangeGuard.ValidateChange(actorId.Value, secondApprover, changedLegalFields);
-        if (!legalCheck.Allowed)
+        if (changedLegalFields.Count > 0 && string.IsNullOrWhiteSpace(vm.CorrectionReason))
         {
-            ModelState.AddModelError(string.Empty, legalCheck.DenialReason ?? "يتطلب اعتماداً مزدوجاً");
+            ModelState.AddModelError(nameof(vm.CorrectionReason), "سبب التصحيح مطلوب عند تعديل البيانات القانونية.");
             await PopulateOrgUnitsAsync(vm);
             ViewBag.CadreLocked = HrCadreVisibility.GetRestrictedCadre(User);
             return View(vm);
+        }
+
+        if (changedLegalFields.Count > 0)
+        {
+            var proposed = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+            if (changedLegalFields.Contains(nameof(Employee.NationalId), StringComparer.OrdinalIgnoreCase))
+                proposed[nameof(Employee.NationalId)] = JsonSerializer.SerializeToElement(vm.NationalId);
+            if (changedLegalFields.Contains(nameof(Employee.FirstName), StringComparer.OrdinalIgnoreCase))
+                proposed[nameof(Employee.FirstName)] = JsonSerializer.SerializeToElement(vm.FirstName);
+            if (changedLegalFields.Contains(nameof(Employee.MiddleName), StringComparer.OrdinalIgnoreCase))
+                proposed[nameof(Employee.MiddleName)] = JsonSerializer.SerializeToElement(vm.MiddleName);
+            if (changedLegalFields.Contains(nameof(Employee.LastName), StringComparer.OrdinalIgnoreCase))
+                proposed[nameof(Employee.LastName)] = JsonSerializer.SerializeToElement(vm.LastName);
+            if (changedLegalFields.Contains(nameof(Employee.BirthDate), StringComparer.OrdinalIgnoreCase))
+                proposed[nameof(Employee.BirthDate)] = JsonSerializer.SerializeToElement(vm.BirthDate);
+            if (changedLegalFields.Contains(nameof(Employee.HireDate), StringComparer.OrdinalIgnoreCase))
+                proposed[nameof(Employee.HireDate)] = JsonSerializer.SerializeToElement(vm.HireDate);
+
+            var (correction, correctionError) = EmployeeCorrectionService.CreateRequest(
+                employee, proposed, vm.CorrectionReason, actorId.Value);
+            if (correction is null)
+            {
+                ModelState.AddModelError(string.Empty, correctionError ?? "تعذر إنشاء طلب التصحيح.");
+                await PopulateOrgUnitsAsync(vm);
+                ViewBag.CadreLocked = HrCadreVisibility.GetRestrictedCadre(User);
+                return View(vm);
+            }
+
+            _context.EmployeeCorrections.Add(correction);
         }
 
         var oldStatus = employee.CurrentStatus;
@@ -290,16 +367,23 @@ public class EmployeesController : Controller
             vm.PhotoFileId);
 
         employee.PhotoFileId = vm.PhotoFileId;
-        employee.NationalId = vm.NationalId;
-        employee.FirstName = vm.FirstName;
-        employee.MiddleName = vm.MiddleName;
-        employee.LastName = vm.LastName;
-        employee.FullName = $"{vm.FirstName} {vm.MiddleName} {vm.LastName}".Replace("  ", " ").Trim();
-        employee.BirthDate = vm.BirthDate;
+        if (!changedLegalFields.Contains(nameof(Employee.NationalId), StringComparer.OrdinalIgnoreCase))
+            employee.NationalId = vm.NationalId;
+        if (!changedLegalFields.Contains(nameof(Employee.FirstName), StringComparer.OrdinalIgnoreCase))
+            employee.FirstName = vm.FirstName;
+        if (!changedLegalFields.Contains(nameof(Employee.MiddleName), StringComparer.OrdinalIgnoreCase))
+            employee.MiddleName = vm.MiddleName;
+        if (!changedLegalFields.Contains(nameof(Employee.LastName), StringComparer.OrdinalIgnoreCase))
+            employee.LastName = vm.LastName;
+        if (changedLegalFields.Count == 0)
+            employee.FullName = $"{vm.FirstName} {vm.MiddleName} {vm.LastName}".Replace("  ", " ").Trim();
+        if (!changedLegalFields.Contains(nameof(Employee.BirthDate), StringComparer.OrdinalIgnoreCase))
+            employee.BirthDate = vm.BirthDate;
         employee.Gender = vm.Gender;
         employee.MaritalStatus = vm.MaritalStatus;
         employee.PrimaryOrgUnitId = vm.PrimaryOrgUnitId;
-        employee.HireDate = vm.HireDate;
+        if (!changedLegalFields.Contains(nameof(Employee.HireDate), StringComparer.OrdinalIgnoreCase))
+            employee.HireDate = vm.HireDate;
         employee.Cadre = newCadre;
 
         if (statusChanged)
@@ -335,7 +419,9 @@ public class EmployeesController : Controller
             await _context.SaveChangesAsync();
         }
 
-        TempData["Success"] = $"تم تحديث بيانات الموظف {employee.FullName} بنجاح";
+        TempData["Success"] = changedLegalFields.Count > 0
+            ? $"تم حفظ التغييرات غير القانونية وإنشاء طلب تصحيح قانوني للموظف {employee.FullName} بانتظار الاعتماد."
+            : $"تم تحديث بيانات الموظف {employee.FullName} بنجاح";
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -347,6 +433,15 @@ public class EmployeesController : Controller
         var employee = await _context.Employees.FindAsync(id);
         if (employee == null) return NotFound();
         if (!await CanAccessEmployeeAsync(employee)) return Forbid();
+
+        try
+        {
+            await _quarantineGuard.ThrowIfQuarantinedAsync("Employees", employee.Id);
+        }
+        catch (QuarantinedRecordException ex)
+        {
+            return Conflict(new { errorCode = QuarantinedRecordException.ErrorCode, error = ex.Message });
+        }
 
         // DATA-002: hard delete is never allowed — use separation, correction, or anonymize.
         return Conflict(new
@@ -361,7 +456,9 @@ public class EmployeesController : Controller
         var units = _context.OrgUnits.AsQueryable();
         if (scope.MustFilter)
             units = units.Where(o => scope.AllowedOrgUnitIds.Contains(o.Id));
-        vm.OrgUnits = new SelectList(await units.OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+        vm.OrgUnits = new SelectList(
+            OrgUnitDisplayService.BuildOptions(await units.ToListAsync()),
+            "Value", "Text");
     }
 
     private async Task PopulateOrgUnitsAsync(EmployeeEditViewModel vm)
@@ -370,7 +467,9 @@ public class EmployeesController : Controller
         var units = _context.OrgUnits.AsQueryable();
         if (scope.MustFilter)
             units = units.Where(o => scope.AllowedOrgUnitIds.Contains(o.Id));
-        vm.OrgUnits = new SelectList(await units.OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", vm.PrimaryOrgUnitId);
+        vm.OrgUnits = new SelectList(
+            OrgUnitDisplayService.BuildOptions(await units.ToListAsync(), vm.PrimaryOrgUnitId),
+            "Value", "Text", vm.PrimaryOrgUnitId?.ToString());
     }
 
     private async Task<bool> CanAccessEmployeeAsync(Employee employee)

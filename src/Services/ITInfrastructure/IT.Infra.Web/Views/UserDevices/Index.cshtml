@@ -8,7 +8,7 @@
             <tbody>
                 @foreach (var x in Model)
                 {
-                    <tr><td>@x.AssetTag</td><td>@x.DeviceType</td><td>@x.Status</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>
+                    <tr><td>@x.AssetTag</td><td>@Html.HrEnumDisplay(x.DeviceType)</td><td>@Html.HrEnumDisplay(x.Status)</td><td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td></tr>
                 }
                 @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا أجهزة</td></tr> }
             </tbody>

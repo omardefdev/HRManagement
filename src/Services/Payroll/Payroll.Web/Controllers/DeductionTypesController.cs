@@ -11,9 +11,18 @@ public class DeductionTypesController : Controller
     private readonly PayrollDbContext _db;
     public DeductionTypesController(PayrollDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? q, bool? isStatutory)
     {
-        var items = await _db.DeductionTypes.AsNoTracking().OrderBy(d => d.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        var query = _db.DeductionTypes.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(x => x.Code.Contains(term) || x.NameAr.Contains(term));
+        }
+        if (isStatutory.HasValue) query = query.Where(x => x.IsStatutory == isStatutory.Value);
+        var items = await query.OrderBy(d => d.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+        ViewBag.Q = q;
+        ViewBag.IsStatutory = isStatutory;
         return View(items);
     }
 

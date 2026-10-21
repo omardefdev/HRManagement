@@ -3,6 +3,7 @@ using HR.Contracts.Domain.Enums;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Infrastructure.Repositories;
 using HR.Contracts.Web.Controllers;
+using HRManagement.ServiceDefaults.Integration;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,10 @@ public class HireWizardContinueTests
     {
         var httpContext = new DefaultHttpContext();
         var tempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
-        return new HireWizardController(repo, mediator, db)
+        var lookup = new Mock<IHrCoreLookupClient>();
+        lookup.Setup(x => x.GetEmployeesByIdsAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<HrCoreLookupItem>());
+        return new HireWizardController(repo, mediator, db, lookup.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
             TempData = tempData

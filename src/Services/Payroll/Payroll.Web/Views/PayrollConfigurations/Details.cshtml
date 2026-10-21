@@ -33,13 +33,13 @@
         <dl class="row">
             <dt class="col-sm-4">الكود</dt><dd class="col-sm-8">@Model.Code</dd>
             <dt class="col-sm-4">رقم الإصدار</dt><dd class="col-sm-8">@Model.VersionNumber</dd>
-            <dt class="col-sm-4">حالة النشر</dt><dd class="col-sm-8">@Model.PublicationStatus @(Model.IsActive ? "(نشط للتشغيلات الجديدة)" : "")</dd>
+            <dt class="col-sm-4">حالة النشر</dt><dd class="col-sm-8">@Html.HrEnumDisplay(Model.PublicationStatus) @(Model.IsActive ? "(نشط للتشغيلات الجديدة)" : "")</dd>
             <dt class="col-sm-4">بصمة المحتوى</dt><dd class="col-sm-8"><code>@(Model.ContentHash ?? "—")</code></dd>
             <dt class="col-sm-4">ساري من / إلى</dt>
             <dd class="col-sm-8">@Model.EffectiveFrom.ToString("yyyy-MM-dd") — @(Model.EffectiveTo?.ToString("yyyy-MM-dd") ?? "مفتوح")</dd>
             <dt class="col-sm-4">العملة / التقريب</dt>
-            <dd class="col-sm-8">@Model.CurrencyCode — @Model.RoundingMode (@Model.DecimalPlaces منازل)</dd>
-            <dt class="col-sm-4">أساس التناسب</dt><dd class="col-sm-8">@Model.ProrationDaysBasis</dd>
+            <dd class="col-sm-8">@Model.CurrencyCode — @Html.HrEnumDisplay(Model.RoundingMode) (@Model.DecimalPlaces منازل)</dd>
+            <dt class="col-sm-4">أساس التناسب</dt><dd class="col-sm-8">@Html.HrEnumDisplay(Model.ProrationDaysBasis)</dd>
             <dt class="col-sm-4">أيام العطلة</dt><dd class="col-sm-8">@Model.NonWorkingDays</dd>
             <dt class="col-sm-4">تعويض نهاية الخدمة</dt>
             <dd class="col-sm-8">@Model.EosGratuityRateFirstPeriod × @Model.EosGratuityFirstYearsThreshold سنوات، ثم @Model.EosGratuityRateAfterThreshold</dd>

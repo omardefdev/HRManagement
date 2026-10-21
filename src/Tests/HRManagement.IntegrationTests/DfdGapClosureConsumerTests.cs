@@ -22,6 +22,7 @@ public class DfdGapClosureConsumerTests
         var scope = await MassTransitTestScope.CreateAsync(
             (services, connections) =>
             {
+                IntegrationTestHelpers.AddDeterministicServiceClients(services);
                 analyticsConn = new SqliteConnection("Data Source=:memory:");
                 analyticsConn.Open();
                 connections.Add(analyticsConn);
@@ -109,7 +110,10 @@ public class DfdGapClosureConsumerTests
         await IntegrationTestHelpers.AssertConsumedAsync<IComplaintResolved>(setup.Scope.Harness, minimumCount: 1);
         var db = setup.Scope.GetDb<ArchiveDbContext>();
         db.ChangeTracker.Clear();
-        var items = await db.ArchiveItems.Where(x => x.ReferenceNumber == $"CMP-RES-{complaintId:N}").ToListAsync();
+        var items = await db.ArchiveItems
+            .Where(x => x.Title == $"ملف شكوى — archive test: done [{complaintId:N}]")
+            .ToListAsync();
         Assert.Single(items);
+        Assert.False(string.IsNullOrWhiteSpace(items[0].ReferenceNumber));
     }
 }

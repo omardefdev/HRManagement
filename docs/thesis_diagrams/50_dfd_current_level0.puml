@@ -1,0 +1,61 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+skinparam dpi 170
+skinparam ArrowColor #24465A
+skinparam ActorBorderColor #0F6B73
+skinparam ActorBackgroundColor #E6F3F3
+skinparam UsecaseBorderColor #0F6B73
+skinparam UsecaseBackgroundColor #F4FAFA
+skinparam RectangleBorderColor #24465A
+skinparam RectangleBackgroundColor #F8FBFC
+skinparam ComponentBorderColor #24465A
+skinparam ComponentBackgroundColor #F4F7F8
+skinparam ClassBorderColor #24465A
+skinparam ClassBackgroundColor #F8FBFC
+skinparam SequenceLifeLineBorderColor #78909C
+skinparam SequenceParticipantBorderColor #24465A
+skinparam SequenceParticipantBackgroundColor #F4F7F8
+
+title DFD المرجعي للمستوى صفر في خط الأساس الحالي
+left to right direction
+actor "مسؤول المنصة" as Platform
+actor "المركز والفروع" as OrgUsers
+actor "الموظف والمواطن" as PublicUsers
+actor "الخزينة والأنظمة الخارجية" as External
+rectangle "1.0 حوكمة الجهة والهيكل" as P1
+rectangle "2.0 دورة حياة الموارد البشرية" as P2
+rectangle "3.0 السياسات وسير العمل والرموز" as P3
+rectangle "4.0 الرواتب والخزينة" as P4
+rectangle "5.0 اللوجستيات والخدمات المساندة" as P5
+rectangle "6.0 الملفات والخصوصية والهوية" as P6
+database "D1 بيانات النواة والجهة" as D1
+database "D2 قواعد مجالات الموارد البشرية" as D2
+database "D3 السياسات والعمليات والرموز" as D3
+database "D4 الرواتب والدفع" as D4
+database "D5 الأصول والملفات والسجلات" as D5
+queue "أحداث التكامل" as Bus
+Platform --> P1 : Manifest وقواعد إسناد
+OrgUsers --> P2 : معاملات واعتمادات
+OrgUsers --> P3 : سياسات وتعريفات
+OrgUsers --> P4 : دورات وقرارات تمويل
+OrgUsers --> P5 : توريد وعهد وخدمات
+PublicUsers --> P2 : طلبات وخدمة ذاتية
+External --> P4 : إقرار وكشف تسوية
+P1 --> D1
+P2 --> D2
+P3 --> D3
+P4 --> D4
+P5 --> D5
+P6 --> D5
+P1 --> Bus
+P2 --> Bus
+P3 --> Bus
+P4 --> Bus
+P5 --> Bus
+Bus --> P6 : مراجع ملفات وهوية وتدقيق
+@enduml
