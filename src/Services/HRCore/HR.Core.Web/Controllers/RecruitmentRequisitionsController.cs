@@ -235,6 +235,7 @@ public class RecruitmentRequisitionsController(
 
         var vm = await workflowUiService.BuildDetailsAsync(requisition, User);
         vm.CanWrite = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreWrite)).Succeeded;
+        vm.CanApprove = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreApprove)).Succeeded;
         var criteriaVersions = await criteriaService.GetVersionsAsync(requisition.Id);
         vm.CriteriaPanel = new AssessmentCriteriaPanelViewModel
         {
@@ -244,7 +245,7 @@ public class RecruitmentRequisitionsController(
                 .Select(c => new AssessmentCriteriaVersionRow(c, AssessmentCriteriaSerializer.Deserialize(c.CriteriaJson)))
                 .ToList(),
             CanWrite = vm.CanWrite,
-            CanApprove = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreApprove)).Succeeded
+            CanApprove = vm.CanApprove
         };
         return View(vm);
     }
@@ -407,9 +408,10 @@ public class RecruitmentRequisitionsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> Cancel(Guid id)
+    public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
-        var (success, error) = await lifecycleService.CancelAsync(id);
+        var canApprove = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreApprove)).Succeeded;
+        var (success, error) = await lifecycleService.CancelAsync(id, reason, ParseUserId(User), canApprove);
         if (!success)
         {
             TempData["Error"] = error;
@@ -590,7 +592,7 @@ public class RecruitmentRequisitionsController(
         Guid? excludeRequisitionId = null) =>
         db.RecruitmentRequisitions
             .Where(r => r.FundedPositionId == fundedPositionId
-                && RequisitionWorkflowRules.ActiveStatuses.Contains(r.Status)
+                && RequisitionWorkflowRules.BlockingStatuses.Contains(r.Status)
                 && (excludeRequisitionId == null || r.Id != excludeRequisitionId))
             .AnyAsync();
 

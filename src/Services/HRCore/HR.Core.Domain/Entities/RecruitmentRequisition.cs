@@ -66,4 +66,23 @@ public class RecruitmentRequisition : AuditableEntity
     public Guid? InternalVacancyId { get; set; }
 
     public virtual InternalVacancy? InternalVacancy { get; set; }
+
+    [StringLength(500)]
+    [Display(Name = "سبب الإلغاء")]
+    public string? CancellationReason { get; set; }
+
+    [Display(Name = "تاريخ الإلغاء")]
+    public DateTime? CancelledAt { get; set; }
+
+    [Display(Name = "ألغي بواسطة")]
+    public Guid? CancelledBy { get; set; }
+
+    /// <summary>HCM-026: last day applications are accepted (inclusive); required at first publish.</summary>
+    [Display(Name = "تاريخ إغلاق التقديم")]
+    [DataType(DataType.Date)]
+    public DateOnly? ApplicationClosingDate { get; set; }
+
+    /// <summary>HCM-026: set when intake closed (job or extension); the requisition stays Published for selection.</summary>
+    [Display(Name = "تاريخ إغلاق التقديم الفعلي")]
+    public DateTime? IntakeClosedAt { get; set; }
 }

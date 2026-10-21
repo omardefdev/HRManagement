@@ -254,43 +254,66 @@ public sealed class RecruitmentRequisitionLifecycleService(
         if (!RequisitionWorkflowRules.CanClose(req.Status))
             return (false, "يمكن إغلاق الطلبات المنشورة فقط.");
 
+        // HCM-026: an offer still in flight (or accepted but not converted) must be revoked or completed first.
+        var hasActiveOffer = await db.OfferLetters.AnyAsync(
+            o => o.RecruitmentApplication != null
+                && o.RecruitmentApplication.RequisitionId == req.Id
+                && (o.Status == OfferStatus.Draft
+                    || o.Status == OfferStatus.PendingApproval
+                    || o.Status == OfferStatus.Issued
+                    || (o.Status == OfferStatus.Accepted && !o.IsConvertedToEmployee)),
+            ct);
+        if (hasActiveOffer)
+            return (false, "يوجد عرض توظيف قيد الإجراء على هذا الطلب — ألغِ العرض أو أكمل التعيين قبل الإغلاق.");
+
+        var now = DateTime.UtcNow;
         req.Status = RequisitionStatus.Closed;
-        req.ClosedDate = DateTime.UtcNow;
+        req.ClosedDate = now;
 
-        if (req.PublicJobPostingId is Guid postingId)
-        {
-            var posting = await db.PublicJobPostings.FindAsync([postingId], ct);
-            if (posting is not null)
-                posting.IsPublished = false;
-        }
-
-        if (req.InternalVacancyId is Guid vacancyId)
-        {
-            var vacancy = await db.InternalVacancies.FindAsync([vacancyId], ct);
-            if (vacancy is not null)
-                vacancy.IsOpen = false;
-        }
-        else
-        {
-            var linkedVacancy = await db.InternalVacancies
-                .FirstOrDefaultAsync(v => v.RequisitionId == req.Id, ct);
-            if (linkedVacancy is not null)
-                linkedVacancy.IsOpen = false;
-        }
+        await RecruitmentRequisitionCascade.UnpublishAsync(db, req, ct);
+        // PLAN-27: reserve list — candidates kept on a reserve list must be excluded from this rejection.
+        await RecruitmentRequisitionCascade.RejectOpenApplicationsAsync(db, req.Id, "إغلاق الشاغر", now, ct);
+        await RecruitmentRequisitionCascade.CancelScheduledInterviewsAsync(db, req.Id, "إغلاق الشاغر", ct);
 
         await db.SaveChangesAsync(ct);
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> CancelAsync(Guid requisitionId, CancellationToken ct = default)
+    /// <summary>
+    /// HCM-026 (G-11): Draft/PendingApproval need HrCoreWrite only; Approved/Published need
+    /// <paramref name="actorCanApprove"/> (HrCoreApprove) and a written reason, and cascade to the posting,
+    /// vacancy, offers, applications and interviews in one save.
+    /// </summary>
+    public async Task<(bool Success, string? Error)> CancelAsync(
+        Guid requisitionId,
+        string? reason,
+        Guid? actorUserId,
+        bool actorCanApprove,
+        CancellationToken ct = default)
     {
-        var req = await db.RecruitmentRequisitions.FindAsync([requisitionId], ct);
+        var req = await db.RecruitmentRequisitions.FirstOrDefaultAsync(r => r.Id == requisitionId, ct);
         if (req is null) return (false, "طلب الشاغر غير موجود.");
 
         if (!RequisitionWorkflowRules.CanCancel(req.Status))
-            return (false, "يمكن إلغاء المسودات أو الطلبات بانتظار الاعتماد فقط.");
+            return (false, "لا يمكن إلغاء طلب شاغر مغلق أو ملغى.");
 
-        req.Status = RequisitionStatus.Cancelled;
+        var trimmedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        if (trimmedReason is { Length: > 500 })
+            return (false, "سبب الإلغاء يجب ألا يتجاوز 500 حرف.");
+
+        if (RequisitionWorkflowRules.CancelRequiresApproval(req.Status))
+        {
+            if (!actorCanApprove)
+                return (false, "إلغاء طلب شاغر معتمد أو منشور يتطلب صلاحية الاعتماد.");
+            if (trimmedReason is null || trimmedReason.Length < RequisitionWorkflowRules.MinCancellationReasonLength)
+                return (false, $"سبب الإلغاء مطلوب ({RequisitionWorkflowRules.MinCancellationReasonLength} أحرف على الأقل).");
+        }
+
+        var blocked = await RecruitmentRequisitionCascade.ValidateCancellableAsync(db, req.Id, ct);
+        if (blocked is not null)
+            return (false, blocked);
+
+        await RecruitmentRequisitionCascade.StageCancellationAsync(db, req, trimmedReason ?? "إلغاء المسودة", actorUserId, ct);
         await db.SaveChangesAsync(ct);
         return (true, null);
     }

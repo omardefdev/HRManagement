@@ -7,6 +7,7 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 
 using HR.Core.Infrastructure.Services.CodeGeneration;
+using HR.Core.Infrastructure.Services.Recruitment;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -470,11 +471,30 @@ public sealed class EstablishmentChangeApplier(
 
         var before = Serialize(position);
 
+        // HCM-026 (G-11): an open requisition on the position is cancelled with the freeze, unless an offer is out.
+        var blockingRequisitions = await db.RecruitmentRequisitions
+            .Where(r => r.FundedPositionId == position.Id && RequisitionWorkflowRules.BlockingStatuses.Contains(r.Status))
+            .ToListAsync(ct);
+        if (blockingRequisitions.Count > 0)
+        {
+            var requisitionIds = blockingRequisitions.Select(r => r.Id).ToList();
+            var offers = await db.OfferLetters
+                .AsNoTracking()
+                .Where(o => o.RecruitmentApplication != null
+                    && o.RecruitmentApplication.RequisitionId != null
+                    && requisitionIds.Contains(o.RecruitmentApplication.RequisitionId.Value))
+                .ToListAsync(ct);
+            var offerError = EstablishmentRecruitmentCascadeRules.ValidateFreeze(offers);
+            if (offerError is not null) return (false, offerError, null, nameof(FundedPosition), before, null);
+        }
+
         var result = establishmentService.FreezePosition(position, payload.FreezeReason.Trim());
 
         if (!result.Success) return (false, result.Error, null, nameof(FundedPosition), before, null);
 
-
+        var cancellationReason = EstablishmentRecruitmentCascadeRules.FreezeCancellationReason(payload.FreezeReason);
+        foreach (var requisition in blockingRequisitions)
+            await RecruitmentRequisitionCascade.StageCancellationAsync(db, requisition, cancellationReason, actorUserId: null, ct);
 
         await db.SaveChangesAsync(ct);
 

@@ -13,6 +13,27 @@ public static class RequisitionWorkflowRules
         RequisitionStatus.Approved
     ];
 
+    /// <summary>
+    /// HCM-026 (G-11): statuses that block a second requisition on the same funded position.
+    /// Mirrored by the filtered unique index <c>IX_RecruitmentRequisitions_Tenant_Position_Blocking</c>.
+    /// </summary>
+    public static readonly RequisitionStatus[] BlockingStatuses =
+    [
+        RequisitionStatus.Draft,
+        RequisitionStatus.PendingApproval,
+        RequisitionStatus.Approved,
+        RequisitionStatus.Published
+    ];
+
+    public static bool IsBlockingStatus(RequisitionStatus status) =>
+        BlockingStatuses.Contains(status);
+
+    /// <summary>HCM-026: cancelling an approved or published requisition needs HrCoreApprove and a reason.</summary>
+    public static bool CancelRequiresApproval(RequisitionStatus status) =>
+        status is RequisitionStatus.Approved or RequisitionStatus.Published;
+
+    public const int MinCancellationReasonLength = 10;
+
     public static bool CanCreate(FundedPosition position) =>
         position.Status == FundedPositionStatus.Vacant;
 
@@ -79,5 +100,6 @@ public static class RequisitionWorkflowRules
         status == RequisitionStatus.Published;
 
     public static bool CanCancel(RequisitionStatus status) =>
-        status is RequisitionStatus.Draft or RequisitionStatus.PendingApproval;
+        status is RequisitionStatus.Draft or RequisitionStatus.PendingApproval
+            or RequisitionStatus.Approved or RequisitionStatus.Published;
 }

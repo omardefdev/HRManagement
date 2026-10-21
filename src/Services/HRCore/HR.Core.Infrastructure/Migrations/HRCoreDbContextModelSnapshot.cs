@@ -3453,8 +3453,21 @@ namespace HR.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("ApplicationClosingDate")
+                        .HasColumnType("date");
+
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ClosedDate")
                         .HasColumnType("timestamp with time zone");
@@ -3467,6 +3480,9 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid>("FundedPositionId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("IntakeClosedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("InternalVacancyId")
                         .HasColumnType("uuid");
@@ -3528,6 +3544,11 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("FundedPositionId");
 
                     b.HasIndex("LegalSourceId");
+
+                    b.HasIndex("TenantId", "FundedPositionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RecruitmentRequisitions_Tenant_Position_Blocking")
+                        .HasFilter("\"Status\" IN ('Draft','PendingApproval','Approved','Published')");
 
                     b.HasIndex("TenantId", "RequisitionNumber")
                         .IsUnique();

@@ -132,14 +132,6 @@
 
                 }
 
-                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء طلب الشاغر؟');">
-
-                    @Html.AntiForgeryToken()
-
-                    <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
-
-                </form>
-
             }
 
             @if (Model.CanWrite && requisition.Status == RequisitionStatus.Published
@@ -312,6 +304,14 @@
 
             <dd class="col-sm-9">@(ViewBag.LegalSourceLabel ?? "—")</dd>
 
+            @if (requisition.Status == RequisitionStatus.Cancelled && requisition.CancelledAt is not null)
+            {
+                <dt class="col-sm-3">تاريخ الإلغاء</dt>
+                <dd class="col-sm-9">@requisition.CancelledAt.Value.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+                <dt class="col-sm-3">سبب الإلغاء</dt>
+                <dd class="col-sm-9">@(requisition.CancellationReason ?? "—")</dd>
+            }
+
         </dl>
 
     </div>
@@ -319,6 +319,37 @@
 </div>
 
 <partial name="_AssessmentCriteriaPanel" model="Model.CriteriaPanel" />
+
+@if (Model.CanWrite && requisition.Status is RequisitionStatus.Approved or RequisitionStatus.Published)
+{
+    <div class="card mt-3 border-danger" id="cancel-requisition">
+        <div class="card-header"><h5 class="mb-0 text-danger"><i class="fas fa-ban ms-1"></i> إلغاء طلب الشاغر</h5></div>
+        <div class="card-body">
+            @if (Model.CanApprove)
+            {
+                <p class="text-muted small">
+                    يُلغى الإعلان والشاغر الداخلي، وتُسحب العروض غير المقبولة، وتُرفض الطلبات المفتوحة وتُلغى مقابلاتها المجدولة.
+                    لا يمكن الإلغاء إذا وُجد مرشح معيّن أو عرض مقبول.
+                </p>
+                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="row g-2 align-items-end"
+                      data-hr-confirm="إلغاء طلب الشاغر وكل ما يترتب عليه؟" data-hr-confirm-title="تأكيد الإلغاء" data-hr-confirm-variant="danger">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-9">
+                        <label class="form-label" for="cancelReason">سبب الإلغاء (10 أحرف على الأقل)</label>
+                        <input type="text" id="cancelReason" name="reason" class="form-control" minlength="10" maxlength="500" required />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-danger w-100">إلغاء الطلب</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <p class="text-muted mb-0">إلغاء طلب شاغر معتمد أو منشور يتطلب صلاحية الاعتماد.</p>
+            }
+        </div>
+    </div>
+}
 
 @section Scripts {
     <script src="~/js/recruitment-criteria.js" asp-append-version="true"></script>

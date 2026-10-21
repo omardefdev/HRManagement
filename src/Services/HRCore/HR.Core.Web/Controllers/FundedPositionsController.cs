@@ -151,7 +151,7 @@ public class FundedPositionsController(
 
         var activeRequisitions = await db.RecruitmentRequisitions
             .AsNoTracking()
-            .Where(r => r.FundedPositionId == id && RequisitionWorkflowRules.ActiveStatuses.Contains(r.Status))
+            .Where(r => r.FundedPositionId == id && RequisitionWorkflowRules.BlockingStatuses.Contains(r.Status))
             .OrderByDescending(r => r.RequestedDate)
             .ToListAsync();
 

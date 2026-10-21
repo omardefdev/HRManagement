@@ -877,6 +877,11 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => new { e.TenantId, e.RequisitionNumber }).IsUnique();
             entity.HasIndex(e => new { e.TenantId, e.Status });
             entity.HasIndex(e => e.FundedPositionId);
+            // HCM-026 (G-11): at most one blocking requisition per funded position (Status is stored as text).
+            entity.HasIndex(e => new { e.TenantId, e.FundedPositionId })
+                  .IsUnique()
+                  .HasFilter("\"Status\" IN ('Draft','PendingApproval','Approved','Published')")
+                  .HasDatabaseName("IX_RecruitmentRequisitions_Tenant_Position_Blocking");
             entity.Property(e => e.RequisitionNumber).HasMaxLength(50);
             entity.Property(e => e.JobTitle).HasMaxLength(200);
             entity.Property(e => e.JustificationNotes).HasMaxLength(500);

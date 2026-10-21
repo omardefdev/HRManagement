@@ -81,10 +81,11 @@ public class RecruitmentApplicationIntakeServiceTests
             },
             new RecruitmentRequisition
             {
+                // PLAN-26: a second *blocking* requisition on the same position is now rejected by the DB index.
                 RequisitionNumber = "REQ-DRF",
                 FundedPositionId = position.Id,
-                JobTitle = "مسودة",
-                Status = RequisitionStatus.Draft,
+                JobTitle = "ملغى",
+                Status = RequisitionStatus.Cancelled,
                 RequestedDate = DateTime.UtcNow,
                 VacancyCount = 1
             });
