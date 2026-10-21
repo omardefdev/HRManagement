@@ -56,7 +56,8 @@ public class RecruitmentRequisitionPolicyIntegrationTests
             new PolicyOrchestrator(db, Mock.Of<IWorkflowStarter>(), new PolicyPublishedSnapshotCache(new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions())), NullLogger<PolicyOrchestrator>.Instance),
             new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
             Mock.Of<IWorkflowStarter>(),
-            config);
+            config,
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions { RequireCriteriaBeforePublish = false }));
 
         var (success, error) = await lifecycle.PublishAsync(req, Guid.NewGuid(), "test");
         Assert.True(success, error);

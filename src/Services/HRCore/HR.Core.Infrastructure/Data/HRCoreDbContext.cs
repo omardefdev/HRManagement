@@ -415,6 +415,10 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.RequisitionId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.TenantId, e.RequisitionId, e.VersionNumber }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.RequisitionId })
+                  .IsUnique()
+                  .HasFilter("\"IsActive\" = true")
+                  .HasDatabaseName("IX_RecruitmentAssessmentCriteria_Tenant_Requisition_Active");
         });
 
         modelBuilder.Entity<OfferLetter>(entity =>

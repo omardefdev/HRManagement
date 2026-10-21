@@ -23,4 +23,19 @@ public class RecruitmentAssessmentCriteria : AuditableEntity
 
     [Display(Name = "ساري من")]
     public DateTime EffectiveFrom { get; set; } = DateTime.UtcNow;
+
+    /// <summary>HCM-026: exactly one active version per requisition.</summary>
+    [Display(Name = "نشط")]
+    public bool IsActive { get; set; }
+
+    /// <summary>HCM-026: set on the first submitted score; locked versions are never edited.</summary>
+    [Display(Name = "تاريخ القفل")]
+    public DateTime? LockedAt { get; set; }
+
+    [StringLength(500)]
+    [Display(Name = "سبب التغيير")]
+    public string? ChangeReason { get; set; }
+
+    [Display(Name = "اعتمد بواسطة")]
+    public Guid? ApprovedBy { get; set; }
 }

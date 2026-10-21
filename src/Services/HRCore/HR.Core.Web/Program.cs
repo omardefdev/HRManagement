@@ -171,6 +171,9 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Web.Services.RecruitmentAppealWorkflowUiService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentInterviewService>();
+builder.Services.Configure<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions>(
+    builder.Configuration.GetSection(HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions.SectionName));
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAssessmentCriteriaService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeLifecycleService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeWorkflowHandler>();

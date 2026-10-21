@@ -1,0 +1,214 @@
+@model HR.Core.Web.ViewModels.AssessmentCriteriaPanelViewModel
+@using HR.Core.Domain.Enums
+@using HR.Core.Web.ViewModels
+
+@{
+    var stages = Enum.GetValues<AssessmentStage>();
+    var seedIndex = 0;
+}
+
+<div class="card mt-3" id="assessment-criteria">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list-check ms-1"></i> معايير التقييم</h5>
+        @if (Model.Active is { } active)
+        {
+            <span class="badge bg-success">الإصدار النشط: v@(active.Criteria.VersionNumber)</span>
+        }
+        else
+        {
+            <span class="badge bg-warning text-dark">لا يوجد إصدار نشط</span>
+        }
+    </div>
+    <div class="card-body">
+        @if (!Model.Versions.Any())
+        {
+            <p class="text-muted">لم تُعرَّف معايير تقييم لهذا الطلب بعد. يجب اعتماد إصدار قبل النشر.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>الإصدار</th>
+                            <th>العنوان</th>
+                            <th>البنود</th>
+                            <th>ساري من</th>
+                            <th>الحالة</th>
+                            <th>سبب التغيير</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Versions)
+                        {
+                            var c = row.Criteria;
+                            <tr class="@(c.IsActive ? "table-success" : "")">
+                                <td>v@(c.VersionNumber)</td>
+                                <td>@c.Title</td>
+                                <td>
+                                    <details>
+                                        <summary>@row.Items.Count بند</summary>
+                                        <ul class="mb-0 small">
+                                            @foreach (var item in row.Items)
+                                            {
+                                                <li>
+                                                    <strong>@item.NameAr</strong>
+                                                    — الوزن @InvariantDecimal.Format(item.Weight)٪
+                                                    — الحد الأعلى @InvariantDecimal.Format(item.MaxScore)
+                                                    — @Html.HrEnumDisplay(item.Stage)
+                                                    @if (item.IsMandatory)
+                                                    {
+                                                        <span class="badge bg-light text-dark">إلزامي</span>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    </details>
+                                </td>
+                                <td>@c.EffectiveFrom.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (c.IsActive)
+                                    {
+                                        <span class="badge bg-success">نشط</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">سابق</span>
+                                    }
+                                    @if (c.LockedAt is not null)
+                                    {
+                                        <span class="badge bg-dark" title="@c.LockedAt.Value.ToString("yyyy-MM-dd HH:mm")"><i class="fas fa-lock"></i> مُقفل</span>
+                                    }
+                                </td>
+                                <td>@(c.ChangeReason ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.CanWrite && !Model.CanCreateVersion && Model.RequiresChangeReason)
+        {
+            <div class="alert alert-info mb-0">
+                الإصدار النشط مُقفل لبدء التقييم عليه — إنشاء إصدار جديد يتطلب صلاحية الاعتماد.
+            </div>
+        }
+
+        @if (Model.CanCreateVersion)
+        {
+            <hr />
+            <h6>إصدار جديد</h6>
+            <p class="text-muted small mb-2">
+                الإصدارات غير قابلة للتعديل؛ الإصدار الجديد يصبح نشطاً ويُلغي تنشيط السابق.
+                يجب أن يساوي مجموع الأوزان 100.
+            </p>
+            <form asp-controller="RecruitmentAssessmentCriteria" asp-action="Create" method="post" data-criteria-editor>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="RequisitionId" value="@Model.RequisitionId" />
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                        <label class="form-label" for="criteriaTitle">عنوان الإصدار</label>
+                        <input type="text" id="criteriaTitle" name="Title" class="form-control" maxlength="200"
+                               placeholder="معايير التقييم v@((Model.Versions.FirstOrDefault()?.Criteria.VersionNumber ?? 0) + 1)" />
+                    </div>
+                    @if (Model.RequiresChangeReason)
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label" for="criteriaChangeReason">سبب التغيير (إلزامي — 10 أحرف على الأقل)</label>
+                            <input type="text" id="criteriaChangeReason" name="ChangeReason" class="form-control"
+                                   minlength="10" maxlength="500" required />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label" for="criteriaChangeReason">سبب التغيير (اختياري)</label>
+                            <input type="text" id="criteriaChangeReason" name="ChangeReason" class="form-control" maxlength="500" />
+                        </div>
+                    }
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-2">
+                        <thead>
+                            <tr>
+                                <th>اسم البند</th>
+                                <th>الوزن ٪</th>
+                                <th>الحد الأعلى للدرجة</th>
+                                <th>المرحلة</th>
+                                <th>إلزامي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody data-criteria-rows>
+                            @foreach (var item in Model.EditorSeed)
+                            {
+                                var token = $"r{seedIndex++}";
+                                <tr data-criteria-row>
+                                    <td>
+                                        <input type="hidden" name="Items.Index" value="@token" />
+                                        <input type="hidden" name="Items[@token].Key" value="@item.Key" data-criteria-key />
+                                        <input type="text" name="Items[@token].NameAr" value="@item.NameAr" class="form-control form-control-sm" maxlength="200" required />
+                                    </td>
+                                    <td><input type="number" name="Items[@token].Weight" value="@InvariantDecimal.Format(item.Weight)" class="form-control form-control-sm" min="0.01" max="100" step="0.01" required data-criteria-weight /></td>
+                                    <td><input type="number" name="Items[@token].MaxScore" value="@InvariantDecimal.Format(item.MaxScore)" class="form-control form-control-sm" min="0.01" step="0.01" required /></td>
+                                    <td>
+                                        <select name="Items[@token].Stage" class="form-select form-select-sm">
+                                            @foreach (var stage in stages)
+                                            {
+                                                <option value="@stage" selected="@(stage == item.Stage)">@Html.HrEnumDisplay(stage)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" name="Items[@token].IsMandatory" value="true" class="form-check-input" checked="@item.IsMandatory" />
+                                        <input type="hidden" name="Items[@token].IsMandatory" value="false" />
+                                    </td>
+                                    <td><button type="button" class="btn btn-outline-danger btn-sm" data-criteria-remove title="حذف البند"><i class="fas fa-trash"></i></button></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th>المجموع</th>
+                                <th><span data-criteria-total>0</span> ٪</th>
+                                <th colspan="4"><span class="small" data-criteria-total-hint></span></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <template data-criteria-row-template>
+                    <tr data-criteria-row>
+                        <td>
+                            <input type="hidden" name="Items.Index" value="__T__" />
+                            <input type="hidden" name="Items[__T__].Key" value="" data-criteria-key />
+                            <input type="text" name="Items[__T__].NameAr" class="form-control form-control-sm" maxlength="200" required />
+                        </td>
+                        <td><input type="number" name="Items[__T__].Weight" class="form-control form-control-sm" min="0.01" max="100" step="0.01" required data-criteria-weight /></td>
+                        <td><input type="number" name="Items[__T__].MaxScore" value="100" class="form-control form-control-sm" min="0.01" step="0.01" required /></td>
+                        <td>
+                            <select name="Items[__T__].Stage" class="form-select form-select-sm">
+                                @foreach (var stage in stages)
+                                {
+                                    <option value="@stage" selected="@(stage == AssessmentStage.Interview)">@Html.HrEnumDisplay(stage)</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <input type="checkbox" name="Items[__T__].IsMandatory" value="true" class="form-check-input" checked />
+                            <input type="hidden" name="Items[__T__].IsMandatory" value="false" />
+                        </td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" data-criteria-remove title="حذف البند"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                </template>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-criteria-add><i class="fas fa-plus"></i> إضافة بند</button>
+                    <button type="submit" class="btn btn-primary btn-sm" data-criteria-submit>اعتماد الإصدار الجديد</button>
+                </div>
+            </form>
+        }
+    </div>
+</div>

@@ -10,6 +10,7 @@ using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Policy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace HR.Core.Infrastructure.Services.Recruitment;
 
@@ -18,7 +19,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
     IPolicyOrchestrator policyOrchestrator,
     RecruitmentLegalSourceValidator legalSourceValidator,
     IWorkflowStarter workflowStarter,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    IOptions<RecruitmentOptions> recruitmentOptions)
 {
     private const string RequisitionApprovalWorkflowCode = "RECRUITMENT-REQUISITION-APPROVAL";
     public async Task<(bool Success, string? Error)> SubmitForApprovalAsync(
@@ -116,6 +118,10 @@ public sealed class RecruitmentRequisitionLifecycleService(
         if (RecruitmentLegalSourceRules.IsEmpty(req.LegalSourceId))
             return (false, RecruitmentLegalSourceRules.RequiredOnPublishMessage);
 
+        var criteriaError = await ValidateCriteriaBeforePublishAsync(req.Id, ct);
+        if (criteriaError is not null)
+            return (false, criteriaError);
+
         var mode = ResolveMode();
         if (mode != PolicyEnforcementMode.Off)
         {
@@ -182,6 +188,10 @@ public sealed class RecruitmentRequisitionLifecycleService(
 
         if (RecruitmentLegalSourceRules.IsEmpty(req.LegalSourceId))
             return (false, RecruitmentLegalSourceRules.RequiredOnPublishMessage);
+
+        var criteriaError = await ValidateCriteriaBeforePublishAsync(req.Id, ct);
+        if (criteriaError is not null)
+            return (false, criteriaError);
 
         var mode = ResolveMode();
         if (mode != PolicyEnforcementMode.Off)
@@ -300,6 +310,17 @@ public sealed class RecruitmentRequisitionLifecycleService(
             return null;
 
         return (req, req.FundedPosition);
+    }
+
+    /// <summary>HCM-026 (A4): publication requires an active assessment criteria version.</summary>
+    private async Task<string?> ValidateCriteriaBeforePublishAsync(Guid requisitionId, CancellationToken ct)
+    {
+        if (!recruitmentOptions.Value.RequireCriteriaBeforePublish)
+            return null;
+
+        var hasActive = await db.RecruitmentAssessmentCriteria
+            .AnyAsync(c => c.RequisitionId == requisitionId && c.IsActive, ct);
+        return hasActive ? null : AssessmentCriteriaRules.RequiredBeforePublishMessage;
     }
 
     private PolicyEnforcementMode ResolveMode()

@@ -3204,6 +3204,13 @@ namespace HR.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3215,6 +3222,12 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LockedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("RequisitionId")
@@ -3240,6 +3253,11 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("RequisitionId");
+
+                    b.HasIndex("TenantId", "RequisitionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RecruitmentAssessmentCriteria_Tenant_Requisition_Active")
+                        .HasFilter("\"IsActive\" = true");
 
                     b.HasIndex("TenantId", "RequisitionId", "VersionNumber")
                         .IsUnique();

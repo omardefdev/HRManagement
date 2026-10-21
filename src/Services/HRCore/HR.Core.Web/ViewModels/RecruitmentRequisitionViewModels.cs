@@ -64,6 +64,8 @@ public class RecruitmentRequisitionDetailsViewModel
     public WorkflowPanelViewModel Workflow { get; set; } = new();
     /// <summary>Publish/submit/edit/cancel require HrCore.Write — hidden for approver-only users.</summary>
     public bool CanWrite { get; set; }
+    /// <summary>HCM-026: assessment criteria versions panel.</summary>
+    public AssessmentCriteriaPanelViewModel CriteriaPanel { get; set; } = new();
 }
 
 public class RequisitionWorkflowPanelViewModel : WorkflowPanelViewModel;

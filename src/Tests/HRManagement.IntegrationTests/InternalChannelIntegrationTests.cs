@@ -60,7 +60,8 @@ public class InternalVacancyPublishTests
             Mock.Of<IPolicyOrchestrator>(),
             validator,
             Mock.Of<IWorkflowStarter>(),
-            config);
+            config,
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions { RequireCriteriaBeforePublish = false }));
     }
 
     private static async Task<(RecruitmentRequisition Req, FundedPosition Position)> SeedApprovedInternalRequisitionAsync(

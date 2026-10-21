@@ -10,6 +10,8 @@ public static class AssessmentCriteriaRules
     public const int MaxKeyLength = 64;
     public const int MaxNameLength = 200;
 
+    public const string RequiredBeforePublishMessage = "يجب اعتماد معايير التقييم قبل النشر.";
+
     public static string? Validate(IReadOnlyList<AssessmentCriteriaItem>? items)
     {
         if (items is null || items.Count == 0)

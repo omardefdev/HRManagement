@@ -133,7 +133,8 @@ public class Hcm021RequisitionApprovalUiTests
             Mock.Of<IPolicyOrchestrator>(),
             new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
             starter,
-            config);
+            config,
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 
         var (success, error) = await lifecycle.SubmitForApprovalAsync(req, CreatorId, "creator");
         Assert.True(success, error);

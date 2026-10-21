@@ -1,0 +1,76 @@
+using System.Globalization;
+using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
+using HR.Core.Domain.Recruitment;
+
+namespace HR.Core.Web.ViewModels;
+
+/// <summary>HCM-026: criteria versions panel on the requisition details page.</summary>
+public class AssessmentCriteriaPanelViewModel
+{
+    public Guid RequisitionId { get; set; }
+    public RequisitionStatus RequisitionStatus { get; set; }
+    public IReadOnlyList<AssessmentCriteriaVersionRow> Versions { get; set; } = [];
+    public AssessmentCriteriaVersionRow? Active => Versions.FirstOrDefault(v => v.Criteria.IsActive);
+    public bool CanWrite { get; set; }
+    public bool CanApprove { get; set; }
+
+    public bool CanCreateVersion => CanWrite
+        && RequisitionStatus is RequisitionStatus.Draft or RequisitionStatus.PendingApproval
+            or RequisitionStatus.Approved or RequisitionStatus.Published
+        && (Active?.Criteria.LockedAt is null || CanApprove);
+
+    public bool RequiresChangeReason => Active?.Criteria.LockedAt is not null;
+
+    /// <summary>Rows pre-filled in the "new version" editor (copy of the active version, keys preserved).</summary>
+    public IReadOnlyList<AssessmentCriteriaItem> EditorSeed =>
+        Active?.Items is { Count: > 0 } items
+            ? items
+            : [new AssessmentCriteriaItem("item-1", string.Empty, 100m, 100m, AssessmentStage.Interview)];
+}
+
+public record AssessmentCriteriaVersionRow(RecruitmentAssessmentCriteria Criteria, IReadOnlyList<AssessmentCriteriaItem> Items);
+
+/// <summary>HCM-026: posted "new criteria version" form. Numbers are posted as invariant strings.</summary>
+public class AssessmentCriteriaCreateForm
+{
+    public Guid RequisitionId { get; set; }
+    public string? Title { get; set; }
+    public string? ChangeReason { get; set; }
+    /// <summary>Bound with explicit <c>Items.Index</c> tokens so rows can be added/removed client-side.</summary>
+    public List<AssessmentCriteriaItemInput> Items { get; set; } = [];
+}
+
+public class AssessmentCriteriaItemInput
+{
+    public string? Key { get; set; }
+    public string? NameAr { get; set; }
+    public string? Weight { get; set; }
+    public string? MaxScore { get; set; }
+    public AssessmentStage Stage { get; set; } = AssessmentStage.Other;
+    public bool IsMandatory { get; set; }
+    public string? Description { get; set; }
+}
+
+/// <summary>HCM-026: culture-independent decimal parsing for numbers posted from number inputs.</summary>
+public static class InvariantDecimal
+{
+    public static bool TryParse(string? raw, out decimal value)
+    {
+        value = 0m;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        var normalized = new string(raw.Trim().Select(ch => ch switch
+        {
+            >= '٠' and <= '٩' => (char)('0' + (ch - '٠')),
+            >= '۰' and <= '۹' => (char)('0' + (ch - '۰')),
+            '٫' or ',' => '.',
+            _ => ch
+        }).ToArray());
+
+        return decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
+    }
+
+    public static string Format(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

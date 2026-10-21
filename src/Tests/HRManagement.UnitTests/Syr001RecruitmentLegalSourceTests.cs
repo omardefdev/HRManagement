@@ -34,7 +34,8 @@ public class Syr001RecruitmentLegalSourceTests
             Mock.Of<IPolicyOrchestrator>(),
             validator,
             Mock.Of<IWorkflowStarter>(),
-            config);
+            config,
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 
         return (db, validator, lifecycle);
     }

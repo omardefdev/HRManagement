@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Recruitment;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
@@ -30,7 +31,8 @@ public class RecruitmentRequisitionsController(
     RecruitmentLegalSourceValidator legalSourceValidator,
     ICodeGenerator codeGenerator,
     EstablishmentScopeService establishmentScope,
-    IAuthorizationService authorization) : Controller
+    IAuthorizationService authorization,
+    RecruitmentAssessmentCriteriaService criteriaService) : Controller
 {
     [HttpGet("/api/recruitment/vacant-positions")]
     public async Task<IActionResult> VacantPositions(
@@ -233,6 +235,17 @@ public class RecruitmentRequisitionsController(
 
         var vm = await workflowUiService.BuildDetailsAsync(requisition, User);
         vm.CanWrite = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreWrite)).Succeeded;
+        var criteriaVersions = await criteriaService.GetVersionsAsync(requisition.Id);
+        vm.CriteriaPanel = new AssessmentCriteriaPanelViewModel
+        {
+            RequisitionId = requisition.Id,
+            RequisitionStatus = requisition.Status,
+            Versions = criteriaVersions
+                .Select(c => new AssessmentCriteriaVersionRow(c, AssessmentCriteriaSerializer.Deserialize(c.CriteriaJson)))
+                .ToList(),
+            CanWrite = vm.CanWrite,
+            CanApprove = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreApprove)).Succeeded
+        };
         return View(vm);
     }
 

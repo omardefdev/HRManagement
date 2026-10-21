@@ -234,6 +234,15 @@
 
         <partial name="_RequisitionWorkflowPanel" model="Model.Workflow" />
 
+        @if (requisition.Status == RequisitionStatus.Approved && Model.CriteriaPanel.Active is null)
+        {
+            <div class="alert alert-warning mt-3 mb-0">
+                <i class="fas fa-exclamation-triangle ms-1"></i>
+                لا توجد معايير تقييم نشطة لهذا الطلب — يجب اعتماد معايير التقييم قبل النشر.
+                <a href="#assessment-criteria" class="alert-link">تعريف المعايير</a>
+            </div>
+        }
+
         @if (!Model.CanWrite && requisition.Status == RequisitionStatus.Approved)
         {
             <div class="alert alert-info mt-3 mb-0">
@@ -309,4 +318,8 @@
 
 </div>
 
+<partial name="_AssessmentCriteriaPanel" model="Model.CriteriaPanel" />
 
+@section Scripts {
+    <script src="~/js/recruitment-criteria.js" asp-append-version="true"></script>
+}
