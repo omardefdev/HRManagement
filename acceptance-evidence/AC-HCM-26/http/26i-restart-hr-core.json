@@ -1,0 +1,8 @@
+{
+  "step": "26i-restart-hr-core",
+  "method": "DOCKER",
+  "url": "restart hrm-acceptance-hr-core-web-1",
+  "statusCode": 0,
+  "capturedAtUtc": "2026-10-21T19:43:07.8240186Z",
+  "body": "hrm-acceptance-hr-core-web-1\n"
+}

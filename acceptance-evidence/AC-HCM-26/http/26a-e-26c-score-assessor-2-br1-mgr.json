@@ -1,0 +1,24 @@
+{
+  "step": "26a-e-26c-score-assessor-2-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/SubmitScores",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-21T19:42:45.1552981Z",
+  "body": {
+    "fields": [
+      "ApplicationId=682eb263-5d35-4595-b4c7-0f2f8cc425ab",
+      "Scores[interview]=60",
+      "Scores[exam]=50",
+      "Scores[experience]=70",
+      "Notes=AC-HCM-26",
+      "NoConflictDeclared=true"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/682eb263-5d35-4595-b4c7-0f2f8cc425ab#assessment-scoring",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/RecruitmentApplications/Details/682eb263-5d35-4595-b4c7-0f2f8cc425ab",
+    "alerts": []
+  }
+}

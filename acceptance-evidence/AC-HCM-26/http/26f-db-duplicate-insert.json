@@ -1,0 +1,8 @@
+{
+  "step": "26f-db-duplicate-insert",
+  "method": "SQL",
+  "url": "INSERT RecruitmentRequisitions",
+  "statusCode": 1,
+  "capturedAtUtc": "2026-10-21T19:42:56.8951881Z",
+  "body": "ERROR:  duplicate key value violates unique constraint \u0022IX_RecruitmentRequisitions_Tenant_Position_Blocking\u0022\nDETAIL:  Key (\u0022TenantId\u0022, \u0022FundedPositionId\u0022)=(a0000001-0000-4000-8000-000000000001, f3fbc8ec-7f76-bc4c-a584-e18fc9caa358) already exists.\n"
+}

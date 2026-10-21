@@ -1,0 +1,19 @@
+{
+  "step": "26f-g-submit-requisition-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/64652c7e-ad8f-4d64-a914-3845dd6e2ed5",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-21T19:42:54.3529115Z",
+  "body": {
+    "fields": [],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/64652c7e-ad8f-4d64-a914-3845dd6e2ed5",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/64652c7e-ad8f-4d64-a914-3845dd6e2ed5",
+    "alerts": [
+      "\u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0646\u0634\u0626 \u0627\u0639\u062A\u0645\u0627\u062F \u0637\u0644\u0628\u0647 \u0627\u0644\u062E\u0627\u0635."
+    ]
+  }
+}

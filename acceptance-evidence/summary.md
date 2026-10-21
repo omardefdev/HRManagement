@@ -29,3 +29,7 @@
 - **AC-EST-12**: Pass (`04faaa55-923f-426d-affe-08aea12fe732`)
 - **AC-EST-10**: Pass (`932e4633-78b3-4629-ba9e-af55f618a607`)
 - **AC-EST-11**: Pass (`cd699944-9a8d-4fdf-ada6-67905047cb2b`)
+- **AC-HCM-26**: Pass (`f1e72e8a-2935-4175-996e-89ea4f4c49cb`)
+- **AC-HCM-26**: Pass (`943cfca2-0640-4d89-a85f-7cc6beead5fd`)
+- **AC-HCM-26**: Pass (`c6cb94a3-596b-4536-a4ae-2e6f375d3f60`)
+- **AC-HCM-26**: Pass (`abda0b5b-1cb4-4c69-87fd-d64a476db3d5`)

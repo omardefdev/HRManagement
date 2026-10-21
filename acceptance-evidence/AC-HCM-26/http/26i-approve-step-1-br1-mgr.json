@@ -1,0 +1,22 @@
+{
+  "step": "26i-approve-step-1-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/f08ef32f-4dfa-426d-86d3-2a7d764d6f41",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-21T19:43:05.4211641Z",
+  "body": {
+    "fields": [
+      "RequisitionId=f08ef32f-4dfa-426d-86d3-2a7d764d6f41",
+      "Comments=AC-HCM-26 step 1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/f08ef32f-4dfa-426d-86d3-2a7d764d6f41",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/f08ef32f-4dfa-426d-86d3-2a7d764d6f41",
+    "alerts": [
+      "\u0647\u0630\u0647 \u0627\u0644\u062E\u0637\u0648\u0629 \u062A\u062A\u0637\u0644\u0628 \u062F\u0648\u0631 \u00ABhr-management-approver\u00BB."
+    ]
+  }
+}

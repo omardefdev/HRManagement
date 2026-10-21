@@ -1,0 +1,21 @@
+{
+  "step": "26f-g-create-application-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/Create",
+  "statusCode": 404,
+  "capturedAtUtc": "2026-10-21T19:42:55.5132685Z",
+  "body": {
+    "fields": [
+      "ApplicantFullName=\u0645\u0631\u0634\u062D AC26 549f3cd0ea",
+      "RequisitionId=64652c7e-ad8f-4d64-a914-3845dd6e2ed5",
+      "Notes=AC-HCM-26"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/RecruitmentApplications",
+    "alerts": []
+  }
+}

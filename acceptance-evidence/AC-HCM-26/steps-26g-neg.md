@@ -1,0 +1,2 @@
+1. Find a Published requisition in agency A that has an application in OfferAccepted or Hired (acceptance seed pipeline).
+2. AC-26g (negative): central-a tries to cancel it with a valid reason → rejected, status unchanged.
