@@ -219,7 +219,7 @@
     }
 
     @if (app.RequisitionId.HasValue && app.ActiveOfferLetter is null
-         && app.Status is RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.Assessed)
+         && app.Status is RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.ReserveListed)
     {
         <div class="card mb-3">
             <div class="card-header"><h5 class="mb-0">إنشاء خطاب عرض</h5></div>
@@ -257,6 +257,22 @@
                         <label class="form-label">انتهاء العرض</label>
                         <input type="date" name="ExpiryDate" class="form-control" />
                     </div>
+                    @if (Model.RequiresMeritOverride)
+                    {
+                        <div class="col-12">
+                            <div class="alert alert-warning mb-2">
+                                المرشح ليس التالي بالجدارة (الرتبة المتاحة: @(Model.BestAvailableRank?.ToString() ?? "—")).
+                                يتطلب إصدار العرض تجاوز الجدارة بمبرر مكتوب (@HR.Core.Domain.Services.OfferEligibilityRules.MinMeritOverrideReasonLength حرفاً على الأقل) ومسار اعتماد استثنائي من ثلاث خطوات.
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="IsMeritOverride" value="true" id="IsMeritOverride" class="form-check-input" />
+                                <label class="form-check-label" for="IsMeritOverride">تجاوز الجدارة</label>
+                            </div>
+                            <label class="form-label" for="MeritOverrideReason">مبرر تجاوز الجدارة</label>
+                            <textarea name="MeritOverrideReason" id="MeritOverrideReason" class="form-control" rows="3"
+                                      maxlength="1000" minlength="@HR.Core.Domain.Services.OfferEligibilityRules.MinMeritOverrideReasonLength"></textarea>
+                        </div>
+                    }
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-success">إنشاء مسودة</button>
                     </div>
@@ -297,8 +313,16 @@
                 <tbody>
                 @foreach (var row in Model.RankBoard)
                 {
+                    var isNextByMerit = Model.BestAvailableRank is int best && row.Rank == best
+                        && HR.Core.Domain.Services.OfferEligibilityRules.IsAvailableForMerit(row);
                     <tr class="@(row.Id == app.Id ? "table-primary" : "")">
-                        <td>@row.Rank</td>
+                        <td>
+                            @row.Rank
+                            @if (isNextByMerit)
+                            {
+                                <span class="badge bg-success ms-1">التالي بالجدارة</span>
+                            }
+                        </td>
                         <td>
                             @if (row.Id == app.Id)
                             {

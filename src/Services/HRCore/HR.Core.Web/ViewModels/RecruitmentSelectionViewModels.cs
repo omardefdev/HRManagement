@@ -21,6 +21,10 @@ public class RecruitmentApplicationDetailsViewModel
     public WorkflowPanelViewModel? AppealWorkflow { get; set; }
     public bool ShowDirectAppealDecide { get; set; }
     public IReadOnlyList<RecruitmentInterviewSlot> InterviewSlots { get; set; } = [];
+    /// <summary>HCM-027: lowest rank that can still receive an offer on the requisition (merit order).</summary>
+    public int? BestAvailableRank { get; set; }
+    /// <summary>HCM-027: this application is not next by merit — an offer needs a merit override.</summary>
+    public bool RequiresMeritOverride { get; set; }
 }
 
 public class RecruitmentAppealWorkflowActionViewModel
@@ -61,6 +65,13 @@ public class CreateOfferForm
     [Display(Name = "تاريخ انتهاء العرض")]
     [DataType(DataType.Date)]
     public DateTime? ExpiryDate { get; set; }
+
+    [Display(Name = "تجاوز الجدارة")]
+    public bool IsMeritOverride { get; set; }
+
+    [Display(Name = "مبرر تجاوز الجدارة")]
+    [StringLength(1000)]
+    public string? MeritOverrideReason { get; set; }
 }
 
 public class OfferLettersIndexViewModel

@@ -161,7 +161,8 @@ public class Syr001OfferLegalSourceTests
             Requisition = req,
             AppliedPosition = req.JobTitle,
             AppliedAt = DateTime.UtcNow,
-            Status = RecruitmentApplicationStatus.Ranked
+            Status = RecruitmentApplicationStatus.Ranked,
+            Rank = 1
         };
         db.RecruitmentApplications.Add(app);
         await db.SaveChangesAsync();

@@ -71,9 +71,13 @@ public class RecruitmentApplicationsController(
         var interviews = await interviewService.GetForApplicationAsync(id);
 
         IReadOnlyList<RecruitmentApplication> rankBoard = [];
+        int? bestAvailableRank = null;
 
         if (app.RequisitionId is Guid reqId)
+        {
             rankBoard = await selection.GetRankedCandidatesAsync(reqId);
+            bestAvailableRank = await offerService.GetBestAvailableRankAsync(reqId);
+        }
 
         var scoringPanel = await BuildScoringPanelAsync(app);
 
@@ -107,7 +111,9 @@ public class RecruitmentApplicationsController(
             ActiveAppeal = activeAppeal,
             AppealWorkflow = appealWorkflow,
             ShowDirectAppealDecide = showDirectDecide,
-            InterviewSlots = interviews
+            InterviewSlots = interviews,
+            BestAvailableRank = bestAvailableRank,
+            RequiresMeritOverride = app.Rank is null || app.Rank != bestAvailableRank
         });
     }
 
@@ -378,7 +384,9 @@ public class RecruitmentApplicationsController(
             form.GradeCode,
             form.ProposedStartDate,
             form.ExpiryDate,
-            ParseUserId(User));
+            ParseUserId(User),
+            form.IsMeritOverride,
+            form.MeritOverrideReason);
 
         if (offer is null)
         {

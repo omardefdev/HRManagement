@@ -25,5 +25,11 @@ public enum RecruitmentApplicationStatus
     [Display(Name = "عرض مقبول")]
     OfferAccepted = 9,
     [Display(Name = "منسحب")]
-    Withdrawn = 10
+    Withdrawn = 10,
+    /// <summary>HCM-027: the offer was declined or expired (terminal).</summary>
+    [Display(Name = "عرض مرفوض/منتهٍ")]
+    OfferDeclined = 11,
+    /// <summary>HCM-027: kept on the requisition's reserve list.</summary>
+    [Display(Name = "قائمة احتياط")]
+    ReserveListed = 12
 }
