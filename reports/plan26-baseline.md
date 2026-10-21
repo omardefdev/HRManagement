@@ -44,3 +44,16 @@ No failing tests at baseline.
 
 Other rows (session 2 scope) spot-checked: `RequisitionWorkflowRules.ActiveStatuses` = Draft/PendingApproval/Approved (no Published) — confirmed;
 `CanCancel` at line 81 — confirmed.
+
+## Wider regression baseline (same snapshot `544ba7a`, run in a separate worktree)
+
+```powershell
+dotnet test src/Tests/HRManagement.UnitTests --filter "FullyQualifiedName~Recruitment|FullyQualifiedName~Hcm|FullyQualifiedName~SelectionWorkflow|FullyQualifiedName~RequisitionWorkflow|FullyQualifiedName~OfferWorkflow|FullyQualifiedName~Est0|FullyQualifiedName~Wf02|FullyQualifiedName~PublicCareers|FullyQualifiedName~Fun001|FullyQualifiedName~Syr001"
+```
+
+**Result:** Passed 270, Failed 2 (Total 272). Pre-existing failures (not fixed — unrelated to PLAN-26):
+
+| Test | Failure |
+|------|---------|
+| `Syr001OfferLegalSourceTests.OfferSubmit_succeeds_with_law50` | expected offer status `Issued`, actual `PendingApproval` (offer approval workflow now starts in lab scale) |
+| `Syr001ProductionBindingTests.AddHrLegislationRegister_resolves_provider` | DI cannot resolve `HRCoreDbContext` for `LegislationRegisterProvider` in the test's service collection |
