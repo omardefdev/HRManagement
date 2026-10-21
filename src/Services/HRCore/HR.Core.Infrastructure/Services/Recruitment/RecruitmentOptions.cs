@@ -47,4 +47,10 @@ public sealed class RecruitmentJobsOptions
 
     /// <summary><c>Recruitment:Jobs:IntakeCloseIntervalMinutes</c> (default 60).</summary>
     public int IntakeCloseIntervalMinutes { get; set; } = 60;
+
+    /// <summary>HCM-027: <c>Recruitment:Jobs:OfferExpiryEnabled</c> — runs <c>RecruitmentOfferExpiryJob</c> (default true).</summary>
+    public bool OfferExpiryEnabled { get; set; } = true;
+
+    /// <summary>HCM-027: <c>Recruitment:Jobs:OfferExpiryIntervalMinutes</c> (default 60).</summary>
+    public int OfferExpiryIntervalMinutes { get; set; } = 60;
 }

@@ -14,6 +14,7 @@ public class HRCoreJwtBearerIntegrationTests : IClassFixture<WebApplicationFacto
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Recruitment:Jobs:IntakeCloseEnabled", "false"); // HCM-026: no background intake job in tests
+            builder.UseSetting("Recruitment:Jobs:OfferExpiryEnabled", "false"); // HCM-027: no background offer expiry job in tests
             builder.ConfigureAppConfiguration((_, config) =>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>

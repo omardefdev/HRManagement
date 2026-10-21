@@ -145,6 +145,10 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 // HCM-026 (E4): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.IntakeCloseEnabled.
 if (builder.Configuration.GetValue("Recruitment:Jobs:IntakeCloseEnabled", true))
     builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.RecruitmentIntakeCloseJob>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOfferExpirer>();
+// HCM-027 (D): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.OfferExpiryEnabled.
+if (builder.Configuration.GetValue("Recruitment:Jobs:OfferExpiryEnabled", true))
+    builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOfferExpiryJob>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();
