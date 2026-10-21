@@ -767,7 +767,9 @@ public static class AcceptanceDataSeeder
                 OfferNumber = $"OFF-{AcceptanceSeedCatalog.ReferenceDate.Year}-{agency.Code[^1]}-ISS",
                 Status = OfferStatus.Issued,
                 IssuedDate = AcceptanceSeedCatalog.ReferenceDate,
-                ExpiryDate = AcceptanceSeedCatalog.ReferenceDate.AddDays(21),
+                // HCM-027: far enough ahead that the offer expiry job does not expire the seeded offer
+                // (ReferenceDate + 21 days is already in the past).
+                ExpiryDate = AcceptanceSeedCatalog.ReferenceDate.AddYears(2),
                 OfferedSalary = 220000m,
                 LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004,
                 ProposedStartDate = AcceptanceSeedCatalog.ReferenceDate.AddDays(21),

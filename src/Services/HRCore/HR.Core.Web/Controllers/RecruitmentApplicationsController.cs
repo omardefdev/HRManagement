@@ -56,8 +56,10 @@ public class RecruitmentApplicationsController(
             .AsNoTracking()
             .Include(a => a.Requisition)
             .Include(a => a.ActiveOfferLetter)
+            .Include(a => a.OfferLetters)
             .Include(a => a.CriteriaVersion)
             .Include(a => a.HiredEmployee)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (app is null) return NotFound();
@@ -113,7 +115,8 @@ public class RecruitmentApplicationsController(
             ShowDirectAppealDecide = showDirectDecide,
             InterviewSlots = interviews,
             BestAvailableRank = bestAvailableRank,
-            RequiresMeritOverride = app.Rank is null || app.Rank != bestAvailableRank
+            RequiresMeritOverride = app.Rank is null || app.Rank != bestAvailableRank,
+            DefaultOfferValidityDays = offerService.DefaultValidityDays
         });
     }
 
@@ -383,7 +386,7 @@ public class RecruitmentApplicationsController(
             form.OfferedSalary,
             form.GradeCode,
             form.ProposedStartDate,
-            form.ExpiryDate,
+            form.ValidityDays,
             ParseUserId(User),
             form.IsMeritOverride,
             form.MeritOverrideReason);

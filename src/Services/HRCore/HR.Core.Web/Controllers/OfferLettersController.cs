@@ -353,11 +353,12 @@ public class OfferLettersController(
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
 
-    public async Task<IActionResult> DeclineOffer(Guid id)
+    public async Task<IActionResult> DeclineOffer(Guid id, DeclineOfferForm form)
 
     {
 
-        var (success, error) = await offerService.DeclineAsync(id);
+        // HCM-027: HR records the decline on the candidate's behalf. PLAN-30: candidate self-service (Candidate).
+        var (success, error) = await offerService.DeclineAsync(id, form.Reason, OfferDeclinedBy.HrOnBehalf, ParseUserId(User));
 
         TempData[success ? "Success" : "Error"] = success ? "تم رفض خطاب العرض" : error;
 
@@ -373,11 +374,11 @@ public class OfferLettersController(
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
 
-    public async Task<IActionResult> Revoke(Guid id)
+    public async Task<IActionResult> Revoke(Guid id, RevokeOfferForm form)
 
     {
 
-        var (success, error) = await offerService.RevokeAsync(id);
+        var (success, error) = await offerService.RevokeAsync(id, form.Reason, form.RevertToRanked, ParseUserId(User));
 
         TempData[success ? "Success" : "Error"] = success ? "تم إلغاء خطاب العرض" : error;
 

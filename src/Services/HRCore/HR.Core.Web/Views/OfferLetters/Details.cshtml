@@ -36,7 +36,24 @@
             <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd")</dd>
             <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@(offer.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(offer.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">مدة الصلاحية</dt><dd class="col-sm-9">@offer.ValidityDays يوماً (تُحسب من تاريخ الإصدار)</dd>
             <dt class="col-sm-3">تاريخ القبول</dt><dd class="col-sm-9">@(offer.AcceptedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            @if (offer.Status == OfferStatus.Declined)
+            {
+                <dt class="col-sm-3">تاريخ الرفض</dt><dd class="col-sm-9">@(offer.DeclinedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">رفض بواسطة</dt>
+                <dd class="col-sm-9">@(offer.DeclinedBy == HR.Core.Domain.Entities.OfferDeclinedBy.Candidate ? "المرشح" : "HR نيابة عن المرشح")</dd>
+                <dt class="col-sm-3">سبب الرفض</dt><dd class="col-sm-9">@(offer.DeclineReason ?? "—")</dd>
+            }
+            @if (offer.Status == OfferStatus.Revoked)
+            {
+                <dt class="col-sm-3">تاريخ الإلغاء</dt><dd class="col-sm-9">@(offer.RevokedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">سبب الإلغاء</dt><dd class="col-sm-9">@(offer.RevokeReason ?? "—")</dd>
+            }
+            @if (offer.Status == OfferStatus.Expired)
+            {
+                <dt class="col-sm-3">انتهت الصلاحية في</dt><dd class="col-sm-9">@(offer.ExpiredAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            }
             <dt class="col-sm-3">مرجع قانوني</dt>
             <dd class="col-sm-9">
                 @(ViewBag.LegalSourceLabel ?? "—")
@@ -53,7 +70,7 @@
             <partial name="_OfferWorkflowPanel" model="Model.Workflow" />
         }
     </div>
-    @if (canWrite && (Model.CanSubmit || Model.CanAccept || Model.CanDecline || Model.CanRevoke))
+    @if (canWrite && (Model.CanSubmit || Model.CanAccept))
     {
         <div class="card-footer d-flex flex-wrap gap-2">
             @if (Model.CanSubmit)
@@ -72,22 +89,46 @@
                     <button type="submit" class="btn btn-success btn-sm">قبول العرض</button>
                 </form>
             }
-            @if (Model.CanDecline)
-            {
-                <form asp-action="DeclineOffer" method="post" class="d-inline" onsubmit="return confirm('تأكيد رفض خطاب العرض؟');">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@offer.Id" />
-                    <button type="submit" class="btn btn-outline-danger btn-sm">رفض العرض</button>
-                </form>
-            }
-            @if (Model.CanRevoke)
-            {
-                <form asp-action="Revoke" method="post" class="d-inline" onsubmit="return confirm('تأكيد إلغاء خطاب العرض؟');">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@offer.Id" />
-                    <button type="submit" class="btn btn-danger btn-sm">إلغاء العرض</button>
-                </form>
-            }
         </div>
+        @if (Model.CanDecline || Model.CanRevoke)
+        {
+            <div class="card-footer">
+                <div class="row g-3">
+                    @if (Model.CanDecline)
+                    {
+                        <div class="col-md-6">
+                            <form asp-action="DeclineOffer" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@offer.Id" />
+                                <h6>رفض العرض</h6>
+                                <p class="form-text mb-1">يُسجَّل الرفض بواسطة: HR نيابة عن المرشح.</p>
+                                <label class="form-label" for="DeclineReason">سبب الرفض</label>
+                                <textarea name="Reason" id="DeclineReason" class="form-control mb-2" rows="2"
+                                          minlength="@HR.Core.Domain.Services.OfferWorkflowRules.MinDeclineReasonLength" maxlength="1000" required></textarea>
+                                <button type="submit" class="btn btn-outline-danger btn-sm">تسجيل رفض المرشح</button>
+                            </form>
+                        </div>
+                    }
+                    @if (Model.CanRevoke)
+                    {
+                        <div class="col-md-6">
+                            <form asp-action="Revoke" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@offer.Id" />
+                                <h6>إلغاء العرض</h6>
+                                <label class="form-label" for="RevokeReason">سبب الإلغاء</label>
+                                <textarea name="Reason" id="RevokeReason" class="form-control mb-2" rows="2"
+                                          minlength="@HR.Core.Domain.Services.OfferWorkflowRules.MinRevokeReasonLength" maxlength="1000" required></textarea>
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" name="RevertToRanked" value="true" id="RevertToRanked" class="form-check-input" />
+                                    <label class="form-check-label" for="RevertToRanked">خطأ إداري — إعادة المرشح إلى المرتبين</label>
+                                </div>
+                                <button type="submit" class="btn btn-danger btn-sm">إلغاء العرض</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     }
 </div>

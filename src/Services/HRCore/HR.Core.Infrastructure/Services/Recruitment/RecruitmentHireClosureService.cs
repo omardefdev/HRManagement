@@ -338,7 +338,8 @@ public sealed class RecruitmentHireClosureService(
                         && a.Id != winnerApplicationId
                         && a.Status != RecruitmentApplicationStatus.Hired
                         && a.Status != RecruitmentApplicationStatus.Rejected
-                        && a.Status != RecruitmentApplicationStatus.Withdrawn)
+                        && a.Status != RecruitmentApplicationStatus.Withdrawn
+                        && a.Status != RecruitmentApplicationStatus.OfferDeclined)
             .ToListAsync(cancellationToken);
 
         foreach (var sibling in siblings)

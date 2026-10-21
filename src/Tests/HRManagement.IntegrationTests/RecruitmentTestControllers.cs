@@ -31,7 +31,8 @@ internal static class RecruitmentTestControllers
                 Mock.Of<ICodeGenerator>(),
                 validator,
                 Mock.Of<IWorkflowStarter>(),
-                configuration),
+                configuration,
+                Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
             new RecruitmentAppealService(
                 db,
                 Mock.Of<IPolicyOrchestrator>(),

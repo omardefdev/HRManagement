@@ -42,7 +42,8 @@ public class Syr001OfferLegalSourceTests
             codeGenerator.Object,
             validator,
             Mock.Of<IWorkflowStarter>(),
-            config);
+            config,
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 
         return (db, offerService);
     }

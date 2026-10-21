@@ -25,6 +25,8 @@ public class RecruitmentApplicationDetailsViewModel
     public int? BestAvailableRank { get; set; }
     /// <summary>HCM-027: this application is not next by merit — an offer needs a merit override.</summary>
     public bool RequiresMeritOverride { get; set; }
+    /// <summary>HCM-027: default for «مدة صلاحية العرض (أيام)» (Recruitment:OfferValidityDays).</summary>
+    public int DefaultOfferValidityDays { get; set; } = 14;
 }
 
 public class RecruitmentAppealWorkflowActionViewModel
@@ -62,9 +64,10 @@ public class CreateOfferForm
     [DataType(DataType.Date)]
     public DateTime ProposedStartDate { get; set; } = DateTime.UtcNow.Date.AddDays(30);
 
-    [Display(Name = "تاريخ انتهاء العرض")]
-    [DataType(DataType.Date)]
-    public DateTime? ExpiryDate { get; set; }
+    /// <summary>HCM-027: the expiry date is computed when the offer is issued.</summary>
+    [Display(Name = "مدة صلاحية العرض (أيام)")]
+    [Range(3, 60, ErrorMessage = "مدة صلاحية العرض يجب أن تكون بين 3 و60 يوماً.")]
+    public int? ValidityDays { get; set; }
 
     [Display(Name = "تجاوز الجدارة")]
     public bool IsMeritOverride { get; set; }
@@ -91,6 +94,24 @@ public class OfferLetterDetailsViewModel
     public bool CanDecline { get; set; }
     public bool CanRevoke { get; set; }
     public WorkflowPanelViewModel Workflow { get; set; } = new();
+}
+
+/// <summary>HCM-027: decline recorded by HR on the candidate's behalf (Candidate is reserved for PLAN-30).</summary>
+public class DeclineOfferForm
+{
+    [Display(Name = "سبب الرفض")]
+    [StringLength(1000)]
+    public string? Reason { get; set; }
+}
+
+public class RevokeOfferForm
+{
+    [Display(Name = "سبب الإلغاء")]
+    [StringLength(1000)]
+    public string? Reason { get; set; }
+
+    [Display(Name = "خطأ إداري — إعادة المرشح إلى المرتبين")]
+    public bool RevertToRanked { get; set; }
 }
 
 public class OfferLetterWorkflowActionViewModel

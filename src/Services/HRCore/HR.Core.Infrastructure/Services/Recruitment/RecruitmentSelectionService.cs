@@ -124,7 +124,7 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         CancellationToken ct = default)
     {
         if (SelectionWorkflowRules.SystemOnlyTargets.Contains(to))
-            return (false, SelectionWorkflowRules.AssessedIsAutomaticMessage);
+            return (false, SelectionWorkflowRules.SystemOnlyTargetMessage(to));
 
         var app = await LoadApplicationAsync(applicationId, ct);
         if (app is null) return (false, "الطلب غير موجود.");

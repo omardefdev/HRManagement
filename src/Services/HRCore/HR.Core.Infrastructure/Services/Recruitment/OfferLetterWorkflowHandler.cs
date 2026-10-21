@@ -1,5 +1,6 @@
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,8 +19,8 @@ public sealed class OfferLetterWorkflowHandler(HRCoreDbContext db)
 
         if (approved)
         {
-            offer.Status = OfferStatus.Issued;
-            offer.IssuedDate = DateTime.UtcNow;
+            // HCM-027: ExpiryDate = IssuedDate + ValidityDays (end of day UTC).
+            OfferWorkflowRules.MarkIssued(offer, DateTime.UtcNow);
         }
         else
         {

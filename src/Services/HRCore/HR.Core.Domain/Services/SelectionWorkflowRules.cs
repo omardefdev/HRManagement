@@ -19,23 +19,50 @@ public static class SelectionWorkflowRules
         [RecruitmentApplicationStatus.Assessed] =
             [RecruitmentApplicationStatus.Ranked, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
         [RecruitmentApplicationStatus.Ranked] =
+            [RecruitmentApplicationStatus.OfferExtended, RecruitmentApplicationStatus.ReserveListed, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+        [RecruitmentApplicationStatus.ReserveListed] =
             [RecruitmentApplicationStatus.OfferExtended, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
         [RecruitmentApplicationStatus.OfferExtended] =
-            [RecruitmentApplicationStatus.OfferAccepted, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
+            [RecruitmentApplicationStatus.OfferAccepted, RecruitmentApplicationStatus.OfferDeclined, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn],
         [RecruitmentApplicationStatus.OfferAccepted] =
             [RecruitmentApplicationStatus.Hired, RecruitmentApplicationStatus.Withdrawn],
         [RecruitmentApplicationStatus.Rejected] =
             [RecruitmentApplicationStatus.UnderReview],
         [RecruitmentApplicationStatus.Hired] = [],
-        [RecruitmentApplicationStatus.Withdrawn] = []
+        [RecruitmentApplicationStatus.Withdrawn] = [],
+        [RecruitmentApplicationStatus.OfferDeclined] = []
     };
 
     /// <summary>HCM-026: «مُقيَّم» is reached only by RecruitmentScoringService once assessments are complete.</summary>
     public const string AssessedIsAutomaticMessage = "يتم الانتقال إلى «مُقيَّم» آلياً بعد اكتمال التقييمات.";
 
-    /// <summary>HCM-026: targets that are never offered or accepted as manual transitions.</summary>
+    /// <summary>HCM-027: «عرض مرفوض/منتهٍ» and «قائمة احتياط» are set only by offer outcomes and the reserve list.</summary>
+    public const string OfferOutcomeIsAutomaticMessage = "تُضبط هذه الحالة آلياً من نتيجة العرض أو قائمة الاحتياط.";
+
+    /// <summary>HCM-026/027: targets that are never offered or accepted as manual transitions.</summary>
     public static readonly IReadOnlySet<RecruitmentApplicationStatus> SystemOnlyTargets =
-        new HashSet<RecruitmentApplicationStatus> { RecruitmentApplicationStatus.Assessed };
+        new HashSet<RecruitmentApplicationStatus>
+        {
+            RecruitmentApplicationStatus.Assessed,
+            RecruitmentApplicationStatus.OfferDeclined,
+            RecruitmentApplicationStatus.ReserveListed
+        };
+
+    /// <summary>
+    /// HCM-027: statuses that end an application. Cancel/close cascades and hire sibling rejection skip them;
+    /// every other status (including ReserveListed) is open.
+    /// </summary>
+    public static readonly IReadOnlySet<RecruitmentApplicationStatus> TerminalStatuses =
+        new HashSet<RecruitmentApplicationStatus>
+        {
+            RecruitmentApplicationStatus.Hired,
+            RecruitmentApplicationStatus.Rejected,
+            RecruitmentApplicationStatus.Withdrawn,
+            RecruitmentApplicationStatus.OfferDeclined
+        };
+
+    public static string SystemOnlyTargetMessage(RecruitmentApplicationStatus to) =>
+        to == RecruitmentApplicationStatus.Assessed ? AssessedIsAutomaticMessage : OfferOutcomeIsAutomaticMessage;
 
     public static bool CanTransition(
         RecruitmentApplication application,

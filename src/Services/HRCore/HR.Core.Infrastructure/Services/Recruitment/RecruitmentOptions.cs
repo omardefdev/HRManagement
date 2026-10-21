@@ -29,6 +29,12 @@ public sealed class RecruitmentOptions
     /// </summary>
     public int MinPostingDays { get; set; } = 7;
 
+    /// <summary>
+    /// HCM-027 (C4): default <c>OfferLetter.ValidityDays</c> for new offers (<c>Recruitment:OfferValidityDays</c>, default 14).
+    /// The offer service accepts 3..60; the expiry is set when the offer is issued.
+    /// </summary>
+    public int OfferValidityDays { get; set; } = 14;
+
     /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();
 }

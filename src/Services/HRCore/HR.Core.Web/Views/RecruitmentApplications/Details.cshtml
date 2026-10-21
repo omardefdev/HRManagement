@@ -254,8 +254,11 @@
                                value="@DateTime.UtcNow.Date.AddDays(30).ToString("yyyy-MM-dd")" required />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">انتهاء العرض</label>
-                        <input type="date" name="ExpiryDate" class="form-control" />
+                        <label class="form-label" for="ValidityDays">مدة صلاحية العرض (أيام)</label>
+                        <input type="number" name="ValidityDays" id="ValidityDays" class="form-control"
+                               min="@HR.Core.Domain.Services.OfferWorkflowRules.MinValidityDays"
+                               max="@HR.Core.Domain.Services.OfferWorkflowRules.MaxValidityDays"
+                               value="@Model.DefaultOfferValidityDays" required />
                     </div>
                     @if (Model.RequiresMeritOverride)
                     {
@@ -299,6 +302,36 @@
                 <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd")</dd>
                 <dt class="col-sm-3">مرجع قانوني</dt><dd class="col-sm-9">@(ViewBag.RequisitionLegalSourceLabel ?? offer.LegalSourceId ?? "—")</dd>
             </dl>
+        </div>
+    </div>
+}
+
+@if (app.OfferLetters.Any())
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">سجل العروض</h5></div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr><th>رقم العرض</th><th>الحالة</th><th>الإصدار</th><th>الانتهاء</th><th>السبب</th></tr></thead>
+                <tbody>
+                @foreach (var past in app.OfferLetters.OrderByDescending(o => o.CreatedAt))
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="OfferLetters" asp-action="Details" asp-route-id="@past.Id">@past.OfferNumber</a>
+                            @if (past.IsMeritOverride)
+                            {
+                                <span class="badge bg-warning text-dark ms-1">استثنائي</span>
+                            }
+                        </td>
+                        <td>@Html.HrEnumDisplay(past.Status)</td>
+                        <td>@(past.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@(past.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@(past.DeclineReason ?? past.RevokeReason ?? (past.Status == OfferStatus.Expired ? "انتهاء صلاحية العرض" : "—"))</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
         </div>
     </div>
 }

@@ -26,6 +26,8 @@ internal static class Hcm027TestSupport
     public static readonly Guid ApproverB = Guid.Parse("27270000-0000-4000-8000-00000000000b");
     public static readonly Guid ApproverC = Guid.Parse("27270000-0000-4000-8000-00000000000c");
 
+    private static int _offerCounter;
+
     public const string ValidOverrideReason = "المرشح الأول اعتذر شفهياً واللجنة أوصت بالانتقال للمرشح التالي";
 
     public static HRCoreDbContext CreateContext()
@@ -53,13 +55,13 @@ internal static class Hcm027TestSupport
     public static RecruitmentOfferService CreateOfferService(
         HRCoreDbContext db,
         IConfiguration? config = null,
-        IPolicyOrchestrator? orchestrator = null)
+        IPolicyOrchestrator? orchestrator = null,
+        RecruitmentOptions? options = null)
     {
-        var counter = 0;
         var codeGenerator = new Mock<ICodeGenerator>();
         codeGenerator
             .Setup(g => g.GenerateAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => new CodeGenerationResult { Code = $"OFF-HCM27-{Interlocked.Increment(ref counter):000}" });
+            .ReturnsAsync(() => new CodeGenerationResult { Code = $"OFF-HCM27-{Interlocked.Increment(ref _offerCounter):00000}" });
 
         return new RecruitmentOfferService(
             db,
@@ -67,7 +69,8 @@ internal static class Hcm027TestSupport
             codeGenerator.Object,
             new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
             CreateStarter(db),
-            config ?? Config());
+            config ?? Config(),
+            Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions()));
     }
 
     public static WorkflowStarter CreateStarter(HRCoreDbContext db) =>
@@ -101,6 +104,9 @@ internal static class Hcm027TestSupport
 
     public static async Task<RecruitmentRequisition> SeedRequisitionAsync(HRCoreDbContext db, string suffix = "A")
     {
+        if (!await db.LegislationSources.AnyAsync())
+            await LegislationRegisterSeeder.SeedAsync(db);
+
         var org = new OrgUnit { Code = $"OU-H27-{suffix}", NameAr = "وحدة", NameEn = "Unit" };
         db.OrgUnits.Add(org);
         var position = new FundedPosition

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Workflow;
@@ -18,8 +19,12 @@ internal static class RecruitmentRequisitionCascade
     private static readonly OfferStatus[] RevocableOfferStatuses =
         [OfferStatus.Draft, OfferStatus.PendingApproval, OfferStatus.Issued];
 
-    private static readonly RecruitmentApplicationStatus[] TerminalApplicationStatuses =
-        [RecruitmentApplicationStatus.Hired, RecruitmentApplicationStatus.Rejected, RecruitmentApplicationStatus.Withdrawn];
+    /// <summary>
+    /// HCM-027: <see cref="SelectionWorkflowRules.TerminalStatuses"/> (Hired, Rejected, Withdrawn, OfferDeclined).
+    /// ReserveListed is open, so cancel/close reject reserve candidates too.
+    /// </summary>
+    internal static readonly RecruitmentApplicationStatus[] TerminalApplicationStatuses =
+        [.. SelectionWorkflowRules.TerminalStatuses];
 
     public sealed record Impact(int RevokedOffers, int RejectedApplications, int CancelledInterviews);
 
@@ -65,6 +70,8 @@ internal static class RecruitmentRequisitionCascade
         foreach (var offer in offers)
         {
             offer.Status = OfferStatus.Revoked;
+            offer.RevokeReason = $"إلغاء الشاغر: {reason}";
+            offer.RevokedAt = now;
             await CancelWorkflowAsync(db, offer.WorkflowInstanceId, now, ct);
         }
 
@@ -115,7 +122,7 @@ internal static class RecruitmentRequisitionCascade
             vacancy.IsOpen = false;
     }
 
-    /// <summary>Non-terminal applications (not Hired/Rejected/Withdrawn) become Rejected with an explanatory note.</summary>
+    /// <summary>Non-terminal applications (not Hired/Rejected/Withdrawn/OfferDeclined) become Rejected with an explanatory note.</summary>
     public static async Task<int> RejectOpenApplicationsAsync(
         HRCoreDbContext db,
         Guid requisitionId,

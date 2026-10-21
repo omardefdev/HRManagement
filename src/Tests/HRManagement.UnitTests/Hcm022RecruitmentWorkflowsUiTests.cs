@@ -91,7 +91,8 @@ public class Hcm022RecruitmentWorkflowsUiTests
             Mock.Of<HRManagement.SharedKernel.CodeGeneration.ICodeGenerator>(),
             new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
             starter,
-            config);
+            config,
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 
         var (success, error) = await offerService.SubmitForApprovalAsync(offer.Id, CreatorId, "creator");
         Assert.True(success, error);
