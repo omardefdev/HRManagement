@@ -94,6 +94,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<SelectionCommitteeMember> SelectionCommitteeMembers => Set<SelectionCommitteeMember>();
     public DbSet<RecruitmentAppeal> RecruitmentAppeals => Set<RecruitmentAppeal>();
     public DbSet<RecruitmentInterviewSlot> RecruitmentInterviewSlots => Set<RecruitmentInterviewSlot>();
+    public DbSet<RecruitmentInterviewPanelMember> RecruitmentInterviewPanelMembers => Set<RecruitmentInterviewPanelMember>();
     public DbSet<RecruitmentAssessmentCriteria> RecruitmentAssessmentCriteria => Set<RecruitmentAssessmentCriteria>();
     public DbSet<RecruitmentAssessmentScore> RecruitmentAssessmentScores => Set<RecruitmentAssessmentScore>();
     public DbSet<PolicyTemplate> PolicyTemplates => Set<PolicyTemplate>();
@@ -656,6 +657,25 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.CitizenApplicationId)
                   .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.ScheduledAt });
+            // NO ACTION (not RESTRICT): still blocks orphaning a chain, but is checked at statement end,
+            // so cascading an application delete across a reschedule chain succeeds.
+            entity.HasOne(e => e.RescheduledFromSlot)
+                  .WithMany()
+                  .HasForeignKey(e => e.RescheduledFromSlotId)
+                  .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<RecruitmentInterviewPanelMember>(entity =>
+        {
+            entity.HasOne(e => e.Slot)
+                  .WithMany(s => s.PanelMembers)
+                  .HasForeignKey(e => e.SlotId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Employee)
+                  .WithMany()
+                  .HasForeignKey(e => e.EmployeeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.SlotId, e.EmployeeId }).IsUnique();
         });
 
         modelBuilder.Entity<WorkflowDefinition>(entity =>

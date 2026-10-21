@@ -1,0 +1,177 @@
+@model HR.Core.Web.ViewModels.RecruitmentApplicationDetailsViewModel
+@using HR.Core.Domain.Entities
+@using HR.Core.Domain.Enums
+@using HRManagement.ServiceDefaults
+
+@{
+    var app = Model.Application;
+    var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
+    var slotsById = Model.InterviewSlots.ToDictionary(s => s.Id);
+    var hasScheduled = Model.InterviewSlots.Any(s => s.Status == InterviewSlotStatus.Scheduled);
+    var canSchedule = canWrite && !hasScheduled
+        && app.Status is RecruitmentApplicationStatus.Shortlisted or RecruitmentApplicationStatus.InterviewScheduled;
+    var nowLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+
+    string StatusBadge(InterviewSlotStatus status) => status switch
+    {
+        InterviewSlotStatus.Scheduled => "bg-primary",
+        InterviewSlotStatus.Completed => "bg-success",
+        InterviewSlotStatus.Cancelled => "bg-danger",
+        InterviewSlotStatus.Rescheduled => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+
+    string PanelLabel(RecruitmentInterviewSlot slot) => slot.PanelMembers.Count == 0
+        ? "—"
+        : string.Join("، ", slot.PanelMembers
+            .OrderBy(m => m.Role == RecruitmentInterviewPanelMember.ChairRole ? 0 : 1)
+            .Select(m => (m.Employee?.FullName ?? m.EmployeeId.ToString()[..8])
+                + (m.Role == RecruitmentInterviewPanelMember.ChairRole ? " (رئيس)" : "")));
+}
+
+<div class="card mb-3" id="interviews">
+    <div class="card-header"><h5 class="mb-0"><i class="fas fa-calendar-check ms-1"></i> المقابلات</h5></div>
+    <div class="card-body">
+        @if (Model.InterviewSlots.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>الموعد</th>
+                            <th>النمط / المكان</th>
+                            <th>لجنة المقابلة</th>
+                            <th>الحالة</th>
+                            <th>النتيجة / السبب</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var slot in Model.InterviewSlots)
+                        {
+                            <tr>
+                                <td>
+                                    @slot.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
+                                    @if (slot.RescheduledFromSlotId is Guid fromId && slotsById.TryGetValue(fromId, out var from))
+                                    {
+                                        <div class="small text-muted">بدلاً من موعد @from.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</div>
+                                    }
+                                </td>
+                                <td>@Html.HrEnumDisplay(slot.Mode) — @(slot.Location ?? "—")</td>
+                                <td class="small">@PanelLabel(slot)</td>
+                                <td><span class="badge @StatusBadge(slot.Status)">@Html.HrEnumDisplay(slot.Status)</span></td>
+                                <td class="small">
+                                    @if (slot.Outcome is InterviewOutcome outcome)
+                                    {
+                                        <span class="badge @(outcome == InterviewOutcome.Attended ? "bg-success" : "bg-warning text-dark")">@Html.HrEnumDisplay(outcome)</span>
+                                        @if (!string.IsNullOrWhiteSpace(slot.OutcomeNotes))
+                                        {
+                                            <div>@slot.OutcomeNotes</div>
+                                        }
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(slot.CancelledReason))
+                                    {
+                                        @slot.CancelledReason
+                                    }
+                                    else
+                                    {
+                                        @("—")
+                                    }
+                                </td>
+                            </tr>
+                            @if (canWrite && slot.Status == InterviewSlotStatus.Scheduled)
+                            {
+                                <tr class="table-light">
+                                    <td colspan="5">
+                                        <div class="row g-2">
+                                            <div class="col-lg-4">
+                                                <form asp-action="CompleteInterview" method="post" class="d-flex flex-wrap gap-1 align-items-end">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="applicationId" value="@app.Id" />
+                                                    <input type="hidden" name="slotId" value="@slot.Id" />
+                                                    <select name="outcome" class="form-select form-select-sm w-auto" aria-label="نتيجة المقابلة">
+                                                        <option value="@InterviewOutcome.Attended">@Html.HrEnumDisplay(InterviewOutcome.Attended)</option>
+                                                        <option value="@InterviewOutcome.NoShow">@Html.HrEnumDisplay(InterviewOutcome.NoShow)</option>
+                                                    </select>
+                                                    <input type="text" name="notes" class="form-control form-control-sm w-auto flex-grow-1" maxlength="2000" placeholder="ملاحظات النتيجة" aria-label="ملاحظات النتيجة" />
+                                                    <button type="submit" class="btn btn-success btn-sm">إكمال</button>
+                                                </form>
+                                            </div>
+                                            <div class="col-lg-4">
+                                                <form asp-action="RescheduleInterview" method="post" class="d-flex flex-wrap gap-1 align-items-end">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="applicationId" value="@app.Id" />
+                                                    <input type="hidden" name="slotId" value="@slot.Id" />
+                                                    <input type="datetime-local" name="newTime" class="form-control form-control-sm w-auto" min="@nowLocal" required aria-label="الموعد الجديد" />
+                                                    <input type="text" name="reason" class="form-control form-control-sm w-auto flex-grow-1" minlength="5" maxlength="500" required placeholder="سبب إعادة الجدولة" aria-label="سبب إعادة الجدولة" />
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">إعادة جدولة</button>
+                                                </form>
+                                            </div>
+                                            <div class="col-lg-4">
+                                                <form asp-action="CancelInterview" method="post" class="d-flex flex-wrap gap-1 align-items-end">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="applicationId" value="@app.Id" />
+                                                    <input type="hidden" name="slotId" value="@slot.Id" />
+                                                    <input type="text" name="reason" class="form-control form-control-sm w-auto flex-grow-1" maxlength="500" required placeholder="سبب الإلغاء" aria-label="سبب الإلغاء" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">لا توجد مقابلات لهذا الطلب.</p>
+        }
+
+        @if (canSchedule)
+        {
+            <hr />
+            <h6>جدولة مقابلة</h6>
+            <form asp-action="ScheduleInterview" method="post" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ApplicationId" value="@app.Id" />
+                <div class="col-md-3">
+                    <label class="form-label" for="interviewAt">التاريخ والوقت</label>
+                    <input type="datetime-local" id="interviewAt" name="ScheduledAt" class="form-control" min="@nowLocal" required />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="interviewMode">النمط</label>
+                    <select id="interviewMode" name="Mode" class="form-select">
+                        <option value="@InterviewMode.InPerson">@Html.HrEnumDisplay(InterviewMode.InPerson)</option>
+                        <option value="@InterviewMode.Remote">@Html.HrEnumDisplay(InterviewMode.Remote)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="interviewLocation">المكان أو الرابط</label>
+                    <input type="text" id="interviewLocation" name="Location" class="form-control" maxlength="200" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="interviewPanel">لجنة المقابلة (الأول رئيساً)</label>
+                    <select id="interviewPanel" name="PanelEmployeeIds" class="form-select" multiple
+                            data-hr-picker="employee" data-placeholder="ابحث عن موظف..."></select>
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label" for="interviewNotes">ملاحظات</label>
+                    <input type="text" id="interviewNotes" name="PanelNotes" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">جدولة</button>
+                </div>
+            </form>
+        }
+        else if (canWrite && hasScheduled)
+        {
+            <p class="text-muted small mb-0">توجد مقابلة مجدولة — أكملها أو أعد جدولتها أو ألغها قبل جدولة مقابلة أخرى.</p>
+        }
+        else if (canWrite && app.Status is not (RecruitmentApplicationStatus.Shortlisted or RecruitmentApplicationStatus.InterviewScheduled))
+        {
+            <p class="text-muted small mb-0">جدولة المقابلة متاحة للطلبات في «القائمة المختصرة» أو «مقابلة مجدولة» فقط.</p>
+        }
+    </div>
+</div>

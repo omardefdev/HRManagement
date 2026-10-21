@@ -99,3 +99,14 @@ public class SubmitScoresForm
     public string? Notes { get; set; }
     public bool NoConflictDeclared { get; set; }
 }
+
+/// <summary>HCM-026: posted interview schedule form.</summary>
+public class ScheduleInterviewForm
+{
+    public Guid ApplicationId { get; set; }
+    public DateTime ScheduledAt { get; set; }
+    public InterviewMode Mode { get; set; } = InterviewMode.InPerson;
+    public string? Location { get; set; }
+    public List<Guid> PanelEmployeeIds { get; set; } = [];
+    public string? PanelNotes { get; set; }
+}

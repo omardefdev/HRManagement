@@ -9,5 +9,7 @@ public enum InterviewSlotStatus
     [Display(Name = "مكتملة")]
     Completed = 1,
     [Display(Name = "ملغاة")]
-    Cancelled = 2
+    Cancelled = 2,
+    [Display(Name = "أُعيدت جدولتها")]
+    Rescheduled = 3
 }

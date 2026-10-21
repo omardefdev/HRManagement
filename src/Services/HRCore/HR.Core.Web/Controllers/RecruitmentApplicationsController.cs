@@ -318,15 +318,47 @@ public class RecruitmentApplicationsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> ScheduleInterview(
-        Guid applicationId,
-        DateTime scheduledAt,
-        string? location,
-        string? panelNotes)
+    public async Task<IActionResult> ScheduleInterview(ScheduleInterviewForm form)
     {
-        var (slot, error) = await interviewService.ScheduleAsync(applicationId, scheduledAt, location, panelNotes);
+        var (slot, error) = await interviewService.ScheduleAsync(
+            form.ApplicationId,
+            LocalInputToUtc(form.ScheduledAt),
+            form.Mode,
+            form.Location,
+            form.PanelEmployeeIds,
+            form.PanelNotes);
         TempData[slot is null ? "Error" : "Success"] = error ?? "تم جدولة المقابلة";
-        return RedirectToAction(nameof(Details), new { id = applicationId });
+        return RedirectToInterviews(form.ApplicationId);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RescheduleInterview(Guid applicationId, Guid slotId, DateTime newTime, string? reason)
+    {
+        var (slot, error) = await interviewService.RescheduleAsync(slotId, LocalInputToUtc(newTime), reason);
+        TempData[slot is null ? "Error" : "Success"] = error ?? "تمت إعادة جدولة المقابلة";
+        return RedirectToInterviews(applicationId);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> CancelInterview(Guid applicationId, Guid slotId, string? reason)
+    {
+        var (success, error) = await interviewService.CancelAsync(slotId, reason);
+        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء المقابلة" : error;
+        return RedirectToInterviews(applicationId);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> CompleteInterview(Guid applicationId, Guid slotId, InterviewOutcome outcome, string? notes)
+    {
+        var (success, error) = await interviewService.CompleteAsync(slotId, outcome, notes);
+        TempData[success ? "Success" : "Error"] = success ? "تم تسجيل نتيجة المقابلة" : error;
+        return RedirectToInterviews(applicationId);
     }
 
     [HttpPost]
@@ -638,6 +670,17 @@ public class RecruitmentApplicationsController(
             : PolicyEnforcementMode.Off;
     }
 
+    private RedirectToActionResult RedirectToInterviews(Guid applicationId) =>
+        RedirectToAction(nameof(Details), null, new { id = applicationId }, "interviews");
+
+    /// <summary>datetime-local inputs carry no zone; they are entered in the server's local time (as displayed).</summary>
+    private static DateTime LocalInputToUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
+    };
+
     private async Task<AssessmentScoringPanelViewModel> BuildScoringPanelAsync(RecruitmentApplication app)
     {
         var summary = await scoringService.GetSummaryAsync(app.Id);
@@ -673,6 +716,11 @@ public class RecruitmentApplicationsController(
                 ? "الدرجات مُقفلة بعد ترتيب المرشح."
                 : "يبدأ التقييم بعد جدولة المقابلة.";
 
+        string? interviewGateHint = null;
+        if (summary.Items.Any(i => i.Stage == AssessmentStage.Interview)
+            && !await interviewService.HasAttendedInterviewAsync(app.Id))
+            interviewGateHint = "بنود مرحلة المقابلة تُفتح للتقييم بعد إكمال المقابلة بنتيجة «حضر».";
+
         var mine = summary.Assessors.FirstOrDefault(a => a.AssessorUserId == currentUserId);
         return new AssessmentScoringPanelViewModel
         {
@@ -683,7 +731,8 @@ public class RecruitmentApplicationsController(
             MyScores = mine?.Scores ?? new Dictionary<string, decimal>(),
             MyNotes = mine?.Notes,
             CurrentUserId = currentUserId,
-            AssessorNames = names
+            AssessorNames = names,
+            InterviewGateHint = interviewGateHint
         };
     }
 

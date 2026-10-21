@@ -38,8 +38,11 @@ internal static class RecruitmentTestControllers
                 Mock.Of<IWorkflowStarter>(),
                 configuration),
             new RecruitmentAppealWorkflowUiService(db),
-            new RecruitmentInterviewService(db),
-            new RecruitmentScoringService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new RecruitmentScoringService(
+                db,
+                new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+                Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
             AllowAllAuthorization(),
             Mock.Of<IWorkflowInstanceActionService>(),
             provider,

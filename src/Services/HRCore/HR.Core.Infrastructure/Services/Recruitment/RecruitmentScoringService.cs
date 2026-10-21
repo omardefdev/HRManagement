@@ -14,9 +14,13 @@ namespace HR.Core.Infrastructure.Services.Recruitment;
 /// </summary>
 public sealed class RecruitmentScoringService(
     HRCoreDbContext db,
+    RecruitmentInterviewService interviewService,
     IOptions<RecruitmentOptions> options)
 {
     public const int MaxNotesLength = 1000;
+
+    public const string InterviewGateMessage =
+        "بنود مرحلة المقابلة لا تُقيَّم إلا بعد إكمال المقابلة بنتيجة «حضر».";
 
     public async Task<(bool Success, string? Error)> SubmitScoresAsync(
         Guid applicationId,
@@ -219,18 +223,27 @@ public sealed class RecruitmentScoringService(
             options.Value.MinAssessors);
     }
 
-    private Task<string?> ValidateInterviewGateForScoresAsync(
+    /// <summary>Interview-stage items can be scored only after an interview completed with outcome Attended.</summary>
+    private async Task<string?> ValidateInterviewGateForScoresAsync(
         Guid applicationId,
         IEnumerable<string> submittedKeys,
         IReadOnlyDictionary<string, AssessmentCriteriaItem> byKey,
-        CancellationToken ct) =>
-        Task.FromResult<string?>(null);
+        CancellationToken ct)
+    {
+        var touchesInterview = submittedKeys.Any(k => byKey[k].Stage == AssessmentStage.Interview);
+        if (!touchesInterview || await interviewService.HasAttendedInterviewAsync(applicationId, ct))
+            return null;
 
-    private Task<bool> IsInterviewGateSatisfiedAsync(
+        return InterviewGateMessage;
+    }
+
+    /// <summary>If the criteria contain Interview-stage items, Assessed requires an attended interview.</summary>
+    public async Task<bool> IsInterviewGateSatisfiedAsync(
         Guid applicationId,
         IReadOnlyList<AssessmentCriteriaItem> items,
-        CancellationToken ct) =>
-        Task.FromResult(true);
+        CancellationToken ct = default) =>
+        !items.Any(i => i.Stage == AssessmentStage.Interview)
+        || await interviewService.HasAttendedInterviewAsync(applicationId, ct);
 }
 
 public sealed record AssessorSummary(

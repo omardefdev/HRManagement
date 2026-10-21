@@ -3329,14 +3329,66 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("RecruitmentAssessmentScores");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewPanelMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CoiDeclared")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("SlotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("SlotId", "EmployeeId")
+                        .IsUnique();
+
+                    b.ToTable("RecruitmentInterviewPanelMembers");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewSlot", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CancelledReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid?>("CitizenApplicationId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -3348,10 +3400,23 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Outcome")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OutcomeNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("PanelNotes")
                         .HasColumnType("text");
 
                     b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RescheduledFromSlotId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("ScheduledAt")
@@ -3374,6 +3439,8 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("CitizenApplicationId");
 
                     b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("RescheduledFromSlotId");
 
                     b.HasIndex("TenantId", "RecruitmentApplicationId", "ScheduledAt");
 
@@ -6118,6 +6185,25 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("RecruitmentApplication");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewPanelMember", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentInterviewSlot", "Slot")
+                        .WithMany("PanelMembers")
+                        .HasForeignKey("SlotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Slot");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewSlot", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.CitizenApplication", "CitizenApplication")
@@ -6131,9 +6217,16 @@ namespace HR.Core.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentInterviewSlot", "RescheduledFromSlot")
+                        .WithMany()
+                        .HasForeignKey("RescheduledFromSlotId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("CitizenApplication");
 
                     b.Navigation("RecruitmentApplication");
+
+                    b.Navigation("RescheduledFromSlot");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentRequisition", b =>
@@ -6453,6 +6546,11 @@ namespace HR.Core.Infrastructure.Migrations
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentApplication", b =>
                 {
                     b.Navigation("OfferLetters");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewSlot", b =>
+                {
+                    b.Navigation("PanelMembers");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentRequisition", b =>

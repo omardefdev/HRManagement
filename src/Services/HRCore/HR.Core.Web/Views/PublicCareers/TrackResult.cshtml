@@ -4,7 +4,9 @@
     ViewData["Title"] = "حالة الطلب";
     Layout = "_PublicLayout";
     var timeline = ViewBag.Timeline as IReadOnlyList<(string Label, bool Reached, string? Detail)> ?? [];
-    var interviews = ViewBag.Interviews as IReadOnlyList<HR.Core.Domain.Entities.RecruitmentInterviewSlot> ?? [];
+    var interviews = (ViewBag.Interviews as IReadOnlyList<HR.Core.Domain.Entities.RecruitmentInterviewSlot> ?? [])
+        .Where(s => s.Status == HR.Core.Domain.Enums.InterviewSlotStatus.Scheduled)
+        .ToList();
     string Badge(CitizenApplicationStatus s) => s switch
     {
         CitizenApplicationStatus.Accepted => "background:#2e7d32; color:#fff;",

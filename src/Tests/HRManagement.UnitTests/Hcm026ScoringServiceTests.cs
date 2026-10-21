@@ -244,8 +244,11 @@ public class Hcm026ScoringServiceTests
     internal static Dictionary<string, decimal> Scores(params (string Key, decimal Value)[] values) =>
         values.ToDictionary(v => v.Key, v => v.Value);
 
-    internal static RecruitmentScoringService CreateService(HRCoreDbContext db, int minAssessors = 1) =>
-        new(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions { MinAssessors = minAssessors }));
+    internal static RecruitmentScoringService CreateService(HRCoreDbContext db, int minAssessors = 1)
+    {
+        var options = Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions { MinAssessors = minAssessors });
+        return new RecruitmentScoringService(db, new RecruitmentInterviewService(db, options), options);
+    }
 
     internal static async Task<Employee> AddEmployeeAsync(HRCoreDbContext db, string number)
     {
