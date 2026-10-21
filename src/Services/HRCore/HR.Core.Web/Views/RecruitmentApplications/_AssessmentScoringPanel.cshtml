@@ -1,0 +1,156 @@
+@model HR.Core.Web.ViewModels.AssessmentScoringPanelViewModel
+@using HR.Core.Domain.Enums
+@using HR.Core.Domain.Services
+@using HR.Core.Web.ViewModels
+
+@{
+    var summary = Model.Summary;
+    var criteria = summary.Criteria;
+}
+
+<div class="card mb-3" id="assessment-scoring">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0"><i class="fas fa-clipboard-check ms-1"></i> ورقة التقييم</h5>
+        @if (criteria is not null)
+        {
+            <span class="badge bg-light text-dark">معايير v@(criteria.VersionNumber) — @criteria.Title</span>
+        }
+    </div>
+    <div class="card-body">
+        @if (criteria is null)
+        {
+            <p class="text-muted mb-0">لا توجد معايير تقييم نشطة لطلب الشاغر — عرّف المعايير من صفحة طلب الشاغر.</p>
+        }
+        else
+        {
+            @if (!string.IsNullOrWhiteSpace(Model.InterviewGateHint))
+            {
+                <div class="alert alert-info py-2">@Model.InterviewGateHint</div>
+            }
+
+            @if (Model.CanScore)
+            {
+                <form asp-action="SubmitScores" method="post" class="mb-4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ApplicationId" value="@Model.ApplicationId" />
+                    <h6>درجاتي</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>البند</th>
+                                    <th>المرحلة</th>
+                                    <th>الوزن ٪</th>
+                                    <th>الحد الأعلى</th>
+                                    <th>درجتي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in summary.Items)
+                                {
+                                    var current = Model.MyScores.TryGetValue(item.Key, out var v) ? InvariantDecimal.Format(v) : "";
+                                    var inputId = $"score-{item.Key}";
+                                    <tr>
+                                        <td>
+                                            <label for="@inputId" class="mb-0">@item.NameAr</label>
+                                            @if (item.IsMandatory)
+                                            {
+                                                <span class="badge bg-light text-dark">إلزامي</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                                            {
+                                                <div class="small text-muted">@item.Description</div>
+                                            }
+                                        </td>
+                                        <td>@Html.HrEnumDisplay(item.Stage)</td>
+                                        <td>@InvariantDecimal.Format(item.Weight)</td>
+                                        <td>@InvariantDecimal.Format(item.MaxScore)</td>
+                                        <td>
+                                            <input type="number" id="@inputId" name="Scores[@item.Key]" value="@current"
+                                                   class="form-control form-control-sm" min="0" max="@InvariantDecimal.Format(item.MaxScore)" step="0.01" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="scoreNotes">ملاحظات المقيّم</label>
+                        <textarea id="scoreNotes" name="Notes" class="form-control" rows="2" maxlength="1000">@Model.MyNotes</textarea>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="scoreNoConflict" name="NoConflictDeclared" value="true" required />
+                        <label class="form-check-label" for="scoreNoConflict">أقر بعدم وجود تعارض مصالح مع هذا المرشح</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">حفظ درجاتي</button>
+                </form>
+            }
+            else if (!string.IsNullOrWhiteSpace(Model.CannotScoreReason))
+            {
+                <p class="text-muted">@Model.CannotScoreReason</p>
+            }
+
+            <h6>ملخص المقيّمين</h6>
+            @if (!summary.Assessors.Any())
+            {
+                <p class="text-muted">لم يُرسل أي مقيّم درجاته بعد.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>المقيّم</th>
+                                @foreach (var item in summary.Items)
+                                {
+                                    <th>@item.NameAr <small class="text-muted">(@InvariantDecimal.Format(item.MaxScore))</small></th>
+                                }
+                                <th>المجموع الموزون</th>
+                                <th>مكتمل</th>
+                                <th>آخر إرسال</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assessor in summary.Assessors)
+                            {
+                                var name = assessor.AssessorEmployeeId is Guid empId && Model.AssessorNames.TryGetValue(empId, out var n)
+                                    ? n
+                                    : $"مقيّم {assessor.AssessorUserId.ToString()[..8]}";
+                                <tr class="@(assessor.AssessorUserId == Model.CurrentUserId ? "table-primary" : "")">
+                                    <td>@name</td>
+                                    @foreach (var item in summary.Items)
+                                    {
+                                        <td>@(assessor.Scores.TryGetValue(item.Key, out var s) ? InvariantDecimal.Format(s) : "—")</td>
+                                    }
+                                    <td><strong>@assessor.WeightedTotal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)</strong></td>
+                                    <td>
+                                        @if (assessor.IsComplete)
+                                        {
+                                            <span class="badge bg-success">نعم</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">لا</span>
+                                        }
+                                    </td>
+                                    <td>@assessor.LastSubmittedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <dl class="row mb-0">
+                <dt class="col-sm-3">الدرجة النهائية</dt>
+                <dd class="col-sm-9">
+                    <strong>@(summary.FinalScore?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</strong>
+                    <span class="text-muted small">(مقيّمون مكتملون: @summary.CompleteAssessors — الحد الأدنى المطلوب: @summary.MinAssessors)</span>
+                </dd>
+                <dt class="col-sm-3">طريقة الحساب</dt>
+                <dd class="col-sm-9 small text-muted">@AssessmentScoringRules.FormulaDescription</dd>
+            </dl>
+        }
+    </div>
+</div>

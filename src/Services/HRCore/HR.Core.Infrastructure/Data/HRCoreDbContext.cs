@@ -95,6 +95,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<RecruitmentAppeal> RecruitmentAppeals => Set<RecruitmentAppeal>();
     public DbSet<RecruitmentInterviewSlot> RecruitmentInterviewSlots => Set<RecruitmentInterviewSlot>();
     public DbSet<RecruitmentAssessmentCriteria> RecruitmentAssessmentCriteria => Set<RecruitmentAssessmentCriteria>();
+    public DbSet<RecruitmentAssessmentScore> RecruitmentAssessmentScores => Set<RecruitmentAssessmentScore>();
     public DbSet<PolicyTemplate> PolicyTemplates => Set<PolicyTemplate>();
     public DbSet<PolicyTemplateVersion> PolicyTemplateVersions => Set<PolicyTemplateVersion>();
     public DbSet<PolicyRule> PolicyRules => Set<PolicyRule>();
@@ -419,6 +420,20 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .IsUnique()
                   .HasFilter("\"IsActive\" = true")
                   .HasDatabaseName("IX_RecruitmentAssessmentCriteria_Tenant_Requisition_Active");
+        });
+
+        modelBuilder.Entity<RecruitmentAssessmentScore>(entity =>
+        {
+            entity.HasOne(e => e.RecruitmentApplication)
+                  .WithMany()
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CriteriaVersion)
+                  .WithMany()
+                  .HasForeignKey(e => e.CriteriaVersionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(e => e.Score).HasPrecision(7, 2);
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.AssessorUserId, e.ItemKey }).IsUnique();
         });
 
         modelBuilder.Entity<OfferLetter>(entity =>

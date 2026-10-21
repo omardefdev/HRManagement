@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
 using Microsoft.Data.Sqlite;
@@ -10,19 +11,33 @@ namespace HRManagement.UnitTests;
 public class RecruitmentSelectionServiceTests
 {
     [Fact]
-    public async Task RecordAssessment_Snapshots_CriteriaVersion()
+    public async Task TransitionStatus_to_Assessed_is_rejected_and_status_unchanged()
+    {
+        // PLAN-26: «مُقيَّم» is reached only through RecruitmentScoringService (structured scores).
+        await using var db = CreateContext();
+        var (app, _) = await SeedApplicationAsync(db);
+
+        var service = new RecruitmentSelectionService(db);
+        var result = await service.TransitionStatusAsync(app.Id, RecruitmentApplicationStatus.Assessed, legacyHireWithoutOffer: false);
+
+        Assert.False(result.Success);
+        Assert.Equal(SelectionWorkflowRules.AssessedIsAutomaticMessage, result.Error);
+        db.ChangeTracker.Clear();
+        Assert.Equal(RecruitmentApplicationStatus.InterviewScheduled, (await db.RecruitmentApplications.SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task AllowedTargets_never_offer_Assessed()
     {
         await using var db = CreateContext();
         var (app, criteria) = await SeedApplicationAsync(db);
+        app.AssessmentScore = 80m;
+        app.CriteriaVersionId = criteria.Id;
 
-        var service = new RecruitmentSelectionService(db);
-        var result = await service.RecordAssessmentAsync(app.Id, criteria.Id, 88m);
+        var targets = SelectionWorkflowRules.GetAllowedTargets(app);
 
-        Assert.True(result.Success);
-        var saved = await db.RecruitmentApplications.SingleAsync();
-        Assert.Equal(criteria.Id, saved.CriteriaVersionId);
-        Assert.Equal(88m, saved.AssessmentScore);
-        Assert.Equal(RecruitmentApplicationStatus.Assessed, saved.Status);
+        Assert.DoesNotContain(RecruitmentApplicationStatus.Assessed, targets);
+        Assert.Contains(RecruitmentApplicationStatus.Rejected, targets);
     }
 
     private static async Task<(RecruitmentApplication app, RecruitmentAssessmentCriteria criteria)> SeedApplicationAsync(HRCoreDbContext db)

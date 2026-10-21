@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HR.Core.Web.ViewModels;
 
@@ -10,7 +9,8 @@ public class RecruitmentApplicationDetailsViewModel
     public RecruitmentApplication Application { get; set; } = null!;
     public IReadOnlyList<RecruitmentApplication> RankBoard { get; set; } = [];
     public IReadOnlyList<RecruitmentApplicationStatus> AllowedStatusTransitions { get; set; } = [];
-    public SelectList? CriteriaOptions { get; set; }
+    /// <summary>HCM-026: structured scoring sheet (replaces the free-form score form).</summary>
+    public AssessmentScoringPanelViewModel ScoringPanel { get; set; } = new();
     public bool LegacyHireWithoutOffer { get; set; }
     public bool CanHire { get; set; }
     public bool AppealPending { get; set; }
@@ -31,19 +31,6 @@ public class RecruitmentAppealWorkflowActionViewModel
     [Display(Name = "ملاحظات")]
     [StringLength(500)]
     public string? Comments { get; set; }
-}
-
-public class RecordAssessmentForm
-{
-    public Guid ApplicationId { get; set; }
-
-    [Display(Name = "إصدار المعايير")]
-    [Required(ErrorMessage = "يجب اختيار إصدار المعايير.")]
-    public Guid CriteriaVersionId { get; set; }
-
-    [Display(Name = "درجة التقييم")]
-    [Range(0, 100, ErrorMessage = "الدرجة يجب أن تكون بين 0 و 100.")]
-    public decimal Score { get; set; }
 }
 
 public class AssignRankForm

@@ -39,9 +39,27 @@ internal static class RecruitmentTestControllers
                 configuration),
             new RecruitmentAppealWorkflowUiService(db),
             new RecruitmentInterviewService(db),
+            new RecruitmentScoringService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            AllowAllAuthorization(),
             Mock.Of<IWorkflowInstanceActionService>(),
             provider,
             Mock.Of<IPolicyOrchestrator>(),
             configuration);
+    }
+
+    private static Microsoft.AspNetCore.Authorization.IAuthorizationService AllowAllAuthorization()
+    {
+        var mock = new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
+        mock.Setup(a => a.AuthorizeAsync(
+                It.IsAny<System.Security.Claims.ClaimsPrincipal>(),
+                It.IsAny<object?>(),
+                It.IsAny<string>()))
+            .ReturnsAsync(Microsoft.AspNetCore.Authorization.AuthorizationResult.Success());
+        mock.Setup(a => a.AuthorizeAsync(
+                It.IsAny<System.Security.Claims.ClaimsPrincipal>(),
+                It.IsAny<object?>(),
+                It.IsAny<IEnumerable<Microsoft.AspNetCore.Authorization.IAuthorizationRequirement>>()))
+            .ReturnsAsync(Microsoft.AspNetCore.Authorization.AuthorizationResult.Success());
+        return mock.Object;
     }
 }

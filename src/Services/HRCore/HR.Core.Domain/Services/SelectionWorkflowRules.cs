@@ -30,6 +30,13 @@ public static class SelectionWorkflowRules
         [RecruitmentApplicationStatus.Withdrawn] = []
     };
 
+    /// <summary>HCM-026: «مُقيَّم» is reached only by RecruitmentScoringService once assessments are complete.</summary>
+    public const string AssessedIsAutomaticMessage = "يتم الانتقال إلى «مُقيَّم» آلياً بعد اكتمال التقييمات.";
+
+    /// <summary>HCM-026: targets that are never offered or accepted as manual transitions.</summary>
+    public static readonly IReadOnlySet<RecruitmentApplicationStatus> SystemOnlyTargets =
+        new HashSet<RecruitmentApplicationStatus> { RecruitmentApplicationStatus.Assessed };
+
     public static bool CanTransition(
         RecruitmentApplication application,
         RecruitmentApplicationStatus to,
@@ -93,6 +100,7 @@ public static class SelectionWorkflowRules
             return [];
 
         var list = targets
+            .Where(t => !SystemOnlyTargets.Contains(t))
             .Where(t => ValidateTransitionGate(application, t) is null)
             .ToList();
 

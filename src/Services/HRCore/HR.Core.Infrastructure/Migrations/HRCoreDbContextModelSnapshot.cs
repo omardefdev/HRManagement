@@ -3265,6 +3265,70 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("RecruitmentAssessmentCriteria");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentAssessmentScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssessorEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssessorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CriteriaVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ItemKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("NoConflictDeclared")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriteriaVersionId");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("TenantId", "RecruitmentApplicationId", "AssessorUserId", "ItemKey")
+                        .IsUnique();
+
+                    b.ToTable("RecruitmentAssessmentScores");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewSlot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6033,6 +6097,25 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Requisition");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentAssessmentScore", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentAssessmentCriteria", "CriteriaVersion")
+                        .WithMany()
+                        .HasForeignKey("CriteriaVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CriteriaVersion");
+
+                    b.Navigation("RecruitmentApplication");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewSlot", b =>

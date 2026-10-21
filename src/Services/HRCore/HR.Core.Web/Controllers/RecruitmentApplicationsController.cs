@@ -33,6 +33,8 @@ public class RecruitmentApplicationsController(
     RecruitmentAppealService appealService,
     RecruitmentAppealWorkflowUiService appealWorkflowUiService,
     RecruitmentInterviewService interviewService,
+    RecruitmentScoringService scoringService,
+    IAuthorizationService authorization,
     IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IPolicyOrchestrator policyOrchestrator,
@@ -69,20 +71,11 @@ public class RecruitmentApplicationsController(
         var interviews = await interviewService.GetForApplicationAsync(id);
 
         IReadOnlyList<RecruitmentApplication> rankBoard = [];
-        SelectList? criteriaOptions = null;
 
         if (app.RequisitionId is Guid reqId)
-        {
             rankBoard = await selection.GetRankedCandidatesAsync(reqId);
-            var criteria = await db.RecruitmentAssessmentCriteria
-                .AsNoTracking()
-                .Where(c => c.RequisitionId == reqId)
-                .OrderByDescending(c => c.VersionNumber)
-                .ToListAsync();
-            criteriaOptions = new SelectList(
-                criteria.Select(c => new { c.Id, Label = $"v{c.VersionNumber} — {c.Title}" }),
-                "Id", "Label", app.CriteriaVersionId);
-        }
+
+        var scoringPanel = await BuildScoringPanelAsync(app);
 
         if (!string.IsNullOrWhiteSpace(app.Requisition?.LegalSourceId))
         {
@@ -104,7 +97,7 @@ public class RecruitmentApplicationsController(
             Application = app,
             RankBoard = rankBoard,
             AllowedStatusTransitions = SelectionWorkflowRules.GetAllowedTargets(app, legacyFlag),
-            CriteriaOptions = criteriaOptions,
+            ScoringPanel = scoringPanel,
             LegacyHireWithoutOffer = legacyFlag,
             CanHire = RecruitmentWorkflowRules.CanHire(app, legacyFlag),
             AppealPending = RecruitmentAppealWorkflowRules.HasPendingAppeal(app),
@@ -170,21 +163,42 @@ public class RecruitmentApplicationsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>HCM-026: the current user submits structured scores as an assessor.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> RecordAssessment(RecordAssessmentForm form)
+    public async Task<IActionResult> SubmitScores(SubmitScoresForm form)
     {
-        if (!ModelState.IsValid)
+        var assessorUserId = ParseUserId(User);
+        if (assessorUserId is null)
         {
-            TempData["Error"] = "يرجى التحقق من بيانات التقييم.";
+            TempData["Error"] = "تعذّر تحديد هوية المقيّم.";
             return RedirectToAction(nameof(Details), new { id = form.ApplicationId });
         }
 
-        var (success, error) = await selection.RecordAssessmentAsync(
-            form.ApplicationId, form.CriteriaVersionId, form.Score);
-        TempData[success ? "Success" : "Error"] = success ? "تم تسجيل التقييم" : error;
-        return RedirectToAction(nameof(Details), new { id = form.ApplicationId });
+        var scores = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, raw) in form.Scores)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                continue;
+            if (!InvariantDecimal.TryParse(raw, out var value))
+            {
+                TempData["Error"] = $"قيمة الدرجة غير صالحة للبند «{key}».";
+                return RedirectToAction(nameof(Details), new { id = form.ApplicationId });
+            }
+            scores[key] = value;
+        }
+
+        var (success, error) = await scoringService.SubmitScoresAsync(
+            form.ApplicationId,
+            assessorUserId.Value,
+            HrOrgScopeVisibility.GetEmployeeId(User),
+            scores,
+            form.Notes,
+            form.NoConflictDeclared);
+
+        TempData[success ? "Success" : "Error"] = success ? "تم حفظ درجات التقييم وإعادة احتساب النتيجة" : error;
+        return RedirectToAction(nameof(Details), null, new { id = form.ApplicationId }, "assessment-scoring");
     }
 
     [HttpPost]
@@ -622,6 +636,55 @@ public class RecruitmentApplicationsController(
         return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode)
             ? mode
             : PolicyEnforcementMode.Off;
+    }
+
+    private async Task<AssessmentScoringPanelViewModel> BuildScoringPanelAsync(RecruitmentApplication app)
+    {
+        var summary = await scoringService.GetSummaryAsync(app.Id);
+        var currentUserId = ParseUserId(User);
+        var canWrite = (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreWrite)).Succeeded;
+
+        var employeeIds = summary.Assessors
+            .Where(a => a.AssessorEmployeeId.HasValue)
+            .Select(a => a.AssessorEmployeeId!.Value)
+            .Distinct()
+            .ToList();
+        var names = employeeIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await db.Employees
+                .AsNoTracking()
+                .Where(e => employeeIds.Contains(e.Id))
+                .ToDictionaryAsync(e => e.Id, e => e.FullName);
+
+        string? cannotScoreReason = null;
+        if (!canWrite)
+            cannotScoreReason = "التقييم متاح لحسابات الموارد البشرية ذات صلاحية الكتابة.";
+        else if (currentUserId is null)
+            cannotScoreReason = "تعذّر تحديد هوية المقيّم.";
+        else if (app.RequisitionId is null)
+            cannotScoreReason = "التقييم المنظم يتطلب طلب شاغر.";
+        else if (summary.Criteria is null || !summary.Criteria.IsActive)
+            cannotScoreReason = "لا توجد معايير تقييم نشطة لطلب الشاغر.";
+        else if (app.Status is not (RecruitmentApplicationStatus.InterviewScheduled or RecruitmentApplicationStatus.Assessed))
+            cannotScoreReason = app.Status is RecruitmentApplicationStatus.Ranked
+                or RecruitmentApplicationStatus.OfferExtended
+                or RecruitmentApplicationStatus.OfferAccepted
+                or RecruitmentApplicationStatus.Hired
+                ? "الدرجات مُقفلة بعد ترتيب المرشح."
+                : "يبدأ التقييم بعد جدولة المقابلة.";
+
+        var mine = summary.Assessors.FirstOrDefault(a => a.AssessorUserId == currentUserId);
+        return new AssessmentScoringPanelViewModel
+        {
+            ApplicationId = app.Id,
+            Summary = summary,
+            CanScore = cannotScoreReason is null,
+            CannotScoreReason = cannotScoreReason,
+            MyScores = mine?.Scores ?? new Dictionary<string, decimal>(),
+            MyNotes = mine?.Notes,
+            CurrentUserId = currentUserId,
+            AssessorNames = names
+        };
     }
 
     private static Guid? ParseUserId(ClaimsPrincipal user)

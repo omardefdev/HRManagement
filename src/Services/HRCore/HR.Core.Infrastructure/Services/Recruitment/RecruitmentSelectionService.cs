@@ -34,7 +34,11 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> RecordAssessmentAsync(
+    /// <summary>
+    /// Legacy — not exposed; PLAN-26. Free-form single score kept only for data migration tooling.
+    /// Use <see cref="RecruitmentScoringService.SubmitScoresAsync"/> for structured multi-assessor scoring.
+    /// </summary>
+    internal async Task<(bool Success, string? Error)> RecordAssessmentAsync(
         Guid applicationId,
         Guid criteriaVersionId,
         decimal score,
@@ -119,6 +123,9 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         bool legacyHireWithoutOffer,
         CancellationToken ct = default)
     {
+        if (SelectionWorkflowRules.SystemOnlyTargets.Contains(to))
+            return (false, SelectionWorkflowRules.AssessedIsAutomaticMessage);
+
         var app = await LoadApplicationAsync(applicationId, ct);
         if (app is null) return (false, "الطلب غير موجود.");
 

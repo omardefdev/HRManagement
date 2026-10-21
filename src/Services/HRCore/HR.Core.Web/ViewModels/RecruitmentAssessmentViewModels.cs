@@ -74,3 +74,28 @@ public static class InvariantDecimal
 
     public static string Format(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 }
+
+/// <summary>HCM-026: structured scoring sheet on the application details page.</summary>
+public class AssessmentScoringPanelViewModel
+{
+    public Guid ApplicationId { get; set; }
+    public HR.Core.Infrastructure.Services.Recruitment.AssessmentSummary Summary { get; set; } =
+        HR.Core.Infrastructure.Services.Recruitment.AssessmentSummary.Empty(1);
+    public bool CanScore { get; set; }
+    public string? CannotScoreReason { get; set; }
+    public IReadOnlyDictionary<string, decimal> MyScores { get; set; } = new Dictionary<string, decimal>();
+    public string? MyNotes { get; set; }
+    public Guid? CurrentUserId { get; set; }
+    public IReadOnlyDictionary<Guid, string> AssessorNames { get; set; } = new Dictionary<Guid, string>();
+    /// <summary>Set when the criteria contain Interview-stage items and no interview was attended yet.</summary>
+    public string? InterviewGateHint { get; set; }
+}
+
+/// <summary>HCM-026: posted scores keyed by criteria item key; values are invariant strings.</summary>
+public class SubmitScoresForm
+{
+    public Guid ApplicationId { get; set; }
+    public Dictionary<string, string?> Scores { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public string? Notes { get; set; }
+    public bool NoConflictDeclared { get; set; }
+}
