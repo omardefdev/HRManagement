@@ -60,7 +60,8 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
         if (posting == null) return NotFound();
         if (posting.RequisitionId.HasValue)
         {
-            TempData["Error"] = "إعلان مشتق من طلب شاغر — عدّل الطلب في حالة مسودة أو legacy فقط.";
+            // HCM-026 (E3): the closing date of a requisition-linked posting is managed on the requisition.
+            TempData["Error"] = "إعلان مشتق من طلب شاغر — يُدار تاريخ إغلاق التقديم وبيانات الإعلان من صفحة طلب الشاغر (تمديد تاريخ الإغلاق).";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -86,7 +87,7 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
         if (posting == null) return NotFound();
         if (posting.RequisitionId.HasValue)
         {
-            TempData["Error"] = "لا يمكن تعديل إعلان مشتق من طلب شاغر.";
+            TempData["Error"] = "لا يمكن تعديل إعلان مشتق من طلب شاغر — تاريخ إغلاق التقديم يُمدَّد من صفحة طلب الشاغر.";
             return RedirectToAction(nameof(Details), new { id });
         }
 

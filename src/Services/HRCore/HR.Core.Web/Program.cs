@@ -141,6 +141,10 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Integration.AttendanceIntegrat
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.LeaveScheduleReconciler>();
 if (builder.Configuration.GetValue("LeaveScheduleReconciler:Enabled", true))
     builder.Services.AddHostedService<HR.Core.Infrastructure.Services.LeaveScheduleReconcilerJob>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentIntakeCloser>();
+// HCM-026 (E4): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.IntakeCloseEnabled.
+if (builder.Configuration.GetValue("Recruitment:Jobs:IntakeCloseEnabled", true))
+    builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.RecruitmentIntakeCloseJob>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();

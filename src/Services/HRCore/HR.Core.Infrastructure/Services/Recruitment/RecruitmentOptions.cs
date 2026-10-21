@@ -24,11 +24,21 @@ public sealed class RecruitmentOptions
     /// <summary>Maximum number of times an interview chain can be rescheduled.</summary>
     public int MaxInterviewReschedules { get; set; } = 1;
 
-    /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>). PLAN-26 session 2 adds the intake-close job here.</summary>
+    /// <summary>
+    /// HCM-026 (E1): at first publish the application closing date must be at least this many days after today (UTC).
+    /// </summary>
+    public int MinPostingDays { get; set; } = 7;
+
+    /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();
 }
 
-/// <summary>HCM-026: recruitment background job settings — extended in PLAN-26 session 2.</summary>
+/// <summary>HCM-026: recruitment background job settings.</summary>
 public sealed class RecruitmentJobsOptions
 {
+    /// <summary><c>Recruitment:Jobs:IntakeCloseEnabled</c> — runs <c>RecruitmentIntakeCloseJob</c> (default true).</summary>
+    public bool IntakeCloseEnabled { get; set; } = true;
+
+    /// <summary><c>Recruitment:Jobs:IntakeCloseIntervalMinutes</c> (default 60).</summary>
+    public int IntakeCloseIntervalMinutes { get; set; } = 60;
 }

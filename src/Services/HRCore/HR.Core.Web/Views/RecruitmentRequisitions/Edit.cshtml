@@ -108,6 +108,13 @@
             </div>
 
             <div class="mb-3">
+                <label asp-for="ApplicationClosingDate" class="form-label"></label>
+                <input asp-for="ApplicationClosingDate" type="date" class="form-control" />
+                <div class="form-text">اختياري في المسودة، ومطلوب عند النشر (بعد 7 أيام على الأقل من تاريخ النشر).</div>
+                <span asp-validation-for="ApplicationClosingDate" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
 
                 <label asp-for="LegalSourceId" class="form-label"></label>
 

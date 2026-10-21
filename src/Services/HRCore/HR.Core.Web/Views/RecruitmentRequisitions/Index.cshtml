@@ -74,7 +74,13 @@
                         <td>@x.JobTitle</td>
                         <td>@(x.FundedPosition?.PositionCode ?? "—")</td>
                         <td>@(x.FundedPosition?.OrgUnit?.NameAr ?? "—")</td>
-                        <td><span class="badge @StatusBadgeClass(x.Status)">@x.Status</span></td>
+                        <td>
+                            <span class="badge @StatusBadgeClass(x.Status)">@x.Status</span>
+                            @if (x.Status == RequisitionStatus.Published && x.IntakeClosedAt is not null)
+                            {
+                                <span class="badge bg-secondary">التقديم مغلق</span>
+                            }
+                        </td>
                         <td>@x.RequestedDate.ToString("yyyy-MM-dd")</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>

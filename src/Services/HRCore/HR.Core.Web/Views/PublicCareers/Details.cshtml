@@ -3,6 +3,7 @@
     ViewData["Title"] = Model.Title;
     Layout = "_PublicLayout";
     var isLegacy = ViewBag.IsLegacyPosting as bool? == true;
+    var intakeClosed = ViewBag.IntakeClosed as bool? == true;
     var applyModel = ViewBag.ApplyModel as HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel
         ?? new HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel { PublicJobPostingId = Model.Id };
 }
@@ -23,6 +24,10 @@
                 <i class="fas fa-file-alt ms-1"></i> طلب الشاغر: <strong>@Model.Requisition.RequisitionNumber</strong>
             </p>
         }
+        @if (intakeClosed)
+        {
+            <p><span class="badge bg-secondary">التقديم مغلق</span></p>
+        }
         @if (Model.ClosingDate != null)
         {
             <p style="color:#6b1f2a;"><i class="fas fa-clock ms-1"></i> آخر موعد للتقديم: @Model.ClosingDate.Value.ToString("dd-MM-yyyy")</p>
@@ -40,6 +45,15 @@
     </div>
 </div>
 
+@if (intakeClosed)
+{
+    <div class="alert alert-secondary">
+        <i class="fas fa-lock ms-1"></i> انتهت فترة التقديم على هذه الوظيفة. يمكنك متابعة طلب سابق من صفحة «تتبع الطلب».
+        <a asp-action="Track" class="alert-link">تتبع الطلب</a>
+    </div>
+}
+else
+{
 <div class="careers-card">
     <div class="card-body">
         <h5 style="color:#6b1f2a; font-weight:700; margin-bottom:1.25rem;"><i class="fas fa-paper-plane ms-2"></i> تقديم طلب توظيف</h5>
@@ -89,3 +103,4 @@
         </form>
     </div>
 </div>
+}

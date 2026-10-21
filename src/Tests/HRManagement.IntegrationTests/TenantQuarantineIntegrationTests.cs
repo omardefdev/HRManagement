@@ -33,6 +33,7 @@ public class TenantQuarantineResolveApiTests : IClassFixture<WebApplicationFacto
     private WebApplicationFactory<HRCoreWebProgram> CreateFactory() =>
         _baseFactory.WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("Recruitment:Jobs:IntakeCloseEnabled", "false"); // HCM-026: no background intake job in tests
             builder.UseEnvironment(Environments.Development);
             builder.UseSetting("ConnectionStrings:HRCoreDb", $"Data Source={_dbPath}");
             builder.ConfigureAppConfiguration((_, config) =>
@@ -171,6 +172,7 @@ public class QuarantineBlocksOperationTests : IClassFixture<WebApplicationFactor
     private WebApplicationFactory<HRCoreWebProgram> CreateFactory(Guid tenantId) =>
         _baseFactory.WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("Recruitment:Jobs:IntakeCloseEnabled", "false"); // HCM-026: no background intake job in tests
             builder.UseEnvironment(Environments.Development);
             builder.UseSetting("ConnectionStrings:HRCoreDb", $"Data Source={_dbPath}");
             builder.ConfigureAppConfiguration((_, config) =>

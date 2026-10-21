@@ -62,7 +62,7 @@ public class RecruitmentRequisitionService(EstablishmentService establishmentSer
             Location = position.OrgUnit?.NameAr,
             Description = requisition.JustificationNotes ?? position.JobCatalogEntry?.DescriptionAr,
             Requirements = requirements,
-            ClosingDate = null,
+            ClosingDate = requisition.ApplicationClosingDate,
             IsPublished = true,
             RequisitionId = requisition.Id
         };
@@ -83,7 +83,7 @@ public class RecruitmentRequisitionService(EstablishmentService establishmentSer
             OrgUnitId = position.OrgUnitId,
             Description = requisition.JustificationNotes ?? position.JobCatalogEntry?.DescriptionAr,
             RequiredQualifications = requirements,
-            ClosingDate = null,
+            ClosingDate = requisition.ApplicationClosingDate,
             IsOpen = true,
             RequisitionId = requisition.Id,
             IsDerivedFromRequisition = true

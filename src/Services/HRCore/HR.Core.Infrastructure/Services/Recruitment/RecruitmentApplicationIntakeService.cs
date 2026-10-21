@@ -48,6 +48,8 @@ public class RecruitmentApplicationIntakeService(HRCoreDbContext db)
             .Include(r => r.PublicJobPosting)
             .Where(r => r.Status == RequisitionStatus.Published
                 && r.ClosedDate == null
+                && r.IntakeClosedAt == null
+                && (r.ApplicationClosingDate == null || r.ApplicationClosingDate >= today)
                 && r.FundedPosition!.Status == FundedPositionStatus.Vacant)
             .Where(r => r.PublicJobPosting == null
                 || r.PublicJobPosting.ClosingDate == null

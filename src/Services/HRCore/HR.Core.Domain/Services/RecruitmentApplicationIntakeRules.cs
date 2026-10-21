@@ -27,7 +27,11 @@ public static class RecruitmentApplicationIntakeRules
         if (requisition.ClosedDate.HasValue)
             return "طلب الشاغر مغلق.";
 
-        if (postingClosingDate is DateOnly closing && closing < today)
+        // HCM-026: intake closed by the intake-close job (requisition stays Published for selection).
+        if (requisition.IntakeClosedAt.HasValue)
+            return "التقديم على هذا الشاغر مغلق.";
+
+        if ((postingClosingDate ?? requisition.ApplicationClosingDate) is DateOnly closing && closing < today)
             return "انتهى موعد التقديم على هذا الإعلان.";
 
         if (fundedPosition is null)

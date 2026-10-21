@@ -181,6 +181,9 @@ public class RecruitmentRequisitionsController(
         if (legalError is not null)
             ModelState.AddModelError(nameof(vm.LegalSourceId), legalError);
 
+        if (vm.ApplicationClosingDate is DateOnly closing && closing < DateOnly.FromDateTime(DateTime.UtcNow))
+            ModelState.AddModelError(nameof(vm.ApplicationClosingDate), "تاريخ إغلاق التقديم يجب ألا يكون في الماضي.");
+
         if (!ModelState.IsValid)
         {
             await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
@@ -201,7 +204,8 @@ public class RecruitmentRequisitionsController(
             JustificationNotes = vm.JustificationNotes,
             LegalSourceId = vm.LegalSourceId,
             VacancyCount = 1,
-            PublishingChannel = vm.PublishingChannel
+            PublishingChannel = vm.PublishingChannel,
+            ApplicationClosingDate = vm.ApplicationClosingDate
         };
 
         db.RecruitmentRequisitions.Add(requisition);
@@ -352,13 +356,13 @@ public class RecruitmentRequisitionsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> Publish(Guid id)
+    public async Task<IActionResult> Publish(Guid id, DateOnly? applicationClosingDate)
     {
         var requisition = await db.RecruitmentRequisitions.FindAsync(id);
         if (requisition is null) return NotFound();
 
         var (success, error) = await lifecycleService.PublishAsync(
-            requisition, ParseUserId(User), User.Identity?.Name);
+            requisition, ParseUserId(User), User.Identity?.Name, applicationClosingDate: applicationClosingDate);
         if (!success)
         {
             TempData["Error"] = error;
@@ -372,13 +376,13 @@ public class RecruitmentRequisitionsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> PublishInternal(Guid id)
+    public async Task<IActionResult> PublishInternal(Guid id, DateOnly? applicationClosingDate)
     {
         var requisition = await db.RecruitmentRequisitions.FindAsync(id);
         if (requisition is null) return NotFound();
 
         var (success, error) = await lifecycleService.PublishInternalAsync(
-            requisition, ParseUserId(User), User.Identity?.Name);
+            requisition, ParseUserId(User), User.Identity?.Name, applicationClosingDate: applicationClosingDate);
         if (!success)
         {
             TempData["Error"] = error;
@@ -386,6 +390,23 @@ public class RecruitmentRequisitionsController(
         }
 
         TempData["Success"] = "تم نشر الشاغر الداخلي من طلب الشاغر";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>HCM-026 (E3): extend the application window (later date + reason); reopens intake if it was closed.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> ExtendClosingDate(Guid id, DateOnly? newDate, string? reason)
+    {
+        if (newDate is null)
+        {
+            TempData["Error"] = "تاريخ الإغلاق الجديد مطلوب.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var (success, error) = await lifecycleService.ExtendClosingDateAsync(id, newDate.Value, reason, ParseUserId(User));
+        TempData[success ? "Success" : "Error"] = success ? "تم تمديد تاريخ إغلاق التقديم" : error;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -450,7 +471,8 @@ public class RecruitmentRequisitionsController(
             JobTitle = requisition.JobTitle,
             JustificationNotes = requisition.JustificationNotes,
             LegalSourceId = requisition.LegalSourceId,
-            BudgetYear = requisition.FundedPosition?.BudgetYear ?? DateTime.UtcNow.Year
+            BudgetYear = requisition.FundedPosition?.BudgetYear ?? DateTime.UtcNow.Year,
+            ApplicationClosingDate = requisition.ApplicationClosingDate
         };
         await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
         await PopulateLegalSourcesAsync(vm.LegalSourceId);
@@ -501,6 +523,9 @@ public class RecruitmentRequisitionsController(
         if (legalError is not null)
             ModelState.AddModelError(nameof(vm.LegalSourceId), legalError);
 
+        if (vm.ApplicationClosingDate is DateOnly closing && closing < DateOnly.FromDateTime(DateTime.UtcNow))
+            ModelState.AddModelError(nameof(vm.ApplicationClosingDate), "تاريخ إغلاق التقديم يجب ألا يكون في الماضي.");
+
         if (!ModelState.IsValid)
         {
             await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
@@ -512,6 +537,7 @@ public class RecruitmentRequisitionsController(
         requisition.JobTitle = RecruitmentRequisitionService.DefaultJobTitle(position!.JobCatalogEntry);
         requisition.JustificationNotes = vm.JustificationNotes;
         requisition.LegalSourceId = vm.LegalSourceId;
+        requisition.ApplicationClosingDate = vm.ApplicationClosingDate;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث طلب الشاغر";
         return RedirectToAction(nameof(Details), new { id });

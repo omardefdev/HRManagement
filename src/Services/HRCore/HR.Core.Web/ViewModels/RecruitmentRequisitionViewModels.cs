@@ -43,6 +43,11 @@ public class RecruitmentRequisitionCreateViewModel
 
     [Display(Name = "قناة النشر")]
     public RecruitmentPublishingChannel PublishingChannel { get; set; } = RecruitmentPublishingChannel.PublicOnly;
+
+    /// <summary>HCM-026: optional in Draft; required (≥ today + MinPostingDays) at first publish.</summary>
+    [Display(Name = "تاريخ إغلاق التقديم")]
+    [DataType(DataType.Date)]
+    public DateOnly? ApplicationClosingDate { get; set; }
 }
 
 public class RecruitmentRequisitionEditViewModel : RecruitmentRequisitionCreateViewModel

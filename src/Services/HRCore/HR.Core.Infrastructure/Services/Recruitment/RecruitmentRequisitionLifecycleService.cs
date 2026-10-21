@@ -99,11 +99,13 @@ public sealed class RecruitmentRequisitionLifecycleService(
         return (true, null);
     }
 
+    /// <param name="applicationClosingDate">HCM-026: sets the closing date at first publish when the requisition has none.</param>
     public async Task<(bool Success, string? Error)> PublishAsync(
         RecruitmentRequisition requisition,
         Guid? actorUserId,
         string? actorUserName,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        DateOnly? applicationClosingDate = null)
     {
         var loaded = await LoadAsync(requisition.Id, ct);
         if (loaded is null) return (false, "طلب الشاغر غير موجود.");
@@ -121,6 +123,10 @@ public sealed class RecruitmentRequisitionLifecycleService(
         var criteriaError = await ValidateCriteriaBeforePublishAsync(req.Id, ct);
         if (criteriaError is not null)
             return (false, criteriaError);
+
+        var closingDateError = ApplyClosingDateForPublish(req, applicationClosingDate);
+        if (closingDateError is not null)
+            return (false, closingDateError);
 
         var mode = ResolveMode();
         if (mode != PolicyEnforcementMode.Off)
@@ -158,6 +164,7 @@ public sealed class RecruitmentRequisitionLifecycleService(
             posting.Location = mapped.Location;
             posting.Description = mapped.Description;
             posting.Requirements = mapped.Requirements;
+            posting.ClosingDate = mapped.ClosingDate;
             posting.RequisitionId = req.Id;
             posting.IsPublished = true;
         }
@@ -170,11 +177,13 @@ public sealed class RecruitmentRequisitionLifecycleService(
         return (true, null);
     }
 
+    /// <param name="applicationClosingDate">HCM-026: sets the closing date at first publish when the requisition has none.</param>
     public async Task<(bool Success, string? Error)> PublishInternalAsync(
         RecruitmentRequisition requisition,
         Guid? actorUserId,
         string? actorUserName,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        DateOnly? applicationClosingDate = null)
     {
         var loaded = await LoadAsync(requisition.Id, ct);
         if (loaded is null) return (false, "طلب الشاغر غير موجود.");
@@ -192,6 +201,10 @@ public sealed class RecruitmentRequisitionLifecycleService(
         var criteriaError = await ValidateCriteriaBeforePublishAsync(req.Id, ct);
         if (criteriaError is not null)
             return (false, criteriaError);
+
+        var closingDateError = ApplyClosingDateForPublish(req, applicationClosingDate);
+        if (closingDateError is not null)
+            return (false, closingDateError);
 
         var mode = ResolveMode();
         if (mode != PolicyEnforcementMode.Off)
@@ -228,6 +241,7 @@ public sealed class RecruitmentRequisitionLifecycleService(
             vacancy.OrgUnitId = mapped.OrgUnitId;
             vacancy.Description = mapped.Description;
             vacancy.RequiredQualifications = mapped.RequiredQualifications;
+            vacancy.ClosingDate = mapped.ClosingDate;
             vacancy.RequisitionId = req.Id;
             vacancy.IsDerivedFromRequisition = true;
             vacancy.IsOpen = true;
@@ -333,6 +347,91 @@ public sealed class RecruitmentRequisitionLifecycleService(
             return null;
 
         return (req, req.FundedPosition);
+    }
+
+    /// <summary>
+    /// HCM-026 (E3): extends the application window (later date only, with a reason) and reopens intake
+    /// if the intake-close job had already closed it while the requisition is still Published on a vacant position.
+    /// </summary>
+    public async Task<(bool Success, string? Error)> ExtendClosingDateAsync(
+        Guid requisitionId,
+        DateOnly newClosingDate,
+        string? reason,
+        Guid? actorUserId,
+        CancellationToken ct = default)
+    {
+        var loaded = await LoadAsync(requisitionId, ct);
+        if (loaded is null) return (false, "طلب الشاغر غير موجود.");
+
+        var (req, position) = loaded.Value;
+        if (req.Status is not (RequisitionStatus.Approved or RequisitionStatus.Published))
+            return (false, "يمكن تمديد تاريخ الإغلاق للطلبات المعتمدة أو المنشورة فقط.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var error = RequisitionWorkflowRules.ValidateClosingDateExtension(req.ApplicationClosingDate, newClosingDate, today, reason);
+        if (error is not null)
+            return (false, error);
+
+        var previous = req.ApplicationClosingDate;
+        req.ApplicationClosingDate = newClosingDate;
+
+        var postings = await db.PublicJobPostings
+            .Where(p => p.RequisitionId == req.Id || p.Id == req.PublicJobPostingId)
+            .ToListAsync(ct);
+        var vacancies = await db.InternalVacancies
+            .Where(v => v.RequisitionId == req.Id || v.Id == req.InternalVacancyId)
+            .ToListAsync(ct);
+        foreach (var posting in postings)
+            posting.ClosingDate = newClosingDate;
+        foreach (var vacancy in vacancies)
+            vacancy.ClosingDate = newClosingDate;
+
+        var reopened = false;
+        if (req.IntakeClosedAt is not null
+            && req.Status == RequisitionStatus.Published
+            && position.Status == FundedPositionStatus.Vacant)
+        {
+            req.IntakeClosedAt = null;
+            foreach (var posting in postings)
+                posting.IsPublished = true;
+            foreach (var vacancy in vacancies)
+                vacancy.IsOpen = true;
+            reopened = true;
+        }
+
+        db.AuditLogs.Add(new HRManagement.SharedKernel.Entities.EntityAuditLog
+        {
+            TenantId = req.TenantId,
+            EntityType = nameof(RecruitmentRequisition),
+            EntityId = req.Id,
+            Action = "ExtendApplicationClosingDate",
+            UserId = actorUserId,
+            ChangedFields = JsonSerializer.Serialize(new
+            {
+                previousClosingDate = previous?.ToString("yyyy-MM-dd"),
+                newClosingDate = newClosingDate.ToString("yyyy-MM-dd"),
+                reason = reason!.Trim(),
+                intakeReopened = reopened
+            })
+        });
+
+        await db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    /// <summary>HCM-026 (E1): closing date is required to publish; at first publish it must leave MinPostingDays of intake.</summary>
+    private string? ApplyClosingDateForPublish(RecruitmentRequisition req, DateOnly? provided)
+    {
+        var isFirstPublish = req.PublishedAt is null;
+        var candidate = isFirstPublish && provided is not null ? provided : req.ApplicationClosingDate;
+        var error = RequisitionWorkflowRules.ValidateClosingDateForPublish(
+            candidate,
+            isFirstPublish,
+            DateOnly.FromDateTime(DateTime.UtcNow),
+            recruitmentOptions.Value.MinPostingDays);
+        if (error is null)
+            req.ApplicationClosingDate = candidate;
+        return error;
     }
 
     /// <summary>HCM-026 (A4): publication requires an active assessment criteria version.</summary>

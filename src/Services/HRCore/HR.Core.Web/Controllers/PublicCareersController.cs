@@ -50,9 +50,13 @@ public class PublicCareersController(
                     .ThenInclude(p => p!.OrgUnit)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
-        if (posting is null || !posting.IsPublished || !IsCareersVisible(posting))
+        // HCM-026: a posting whose intake was closed by the job stays viewable (with a notice) while selection continues.
+        var intakeClosed = posting?.Requisition?.IntakeClosedAt is not null
+            || posting?.ClosingDate < DateOnly.FromDateTime(DateTime.UtcNow);
+        if (posting is null || (!posting.IsPublished && !intakeClosed) || !IsCareersVisible(posting))
             return NotFound();
 
+        ViewBag.IntakeClosed = intakeClosed;
         ViewBag.ApplyModel = new CitizenApplicationApplyViewModel { PublicJobPostingId = id };
         ViewBag.IsLegacyPosting = posting.RequisitionId is null;
         return View(posting);

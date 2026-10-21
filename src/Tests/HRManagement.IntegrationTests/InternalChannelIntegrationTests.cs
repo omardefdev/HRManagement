@@ -87,7 +87,8 @@ public class InternalVacancyPublishTests
             PublishingChannel = RecruitmentPublishingChannel.InternalOnly,
             RequestedDate = DateTime.UtcNow,
             VacancyCount = 1,
-            LegalSourceId = Syr001LegislationIds.Law50_2004
+            LegalSourceId = Syr001LegislationIds.Law50_2004,
+            ApplicationClosingDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30) // PLAN-26: required to publish
         };
         db.RecruitmentRequisitions.Add(req);
         await db.SaveChangesAsync();

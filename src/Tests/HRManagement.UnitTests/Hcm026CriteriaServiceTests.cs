@@ -195,7 +195,9 @@ public class Hcm026CriteriaServiceTests
             RequestedDate = DateTime.UtcNow,
             VacancyCount = 1,
             LegalSourceId = Syr001LegislationIds.Law50_2004,
-            PublishingChannel = RecruitmentPublishingChannel.Both
+            PublishingChannel = RecruitmentPublishingChannel.Both,
+            // PLAN-26 session 2: a closing date is required to publish.
+            ApplicationClosingDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(30)
         };
         db.RecruitmentRequisitions.Add(req);
         await db.SaveChangesAsync();

@@ -28,6 +28,7 @@ public class Est004EstablishmentPlanningIntegrationTests : IClassFixture<WebAppl
         _dbPath = Path.Combine(Path.GetTempPath(), $"hr-est004-{Guid.NewGuid():N}.db");
         _factory = factory.WithWebHostBuilder(builder =>
         {
+            builder.UseSetting("Recruitment:Jobs:IntakeCloseEnabled", "false"); // HCM-026: no background intake job in tests
             builder.UseEnvironment(Environments.Development);
             builder.UseSetting("ConnectionStrings:HRCoreDb", $"Data Source={_dbPath}");
             builder.ConfigureAppConfiguration((_, config) =>

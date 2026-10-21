@@ -34,6 +34,46 @@ public static class RequisitionWorkflowRules
 
     public const int MinCancellationReasonLength = 10;
 
+    public const int MinClosingDateChangeReasonLength = 10;
+
+    /// <summary>
+    /// HCM-026 (E1): the application closing date is required to publish; at first publish it must leave at least
+    /// <paramref name="minPostingDays"/> days of intake.
+    /// </summary>
+    public static string? ValidateClosingDateForPublish(
+        DateOnly? closingDate,
+        bool isFirstPublish,
+        DateOnly todayUtc,
+        int minPostingDays)
+    {
+        if (closingDate is null)
+            return "يجب تحديد تاريخ إغلاق التقديم قبل النشر.";
+
+        if (isFirstPublish && closingDate.Value < todayUtc.AddDays(Math.Max(0, minPostingDays)))
+            return $"تاريخ إغلاق التقديم يجب ألا يقل عن {minPostingDays} أيام من اليوم.";
+
+        return null;
+    }
+
+    /// <summary>HCM-026 (E3): extension only — a later date, not in the past, with a written reason.</summary>
+    public static string? ValidateClosingDateExtension(
+        DateOnly? currentClosingDate,
+        DateOnly newClosingDate,
+        DateOnly todayUtc,
+        string? reason)
+    {
+        if (newClosingDate < todayUtc)
+            return "تاريخ الإغلاق الجديد يجب ألا يكون في الماضي.";
+
+        if (currentClosingDate is DateOnly current && newClosingDate <= current)
+            return "يُسمح بتمديد تاريخ الإغلاق فقط (تاريخ لاحق للتاريخ الحالي).";
+
+        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < MinClosingDateChangeReasonLength)
+            return $"سبب التمديد مطلوب ({MinClosingDateChangeReasonLength} أحرف على الأقل).";
+
+        return null;
+    }
+
     public static bool CanCreate(FundedPosition position) =>
         position.Status == FundedPositionStatus.Vacant;
 
