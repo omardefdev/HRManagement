@@ -604,6 +604,23 @@ public static class DemoDataSeeder
             };
             db.RecruitmentRequisitions.Add(requisition);
 
+            if (requisition.Status is RequisitionStatus.Approved or RequisitionStatus.Published)
+            {
+                // HCM-026: publishing requires an active criteria version (new JSON format).
+                db.RecruitmentAssessmentCriteria.Add(new RecruitmentAssessmentCriteria
+                {
+                    TenantId = TenantId,
+                    RequisitionId = requisition.Id,
+                    VersionNumber = 1,
+                    Title = "معايير التقييم v1",
+                    CriteriaJson = Seeding.RecruitmentSeedCriteria.Json,
+                    IsActive = true,
+                    EffectiveFrom = now.AddDays(-(i + 1)),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+
             if (i == 2)
             {
                 var posting = RecruitmentRequisitionService.MapToPublicJobPosting(requisition, position);

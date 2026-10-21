@@ -641,7 +641,9 @@ public static class AcceptanceDataSeeder
                 RequisitionId = req.Id,
                 VersionNumber = 1,
                 Title = "معايير التقييم v1",
-                CriteriaJson = """[{"name":"المقابلة","weight":40},{"name":"الخبرة","weight":60}]""",
+                CriteriaJson = RecruitmentSeedCriteria.Json,
+                // HCM-026: the migration's "activate latest" step runs before seeding, so mark it active here.
+                IsActive = true,
                 EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddMonths(-1),
                 CreatedAt = AcceptanceSeedCatalog.ReferenceDate,
                 UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
@@ -733,6 +735,15 @@ public static class AcceptanceDataSeeder
             }
         }
 
+        foreach (var app in apps)
+        {
+            if (app.AssessmentScore is not decimal score || app.CriteriaVersionId is null)
+                continue;
+            if (!criteria.TryGetValue(app.RequisitionId!.Value, out var crit))
+                continue;
+            await SeedAssessmentEvidenceAsync(db, agency, app, crit, score, ct);
+        }
+
         var issuedApp = apps.FirstOrDefault(a => a.Status == RecruitmentApplicationStatus.Ranked);
         if (issuedApp?.RequisitionId is Guid reqId)
         {
@@ -763,6 +774,64 @@ public static class AcceptanceDataSeeder
 
         await db.SaveChangesAsync(ct);
         db.ChangeTracker.Clear();
+    }
+
+    /// <summary>
+    /// HCM-026: pre-set Assessed/Ranked applications get an attended interview and one complete assessor
+    /// whose weighted total equals the seeded <see cref="RecruitmentApplication.AssessmentScore"/>
+    /// (every item scored at the same percentage, so Σ(score/max × weight) = score).
+    /// </summary>
+    private static async Task SeedAssessmentEvidenceAsync(
+        HRCoreDbContext db,
+        AcceptanceAgency agency,
+        RecruitmentApplication app,
+        RecruitmentAssessmentCriteria criteria,
+        decimal score,
+        CancellationToken ct)
+    {
+        if (await db.RecruitmentAssessmentScores.AnyAsync(s => s.RecruitmentApplicationId == app.Id, ct))
+            return;
+
+        var interviewAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-6);
+        var slotId = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, $"interview-{app.Id:N}");
+        if (!await db.RecruitmentInterviewSlots.AnyAsync(s => s.Id == slotId, ct))
+        {
+            db.RecruitmentInterviewSlots.Add(new RecruitmentInterviewSlot
+            {
+                Id = slotId,
+                TenantId = agency.Id,
+                RecruitmentApplicationId = app.Id,
+                ScheduledAt = interviewAt,
+                Location = "قاعة المقابلات",
+                Status = InterviewSlotStatus.Completed,
+                Mode = InterviewMode.InPerson,
+                CompletedAt = interviewAt.AddHours(1),
+                Outcome = InterviewOutcome.Attended,
+                CreatedAt = AcceptanceSeedCatalog.ReferenceDate,
+                UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+            });
+        }
+
+        var assessorUserId = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "assessor-1");
+        foreach (var item in RecruitmentSeedCriteria.Items)
+        {
+            db.RecruitmentAssessmentScores.Add(new RecruitmentAssessmentScore
+            {
+                Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, $"score-{app.Id:N}-{item.Key}"),
+                TenantId = agency.Id,
+                RecruitmentApplicationId = app.Id,
+                CriteriaVersionId = criteria.Id,
+                ItemKey = item.Key,
+                AssessorUserId = assessorUserId,
+                Score = Math.Round(score / 100m * item.MaxScore, 2, MidpointRounding.AwayFromZero),
+                NoConflictDeclared = true,
+                SubmittedAt = interviewAt.AddHours(2),
+                CreatedAt = AcceptanceSeedCatalog.ReferenceDate,
+                UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+            });
+        }
+
+        criteria.LockedAt ??= interviewAt.AddHours(2);
     }
 
     private static async Task SeedAssignmentAndQuarantineFixturesAsync(

@@ -30,6 +30,42 @@ public class AcceptanceSeedTests
     }
 
     [Fact]
+    public async Task Acceptance_seed_scores_match_assessment_formula()
+    {
+        // HCM-026: seeded AssessmentScore must be reproducible from the seeded structured scores.
+        var options = new DbContextOptionsBuilder<HRCoreDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var db = new HRCoreDbContext(options);
+        await AcceptanceDataSeeder.SeedAsync(db, NullLogger.Instance);
+
+        var criteria = await db.RecruitmentAssessmentCriteria.IgnoreQueryFilters().ToListAsync();
+        Assert.NotEmpty(criteria);
+        Assert.All(criteria, c => Assert.True(c.IsActive));
+        Assert.All(criteria, c => Assert.Null(HR.Core.Domain.Services.AssessmentCriteriaRules.Validate(
+            HR.Core.Domain.Recruitment.AssessmentCriteriaSerializer.Deserialize(c.CriteriaJson))));
+
+        var scored = await db.RecruitmentApplications.IgnoreQueryFilters()
+            .Where(a => a.AssessmentScore != null && a.CriteriaVersionId != null)
+            .ToListAsync();
+        Assert.NotEmpty(scored);
+        foreach (var app in scored)
+        {
+            var version = criteria.Single(c => c.Id == app.CriteriaVersionId);
+            var items = HR.Core.Domain.Recruitment.AssessmentCriteriaSerializer.Deserialize(version.CriteriaJson);
+            var rows = await db.RecruitmentAssessmentScores.IgnoreQueryFilters()
+                .Where(s => s.RecruitmentApplicationId == app.Id)
+                .ToListAsync();
+            var final = HR.Core.Domain.Services.AssessmentScoringRules.ComputeFinal(
+                items,
+                rows.GroupBy(r => r.AssessorUserId)
+                    .Select(g => g.Select(r => new HR.Core.Domain.Services.AssessmentScoringRules.AssessorScore(r.ItemKey, r.Score))));
+            Assert.Equal(app.AssessmentScore, final);
+            Assert.NotNull(version.LockedAt);
+        }
+    }
+
+    [Fact]
     public void AcceptanceSeedIds_are_stable()
     {
         Assert.Equal("AGENCY-A", AcceptanceSeedIds.AgencyACode);
