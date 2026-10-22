@@ -3,7 +3,13 @@
 **Scope:** HCM-001/HCM-006 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-09, G-10 (ومنطق G-05 بعد إصلاح الوصول في PLAN-25)  
 **Status:** Proposed  
 **Priority:** P1  
-**Depends on:** PLAN-25 (البوابات + `RecruitmentAppealsController`)، PLAN-26 (الدرجات المنظمة)  
+**Depends on:** PLAN-26 (الدرجات المنظمة)، PLAN-27 (الجدارة والاحتياط). PLAN-25 مؤجلة لعدم توفر خادم  
+**تعديلات قبل التنفيذ (2026-10-22):**
+- **وصول دور `compliance`:** تُنفَّذ هنا الشريحة الضرورية فقط من PLAN-25 §3 (سياسة `HrCoreAppealReview` + `RecruitmentAppealsController` + صندوق العمل للاستئنافات). هي شيفرة فقط ولا تحتاج خادماً، ومن دونها لا يعمل الاستئناف.
+- **فحوص الخادم:** النصاب والمراجع المستقل وفصل الواجبات للّجنة تُفحص في خدمات الكيان (لا في البوابات العامة لـ PLAN-25).
+- **هوية المراجع:** يُختار المراجع من **منتقي الموظفين** الموجود (`IndependentReviewerEmployeeId`)، ويُتحقق عند البت من مطابقة مطالبة `employee_id` ودور `compliance`. لا حاجة لواجهة مستخدمين في Auth.Directory.
+- **إلزامية اللجنة:** على مستوى طلب الشاغر (`RequiresCommitteeApproval`)، بقيمة ابتدائية من `Recruitment:CommitteeApprovalDefault`.
+- **التفاصيل:** في `execution/PLAN-28-AGENT-PROMPT-SESSION-1.md` و`-SESSION-2.md`.  
 **Decisions:** D-5 (إلزامية اللجنة)
 
 ## Goal
