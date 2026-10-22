@@ -1,7 +1,7 @@
 # PLAN-29 — إغلاق التعيين وتكامل العقد والرواتب والوثائق الرسمية (PLAN-HCM-G)
 
 **Scope:** HCM-001 ↔ FUN-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-12, G-13, G-22، وجزء من G-18 (وثيقة العرض)  
-**Status:** Proposed  
+**Status:** Implemented  
 **Priority:** P1  
 **Depends on:** PLAN-27 (شروط عرض متسقة)، PLAN-28. PLAN-25 مؤجلة  
 **تعديلات قبل التنفيذ (2026-10-22):**
@@ -160,6 +160,77 @@ $env:RUN_ACCEPTANCE = "true"; dotnet test src/Tests/HRManagement.AcceptanceTests
 | Messages | `ICandidateAccepted` v4 |
 | Tests | `Hcm029PersonMatchTests`، `Hcm029OfferTermsPropagationIntegrationTests`، `Hcm029InternalMobilityProbeTests`، `AcHcm29HireContractTests` |
 | Docs | `MESSAGE_EVENT_MATRIX.md`، `HIRE_ONBOARDING_GUIDE.md` (القرار والفحص)، `FUN_001_JOURNEY_MATRIX.md` |
+
+## Implementation notes / deviations
+
+Execution guide: [PLAN-29-EXECUTION](execution/PLAN-29-EXECUTION.md). Both sessions on branch
+`feature/plan-29-hire-contract-documents`; session 1 details in `reports/plan29-session1-handoff.md`.
+
+**Session 1 — HR.Core (A–D)**
+
+- **Person matching** by `NationalIdHash` only (the column is encrypted); name + birth date is a warning. Applications
+  carry no birth date, so that warning appears when the form is re-shown after a POST, not on the first GET.
+- **Errors:** `HireClosureException` derives from `InvalidOperationException`. A 23505 on the national-id index is
+  `DuplicatePerson`; other unique violations and `DbUpdateConcurrencyException` are `Concurrency`. The change tracker is
+  cleared on any failure so no outbox row survives. Pre-PLAN-29 validation throws stay `InvalidOperationException`.
+- **Employment type:** funded positions and the job catalog have no employment type, so the default is
+  `Recruitment:DefaultEmploymentType`, not the SYR-003 regime (§1 of the plan). INTERNSHIP is refused, not added.
+- **`ICandidateAccepted` v4** additive with defaults; the `event-schema-inventory` entry was stale (1) and is now 4.
+  Internal mobility publishes `IInternalPlacementCompleted` only. Side fix: `IEmployeeCreated.LegalRegimeId` was null for
+  new hires (read before the record was saved).
+- **Offer letter:** generated on demand; SHA-256 of a canonical JSON stored at issue (`HCM029_OfferDocument`, nullable
+  columns). **Not** stored in File.Storage (`DocumentFileId`/`IFileReferenceOutbox` of §3.1 deferred). No QR (no QR library).
+  The hash includes config/reference-derived values (conditions text, default employment-type label, legislation label);
+  changing them later shows the "changed after issue" warning.
+
+**Session 2 — HR.Contracts / Payroll (E–L)**
+
+- **Lineage columns** on `ServiceTransaction` (+ `ExpectedStartDate`, `AppointmentDecisionId`, `CommencementOverdueAt`);
+  `FUN029_ContractOfferTerms` backfills `RecruitmentApplicationId` from `Notes` (Postgres-guarded, fills the empty column
+  only). Reads use the column; `ParseRecruitmentApplicationId` stays only to document the backfill format. A v3 message
+  still works; a redelivery adds nothing.
+- **Contract-type map** `ContractTypeRegimeMap` (null = any; unique per tenant with **NULLS NOT DISTINCT**, PostgreSQL 15+;
+  the admin screen also checks duplicates). Resolution (regime, type) > (regime, *) > (*, type) > (*, *); `DEFAULT` only with
+  `Contracts:AllowDefaultContractTypeFallback` (true by default, false in Production/Staging). Unresolved → Appointment and
+  checklist without a contract, ContractClassified note, `IProcessInterventionRequested` (Hire, `FailedParty = HR.Contracts`),
+  counter `hire_contract_type_unresolved` on the saga meter. The offer terms of an unresolved hire are kept as JSON in
+  `ServiceTransaction.PendingContractTerms` (extra column, not in the original list) so «إنشاء العقد المعلّق» can use them.
+  Policies: read `HrContractsHireView`, write `HrContractsApprove` (same as the gateway rule for mutating hr-contracts
+  requests).
+- **Finding:** acceptance contract types are agency-scoped (`AGENCY-A-DEFAULT`), so before PLAN-29 the `Code == "DEFAULT"`
+  lookup never matched there and recruitment hires got **no contract** silently. Demo/acceptance now seed labelled TEST
+  types and law50 maps; production seeds nothing new.
+- **`IContractActivated`** publishes `AgreedBaseSalary`/`GradeCode`; both members existed since v2, so no SchemaVersion bump
+  (note: the publisher never sets `SchemaVersion`, so consumers read 0 — pre-existing, unchanged).
+- **Payroll:** grade resolved in the active scale in force at `StartDate` (undated lookup only as a logged fallback);
+  salary = event ?? grade base. Out-of-range or no salary → profile created **and** a review hold: `FraudAlert`
+  (`PAY029-RANGE` / `PAY029-NOSAL`, medium) linked to a `Manual` `PaymentHold` without a payroll run, which the disbursement
+  gate applies to every batch until released — chosen over a fraud alert alone because only a hold stops payment.
+  `Payroll:RequireBaseSalaryOnActivation` (false) creates an unpriced profile inactive.
+- **Checklist:** `AppointmentDecisionIssued` and `PreEmploymentMedical` appended (stored as string); seeded from
+  `HireChecklistOptions` for **new** transactions only. The medical switch is global, not per service regime. The decision
+  number uses a new COD-001 kind `AdministrativeDecision` (`DEC-APPT-YYYY-#####`, seeded if missing). HR.Contracts has no
+  position title, so the decision subject uses the contract type and grade.
+- **Commencement watch:** daily, leader-elected; one open intervention per (Hire, transaction) — an unresolved-type
+  intervention still open for the same transaction suppresses the overdue one (existing consumer dedupe).
+- **Gateway:** `CreatePendingContract`, `IssueAppointmentDecision`, `CompleteMedicalStep` mapped to `HrContractsHireExecute`.
+- **Acceptance infra:** `hr-contracts-web` had no `Integration__HrCoreBaseUrl` and no service identity in the acceptance stack,
+  so HR.Contracts' code-generation call failed («BaseAddress must be set») and the CandidateAccepted consumer faulted —
+  no recruitment hire had ever opened an Appointment there. `docker-compose.acceptance.yml` now sets them (lab secret, as
+  PLAN-27 did for svc-hr-core) and `sync-keycloak-dev-realm.ps1` gives `svc-hr-contracts` `hr-core.lookup` +
+  `hr-core.workflow`.
+- **Finding (not fixed):** in the acceptance stack every COD-001 code loses its literal/field prefix (offers `-2026-00005`,
+  transactions `-2026-00004`, decisions `-2026-00001`); only the date and sequence render. Pre-existing in
+  `CodeGeneratorService`/policies, outside PLAN-29; AC-HCM-29g asserts the issuance record (kind AdministrativeDecision,
+  TypeCode APPT) instead of the prefix.
+- **Acceptance:** AC-HCM-29a..i Pass (live run, `acceptance-evidence/AC-HCM-29/`).
+
+**Deferred follow-ups (markers in code)**
+
+- Offer letter / committee minutes archiving in File.Storage; candidate download from `/careers` (PLAN-30).
+- Appointment decision: Diwan registration and signature; medical step: consume an HR.Health fitness result.
+- Non-commencement: cancel the hire (vacate position, reopen requisition, recall reserve) — detection only here.
+- Per-offer snapshot of the config-derived offer-letter fields; per-regime medical requirement.
 
 ## Effort estimate
 

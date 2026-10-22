@@ -445,7 +445,7 @@
     "service": "HR.Contracts",
     "context": "ContractsDbContext",
     "database": "hr_contracts_db",
-    "dbset_count": 25,
+    "dbset_count": 26,
     "entity_sets": [
       {
         "entity": "Contract",
@@ -454,6 +454,10 @@
       {
         "entity": "ContractType",
         "set": "ContractTypes"
+      },
+      {
+        "entity": "ContractTypeRegimeMap",
+        "set": "ContractTypeRegimeMaps"
       },
       {
         "entity": "ContractSignature",
@@ -555,6 +559,7 @@
       "AuditLogs",
       "CommencementRecords",
       "ContractSignatures",
+      "ContractTypeRegimeMaps",
       "ContractTypes",
       "Contracts",
       "EmployeeOrgUnitSnapshots",
@@ -578,7 +583,7 @@
       "ServiceTransactionStateHistories",
       "ServiceTransactions"
     ],
-    "business_table_count": 23,
+    "business_table_count": 24,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",

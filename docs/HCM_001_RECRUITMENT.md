@@ -345,6 +345,55 @@ read roles + Compliance) on the work inbox; both controllers are exempt from the
 maps their paths (and HR.Core static assets) accordingly. A compliance-only user sees only the appeals assigned to
 them; the application summary on the appeal page omits the national ID.
 
+## PLAN-29 — Hire closure, contract terms and official documents (HCM-G)
+
+G-12, G-13, G-22 and the offer-letter part of G-18, decision **D-6** (appointment decision, medical step). Plan:
+[PLAN-29](acceptance-plans/PLAN-29-hcm-hire-contract-documents.md); execution:
+[PLAN-29-EXECUTION](acceptance-plans/execution/PLAN-29-EXECUTION.md); session 1 handoff:
+`reports/plan29-session1-handoff.md`.
+
+### Hire closure safety (session 1, G-12)
+
+- `HirePersonMatchService` finds an existing employee by `NationalIdHash` only (the column is encrypted at rest);
+  same normalized name + birth date is a warning, never a block. The Hire form opens in «ربط موظف موجود» when the
+  application's national id is on file.
+- «إنشاء جديد» with a national id already on file is a form error («الرقم الوطني مسجَّل لموظف قائم — استخدم «ربط موظف
+  موجود».»); a national id different from the application's (or from the linked employee's) needs a reason of 10+
+  chars, audited `HireNationalIdMismatch` without the ids.
+- `HireClosureException` (DuplicatePerson / Concurrency / PositionNotVacant / InvalidState / Legal): a 23505 on the
+  national-id index, other unique violations and concurrency conflicts are mapped in the closure; the transaction
+  rolls back and the change tracker is cleared, so no outbox row survives. The form never returns a 500 for these.
+- Employment type is the domain `EmploymentType` (Permanent «دائم», Administrative «إداري», Temporary «متعاقد مؤقت»);
+  legacy codes map (PERMANENT, TEMPORARY, CONTRACT → Temporary), INTERNSHIP is refused. `Recruitment:DefaultEmploymentType`
+  pre-selects; another choice needs a reason (audited `HireEmploymentTypeChange`).
+
+### ICandidateAccepted v4 (G-13)
+
+Additive (`SchemaVersion => 4`, default members): `OfferedSalary`, `GradeCode`, `LegalRegimeId`, `PayrollRegimeCode`,
+`EmploymentType`, `PositionCode`, `OrgUnitId`, `IsInternalMobility`. External hires publish it with the offer terms;
+**internal mobility publishes `IInternalPlacementCompleted` only** (HR.Contracts also ignores `IsInternalMobility`).
+HR.Contracts stores the lineage on `ServiceTransaction` columns (`RecruitmentApplicationId`, `RequisitionId`,
+`OfferLetterId`, `ExpectedStartDate`; backfilled from the notes marker) and the terms on the pending contract
+(`GradeCode`, `AgreedBaseSalary`, `LegalRegimeId`, `EmploymentType`, `SourceOfferLetterId`). The contract type comes
+from `ContractTypeRegimeMap` (most specific (regime, type) first); without a match an intervention is opened (no
+silent `DEFAULT` unless `Contracts:AllowDefaultContractTypeFallback`). `IContractActivated` carries
+`BaseSalary`/`PayGradeCode` from the contract, and Payroll builds the pay profile from them (grade in the scale in force
+at the start date; out-of-range salary → profile + review hold).
+
+### Official offer letter (G-18 part)
+
+When an offer is issued the SHA-256 of a canonical JSON of its rendered fields is stored (`DocumentSha256`,
+`DocumentGeneratedAt`; migration `HCM029_OfferDocument`). `GET OfferLetters/Document/{id}` (Issued/Accepted) renders
+the Arabic PDF on demand with «رمز التحقق» (first 12 hex characters of the stored hash); a later difference is shown
+as a warning, never re-hashed. Candidate download (PLAN-30) and File.Storage archiving are follow-ups.
+
+### Appointment decision and medical step (G-22, D-6)
+
+The hire checklist gains «إصدار قرار التعيين» (`HireChecklist:RequireAppointmentDecision`, default on) and «الفحص
+الطبي قبل التعيين» (`HireChecklist:RequireMedicalFitness`, default off); completion and the hire saga require them.
+Overdue commencement (`Recruitment:CommencementDeadlineDays` in HR.Contracts, default 30) is flagged and opens an
+intervention (detection only). Details: [HIRE_ONBOARDING_GUIDE](HIRE_ONBOARDING_GUIDE.md).
+
 ## Acceptance Criteria Mapping
 
 - [x] No announcement without funded position — `PositionId` required on requisition
@@ -371,6 +420,10 @@ them; the application summary on the appeal page omits the national ID.
 - [x] PLAN-28 G-09 — one appeal path: independent employee-identified compliance reviewer, explicit outcomes, info requests; legacy reopen removed
 - [x] PLAN-28 G-05 (appeal part) — compliance reaches the appeal pages and its inbox items
 - [x] PLAN-28 — rejection kind/date recorded on every rejection; appeal window from `RejectedAt`; no hire while an appeal is pending
+- [x] PLAN-29 G-12 — no duplicate person on hire, national-id mismatch justified and audited, no 500 on the hire form; employment type is a domain value
+- [x] PLAN-29 G-13 — `ICandidateAccepted` v4 offer terms → contract (type by service regime, grade, salary) → `IContractActivated` → pay profile; explicit lineage columns; internal mobility opens no Appointment
+- [x] PLAN-29 G-22 — appointment decision step (D-6), optional pre-employment medical, overdue-commencement intervention
+- [x] PLAN-29 G-18 (offer letter) — official offer letter PDF with a verification hash fixed at issue
 
 ## Plan map (HCM-001)
 
@@ -386,6 +439,7 @@ them; the application summary on the appeal page omits the national ID.
 | PLAN-26 | Assessment criteria, structured scoring, interview lifecycle, requisition integrity, intake window (G-03, G-08, G-11 addressed; G-20 partly) |
 | PLAN-27 | Merit order, exception offers, offer terms (Payroll grade lookup), decline/revoke/expiry, reserve list (G-06, G-07 addressed; G-20 partly; D-7) |
 | PLAN-28 | Committee decision body and ranking gate, single governed appeal path, rejection kinds, hire block, compliance access slice (G-09, G-10 addressed; G-05 appeal part; D-5) |
+| PLAN-29 | Safe hire closure, employment type, `ICandidateAccepted` v4 → contract → payroll, contract-type map with intervention, appointment decision / medical steps, commencement watch, offer letter PDF (G-12, G-13, G-22 addressed; G-18 offer letter; D-6) |
 
 ## Artifacts
 
@@ -413,10 +467,16 @@ them; the application summary on the appeal page omits the national ID.
 | `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/RecruitmentAppealService.cs` | Appeal filing, reviewer assignment, decision, info request |
 | `src/Services/HRCore/HR.Core.Web/Controllers/RecruitmentAppealsController.cs` | Appeal pages (HR and compliance reviewer) |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm28CommitteeAppealTests.cs` | AC-HCM-28a..i acceptance |
+| `scripts/hcm029-validate.ps1` | Validates PLAN-29 artifacts, migrations (HR.Core + HR.Contracts), config defaults and `Hcm029`/`Fun029`/`Pay029` tests |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/HirePersonMatchService.cs` | Person matching at hire |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/OfferLetterDocumentService.cs` | Offer letter data and verification hash |
+| `src/Services/HRContracts/HR.Contracts.Application/Features/HireCases/ContractTypeResolver.cs` | Contract type by service regime / employment type |
+| `src/Tests/HRManagement.AcceptanceTests/AcHcm29HireContractTests.cs` | AC-HCM-29a..i acceptance |
 
 ## Validation
 
 - `scripts/hcm001-validate.ps1`
+- `scripts/hcm029-validate.ps1` (PLAN-29)
 - `Hcm001RecruitmentTests`
 - `scripts/hcm026-validate.ps1` — `Hcm026*` unit tests + `Hcm021|Hcm022` regression
 - `scripts/hcm027-validate.ps1` — `Hcm027*` unit tests + `Hcm026|Hcm022` regression

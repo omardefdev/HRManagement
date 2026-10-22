@@ -33,6 +33,28 @@
       "event": null
     },
     {
+      "id": "AppointmentDecision",
+      "hireStep": "AppointmentDecisionIssued",
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 48,
+      "evidenceType": "AdministrativeDecision.DecisionNumber",
+      "service": "HR.Contracts",
+      "event": null,
+      "config": "HireChecklist:RequireAppointmentDecision (default true)"
+    },
+    {
+      "id": "PreEmploymentMedical",
+      "hireStep": "PreEmploymentMedical",
+      "mandatory": false,
+      "ownerRole": "hr-health",
+      "slaHours": 120,
+      "evidenceType": "fitness report reference",
+      "service": "HR.Contracts (manual; HR.Health follow-up)",
+      "event": null,
+      "config": "HireChecklist:RequireMedicalFitness (default false)"
+    },
+    {
       "id": "PayProfile",
       "hireStep": "PayrollLinked",
       "mandatory": true,

@@ -17,6 +17,11 @@
 | P0.x | ترشّح ESS | `hr-core` (Ess) | `Module.Ess` |
 | P1.1 | استلام مرشح / معاملة تعيين | `hr-contracts`, `hr-core` | `Module.HrContracts`, `HrContracts.HireExecute` (معالج) |
 | P1.2 | تصنيف وعقد ومباشرة | `hr-contracts` | `HrContracts.Approve` (تفعيل عقد) |
+| P1.2 | إنشاء العقد المعلّق يدوياً لنوع عقد غير مطابق (PLAN-29) | `hr-contracts`, `hr-core` | `HrContracts.HireExecute` |
+| P1.2 | ربط أنواع العقود بأنظمة الخدمة — قراءة / تعديل (PLAN-29) | قراء المعالج / `hr-contracts` | `HrContracts.HireView` / `HrContracts.Approve` |
+| D-6 | إصدار قرار التعيين (PLAN-29) | `hr-contracts`, `hr-core` | `HrContracts.HireExecute` |
+| — | الفحص الطبي قبل التعيين — تسجيل الدليل (PLAN-29، اختياري) | `hr-contracts`, `hr-core` | `HrContracts.HireExecute` |
+| P0.x | خطاب العرض الرسمي PDF (PLAN-29) | قراء HR.Core | `HrCore.ReadOnly` |
 | P2.1 | ملف شخصي | `hr-core` | `HrCore.Write` |
 | P6.1 | ربط راتب بعد تفعيل العقد | `payroll` | `Payroll.Process` |
 | P5.1 | تدقيق واعتماد السيرة | `hr-core`, `hr-management-approver` | `HrCore.Approve`, `HrManagement.Approve` |
@@ -40,7 +45,9 @@
 | `/ui/hr-core/SelectionCommittees` | جلسات لجنة الاختيار والمحضر |
 | `/ui/hr-core/RecruitmentAppeals` | استئنافات التوظيف (`HrCore.AppealReview` على البوابة والمتحكم) |
 | `/ui/hr-core/WorkInbox` | صندوق العمل (`HrCore.WorkInbox`) |
-| `/ui/hr-contracts/HireWizard` | معالج التعيين (قائمة تحقق + إكمال) |
+| `/ui/hr-contracts/HireWizard` | معالج التعيين (قائمة تحقق + إكمال). PLAN-29: `CreatePendingContract`، `IssueAppointmentDecision`، `CompleteMedicalStep` ← `HrContracts.HireExecute` على البوابة |
+| `/ui/hr-contracts/ContractTypeRegimeMaps` | ربط أنواع العقود بأنظمة الخدمة (التعديل ← `HrContracts.Approve` على البوابة) |
+| `/ui/hr-core/OfferLetters/Document/{id}` | خطاب العرض الرسمي PDF (صادر/مقبول) |
 
 ## أدوار تشغيلية مقترحة في Keycloak
 

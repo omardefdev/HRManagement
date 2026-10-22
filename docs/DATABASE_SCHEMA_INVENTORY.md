@@ -10,7 +10,7 @@
 | الامتثال والشكاوى (Compliance) | `ComplianceDbContext` | `compliance_db` | 14 | 12 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/Compliance/Compliance.Infrastructure/Data/ComplianceDbContext.cs` |
 | التحليلات (Dev.Analytics) | `AnalyticsDbContext` | `analytics_db` | 10 | 8 | AuditLogs, IntegrationMessageReceipts | `src/Services/DevAnalytics/Dev.Analytics.Infrastructure/Data/AnalyticsDbContext.cs` |
 | تخزين الملفات (File.Storage) | `FileStorageDbContext` | `file_storage_db` | 12 | 10 | AuditLogs, IntegrationMessageReceipts | `src/Services/FileStorage/File.Storage.Infrastructure/Data/FileStorageDbContext.cs` |
-| العقود والخدمة (HR.Contracts) | `ContractsDbContext` | `hr_contracts_db` | 25 | 23 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs` |
+| العقود والخدمة (HR.Contracts) | `ContractsDbContext` | `hr_contracts_db` | 26 | 24 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs` |
 | النواة والموظفون (HR.Core) | `HRCoreDbContext` | `hr_core_db` | 93 | 91 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs` |
 | الصحة المهنية (HR.Health) | `HealthDbContext` | `hr_health_db` | 15 | 13 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRHealth/HR.Health.Infrastructure/Data/HealthDbContext.cs` |
 | الحركات والتنقلات (HR.Movements) | `MovementsDbContext` | `hr_movements_db` | 18 | 16 | AuditLogs, InboxState, IntegrationMessageReceipts, OutboxMessage, OutboxState | `src/Services/HRMovements/HR.Movements.Infrastructure/Data/MovementsDbContext.cs` |
@@ -48,7 +48,7 @@
 
 ### العقود والخدمة (HR.Contracts)
 
-`Contract`, `ContractType`, `ContractSignature`, `ProbationRecord`, `SeparationRecord`, `LeaveRequest`, `AdvanceRequest`, `AdministrativeDecision`, `CommencementRecord`, `ServiceTransaction`, `ServiceTransactionStateHistory`, `LeaveBalance`, `LeavePolicy`, `AdvanceInstallmentPlan`, `SeparationChecklist`, `HireChecklist`, `OrgUnitSnapshot`, `EmployeeOrgUnitSnapshot`, `IdempotencyRecord`, `IntegrationMessageReceipt`, `ProcessIntervention`, `SeparationSagaState`, `HireCaseSagaState`, `EntityAuditLog`, `ExportJob`
+`Contract`, `ContractType`, `ContractTypeRegimeMap`, `ContractSignature`, `ProbationRecord`, `SeparationRecord`, `LeaveRequest`, `AdvanceRequest`, `AdministrativeDecision`, `CommencementRecord`, `ServiceTransaction`, `ServiceTransactionStateHistory`, `LeaveBalance`, `LeavePolicy`, `AdvanceInstallmentPlan`, `SeparationChecklist`, `HireChecklist`, `OrgUnitSnapshot`, `EmployeeOrgUnitSnapshot`, `IdempotencyRecord`, `IntegrationMessageReceipt`, `ProcessIntervention`, `SeparationSagaState`, `HireCaseSagaState`, `EntityAuditLog`, `ExportJob`
 
 ### النواة والموظفون (HR.Core)
 

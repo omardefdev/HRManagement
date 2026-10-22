@@ -15,7 +15,7 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 
 > **GOV-003:** `IEmployeeCreated` / `IEmployeeStatusChanged` are SoR publish channels for master-employee.v1 — consumers must not rewrite NationalId/FullName.
 | `IEmployeeStatusChanged` | HR.Core | Auth.Directory | Inbox + guard | — |
-| `IContractActivated` | HR.Contracts | Payroll | Inbox + marker | Unit / Idempotent |
+| `IContractActivated` | HR.Contracts | Payroll | Inbox + marker | Unit / Idempotent, `Fun029ContractActivatedTests`, `Pay029PayProfileTests` |
 | `ISeparationCompleted` | HR.Contracts | Payroll, Archive, IDCard, Admin.Logistics, Auth.Directory, IT.Infra, Dev.Analytics | Inbox (+ ref/marker) | Payroll, Analytics, Admin |
 | `IMedicalRecommendationIssued` | HR.Health | Compliance | Inbox + marker | Unit |
 | `IMedicalDecisionIssued` | HR.Health | HR.Contracts | Inbox | — |
@@ -39,6 +39,7 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | `IMissionApproved` | HR.Training | Payroll | Payroll: marker | — | Payroll |
 | `ICandidateAccepted` (v4) | HR.Core `RecruitmentHireClosureService` — external hires only (HCM-029: internal mobility publishes `IInternalPlacementCompleted` only) | HR.Contracts | Contract exists check | Yes | Inbound, `Hcm029CandidateAcceptedV4Tests` |
 | `IInternalPlacementCompleted` | HR.Core `RecruitmentHireClosureService` (internal mobility) | HR.Movements `InternalPlacementCompletedConsumer` | consumer | Yes | `InternalHireClosureIntegrationTests` |
+| `IProcessInterventionRequested` (Hire, outside the saga) | HR.Contracts — unresolved contract type (`ProcessCandidateAcceptedHandler`), overdue commencement (`HireCommencementWatcher`) | HR.Contracts `ProcessInterventionRequestedConsumer` | one open intervention per (Hire, transaction) | Yes | `Fun029ContractTypeResolverTests`, `Fun029CommencementWatchTests` |
 | `ITransactionRegisteredInDiwan` | HR.Core `DiwanIntegrationService` | HR.Contracts | Transaction idempotent update | Yes | Inbound |
 | `IHireCaseCompleted` | HR.Contracts `PublishHireCaseHandler` | Records.Archive, HR.Core (ديوان) | Archive ref `HIRE-{txn}`; Diwan ref | Yes | Integration |
 
@@ -67,6 +68,7 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | Leave/advance | Single `ServiceTransactionId` per request; approval completes same transaction |
 | Separation | `PublishSeparationHandler` + `SeparationEventPublished` flag |
 | Leave → HR.Core status | `LeaveApprovedConsumer` sets `OnLeave` with reason marker |
+| Offer terms to payroll (PLAN-29) | `ICandidateAccepted` v4 terms → `Contract.GradeCode/AgreedBaseSalary/LegalRegimeId/EmploymentType`; `IContractActivated.BaseSalary = AgreedBaseSalary`, `PayGradeCode = GradeCode` (null for contracts created outside recruitment; members exist since v2 — no bump); Payroll resolves the grade in the scale in force at `StartDate`, out-of-range/no salary → review hold |
 
 ## 6. Messaging infrastructure
 
