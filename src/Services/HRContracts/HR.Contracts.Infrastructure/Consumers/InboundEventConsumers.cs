@@ -25,12 +25,21 @@ public class CandidateAcceptedConsumer(IMediator mediator) : IConsumer<ICandidat
     public async Task Consume(ConsumeContext<ICandidateAccepted> context)
     {
         context.ApplyExecutionContext(context.Message.SourceSystem);
+        // FUN-029: v4 members read as null/false on v3 messages (default interface members).
+        var m = context.Message;
         await mediator.Send(new ProcessCandidateAcceptedCommand(
-            context.Message.EmployeeId,
-            context.Message.EmploymentCategory,
-            DateOnly.FromDateTime(context.Message.ExpectedStartDate),
-            context.Message.FullName,
-            context.Message.RecruitmentApplicationId));
+            m.EmployeeId,
+            m.EmploymentCategory,
+            DateOnly.FromDateTime(m.ExpectedStartDate),
+            m.FullName,
+            m.RecruitmentApplicationId,
+            RequisitionId: m.RequisitionId,
+            OfferLetterId: m.OfferLetterId,
+            OfferedSalary: m.OfferedSalary,
+            GradeCode: m.GradeCode,
+            LegalRegimeId: m.LegalRegimeId,
+            EmploymentType: m.EmploymentType,
+            IsInternalMobility: m.IsInternalMobility));
     }
 }
 

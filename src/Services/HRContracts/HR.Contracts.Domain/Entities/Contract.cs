@@ -38,6 +38,26 @@ public class Contract : AuditableEntity
     [Display(Name = "فترة الاختبار")]
     public int? ProbationMonths { get; set; }
 
+    // ── FUN-029: approved offer terms (ICandidateAccepted v4). Null for contracts created outside recruitment.
+
+    [Display(Name = "الدرجة")]
+    [MaxLength(50)]
+    public string? GradeCode { get; set; }
+
+    [Display(Name = "الراتب المتفق عليه")]
+    public decimal? AgreedBaseSalary { get; set; }
+
+    [Display(Name = "نظام الخدمة")]
+    [MaxLength(50)]
+    public string? LegalRegimeId { get; set; }
+
+    [Display(Name = "نوع التوظيف")]
+    [MaxLength(20)]
+    public string? EmploymentType { get; set; }
+
+    [Display(Name = "خطاب العرض المصدر")]
+    public Guid? SourceOfferLetterId { get; set; }
+
     public ContractType ContractType { get; set; } = null!;
     public ICollection<ContractSignature> Signatures { get; set; } = new List<ContractSignature>();
 }

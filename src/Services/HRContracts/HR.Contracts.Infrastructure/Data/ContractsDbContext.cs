@@ -70,6 +70,12 @@ public class ContractsDbContext : TenantAwareDbContext
                   .HasConversion<string>()
                   .HasMaxLength(50);
 
+            // FUN-029: offer terms from ICandidateAccepted v4.
+            entity.Property(e => e.GradeCode).HasMaxLength(50);
+            entity.Property(e => e.AgreedBaseSalary).HasPrecision(18, 2);
+            entity.Property(e => e.LegalRegimeId).HasMaxLength(50);
+            entity.Property(e => e.EmploymentType).HasMaxLength(20);
+
             entity.HasIndex(e => new { e.TenantId, e.EmployeeId })
                 .IsUnique()
                 .HasDatabaseName("IX_Contracts_OneActivePerEmployee")
@@ -160,6 +166,9 @@ public class ContractsDbContext : TenantAwareDbContext
 
             entity.Property(e => e.ReferenceNumber)
                   .HasMaxLength(100);
+
+            // FUN-029: explicit recruitment lineage.
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId });
         });
 
         modelBuilder.Entity<ServiceTransactionStateHistory>(entity =>

@@ -103,7 +103,8 @@ public class PublishHireCaseHandler(IContractsRepository repository, IEventPubli
                 s => s.SetProperty(t => t.State, ServiceTransactionState.Completed),
                 cancellationToken);
 
-        var recruitmentApplicationId = ProcessCandidateAcceptedHandler.ParseRecruitmentApplicationId(transaction.Notes);
+        // FUN-029: explicit lineage column (backfilled from Notes by FUN029_ContractOfferTerms).
+        var recruitmentApplicationId = transaction.RecruitmentApplicationId;
 
         await eventPublisher.StartHireSagaAsync(
             transaction.Id,

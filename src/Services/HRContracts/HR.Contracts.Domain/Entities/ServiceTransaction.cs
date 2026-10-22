@@ -30,6 +30,23 @@ public class ServiceTransaction : AuditableEntity
     public string? Notes { get; set; }
     public Guid? CurrentApproverId { get; set; }
 
+    // ── FUN-029: explicit recruitment lineage (was parsed from Notes) and hire tracking.
+
+    public Guid? RecruitmentApplicationId { get; set; }
+
+    public Guid? RequisitionId { get; set; }
+
+    public Guid? OfferLetterId { get; set; }
+
+    /// <summary>FUN-029 (J): expected start date from the hire event; drives the commencement watch.</summary>
+    public DateOnly? ExpectedStartDate { get; set; }
+
+    /// <summary>FUN-029 (I3): the appointment decision issued for this hire.</summary>
+    public Guid? AppointmentDecisionId { get; set; }
+
+    /// <summary>FUN-029 (J): set once when commencement is overdue (intervention published).</summary>
+    public DateTime? CommencementOverdueAt { get; set; }
+
     public ICollection<ServiceTransactionStateHistory> StateHistory { get; set; } = new List<ServiceTransactionStateHistory>();
 
     public void MoveTo(ServiceTransactionState nextState, Guid? byUserId, string? reason = null)

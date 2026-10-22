@@ -10,15 +10,26 @@ using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace HR.Contracts.Application.Features.InboundEvents;
 
+/// <remarks>
+/// FUN-029: the members after <c>RecruitmentApplicationId</c> come from ICandidateAccepted v4 (null/false for v3).
+/// </remarks>
 public record ProcessCandidateAcceptedCommand(
     Guid EmployeeId,
     string EmploymentCategory,
     DateOnly ExpectedStartDate,
     string? FullName = null,
-    Guid? RecruitmentApplicationId = null) : IRequest;
+    Guid? RecruitmentApplicationId = null,
+    Guid? RequisitionId = null,
+    Guid? OfferLetterId = null,
+    decimal? OfferedSalary = null,
+    string? GradeCode = null,
+    string? LegalRegimeId = null,
+    string? EmploymentType = null,
+    bool IsInternalMobility = false) : IRequest;
 public record ProcessProbationEvaluationCompletedCommand(Guid EmployeeId, Guid ContractId, ProbationResult Result, Guid? EvaluatedBy, DateOnly EvaluatedDate, string? Notes) : IRequest;
 public record ProcessLeaveRequestedCommand(Guid RequestId, Guid EmployeeId, LeaveType LeaveType, DateOnly StartDate, DateOnly EndDate, int DurationDays, string? Notes, Guid? OrgUnitId = null) : IRequest;
 public record ProcessAdvanceRequestedCommand(Guid RequestId, Guid EmployeeId, decimal Amount, string? Reason, Guid? OrgUnitId = null) : IRequest;
@@ -28,10 +39,21 @@ public record ProcessTransactionRegisteredInDiwanCommand(Guid TransactionId, str
 
 public class ProcessCandidateAcceptedHandler(
     IContractsRepository repository,
-    ICodeGenerationClient codeClient) : IRequestHandler<ProcessCandidateAcceptedCommand>
+    ICodeGenerationClient codeClient,
+    ILogger<ProcessCandidateAcceptedHandler> logger) : IRequestHandler<ProcessCandidateAcceptedCommand>
 {
     public async Task Handle(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken)
     {
+        // FUN-029 (E2): defence in depth — HR.Core publishes IInternalPlacementCompleted, not this, for mobility.
+        if (request.IsInternalMobility)
+        {
+            logger.LogInformation(
+                "CandidateAccepted for employee {EmployeeId} is internal mobility — no Appointment opened.",
+                request.EmployeeId);
+            return;
+        }
+
+        var employmentType = HireEmploymentTypes.Normalize(request.EmploymentType, request.EmploymentCategory);
         var hasAppointment = await repository.ServiceTransactions.AnyAsync(
             x => x.EmployeeId == request.EmployeeId
                  && x.TransactionType == ServiceTransactionType.Appointment
@@ -60,7 +82,13 @@ public class ProcessCandidateAcceptedHandler(
                             request.EmployeeId,
                             defaultType.Id,
                             request.ExpectedStartDate,
-                            "تم الإنشاء تلقائياً من حدث التوظيف"),
+                            "تم الإنشاء تلقائياً من حدث التوظيف",
+                            new ContractOfferTerms(
+                                request.GradeCode,
+                                request.OfferedSalary,
+                                request.LegalRegimeId,
+                                employmentType,
+                                request.OfferLetterId)),
                         cancellationToken);
                 }
             }
@@ -69,8 +97,10 @@ public class ProcessCandidateAcceptedHandler(
             {
                 EmployeeId = request.EmployeeId,
                 TransactionType = ServiceTransactionType.Appointment,
+                // Notes stay human-readable; lineage is read from the columns (FUN-029).
                 Notes = BuildHireNotes(request.FullName, request.EmploymentCategory, request.RecruitmentApplicationId)
             };
+            ApplyLineage(transaction, request);
             await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
             transaction.MoveTo(ServiceTransactionState.Submitted, byUserId: null, "Inbound employment event");
             transaction.MoveTo(ServiceTransactionState.UnderReview, byUserId: null, null);
@@ -87,11 +117,21 @@ public class ProcessCandidateAcceptedHandler(
 
         if (!string.IsNullOrWhiteSpace(request.FullName) || request.RecruitmentApplicationId.HasValue)
             transaction.Notes = BuildHireNotes(request.FullName, request.EmploymentCategory, request.RecruitmentApplicationId);
+        ApplyLineage(transaction, request);
 
         await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken);
         await HireCaseSupport.MarkCandidateReceivedAsync(repository, transaction.Id, cancellationToken);
         await HireCaseSupport.MarkPersonalFileOpenedAsync(repository, request.EmployeeId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>FUN-029: lineage columns; a redelivery fills what is missing and never clears a value.</summary>
+    private static void ApplyLineage(ServiceTransaction transaction, ProcessCandidateAcceptedCommand request)
+    {
+        transaction.RecruitmentApplicationId ??= request.RecruitmentApplicationId;
+        transaction.RequisitionId ??= request.RequisitionId;
+        transaction.OfferLetterId ??= request.OfferLetterId;
+        transaction.ExpectedStartDate ??= request.ExpectedStartDate;
     }
 
     private const string RecruitmentApplicationNotePrefix = "recruitmentApplicationId:";
@@ -107,6 +147,10 @@ public class ProcessCandidateAcceptedHandler(
             : baseNote;
     }
 
+    /// <summary>
+    /// Legacy notes parser. FUN-029: reads use <see cref="ServiceTransaction.RecruitmentApplicationId"/>; this stays only
+    /// to document the format the FUN029_ContractOfferTerms backfill matches (and for its test).
+    /// </summary>
     internal static Guid? ParseRecruitmentApplicationId(string? notes)
     {
         if (string.IsNullOrWhiteSpace(notes))

@@ -216,6 +216,10 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("AgreedBaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("ContractTypeId")
                         .HasColumnType("uuid");
 
@@ -228,8 +232,20 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("EmploymentType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
+
+                    b.Property<string>("GradeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("LegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("ProbationMonths")
                         .HasColumnType("integer");
@@ -239,6 +255,9 @@ namespace HR.Contracts.Infrastructure.Migrations
 
                     b.Property<DateOnly?>("SignedDate")
                         .HasColumnType("date");
+
+                    b.Property<Guid?>("SourceOfferLetterId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
@@ -783,6 +802,12 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AppointmentDecisionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CommencementOverdueAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -795,12 +820,24 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("ExpectedStartDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("OfferLetterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ReferenceNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("RequisitionId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -822,6 +859,8 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "RecruitmentApplicationId");
 
                     b.ToTable("ServiceTransactions");
                 });

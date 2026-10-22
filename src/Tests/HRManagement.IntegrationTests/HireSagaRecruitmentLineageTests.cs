@@ -29,6 +29,8 @@ public class HireSagaRecruitmentLineageTests
             {
                 EmployeeId = employeeId,
                 TransactionType = ServiceTransactionType.Appointment,
+                // PLAN-29: lineage is read from the column; the notes text is kept for readability only.
+                RecruitmentApplicationId = recruitmentApplicationId,
                 Notes = $"فاطمة أحمد — مصدر توظيف: دائم | recruitmentApplicationId:{recruitmentApplicationId:D}"
             };
             txn.MoveTo(ServiceTransactionState.Submitted, null, null);
