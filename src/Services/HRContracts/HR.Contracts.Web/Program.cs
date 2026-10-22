@@ -50,6 +50,11 @@ builder.Services.Configure<HR.Contracts.Infrastructure.Sagas.HireSagaOptions>(
 // FUN-029 (I): optional hire checklist steps.
 builder.Services.Configure<HR.Contracts.Domain.Services.HireChecklistOptions>(
     builder.Configuration.GetSection(HR.Contracts.Domain.Services.HireChecklistOptions.SectionName));
+// FUN-029 (J): commencement watch (detection + intervention only).
+builder.Services.Configure<HR.Contracts.Infrastructure.Services.HireCommencementOptions>(
+    builder.Configuration.GetSection(HR.Contracts.Infrastructure.Services.HireCommencementOptions.SectionName));
+builder.Services.AddScoped<HR.Contracts.Infrastructure.Services.HireCommencementWatcher>();
+builder.Services.AddHostedService<HR.Contracts.Infrastructure.Services.HireCommencementWatchJob>();
 // FUN-029 (F): contract-type fallback switch.
 builder.Services.Configure<HR.Contracts.Application.Features.HireCases.HireContractOptions>(
     builder.Configuration.GetSection(HR.Contracts.Application.Features.HireCases.HireContractOptions.SectionName));

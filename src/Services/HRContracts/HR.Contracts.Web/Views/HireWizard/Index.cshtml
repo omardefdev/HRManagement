@@ -53,7 +53,13 @@
             {
                 <tr>
                     <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(t.EmployeeId, employeeNames.GetValueOrDefault(t.EmployeeId)))</td>
-                    <td>@Html.HrEnumDisplay(t.State)</td>
+                    <td>
+                        @Html.HrEnumDisplay(t.State)
+                        @if (t.CommencementOverdueAt is not null)
+                        {
+                            <span class="badge bg-danger ms-1" title="تأخر المباشرة عن المهلة">متأخر عن المباشرة</span>
+                        }
+                    </td>
                     <td>@(t.Notes ?? "—")</td>
                     <td>
                         <a asp-action="Step2" asp-route-transactionId="@t.Id" class="btn btn-sm btn-outline-primary">متابعة</a>

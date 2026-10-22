@@ -6,7 +6,13 @@
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h3 class="mb-0">قائمة التحقق — @Html.HrEnumDisplay(Model.Txn.State)</h3>
+        <h3 class="mb-0">
+            قائمة التحقق — @Html.HrEnumDisplay(Model.Txn.State)
+            @if (Model.Txn.CommencementOverdueAt is not null)
+            {
+                <span class="badge bg-danger fs-6 ms-1" title="تأخر المباشرة عن المهلة منذ @Model.Txn.CommencementOverdueAt.Value.ToString("yyyy/MM/dd")">متأخر عن المباشرة</span>
+            }
+        </h3>
         @if (Model.Contract is not null)
         {
             <span class="text-muted small">

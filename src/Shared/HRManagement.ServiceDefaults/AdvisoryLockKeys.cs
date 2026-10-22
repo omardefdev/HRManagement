@@ -11,4 +11,6 @@ public static class AdvisoryLockKeys
     public const long FileReferenceOutbox = 4_001_006;
     public const long SiemDetector = 4_001_007;
     public const long GatewayAuditChain = 4_001_008;
+    /// <summary>FUN-029 (J): HR.Contracts hire commencement watch.</summary>
+    public const long HireCommencementWatch = 4_001_009;
 }
