@@ -41,7 +41,8 @@ public class PublicCareersController(
         return View(postings);
     }
 
-    [HttpGet("{id}")]
+    // Guid-constrained: an unconstrained "{id}" captured every single-segment HR.Core URL (e.g. /WorkInbox, /RecruitmentAppeals).
+    [HttpGet("{id:guid}")]
     public async Task<IActionResult> Details(Guid id)
     {
         var posting = await PublicPostings()

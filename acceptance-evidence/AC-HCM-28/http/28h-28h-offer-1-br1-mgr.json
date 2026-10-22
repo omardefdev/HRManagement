@@ -1,0 +1,16 @@
+{
+  "step": "28h-28h-offer-1-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/4a7f286b-2ab6-4cc6-8302-84ce78879ef9",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T12:00:03.6456129Z",
+  "body": {
+    "fields": [
+      "OfferId=4a7f286b-2ab6-4cc6-8302-84ce78879ef9",
+      "Comments=AC-HCM-28 28h-offer-1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/4a7f286b-2ab6-4cc6-8302-84ce78879ef9",
+    "final": "/ui/hr-core/OfferLetters/Details/4a7f286b-2ab6-4cc6-8302-84ce78879ef9"
+  }
+}

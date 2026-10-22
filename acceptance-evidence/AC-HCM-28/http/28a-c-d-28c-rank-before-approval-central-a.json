@@ -1,0 +1,16 @@
+{
+  "step": "28a-c-d-28c-rank-before-approval-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/AssignRank",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T11:59:47.4784063Z",
+  "body": {
+    "fields": [
+      "ApplicationId=59f7f5cb-f384-8c4c-a8aa-8137f8e324c3",
+      "Rank=1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/59f7f5cb-f384-8c4c-a8aa-8137f8e324c3",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/59f7f5cb-f384-8c4c-a8aa-8137f8e324c3"
+  }
+}

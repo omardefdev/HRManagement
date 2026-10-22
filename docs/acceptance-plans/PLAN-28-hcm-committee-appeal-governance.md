@@ -1,7 +1,7 @@
 # PLAN-28 — حوكمة لجنة الاختيار والاستئناف (PLAN-HCM-F)
 
 **Scope:** HCM-001/HCM-006 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-09, G-10 (ومنطق G-05 بعد إصلاح الوصول في PLAN-25)  
-**Status:** Implemented (acceptance evidence pending)  
+**Status:** Implemented  
 **Priority:** P1  
 **Depends on:** PLAN-26 (الدرجات المنظمة)، PLAN-27 (الجدارة والاحتياط). PLAN-25 مؤجلة لعدم توفر خادم  
 **تعديلات قبل التنفيذ (2026-10-22):**
@@ -56,6 +56,9 @@ Execution guide: [PLAN-28-EXECUTION](execution/PLAN-28-EXECUTION.md). Both sessi
 - **Legacy reopen removed;** its history is migrated by the insert-only data step of `HCM028_AppealGovernance` instead of a
   separate `hcm028-migrate-legacy-appeal-notes.ps1`.
 - Commit plan: the rejection-tracking and appeal-path commits are one commit (they share the migration).
+- **Acceptance:** AC-HCM-28a..i Pass on a live reset stack (`acceptance-evidence/AC-HCM-28/run-summary.md`). The run found a
+  pre-existing routing defect — `PublicCareersController.Details` (`[HttpGet("{id}")]`) captured every single-segment HR.Core URL
+  (`/WorkInbox`, `/RecruitmentAppeals`, `/SelectionCommittees?requisitionId=…`); fixed with `{id:guid}`.
 - Persona `a-compliance-2` (`ACCEPTANCE_A_COMPLIANCE_2_PASSWORD`). AC-HCM-22 has no committee/appeal scenario (only 22b),
   so nothing there needed updating.
 

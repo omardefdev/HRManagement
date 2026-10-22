@@ -103,6 +103,14 @@ public class Hcm028AuthorizationTests
     }
 
     [Fact]
+    public void Public_careers_details_route_does_not_capture_controller_index_urls()
+    {
+        // /ui/hr-core/RecruitmentAppeals and /ui/hr-core/WorkInbox (menu links) must reach their controllers.
+        var details = typeof(PublicCareersController).GetMethod(nameof(PublicCareersController.Details))!;
+        Assert.Equal("{id:guid}", details.GetCustomAttribute<Microsoft.AspNetCore.Mvc.HttpGetAttribute>()!.Template);
+    }
+
+    [Fact]
     public void Legacy_appeal_actions_are_gone()
     {
         foreach (var removed in new[] { "ReopenAppeal", "ApproveAppealWorkflow", "RejectAppealWorkflow", "DecideAppeal" })

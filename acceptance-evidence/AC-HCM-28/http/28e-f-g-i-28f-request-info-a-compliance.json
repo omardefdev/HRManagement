@@ -1,0 +1,16 @@
+{
+  "step": "28e-f-g-i-28f-request-info-a-compliance",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentAppeals/RequestInfo",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T12:03:11.5538961Z",
+  "body": {
+    "fields": [
+      "id=9b5b6b50-f6d7-43a9-9304-52e6f84d01c2",
+      "infoRequest=\u064A\u0631\u062C\u0649 \u0625\u0631\u0641\u0627\u0642 \u0645\u062D\u0636\u0631 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u0627\u0644\u0645\u0648\u0642\u0651\u0639"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/9b5b6b50-f6d7-43a9-9304-52e6f84d01c2",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/9b5b6b50-f6d7-43a9-9304-52e6f84d01c2"
+  }
+}

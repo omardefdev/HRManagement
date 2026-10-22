@@ -1,0 +1,18 @@
+{
+  "step": "28a-c-d-28d-coi-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/RecordCoi",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T11:59:48.6657602Z",
+  "body": {
+    "fields": [
+      "sessionId=a0000001-0000-4000-8000-000000000511",
+      "memberId=d2552c0d-ab66-5d41-a171-c91aab624549",
+      "applicationId=59f7f5cb-f384-8c4c-a8aa-8137f8e324c3",
+      "hasConflict=true"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/a0000001-0000-4000-8000-000000000511#votes",
+    "final": "/ui/hr-core/SelectionCommittees/Details/a0000001-0000-4000-8000-000000000511"
+  }
+}

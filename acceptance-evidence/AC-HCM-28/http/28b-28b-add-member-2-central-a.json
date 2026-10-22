@@ -1,0 +1,18 @@
+{
+  "step": "28b-28b-add-member-2-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/AddMember",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T12:03:18.6995332Z",
+  "body": {
+    "fields": [
+      "sessionId=ea5352a7-f269-4fdb-8a4e-0c11222b3c59",
+      "employeeId=0086c9f5-0aa8-6d41-9e2d-0e73632ab8c4",
+      "role=Member",
+      "hasConflictOfInterest=false"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/ea5352a7-f269-4fdb-8a4e-0c11222b3c59#members",
+    "final": "/ui/hr-core/SelectionCommittees/Details/ea5352a7-f269-4fdb-8a4e-0c11222b3c59"
+  }
+}

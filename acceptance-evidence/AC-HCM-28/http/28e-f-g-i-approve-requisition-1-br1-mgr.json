@@ -1,0 +1,16 @@
+{
+  "step": "28e-f-g-i-approve-requisition-1-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/09cef017-fe77-4066-b033-aa8409233973",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T12:02:57.2770876Z",
+  "body": {
+    "fields": [
+      "RequisitionId=09cef017-fe77-4066-b033-aa8409233973",
+      "Comments=AC-HCM-28 step 1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/09cef017-fe77-4066-b033-aa8409233973",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/09cef017-fe77-4066-b033-aa8409233973"
+  }
+}

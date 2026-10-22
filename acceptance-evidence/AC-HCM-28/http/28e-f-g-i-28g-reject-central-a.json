@@ -1,0 +1,17 @@
+{
+  "step": "28e-f-g-i-28g-reject-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/SetStatus",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T12:03:13.4730157Z",
+  "body": {
+    "fields": [
+      "id=d90b0b5b-c50c-4f7b-a81d-fd6cdf8e1d54",
+      "status=Rejected",
+      "rejectionNote=AC-HCM-28g"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/d90b0b5b-c50c-4f7b-a81d-fd6cdf8e1d54",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/d90b0b5b-c50c-4f7b-a81d-fd6cdf8e1d54"
+  }
+}

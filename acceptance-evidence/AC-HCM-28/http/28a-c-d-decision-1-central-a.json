@@ -1,0 +1,19 @@
+{
+  "step": "28a-c-d-decision-1-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/UpsertDecision",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T11:59:49.8177479Z",
+  "body": {
+    "fields": [
+      "sessionId=a0000001-0000-4000-8000-000000000511",
+      "applicationId=59f7f5cb-f384-8c4c-a8aa-8137f8e324c3",
+      "recommendation=Recommend",
+      "proposedRank=1",
+      "rationale=\u062A\u0648\u0635\u064A\u0629 \u0644\u062C\u0646\u0629 \u0627\u0644\u0627\u062E\u062A\u064A\u0627\u0631 \u0648\u0641\u0642 \u0627\u0644\u062F\u0631\u062C\u0627\u062A"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/a0000001-0000-4000-8000-000000000511#decisions",
+    "final": "/ui/hr-core/SelectionCommittees/Details/a0000001-0000-4000-8000-000000000511"
+  }
+}
