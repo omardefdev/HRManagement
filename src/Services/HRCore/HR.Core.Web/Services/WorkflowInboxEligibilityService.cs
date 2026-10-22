@@ -22,14 +22,15 @@ public sealed class WorkflowInboxEligibilityService
         if (userId.HasValue && context.EntityCreatedBy == userId)
             return false;
 
-        var options = BuildOptions(instance, context);
+        var options = BuildOptions(instance, context, HrOrgScopeVisibility.GetEmployeeId(user));
         var panel = WorkflowPanelBuilder.Build(instance, definition, user, userId, options);
         return panel.CanApprove;
     }
 
     internal static WorkflowPanelBuildOptions BuildOptions(
         WorkflowInstance instance,
-        WorkflowInboxEntityContext context) =>
+        WorkflowInboxEntityContext context,
+        Guid? actorEmployeeId = null) =>
         instance.EntityType switch
         {
             "OfferLetter" => new WorkflowPanelBuildOptions
@@ -59,18 +60,12 @@ public sealed class WorkflowInboxEligibilityService
                 IsAwaitingApproval = context.IsAwaitingApproval,
                 EntityCreatedBy = context.EntityCreatedBy,
                 BlockInitiatorOnLaterSteps = context.BlockInitiatorOnLaterSteps,
-                AdditionalBlockReason = (inst, step, _) =>
-                {
-                    if (inst.CurrentStepLevel == 2
-                        && step.Level == 2
-                        && context.CommitteeMembers is not null
-                        && !RecruitmentAppealWorkflowRules.HasQuorum(context.CommitteeMembers))
-                    {
-                        return "لا يمكن اعتماد خطوة النصاب: يجب 3 أعضاء فعّالين على الأقل (غير منسحبين).";
-                    }
-
-                    return null;
-                }
+                CreatorSoDMessage = SelectionCommitteeRules.ApproverIsMemberOrCreatorMessage,
+                // HCM-028: same rule as SelectionCommitteeLifecycleService.ApproveStepAsync.
+                AdditionalBlockReason = (inst, _, actorId) => context.CommitteeMembers is null
+                    ? null
+                    : SelectionCommitteeRules.ValidateApproval(
+                        inst.CurrentStepLevel, context.CommitteeMembers, context.EntityCreatedBy, actorId, actorEmployeeId)
             },
             _ => new WorkflowPanelBuildOptions
             {

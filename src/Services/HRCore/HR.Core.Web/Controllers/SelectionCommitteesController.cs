@@ -18,7 +18,6 @@ public sealed class SelectionCommitteesController(
     SelectionCommitteeService committeeService,
     SelectionCommitteeLifecycleService lifecycleService,
     SelectionCommitteeWorkflowUiService workflowUiService,
-    IWorkflowInstanceActionService workflowActions,
     EstablishmentScopeService establishmentScope) : Controller
 {
     public async Task<IActionResult> Index(Guid requisitionId)
@@ -109,21 +108,14 @@ public sealed class SelectionCommitteesController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        if (session.WorkflowInstanceId is not Guid workflowId)
-        {
-            TempData["Error"] = "لا يوجد مسار اعتماد مرتبط بهذه الجلسة.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        var result = await workflowActions.ApproveAsync(
-            workflowId,
+        // HCM-028 (B): quorum and member/creator separation are enforced server-side by the lifecycle service.
+        var (success, error) = await lifecycleService.ApproveStepAsync(
+            id,
             CreateWorkflowActor(User),
-            vm.Comments,
-            targetStepLevel: null);
+            HrOrgScopeVisibility.GetEmployeeId(User),
+            vm.Comments);
 
-        TempData[result.Success ? "Success" : "Error"] = result.Success
-            ? "تم اعتماد خطوة مسار اللجنة"
-            : result.Error ?? "تعذّر اعتماد اللجنة.";
+        TempData[success ? "Success" : "Error"] = success ? "تم اعتماد خطوة مسار اللجنة" : error;
 
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -150,20 +142,13 @@ public sealed class SelectionCommitteesController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        if (session.WorkflowInstanceId is not Guid workflowId)
-        {
-            TempData["Error"] = "لا يوجد مسار اعتماد مرتبط بهذه الجلسة.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        var result = await workflowActions.RejectAsync(
-            workflowId,
+        var (success, error) = await lifecycleService.RejectStepAsync(
+            id,
             CreateWorkflowActor(User),
+            HrOrgScopeVisibility.GetEmployeeId(User),
             vm.Comments);
 
-        TempData[result.Success ? "Success" : "Error"] = result.Success
-            ? "تم رفض مسار اللجنة"
-            : result.Error ?? "تعذّر رفض اللجنة.";
+        TempData[success ? "Success" : "Error"] = success ? "تم رفض مسار اللجنة وإعادة الجلسة للتعديل" : error;
 
         return RedirectToAction(nameof(Details), new { id });
     }

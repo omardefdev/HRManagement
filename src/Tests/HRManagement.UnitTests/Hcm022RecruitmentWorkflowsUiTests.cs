@@ -176,7 +176,9 @@ public class Hcm022RecruitmentWorkflowsUiTests
             db,
             Mock.Of<IPolicyOrchestrator>(),
             Mock.Of<IWorkflowStarter>(),
-            LabScaleConfig());
+            LabScaleConfig(),
+            new SelectionCommitteeService(db),
+            Mock.Of<IWorkflowInstanceActionService>());
 
         var (success, error) = await lifecycle.SubmitForApprovalAsync(session.Id, CreatorId, "creator");
         Assert.False(success);

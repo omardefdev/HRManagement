@@ -164,6 +164,18 @@ public sealed class WorkflowInstanceActionService(
                 return "لا يمكن للمنشئ اعتماد طلبه الخاص.";
         }
 
+        // HCM-028: the session creator never approves the committee; member and quorum checks need the actor's
+        // employee id and live in SelectionCommitteeLifecycleService.ApproveStepAsync.
+        if (string.Equals(instance.EntityType, "SelectionCommitteeSession", StringComparison.OrdinalIgnoreCase))
+        {
+            var session = await context.SelectionCommitteeSessions.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == instance.EntityId, ct);
+            var committeeError = SelectionCommitteeRules.ValidateApproval(
+                instance.CurrentStepLevel, members: null, session?.CreatedBy, actorUserId, actorEmployeeId: null);
+            if (committeeError is not null)
+                return committeeError;
+        }
+
         if (string.Equals(instance.EntityType, "OfferLetter", StringComparison.OrdinalIgnoreCase))
         {
             var offer = await context.OfferLetters.AsNoTracking()

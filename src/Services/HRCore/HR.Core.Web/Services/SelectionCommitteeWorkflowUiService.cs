@@ -3,6 +3,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
+using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
 
 namespace HR.Core.Web.Services;
@@ -18,6 +19,7 @@ public sealed class SelectionCommitteeWorkflowUiService(
     {
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, session.WorkflowInstanceId, ct);
         var userId = WorkflowPanelBuilder.ParseUserId(user);
+        var actorEmployeeId = HrOrgScopeVisibility.GetEmployeeId(user);
         var accessScope = await establishmentScope.GetScopeAsync(user, ct);
         var orgUnitId = session.Requisition?.FundedPosition?.OrgUnitId;
 
@@ -30,6 +32,7 @@ public sealed class SelectionCommitteeWorkflowUiService(
             {
                 IsAwaitingApproval = session.ApprovedAt is null && session.WorkflowInstanceId is not null,
                 EntityCreatedBy = session.CreatedBy,
+                CreatorSoDMessage = SelectionCommitteeRules.ApproverIsMemberOrCreatorMessage,
                 MissingWorkflowWarning = session.WorkflowInstanceId is null && session.ApprovedAt is null
                     ? null
                     : null,
@@ -39,14 +42,9 @@ public sealed class SelectionCommitteeWorkflowUiService(
                     if (orgBlock is not null)
                         return orgBlock;
 
-                    if (inst.CurrentStepLevel == 2
-                        && step.Level == 2
-                        && !RecruitmentAppealWorkflowRules.HasQuorum(session.Members))
-                    {
-                        return "لا يمكن اعتماد خطوة النصاب: يجب 3 أعضاء فعّالين على الأقل (غير منسحبين).";
-                    }
-
-                    return null;
+                    // HCM-028: same rule as SelectionCommitteeLifecycleService.ApproveStepAsync.
+                    return SelectionCommitteeRules.ValidateApproval(
+                        inst.CurrentStepLevel, session.Members, session.CreatedBy, actorId, actorEmployeeId);
                 }
             });
 
@@ -54,6 +52,7 @@ public sealed class SelectionCommitteeWorkflowUiService(
         {
             Session = session,
             CanSubmit = session.ApprovedAt is null
+                && !session.IsLocked
                 && session.WorkflowInstanceId is null
                 && session.Members.Any(),
             Workflow = workflowPanel
