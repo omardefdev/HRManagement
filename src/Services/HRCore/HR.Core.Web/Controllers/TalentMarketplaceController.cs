@@ -11,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 public class TalentMarketplaceController(
-    HRCoreDbContext db) : Controller
+    HRCoreDbContext db,
+    CandidatePublicStatusService publicStatus) : Controller
 {
     private async Task PopulateOrgUnits(Guid? selected = null) =>
         ViewBag.OrgUnits = new SelectList(
@@ -109,10 +110,14 @@ public class TalentMarketplaceController(
             .Include(v => v.OrgUnit)
             .Include(v => v.Requisition)
             .Include(v => v.Applications).ThenInclude(a => a.Employee)
-            .Include(v => v.Applications).ThenInclude(a => a.PromotedRecruitmentApplication)
             .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id);
         if (vacancy is null) return NotFound();
+        // HCM-030 (A4/B2): linked rows show what the candidate sees.
+        ViewBag.PublicStatuses = await publicStatus.GetViewsAsync(vacancy.Applications
+            .Where(a => a.PromotedRecruitmentApplicationId.HasValue)
+            .Select(a => a.PromotedRecruitmentApplicationId!.Value)
+            .ToList());
         return View(vacancy);
     }
 

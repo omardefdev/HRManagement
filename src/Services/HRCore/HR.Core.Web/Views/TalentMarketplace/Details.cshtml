@@ -1,6 +1,10 @@
 @using HR.Core.Domain.Enums
 @model HR.Core.Domain.Entities.InternalVacancy
-@{ ViewData["Title"] = "تفاصيل الشاغر الداخلي"; }
+@{
+    ViewData["Title"] = "تفاصيل الشاغر الداخلي";
+    var publicStatuses = ViewBag.PublicStatuses as IReadOnlyDictionary<Guid, HR.Core.Domain.Services.CandidatePublicView>
+        ?? new Dictionary<Guid, HR.Core.Domain.Services.CandidatePublicView>();
+}
 @if (!Model.RequisitionId.HasValue)
 {
     <div class="alert alert-warning">إعلان قديم غير مرتبط بطلب شاغر — للقراءة فقط.</div>
@@ -48,9 +52,13 @@
                         {
                             @* HCM-030 (A4): screened in one place — the recruitment application. *@
                             <td>
-                                @if (a.PromotedRecruitmentApplication is { } linked)
+                                @if (a.PromotedRecruitmentApplicationId is Guid linkedId && publicStatuses.TryGetValue(linkedId, out var publicView))
                                 {
-                                    <span>@Html.HrEnumDisplay(linked.Status)</span>
+                                    <span>@publicView.LabelAr</span>
+                                    @if (!string.IsNullOrWhiteSpace(publicView.DetailAr))
+                                    {
+                                        <span class="d-block text-muted small">@publicView.DetailAr</span>
+                                    }
                                 }
                                 else
                                 {

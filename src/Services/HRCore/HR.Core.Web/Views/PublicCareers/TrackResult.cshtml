@@ -1,12 +1,12 @@
 @using HR.Core.Domain.Enums
+@using HR.Core.Domain.Services
 @model HR.Core.Domain.Entities.CitizenApplication
 @{
     ViewData["Title"] = "حالة الطلب";
     Layout = "_PublicLayout";
+    // HCM-030 (B3): linked applications use the public projection; legacy rows keep the citizen status.
+    var publicView = ViewBag.PublicView as CandidatePublicView;
     var timeline = ViewBag.Timeline as IReadOnlyList<(string Label, bool Reached, string? Detail)> ?? [];
-    var interviews = (ViewBag.Interviews as IReadOnlyList<HR.Core.Domain.Entities.RecruitmentInterviewSlot> ?? [])
-        .Where(s => s.Status == HR.Core.Domain.Enums.InterviewSlotStatus.Scheduled)
-        .ToList();
     string Badge(CitizenApplicationStatus s) => s switch
     {
         CitizenApplicationStatus.Accepted => "background:#2e7d32; color:#fff;",
@@ -23,6 +23,16 @@
         CitizenApplicationStatus.UnderReview => "قيد المراجعة",
         CitizenApplicationStatus.Received => "مستلَم",
         _ => s.ToString()
+    };
+    string PublicBadge(string code) => code switch
+    {
+        CandidatePublicStatusProjection.Codes.Accepted => "bg-success",
+        CandidatePublicStatusProjection.Codes.NotAccepted => "bg-danger",
+        CandidatePublicStatusProjection.Codes.OfferPending => "bg-primary",
+        CandidatePublicStatusProjection.Codes.InterviewInvited => "bg-info text-dark",
+        CandidatePublicStatusProjection.Codes.OfferClosed or CandidatePublicStatusProjection.Codes.Withdrawn => "bg-secondary",
+        CandidatePublicStatusProjection.Codes.ReserveListed => "bg-dark",
+        _ => "bg-warning text-dark"
     };
 }
 <h2 class="careers-page-title"><i class="fas fa-clipboard-check ms-2"></i> حالة الطلب</h2>
@@ -60,25 +70,27 @@
             <div class="col-12">
                 <div class="mb-0">
                     <span class="text-muted small">الحالة</span>
-                    <p class="mb-0"><span class="badge rounded-pill px-3 py-2" style="@Badge(Model.Status)">@StatusLabel(Model.Status)</span></p>
+                    @if (publicView is not null)
+                    {
+                        <p class="mb-0" role="status"><span class="badge rounded-pill px-3 py-2 @PublicBadge(publicView.Code)">@publicView.LabelAr</span></p>
+                        @if (!string.IsNullOrWhiteSpace(publicView.DetailAr))
+                        {
+                            <p class="mb-0 mt-2">@publicView.DetailAr</p>
+                        }
+                    }
+                    else
+                    {
+                        <p class="mb-0"><span class="badge rounded-pill px-3 py-2" style="@Badge(Model.Status)">@StatusLabel(Model.Status)</span></p>
+                    }
                 </div>
             </div>
-            @if (Model.Status == CitizenApplicationStatus.Rejected)
+            @if (publicView is null && Model.Status == CitizenApplicationStatus.Rejected)
             {
                 <div class="col-12">
                     <div class="alert alert-info mb-0 mt-2">
                         <i class="fas fa-info-circle ms-1"></i>
                         في حال الرفض يمكنكم الاستئناف عبر الجهة المعلنة خلال المدة النظامية — راجعوا
                         <a asp-action="Privacy">إشعار الخصوصية</a>.
-                    </div>
-                </div>
-            }
-            @if (Model.PromotedRecruitmentApplicationId.HasValue)
-            {
-                <div class="col-12">
-                    <div class="alert alert-success mb-0 mt-2">
-                        <i class="fas fa-check-circle ms-1"></i>
-                        تم تحويل طلبك إلى مسار التوظيف الداخلي للمتابعة والاختيار.
                     </div>
                 </div>
             }
@@ -90,38 +102,61 @@
     <div class="card-body">
         <h5 class="mb-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-stream ms-2"></i> مسار الطلب</h5>
         <ol class="list-group list-group-numbered" aria-label="مراحل مسار طلب التوظيف">
-            @foreach (var step in timeline)
+            @if (publicView is not null)
             {
-                <li class="list-group-item d-flex justify-content-between align-items-start @(step.Reached ? "" : "text-muted")">
-                    <div>
-                        <div class="fw-bold">@step.Label</div>
-                        @if (!string.IsNullOrWhiteSpace(step.Detail))
+                @foreach (var step in publicView.Timeline)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-start @(step.Reached ? "" : "text-muted")">
+                        <div>
+                            <div class="fw-bold">@step.LabelAr</div>
+                            @if (!string.IsNullOrWhiteSpace(step.DetailAr))
+                            {
+                                <small>@step.DetailAr</small>
+                            }
+                            @if (step.AtUtc is DateTime at)
+                            {
+                                <small class="d-block">@at.ToLocalTime().ToString("yyyy-MM-dd")</small>
+                            }
+                        </div>
+                        @if (step.Reached)
                         {
-                            <small>@step.Detail</small>
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check" aria-hidden="true"></i><span class="visually-hidden">تم</span></span>
                         }
-                    </div>
-                    @if (step.Reached)
-                    {
-                        <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
-                    }
-                </li>
+                    </li>
+                }
+            }
+            else
+            {
+                @foreach (var step in timeline)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-start @(step.Reached ? "" : "text-muted")">
+                        <div>
+                            <div class="fw-bold">@step.Label</div>
+                            @if (!string.IsNullOrWhiteSpace(step.Detail))
+                            {
+                                <small>@step.Detail</small>
+                            }
+                        </div>
+                        @if (step.Reached)
+                        {
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                        }
+                    </li>
+                }
             }
         </ol>
-        @if (interviews.Any())
+        @if (publicView?.NextInterview is { } interview)
         {
             <div class="mt-3">
                 <h6 class="fw-bold">موعد المقابلة</h6>
-                @foreach (var slot in interviews)
-                {
-                    <p class="mb-1">
-                        <i class="fas fa-calendar-alt ms-1"></i>
-                        @slot.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
-                        @if (!string.IsNullOrWhiteSpace(slot.Location))
-                        {
-                            <span> — @slot.Location</span>
-                        }
-                    </p>
-                }
+                <p class="mb-1">
+                    <i class="fas fa-calendar-alt ms-1"></i>
+                    @interview.ScheduledAtUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm") — @interview.ModeAr
+                    @if (!string.IsNullOrWhiteSpace(interview.Location))
+                    {
+                        <span> — @interview.Location</span>
+                    }
+                </p>
             </div>
         }
     </div>

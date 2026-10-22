@@ -138,8 +138,8 @@ internal static class Hcm030TestSupport
             db,
             codeGen.Object,
             new RecruitmentApplicationIntakeService(db),
-            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
-            new UnifiedIntakeService(db)), new ClaimsPrincipal(new ClaimsIdentity()));
+            new UnifiedIntakeService(db),
+            new CandidatePublicStatusService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))), new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
     public static EssTalentController CreateEssController(HRCoreDbContext db, Guid employeeId)
@@ -149,14 +149,17 @@ internal static class Hcm030TestSupport
             .Build();
         var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim("employee_id", employeeId.ToString())], "test"));
         return WithContext(new EssTalentController(
-            db, new RecruitmentApplicationIntakeService(db), config, new UnifiedIntakeService(db)), user);
+            db, new RecruitmentApplicationIntakeService(db), config, new UnifiedIntakeService(db), CreatePublicStatus(db)), user);
     }
 
     public static PublicJobPostingsController CreatePublicJobPostingsController(HRCoreDbContext db) =>
-        WithContext(new PublicJobPostingsController(db), HrUser());
+        WithContext(new PublicJobPostingsController(db, CreatePublicStatus(db)), HrUser());
 
     public static TalentMarketplaceController CreateTalentMarketplaceController(HRCoreDbContext db) =>
-        WithContext(new TalentMarketplaceController(db), HrUser());
+        WithContext(new TalentMarketplaceController(db, CreatePublicStatus(db)), HrUser());
+
+    public static CandidatePublicStatusService CreatePublicStatus(HRCoreDbContext db) =>
+        new(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 
     public static T WithContext<T>(T controller, ClaimsPrincipal user) where T : Controller
     {

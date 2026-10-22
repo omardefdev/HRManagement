@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
-public class PublicJobPostingsController(HRCoreDbContext db) : Controller
+public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStatusService publicStatus) : Controller
 {
     public async Task<IActionResult> Index(bool? isPublished, string? entity, string? q, DateOnly? closingFrom, DateOnly? closingTo)
     {
@@ -110,12 +110,15 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
         var posting = await db.PublicJobPostings
             .Include(p => p.Applications)
                 .ThenInclude(a => a.Requisition)
-            .Include(p => p.Applications)
-                .ThenInclude(a => a.PromotedRecruitmentApplication)
             .Include(p => p.Requisition)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
         if (posting == null) return NotFound();
+        // HCM-030 (A4/B2): linked rows show what the candidate sees.
+        ViewBag.PublicStatuses = await publicStatus.GetViewsAsync(posting.Applications
+            .Where(a => a.PromotedRecruitmentApplicationId.HasValue)
+            .Select(a => a.PromotedRecruitmentApplicationId!.Value)
+            .ToList());
         return View(posting);
     }
 

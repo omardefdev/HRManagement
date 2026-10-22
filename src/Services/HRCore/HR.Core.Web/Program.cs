@@ -178,6 +178,7 @@ builder.Services.AddScoped<HR.Core.Web.Services.RecruitmentRequisitionWorkflowUi
 builder.Services.AddScoped<HR.Core.Web.Services.OfferLetterWorkflowUiService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentApplicationIntakeService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.UnifiedIntakeService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.CandidatePublicStatusService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentRequisitionWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentSelectionService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOfferService>();

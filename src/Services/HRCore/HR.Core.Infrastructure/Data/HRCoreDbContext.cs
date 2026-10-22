@@ -1069,6 +1069,19 @@ public class HRCoreDbContext : TenantAwareDbContext
         public void Dispose() => db.ApplicationEventsSuppressed = previous;
     }
 
+    /// <summary>HCM-030 (B1): every save path (sync and async) records the application events of its changes.</summary>
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        RecruitmentApplicationEventRecorder.Record(this);
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        RecruitmentApplicationEventRecorder.Record(this);
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         UtcDateTimeNormalization.Apply(this);

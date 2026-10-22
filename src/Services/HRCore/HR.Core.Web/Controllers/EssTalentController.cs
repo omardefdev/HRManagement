@@ -18,7 +18,8 @@ public class EssTalentController(
     HRCoreDbContext db,
     RecruitmentApplicationIntakeService intake,
     IConfiguration configuration,
-    UnifiedIntakeService unifiedIntake) : Controller
+    UnifiedIntakeService unifiedIntake,
+    CandidatePublicStatusService publicStatus) : Controller
 {
     [HttpGet("")]
     [HttpGet("Index")]
@@ -131,12 +132,17 @@ public class EssTalentController(
             .Include(a => a.InternalVacancy)
                 .ThenInclude(v => v!.Requisition)
                     .ThenInclude(r => r!.FundedPosition)
-            .Include(a => a.PromotedRecruitmentApplication)
             .Where(a => a.EmployeeId == employeeId.Value)
             .OrderByDescending(a => a.AppliedAt)
             .Take(SearchFilterBase.MaxPageSize)
             .AsNoTracking()
             .ToListAsync();
+
+        // HCM-030 (B3): the public status of the linked recruitment application, never the raw internal stage.
+        ViewBag.PublicStatuses = await publicStatus.GetViewsAsync(applications
+            .Where(a => a.PromotedRecruitmentApplicationId.HasValue)
+            .Select(a => a.PromotedRecruitmentApplicationId!.Value)
+            .ToList());
         return View(applications);
     }
 
