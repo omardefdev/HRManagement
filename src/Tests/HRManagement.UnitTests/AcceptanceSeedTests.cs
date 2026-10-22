@@ -1,6 +1,7 @@
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Seeding;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -88,6 +89,57 @@ public class AcceptanceSeedTests
         Assert.NotEmpty(postings);
         Assert.All(postings, p => Assert.Equal(published.Single(r => r.Id == p.RequisitionId).ApplicationClosingDate, p.ClosingDate));
         Assert.All(vacancies, v => Assert.Equal(published.Single(r => r.Id == v.RequisitionId).ApplicationClosingDate, v.ClosingDate));
+    }
+
+    [Fact]
+    public async Task Acceptance_seed_committee_gated_requisition_is_ready_for_votes()
+    {
+        // HCM-028: gated requisition + 3 assessed candidates + unsubmitted session (chair + 3, not persona-linked).
+        var options = new DbContextOptionsBuilder<HRCoreDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var db = new HRCoreDbContext(options);
+        await AcceptanceDataSeeder.SeedAsync(db, NullLogger.Instance);
+
+        var requisition = await db.RecruitmentRequisitions.IgnoreQueryFilters()
+            .SingleAsync(r => r.Id == AcceptanceSeedIds.CommitteeRequisitionId);
+        Assert.True(requisition.RequiresCommitteeApproval);
+        Assert.Equal(HR.Core.Domain.Enums.RequisitionStatus.Published, requisition.Status);
+        Assert.Equal(AcceptanceSeedIds.AgencyAId, requisition.TenantId);
+        Assert.Equal(1, await db.RecruitmentRequisitions.IgnoreQueryFilters()
+            .CountAsync(r => r.FundedPositionId == requisition.FundedPositionId));
+
+        var candidates = await db.RecruitmentApplications.IgnoreQueryFilters()
+            .Where(a => a.RequisitionId == requisition.Id)
+            .ToListAsync();
+        Assert.Equal(3, candidates.Count);
+        Assert.All(candidates, a => Assert.Equal(HR.Core.Domain.Enums.RecruitmentApplicationStatus.Assessed, a.Status));
+        Assert.Equal(3, candidates.Select(a => a.AssessmentScore).Distinct().Count());
+
+        var session = await db.SelectionCommitteeSessions.IgnoreQueryFilters()
+            .Include(s => s.Members)
+            .SingleAsync(s => s.Id == AcceptanceSeedIds.CommitteeSessionId);
+        Assert.Null(session.SubmittedAt);
+        Assert.Null(session.LockedAt);
+        Assert.Null(session.WorkflowInstanceId);
+        Assert.Equal(HR.Core.Domain.Enums.CommitteePurpose.Ranking, session.Purpose);
+        Assert.Equal(4, session.Members.Count);
+        Assert.Single(session.Members, m => HR.Core.Domain.Services.SelectionCommitteeRules.IsChairRole(m.Role));
+        Assert.Equal(session.Members.Single(m => m.Role == "Chair").EmployeeId, session.ChairEmployeeId);
+        Assert.All(session.Members, m => Assert.False(m.Recused));
+
+        var personaEmployees = AcceptancePersonaCatalog.Personas
+            .Where(p => p.Employee is not null)
+            .ToDictionary(p => p.Employee!.Id, p => p.Id);
+        foreach (var personaId in new[] { "a-management-approver", "br1-mgr", "central-a" })
+            Assert.DoesNotContain(session.Members, m => personaEmployees.TryGetValue(m.EmployeeId, out var p) && p == personaId);
+        Assert.All(session.Members, m => Assert.False(personaEmployees.ContainsKey(m.EmployeeId)));
+
+        // Quorum and chair are met; only the per-candidate decisions (and their votes) remain.
+        var members = session.Members.ToList();
+        var issues = HR.Core.Domain.Services.SelectionCommitteeRules.GetSubmitIssues(members, [], [], [], candidates);
+        Assert.Equal(3, issues.Count);
+        Assert.All(issues, i => Assert.Contains("لا توجد توصية", i, StringComparison.Ordinal));
     }
 
     [Fact]

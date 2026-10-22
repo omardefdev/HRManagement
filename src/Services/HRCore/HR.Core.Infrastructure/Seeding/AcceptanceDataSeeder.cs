@@ -126,6 +126,7 @@ public static class AcceptanceDataSeeder
         await SeedInternalChannelAsync(db, agency, ct);
         await SeedRecruitmentApplicationsAsync(db, agency, jobCatalog, ct);
         await SeedSelectionPipelineAsync(db, agency, ct);
+        await SeedCommitteeGatedRequisitionAsync(db, agency, ct);
         await SeedAcceptancePolicyAsync(db, agency, ct);
 
         db.SeedPackApplications.Add(new SeedPackApplication
@@ -779,6 +780,157 @@ public static class AcceptanceDataSeeder
             db.OfferLetters.Add(issuedOffer);
             issuedApp.ActiveOfferLetter = issuedOffer;
             issuedApp.Status = RecruitmentApplicationStatus.OfferExtended;
+        }
+
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+    }
+
+    /// <summary>
+    /// HCM-028 (PLAN-28): one Agency A requisition with <c>RequiresCommitteeApproval = true</c>, three Assessed
+    /// candidates (with score evidence) and an unsubmitted Ranking session of a chair + 3 members. Members are
+    /// active employees not linked to any acceptance persona, so approver personas are never committee members.
+    /// Votes and decisions are left to the acceptance run (record → submit → approve → rank).
+    /// </summary>
+    private static async Task SeedCommitteeGatedRequisitionAsync(
+        HRCoreDbContext db,
+        AcceptanceAgency agency,
+        CancellationToken ct)
+    {
+        if (agency.Code != AcceptanceSeedIds.AgencyACode
+            || await db.RecruitmentRequisitions.AnyAsync(r => r.Id == AcceptanceSeedIds.CommitteeRequisitionId, ct))
+            return;
+
+        var usedPositionIds = await db.RecruitmentRequisitions
+            .Where(r => r.TenantId == agency.Id)
+            .Select(r => r.FundedPositionId)
+            .ToListAsync(ct);
+        var position = await db.FundedPositions
+            .Include(p => p.JobCatalogEntry)
+            .Where(p => p.TenantId == agency.Id
+                && p.Status == FundedPositionStatus.Vacant
+                && p.PositionCode.StartsWith("VAC-")
+                && !usedPositionIds.Contains(p.Id))
+            .OrderBy(p => p.PositionCode)
+            .FirstOrDefaultAsync(ct);
+        if (position is null)
+            return;
+
+        var requisition = new RecruitmentRequisition
+        {
+            Id = AcceptanceSeedIds.CommitteeRequisitionId,
+            TenantId = agency.Id,
+            RequisitionNumber = AcceptanceSeedIds.CommitteeRequisitionNumber,
+            FundedPositionId = position.Id,
+            JobTitle = position.JobCatalogEntry?.TitleAr ?? position.GradeCode,
+            Status = RequisitionStatus.Published,
+            RequestedDate = AcceptanceSeedCatalog.ReferenceDate.AddDays(-20),
+            ApprovedDate = AcceptanceSeedCatalog.ReferenceDate.AddDays(-15),
+            PublishedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-14),
+            JustificationNotes = "طلب شاغر مشروط باعتماد لجنة الاختيار لاختبارات القبول (PLAN-28).",
+            VacancyCount = 1,
+            LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004,
+            PublishingChannel = RecruitmentPublishingChannel.PublicOnly,
+            ApplicationClosingDate = AcceptanceSeedApplicationClosingDate,
+            RequiresCommitteeApproval = true,
+            CreatedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-20),
+            UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+        };
+        db.RecruitmentRequisitions.Add(requisition);
+        var posting = RecruitmentRequisitionService.MapToPublicJobPosting(requisition, position);
+        posting.Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "committee-posting");
+        db.PublicJobPostings.Add(posting);
+        requisition.PublicJobPosting = posting;
+
+        var criteria = new RecruitmentAssessmentCriteria
+        {
+            Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "committee-criteria"),
+            TenantId = agency.Id,
+            RequisitionId = requisition.Id,
+            VersionNumber = 1,
+            Title = "معايير التقييم v1",
+            CriteriaJson = RecruitmentSeedCriteria.Json,
+            IsActive = true,
+            EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddDays(-20),
+            CreatedAt = AcceptanceSeedCatalog.ReferenceDate,
+            UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+        };
+        db.RecruitmentAssessmentCriteria.Add(criteria);
+
+        string[] names = ["هبة المصري", "طارق الحلبي", "ريم الشامي"];
+        decimal[] scores = [88m, 76m, 64m];
+        var candidates = new List<RecruitmentApplication>();
+        for (var i = 0; i < names.Length; i++)
+        {
+            var nationalId = $"AC-{agency.Ordinal}-CMT{i + 1:D3}";
+            var app = new RecruitmentApplication
+            {
+                Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, $"committee-candidate-{i + 1}"),
+                TenantId = agency.Id,
+                ApplicantFullName = names[i],
+                NationalId = nationalId,
+                NationalIdHash = PiiMask.Sha256Hex(nationalId),
+                RequisitionId = requisition.Id,
+                AppliedPosition = requisition.JobTitle,
+                AppliedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-12 + i),
+                Status = RecruitmentApplicationStatus.Assessed,
+                AssessmentScore = scores[i],
+                CriteriaVersionId = criteria.Id,
+                ConflictOfInterestDeclared = true,
+                ConflictOfInterestDeclaredAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-10),
+                ScreenedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-10),
+                ReviewedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-5),
+                Notes = "مرشح مُقيَّم على طلب شاغر مشروط باللجنة (PLAN-28)",
+                CreatedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-12 + i),
+                UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+            };
+            db.RecruitmentApplications.Add(app);
+            candidates.Add(app);
+        }
+
+        await db.SaveChangesAsync(ct);
+        foreach (var app in candidates)
+            await SeedAssessmentEvidenceAsync(db, agency, app, criteria, app.AssessmentScore!.Value, ct);
+
+        var personaEmployeeIds = AcceptancePersonaCatalog.Personas
+            .Where(p => p.Employee is not null)
+            .Select(p => p.Employee!.Id)
+            .ToHashSet();
+        var memberEmployees = agency.Employees
+            .Where(e => e.State == AcceptanceEmployeeState.Active
+                && !personaEmployeeIds.Contains(e.Id)
+                && e.Id != AcceptanceSeedIds.EmpBr1Id
+                && e.Id != AcceptanceSeedIds.EmpD1Id
+                && e.Id != AcceptanceSeedIds.EmpBr2Id)
+            .OrderBy(e => e.Index)
+            .Take(4)
+            .ToList();
+
+        var session = new SelectionCommitteeSession
+        {
+            Id = AcceptanceSeedIds.CommitteeSessionId,
+            TenantId = agency.Id,
+            RequisitionId = requisition.Id,
+            CommitteeDate = AcceptanceSeedCatalog.ReferenceDate,
+            Purpose = CommitteePurpose.Ranking,
+            Findings = "جلسة لجنة اختيار ثابتة لاختبارات القبول (PLAN-28).",
+            ChairEmployeeId = memberEmployees.FirstOrDefault()?.Id,
+            CreatedAt = AcceptanceSeedCatalog.ReferenceDate,
+            UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+        };
+        db.SelectionCommitteeSessions.Add(session);
+        for (var i = 0; i < memberEmployees.Count; i++)
+        {
+            db.SelectionCommitteeMembers.Add(new SelectionCommitteeMember
+            {
+                Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, $"committee-member-{i + 1}"),
+                TenantId = agency.Id,
+                SessionId = session.Id,
+                EmployeeId = memberEmployees[i].Id,
+                Role = i == 0 ? SelectionCommitteeMember.ChairRole : SelectionCommitteeMember.MemberRole,
+                CreatedAt = AcceptanceSeedCatalog.ReferenceDate,
+                UpdatedAt = AcceptanceSeedCatalog.ReferenceDate
+            });
         }
 
         await db.SaveChangesAsync(ct);

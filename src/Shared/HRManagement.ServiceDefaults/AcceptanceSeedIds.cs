@@ -38,6 +38,14 @@ public static class AcceptanceSeedIds
     public static readonly Guid Br1InternalVacancyId = Guid.Parse("a0000001-0000-4000-8000-000000000504");
     public static readonly Guid Br1InternalApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000505");
 
+    /// <summary>PLAN-28: Agency A published requisition with RequiresCommitteeApproval = true.</summary>
+    public static readonly Guid CommitteeRequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000510");
+
+    /// <summary>PLAN-28: its unsubmitted Ranking committee session (chair + 3 members, no votes/decisions).</summary>
+    public static readonly Guid CommitteeSessionId = Guid.Parse("a0000001-0000-4000-8000-000000000511");
+
+    public const string CommitteeRequisitionNumber = "REQ-2026-A-CMT1";
+
     public static readonly Guid AcceptanceAssetBr1Id = Guid.Parse("a0000001-0000-4000-8000-000000000601");
     public static readonly Guid AcceptanceAssetBr1AssignmentId = Guid.Parse("a0000001-0000-4000-8000-000000000602");
     public const string AcceptanceAssetBr1Tag = "ACCEPT-ASSET-BR1";
