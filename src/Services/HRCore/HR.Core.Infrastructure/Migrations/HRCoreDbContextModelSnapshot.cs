@@ -3203,6 +3203,16 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<int?>("Rank")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("RankOverriddenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RankOverriddenBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RankOverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<DateTime?>("RankedAt")
                         .HasColumnType("timestamp with time zone");
 

@@ -99,6 +99,17 @@ public class RecruitmentApplication : AuditableEntity
     [Display(Name = "تاريخ الإدراج في الاحتياط")]
     public DateTime? ReserveListedAt { get; set; }
 
+    /// <summary>HCM-028 (C): why the rank differs from the approved committee's proposed rank.</summary>
+    [StringLength(1000)]
+    [Display(Name = "سبب مخالفة الترتيب المقترح")]
+    public string? RankOverrideReason { get; set; }
+
+    [Display(Name = "خالف الترتيب المقترح")]
+    public Guid? RankOverriddenBy { get; set; }
+
+    [Display(Name = "تاريخ مخالفة الترتيب المقترح")]
+    public DateTime? RankOverriddenAt { get; set; }
+
     public virtual Employee? HiredEmployee { get; set; }
 
     public virtual ICollection<OfferLetter> OfferLetters { get; set; } = [];

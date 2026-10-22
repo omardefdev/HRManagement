@@ -417,6 +417,30 @@ public class RecruitmentRequisitionsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>HCM-028 (C): ranks every recommended/reserve candidate at the approved committee's proposed rank.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> ApplyCommitteeRanking(Guid id)
+    {
+        var (success, error, count) = await selection.ApplyCommitteeRankingAsync(id, ParseUserId(User));
+        TempData[success ? "Success" : "Error"] = success ? $"تم تطبيق ترتيب اللجنة على {count} مرشح" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>HCM-028 (A1): toggles committee approval on the requisition until the first rank is assigned.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> SetCommitteeRequirement(Guid id, bool required)
+    {
+        var (success, error) = await selection.SetCommitteeApprovalRequiredAsync(id, required, ParseUserId(User));
+        TempData[success ? "Success" : "Error"] = success
+            ? (required ? "أصبح اعتماد لجنة الاختيار شرطاً للترتيب" : "أُلغي اشتراط اعتماد لجنة الاختيار للترتيب")
+            : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]

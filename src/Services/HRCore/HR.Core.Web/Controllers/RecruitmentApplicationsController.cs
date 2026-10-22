@@ -239,7 +239,8 @@ public class RecruitmentApplicationsController(
             return RedirectToAction(nameof(Details), new { id = form.ApplicationId });
         }
 
-        var (success, error) = await selection.AssignRankAsync(form.ApplicationId, form.Rank);
+        var (success, error) = await selection.AssignRankAsync(
+            form.ApplicationId, form.Rank, form.RankOverrideReason, ParseUserId(User));
         TempData[success ? "Success" : "Error"] = success ? "تم تعيين الترتيب" : error;
         return RedirectToAction(nameof(Details), new { id = form.ApplicationId });
     }

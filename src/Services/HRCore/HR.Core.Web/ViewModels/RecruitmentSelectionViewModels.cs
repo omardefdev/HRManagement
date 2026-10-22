@@ -57,6 +57,11 @@ public class AssignRankForm
     [Display(Name = "الترتيب")]
     [Range(1, 9999, ErrorMessage = "الترتيب يجب أن يكون موجباً.")]
     public int Rank { get; set; }
+
+    /// <summary>HCM-028: required (20+ chars) when the rank differs from the approved committee's proposed rank.</summary>
+    [Display(Name = "سبب مخالفة الترتيب المقترح")]
+    [StringLength(1000)]
+    public string? RankOverrideReason { get; set; }
 }
 
 public class CreateOfferForm
