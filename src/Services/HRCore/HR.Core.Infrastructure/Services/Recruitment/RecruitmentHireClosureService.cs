@@ -2,6 +2,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using System.Text.Json;
 using HR.Core.Infrastructure.Services.Establishment;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
@@ -14,6 +15,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace HR.Core.Infrastructure.Services.Recruitment;
+
+/// <summary>HCM-029: justifications recorded with a hire (audited on the application, never with the national ids).</summary>
+public sealed record HireClosureJustification(
+    string? NationalIdMismatchReason = null,
+    Guid? ActorUserId = null);
 
 /// <summary>HCM-005: atomic hire closure — employee, position occupancy, requisition close, offer conversion.</summary>
 public sealed class RecruitmentHireClosureService(
@@ -40,12 +46,15 @@ public sealed class RecruitmentHireClosureService(
         Guid? primaryOrgUnitId,
         DateOnly expectedStartDate,
         string employmentCategory,
+        HireClosureJustification? justification = null,
         CancellationToken cancellationToken = default)
     {
         var fullName = $"{firstName} {middleName} {lastName}".Replace("  ", " ").Trim();
         var employee = new Employee
         {
             NationalId = nationalId,
+            // HCM-029: set here as well so the duplicate check sees it; the PII interceptor recomputes the same value.
+            NationalIdHash = HireNationalIdRules.HashOf(nationalId),
             FirstName = firstName,
             MiddleName = middleName,
             LastName = lastName,
@@ -63,6 +72,7 @@ public sealed class RecruitmentHireClosureService(
             linkExistingEmployeeId: null,
             expectedStartDate,
             employmentCategory,
+            justification,
             cancellationToken);
     }
 
@@ -71,6 +81,7 @@ public sealed class RecruitmentHireClosureService(
         Guid hiredEmployeeId,
         DateOnly expectedStartDate,
         string employmentCategory,
+        HireClosureJustification? justification = null,
         CancellationToken cancellationToken = default) =>
         ExecuteHireClosureAsync(
             app.Id,
@@ -78,14 +89,57 @@ public sealed class RecruitmentHireClosureService(
             linkExistingEmployeeId: hiredEmployeeId,
             expectedStartDate,
             employmentCategory,
+            justification,
             cancellationToken);
 
+    /// <summary>
+    /// HCM-029 (A4): any failure leaves nothing behind — the transaction rolls back on dispose and the change tracker is
+    /// cleared, so the employee and the outbox rows added by <see cref="IPublishEndpoint"/> are never saved by a later
+    /// <c>SaveChanges</c> in the same scope. Save failures are mapped to <see cref="HireClosureException"/>.
+    /// </summary>
     private async Task<Employee> ExecuteHireClosureAsync(
         Guid applicationId,
         Employee? employeePayload,
         Guid? linkExistingEmployeeId,
         DateOnly expectedStartDate,
         string employmentCategory,
+        HireClosureJustification? justification,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await ExecuteHireClosureCoreAsync(
+                applicationId,
+                employeePayload,
+                linkExistingEmployeeId,
+                expectedStartDate,
+                employmentCategory,
+                justification,
+                cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            db.ChangeTracker.Clear();
+            var mapped = HireClosureException.FromSaveFailure(ex);
+            if (mapped is null)
+                throw;
+            logger.LogWarning(ex, "Hire closure for application {ApplicationId} failed: {Kind}", applicationId, mapped.Kind);
+            throw mapped;
+        }
+        catch
+        {
+            db.ChangeTracker.Clear();
+            throw;
+        }
+    }
+
+    private async Task<Employee> ExecuteHireClosureCoreAsync(
+        Guid applicationId,
+        Employee? employeePayload,
+        Guid? linkExistingEmployeeId,
+        DateOnly expectedStartDate,
+        string employmentCategory,
+        HireClosureJustification? justification,
         CancellationToken cancellationToken)
     {
         var legacyWithoutOffer = configuration.GetValue("Recruitment:LegacyHireWithoutOffer", false);
@@ -160,6 +214,7 @@ public sealed class RecruitmentHireClosureService(
         {
             employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == existingId, cancellationToken)
                 ?? throw new InvalidOperationException("الموظف المحدد غير موجود في النواة.");
+            RecordNationalIdMismatch(app, HireNationalIdRules.EmployeeHash(employee), "LinkExisting", justification);
         }
         else if (isInternalMobility && app.SourceInternalApplication?.EmployeeId is Guid internalEmployeeId)
         {
@@ -170,6 +225,13 @@ public sealed class RecruitmentHireClosureService(
         {
             employee = employeePayload
                 ?? throw new InvalidOperationException("بيانات الموظف الجديد مطلوبة.");
+
+            // HCM-029 (A3): a person already on file is linked, never re-created (the unique NationalIdHash index
+            // would refuse it anyway — that race is mapped in ExecuteHireClosureAsync).
+            if (await new HirePersonMatchService(db).FindByNationalIdAsync(employee.NationalId, cancellationToken) is not null)
+                throw new HireClosureException(HireClosureErrorKind.DuplicatePerson, HireClosureException.DuplicatePersonMessage);
+
+            RecordNationalIdMismatch(app, HireNationalIdRules.HashOf(employee.NationalId), "CreateNew", justification);
             db.Employees.Add(employee);
             await db.SaveChangesAsync(cancellationToken);
         }
@@ -199,7 +261,7 @@ public sealed class RecruitmentHireClosureService(
         if (position is not null)
         {
             if (position.Status != FundedPositionStatus.Vacant)
-                throw new InvalidOperationException("المنصب لم يعد شاغراً.");
+                throw new HireClosureException(HireClosureErrorKind.PositionNotVacant, HireClosureException.PositionNotVacantMessage);
 
             var assignResult = establishmentService.AssignEmployee(position, employee.Id);
             if (!assignResult.Success)
@@ -271,6 +333,33 @@ public sealed class RecruitmentHireClosureService(
         return string.IsNullOrWhiteSpace(app.AppliedPosition) ? "تعيين من التوظيف" : app.AppliedPosition;
     }
 
+    /// <summary>
+    /// HCM-029 (A3): the entered (or linked) national id must match the application's, or carry a reason. The audit
+    /// entry records the fact, the mode and the reason — never the national ids.
+    /// </summary>
+    private void RecordNationalIdMismatch(
+        RecruitmentApplication app,
+        string? hireHash,
+        string mode,
+        HireClosureJustification? justification)
+    {
+        if (!HireNationalIdRules.Differs(HireNationalIdRules.ApplicationHash(app), hireHash))
+            return;
+
+        var reason = justification?.NationalIdMismatchReason;
+        if (!HireNationalIdRules.IsValidMismatchReason(reason))
+            throw new HireClosureException(HireClosureErrorKind.InvalidState, HireNationalIdRules.MismatchReasonRequiredMessage);
+
+        db.AuditLogs.Add(new HRManagement.SharedKernel.Entities.EntityAuditLog
+        {
+            EntityType = nameof(RecruitmentApplication),
+            EntityId = app.Id,
+            Action = HireNationalIdRules.MismatchAuditAction,
+            UserId = justification?.ActorUserId,
+            ChangedFields = JsonSerializer.Serialize(new { mode, nationalIdMismatch = true, reason = reason!.Trim() })
+        });
+    }
+
     private async Task SeedEmployeeSideEffectsAsync(
         Employee employee,
         string positionTitle,
@@ -299,7 +388,7 @@ public sealed class RecruitmentHireClosureService(
                 {
                     var regimeError = await serviceRegimeValidator.ValidateAssignableAsync(legalRegimeId, cancellationToken);
                     if (regimeError is not null)
-                        throw new InvalidOperationException(regimeError);
+                        throw new HireClosureException(HireClosureErrorKind.Legal, regimeError);
                 }
                 else
                 {

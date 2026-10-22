@@ -36,7 +36,8 @@ public class RecruitmentApplicationsController(
     IAuthorizationService authorization,
     ILegislationRegisterProvider legislationProvider,
     IPolicyOrchestrator policyOrchestrator,
-    IConfiguration configuration) : Controller
+    IConfiguration configuration,
+    HirePersonMatchService personMatch) : Controller
 {
     public async Task<IActionResult> Index(RecruitmentApplicationsFilter filter, bool showCreate = false)
     {
@@ -383,6 +384,18 @@ public class RecruitmentApplicationsController(
         }
 
         var vm = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
+
+        // HCM-029 (A2): a person already on file with the application's national id is linked, not re-created.
+        // The application has no birth date, so the name + birth-date warning only appears after a POST.
+        var match = await personMatch.MatchAsync(HireNationalIdRules.ApplicationHash(app), null, null);
+        if (match.NationalIdMatch is Employee existing)
+        {
+            vm.Mode = RecruitmentHireMode.LinkExisting;
+            vm.ExistingEmployeeId = existing.Id;
+            vm.MatchedEmployeeId = existing.Id;
+            vm.MatchedEmployeeName = existing.FullName;
+        }
+
         await PopulateSelectListsAsync(vm);
         return View(vm);
     }
@@ -396,6 +409,7 @@ public class RecruitmentApplicationsController(
         var app = await db.RecruitmentApplications
             .Include(a => a.Requisition)
                 .ThenInclude(r => r!.FundedPosition)
+                    .ThenInclude(p => p!.OrgUnit)
             .Include(a => a.ActiveOfferLetter)
             .FirstOrDefaultAsync(a => a.Id == vm.ApplicationId);
 
@@ -414,10 +428,15 @@ public class RecruitmentApplicationsController(
             return RedirectToAction(nameof(Details), new { id = app.Id });
         }
 
+        string? hireNationalIdHash = null;
         if (vm.Mode == RecruitmentHireMode.LinkExisting)
         {
             if (!vm.ExistingEmployeeId.HasValue)
                 ModelState.AddModelError(nameof(vm.ExistingEmployeeId), "يجب اختيار موظف موجود.");
+            else if (await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == vm.ExistingEmployeeId) is Employee linked)
+                hireNationalIdHash = HireNationalIdRules.EmployeeHash(linked);
+            else
+                ModelState.AddModelError(nameof(vm.ExistingEmployeeId), "الموظف المحدد غير موجود في النواة.");
         }
         else
         {
@@ -427,18 +446,24 @@ public class RecruitmentApplicationsController(
                 ModelState.AddModelError(nameof(vm.FirstName), "الاسم الأول مطلوب.");
             if (string.IsNullOrWhiteSpace(vm.LastName))
                 ModelState.AddModelError(nameof(vm.LastName), "اسم العائلة مطلوب.");
+
+            // HCM-029 (A3): steer to linking instead of hitting the unique national-id index.
+            hireNationalIdHash = HireNationalIdRules.HashOf(vm.NationalId);
+            if (await personMatch.FindByNationalIdHashAsync(hireNationalIdHash) is not null)
+                ModelState.AddModelError(nameof(vm.NationalId), HireClosureException.DuplicatePersonMessage);
         }
+
+        // HCM-029 (A3): a national id different from the application's needs a reason (audited by the closure).
+        if (HireNationalIdRules.Differs(HireNationalIdRules.ApplicationHash(app), hireNationalIdHash)
+            && !HireNationalIdRules.IsValidMismatchReason(vm.NationalIdMismatchReason))
+            ModelState.AddModelError(nameof(vm.NationalIdMismatchReason), HireNationalIdRules.MismatchReasonRequiredMessage);
 
         if (!RecruitmentHireViewModel.EmploymentCategories.Any(x =>
                 string.Equals(x.Code, vm.EmploymentCategory, StringComparison.OrdinalIgnoreCase)))
             ModelState.AddModelError(nameof(vm.EmploymentCategory), "يرجى اختيار فئة توظيف صحيحة.");
 
         if (!ModelState.IsValid)
-        {
-            vm = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
-            await PopulateSelectListsAsync(vm);
-            return View(vm);
-        }
+            return await RedisplayHireAsync(vm, app);
 
         var mode = ResolvePolicyMode();
         if (mode != PolicyEnforcementMode.Off)
@@ -468,20 +493,21 @@ public class RecruitmentApplicationsController(
             if (!policyResult.Allowed)
             {
                 ModelState.AddModelError(string.Empty, policyResult.Decision.DenyReason ?? "مرفوض بسياسة التوظيف.");
-                vm = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
-                await PopulateSelectListsAsync(vm);
-                return View(vm);
+                return await RedisplayHireAsync(vm, app);
             }
         }
 
         var start = vm.ExpectedStartDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var justification = new HireClosureJustification(
+            NationalIdMismatchReason: vm.NationalIdMismatchReason?.Trim(),
+            ActorUserId: ParseUserId(User));
         Employee employee;
 
         try
         {
             employee = vm.Mode == RecruitmentHireMode.LinkExisting
                 ? await integration.HireExistingEmployeeAsync(
-                    app, vm.ExistingEmployeeId!.Value, start, vm.EmploymentCategory)
+                    app, vm.ExistingEmployeeId!.Value, start, vm.EmploymentCategory, justification)
                 : await integration.HireAndCreateEmployeeAsync(
                     app,
                     vm.NationalId.Trim(),
@@ -492,14 +518,21 @@ public class RecruitmentApplicationsController(
                     vm.Gender,
                     vm.PrimaryOrgUnitId ?? app.Requisition?.FundedPosition?.OrgUnitId,
                     start,
-                    vm.EmploymentCategory);
+                    vm.EmploymentCategory,
+                    justification);
+        }
+        catch (HireClosureException ex)
+        {
+            // HCM-029 (A4): expected closure failures (duplicate person, concurrent write, …) re-render the form.
+            ModelState.AddModelError(
+                ex.Kind == HireClosureErrorKind.DuplicatePerson ? nameof(vm.NationalId) : string.Empty,
+                ex.Message);
+            return await RedisplayHireAsync(vm, app);
         }
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-            vm = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
-            await PopulateSelectListsAsync(vm);
-            return View(vm);
+            return await RedisplayHireAsync(vm, app);
         }
 
         TempData["Success"] = $"تم إنشاء ملف {app.ApplicantFullName} وفتح معالج استكمال التعيين.";
@@ -796,6 +829,42 @@ public class RecruitmentApplicationsController(
         };
     }
 
+    /// <summary>
+    /// HCM-029: re-shows the hire form keeping what the user typed (mode, names, reasons) and refreshing the
+    /// application-derived labels and the person-match banners. The closure clears the change tracker on failure,
+    /// so <paramref name="app"/> is only read here.
+    /// </summary>
+    private async Task<IActionResult> RedisplayHireAsync(RecruitmentHireViewModel vm, RecruitmentApplication app)
+    {
+        var display = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
+        vm.ApplicationId = display.ApplicationId;
+        vm.RequisitionId = display.RequisitionId;
+        vm.RequisitionNumber = display.RequisitionNumber;
+        vm.ApplicantFullName = display.ApplicantFullName;
+        vm.AppliedPosition = display.AppliedPosition;
+        vm.OrgUnitName = display.OrgUnitName;
+        vm.ApplicationHasNationalId = display.ApplicationHasNationalId;
+
+        var enteredHash = vm.Mode == RecruitmentHireMode.CreateNew ? HireNationalIdRules.HashOf(vm.NationalId) : null;
+        var match = await personMatch.MatchAsync(
+            enteredHash ?? HireNationalIdRules.ApplicationHash(app),
+            vm.Mode == RecruitmentHireMode.CreateNew
+                ? string.Join(' ', new[] { vm.FirstName, vm.MiddleName, vm.LastName }
+                    .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()))
+                : null,
+            vm.Mode == RecruitmentHireMode.CreateNew ? vm.BirthDate : null);
+        if (match.NationalIdMatch is Employee existing)
+        {
+            vm.MatchedEmployeeId = existing.Id;
+            vm.MatchedEmployeeName = existing.FullName;
+            vm.ExistingEmployeeId ??= existing.Id;
+        }
+        vm.PossibleMatchEmployeeName = match.PossibleMatch?.FullName;
+
+        await PopulateSelectListsAsync(vm);
+        return View(nameof(Hire), vm);
+    }
+
     private async Task PopulateSelectListsAsync(RecruitmentHireViewModel vm)
     {
         var orgUnits = await db.OrgUnits.AsNoTracking().ToListAsync();
@@ -807,6 +876,11 @@ public class RecruitmentApplicationsController(
             .OrderBy(e => e.FullName)
             .Take(SearchFilterBase.LookupMaxPageSize)
             .ToListAsync();
+
+        // HCM-029: a pre-selected (matched) employee must be in the list even past the lookup page size.
+        if (vm.ExistingEmployeeId is Guid selectedId && employeeRows.All(e => e.Id != selectedId)
+            && await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == selectedId) is Employee selected)
+            employeeRows.Insert(0, selected);
 
         var employees = employeeRows
             .Select(e => new

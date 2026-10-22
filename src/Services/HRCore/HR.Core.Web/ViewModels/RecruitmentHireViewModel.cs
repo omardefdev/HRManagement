@@ -78,6 +78,22 @@ public class RecruitmentHireViewModel
     [Display(Name = "فئة التوظيف")]
     public string EmploymentCategory { get; set; } = "PERMANENT";
 
+    /// <summary>HCM-029 (A3): required when the national id differs from the application's.</summary>
+    [Display(Name = "مبرر اختلاف الرقم الوطني")]
+    [StringLength(1000)]
+    public string? NationalIdMismatchReason { get; set; }
+
+    /// <summary>HCM-029 (A2): the application carries a national id (the entered/linked one is compared with it).</summary>
+    public bool ApplicationHasNationalId { get; set; }
+
+    /// <summary>HCM-029 (A2): employee already holding the application's (or the entered) national id.</summary>
+    public Guid? MatchedEmployeeId { get; set; }
+
+    public string? MatchedEmployeeName { get; set; }
+
+    /// <summary>HCM-029 (A1): same normalized name and birth date — a warning only.</summary>
+    public string? PossibleMatchEmployeeName { get; set; }
+
     public SelectList? OrgUnits { get; set; }
     public SelectList? Employees { get; set; }
 
@@ -97,6 +113,7 @@ public class RecruitmentHireViewModel
             AppliedPosition = requisition?.JobTitle ?? app.AppliedPosition,
             OrgUnitName = fundedPosition?.OrgUnit?.NameAr ?? requisition?.FundedPosition?.OrgUnit?.NameAr,
             NationalId = app.NationalId ?? string.Empty,
+            ApplicationHasNationalId = !string.IsNullOrWhiteSpace(app.NationalId) || !string.IsNullOrWhiteSpace(app.NationalIdHash),
             FirstName = first,
             MiddleName = middle,
             LastName = last,

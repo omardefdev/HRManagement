@@ -15,7 +15,7 @@ public class RecruitmentIntegrationService(RecruitmentHireClosureService closure
         DateOnly expectedStartDate,
         string employmentCategory,
         CancellationToken cancellationToken = default) =>
-        HireExistingEmployeeAsync(app, hiredEmployeeId, expectedStartDate, employmentCategory, cancellationToken);
+        HireExistingEmployeeAsync(app, hiredEmployeeId, expectedStartDate, employmentCategory, cancellationToken: cancellationToken);
 
     public Task<Employee> HireAndCreateEmployeeAsync(
         RecruitmentApplication app,
@@ -28,6 +28,7 @@ public class RecruitmentIntegrationService(RecruitmentHireClosureService closure
         Guid? primaryOrgUnitId,
         DateOnly expectedStartDate,
         string employmentCategory,
+        HireClosureJustification? justification = null,
         CancellationToken cancellationToken = default) =>
         closure.HireAndCreateEmployeeAsync(
             app,
@@ -40,6 +41,7 @@ public class RecruitmentIntegrationService(RecruitmentHireClosureService closure
             primaryOrgUnitId,
             expectedStartDate,
             employmentCategory,
+            justification,
             cancellationToken);
 
     public Task<Employee> HireExistingEmployeeAsync(
@@ -47,6 +49,7 @@ public class RecruitmentIntegrationService(RecruitmentHireClosureService closure
         Guid hiredEmployeeId,
         DateOnly expectedStartDate,
         string employmentCategory,
+        HireClosureJustification? justification = null,
         CancellationToken cancellationToken = default) =>
-        closure.HireExistingEmployeeAsync(app, hiredEmployeeId, expectedStartDate, employmentCategory, cancellationToken);
+        closure.HireExistingEmployeeAsync(app, hiredEmployeeId, expectedStartDate, employmentCategory, justification, cancellationToken);
 }

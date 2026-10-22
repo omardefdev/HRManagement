@@ -1,7 +1,10 @@
 @model HR.Core.Web.ViewModels.RecruitmentHireViewModel
 @using HR.Core.Web.ViewModels
 @using HRManagement.SharedKernel.Enums
-@{ ViewData["Title"] = "تعيين من طلب توظيف"; }
+@{
+    ViewData["Title"] = "تعيين من طلب توظيف";
+    var linkMode = Model.Mode == RecruitmentHireMode.LinkExisting;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0"><i class="fas fa-user-check"></i> تعيين: @Model.ApplicantFullName</h3>
@@ -28,20 +31,35 @@
             <input type="hidden" asp-for="ApplicantFullName" />
             <input type="hidden" asp-for="AppliedPosition" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            @if (!string.IsNullOrWhiteSpace(Model.MatchedEmployeeName))
+            {
+                <div class="alert alert-info" role="status">
+                    <i class="fas fa-link"></i>
+                    يوجد موظف مسجَّل بنفس الرقم الوطني: <strong>@Model.MatchedEmployeeName</strong> — سيتم الربط به.
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.PossibleMatchEmployeeName))
+            {
+                <div class="alert alert-warning" role="status">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    تطابق محتمل: يوجد موظف بالاسم وتاريخ الميلاد نفسيهما (<strong>@Model.PossibleMatchEmployeeName</strong>).
+                    تحقّق قبل إنشاء ملف جديد — أو استخدم «ربط موظف موجود».
+                </div>
+            }
 
             <ul class="nav nav-tabs mb-3" role="tablist">
                 <li class="nav-item">
-                    <button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-create" id="btn-create">إنشاء موظف جديد</button>
+                    <button type="button" class="nav-link @(linkMode ? "" : "active")" data-bs-toggle="tab" data-bs-target="#tab-create" id="btn-create">إنشاء موظف جديد</button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-link" id="btn-link">ربط موظف موجود</button>
+                    <button type="button" class="nav-link @(linkMode ? "active" : "")" data-bs-toggle="tab" data-bs-target="#tab-link" id="btn-link">ربط موظف موجود</button>
                 </li>
             </ul>
 
             <input type="hidden" asp-for="Mode" id="hireMode" />
 
             <div class="tab-content">
-                <div class="tab-pane fade show active" id="tab-create">
+                <div class="tab-pane fade @(linkMode ? "" : "show active")" id="tab-create">
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label asp-for="NationalId" class="form-label"></label>
@@ -83,7 +101,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="tab-link">
+                <div class="tab-pane fade @(linkMode ? "show active" : "")" id="tab-link">
                     <div class="mb-3">
                         <label asp-for="ExistingEmployeeId" class="form-label"></label>
                         <select asp-for="ExistingEmployeeId" class="form-select" asp-items="Model.Employees">
@@ -94,6 +112,16 @@
                     </div>
                 </div>
             </div>
+
+            @if (Model.ApplicationHasNationalId)
+            {
+                <div class="mb-3">
+                    <label asp-for="NationalIdMismatchReason" class="form-label"></label>
+                    <textarea asp-for="NationalIdMismatchReason" class="form-control" rows="2"></textarea>
+                    <span asp-validation-for="NationalIdMismatchReason" class="text-danger"></span>
+                    <div class="form-text">مطلوب فقط إذا اختلف الرقم الوطني المُدخل (أو رقم الموظف المرتبط) عن الرقم المسجَّل في طلب التوظيف. يُسجَّل المبرر في التدقيق دون الأرقام.</div>
+                </div>
+            }
 
             <hr />
             <div class="row">
@@ -126,7 +154,7 @@
             const linkVal = '@((int)RecruitmentHireMode.LinkExisting)';
             document.getElementById('btn-create')?.addEventListener('shown.bs.tab', () => { modeInput.value = createVal; });
             document.getElementById('btn-link')?.addEventListener('shown.bs.tab', () => { modeInput.value = linkVal; });
-            modeInput.value = createVal;
+            modeInput.value = '@(linkMode ? (int)RecruitmentHireMode.LinkExisting : (int)RecruitmentHireMode.CreateNew)';
         })();
     </script>
 }

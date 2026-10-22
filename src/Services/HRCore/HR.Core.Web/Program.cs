@@ -135,6 +135,7 @@ builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddFileReferenceOutbox<HRCoreDbContext>(builder.Configuration);
 builder.Services.AddScoped<HR.Core.Domain.Services.RequisitionCloseService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentHireClosureService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.HirePersonMatchService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.RecruitmentIntegrationService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.DiwanIntegrationService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.AttendanceIntegrationService>();

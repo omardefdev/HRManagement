@@ -336,7 +336,8 @@ public class RecruitmentHireClosureIntegrationTests
         var app = new RecruitmentApplication
         {
             ApplicantFullName = "أحمد علي",
-            NationalId = "0101010101",
+            // PLAN-29: no national id on the application, so the distinct ids typed by each test are not compared
+            // with it (the comparison is covered by Hcm029HireErrorsTests).
             RequisitionId = req.Id,
             AppliedPosition = req.JobTitle,
             AppliedAt = DateTime.UtcNow,

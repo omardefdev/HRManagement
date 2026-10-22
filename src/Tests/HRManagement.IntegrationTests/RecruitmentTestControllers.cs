@@ -52,7 +52,8 @@ internal static class RecruitmentTestControllers
             AllowAllAuthorization(),
             provider,
             Mock.Of<IPolicyOrchestrator>(),
-            configuration);
+            configuration,
+            new HirePersonMatchService(db));
     }
 
     private static Microsoft.AspNetCore.Authorization.IAuthorizationService AllowAllAuthorization()
