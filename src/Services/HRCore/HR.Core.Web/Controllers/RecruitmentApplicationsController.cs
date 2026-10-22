@@ -384,6 +384,7 @@ public class RecruitmentApplicationsController(
         }
 
         var vm = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
+        vm.DefaultEmploymentCategory = vm.EmploymentCategory = DefaultEmploymentType().ToString();
 
         // HCM-029 (A2): a person already on file with the application's national id is linked, not re-created.
         // The application has no birth date, so the name + birth-date warning only appears after a POST.
@@ -458,9 +459,16 @@ public class RecruitmentApplicationsController(
             && !HireNationalIdRules.IsValidMismatchReason(vm.NationalIdMismatchReason))
             ModelState.AddModelError(nameof(vm.NationalIdMismatchReason), HireNationalIdRules.MismatchReasonRequiredMessage);
 
-        if (!RecruitmentHireViewModel.EmploymentCategories.Any(x =>
-                string.Equals(x.Code, vm.EmploymentCategory, StringComparison.OrdinalIgnoreCase)))
-            ModelState.AddModelError(nameof(vm.EmploymentCategory), "يرجى اختيار فئة توظيف صحيحة.");
+        // HCM-029 (B): domain EmploymentType (legacy codes mapped, INTERNSHIP refused); a non-default needs a reason.
+        if (!HireEmploymentTypeRules.TryResolve(vm.EmploymentCategory, out var employmentType, out var employmentTypeError))
+            ModelState.AddModelError(nameof(vm.EmploymentCategory), employmentTypeError!);
+        else
+        {
+            vm.EmploymentCategory = employmentType.ToString();
+            if (HireEmploymentTypeRules.RequiresChangeReason(employmentType, DefaultEmploymentType())
+                && !HireEmploymentTypeRules.IsValidChangeReason(vm.EmploymentTypeChangeReason))
+                ModelState.AddModelError(nameof(vm.EmploymentTypeChangeReason), HireEmploymentTypeRules.ChangeReasonRequiredMessage);
+        }
 
         if (!ModelState.IsValid)
             return await RedisplayHireAsync(vm, app);
@@ -500,7 +508,8 @@ public class RecruitmentApplicationsController(
         var start = vm.ExpectedStartDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var justification = new HireClosureJustification(
             NationalIdMismatchReason: vm.NationalIdMismatchReason?.Trim(),
-            ActorUserId: ParseUserId(User));
+            ActorUserId: ParseUserId(User),
+            EmploymentTypeChangeReason: vm.EmploymentTypeChangeReason?.Trim());
         Employee employee;
 
         try
@@ -670,6 +679,10 @@ public class RecruitmentApplicationsController(
 
     private bool ResolveLegacyHireWithoutOffer() =>
         configuration.GetValue("Recruitment:LegacyHireWithoutOffer", false);
+
+    /// <summary>HCM-029 (B): <c>Recruitment:DefaultEmploymentType</c> (default Permanent).</summary>
+    private HRManagement.SharedKernel.Enums.EmploymentType DefaultEmploymentType() =>
+        configuration.GetValue(RecruitmentOptions.DefaultEmploymentTypeKey, HRManagement.SharedKernel.Enums.EmploymentType.Permanent);
 
     /// <summary>HCM-028 (I): <c>Recruitment:BlockHireOnPendingAppeal</c> (default true).</summary>
     private bool BlockHireOnPendingAppeal() =>
@@ -844,6 +857,7 @@ public class RecruitmentApplicationsController(
         vm.AppliedPosition = display.AppliedPosition;
         vm.OrgUnitName = display.OrgUnitName;
         vm.ApplicationHasNationalId = display.ApplicationHasNationalId;
+        vm.DefaultEmploymentCategory = DefaultEmploymentType().ToString();
 
         var enteredHash = vm.Mode == RecruitmentHireMode.CreateNew ? HireNationalIdRules.HashOf(vm.NationalId) : null;
         var match = await personMatch.MatchAsync(

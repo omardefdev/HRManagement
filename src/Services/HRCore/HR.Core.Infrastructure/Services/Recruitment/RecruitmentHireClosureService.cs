@@ -13,13 +13,15 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using EmploymentType = HRManagement.SharedKernel.Enums.EmploymentType;
 
 namespace HR.Core.Infrastructure.Services.Recruitment;
 
 /// <summary>HCM-029: justifications recorded with a hire (audited on the application, never with the national ids).</summary>
 public sealed record HireClosureJustification(
     string? NationalIdMismatchReason = null,
-    Guid? ActorUserId = null);
+    Guid? ActorUserId = null,
+    string? EmploymentTypeChangeReason = null);
 
 /// <summary>HCM-005: atomic hire closure — employee, position occupancy, requisition close, offer conversion.</summary>
 public sealed class RecruitmentHireClosureService(
@@ -142,6 +144,14 @@ public sealed class RecruitmentHireClosureService(
         HireClosureJustification? justification,
         CancellationToken cancellationToken)
     {
+        // HCM-029 (B): the category is a domain EmploymentType (legacy codes mapped, INTERNSHIP refused).
+        if (!HireEmploymentTypeRules.TryResolve(employmentCategory, out var employmentType, out var employmentTypeError))
+            throw new HireClosureException(HireClosureErrorKind.InvalidState, employmentTypeError!);
+        var defaultEmploymentType = configuration.GetValue(RecruitmentOptions.DefaultEmploymentTypeKey, EmploymentType.Permanent);
+        if (HireEmploymentTypeRules.RequiresChangeReason(employmentType, defaultEmploymentType)
+            && !HireEmploymentTypeRules.IsValidChangeReason(justification?.EmploymentTypeChangeReason))
+            throw new HireClosureException(HireClosureErrorKind.InvalidState, HireEmploymentTypeRules.ChangeReasonRequiredMessage);
+
         var legacyWithoutOffer = configuration.GetValue("Recruitment:LegacyHireWithoutOffer", false);
         var rejectSiblings = configuration.GetValue("Recruitment:RejectSiblingApplicationsOnHire", true);
 
@@ -278,7 +288,8 @@ public sealed class RecruitmentHireClosureService(
             employee.PrimaryOrgUnitId = resolvedOrg;
 
         var positionTitle = ResolvePositionTitle(app, position);
-        await SeedEmployeeSideEffectsAsync(employee, positionTitle, orgUnitId, offer, cancellationToken);
+        await SeedEmployeeSideEffectsAsync(employee, positionTitle, orgUnitId, offer, employmentType, cancellationToken);
+        RecordEmploymentTypeChange(app, employmentType, defaultEmploymentType, justification);
 
         app.Status = RecruitmentApplicationStatus.Hired;
         app.HiredEmployeeId = employee.Id;
@@ -311,7 +322,7 @@ public sealed class RecruitmentHireClosureService(
             position,
             offer,
             expectedStartDate,
-            employmentCategory,
+            employmentType,
             isInternalMobility,
             previousOrgUnitId,
             orgUnitId,
@@ -360,11 +371,36 @@ public sealed class RecruitmentHireClosureService(
         });
     }
 
+    private void RecordEmploymentTypeChange(
+        RecruitmentApplication app,
+        EmploymentType chosen,
+        EmploymentType defaultType,
+        HireClosureJustification? justification)
+    {
+        if (!HireEmploymentTypeRules.RequiresChangeReason(chosen, defaultType))
+            return;
+
+        db.AuditLogs.Add(new HRManagement.SharedKernel.Entities.EntityAuditLog
+        {
+            EntityType = nameof(RecruitmentApplication),
+            EntityId = app.Id,
+            Action = HireEmploymentTypeRules.ChangeAuditAction,
+            UserId = justification?.ActorUserId,
+            ChangedFields = JsonSerializer.Serialize(new
+            {
+                defaultType = defaultType.ToString(),
+                chosenType = chosen.ToString(),
+                reason = justification!.EmploymentTypeChangeReason!.Trim()
+            })
+        });
+    }
+
     private async Task SeedEmployeeSideEffectsAsync(
         Employee employee,
         string positionTitle,
         Guid? defaultOrgUnitId,
         OfferLetter? offer,
+        EmploymentType employmentType,
         CancellationToken cancellationToken)
     {
         if (!employee.PrimaryOrgUnitId.HasValue && defaultOrgUnitId.HasValue)
@@ -404,7 +440,7 @@ public sealed class RecruitmentHireClosureService(
                 EmployeeId = employee.Id,
                 PositionTitle = string.IsNullOrWhiteSpace(positionTitle) ? "تعيين من التوظيف" : positionTitle,
                 StartDate = (employee.HireDate ?? DateTime.UtcNow.Date).AsUtc(),
-                EmploymentType = HRManagement.SharedKernel.Enums.EmploymentType.Permanent,
+                EmploymentType = employmentType,
                 Status = EmploymentStatus.PendingActivation.ToString(),
                 Notes = "سجل وظيفي أولي — بانتظار استكمال معالج التعيين",
                 LegalRegimeId = legalRegimeId
@@ -443,7 +479,7 @@ public sealed class RecruitmentHireClosureService(
         FundedPosition? position,
         OfferLetter? offer,
         DateOnly expectedStartDate,
-        string employmentCategory,
+        EmploymentType employmentType,
         bool isInternalMobility,
         Guid? fromOrgUnitId,
         Guid? toOrgUnitId,
@@ -454,7 +490,7 @@ public sealed class RecruitmentHireClosureService(
         await publish.Publish<ICandidateAccepted>(new
         {
             EmployeeId = employee.Id,
-            EmploymentCategory = employmentCategory,
+            EmploymentCategory = employmentType.ToString(),
             ExpectedStartDate = expectedStartDate.ToDateTime(TimeOnly.MinValue),
             FullName = app.ApplicantFullName,
             SourceSystem = "HR.Core",
@@ -479,7 +515,7 @@ public sealed class RecruitmentHireClosureService(
                 EmployeeId = employee.Id,
                 employee.FullName,
                 NationalIdHash = PiiMask.Sha256Hex(employee.NationalId),
-                EmploymentType = HRManagement.SharedKernel.Enums.EmploymentType.Permanent.ToString(),
+                EmploymentType = employmentType.ToString(),
                 TenantId = employee.TenantId,
                 PrimaryOrgUnitId = employee.PrimaryOrgUnitId,
                 CorrelationId = correlationId,

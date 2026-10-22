@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Entities;
+using HR.Core.Domain.Services;
 using HRManagement.SharedKernel.Enums;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -15,13 +16,9 @@ public enum RecruitmentHireMode
 
 public class RecruitmentHireViewModel
 {
+    /// <summary>HCM-029 (B): built from <see cref="EmploymentType"/> (value = enum name).</summary>
     public static IReadOnlyList<(string Code, string Label)> EmploymentCategories { get; } =
-    [
-        ("PERMANENT", "توظيف دائم"),
-        ("TEMPORARY", "توظيف مؤقت"),
-        ("CONTRACT", "عقد"),
-        ("INTERNSHIP", "تدريب عملي")
-    ];
+        HireEmploymentTypeRules.Categories.Select(c => (c.Type.ToString(), c.Label)).ToList();
 
     public Guid ApplicationId { get; set; }
 
@@ -76,7 +73,14 @@ public class RecruitmentHireViewModel
     public DateOnly? ExpectedStartDate { get; set; }
 
     [Display(Name = "فئة التوظيف")]
-    public string EmploymentCategory { get; set; } = "PERMANENT";
+    public string EmploymentCategory { get; set; } = nameof(EmploymentType.Permanent);
+
+    /// <summary>HCM-029 (B): <c>Recruitment:DefaultEmploymentType</c>; another choice needs a reason.</summary>
+    public string DefaultEmploymentCategory { get; set; } = nameof(EmploymentType.Permanent);
+
+    [Display(Name = "مبرر تغيير فئة التوظيف")]
+    [StringLength(1000)]
+    public string? EmploymentTypeChangeReason { get; set; }
 
     /// <summary>HCM-029 (A3): required when the national id differs from the application's.</summary>
     [Display(Name = "مبرر اختلاف الرقم الوطني")]

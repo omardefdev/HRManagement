@@ -1,5 +1,6 @@
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
+using HRManagement.SharedKernel.Enums;
 
 namespace HR.Core.Infrastructure.Services.Recruitment;
 
@@ -81,6 +82,16 @@ public sealed class RecruitmentOptions
     /// applications has a pending appeal (default true). Offers stay allowed.
     /// </summary>
     public bool BlockHireOnPendingAppeal { get; set; } = true;
+
+    /// <summary>Configuration key of <see cref="DefaultEmploymentType"/> (read through <c>IConfiguration</c> at hire).</summary>
+    public const string DefaultEmploymentTypeKey = SectionName + ":" + nameof(DefaultEmploymentType);
+
+    /// <summary>
+    /// HCM-029 (B): <c>Recruitment:DefaultEmploymentType</c> — employment type pre-selected on the hire form (enum name,
+    /// default <see cref="EmploymentType.Permanent"/>). Funded positions and the job catalog carry no employment type,
+    /// so this is the only default; choosing another value needs a reason (audited).
+    /// </summary>
+    public EmploymentType DefaultEmploymentType { get; set; } = EmploymentType.Permanent;
 
     public IReadOnlyCollection<RecruitmentRejectionKind> GetAppealableRejectionKinds() =>
         AppealableRejectionKinds is { Length: > 0 } kinds ? kinds : RecruitmentAppealWorkflowRules.DefaultAppealableKinds.ToArray();

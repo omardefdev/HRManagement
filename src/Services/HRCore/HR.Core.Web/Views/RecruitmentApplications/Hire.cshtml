@@ -130,14 +130,21 @@
                     <input asp-for="ExpectedStartDate" type="date" class="form-control" />
                 </div>
                 <div class="col-md-4 mb-3">
-                            <label asp-for="EmploymentCategory" class="form-label"></label>
-                            <select asp-for="EmploymentCategory" class="form-select">
-                                @foreach (var category in RecruitmentHireViewModel.EmploymentCategories)
-                                {
-                                    <option value="@category.Code">@category.Label</option>
-                                }
-                            </select>
-                            <div class="form-text">تحدد الفئة نوع العلاقة الوظيفية التي ستظهر في العقد.</div>
+                    <label asp-for="EmploymentCategory" class="form-label"></label>
+                    <select asp-for="EmploymentCategory" class="form-select" id="employmentCategory" data-default="@Model.DefaultEmploymentCategory">
+                        @foreach (var category in RecruitmentHireViewModel.EmploymentCategories)
+                        {
+                            <option value="@category.Code">@category.Label</option>
+                        }
+                    </select>
+                    <span asp-validation-for="EmploymentCategory" class="text-danger"></span>
+                    <div class="form-text">تحدد الفئة نوع العلاقة الوظيفية التي ستظهر في العقد. الافتراضي: @RecruitmentHireViewModel.EmploymentCategories.FirstOrDefault(c => c.Code == Model.DefaultEmploymentCategory).Label</div>
+                </div>
+                <div class="col-md-4 mb-3" id="employmentTypeReasonGroup">
+                    <label asp-for="EmploymentTypeChangeReason" class="form-label"></label>
+                    <textarea asp-for="EmploymentTypeChangeReason" class="form-control" rows="2"></textarea>
+                    <span asp-validation-for="EmploymentTypeChangeReason" class="text-danger"></span>
+                    <div class="form-text">مطلوب عند اختيار فئة غير الافتراضية (10 أحرف على الأقل)، ويُسجَّل في التدقيق.</div>
                 </div>
             </div>
 
@@ -154,6 +161,11 @@
             const linkVal = '@((int)RecruitmentHireMode.LinkExisting)';
             document.getElementById('btn-create')?.addEventListener('shown.bs.tab', () => { modeInput.value = createVal; });
             document.getElementById('btn-link')?.addEventListener('shown.bs.tab', () => { modeInput.value = linkVal; });
+            const category = document.getElementById('employmentCategory');
+            const reasonGroup = document.getElementById('employmentTypeReasonGroup');
+            const toggleReason = () => reasonGroup?.classList.toggle('d-none', category.value === category.dataset.default);
+            category?.addEventListener('change', toggleReason);
+            if (category) toggleReason();
             modeInput.value = '@(linkMode ? (int)RecruitmentHireMode.LinkExisting : (int)RecruitmentHireMode.CreateNew)';
         })();
     </script>

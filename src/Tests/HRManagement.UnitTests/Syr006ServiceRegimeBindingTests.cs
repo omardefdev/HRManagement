@@ -108,7 +108,7 @@ public class Syr006ServiceRegimeBindingTests
 
         var seedTask = typeof(RecruitmentHireClosureService)
             .GetMethod("SeedEmployeeSideEffectsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(closure, [employee, "محلل", (Guid?)null, offer, CancellationToken.None]) as Task;
+            .Invoke(closure, [employee, "محلل", (Guid?)null, offer, HRManagement.SharedKernel.Enums.EmploymentType.Permanent, CancellationToken.None]) as Task;
         Assert.NotNull(seedTask);
         await seedTask!;
 
