@@ -67,7 +67,7 @@ public class AcHcm28CommitteeAppealTests
         // AC-28c negative: no approved committee yet.
         await s.Central.PostAsync("28c-rank-before-approval", "ui/hr-core/RecruitmentApplications/AssignRank", AppDetails(candidates[0]),
             [new("ApplicationId", candidates[0]), new("Rank", "1")]);
-        ExpectedFlash.Add("GateNoApprovedSessionMessage");
+        ExpectedFlash.Add("يتطلب الترتيب اعتماد لجنة الاختيار أولاً.");
         Assert.Equal("", await Sql($"SELECT COALESCE(\"Rank\"::text,'') FROM \"RecruitmentApplications\" WHERE \"Id\"='{candidates[0]}';"));
 
         // Votes, then AC-28d: the last member declares a conflict with candidate 1.
@@ -98,7 +98,7 @@ public class AcHcm28CommitteeAppealTests
         var outsider = await FreeEmployeeAsync(members.Select(m => m.Employee));
         await s.Central.PostAsync("28a-add-member-after-submit", "ui/hr-core/SelectionCommittees/AddMember", details,
             [new("sessionId", CommitteeSession), new("employeeId", outsider), new("role", "Member"), new("hasConflictOfInterest", "false")]);
-        ExpectedFlash.Add("تم تقديم الجلسة للاعتماد — العضوية مقفلة");
+        ExpectedFlash.Add("تم تقديم الجلسة للاعتماد — العضوية مقفلة.");
         Assert.Equal(4, await Scalar($"SELECT COUNT(*) FROM \"SelectionCommitteeMembers\" WHERE \"SessionId\"='{CommitteeSession}';"));
 
         // AC-28a: three-step approval, then the minutes.
@@ -114,7 +114,7 @@ public class AcHcm28CommitteeAppealTests
         // AC-28c: rank ≠ proposed without a reason → refused; then the committee ranking is applied.
         await s.Central.PostAsync("28c-rank-mismatch", "ui/hr-core/RecruitmentApplications/AssignRank", AppDetails(candidates[0]),
             [new("ApplicationId", candidates[0]), new("Rank", "2")]);
-        ExpectedFlash.Add("RankOverrideReasonMessage");
+        ExpectedFlash.Add("الترتيب مخالف للترتيب المقترح من اللجنة؛ يلزم سبب لا يقل عن 20 حرفاً.");
         Assert.Equal("", await Sql($"SELECT COALESCE(\"Rank\"::text,'') FROM \"RecruitmentApplications\" WHERE \"Id\"='{candidates[0]}';"));
 
         await s.Central.PostAsync("28c-apply-committee-ranking", $"ui/hr-core/RecruitmentRequisitions/ApplyCommitteeRanking/{CommitteeRequisition}",
@@ -171,7 +171,7 @@ public class AcHcm28CommitteeAppealTests
 
         await s.Central.PostAsync("28b-duplicate-member", "ui/hr-core/SelectionCommittees/AddMember", details,
             [new("sessionId", session), new("employeeId", employees[1]), new("role", "Member"), new("hasConflictOfInterest", "false")]);
-        ExpectedFlash.Add("duplicate member");
+        ExpectedFlash.Add("الموظف عضو في هذه الجلسة مسبقاً.");
         Assert.Equal(3, await Scalar($"SELECT COUNT(*) FROM \"SelectionCommitteeMembers\" WHERE \"SessionId\"='{session}';"));
 
         var memberIds = (await Sql($"SELECT string_agg(\"Id\"::text, ',') FROM \"SelectionCommitteeMembers\" WHERE \"SessionId\"='{session}';")).Split(',');

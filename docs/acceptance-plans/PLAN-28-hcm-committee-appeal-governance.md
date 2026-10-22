@@ -1,7 +1,7 @@
 # PLAN-28 — حوكمة لجنة الاختيار والاستئناف (PLAN-HCM-F)
 
 **Scope:** HCM-001/HCM-006 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-09, G-10 (ومنطق G-05 بعد إصلاح الوصول في PLAN-25)  
-**Status:** Proposed  
+**Status:** Implemented (acceptance evidence pending)  
 **Priority:** P1  
 **Depends on:** PLAN-26 (الدرجات المنظمة)، PLAN-27 (الجدارة والاحتياط). PLAN-25 مؤجلة لعدم توفر خادم  
 **تعديلات قبل التنفيذ (2026-10-22):**
@@ -11,6 +11,54 @@
 - **إلزامية اللجنة:** على مستوى طلب الشاغر (`RequiresCommitteeApproval`)، بقيمة ابتدائية من `Recruitment:CommitteeApprovalDefault`.
 - **التفاصيل:** في `execution/PLAN-28-AGENT-PROMPT-SESSION-1.md` و`-SESSION-2.md`.  
 **Decisions:** D-5 (إلزامية اللجنة)
+
+## Implementation notes / deviations
+
+Execution guide: [PLAN-28-EXECUTION](execution/PLAN-28-EXECUTION.md). Both sessions on branch
+`feature/plan-28-committee-appeal-governance`.
+
+**Session 1 — committee (A–E)**
+
+- **Committee switch per requisition (D-5):** `RecruitmentRequisition.RequiresCommitteeApproval`, initial value from
+  `Recruitment:CommitteeApprovalDefault` (false; true in Production/Staging), frozen after the first rank — instead of
+  one global `Recruitment:RequireCommitteeApproval`.
+- **Server-side checks in the entity services**, not in the generic PLAN-25 gates: quorum (≥ 3 non-recused, from step 2),
+  the creator never approves (every step, matching the UI), members do not approve step 3.
+- **Minutes generated on demand** (`SelectionCommittees/Minutes/{id}`) from the locked data; no `MinutesFileId` and no
+  upload requirement at submit — archiving via File.Storage is PLAN-29.
+- Duplicate members were already impossible (unique index since the committee tables were created); the service now
+  returns a message. `Purpose` defaults to Ranking. Votes are recorded by the HR secretary on the member's behalf.
+- `HCM028_CommitteeDecisions`, `HCM028_RankOverride`: new columns/tables only.
+
+**Session 2 — appeal (F–K)**
+
+- **Compliance access slice of PLAN-25** (code only): `HrCoreAppealReview`, `HrCoreWorkInbox`, module-filter exemption of
+  `RecruitmentAppeals` *and* `WorkInbox` (the inbox needs it too). Gateway finding: the `ui-hr-core` YARP route has no
+  route policy, but the shared `GatewayPathAuthorizationMiddleware` mapped every hr-core GET to `HrCoreReadOnly` and every
+  POST to `HrCoreWrite`, so a compliance-only user got 403 (pages and static assets). Fixed in that middleware (appeal
+  paths → `HrCoreAppealReview`, inbox GET → `HrCoreWorkInbox`, static assets → `HrCoreLookup`); no gateway config change.
+- **Employee-based reviewer identity:** the reviewer is chosen from the existing employee picker
+  (`IndependentReviewerEmployeeId`) after filing — not at filing — and matched against the `employee_id` claim plus the
+  `compliance` role. No Auth.Directory user listing was needed. `IndependentReviewerId` stays as the legacy user id and still
+  works for old rows. The filer's employee is stored (`FiledByEmployeeId`) for the independence rule.
+- **Explicit outcomes** `Upheld`, `UpheldRankCorrection`, `Dismissed`, `UpheldNoRemedy` (+ `LegacyReopen` for history). A
+  rejected review step means "request information" (`InfoRequest` → `AdditionalInfo`/`AdditionalInfoAt` on resubmit).
+  A generic workflow approval without a stored outcome is refused (entity hook in `WorkflowInstanceActionService`).
+- **Rank correction outranks the committee:** an upheld rank correction is applied through a dedicated path
+  (`AppealRankCorrection` audit, rationale as `RankOverrideReason`), not through the committee gate of `AssignRankAsync`,
+  so a candidate the committee rejected can be ranked when the reviewer upholds the appeal. Upheld (re-assessment) releases
+  the old rank.
+- **Rejection tracking** on every rejection path (`ApplicationRejection.Apply`), with `RankBeforeRejection`; a new
+  rejection after an upheld appeal can be appealed again.
+- **H5:** with policy Off the review workflow now starts outside lab scale too; when no `RECRUITMENT-APPEAL-REVIEW`
+  definition resolves, the assigned reviewer decides directly under the same checks (`AppealDecidedWithoutWorkflow`).
+  The seeded policy rule still matches the action name `FileAppeal`, now evaluated at assignment.
+- **Legacy reopen removed;** its history is migrated by the insert-only data step of `HCM028_AppealGovernance` instead of a
+  separate `hcm028-migrate-legacy-appeal-notes.ps1`.
+- Commit plan: the rejection-tracking and appeal-path commits are one commit (they share the migration).
+- Persona `a-compliance-2` (`ACCEPTANCE_A_COMPLIANCE_2_PASSWORD`). AC-HCM-22 has no committee/appeal scenario (only 22b),
+  so nothing there needed updating.
+
 
 ## Goal
 

@@ -7,6 +7,13 @@
 |----------|--------|--------------|---------------|
 | P0.x | طلب شاغر / نشر / اختيار / عرض | `hr-core` | `Module.HrCore`, `HrCore.Write` / `HrCore.Approve` |
 | P0.x | بوابة المواطن `/careers` | *(عام)* | بدون تسجيل HR |
+| P0.x | لجنة الاختيار — أمين السر (أعضاء، أصوات، تعارض، توصيات، تقديم) | `hr-core` | `HrCore.Write` (PLAN-28) |
+| P0.x | لجنة الاختيار — الرئيس/العضو | *(موظف من المنتقي، لا دور خاص)* | يسجّل أمين السر صوته؛ لا يعتمد الخطوة 3 |
+| P0.x | اعتماد اللجنة: الخطوتان 1–2 / الخطوة 3 | `hr-core` أو `branch-manager` / `hr-management-approver` | `HrCore.BranchOperation` + فحوص الخادم (النصاب، المنشئ، العضو) |
+| P0.x | محضر اللجنة PDF | `hr-core` وقراء HR.Core | `HrCore.ReadOnly` |
+| P0.x | تقديم الاستئناف نيابة عن المرشح، تعيين المراجع، استيفاء المعلومات | `hr-core` | `HrCore.Write` (PLAN-28) |
+| P0.x | قرار الاستئناف / طلب معلومات (المراجع المستقل المعيّن فقط) | `compliance` (+ مطالبة `employee_id`) | `HrCore.AppealReview` + فحص المراجع في الخدمة |
+| P0.x | صندوق عمل HR.Core | قراء HR.Core + `compliance` (استئنافاته فقط) | `HrCore.WorkInbox` |
 | P0.x | ترشّح ESS | `hr-core` (Ess) | `Module.Ess` |
 | P1.1 | استلام مرشح / معاملة تعيين | `hr-contracts`, `hr-core` | `Module.HrContracts`, `HrContracts.HireExecute` (معالج) |
 | P1.2 | تصنيف وعقد ومباشرة | `hr-contracts` | `HrContracts.Approve` (تفعيل عقد) |
@@ -30,6 +37,9 @@
 | `/ui/hr-core/TalentMarketplace` | PromoteFromInternal (HR — اختياري) |
 | `/ui/hr-core/EssTalent` | ترشّح ESS (ModuleEss — اختياري) |
 | `/ui/hr-core/OfferLetters` | خطابات العرض |
+| `/ui/hr-core/SelectionCommittees` | جلسات لجنة الاختيار والمحضر |
+| `/ui/hr-core/RecruitmentAppeals` | استئنافات التوظيف (`HrCore.AppealReview` على البوابة والمتحكم) |
+| `/ui/hr-core/WorkInbox` | صندوق العمل (`HrCore.WorkInbox`) |
 | `/ui/hr-contracts/HireWizard` | معالج التعيين (قائمة تحقق + إكمال) |
 
 ## أدوار تشغيلية مقترحة في Keycloak

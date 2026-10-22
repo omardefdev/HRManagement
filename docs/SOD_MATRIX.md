@@ -12,6 +12,8 @@
 | RoleAssignment | auth-directory | hr-admin | — | — | yes | — | 2 (four-eyes) |
 | LegalDataChange | hr-core | hr-management-approver | — | — | yes | — | 2 (four-eyes) |
 | EosSettlement | payroll-approver | payroll-poster | — | — | yes | 50,000,000 SYP | 1 |
+| SelectionCommitteeSession | hr-core (creator / secretary) | hr-core or branch-manager (steps 1–2), hr-management-approver (step 3) | — | — | yes — the creator approves no step; committee members do not approve step 3; quorum re-checked from step 2 | — | 3 steps |
+| RecruitmentAppeal | hr-core (files on behalf, assigns reviewer, resubmits) | compliance — the assigned independent reviewer only | — | — | yes — the reviewer is not the applicant, a committee member of the requisition, an interview panel member, an assessor, the filer or the assigner | — | 1 |
 
 ## Conflicting role pairs
 
@@ -21,6 +23,14 @@
 | payroll-approver | payroll-poster | لا يجوز الجمع بين الاعتماد والترحيل |
 | payroll-processor | payroll-poster | لا يجوز الجمع بين الإنشاء والترحيل |
 | hr-core | hr-management-approver | الكاتب لا يعتمد قرارات الإدارة العليا لنفس الكيان |
+
+## Recruitment committee and appeal (PLAN-28)
+
+- Checked on the server (`SelectionCommitteeRules.ValidateApproval`, `RecruitmentAppealService`), not only in the UI.
+- Committee members are employees (employee picker); the actor's `employee_id` claim identifies them. An approver without
+  the claim is subject to the creator rule only.
+- The appeal reviewer is identified by employee (`IndependentReviewerEmployeeId` = `employee_id` claim) and must hold
+  `compliance`; independence is checked when the reviewer is assigned. Legacy appeals keep their Keycloak user id.
 
 ## Trusted identity
 

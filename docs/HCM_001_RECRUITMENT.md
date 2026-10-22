@@ -259,6 +259,92 @@ eligibility and terms checks; from the expiry job it runs in the expired offer's
 - Reserve status and «حتى {date}» are shown on application details, the application list and the rank board.
 - Recall from the reserve on non-commencement is PLAN-29.
 
+## PLAN-28 — Selection committee and appeal governance (HCM-F)
+
+G-09, G-10 and the appeal part of G-05, decision **D-5** (committee switch). Plan:
+[PLAN-28](acceptance-plans/PLAN-28-hcm-committee-appeal-governance.md); execution:
+[PLAN-28-EXECUTION](acceptance-plans/execution/PLAN-28-EXECUTION.md).
+
+### Committee model (session 1)
+
+- `SelectionCommitteeSession`: `Purpose` (Interview / Ranking — default / Final), `ChairEmployeeId`, `SubmittedAt`,
+  `LockedAt`, `ApprovedAt`. Members are picked from the employee picker; the unique index
+  `(TenantId, SessionId, EmployeeId)` refuses duplicates.
+- Per candidate: `SelectionCommitteeMemberCoi` (a conflict removes that member's vote on that candidate only),
+  `SelectionCommitteeVote` (Agree / Disagree / Abstain — recorded by the HR secretary on the member's behalf) and
+  `SelectionCommitteeDecision` (Recommend / Reserve / Reject, `ProposedRank`, `Rationale`).
+- Rules (`SelectionCommitteeRules`): one non-recused chair, quorum of at least 3 non-recused members, a
+  Recommend/Reserve decision needs a majority of the eligible voters (`Agree * 2 > eligible`), every Assessed/Ranked
+  candidate needs a decision before submit. Submit locks the session (no member, vote, COI or decision change).
+- `SELECTION-COMMITTEE-APPROVAL` (3 steps), checked on the server: the session creator never approves; quorum is
+  re-checked from step 2; members do not approve step 3.
+- Minutes: `GET SelectionCommittees/Minutes/{id}` builds the PDF on demand from the locked data (not stored —
+  archiving via File.Storage is PLAN-29).
+
+### Ranking gate (D-5)
+
+`RecruitmentRequisition.RequiresCommitteeApproval` (initial value `Recruitment:CommitteeApprovalDefault`: false;
+true in Production/Staging; frozen once a rank exists). When on, `AssignRankAsync` needs the latest approved
+Ranking/Final session to Recommend or Reserve the candidate, and the rank must equal `ProposedRank` unless a
+`RankOverrideReason` (20+ chars, audited `RankOverride`) is given. «تطبيق ترتيب اللجنة»
+(`ApplyCommitteeRanking`) applies all proposed ranks in one transaction.
+
+### Rejection kinds and the appeal window (session 2)
+
+Every rejection goes through `ApplicationRejection.Apply`, which records `RejectedAt`, `RejectionKind`,
+`RejectionNote` and `RankBeforeRejection`:
+
+| Kind | Where |
+|------|-------|
+| `SelectionDecision` | manual «مرفوض» on the application (optional note) |
+| `RequisitionCancelled` / `RequisitionClosed` | requisition cancel (incl. position freeze) / close cascade |
+| `NotSelectedOnHire` | unranked open siblings when a candidate is hired |
+| `ReserveExpired` | `RecruitmentReserveExpiryJob` |
+| `OfferRevoked` | offer revoke without «خطأ إداري» |
+
+An appeal is filed within `Recruitment:AppealWindowDays` (14) of `RejectedAt` (legacy rows: `ReviewedAt`), only for
+`Recruitment:AppealableRejectionKinds` (default SelectionDecision, NotSelectedOnHire, OfferRevoked; legacy rows count
+as SelectionDecision), once per rejection (a new rejection after an upheld appeal can be appealed again).
+Otherwise: «لا يقبل هذا النوع من الرفض الاستئناف.» / «انقضت مهلة الاستئناف على هذا الرفض.»
+
+### Appeal lifecycle (single path)
+
+1. **File** — HR on the candidate's behalf (`FiledBy = HrOnBehalf`; `Candidate` is reserved for PLAN-30), reason of
+   20+ chars. No reviewer and no workflow yet; the application's `AppealStatus` becomes `Pending` (no rank and no offer
+   for it, and no hire on the requisition — `Recruitment:BlockHireOnPendingAppeal`, default true).
+2. **Assign** — HR (`HrCoreWrite`) picks the reviewer from the employee picker (`IndependentReviewerEmployeeId`).
+   Refused («يجب أن يكون المراجع مستقلاً عن اللجنة والمقابلة والتقييم.») for the applicant, any committee member of
+   the requisition (recused ones included), the interview panel and the assessors of the application, the filer and
+   the assigner. Assignment starts `RECRUITMENT-APPEAL-REVIEW` (whatever the policy mode); reassignment while pending
+   cancels the running instance.
+3. **Decide** — only the assigned reviewer: `compliance` role (or Admin) and `employee_id` claim equal to
+   `IndependentReviewerEmployeeId` (legacy rows: Keycloak user id equal to `IndependentReviewerId`); otherwise
+   «غير مصرح: يجب أن تكون المراجع المستقل المعيّن.». Explicit outcome and a rationale of 30+ chars; the outcome is
+   stored, the step approved, and the workflow handler applies it:
+
+| Outcome | Effect |
+|---------|--------|
+| `Upheld` | application → `UnderReview`, rejection fields and rank cleared, scores kept |
+| `UpheldRankCorrection` | application → `Assessed` → ranked at `CorrectedRank` with the rationale as override reason (audited `AppealRankCorrection`; the committee gate does not apply). Needs a rank before rejection and a Published requisition |
+| `Dismissed` | stays `Rejected` with its original kind/date/note |
+| `UpheldNoRemedy` | stays `Rejected`; audited `AppealUpheldNoRemedy` (compliance alert is PLAN-30) |
+
+   On a Closed/Cancelled requisition only `Dismissed` / `UpheldNoRemedy` are allowed. A generic workflow approval
+   without a stored outcome is refused.
+4. **Request information** — the reviewer returns the step with a question (`InfoRequest`); the appeal stays pending;
+   HR **resubmits** (`AdditionalInfo`) and a new review starts for the same reviewer.
+
+The removed direct-reopen path (`ReopenAppeal`) left `AppealNotes`; migration `HCM028_AppealGovernance` turns them
+into Decided `LegacyReopen` appeals (insert-only). If no `RECRUITMENT-APPEAL-REVIEW` definition can be resolved, the
+assigned reviewer decides directly under the same checks (audited `AppealDecidedWithoutWorkflow`).
+
+### Compliance access (PLAN-25 slice)
+
+`HrCoreAppealReview` (Admin | HrCore | Compliance) on `RecruitmentAppealsController` and `HrCoreWorkInbox` (HR.Core
+read roles + Compliance) on the work inbox; both controllers are exempt from the HR.Core module filter and the gateway
+maps their paths (and HR.Core static assets) accordingly. A compliance-only user sees only the appeals assigned to
+them; the application summary on the appeal page omits the national ID.
+
 ## Acceptance Criteria Mapping
 
 - [x] No announcement without funded position — `PositionId` required on requisition
@@ -281,6 +367,10 @@ eligibility and terms checks; from the expiry job it runs in the expired offer's
 - [x] PLAN-27 G-20 (part) — offer validity and expiry job
 - [x] PLAN-27 offer terms — grade from the funded position, salary within the Payroll grade bounds (or an unverified exception)
 - [x] PLAN-27 D-7 — ranked siblings kept on a reserve list that expires automatically
+- [x] PLAN-28 G-10 — committee votes, per-candidate COI, decisions, lock, server-side quorum/SoD, minutes; approval gates ranking (D-5)
+- [x] PLAN-28 G-09 — one appeal path: independent employee-identified compliance reviewer, explicit outcomes, info requests; legacy reopen removed
+- [x] PLAN-28 G-05 (appeal part) — compliance reaches the appeal pages and its inbox items
+- [x] PLAN-28 — rejection kind/date recorded on every rejection; appeal window from `RejectedAt`; no hire while an appeal is pending
 
 ## Plan map (HCM-001)
 
@@ -295,6 +385,7 @@ eligibility and terms checks; from the expiry job it runs in the expired offer's
 | 7 | Internal channel (TalentMarketplace, EssTalent, PromoteFromInternal) |
 | PLAN-26 | Assessment criteria, structured scoring, interview lifecycle, requisition integrity, intake window (G-03, G-08, G-11 addressed; G-20 partly) |
 | PLAN-27 | Merit order, exception offers, offer terms (Payroll grade lookup), decline/revoke/expiry, reserve list (G-06, G-07 addressed; G-20 partly; D-7) |
+| PLAN-28 | Committee decision body and ranking gate, single governed appeal path, rejection kinds, hire block, compliance access slice (G-09, G-10 addressed; G-05 appeal part; D-5) |
 
 ## Artifacts
 
@@ -318,6 +409,10 @@ eligibility and terms checks; from the expiry job it runs in the expired offer's
 | `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/ReserveListService.cs` | Reserve list, next candidate |
 | `src/Services/Payroll/Payroll.Web/Controllers/PayGradeLookupInternalController.cs` | Payroll grade bounds (S2S) |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm27OfferMeritTests.cs` | AC-HCM-27a..h acceptance |
+| `scripts/hcm028-validate.ps1` | Validates PLAN-28 artifacts, migrations, access slice and `Hcm028` tests |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/RecruitmentAppealService.cs` | Appeal filing, reviewer assignment, decision, info request |
+| `src/Services/HRCore/HR.Core.Web/Controllers/RecruitmentAppealsController.cs` | Appeal pages (HR and compliance reviewer) |
+| `src/Tests/HRManagement.AcceptanceTests/AcHcm28CommitteeAppealTests.cs` | AC-HCM-28a..i acceptance |
 
 ## Validation
 
@@ -325,3 +420,4 @@ eligibility and terms checks; from the expiry job it runs in the expired offer's
 - `Hcm001RecruitmentTests`
 - `scripts/hcm026-validate.ps1` — `Hcm026*` unit tests + `Hcm021|Hcm022` regression
 - `scripts/hcm027-validate.ps1` — `Hcm027*` unit tests + `Hcm026|Hcm022` regression
+- `scripts/hcm028-validate.ps1` — `Hcm028*` unit tests + `Hcm027|Hcm026|Hcm022|Hcm021|Hcm006|Wf023` regression, EF model check

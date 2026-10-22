@@ -594,7 +594,7 @@
     "service": "HR.Core",
     "context": "HRCoreDbContext",
     "database": "hr_core_db",
-    "dbset_count": 90,
+    "dbset_count": 93,
     "entity_sets": [
       {
         "entity": "Employee",
@@ -881,6 +881,18 @@
         "set": "SelectionCommitteeMembers"
       },
       {
+        "entity": "SelectionCommitteeMemberCoi",
+        "set": "SelectionCommitteeMemberCois"
+      },
+      {
+        "entity": "SelectionCommitteeVote",
+        "set": "SelectionCommitteeVotes"
+      },
+      {
+        "entity": "SelectionCommitteeDecision",
+        "set": "SelectionCommitteeDecisions"
+      },
+      {
         "entity": "RecruitmentAppeal",
         "set": "RecruitmentAppeals"
       },
@@ -1033,8 +1045,11 @@
       "RecruitmentRequisitions",
       "ReferenceCatalogEntries",
       "SeedPackApplications",
+      "SelectionCommitteeDecisions",
+      "SelectionCommitteeMemberCois",
       "SelectionCommitteeMembers",
       "SelectionCommitteeSessions",
+      "SelectionCommitteeVotes",
       "ServiceRegimeExceptions",
       "ShiftAssignments",
       "ShiftRosters",
@@ -1052,7 +1067,7 @@
       "WorkforcePlanLines",
       "WorkforcePlans"
     ],
-    "business_table_count": 88,
+    "business_table_count": 91,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",
