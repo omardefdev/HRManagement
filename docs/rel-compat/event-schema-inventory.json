@@ -103,12 +103,14 @@
     {
       "id": "ICandidateAccepted",
       "kind": "event",
-      "schemaVersion": 1,
+      "schemaVersion": 4,
       "namespace": "HRManagement.MessageContracts.Events",
-      "publisher": "HR.Core.RecruitmentIntegrationService",
+      "publisher": "HR.Core.RecruitmentHireClosureService",
       "consumers": ["HR.Contracts"],
       "category": "workflow-integration",
-      "outbox": true
+      "outbox": true,
+      "compatRule": "additive-only-minor",
+      "notes": "v4 (HCM-029) — added OfferedSalary, GradeCode, LegalRegimeId, PayrollRegimeCode, EmploymentType, PositionCode, OrgUnitId, IsInternalMobility with default members (v3 messages read them as null/false); EmploymentCategory now carries the EmploymentType enum name. Not published for internal mobility (IInternalPlacementCompleted only)."
     },
     {
       "id": "IHireCaseCompleted",

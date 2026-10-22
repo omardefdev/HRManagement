@@ -319,11 +319,16 @@ public class InternalHireClosureIntegrationTests
         var reloadedReq = await db.RecruitmentRequisitions.AsNoTracking().SingleAsync(r => r.Id == req.Id);
         Assert.Equal(RequisitionStatus.Closed, reloadedReq.Status);
 
-        Assert.Equal(2, publish.Invocations.Count);
+        // PLAN-29: internal mobility publishes IInternalPlacementCompleted only (no ICandidateAccepted → no Appointment).
+        Assert.Equal(1, publish.Invocations.Count);
         Assert.Contains(
             publish.Invocations,
             i => i.Method.IsGenericMethod
                  && i.Method.GetGenericArguments().FirstOrDefault() == typeof(IInternalPlacementCompleted));
+        Assert.DoesNotContain(
+            publish.Invocations,
+            i => i.Method.IsGenericMethod
+                 && i.Method.GetGenericArguments().FirstOrDefault() == typeof(ICandidateAccepted));
         Assert.DoesNotContain(
             publish.Invocations,
             i => i.Method.IsGenericMethod

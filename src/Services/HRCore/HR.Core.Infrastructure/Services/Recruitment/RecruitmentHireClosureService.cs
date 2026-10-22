@@ -487,28 +487,46 @@ public sealed class RecruitmentHireClosureService(
     {
         var correlationId = CorrelationIdFlow.Get() ?? Guid.NewGuid().ToString();
 
-        await publish.Publish<ICandidateAccepted>(new
-        {
-            EmployeeId = employee.Id,
-            EmploymentCategory = employmentType.ToString(),
-            ExpectedStartDate = expectedStartDate.ToDateTime(TimeOnly.MinValue),
-            FullName = app.ApplicantFullName,
-            SourceSystem = "HR.Core",
-            CorrelationId = correlationId,
-            TenantId = employee.TenantId,
-            RecruitmentApplicationId = app.Id,
-            RequisitionId = app.RequisitionId ?? requisition?.Id,
-            FundedPositionId = position?.Id ?? offer?.FundedPositionId,
-            OfferLetterId = offer?.Id
-        }, cancellationToken);
-
         if (!isInternalMobility)
         {
-            var legalRegimeId = await db.EmploymentRecords.AsNoTracking()
+            // HCM-029: the record added by SeedEmployeeSideEffectsAsync is not saved yet, so read the tracked one first
+            // (the database query alone returned null for a new hire).
+            var legalRegimeId = db.EmploymentRecords.Local
                 .Where(r => r.EmployeeId == employee.Id)
                 .OrderByDescending(r => r.StartDate)
                 .Select(r => r.LegalRegimeId)
-                .FirstOrDefaultAsync(cancellationToken);
+                .FirstOrDefault()
+                ?? await db.EmploymentRecords.AsNoTracking()
+                    .Where(r => r.EmployeeId == employee.Id)
+                    .OrderByDescending(r => r.StartDate)
+                    .Select(r => r.LegalRegimeId)
+                    .FirstOrDefaultAsync(cancellationToken);
+            var payrollRegimeCode = ServiceRegimeToPayrollMapper.MapToPayrollCode(legalRegimeId);
+
+            // HCM-029 (C2): v4 carries the approved offer terms (HR.Contracts → contract → IContractActivated → Payroll).
+            await publish.Publish<ICandidateAccepted>(new
+            {
+                EmployeeId = employee.Id,
+                EmploymentCategory = employmentType.ToString(),
+                ExpectedStartDate = expectedStartDate.ToDateTime(TimeOnly.MinValue),
+                FullName = app.ApplicantFullName,
+                SourceSystem = "HR.Core",
+                CorrelationId = correlationId,
+                TenantId = employee.TenantId,
+                RecruitmentApplicationId = app.Id,
+                RequisitionId = app.RequisitionId ?? requisition?.Id,
+                FundedPositionId = position?.Id ?? offer?.FundedPositionId,
+                OfferLetterId = offer?.Id,
+                OfferedSalary = offer?.OfferedSalary,
+                GradeCode = offer?.GradeCode ?? position?.GradeCode,
+                LegalRegimeId = legalRegimeId,
+                PayrollRegimeCode = payrollRegimeCode,
+                EmploymentType = employmentType.ToString(),
+                PositionCode = position?.PositionCode,
+                OrgUnitId = position?.OrgUnitId ?? employee.PrimaryOrgUnitId,
+                IsInternalMobility = false,
+                SchemaVersion = 4
+            }, cancellationToken);
 
             await publish.Publish<IEmployeeCreated>(new
             {
@@ -522,11 +540,14 @@ public sealed class RecruitmentHireClosureService(
                 FundedPositionId = position?.Id ?? offer?.FundedPositionId,
                 PositionCode = position?.PositionCode,
                 LegalRegimeId = legalRegimeId,
-                PayrollRegimeCode = ServiceRegimeToPayrollMapper.MapToPayrollCode(legalRegimeId)
+                PayrollRegimeCode = payrollRegimeCode
             }, cancellationToken);
         }
         else
         {
+            // HCM-029 (C2): no ICandidateAccepted for internal mobility — its only consumer (HR.Contracts) opens an
+            // Appointment, which is wrong for an existing employee.
+            // PLAN-29 session 2: HR.Contracts also ignores IsInternalMobility (defence in depth)
             await publish.Publish<IInternalPlacementCompleted>(new
             {
                 EmployeeId = employee.Id,

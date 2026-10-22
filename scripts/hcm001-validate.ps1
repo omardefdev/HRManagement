@@ -94,7 +94,8 @@ $candidateAcceptedFile = Resolve-RepoPath "src/Shared/HRManagement.MessageContra
 if (Test-Path $candidateAcceptedFile) {
     $content = Get-Content -Raw -Path $candidateAcceptedFile
     if ($content -notmatch "RecruitmentApplicationId") { $failures += "ICandidateAccepted missing RecruitmentApplicationId (v3)" }
-    if ($content -notmatch "SchemaVersion => 3") { $failures += "ICandidateAccepted must be schema version 3" }
+    # HCM-029: v4 is additive (offer terms); v3 lineage members above must stay.
+    if ($content -notmatch "SchemaVersion => [34];") { $failures += "ICandidateAccepted must be schema version 3 or 4" }
 }
 
 $migrateScript = Resolve-RepoPath "scripts/hcm001-migrate-legacy-applications.ps1"

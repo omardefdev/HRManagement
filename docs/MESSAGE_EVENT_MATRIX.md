@@ -37,7 +37,8 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | `ISecondmentExecuted` | HR.Movements | Payroll, Auth.Directory | Payroll: marker; Auth: audit | — | Payroll |
 | `ITrainingCompleted` | HR.Training | HR.Core, Payroll | `IntegrationMessageReceipts` / Payroll marker | — | HR.Core, Payroll |
 | `IMissionApproved` | HR.Training | Payroll | Payroll: marker | — | Payroll |
-| `ICandidateAccepted` | HR.Core `RecruitmentIntegrationService` | HR.Contracts | Contract exists check | Yes | Inbound |
+| `ICandidateAccepted` (v4) | HR.Core `RecruitmentHireClosureService` — external hires only (HCM-029: internal mobility publishes `IInternalPlacementCompleted` only) | HR.Contracts | Contract exists check | Yes | Inbound, `Hcm029CandidateAcceptedV4Tests` |
+| `IInternalPlacementCompleted` | HR.Core `RecruitmentHireClosureService` (internal mobility) | HR.Movements `InternalPlacementCompletedConsumer` | consumer | Yes | `InternalHireClosureIntegrationTests` |
 | `ITransactionRegisteredInDiwan` | HR.Core `DiwanIntegrationService` | HR.Contracts | Transaction idempotent update | Yes | Inbound |
 | `IHireCaseCompleted` | HR.Contracts `PublishHireCaseHandler` | Records.Archive, HR.Core (ديوان) | Archive ref `HIRE-{txn}`; Diwan ref | Yes | Integration |
 
