@@ -79,6 +79,12 @@ public class RecruitmentRequisitionDetailsViewModel
     public AssessmentCriteriaPanelViewModel CriteriaPanel { get; set; } = new();
     /// <summary>HCM-027 (F3): next candidate by merit after a decline/expiry/revoke (null when none).</summary>
     public HR.Core.Infrastructure.Services.Recruitment.NextCandidateSuggestion? NextCandidate { get; set; }
+    /// <summary>HCM-028: latest committee session on the requisition (any status), or null.</summary>
+    public SelectionCommitteeSession? LatestCommitteeSession { get; set; }
+    /// <summary>HCM-028: committee gate and latest approved Ranking/Final session.</summary>
+    public HR.Core.Infrastructure.Services.Recruitment.CommitteeRankingGate? CommitteeGate { get; set; }
+    /// <summary>HCM-028 (A1): the committee requirement is frozen once any application holds a rank.</summary>
+    public bool RankingStarted { get; set; }
 }
 
 public class RequisitionWorkflowPanelViewModel : WorkflowPanelViewModel;

@@ -38,6 +38,10 @@ public class RecruitmentApplicationDetailsViewModel
     public bool PositionGradeNotInScale { get; set; }
     /// <summary>HCM-027 (E4): default proposed start date for the offer form.</summary>
     public DateTime DefaultProposedStartDate { get; set; } = DateTime.UtcNow.Date.AddDays(30);
+    /// <summary>HCM-028: committee gate of the requisition (null without a requisition).</summary>
+    public HR.Core.Infrastructure.Services.Recruitment.CommitteeRankingGate? CommitteeGate { get; set; }
+    /// <summary>HCM-028: this candidate's decision in the latest approved Ranking/Final session, or null.</summary>
+    public SelectionCommitteeDecision? CommitteeDecision => CommitteeGate?.DecisionFor(Application.Id);
 }
 
 public class RecruitmentAppealWorkflowActionViewModel
@@ -156,6 +160,9 @@ public class SelectionCommitteeDetailsViewModel
     public SelectionCommitteeSession Session { get; set; } = null!;
     public bool CanSubmit { get; set; }
     public WorkflowPanelViewModel Workflow { get; set; } = new();
+
+    /// <summary>HCM-028: members, per-candidate conflicts, votes, decisions and candidates (set by the controller).</summary>
+    public HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeWorkspace? Workspace { get; set; }
 }
 
 public class SelectionCommitteeWorkflowActionViewModel

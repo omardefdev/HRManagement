@@ -1,94 +1,363 @@
-@model HR.Core.Web.ViewModels.SelectionCommitteeDetailsViewModel
-@using HRManagement.ServiceDefaults
-@{
-    ViewData["Title"] = "تفاصيل لجنة الاختيار";
-    var session = Model.Session;
-    var requisition = ViewBag.Requisition as HR.Core.Domain.Entities.RecruitmentRequisition;
-    var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
-}
-
-<div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h3 class="mb-0">لجنة الاختيار — @(requisition?.RequisitionNumber ?? "—")</h3>
-        <div class="d-flex gap-1 flex-wrap">
-            @if (requisition is not null)
-            {
-                <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@requisition.Id" class="btn btn-outline-secondary btn-sm">طلب الشاغر</a>
-            }
-            <a asp-action="Index" asp-route-requisitionId="@session.RequisitionId" class="btn btn-outline-secondary btn-sm">رجوع</a>
-        </div>
-    </div>
-    <div class="card-body">
-        <dl class="row mb-0">
-            <dt class="col-sm-3">تاريخ الجلسة</dt>
-            <dd class="col-sm-9">@session.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd")</dd>
-            <dt class="col-sm-3">التوصية</dt>
-            <dd class="col-sm-9">@(session.Recommendation ?? "—")</dd>
-            <dt class="col-sm-3">النتائج</dt>
-            <dd class="col-sm-9">@(session.Findings ?? "—")</dd>
-            <dt class="col-sm-3">تاريخ الاعتماد</dt>
-            <dd class="col-sm-9">@(session.ApprovedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
-        </dl>
-
-        @if (session.Members.Any())
-        {
-            <h5 class="mt-3">الأعضاء</h5>
-            <table class="table table-sm">
-                <thead><tr><th>الموظف</th><th>الدور</th><th>COI</th><th>انسحاب</th></tr></thead>
-                <tbody>
-                @foreach (var m in session.Members)
-                {
-                    <tr>
-                        <td>@m.EmployeeId</td>
-                        <td>@m.Role</td>
-                        <td>@(m.HasConflictOfInterest ? "نعم" : "لا")</td>
-                        <td>@(m.Recused ? "نعم" : "لا")</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        }
-
-        ViewData["SessionId"] = session.Id;
-        <partial name="_CommitteeWorkflowPanel" model="Model.Workflow" />
-    </div>
-    @if (canWrite && Model.CanSubmit)
-    {
-        <div class="card-footer">
-            <form asp-action="Submit" asp-route-id="@session.Id" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-warning btn-sm">تقديم للاعتماد</button>
-            </form>
-        </div>
-    }
-</div>
-
-@if (canWrite && session.ApprovedAt is null && session.WorkflowInstanceId is null)
-{
-    <div class="card mb-3">
-        <div class="card-header"><h5 class="mb-0">إضافة عضو</h5></div>
-        <div class="card-body">
-            <form asp-action="AddMember" method="post" class="row g-2 align-items-end">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="sessionId" value="@session.Id" />
-                <input type="hidden" name="requisitionId" value="@session.RequisitionId" />
-                <div class="col-md-3">
-                    <label class="form-label">معرّف الموظف</label>
-                    <input type="text" name="employeeId" class="form-control" required />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">الدور</label>
-                    <input type="text" name="role" class="form-control" value="عضو" />
-                </div>
-                <div class="col-md-2 form-check mt-4">
-                    <input class="form-check-input" type="checkbox" name="hasConflictOfInterest" id="coi" value="true" />
-                    <label class="form-check-label" for="coi">تعارض مصالح</label>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary">إضافة</button>
-                </div>
-            </form>
-        </div>
-    </div>
-}
-
+@model HR.Core.Web.ViewModels.SelectionCommitteeDetailsViewModel
+@using HRManagement.ServiceDefaults
+@using HR.Core.Domain.Enums
+@using HR.Core.Domain.Services
+@using HRManagement.SharedKernel.Localization
+@{
+    ViewData["Title"] = "تفاصيل لجنة الاختيار";
+    var session = Model.Session;
+    var ws = Model.Workspace!;
+    var requisition = ViewBag.Requisition as HR.Core.Domain.Entities.RecruitmentRequisition;
+    var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
+    var editable = canWrite && !session.IsLocked && session.ApprovedAt is null;
+    var suggested = ws.SuggestedRanks;
+    var issues = ws.SubmitIssues;
+}
+
+@if (session.IsLocked || session.ApprovedAt is not null)
+{
+    <div class="alert @(session.ApprovedAt is not null ? "alert-success" : "alert-warning") d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>
+            @if (session.ApprovedAt is not null)
+            {
+                <strong>الجلسة معتمدة</strong> <span>منذ @session.ApprovedAt.Value.ToLocalTime().ToString("yyyy/MM/dd HH:mm") — البيانات مقفلة.</span>
+            }
+            else
+            {
+                <strong>@SelectionCommitteeRules.LockedMessage</strong>
+                <span>قُدّمت في @session.SubmittedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm").</span>
+            }
+        </span>
+        @if (session.SubmittedAt is not null)
+        {
+            <a asp-action="Minutes" asp-route-id="@session.Id" class="btn btn-outline-dark btn-sm"><i class="fas fa-file-pdf ms-1"></i> تحميل المحضر</a>
+        }
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">لجنة الاختيار — @(requisition?.RequisitionNumber ?? "—")</h3>
+        <div class="d-flex gap-1 flex-wrap">
+            @if (requisition is not null)
+            {
+                <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@requisition.Id" asp-fragment="selection-committee" class="btn btn-outline-secondary btn-sm">طلب الشاغر</a>
+            }
+            <a asp-action="Index" asp-route-requisitionId="@session.RequisitionId" class="btn btn-outline-secondary btn-sm">رجوع</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">المسمى الوظيفي</dt>
+            <dd class="col-sm-9">@(requisition?.JobTitle ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الجلسة</dt>
+            <dd class="col-sm-9">@session.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">غرض الجلسة</dt>
+            <dd class="col-sm-9">@EnumDisplayExtensions.GetDisplayName(session.Purpose)</dd>
+            <dt class="col-sm-3">التوصية العامة</dt>
+            <dd class="col-sm-9">@(session.Recommendation ?? "—")</dd>
+            <dt class="col-sm-3">النتائج</dt>
+            <dd class="col-sm-9">@(session.Findings ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الاعتماد</dt>
+            <dd class="col-sm-9">@(session.ApprovedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+        </dl>
+
+        @{ ViewData["SessionId"] = session.Id; }
+        <partial name="_CommitteeWorkflowPanel" model="Model.Workflow" />
+    </div>
+</div>
+
+@* 1. Members *@
+<div class="card mb-3" id="members">
+    <div class="card-header"><h5 class="mb-0">الأعضاء</h5></div>
+    <div class="card-body">
+        @if (!ws.Members.Any())
+        {
+            <p class="text-muted">لم يُضف أي عضو بعد. النصاب: @SelectionCommitteeRules.MinimumQuorum أعضاء غير منسحبين على الأقل، ورئيس واحد.</p>
+        }
+        else
+        {
+            <table class="table table-sm align-middle">
+                <thead><tr><th>الموظف</th><th>الدور</th><th>الحالة</th>@if (editable) { <th></th> }</tr></thead>
+                <tbody>
+                @foreach (var m in ws.Members)
+                {
+                    var isChair = SelectionCommitteeRules.IsChairRole(m.Role);
+                    <tr>
+                        <td>@(m.Employee?.FullName ?? m.EmployeeId.ToString())</td>
+                        <td>
+                            @if (isChair)
+                            {
+                                <span class="badge bg-primary">رئيس اللجنة</span>
+                            }
+                            else
+                            {
+                                <span>عضو</span>
+                            }
+                        </td>
+                        <td>
+                            @if (m.Recused)
+                            {
+                                <span class="badge bg-secondary">منسحب (تعارض مصالح)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark">فعّال</span>
+                            }
+                        </td>
+                        @if (editable)
+                        {
+                            <td class="text-nowrap">
+                                @if (!isChair && !m.Recused)
+                                {
+                                    <form asp-action="SetChair" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sessionId" value="@session.Id" />
+                                        <input type="hidden" name="memberId" value="@m.Id" />
+                                        <button type="submit" class="btn btn-outline-primary btn-sm">تعيين رئيساً</button>
+                                    </form>
+                                }
+                                <form asp-action="RemoveMember" method="post" class="d-inline"
+                                      data-hr-confirm="إزالة العضو وحذف أصواته؟" data-hr-confirm-title="إزالة عضو" data-hr-confirm-variant="danger">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                    <input type="hidden" name="memberId" value="@m.Id" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">إزالة</button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        @if (editable)
+        {
+            <form asp-action="AddMember" method="post" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="sessionId" value="@session.Id" />
+                <div class="col-md-5">
+                    <label class="form-label" for="memberEmployee">الموظف</label>
+                    <select id="memberEmployee" name="employeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف بالاسم..." required>
+                        <option value=""></option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="memberRole">الدور</label>
+                    <select id="memberRole" name="role" class="form-select">
+                        <option value="Member" selected>عضو</option>
+                        <option value="Chair">رئيس اللجنة</option>
+                    </select>
+                </div>
+                <div class="col-md-2 form-check mt-4">
+                    <input class="form-check-input" type="checkbox" name="hasConflictOfInterest" id="coi" value="true" />
+                    <label class="form-check-label" for="coi">تعارض مصالح (انسحاب)</label>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">إضافة</button>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+@* 2. Candidates and votes *@
+<div class="card mb-3" id="votes">
+    <div class="card-header"><h5 class="mb-0">المرشحون والتصويت</h5></div>
+    <div class="card-body">
+        @if (!ws.Candidates.Any())
+        {
+            <p class="text-muted mb-0">@SelectionCommitteeRules.NoCandidatesMessage</p>
+        }
+        else if (!ws.Members.Any())
+        {
+            <p class="text-muted mb-0">أضف أعضاء اللجنة أولاً.</p>
+        }
+        else
+        {
+            <p class="text-muted small">
+                يسجّل أمين سر اللجنة صوت كل عضو نيابةً عنه. العضو المنسحب أو صاحب التعارض مع مرشح لا يُحتسب صوته على هذا المرشح.
+                تُعدّ التوصية مدعومة عندما يوافق أكثر من نصف الأعضاء المؤهلين (الامتناع لا يُحتسب موافقة).
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th>المرشح</th>
+                            <th>الدرجة</th>
+                            @foreach (var m in ws.Members)
+                            {
+                                <th>@(m.Employee?.FullName ?? "عضو")@(SelectionCommitteeRules.IsChairRole(m.Role) ? " (رئيس)" : "")</th>
+                            }
+                            <th>موافق / غير موافق / ممتنع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var c in ws.Candidates)
+                    {
+                        var tally = ws.TallyFor(c.Id);
+                        <tr>
+                            <td>
+                                <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@c.Id">@c.ApplicantFullName</a>
+                            </td>
+                            <td>@(c.AssessmentScore?.ToString("0.00") ?? "—")</td>
+                            @foreach (var m in ws.Members)
+                            {
+                                var conflicted = ws.HasConflict(m.Id, c.Id);
+                                var vote = ws.VoteOf(m.Id, c.Id);
+                                <td>
+                                    @if (m.Recused)
+                                    {
+                                        <span class="badge bg-secondary">منسحب</span>
+                                    }
+                                    else if (conflicted)
+                                    {
+                                        <span class="badge bg-danger">تعارض — صوت محجوب</span>
+                                    }
+                                    else if (vote is not null)
+                                    {
+                                        <span class="badge @(vote.Vote == CommitteeVoteValue.Agree ? "bg-success" : vote.Vote == CommitteeVoteValue.Disagree ? "bg-warning text-dark" : "bg-light text-dark")">@EnumDisplayExtensions.GetDisplayName(vote.Vote)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">لم يصوّت</span>
+                                    }
+
+                                    @if (editable && !m.Recused)
+                                    {
+                                        <div class="d-flex flex-wrap gap-1 mt-1">
+                                            @if (!conflicted)
+                                            {
+                                                <form asp-action="RecordVote" method="post" class="d-flex gap-1">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                                    <input type="hidden" name="memberId" value="@m.Id" />
+                                                    <input type="hidden" name="applicationId" value="@c.Id" />
+                                                    <select name="vote" class="form-select form-select-sm" aria-label="التصويت">
+                                                        @foreach (var option in Enum.GetValues<CommitteeVoteValue>())
+                                                        {
+                                                            <option value="@option" selected="@(vote?.Vote == option)">@EnumDisplayExtensions.GetDisplayName(option)</option>
+                                                        }
+                                                    </select>
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">حفظ</button>
+                                                </form>
+                                            }
+                                            <form asp-action="RecordCoi" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="sessionId" value="@session.Id" />
+                                                <input type="hidden" name="memberId" value="@m.Id" />
+                                                <input type="hidden" name="applicationId" value="@c.Id" />
+                                                <input type="hidden" name="hasConflict" value="@(conflicted ? "false" : "true")" />
+                                                <button type="submit" class="btn btn-link btn-sm p-0">@(conflicted ? "إلغاء التعارض" : "تعارض مصالح")</button>
+                                            </form>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                            <td class="text-nowrap">
+                                @tally.Agree / @tally.Disagree / @tally.Abstain
+                                <span class="text-muted small">(مؤهلون: @tally.EligibleVoters)</span>
+                                @if (SelectionCommitteeRules.IsSupported(tally))
+                                {
+                                    <span class="badge bg-success">أغلبية</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@* 3. Decisions *@
+<div class="card mb-3" id="decisions">
+    <div class="card-header"><h5 class="mb-0">توصيات اللجنة</h5></div>
+    <div class="card-body">
+        @if (!ws.Candidates.Any())
+        {
+            <p class="text-muted mb-0">لا يوجد مرشحون.</p>
+        }
+        else
+        {
+            <p class="text-muted small">الترتيب المقترح مُعبّأ مسبقاً من الدرجة المحتسبة (الأعلى أولاً، ثم الأسبق تقديماً). التوصية بالرفض لا تحمل ترتيباً.</p>
+            <table class="table table-sm align-middle">
+                <thead><tr><th>المرشح</th><th>الدرجة</th><th>التوصية</th><th>الترتيب المقترح</th><th>التعليل</th>@if (editable) { <th></th> }</tr></thead>
+                <tbody>
+                @foreach (var c in ws.Candidates)
+                {
+                    var decision = ws.DecisionFor(c.Id);
+                    var formId = $"decision-{c.Id:N}";
+                    <tr>
+                        <td>@c.ApplicantFullName</td>
+                        <td>@(c.AssessmentScore?.ToString("0.00") ?? "—")</td>
+                        @if (editable)
+                        {
+                            <td>
+                                <select name="recommendation" form="@formId" class="form-select form-select-sm" aria-label="التوصية">
+                                    @foreach (var option in Enum.GetValues<CommitteeRecommendation>())
+                                    {
+                                        <option value="@option" selected="@((decision?.Recommendation ?? CommitteeRecommendation.Recommend) == option)">@EnumDisplayExtensions.GetDisplayName(option)</option>
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" name="proposedRank" form="@formId" min="1" class="form-control form-control-sm" aria-label="الترتيب المقترح"
+                                       value="@(decision is null ? suggested.GetValueOrDefault(c.Id) : decision.ProposedRank)" />
+                            </td>
+                            <td>
+                                <textarea name="rationale" form="@formId" rows="1" maxlength="2000" class="form-control form-control-sm" aria-label="التعليل">@decision?.Rationale</textarea>
+                            </td>
+                            <td>
+                                <form id="@formId" asp-action="UpsertDecision" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                    <input type="hidden" name="applicationId" value="@c.Id" />
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">حفظ</button>
+                                </form>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>@(decision is null ? "—" : EnumDisplayExtensions.GetDisplayName(decision.Recommendation))</td>
+                            <td>@(decision?.ProposedRank?.ToString() ?? "—")</td>
+                            <td>@(decision?.Rationale ?? "—")</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@* 4. Submit *@
+@if (canWrite && Model.CanSubmit)
+{
+    <div class="card mb-3" id="submit">
+        <div class="card-header"><h5 class="mb-0">التقديم للاعتماد</h5></div>
+        <div class="card-body">
+            @if (issues.Any())
+            {
+                <p class="mb-1">متطلبات غير مستوفاة:</p>
+                <ul class="text-danger">
+                    @foreach (var issue in issues)
+                    {
+                        <li>@issue</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-success">جميع المتطلبات مستوفاة. بعد التقديم تُقفل العضوية والأصوات والتوصيات.</p>
+            }
+            <form asp-action="Submit" asp-route-id="@session.Id" method="post" class="d-inline"
+                  data-hr-confirm="تقديم الجلسة للاعتماد وقفل بياناتها؟" data-hr-confirm-title="تقديم للاعتماد">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-warning">تقديم للاعتماد</button>
+            </form>
+        </div>
+    </div>
+}

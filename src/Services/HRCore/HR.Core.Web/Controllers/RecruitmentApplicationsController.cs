@@ -74,11 +74,13 @@ public class RecruitmentApplicationsController(
 
         IReadOnlyList<RecruitmentApplication> rankBoard = [];
         int? bestAvailableRank = null;
+        CommitteeRankingGate? committeeGate = null;
 
         if (app.RequisitionId is Guid reqId)
         {
             rankBoard = await selection.GetRankedCandidatesAsync(reqId);
             bestAvailableRank = await offerService.GetBestAvailableRankAsync(reqId);
+            committeeGate = await selection.GetCommitteeRankingGateAsync(reqId);
         }
 
         var scoringPanel = await BuildScoringPanelAsync(app);
@@ -134,7 +136,8 @@ public class RecruitmentApplicationsController(
             GradeMaxSalary = gradeFound?.MaxSalary,
             PayrollLookupUnavailable = gradeLookup is PayrollGradeLookupResult.Unavailable,
             PositionGradeNotInScale = gradeLookup is PayrollGradeLookupResult.NotFound,
-            DefaultProposedStartDate = defaultStartDate
+            DefaultProposedStartDate = defaultStartDate,
+            CommitteeGate = committeeGate
         });
     }
 

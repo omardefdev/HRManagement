@@ -1,0 +1,93 @@
+@model HR.Core.Web.ViewModels.RecruitmentRequisitionDetailsViewModel
+@using HR.Core.Domain.Enums
+@using HRManagement.SharedKernel.Localization
+@{
+    var requisition = Model.Requisition;
+    var latest = Model.LatestCommitteeSession;
+    var approved = Model.CommitteeGate?.ApprovedSession;
+}
+
+<div class="card mt-3" id="selection-committee">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0"><i class="fas fa-users ms-1"></i> لجنة الاختيار</h5>
+        <a asp-controller="SelectionCommittees" asp-action="Index" asp-route-requisitionId="@requisition.Id" class="btn btn-outline-primary btn-sm">جلسات اللجنة</a>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            @if (requisition.RequiresCommitteeApproval)
+            {
+                <span class="badge bg-warning text-dark">الترتيب مشروط باعتماد اللجنة</span>
+            }
+            else
+            {
+                <span class="badge bg-light text-dark">اعتماد اللجنة غير مشروط للترتيب</span>
+            }
+
+            @if (Model.CanWrite && !Model.RankingStarted)
+            {
+                <form asp-action="SetCommitteeRequirement" asp-route-id="@requisition.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="required" value="@(requisition.RequiresCommitteeApproval ? "false" : "true")" />
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                        @(requisition.RequiresCommitteeApproval ? "إلغاء الاشتراط" : "اشتراط اعتماد اللجنة")
+                    </button>
+                </form>
+            }
+            else if (Model.RankingStarted)
+            {
+                <span class="text-muted small">لا يمكن تغيير الاشتراط بعد بدء الترتيب.</span>
+            }
+        </div>
+
+        @if (latest is null)
+        {
+            <p class="text-muted mb-0">لا توجد جلسة لجنة على هذا الطلب.</p>
+        }
+        else
+        {
+            <dl class="row mb-2">
+                <dt class="col-sm-3">آخر جلسة</dt>
+                <dd class="col-sm-9">
+                    <a asp-controller="SelectionCommittees" asp-action="Details" asp-route-id="@latest.Id">
+                        @latest.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd") — @EnumDisplayExtensions.GetDisplayName(latest.Purpose)
+                    </a>
+                    @if (latest.ApprovedAt is not null)
+                    {
+                        <span class="badge bg-success ms-1">معتمدة</span>
+                    }
+                    else if (latest.LockedAt is not null)
+                    {
+                        <span class="badge bg-warning text-dark ms-1">قيد الاعتماد</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-light text-dark ms-1">مسودة</span>
+                    }
+                </dd>
+                <dt class="col-sm-3">الجلسة المعتمدة للترتيب</dt>
+                <dd class="col-sm-9">
+                    @if (approved is null)
+                    {
+                        <span>—</span>
+                    }
+                    else
+                    {
+                        <a asp-controller="SelectionCommittees" asp-action="Details" asp-route-id="@approved.Id">
+                            معتمدة @approved.ApprovedAt!.Value.ToLocalTime().ToString("yyyy/MM/dd")
+                        </a>
+                        <span class="text-muted small ms-1">(@approved.Decisions.Count(d => d.Recommendation != CommitteeRecommendation.Reject) توصية بترتيب)</span>
+                    }
+                </dd>
+            </dl>
+        }
+
+        @if (Model.CanWrite && approved is not null)
+        {
+            <form asp-action="ApplyCommitteeRanking" asp-route-id="@requisition.Id" method="post" class="d-inline"
+                  data-hr-confirm="تطبيق الترتيب المقترح من اللجنة على جميع المرشحين الموصى بهم؟" data-hr-confirm-title="تطبيق ترتيب اللجنة">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary btn-sm">تطبيق ترتيب اللجنة</button>
+            </form>
+        }
+    </div>
+</div>

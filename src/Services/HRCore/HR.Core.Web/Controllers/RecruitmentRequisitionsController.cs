@@ -258,6 +258,13 @@ public class RecruitmentRequisitionsController(
             CanApprove = vm.CanApprove
         };
         vm.NextCandidate = await reserveList.GetNextCandidateSuggestionAsync(requisition.Id);
+        vm.LatestCommitteeSession = await db.SelectionCommitteeSessions.AsNoTracking()
+            .Where(s => s.RequisitionId == requisition.Id)
+            .OrderByDescending(s => s.CommitteeDate)
+            .ThenByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync();
+        vm.CommitteeGate = await selection.GetCommitteeRankingGateAsync(requisition.Id);
+        vm.RankingStarted = await selection.HasRankingStartedAsync(requisition.Id);
         return View(vm);
     }
 

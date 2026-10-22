@@ -354,6 +354,8 @@
 
 <partial name="_AssessmentCriteriaPanel" model="Model.CriteriaPanel" />
 
+<partial name="_CommitteePanel" model="Model" />
+
 @if (Model.CanWrite && requisition.Status is RequisitionStatus.Approved or RequisitionStatus.Published)
 {
     <div class="card mt-3" id="closing-date">

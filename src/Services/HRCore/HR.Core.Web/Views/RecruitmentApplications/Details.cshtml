@@ -99,9 +99,54 @@
         <div class="card mb-3">
             <div class="card-header"><h5 class="mb-0">تعيين الترتيب</h5></div>
             <div class="card-body">
+                @{
+                    var gate = Model.CommitteeGate;
+                    var committeeDecision = Model.CommitteeDecision;
+                    var gated = gate?.Required == true;
+                }
+                @if (gated || committeeDecision is not null)
+                {
+                    <div class="mb-3">
+                        @if (gated)
+                        {
+                            <span class="badge bg-warning text-dark">الترتيب مشروط باعتماد لجنة الاختيار</span>
+                        }
+                        @if (gate?.ApprovedSession is null)
+                        {
+                            <span class="text-muted small ms-1">لا توجد جلسة لجنة معتمدة (ترتيب/قرار نهائي) لهذا الطلب بعد.</span>
+                        }
+                        else if (committeeDecision is null)
+                        {
+                            <span class="text-muted small ms-1">لا توجد توصية للجنة بشأن هذا المرشح في الجلسة المعتمدة.</span>
+                        }
+                        else
+                        {
+                            <span class="ms-1">توصية اللجنة:
+                                <strong>@HRManagement.SharedKernel.Localization.EnumDisplayExtensions.GetDisplayName(committeeDecision.Recommendation)</strong>
+                                @if (committeeDecision.ProposedRank is int proposed)
+                                {
+                                    <span>— الترتيب المقترح <strong>@proposed</strong></span>
+                                }
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(committeeDecision.Rationale))
+                            {
+                                <div class="text-muted small">@committeeDecision.Rationale</div>
+                            }
+                            <a asp-controller="SelectionCommittees" asp-action="Details" asp-route-id="@gate.ApprovedSession.Id" class="small">محضر الجلسة</a>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(app.RankOverrideReason))
+                        {
+                            <div class="alert alert-warning py-1 px-2 mt-2 mb-0 small">رتبة مخالفة للمقترح — السبب: @app.RankOverrideReason</div>
+                        }
+                    </div>
+                }
                 @if (!Model.CanRank)
                 {
                     <p class="text-muted mb-0">الترتيب موقوف بسبب استئناف قيد المراجعة.</p>
+                }
+                else if (app.Status is not (HR.Core.Domain.Enums.RecruitmentApplicationStatus.Assessed or HR.Core.Domain.Enums.RecruitmentApplicationStatus.Ranked))
+                {
+                    <p class="text-muted mb-0">@HR.Core.Domain.Services.SelectionCommitteeRules.NotAssessedMessage</p>
                 }
                 else
                 {
@@ -110,8 +155,15 @@
                         <input type="hidden" name="ApplicationId" value="@app.Id" />
                         <div class="col-md-3">
                             <label class="form-label">الترتيب</label>
-                            <input type="number" name="Rank" class="form-control" min="1" value="@(app.Rank ?? 1)" required />
+                            <input type="number" name="Rank" class="form-control" min="1" value="@(app.Rank ?? committeeDecision?.ProposedRank ?? 1)" required />
                         </div>
+                        @if (gated && committeeDecision is { ProposedRank: not null })
+                        {
+                            <div class="col-md-7">
+                                <label class="form-label" for="rankOverrideReason">سبب مخالفة الترتيب المقترح (مطلوب إن اختلف الترتيب، @HR.Core.Domain.Services.SelectionCommitteeRules.MinRankOverrideReasonLength حرفاً على الأقل)</label>
+                                <input type="text" id="rankOverrideReason" name="RankOverrideReason" class="form-control" maxlength="1000" />
+                            </div>
+                        }
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary">حفظ الترتيب</button>
                         </div>

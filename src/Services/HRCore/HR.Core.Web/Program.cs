@@ -192,6 +192,7 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentScoringService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeLifecycleService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeMinutesService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Web.Services.SelectionCommitteeWorkflowUiService>();
 builder.Services.AddScoped<HR.Core.Web.Services.WorkflowInboxEligibilityService>();
