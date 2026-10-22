@@ -50,7 +50,8 @@ public class OfferLettersController(
 
     EstablishmentScopeService establishmentScope,
 
-    ReserveListService reserveList) : Controller
+    ReserveListService reserveList,
+    OfferLetterDocumentService documents) : Controller
 
 {
 
@@ -175,6 +176,8 @@ public class OfferLettersController(
 
             vm.NextCandidate = await reserveList.GetNextCandidateSuggestionAsync(requisitionId);
 
+        // HCM-029 (D2): download link + integrity check against the hash stored at issue.
+        vm.Document = await documents.GetAsync(offer.Id);
         ViewData["OfferId"] = offer.Id;
 
         return View(vm);
@@ -397,6 +400,28 @@ public class OfferLettersController(
     }
 
 
+
+    /// <summary>
+    /// HCM-029 (D3): official offer letter PDF, generated on demand, only for Issued or Accepted offers.
+    /// PLAN-30: candidate download from /careers
+    /// PLAN-29 follow-up: archive in File.Storage
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Document(Guid id, CancellationToken ct)
+    {
+        var document = await documents.GetAsync(id, ct);
+        if (document is null) return NotFound();
+
+        if (!document.CanDownload)
+        {
+            TempData["Error"] = OfferLetterDocumentService.NotDownloadableMessage;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, "OfferLetters/Document");
+        var pdf = OfferLetterDocument.Generate(document);
+        return File(pdf, "application/pdf", $"offer-letter-{document.Data.OfferNumber}.pdf");
+    }
 
     /// <summary>HCM-027 (F3): Recruitment:AutoDraftNextOffer — suffix for the success message.</summary>
 

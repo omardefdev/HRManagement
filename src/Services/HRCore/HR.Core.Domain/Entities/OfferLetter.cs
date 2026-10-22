@@ -114,6 +114,17 @@ public class OfferLetter : AuditableEntity
     [Display(Name = "تاريخ التحقق من الراتب")]
     public DateTime? SalaryCheckedAt { get; set; }
 
+    /// <summary>
+    /// HCM-029 (D2): SHA-256 (lowercase hex) of the canonical JSON of the offer letter's rendered fields, stored when the
+    /// offer is issued. The PDF prints its first 12 characters as the verification code.
+    /// </summary>
+    [StringLength(64)]
+    [Display(Name = "بصمة خطاب العرض")]
+    public string? DocumentSha256 { get; set; }
+
+    [Display(Name = "تاريخ توليد خطاب العرض")]
+    public DateTime? DocumentGeneratedAt { get; set; }
+
     /// <summary>HCM-027 (E1): grade differs from the funded position (a reason was recorded).</summary>
     [NotMapped]
     public bool IsGradeDeviation => !string.IsNullOrWhiteSpace(GradeDeviationReason);

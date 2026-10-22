@@ -461,6 +461,8 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .IsUnique();
             entity.Property(e => e.GradeMinSalary).HasPrecision(18, 2);
             entity.Property(e => e.GradeMaxSalary).HasPrecision(18, 2);
+            // HCM-029 (D2): hex SHA-256 → char(64).
+            entity.Property(e => e.DocumentSha256).HasMaxLength(64).IsFixedLength();
         });
 
         modelBuilder.Entity<ApprovalRequest>(entity =>

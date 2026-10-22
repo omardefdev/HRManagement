@@ -119,6 +119,8 @@ public class OfferLetterDetailsViewModel
     public WorkflowPanelViewModel Workflow { get; set; } = new();
     /// <summary>HCM-027 (F3): next candidate by merit after a decline/expiry/revoke (null when none).</summary>
     public HR.Core.Infrastructure.Services.Recruitment.NextCandidateSuggestion? NextCandidate { get; set; }
+    /// <summary>HCM-029 (D2): the official letter as rendered now, with the hash stored at issue.</summary>
+    public HR.Core.Infrastructure.Services.Recruitment.OfferLetterDocumentView? Document { get; set; }
 }
 
 /// <summary>HCM-027: decline recorded by HR on the candidate's behalf (Candidate is reserved for PLAN-30).</summary>

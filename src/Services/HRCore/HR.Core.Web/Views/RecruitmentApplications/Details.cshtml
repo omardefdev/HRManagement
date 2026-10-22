@@ -417,6 +417,10 @@
                             {
                                 <span class="badge bg-warning text-dark ms-1">استثنائي</span>
                             }
+                            @if (HR.Core.Infrastructure.Services.Recruitment.OfferLetterDocumentService.CanDownload(past.Status))
+                            {
+                                <a asp-controller="OfferLetters" asp-action="Document" asp-route-id="@past.Id" class="ms-1" title="خطاب العرض الرسمي (PDF)"><i class="fas fa-file-pdf"></i> PDF</a>
+                            }
                         </td>
                         <td>@Html.HrEnumDisplay(past.Status)</td>
                         <td>@(past.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</td>

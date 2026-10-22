@@ -18,6 +18,10 @@
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h3 class="mb-0">@offer.OfferNumber — @Html.HrEnumDisplay(offer.Status)</h3>
         <div class="d-flex gap-1 flex-wrap">
+            @if (Model.Document?.CanDownload == true)
+            {
+                <a asp-action="Document" asp-route-id="@offer.Id" class="btn btn-outline-success btn-sm"><i class="fas fa-file-pdf"></i> خطاب العرض الرسمي (PDF)</a>
+            }
             @if (app is not null)
             {
                 <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@app.Id" class="btn btn-outline-primary btn-sm">طلب التوظيف</a>
@@ -26,6 +30,18 @@
         </div>
     </div>
     <div class="card-body">
+        @if (Model.Document is { HasStoredHash: true, IsIntact: false })
+        {
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                تغيّرت بيانات خطاب العرض بعد إصداره ولا تطابق البصمة المسجَّلة (رمز التحقق @Model.Document.VerificationCode).
+                يُعرض المستند ببياناته الحالية ويحمل تنبيهاً بذلك.
+            </div>
+        }
+        else if (Model.Document is { CanDownload: true, HasStoredHash: false })
+        {
+            <div class="alert alert-secondary" role="status">لم تُسجَّل بصمة لهذا العرض عند إصداره (صدر قبل تفعيل خطاب العرض الرسمي).</div>
+        }
         @if (offer.IsExceptionOffer)
         {
             <div class="alert alert-warning">
@@ -109,6 +125,14 @@
                     <div class="form-text">يُورَّث من طلب الشاغر — غير قابل للتعديل في هذه المرحلة.</div>
                 }
             </dd>
+            @if (Model.Document?.VerificationCode is string verificationCode)
+            {
+                <dt class="col-sm-3">رمز التحقق</dt>
+                <dd class="col-sm-9">
+                    <code>@verificationCode</code>
+                    <span class="text-muted">(بصمة خطاب العرض عند الإصدار @(offer.DocumentGeneratedAt?.ToString("yyyy/MM/dd HH:mm") ?? ""))</span>
+                </dd>
+            }
         </dl>
 
         @if (offer.Status == OfferStatus.PendingApproval)

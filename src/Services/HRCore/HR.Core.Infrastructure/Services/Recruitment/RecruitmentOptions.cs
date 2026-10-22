@@ -93,6 +93,16 @@ public sealed class RecruitmentOptions
     /// </summary>
     public EmploymentType DefaultEmploymentType { get; set; } = EmploymentType.Permanent;
 
+    public const string DefaultOfferLetterConditionsAr =
+        "يُعدّ هذا العرض نافذاً حتى تاريخ انتهاء صلاحيته، ويخضع التعيين لاستكمال الوثائق المطلوبة واللياقة الصحية " +
+        "وصدور قرار التعيين وفق الأنظمة النافذة.";
+
+    /// <summary>
+    /// HCM-029 (D1): <c>Recruitment:OfferLetterConditionsAr</c> — conditions paragraph printed on the offer letter.
+    /// It is part of the document hash, so changing it makes issued offers show the "data changed after issue" warning.
+    /// </summary>
+    public string OfferLetterConditionsAr { get; set; } = DefaultOfferLetterConditionsAr;
+
     public IReadOnlyCollection<RecruitmentRejectionKind> GetAppealableRejectionKinds() =>
         AppealableRejectionKinds is { Length: > 0 } kinds ? kinds : RecruitmentAppealWorkflowRules.DefaultAppealableKinds.ToArray();
 

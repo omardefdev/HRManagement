@@ -2299,6 +2299,14 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTime?>("DocumentGeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
                     b.Property<DateTime?>("ExpiredAt")
                         .HasColumnType("timestamp with time zone");
 

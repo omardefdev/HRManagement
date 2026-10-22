@@ -182,6 +182,7 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOfferService>();
 // HCM-027 (E2): Payroll grade bounds over S2S; UnavailablePayrollGradeLookup when Integration:PayrollBaseUrl is empty.
 HR.Core.Infrastructure.Integration.PayrollGradeLookupExtensions.AddPayrollGradeLookup(builder.Services, builder.Configuration);
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterDocumentService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealWorkflowHandler>();
