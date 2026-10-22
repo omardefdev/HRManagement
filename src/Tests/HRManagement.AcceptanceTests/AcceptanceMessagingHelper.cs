@@ -136,6 +136,9 @@ public static class AcceptanceMessagingHelper
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // docker/psql write UTF-8; without this Windows decodes with the console code page (Arabic is mangled).
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
             UseShellExecute = false,
             WorkingDirectory = AcceptanceHarness.RepoRoot
         };
