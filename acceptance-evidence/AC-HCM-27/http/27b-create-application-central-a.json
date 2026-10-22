@@ -1,0 +1,18 @@
+{
+  "step": "27b-create-application-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/Create",
+  "statusCode": 404,
+  "capturedAtUtc": "2026-10-22T06:37:52.5964694Z",
+  "body": {
+    "fields": [
+      "ApplicantFullName=AC27 \u0631\u062A\u0628\u06292 5c2d3fe6dcfa4",
+      "RequisitionId=ca9b41d5-411b-4685-9505-08b8975dc009",
+      "Notes=AC-HCM-27"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications",
+    "final": "/ui/hr-core/RecruitmentApplications",
+    "alerts": []
+  }
+}

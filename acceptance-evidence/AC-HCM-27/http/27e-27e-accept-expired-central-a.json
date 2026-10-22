@@ -1,0 +1,16 @@
+{
+  "step": "27e-27e-accept-expired-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/AcceptOffer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T06:38:14.4372926Z",
+  "body": {
+    "fields": [
+      "id=68a0bd00-5971-4205-93c4-9ad5f981e1e1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/68a0bd00-5971-4205-93c4-9ad5f981e1e1",
+    "final": "/ui/hr-core/OfferLetters/Details/68a0bd00-5971-4205-93c4-9ad5f981e1e1",
+    "alerts": []
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "step": "27e-27e-approve-2-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/68a0bd00-5971-4205-93c4-9ad5f981e1e1",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T06:38:13.7343957Z",
+  "body": {
+    "fields": [
+      "OfferId=68a0bd00-5971-4205-93c4-9ad5f981e1e1",
+      "Comments=AC-HCM-27 27e-approve-2"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/68a0bd00-5971-4205-93c4-9ad5f981e1e1",
+    "final": "/ui/hr-core/OfferLetters/Details/68a0bd00-5971-4205-93c4-9ad5f981e1e1",
+    "alerts": []
+  }
+}

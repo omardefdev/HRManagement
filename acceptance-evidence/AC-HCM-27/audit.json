@@ -1,0 +1,6 @@
+{
+  "correlationId": "8c3afdf4-377f-407c-adca-37bd91611da7",
+  "explicitAuditQuery": false,
+  "httpObservationCount": 23,
+  "note": "No separate audit-store query was required or captured for this scenario."
+}

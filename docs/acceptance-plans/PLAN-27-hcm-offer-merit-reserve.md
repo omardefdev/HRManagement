@@ -1,7 +1,7 @@
 # PLAN-27 — سلامة خطاب العرض ومبدأ الجدارة وقائمة الاحتياط (PLAN-HCM-E)
 
 **Scope:** HCM-001/HCM-004 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-06, G-07، وجزء من G-20 (انتهاء العروض)  
-**Status:** Implemented (acceptance evidence pending)  
+**Status:** Implemented — AC-HCM-27a..h Pass (2026-10-22، `acceptance-evidence/AC-HCM-27/`)  
 **Priority:** P1  
 **Depends on:** PLAN-26 (الترتيب المبني على درجات محسوبة). PLAN-25 مؤجلة (لا خادم بعد)؛ لذلك الخطوة الثالثة لمسار الاستثناء تُسند إلى `hr-management-approver` بمعتمد مختلف بدل `compliance` إلى حين تنفيذ PLAN-25  
 **Decisions:** D-3 (تجاوز الجدارة)، D-7 (صلاحية الاحتياط) — انظر الدراسة §5
@@ -161,6 +161,9 @@ $env:RUN_ACCEPTANCE = "true"; dotnet test src/Tests/HRManagement.AcceptanceTests
 | 8 | الإلغاء بخطأ إداري لا يُنشئ مسودة آلية للمرشح التالي (المرشح نفسه يعود «مُرتَّب») | المسودة الآلية فقط عندما يصبح الطلب `OfferDeclined`/`Rejected` |
 | 9 | عند التعيين يبقى المنافسون «قائمة احتياط» سابقاً بتاريخهم؛ إغلاق الطلب يدوياً (`CloseAsync`) ما زال يرفض الاحتياط | الاستدعاء من الاحتياط عند عدم المباشرة ← PLAN-29 |
 | 10 | اختبارات القبول تضبط الترتيب بشرط مسبق SQL موثّق (المسار الكامل للترتيب مغطّى في AC-HCM-26) | تقليل الاعتماد على بذور قابلة للتغيّر |
+| 11 | سر `svc-hr-core` في `docker-compose.acceptance.yml`/`local.yml` قيمة مختبر ثابتة `dev-svc-secret-local-only` | قيمة `.env` (`SVC_HR_CORE_CLIENT_SECRET`) لا تطابق ما تضبطه مزامنة Keycloak، فكان الرمز يُرفض 401 |
+| 12 | `AcceptanceMessagingHelper.RunProcessAsync` يقرأ مخرجات `docker exec psql` بترميز UTF-8 | النصوص العربية المقروءة من قاعدة البيانات كانت تُفك بصفحة ترميز الطرفية على Windows |
+| 13 | تشغيل القبول تطلّب `acceptance-reset.ps1` | تغيّر بصمة بذور القبول في الجلسة 1 (الشخصية الجديدة) |
 
 ## Effort estimate
 

@@ -10,8 +10,10 @@
   - المزامنة تُنشئ الشخصية الجديدة `a-management-approver-2` وتضيف النطاق `payroll.grades.read` (جمهور `api-payroll`) كنطاق اختياري للعميل `svc-hr-core`.
 - **الشخصية الجديدة:** `a-management-approver-2` / `acc-a-management-approver-2` (الدور `hr-management-approver`، الجهة A). كلمة المرور اختيارية عبر متغير البيئة **`ACCEPTANCE_A_MANAGEMENT_APPROVER_2_PASSWORD`**، وإلا يولّدها `prepare-keycloak-import.ps1` في `.acceptance/credentials.json` (غير متتبَّع في git).
 - **الاتصال HR.Core → Payroll (S2S):** في `docker-compose.acceptance.yml` و`docker-compose.local.yml` فقط:
-  `Integration__PayrollBaseUrl=http://payroll-web:8080`، `ServiceIdentity__ClientSecret=${SVC_HR_CORE_CLIENT_SECRET:-dev-svc-secret-local-only}`، `ServiceIdentity__Scope=file-storage.references payroll.grades.read`.
-  يجب أن يطابق السر قيمة العميل `svc-hr-core` في Keycloak (`sync-keycloak-dev-realm.ps1 -SvcSecret`). بلا `Integration:PayrollBaseUrl` تُعدّ الرواتب «غير متاحة» ويلزم مبرر الراتب (عرض استثنائي).
+  `Integration__PayrollBaseUrl=http://payroll-web:8080`، `ServiceIdentity__ClientSecret=dev-svc-secret-local-only`، `ServiceIdentity__Scope=file-storage.references payroll.grades.read`.
+  السر قيمة ثابتة للمختبر تطابق ما يضبطه `sync-keycloak-dev-realm.ps1` على كل عملاء الخدمات (لا يُقرأ `SVC_HR_CORE_CLIENT_SECRET` من `.env` لأن قيمته في `.env` مختلفة فيُرفض الرمز 401). بلا `Integration:PayrollBaseUrl` تُعدّ الرواتب «غير متاحة» ويلزم مبرر الراتب (عرض استثنائي).
+- **ترقية بيئة قبول قائمة:** بذور القبول تغيّرت في هذه الخطة (الشخصية الجديدة والعرض المبذور)، فصورة `hr-core-web` المبنية من هذا الفرع ترفض قاعدة قبول قديمة («Acceptance seed data belongs to an older or incomplete pack»). نفّذ `pwsh scripts/acceptance-reset.ps1` ثم `pwsh scripts/acceptance-up.ps1` (يحذف بيانات `hrm-acceptance` فقط).
+- **ملاحظة:** خطوة التحقق الأخيرة في `acceptance-up.ps1` (`acceptance-verify.ps1:586`) تفشل بخطأ سابق لهذه الخطة (`"Status" = 1` على عمود نصي)؛ الحاوية كلها تعمل رغم ذلك.
 - `NationalScope:IsLabScale=true` (اعتماد طلب الشاغر والعرض بالمسار).
 - إعدادات `Recruitment` (القيم الافتراضية):
 
@@ -102,7 +104,7 @@ dotnet test src/Tests/HRManagement.AcceptanceTests --filter AcHcm27
 
 | AC | مجلد | Assertions |
 |----|------|------------|
-| AC-HCM-27 | `acceptance-evidence/AC-HCM-27/` | `steps-27a-c-d-h.md`, `steps-27b.md`, `steps-27e.md`, `steps-27f-g.md`, `http/*.json`, `db-checks.json` (حالات الطلبات والعروض ومسار الاعتماد والرسائل المتوقعة)، `timing.json` (`offerExpirySeconds`, `reserveExpirySeconds`) |
+| AC-HCM-27 | `acceptance-evidence/AC-HCM-27/` (`run-summary.md`: نتيجة كل سيناريو ومعرّف الارتباط) | `steps-27a-c-d-h.md`, `steps-27b.md`, `steps-27e.md`, `steps-27f-g.md`, `http/*.json`, `db-checks.json` (حالات الطلبات والعروض ومسار الاعتماد والرسائل المتوقعة)، `timing.json` (`offerExpirySeconds`, `reserveExpirySeconds`) |
 
 > ترتيب المرشحين (AC-HCM-26) يُضبط في اختبارات AC-HCM-27 بشرط مسبق موثّق عبر SQL؛ والسفر الزمني (تاريخ انتهاء العرض، تاريخ الاحتياط) كذلك. رسائل TempData لا تصل عبر البوابة، لذا تُثبت الحالات السالبة بفحص قاعدة البيانات.
 > إن تعذّر على HR.Core الوصول إلى Payroll (سر أو نطاق غير مطابق) تُتخطّى سيناريوهات القبول بـ `Skip.If` مع السبب.

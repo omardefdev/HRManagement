@@ -1,0 +1,18 @@
+{
+  "step": "27a-c-d-h-27a-submit-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/SubmitOffer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T06:37:32.9246035Z",
+  "body": {
+    "fields": [
+      "id=80a9f69f-a876-4c90-bc3c-c3876393efd5"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/80a9f69f-a876-4c90-bc3c-c3876393efd5",
+    "final": "/ui/hr-core/OfferLetters/Details/80a9f69f-a876-4c90-bc3c-c3876393efd5",
+    "alerts": [
+      "\u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0646\u0634\u0626 \u0627\u0639\u062A\u0645\u0627\u062F \u0639\u0631\u0636\u0647 \u0627\u0644\u062E\u0627\u0635."
+    ]
+  }
+}

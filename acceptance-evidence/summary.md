@@ -33,3 +33,7 @@
 - **AC-HCM-26**: Pass (`943cfca2-0640-4d89-a85f-7cc6beead5fd`)
 - **AC-HCM-26**: Pass (`c6cb94a3-596b-4536-a4ae-2e6f375d3f60`)
 - **AC-HCM-26**: Pass (`abda0b5b-1cb4-4c69-87fd-d64a476db3d5`)
+- **AC-HCM-27**: Pass (`8c3afdf4-377f-407c-adca-37bd91611da7`)
+- **AC-HCM-27**: Pass (`22eecf9d-560c-4978-809a-0fe53b1df384`)
+- **AC-HCM-27**: Pass (`7c18fdf5-f7cd-4c5d-abfd-c1062d6a4477`)
+- **AC-HCM-27**: Pass (`e9dd0e44-09f8-4368-9434-628be2dce0f7`)

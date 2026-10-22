@@ -1,0 +1,18 @@
+{
+  "step": "27a-c-d-h-publish-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/33108d28-30e0-4747-a052-1a9f3da2c10f",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T06:37:26.6497943Z",
+  "body": {
+    "fields": [
+      "applicationClosingDate=2026-11-01"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/33108d28-30e0-4747-a052-1a9f3da2c10f",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/33108d28-30e0-4747-a052-1a9f3da2c10f",
+    "alerts": [
+      "\u003Ci class=\u0022fas fa-ban ms-1\u0022\u003E"
+    ]
+  }
+}
