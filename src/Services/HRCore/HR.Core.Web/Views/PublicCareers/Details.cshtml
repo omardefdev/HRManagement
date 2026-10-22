@@ -150,6 +150,7 @@ else
                     <small id="apply-birthdate-help" class="text-muted">يُستخدم للتحقق من شروط العمر فقط ولا يظهر إلا لفريق التوظيف.</small>
                     @Html.ValidationMessage("BirthDate", null, new { @class = "text-danger small d-block" })
                 </div>
+                @* PLAN-30 S2: attachments (CV, certificates) and the notification channel consent. *@
                 <div class="col-12">
                     <label class="form-label" for="apply-cover">نبذة / مسوّغات</label>
                     <textarea id="apply-cover" name="CoverNote" class="form-control" rows="3">@applyModel.CoverNote</textarea>

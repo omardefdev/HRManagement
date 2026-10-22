@@ -150,6 +150,7 @@ public class PublicCareersController(
         };
         db.CitizenApplications.Add(model);
 
+        // PLAN-30 S2: CandidateDocument uploads (File.Storage through HR.Core's service identity) and the channel consent.
         // HCM-030 (A2): a requisition-linked application enters the recruitment path at Submitted in the same save.
         // Legacy postings (no requisition) keep the citizen row only.
         if (posting.Requisition is not null)

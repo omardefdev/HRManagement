@@ -48,6 +48,7 @@ internal static class RecruitmentApplicationEventRecorder
             if (recorded is null)
                 continue;
 
+            // PLAN-30 S2: the notification dispatcher plans messages for rows with NotificationsPlannedAt IS NULL.
             recorded.OccurredAt = now;
             if (pending.Add(Key(recorded)))
                 db.RecruitmentApplicationEvents.Add(recorded);

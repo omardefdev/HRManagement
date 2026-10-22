@@ -40,6 +40,8 @@ public static class CandidateApplicationLegalLifecycleService
         if (application.LegalHold || application.AnonymizedAt.HasValue)
             return false;
 
+        // PLAN-30 S2: since HCM-030 every requisition-linked citizen row is linked, so this never purges them — retention
+        // must handle the pair (channel row + recruitment application) together.
         if (application.PromotedRecruitmentApplicationId.HasValue)
             return false;
 
@@ -77,6 +79,7 @@ public static class CandidateApplicationLegalLifecycleService
         application.Phone = null;
         application.Email = null;
         application.CoverNote = null;
+        // PLAN-30 S2: also clear the HCM-030 profile (BirthDate, EducationLevelCode, Specialization, …).
         application.AnonymizedAt = DateTime.UtcNow;
         return (true, null);
     }
@@ -95,6 +98,7 @@ public static class CandidateApplicationLegalLifecycleService
         application.NationalIdHash = PiiMask.Sha256Hex(application.NationalId);
         application.Notes = null;
         application.AppealNotes = null;
+        // PLAN-30 S2: also clear the HCM-030 profile snapshot and EligibilityOverrideReason.
         application.AnonymizedAt = DateTime.UtcNow;
         return (true, null);
     }
