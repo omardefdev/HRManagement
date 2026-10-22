@@ -23,6 +23,7 @@ public static class CodeGenerationSeeder
         await SeedPrivilegedAssetTagIfMissingAsync(db, ct);
         await SeedInventorySkuIfMissingAsync(db, ct);
         await SeedJobCatalogEntryIfMissingAsync(db, ct);
+        await SeedAdministrativeDecisionIfMissingAsync(db, ct);
     }
 
     private static async Task SeedNationalDefaultsAsync(HRCoreDbContext db, CancellationToken ct)
@@ -228,6 +229,26 @@ public static class CodeGenerationSeeder
               {"kind":"Field","value":"JobClassificationCode"},
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":3,"scopeFields":["GradeCode","JobClassificationCode"]}
+            ]
+            """, ct);
+    }
+
+    /// <summary>FUN-029 (I3): DEC-{TypeCode}-YYYY-00001 for HR.Contracts administrative decisions.</summary>
+    private static async Task SeedAdministrativeDecisionIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
+    {
+        if (await db.CodePolicyTemplates.AnyAsync(t => t.EntityKind == CodeEntityKind.AdministrativeDecision, ct))
+            return;
+
+        await SeedPolicyAsync(db, CodeEntityKind.AdministrativeDecision, "ترميز القرارات الإدارية", "DEC",
+            CodeSequenceReset.Yearly,
+            """
+            [
+              {"kind":"Literal","value":"DEC-"},
+              {"kind":"Field","value":"TypeCode"},
+              {"kind":"Literal","value":"-"},
+              {"kind":"Date","value":"YYYY"},
+              {"kind":"Literal","value":"-"},
+              {"kind":"Sequence","padWidth":5,"scopeFields":["TypeCode"]}
             ]
             """, ct);
     }

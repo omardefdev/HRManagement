@@ -67,6 +67,16 @@ public static class CodeGenerationRequests
         EntityKind = CodeEntityKind.OfferLetter
     };
 
+    /// <summary>FUN-029 (I3): decision number, scoped by decision type (APPT = appointment).</summary>
+    public static CodeGenerationRequest AdministrativeDecision(string typeCode) => new()
+    {
+        EntityKind = CodeEntityKind.AdministrativeDecision,
+        Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["TypeCode"] = typeCode
+        }
+    };
+
     public static CodeGenerationRequest EstablishmentChangeRequest() => new()
     {
         EntityKind = CodeEntityKind.EstablishmentChangeRequest

@@ -68,6 +68,53 @@
             }
             </tbody>
         </table>
+        @if (Model.HasDecisionStep)
+        {
+            <div class="border rounded p-2 mb-3">
+                <strong>إصدار قرار التعيين</strong>
+                @if (Model.Decision is not null)
+                {
+                    <div class="small mt-1">
+                        <i class="fas fa-check text-success"></i>
+                        القرار رقم <code>@Model.Decision.DecisionNumber</code> — @Model.Decision.Subject
+                        (@(Model.Decision.IssuedDate?.ToString("yyyy/MM/dd") ?? "—"))
+                    </div>
+                }
+                else if (canExecute)
+                {
+                    <form asp-action="IssueAppointmentDecision" method="post" class="mt-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-primary" data-hr-confirm="إصدار قرار التعيين لهذه المعاملة؟">إصدار قرار التعيين</button>
+                    </form>
+                }
+                else
+                {
+                    <div class="small text-muted mt-1">لم يصدر قرار التعيين بعد.</div>
+                }
+            </div>
+        }
+        @if (Model.MedicalStep is { } medical)
+        {
+            <div class="border rounded p-2 mb-3">
+                <strong>الفحص الطبي قبل التعيين</strong>
+                @if (medical.IsCompleted)
+                {
+                    <div class="small mt-1"><i class="fas fa-check text-success"></i> الدليل: @medical.EvidenceRef — @(medical.CompletedByName ?? "—")</div>
+                }
+                else if (canExecute)
+                {
+                    <form asp-action="CompleteMedicalStep" method="post" class="row g-2 mt-1">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
+                        <div class="col-auto">
+                            <input type="text" name="evidenceRef" class="form-control form-control-sm" maxlength="256" required placeholder="رقم تقرير اللياقة أو الوثيقة" />
+                        </div>
+                        <div class="col-auto"><button type="submit" class="btn btn-sm btn-outline-primary">تسجيل الفحص الطبي</button></div>
+                    </form>
+                }
+            </div>
+        }
         <form asp-action="Step2Confirm" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="transactionId" value="@Model.Txn.Id" />

@@ -18,5 +18,11 @@ public enum HireStep
     [Display(Name = "إصدار الهوية")]
     IdentityIssued = 5,
     [Display(Name = "أرشفة التعيين")]
-    HireArchived = 6
+    HireArchived = 6,
+    /// <summary>FUN-029 (D-6): stored as string; enabled by HireChecklist:RequireAppointmentDecision.</summary>
+    [Display(Name = "إصدار قرار التعيين")]
+    AppointmentDecisionIssued = 7,
+    /// <summary>FUN-029: enabled by HireChecklist:RequireMedicalFitness.</summary>
+    [Display(Name = "الفحص الطبي قبل التعيين")]
+    PreEmploymentMedical = 8
 }

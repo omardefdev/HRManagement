@@ -20,13 +20,18 @@ public static class HireCaseSupport
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
-    public static async Task SeedChecklistAsync(IContractsRepository repository, Guid serviceTransactionId, CancellationToken ct)
+    /// <param name="options">FUN-029: optional steps; null = defaults. Only a new checklist is seeded (no back-fill).</param>
+    public static async Task SeedChecklistAsync(
+        IContractsRepository repository,
+        Guid serviceTransactionId,
+        CancellationToken ct,
+        HireChecklistOptions? options = null)
     {
         var exists = await repository.HireChecklists.AnyAsync(c => c.ServiceTransactionId == serviceTransactionId, ct);
         if (exists)
             return;
 
-        foreach (var item in HireChecklistDefaults.CreateForTransaction(serviceTransactionId))
+        foreach (var item in HireChecklistDefaults.CreateForTransaction(serviceTransactionId, options))
             await repository.AddAsync(item, ct);
 
         await repository.SaveChangesAsync(ct);

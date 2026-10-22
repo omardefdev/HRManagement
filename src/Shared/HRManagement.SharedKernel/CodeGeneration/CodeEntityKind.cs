@@ -17,5 +17,7 @@ public enum CodeEntityKind
     RecruitmentRequisition,
     OfferLetter,
     EstablishmentChangeRequest,
-    JobCatalogEntry
+    JobCatalogEntry,
+    /// <summary>FUN-029 (I3): administrative decision numbers (appointment decisions first).</summary>
+    AdministrativeDecision
 }

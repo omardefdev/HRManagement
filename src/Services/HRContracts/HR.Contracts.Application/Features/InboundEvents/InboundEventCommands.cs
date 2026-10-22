@@ -45,7 +45,8 @@ public class ProcessCandidateAcceptedHandler(
     ICodeGenerationClient codeClient,
     ILogger<ProcessCandidateAcceptedHandler> logger,
     IOptions<HireContractOptions> contractOptions,
-    IEventPublisher eventPublisher) : IRequestHandler<ProcessCandidateAcceptedCommand>
+    IEventPublisher eventPublisher,
+    IOptions<HireChecklistOptions> checklistOptions) : IRequestHandler<ProcessCandidateAcceptedCommand>
 {
     public async Task Handle(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken)
     {
@@ -122,7 +123,7 @@ public class ProcessCandidateAcceptedHandler(
             await repository.AddAsync(transaction, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
 
-            await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken);
+            await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken, checklistOptions.Value);
             await HireCaseSupport.MarkCandidateReceivedAsync(repository, transaction.Id, cancellationToken);
             await HireCaseSupport.MarkPersonalFileOpenedAsync(repository, request.EmployeeId, cancellationToken);
             if (unresolved)
@@ -135,7 +136,7 @@ public class ProcessCandidateAcceptedHandler(
             transaction.Notes = BuildHireNotes(request.FullName, request.EmploymentCategory, request.RecruitmentApplicationId);
         ApplyLineage(transaction, request);
 
-        await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken);
+        await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken, checklistOptions.Value);
         await HireCaseSupport.MarkCandidateReceivedAsync(repository, transaction.Id, cancellationToken);
         await HireCaseSupport.MarkPersonalFileOpenedAsync(repository, request.EmployeeId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

@@ -34,13 +34,15 @@ internal static class Fun029TestSupport
     public static ProcessCandidateAcceptedHandler CreateHandler(
         ContractsDbContext db,
         IEventPublisher? publisher = null,
-        bool allowDefaultFallback = true) =>
+        bool allowDefaultFallback = true,
+        HR.Contracts.Domain.Services.HireChecklistOptions? checklist = null) =>
         new(
             new ContractsRepository(db),
             CodeGenerationTestSupport.CreateClient(),
             NullLogger<ProcessCandidateAcceptedHandler>.Instance,
             Microsoft.Extensions.Options.Options.Create(new HireContractOptions { AllowDefaultContractTypeFallback = allowDefaultFallback }),
-            publisher ?? Mock.Of<IEventPublisher>());
+            publisher ?? Mock.Of<IEventPublisher>(),
+            Microsoft.Extensions.Options.Options.Create(checklist ?? new HR.Contracts.Domain.Services.HireChecklistOptions()));
 
     /// <summary>A v4 command as CandidateAcceptedConsumer builds it for an external hire.</summary>
     public static ProcessCandidateAcceptedCommand V4Command(

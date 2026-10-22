@@ -19,4 +19,11 @@ public class HireWizardStep2ViewModel
     public string? UnresolvedReason { get; set; }
 
     public SelectList? ContractTypes { get; set; }
+
+    /// <summary>I3: the appointment decision linked to the transaction.</summary>
+    public AdministrativeDecision? Decision { get; set; }
+
+    public bool HasDecisionStep => Checklist.Any(c => c.Step == HireStep.AppointmentDecisionIssued);
+
+    public HireChecklist? MedicalStep => Checklist.FirstOrDefault(c => c.Step == HireStep.PreEmploymentMedical);
 }

@@ -14,7 +14,10 @@
         <ul class="list-group mb-3">
             @foreach (var item in Model.Checklist)
             {
-                <li class="list-group-item">@(labels.GetValueOrDefault(item.Step, item.Step.ToString())) — @(item.IsCompleted ? "✓" : "…")</li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>@(labels.GetValueOrDefault(item.Step, item.Step.ToString())) — @(item.IsCompleted ? "✓" : "…")</span>
+                    <span class="small text-muted">@(item.OwnerRole ?? "—") · @item.SlaHours ساعة</span>
+                </li>
             }
         </ul>
         @if (canSubmit)

@@ -135,6 +135,8 @@ public class HireWizardController : Controller
             NeedsContractType = contract is null && !string.IsNullOrWhiteSpace(txn.PendingContractTerms),
             UnresolvedReason = checklist.FirstOrDefault(c => c.Step == HireStep.ContractClassified)?.Notes
         };
+        if (txn.AppointmentDecisionId is Guid decisionId)
+            vm.Decision = await _repo.AdministrativeDecisions.AsNoTracking().FirstOrDefaultAsync(d => d.Id == decisionId);
         if (vm.NeedsContractType)
         {
             var types = await _repo.ContractTypes.AsNoTracking().OrderBy(t => t.Code).ToListAsync();
@@ -151,6 +153,53 @@ public class HireWizardController : Controller
     {
         var (ok, error) = await _mediator.Send(new CreatePendingHireContractCommand(transactionId, contractTypeId, ParseUserId()));
         TempData[ok ? "Success" : "Error"] = ok ? "تم إنشاء العقد المعلّق بنوع العقد المختار." : error;
+        return RedirectToAction(nameof(Step2), new { transactionId });
+    }
+
+    /// <summary>FUN-029 (I3): «إصدار قرار التعيين» — idempotent; a second click shows the existing decision.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrContractsHireExecute)]
+    public async Task<IActionResult> IssueAppointmentDecision(Guid transactionId)
+    {
+        var txn = await _repo.GetServiceTransactionAsync(transactionId, default);
+        if (txn is null) return NotFound();
+
+        var names = await ResolveEmployeeNamesAsync([txn.EmployeeId]);
+        var result = await _mediator.Send(new IssueAppointmentDecisionCommand(
+            transactionId,
+            names.GetValueOrDefault(txn.EmployeeId),
+            ParseUserId(),
+            User.FindFirstValue("preferred_username") ?? User.Identity?.Name));
+        TempData[result.Success ? (result.AlreadyIssued ? "Info" : "Success") : "Error"] = result.Success
+            ? result.AlreadyIssued
+                ? $"قرار التعيين صادر مسبقاً برقم {result.Decision!.DecisionNumber}."
+                : $"تم إصدار قرار التعيين رقم {result.Decision!.DecisionNumber}."
+            : result.Error;
+        return RedirectToAction(nameof(Step2), new { transactionId });
+    }
+
+    /// <summary>
+    /// FUN-029 (I4): manual completion of the pre-employment medical step with an evidence reference.
+    /// PLAN-29 follow-up: consume HR.Health fitness result
+    /// </summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrContractsHireExecute)]
+    public async Task<IActionResult> CompleteMedicalStep(Guid transactionId, string? evidenceRef)
+    {
+        if (string.IsNullOrWhiteSpace(evidenceRef))
+        {
+            TempData["Error"] = "أدخل مرجع تقرير اللياقة الصحية أو رقم الوثيقة.";
+            return RedirectToAction(nameof(Step2), new { transactionId });
+        }
+
+        var (ok, error) = await _mediator.Send(new CompleteHireChecklistStepCommand(
+            transactionId,
+            HireStep.PreEmploymentMedical,
+            "الفحص الطبي قبل التعيين",
+            EvidenceRef: evidenceRef.Trim(),
+            CompletedBy: ParseUserId(),
+            CompletedByName: User.FindFirstValue("preferred_username") ?? User.Identity?.Name));
+        TempData[ok ? "Success" : "Error"] = ok ? "تم تسجيل الفحص الطبي قبل التعيين." : error;
         return RedirectToAction(nameof(Step2), new { transactionId });
     }
 
