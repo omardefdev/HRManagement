@@ -85,4 +85,11 @@ public class RecruitmentRequisition : AuditableEntity
     /// <summary>HCM-026: set when intake closed (job or extension); the requisition stays Published for selection.</summary>
     [Display(Name = "تاريخ إغلاق التقديم الفعلي")]
     public DateTime? IntakeClosedAt { get; set; }
+
+    /// <summary>
+    /// HCM-028 (D-5): ranking requires an approved Ranking/Final committee session and follows its decisions.
+    /// Initial value from <c>Recruitment:CommitteeApprovalDefault</c>; frozen once a rank is assigned.
+    /// </summary>
+    [Display(Name = "إلزامية اعتماد لجنة الاختيار")]
+    public bool RequiresCommitteeApproval { get; set; }
 }

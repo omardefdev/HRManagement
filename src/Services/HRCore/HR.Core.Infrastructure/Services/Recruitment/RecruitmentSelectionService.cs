@@ -107,6 +107,36 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         return (true, null);
     }
 
+    /// <summary>HCM-028 (A1): ranking has started once any application on the requisition holds a rank.</summary>
+    public Task<bool> HasRankingStartedAsync(Guid requisitionId, CancellationToken ct = default) =>
+        db.RecruitmentApplications.AnyAsync(a => a.RequisitionId == requisitionId && a.Rank != null, ct);
+
+    /// <summary>HCM-028 (A1): toggles <c>RequiresCommitteeApproval</c> until the first rank is assigned.</summary>
+    public async Task<(bool Success, string? Error)> SetCommitteeApprovalRequiredAsync(
+        Guid requisitionId,
+        bool required,
+        Guid? actorUserId = null,
+        CancellationToken ct = default)
+    {
+        var requisition = await db.RecruitmentRequisitions.FirstOrDefaultAsync(r => r.Id == requisitionId, ct);
+        if (requisition is null) return (false, "طلب الشاغر غير موجود.");
+        if (requisition.RequiresCommitteeApproval == required) return (true, null);
+        if (await HasRankingStartedAsync(requisitionId, ct))
+            return (false, SelectionCommitteeRules.RequirementFrozenMessage);
+
+        requisition.RequiresCommitteeApproval = required;
+        db.AuditLogs.Add(new EntityAuditLog
+        {
+            EntityType = nameof(RecruitmentRequisition),
+            EntityId = requisition.Id,
+            Action = "SetCommitteeApprovalRequired",
+            UserId = actorUserId,
+            ChangedFields = $$"""{"requiresCommitteeApproval":{{(required ? "true" : "false")}}}"""
+        });
+        await db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
     public async Task<IReadOnlyList<RecruitmentApplication>> GetRankedCandidatesAsync(
         Guid requisitionId,
         CancellationToken ct = default) =>

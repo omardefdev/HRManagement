@@ -92,6 +92,9 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
     public DbSet<SelectionCommitteeSession> SelectionCommitteeSessions => Set<SelectionCommitteeSession>();
     public DbSet<SelectionCommitteeMember> SelectionCommitteeMembers => Set<SelectionCommitteeMember>();
+    public DbSet<SelectionCommitteeMemberCoi> SelectionCommitteeMemberCois => Set<SelectionCommitteeMemberCoi>();
+    public DbSet<SelectionCommitteeVote> SelectionCommitteeVotes => Set<SelectionCommitteeVote>();
+    public DbSet<SelectionCommitteeDecision> SelectionCommitteeDecisions => Set<SelectionCommitteeDecision>();
     public DbSet<RecruitmentAppeal> RecruitmentAppeals => Set<RecruitmentAppeal>();
     public DbSet<RecruitmentInterviewSlot> RecruitmentInterviewSlots => Set<RecruitmentInterviewSlot>();
     public DbSet<RecruitmentInterviewPanelMember> RecruitmentInterviewPanelMembers => Set<RecruitmentInterviewPanelMember>();
@@ -637,6 +640,53 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.EmployeeId)
                   .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => new { e.TenantId, e.SessionId, e.EmployeeId }).IsUnique();
+        });
+
+        // HCM-028: per-candidate conflicts, votes and decisions (enums stored as int, like the application status).
+        modelBuilder.Entity<SelectionCommitteeMemberCoi>(entity =>
+        {
+            entity.HasOne(e => e.Member)
+                  .WithMany(m => m.CoiDeclarations)
+                  .HasForeignKey(e => e.MemberId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Application)
+                  .WithMany()
+                  .HasForeignKey(e => e.ApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.MemberId, e.ApplicationId }).IsUnique();
+        });
+
+        modelBuilder.Entity<SelectionCommitteeVote>(entity =>
+        {
+            entity.HasOne(e => e.Session)
+                  .WithMany(s => s.Votes)
+                  .HasForeignKey(e => e.SessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Member)
+                  .WithMany()
+                  .HasForeignKey(e => e.MemberId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Application)
+                  .WithMany()
+                  .HasForeignKey(e => e.ApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Comment).HasMaxLength(1000);
+            entity.HasIndex(e => new { e.MemberId, e.ApplicationId }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.SessionId });
+        });
+
+        modelBuilder.Entity<SelectionCommitteeDecision>(entity =>
+        {
+            entity.HasOne(e => e.Session)
+                  .WithMany(s => s.Decisions)
+                  .HasForeignKey(e => e.SessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Application)
+                  .WithMany()
+                  .HasForeignKey(e => e.ApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Rationale).HasMaxLength(2000);
+            entity.HasIndex(e => new { e.SessionId, e.ApplicationId }).IsUnique();
         });
 
         modelBuilder.Entity<RecruitmentAppeal>(entity =>

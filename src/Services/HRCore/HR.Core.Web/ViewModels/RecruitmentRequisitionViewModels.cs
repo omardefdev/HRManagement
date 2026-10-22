@@ -48,6 +48,10 @@ public class RecruitmentRequisitionCreateViewModel
     [Display(Name = "تاريخ إغلاق التقديم")]
     [DataType(DataType.Date)]
     public DateOnly? ApplicationClosingDate { get; set; }
+
+    /// <summary>HCM-028 (A1): defaults from <c>Recruitment:CommitteeApprovalDefault</c>.</summary>
+    [Display(Name = "يتطلب اعتماد لجنة الاختيار قبل الترتيب")]
+    public bool RequiresCommitteeApproval { get; set; }
 }
 
 public class RecruitmentRequisitionEditViewModel : RecruitmentRequisitionCreateViewModel

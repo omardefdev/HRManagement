@@ -53,6 +53,13 @@ public sealed class RecruitmentOptions
     /// </summary>
     public bool AutoDraftNextOffer { get; set; }
 
+    /// <summary>
+    /// HCM-028 (D-5): <c>Recruitment:CommitteeApprovalDefault</c> — initial value of
+    /// <c>RecruitmentRequisition.RequiresCommitteeApproval</c> for new requisitions (default false;
+    /// true in Production and Staging).
+    /// </summary>
+    public bool CommitteeApprovalDefault { get; set; }
+
     /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();
 }

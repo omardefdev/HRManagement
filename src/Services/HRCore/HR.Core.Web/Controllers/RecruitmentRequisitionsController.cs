@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace HR.Core.Web.Controllers;
 
@@ -33,7 +34,9 @@ public class RecruitmentRequisitionsController(
     EstablishmentScopeService establishmentScope,
     IAuthorizationService authorization,
     RecruitmentAssessmentCriteriaService criteriaService,
-    ReserveListService reserveList) : Controller
+    ReserveListService reserveList,
+    RecruitmentSelectionService selection,
+    IOptions<RecruitmentOptions> recruitmentOptions) : Controller
 {
     [HttpGet("/api/recruitment/vacant-positions")]
     public async Task<IActionResult> VacantPositions(
@@ -143,7 +146,8 @@ public class RecruitmentRequisitionsController(
     {
         var vm = new RecruitmentRequisitionCreateViewModel
         {
-            BudgetYear = budgetYear ?? DateTime.UtcNow.Year
+            BudgetYear = budgetYear ?? DateTime.UtcNow.Year,
+            RequiresCommitteeApproval = recruitmentOptions.Value.CommitteeApprovalDefault
         };
         await establishmentScope.ApplyDefaultScopeOrgUnitAsync(User, id => vm.ScopeOrgUnitId = id);
         await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
@@ -206,7 +210,8 @@ public class RecruitmentRequisitionsController(
             LegalSourceId = vm.LegalSourceId,
             VacancyCount = 1,
             PublishingChannel = vm.PublishingChannel,
-            ApplicationClosingDate = vm.ApplicationClosingDate
+            ApplicationClosingDate = vm.ApplicationClosingDate,
+            RequiresCommitteeApproval = vm.RequiresCommitteeApproval
         };
 
         db.RecruitmentRequisitions.Add(requisition);
@@ -474,7 +479,8 @@ public class RecruitmentRequisitionsController(
             JustificationNotes = requisition.JustificationNotes,
             LegalSourceId = requisition.LegalSourceId,
             BudgetYear = requisition.FundedPosition?.BudgetYear ?? DateTime.UtcNow.Year,
-            ApplicationClosingDate = requisition.ApplicationClosingDate
+            ApplicationClosingDate = requisition.ApplicationClosingDate,
+            RequiresCommitteeApproval = requisition.RequiresCommitteeApproval
         };
         await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
         await PopulateLegalSourcesAsync(vm.LegalSourceId);
@@ -528,6 +534,10 @@ public class RecruitmentRequisitionsController(
         if (vm.ApplicationClosingDate is DateOnly closing && closing < DateOnly.FromDateTime(DateTime.UtcNow))
             ModelState.AddModelError(nameof(vm.ApplicationClosingDate), "تاريخ إغلاق التقديم يجب ألا يكون في الماضي.");
 
+        if (vm.RequiresCommitteeApproval != requisition.RequiresCommitteeApproval
+            && await selection.HasRankingStartedAsync(requisition.Id))
+            ModelState.AddModelError(nameof(vm.RequiresCommitteeApproval), SelectionCommitteeRules.RequirementFrozenMessage);
+
         if (!ModelState.IsValid)
         {
             await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
@@ -540,6 +550,7 @@ public class RecruitmentRequisitionsController(
         requisition.JustificationNotes = vm.JustificationNotes;
         requisition.LegalSourceId = vm.LegalSourceId;
         requisition.ApplicationClosingDate = vm.ApplicationClosingDate;
+        requisition.RequiresCommitteeApproval = vm.RequiresCommitteeApproval;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث طلب الشاغر";
         return RedirectToAction(nameof(Details), new { id });

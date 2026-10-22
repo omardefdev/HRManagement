@@ -3573,6 +3573,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime>("RequestedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("RequiresCommitteeApproval")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("RequisitionNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -3656,6 +3659,53 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("SeedPackApplications");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeDecision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ProposedRank")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Rationale")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Recommendation")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("SessionId", "ApplicationId")
+                        .IsUnique();
+
+                    b.ToTable("SelectionCommitteeDecisions");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3710,6 +3760,52 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("SelectionCommitteeMembers");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeMemberCoi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DeclaredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasConflict")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecordedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("MemberId", "ApplicationId")
+                        .IsUnique();
+
+                    b.ToTable("SelectionCommitteeMemberCois");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3718,6 +3814,9 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChairEmployeeId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CommitteeDate")
                         .HasColumnType("timestamp with time zone");
@@ -3731,11 +3830,20 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("Findings")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("LockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Recommendation")
                         .HasColumnType("text");
 
                     b.Property<Guid>("RequisitionId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -3756,6 +3864,63 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("TenantId", "RequisitionId", "CommitteeDate");
 
                     b.ToTable("SelectionCommitteeSessions");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeVote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RecordedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Vote")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("MemberId", "ApplicationId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "SessionId");
+
+                    b.ToTable("SelectionCommitteeVotes");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.ServiceRegimeException", b =>
@@ -6327,6 +6492,25 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("LegalSource");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeDecision", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.SelectionCommitteeSession", "Session")
+                        .WithMany("Decisions")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeMember", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.Employee", "Employee")
@@ -6346,6 +6530,25 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("Session");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeMemberCoi", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.SelectionCommitteeMember", "Member")
+                        .WithMany("CoiDeclarations")
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+
+                    b.Navigation("Member");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeSession", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.RecruitmentRequisition", "Requisition")
@@ -6355,6 +6558,33 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Requisition");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeVote", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.SelectionCommitteeMember", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.SelectionCommitteeSession", "Session")
+                        .WithMany("Votes")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.ServiceRegimeException", b =>
@@ -6640,9 +6870,18 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("PublicJobPosting");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeMember", b =>
+                {
+                    b.Navigation("CoiDeclarations");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.SelectionCommitteeSession", b =>
                 {
+                    b.Navigation("Decisions");
+
                     b.Navigation("Members");
+
+                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.Shift", b =>
