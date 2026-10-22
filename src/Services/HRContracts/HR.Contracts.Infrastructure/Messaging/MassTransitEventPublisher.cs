@@ -40,9 +40,11 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
             EndDate = contract.EndDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
 
-            BaseSalary = (decimal?)null,
+            // FUN-029 (G): offer terms of recruitment contracts; null for contracts created outside recruitment.
+            // IContractActivated already carries both members (v2), so no SchemaVersion bump.
+            BaseSalary = contract.AgreedBaseSalary,
 
-            PayGradeCode = (string?)null,
+            PayGradeCode = contract.GradeCode,
 
             CorrelationId = CurrentCorrelationId ?? Guid.NewGuid().ToString(),
 

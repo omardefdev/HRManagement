@@ -1,7 +1,12 @@
 using HRManagement.MessageContracts.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Options;
+using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Services;
 
@@ -15,17 +20,32 @@ public record HandleContractActivatedCommand(
     decimal? BaseSalary,
     string? PayGradeCode) : IRequest;
 
-public class HandleContractActivatedHandler(IPayrollRepository repository)
+/// <remarks>
+/// PAY-029: the grade is resolved in the salary scale in force at the contract start; the salary is the agreed one
+/// (IContractActivated.BaseSalary from the offer) or the grade's base. A salary outside the grade bounds, or no salary
+/// at all, still creates the profile and places a review hold (FraudAlert + PaymentHold, run-independent) so nothing is
+/// paid before HR/payroll looks at it.
+/// </remarks>
+public class HandleContractActivatedHandler(
+    IPayrollRepository repository,
+    IOptions<PayrollActivationOptions>? options = null,
+    ILogger<HandleContractActivatedHandler>? logger = null)
     : IRequestHandler<HandleContractActivatedCommand>
 {
+    public const string RuleOutOfRange = "PAY029-RANGE";
+    public const string RuleNoSalary = "PAY029-NOSAL";
+    public const string OutOfRangeReasonAr = "الراتب خارج حدود الدرجة";
+    public const string NoSalaryReasonAr = "لا يوجد راتب أساسي عند تفعيل العقد";
+    public const string AlertCategory = "PayProfileActivation";
+
+    private readonly ILogger _logger = logger ?? NullLogger<HandleContractActivatedHandler>.Instance;
+
     public async Task Handle(HandleContractActivatedCommand request, CancellationToken cancellationToken)
     {
-        PayGrade? grade = null;
-        if (!string.IsNullOrEmpty(request.PayGradeCode))
-            grade = await repository.PayGrades
-                .FirstOrDefaultAsync(g => g.GradeCode == request.PayGradeCode, cancellationToken);
-
-        var baseSalary = request.BaseSalary ?? grade?.BaseSalary ?? 0;
+        var grade = await ResolveGradeAsync(request, cancellationToken);
+        var salary = request.BaseSalary ?? grade?.BaseSalary;
+        var requireSalary = options?.Value.RequireBaseSalaryOnActivation ?? false;
+        var baseSalary = salary ?? 0;
         var existing = await repository.GetActiveProfileAsync(request.EmployeeId, cancellationToken);
 
         if (existing is null)
@@ -36,7 +56,8 @@ public class HandleContractActivatedHandler(IPayrollRepository repository)
                 PayGradeId = grade?.Id,
                 BaseSalary = baseSalary,
                 EffectiveFrom = request.StartDate,
-                IsActive = true
+                // PAY-029: with Payroll:RequireBaseSalaryOnActivation an unpriced profile is created inactive.
+                IsActive = salary is not null || !requireSalary
             }, cancellationToken);
         }
         else
@@ -65,7 +86,101 @@ public class HandleContractActivatedHandler(IPayrollRepository repository)
             AdjustmentReason = $"تفعيل عقد ({request.ContractType}) — ContractId={request.ContractId}"
         }, cancellationToken);
 
+        if (salary is null)
+        {
+            _logger.LogWarning(
+                "ContractActivated {ContractId}: no base salary and no grade for employee {EmployeeId}; profile {State}, review hold raised.",
+                request.ContractId, request.EmployeeId, requireSalary ? "inactive" : "active with 0");
+            await RaiseReviewHoldAsync(request, RuleNoSalary, NoSalaryReasonAr, $"{NoSalaryReasonAr} — العقد {request.ContractId}", cancellationToken);
+        }
+        else if (grade is not null && (salary < grade.MinSalary || salary > grade.MaxSalary))
+        {
+            _logger.LogWarning(
+                "ContractActivated {ContractId}: salary outside grade {GradeCode} bounds for employee {EmployeeId}; review hold raised.",
+                request.ContractId, grade.GradeCode, request.EmployeeId);
+            await RaiseReviewHoldAsync(
+                request,
+                RuleOutOfRange,
+                OutOfRangeReasonAr,
+                $"{OutOfRangeReasonAr} {grade.GradeCode}: {salary:0.##} خارج [{grade.MinSalary:0.##} – {grade.MaxSalary:0.##}] — العقد {request.ContractId}",
+                cancellationToken);
+        }
+
         await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The grade in the active scale in force at the contract start (latest EffectiveFrom). Without a dated match the
+    /// pre-PAY-029 lookup by code is used, with a warning.
+    /// </summary>
+    private async Task<PayGrade?> ResolveGradeAsync(HandleContractActivatedCommand request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(request.PayGradeCode))
+            return null;
+
+        var start = request.StartDate;
+        var dated = await repository.PayGrades
+            .Include(g => g.SalaryScale)
+            .Where(g => g.GradeCode == request.PayGradeCode
+                        && g.SalaryScale.IsActive
+                        && g.SalaryScale.EffectiveFrom <= start
+                        && (g.SalaryScale.EffectiveTo == null || g.SalaryScale.EffectiveTo >= start))
+            .OrderByDescending(g => g.SalaryScale.EffectiveFrom)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (dated is not null)
+            return dated;
+
+        var any = await repository.PayGrades
+            .FirstOrDefaultAsync(g => g.GradeCode == request.PayGradeCode, cancellationToken);
+        if (any is not null)
+            _logger.LogWarning(
+                "ContractActivated {ContractId}: no active salary scale in force on {StartDate:yyyy-MM-dd} for grade {GradeCode}; using an undated match.",
+                request.ContractId, start, request.PayGradeCode);
+        return any;
+    }
+
+    /// <summary>
+    /// "Review before pay": an Active PaymentHold without a payroll run blocks this employee in every disbursement batch
+    /// (PaymentDisbursementGate) until released; the linked FraudAlert puts it in the existing review queue.
+    /// One open hold per rule and employee (redelivery-safe).
+    /// </summary>
+    private async Task RaiseReviewHoldAsync(
+        HandleContractActivatedCommand request,
+        string ruleId,
+        string reasonAr,
+        string details,
+        CancellationToken cancellationToken)
+    {
+        if (await repository.PaymentHolds.AnyAsync(
+                h => h.EmployeeId == request.EmployeeId
+                     && h.Status == PaymentHoldStatus.Active
+                     && h.HoldType == PaymentHoldType.Manual
+                     && h.Reason.StartsWith(ruleId),
+                cancellationToken))
+            return;
+
+        var alert = new FraudAlert
+        {
+            EmployeeId = request.EmployeeId,
+            RuleId = ruleId,
+            Category = AlertCategory,
+            Severity = FraudAlertSeverity.Medium,
+            Status = FraudAlertStatus.Open,
+            Details = details,
+            DetectedAtUtc = DateTime.UtcNow
+        };
+        var hold = new PaymentHold
+        {
+            EmployeeId = request.EmployeeId,
+            FraudAlertId = alert.Id,
+            Reason = $"{ruleId}: {reasonAr}",
+            HoldType = PaymentHoldType.Manual,
+            Status = PaymentHoldStatus.Active,
+            HeldAtUtc = DateTime.UtcNow
+        };
+        alert.PaymentHoldId = hold.Id;
+        await repository.AddAsync(alert, cancellationToken);
+        await repository.AddAsync(hold, cancellationToken);
     }
 }
 

@@ -33,6 +33,8 @@ public static class DependencyInjection
             services.AddExportJobInfrastructure(configuration);
             services.Configure<Payroll.Application.Options.PayrollBatchOptions>(
                 configuration.GetSection(Payroll.Application.Options.PayrollBatchOptions.SectionName));
+            services.Configure<Payroll.Application.Options.PayrollActivationOptions>(
+                configuration.GetSection(Payroll.Application.Options.PayrollActivationOptions.SectionName));
             services.AddHrPayrollExternalIntegrations(configuration);
             services.AddHrCoreLookupClient(configuration);
             services.AddHrCoreServiceRegimeClient(configuration);
