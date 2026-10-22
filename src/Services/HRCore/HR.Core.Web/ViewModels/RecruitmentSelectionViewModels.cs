@@ -21,6 +21,8 @@ public class RecruitmentApplicationDetailsViewModel
     public string? AppealFilingError { get; set; }
     /// <summary>HCM-028 (F3): latest appeal; handled on RecruitmentAppeals/Details.</summary>
     public RecruitmentAppeal? ActiveAppeal { get; set; }
+    /// <summary>HCM-028 (I): a pending appeal on any application of the requisition blocks the hire.</summary>
+    public string? HireBlockedReason { get; set; }
     public IReadOnlyList<RecruitmentInterviewSlot> InterviewSlots { get; set; } = [];
     /// <summary>HCM-027: lowest rank that can still receive an offer on the requisition (merit order).</summary>
     public int? BestAvailableRank { get; set; }

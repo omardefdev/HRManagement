@@ -76,6 +76,12 @@ public sealed class RecruitmentOptions
     /// </summary>
     public RecruitmentRejectionKind[]? AppealableRejectionKinds { get; set; }
 
+    /// <summary>
+    /// HCM-028 (I): <c>Recruitment:BlockHireOnPendingAppeal</c> — no hire on a requisition while any of its
+    /// applications has a pending appeal (default true). Offers stay allowed.
+    /// </summary>
+    public bool BlockHireOnPendingAppeal { get; set; } = true;
+
     public IReadOnlyCollection<RecruitmentRejectionKind> GetAppealableRejectionKinds() =>
         AppealableRejectionKinds is { Length: > 0 } kinds ? kinds : RecruitmentAppealWorkflowRules.DefaultAppealableKinds.ToArray();
 

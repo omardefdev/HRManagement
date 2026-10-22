@@ -18,6 +18,10 @@
         }
     </div>
 }
+@if (!string.IsNullOrWhiteSpace(Model.HireBlockedReason))
+{
+    <div class="alert alert-warning"><i class="fas fa-ban ms-1"></i> @Model.HireBlockedReason</div>
+}
 
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">

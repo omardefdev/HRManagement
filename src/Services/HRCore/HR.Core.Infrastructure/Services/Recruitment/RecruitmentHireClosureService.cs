@@ -115,6 +115,14 @@ public sealed class RecruitmentHireClosureService(
             throw new InvalidOperationException("طلب معيّن مسبقاً.");
         }
 
+        var appealError = await RecruitmentHireAppealGuard.ValidateAsync(
+            db,
+            app.RequisitionId,
+            configuration.GetValue("Recruitment:BlockHireOnPendingAppeal", true),
+            cancellationToken);
+        if (appealError is not null)
+            throw new InvalidOperationException(appealError);
+
         var offer = app.ActiveOfferLetter;
         var requiresOffer = !legacyWithoutOffer || app.RequisitionId is not null;
 

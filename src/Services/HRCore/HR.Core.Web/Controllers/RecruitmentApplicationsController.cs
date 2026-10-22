@@ -108,6 +108,7 @@ public class RecruitmentApplicationsController(
         var appealFilingError = app.Status == RecruitmentApplicationStatus.Rejected
             ? appealService.GetFilingError(app, DateTime.UtcNow)
             : null;
+        var hireBlockedReason = await RecruitmentHireAppealGuard.ValidateAsync(db, app.RequisitionId, BlockHireOnPendingAppeal());
 
         return View(new RecruitmentApplicationDetailsViewModel
         {
@@ -116,7 +117,8 @@ public class RecruitmentApplicationsController(
             AllowedStatusTransitions = SelectionWorkflowRules.GetAllowedTargets(app, legacyFlag),
             ScoringPanel = scoringPanel,
             LegacyHireWithoutOffer = legacyFlag,
-            CanHire = RecruitmentWorkflowRules.CanHire(app, legacyFlag),
+            CanHire = RecruitmentWorkflowRules.CanHire(app, legacyFlag) && hireBlockedReason is null,
+            HireBlockedReason = RecruitmentWorkflowRules.CanHire(app, legacyFlag) ? hireBlockedReason : null,
             AppealPending = RecruitmentAppealWorkflowRules.HasPendingAppeal(app),
             CanRank = RecruitmentAppealWorkflowRules.CanRank(app),
             CanOffer = RecruitmentAppealWorkflowRules.CanOffer(app),
@@ -373,6 +375,13 @@ public class RecruitmentApplicationsController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        var appealBlock = await RecruitmentHireAppealGuard.ValidateAsync(db, app.RequisitionId, BlockHireOnPendingAppeal());
+        if (appealBlock is not null)
+        {
+            TempData["Error"] = appealBlock;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         var vm = RecruitmentHireViewModel.FromApplication(app, app.Requisition, app.Requisition?.FundedPosition);
         await PopulateSelectListsAsync(vm);
         return View(vm);
@@ -395,6 +404,13 @@ public class RecruitmentApplicationsController(
         if (!RecruitmentWorkflowRules.CanHire(app, legacyFlag))
         {
             TempData["Error"] = "لا يمكن التعيين في الحالة الحالية.";
+            return RedirectToAction(nameof(Details), new { id = app.Id });
+        }
+
+        var appealBlock = await RecruitmentHireAppealGuard.ValidateAsync(db, app.RequisitionId, BlockHireOnPendingAppeal());
+        if (appealBlock is not null)
+        {
+            TempData["Error"] = appealBlock;
             return RedirectToAction(nameof(Details), new { id = app.Id });
         }
 
@@ -621,6 +637,10 @@ public class RecruitmentApplicationsController(
 
     private bool ResolveLegacyHireWithoutOffer() =>
         configuration.GetValue("Recruitment:LegacyHireWithoutOffer", false);
+
+    /// <summary>HCM-028 (I): <c>Recruitment:BlockHireOnPendingAppeal</c> (default true).</summary>
+    private bool BlockHireOnPendingAppeal() =>
+        configuration.GetValue("Recruitment:BlockHireOnPendingAppeal", true);
 
     private PolicyEnforcementMode ResolvePolicyMode()
     {

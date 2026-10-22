@@ -37,6 +37,7 @@ public static class RecruitmentAppealWorkflowRules
         "الشاغر مغلق أو ملغى — النتائج المسموحة: رفض الاستئناف أو قبول دون أثر على الشاغر.";
     public const string RankCorrectionNotAllowedMessage =
         "تصحيح الترتيب يتطلب أن يكون للمرشح ترتيب قبل الرفض وأن يكون الشاغر منشوراً.";
+    public const string HireBlockedMessage = "يوجد استئناف معلق على هذا الشاغر — يجب البت فيه قبل التعيين.";
 
     public static bool HasPendingAppeal(RecruitmentApplication application) =>
         application.AppealStatus == RecruitmentAppealStatus.Pending;
