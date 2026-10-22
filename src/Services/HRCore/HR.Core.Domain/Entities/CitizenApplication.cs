@@ -75,5 +75,27 @@ public class CitizenApplication : AuditableEntity
     [Display(Name = "تاريخ إقرار COI")]
     public DateTime? ConflictOfInterestDeclaredAt { get; set; }
 
+    // HCM-030 (D1, G-17): application profile. BirthDate is personal data — never logged (audit-redacted), shown to
+    // HR on the application details only. PLAN-30 S2: include in candidate anonymization.
+
+    /// <summary>MDM <c>CatalogKind.Qualification</c> code (DIP/BACH/MASTER/PHD …).</summary>
+    [StringLength(20)]
+    [Display(Name = "المؤهل العلمي")]
+    public string? EducationLevelCode { get; set; }
+
+    [StringLength(200)]
+    [Display(Name = "التخصص")]
+    public string? Specialization { get; set; }
+
+    [Display(Name = "سنة التخرج")]
+    public int? GraduationYear { get; set; }
+
+    [Display(Name = "سنوات الخبرة")]
+    public decimal? YearsOfExperience { get; set; }
+
+    [AuditRedact]
+    [Display(Name = "تاريخ الميلاد")]
+    public DateOnly? BirthDate { get; set; }
+
     public virtual PublicJobPosting? PublicJobPosting { get; set; }
 }

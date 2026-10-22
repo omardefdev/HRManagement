@@ -59,6 +59,11 @@
                            @(Model.Filter.LegacyOnly ? "checked" : null) />
                     <label class="form-check-label" for="legacyOnly">قديم فقط (بدون طلب شاغر)</label>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="WithEligibilityFlags" value="true" id="withEligibilityFlags"
+                           @(Model.Filter.WithEligibilityFlags ? "checked" : null) />
+                    <label class="form-check-label" for="withEligibilityFlags">مع ملاحظات أهلية</label>
+                </div>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary" title="تطبيق الفلاتر"><i class="fas fa-search"></i> بحث</button>
@@ -97,6 +102,10 @@
                         @if (application.Status == RecruitmentApplicationStatus.ReserveListed && application.ReserveUntil is DateOnly reserveUntil)
                         {
                             <span class="text-muted small">حتى @reserveUntil.ToString("yyyy/MM/dd")</span>
+                        }
+                        @foreach (var flag in RecruitmentEligibilityRules.Parse(application.EligibilityFlags))
+                        {
+                            <span class="badge bg-warning text-dark d-inline-block mt-1">@RecruitmentEligibilityRules.LabelAr(flag)</span>
                         }
                     </td>
                     <td>
@@ -152,7 +161,8 @@
                     <a class="page-link" asp-action="Index" asp-route-Page="@pageNumber" asp-route-PageSize="@Model.Filter.PageSize"
                        asp-route-SearchTerm="@Model.Filter.SearchTerm" asp-route-RequisitionId="@Model.Filter.RequisitionId"
                        asp-route-LegacyOnly="@Model.Filter.LegacyOnly" asp-route-Status="@Model.Filter.Status"
-                       asp-route-HasOffer="@Model.Filter.HasOffer">@pageNumber</a>
+                       asp-route-HasOffer="@Model.Filter.HasOffer"
+                       asp-route-WithEligibilityFlags="@Model.Filter.WithEligibilityFlags">@pageNumber</a>
                 </li>
             }
         </ul></nav>

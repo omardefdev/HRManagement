@@ -1,0 +1,37 @@
+@model HR.Core.Web.ViewModels.RecruitmentRequisitionCreateViewModel
+@{
+    // HCM-030 (D2): application criteria — checked at intake as eligibility flags, never an automatic rejection.
+    var qualifications = ViewBag.Qualifications as IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.QualificationOption> ?? [];
+}
+<fieldset class="border rounded p-3 mb-3">
+    <legend class="fs-6 fw-bold w-auto px-1">شروط التقديم (اختيارية)</legend>
+    <div class="form-text mb-2">تُقيَّم عند التقديم وتظهر ملاحظات للفرز، ولا يُرفض أي طلب آلياً بسببها.</div>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <label asp-for="MinQualificationCode" class="form-label"></label>
+            <select asp-for="MinQualificationCode" class="form-select">
+                <option value="">— بلا شرط —</option>
+                @foreach (var q in qualifications)
+                {
+                    <option value="@q.Code" selected="@(string.Equals(Model.MinQualificationCode, q.Code, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@q.NameAr</option>
+                }
+            </select>
+            <span asp-validation-for="MinQualificationCode" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="MinYearsOfExperience" class="form-label"></label>
+            <input asp-for="MinYearsOfExperience" type="number" min="0" max="60" step="0.5" class="form-control" />
+            <span asp-validation-for="MinYearsOfExperience" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="MinAge" class="form-label"></label>
+            <input asp-for="MinAge" type="number" class="form-control" />
+            <span asp-validation-for="MinAge" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="MaxAge" class="form-label"></label>
+            <input asp-for="MaxAge" type="number" class="form-control" />
+            <span asp-validation-for="MaxAge" class="text-danger"></span>
+        </div>
+    </div>
+</fieldset>

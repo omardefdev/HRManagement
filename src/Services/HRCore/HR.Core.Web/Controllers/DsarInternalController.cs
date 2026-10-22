@@ -1,4 +1,5 @@
 using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
@@ -49,6 +50,13 @@ public sealed class DsarInternalController(HRCoreDbContext db) : ControllerBase
 
         if (citizen is not null)
         {
+            // HCM-030 (B3): once linked, the citizen Status column is no longer written — the recruitment status is.
+            var recruitmentStatus = citizen.PromotedRecruitmentApplicationId is Guid linkedId
+                ? await db.RecruitmentApplications.AsNoTracking()
+                    .Where(a => a.Id == linkedId)
+                    .Select(a => (RecruitmentApplicationStatus?)a.Status)
+                    .FirstOrDefaultAsync(ct)
+                : null;
             return Ok(new
             {
                 applicationId = citizen.Id,
@@ -61,7 +69,8 @@ public sealed class DsarInternalController(HRCoreDbContext db) : ControllerBase
                 citizen.SubmittedAt,
                 jobTitle = citizen.PublicJobPosting?.Title ?? citizen.Requisition?.JobTitle,
                 requisitionNumber = citizen.Requisition?.RequisitionNumber,
-                promotedRecruitmentApplicationId = citizen.PromotedRecruitmentApplicationId
+                promotedRecruitmentApplicationId = citizen.PromotedRecruitmentApplicationId,
+                recruitmentStatus
             });
         }
 
@@ -101,7 +110,8 @@ public sealed class DsarInternalController(HRCoreDbContext db) : ControllerBase
                 type = "CitizenApplication",
                 a.ReferenceNumber,
                 a.Status,
-                a.SubmittedAt
+                a.SubmittedAt,
+                promotedRecruitmentApplicationId = a.PromotedRecruitmentApplicationId
             })
             .ToListAsync(ct);
 

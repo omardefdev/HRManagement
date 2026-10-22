@@ -84,6 +84,7 @@ public class RecruitmentApplicationsController(
         }
 
         var scoringPanel = await BuildScoringPanelAsync(app);
+        ViewBag.QualificationNames = await QualificationNamesAsync(app.TenantId);
 
         // HCM-027 (E5): grade pre-filled from the funded position + Payroll range hint (server-side lookup).
         var defaultStartDate = DateTime.UtcNow.Date.AddDays(30);
@@ -255,10 +256,15 @@ public class RecruitmentApplicationsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> SetStatus(Guid id, RecruitmentApplicationStatus status, string? rejectionNote = null)
+    public async Task<IActionResult> SetStatus(
+        Guid id,
+        RecruitmentApplicationStatus status,
+        string? rejectionNote = null,
+        string? eligibilityOverrideReason = null)
     {
         var legacyFlag = ResolveLegacyHireWithoutOffer();
-        var (success, error) = await selection.TransitionStatusAsync(id, status, legacyFlag, rejectionNote);
+        var (success, error) = await selection.TransitionStatusAsync(
+            id, status, legacyFlag, rejectionNote, eligibilityOverrideReason, ParseUserId(User));
         TempData[success ? "Success" : "Error"] = success ? "تم تحديث حالة الطلب" : error;
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -619,6 +625,11 @@ public class RecruitmentApplicationsController(
 
     private static RecruitmentApplicationCreateViewModel NewCreateModel() => new();
 
+    /// <summary>HCM-030 (D1): qualification code → Arabic name for the profile panel.</summary>
+    private async Task<IReadOnlyDictionary<string, string>> QualificationNamesAsync(Guid tenantId) =>
+        (await unifiedIntake.GetQualificationOptionsAsync(tenantId))
+            .ToDictionary(q => q.Code, q => q.NameAr, StringComparer.OrdinalIgnoreCase);
+
     private bool ResolveLegacyHireWithoutOffer() =>
         configuration.GetValue("Recruitment:LegacyHireWithoutOffer", false);
 
@@ -751,6 +762,10 @@ public class RecruitmentApplicationsController(
 
         if (filter.LegacyOnly)
             query = query.Where(x => x.RequisitionId == null);
+
+        // HCM-030 (D4): «مع ملاحظات أهلية».
+        if (filter.WithEligibilityFlags)
+            query = query.Where(x => x.EligibilityFlags != null && x.EligibilityFlags != "");
 
         if (filter.HasOffer is true)
             query = query.Where(x => x.ActiveOfferLetterId != null);

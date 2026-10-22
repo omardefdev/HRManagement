@@ -20,6 +20,8 @@ public class RecruitmentApplicationsFilter
     public Guid? RequisitionId { get; set; }
     public bool LegacyOnly { get; set; }
     public bool? HasOffer { get; set; }
+    /// <summary>HCM-030 (D4): only applications with eligibility flags.</summary>
+    public bool WithEligibilityFlags { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 

@@ -401,6 +401,8 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         RecruitmentApplicationStatus to,
         bool legacyHireWithoutOffer,
         string? rejectionNote = null,
+        string? eligibilityOverrideReason = null,
+        Guid? actorUserId = null,
         CancellationToken ct = default)
     {
         if (SelectionWorkflowRules.SystemOnlyTargets.Contains(to))
@@ -414,6 +416,25 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
             var gate = SelectionWorkflowRules.ValidateTransitionGate(app, to)
                 ?? "لا يمكن تنفيذ الانتقال المطلوب للحالة الحالية.";
             return (false, gate);
+        }
+
+        // HCM-030 (D4): eligibility flags never reject, but shortlisting a flagged application needs a recorded reason.
+        var flags = RecruitmentEligibilityRules.Parse(app.EligibilityFlags);
+        if (to == RecruitmentApplicationStatus.Shortlisted && flags.Count > 0)
+        {
+            if (!RecruitmentEligibilityRules.IsValidOverrideReason(eligibilityOverrideReason))
+                return (false, RecruitmentEligibilityRules.OverrideReasonRequiredMessage);
+
+            var reason = eligibilityOverrideReason!.Trim();
+            app.EligibilityOverrideReason = reason.Length > 1000 ? reason[..1000] : reason;
+            db.AuditLogs.Add(new EntityAuditLog
+            {
+                EntityType = nameof(RecruitmentApplication),
+                EntityId = app.Id,
+                Action = RecruitmentEligibilityRules.OverrideAuditAction,
+                UserId = actorUserId,
+                ChangedFields = JsonSerializer.Serialize(new { flags, reason = app.EligibilityOverrideReason })
+            });
         }
 
         if (to == RecruitmentApplicationStatus.Rejected)

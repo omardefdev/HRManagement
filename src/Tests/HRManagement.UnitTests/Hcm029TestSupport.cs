@@ -132,7 +132,7 @@ internal static class Hcm029TestSupport
             Mock.Of<IPolicyOrchestrator>(),
             config,
             new HirePersonMatchService(db),
-            new UnifiedIntakeService(db));
+            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
 
         var httpContext = new DefaultHttpContext
         {

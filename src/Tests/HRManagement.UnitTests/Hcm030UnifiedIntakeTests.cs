@@ -237,7 +237,7 @@ public class Hcm030UnifiedIntakeTests
             "UPDATE \"CitizenApplications\" SET \"UpdatedAt\" = {0} WHERE \"Id\" = {1}", sourceUpdatedAt, citizen.Id);
         await db.Entry(citizen).ReloadAsync();
 
-        var app = await new UnifiedIntakeService(db).EnsureLinkedAsync(citizen);
+        var app = await new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())).EnsureLinkedAsync(citizen);
 
         Assert.NotNull(app);
         Assert.Equal(expected, app.Status);
@@ -263,7 +263,7 @@ public class Hcm030UnifiedIntakeTests
         var legacy = SeedUnlinkedCitizen(db, fx, CitizenApplicationStatus.UnderReview, "CA-LEGACY");
         legacy.RequisitionId = null;
         await db.SaveChangesAsync();
-        var service = new UnifiedIntakeService(db);
+        var service = new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 
         var first = await service.EnsureLinkedAsync(citizen);
         var second = await service.EnsureLinkedAsync(citizen);

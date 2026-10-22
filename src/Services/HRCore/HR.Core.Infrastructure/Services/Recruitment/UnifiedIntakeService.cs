@@ -4,17 +4,24 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel;
+using HRManagement.SharedKernel.MasterData;
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace HR.Core.Infrastructure.Services.Recruitment;
+
+/// <summary>HCM-030 (D1): an active MDM qualification offered on the apply form.</summary>
+public sealed record QualificationOption(string Code, string NameAr);
 
 /// <summary>
 /// HCM-030 (A1, G-16): one intake path. Every public or internal application on a requisition is a
 /// <see cref="RecruitmentApplication"/> from the moment it is submitted; the channel row
 /// (<see cref="CitizenApplication"/> / <see cref="InternalApplication"/>) keeps the submitted data and links to it
-/// through its existing <c>PromotedRecruitmentApplicationId</c>.
+/// through its existing <c>PromotedRecruitmentApplicationId</c>. New applications carry a profile snapshot and their
+/// eligibility flags (D1/D4).
 /// </summary>
-public sealed class UnifiedIntakeService(HRCoreDbContext db)
+public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<RecruitmentOptions> options)
 {
     public const string ManagedByUnifiedPathMessage = "يُدار هذا الطلب من مسار التوظيف الموحد.";
 
@@ -33,8 +40,14 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
             AppliedAt = citizen.SubmittedAt,
             Status = RecruitmentApplicationStatus.Submitted,
             IntakeChannel = RecruitmentIntakeChannel.Public,
-            Notes = $"تقديم عبر البوابة العامة {citizen.ReferenceNumber}"
+            Notes = $"تقديم عبر البوابة العامة {citizen.ReferenceNumber}",
+            EducationLevelCode = citizen.EducationLevelCode,
+            Specialization = citizen.Specialization,
+            GraduationYear = citizen.GraduationYear,
+            YearsOfExperience = citizen.YearsOfExperience,
+            BirthDate = citizen.BirthDate
         };
+        EvaluateEligibility(app, requisition);
 
         db.RecruitmentApplications.Add(app);
         citizen.PromotedRecruitmentApplication = app;
@@ -46,10 +59,14 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
     /// row that is itself new cannot be linked in the same insert (the two rows reference each other), so its link is
     /// set by <see cref="SubmitInternalAsync"/> after the first save.
     /// </summary>
+    /// <param name="employeeQualificationCodes">
+    /// The employee's <c>Qualification.QualificationCode</c> values; the highest-ranked one becomes the education level.
+    /// </param>
     public RecruitmentApplication CreateFromInternal(
         InternalApplication internalApp,
         Employee employee,
-        RecruitmentRequisition requisition)
+        RecruitmentRequisition requisition,
+        IEnumerable<string?>? employeeQualificationCodes = null)
     {
         var app = new RecruitmentApplication
         {
@@ -65,8 +82,12 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
             Status = RecruitmentApplicationStatus.Submitted,
             IntakeChannel = RecruitmentIntakeChannel.Internal,
             Notes = "ترشّح داخلي",
-            SourceInternalApplicationId = internalApp.Id
+            SourceInternalApplicationId = internalApp.Id,
+            EducationLevelCode = RecruitmentEligibilityRules.HighestRanked(
+                employeeQualificationCodes ?? [], options.Value.Eligibility.QualificationRanks),
+            BirthDate = employee.BirthDate == default ? null : DateOnly.FromDateTime(employee.BirthDate)
         };
+        EvaluateEligibility(app, requisition);
 
         db.RecruitmentApplications.Add(app);
         if (db.Entry(internalApp).State != EntityState.Added)
@@ -84,9 +105,10 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
         RecruitmentRequisition requisition,
         CancellationToken ct = default)
     {
+        var qualificationCodes = await EmployeeQualificationCodesAsync(employee.Id, ct);
         await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(ct) : null;
         db.InternalApplications.Add(internalApp);
-        var app = CreateFromInternal(internalApp, employee, requisition);
+        var app = CreateFromInternal(internalApp, employee, requisition, qualificationCodes);
         await db.SaveChangesAsync(ct);
 
         internalApp.PromotedRecruitmentApplicationId = app.Id;
@@ -99,7 +121,8 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
     /// <summary>
     /// HCM-030 (A3, C3): links a requisition-linked citizen row created before unification (no link yet) using the
     /// backfill mapping. Returns the linked application (existing or new), or null for a legacy row without requisition.
-    /// Like the SQL backfill, it records no application events (historic row — no candidate notification).
+    /// Like the SQL backfill, it records no application events (historic row — no candidate notification) and leaves
+    /// the eligibility flags unevaluated.
     /// </summary>
     public async Task<RecruitmentApplication?> EnsureLinkedAsync(CitizenApplication citizen, CancellationToken ct = default)
     {
@@ -132,7 +155,7 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
             ?? await db.RecruitmentRequisitions.FirstAsync(r => r.Id == requisitionId, ct);
         var employee = internalApp.Employee
             ?? await db.Employees.FirstAsync(e => e.Id == internalApp.EmployeeId, ct);
-        var app = CreateFromInternal(internalApp, employee, requisition);
+        var app = CreateFromInternal(internalApp, employee, requisition, await EmployeeQualificationCodesAsync(employee.Id, ct));
         ApplyLinkState(app, UnifiedIntakeStatusMapping.Map(internalApp.Status, internalApp.UpdatedAt, requisition));
 
         using (db.SuppressApplicationEvents())
@@ -167,8 +190,66 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db)
             ct);
     }
 
+    /// <summary>
+    /// HCM-030 (D2): the requisition's criteria; missing age bounds fall back to
+    /// <c>Recruitment:Eligibility:AgeBoundsByRegime</c> for the requisition's service regime (empty by default).
+    /// </summary>
+    public EligibilityCriteria CriteriaFor(RecruitmentRequisition requisition)
+    {
+        var regime = LegalSourceToRegimeMapper.MapOfferToRegime(requisition.LegalSourceId);
+        var bounds = regime is not null && options.Value.Eligibility.AgeBoundsByRegime.TryGetValue(regime, out var b) ? b : null;
+        return new EligibilityCriteria(
+            string.IsNullOrWhiteSpace(requisition.MinQualificationCode) ? null : requisition.MinQualificationCode.Trim(),
+            requisition.MinYearsOfExperience,
+            requisition.MinAge ?? bounds?.MinAge,
+            requisition.MaxAge ?? bounds?.MaxAge);
+    }
+
+    /// <summary>
+    /// HCM-030 (D1): active MDM qualifications of the tenant (or the national platform catalog when the tenant has no
+    /// copy), in rank order. Readable from the anonymous portal.
+    /// </summary>
+    public async Task<IReadOnlyList<QualificationOption>> GetQualificationOptionsAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        var entries = db.ReferenceCatalogEntries.AsNoTracking()
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.NationalReferenceLookup)
+            .Where(e => e.CatalogKind == CatalogKind.Qualification && e.IsActive);
+        var rows = await entries.Where(e => e.TenantId == tenantId).ToListAsync(ct);
+        if (rows.Count == 0 && tenantId != TenantDefaults.DefaultTenantId)
+            rows = await entries.Where(e => e.TenantId == TenantDefaults.DefaultTenantId).ToListAsync(ct);
+
+        var ranks = options.Value.Eligibility.QualificationRanks;
+        return rows
+            .GroupBy(e => e.Code, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(e => ranks.TryGetValue(e.Code, out var rank) ? rank : int.MaxValue)
+            .ThenBy(e => e.NameAr)
+            .Select(e => new QualificationOption(e.Code, e.NameAr))
+            .ToList();
+    }
+
+    private void EvaluateEligibility(RecruitmentApplication app, RecruitmentRequisition requisition)
+    {
+        var flags = RecruitmentEligibilityRules.Evaluate(
+            new EligibilityProfile(app.EducationLevelCode, app.YearsOfExperience, app.BirthDate),
+            CriteriaFor(requisition),
+            DateOnly.FromDateTime(app.AppliedAt),
+            options.Value.Eligibility.QualificationRanks);
+        app.EligibilityFlags = RecruitmentEligibilityRules.Format(flags);
+        app.EligibilityEvaluatedAt = DateTime.UtcNow;
+    }
+
+    private async Task<IReadOnlyList<string?>> EmployeeQualificationCodesAsync(Guid employeeId, CancellationToken ct) =>
+        await db.Qualifications.AsNoTracking()
+            .Where(q => q.EmployeeId == employeeId && q.QualificationCode != null)
+            .Select(q => q.QualificationCode)
+            .ToListAsync(ct);
+
     private static void ApplyLinkState(RecruitmentApplication app, UnifiedIntakeLinkState state)
     {
+        // Historic row: as the SQL backfill — status from the mapping, eligibility not evaluated.
+        app.EligibilityFlags = null;
+        app.EligibilityEvaluatedAt = null;
         app.Status = state.Status;
         app.RejectionKind = state.RejectionKind;
         app.RejectedAt = state.RejectedAt;

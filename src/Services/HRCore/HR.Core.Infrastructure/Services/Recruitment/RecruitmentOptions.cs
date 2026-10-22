@@ -108,6 +108,36 @@ public sealed class RecruitmentOptions
 
     /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();
+
+    /// <summary>HCM-030 (D3): eligibility check settings (<c>Recruitment:Eligibility:*</c>).</summary>
+    public RecruitmentEligibilityOptions Eligibility { get; set; } = new();
+}
+
+/// <summary>HCM-030 (D3): settings of <see cref="RecruitmentEligibilityRules"/>.</summary>
+public sealed class RecruitmentEligibilityOptions
+{
+    /// <summary>
+    /// <c>Recruitment:Eligibility:QualificationRanks</c> — MDM qualification code → rank (higher = more advanced).
+    /// The MDM catalog has no order (and its seed pack digest is pinned), so the order lives here. Configured entries
+    /// are added to (or override) the defaults DIP=1, BACH=2, MASTER=3, PHD=4; an unranked code is flagged
+    /// <c>QualificationUnranked</c>.
+    /// </summary>
+    public Dictionary<string, int> QualificationRanks { get; set; } =
+        new(RecruitmentEligibilityRules.DefaultQualificationRanks, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// <c>Recruitment:Eligibility:AgeBoundsByRegime</c> — optional default age bounds per service regime id (law50,
+    /// law53, …), used when the requisition sets none. Empty by default: the repository holds no legal age data, so no
+    /// Production values are shipped.
+    /// </summary>
+    public Dictionary<string, RecruitmentAgeBounds> AgeBoundsByRegime { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
+/// <summary>HCM-030 (D3): an age range (inclusive); null = not checked.</summary>
+public sealed class RecruitmentAgeBounds
+{
+    public int? MinAge { get; set; }
+    public int? MaxAge { get; set; }
 }
 
 /// <summary>HCM-026: recruitment background job settings.</summary>

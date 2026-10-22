@@ -52,6 +52,24 @@ public class RecruitmentRequisitionCreateViewModel
     /// <summary>HCM-028 (A1): defaults from <c>Recruitment:CommitteeApprovalDefault</c>.</summary>
     [Display(Name = "يتطلب اعتماد لجنة الاختيار قبل الترتيب")]
     public bool RequiresCommitteeApproval { get; set; }
+
+    // HCM-030 (D2): application criteria (null = not checked).
+
+    [Display(Name = "أدنى مؤهل علمي")]
+    [StringLength(20)]
+    public string? MinQualificationCode { get; set; }
+
+    [Display(Name = "أدنى سنوات خبرة")]
+    [Range(typeof(decimal), "0", "60", ErrorMessage = "سنوات الخبرة يجب أن تكون بين 0 و60.")]
+    public decimal? MinYearsOfExperience { get; set; }
+
+    [Display(Name = "الحد الأدنى للعمر")]
+    [Range(14, 100, ErrorMessage = "العمر يجب أن يكون بين 14 و100.")]
+    public int? MinAge { get; set; }
+
+    [Display(Name = "الحد الأعلى للعمر")]
+    [Range(14, 100, ErrorMessage = "العمر يجب أن يكون بين 14 و100.")]
+    public int? MaxAge { get; set; }
 }
 
 public class RecruitmentRequisitionEditViewModel : RecruitmentRequisitionCreateViewModel

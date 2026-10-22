@@ -414,6 +414,7 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.SourceInternalApplicationId)
                   .OnDelete(DeleteBehavior.SetNull);
             entity.Property(e => e.IntakeChannel).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.YearsOfExperience).HasPrecision(4, 1);
         });
 
         // HCM-030 (B1): append-only application event log (no PII).
@@ -645,6 +646,7 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .IsUnique()
                   .HasFilter("\"RequisitionId\" IS NOT NULL AND \"NationalIdHash\" IS NOT NULL");
             entity.Property(e => e.NationalIdHash).HasMaxLength(64);
+            entity.Property(e => e.YearsOfExperience).HasPrecision(4, 1);
         });
 
         modelBuilder.Entity<SelectionCommitteeSession>(entity =>
@@ -967,6 +969,7 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.Property(e => e.JustificationNotes).HasMaxLength(500);
             entity.Property(e => e.LegalSourceId).HasMaxLength(100);
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.MinYearsOfExperience).HasPrecision(4, 1);
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_RecruitmentRequisitions_VacancyCount",
                 "\"VacancyCount\" >= 0 AND \"VacancyCount\" <= 1"));

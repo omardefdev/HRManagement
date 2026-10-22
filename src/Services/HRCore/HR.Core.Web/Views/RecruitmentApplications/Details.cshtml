@@ -1,11 +1,15 @@
 @model HR.Core.Web.ViewModels.RecruitmentApplicationDetailsViewModel
 @using HR.Core.Domain.Enums
+@using HR.Core.Domain.Services
 @using HRManagement.ServiceDefaults
 
 @{
     ViewData["Title"] = "تفاصيل طلب التوظيف";
     var app = Model.Application;
     var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
+    var eligibilityFlags = RecruitmentEligibilityRules.Parse(app.EligibilityFlags);
+    var qualificationNames = ViewBag.QualificationNames as IReadOnlyDictionary<string, string>
+        ?? new Dictionary<string, string>();
 }
 
 @if (Model.AppealPending)
@@ -66,6 +70,43 @@
             <dt class="col-sm-3">درجة التقييم</dt><dd class="col-sm-9">@(app.AssessmentScore?.ToString("N1") ?? "—")</dd>
             <dt class="col-sm-3">الترتيب</dt><dd class="col-sm-9">@(app.Rank?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">ملاحظات</dt><dd class="col-sm-9">@(app.Notes ?? "—")</dd>
+        </dl>
+    </div>
+</div>
+
+@* HCM-030 (D1/D4): application profile (HR only — BirthDate is personal data) and eligibility flags. *@
+<div class="card mb-3" id="eligibility">
+    <div class="card-header"><h5 class="mb-0">بيانات التقديم والأهلية</h5></div>
+    <div class="card-body">
+        <dl class="row mb-2">
+            <dt class="col-sm-3">المؤهل العلمي</dt>
+            <dd class="col-sm-9">@(app.EducationLevelCode is { } code ? qualificationNames.GetValueOrDefault(code, code) : "—")</dd>
+            <dt class="col-sm-3">التخصص</dt><dd class="col-sm-9">@(app.Specialization ?? "—")</dd>
+            <dt class="col-sm-3">سنة التخرج</dt><dd class="col-sm-9">@(app.GraduationYear?.ToString() ?? "—")</dd>
+            <dt class="col-sm-3">سنوات الخبرة</dt><dd class="col-sm-9">@(app.YearsOfExperience?.ToString("0.#") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الميلاد</dt><dd class="col-sm-9">@(app.BirthDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">ملاحظات الأهلية</dt>
+            <dd class="col-sm-9">
+                @if (eligibilityFlags.Count > 0)
+                {
+                    @foreach (var flag in eligibilityFlags)
+                    {
+                        <span class="badge bg-warning text-dark ms-1">@RecruitmentEligibilityRules.LabelAr(flag)</span>
+                    }
+                }
+                else if (app.EligibilityEvaluatedAt is null)
+                {
+                    <span class="text-muted">لم تُقيَّم (طلب قديم أو مُدخل يدوياً)</span>
+                }
+                else
+                {
+                    <span class="text-success">لا ملاحظات</span>
+                }
+            </dd>
+            @if (!string.IsNullOrWhiteSpace(app.EligibilityOverrideReason))
+            {
+                <dt class="col-sm-3">سبب تجاوز الأهلية</dt><dd class="col-sm-9">@app.EligibilityOverrideReason</dd>
+            }
         </dl>
     </div>
 </div>
@@ -190,6 +231,20 @@
             <div class="card-body d-flex flex-wrap gap-2">
                 @foreach (var target in Model.AllowedStatusTransitions.Where(t => t != RecruitmentApplicationStatus.Rejected))
                 {
+                    @if (target == RecruitmentApplicationStatus.Shortlisted && eligibilityFlags.Count > 0)
+                    {
+                        @* HCM-030 (D4): shortlisting a flagged application needs a reason (audited). *@
+                        <form asp-action="SetStatus" method="post" class="w-100 border rounded p-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@app.Id" />
+                            <input type="hidden" name="status" value="@target" />
+                            <label class="form-label" for="eligibilityOverrideReason">سبب تجاوز ملاحظات الأهلية</label>
+                            <textarea id="eligibilityOverrideReason" name="eligibilityOverrideReason" class="form-control form-control-sm mb-2"
+                                      rows="2" minlength="@RecruitmentEligibilityRules.MinOverrideReasonLength" maxlength="1000" required></textarea>
+                            <button type="submit" class="btn btn-outline-primary btn-sm">@Html.HrEnumDisplay(target)</button>
+                        </form>
+                        continue;
+                    }
                     <form asp-action="SetStatus" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@app.Id" />

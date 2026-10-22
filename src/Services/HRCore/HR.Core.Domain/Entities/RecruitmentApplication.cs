@@ -133,6 +133,45 @@ public class RecruitmentApplication : AuditableEntity
     [Display(Name = "الترتيب قبل الرفض")]
     public int? RankBeforeRejection { get; set; }
 
+
+    // HCM-030 (D1, G-17): application profile snapshot (from the citizen row or the employee). BirthDate is personal data — never logged (audit-redacted), shown to
+    // HR on the application details only. PLAN-30 S2: include in candidate anonymization.
+
+    /// <summary>MDM <c>CatalogKind.Qualification</c> code (DIP/BACH/MASTER/PHD …).</summary>
+    [StringLength(20)]
+    [Display(Name = "المؤهل العلمي")]
+    public string? EducationLevelCode { get; set; }
+
+    [StringLength(200)]
+    [Display(Name = "التخصص")]
+    public string? Specialization { get; set; }
+
+    [Display(Name = "سنة التخرج")]
+    public int? GraduationYear { get; set; }
+
+    [Display(Name = "سنوات الخبرة")]
+    public decimal? YearsOfExperience { get; set; }
+
+    [AuditRedact]
+    [Display(Name = "تاريخ الميلاد")]
+    public DateOnly? BirthDate { get; set; }
+
+    /// <summary>
+    /// HCM-030 (D4): <see cref="Services.RecruitmentEligibilityRules"/> codes, comma-separated, evaluated at intake
+    /// (null: no flag, or not evaluated — see <see cref="EligibilityEvaluatedAt"/>).
+    /// </summary>
+    [StringLength(200)]
+    [Display(Name = "ملاحظات الأهلية")]
+    public string? EligibilityFlags { get; set; }
+
+    [Display(Name = "تاريخ تقييم الأهلية")]
+    public DateTime? EligibilityEvaluatedAt { get; set; }
+
+    /// <summary>HCM-030 (D4): why a flagged application was shortlisted (audited as <c>EligibilityOverride</c>).</summary>
+    [StringLength(1000)]
+    [Display(Name = "سبب تجاوز ملاحظات الأهلية")]
+    public string? EligibilityOverrideReason { get; set; }
+
     public virtual Employee? HiredEmployee { get; set; }
 
     public virtual ICollection<OfferLetter> OfferLetters { get; set; } = [];

@@ -28,6 +28,32 @@ public class CitizenApplicationApplyViewModel
     [Display(Name = "نبذة/مسوّغات")]
     public string? CoverNote { get; set; }
 
+    // HCM-030 (D1): application profile (optional; missing data is flagged, never refused).
+
+    [Display(Name = "المؤهل العلمي")]
+    [StringLength(20)]
+    public string? EducationLevelCode { get; set; }
+
+    [Display(Name = "التخصص")]
+    [StringLength(200, ErrorMessage = "التخصص يجب ألا يتجاوز 200 حرف.")]
+    public string? Specialization { get; set; }
+
+    [Display(Name = "سنة التخرج")]
+    [Range(MinGraduationYear, 2100, ErrorMessage = "سنة التخرج غير صالحة.")]
+    public int? GraduationYear { get; set; }
+
+    [Display(Name = "سنوات الخبرة")]
+    [Range(typeof(decimal), "0", "60", ErrorMessage = "سنوات الخبرة يجب أن تكون بين 0 و60.")]
+    public decimal? YearsOfExperience { get; set; }
+
+    [Display(Name = "تاريخ الميلاد")]
+    [DataType(DataType.Date)]
+    public DateOnly? BirthDate { get; set; }
+
+    public const int MinGraduationYear = 1950;
+    public const int MinApplicantAge = 14;
+    public const int MaxApplicantAge = 100;
+
     [Display(Name = "موافقة معالجة البيانات")]
     [Range(typeof(bool), "true", "true", ErrorMessage = "يجب الموافقة على معالجة البيانات.")]
     public bool PrivacyConsent { get; set; }

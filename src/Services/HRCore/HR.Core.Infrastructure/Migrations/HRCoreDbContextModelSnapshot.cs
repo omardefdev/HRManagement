@@ -287,6 +287,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime?>("AnonymizedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date");
+
                     b.Property<bool>("ConflictOfInterestDeclared")
                         .HasColumnType("boolean");
 
@@ -302,6 +305,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("EducationLevelCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
@@ -310,6 +317,9 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<int?>("GraduationYear")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("LegalHold")
                         .HasColumnType("boolean");
@@ -341,6 +351,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("RequisitionId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Specialization")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -355,6 +369,10 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("YearsOfExperience")
+                        .HasPrecision(4, 1)
+                        .HasColumnType("numeric(4,1)");
 
                     b.HasKey("Id");
 
@@ -3215,6 +3233,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<decimal?>("AssessmentScore")
                         .HasColumnType("numeric");
 
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date");
+
                     b.Property<bool>("ConflictOfInterestDeclared")
                         .HasColumnType("boolean");
 
@@ -3229,6 +3250,24 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid?>("CriteriaVersionId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("EducationLevelCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("EligibilityEvaluatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EligibilityFlags")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("EligibilityOverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("GraduationYear")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("HiredEmployeeId")
                         .HasColumnType("uuid");
@@ -3302,6 +3341,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("SourceInternalApplicationId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Specialization")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -3313,6 +3356,10 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("YearsOfExperience")
+                        .HasPrecision(4, 1)
+                        .HasColumnType("numeric(4,1)");
 
                     b.HasKey("Id");
 
@@ -3687,6 +3734,20 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("LegalSourceId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("MaxAge")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MinAge")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MinQualificationCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("MinYearsOfExperience")
+                        .HasPrecision(4, 1)
+                        .HasColumnType("numeric(4,1)");
 
                     b.Property<Guid?>("PublicJobPostingId")
                         .HasColumnType("uuid");

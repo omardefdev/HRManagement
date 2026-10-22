@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Middleware;
 using HR.Core.Infrastructure.Services.Recruitment;
@@ -58,9 +59,7 @@ public class PublicCareersController(
         if (posting is null || (!posting.IsPublished && !intakeClosed) || !IsCareersVisible(posting))
             return NotFound();
 
-        ViewBag.IntakeClosed = intakeClosed;
-        ViewBag.ApplyModel = new CitizenApplicationApplyViewModel { PublicJobPostingId = id };
-        ViewBag.IsLegacyPosting = posting.RequisitionId is null;
+        await PopulateDetailsAsync(posting, new CitizenApplicationApplyViewModel { PublicJobPostingId = id }, intakeClosed);
         return View(posting);
     }
 
@@ -109,10 +108,23 @@ public class PublicCareersController(
             }
         }
 
+        // HCM-030 (D1): profile checks (all fields optional).
+        var qualifications = await unifiedIntake.GetQualificationOptionsAsync(posting.TenantId);
+        vm.EducationLevelCode = string.IsNullOrWhiteSpace(vm.EducationLevelCode) ? null : vm.EducationLevelCode.Trim();
+        if (vm.EducationLevelCode is not null
+            && !qualifications.Any(q => string.Equals(q.Code, vm.EducationLevelCode, StringComparison.OrdinalIgnoreCase)))
+            ModelState.AddModelError(nameof(vm.EducationLevelCode), "المؤهل العلمي غير صالح.");
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (vm.GraduationYear > today.Year)
+            ModelState.AddModelError(nameof(vm.GraduationYear), "سنة التخرج لا يمكن أن تكون في المستقبل.");
+        if (vm.BirthDate is DateOnly birthDate
+            && RecruitmentEligibilityRules.AgeOn(birthDate, today) is < CitizenApplicationApplyViewModel.MinApplicantAge
+                or > CitizenApplicationApplyViewModel.MaxApplicantAge)
+            ModelState.AddModelError(nameof(vm.BirthDate), "تاريخ الميلاد غير صالح.");
+
         if (!ModelState.IsValid)
         {
-            ViewBag.ApplyModel = vm;
-            ViewBag.IsLegacyPosting = posting.RequisitionId is null;
+            await PopulateDetailsAsync(posting, vm, intakeClosed: false);
             return View("Details", posting);
         }
 
@@ -127,6 +139,11 @@ public class PublicCareersController(
             Phone = vm.Phone,
             Email = vm.Email,
             CoverNote = vm.CoverNote,
+            EducationLevelCode = vm.EducationLevelCode?.ToUpperInvariant(),
+            Specialization = string.IsNullOrWhiteSpace(vm.Specialization) ? null : vm.Specialization.Trim(),
+            GraduationYear = vm.GraduationYear,
+            YearsOfExperience = vm.YearsOfExperience,
+            BirthDate = vm.BirthDate,
             ReferenceNumber = (await codeGenerator.GenerateAsync(CodeGenerationRequests.CitizenReference())).Code,
             Status = CitizenApplicationStatus.Received,
             SubmittedAt = DateTime.UtcNow
@@ -185,6 +202,16 @@ public class PublicCareersController(
 
     [HttpGet("privacy")]
     public IActionResult Privacy() => View();
+
+    /// <summary>Details view data: apply form, intake state and (HCM-030 D1/D2) qualifications and criteria labels.</summary>
+    private async Task PopulateDetailsAsync(PublicJobPosting posting, CitizenApplicationApplyViewModel applyModel, bool intakeClosed)
+    {
+        ViewBag.IntakeClosed = intakeClosed;
+        ViewBag.ApplyModel = applyModel;
+        ViewBag.IsLegacyPosting = posting.RequisitionId is null;
+        ViewBag.Qualifications = await unifiedIntake.GetQualificationOptionsAsync(posting.TenantId);
+        ViewBag.Criteria = posting.Requisition is null ? null : unifiedIntake.CriteriaFor(posting.Requisition);
+    }
 
     private IQueryable<PublicJobPosting> PublicPostings() =>
         db.PublicJobPostings

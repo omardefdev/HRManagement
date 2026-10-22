@@ -92,4 +92,21 @@ public class RecruitmentRequisition : AuditableEntity
     /// </summary>
     [Display(Name = "إلزامية اعتماد لجنة الاختيار")]
     public bool RequiresCommitteeApproval { get; set; }
+
+    // HCM-030 (D2): application criteria, checked at intake as eligibility flags (never an automatic rejection).
+    // Null = not checked. Editable while the requisition is editable (Draft).
+
+    /// <summary>Minimum MDM qualification code; compared through <c>Recruitment:Eligibility:QualificationRanks</c>.</summary>
+    [StringLength(20)]
+    [Display(Name = "أدنى مؤهل علمي")]
+    public string? MinQualificationCode { get; set; }
+
+    [Display(Name = "أدنى سنوات خبرة")]
+    public decimal? MinYearsOfExperience { get; set; }
+
+    [Display(Name = "الحد الأدنى للعمر")]
+    public int? MinAge { get; set; }
+
+    [Display(Name = "الحد الأعلى للعمر")]
+    public int? MaxAge { get; set; }
 }

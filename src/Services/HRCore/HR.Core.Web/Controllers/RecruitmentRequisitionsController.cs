@@ -36,7 +36,8 @@ public class RecruitmentRequisitionsController(
     RecruitmentAssessmentCriteriaService criteriaService,
     ReserveListService reserveList,
     RecruitmentSelectionService selection,
-    IOptions<RecruitmentOptions> recruitmentOptions) : Controller
+    IOptions<RecruitmentOptions> recruitmentOptions,
+    UnifiedIntakeService unifiedIntake) : Controller
 {
     [HttpGet("/api/recruitment/vacant-positions")]
     public async Task<IActionResult> VacantPositions(
@@ -188,6 +189,7 @@ public class RecruitmentRequisitionsController(
 
         if (vm.ApplicationClosingDate is DateOnly closing && closing < DateOnly.FromDateTime(DateTime.UtcNow))
             ModelState.AddModelError(nameof(vm.ApplicationClosingDate), "تاريخ إغلاق التقديم يجب ألا يكون في الماضي.");
+        await ValidateCriteriaAsync(vm);
 
         if (!ModelState.IsValid)
         {
@@ -211,7 +213,11 @@ public class RecruitmentRequisitionsController(
             VacancyCount = 1,
             PublishingChannel = vm.PublishingChannel,
             ApplicationClosingDate = vm.ApplicationClosingDate,
-            RequiresCommitteeApproval = vm.RequiresCommitteeApproval
+            RequiresCommitteeApproval = vm.RequiresCommitteeApproval,
+            MinQualificationCode = vm.MinQualificationCode,
+            MinYearsOfExperience = vm.MinYearsOfExperience,
+            MinAge = vm.MinAge,
+            MaxAge = vm.MaxAge
         };
 
         db.RecruitmentRequisitions.Add(requisition);
@@ -511,7 +517,11 @@ public class RecruitmentRequisitionsController(
             LegalSourceId = requisition.LegalSourceId,
             BudgetYear = requisition.FundedPosition?.BudgetYear ?? DateTime.UtcNow.Year,
             ApplicationClosingDate = requisition.ApplicationClosingDate,
-            RequiresCommitteeApproval = requisition.RequiresCommitteeApproval
+            RequiresCommitteeApproval = requisition.RequiresCommitteeApproval,
+            MinQualificationCode = requisition.MinQualificationCode,
+            MinYearsOfExperience = requisition.MinYearsOfExperience,
+            MinAge = requisition.MinAge,
+            MaxAge = requisition.MaxAge
         };
         await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
         await PopulateLegalSourcesAsync(vm.LegalSourceId);
@@ -568,6 +578,7 @@ public class RecruitmentRequisitionsController(
         if (vm.RequiresCommitteeApproval != requisition.RequiresCommitteeApproval
             && await selection.HasRankingStartedAsync(requisition.Id))
             ModelState.AddModelError(nameof(vm.RequiresCommitteeApproval), SelectionCommitteeRules.RequirementFrozenMessage);
+        await ValidateCriteriaAsync(vm);
 
         if (!ModelState.IsValid)
         {
@@ -582,6 +593,10 @@ public class RecruitmentRequisitionsController(
         requisition.LegalSourceId = vm.LegalSourceId;
         requisition.ApplicationClosingDate = vm.ApplicationClosingDate;
         requisition.RequiresCommitteeApproval = vm.RequiresCommitteeApproval;
+        requisition.MinQualificationCode = vm.MinQualificationCode;
+        requisition.MinYearsOfExperience = vm.MinYearsOfExperience;
+        requisition.MinAge = vm.MinAge;
+        requisition.MaxAge = vm.MaxAge;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث طلب الشاغر";
         return RedirectToAction(nameof(Details), new { id });
@@ -646,12 +661,34 @@ public class RecruitmentRequisitionsController(
 
     private async Task PopulateLegalSourcesAsync(string? selectedId = null)
     {
+        // HCM-030 (D2): qualification choices of the criteria panel (same form re-render paths).
+        ViewBag.Qualifications = await unifiedIntake.GetQualificationOptionsAsync(
+            db.CurrentTenantId ?? HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
         var sources = await legislationProvider.ListActiveAsync();
         ViewBag.LegalSources = new SelectList(
             sources.Select(s => new { s.LegalSourceId, s.DisplayLabel }),
             "LegalSourceId",
             "DisplayLabel",
             selectedId);
+    }
+
+    /// <summary>HCM-030 (D2): the minimum qualification is an active MDM code and the age range is ordered.</summary>
+    private async Task ValidateCriteriaAsync(RecruitmentRequisitionCreateViewModel vm)
+    {
+        vm.MinQualificationCode = string.IsNullOrWhiteSpace(vm.MinQualificationCode) ? null : vm.MinQualificationCode.Trim();
+        if (vm.MinQualificationCode is not null)
+        {
+            var options = await unifiedIntake.GetQualificationOptionsAsync(
+                db.CurrentTenantId ?? HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
+            var match = options.FirstOrDefault(q => string.Equals(q.Code, vm.MinQualificationCode, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+                ModelState.AddModelError(nameof(vm.MinQualificationCode), "المؤهل العلمي غير صالح.");
+            else
+                vm.MinQualificationCode = match.Code;
+        }
+
+        if (vm.MinAge is int min && vm.MaxAge is int max && min > max)
+            ModelState.AddModelError(nameof(vm.MaxAge), "الحد الأعلى للعمر يجب ألا يقل عن الحد الأدنى.");
     }
 
     private static string? NormalizeLegalSourceId(string? legalSourceId) =>

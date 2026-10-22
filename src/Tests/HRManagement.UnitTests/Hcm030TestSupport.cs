@@ -138,7 +138,7 @@ internal static class Hcm030TestSupport
             db,
             codeGen.Object,
             new RecruitmentApplicationIntakeService(db),
-            new UnifiedIntakeService(db),
+            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
             new CandidatePublicStatusService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))), new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
@@ -149,7 +149,7 @@ internal static class Hcm030TestSupport
             .Build();
         var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim("employee_id", employeeId.ToString())], "test"));
         return WithContext(new EssTalentController(
-            db, new RecruitmentApplicationIntakeService(db), config, new UnifiedIntakeService(db), CreatePublicStatus(db)), user);
+            db, new RecruitmentApplicationIntakeService(db), config, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), CreatePublicStatus(db)), user);
     }
 
     public static PublicJobPostingsController CreatePublicJobPostingsController(HRCoreDbContext db) =>
