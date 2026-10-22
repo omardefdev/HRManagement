@@ -3,7 +3,14 @@
 **Scope:** HCM-001 ↔ FUN-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-12, G-13, G-22، وجزء من G-18 (وثيقة العرض)  
 **Status:** Proposed  
 **Priority:** P1  
-**Depends on:** PLAN-27 (شروط عرض متسقة)، PLAN-25 المرحلة 0  
+**Depends on:** PLAN-27 (شروط عرض متسقة)، PLAN-28. PLAN-25 مؤجلة  
+**تعديلات قبل التنفيذ (2026-10-22):**
+- **التنقل الداخلي — تحقّقنا:** `RecruitmentHireClosureService` ينشر `ICandidateAccepted` دون شرط حتى للتنقل الداخلي (`:365`)، فتنشأ معاملة `Appointment` لموظف قائم. الإصلاح عند المصدر وفي العقود معاً.
+- **الرواتب:** معالج `HandleContractActivatedHandler` في Payroll يحسب `BaseSalary = request.BaseSalary ?? grade?.BaseSalary ?? 0`، ولأن العقود ترسل `null` يُنشأ اليوم ملف أجر براتب 0. تعبئة الحقلين تكفي لإصلاحه.
+- **خطاب العرض وقرار التعيين:** خطاب العرض PDF يُولَّد عند الطلب (كما في محضر اللجنة وكشف الراتب)، مع بصمة SHA-256 لمحتواه تُحفظ عند الإصدار. الأرشفة عبر File.Storage مؤجلة. قرار التعيين يُنشأ كـ `AdministrativeDecision` من المعالج.
+- **ربط نوع العقد بنظام الخدمة:** يُدار بجدول قابل للإعداد مع شاشة إدارة، ولا تُبذر أنواع عقود قانونية جديدة في الإنتاج.
+- **عدم المباشرة:** يُنفَّذ الرصد والتنبيه فقط. إلغاء التعيين والاستدعاء من الاحتياط مؤجلان.
+- **التفاصيل:** في `execution/PLAN-29-AGENT-PROMPT-SESSION-1.md` و`-SESSION-2.md`.  
 **Decisions:** D-6 (قرار التعيين والفحص الطبي)  
 **Services touched:** HR.Core، HR.Contracts، Payroll، (HR.Health اختياري)، File.Storage
 
