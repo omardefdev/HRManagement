@@ -1,0 +1,15 @@
+{
+  "step": "29a-h-29d-activate-a-contracts-checker",
+  "method": "POST",
+  "url": "/ui/hr-contracts/Contracts/Activate/aaa8b449-b15d-4d33-ab8a-8e1d9ce1e699",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T17:31:59.8745805Z",
+  "body": {
+    "fields": [
+      "id=aaa8b449-b15d-4d33-ab8a-8e1d9ce1e699"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-contracts/Contracts/Details/aaa8b449-b15d-4d33-ab8a-8e1d9ce1e699",
+    "final": "/ui/hr-contracts/Contracts/Details/aaa8b449-b15d-4d33-ab8a-8e1d9ce1e699"
+  }
+}

@@ -66,7 +66,15 @@ services:
     container_name: !reset null
     ports: !override
       - "6220:8080"
-    environment: *acceptance-service
+    environment:
+      <<: *acceptance-service
+      # PLAN-29: hire transactions need HR.Core code generation (SRV-/DEC- numbers) and the employee lookup (S2S).
+      # Without these the CandidateAccepted consumer faulted in acceptance ("BaseAddress must be set").
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-hr-contracts
+      # Same lab-only value sync-keycloak-dev-realm.ps1 sets on every service client (not .env SVC_* values).
+      ServiceIdentity__ClientSecret: dev-svc-secret-local-only
+      ServiceIdentity__Scope: file-storage.references hr-core.lookup hr-core.workflow
     volumes: *acceptance-dp-volumes
 
   hr-health-web:

@@ -516,7 +516,8 @@ Ensure-ClientScope -Name "evidence.ingest" -Description "Gateway evidence ingest
 
 Write-Host "Service clients:"
 Ensure-ServiceClient -ClientId "svc-hr-core" -OptionalScopes @("file-storage.references", "payroll.grades.read")
-Ensure-ServiceClient -ClientId "svc-hr-contracts" -OptionalScopes @("file-storage.references")
+# PLAN-29: hire transactions use HR.Core code generation (hr-core.workflow) and the employee lookup.
+Ensure-ServiceClient -ClientId "svc-hr-contracts" -OptionalScopes @("file-storage.references", "hr-core.lookup", "hr-core.workflow")
 Ensure-ServiceClient -ClientId "svc-hr-health" -OptionalScopes @()
 Ensure-ServiceClient -ClientId "svc-hr-movements" -OptionalScopes @("hr-core.lookup")
 Ensure-ServiceClient -ClientId "svc-hr-training" -OptionalScopes @("file-storage.references")

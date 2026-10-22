@@ -1,0 +1,15 @@
+{
+  "step": "29e-29e-submit-offer-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/SubmitOffer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T17:31:40.3494301Z",
+  "body": {
+    "fields": [
+      "id=fab009c7-200f-4dd0-bbe4-964586995a21"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/fab009c7-200f-4dd0-bbe4-964586995a21",
+    "final": "/ui/hr-core/OfferLetters/Details/fab009c7-200f-4dd0-bbe4-964586995a21"
+  }
+}

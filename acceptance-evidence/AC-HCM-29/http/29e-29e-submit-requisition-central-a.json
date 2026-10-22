@@ -1,0 +1,13 @@
+{
+  "step": "29e-29e-submit-requisition-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/9681d237-e873-405b-9989-ceb79b3d8e8b",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T17:31:38.3831181Z",
+  "body": {
+    "fields": [],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/9681d237-e873-405b-9989-ceb79b3d8e8b",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/9681d237-e873-405b-9989-ceb79b3d8e8b"
+  }
+}

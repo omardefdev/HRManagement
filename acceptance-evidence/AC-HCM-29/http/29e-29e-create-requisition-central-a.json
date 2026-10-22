@@ -1,0 +1,21 @@
+{
+  "step": "29e-29e-create-requisition-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T17:31:37.9853684Z",
+  "body": {
+    "fields": [
+      "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
+      "FundedPositionId=3446f2fa-142a-7b40-9df8-46de0405ee89",
+      "JobTitle=\u0648\u0638\u064A\u0641\u0629 AC-HCM-29",
+      "JustificationNotes=PLAN-29 acceptance",
+      "LegalSourceId=SYR-LAW-50-2004",
+      "BudgetYear=2026",
+      "PublishingChannel=PublicOnly"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/9681d237-e873-405b-9989-ceb79b3d8e8b",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/9681d237-e873-405b-9989-ceb79b3d8e8b"
+  }
+}

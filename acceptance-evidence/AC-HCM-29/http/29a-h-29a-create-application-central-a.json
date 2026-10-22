@@ -1,0 +1,17 @@
+{
+  "step": "29a-h-29a-create-application-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-22T17:31:53.4950510Z",
+  "body": {
+    "fields": [
+      "ApplicantFullName=AC29 \u0631\u062A\u0628\u06292 efdefd7bd1cd4",
+      "RequisitionId=68674a93-13dd-4152-9379-4fdad4830df6",
+      "Notes=AC-HCM-29"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications",
+    "final": "/ui/hr-core/RecruitmentApplications"
+  }
+}

@@ -2,7 +2,9 @@
 @using HRManagement.ServiceDefaults
 @{
     ViewData["Title"] = "معالج التعيين - الخطوة 2";
-    var canExecute = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrContracts);
+    // Mirrors HrContractsHireExecute (admin, hr-contracts, hr-core).
+    var canExecute = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrContracts)
+                     || User.IsInRole(HrManagementRoles.HrCore);
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
