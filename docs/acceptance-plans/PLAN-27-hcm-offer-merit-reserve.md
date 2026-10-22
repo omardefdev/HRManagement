@@ -1,9 +1,9 @@
 # PLAN-27 — سلامة خطاب العرض ومبدأ الجدارة وقائمة الاحتياط (PLAN-HCM-E)
 
 **Scope:** HCM-001/HCM-004 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-06, G-07، وجزء من G-20 (انتهاء العروض)  
-**Status:** Proposed  
+**Status:** Implemented (acceptance evidence pending)  
 **Priority:** P1  
-**Depends on:** PLAN-25 (ربط الاعتماد)، PLAN-26 (الترتيب المبني على درجات محسوبة)  
+**Depends on:** PLAN-26 (الترتيب المبني على درجات محسوبة). PLAN-25 مؤجلة (لا خادم بعد)؛ لذلك الخطوة الثالثة لمسار الاستثناء تُسند إلى `hr-management-approver` بمعتمد مختلف بدل `compliance` إلى حين تنفيذ PLAN-25  
 **Decisions:** D-3 (تجاوز الجدارة)، D-7 (صلاحية الاحتياط) — انظر الدراسة §5
 
 ## Goal
@@ -39,7 +39,7 @@
 | استثناء الجدارة: `MeritOverrideReason` إلزامي (≥ 30 حرفاً) + `IsMeritOverride=true` | يُضاف خطوة اعتماد (انظر أدناه) |
 | لا عرض نشط آخر على الطلب نفسه لعدد يتجاوز `VacancyCount` | «يوجد عرض نشط على هذا الشاغر» |
 
-**مسار الاستثناء:** إن كان `IsMeritOverride=true` فمسار العرض يصبح `RECRUITMENT-OFFER-OVERRIDE-APPROVAL` (3 خطوات: hr-core ← hr-management-approver ← compliance). يُبذر في `WorkflowPackSeeder` + قاعدة `R-OFF-OVERRIDE`.
+**مسار الاستثناء:** إن كان `IsMeritOverride=true` فمسار العرض يصبح `RECRUITMENT-OFFER-OVERRIDE-APPROVAL` (3 خطوات: hr-core ← hr-management-approver ← hr-management-approver بمعتمد مختلف؛ تنتقل الخطوة الثالثة إلى compliance بعد PLAN-25). يُبذر في `WorkflowPackSeeder` + قاعدة `R-OFF-OVERRIDE`.
 
 **الواجهة:**
 
@@ -140,6 +140,27 @@ $env:RUN_ACCEPTANCE = "true"; dotnet test src/Tests/HRManagement.AcceptanceTests
 | Migration | `HCM027_OfferOutcome`، بذرة `RECRUITMENT-OFFER-OVERRIDE-APPROVAL` + `R-OFF-OVERRIDE` |
 | Tests | `Hcm027OfferEligibilityTests`، `Hcm027OfferOutcomeTests`، `Hcm027ReserveListTests`، `AcHcm27OfferMeritTests` |
 | Docs | `HCM_001_RECRUITMENT.md` (آلة الحالات المحدثة)، `HIRE_ONBOARDING_GUIDE.md` |
+
+## Implementation notes / deviations
+
+التنفيذ على الفرع `feature/plan-27-offer-merit-reserve` في جلستين. دليل التشغيل: [PLAN-27-EXECUTION](execution/PLAN-27-EXECUTION.md).
+
+**الجلسة 1 (A–D):** قواعد الأهلية وترتيب الجدارة (`OfferEligibilityRules`)، مسار الاستثناء `RECRUITMENT-OFFER-OVERRIDE-APPROVAL` مع منع تكرار المعتمد، الرفض/الإلغاء/الانتهاء والحالتان `OfferDeclined`/`ReserveListed`، مهمة `RecruitmentOfferExpiryJob`. الترحيل `HCM027_OfferOutcome`.
+
+**الجلسة 2 (E–H):** اتساق شروط العرض مع Payroll، قائمة الاحتياط، الاختبارات، التوثيق. الترحيلان `HCM027_OfferTerms` و`HCM027_ReserveList`.
+
+| # | الانحراف أو القرار | السبب |
+|---|--------------------|-------|
+| 1 | الخطوة 3 من مسار الاستثناء تُسند إلى `hr-management-approver` بمعتمد **مختلف** (شخصية جديدة `a-management-approver-2`) بدل `compliance` | PLAN-25 مؤجلة؛ علامة `// PLAN-25: move step 3 to compliance` في `WorkflowPackSeeder` |
+| 2 | **تعميم مُطلِق الاستثناء:** `IsExceptionOffer = IsMeritOverride ∨ اختلاف الدرجة ∨ راتب غير متحقق`؛ حقيقة سياسة جديدة `isExceptionOffer` وقاعدة `R-OFF-EXCEPTION` (أولوية 8) بدل تعديل `R-OFF-OVERRIDE` | قواعد البذور تُضاف «إن لم توجد» فقط؛ قاعدة جديدة تصل إلى قواعد البيانات المبذورة في الجلسة 1 دون إعادة كتابة صفوف |
+| 3 | واجهة Payroll: `GET api/internal/pay-grades/{gradeCode}?asOf=` بسياسة `Service.PayrollGradeLookup` (نطاق `payroll.grades.read`، العميل `svc-hr-core`) بدل `api/payroll/lookup/grades` | اتباع نمط `DsarInternalController` للنقاط الداخلية بين الخدمات (مستثناة من إثبات البوابة ومحمية بنطاق) |
+| 4 | البديل عند غياب Payroll: `UnavailablePayrollGradeLookup` + «مبرر الراتب» وعلامة `SalaryUnverified` (عرض استثنائي) بدل محوّل ملف | تعليمات الجلسة 2؛ لا يوجد مصدر ملفي موثوق لسلّم الرواتب |
+| 5 | المستأجر في الاستدعاء S2S عبر `X-Tenant-ID` (`ForwardTenantHandler`) ومرشحات المستأجر في Payroll — دون أي تجاوز؛ المهمة الخلفية تضبط مستأجر العرض (`TenantIdFlow`) قبل المسودة الآلية | مطابقة `DsarInternalController` |
+| 6 | `ExpiryDate` يُحسب عند الإصدار من `ValidityDays` (3..60، افتراضي 14) لا من تاريخ حر في النموذج | الجلسة 1، وفق §2 من الخطة |
+| 7 | `PromoteAsync` غير منفّذ كعملية مستقلة: الترقية من الاحتياط = إنشاء عرض عادي (`ReserveListed` قابل للعرض بالجدارة)؛ اقتراح المرشح التالي لافتة + خيار `AutoDraftNextOffer` | أبسط ويعيد استخدام التحققات نفسها |
+| 8 | الإلغاء بخطأ إداري لا يُنشئ مسودة آلية للمرشح التالي (المرشح نفسه يعود «مُرتَّب») | المسودة الآلية فقط عندما يصبح الطلب `OfferDeclined`/`Rejected` |
+| 9 | عند التعيين يبقى المنافسون «قائمة احتياط» سابقاً بتاريخهم؛ إغلاق الطلب يدوياً (`CloseAsync`) ما زال يرفض الاحتياط | الاستدعاء من الاحتياط عند عدم المباشرة ← PLAN-29 |
+| 10 | اختبارات القبول تضبط الترتيب بشرط مسبق SQL موثّق (المسار الكامل للترتيب مغطّى في AC-HCM-26) | تقليل الاعتماد على بذور قابلة للتغيّر |
 
 ## Effort estimate
 

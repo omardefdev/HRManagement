@@ -81,6 +81,11 @@ OfferLetter
 ├── ProposedStartDate (DateTime)
 ├── LegalSourceId (string?)
 ├── IsConvertedToEmployee (bool) — idempotent conversion flag
+├── IsMeritOverride / MeritOverrideReason — PLAN-27 merit exception
+├── ValidityDays (int) — PLAN-27; ExpiryDate = IssuedDate + ValidityDays (end of UTC day)
+├── DeclineReason / DeclinedAt / DeclinedBy, RevokeReason / RevokedAt, ExpiredAt — PLAN-27 outcomes
+├── GradeDeviationReason, SalaryUnverified, SalaryJustification — PLAN-27 exception terms
+├── GradeMinSalary / GradeMaxSalary / SalaryCheckedAt — PLAN-27 Payroll bounds snapshot
 ├── CreatedAt / UpdatedAt
 ```
 
@@ -166,6 +171,94 @@ execution: [PLAN-26-EXECUTION](acceptance-plans/execution/PLAN-26-EXECUTION.md).
   `8675312`) unpublishes expired postings, closes vacancies and sets `IntakeClosedAt`; the requisition stays `Published`
   so selection continues. Intake (HR, `/careers`, ESS) is rejected after the date or once intake is closed.
 
+## PLAN-27 — Offer integrity, merit principle and reserve list (HCM-E)
+
+Addresses gaps **G-06** (offer outcomes) and **G-07** (merit order), plus the offer-expiry part of **G-20**, and decision
+**D-7** (reserve validity). Plan: [PLAN-27](acceptance-plans/PLAN-27-hcm-offer-merit-reserve.md); execution:
+[PLAN-27-EXECUTION](acceptance-plans/execution/PLAN-27-EXECUTION.md).
+
+### Application state machine (selection part)
+
+```
+Assessed ──rank──► Ranked ──offer draft──► OfferExtended ──accept──► OfferAccepted ──hire──► Hired
+                     │  ▲                      │
+                     │  └──revoke (admin error)┤
+                     │                         ├──decline / expiry──► OfferDeclined (terminal)
+                     │                         └──revoke──────────────► Rejected
+                     └──sibling hired──► ReserveListed ──offer draft──► OfferExtended
+                                              └──ReserveUntil passed / cancel / close──► Rejected
+```
+
+- New statuses (stored as int, appended): `OfferDeclined = 11` «عرض مرفوض/منتهٍ», `ReserveListed = 12` «قائمة احتياط».
+  Both are **system-only** targets (never offered as manual transitions).
+- Terminal statuses: `Hired`, `Rejected`, `Withdrawn`, `OfferDeclined` (`SelectionWorkflowRules.TerminalStatuses`).
+
+### Offer state machine
+
+```
+Draft ──submit──► PendingApproval ──approved──► Issued ──accept──► Accepted (→ hire converts it)
+  │                    │                          ├──decline──► Declined
+  └──revoke──┬─────────┘                          ├──ExpiryDate passed (job)──► Expired
+             ▼                                    └──revoke──► Revoked
+          Revoked (running approval workflow cancelled)
+```
+
+`ExpiryDate` is set when the offer is **issued** (`IssuedDate + ValidityDays`, `Recruitment:OfferValidityDays` = 14,
+accepted range 3..60). An expired Issued offer cannot be accepted.
+
+### Merit rule
+
+- Only `Ranked` or `ReserveListed` applications can receive an offer; no pending appeal; one offer occupying the requisition
+  at a time (Draft / PendingApproval / Issued / Accepted-not-converted).
+- **Best available rank** = lowest `Rank` among the requisition's `Ranked`/`ReserveListed` applications without a pending
+  appeal. Offering to anyone else is a **merit override**: `IsMeritOverride` + `MeritOverrideReason` (≥ 30 chars).
+
+### Exception offers
+
+`OfferLetter.IsExceptionOffer` = merit override **or** grade deviation **or** unverified salary. Exception offers use
+`RECRUITMENT-OFFER-OVERRIDE-APPROVAL` (3 steps: «مراجعة HR» hr-core → «اعتماد إداري» hr-management-approver →
+«اعتماد استثناء الجدارة» hr-management-approver) with **distinct approvers**: an actor who approved an earlier step of the
+instance is refused. Selection: policy rules `R-OFF-EXCEPTION` (priority 8, `isExceptionOffer`), `R-OFF-OVERRIDE`
+(9, `isMeritOverride`), `R-OFF-ISSUE` (10); the static fallback and the lab path mirror them.
+Step 3 moves to `compliance` once PLAN-25 is implemented.
+
+### Offer terms (grade, salary, dates)
+
+- `GradeCode` is pre-filled from the funded position; a different grade needs `GradeDeviationReason` (≥ 10 chars).
+- Salary bounds come from Payroll through the S2S read `GET api/internal/pay-grades/{gradeCode}?asOf=` (policy
+  `Service.PayrollGradeLookup`, scope `payroll.grades.read`, client `svc-hr-core`; tenant via `X-Tenant-ID`), using the
+  **active salary scale effective at the proposed start date**:
+  - found and within `[Min, Max]` → OK; bounds and check time are stored on the offer;
+  - found and outside → «الراتب المعروض خارج حدود الدرجة {grade}: {min}–{max}.»;
+  - not found → «الدرجة {grade} غير معرّفة في سلّم الرواتب الساري.»;
+  - Payroll unavailable (not configured, timeout 5 s, transport error, non-404 failure) → allowed only with
+    `SalaryJustification` (≥ 20 chars); the offer is flagged `SalaryUnverified` (exception offer).
+- `ProposedStartDate` between today (UTC) and today + `Recruitment:MaxStartDays` (90).
+
+### Decline, revoke and expiry
+
+| Operation | Offer | Application |
+|-----------|-------|-------------|
+| Decline (HR on the candidate's behalf; `Candidate` reserved for PLAN-30), reason ≥ 5 | `Declined` | `OfferDeclined` |
+| Revoke, reason ≥ 10, administrative error | `Revoked` (workflow cancelled) | back to `Ranked` |
+| Revoke, other reason | `Revoked` | `Rejected` |
+| `RecruitmentOfferExpiryJob` (hourly, lock 8675313) | `Expired` | `OfferDeclined` «انتهاء صلاحية العرض» |
+
+After a decline/expiry/revoke on a still `Published` requisition, `RecruitmentRequisitions/Details` and
+`OfferLetters/Details` suggest «المرشح التالي بالجدارة: {name} (رتبة n) — إنشاء عرض». With
+`Recruitment:AutoDraftNextOffer=true` the next offer is drafted automatically (same grade/salary/validity and the same
+eligibility and terms checks; from the expiry job it runs in the expired offer's tenant).
+
+### Reserve list (D-7)
+
+- On hire (`RejectSiblingApplicationsOnHire=true`), `Ranked` siblings become `ReserveListed` with
+  `ReserveUntil = today + Recruitment:ReserveValidityMonths` (6) and `ReserveListedAt`; other open siblings are `Rejected`;
+  siblings already on the reserve list keep their date. With the option `false` nothing changes.
+- `RecruitmentReserveExpiryJob` (daily, `Recruitment:Jobs:ReserveExpiryEnabled` / `ReserveExpiryIntervalMinutes` = 1440,
+  lock 8675314) rejects `ReserveListed` applications whose `ReserveUntil` has passed («انتهاء صلاحية قائمة الاحتياط»).
+- Reserve status and «حتى {date}» are shown on application details, the application list and the rank board.
+- Recall from the reserve on non-commencement is PLAN-29.
+
 ## Acceptance Criteria Mapping
 
 - [x] No announcement without funded position — `PositionId` required on requisition
@@ -183,6 +276,11 @@ execution: [PLAN-26-EXECUTION](acceptance-plans/execution/PLAN-26-EXECUTION.md).
 - [x] PLAN-26 G-08 — interview lifecycle (schedule/reschedule/cancel/complete, panel, interview gate)
 - [x] PLAN-26 G-11 — one blocking requisition per position (service + DB index); cancel/close/freeze cascades
 - [x] PLAN-26 G-20 (part) — application closing date, extension, automatic intake close
+- [x] PLAN-27 G-07 — offers only to ranked candidates in merit order; documented exceptions approved by three distinct approvers
+- [x] PLAN-27 G-06 — decline/revoke/expiry settle the application; automatic offer expiry; next candidate by merit suggested
+- [x] PLAN-27 G-20 (part) — offer validity and expiry job
+- [x] PLAN-27 offer terms — grade from the funded position, salary within the Payroll grade bounds (or an unverified exception)
+- [x] PLAN-27 D-7 — ranked siblings kept on a reserve list that expires automatically
 
 ## Plan map (HCM-001)
 
@@ -196,6 +294,7 @@ execution: [PLAN-26-EXECUTION](acceptance-plans/execution/PLAN-26-EXECUTION.md).
 | 6 | Privacy + committee + appeal + candidate UX + portal security |
 | 7 | Internal channel (TalentMarketplace, EssTalent, PromoteFromInternal) |
 | PLAN-26 | Assessment criteria, structured scoring, interview lifecycle, requisition integrity, intake window (G-03, G-08, G-11 addressed; G-20 partly) |
+| PLAN-27 | Merit order, exception offers, offer terms (Payroll grade lookup), decline/revoke/expiry, reserve list (G-06, G-07 addressed; G-20 partly; D-7) |
 
 ## Artifacts
 
@@ -215,9 +314,14 @@ execution: [PLAN-26-EXECUTION](acceptance-plans/execution/PLAN-26-EXECUTION.md).
 | `scripts/hcm026-validate.ps1` | Validates PLAN-26 artifacts, migrations and `Hcm026` tests |
 | `scripts/hcm026-find-duplicate-requisitions.ps1` | Read-only duplicate check before `HCM026_RequisitionIntegrity` |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm26AssessmentInterviewTests.cs` | AC-HCM-26a..i acceptance |
+| `scripts/hcm027-validate.ps1` | Validates PLAN-27 artifacts, migrations and `Hcm027` tests |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/ReserveListService.cs` | Reserve list, next candidate |
+| `src/Services/Payroll/Payroll.Web/Controllers/PayGradeLookupInternalController.cs` | Payroll grade bounds (S2S) |
+| `src/Tests/HRManagement.AcceptanceTests/AcHcm27OfferMeritTests.cs` | AC-HCM-27a..h acceptance |
 
 ## Validation
 
 - `scripts/hcm001-validate.ps1`
 - `Hcm001RecruitmentTests`
 - `scripts/hcm026-validate.ps1` — `Hcm026*` unit tests + `Hcm021|Hcm022` regression
+- `scripts/hcm027-validate.ps1` — `Hcm027*` unit tests + `Hcm026|Hcm022` regression

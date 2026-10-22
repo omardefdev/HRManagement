@@ -7,7 +7,7 @@ Secrets are never stored in this file — only environment variable names.
 
 | Workload | ClientId | Env secret | Intended scopes |
 |----------|----------|------------|-----------------|
-| HR.Core | `svc-hr-core` | `ServiceIdentity__ClientSecret` (hr-core) | `file-storage.references` |
+| HR.Core | `svc-hr-core` | `ServiceIdentity__ClientSecret` (hr-core) | `file-storage.references`, `payroll.grades.read` |
 | HR.Contracts | `svc-hr-contracts` | (hr-contracts) | `file-storage.references` |
 | HR.Health | `svc-hr-health` | (hr-health) | — |
 | HR.Movements | `svc-hr-movements` | (hr-movements) | `hr-core.lookup` |
@@ -32,6 +32,7 @@ Gateway remains the only interactive OIDC client. Service clients use `client_cr
 | Auth.Directory internal sync | `api-auth-directory` | `svc-it-infra`, `svc-hr-core` |
 | HR.Core lookup | `api-hr-core` | `svc-payroll`, `svc-hr-movements`, `svc-admin-logistics`, interactive users via gateway |
 | File.Storage references | `api-file-storage` | `svc-hr-core`, `svc-hr-contracts`, `svc-hr-training`, `svc-idcard`, `svc-records-archive` |
+| Payroll pay grades (HCM-027) | `api-payroll` | `svc-hr-core` |
 
 Configure on each resource server:
 
@@ -51,6 +52,20 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
 | `hr-core.lookup` | `/api/lookup/**` (S2S) | `HrCore.Lookup` / `Service.HrCoreLookup` |
 | `hr-core.workflow` | `POST /api/workflow-instances` (S2S) | `HrCoreWrite` / service scope |
 | `file-storage.references` | `POST/DELETE /api/files/{id}/references` | `Service.FileStorageReferences` |
+| `payroll.grades.read` | `GET /api/internal/pay-grades/{gradeCode}?asOf=yyyy-MM-dd` (Payroll) | `Service.PayrollGradeLookup` — service account + scope + client `svc-hr-core` only |
+
+### `payroll.grades.read` (HCM-027)
+
+- **Purpose:** HR.Core validates an offer's salary against the grade bounds of the Payroll salary scale active at the proposed
+  start date (`PayGradeLookupInternalController`).
+- **Tenant:** HR.Core's `ForwardTenantHandler` sends the request tenant in `X-Tenant-ID`; Payroll's `TenantIdMiddleware`
+  and EF tenant query filters (plus RLS) scope the read — no tenant bypass. Background callers set the record's tenant
+  (`TenantIdFlow`) before calling.
+- **Keycloak:** client scope `payroll.grades.read` with audience `api-payroll`, optional scope of `svc-hr-core`
+  (`scripts/sync-keycloak-dev-realm.ps1`). HR.Core must request it: `ServiceIdentity__Scope=file-storage.references payroll.grades.read`.
+- **Configuration:** `Integration__PayrollBaseUrl` on HR.Core (dev/acceptance compose only). When empty, HR.Core registers
+  `UnavailablePayrollGradeLookup` and offers need a salary justification (unverified exception offers).
+- **Failure mode:** 5 s timeout; any transport error or non-404 failure is treated as *unavailable*, never as *not found*.
 
 ## PostgreSQL roles (per database)
 
