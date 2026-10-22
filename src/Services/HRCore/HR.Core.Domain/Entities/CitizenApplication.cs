@@ -61,6 +61,11 @@ public class CitizenApplication : AuditableEntity
     [Display(Name = "تاريخ التقديم")]
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// HCM-030: authoritative only for legacy rows (no requisition, or not yet linked). Once
+    /// <see cref="PromotedRecruitmentApplicationId"/> is set the status lives on the recruitment application and this
+    /// column is no longer written.
+    /// </summary>
     [Display(Name = "الحالة")]
     public CitizenApplicationStatus Status { get; set; } = CitizenApplicationStatus.Received;
 

@@ -67,7 +67,8 @@ public class PublicCareersApplyTests
             db,
             codeGen,
             new RecruitmentApplicationIntakeService(db),
-            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())))
+            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new UnifiedIntakeService(db))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

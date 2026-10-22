@@ -22,7 +22,8 @@ public class PublicCareersController(
     HRCoreDbContext db,
     ICodeGenerator codeGenerator,
     RecruitmentApplicationIntakeService intake,
-    RecruitmentInterviewService interviewService) : Controller
+    RecruitmentInterviewService interviewService,
+    UnifiedIntakeService unifiedIntake) : Controller
 {
     [HttpGet("")]
     [HttpGet("index")]
@@ -96,8 +97,12 @@ public class PublicCareersController(
                 return RedirectToAction(nameof(Index));
             }
 
+            // HCM-030 (A2): also refuse when the person already has an open application on the requisition through
+            // another channel (HR-entered or internal).
             if (await intake.HasDuplicateCitizenApplicationAsync(
-                    vm.NationalId, requisitionId, nationalIdHash, forPublicPortal: true))
+                    vm.NationalId, requisitionId, nationalIdHash, forPublicPortal: true)
+                || await unifiedIntake.HasOpenApplicationAsync(
+                    requisitionId, vm.NationalId, nationalIdHash, forPublicPortal: true))
             {
                 TempData["Error"] = "تم تقديم طلب سابق لنفس الوظيفة بهذا الرقم الوطني.";
                 return RedirectToAction(nameof(Details), new { id = posting.Id });
@@ -127,6 +132,11 @@ public class PublicCareersController(
             SubmittedAt = DateTime.UtcNow
         };
         db.CitizenApplications.Add(model);
+
+        // HCM-030 (A2): a requisition-linked application enters the recruitment path at Submitted in the same save.
+        // Legacy postings (no requisition) keep the citizen row only.
+        if (posting.Requisition is not null)
+            unifiedIntake.CreateFromCitizen(model, posting.Requisition);
         await db.SaveChangesAsync();
 
         TempData["Reference"] = model.ReferenceNumber;

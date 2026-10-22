@@ -358,7 +358,9 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PromotedRecruitmentApplicationId");
+                    b.HasIndex("PromotedRecruitmentApplicationId")
+                        .IsUnique()
+                        .HasFilter("\"PromotedRecruitmentApplicationId\" IS NOT NULL");
 
                     b.HasIndex("PublicJobPostingId");
 
@@ -1824,7 +1826,9 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.HasIndex("PromotedRecruitmentApplicationId");
+                    b.HasIndex("PromotedRecruitmentApplicationId")
+                        .IsUnique()
+                        .HasFilter("\"PromotedRecruitmentApplicationId\" IS NOT NULL");
 
                     b.HasIndex("RequisitionId");
 
@@ -3229,6 +3233,11 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("HiredEmployeeId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("IntakeChannel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<bool>("IsLegacyUnlinked")
                         .HasColumnType("boolean");
 
@@ -3324,6 +3333,57 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasFilter("\"Rank\" IS NOT NULL AND \"RequisitionId\" IS NOT NULL");
 
                     b.ToTable("RecruitmentApplications");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentApplicationEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("FromStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NotificationsPlannedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RelatedEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ToStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("IX_RecruitmentApplicationEvents_NotificationsPending")
+                        .HasFilter("\"NotificationsPlannedAt\" IS NULL");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("TenantId", "RecruitmentApplicationId", "OccurredAt");
+
+                    b.ToTable("RecruitmentApplicationEvents");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentAssessmentCriteria", b =>
@@ -6467,6 +6527,15 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("Requisition");
 
                     b.Navigation("SourceInternalApplication");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentApplicationEvent", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", null)
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentAssessmentCriteria", b =>

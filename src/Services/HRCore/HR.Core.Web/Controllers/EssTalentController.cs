@@ -17,7 +17,8 @@ namespace HR.Core.Web.Controllers;
 public class EssTalentController(
     HRCoreDbContext db,
     RecruitmentApplicationIntakeService intake,
-    IConfiguration configuration) : Controller
+    IConfiguration configuration,
+    UnifiedIntakeService unifiedIntake) : Controller
 {
     [HttpGet("")]
     [HttpGet("Index")]
@@ -94,22 +95,28 @@ public class EssTalentController(
             return RedirectToAction(nameof(Index));
         }
 
-        if (await intake.HasDuplicateInternalApplicationAsync(employeeId.Value, requisitionId))
+        // HCM-030 (A2): also refuse when the employee already has an open application on the requisition through
+        // another channel (public or HR-entered).
+        if (await intake.HasDuplicateInternalApplicationAsync(employeeId.Value, requisitionId)
+            || await unifiedIntake.HasOpenApplicationAsync(requisitionId, employee.NationalId, employee.NationalIdHash))
         {
             TempData["Error"] = "سبق أن ترشّحت لهذا الشاغر.";
             return RedirectToAction(nameof(MyApplications));
         }
 
-        db.InternalApplications.Add(new InternalApplication
+        var internalApp = new InternalApplication
         {
+            TenantId = employee.TenantId,
             InternalVacancyId = vacancyId,
             EmployeeId = employeeId.Value,
             RequisitionId = requisitionId,
             Motivation = motivation,
             Status = InternalApplicationStatus.Submitted,
             AppliedAt = DateTime.UtcNow
-        });
-        await db.SaveChangesAsync();
+        };
+
+        // HCM-030 (A2): the application enters the recruitment path at Submitted in the same transaction.
+        await unifiedIntake.SubmitInternalAsync(internalApp, employee, vacancy.Requisition!);
         TempData["Success"] = "تم تقديم ترشّحك بنجاح";
         return RedirectToAction(nameof(MyApplications));
     }

@@ -1,6 +1,7 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Web.ViewModels;
 using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -108,6 +109,7 @@ public class TalentMarketplaceController(
             .Include(v => v.OrgUnit)
             .Include(v => v.Requisition)
             .Include(v => v.Applications).ThenInclude(a => a.Employee)
+            .Include(v => v.Applications).ThenInclude(a => a.PromotedRecruitmentApplication)
             .AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id);
         if (vacancy is null) return NotFound();
@@ -120,6 +122,13 @@ public class TalentMarketplaceController(
     {
         var application = await db.InternalApplications.FindAsync(id);
         if (application is null) return NotFound();
+
+        // HCM-030 (A4): a requisition-linked application is screened on its recruitment application only.
+        if (application.RequisitionId.HasValue)
+        {
+            TempData["Error"] = UnifiedIntakeService.ManagedByUnifiedPathMessage;
+            return RedirectToAction(nameof(Details), new { id = vacancyId });
+        }
         application.Status = status;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث حالة الترشّح";

@@ -75,7 +75,10 @@
             {
                 var canHire = RecruitmentWorkflowRules.CanHire(application, legacyHire);
                 <tr>
-                    <td>@application.ApplicantFullName</td>
+                    <td>
+                        @application.ApplicantFullName
+                        <span class="badge bg-light text-dark border ms-1">@Html.HrEnumDisplay(application.IntakeChannel)</span>
+                    </td>
                     <td>
                         @if (application.RequisitionId is null)
                         {

@@ -16,6 +16,11 @@ public class InternalApplication : AuditableEntity
     [Display(Name = "تاريخ الترشّح")]
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// HCM-030: authoritative only for legacy rows (no requisition, or not yet linked). Once
+    /// <see cref="PromotedRecruitmentApplicationId"/> is set the status lives on the recruitment application and this
+    /// column is no longer written.
+    /// </summary>
     [Display(Name = "الحالة")]
     public InternalApplicationStatus Status { get; set; } = InternalApplicationStatus.Submitted;
 

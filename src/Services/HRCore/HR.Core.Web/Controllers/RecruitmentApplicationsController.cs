@@ -37,7 +37,8 @@ public class RecruitmentApplicationsController(
     ILegislationRegisterProvider legislationProvider,
     IPolicyOrchestrator policyOrchestrator,
     IConfiguration configuration,
-    HirePersonMatchService personMatch) : Controller
+    HirePersonMatchService personMatch,
+    UnifiedIntakeService unifiedIntake) : Controller
 {
     public async Task<IActionResult> Index(RecruitmentApplicationsFilter filter, bool showCreate = false)
     {
@@ -163,10 +164,14 @@ public class RecruitmentApplicationsController(
             .AsNoTracking()
             .FirstAsync(r => r.Id == vm.RequisitionId);
 
+        var nationalId = string.IsNullOrWhiteSpace(vm.NationalId) ? null : vm.NationalId.Trim();
         db.RecruitmentApplications.Add(new RecruitmentApplication
         {
             ApplicantFullName = vm.ApplicantFullName.Trim(),
-            NationalId = string.IsNullOrWhiteSpace(vm.NationalId) ? null : vm.NationalId.Trim(),
+            NationalId = nationalId,
+            // HCM-030 (A2): the hash lets the public and internal channels detect a duplicate of this application.
+            NationalIdHash = nationalId is null ? null : PiiMask.Sha256Hex(nationalId),
+            IntakeChannel = RecruitmentIntakeChannel.HrEntered,
             RequisitionId = vm.RequisitionId,
             AppliedPosition = RecruitmentApplicationIntakeRules.DenormalizeJobTitle(requisition),
             Notes = vm.Notes,
@@ -549,6 +554,11 @@ public class RecruitmentApplicationsController(
         return Redirect($"{gateway.TrimEnd('/')}/ui/hr-contracts/HireWizard/Continue?employeeId={employee.Id}");
     }
 
+    /// <summary>
+    /// HCM-030 (A3): new public applications enter the recruitment path at intake. This only links a requisition-linked
+    /// citizen row submitted before unification (and not yet backfilled), with the backfill status mapping — it never
+    /// jumps to «القائمة المختصرة».
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
@@ -560,16 +570,10 @@ public class RecruitmentApplicationsController(
 
         if (citizen is null) return NotFound();
 
-        if (citizen.PromotedRecruitmentApplicationId.HasValue)
+        if (citizen.PromotedRecruitmentApplicationId is Guid linkedId)
         {
-            TempData["Info"] = "تم تحويل هذا الطلب مسبقاً إلى مسار التوظيف الداخلي.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        if (citizen.Status is not (CitizenApplicationStatus.Shortlisted or CitizenApplicationStatus.UnderReview))
-        {
-            TempData["Error"] = "يمكن التحويل فقط للطلبات قيد المراجعة أو في القائمة المختصرة.";
-            return RedirectToAction("Details", "PublicJobPostings", new { id = citizen.PublicJobPostingId });
+            TempData["Info"] = UnifiedIntakeService.ManagedByUnifiedPathMessage;
+            return RedirectToAction(nameof(Details), new { id = linkedId });
         }
 
         if (!citizen.RequisitionId.HasValue)
@@ -578,61 +582,28 @@ public class RecruitmentApplicationsController(
             return RedirectToAction("Details", "PublicJobPostings", new { id = citizen.PublicJobPostingId });
         }
 
-        var validationError = await intake.ValidatePublishedRequisitionAsync(citizen.RequisitionId.Value);
-        if (validationError is not null)
-        {
-            TempData["Error"] = validationError;
-            return RedirectToAction("Details", "PublicJobPostings", new { id = citizen.PublicJobPostingId });
-        }
-
-        var requisition = citizen.Requisition
-            ?? await db.RecruitmentRequisitions.AsNoTracking().FirstAsync(r => r.Id == citizen.RequisitionId);
-
-        var recruitment = new RecruitmentApplication
-        {
-            ApplicantFullName = citizen.FullName,
-            NationalId = citizen.NationalId,
-            RequisitionId = citizen.RequisitionId,
-            AppliedPosition = RecruitmentApplicationIntakeRules.DenormalizeJobTitle(requisition),
-            Notes = $"محوّل من طلب مواطن {citizen.ReferenceNumber}",
-            AppliedAt = DateTime.UtcNow,
-            Status = RecruitmentApplicationStatus.Shortlisted,
-            ReviewedAt = DateTime.UtcNow,
-            ConflictOfInterestDeclared = citizen.ConflictOfInterestDeclared,
-            ConflictOfInterestDeclaredAt = citizen.ConflictOfInterestDeclaredAt
-        };
-
-        db.RecruitmentApplications.Add(recruitment);
-        citizen.PromotedRecruitmentApplication = recruitment;
-        await db.SaveChangesAsync();
-
-        TempData["Success"] = "تم إضافة المرشح إلى مسار التوظيف الداخلي.";
-        return RedirectToAction(nameof(Index));
+        var recruitment = await unifiedIntake.EnsureLinkedAsync(citizen);
+        TempData["Success"] = "تم ربط الطلب بمسار التوظيف الموحد.";
+        return RedirectToAction(nameof(Details), new { id = recruitment!.Id });
     }
 
+    /// <summary>HCM-030 (A3): same as <see cref="PromoteFromCitizen"/> for internal applications.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> PromoteFromInternal(Guid internalApplicationId)
     {
         var internalApp = await db.InternalApplications
-            .Include(a => a.InternalVacancy)
             .Include(a => a.Requisition)
             .Include(a => a.Employee)
             .FirstOrDefaultAsync(a => a.Id == internalApplicationId);
 
         if (internalApp is null) return NotFound();
 
-        if (internalApp.PromotedRecruitmentApplicationId.HasValue)
+        if (internalApp.PromotedRecruitmentApplicationId is Guid linkedId)
         {
-            TempData["Info"] = "تم تحويل هذا الترشّح مسبقاً.";
-            return RedirectToAction(nameof(Details), new { id = internalApp.PromotedRecruitmentApplicationId });
-        }
-
-        if (internalApp.Status is not (InternalApplicationStatus.Shortlisted or InternalApplicationStatus.UnderReview))
-        {
-            TempData["Error"] = "يمكن التحويل فقط للترشّحات قيد المراجعة أو في القائمة المختصرة.";
-            return RedirectToAction("Details", "TalentMarketplace", new { id = internalApp.InternalVacancyId });
+            TempData["Info"] = UnifiedIntakeService.ManagedByUnifiedPathMessage;
+            return RedirectToAction(nameof(Details), new { id = linkedId });
         }
 
         if (!internalApp.RequisitionId.HasValue)
@@ -641,38 +612,9 @@ public class RecruitmentApplicationsController(
             return RedirectToAction("Details", "TalentMarketplace", new { id = internalApp.InternalVacancyId });
         }
 
-        var validationError = await intake.ValidatePublishedRequisitionAsync(internalApp.RequisitionId.Value);
-        if (validationError is not null)
-        {
-            TempData["Error"] = validationError;
-            return RedirectToAction("Details", "TalentMarketplace", new { id = internalApp.InternalVacancyId });
-        }
-
-        var requisition = internalApp.Requisition
-            ?? await db.RecruitmentRequisitions.AsNoTracking().FirstAsync(r => r.Id == internalApp.RequisitionId);
-        var employee = internalApp.Employee
-            ?? await db.Employees.AsNoTracking().FirstAsync(e => e.Id == internalApp.EmployeeId);
-
-        var recruitment = new RecruitmentApplication
-        {
-            ApplicantFullName = employee.FullName,
-            NationalId = employee.NationalId,
-            NationalIdHash = employee.NationalIdHash,
-            RequisitionId = internalApp.RequisitionId,
-            AppliedPosition = RecruitmentApplicationIntakeRules.DenormalizeJobTitle(requisition),
-            Notes = $"محوّل من ترشّح داخلي {internalApp.Id:D}",
-            AppliedAt = DateTime.UtcNow,
-            Status = RecruitmentApplicationStatus.Shortlisted,
-            ReviewedAt = DateTime.UtcNow,
-            SourceInternalApplicationId = internalApp.Id
-        };
-
-        db.RecruitmentApplications.Add(recruitment);
-        internalApp.PromotedRecruitmentApplication = recruitment;
-        await db.SaveChangesAsync();
-
-        TempData["Success"] = "تم إضافة الموظف إلى مسار الاختيار.";
-        return RedirectToAction(nameof(Details), new { id = recruitment.Id });
+        var recruitment = await unifiedIntake.EnsureLinkedAsync(internalApp);
+        TempData["Success"] = "تم ربط الترشّح بمسار التوظيف الموحد.";
+        return RedirectToAction(nameof(Details), new { id = recruitment!.Id });
     }
 
     private static RecruitmentApplicationCreateViewModel NewCreateModel() => new();

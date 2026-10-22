@@ -223,7 +223,9 @@ public class PromoteFromInternalTests
         var recruitment = await db.RecruitmentApplications.SingleAsync();
         Assert.Equal(req.Id, recruitment.RequisitionId);
         Assert.Equal(internalApp.Id, recruitment.SourceInternalApplicationId);
-        Assert.Equal(RecruitmentApplicationStatus.Shortlisted, recruitment.Status);
+        // HCM-030 (A3): linking keeps the channel's stage (backfill mapping) instead of jumping to Shortlisted.
+        Assert.Equal(RecruitmentApplicationStatus.UnderReview, recruitment.Status);
+        Assert.Equal(RecruitmentIntakeChannel.Internal, recruitment.IntakeChannel);
 
         var reloadedInternal = await db.InternalApplications.SingleAsync();
         Assert.Equal(recruitment.Id, reloadedInternal.PromotedRecruitmentApplicationId);

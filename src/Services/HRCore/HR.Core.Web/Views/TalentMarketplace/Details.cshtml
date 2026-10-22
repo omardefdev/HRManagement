@@ -13,6 +13,10 @@
             {
                 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">تعديل</a>
             }
+            @if (Model.RequisitionId is Guid reqId)
+            {
+                <a asp-controller="RecruitmentApplications" asp-action="Index" asp-route-RequisitionId="@reqId" class="btn btn-primary btn-sm">فرز الطلبات</a>
+            }
             <a asp-action="Index" class="btn btn-link">رجوع</a>
         </div>
     </div>
@@ -40,28 +44,48 @@
                         <td><span data-hr-employee-id="@a.EmployeeId">@(a.Employee?.FullName ?? "جاري التحميل...")</span></td>
                         <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
                         <td>@(a.Motivation ?? "—")</td>
-                        <td>@Html.DisplayFor(_ => a.Status)</td>
-                        <td class="d-flex flex-wrap gap-1">
-                            @if (a.PromotedRecruitmentApplicationId is Guid promotedId)
-                            {
-                                <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@promotedId" class="btn btn-outline-success btn-sm">مسار الاختيار</a>
-                            }
-                            else if (a.Status is InternalApplicationStatus.Shortlisted or InternalApplicationStatus.UnderReview)
-                            {
-                                <form asp-controller="RecruitmentApplications" asp-action="PromoteFromInternal" method="post" class="d-inline">
+                        @if (a.RequisitionId.HasValue)
+                        {
+                            @* HCM-030 (A4): screened in one place — the recruitment application. *@
+                            <td>
+                                @if (a.PromotedRecruitmentApplication is { } linked)
+                                {
+                                    <span>@Html.HrEnumDisplay(linked.Status)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">غير مربوط بعد</span>
+                                }
+                            </td>
+                            <td>
+                                @if (a.PromotedRecruitmentApplicationId is Guid promotedId)
+                                {
+                                    <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@promotedId" class="btn btn-outline-primary btn-sm">مسار الاختيار</a>
+                                }
+                                else
+                                {
+                                    @* Submitted before unification and not yet backfilled. *@
+                                    <form asp-controller="RecruitmentApplications" asp-action="PromoteFromInternal" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="internalApplicationId" value="@a.Id" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">ربط بمسار التوظيف</button>
+                                    </form>
+                                }
+                            </td>
+                        }
+                        else
+                        {
+                            <td>@Html.DisplayFor(_ => a.Status)</td>
+                            <td>
+                                <form asp-action="ChangeApplicationStatus" method="post" class="d-inline-flex gap-1">
                                     @Html.AntiForgeryToken()
-                                    <input type="hidden" name="internalApplicationId" value="@a.Id" />
-                                    <button type="submit" class="btn btn-primary btn-sm">إضافة لمسار الاختيار</button>
+                                    <input type="hidden" name="id" value="@a.Id" />
+                                    <input type="hidden" name="vacancyId" value="@Model.Id" />
+                                    <select name="status" asp-items="Html.GetEnumSelectList<InternalApplicationStatus>()" class="form-control form-control-sm"></select>
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">تحديث</button>
                                 </form>
-                            }
-                            <form asp-action="ChangeApplicationStatus" method="post" class="d-inline-flex gap-1">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@a.Id" />
-                                <input type="hidden" name="vacancyId" value="@Model.Id" />
-                                <select name="status" asp-items="Html.GetEnumSelectList<InternalApplicationStatus>()" class="form-control form-control-sm"></select>
-                                <button type="submit" class="btn btn-outline-primary btn-sm">تحديث</button>
-                            </form>
-                        </td>
+                            </td>
+                        }
                     </tr>
                 }
                 @if (!Model.Applications.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مترشّحين</td></tr> }

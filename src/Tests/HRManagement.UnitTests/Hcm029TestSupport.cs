@@ -131,7 +131,8 @@ internal static class Hcm029TestSupport
             new LegislationRegisterProvider(db),
             Mock.Of<IPolicyOrchestrator>(),
             config,
-            new HirePersonMatchService(db));
+            new HirePersonMatchService(db),
+            new UnifiedIntakeService(db));
 
         var httpContext = new DefaultHttpContext
         {

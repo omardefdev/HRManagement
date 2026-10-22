@@ -50,6 +50,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<FieldInspectionVisit> FieldInspectionVisits => Set<FieldInspectionVisit>();
     public DbSet<DiwanCorrespondence> DiwanCorrespondences => Set<DiwanCorrespondence>();
     public DbSet<RecruitmentApplication> RecruitmentApplications => Set<RecruitmentApplication>();
+    public DbSet<RecruitmentApplicationEvent> RecruitmentApplicationEvents => Set<RecruitmentApplicationEvent>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<Shift> Shifts => Set<Shift>();
@@ -412,6 +413,21 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.SourceInternalApplicationId)
                   .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.IntakeChannel).HasConversion<string>().HasMaxLength(20);
+        });
+
+        // HCM-030 (B1): append-only application event log (no PII).
+        modelBuilder.Entity<RecruitmentApplicationEvent>(entity =>
+        {
+            entity.HasOne<RecruitmentApplication>()
+                  .WithMany()
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.EventType).HasMaxLength(40);
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.OccurredAt });
+            entity.HasIndex(e => e.OccurredAt)
+                  .HasFilter("\"NotificationsPlannedAt\" IS NULL")
+                  .HasDatabaseName("IX_RecruitmentApplicationEvents_NotificationsPending");
         });
 
         modelBuilder.Entity<RecruitmentAssessmentCriteria>(entity =>
@@ -582,6 +598,10 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.PromotedRecruitmentApplicationId)
                   .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(e => new { e.InternalVacancyId, e.EmployeeId }).IsUnique();
+            // HCM-030 (A6): one channel row per recruitment application.
+            entity.HasIndex(e => e.PromotedRecruitmentApplicationId)
+                  .IsUnique()
+                  .HasFilter("\"PromotedRecruitmentApplicationId\" IS NOT NULL");
             entity.HasIndex(e => new { e.TenantId, e.EmployeeId, e.RequisitionId })
                   .IsUnique()
                   .HasFilter("\"RequisitionId\" IS NOT NULL");
@@ -605,6 +625,10 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.Entity<CitizenApplication>(entity =>
         {
             entity.HasIndex(e => e.ReferenceNumber).IsUnique();
+            // HCM-030 (A6): one channel row per recruitment application.
+            entity.HasIndex(e => e.PromotedRecruitmentApplicationId)
+                  .IsUnique()
+                  .HasFilter("\"PromotedRecruitmentApplicationId\" IS NOT NULL");
             entity.HasOne(e => e.Requisition)
                   .WithMany()
                   .HasForeignKey(e => e.RequisitionId)
@@ -1024,6 +1048,25 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.ConfigureExportJobs();
         modelBuilder.ConfigureSignatureRecords();
         modelBuilder.ConfigureTenantQueryFilters(this);
+    }
+
+    /// <summary>
+    /// HCM-030 (B1): while set, saves record no <see cref="RecruitmentApplicationEvent"/> rows. For bulk data fixes and
+    /// historic links only (the SQL backfill records none either) — candidates are never notified of suppressed changes.
+    /// </summary>
+    public bool ApplicationEventsSuppressed { get; private set; }
+
+    /// <summary>Suppresses application event recording on this context until the returned scope is disposed.</summary>
+    public IDisposable SuppressApplicationEvents()
+    {
+        var previous = ApplicationEventsSuppressed;
+        ApplicationEventsSuppressed = true;
+        return new SuppressionScope(this, previous);
+    }
+
+    private sealed class SuppressionScope(HRCoreDbContext db, bool previous) : IDisposable
+    {
+        public void Dispose() => db.ApplicationEventsSuppressed = previous;
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

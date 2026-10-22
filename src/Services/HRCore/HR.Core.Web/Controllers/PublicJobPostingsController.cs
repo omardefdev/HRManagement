@@ -2,6 +2,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Web.ViewModels;
 using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -109,6 +110,8 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
         var posting = await db.PublicJobPostings
             .Include(p => p.Applications)
                 .ThenInclude(a => a.Requisition)
+            .Include(p => p.Applications)
+                .ThenInclude(a => a.PromotedRecruitmentApplication)
             .Include(p => p.Requisition)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
@@ -122,6 +125,13 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
     {
         var application = await db.CitizenApplications.FindAsync(id);
         if (application is null) return NotFound();
+
+        // HCM-030 (A4): a requisition-linked application is screened on its recruitment application only.
+        if (application.RequisitionId.HasValue)
+        {
+            TempData["Error"] = UnifiedIntakeService.ManagedByUnifiedPathMessage;
+            return RedirectToAction(nameof(Details), new { id = postingId });
+        }
 
         var error = CitizenSelectionWorkflowRules.ValidateTransition(application, status);
         if (error is not null)
@@ -142,6 +152,13 @@ public class PublicJobPostingsController(HRCoreDbContext db) : Controller
     {
         var application = await db.CitizenApplications.FindAsync(id);
         if (application is null) return NotFound();
+
+        // HCM-030 (A4): a requisition-linked application is screened on its recruitment application only.
+        if (application.RequisitionId.HasValue)
+        {
+            TempData["Error"] = UnifiedIntakeService.ManagedByUnifiedPathMessage;
+            return RedirectToAction(nameof(Details), new { id = postingId });
+        }
 
         application.ConflictOfInterestDeclared = true;
         application.ConflictOfInterestDeclaredAt = DateTime.UtcNow;

@@ -845,6 +845,7 @@ public static class DemoDataSeeder
                 AppliedPosition = requisition?.JobTitle ?? DemoNameBank.JobTitles[20 + r % 10],
                 AppliedAt = now.AddDays(-rng.Next(5, 60)),
                 Status = (RecruitmentApplicationStatus)(r % 5),
+                IntakeChannel = RecruitmentIntakeChannel.HrEntered,
                 Notes = "طلب توظيف",
                 CreatedAt = now,
                 UpdatedAt = now,

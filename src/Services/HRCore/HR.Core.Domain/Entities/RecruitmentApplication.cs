@@ -42,6 +42,14 @@ public class RecruitmentApplication : AuditableEntity
 
     public virtual InternalApplication? SourceInternalApplication { get; set; }
 
+    /// <summary>
+    /// HCM-030 (A5): intake channel. A public application is linked from
+    /// <see cref="CitizenApplication.PromotedRecruitmentApplicationId"/>, an internal one from
+    /// <see cref="InternalApplication.PromotedRecruitmentApplicationId"/> (and <see cref="SourceInternalApplicationId"/>).
+    /// </summary>
+    [Display(Name = "قناة التقديم")]
+    public RecruitmentIntakeChannel IntakeChannel { get; set; } = RecruitmentIntakeChannel.HrEntered;
+
     [Display(Name = "تاريخ التقديم")]
     public DateTime AppliedAt { get; set; }
 

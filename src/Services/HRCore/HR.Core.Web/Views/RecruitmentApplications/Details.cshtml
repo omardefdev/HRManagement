@@ -62,6 +62,7 @@
                 }
             </dd>
             <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@app.AppliedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</dd>
+            <dt class="col-sm-3">قناة التقديم</dt><dd class="col-sm-9"><span class="badge bg-light text-dark border">@Html.HrEnumDisplay(app.IntakeChannel)</span></dd>
             <dt class="col-sm-3">درجة التقييم</dt><dd class="col-sm-9">@(app.AssessmentScore?.ToString("N1") ?? "—")</dd>
             <dt class="col-sm-3">الترتيب</dt><dd class="col-sm-9">@(app.Rank?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">ملاحظات</dt><dd class="col-sm-9">@(app.Notes ?? "—")</dd>

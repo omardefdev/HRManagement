@@ -51,7 +51,8 @@ public class PublicCareersRequisitionGateTests
             db,
             Mock.Of<ICodeGenerator>(),
             new RecruitmentApplicationIntakeService(db),
-            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new UnifiedIntakeService(db));
         var result = await controller.Index();
         var view = Assert.IsType<ViewResult>(result);
         var postings = Assert.IsAssignableFrom<IReadOnlyList<PublicJobPosting>>(view.Model);
@@ -89,7 +90,8 @@ public class PublicCareersRequisitionGateTests
             db,
             Mock.Of<ICodeGenerator>(),
             new RecruitmentApplicationIntakeService(db),
-            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new UnifiedIntakeService(db));
         var result = await controller.Index();
         var view = Assert.IsType<ViewResult>(result);
         var postings = Assert.IsAssignableFrom<IReadOnlyList<PublicJobPosting>>(view.Model);
@@ -128,7 +130,8 @@ public class PublicCareersRequisitionGateTests
             db,
             codeGen.Object,
             new RecruitmentApplicationIntakeService(db),
-            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())))
+            new RecruitmentInterviewService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new UnifiedIntakeService(db))
         {
             ControllerContext = new ControllerContext
             {

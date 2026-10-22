@@ -445,6 +445,7 @@ public static class AcceptanceDataSeeder
                 AppliedPosition = requisition?.JobTitle ?? jobs[(i * 3 + agency.Ordinal) % jobs.Count].TitleAr,
                 AppliedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-(60 + i * 3 + agency.Ordinal)),
                 Status = status,
+                IntakeChannel = RecruitmentIntakeChannel.HrEntered,
                 Notes = "طلب توظيف اصطناعي ضمن حزمة Acceptance v2",
                 HiredEmployeeId = status == RecruitmentApplicationStatus.Hired
                     ? agency.EmployeeAt(i).Id
@@ -881,6 +882,7 @@ public static class AcceptanceDataSeeder
                 AppliedPosition = requisition.JobTitle,
                 AppliedAt = AcceptanceSeedCatalog.ReferenceDate.AddDays(-12 + i),
                 Status = RecruitmentApplicationStatus.Assessed,
+                IntakeChannel = RecruitmentIntakeChannel.HrEntered,
                 AssessmentScore = scores[i],
                 CriteriaVersionId = criteria.Id,
                 ConflictOfInterestDeclared = true,
