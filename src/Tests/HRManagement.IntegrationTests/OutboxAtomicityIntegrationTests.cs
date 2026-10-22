@@ -148,6 +148,7 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<ProbationRecord> ProbationRecords => _inner.ProbationRecords;
         public IQueryable<SeparationRecord> SeparationRecords => _inner.SeparationRecords;
         public IQueryable<ContractType> ContractTypes => _inner.ContractTypes;
+        public IQueryable<ContractTypeRegimeMap> ContractTypeRegimeMaps => _inner.ContractTypeRegimeMaps;
         public IQueryable<Contract> Contracts => _inner.Contracts;
         public IQueryable<ServiceTransaction> ServiceTransactions => _inner.ServiceTransactions;
         public IQueryable<LeaveBalance> LeaveBalances => _inner.LeaveBalances;

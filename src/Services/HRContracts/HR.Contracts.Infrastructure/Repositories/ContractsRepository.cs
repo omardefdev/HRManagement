@@ -14,6 +14,7 @@ public class ContractsRepository(ContractsDbContext db) : IContractsRepository
     public IQueryable<ProbationRecord> ProbationRecords => db.ProbationRecords;
     public IQueryable<SeparationRecord> SeparationRecords => db.SeparationRecords;
     public IQueryable<ContractType> ContractTypes => db.ContractTypes;
+    public IQueryable<ContractTypeRegimeMap> ContractTypeRegimeMaps => db.ContractTypeRegimeMaps;
     public IQueryable<Contract> Contracts => db.Contracts;
     public IQueryable<ServiceTransaction> ServiceTransactions => db.ServiceTransactions;
     public IQueryable<LeaveBalance> LeaveBalances => db.LeaveBalances;

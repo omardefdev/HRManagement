@@ -47,6 +47,9 @@ builder.Services.Configure<HR.Contracts.Infrastructure.Sagas.SeparationSagaOptio
     builder.Configuration.GetSection(HR.Contracts.Infrastructure.Sagas.SeparationSagaOptions.SectionName));
 builder.Services.Configure<HR.Contracts.Infrastructure.Sagas.HireSagaOptions>(
     builder.Configuration.GetSection(HR.Contracts.Infrastructure.Sagas.HireSagaOptions.SectionName));
+// FUN-029 (F): contract-type fallback switch.
+builder.Services.Configure<HR.Contracts.Application.Features.HireCases.HireContractOptions>(
+    builder.Configuration.GetSection(HR.Contracts.Application.Features.HireCases.HireContractOptions.SectionName));
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     configureConsumers: x =>

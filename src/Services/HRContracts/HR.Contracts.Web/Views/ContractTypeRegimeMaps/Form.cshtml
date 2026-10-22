@@ -1,0 +1,56 @@
+@model ContractTypeRegimeMapForm
+@using HR.Contracts.Web.Controllers
+@{
+    var editing = Model.Id.HasValue;
+    ViewData["Title"] = editing ? "تعديل ربط نوع العقد" : "إضافة ربط نوع العقد";
+}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">@ViewData["Title"]</h3></div>
+    <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3">
+                <label asp-for="LegalRegimeId" class="form-label"></label>
+                <select asp-for="LegalRegimeId" class="form-select">
+                    <option value="">أي نظام (*)</option>
+                    @foreach (var r in ContractTypeRegimeMapsController.KnownRegimes)
+                    {
+                        <option value="@r.Id">@r.Id — @r.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label asp-for="EmploymentType" class="form-label"></label>
+                <select asp-for="EmploymentType" class="form-select">
+                    <option value="">أي نوع (*)</option>
+                    @foreach (var t in ContractTypeRegimeMapsController.EmploymentTypes)
+                    {
+                        <option value="@t.Id">@t.Label</option>
+                    }
+                </select>
+                <span asp-validation-for="EmploymentType" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ContractTypeId" class="form-label"></label>
+                <select asp-for="ContractTypeId" class="form-select" asp-items="Model.ContractTypes">
+                    <option value="">— اختر —</option>
+                </select>
+                <span asp-validation-for="ContractTypeId" class="text-danger"></span>
+            </div>
+            @if (editing)
+            {
+                <div class="form-check mb-3">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                </div>
+            }
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

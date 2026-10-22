@@ -4,9 +4,11 @@ using HR.Contracts.Application.Features.HireCases;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HR.Contracts.Infrastructure.Data;
+using HR.Contracts.Web.ViewModels;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Integration;
@@ -112,9 +114,44 @@ public class HireWizardController : Controller
         var txn = await _repo.GetServiceTransactionAsync(transactionId, default);
         if (txn is null) return NotFound();
 
-        var checklist = await _mediator.Send(new GetHireChecklistQuery(transactionId));
-        ViewBag.ChecklistLabels = checklist.ToDictionary(c => c.Step, c => HireChecklistDefaults.StepLabel(c.Step));
-        return View((txn, checklist));
+        return View(await BuildStep2Async(txn));
+    }
+
+    private async Task<HireWizardStep2ViewModel> BuildStep2Async(HR.Contracts.Domain.Entities.ServiceTransaction txn)
+    {
+        var checklist = await _mediator.Send(new GetHireChecklistQuery(txn.Id));
+        var contract = await _repo.Contracts.AsNoTracking()
+            .Include(c => c.ContractType)
+            .Where(c => c.EmployeeId == txn.EmployeeId)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync();
+        var vm = new HireWizardStep2ViewModel
+        {
+            Txn = txn,
+            Checklist = checklist,
+            Labels = checklist.ToDictionary(c => c.Step, c => HireChecklistDefaults.StepLabel(c.Step)),
+            Contract = contract,
+            // FUN-029 (F3): an unresolved hire keeps its offer terms on the transaction until a contract exists.
+            NeedsContractType = contract is null && !string.IsNullOrWhiteSpace(txn.PendingContractTerms),
+            UnresolvedReason = checklist.FirstOrDefault(c => c.Step == HireStep.ContractClassified)?.Notes
+        };
+        if (vm.NeedsContractType)
+        {
+            var types = await _repo.ContractTypes.AsNoTracking().OrderBy(t => t.Code).ToListAsync();
+            vm.ContractTypes = new SelectList(types.Select(t => new { t.Id, Label = $"{t.Code} — {t.NameAr}" }), "Id", "Label");
+        }
+
+        return vm;
+    }
+
+    /// <summary>FUN-029 (F3): create the pending contract of an unresolved hire with a chosen contract type.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrContractsHireExecute)]
+    public async Task<IActionResult> CreatePendingContract(Guid transactionId, Guid contractTypeId)
+    {
+        var (ok, error) = await _mediator.Send(new CreatePendingHireContractCommand(transactionId, contractTypeId, ParseUserId()));
+        TempData[ok ? "Success" : "Error"] = ok ? "تم إنشاء العقد المعلّق بنوع العقد المختار." : error;
+        return RedirectToAction(nameof(Step2), new { transactionId });
     }
 
     [HttpPost, ValidateAntiForgeryToken]

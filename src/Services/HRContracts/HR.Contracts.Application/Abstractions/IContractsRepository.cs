@@ -11,6 +11,7 @@ public interface IContractsRepository
     IQueryable<ProbationRecord> ProbationRecords { get; }
     IQueryable<SeparationRecord> SeparationRecords { get; }
     IQueryable<ContractType> ContractTypes { get; }
+    IQueryable<ContractTypeRegimeMap> ContractTypeRegimeMaps { get; }
     IQueryable<Contract> Contracts { get; }
     IQueryable<ServiceTransaction> ServiceTransactions { get; }
     IQueryable<LeaveBalance> LeaveBalances { get; }

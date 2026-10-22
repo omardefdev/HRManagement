@@ -62,5 +62,18 @@ public interface IEventPublisher
 
     Task PublishHireCaseCompletedAsync(Guid employeeId, Guid serviceTransactionId, Guid? contractId, CancellationToken ct, Guid? recruitmentApplicationId = null);
 
+    /// <summary>
+    /// FUN-029: open an intervention (IProcessInterventionRequested → ProcessInterventions) outside the saga — unresolved
+    /// hire contract type, overdue commencement. Default no-op keeps the test doubles compiling; the MassTransit
+    /// publisher implements it.
+    /// </summary>
+    Task PublishProcessInterventionRequestedAsync(
+        string sagaType,
+        Guid correlationId,
+        string reason,
+        string? failedParty,
+        Guid? tenantId,
+        CancellationToken ct) => Task.CompletedTask;
+
 }
 

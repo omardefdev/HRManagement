@@ -34,6 +34,7 @@ public static class DemoContractsSeeder
         var now = AcceptanceSeedExecution.UtcNow;
 
         await EnsureContractTypesAsync(db, now, ct);
+        await EnsureContractTypeRegimeMapsAsync(db, now, ct);
         await SeedIntegrationAsync(db, now, ct);
 
         if (await db.Contracts.AnyAsync(ct))
@@ -73,6 +74,58 @@ public static class DemoContractsSeeder
         {
             db.IntegrationMessageReceipts.AddRange(
                 DemoIntegrationData.BuildMessageReceipts(40, "Contracts.EmployeeHiredConsumer", now));
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// FUN-029 (F5): labelled TEST contract types and their regime maps (law50 + Permanent / Temporary), so demo and
+    /// acceptance hires resolve a contract type. Deterministic ids, idempotent. Production seeding adds none of this.
+    /// </summary>
+    private static readonly (int TypeIndex, string Code, string NameAr, string Regime, string EmploymentType)[] TestRegimeContractTypes =
+    [
+        (10, "ACC-LAW50-PERM", "تجريبي — دائم وفق القانون 50", "law50", HireEmploymentTypes.Permanent),
+        (11, "ACC-LAW50-TEMP", "تجريبي — متعاقد مؤقت وفق القانون 50", "law50", HireEmploymentTypes.Temporary),
+    ];
+
+    private static async Task EnsureContractTypeRegimeMapsAsync(ContractsDbContext db, DateTime now, CancellationToken ct)
+    {
+        for (var i = 0; i < TestRegimeContractTypes.Length; i++)
+        {
+            var (typeIndex, code, nameAr, regime, employmentType) = TestRegimeContractTypes[i];
+            var typeId = DemoSeedIds.ContractTypeId(typeIndex);
+            if (!await db.ContractTypes.AnyAsync(t => t.Id == typeId, ct))
+            {
+                db.ContractTypes.Add(new ContractType
+                {
+                    Id = typeId,
+                    TenantId = TenantId,
+                    Code = ScopedCode(code),
+                    NameAr = nameAr,
+                    NameEn = $"TEST — {code}",
+                    Description = "نوع عقد تجريبي لبيئات العرض والقبول (PLAN-29) — لا يُستخدم في الإنتاج",
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            }
+
+            var mapId = DemoSeedIds.ContractTypeRegimeMapId(i);
+            if (!await db.ContractTypeRegimeMaps.AnyAsync(m => m.Id == mapId, ct)
+                && !await db.ContractTypeRegimeMaps.AnyAsync(m => m.LegalRegimeId == regime && m.EmploymentType == employmentType, ct))
+            {
+                db.ContractTypeRegimeMaps.Add(new ContractTypeRegimeMap
+                {
+                    Id = mapId,
+                    TenantId = TenantId,
+                    LegalRegimeId = regime,
+                    EmploymentType = employmentType,
+                    ContractTypeId = typeId,
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            }
         }
 
         await db.SaveChangesAsync(ct);

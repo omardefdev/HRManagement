@@ -8,9 +8,12 @@ using HR.Contracts.Application.Services;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
+using HRManagement.SharedKernel.Entities;
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace HR.Contracts.Application.Features.InboundEvents;
 
@@ -40,7 +43,9 @@ public record ProcessTransactionRegisteredInDiwanCommand(Guid TransactionId, str
 public class ProcessCandidateAcceptedHandler(
     IContractsRepository repository,
     ICodeGenerationClient codeClient,
-    ILogger<ProcessCandidateAcceptedHandler> logger) : IRequestHandler<ProcessCandidateAcceptedCommand>
+    ILogger<ProcessCandidateAcceptedHandler> logger,
+    IOptions<HireContractOptions> contractOptions,
+    IEventPublisher eventPublisher) : IRequestHandler<ProcessCandidateAcceptedCommand>
 {
     public async Task Handle(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken)
     {
@@ -71,25 +76,32 @@ public class ProcessCandidateAcceptedHandler(
         }
         else
         {
+            var terms = new ContractOfferTerms(
+                request.GradeCode,
+                request.OfferedSalary,
+                request.LegalRegimeId,
+                employmentType,
+                request.OfferLetterId);
+            var unresolved = false;
             if (!await repository.Contracts.AnyAsync(x => x.EmployeeId == request.EmployeeId, cancellationToken))
             {
-                var defaultType = await repository.ContractTypes.AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Code == "DEFAULT", cancellationToken);
-                if (defaultType is not null)
+                // FUN-029 (F2): contract type from the regime map; DEFAULT only when the fallback is enabled.
+                var resolution = await new ContractTypeResolver(repository, contractOptions.Value)
+                    .ResolveAsync(request.LegalRegimeId, employmentType, cancellationToken);
+                if (resolution.ContractType is ContractType contractType)
                 {
                     await repository.AddAsync(
                         PendingContractProvisioning.CreatePending(
                             request.EmployeeId,
-                            defaultType.Id,
+                            contractType.Id,
                             request.ExpectedStartDate,
-                            "تم الإنشاء تلقائياً من حدث التوظيف",
-                            new ContractOfferTerms(
-                                request.GradeCode,
-                                request.OfferedSalary,
-                                request.LegalRegimeId,
-                                employmentType,
-                                request.OfferLetterId)),
+                            PendingContractTermsText,
+                            terms),
                         cancellationToken);
+                }
+                else
+                {
+                    unresolved = true;
                 }
             }
 
@@ -101,6 +113,8 @@ public class ProcessCandidateAcceptedHandler(
                 Notes = BuildHireNotes(request.FullName, request.EmploymentCategory, request.RecruitmentApplicationId)
             };
             ApplyLineage(transaction, request);
+            if (unresolved)
+                transaction.PendingContractTerms = JsonSerializer.Serialize(terms);
             await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
             transaction.MoveTo(ServiceTransactionState.Submitted, byUserId: null, "Inbound employment event");
             transaction.MoveTo(ServiceTransactionState.UnderReview, byUserId: null, null);
@@ -111,6 +125,8 @@ public class ProcessCandidateAcceptedHandler(
             await HireCaseSupport.SeedChecklistAsync(repository, transaction.Id, cancellationToken);
             await HireCaseSupport.MarkCandidateReceivedAsync(repository, transaction.Id, cancellationToken);
             await HireCaseSupport.MarkPersonalFileOpenedAsync(repository, request.EmployeeId, cancellationToken);
+            if (unresolved)
+                await FlagUnresolvedContractTypeAsync(transaction, request.LegalRegimeId, employmentType, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
             return;
         }
@@ -123,6 +139,38 @@ public class ProcessCandidateAcceptedHandler(
         await HireCaseSupport.MarkCandidateReceivedAsync(repository, transaction.Id, cancellationToken);
         await HireCaseSupport.MarkPersonalFileOpenedAsync(repository, request.EmployeeId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    public const string PendingContractTermsText = "تم الإنشاء تلقائياً من حدث التوظيف";
+
+    /// <summary>
+    /// FUN-029 (F3): no silent fallback — the Appointment and its checklist exist, there is no contract, the
+    /// ContractClassified item says why, and an intervention is opened for the hire case.
+    /// </summary>
+    private async Task FlagUnresolvedContractTypeAsync(
+        ServiceTransaction transaction,
+        string? legalRegimeId,
+        string? employmentType,
+        CancellationToken cancellationToken)
+    {
+        var reason = HireContractMessages.UnresolvedContractType(legalRegimeId, employmentType);
+        var item = await repository.HireChecklists.FirstOrDefaultAsync(
+            c => c.ServiceTransactionId == transaction.Id && c.Step == HireStep.ContractClassified,
+            cancellationToken);
+        if (item is not null)
+            item.Notes = reason;
+
+        await eventPublisher.PublishProcessInterventionRequestedAsync(
+            SagaTypeNames.Hire,
+            transaction.Id,
+            reason,
+            "HR.Contracts",
+            transaction.TenantId == Guid.Empty ? null : transaction.TenantId,
+            cancellationToken);
+        HireContractMetrics.ContractTypeUnresolved.Add(1);
+        logger.LogWarning(
+            "Hire {TransactionId}: no contract type for regime {LegalRegimeId} / {EmploymentType}; intervention requested.",
+            transaction.Id, legalRegimeId, employmentType);
     }
 
     /// <summary>FUN-029: lineage columns; a redelivery fills what is missing and never clears a value.</summary>

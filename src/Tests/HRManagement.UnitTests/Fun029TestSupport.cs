@@ -1,9 +1,12 @@
+using HR.Contracts.Application.Abstractions;
+using HR.Contracts.Application.Features.HireCases;
 using HR.Contracts.Application.Features.InboundEvents;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace HRManagement.UnitTests;
 
@@ -28,8 +31,16 @@ internal static class Fun029TestSupport
         return type;
     }
 
-    public static ProcessCandidateAcceptedHandler CreateHandler(ContractsDbContext db) =>
-        new(new ContractsRepository(db), CodeGenerationTestSupport.CreateClient(), NullLogger<ProcessCandidateAcceptedHandler>.Instance);
+    public static ProcessCandidateAcceptedHandler CreateHandler(
+        ContractsDbContext db,
+        IEventPublisher? publisher = null,
+        bool allowDefaultFallback = true) =>
+        new(
+            new ContractsRepository(db),
+            CodeGenerationTestSupport.CreateClient(),
+            NullLogger<ProcessCandidateAcceptedHandler>.Instance,
+            Microsoft.Extensions.Options.Options.Create(new HireContractOptions { AllowDefaultContractTypeFallback = allowDefaultFallback }),
+            publisher ?? Mock.Of<IEventPublisher>());
 
     /// <summary>A v4 command as CandidateAcceptedConsumer builds it for an external hire.</summary>
     public static ProcessCandidateAcceptedCommand V4Command(

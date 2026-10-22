@@ -198,6 +198,12 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             else if (IsMutating(httpMethod)
                      && pathValue.Contains("/Step3Execute", StringComparison.OrdinalIgnoreCase))
                 policy = HrManagementPolicies.HrContractsHireExecute;
+            // FUN-029: Step2 actions (manual pending contract, appointment decision, medical step).
+            else if (IsMutating(httpMethod)
+                     && (pathValue.Contains("/CreatePendingContract", StringComparison.OrdinalIgnoreCase)
+                         || pathValue.Contains("/IssueAppointmentDecision", StringComparison.OrdinalIgnoreCase)
+                         || pathValue.Contains("/CompleteMedicalStep", StringComparison.OrdinalIgnoreCase)))
+                policy = HrManagementPolicies.HrContractsHireExecute;
             else if (IsMutating(httpMethod)
                      && pathValue.Contains("/Step4Complete", StringComparison.OrdinalIgnoreCase))
                 policy = HrManagementPolicies.HrContractsApprove;

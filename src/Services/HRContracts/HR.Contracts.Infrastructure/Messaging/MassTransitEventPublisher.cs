@@ -345,5 +345,22 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
             CorrelationId = CurrentCorrelationId,
             TenantId = TenantIdFlow.Get()
         }, ct);
+
+    /// <summary>FUN-029: intervention outside the saga (consumed by ProcessInterventionRequestedConsumer).</summary>
+    public Task PublishProcessInterventionRequestedAsync(
+        string sagaType,
+        Guid correlationId,
+        string reason,
+        string? failedParty,
+        Guid? tenantId,
+        CancellationToken ct) =>
+        publishEndpoint.Publish<HRManagement.MessageContracts.Commands.IProcessInterventionRequested>(new
+        {
+            SagaType = sagaType,
+            CorrelationId = correlationId,
+            Reason = reason,
+            FailedParty = failedParty,
+            TenantId = tenantId ?? TenantIdFlow.Get()
+        }, ct);
 }
 

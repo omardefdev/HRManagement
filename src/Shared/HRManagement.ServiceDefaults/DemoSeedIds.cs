@@ -61,6 +61,8 @@ public static class DemoSeedIds
     public static Guid ContractTypeId(int index) =>
         index == 0 ? DefaultContractTypeId : DeterministicGuid($"contract-type-{index}");
     public static Guid TrainingProviderId(int index) => DeterministicGuid($"training-provider-{index}");
+    /// <summary>FUN-029: demo/acceptance contract-type regime maps.</summary>
+    public static Guid ContractTypeRegimeMapId(int index) => DeterministicGuid($"contract-type-regime-map-{index}");
     public static Guid CardDesignId(int index) => DeterministicGuid($"card-design-{index}");
     public static Guid RoleId(int index) => DeterministicGuid($"role-{index}");
     public static Guid AuthUserId(int index)

@@ -1,22 +1,73 @@
-@model (HR.Contracts.Domain.Entities.ServiceTransaction Txn, IReadOnlyList<HR.Contracts.Domain.Entities.HireChecklist> Checklist)
+@model HireWizardStep2ViewModel
+@using HRManagement.ServiceDefaults
 @{
     ViewData["Title"] = "معالج التعيين - الخطوة 2";
-    var labels = ViewBag.ChecklistLabels as Dictionary<HR.Contracts.Domain.Enums.HireStep, string> ?? new();
+    var canExecute = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrContracts);
 }
 <div class="card">
-    <div class="card-header"><h3>قائمة التحقق — @Html.HrEnumDisplay(Model.Txn.State)</h3></div>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">قائمة التحقق — @Html.HrEnumDisplay(Model.Txn.State)</h3>
+        @if (Model.Contract is not null)
+        {
+            <span class="text-muted small">
+                العقد: @Model.Contract.ContractType?.Code — الدرجة @(Model.Contract.GradeCode ?? "—")
+                — الراتب @(Model.Contract.AgreedBaseSalary?.ToString("#,0.##") ?? "—")
+                — النظام @(Model.Contract.LegalRegimeId ?? "—") — @(Model.Contract.EmploymentType ?? "—")
+            </span>
+        }
+    </div>
     <div class="card-body">
-        <ul class="list-group mb-3">
+        @if (Model.NeedsContractType)
+        {
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                @(Model.UnresolvedReason ?? "لا يوجد نوع عقد مطابق لنظام الخدمة — يتطلب تدخلاً")
+                <div class="small mt-1">
+                    أضف ربطاً في <a asp-controller="ContractTypeRegimeMaps" asp-action="Index">ربط أنواع العقود بأنظمة الخدمة</a>،
+                    أو أنشئ العقد المعلّق يدوياً بنوع عقد مختار.
+                </div>
+                @if (canExecute)
+                {
+                    <form asp-action="CreatePendingContract" method="post" class="row g-2 mt-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="transactionId" value="@Model.Txn.Id" />
+                        <div class="col-auto">
+                            <select name="contractTypeId" class="form-select form-select-sm" asp-items="Model.ContractTypes" required>
+                                <option value="">— نوع العقد —</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-danger">إنشاء العقد المعلّق</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        }
+        <table class="table table-sm mb-3">
+            <thead><tr><th>الخطوة</th><th>المالك</th><th>المهلة</th><th>الحالة</th><th>الدليل</th></tr></thead>
+            <tbody>
             @foreach (var item in Model.Checklist)
             {
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>@(labels.GetValueOrDefault(item.Step, item.Step.ToString()))</span>
-                    <span class="badge @(item.IsCompleted ? "bg-success" : "bg-secondary")">
-                        @(item.IsCompleted ? "مكتمل" : "معلق")
-                    </span>
-                </li>
+                <tr>
+                    <td>
+                        @(Model.Labels.GetValueOrDefault(item.Step, item.Step.ToString()))
+                        @if (!item.IsCompleted && !string.IsNullOrWhiteSpace(item.Notes))
+                        {
+                            <div class="small text-muted">@item.Notes</div>
+                        }
+                    </td>
+                    <td>@(item.OwnerRole ?? "—")</td>
+                    <td>@item.SlaHours ساعة</td>
+                    <td>
+                        <span class="badge @(item.IsCompleted ? "bg-success" : "bg-secondary")">
+                            @(item.IsCompleted ? "مكتمل" : "معلق")
+                        </span>
+                    </td>
+                    <td class="small">@(item.EvidenceRef ?? "—")</td>
+                </tr>
             }
-        </ul>
+            </tbody>
+        </table>
         <form asp-action="Step2Confirm" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="transactionId" value="@Model.Txn.Id" />

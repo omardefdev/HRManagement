@@ -388,6 +388,53 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.ToTable("ContractTypes");
                 });
 
+            modelBuilder.Entity("HR.Contracts.Domain.Entities.ContractTypeRegimeMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContractTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EmploymentType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LegalRegimeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractTypeId");
+
+                    b.HasIndex("TenantId", "LegalRegimeId", "EmploymentType")
+                        .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "LegalRegimeId", "EmploymentType"), false);
+
+                    b.ToTable("ContractTypeRegimeMaps");
+                });
+
             modelBuilder.Entity("HR.Contracts.Domain.Entities.HireChecklist", b =>
                 {
                     b.Property<Guid>("Id")
@@ -828,6 +875,10 @@ namespace HR.Contracts.Infrastructure.Migrations
 
                     b.Property<Guid?>("OfferLetterId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("PendingContractTerms")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<Guid?>("RecruitmentApplicationId")
                         .HasColumnType("uuid");
@@ -1591,6 +1642,17 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Contract");
+                });
+
+            modelBuilder.Entity("HR.Contracts.Domain.Entities.ContractTypeRegimeMap", b =>
+                {
+                    b.HasOne("HR.Contracts.Domain.Entities.ContractType", "ContractType")
+                        .WithMany()
+                        .HasForeignKey("ContractTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ContractType");
                 });
 
             modelBuilder.Entity("HR.Contracts.Domain.Entities.HireChecklist", b =>

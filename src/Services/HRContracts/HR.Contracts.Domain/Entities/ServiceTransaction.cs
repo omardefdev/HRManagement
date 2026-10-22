@@ -47,6 +47,12 @@ public class ServiceTransaction : AuditableEntity
     /// <summary>FUN-029 (J): set once when commencement is overdue (intervention published).</summary>
     public DateTime? CommencementOverdueAt { get; set; }
 
+    /// <summary>
+    /// FUN-029 (F3): offer terms (JSON <c>ContractOfferTerms</c>) kept while no contract type matched, so the manual
+    /// "create pending contract" action can use them. Null once the contract exists.
+    /// </summary>
+    public string? PendingContractTerms { get; set; }
+
     public ICollection<ServiceTransactionStateHistory> StateHistory { get; set; } = new List<ServiceTransactionStateHistory>();
 
     public void MoveTo(ServiceTransactionState nextState, Guid? byUserId, string? reason = null)

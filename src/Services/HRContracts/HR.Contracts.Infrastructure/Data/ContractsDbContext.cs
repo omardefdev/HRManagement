@@ -16,6 +16,7 @@ public class ContractsDbContext : TenantAwareDbContext
 
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<ContractType> ContractTypes => Set<ContractType>();
+    public DbSet<ContractTypeRegimeMap> ContractTypeRegimeMaps => Set<ContractTypeRegimeMap>();
     public DbSet<ContractSignature> ContractSignatures => Set<ContractSignature>();
     public DbSet<ProbationRecord> ProbationRecords => Set<ProbationRecord>();
     public DbSet<SeparationRecord> SeparationRecords => Set<SeparationRecord>();
@@ -169,6 +170,21 @@ public class ContractsDbContext : TenantAwareDbContext
 
             // FUN-029: explicit recruitment lineage.
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId });
+            entity.Property(e => e.PendingContractTerms).HasMaxLength(2000);
+        });
+
+        modelBuilder.Entity<ContractTypeRegimeMap>(entity =>
+        {
+            entity.Property(e => e.LegalRegimeId).HasMaxLength(50);
+            entity.Property(e => e.EmploymentType).HasMaxLength(20);
+            entity.HasOne(e => e.ContractType)
+                  .WithMany()
+                  .HasForeignKey(e => e.ContractTypeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            // FUN-029 (F1): null = "any"; NULLS NOT DISTINCT keeps one (law50, any) row per tenant.
+            entity.HasIndex(e => new { e.TenantId, e.LegalRegimeId, e.EmploymentType })
+                  .IsUnique()
+                  .AreNullsDistinct(false);
         });
 
         modelBuilder.Entity<ServiceTransactionStateHistory>(entity =>
