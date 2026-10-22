@@ -108,6 +108,10 @@ public class AcceptanceSeedTests
         Assert.Equal(AcceptanceSeedIds.AgencyAId, requisition.TenantId);
         Assert.Equal(1, await db.RecruitmentRequisitions.IgnoreQueryFilters()
             .CountAsync(r => r.FundedPositionId == requisition.FundedPositionId));
+        // br1-mgr (RIF scope) must be able to act on committee steps 1-2.
+        var position = await db.FundedPositions.IgnoreQueryFilters().SingleAsync(p => p.Id == requisition.FundedPositionId);
+        Assert.Equal("RIF", AcceptanceSeedCatalog.GetOrgUnit(position.OrgUnitId).SiteCode);
+        Assert.Equal(AcceptancePersonaCatalog.Get("br1-mgr").ScopeOrgUnitId, AcceptanceSeedIds.Br1OrgUnitId);
 
         var candidates = await db.RecruitmentApplications.IgnoreQueryFilters()
             .Where(a => a.RequisitionId == requisition.Id)

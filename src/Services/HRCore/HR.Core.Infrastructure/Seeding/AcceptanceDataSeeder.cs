@@ -805,11 +805,17 @@ public static class AcceptanceDataSeeder
             .Where(r => r.TenantId == agency.Id)
             .Select(r => r.FundedPositionId)
             .ToListAsync(ct);
+        // In the RIF branch (br1-mgr scope) so branch HR can act on committee steps 1-2.
+        var branchUnitIds = agency.OrgUnits
+            .Where(u => u.SiteCode == AcceptanceSeedCatalog.GetOrgUnit(AcceptanceSeedIds.Br1OrgUnitId).SiteCode)
+            .Select(u => u.Id)
+            .ToList();
         var position = await db.FundedPositions
             .Include(p => p.JobCatalogEntry)
             .Where(p => p.TenantId == agency.Id
                 && p.Status == FundedPositionStatus.Vacant
                 && p.PositionCode.StartsWith("VAC-")
+                && branchUnitIds.Contains(p.OrgUnitId)
                 && !usedPositionIds.Contains(p.Id))
             .OrderBy(p => p.PositionCode)
             .FirstOrDefaultAsync(ct);
@@ -841,6 +847,7 @@ public static class AcceptanceDataSeeder
         posting.Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "committee-posting");
         db.PublicJobPostings.Add(posting);
         requisition.PublicJobPosting = posting;
+        requisition.PublicJobPostingId = posting.Id; // as RecruitmentRequisitionLifecycleService.PublishAsync does
 
         var criteria = new RecruitmentAssessmentCriteria
         {
