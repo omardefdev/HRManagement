@@ -31,11 +31,9 @@ public class RecruitmentApplicationsController(
     RecruitmentSelectionService selection,
     RecruitmentOfferService offerService,
     RecruitmentAppealService appealService,
-    RecruitmentAppealWorkflowUiService appealWorkflowUiService,
     RecruitmentInterviewService interviewService,
     RecruitmentScoringService scoringService,
     IAuthorizationService authorization,
-    IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IPolicyOrchestrator policyOrchestrator,
     IConfiguration configuration) : Controller
@@ -107,10 +105,9 @@ public class RecruitmentApplicationsController(
             ViewBag.RequisitionLegalSourceLabel = null;
         }
 
-        var appealWorkflow = await appealWorkflowUiService.BuildPanelAsync(activeAppeal, User);
-        var showDirectDecide = activeAppeal is not null
-            && activeAppeal.Status == RecruitmentAppealStatus.Pending
-            && activeAppeal.WorkflowInstanceId is null;
+        var appealFilingError = app.Status == RecruitmentApplicationStatus.Rejected
+            ? appealService.GetFilingError(app, DateTime.UtcNow)
+            : null;
 
         return View(new RecruitmentApplicationDetailsViewModel
         {
@@ -123,10 +120,9 @@ public class RecruitmentApplicationsController(
             AppealPending = RecruitmentAppealWorkflowRules.HasPendingAppeal(app),
             CanRank = RecruitmentAppealWorkflowRules.CanRank(app),
             CanOffer = RecruitmentAppealWorkflowRules.CanOffer(app),
-            CanAppeal = RecruitmentAppealWorkflowRules.CanAppeal(app, DateTime.UtcNow),
+            CanAppeal = app.Status == RecruitmentApplicationStatus.Rejected && appealFilingError is null,
+            AppealFilingError = appealFilingError,
             ActiveAppeal = activeAppeal,
-            AppealWorkflow = appealWorkflow,
-            ShowDirectAppealDecide = showDirectDecide,
             InterviewSlots = interviews,
             BestAvailableRank = bestAvailableRank,
             RequiresMeritOverride = app.Rank is null || app.Rank != bestAvailableRank,
@@ -251,99 +247,30 @@ public class RecruitmentApplicationsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> SetStatus(Guid id, RecruitmentApplicationStatus status)
+    public async Task<IActionResult> SetStatus(Guid id, RecruitmentApplicationStatus status, string? rejectionNote = null)
     {
         var legacyFlag = ResolveLegacyHireWithoutOffer();
-        var (success, error) = await selection.TransitionStatusAsync(id, status, legacyFlag);
+        var (success, error) = await selection.TransitionStatusAsync(id, status, legacyFlag, rejectionNote);
         TempData[success ? "Success" : "Error"] = success ? "تم تحديث حالة الطلب" : error;
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>HCM-028 (H1): HR files on the candidate's behalf; the reviewer is assigned on RecruitmentAppeals/Details.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> ReopenAppeal(Guid id, string appealNotes)
-    {
-        var (success, error) = await selection.ReopenAppealAsync(id, appealNotes, ParseUserId(User));
-        TempData[success ? "Success" : "Error"] = success ? "تم إعادة فتح الاستئناف" : error;
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> FileAppeal(Guid id, string reason, Guid independentReviewerId)
+    public async Task<IActionResult> FileAppeal(Guid id, string? reason)
     {
         var (appeal, error) = await appealService.FileAppealAsync(
-            id, reason, independentReviewerId, ParseUserId(User), User.Identity?.Name);
-        TempData[appeal is null ? "Error" : "Success"] = error ?? "تم تقديم الاستئناف";
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> ApproveAppealWorkflow(Guid id, RecruitmentAppealWorkflowActionViewModel vm)
-    {
-        if (id != vm.ApplicationId) return BadRequest();
-
-        var appeal = await db.RecruitmentAppeals.FindAsync(vm.AppealId);
-        if (appeal is null) return NotFound();
-        if (appeal.WorkflowInstanceId is not Guid workflowId)
+            id, reason, RecruitmentAppealFiledBy.HrOnBehalf, ParseUserId(User), HrOrgScopeVisibility.GetEmployeeId(User));
+        if (appeal is null)
         {
-            TempData["Error"] = "لا يوجد مسار مراجعة مرتبط بهذا الاستئناف.";
+            TempData["Error"] = error;
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var result = await workflowActions.ApproveAsync(
-            workflowId,
-            CreateWorkflowActor(User),
-            vm.Comments,
-            targetStepLevel: null);
-
-        TempData[result.Success ? "Success" : "Error"] = result.Success
-            ? "تم اعتماد مراجعة الاستئناف"
-            : result.Error ?? "تعذّر اعتماد الاستئناف.";
-
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> RejectAppealWorkflow(Guid id, RecruitmentAppealWorkflowActionViewModel vm)
-    {
-        if (id != vm.ApplicationId) return BadRequest();
-
-        var appeal = await db.RecruitmentAppeals.FindAsync(vm.AppealId);
-        if (appeal is null) return NotFound();
-        if (appeal.WorkflowInstanceId is not Guid workflowId)
-        {
-            TempData["Error"] = "لا يوجد مسار مراجعة مرتبط بهذا الاستئناف.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        var result = await workflowActions.RejectAsync(
-            workflowId,
-            CreateWorkflowActor(User),
-            vm.Comments);
-
-        TempData[result.Success ? "Success" : "Error"] = result.Success
-            ? "تم رفض الاستئناف"
-            : result.Error ?? "تعذّر رفض الاستئناف.";
-
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> DecideAppeal(Guid appealId, Guid applicationId, bool upheld, string decision)
-    {
-        var actorId = ParseUserId(User) ?? Guid.Empty;
-        var (success, error) = await appealService.DecideAppealAsync(appealId, upheld, decision, actorId);
-        TempData[success ? "Success" : "Error"] = success ? "تم البت في الاستئناف" : error;
-        return RedirectToAction(nameof(Details), new { id = applicationId });
+        TempData["Success"] = "تم تقديم الاستئناف — عيّن المراجع المستقل لبدء المراجعة.";
+        return RedirectToAction("Details", "RecruitmentAppeals", new { id = appeal.Id });
     }
 
     [HttpPost]
@@ -870,13 +797,5 @@ public class RecruitmentApplicationsController(
             .ToList();
 
         vm.Employees = new SelectList(employees, "Id", "Display", vm.ExistingEmployeeId);
-    }
-
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-    {
-        var userId = ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(userId, userName, actorRole);
     }
 }

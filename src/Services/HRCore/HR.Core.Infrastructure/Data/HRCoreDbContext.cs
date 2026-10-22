@@ -407,6 +407,7 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasFilter("\"Rank\" IS NOT NULL AND \"RequisitionId\" IS NOT NULL");
             entity.Property(e => e.NationalIdHash).HasMaxLength(64);
             entity.Property(e => e.AppealStatus).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.RejectionKind).HasConversion<string>().HasMaxLength(32);
             entity.HasOne(e => e.SourceInternalApplication)
                   .WithMany()
                   .HasForeignKey(e => e.SourceInternalApplicationId)
@@ -696,6 +697,7 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.RecruitmentApplicationId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.Status });
+            entity.Property(e => e.Outcome).HasConversion<string>().HasMaxLength(32);
         });
 
         modelBuilder.Entity<RecruitmentInterviewSlot>(entity =>

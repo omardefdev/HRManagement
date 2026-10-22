@@ -75,7 +75,8 @@ internal static class RecruitmentRequisitionCascade
             await CancelWorkflowAsync(db, offer.WorkflowInstanceId, now, ct);
         }
 
-        var rejected = await RejectOpenApplicationsAsync(db, requisition.Id, $"إلغاء الشاغر: {reason}", now, ct);
+        var rejected = await RejectOpenApplicationsAsync(
+            db, requisition.Id, RecruitmentRejectionKind.RequisitionCancelled, $"إلغاء الشاغر: {reason}", now, ct);
         var cancelledInterviews = await CancelScheduledInterviewsAsync(db, requisition.Id, reason, ct);
         // PLAN-30: notify affected candidates (citizen and internal applicants) of the cancellation.
 
@@ -122,10 +123,14 @@ internal static class RecruitmentRequisitionCascade
             vacancy.IsOpen = false;
     }
 
-    /// <summary>Non-terminal applications (not Hired/Rejected/Withdrawn/OfferDeclined) become Rejected with an explanatory note.</summary>
+    /// <summary>
+    /// Non-terminal applications (not Hired/Rejected/Withdrawn/OfferDeclined) become Rejected with an explanatory note.
+    /// HCM-028 (G2): <paramref name="kind"/> is RequisitionCancelled or RequisitionClosed.
+    /// </summary>
     public static async Task<int> RejectOpenApplicationsAsync(
         HRCoreDbContext db,
         Guid requisitionId,
+        RecruitmentRejectionKind kind,
         string note,
         DateTime now,
         CancellationToken ct)
@@ -135,8 +140,7 @@ internal static class RecruitmentRequisitionCascade
             .ToListAsync(ct);
         foreach (var app in open)
         {
-            app.Status = RecruitmentApplicationStatus.Rejected;
-            app.ReviewedAt = now;
+            ApplicationRejection.Apply(app, kind, note, now);
             app.Notes = string.IsNullOrWhiteSpace(app.Notes) ? note : $"{app.Notes}\n{note}";
         }
 

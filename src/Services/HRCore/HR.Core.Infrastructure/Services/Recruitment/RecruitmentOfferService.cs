@@ -351,8 +351,17 @@ public sealed class RecruitmentOfferService(
 
         if (app.ActiveOfferLetterId is null || app.ActiveOfferLetterId == offer.Id)
         {
-            app.Status = status;
-            app.ReviewedAt = now;
+            // HCM-028 (G2): the only rejection here is a revoke without revert.
+            if (status == RecruitmentApplicationStatus.Rejected)
+            {
+                ApplicationRejection.Apply(app, RecruitmentRejectionKind.OfferRevoked, note, now);
+            }
+            else
+            {
+                app.Status = status;
+                app.ReviewedAt = now;
+            }
+
             app.ActiveOfferLetterId = null;
             app.ActiveOfferLetter = null;
         }

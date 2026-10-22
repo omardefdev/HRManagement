@@ -21,6 +21,7 @@ public sealed class ReserveListService(
 {
     public const string ReserveExpiryNote = "انتهاء صلاحية قائمة الاحتياط";
     public const string MovedToReserveNote = "نُقل إلى قائمة الاحتياط بعد تعيين مرشح آخر";
+    public const string NotSelectedOnHireNote = "تعيين مرشح آخر على الشاغر";
 
     /// <summary>
     /// The best available candidate by merit (Ranked or ReserveListed, ranked, no pending appeal) — the
@@ -100,7 +101,7 @@ public sealed class ReserveListService(
             }
             else
             {
-                sibling.Status = RecruitmentApplicationStatus.Rejected;
+                ApplicationRejection.Apply(sibling, RecruitmentRejectionKind.NotSelectedOnHire, NotSelectedOnHireNote, nowUtc);
             }
 
             sibling.ReviewedAt = nowUtc;
@@ -127,8 +128,7 @@ public sealed class ReserveListService(
         var now = DateTime.UtcNow;
         foreach (var app in due)
         {
-            app.Status = RecruitmentApplicationStatus.Rejected;
-            app.ReviewedAt = now;
+            ApplicationRejection.Apply(app, RecruitmentRejectionKind.ReserveExpired, ReserveExpiryNote, now);
             app.Notes = AppendNote(app.Notes, ReserveExpiryNote);
             // PLAN-30: notify candidate
         }

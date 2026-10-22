@@ -10,6 +10,8 @@ namespace HR.Core.Infrastructure.Services.Recruitment;
 
 public sealed class RecruitmentSelectionService(HRCoreDbContext db)
 {
+    public const string DuplicateRankMessage = "الترتيب مستخدم لمرشح آخر على نفس طلب الشاغر.";
+
     public async Task<(bool Success, string? Error)> DeclareCoiAsync(
         RecruitmentApplication application,
         Guid? actorUserId,
@@ -98,7 +100,7 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         var duplicate = await db.RecruitmentApplications.AnyAsync(
             a => a.RequisitionId == app.RequisitionId && a.Id != app.Id && a.Rank == rank, ct);
         if (duplicate)
-            return (false, "الترتيب مستخدم لمرشح آخر على نفس طلب الشاغر.");
+            return (false, DuplicateRankMessage);
 
         ApplyRank(app, rank, gate is { Required: true } ? gate.DecisionFor(app.Id) : null, rankOverrideReason, actorUserId);
         await db.SaveChangesAsync(ct);
@@ -284,6 +286,76 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         }
     }
 
+    /// <summary>
+    /// HCM-028 (H3): checks a rank correction ordered by an upheld appeal before the reviewer's decision is approved
+    /// (the effect is applied after the workflow completes, so it must not fail there).
+    /// </summary>
+    public async Task<string?> ValidateAppealRankCorrectionAsync(
+        Guid applicationId,
+        Guid? requisitionId,
+        int rank,
+        CancellationToken ct = default)
+    {
+        if (rank < 1)
+            return "الترتيب يجب أن يكون موجباً.";
+        if (requisitionId is null)
+            return "الترتيب يتطلب طلب شاغر.";
+        var duplicate = await db.RecruitmentApplications.AnyAsync(
+            a => a.RequisitionId == requisitionId && a.Id != applicationId && a.Rank == rank, ct);
+        return duplicate ? DuplicateRankMessage : null;
+    }
+
+    /// <summary>
+    /// HCM-028 (H3): stages the rank ordered by an upheld appeal (no save). The independent reviewer's decision
+    /// outranks the committee's, so the committee gate of <see cref="AssignRankAsync"/> is not applied; the rationale is
+    /// stored as the rank override reason and audited as <c>AppealRankCorrection</c>.
+    /// </summary>
+    internal async Task<string?> StageAppealRankCorrectionAsync(
+        RecruitmentApplication app,
+        int rank,
+        string rationale,
+        Guid appealId,
+        int? rankBeforeRejection,
+        Guid? actorUserId,
+        CancellationToken ct)
+    {
+        var error = await ValidateAppealRankCorrectionAsync(app.Id, app.RequisitionId, rank, ct);
+        if (error is not null)
+            return error;
+
+        var gate = await GetCommitteeRankingGateAsync(app.RequisitionId!.Value, ct);
+        var now = DateTime.UtcNow;
+        var reason = rationale.Trim();
+        app.Rank = rank;
+        app.RankedAt = now;
+        app.RankOverrideReason = reason.Length > 1000 ? reason[..1000] : reason;
+        app.RankOverriddenBy = actorUserId;
+        app.RankOverriddenAt = now;
+        if (app.Status == RecruitmentApplicationStatus.Assessed
+            && SelectionWorkflowRules.ValidateTransitionGate(app, RecruitmentApplicationStatus.Ranked) is null)
+        {
+            app.Status = RecruitmentApplicationStatus.Ranked;
+            app.ReviewedAt = now;
+        }
+
+        db.AuditLogs.Add(new EntityAuditLog
+        {
+            EntityType = nameof(RecruitmentApplication),
+            EntityId = app.Id,
+            Action = "AppealRankCorrection",
+            UserId = actorUserId,
+            ChangedFields = JsonSerializer.Serialize(new
+            {
+                appealId,
+                rankBeforeRejection,
+                rank,
+                committeeProposedRank = gate.DecisionFor(app.Id)?.ProposedRank,
+                reason = app.RankOverrideReason
+            })
+        });
+        return null;
+    }
+
     /// <summary>HCM-028 (A1): ranking has started once any application on the requisition holds a rank.</summary>
     public Task<bool> HasRankingStartedAsync(Guid requisitionId, CancellationToken ct = default) =>
         db.RecruitmentApplications.AnyAsync(a => a.RequisitionId == requisitionId && a.Rank != null, ct);
@@ -328,6 +400,7 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         Guid applicationId,
         RecruitmentApplicationStatus to,
         bool legacyHireWithoutOffer,
+        string? rejectionNote = null,
         CancellationToken ct = default)
     {
         if (SelectionWorkflowRules.SystemOnlyTargets.Contains(to))
@@ -343,43 +416,17 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
             return (false, gate);
         }
 
-        app.Status = to;
-        app.ReviewedAt = DateTime.UtcNow;
-        if (to == RecruitmentApplicationStatus.UnderReview)
-            app.ScreenedAt = DateTime.UtcNow;
-
-        await db.SaveChangesAsync(ct);
-        return (true, null);
-    }
-
-    public async Task<(bool Success, string? Error)> ReopenAppealAsync(
-        Guid applicationId,
-        string appealNotes,
-        Guid? actorUserId,
-        CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(appealNotes))
-            return (false, "ملاحظات الاستئناف مطلوبة.");
-
-        var app = await LoadApplicationAsync(applicationId, ct);
-        if (app is null) return (false, "الطلب غير موجود.");
-
-        if (app.Status != RecruitmentApplicationStatus.Rejected)
-            return (false, "يمكن إعادة فتح الاستئناف للطلبات المرفوضة فقط.");
-
-        app.AppealNotes = appealNotes.Trim();
-        app.Status = RecruitmentApplicationStatus.UnderReview;
-        app.ReviewedAt = DateTime.UtcNow;
-        app.ScreenedAt = null;
-
-        db.AuditLogs.Add(new EntityAuditLog
+        if (to == RecruitmentApplicationStatus.Rejected)
         {
-            EntityType = nameof(RecruitmentApplication),
-            EntityId = app.Id,
-            Action = "ReopenAppeal",
-            UserId = actorUserId,
-            ChangedFields = $$"""{"appealNotes":{{JsonSerializer.Serialize(app.AppealNotes)}}}"""
-        });
+            ApplicationRejection.Apply(app, RecruitmentRejectionKind.SelectionDecision, rejectionNote, DateTime.UtcNow);
+        }
+        else
+        {
+            app.Status = to;
+            app.ReviewedAt = DateTime.UtcNow;
+            if (to == RecruitmentApplicationStatus.UnderReview)
+                app.ScreenedAt = DateTime.UtcNow;
+        }
 
         await db.SaveChangesAsync(ct);
         return (true, null);

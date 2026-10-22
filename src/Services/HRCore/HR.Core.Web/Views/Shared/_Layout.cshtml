@@ -4,6 +4,16 @@
 }
 
 @section SidebarItems {
+    @if (HR.Core.Web.Services.RecruitmentAppealAccess.IsComplianceOnly(User))
+    {
+        @* HCM-028 (F5): the compliance reviewer only reaches the appeal pages and the work inbox. *@
+        <li class="nav-header">نواة الموارد البشرية (HR.Core)</li>
+        <li class="nav-item"><a asp-controller="WorkInbox" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-inbox"></i><p>صندوق العمل</p></a></li>
+        <li class="nav-item"><a asp-controller="RecruitmentAppeals" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-gavel"></i><p>استئنافات التوظيف</p></a></li>
+        @await Html.PartialAsync("_HrModuleNav")
+    }
+    else
+    {
     <li class="nav-header">نواة الموارد البشرية (HR.Core)</li>
 
     <li class="nav-item">
@@ -62,6 +72,10 @@
     <li class="nav-item"><a asp-controller="DiwanCorrespondences" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-envelope-open-text"></i><p>سجل الديوان</p></a></li>
     <li class="nav-item"><a asp-controller="RecruitmentApplications" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>التوظيف والاستقطاب</p></a></li>
     <li class="nav-item"><a asp-controller="RecruitmentRequisitions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-signature"></i><p>طلبات الشاغر</p></a></li>
+    @if (User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.Admin) || User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.HrCore) || User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.Compliance))
+    {
+        <li class="nav-item"><a asp-controller="RecruitmentAppeals" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-gavel"></i><p>استئنافات التوظيف</p></a></li>
+    }
 
     <li class="nav-header">الملاك والمناصب (EST-001)</li>
     <li class="nav-item"><a asp-controller="JobCatalog" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-book"></i><p>دليل الوظائف</p></a></li>
@@ -101,6 +115,7 @@
     </li>
 
     @await Html.PartialAsync("_HrModuleNav")
+    }
 }
 
 @section Styles {

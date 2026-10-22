@@ -116,7 +116,8 @@ public class Wf023WorkInboxUiTests
         var otherItems = await query.GetActionableWorkflowItemsAsync(CreateUser(HrReviewerId, "compliance"));
 
         Assert.Single(reviewerItems);
-        Assert.Contains("RecruitmentApplications/Details", reviewerItems[0].DeepLink!, StringComparison.Ordinal);
+        // HCM-028 (F4): appeals link to their own page.
+        Assert.Contains("RecruitmentAppeals/Details", reviewerItems[0].DeepLink!, StringComparison.Ordinal);
         Assert.Empty(otherItems);
     }
 
@@ -157,7 +158,7 @@ public class Wf023WorkInboxUiTests
         Assert.Contains(hrItems, i => i.DeepLink == $"/RecruitmentRequisitions/Details/{reqId}");
         Assert.Contains(hrItems, i => i.DeepLink == $"/OfferLetters/Details/{offerId}");
         Assert.Contains(hrItems, i => i.DeepLink == $"/SelectionCommittees/Details/{committee.Id}");
-        Assert.Contains(complianceItems, i => i.DeepLink!.StartsWith("/RecruitmentApplications/Details/", StringComparison.Ordinal));
+        Assert.Contains(complianceItems, i => i.DeepLink!.StartsWith("/RecruitmentAppeals/Details/", StringComparison.Ordinal));
     }
 
     [Fact]

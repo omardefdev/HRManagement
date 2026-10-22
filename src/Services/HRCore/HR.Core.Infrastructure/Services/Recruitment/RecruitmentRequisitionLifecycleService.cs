@@ -287,7 +287,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
         await RecruitmentRequisitionCascade.UnpublishAsync(db, req, ct);
         // HCM-027: OfferDeclined is terminal and left as is; ReserveListed is open, so closing the requisition
         // ends its reserve list (reserve candidates are rejected with the other open applications).
-        await RecruitmentRequisitionCascade.RejectOpenApplicationsAsync(db, req.Id, "إغلاق الشاغر", now, ct);
+        await RecruitmentRequisitionCascade.RejectOpenApplicationsAsync(
+            db, req.Id, RecruitmentRejectionKind.RequisitionClosed, "إغلاق الشاغر", now, ct);
         await RecruitmentRequisitionCascade.CancelScheduledInterviewsAsync(db, req.Id, "إغلاق الشاغر", ct);
 
         await db.SaveChangesAsync(ct);

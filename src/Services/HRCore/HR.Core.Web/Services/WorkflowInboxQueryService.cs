@@ -28,6 +28,8 @@ public sealed class WorkflowInboxQueryService(
         "EstablishmentChangeRequest"
     ];
 
+    private static readonly string[] AppealOnlyEntityTypes = ["RecruitmentAppeal"];
+
     public async Task<IReadOnlyList<WorkInboxItem>> GetActionableWorkflowItemsAsync(
         ClaimsPrincipal user,
         CancellationToken ct = default)
@@ -38,9 +40,11 @@ public sealed class WorkflowInboxQueryService(
 
         var accessScope = await orgScope.GetAllowedOrgUnitIdsAsync(user, ct);
 
+        // HCM-028 (F4): the compliance reviewer only sees the appeal reviews assigned to them.
+        var entityTypes = RecruitmentAppealAccess.IsComplianceOnly(user) ? AppealOnlyEntityTypes : SupportedEntityTypes;
         var instances = await db.WorkflowInstances.AsNoTracking()
             .Where(i => i.Status == WorkflowStatus.InProgress
-                        && SupportedEntityTypes.Contains(i.EntityType))
+                        && entityTypes.Contains(i.EntityType))
             .OrderBy(i => i.StartedAt)
             .ToListAsync(ct);
 
@@ -93,7 +97,7 @@ public sealed class WorkflowInboxQueryService(
         CancellationToken ct = default)
     {
         var userId = WorkflowPanelBuilder.ParseUserId(user);
-        if (userId is null)
+        if (userId is null || RecruitmentAppealAccess.IsComplianceOnly(user))
             return [];
 
         var requests = await db.ApprovalRequests.AsNoTracking()

@@ -22,7 +22,8 @@ public sealed class WorkflowInboxEligibilityService
         if (userId.HasValue && context.EntityCreatedBy == userId)
             return false;
 
-        var options = BuildOptions(instance, context, HrOrgScopeVisibility.GetEmployeeId(user));
+        var options = BuildOptions(
+            instance, context, HrOrgScopeVisibility.GetEmployeeId(user), RecruitmentAppealAccess.HasReviewerRole(user));
         var panel = WorkflowPanelBuilder.Build(instance, definition, user, userId, options);
         return panel.CanApprove;
     }
@@ -30,7 +31,8 @@ public sealed class WorkflowInboxEligibilityService
     internal static WorkflowPanelBuildOptions BuildOptions(
         WorkflowInstance instance,
         WorkflowInboxEntityContext context,
-        Guid? actorEmployeeId = null) =>
+        Guid? actorEmployeeId = null,
+        bool actorHasAppealReviewerRole = false) =>
         instance.EntityType switch
         {
             "OfferLetter" => new WorkflowPanelBuildOptions
@@ -44,16 +46,13 @@ public sealed class WorkflowInboxEligibilityService
             {
                 IsAwaitingApproval = context.IsAwaitingApproval,
                 BlockInitiatorOnLaterSteps = false,
+                // HCM-028 (H2): only the assigned reviewer (employee, or legacy user id) with the compliance role.
                 AdditionalBlockReason = (_, _, actorId) =>
-                {
-                    if (context.Appeal is null
-                        || !RecruitmentAppealWorkflowRules.CanDecideAppeal(context.Appeal, actorId))
-                    {
-                        return "غير مصرح: يجب أن تكون المراجع المستقل المعيّن.";
-                    }
-
-                    return null;
-                }
+                    context.Appeal is not null
+                    && RecruitmentAppealWorkflowRules.IsAssignedReviewer(
+                        context.Appeal, actorHasAppealReviewerRole, actorId, actorEmployeeId)
+                        ? null
+                        : RecruitmentAppealWorkflowRules.NotAssignedReviewerMessage
             },
             "SelectionCommitteeSession" => new WorkflowPanelBuildOptions
             {

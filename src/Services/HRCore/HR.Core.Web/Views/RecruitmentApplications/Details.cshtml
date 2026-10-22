@@ -12,6 +12,10 @@
 {
     <div class="alert alert-warning">
         <i class="fas fa-gavel ms-1"></i> يوجد استئناف قيد المراجعة — الترتيب وخطاب العرض موقوفان مؤقتاً.
+        @if (Model.ActiveAppeal is not null)
+        {
+            <a asp-controller="RecruitmentAppeals" asp-action="Details" asp-route-id="@Model.ActiveAppeal.Id" class="alert-link ms-1">فتح الاستئناف</a>
+        }
     </div>
 }
 
@@ -179,7 +183,7 @@
         <div class="card mb-3">
             <div class="card-header"><h5 class="mb-0">انتقالات الحالة</h5></div>
             <div class="card-body d-flex flex-wrap gap-2">
-                @foreach (var target in Model.AllowedStatusTransitions)
+                @foreach (var target in Model.AllowedStatusTransitions.Where(t => t != RecruitmentApplicationStatus.Rejected))
                 {
                     <form asp-action="SetStatus" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
@@ -188,90 +192,80 @@
                         <button type="submit" class="btn btn-outline-primary btn-sm">@Html.HrEnumDisplay(target)</button>
                     </form>
                 }
-            </div>
-        </div>
-    }
-
-    @if (app.Status == RecruitmentApplicationStatus.Rejected && Model.CanAppeal)
-    {
-        <div class="card mb-3">
-            <div class="card-header"><h5 class="mb-0">تقديم استئناف</h5></div>
-            <div class="card-body">
-                <form asp-action="FileAppeal" method="post" class="row g-2 align-items-end">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@app.Id" />
-                    <div class="col-md-6">
-                        <label class="form-label">سبب الاستئناف</label>
-                        <textarea name="reason" class="form-control" rows="2" required></textarea>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">المراجع المستقل (معرّف المستخدم)</label>
-                        <input type="text" name="independentReviewerId" class="form-control" required />
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-warning">تقديم الاستئناف</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    }
-
-    @if (Model.ActiveAppeal is not null && Model.ActiveAppeal.Status == RecruitmentAppealStatus.Pending && Model.AppealWorkflow is not null)
-    {
-        ViewData["ApplicationId"] = app.Id;
-        ViewData["AppealId"] = Model.ActiveAppeal.Id;
-        <div class="card mb-3">
-            <div class="card-header"><h5 class="mb-0">مراجعة الاستئناف (مسار الاعتماد)</h5></div>
-            <div class="card-body">
-                <p class="text-muted">@Model.ActiveAppeal.Reason</p>
-                @if (!string.IsNullOrWhiteSpace(Model.AppealWorkflow.MissingWorkflowWarning))
+                @if (Model.AllowedStatusTransitions.Contains(RecruitmentApplicationStatus.Rejected))
                 {
-                    <div class="alert alert-warning">@Model.AppealWorkflow.MissingWorkflowWarning</div>
+                    <form asp-action="SetStatus" method="post" class="d-flex gap-1 align-items-center" data-hr-confirm="رفض الطلب؟ يمكن للمرشح الاستئناف خلال المهلة." data-hr-confirm-title="رفض الطلب" data-hr-confirm-variant="danger">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@app.Id" />
+                        <input type="hidden" name="status" value="@RecruitmentApplicationStatus.Rejected" />
+                        <label class="visually-hidden" for="rejectionNote">ملاحظة الرفض</label>
+                        <input type="text" id="rejectionNote" name="rejectionNote" class="form-control form-control-sm" maxlength="1000" placeholder="ملاحظة الرفض (اختياري)" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm">@Html.HrEnumDisplay(RecruitmentApplicationStatus.Rejected)</button>
+                    </form>
                 }
-                <partial name="_AppealWorkflowPanel" model="Model.AppealWorkflow" />
-            </div>
-        </div>
-    }
-
-    @if (Model.ActiveAppeal is not null && Model.ActiveAppeal.Status == RecruitmentAppealStatus.Pending && Model.ShowDirectAppealDecide)
-    {
-        <div class="card mb-3">
-            <div class="card-header"><h5 class="mb-0">البت في الاستئناف</h5></div>
-            <div class="card-body">
-                <p class="text-muted">@Model.ActiveAppeal.Reason</p>
-                <form asp-action="DecideAppeal" method="post" class="row g-2 align-items-end">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="appealId" value="@Model.ActiveAppeal.Id" />
-                    <input type="hidden" name="applicationId" value="@app.Id" />
-                    <div class="col-md-6">
-                        <label class="form-label">القرار</label>
-                        <textarea name="decision" class="form-control" rows="2" required></textarea>
-                    </div>
-                    <div class="col-md-4 d-flex gap-2">
-                        <button type="submit" name="upheld" value="true" class="btn btn-success">قبول الاستئناف</button>
-                        <button type="submit" name="upheld" value="false" class="btn btn-outline-danger">رفض الاستئناف</button>
-                    </div>
-                </form>
             </div>
         </div>
     }
 
     @if (app.Status == RecruitmentApplicationStatus.Rejected)
     {
-        <div class="card mb-3">
-            <div class="card-header"><h5 class="mb-0">استئناف (مسار قديم)</h5></div>
+        <div class="card mb-3" id="appeal">
+            <div class="card-header"><h5 class="mb-0">الرفض والاستئناف</h5></div>
             <div class="card-body">
-                <form asp-action="ReopenAppeal" method="post" class="row g-2 align-items-end">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@app.Id" />
-                    <div class="col-md-8">
-                        <label class="form-label">ملاحظات الاستئناف</label>
-                        <textarea name="appealNotes" class="form-control" rows="2" required>@(app.AppealNotes ?? "")</textarea>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-outline-warning">إعادة فتح للمراجعة</button>
-                    </div>
-                </form>
+                <dl class="row mb-3">
+                    <dt class="col-sm-3">نوع الرفض</dt>
+                    <dd class="col-sm-9">
+                        @if (app.RejectionKind is { } kind)
+                        {
+                            @Html.HrEnumDisplay(kind)
+                        }
+                        else
+                        {
+                            <text>قرار الاختيار (سجل قديم)</text>
+                        }
+                    </dd>
+                    <dt class="col-sm-3">تاريخ الرفض</dt>
+                    <dd class="col-sm-9">@((app.RejectedAt ?? app.ReviewedAt)?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+                    @if (!string.IsNullOrWhiteSpace(app.RejectionNote))
+                    {
+                        <dt class="col-sm-3">ملاحظة الرفض</dt>
+                        <dd class="col-sm-9">@app.RejectionNote</dd>
+                    }
+                </dl>
+                @if (canWrite && Model.CanAppeal)
+                {
+                    <form asp-action="FileAppeal" method="post" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@app.Id" />
+                        <div class="col-md-9">
+                            <label class="form-label" for="appealReason">سبب الاستئناف (نيابة عن المرشح، @HR.Core.Domain.Services.RecruitmentAppealWorkflowRules.MinReasonLength حرفاً على الأقل)</label>
+                            <textarea id="appealReason" name="reason" class="form-control" rows="2" minlength="@HR.Core.Domain.Services.RecruitmentAppealWorkflowRules.MinReasonLength" maxlength="2000" required></textarea>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-warning">تقديم الاستئناف</button>
+                        </div>
+                    </form>
+                    <p class="text-muted small mt-2 mb-0">يُعيَّن المراجع المستقل بعد التقديم من صفحة الاستئناف.</p>
+                }
+                else if (!Model.CanAppeal && Model.ActiveAppeal is null && !string.IsNullOrWhiteSpace(Model.AppealFilingError))
+                {
+                    <p class="text-muted mb-0">@Model.AppealFilingError</p>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.ActiveAppeal is not null)
+    {
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">الاستئناف</h5></div>
+            <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+                <span>الحالة: <strong>@Html.HrEnumDisplay(Model.ActiveAppeal.Status)</strong></span>
+                @if (Model.ActiveAppeal.Outcome is { } outcome)
+                {
+                    <span>النتيجة: <strong>@Html.HrEnumDisplay(outcome)</strong></span>
+                }
+                <a asp-controller="RecruitmentAppeals" asp-action="Details" asp-route-id="@Model.ActiveAppeal.Id" class="btn btn-outline-secondary btn-sm">تفاصيل الاستئناف</a>
             </div>
         </div>
     }

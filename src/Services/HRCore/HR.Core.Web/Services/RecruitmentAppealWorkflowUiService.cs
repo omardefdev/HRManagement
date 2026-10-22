@@ -4,10 +4,14 @@ using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
-using HRManagement.ServiceDefaults.Workflow;
 
 namespace HR.Core.Web.Services;
 
+/// <summary>
+/// HCM-028 (H3): progress of RECRUITMENT-APPEAL-REVIEW on RecruitmentAppeals/Details. Decisions are explicit forms
+/// (outcome / request information), so <see cref="WorkflowPanelViewModel.CanApprove"/> only tells whether the current
+/// user is the assigned reviewer on an active step.
+/// </summary>
 public sealed class RecruitmentAppealWorkflowUiService(HRCoreDbContext db)
 {
     public async Task<WorkflowPanelViewModel?> BuildPanelAsync(
@@ -21,7 +25,11 @@ public sealed class RecruitmentAppealWorkflowUiService(HRCoreDbContext db)
         if (appeal.WorkflowInstanceId is null)
             return new WorkflowPanelViewModel
             {
-                MissingWorkflowWarning = "لم يُنشأ مسار مراجعة للاستئناف. فعّل PolicyEngine:Core.Recruitment أو استخدم بيئة المختبر (IsLabScale)."
+                MissingWorkflowWarning = appeal.IndependentReviewerEmployeeId is null && appeal.IndependentReviewerId is null
+                    ? "لم يُعيَّن مراجع مستقل بعد — يبدأ مسار المراجعة عند التعيين."
+                    : appeal.IsAwaitingInfo
+                        ? "طلب المراجع معلومات إضافية — يُستأنف المسار بعد استيفائها."
+                        : "تعذّر إنشاء مسار مراجعة (لا يوجد تعريف RECRUITMENT-APPEAL-REVIEW) — يبت المراجع المعيّن مباشرة."
             };
 
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, appeal.WorkflowInstanceId, ct);
@@ -36,13 +44,9 @@ public sealed class RecruitmentAppealWorkflowUiService(HRCoreDbContext db)
             {
                 IsAwaitingApproval = appeal.Status == RecruitmentAppealStatus.Pending,
                 BlockInitiatorOnLaterSteps = false,
-                AdditionalBlockReason = (_, _, actorId) =>
-                {
-                    if (!RecruitmentAppealWorkflowRules.CanDecideAppeal(appeal, actorId))
-                        return "غير مصرح: يجب أن تكون المراجع المستقل المعيّن.";
-
-                    return null;
-                }
+                AdditionalBlockReason = (_, _, _) => RecruitmentAppealAccess.CanDecide(appeal, user)
+                    ? null
+                    : RecruitmentAppealWorkflowRules.NotAssignedReviewerMessage
             });
     }
 }

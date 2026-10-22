@@ -110,6 +110,21 @@ public class RecruitmentApplication : AuditableEntity
     [Display(Name = "تاريخ مخالفة الترتيب المقترح")]
     public DateTime? RankOverriddenAt { get; set; }
 
+    /// <summary>HCM-028 (G1): set by <see cref="Services.ApplicationRejection"/>; the appeal window starts here.</summary>
+    [Display(Name = "تاريخ الرفض")]
+    public DateTime? RejectedAt { get; set; }
+
+    [Display(Name = "نوع الرفض")]
+    public RecruitmentRejectionKind? RejectionKind { get; set; }
+
+    [StringLength(1000)]
+    [Display(Name = "ملاحظة الرفض")]
+    public string? RejectionNote { get; set; }
+
+    /// <summary>HCM-028 (H3): the rank held when rejected — an appeal may correct it.</summary>
+    [Display(Name = "الترتيب قبل الرفض")]
+    public int? RankBeforeRejection { get; set; }
+
     public virtual Employee? HiredEmployee { get; set; }
 
     public virtual ICollection<OfferLetter> OfferLetters { get; set; } = [];

@@ -1,0 +1,260 @@
+@model HR.Core.Web.ViewModels.RecruitmentAppealDetailsViewModel
+@using HR.Core.Domain.Enums
+@using HR.Core.Domain.Services
+
+@{
+    ViewData["Title"] = "تفاصيل الاستئناف";
+    var appeal = Model.Appeal;
+    var app = Model.Application;
+    var pending = appeal.Status == RecruitmentAppealStatus.Pending;
+    var canOpenApplication = !HR.Core.Web.Services.RecruitmentAppealAccess.IsComplianceOnly(User);
+}
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0"><i class="fas fa-gavel ms-1"></i> استئناف — @app.ApplicantFullName</h3>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-secondary fs-6">@Html.HrEnumDisplay(appeal.Status)</span>
+            @if (appeal.Outcome is { } outcome)
+            {
+                <span class="badge bg-primary fs-6">@Html.HrEnumDisplay(outcome)</span>
+            }
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">القائمة</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">سبب الاستئناف</dt>
+            <dd class="col-sm-9">@appeal.Reason</dd>
+            <dt class="col-sm-3">تاريخ التقديم</dt>
+            <dd class="col-sm-9">@appeal.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm") — @(appeal.FiledBy == HR.Core.Domain.Entities.RecruitmentAppealFiledBy.Candidate ? "المرشح" : "الموارد البشرية نيابة عن المرشح")</dd>
+            @if (appeal.DecidedAt is DateTime decidedAt)
+            {
+                <dt class="col-sm-3">تاريخ القرار</dt>
+                <dd class="col-sm-9">@decidedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</dd>
+                <dt class="col-sm-3">التعليل</dt>
+                <dd class="col-sm-9">@(appeal.Decision ?? "—")</dd>
+                @if (appeal.CorrectedRank is int correctedRank)
+                {
+                    <dt class="col-sm-3">الترتيب المصحّح</dt>
+                    <dd class="col-sm-9">@correctedRank</dd>
+                }
+            }
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">ملخص الطلب</h5></div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">المرشح</dt>
+            <dd class="col-sm-9">
+                @app.ApplicantFullName
+                @if (canOpenApplication)
+                {
+                    <a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@app.Id" class="ms-2 small">فتح الطلب</a>
+                }
+            </dd>
+            <dt class="col-sm-3">طلب الشاغر</dt>
+            <dd class="col-sm-9">
+                @if (Model.Requisition is { } req)
+                {
+                    @($"{req.RequisitionNumber} — {req.JobTitle}") <span class="badge bg-light text-dark ms-1">@Html.HrEnumDisplay(req.Status)</span>
+                }
+                else
+                {
+                    <text>@app.AppliedPosition (طلب قديم غير مرتبط)</text>
+                }
+            </dd>
+            <dt class="col-sm-3">نوع الرفض</dt>
+            <dd class="col-sm-9">
+                @if (app.RejectionKind is { } kind)
+                {
+                    @Html.HrEnumDisplay(kind)
+                }
+                else if (app.Status == RecruitmentApplicationStatus.Rejected)
+                {
+                    <text>قرار الاختيار (سجل قديم)</text>
+                }
+                else
+                {
+                    <text>— (الحالة الحالية: @Html.HrEnumDisplay(app.Status))</text>
+                }
+            </dd>
+            <dt class="col-sm-3">تاريخ الرفض</dt>
+            <dd class="col-sm-9">@((app.RejectedAt ?? (app.Status == RecruitmentApplicationStatus.Rejected ? app.ReviewedAt : null))?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            @if (!string.IsNullOrWhiteSpace(app.RejectionNote))
+            {
+                <dt class="col-sm-3">ملاحظة الرفض</dt>
+                <dd class="col-sm-9">@app.RejectionNote</dd>
+            }
+            <dt class="col-sm-3">درجة التقييم</dt>
+            <dd class="col-sm-9">@(app.AssessmentScore?.ToString("0.##") ?? "—") <span class="text-muted small">(@Model.AssessorCount مقيّم)</span></dd>
+            <dt class="col-sm-3">الترتيب قبل الرفض</dt>
+            <dd class="col-sm-9">@(Model.RankBeforeRejection?.ToString() ?? "—")</dd>
+            <dt class="col-sm-3">قرار اللجنة</dt>
+            <dd class="col-sm-9">
+                @if (Model.CommitteeDecision is { } decision)
+                {
+                    @Html.HrEnumDisplay(decision.Recommendation)
+                    @if (decision.ProposedRank is int proposedRank)
+                    {
+                        <text> — الترتيب المقترح @proposedRank</text>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(decision.Rationale))
+                    {
+                        <div class="text-muted small">@decision.Rationale</div>
+                    }
+                }
+                else
+                {
+                    <text>لا يوجد قرار لجنة معتمد لهذا المرشح.</text>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">المراجع المستقل</h5></div>
+    <div class="card-body">
+        <p class="mb-2">
+            @if (Model.ReviewerName is not null)
+            {
+                <strong>@Model.ReviewerName</strong>
+                @if (appeal.AssignedAt is DateTime assignedAt)
+                {
+                    <span class="text-muted small ms-1">عُيّن في @assignedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</span>
+                }
+            }
+            else if (appeal.IndependentReviewerId is not null)
+            {
+                <span>معرّف مستخدم قديم: <code>@appeal.IndependentReviewerId</code></span>
+            }
+            else
+            {
+                <span class="badge bg-warning text-dark">لم يُعيَّن مراجع بعد</span>
+            }
+        </p>
+        @if (Model.CanAssign)
+        {
+            <form asp-action="AssignReviewer" method="post" class="row g-2 align-items-end"
+                  data-hr-confirm="@(appeal.WorkflowInstanceId is null ? "تعيين المراجع وبدء مسار المراجعة؟" : "إعادة التعيين تلغي مسار المراجعة الجاري وتبدأ مساراً جديداً. متابعة؟")"
+                  data-hr-confirm-title="تعيين المراجع المستقل">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@appeal.Id" />
+                <div class="col-md-8">
+                    <label class="form-label" for="reviewerEmployee">الموظف (مستقل عن اللجنة والمقابلة والتقييم، بدور الامتثال)</label>
+                    <select id="reviewerEmployee" name="reviewerEmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف بالاسم..." required>
+                        <option value=""></option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">@(Model.ReviewerName is null && appeal.IndependentReviewerId is null ? "تعيين المراجع" : "إعادة تعيين المراجع")</button>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.Workflow is { } workflow)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">مسار مراجعة الاستئناف</h5></div>
+        <div class="card-body">
+            @if (!string.IsNullOrWhiteSpace(workflow.MissingWorkflowWarning))
+            {
+                <div class="alert alert-warning mb-2">@workflow.MissingWorkflowWarning</div>
+            }
+            @if (workflow.HasWorkflowInstance)
+            {
+                <p class="text-muted small mb-2">@(workflow.WorkflowName ?? workflow.WorkflowCode ?? "—")</p>
+                <partial name="_WorkflowProgressPanel" model="workflow.Steps" />
+                @if (!Model.CanDecide && !string.IsNullOrWhiteSpace(workflow.BlockReason))
+                {
+                    <div class="alert alert-info mt-3 mb-0">@workflow.BlockReason</div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(appeal.InfoRequest))
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">طلب معلومات إضافية</h5></div>
+        <div class="card-body">
+            <p class="mb-1">@appeal.InfoRequest</p>
+            <p class="text-muted small">@appeal.InfoRequestedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</p>
+            @if (!string.IsNullOrWhiteSpace(appeal.AdditionalInfo))
+            {
+                <h6>المعلومات المقدّمة</h6>
+                <p class="mb-1">@appeal.AdditionalInfo</p>
+                <p class="text-muted small mb-0">@appeal.AdditionalInfoAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</p>
+            }
+            @if (Model.CanResubmit)
+            {
+                <form asp-action="Resubmit" method="post" class="mt-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@appeal.Id" />
+                    <label class="form-label" for="additionalInfo">المعلومات الإضافية (@RecruitmentAppealWorkflowRules.MinInfoTextLength أحرف على الأقل)</label>
+                    <textarea id="additionalInfo" name="additionalInfo" class="form-control mb-2" rows="3" minlength="@RecruitmentAppealWorkflowRules.MinInfoTextLength" maxlength="4000" required></textarea>
+                    <button type="submit" class="btn btn-primary">استيفاء وإعادة للمراجع</button>
+                </form>
+            }
+        </div>
+    </div>
+}
+
+@if (Model.CanDecide)
+{
+    <div class="card mb-3" id="decide">
+        <div class="card-header"><h5 class="mb-0">قرار المراجع المستقل</h5></div>
+        <div class="card-body">
+            <form asp-action="Decide" method="post" data-hr-confirm="تسجيل نتيجة الاستئناف؟ القرار نهائي." data-hr-confirm-title="البت في الاستئناف">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@appeal.Id" />
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6">النتيجة</legend>
+                    @foreach (var option in Model.AllowedOutcomes)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="outcome" id="outcome-@option" value="@option" required />
+                            <label class="form-check-label" for="outcome-@option">@Html.HrEnumDisplay(option)</label>
+                        </div>
+                    }
+                    @if (Model.Requisition?.Status is RequisitionStatus.Closed or RequisitionStatus.Cancelled)
+                    {
+                        <p class="text-muted small mb-0">@RecruitmentAppealWorkflowRules.NoVacancyOutcomeMessage</p>
+                    }
+                </fieldset>
+                @if (Model.CanCorrectRank)
+                {
+                    <div class="mb-3">
+                        <label class="form-label" for="correctedRank">الترتيب المصحّح (لنتيجة «قبول — تصحيح الترتيب» فقط)</label>
+                        <input type="number" id="correctedRank" name="correctedRank" class="form-control" min="1" value="@Model.RankBeforeRejection" />
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="form-label" for="rationale">التعليل (@RecruitmentAppealWorkflowRules.MinRationaleLength حرفاً على الأقل)</label>
+                    <textarea id="rationale" name="rationale" class="form-control" rows="3" minlength="@RecruitmentAppealWorkflowRules.MinRationaleLength" maxlength="2000" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">تسجيل القرار</button>
+            </form>
+
+            <hr />
+            <form asp-action="RequestInfo" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@appeal.Id" />
+                <label class="form-label" for="infoRequest">طلب معلومات إضافية من الموارد البشرية (يبقى الاستئناف معلقاً)</label>
+                <textarea id="infoRequest" name="infoRequest" class="form-control mb-2" rows="2" minlength="@RecruitmentAppealWorkflowRules.MinInfoTextLength" maxlength="2000" required></textarea>
+                <button type="submit" class="btn btn-outline-warning">طلب معلومات</button>
+            </form>
+        </div>
+    </div>
+}
+else if (pending && appeal.IsAwaitingInfo && HR.Core.Web.Services.RecruitmentAppealAccess.IsAssignedTo(appeal, User))
+{
+    <div class="alert alert-info">@HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealService.AwaitingInfoMessage</div>
+}

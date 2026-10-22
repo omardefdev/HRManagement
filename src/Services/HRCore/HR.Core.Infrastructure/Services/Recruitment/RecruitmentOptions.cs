@@ -1,3 +1,6 @@
+using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
+
 namespace HR.Core.Infrastructure.Services.Recruitment;
 
 /// <summary>
@@ -59,6 +62,22 @@ public sealed class RecruitmentOptions
     /// true in Production and Staging).
     /// </summary>
     public bool CommitteeApprovalDefault { get; set; }
+
+    /// <summary>
+    /// HCM-028 (G3): <c>Recruitment:AppealWindowDays</c> — an appeal is filed within this many days of
+    /// <c>RejectedAt</c> (legacy rows: <c>ReviewedAt</c>), default 14.
+    /// </summary>
+    public int AppealWindowDays { get; set; } = RecruitmentAppealWorkflowRules.DefaultAppealWindowDays;
+
+    /// <summary>
+    /// HCM-028 (G3): <c>Recruitment:AppealableRejectionKinds</c> — rejection kinds that may be appealed. Null or empty
+    /// means <see cref="RecruitmentAppealWorkflowRules.DefaultAppealableKinds"/> (SelectionDecision, NotSelectedOnHire,
+    /// OfferRevoked); an array, so configuration replaces the default instead of appending to it.
+    /// </summary>
+    public RecruitmentRejectionKind[]? AppealableRejectionKinds { get; set; }
+
+    public IReadOnlyCollection<RecruitmentRejectionKind> GetAppealableRejectionKinds() =>
+        AppealableRejectionKinds is { Length: > 0 } kinds ? kinds : RecruitmentAppealWorkflowRules.DefaultAppealableKinds.ToArray();
 
     /// <summary>Background jobs settings (<c>Recruitment:Jobs:*</c>).</summary>
     public RecruitmentJobsOptions Jobs { get; set; } = new();

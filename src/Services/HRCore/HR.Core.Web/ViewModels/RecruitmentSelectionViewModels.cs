@@ -17,9 +17,10 @@ public class RecruitmentApplicationDetailsViewModel
     public bool CanRank { get; set; } = true;
     public bool CanOffer { get; set; } = true;
     public bool CanAppeal { get; set; }
+    /// <summary>HCM-028 (G3): why a rejected application cannot be appealed (window, kind, earlier appeal).</summary>
+    public string? AppealFilingError { get; set; }
+    /// <summary>HCM-028 (F3): latest appeal; handled on RecruitmentAppeals/Details.</summary>
     public RecruitmentAppeal? ActiveAppeal { get; set; }
-    public WorkflowPanelViewModel? AppealWorkflow { get; set; }
-    public bool ShowDirectAppealDecide { get; set; }
     public IReadOnlyList<RecruitmentInterviewSlot> InterviewSlots { get; set; } = [];
     /// <summary>HCM-027: lowest rank that can still receive an offer on the requisition (merit order).</summary>
     public int? BestAvailableRank { get; set; }
@@ -42,16 +43,6 @@ public class RecruitmentApplicationDetailsViewModel
     public HR.Core.Infrastructure.Services.Recruitment.CommitteeRankingGate? CommitteeGate { get; set; }
     /// <summary>HCM-028: this candidate's decision in the latest approved Ranking/Final session, or null.</summary>
     public SelectionCommitteeDecision? CommitteeDecision => CommitteeGate?.DecisionFor(Application.Id);
-}
-
-public class RecruitmentAppealWorkflowActionViewModel
-{
-    public Guid AppealId { get; set; }
-    public Guid ApplicationId { get; set; }
-
-    [Display(Name = "ملاحظات")]
-    [StringLength(500)]
-    public string? Comments { get; set; }
 }
 
 public class AssignRankForm

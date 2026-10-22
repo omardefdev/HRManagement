@@ -262,10 +262,10 @@ public class Hcm027ReserveListTests
 
     // ---------------------------------------------------------------- helpers
 
-    private static ReserveListService CreateReserveList(HRCoreDbContext db, RecruitmentOptions? options = null) =>
+    internal static ReserveListService CreateReserveList(HRCoreDbContext db, RecruitmentOptions? options = null) =>
         new(db, Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions()), NullLogger<ReserveListService>.Instance);
 
-    private static IConfiguration HireConfig(bool rejectSiblings) =>
+    internal static IConfiguration HireConfig(bool rejectSiblings) =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -290,7 +290,7 @@ public class Hcm027ReserveListTests
         return offer!;
     }
 
-    private static async Task<(RecruitmentApplication Winner, RecruitmentRequisition Requisition)> SeedAcceptedOfferAsync(HRCoreDbContext db)
+    internal static async Task<(RecruitmentApplication Winner, RecruitmentRequisition Requisition)> SeedAcceptedOfferAsync(HRCoreDbContext db)
     {
         await LegislationRegisterSeeder.SeedAsync(db);
         await ServiceRegimeSeeder.SeedAsync(db, new LegislationRegisterProvider(db));
@@ -316,7 +316,7 @@ public class Hcm027ReserveListTests
         return (winner, req);
     }
 
-    private static async Task HireAsync(
+    internal static async Task HireAsync(
         HRCoreDbContext db,
         RecruitmentApplication winner,
         IConfiguration config,

@@ -145,6 +145,15 @@ public sealed class WorkflowInstanceActionService(
         Guid? actorUserId,
         CancellationToken ct)
     {
+        // HCM-028 (H3): an appeal review is approved only through RecruitmentAppealService.DecideAsync, which stores the
+        // explicit outcome on the tracked appeal first (FindAsync sees it before it is saved).
+        if (string.Equals(instance.EntityType, "RecruitmentAppeal", StringComparison.OrdinalIgnoreCase))
+        {
+            var appeal = await context.RecruitmentAppeals.FindAsync([instance.EntityId], ct);
+            if (appeal is { Outcome: null })
+                return "يجب البت في الاستئناف بنتيجة صريحة من صفحة الاستئناف.";
+        }
+
         if (!actorUserId.HasValue)
             return null;
 

@@ -3084,6 +3084,22 @@ namespace HR.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AdditionalInfo")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("AdditionalInfoAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AssignedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("CorrectedRank")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3097,8 +3113,29 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("FiledBy")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("FiledByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("IndependentReviewerEmployeeId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("IndependentReviewerId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("InfoRequest")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("InfoRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -3203,6 +3240,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<int?>("Rank")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("RankBeforeRejection")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("RankOverriddenAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3215,6 +3255,17 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<DateTime?>("RankedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RejectionKind")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("RejectionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<Guid?>("RequisitionId")
                         .HasColumnType("uuid");

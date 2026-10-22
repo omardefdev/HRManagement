@@ -155,11 +155,11 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
         foreach (var (instance, definition) in pairs)
         {
             rows.TryGetValue(instance.EntityId, out var appeal);
-            var appId = appeal?.RecruitmentApplicationId ?? instance.EntityId;
             var applicant = appeal?.RecruitmentApplication?.ApplicantFullName;
             var stepName = GetCurrentStepName(instance, definition);
             result[instance.Id] = new WorkflowDeepLinkInfo(
-                DeepLink: $"/RecruitmentApplications/Details/{appId}",
+                // HCM-028 (F4): appeals are decided on their own page, which the compliance reviewer can open.
+                DeepLink: $"/RecruitmentAppeals/Details/{instance.EntityId}",
                 Title: applicant is null
                     ? "مراجعة استئناف"
                     : $"مراجعة استئناف — {applicant}",
