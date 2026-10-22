@@ -132,8 +132,8 @@ if ($Profile -eq "Demo") {
 
 $personasPath = Join-Path $RepoRoot "testdata/acceptance/personas.json"
 $personaFile = Get-Content $personasPath -Raw -Encoding UTF8 | ConvertFrom-Json
-if ($personaFile.schemaVersion -ne "acceptance-v2" -or @($personaFile.personas).Count -ne 56) {
-    throw "Acceptance persona catalog must use acceptance-v2 and contain exactly 56 personas."
+if ($personaFile.schemaVersion -ne "acceptance-v2" -or @($personaFile.personas).Count -ne 57) {
+    throw "Acceptance persona catalog must use acceptance-v2 and contain exactly 57 personas."
 }
 
 $localDir = Join-Path $RepoRoot ".acceptance"
@@ -264,6 +264,6 @@ foreach ($row in $guideRows) {
 [System.IO.File]::WriteAllLines($accountsMarkdownPath, $markdown, $utf8NoBom)
 [System.IO.File]::WriteAllText($accountsCsvPath, (($guideRows | ConvertTo-Csv -NoTypeInformation) -join [Environment]::NewLine), $utf8NoBom)
 
-Write-Host "Wrote Acceptance v2 Keycloak realm with 56 personas: $outPath"
+Write-Host "Wrote Acceptance v2 Keycloak realm with 57 personas: $outPath"
 Write-Host "Local credentials and account guide: $localDir"
 Write-Host "Passwords were not printed and are excluded from Git."

@@ -152,9 +152,21 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                 return true;
             }
 
+            // HCM-028 (PLAN-25 slice): the compliance reviewer opens appeals and the work inbox; the controllers
+            // keep HrCoreWrite on the HR-only appeal actions. Static assets carry no data and back their pages.
+            if (pathValue.StartsWith("/ui/hr-core/RecruitmentAppeals", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = HrManagementPolicies.HrCoreAppealReview;
+                return true;
+            }
+
             if (string.Equals(httpMethod, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
             {
-                policy = HrManagementPolicies.HrCoreReadOnly;
+                policy = pathValue.StartsWith("/ui/hr-core/WorkInbox", StringComparison.OrdinalIgnoreCase)
+                    ? HrManagementPolicies.HrCoreWorkInbox
+                    : IsHrCoreStaticAsset(pathValue)
+                        ? HrManagementPolicies.HrCoreLookup
+                        : HrManagementPolicies.HrCoreReadOnly;
                 return true;
             }
 
@@ -251,6 +263,16 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         string.Equals(httpMethod, HttpMethods.Post, StringComparison.OrdinalIgnoreCase)
         || string.Equals(httpMethod, HttpMethods.Put, StringComparison.OrdinalIgnoreCase)
         || string.Equals(httpMethod, HttpMethods.Delete, StringComparison.OrdinalIgnoreCase);
+
+    private static readonly string[] HrCoreStaticPrefixes =
+        ["/ui/hr-core/css/", "/ui/hr-core/js/", "/ui/hr-core/lib/", "/ui/hr-core/fonts/", "/ui/hr-core/images/", "/ui/hr-core/_content/"];
+
+    private static bool IsHrCoreStaticAsset(string pathValue) =>
+        HrCoreStaticPrefixes.Any(p => pathValue.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+        || string.Equals(pathValue, "/ui/hr-core/favicon.ico", StringComparison.OrdinalIgnoreCase)
+        || (pathValue.StartsWith("/ui/hr-core/", StringComparison.OrdinalIgnoreCase)
+            && pathValue.EndsWith(".styles.css", StringComparison.OrdinalIgnoreCase)
+            && pathValue.IndexOf('/', "/ui/hr-core/".Length) < 0);
 
     /// <summary>MVC workflow approve/reject actions (PLAN-21..24) use branch-operation policy, not write.</summary>
     private static bool IsHrCoreWorkflowMvcAction(string pathValue) =>

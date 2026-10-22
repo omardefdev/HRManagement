@@ -139,6 +139,18 @@ public class AcceptanceSeedTests
             Assert.DoesNotContain(session.Members, m => personaEmployees.TryGetValue(m.EmployeeId, out var p) && p == personaId);
         Assert.All(session.Members, m => Assert.False(personaEmployees.ContainsKey(m.EmployeeId)));
 
+        // HCM-028 session 2: adding a-compliance-2 must not shift the documented members (handoff §6).
+        Assert.Equal(
+            new[]
+            {
+                Guid.Parse("e4b65b57-584f-d842-8c6b-4324441cad16"), Guid.Parse("4c2fe080-6243-d24b-93a4-4cce36fbbd68"),
+                Guid.Parse("38fe721e-a767-3e4a-a448-cae5ef8c3455"), Guid.Parse("ec716ac1-3e93-4245-9c65-f0c67c8c1f4c")
+            }.Order(),
+            session.Members.Select(m => m.EmployeeId).Order());
+        var compliance2 = AcceptancePersonaCatalog.Get("a-compliance-2").Employee!;
+        Assert.Equal(AcceptanceEmployeeState.Active, compliance2.State);
+        Assert.NotEqual(AcceptancePersonaCatalog.Get("a-compliance").Employee!.Id, compliance2.Id);
+
         // Quorum and chair are met; only the per-candidate decisions (and their votes) remain.
         var members = session.Members.ToList();
         var issues = HR.Core.Domain.Services.SelectionCommitteeRules.GetSubmitIssues(members, [], [], [], candidates);

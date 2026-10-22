@@ -6,7 +6,8 @@ using HRManagement.ServiceDefaults;
 
 namespace HR.Core.Web.Controllers;
 
-[Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+/// <summary>HCM-028 (F4): HrCoreWorkInbox — the HR.Core read roles plus the compliance reviewer (appeals only).</summary>
+[Authorize(Policy = HrManagementPolicies.HrCoreWorkInbox)]
 public class WorkInboxController(WorkflowInboxQueryService queryService) : Controller
 {
     public async Task<IActionResult> Index(string? entityType, string? source, CancellationToken ct)

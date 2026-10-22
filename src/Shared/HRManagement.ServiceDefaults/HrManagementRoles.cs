@@ -86,6 +86,12 @@ public static class HrManagementPolicies
     /// <summary>Scoped operational actions available to central HR and branch managers.</summary>
     public const string HrCoreBranchOperation = "HrCore.BranchOperation";
 
+    /// <summary>HCM-028 (PLAN-25 slice): recruitment appeal review — central HR and the compliance reviewer.</summary>
+    public const string HrCoreAppealReview = "HrCore.AppealReview";
+
+    /// <summary>HCM-028 (PLAN-25 slice): HR.Core work inbox — the read-only roles plus compliance (appeals only).</summary>
+    public const string HrCoreWorkInbox = "HrCore.WorkInbox";
+
     /// <summary>Lookup APIs shared across modules — any authenticated user (no NationalId in responses).</summary>
     public const string HrCoreLookup = "HrCore.Lookup";
 

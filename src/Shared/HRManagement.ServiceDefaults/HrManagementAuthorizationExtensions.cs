@@ -96,6 +96,21 @@ public static class HrManagementAuthorizationExtensions
                 || (ServiceCallerPrincipal.IsServiceAccount(c.User)
                     && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
 
+            // HCM-028 (PLAN-25 slice): the compliance reviewer reaches HR.Core only for recruitment appeals.
+            options.AddPolicy(HrManagementPolicies.HrCoreAppealReview, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrCore)
+                || c.User.IsInRole(HrManagementRoles.Compliance)));
+
+            options.AddPolicy(HrManagementPolicies.HrCoreWorkInbox, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrCore)
+                || c.User.IsInRole(HrManagementRoles.HrCoreSupervisory)
+                || c.User.IsInRole(HrManagementRoles.HrCoreExecutive)
+                || c.User.IsInRole(HrManagementRoles.BranchManager)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+                || c.User.IsInRole(HrManagementRoles.Compliance)));
+
             // Shared lookup — interactive users OR service tokens with hr-core.lookup (IAM-004).
             options.AddPolicy(HrManagementPolicies.HrCoreLookup, p => p.RequireAssertion(c =>
                 (c.User.Identity?.IsAuthenticated == true && !ServiceCallerPrincipal.IsServiceAccount(c.User))

@@ -383,6 +383,23 @@
       "enabled": true
     },
     {
+      "id": "a-compliance-2",
+      "username": "acc-a-compliance-2",
+      "passwordEnv": "ACCEPTANCE_A_COMPLIANCE_2_PASSWORD",
+      "roles": [
+        "compliance"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 40,
+      "purpose": "Second compliance reviewer (not assigned to the appeal — negative reviewer checks)",
+      "scenarios": [
+        "AC-HCM-28"
+      ],
+      "enabled": true
+    },
+    {
       "id": "a-directory-maker",
       "username": "acc-a-directory-maker",
       "passwordEnv": "ACCEPTANCE_A_DIRECTORY_MAKER_PASSWORD",
