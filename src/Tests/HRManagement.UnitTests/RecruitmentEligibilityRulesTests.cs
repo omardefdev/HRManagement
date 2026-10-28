@@ -69,7 +69,7 @@ public class RecruitmentEligibilityRulesTests
     [InlineData("2008-02-29", 18, 18, null)]
     public void Age_bounds_are_inclusive_on_the_application_date(string birthDate, int? minAge, int? maxAge, string? expected)
     {
-        var flags = Evaluate(new EligibilityProfile(null, null, DateOnly.Parse(birthDate)), None with { MinAge = minAge, MaxAge = maxAge });
+        var flags = Evaluate(new EligibilityProfile(null, null, DateOnly.ParseExact(birthDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)), None with { MinAge = minAge, MaxAge = maxAge });
 
         Assert.Equal(expected is null ? [] : [expected], flags);
     }
