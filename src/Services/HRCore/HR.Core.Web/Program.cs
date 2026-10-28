@@ -184,6 +184,9 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOfferService>();
 // HCM-027 (E2): Payroll grade bounds over S2S; UnavailablePayrollGradeLookup when Integration:PayrollBaseUrl is empty.
 HR.Core.Infrastructure.Integration.PayrollGradeLookupExtensions.AddPayrollGradeLookup(builder.Services, builder.Configuration);
+// HCM-030 (E2/E6): candidate documents relayed to File.Storage (S2S, scope file-storage.service-upload).
+HR.Core.Web.Services.CandidateDocumentUploadClientExtensions.AddCandidateDocumentUploadClient(builder.Services, builder.Configuration);
+builder.Services.AddScoped<HR.Core.Web.Services.CandidateDocumentService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterDocumentService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealService>();

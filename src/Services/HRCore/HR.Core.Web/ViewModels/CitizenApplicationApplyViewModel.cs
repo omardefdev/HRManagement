@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HR.Core.Domain.Services;
 
 namespace HR.Core.Web.ViewModels;
 
@@ -60,4 +61,43 @@ public class CitizenApplicationApplyViewModel
 
     [Display(Name = "حقل أمان")]
     public string? Website { get; set; }
+
+    // HCM-030 (E5): attachments (requisition-linked postings only). One input per type; a missing required type is an
+    // eligibility flag, never a refusal.
+
+    [Display(Name = "السيرة الذاتية")]
+    public IFormFile? CvFile { get; set; }
+
+    [Display(Name = "الشهادات")]
+    public List<IFormFile>? CertificateFiles { get; set; }
+
+    [Display(Name = "صورة الهوية")]
+    public IFormFile? IdCopyFile { get; set; }
+
+    [Display(Name = "مستندات أخرى")]
+    public List<IFormFile>? OtherFiles { get; set; }
+
+    /// <summary>Attached files with their document type and form field (empty inputs are not bound).</summary>
+    public IReadOnlyList<(string DocumentType, IFormFile File, string FieldName)> AttachedFiles()
+    {
+        var files = new List<(string, IFormFile, string)>();
+        if (CvFile is not null)
+            files.Add((CandidateDocumentTypes.Cv, CvFile, nameof(CvFile)));
+        files.AddRange((CertificateFiles ?? []).Where(f => f is not null)
+            .Select(f => (CandidateDocumentTypes.Certificate, f, nameof(CertificateFiles))));
+        if (IdCopyFile is not null)
+            files.Add((CandidateDocumentTypes.IdCopy, IdCopyFile, nameof(IdCopyFile)));
+        files.AddRange((OtherFiles ?? []).Where(f => f is not null)
+            .Select(f => (CandidateDocumentTypes.Other, f, nameof(OtherFiles))));
+        return files;
+    }
+
+    /// <summary>Form field of each document type's input (shared by the view and the controller's errors).</summary>
+    public static string FieldFor(string documentType) => documentType switch
+    {
+        CandidateDocumentTypes.Cv => nameof(CvFile),
+        CandidateDocumentTypes.Certificate => nameof(CertificateFiles),
+        CandidateDocumentTypes.IdCopy => nameof(IdCopyFile),
+        _ => nameof(OtherFiles)
+    };
 }

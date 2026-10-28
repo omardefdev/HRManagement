@@ -33,5 +33,20 @@
             <input asp-for="MaxAge" type="number" class="form-control" />
             <span asp-validation-for="MaxAge" class="text-danger"></span>
         </div>
+        @* HCM-030 (E4): a missing required document is flagged «مستندات مطلوبة ناقصة», never refused. *@
+        <div class="col-12" role="group" aria-labelledby="required-documents-label" aria-describedby="required-documents-help">
+            <span id="required-documents-label" class="form-label d-block">@Html.DisplayNameFor(m => m.RequiredDocumentTypes)</span>
+            @foreach (var (code, label) in HR.Core.Domain.Services.CandidateDocumentTypes.All)
+            {
+                var checkboxId = "required-document-" + code.ToLowerInvariant();
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" name="RequiredDocumentTypes" value="@code" id="@checkboxId"
+                           @(Model.RequiredDocumentTypes?.Contains(code) == true ? "checked" : null) />
+                    <label class="form-check-label" for="@checkboxId">@label</label>
+                </div>
+            }
+            <div id="required-documents-help" class="form-text">تظهر في الإعلان العام، ويُرفق المتقدّم كل نوع منها عند التقديم.</div>
+            <span asp-validation-for="RequiredDocumentTypes" class="text-danger"></span>
+        </div>
     </div>
 </fieldset>

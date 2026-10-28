@@ -11,6 +11,9 @@ public class RecruitmentApplicationsIndexViewModel
     public RecruitmentApplicationsFilter Filter { get; set; } = new();
     public int TotalCount { get; set; }
     public SelectList? RequisitionFilterOptions { get; set; }
+    /// <summary>HCM-030 (E6): document completeness per listed application (absent: no documents and none required).</summary>
+    public IReadOnlyDictionary<Guid, HR.Core.Web.Services.CandidateDocumentCompleteness> DocumentCompleteness { get; set; } =
+        new Dictionary<Guid, HR.Core.Web.Services.CandidateDocumentCompleteness>();
 }
 
 public class RecruitmentApplicationsFilter

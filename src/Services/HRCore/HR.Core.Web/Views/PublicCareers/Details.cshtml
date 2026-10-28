@@ -13,6 +13,16 @@
     // HCM-030 (D5): the requisition's closing date is authoritative; the posting copy is the fallback.
     var closingDate = Model.Requisition?.ApplicationClosingDate ?? Model.ClosingDate;
     var maxBirthDate = DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.MinApplicantAge);
+    // HCM-030 (E4/E5): required document types and attachment limits.
+    var requiredDocuments = ViewBag.RequiredDocumentTypes as IReadOnlyList<string> ?? [];
+    var documentLimits = ViewBag.DocumentLimits as HR.Core.Infrastructure.Services.Recruitment.RecruitmentCandidateDocumentsOptions
+        ?? new HR.Core.Infrastructure.Services.Recruitment.RecruitmentCandidateDocumentsOptions();
+    var perFileMb = Math.Min(documentLimits.MaxBytes, HRManagement.FileStorage.FileUploadConstraints.CandidateDocument.MaxBytes) / (1024 * 1024);
+    var totalMb = documentLimits.MaxTotalBytes / (1024 * 1024);
+    // Required types first, then the optional ones (one input each; certificates and «أخرى» accept several files).
+    var documentInputs = HR.Core.Domain.Services.CandidateDocumentTypes.All
+        .OrderBy(t => requiredDocuments.Contains(t.Code) ? 0 : 1)
+        .ToList();
 }
 @if (isLegacy)
 {
@@ -71,6 +81,17 @@
                 }
             </ul>
         }
+        @if (requiredDocuments.Count > 0)
+        {
+            @* HCM-030 (E4): a missing document is a note for the screening team, not a refusal. *@
+            <h6 class="mt-3 careers-section-title"><i class="fas fa-paperclip ms-1"></i> المستندات المطلوبة</h6>
+            <ul class="text-muted mb-2">
+                @foreach (var type in requiredDocuments)
+                {
+                    <li>@HR.Core.Domain.Services.CandidateDocumentTypes.LabelAr(type)</li>
+                }
+            </ul>
+        }
         @if (!string.IsNullOrWhiteSpace(Model.Requirements))
         {
             <h6 class="mt-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-list-check ms-1"></i> الشروط والمؤهلات</h6>
@@ -91,7 +112,7 @@ else
 <div class="careers-card">
     <div class="card-body">
         <h5 style="color:#6b1f2a; font-weight:700; margin-bottom:1.25rem;"><i class="fas fa-paper-plane ms-2"></i> تقديم طلب توظيف</h5>
-        <form asp-action="Apply" method="post" class="careers-form" aria-label="نموذج تقديم طلب توظيف">
+        <form asp-action="Apply" method="post" enctype="multipart/form-data" class="careers-form" aria-label="نموذج تقديم طلب توظيف">
             @Html.AntiForgeryToken()
             <input type="hidden" name="PublicJobPostingId" value="@Model.Id" />
             <div class="visually-hidden" aria-hidden="true">
@@ -150,7 +171,38 @@ else
                     <small id="apply-birthdate-help" class="text-muted">يُستخدم للتحقق من شروط العمر فقط ولا يظهر إلا لفريق التوظيف.</small>
                     @Html.ValidationMessage("BirthDate", null, new { @class = "text-danger small d-block" })
                 </div>
-                @* PLAN-30 S2: attachments (CV, certificates) and the notification channel consent. *@
+                @if (!isLegacy)
+                {
+                    @* HCM-030 (E5): attachments, relayed to File.Storage (scanned) by HR.Core. *@
+                    <fieldset class="col-12" aria-describedby="apply-documents-help">
+                        <legend class="form-label fs-6 fw-bold">المستندات</legend>
+                        <small id="apply-documents-help" class="text-muted d-block mb-2">
+                            PDF أو JPG أو PNG، حتى @perFileMb ميغابايت للملف و@totalMb ميغابايت للمجموع، و@documentLimits.MaxFiles ملفات على الأكثر.
+                            المستند المطلوب غير المرفق لا يمنع التقديم، لكنه يظهر ملاحظةً لفريق التوظيف.
+                            @if (!ViewData.ModelState.IsValid)
+                            {
+                                <strong>عند إعادة عرض النموذج يجب اختيار الملفات من جديد.</strong>
+                            }
+                        </small>
+                        <div class="row g-3">
+                            @foreach (var (code, label) in documentInputs)
+                            {
+                                var field = HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.FieldFor(code);
+                                var inputId = "apply-doc-" + code.ToLowerInvariant();
+                                var isRequired = requiredDocuments.Contains(code);
+                                var multiple = code is HR.Core.Domain.Services.CandidateDocumentTypes.Certificate
+                                    or HR.Core.Domain.Services.CandidateDocumentTypes.Other;
+                                <div class="col-md-6">
+                                    <label class="form-label" for="@inputId">@label@(isRequired ? " (مطلوب)" : " (اختياري)")</label>
+                                    <input id="@inputId" name="@field" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png"
+                                           multiple="@(multiple ? "multiple" : null)" aria-describedby="apply-documents-help @inputId-error" />
+                                    @Html.ValidationMessage(field, null, new { @class = "text-danger small d-block", id = inputId + "-error" })
+                                </div>
+                            }
+                        </div>
+                    </fieldset>
+                }
+                @* PLAN-30 S2: the notification channel consent. *@
                 <div class="col-12">
                     <label class="form-label" for="apply-cover">نبذة / مسوّغات</label>
                     <textarea id="apply-cover" name="CoverNote" class="form-control" rows="3">@applyModel.CoverNote</textarea>

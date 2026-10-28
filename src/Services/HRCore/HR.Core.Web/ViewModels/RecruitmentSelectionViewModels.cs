@@ -45,6 +45,10 @@ public class RecruitmentApplicationDetailsViewModel
     public HR.Core.Infrastructure.Services.Recruitment.CommitteeRankingGate? CommitteeGate { get; set; }
     /// <summary>HCM-028: this candidate's decision in the latest approved Ranking/Final session, or null.</summary>
     public SelectionCommitteeDecision? CommitteeDecision => CommitteeGate?.DecisionFor(Application.Id);
+    /// <summary>HCM-030 (E6): candidate documents with their File.Storage scan state.</summary>
+    public IReadOnlyList<HR.Core.Web.Services.CandidateDocumentRow> Documents { get; set; } = [];
+    /// <summary>HCM-030 (E6): required document types of the requisition still missing.</summary>
+    public IReadOnlyList<string> MissingDocumentTypes { get; set; } = [];
 }
 
 public class AssignRankForm

@@ -24,6 +24,8 @@ public static class RecruitmentEligibilityRules
     public const string AgeBelowMin = "AgeBelowMin";
     public const string AgeAboveMax = "AgeAboveMax";
     public const string MissingProfileData = "MissingProfileData";
+    /// <summary>HCM-030 (E4): a required document type was not attached (<see cref="WithRequiredDocuments"/>).</summary>
+    public const string MissingRequiredDocuments = "MissingRequiredDocuments";
 
     public const int MinOverrideReasonLength = 10;
     public const string OverrideAuditAction = "EligibilityOverride";
@@ -42,7 +44,8 @@ public static class RecruitmentEligibilityRules
         (BelowMinExperience, "خبرة أقل من المطلوب"),
         (AgeBelowMin, "دون الحد الأدنى للعمر"),
         (AgeAboveMax, "فوق الحد الأعلى للعمر"),
-        (MissingProfileData, "بيانات ناقصة")
+        (MissingProfileData, "بيانات ناقصة"),
+        (MissingRequiredDocuments, "مستندات مطلوبة ناقصة")
     ];
 
     public static IReadOnlyList<string> Evaluate(
@@ -111,6 +114,27 @@ public static class RecruitmentEligibilityRules
 
     /// <summary>Stored form of <see cref="Evaluate"/>: comma-separated codes, null when there is no flag.</summary>
     public static string? Format(IReadOnlyCollection<string> flags) => flags.Count == 0 ? null : string.Join(',', flags);
+
+    /// <summary>
+    /// HCM-030 (E4): stored flags with only <see cref="MissingRequiredDocuments"/> recomputed from the required and the
+    /// provided document types (the other flags are kept; display order follows <see cref="Flags"/>). Called at intake
+    /// and whenever the application's documents change.
+    /// </summary>
+    public static string? WithRequiredDocuments(
+        string? storedFlags,
+        IEnumerable<string> requiredDocumentTypes,
+        IEnumerable<string> providedDocumentTypes)
+    {
+        var flags = Parse(storedFlags).Where(f => f != MissingRequiredDocuments).ToList();
+        if (CandidateDocumentTypes.Missing(requiredDocumentTypes, providedDocumentTypes).Count > 0)
+            flags.Add(MissingRequiredDocuments);
+
+        var order = Flags.Select(f => f.Code).ToList();
+        return Format(flags
+            .Distinct()
+            .OrderBy(f => order.IndexOf(f) is var i && i >= 0 ? i : int.MaxValue)
+            .ToList());
+    }
 
     public static IReadOnlyList<string> Parse(string? stored) =>
         string.IsNullOrWhiteSpace(stored)

@@ -68,7 +68,10 @@ public class PublicCareersApplyTests
             codeGen,
             new RecruitmentApplicationIntakeService(db),
             new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
-            new CandidatePublicStatusService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())))
+            new CandidatePublicStatusService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new HR.Core.Web.Services.CandidateDocumentService(
+                db, new HR.Core.Web.Services.UnavailableCandidateDocumentUploadClient(), new HRManagement.ServiceDefaults.EfFileReferenceOutbox(db)),
+            Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

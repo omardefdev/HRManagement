@@ -195,6 +195,70 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("ApprovedCVs");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CandidateDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CitizenApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CitizenApplicationId");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("TenantId", "FileId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "RecruitmentApplicationId", "UploadedAt");
+
+                    b.ToTable("CandidateDocuments");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.CareerPath", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3763,6 +3827,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime>("RequestedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RequiredDocumentTypes")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<bool>("RequiresCommitteeApproval")
                         .HasColumnType("boolean");
 
@@ -6042,6 +6110,20 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CandidateDocument", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.CitizenApplication", null)
+                        .WithMany()
+                        .HasForeignKey("CitizenApplicationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", null)
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.CareerPathStep", b =>

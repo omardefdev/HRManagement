@@ -109,4 +109,13 @@ public class RecruitmentRequisition : AuditableEntity
 
     [Display(Name = "الحد الأعلى للعمر")]
     public int? MaxAge { get; set; }
+
+    /// <summary>
+    /// HCM-030 (E4): document types the candidate is asked to attach (comma-separated
+    /// <see cref="Services.CandidateDocumentTypes"/> codes; null = none). A missing one is the eligibility flag
+    /// <c>MissingRequiredDocuments</c>, never a rejection. Editable while the requisition is editable (Draft).
+    /// </summary>
+    [StringLength(100)]
+    [Display(Name = "المستندات المطلوبة")]
+    public string? RequiredDocumentTypes { get; set; }
 }

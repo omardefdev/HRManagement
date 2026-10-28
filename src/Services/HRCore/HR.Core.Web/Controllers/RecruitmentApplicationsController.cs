@@ -38,7 +38,8 @@ public class RecruitmentApplicationsController(
     IPolicyOrchestrator policyOrchestrator,
     IConfiguration configuration,
     HirePersonMatchService personMatch,
-    UnifiedIntakeService unifiedIntake) : Controller
+    UnifiedIntakeService unifiedIntake,
+    CandidateDocumentService candidateDocuments) : Controller
 {
     public async Task<IActionResult> Index(RecruitmentApplicationsFilter filter, bool showCreate = false)
     {
@@ -113,6 +114,13 @@ public class RecruitmentApplicationsController(
             : null;
         var hireBlockedReason = await RecruitmentHireAppealGuard.ValidateAsync(db, app.RequisitionId, BlockHireOnPendingAppeal());
 
+        // HCM-030 (E6): documents with their scan state (File.Storage, through HR.Core's service identity).
+        // PLAN-30 S3: candidate uploads missing documents from /careers/my
+        var documents = await candidateDocuments.GetRowsAsync(app);
+        var missingDocumentTypes = CandidateDocumentTypes.Missing(
+            CandidateDocumentTypes.RequiredFor(app.IntakeChannel, app.Requisition?.RequiredDocumentTypes),
+            documents.Select(d => d.DocumentType));
+
         return View(new RecruitmentApplicationDetailsViewModel
         {
             Application = app,
@@ -138,8 +146,30 @@ public class RecruitmentApplicationsController(
             PayrollLookupUnavailable = gradeLookup is PayrollGradeLookupResult.Unavailable,
             PositionGradeNotInScale = gradeLookup is PayrollGradeLookupResult.NotFound,
             DefaultProposedStartDate = defaultStartDate,
-            CommitteeGate = committeeGate
+            CommitteeGate = committeeGate,
+            Documents = documents,
+            MissingDocumentTypes = missingDocumentTypes
         });
+    }
+
+    /// <summary>
+    /// HCM-030 (E6): streams a Clean candidate document of the caller's tenant from File.Storage (service identity).
+    /// Other tenants' documents and non-Clean files are not found.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> CandidateDocument(Guid id, CancellationToken ct)
+    {
+        var (document, result) = await candidateDocuments.OpenAsync(id, ct);
+        switch (result)
+        {
+            case CandidateFileContentResult.Found found:
+                return File(found.Content, found.ContentType, document!.OriginalFileName);
+            case CandidateFileContentResult.Unavailable when document is not null:
+                TempData["Error"] = CandidateDocumentService.DownloadUnavailableMessage;
+                return RedirectToAction(nameof(Details), new { id = document.RecruitmentApplicationId });
+            default:
+                return NotFound();
+        }
     }
 
     [HttpPost]
@@ -795,7 +825,8 @@ public class RecruitmentApplicationsController(
             ShowCreateModal = showCreateModal,
             Filter = filter,
             TotalCount = totalCount,
-            RequisitionFilterOptions = new SelectList(requisitionOptions, "Id", "Label", filter.RequisitionId)
+            RequisitionFilterOptions = new SelectList(requisitionOptions, "Id", "Label", filter.RequisitionId),
+            DocumentCompleteness = await candidateDocuments.GetCompletenessAsync(applications)
         };
     }
 

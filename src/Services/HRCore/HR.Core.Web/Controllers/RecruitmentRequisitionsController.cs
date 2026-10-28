@@ -217,7 +217,8 @@ public class RecruitmentRequisitionsController(
             MinQualificationCode = vm.MinQualificationCode,
             MinYearsOfExperience = vm.MinYearsOfExperience,
             MinAge = vm.MinAge,
-            MaxAge = vm.MaxAge
+            MaxAge = vm.MaxAge,
+            RequiredDocumentTypes = CandidateDocumentTypes.Format(vm.RequiredDocumentTypes)
         };
 
         db.RecruitmentRequisitions.Add(requisition);
@@ -521,7 +522,8 @@ public class RecruitmentRequisitionsController(
             MinQualificationCode = requisition.MinQualificationCode,
             MinYearsOfExperience = requisition.MinYearsOfExperience,
             MinAge = requisition.MinAge,
-            MaxAge = requisition.MaxAge
+            MaxAge = requisition.MaxAge,
+            RequiredDocumentTypes = CandidateDocumentTypes.Parse(requisition.RequiredDocumentTypes).ToList()
         };
         await PopulateBranchScopesAsync(vm.ScopeOrgUnitId != Guid.Empty ? vm.ScopeOrgUnitId : null);
         await PopulateLegalSourcesAsync(vm.LegalSourceId);
@@ -597,6 +599,7 @@ public class RecruitmentRequisitionsController(
         requisition.MinYearsOfExperience = vm.MinYearsOfExperience;
         requisition.MinAge = vm.MinAge;
         requisition.MaxAge = vm.MaxAge;
+        requisition.RequiredDocumentTypes = CandidateDocumentTypes.Format(vm.RequiredDocumentTypes);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث طلب الشاغر";
         return RedirectToAction(nameof(Details), new { id });
@@ -689,6 +692,14 @@ public class RecruitmentRequisitionsController(
 
         if (vm.MinAge is int min && vm.MaxAge is int max && min > max)
             ModelState.AddModelError(nameof(vm.MaxAge), "الحد الأعلى للعمر يجب ألا يقل عن الحد الأدنى.");
+
+        // HCM-030 (E4): required document types are known codes.
+        vm.RequiredDocumentTypes ??= [];
+        if (vm.RequiredDocumentTypes.Any(t => !string.IsNullOrWhiteSpace(t)
+                && !CandidateDocumentTypes.All.Any(c => string.Equals(c.Code, t.Trim(), StringComparison.OrdinalIgnoreCase))))
+            ModelState.AddModelError(nameof(vm.RequiredDocumentTypes), "نوع مستند مطلوب غير صالح.");
+        else
+            vm.RequiredDocumentTypes = CandidateDocumentTypes.Normalize(vm.RequiredDocumentTypes).ToList();
     }
 
     private static string? NormalizeLegalSourceId(string? legalSourceId) =>

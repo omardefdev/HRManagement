@@ -54,7 +54,10 @@ internal static class RecruitmentTestControllers
             Mock.Of<IPolicyOrchestrator>(),
             configuration,
             new HirePersonMatchService(db),
-            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            // HCM-030 (E6): these tests do not exercise candidate documents; File.Storage is reported unavailable.
+            new HR.Core.Web.Services.CandidateDocumentService(
+                db, new HR.Core.Web.Services.UnavailableCandidateDocumentUploadClient(), new HRManagement.ServiceDefaults.EfFileReferenceOutbox(db)));
     }
 
     private static Microsoft.AspNetCore.Authorization.IAuthorizationService AllowAllAuthorization()

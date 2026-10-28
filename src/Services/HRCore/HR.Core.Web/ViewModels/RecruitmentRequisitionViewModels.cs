@@ -70,6 +70,10 @@ public class RecruitmentRequisitionCreateViewModel
     [Display(Name = "الحد الأعلى للعمر")]
     [Range(14, 100, ErrorMessage = "العمر يجب أن يكون بين 14 و100.")]
     public int? MaxAge { get; set; }
+
+    /// <summary>HCM-030 (E4): <c>CandidateDocumentTypes</c> codes the candidate is asked to attach.</summary>
+    [Display(Name = "المستندات المطلوبة من المتقدّم")]
+    public List<string> RequiredDocumentTypes { get; set; } = [];
 }
 
 public class RecruitmentRequisitionEditViewModel : RecruitmentRequisitionCreateViewModel

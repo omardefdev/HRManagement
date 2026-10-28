@@ -111,6 +111,28 @@ public sealed class RecruitmentOptions
 
     /// <summary>HCM-030 (D3): eligibility check settings (<c>Recruitment:Eligibility:*</c>).</summary>
     public RecruitmentEligibilityOptions Eligibility { get; set; } = new();
+
+    /// <summary>HCM-030 (E3): candidate document limits (<c>Recruitment:CandidateDocuments:*</c>).</summary>
+    public RecruitmentCandidateDocumentsOptions CandidateDocuments { get; set; } = new();
+}
+
+/// <summary>
+/// HCM-030 (E3): limits of the documents attached to a public application. File.Storage enforces the per-file
+/// <c>CandidateDocument</c> profile (5 MB; pdf/jpg/jpeg/png) again on its side.
+/// </summary>
+public sealed class RecruitmentCandidateDocumentsOptions
+{
+    /// <summary><c>Recruitment:CandidateDocuments:MaxFiles</c> — files per application post (default 5).</summary>
+    public int MaxFiles { get; set; } = 5;
+
+    /// <summary><c>Recruitment:CandidateDocuments:MaxBytes</c> — bytes per file (default 5 MB = 5,242,880).</summary>
+    public long MaxBytes { get; set; } = 5 * 1024 * 1024;
+
+    /// <summary>
+    /// <c>Recruitment:CandidateDocuments:MaxTotalBytes</c> — all files of one application post (default 9 MiB =
+    /// 9,437,184): Production Kestrel at the gateway and HR.Core refuses request bodies over 10 MB.
+    /// </summary>
+    public long MaxTotalBytes { get; set; } = 9 * 1024 * 1024;
 }
 
 /// <summary>HCM-030 (D3): settings of <see cref="RecruitmentEligibilityRules"/>.</summary>

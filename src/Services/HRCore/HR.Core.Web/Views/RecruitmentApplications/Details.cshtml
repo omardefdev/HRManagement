@@ -113,6 +113,63 @@
 
 @if (app.RequisitionId.HasValue)
 {
+    @* HCM-030 (E6): candidate documents; only Clean files (File.Storage scan) can be downloaded. *@
+    <div class="card mb-3" id="documents">
+        <div class="card-header"><h5 class="mb-0">المستندات</h5></div>
+        @if (Model.MissingDocumentTypes.Count > 0)
+        {
+            <div class="card-body pb-0">
+                <div class="alert alert-warning mb-3">
+                    مستندات مطلوبة ناقصة:
+                    @string.Join("، ", Model.MissingDocumentTypes.Select(CandidateDocumentTypes.LabelAr))
+                </div>
+            </div>
+        }
+        @if (Model.Documents.Count == 0)
+        {
+            <div class="card-body"><span class="text-muted">لا توجد مستندات مرفقة.</span></div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">النوع</th>
+                            <th scope="col">الملف</th>
+                            <th scope="col">الحجم</th>
+                            <th scope="col">وقت الرفع</th>
+                            <th scope="col">حالة الفحص</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var doc in Model.Documents)
+                        {
+                            <tr>
+                                <td>@doc.TypeLabel</td>
+                                <td>
+                                    @if (doc.CanDownload)
+                                    {
+                                        <a asp-action="CandidateDocument" asp-route-id="@doc.Id">@doc.FileName</a>
+                                    }
+                                    else
+                                    {
+                                        <span>@doc.FileName</span>
+                                    }
+                                </td>
+                                <td>@((doc.SizeBytes / 1024.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) ك.ب</td>
+                                <td>@doc.UploadedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>
+                                    <span class="badge @(doc.CanDownload ? "bg-success" : doc.ScanLabel == CandidateDocumentScanStatus.QuarantinedLabelAr ? "bg-danger" : "bg-secondary")">@doc.ScanLabel</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
     <partial name="_InterviewsPanel" model="Model" />
     <partial name="_AssessmentScoringPanel" model="Model.ScoringPanel" />
 }

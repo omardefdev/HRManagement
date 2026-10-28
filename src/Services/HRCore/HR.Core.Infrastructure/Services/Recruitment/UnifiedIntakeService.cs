@@ -26,7 +26,14 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
     public const string ManagedByUnifiedPathMessage = "يُدار هذا الطلب من مسار التوظيف الموحد.";
 
     /// <summary>Stages (no save) the recruitment application of a new public application and links the citizen row.</summary>
-    public RecruitmentApplication CreateFromCitizen(CitizenApplication citizen, RecruitmentRequisition requisition)
+    /// <param name="providedDocumentTypes">
+    /// HCM-030 (E4): types of the documents attached in the same post (none when null); a missing required type is
+    /// flagged <c>MissingRequiredDocuments</c>.
+    /// </param>
+    public RecruitmentApplication CreateFromCitizen(
+        CitizenApplication citizen,
+        RecruitmentRequisition requisition,
+        IEnumerable<string>? providedDocumentTypes = null)
     {
         var app = new RecruitmentApplication
         {
@@ -48,6 +55,7 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
             BirthDate = citizen.BirthDate
         };
         EvaluateEligibility(app, requisition);
+        ApplyDocumentFlag(app, requisition, providedDocumentTypes ?? []);
 
         db.RecruitmentApplications.Add(app);
         citizen.PromotedRecruitmentApplication = app;
@@ -237,6 +245,50 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
             options.Value.Eligibility.QualificationRanks);
         app.EligibilityFlags = RecruitmentEligibilityRules.Format(flags);
         app.EligibilityEvaluatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// HCM-030 (E4): recomputes only the <c>MissingRequiredDocuments</c> flag from the requisition's required types and
+    /// the given document types (no save). Only public applications have an upload path, so the others are not checked
+    /// (<see cref="CandidateDocumentTypes.RequiredFor"/>).
+    /// </summary>
+    public static void ApplyDocumentFlag(
+        RecruitmentApplication app,
+        RecruitmentRequisition requisition,
+        IEnumerable<string> providedDocumentTypes)
+    {
+        var required = CandidateDocumentTypes.RequiredFor(app.IntakeChannel, requisition.RequiredDocumentTypes);
+        var updated = RecruitmentEligibilityRules.WithRequiredDocuments(app.EligibilityFlags, required, providedDocumentTypes);
+        if (updated == app.EligibilityFlags)
+            return;
+        app.EligibilityFlags = updated;
+        app.EligibilityEvaluatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// HCM-030 (E4): re-evaluates the document flag after the application's documents changed — saved rows plus the
+    /// ones staged in this context (no save). PLAN-30 S3: called when the candidate uploads missing documents.
+    /// The anonymous portal has no ambient tenant, so the reads bypass the tenant filter and are scoped explicitly to
+    /// the application's own tenant.
+    /// </summary>
+    public async Task ReevaluateDocumentFlagAsync(RecruitmentApplication app, CancellationToken ct = default)
+    {
+        if (app.RequisitionId is not Guid requisitionId)
+            return;
+        var tenantId = app.TenantId;
+        var requisition = app.Requisition
+            ?? await db.RecruitmentRequisitions
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                .FirstAsync(r => r.Id == requisitionId && r.TenantId == tenantId, ct);
+        var saved = await db.CandidateDocuments
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+            .Where(d => d.TenantId == tenantId && d.RecruitmentApplicationId == app.Id)
+            .Select(d => d.DocumentType)
+            .ToListAsync(ct);
+        var staged = db.CandidateDocuments.Local
+            .Where(d => d.RecruitmentApplicationId == app.Id && db.Entry(d).State == EntityState.Added)
+            .Select(d => d.DocumentType);
+        ApplyDocumentFlag(app, requisition, saved.Concat(staged));
     }
 
     private async Task<IReadOnlyList<string?>> EmployeeQualificationCodesAsync(Guid employeeId, CancellationToken ct) =>

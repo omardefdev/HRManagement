@@ -5,6 +5,7 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Web.Controllers;
+using HR.Core.Web.Services;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.CodeGeneration;
@@ -129,18 +130,30 @@ internal static class Hcm030TestSupport
         PrivacyConsent = true
     };
 
-    public static PublicCareersController CreatePublicCareersController(HRCoreDbContext db)
+    /// <param name="documentClient">HCM-030 (E2): File.Storage relay (default: unavailable — no file is ever stored).</param>
+    public static PublicCareersController CreatePublicCareersController(
+        HRCoreDbContext db,
+        ICandidateDocumentUploadClient? documentClient = null,
+        RecruitmentOptions? options = null)
     {
         var codeGen = new Mock<ICodeGenerator>();
         codeGen.Setup(g => g.GenerateAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new CodeGenerationResult { Code = $"CA-H30-{Interlocked.Increment(ref _referenceCounter):0000}" });
+        var recruitmentOptions = Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions());
         return WithContext(new PublicCareersController(
             db,
             codeGen.Object,
             new RecruitmentApplicationIntakeService(db),
-            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
-            new CandidatePublicStatusService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))), new ClaimsPrincipal(new ClaimsIdentity()));
+            new UnifiedIntakeService(db, recruitmentOptions),
+            new CandidatePublicStatusService(db, recruitmentOptions),
+            CreateCandidateDocumentService(db, documentClient),
+            recruitmentOptions), new ClaimsPrincipal(new ClaimsIdentity()));
     }
+
+    /// <summary>HCM-030 (E3): the portal's outbox has no ambient tenant (as in production).</summary>
+    public static CandidateDocumentService CreateCandidateDocumentService(
+        HRCoreDbContext db, ICandidateDocumentUploadClient? documentClient = null) =>
+        new(db, documentClient ?? new UnavailableCandidateDocumentUploadClient(), new EfFileReferenceOutbox(db));
 
     public static EssTalentController CreateEssController(HRCoreDbContext db, Guid employeeId)
     {
@@ -160,6 +173,51 @@ internal static class Hcm030TestSupport
 
     public static CandidatePublicStatusService CreatePublicStatus(HRCoreDbContext db) =>
         new(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
+
+    /// <summary>
+    /// HCM-030 (E2/E6): in-memory File.Storage relay. Uploads succeed (scan PendingScan) until <see cref="FailAfter"/>
+    /// files were stored; content is served only for Clean files, like the real service endpoint.
+    /// </summary>
+    public sealed class FakeCandidateDocumentClient : ICandidateDocumentUploadClient
+    {
+        public List<(Guid TenantId, PreparedCandidateFile File, Guid FileId)> Uploads { get; } = [];
+        public Dictionary<Guid, string> ScanStatuses { get; } = [];
+        public List<Guid> ContentRequests { get; } = [];
+        public int FailAfter { get; set; } = int.MaxValue;
+        public bool MetadataUnavailable { get; set; }
+
+        public Task<CandidateDocumentUploadResult> UploadAsync(Guid tenantId, PreparedCandidateFile file, CancellationToken ct = default)
+        {
+            if (Uploads.Count >= FailAfter)
+                return Task.FromResult<CandidateDocumentUploadResult>(new CandidateDocumentUploadResult.Failed("HTTP 503"));
+            var fileId = Guid.NewGuid();
+            Uploads.Add((tenantId, file, fileId));
+            ScanStatuses[fileId] = CandidateDocumentScanStatus.PendingScan;
+            return Task.FromResult<CandidateDocumentUploadResult>(
+                new CandidateDocumentUploadResult.Uploaded(fileId, file.ContentType, file.Content.LongLength));
+        }
+
+        public Task<IReadOnlyDictionary<Guid, CandidateFileMetadata>?> GetMetadataAsync(
+            Guid tenantId, IReadOnlyCollection<Guid> fileIds, CancellationToken ct = default)
+        {
+            if (MetadataUnavailable)
+                return Task.FromResult<IReadOnlyDictionary<Guid, CandidateFileMetadata>?>(null);
+            IReadOnlyDictionary<Guid, CandidateFileMetadata> rows = fileIds
+                .Where(ScanStatuses.ContainsKey)
+                .ToDictionary(id => id, id => new CandidateFileMetadata(
+                    id, "file.pdf", "application/pdf", 10, ScanStatuses[id], "Pending", DateTime.UtcNow));
+            return Task.FromResult<IReadOnlyDictionary<Guid, CandidateFileMetadata>?>(rows);
+        }
+
+        public Task<CandidateFileContentResult> GetContentAsync(Guid tenantId, Guid fileId, CancellationToken ct = default)
+        {
+            ContentRequests.Add(fileId);
+            return Task.FromResult<CandidateFileContentResult>(
+                ScanStatuses.TryGetValue(fileId, out var status) && status == CandidateDocumentScanStatus.Clean
+                    ? new CandidateFileContentResult.Found("%PDF-1.4"u8.ToArray(), "application/pdf", "file.pdf")
+                    : new CandidateFileContentResult.NotFound());
+        }
+    }
 
     public static T WithContext<T>(T controller, ClaimsPrincipal user) where T : Controller
     {

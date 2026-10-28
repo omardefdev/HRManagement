@@ -4,6 +4,7 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Middleware;
 using HR.Core.Infrastructure.Services.Recruitment;
+using HR.Core.Web.Services;
 using HR.Core.Web.ViewModels;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.ViewModels;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace HR.Core.Web.Controllers;
 
@@ -24,7 +26,9 @@ public class PublicCareersController(
     ICodeGenerator codeGenerator,
     RecruitmentApplicationIntakeService intake,
     UnifiedIntakeService unifiedIntake,
-    CandidatePublicStatusService publicStatus) : Controller
+    CandidatePublicStatusService publicStatus,
+    CandidateDocumentService candidateDocuments,
+    IOptions<RecruitmentOptions> recruitmentOptions) : Controller
 {
     [HttpGet("")]
     [HttpGet("index")]
@@ -122,10 +126,41 @@ public class PublicCareersController(
                 or > CitizenApplicationApplyViewModel.MaxApplicantAge)
             ModelState.AddModelError(nameof(vm.BirthDate), "تاريخ الميلاد غير صالح.");
 
+        // HCM-030 (E5): attachments, requisition-linked postings only (a legacy posting has no recruitment application to
+        // hold them, so its form shows no file inputs). Checked locally before anything is relayed.
+        IReadOnlyList<(string DocumentType, IFormFile File, string FieldName)> attached =
+            posting.Requisition is null ? [] : vm.AttachedFiles();
+        IReadOnlyList<PreparedCandidateFile> prepared = [];
+        if (attached.Count > 0)
+        {
+            var outcome = await CandidateDocumentFileValidator.PrepareAsync(
+                attached.Select(a => new CandidateDocumentFileValidator.Input(a.DocumentType, a.File, a.FieldName)).ToList(),
+                recruitmentOptions.Value.CandidateDocuments);
+            foreach (var (field, error) in outcome.Errors)
+                ModelState.AddModelError(field, error);
+            prepared = outcome.Files;
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateDetailsAsync(posting, vm, intakeClosed: false);
             return View("Details", posting);
+        }
+
+        // Upload before anything is staged (the code generator below saves this context): if File.Storage cannot take
+        // every file, the apply fails as a whole and nothing is saved. Files stored before the failure stay unreferenced
+        // (Pending) in File.Storage.
+        IReadOnlyList<(PreparedCandidateFile File, CandidateDocumentUploadResult.Uploaded Upload)> uploads = [];
+        if (prepared.Count > 0)
+        {
+            var uploaded = await candidateDocuments.UploadAllAsync(posting.TenantId, prepared);
+            if (uploaded is null)
+            {
+                ModelState.AddModelError(string.Empty, CandidateDocumentService.UploadFailedMessage);
+                await PopulateDetailsAsync(posting, vm, intakeClosed: false);
+                return View("Details", posting);
+            }
+            uploads = uploaded;
         }
 
         var model = new CitizenApplication
@@ -150,11 +185,17 @@ public class PublicCareersController(
         };
         db.CitizenApplications.Add(model);
 
-        // PLAN-30 S2: CandidateDocument uploads (File.Storage through HR.Core's service identity) and the channel consent.
+        // PLAN-30 S2: the channel consent.
         // HCM-030 (A2): a requisition-linked application enters the recruitment path at Submitted in the same save.
         // Legacy postings (no requisition) keep the citizen row only.
         if (posting.Requisition is not null)
-            unifiedIntake.CreateFromCitizen(model, posting.Requisition);
+        {
+            var application = unifiedIntake.CreateFromCitizen(
+                model, posting.Requisition, uploads.Select(u => u.File.DocumentType));
+            // HCM-030 (E3/E5): documents and their File.Storage reference registrations, in the same save.
+            candidateDocuments.Stage(
+                posting.TenantId, application.Id, model.Id, uploads, CandidateDocument.UploadedByCandidate);
+        }
         await db.SaveChangesAsync();
 
         TempData["Reference"] = model.ReferenceNumber;
@@ -212,6 +253,9 @@ public class PublicCareersController(
         ViewBag.IsLegacyPosting = posting.RequisitionId is null;
         ViewBag.Qualifications = await unifiedIntake.GetQualificationOptionsAsync(posting.TenantId);
         ViewBag.Criteria = posting.Requisition is null ? null : unifiedIntake.CriteriaFor(posting.Requisition);
+        // HCM-030 (E4/E5): required document types and the attachment limits (help text).
+        ViewBag.RequiredDocumentTypes = CandidateDocumentTypes.Parse(posting.Requisition?.RequiredDocumentTypes);
+        ViewBag.DocumentLimits = recruitmentOptions.Value.CandidateDocuments;
     }
 
     private IQueryable<PublicJobPosting> PublicPostings() =>

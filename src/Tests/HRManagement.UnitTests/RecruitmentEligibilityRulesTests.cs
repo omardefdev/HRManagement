@@ -99,7 +99,8 @@ public class RecruitmentEligibilityRulesTests
         Assert.Equal(flags, R.Parse(R.Format(flags)));
         Assert.Null(R.Format([]));
         Assert.Equal("دون المؤهل المطلوب", R.LabelAr(R.BelowMinQualification));
-        Assert.Equal(6, R.Flags.Count);
+        // HCM-030 (E4): + MissingRequiredDocuments.
+        Assert.Equal(7, R.Flags.Count);
     }
 
     [Fact]

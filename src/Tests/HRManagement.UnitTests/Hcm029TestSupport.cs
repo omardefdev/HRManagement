@@ -110,7 +110,8 @@ internal static class Hcm029TestSupport
     public static RecruitmentApplicationsController CreateHireController(
         HRCoreDbContext db,
         IConfiguration? config = null,
-        RecruitmentHireClosureService? closure = null)
+        RecruitmentHireClosureService? closure = null,
+        HR.Core.Web.Services.CandidateDocumentService? candidateDocuments = null)
     {
         config ??= Config();
         var authorization = new Mock<IAuthorizationService>();
@@ -132,7 +133,10 @@ internal static class Hcm029TestSupport
             Mock.Of<IPolicyOrchestrator>(),
             config,
             new HirePersonMatchService(db),
-            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+            new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            // HCM-030 (E6): hire tests do not exercise candidate documents (File.Storage reported unavailable).
+            candidateDocuments ?? new HR.Core.Web.Services.CandidateDocumentService(
+                db, new HR.Core.Web.Services.UnavailableCandidateDocumentUploadClient(), new EfFileReferenceOutbox(db)));
 
         var httpContext = new DefaultHttpContext
         {

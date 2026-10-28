@@ -51,6 +51,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<DiwanCorrespondence> DiwanCorrespondences => Set<DiwanCorrespondence>();
     public DbSet<RecruitmentApplication> RecruitmentApplications => Set<RecruitmentApplication>();
     public DbSet<RecruitmentApplicationEvent> RecruitmentApplicationEvents => Set<RecruitmentApplicationEvent>();
+    public DbSet<CandidateDocument> CandidateDocuments => Set<CandidateDocument>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<Shift> Shifts => Set<Shift>();
@@ -429,6 +430,22 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => e.OccurredAt)
                   .HasFilter("\"NotificationsPlannedAt\" IS NULL")
                   .HasDatabaseName("IX_RecruitmentApplicationEvents_NotificationsPending");
+        });
+
+        // HCM-030 (E3): candidate documents (bytes in File.Storage, referenced as hr-core:CandidateDocument:{Id:N}:FileId).
+        modelBuilder.Entity<CandidateDocument>(entity =>
+        {
+            entity.HasOne<RecruitmentApplication>()
+                  .WithMany()
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<CitizenApplication>()
+                  .WithMany()
+                  .HasForeignKey(e => e.CitizenApplicationId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.DocumentType).HasMaxLength(20);
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.UploadedAt });
+            entity.HasIndex(e => new { e.TenantId, e.FileId }).IsUnique();
         });
 
         modelBuilder.Entity<RecruitmentAssessmentCriteria>(entity =>

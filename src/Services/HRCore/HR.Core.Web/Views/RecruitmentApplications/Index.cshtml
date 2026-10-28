@@ -107,6 +107,22 @@
                         {
                             <span class="badge bg-warning text-dark d-inline-block mt-1">@RecruitmentEligibilityRules.LabelAr(flag)</span>
                         }
+                        @* HCM-030 (E6): document completeness against the requisition's required types. *@
+                        @if (Model.DocumentCompleteness.TryGetValue(application.Id, out var documents))
+                        {
+                            if (documents.RequiredCount == 0)
+                            {
+                                <span class="badge bg-light text-dark border d-inline-block mt-1">مستندات: @documents.DocumentCount</span>
+                            }
+                            else if (documents.MissingCount == 0)
+                            {
+                                <span class="badge bg-success d-inline-block mt-1">المستندات مكتملة</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-danger border border-danger d-inline-block mt-1">مستندات ناقصة: @documents.MissingCount من @documents.RequiredCount</span>
+                            }
+                        }
                     </td>
                     <td>
                         @if (application.ActiveOfferLetterId is Guid offerId)
