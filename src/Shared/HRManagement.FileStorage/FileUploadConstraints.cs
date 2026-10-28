@@ -31,4 +31,15 @@ public sealed record FileUploadConstraints(
             "image/jpeg",
             "image/png"
         });
+
+    /// <summary>PLAN-30 (FS-030): candidate CV, certificates and ID copy (File.Storage service upload).</summary>
+    public static FileUploadConstraints CandidateDocument { get; } = new(
+        5 * 1024 * 1024,
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".pdf", ".jpg", ".jpeg", ".png" },
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "application/pdf",
+            "image/jpeg",
+            "image/png"
+        });
 }

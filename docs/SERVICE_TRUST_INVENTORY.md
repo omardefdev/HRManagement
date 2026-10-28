@@ -7,7 +7,7 @@ Secrets are never stored in this file — only environment variable names.
 
 | Workload | ClientId | Env secret | Intended scopes |
 |----------|----------|------------|-----------------|
-| HR.Core | `svc-hr-core` | `ServiceIdentity__ClientSecret` (hr-core) | `file-storage.references`, `payroll.grades.read` |
+| HR.Core | `svc-hr-core` | `ServiceIdentity__ClientSecret` (hr-core) | `file-storage.references`, `payroll.grades.read`, `file-storage.service-upload` |
 | HR.Contracts | `svc-hr-contracts` | (hr-contracts) | `file-storage.references` |
 | HR.Health | `svc-hr-health` | (hr-health) | — |
 | HR.Movements | `svc-hr-movements` | (hr-movements) | `hr-core.lookup` |
@@ -33,6 +33,7 @@ Gateway remains the only interactive OIDC client. Service clients use `client_cr
 | HR.Core lookup | `api-hr-core` | `svc-payroll`, `svc-hr-movements`, `svc-admin-logistics`, interactive users via gateway |
 | File.Storage references | `api-file-storage` | `svc-hr-core`, `svc-hr-contracts`, `svc-hr-training`, `svc-idcard`, `svc-records-archive` |
 | Payroll pay grades (HCM-027) | `api-payroll` | `svc-hr-core` |
+| File.Storage service upload (PLAN-30) | `api-file-storage` | `svc-hr-core` |
 
 Configure on each resource server:
 
@@ -53,6 +54,7 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
 | `hr-core.workflow` | `POST /api/workflow-instances` (S2S) | `HrCoreWrite` / service scope |
 | `file-storage.references` | `POST/DELETE /api/files/{id}/references` | `Service.FileStorageReferences` |
 | `payroll.grades.read` | `GET /api/internal/pay-grades/{gradeCode}?asOf=yyyy-MM-dd` (Payroll) | `Service.PayrollGradeLookup` — service account + scope + client `svc-hr-core` only |
+| `file-storage.service-upload` | `POST /api/files/service-upload`, `POST /api/files/service-upload/metadata`, `GET /api/files/service-upload/{fileId}/content` (File.Storage) | `Service.FileStorageServiceUpload` — service account + scope + client `svc-hr-core` only |
 
 ### `payroll.grades.read` (HCM-027)
 
@@ -66,6 +68,24 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
 - **Configuration:** `Integration__PayrollBaseUrl` on HR.Core (dev/acceptance compose only). When empty, HR.Core registers
   `UnavailablePayrollGradeLookup` and offers need a salary justification (unverified exception offers).
 - **Failure mode:** 5 s timeout; any transport error or non-404 failure is treated as *unavailable*, never as *not found*.
+
+### `file-storage.service-upload` (PLAN-30, FS-030)
+
+- **Purpose:** anonymous candidates cannot call File.Storage, so HR.Core relays their documents with its service identity
+  (`FilesServiceUploadController`). Only the `CandidateDocument` constraint profile is accepted (5 MiB; `.pdf`, `.jpg`,
+  `.jpeg`, `.png`; magic bytes checked); the file goes through the normal quarantine bucket and scan queue.
+- **Ownership:** the upload creates a grant `HolderType=Service`, `HolderId=<caller client id>`, `Module=hr-core`,
+  `Visibility=Module`. Metadata and content are served only for files holding a non-revoked Service grant of the calling
+  client in the request tenant (the grant's 24 h expiry is not applied); content only when `ScanStatus=Clean`; anything
+  else is 404. The new scope grants nothing on `FilesApiController` (`ModuleFileStorage` still needs `file-storage.references`).
+- **Tenant:** service tokens carry no `tenant_id`; the caller sends `X-Tenant-ID` (400 when missing).
+- **Keycloak:** client scope `file-storage.service-upload` with audience `api-file-storage`, optional scope of `svc-hr-core`
+  (`scripts/sync-keycloak-dev-realm.ps1`; not in the realm JSON, like `payroll.grades.read`). HR.Core requests it through
+  `ServiceIdentity:Scope` (appsettings.json, acceptance/local compose). Run the sync **before** HR.Core requests the scope:
+  Keycloak refuses a token for an unlinked scope (`invalid_scope`), which breaks every HR.Core S2S call. Production
+  (`docker-compose.production.yml`) does not request it yet.
+- **Gateway caller proof:** the route is not exempt, so outside Development the direct call must be signed with
+  `GatewayCallerProof.Sign` (as `HrCoreLookupClient` does).
 
 ## PostgreSQL roles (per database)
 
@@ -113,6 +133,7 @@ Do **not** inject MinIO keys into unrelated services.
 | IT.Infra | Auth.Directory | `/api/internal/directory/sync-employee` | `directory.sync` |
 | Payroll | HR.Core | `/api/lookup/**` | `hr-core.lookup` |
 | HR.Core / Contracts / Training / IDCard / Archive | File.Storage (via Gateway) | `/api/files/{id}/references` | `file-storage.references` |
+| HR.Core | File.Storage (direct, caller-proof signed) | `/api/files/service-upload/**` | `file-storage.service-upload` |
 
 Any other service→service HTTP call is denied by default (no client / no scope).
 

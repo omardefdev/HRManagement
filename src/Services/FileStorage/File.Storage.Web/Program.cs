@@ -36,6 +36,8 @@ builder.Services.AddScoped<FilePlatformService>();
 // SEC-003: object-level file authorization wired into runtime.
 builder.Services.AddSingleton<IFileAccessPolicy, FileAccessPolicy>();
 builder.Services.AddScoped<FileAccessGrantService>();
+// PLAN-30 (FS-030): HR.Core's service upload of candidate documents.
+builder.Services.AddScoped<FileServiceUploadService>();
 builder.Services.AddHostedService<FileGarbageCollectorJob>();
 builder.Services.AddHostedService<FileScanProcessorJob>();
 builder.Services.AddServiceMassTransit(builder.Configuration);

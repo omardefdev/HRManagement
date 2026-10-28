@@ -47,6 +47,8 @@ public static class ServiceScopes
     public const string EvidenceIngest = "evidence.ingest";
     /// <summary>HCM-027: HR.Core reads Payroll grade bounds for offer letters.</summary>
     public const string PayrollGradesRead = "payroll.grades.read";
+    /// <summary>PLAN-30 (FS-030): HR.Core relays anonymous candidate documents to File.Storage.</summary>
+    public const string FileStorageServiceUpload = "file-storage.service-upload";
 }
 
 /// <summary>Authorization policy names for service-to-service endpoints (IAM-004).</summary>
@@ -58,4 +60,5 @@ public static class ServicePolicies
     public const string DsarSubjectRead = "Service.DsarSubjectRead";
     public const string EvidenceIngest = "Service.EvidenceIngest";
     public const string PayrollGradeLookup = "Service.PayrollGradeLookup";
+    public const string FileStorageServiceUpload = "Service.FileStorageServiceUpload";
 }

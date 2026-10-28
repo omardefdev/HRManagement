@@ -59,7 +59,10 @@ services:
       Integration__PayrollBaseUrl: http://payroll-web:8080
       # Same lab-only value sync-keycloak-dev-realm.ps1 sets on every service client (not .env SVC_* values).
       ServiceIdentity__ClientSecret: dev-svc-secret-local-only
-      ServiceIdentity__Scope: file-storage.references payroll.grades.read
+      # PLAN-30 (FS-030): file-storage.service-upload relays candidate documents to File.Storage (S2S).
+      ServiceIdentity__Scope: file-storage.references payroll.grades.read file-storage.service-upload
+      # PLAN-30 (HCM-030 E2): candidate documents go to File.Storage directly (caller proof signed), not via the gateway.
+      Integration__FileStorageBaseUrl: http://file-storage-web:8080
     volumes: *acceptance-dp-volumes
 
   hr-contracts-web:

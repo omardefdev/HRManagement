@@ -511,11 +511,12 @@ Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subje
 Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-payroll" | Out-Null
 Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-file-storage" | Out-Null
 Ensure-ClientScope -Name "payroll.grades.read" -Description "HR.Core offer salary bounds from Payroll pay grades (S2S, HCM-027)" -Audience "api-payroll" | Out-Null
+Ensure-ClientScope -Name "file-storage.service-upload" -Description "HR.Core relays candidate document uploads to File.Storage (S2S, PLAN-30)" -Audience "api-file-storage" | Out-Null
 Ensure-ClientScope -Name "directory.sync" -Description "Auth.Directory synchronization (S2S)" -Audience "api-auth-directory" | Out-Null
 Ensure-ClientScope -Name "evidence.ingest" -Description "Gateway evidence ingestion (S2S)" -Audience "hr-gateway-client" | Out-Null
 
 Write-Host "Service clients:"
-Ensure-ServiceClient -ClientId "svc-hr-core" -OptionalScopes @("file-storage.references", "payroll.grades.read")
+Ensure-ServiceClient -ClientId "svc-hr-core" -OptionalScopes @("file-storage.references", "payroll.grades.read", "file-storage.service-upload")
 # PLAN-29: hire transactions use HR.Core code generation (hr-core.workflow) and the employee lookup.
 Ensure-ServiceClient -ClientId "svc-hr-contracts" -OptionalScopes @("file-storage.references", "hr-core.lookup", "hr-core.workflow")
 Ensure-ServiceClient -ClientId "svc-hr-health" -OptionalScopes @()

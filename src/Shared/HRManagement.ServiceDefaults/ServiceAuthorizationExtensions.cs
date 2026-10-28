@@ -103,6 +103,12 @@ public static class ServiceAuthorizationExtensions
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.PayrollGradesRead)
                 && IsAllowedClient(ctx.User, ServiceClientIds.HrCore)));
 
+            // PLAN-30 (FS-030): HR.Core uploads candidate documents to File.Storage on behalf of anonymous candidates.
+            options.AddPolicy(ServicePolicies.FileStorageServiceUpload, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.FileStorageServiceUpload)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrCore)));
+
             // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
             options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
