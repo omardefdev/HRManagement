@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using HRManagement.ServiceDefaults.LegalControl;
 using Microsoft.Extensions.Configuration;
@@ -151,21 +150,13 @@ public class Str002ProductionBindingTests
     public void Runtime_validate_script_passes()
     {
         var script = RepoPaths.Resolve("scripts", "str002-control-runtime-validate.ps1");
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -RepoRoot \"{RepoRoot}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = RepoRoot
-        };
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit(300_000);
-        Assert.True(proc.ExitCode == 0, $"runtime validate failed ({proc.ExitCode}): {stdout}\n{stderr}");
+        // QA-034: on the watch stamp's lastReviewed day, not the real clock; nextDue itself is a dated obligation
+        // (docs/qa/dated-obligations.json) and the CI step still runs the script on today's date.
+        using var stamp = JsonDocument.Parse(System.IO.File.ReadAllText(
+            RepoPaths.Resolve("docs", "str-legal", "legislative-watch-stamp.json")));
+        var asOf = stamp.RootElement.GetProperty("lastReviewed").GetString();
+        var (exitCode, stdout, stderr) = RepoScriptRunner.RunScript(script, $"-AsOfDate {asOf}");
+        Assert.True(exitCode == 0, $"runtime validate failed ({exitCode}): {stdout}\n{stderr}");
         Assert.Contains("PASS", stdout, StringComparison.OrdinalIgnoreCase);
     }
 

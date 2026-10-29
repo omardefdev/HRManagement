@@ -2,7 +2,9 @@
 
 param(
 
-    [string]$RepoRoot = ""
+    [string]$RepoRoot = "",
+
+    [string]$AsOfDate = ""
 
 )
 
@@ -80,7 +82,7 @@ if (Test-Path $drill) {
 
 
 
-& (Join-Path $RepoRoot "scripts/sup004-license-audit.ps1") -RepoRoot $RepoRoot
+& (Join-Path $RepoRoot "scripts/sup004-license-audit.ps1") -RepoRoot $RepoRoot -AsOfDate $AsOfDate
 
 if ($LASTEXITCODE -ne 0) {
 

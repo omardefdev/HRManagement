@@ -1,0 +1,5 @@
+{
+  "card": "QA-034",
+  "description": "Test categories excluded from the CI step list (scripts/ci/steps.json). Each entry: category, reason, owner (plan), excludedOn, reviewBy (yyyy-MM-dd), status (Excluded | Lifted). Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-CI-EXCLUSIONS); CiStepsParityTests rejects a Category!= filter without an entry here.",
+  "exclusions": []
+}

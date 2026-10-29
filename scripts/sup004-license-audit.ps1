@@ -2,7 +2,8 @@
 param(
     [string]$RegistryPath = "docs/sup-contracts/vendor-contract-registry.json",
     [string]$RepoRoot = "",
-    [int]$ExpiryWarningDays = 90
+    [int]$ExpiryWarningDays = 90,
+    [string]$AsOfDate = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,7 +21,15 @@ if (-not (Test-Path $registryFull)) { Write-Error "registry not found: $registry
 $r = Get-Content -Raw -Path $registryFull | ConvertFrom-Json
 $failures = @()
 $warnings = @()
-$today = Get-Date
+# QA-034: yyyy-MM-dd in the invariant culture as UTC days; -AsOfDate keeps the unit test off the real clock
+# (the license and EOL dates are dated obligations in docs/qa/dated-obligations.json).
+$invariant = [System.Globalization.CultureInfo]::InvariantCulture
+$utcStyles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+function ConvertTo-UtcDate($value) {
+    if ($value -is [datetime]) { return [datetime]::SpecifyKind($value.Date, [DateTimeKind]::Utc) }
+    return [datetime]::ParseExact(([string]$value).Trim(), "yyyy-MM-dd", $invariant, $utcStyles).Date
+}
+$today = if ($AsOfDate) { ConvertTo-UtcDate $AsOfDate } else { [datetime]::UtcNow.Date }
 
 if ($r.card -ne "SUP-004") { $failures += "card must be SUP-004" }
 
@@ -41,7 +50,7 @@ foreach ($v in $r.vendors) {
     }
 
     if ($v.licenseExpiry) {
-        $exp = [datetime]::Parse($v.licenseExpiry)
+        $exp = ConvertTo-UtcDate $v.licenseExpiry
         $days = ($exp - $today).Days
         if ($days -lt 0) { $failures += "$($v.id) license expired" }
         elseif ($days -lt $ExpiryWarningDays) {
@@ -50,7 +59,7 @@ foreach ($v in $r.vendors) {
     }
 
     if ($v.eol.eolDate) {
-        $eol = [datetime]::Parse($v.eol.eolDate)
+        $eol = ConvertTo-UtcDate $v.eol.eolDate
         if ($eol -lt $today) { $failures += "$($v.id) EOL date passed" }
     }
 }

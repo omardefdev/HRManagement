@@ -1,0 +1,6 @@
+{
+  "card": "QA-034-TEST",
+  "obligations": [
+    { "id": "TEST-STALE", "file": "testdata/qa/dated-obligations/fixture-data.json", "selector": "doesNotExist[*]", "idField": "id", "dateField": "expiresOn", "enforcedBy": ["test"], "owner": "qa" }
+  ]
+}

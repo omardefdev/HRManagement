@@ -6,7 +6,8 @@ param(
     [string]$CatalogPath = "docs/str-legal/control-catalog.json",
     [string]$WatchPath = "docs/str-legal/legislative-watch-stamp.json",
     [string]$RepoRoot = "",
-    [string]$OutDir = "testdata/str002/out"
+    [string]$OutDir = "testdata/str002/out",
+    [string]$AsOfDate = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -130,8 +131,20 @@ else {
         $failures += "watch stamp missing nextDue"
     }
     else {
-        $nextDue = [datetime]::Parse([string]$watch.nextDue).ToUniversalTime().Date
-        if ($nextDue -lt [datetime]::UtcNow.Date) {
+        # QA-034: yyyy-MM-dd in the invariant culture as a UTC day; -AsOfDate makes the check testable.
+        $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+        $invariant = [System.Globalization.CultureInfo]::InvariantCulture
+        $today = if ($AsOfDate) { [datetime]::ParseExact($AsOfDate, "yyyy-MM-dd", $invariant, $styles).Date } else { [datetime]::UtcNow.Date }
+        $nextDue = $null
+        if ($watch.nextDue -is [datetime]) { $nextDue = $watch.nextDue.Date }
+        else {
+            $parsed = [datetime]::MinValue
+            if ([datetime]::TryParseExact(([string]$watch.nextDue).Trim(), "yyyy-MM-dd", $invariant, $styles, [ref]$parsed)) { $nextDue = $parsed.Date }
+        }
+        if ($null -eq $nextDue) {
+            $failures += "legislative watch nextDue unparseable: '$($watch.nextDue)' (expected yyyy-MM-dd)"
+        }
+        elseif ($nextDue -lt $today) {
             $failures += "legislative watch overdue: nextDue=$($watch.nextDue)"
         }
     }

@@ -20,6 +20,7 @@ if (-not $RepoRoot) {
 }
 
 function Resolve-RepoPath([string]$rel) {
+    if ([IO.Path]::IsPathRooted($rel)) { return $rel }
     return (Join-Path $RepoRoot ($rel -replace '/', [IO.Path]::DirectorySeparatorChar))
 }
 
@@ -29,8 +30,16 @@ function Get-Json([string]$rel) {
     return Get-Content -Raw -Path $full | ConvertFrom-Json
 }
 
+# QA-034: yyyy-MM-dd in the invariant culture, as a UTC calendar day (a Hijri thread culture or a non-UTC time zone
+# must not shift the date). PowerShell 7 ConvertFrom-Json may already return [datetime] for ISO strings.
+function ConvertTo-UtcDate($value) {
+    if ($value -is [datetime]) { return [datetime]::SpecifyKind($value.Date, [DateTimeKind]::Utc) }
+    $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+    return [datetime]::ParseExact(([string]$value).Trim(), "yyyy-MM-dd", [System.Globalization.CultureInfo]::InvariantCulture, $styles).Date
+}
+
 $failures = @()
-$now = if ($AsOfDate) { [datetime]::Parse($AsOfDate).ToUniversalTime().Date } else { [datetime]::UtcNow.Date }
+$now = if ($AsOfDate) { ConvertTo-UtcDate $AsOfDate } else { [datetime]::UtcNow.Date }
 
 $m = Get-Json $MatrixPath
 $decisions = Get-Json $DecisionLogPath
@@ -60,7 +69,11 @@ foreach ($ex in @($m.exceptions)) {
         $failures += "$($ex.exceptionId) Declared exception missing expiresOn"
         continue
     }
-    $expires = [datetime]::Parse([string]$ex.expiresOn).ToUniversalTime().Date
+    try { $expires = ConvertTo-UtcDate $ex.expiresOn }
+    catch {
+        $failures += "$($ex.exceptionId) Declared exception expiresOn unparseable '$($ex.expiresOn)' (expected yyyy-MM-dd)"
+        continue
+    }
     if ($expires -lt $now) {
         $failures += "$($ex.exceptionId) Declared exception expired on $($ex.expiresOn)"
     }
@@ -140,7 +153,7 @@ foreach ($rel in $prodFiles) {
     }
 }
 
-$outFull = Join-Path $RepoRoot $OutDir
+$outFull = Resolve-RepoPath $OutDir
 New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 $report = [ordered]@{
     card = "STR-005"

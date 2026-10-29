@@ -1,0 +1,187 @@
+{
+  "card": "QA-034",
+  "version": 1,
+  "description": "Registry of every date in the repository that can stop CI or a service on a calendar day. scripts/qa/dated-obligations-check.ps1 warns when an open item is due within warnDays and fails within failDays, when it is past due, or when its date is not yyyy-MM-dd. An obligation changes only by its status (Closed / Renewed with a different reviewer) and a recorded decision, never by moving the date. DatedObligationsTests fails when a JSON file carries one of the keys below and is neither registered here nor listed as historical.",
+  "defaults": {
+    "warnDays": 30,
+    "failDays": 7
+  },
+  "keys": [
+    "expiresOn",
+    "nextDue",
+    "reviewBy",
+    "renewBy",
+    "expiryDate",
+    "validUntil",
+    "validTo",
+    "licenseExpiry",
+    "eolDate",
+    "applicationClosingDate"
+  ],
+  "obligations": [
+    {
+      "id": "STR005-EXCEPTIONS",
+      "file": "docs/str-governance/governance-matrix.json",
+      "selector": "exceptions[*]",
+      "idField": "exceptionId",
+      "dateField": "expiresOn",
+      "statusField": "status",
+      "closedStatuses": ["Closed", "Renewed"],
+      "enforcedBy": [
+        "startup:ProgramGovernanceStartupValidator (Gateway, HR.Core, Payroll; Production and Staging, EnforceOnStartup=true)",
+        "ci:STR-005 governance runtime validate"
+      ],
+      "owner": "architecture",
+      "note": "Expired Declared exception = the three services refuse to start. Close or renew by decision in docs/str-governance/decision-log.json."
+    },
+    {
+      "id": "STR002-LEGISLATIVE-WATCH",
+      "file": "docs/str-legal/legislative-watch-stamp.json",
+      "selector": "$",
+      "idField": "card",
+      "dateField": "nextDue",
+      "enforcedBy": [
+        "startup:LegalControlStartupValidator (Production, EnforceLegislativeWatch=true)",
+        "ci:STR-002 control runtime validate"
+      ],
+      "owner": "legal",
+      "note": "Refresh the legislative watch (new lastReviewed/nextDue) with a review record before nextDue."
+    },
+    {
+      "id": "STR002-CONTROL-EXCEPTIONS",
+      "file": "docs/str-legal/control-catalog.json",
+      "selector": "exceptions[*]",
+      "idField": "exceptionId",
+      "dateField": "expiresOn",
+      "statusField": "status",
+      "closedStatuses": ["Closed", "Renewed", "Expired"],
+      "enforcedBy": [
+        "ci:Dated obligations horizon (QA-034) only - LegalControlCatalogProvider.IsExceptionActive reads the status, not the date"
+      ],
+      "owner": "legal",
+      "note": "Partial controls depend on these Active exceptions; once expired they must be renewed by the signing roles or the controls re-classified."
+    },
+    {
+      "id": "MIG001-SOURCE-INVENTORY-EXCEPTIONS",
+      "file": "docs/mig-inventory/source-inventory.json",
+      "selector": "exceptions[*]",
+      "idField": "exceptionId",
+      "dateField": "expiresOn",
+      "statusField": "status",
+      "closedStatuses": ["Closed", "Renewed"],
+      "enforcedBy": [
+        "ci:Dated obligations horizon (QA-034) only - mig001-*-validate.ps1 checks presence of expiresOn, not the date"
+      ],
+      "owner": "migration-office"
+    },
+    {
+      "id": "SUP004-VENDOR-LICENSES",
+      "file": "docs/sup-contracts/vendor-contract-registry.json",
+      "selector": "vendors[*]",
+      "idField": "id",
+      "dateField": "licenseExpiry",
+      "allowMissingDate": true,
+      "enforcedBy": [
+        "script:scripts/sup004-license-audit.ps1 (via sup004-validate.ps1; fails once a license is expired)"
+      ],
+      "owner": "procurement"
+    },
+    {
+      "id": "SUP004-VENDOR-EOL",
+      "file": "docs/sup-contracts/vendor-contract-registry.json",
+      "selector": "vendors[*]",
+      "idField": "id",
+      "dateField": "eol.eolDate",
+      "allowMissingDate": true,
+      "enforcedBy": [
+        "script:scripts/sup004-license-audit.ps1 (fails once an EOL date has passed)"
+      ],
+      "owner": "architecture"
+    },
+    {
+      "id": "SUP001-SCA-EXCEPTIONS",
+      "allowEmpty": true,
+      "file": "supply-chain-exceptions.json",
+      "selector": "exceptions[*]",
+      "idField": "id",
+      "dateField": "expiresOn",
+      "enforcedBy": [
+        "ci:Supply-chain exceptions validity (SUP-001-C) - an expired row fails",
+        "ci:Security scan (known vulnerabilities) - an expired row stops allow-listing its advisory"
+      ],
+      "owner": "security",
+      "note": "Empty today (no Critical/High exception). The first row added becomes a dated obligation here."
+    },
+    {
+      "id": "ACCEPTANCE-SEED-CLOSING",
+      "file": "testdata/acceptance/recruitment-states.json",
+      "selector": "requisitions.published",
+      "idField": "number",
+      "dateField": "applicationClosingDate",
+      "enforcedBy": [
+        "unit:AcceptanceSeedTests and Hcm033RecruitmentStatesSeedTests assert the seeded postings and the issued offer are still open today",
+        "acceptance:seeded postings close for the live acceptance stack"
+      ],
+      "owner": "hcm",
+      "note": "Mirror of the C# seed literals: AcceptanceRecruitmentStatesPatch.cs (ClosingDate, issued offer ExpiryDate 2028-08-01) and AcceptanceDataSeeder.AcceptanceSeedApplicationClosingDate (AcceptanceSeedCatalog.ReferenceDate + 2 years). Move the literals and this mirror together."
+    },
+    {
+      "id": "QA-QUARANTINE",
+      "allowEmpty": true,
+      "file": "tests/quarantine.json",
+      "selector": "entries[*]",
+      "idField": "test",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Released"],
+      "enforcedBy": ["ci:Dated obligations horizon (QA-034)"],
+      "owner": "qa",
+      "note": "Quarantined (Category=Flaky) tests run in a non-blocking step; each entry must be fixed or re-decided by reviewBy (docs/QA_FLAKY_TEST_POLICY.md)."
+    },
+    {
+      "id": "QA-CI-EXCLUSIONS",
+      "allowEmpty": true,
+      "file": "tests/ci-exclusions.json",
+      "selector": "exclusions[*]",
+      "idField": "category",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Lifted"],
+      "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "unit:CiStepsParityTests (every Category!= filter in scripts/ci/steps.json has an entry)"],
+      "owner": "qa",
+      "note": "A test category excluded from CI must have an owner plan and a review date."
+    }
+  ],
+  "historical": [
+    {
+      "file": "docs/ops007/component-inventory.json",
+      "keys": ["eolDate"],
+      "reason": "OPS-007 inventory of upstream vendor end-of-life dates (facts published by the vendors). No validator, test or guard compares them with the clock (ops007-validate.ps1 checks structure only); upgrades are tracked by patchStatus/upgradeTarget. Several entries are stale (kubernetes 2025-12-28, dotnet-runtime 9.0.7 2026-11-12) - recorded as an OPS documentation defect in reports/plan34-final-report.md, not an obligation of this registry."
+    },
+    {
+      "file": "docs/str-ownership/ownership-matrix.json",
+      "keys": ["eolDate"],
+      "reason": "STR-006 planned retirement dates (eol[].eolDate) and vendor EOL placeholders (all null). Informational; no validator compares them with the clock."
+    },
+    {
+      "file": "docs/syr/currency-era.json",
+      "keys": ["validUntil"],
+      "reason": "oldCurrency.validUntil (2026-07-30) is the historical end of the old Syrian pound era (SYR-004), a fact, not an obligation."
+    },
+    {
+      "file": "testdata/mig001/exceptions/signed-unsupported.json",
+      "keys": ["expiresOn"],
+      "reason": "Fixture mirroring EX-MIG001-UNSUPPORTED-ACCESS for the MIG-001 validators; they check that expiresOn is present, never compare it with the clock. The live obligation is MIG001-SOURCE-INVENTORY-EXCEPTIONS."
+    },
+    {
+      "file": "testdata/mig002/signoff/legal-business-signoff.json",
+      "keys": ["expiresOn"],
+      "reason": "Fixture for the MIG-002 sign-off validator (presence and role checks only; no clock comparison)."
+    },
+    {
+      "file": "testdata/qa/dated-obligations/**",
+      "keys": ["expiresOn", "nextDue", "reviewBy"],
+      "reason": "Fixtures for dated-obligations-check.ps1 itself (DatedObligationsTests runs them with -AsOfDate)."
+    }
+  ]
+}

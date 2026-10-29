@@ -7,6 +7,9 @@ using HRManagement.TestSupport;
 
 public class Str005GovernancePackTests
 {
+    // QA-034: governance dates are yyyy-MM-dd; the thread culture (ar-SA, Hijri) must not change the year.
+    private static DateTime ParseIsoDate(string value) =>
+        DateTime.ParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     [Fact]
     public void Matrix_has_journeys_boards_rights_and_blockers()
@@ -69,10 +72,10 @@ public class Str005GovernancePackTests
     {
         using var doc = JsonDocument.Parse(System.IO.File.ReadAllText(
             RepoPaths.Resolve("docs", "str-governance", "governance-matrix.json")));
-        var asOf = DateTime.Parse(doc.RootElement.GetProperty("asOfDate").GetString()!);
+        var asOf = ParseIsoDate(doc.RootElement.GetProperty("asOfDate").GetString()!);
         foreach (var ex in doc.RootElement.GetProperty("exceptions").EnumerateArray())
         {
-            var expires = DateTime.Parse(ex.GetProperty("expiresOn").GetString()!);
+            var expires = ParseIsoDate(ex.GetProperty("expiresOn").GetString()!);
             var status = ex.GetProperty("status").GetString();
             if (status is "Renewed" or "Closed")
                 continue;

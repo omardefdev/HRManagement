@@ -147,16 +147,24 @@
       "declaredBy": "legal",
       "reviewerRole": "architecture",
       "expiresOn": "2026-10-30",
-      "status": "Declared",
-      "reason": "Interim payroll rule pending gazette — simulation seed"
+      "status": "Closed",
+      "reason": "Interim payroll rule pending gazette — simulation seed",
+      "closedOn": "2026-10-30",
+      "closedBy": "architecture",
+      "closureDecisionId": "PG-EXC-2026-10-001",
+      "closureNote": "انتهت محاكاة STR-005؛ السيناريو باقٍ في testdata/str005/scenarios"
     },
     {
       "exceptionId": "EX-STR005-SIM-INCIDENT-WINDOW",
       "declaredBy": "security",
       "reviewerRole": "change",
       "expiresOn": "2026-09-15",
-      "status": "Declared",
-      "reason": "Emergency change window post-incident — simulation seed"
+      "status": "Closed",
+      "reason": "Emergency change window post-incident — simulation seed",
+      "closedOn": "2026-10-30",
+      "closedBy": "architecture",
+      "closureDecisionId": "PG-EXC-2026-10-001",
+      "closureNote": "انتهت محاكاة STR-005؛ السيناريو باقٍ في testdata/str005/scenarios"
     }
   ],
   "blockers": [

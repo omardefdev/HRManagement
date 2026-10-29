@@ -39,13 +39,13 @@ public static class ProgramGovernanceEvaluator
                 continue;
             }
 
-            if (!DateTime.TryParse(ex.ExpiresOn, out var expires))
+            if (!GovernanceDateParser.TryParseUtcDate(ex.ExpiresOn, out var expires))
             {
-                failures.Add($"{ex.ExceptionId}: expiresOn unparseable '{ex.ExpiresOn}'");
+                failures.Add($"{ex.ExceptionId}: expiresOn unparseable '{ex.ExpiresOn}' (expected yyyy-MM-dd)");
                 continue;
             }
 
-            if (expires.ToUniversalTime().Date < now)
+            if (expires < now)
                 failures.Add($"{ex.ExceptionId}: Declared exception expired on {ex.ExpiresOn}");
         }
 

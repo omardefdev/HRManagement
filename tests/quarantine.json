@@ -1,0 +1,5 @@
+{
+  "card": "QA-034",
+  "description": "Quarantined tests (Category=Flaky). Each entry: test (fully qualified name), reason, owner, quarantinedOn, reviewBy (yyyy-MM-dd), status (Quarantined | Released). Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-QUARANTINE); quarantined tests run in a non-blocking CI step that prints their result. Policy: docs/QA_FLAKY_TEST_POLICY.md.",
+  "entries": []
+}

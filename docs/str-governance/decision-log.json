@@ -51,6 +51,19 @@
       "evidenceRef": "docs/STR_005_GO_LIVE_GATE.md",
       "decidedAt": "2026-07-30",
       "notes": "Policy: multi-seat required; not a production Go-Live declaration"
+    },
+    {
+      "decisionId": "PG-EXC-2026-10-001",
+      "type": "ExceptionGrant",
+      "ownerRole": "architecture",
+      "reviewerRole": "program",
+      "board": "Architecture",
+      "adrRef": "docs/ADR-STR-005-program-governance-boards.md",
+      "status": "Approved",
+      "evidenceRef": "docs/acceptance-plans/PLAN-34-qa-pushable-baseline.md",
+      "decidedAt": "2026-10-30",
+      "closesExceptionIds": ["EX-STR005-SIM-LAW-INTERIM", "EX-STR005-SIM-INCIDENT-WINDOW"],
+      "notes": "PLAN-34 / D-QA-3: both STR-005 simulation-seed exceptions are Closed, not renewed (no date extended). EX-STR005-SIM-INCIDENT-WINDOW expired 2026-09-15 and stopped Production/Staging startup of Gateway, HR.Core and Payroll (EnforceOnStartup); EX-STR005-SIM-LAW-INTERIM expired at the end of 2026-10-30. The simulation scenarios stay in testdata/str005/scenarios. A real exception later needs its own decision and an image rebuild (the matrix ships in the build output) or ProgramGovernance:MatrixPath pointing at a mounted file."
     }
   ]
 }

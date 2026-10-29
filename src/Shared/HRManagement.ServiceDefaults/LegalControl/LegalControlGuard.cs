@@ -113,7 +113,8 @@ public sealed class LegalControlStartupValidator(
     ILegalControlCatalogProvider provider,
     LegalControlMetrics metrics,
     IHostEnvironment environment,
-    ILogger<LegalControlStartupValidator> logger) : IHostedService
+    ILogger<LegalControlStartupValidator> logger,
+    TimeProvider timeProvider) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -121,13 +122,14 @@ public sealed class LegalControlStartupValidator(
         var opts = provider.Options;
         var evaluateWatch = opts.EnforceLegislativeWatch
                             && environment.IsProduction();
+        var utcNow = timeProvider.GetUtcNow().UtcDateTime;
 
         var failures = LegalControlCatalogEvaluator.Evaluate(
             provider.Catalog,
             provider.ReleaseProfile,
             opts.AllowBlockedLegalNationalClaim,
             provider.WatchStamp,
-            DateTime.UtcNow,
+            utcNow,
             evaluateLegislativeWatch: evaluateWatch);
 
         // Staging: warn on overdue watch when enforce is on, but do not fail solely for watch.
@@ -135,8 +137,8 @@ public sealed class LegalControlStartupValidator(
             && environment.IsStaging()
             && opts.EnforceLegislativeWatch
             && provider.WatchStamp is not null
-            && DateTime.TryParse(provider.WatchStamp.NextDue, out var nextDue)
-            && nextDue.ToUniversalTime().Date < DateTime.UtcNow.Date)
+            && GovernanceDateParser.TryParseUtcDate(provider.WatchStamp.NextDue, out var nextDue)
+            && nextDue < utcNow.Date)
         {
             logger.LogWarning(
                 "STR-002: legislative watch overdue (nextDue={NextDue}) — warning only in Staging",

@@ -36,7 +36,14 @@ if ($m.card -ne "STR-005") { $failures += "card must be STR-005" }
 if ($dec.card -ne "STR-005") { $failures += "decision-log card must be STR-005" }
 if ($risk.card -ne "STR-005") { $failures += "risk-register card must be STR-005" }
 
-$asOf = if ($AsOfDate) { [datetime]::Parse($AsOfDate) } elseif ($m.asOfDate) { [datetime]::Parse($m.asOfDate) } else { Get-Date }
+# QA-034: yyyy-MM-dd in the invariant culture (PowerShell 7 ConvertFrom-Json may already return [datetime]).
+function ConvertTo-UtcDate($value) {
+    if ($value -is [datetime]) { return [datetime]::SpecifyKind($value.Date, [DateTimeKind]::Utc) }
+    $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+    return [datetime]::ParseExact(([string]$value).Trim(), "yyyy-MM-dd", [System.Globalization.CultureInfo]::InvariantCulture, $styles).Date
+}
+
+$asOf = if ($AsOfDate) { ConvertTo-UtcDate $AsOfDate } elseif ($m.asOfDate) { ConvertTo-UtcDate $m.asOfDate } else { [datetime]::UtcNow.Date }
 
 # Journeys
 $journeyIds = @($m.journeys | ForEach-Object { $_.id })
@@ -105,8 +112,8 @@ foreach ($ex in $m.exceptions) {
         $failures += "exception $($ex.exceptionId) declaredBy equals reviewerRole"
     }
     if ($ex.expiresOn) {
-        $exp = [datetime]::Parse($ex.expiresOn)
-        if ($exp.Date -lt $asOf.Date -and $ex.status -ne "Renewed" -and $ex.status -ne "Closed") {
+        $exp = ConvertTo-UtcDate $ex.expiresOn
+        if ($exp -lt $asOf -and $ex.status -ne "Renewed" -and $ex.status -ne "Closed") {
             $failures += "exception $($ex.exceptionId) expired without renew/close"
         }
     }

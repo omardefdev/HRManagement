@@ -9,13 +9,18 @@ public sealed class ProgramGovernanceMetrics
     public const string MeterName = "HRManagement.ProgramGovernance";
 
     private readonly IProgramGovernanceProvider _provider;
+    private readonly TimeProvider _timeProvider;
     private long _decisions;
     private long _activeExceptions;
     private long _goLiveDeclared;
 
-    public ProgramGovernanceMetrics(IProgramGovernanceProvider provider, IMeterFactory? meterFactory = null)
+    public ProgramGovernanceMetrics(
+        IProgramGovernanceProvider provider,
+        IMeterFactory? meterFactory = null,
+        TimeProvider? timeProvider = null)
     {
         _provider = provider;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         Recount();
         var meter = meterFactory?.Create(MeterName) ?? new Meter(MeterName);
         meter.CreateObservableGauge(
@@ -38,14 +43,14 @@ public sealed class ProgramGovernanceMetrics
     public void Recount()
     {
         _decisions = _provider.DecisionLog.Decisions.Count;
-        var now = DateTime.UtcNow.Date;
+        var now = _timeProvider.GetUtcNow().UtcDateTime.Date;
         _activeExceptions = _provider.Matrix.Exceptions.Count(ex =>
         {
             if (!string.Equals(ex.Status, "Declared", StringComparison.OrdinalIgnoreCase))
                 return false;
-            if (!DateTime.TryParse(ex.ExpiresOn, out var expires))
+            if (!GovernanceDateParser.TryParseUtcDate(ex.ExpiresOn, out var expires))
                 return true;
-            return expires.ToUniversalTime().Date >= now;
+            return expires >= now;
         });
         _goLiveDeclared = _provider.Options.GoLiveDeclared ? 1 : 0;
     }
@@ -76,7 +81,8 @@ public sealed class ProgramGovernanceStartupValidator(
     IGoLiveSeatGuard goLiveGuard,
     ProgramGovernanceMetrics metrics,
     IHostEnvironment environment,
-    ILogger<ProgramGovernanceStartupValidator> logger) : IHostedService
+    ILogger<ProgramGovernanceStartupValidator> logger,
+    TimeProvider timeProvider) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -87,7 +93,7 @@ public sealed class ProgramGovernanceStartupValidator(
             provider.DecisionLog,
             opts.GoLiveDeclared,
             provider.GoLiveEvidence,
-            DateTime.UtcNow);
+            timeProvider.GetUtcNow().UtcDateTime);
 
         // EnsureGoLiveAllowed is covered by Evaluate when GoLiveDeclared; call for logging clarity.
         var goLiveErr = goLiveGuard.EnsureGoLiveAllowed();
