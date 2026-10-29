@@ -7,6 +7,7 @@ using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
+using HR.Core.Infrastructure.Services.Workflow;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.Tenancy;
@@ -23,35 +24,12 @@ using Microsoft.Extensions.Hosting;
 namespace HRManagement.IntegrationTests;
 
 /// <summary>
-/// HCM-033 (PLAN-33 decision 5, gap <b>G-02</b> — open, fixed by PLAN-25): documents, against the real HR.Core host,
-/// what recruitment approvals do <i>today</i> when the policy engine is <c>Off</c> and the deployment is production-like
-/// (<c>NationalScope:IsLabScale=false</c>) versus the acceptance/lab host (<c>IsLabScale=true</c>).
-/// <para>
-/// These tests are NOT a fix. They pin current behaviour so the acceptance evidence of <b>AC-HCM-21d</b> (requisition
-/// approval) and <b>AC-HCM-22e</b> (offer / committee approval) can cite the non-lab case, and so PLAN-25 sees exactly
-/// which assertions flip when G-02 is closed.
-/// </para>
-/// <para>
-/// Code facts exercised (HR.Core):
-/// <list type="bullet">
-/// <item><c>RecruitmentRequisitionLifecycleService.SubmitForApprovalAsync</c>
-/// (<c>HR.Core.Infrastructure/Services/Recruitment/RecruitmentRequisitionLifecycleService.cs:27</c>): mode from
-/// <c>PolicyEngine:Core.Recruitment</c> ?? <c>PolicyEngine:DefaultMode</c> ?? Off (<c>:468-476</c>); in Off the status
-/// becomes <c>PendingApproval</c> (<c>:45-47</c>) and <c>RECRUITMENT-REQUISITION-APPROVAL</c> is started only when
-/// <c>IsLabScale()</c> is true (<c>:56-67</c>, gate <c>:478-482</c>).</item>
-/// <item><c>RecruitmentOfferService.SubmitForApprovalAsync</c> (<c>RecruitmentOfferService.cs:137-212</c>): Off branch
-/// <c>:156</c>, lab gate <c>:167</c> / <c>:725-729</c>.</item>
-/// <item><c>SelectionCommitteeLifecycleService.SubmitForApprovalAsync</c> (<c>SelectionCommitteeLifecycleService.cs:32</c>):
-/// the session is submitted and locked (<c>:51-53</c>) before the Off branch (<c>:71</c>), whose workflow start is lab-gated
-/// (<c>:74</c> / <c>:181-185</c>); approval then fails with <c>NoWorkflowMessage</c> (<c>:26</c>, <c>:159</c>).</item>
-/// <item>UI: <c>HR.Core.Web/Services/RecruitmentRequisitionWorkflowUiService.cs:32-34</c> and
-/// <c>OfferLetterWorkflowUiService.cs:34-36</c> warn (rendered by <c>_RequisitionWorkflowPanel.cshtml:12-15</c> /
-/// <c>_OfferWorkflowPanel.cshtml:12-15</c>); <c>SelectionCommitteeWorkflowUiService.cs:36-38</c> passes <c>null</c> in both
-/// branches, so the committee shows no warning.</item>
-/// <item>Approve without a workflow: <c>RecruitmentRequisitionsController.cs:299-303</c>,
-/// <c>OfferLettersController.cs:240-245</c>.</item>
-/// </list>
-/// </para>
+/// HCM-033 / PLAN-25 (gap <b>G-02</b>, closed by PLAN-25 decision D-1): against the real HR.Core host with the policy
+/// engine <c>Off</c>, recruitment approvals start whether the deployment is production-like
+/// (<c>NationalScope:IsLabScale=false</c>) or the acceptance/lab host (<c>IsLabScale=true</c>). PLAN-33 wrote these tests to
+/// pin the defect (non-lab: PendingApproval without a workflow, a silent committee lock); PLAN-25 flipped the non-lab
+/// assertions and added the restart path for rows left stuck by earlier builds. Evidence for <b>AC-HCM-21d</b> and
+/// <b>AC-HCM-22e</b>; the full Production-like chain is <c>Hcm025ProductionApprovalIntegrationTests</c>.
 /// Driven over HTTP (MVC form posts with the antiforgery token read from the rendered page) with the in-process
 /// <see cref="WebApplicationFactory{TEntryPoint}"/>, a per-host SQLite file and <c>PolicyEngine:DefaultMode=Off</c>.
 /// </summary>
@@ -62,11 +40,7 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
     private const string OfferWorkflowCode = "RECRUITMENT-OFFER-APPROVAL";
     private const string CommitteeWorkflowCode = "RECRUITMENT-SELECTION-COMMITTEE";
 
-    private const string RequisitionMissingWorkflowWarning = "لم يُنشأ مسار اعتماد لهذا الطلب.";
-    private const string OfferMissingWorkflowWarning = "لم يُنشأ مسار اعتماد لهذا العرض.";
     private const string AnyMissingWorkflowWarning = "لم يُنشأ مسار اعتماد";
-    private const string RequisitionNoWorkflowError = "لا يوجد مسار اعتماد مرتبط بهذا الطلب.";
-    private const string OfferNoWorkflowError = "لا يوجد مسار اعتماد مرتبط بهذا العرض.";
 
     /// <summary>Fixed actor so the antiforgery token (bound to the user's <c>sub</c>) validates across requests.</summary>
     private static readonly Guid ActorUserId = Guid.Parse("33330000-0000-4000-8000-0000000000a1");
@@ -82,13 +56,12 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
     public Hcm033LabScaleBehaviourTests(WebApplicationFactory<HRCoreWebProgram> root) => _root = root;
 
     /// <summary>
-    /// G-02 (open, PLAN-25) — AC-HCM-21d evidence, non-lab case: with the policy engine Off and
-    /// <c>IsLabScale=false</c>, submitting a requisition succeeds, leaves it <c>PendingApproval</c> with no workflow
-    /// instance, the Details page shows the missing-workflow warning, and an approve attempt is refused with
-    /// "لا يوجد مسار اعتماد مرتبط بهذا الطلب." — the requisition stays <c>PendingApproval</c> forever.
+    /// G-02 — closed by PLAN-25 (AC-HCM-21d, non-lab case): with the policy engine Off and <c>IsLabScale=false</c> the
+    /// requisition submit now starts <c>RECRUITMENT-REQUISITION-APPROVAL</c> (before PLAN-25 it stayed PendingApproval
+    /// without a workflow forever).
     /// </summary>
     [Fact]
-    public async Task Non_lab_off_requisition_submit_is_pending_without_workflow_and_warns()
+    public async Task Non_lab_off_requisition_submit_now_starts_the_workflow()
     {
         var host = CreateHost(labScale: false);
         var seed = await SeedAsync(host, RequisitionStatus.Draft);
@@ -100,23 +73,39 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
 
         var req = await LoadRequisitionAsync(host, seed.RequisitionId);
         Assert.Equal(RequisitionStatus.PendingApproval, req.Status);
-        Assert.Null(req.WorkflowInstanceId);
-        Assert.Equal(0, await CountWorkflowInstancesAsync(host, "RecruitmentRequisition", seed.RequisitionId));
+        Assert.NotNull(req.WorkflowInstanceId);
+        Assert.Equal(RequisitionWorkflowCode, await GetWorkflowCodeAsync(host, req.WorkflowInstanceId));
+        Assert.Equal(1, await CountWorkflowInstancesAsync(host, "RecruitmentRequisition", seed.RequisitionId));
 
         var details = await GetHtmlAsync(client, $"/RecruitmentRequisitions/Details/{seed.RequisitionId:D}");
-        Assert.Contains(RequisitionMissingWorkflowWarning, details, StringComparison.Ordinal);
+        Assert.DoesNotContain(AnyMissingWorkflowWarning, details, StringComparison.Ordinal);
+    }
 
-        var approve = await PostFormAsync(client, $"/RecruitmentRequisitions/Details/{seed.RequisitionId:D}",
-            $"/RecruitmentRequisitions/ApproveWorkflow/{seed.RequisitionId:D}",
-            [new("RequisitionId", seed.RequisitionId.ToString("D")), new("Comments", "اعتماد")]);
-        Assert.Equal(HttpStatusCode.Redirect, approve.StatusCode);
+    /// <summary>
+    /// PLAN-25 (G-02 repair): a requisition left PendingApproval without a workflow by a pre-PLAN-25 build shows the
+    /// restart warning and button; the HrCoreWrite POST starts its workflow and the status stays PendingApproval.
+    /// </summary>
+    [Fact]
+    public async Task Stuck_requisition_shows_restart_button_and_restart_starts_the_workflow()
+    {
+        var host = CreateHost(labScale: false);
+        var seed = await SeedAsync(host, RequisitionStatus.PendingApproval);
+        using var client = CreateClient(host);
 
-        var afterApprove = await GetHtmlAsync(client, $"/RecruitmentRequisitions/Details/{seed.RequisitionId:D}");
-        Assert.Contains(RequisitionNoWorkflowError, afterApprove, StringComparison.Ordinal);
-        var stillPending = await LoadRequisitionAsync(host, seed.RequisitionId);
-        Assert.Equal(RequisitionStatus.PendingApproval, stillPending.Status);
-        Assert.Null(stillPending.WorkflowInstanceId);
-        Assert.Null(stillPending.ApprovedDate);
+        var details = await GetHtmlAsync(client, $"/RecruitmentRequisitions/Details/{seed.RequisitionId:D}");
+        Assert.Contains(ApprovalRestartRules.StuckWarning, details, StringComparison.Ordinal);
+        Assert.Contains(ApprovalRestartRules.RestartButtonLabel, details, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsLabScale", details, StringComparison.Ordinal);
+
+        var restart = await PostFormAsync(client, $"/RecruitmentRequisitions/Details/{seed.RequisitionId:D}",
+            $"/RecruitmentRequisitions/RestartApproval/{seed.RequisitionId:D}", []);
+        Assert.Equal(HttpStatusCode.Redirect, restart.StatusCode);
+
+        var req = await LoadRequisitionAsync(host, seed.RequisitionId);
+        Assert.Equal(RequisitionStatus.PendingApproval, req.Status);
+        Assert.Equal(RequisitionWorkflowCode, await GetWorkflowCodeAsync(host, req.WorkflowInstanceId));
+        var after = await GetHtmlAsync(client, $"/RecruitmentRequisitions/Details/{seed.RequisitionId:D}");
+        Assert.DoesNotContain(ApprovalRestartRules.StuckWarning, after, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -145,14 +134,11 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
     }
 
     /// <summary>
-    /// G-02 (open, PLAN-25) — AC-HCM-22e evidence, non-lab case: a draft offer for the rank-1 candidate submitted with
-    /// the policy engine Off and <c>IsLabScale=false</c> becomes <c>PendingApproval</c> with no workflow; the Details page
-    /// warns, the approve attempt is refused with "لا يوجد مسار اعتماد مرتبط بهذا العرض." and the offer is never
-    /// <c>Issued</c>. (The draft offer is seeded directly — creating it through the service needs the Payroll grade
-    /// lookup, which is outside this scenario.)
+    /// G-02 — closed by PLAN-25 (AC-HCM-22e, non-lab case): with the policy engine Off and <c>IsLabScale=false</c> the
+    /// offer submit now starts <c>RECRUITMENT-OFFER-APPROVAL</c>; no missing-workflow warning is shown.
     /// </summary>
     [Fact]
-    public async Task Non_lab_off_offer_submit_is_pending_without_workflow_and_is_never_issued()
+    public async Task Non_lab_off_offer_submit_now_starts_the_workflow()
     {
         var host = CreateHost(labScale: false);
         var seed = await SeedAsync(host, RequisitionStatus.Published, withDraftOffer: true);
@@ -165,24 +151,12 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
 
         var offer = await LoadOfferAsync(host, offerId);
         Assert.Equal(OfferStatus.PendingApproval, offer.Status);
-        Assert.Null(offer.WorkflowInstanceId);
-        Assert.Equal(0, await CountWorkflowInstancesAsync(host, "OfferLetter", offerId));
+        Assert.NotNull(offer.WorkflowInstanceId);
+        Assert.Equal(OfferWorkflowCode, await GetWorkflowCodeAsync(host, offer.WorkflowInstanceId));
+        Assert.Equal(1, await CountWorkflowInstancesAsync(host, "OfferLetter", offerId));
 
         var details = await GetHtmlAsync(client, $"/OfferLetters/Details/{offerId:D}");
-        Assert.Contains(OfferMissingWorkflowWarning, details, StringComparison.Ordinal);
-
-        var approve = await PostFormAsync(client, $"/OfferLetters/Details/{offerId:D}",
-            $"/OfferLetters/ApproveWorkflow/{offerId:D}",
-            [new("OfferId", offerId.ToString("D")), new("Comments", "اعتماد")]);
-        Assert.Equal(HttpStatusCode.Redirect, approve.StatusCode);
-
-        var afterApprove = await GetHtmlAsync(client, $"/OfferLetters/Details/{offerId:D}");
-        Assert.Contains(OfferNoWorkflowError, afterApprove, StringComparison.Ordinal);
-        var stillPending = await LoadOfferAsync(host, offerId);
-        Assert.Equal(OfferStatus.PendingApproval, stillPending.Status);
-        Assert.NotEqual(OfferStatus.Issued, stillPending.Status);
-        Assert.Null(stillPending.IssuedDate);
-        Assert.Null(stillPending.WorkflowInstanceId);
+        Assert.DoesNotContain(AnyMissingWorkflowWarning, details, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -211,13 +185,12 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
     }
 
     /// <summary>
-    /// G-02 (open, PLAN-25) — AC-HCM-22e evidence, non-lab case: a ready committee session submitted with the policy
-    /// engine Off and <c>IsLabScale=false</c> is submitted AND locked with no workflow instance; unlike requisitions and
-    /// offers the Details page shows <b>no</b> warning (silent stall), and the approve attempt is refused with
-    /// <see cref="SelectionCommitteeLifecycleService.NoWorkflowMessage"/>. The locked session can never be approved.
+    /// G-02 — closed by PLAN-25 (AC-HCM-22e, non-lab case): with the policy engine Off and <c>IsLabScale=false</c> the
+    /// committee submit now locks the session together with <c>RECRUITMENT-SELECTION-COMMITTEE</c> (before PLAN-25 it
+    /// locked silently without any workflow).
     /// </summary>
     [Fact]
-    public async Task Non_lab_off_committee_submit_locks_without_workflow()
+    public async Task Non_lab_off_committee_submit_now_starts_the_workflow()
     {
         var host = CreateHost(labScale: false);
         var seed = await SeedAsync(host, RequisitionStatus.Published, withReadyCommittee: true);
@@ -231,24 +204,9 @@ public sealed class Hcm033LabScaleBehaviourTests : IClassFixture<WebApplicationF
         var session = await LoadSessionAsync(host, sessionId);
         Assert.NotNull(session.SubmittedAt);
         Assert.True(session.IsLocked);
-        Assert.Null(session.WorkflowInstanceId);
-        Assert.Null(session.ApprovedAt);
-        Assert.Equal(0, await CountWorkflowInstancesAsync(host, "SelectionCommitteeSession", sessionId));
-
-        var details = await GetHtmlAsync(client, $"/SelectionCommittees/Details/{sessionId:D}");
-        Assert.DoesNotContain(AnyMissingWorkflowWarning, details, StringComparison.Ordinal);
-
-        var approve = await PostFormAsync(client, $"/SelectionCommittees/Details/{sessionId:D}",
-            $"/SelectionCommittees/ApproveWorkflow/{sessionId:D}",
-            [new("SessionId", sessionId.ToString("D")), new("Comments", "اعتماد")]);
-        Assert.Equal(HttpStatusCode.Redirect, approve.StatusCode);
-
-        var afterApprove = await GetHtmlAsync(client, $"/SelectionCommittees/Details/{sessionId:D}");
-        Assert.Contains(SelectionCommitteeLifecycleService.NoWorkflowMessage, afterApprove, StringComparison.Ordinal);
-        var stillLocked = await LoadSessionAsync(host, sessionId);
-        Assert.True(stillLocked.IsLocked);
-        Assert.Null(stillLocked.ApprovedAt);
-        Assert.Null(stillLocked.WorkflowInstanceId);
+        Assert.NotNull(session.WorkflowInstanceId);
+        Assert.Equal(CommitteeWorkflowCode, await GetWorkflowCodeAsync(host, session.WorkflowInstanceId));
+        Assert.Equal(1, await CountWorkflowInstancesAsync(host, "SelectionCommitteeSession", sessionId));
     }
 
     /// <summary>

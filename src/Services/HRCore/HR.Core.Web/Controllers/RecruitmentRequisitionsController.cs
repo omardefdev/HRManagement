@@ -354,6 +354,17 @@ public class RecruitmentRequisitionsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>PLAN-25 (G-02): gives a requisition left PendingApproval without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        var (success, error) = await lifecycleService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد الطلب" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]

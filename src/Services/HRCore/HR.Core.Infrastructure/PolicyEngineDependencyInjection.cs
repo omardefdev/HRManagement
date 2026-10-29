@@ -14,6 +14,7 @@ public static class PolicyEngineDependencyInjection
         services.AddScoped<IPolicyOrchestrator, PolicyOrchestrator>();
         services.AddScoped<IWorkflowSignatureService, WorkflowSignatureService>();
         services.AddScoped<IWorkflowStarter, WorkflowStarter>();
+        services.AddScoped<ApprovalStartCoordinator>();
         services.AddScoped<IWorkflowInstanceActionService, WorkflowInstanceActionService>();
         return services;
     }

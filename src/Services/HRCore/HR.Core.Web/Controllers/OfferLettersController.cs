@@ -186,6 +186,17 @@ public class OfferLettersController(
 
 
 
+    /// <summary>PLAN-25 (G-02): gives an offer left PendingApproval without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        var (success, error) = await offerService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد العرض" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
 
     [ValidateAntiForgeryToken]

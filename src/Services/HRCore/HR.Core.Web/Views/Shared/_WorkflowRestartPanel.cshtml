@@ -1,0 +1,20 @@
+@model HR.Core.Web.ViewModels.WorkflowPanelViewModel
+@{
+    // PLAN-25 (G-02): an item left awaiting approval without a workflow instance (data from before the fix).
+    var controller = ViewData["WorkflowController"] as string ?? "RecruitmentRequisitions";
+    var entityId = ViewData["WorkflowEntityId"] as Guid? ?? Guid.Empty;
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.MissingWorkflowWarning))
+{
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+        <span>@Model.MissingWorkflowWarning</span>
+        @if (Model.CanRestartApproval)
+        {
+            <form asp-controller="@controller" asp-action="RestartApproval" asp-route-id="@entityId" method="post" class="ms-auto">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-warning">إعادة بدء مسار الاعتماد</button>
+            </form>
+        }
+    </div>
+}

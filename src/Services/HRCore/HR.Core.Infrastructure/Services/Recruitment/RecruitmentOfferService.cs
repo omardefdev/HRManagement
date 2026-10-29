@@ -30,6 +30,8 @@ public sealed class RecruitmentOfferService(
     // HCM-031 (PLAN-31): optional so the existing manual constructions (tests) keep compiling; DI always supplies it.
     Competitions.CompetitionReserveService? competitionReserve = null)
 {
+    private readonly ApprovalStartCoordinator approvalStart = new(db, policyOrchestrator, workflowStarter, configuration);
+
     public const string OfferApprovalWorkflowCode = "RECRUITMENT-OFFER-APPROVAL";
 
     /// <summary>HCM-027: three-step approval with distinct approvers for merit override offers.</summary>
@@ -152,64 +154,80 @@ public sealed class RecruitmentOfferService(
         if (legalError is not null)
             return (false, legalError);
 
-        var mode = ResolveMode();
-        if (mode == PolicyEnforcementMode.Off)
-        {
-            offer.Status = OfferStatus.PendingApproval;
-
-            var contextJson = JsonSerializer.Serialize(new
-            {
-                offerId = offer.Id,
-                recruitmentApplicationId = offer.RecruitmentApplicationId,
-                offerNumber = offer.OfferNumber
-            });
-
-            if (IsLabScale())
-            {
-                offer.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-                    offer.IsExceptionOffer ? OfferOverrideApprovalWorkflowCode : OfferApprovalWorkflowCode,
-                    "OfferLetter",
+        // PLAN-25 (G-02): the approval always starts (the override code for exception offers); PendingApproval only with it.
+        var contextJson = BuildApprovalContextJson(offer);
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "OfferLetter",
+                offer.Id,
+                offer.TenantId,
+                ApprovalWorkflowCode(offer),
+                PolicyDomains.CoreRecruitment,
+                actorUserId,
+                actorUserName,
+                contextJson,
+                () => PolicyDomainFactsBuilders.ForOfferLetter(
                     offer.Id,
                     offer.TenantId,
-                    actorUserId,
-                    actorUserName,
+                    "Issue",
+                    offer.RecruitmentApplicationId,
                     contextJson,
-                    PolicyDomains.CoreRecruitment,
-                    ct);
-            }
+                    offer.IsMeritOverride,
+                    offer.IsExceptionOffer),
+                "مرفوض بسياسة العرض."),
+            async instanceId =>
+            {
+                offer.Status = OfferStatus.PendingApproval;
+                offer.WorkflowInstanceId = instanceId;
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
 
-            await db.SaveChangesAsync(ct);
-            return (true, null);
-        }
-
-        var policyContextJson = JsonSerializer.Serialize(new
-        {
-            offerId = offer.Id,
-            recruitmentApplicationId = offer.RecruitmentApplicationId,
-            offerNumber = offer.OfferNumber
-        });
-
-        var policyRequest = PolicyDomainFactsBuilders.ForOfferLetter(
-            offer.Id,
-            offer.TenantId,
-            "Issue",
-            offer.RecruitmentApplicationId,
-            policyContextJson,
-            offer.IsMeritOverride,
-            offer.IsExceptionOffer);
-        policyRequest.Mode = mode;
-        policyRequest.ActorUserId = actorUserId;
-        policyRequest.ActorUserName = actorUserName;
-
-        var policyResult = await policyOrchestrator.EnforceAsync(policyRequest, ct);
-        if (!policyResult.Allowed)
-            return (false, policyResult.Decision.DenyReason ?? "مرفوض بسياسة العرض.");
-
-        offer.Status = OfferStatus.PendingApproval;
-        offer.WorkflowInstanceId = policyResult.WorkflowInstanceId;
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return start.Started ? (true, null) : (false, start.Error);
     }
+
+    /// <summary>PLAN-25: starts the missing approval of an offer left <c>PendingApproval</c> without an instance.</summary>
+    public async Task<(bool Success, string? Error)> RestartApprovalAsync(
+        Guid offerId,
+        Guid? actorUserId,
+        string? actorUserName,
+        CancellationToken ct = default)
+    {
+        var offer = await db.OfferLetters.FirstOrDefaultAsync(o => o.Id == offerId, ct);
+        if (offer is null) return (false, "خطاب العرض غير موجود.");
+        if (offer.Status != OfferStatus.PendingApproval || offer.WorkflowInstanceId is not null)
+            return (false, ApprovalRestartRules.NotStuckMessage);
+
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "OfferLetter",
+                offer.Id,
+                offer.TenantId,
+                ApprovalWorkflowCode(offer),
+                PolicyDomains.CoreRecruitment,
+                actorUserId,
+                actorUserName,
+                BuildApprovalContextJson(offer)),
+            async instanceId =>
+            {
+                offer.WorkflowInstanceId = instanceId;
+                ApprovalRestartRules.AddRestartAudit(db, "OfferLetter", offer.Id, instanceId, actorUserId);
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
+
+        return start.Started ? (true, null) : (false, start.Error);
+    }
+
+    private static string ApprovalWorkflowCode(OfferLetter offer) =>
+        offer.IsExceptionOffer ? OfferOverrideApprovalWorkflowCode : OfferApprovalWorkflowCode;
+
+    private static string BuildApprovalContextJson(OfferLetter offer) => JsonSerializer.Serialize(new
+    {
+        offerId = offer.Id,
+        recruitmentApplicationId = offer.RecruitmentApplicationId,
+        offerNumber = offer.OfferNumber
+    });
 
     public const string ExpiredOfferMessage = "انتهت صلاحية العرض ولا يمكن قبوله.";
 
@@ -711,22 +729,6 @@ public sealed class RecruitmentOfferService(
             .Include(o => o.RecruitmentApplication)
                 .ThenInclude(a => a!.Requisition)
             .FirstOrDefaultAsync(o => o.Id == offerId, ct);
-
-    private PolicyEnforcementMode ResolveMode()
-    {
-        var raw = configuration["PolicyEngine:Core.Recruitment"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? nameof(PolicyEnforcementMode.Off);
-        return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode)
-            ? mode
-            : PolicyEnforcementMode.Off;
-    }
-
-    private bool IsLabScale()
-    {
-        var value = configuration["NationalScope:IsLabScale"];
-        return bool.TryParse(value, out var parsed) && parsed;
-    }
 }
 
 

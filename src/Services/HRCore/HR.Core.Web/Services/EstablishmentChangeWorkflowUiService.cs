@@ -29,7 +29,7 @@ public sealed class EstablishmentChangeWorkflowUiService(
                 EntityCreatedBy = request.CreatedBy,
                 MissingWorkflowWarning = request.Status == EstablishmentChangeStatus.PendingApproval
                                          && request.WorkflowInstanceId is null
-                    ? "لم يُنشأ مسار اعتماد لهذا الطلب. فعّل PolicyEngine:Core.Establishment أو استخدم بيئة المختبر (IsLabScale)."
+                    ? HR.Core.Infrastructure.Services.Workflow.ApprovalRestartRules.StuckWarning
                     : null,
                 AdditionalBlockReason = (_, _, _) => WorkflowInboxOrgScope.GetBlockReason(accessScope, entityOrgUnitId: null)
             });

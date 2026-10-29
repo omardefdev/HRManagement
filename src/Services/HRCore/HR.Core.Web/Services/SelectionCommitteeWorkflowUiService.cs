@@ -30,11 +30,12 @@ public sealed class SelectionCommitteeWorkflowUiService(
             userId,
             new WorkflowPanelBuildOptions
             {
-                IsAwaitingApproval = session.ApprovedAt is null && session.WorkflowInstanceId is not null,
+                IsAwaitingApproval = session.ApprovedAt is null
+                    && (session.WorkflowInstanceId is not null || session.SubmittedAt is not null),
                 EntityCreatedBy = session.CreatedBy,
                 CreatorSoDMessage = SelectionCommitteeRules.ApproverIsMemberOrCreatorMessage,
-                MissingWorkflowWarning = session.WorkflowInstanceId is null && session.ApprovedAt is null
-                    ? null
+                MissingWorkflowWarning = session.WorkflowInstanceId is null && session.SubmittedAt is not null && session.ApprovedAt is null
+                    ? HR.Core.Infrastructure.Services.Workflow.ApprovalRestartRules.StuckWarning
                     : null,
                 AdditionalBlockReason = (inst, step, actorId) =>
                 {

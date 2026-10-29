@@ -7,8 +7,8 @@
 
 | Phase | Status | Commit |
 |-------|--------|--------|
-| P0 baseline, inventory, notes | Done | (this commit) |
-| P1 approval start coordinator | Pending | |
+| P0 baseline, inventory, notes | Done | e05632d |
+| P1 approval start coordinator | Done | (P1 commit) |
 | P2 repair endpoint + script | Pending | |
 | P3 step roles + gates | Pending | |
 | P4 retire RECRUITMENT-HIRE | Pending | |
@@ -81,10 +81,23 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 |------|-----|--------|
 | P0 | unit baseline filter | 1534/1535 (known `BolaArchitectureTests`) |
 | P0 | integration baseline filter | 68/73, 3 pre-existing failures, 2 opt-in skips |
+| P1 | unit filter + Hcm0 + Recruitment + Syr001 | 1722/1724 — the 2 failures are baseline (`BolaArchitectureTests`, `Syr001ProductionBindingTests` DI — both in the PLAN-32 known list) |
+| P1 | full unit suite (before the Syr001 fixes) | 3969/3986 — the same 17 environment/baseline failures as PLAN-32 |
+| P1 | integration filter + Hcm0 | 73/78 after fixes: 3 baseline failures, 2 opt-in skips; `Hcm025ProductionApprovalIntegrationTests` 4/4 on PostgreSQL (Testcontainers), `Hcm033LabScaleBehaviourTests` 7/7 |
+| P1 | `Hcm025ApprovalCoordinatorTests` | 24/24 |
 
 ## Files changed
 
 - P0: `reports/plan25-baseline.md`, `reports/plan25-progress.md`, `docs/acceptance-plans/PLAN-25-hcm-production-workflow-binding.md`, `docs/acceptance-plans/execution/PLAN-25-AGENT-PROMPT.md`
+
+## P1 notes
+
+- `ApprovalStartCoordinator` (HR.Core.Infrastructure/Services/Workflow) + `RecruitmentApprovalOptions` (`Recruitment:Approvals`). The lifecycle services build it from their existing dependencies (no constructor change, so the ~40 manual constructions in tests compile unchanged); it is also registered in DI for the repair endpoint.
+- Refactored: requisition, offer (normal + override code), committee (lock + audit now inside the apply step), establishment change (fields + status inside the apply step; the Off+non-lab auto-apply is gone). Each also has `RestartApprovalAsync` (audited `ApprovalWorkflowRestarted`).
+- Removed helpers: `IsLabScale()` from all four services; `ResolveMode()` from offer, committee and establishment (requisition keeps it for Publish/PublishInternal). Remaining `IsLabScale` in src: `NationalScopeOptions` (definition) and `NationalScopeGuard` (start-up log) only.
+- UI: `_WorkflowRestartPanel` partial (warning + «إعادة بدء مسار الاعتماد» for Admin/hr-core) replaces the «فعّل PolicyEngine… أو IsLabScale» warning on requisition, offer, establishment panels and adds it to the committee panel (which showed nothing before); `RestartApproval` POST (`HrCoreWrite`) on the four controllers.
+- Settings: Production/Staging get `PolicyEngine:Core.Recruitment=Shadow` and `Recruitment:Approvals` (`AlwaysStartWorkflow=true`, `FailIfDefinitionMissing=true`).
+- Tests modified (behaviour change, not weakening): `Hcm033LabScaleBehaviourTests` (3 non-lab tests flipped to "now starts", restart test added), `Syr001RecruitmentLegalSourceTests` and `Syr001OfferLegalSourceTests` (real starter + seeded definitions; the offer test expected `Issued` on submit — stale, now PendingApproval with an instance; it was a known baseline failure and now passes), `Est002`/`Est005`/`Est006` integration tests (asserted the defect "Off mode applies on submit"; now submit → PendingApproval → approved through the real handler → Applied, via `EstablishmentApprovalTestHelper`), AC-HCM-21d/22e step notes. `IntegrationTestAuth` gains an `X-Test-Employee-Id` header.
 
 ## Open issues
 
@@ -92,4 +105,4 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 
 ## Next step
 
-P1: add `ApprovalStartCoordinator` + `RecruitmentApprovalOptions`, refactor requisition/offer/committee/establishment submits.
+P2: admin repair endpoint `POST /api/recruitment/admin/repair-approvals?dryRun=true` (HrCoreDelete) + `scripts/hcm025-repair-stuck-approvals.ps1` + tests.

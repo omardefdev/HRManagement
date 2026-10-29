@@ -64,7 +64,12 @@ public static class WorkflowPanelBuilder
                 && instance is null
                 && options.MissingWorkflowWarning is not null
                     ? options.MissingWorkflowWarning
-                    : null
+                    : null,
+            // PLAN-25: HrCoreWrite (Admin or hr-core) may restart the missing workflow.
+            CanRestartApproval = options.IsAwaitingApproval
+                && instance is null
+                && options.MissingWorkflowWarning is not null
+                && (user.IsInRole(HrManagementRoles.Admin) || user.IsInRole(HrManagementRoles.HrCore))
         };
 
         if (instance is null || definition is null)

@@ -240,8 +240,9 @@ public class AcHcm22RecruitmentWorkflowsUiTests
             2. central-a creates and submits an offer → PendingApproval, WorkflowInstanceId set (RECRUITMENT-OFFER-APPROVAL, step 1),
                not Issued; the offer page shows no «لم يُنشأ مسار اعتماد» warning.
             3. Clean-up: br1-mgr rejects (offer back to Draft).
-            The non-lab case (IsLabScale=false + policy Off → PendingApproval without workflow, never Issued) is proven by
-            src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs (G-02, PLAN-25).
+            G-02 is closed (PLAN-25, decision D-1): the submit starts the workflow whatever IsLabScale or the policy mode say.
+            The non-lab case is proven by Hcm033LabScaleBehaviourTests (integration) and, with the Production values on
+            PostgreSQL, by Hcm025ProductionApprovalIntegrationTests; live on the prod-like profile by AC-HCM-25b.
             """);
 
         var (_, appId) = await RankedApplicationAsync(s, "22e");

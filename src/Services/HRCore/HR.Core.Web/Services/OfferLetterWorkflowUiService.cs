@@ -32,7 +32,7 @@ public sealed class OfferLetterWorkflowUiService(
                 EntityCreatedBy = offer.CreatedBy,
                 CreatorSoDMessage = "لا يمكن للمنشئ اعتماد عرضه الخاص.",
                 MissingWorkflowWarning = offer.WorkflowInstanceId is null
-                    ? "لم يُنشأ مسار اعتماد لهذا العرض. فعّل PolicyEngine:Core.Recruitment أو استخدم بيئة المختبر (IsLabScale)."
+                    ? HR.Core.Infrastructure.Services.Workflow.ApprovalRestartRules.StuckWarning
                     : null,
                 AdditionalBlockReason = (inst, _, actorId) =>
                     WorkflowInboxOrgScope.GetBlockReason(accessScope, orgUnitId)

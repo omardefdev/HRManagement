@@ -165,6 +165,17 @@ public sealed class SelectionCommitteesController(
         return File(pdf, "application/pdf", $"committee-minutes-{minutes.RequisitionNumber}-{DateTime.UtcNow:yyyyMMdd}.pdf");
     }
 
+    /// <summary>PLAN-25 (G-02): gives a session submitted without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        var (success, error) = await lifecycleService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد اللجنة" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]

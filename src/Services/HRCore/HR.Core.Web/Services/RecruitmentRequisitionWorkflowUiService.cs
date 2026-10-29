@@ -30,7 +30,7 @@ public sealed class RecruitmentRequisitionWorkflowUiService(
                 IsAwaitingApproval = requisition.Status == RequisitionStatus.PendingApproval,
                 EntityCreatedBy = requisition.CreatedBy,
                 MissingWorkflowWarning = requisition.WorkflowInstanceId is null
-                    ? "لم يُنشأ مسار اعتماد لهذا الطلب. فعّل PolicyEngine:Core.Recruitment أو استخدم بيئة المختبر (IsLabScale)."
+                    ? HR.Core.Infrastructure.Services.Workflow.ApprovalRestartRules.StuckWarning
                     : null,
                 AdditionalBlockReason = (_, _, _) => WorkflowInboxOrgScope.GetBlockReason(accessScope, orgUnitId)
             });

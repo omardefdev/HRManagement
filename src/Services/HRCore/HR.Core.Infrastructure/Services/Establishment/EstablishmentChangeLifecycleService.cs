@@ -23,6 +23,7 @@ public sealed class EstablishmentChangeLifecycleService(
     IWorkflowStarter workflowStarter,
     IConfiguration configuration)
 {
+    private readonly ApprovalStartCoordinator approvalStart = new(db, policyOrchestrator, workflowStarter, configuration);
     private const string EstablishmentChangeWorkflowCode = "ESTABLISHMENT-CHANGE-APPROVAL";
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -85,65 +86,82 @@ public sealed class EstablishmentChangeLifecycleService(
         var legalError = await legalSourceValidator.ValidateRequiredAsync(legalSourceId, ct);
         if (legalError is not null) return (false, legalError);
 
-        request.LegalSourceId = string.IsNullOrWhiteSpace(legalSourceId) ? null : legalSourceId.Trim();
-        request.DecisionReference = string.IsNullOrWhiteSpace(decisionReference) ? null : decisionReference.Trim();
-        request.EffectiveFrom = effectiveFrom?.ToUniversalTime();
+        var contextJson = BuildApprovalContextJson(request);
 
-        var contextJson = JsonSerializer.Serialize(new
-        {
-            changeRequestId = request.Id,
-            changeType = request.ChangeType.ToString(),
-            targetEntityId = request.TargetEntityId
-        });
-
-        var mode = ResolveMode();
-        if (mode == PolicyEnforcementMode.Off)
-        {
-            request.Status = EstablishmentChangeStatus.PendingApproval;
-
-            if (IsLabScale())
-            {
-                request.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-                    EstablishmentChangeWorkflowCode,
-                    "EstablishmentChangeRequest",
+        // PLAN-25 (G-02): the change is never applied without approval (it was applied at once outside lab scale);
+        // PendingApproval only together with the instance.
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "EstablishmentChangeRequest",
+                request.Id,
+                request.TenantId,
+                EstablishmentChangeWorkflowCode,
+                PolicyDomains.CoreEstablishment,
+                actorUserId,
+                actorUserName,
+                contextJson,
+                () => PolicyDomainFactsBuilders.ForEstablishmentChange(
                     request.Id,
                     request.TenantId,
-                    actorUserId,
-                    actorUserName,
-                    contextJson,
-                    PolicyDomains.CoreEstablishment,
-                    ct);
-            }
+                    "SubmitForApproval",
+                    request.ChangeType.ToString(),
+                    request.Status.ToString(),
+                    hasOrgScope: false,
+                    contextJson: contextJson),
+                "مرفوض بسياسة الملاك."),
+            async instanceId =>
+            {
+                request.LegalSourceId = string.IsNullOrWhiteSpace(legalSourceId) ? null : legalSourceId.Trim();
+                request.DecisionReference = string.IsNullOrWhiteSpace(decisionReference) ? null : decisionReference.Trim();
+                request.EffectiveFrom = effectiveFrom?.ToUniversalTime();
+                request.Status = EstablishmentChangeStatus.PendingApproval;
+                request.WorkflowInstanceId = instanceId;
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
 
-            await db.SaveChangesAsync(ct);
-
-            if (IsLabScale())
-                return (true, null);
-
-            return await ApplyApprovedAsync(request, actorUserId, ct);
-        }
-
-        var policyRequest = PolicyDomainFactsBuilders.ForEstablishmentChange(
-            request.Id,
-            request.TenantId,
-            "SubmitForApproval",
-            request.ChangeType.ToString(),
-            request.Status.ToString(),
-            hasOrgScope: false,
-            contextJson: contextJson);
-        policyRequest.Mode = mode;
-        policyRequest.ActorUserId = actorUserId;
-        policyRequest.ActorUserName = actorUserName;
-
-        var policyResult = await policyOrchestrator.EnforceAsync(policyRequest, ct);
-        if (!policyResult.Allowed)
-            return (false, policyResult.Decision.DenyReason ?? "مرفوض بسياسة الملاك.");
-
-        request.Status = EstablishmentChangeStatus.PendingApproval;
-        request.WorkflowInstanceId = policyResult.WorkflowInstanceId;
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return start.Started ? (true, null) : (false, start.Error);
     }
+
+    /// <summary>PLAN-25: starts the missing approval of a change request left <c>PendingApproval</c> without an instance.</summary>
+    public async Task<(bool Success, string? Error)> RestartApprovalAsync(
+        Guid id,
+        Guid? actorUserId,
+        string? actorUserName,
+        CancellationToken ct = default)
+    {
+        var request = await db.EstablishmentChangeRequests.FirstOrDefaultAsync(r => r.Id == id, ct);
+        if (request is null) return (false, "طلب التغيير غير موجود.");
+        if (request.Status != EstablishmentChangeStatus.PendingApproval || request.WorkflowInstanceId is not null)
+            return (false, ApprovalRestartRules.NotStuckMessage);
+
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "EstablishmentChangeRequest",
+                request.Id,
+                request.TenantId,
+                EstablishmentChangeWorkflowCode,
+                PolicyDomains.CoreEstablishment,
+                actorUserId,
+                actorUserName,
+                BuildApprovalContextJson(request)),
+            async instanceId =>
+            {
+                request.WorkflowInstanceId = instanceId;
+                ApprovalRestartRules.AddRestartAudit(db, "EstablishmentChangeRequest", request.Id, instanceId, actorUserId);
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
+
+        return start.Started ? (true, null) : (false, start.Error);
+    }
+
+    private static string BuildApprovalContextJson(EstablishmentChangeRequest request) => JsonSerializer.Serialize(new
+    {
+        changeRequestId = request.Id,
+        changeType = request.ChangeType.ToString(),
+        targetEntityId = request.TargetEntityId
+    });
 
     public async Task<(bool Success, string? Error)> ApplyApprovedAsync(
         EstablishmentChangeRequest request,
@@ -193,21 +211,5 @@ public sealed class EstablishmentChangeLifecycleService(
         request.WorkflowInstanceId = null;
         await db.SaveChangesAsync(ct);
         return (true, null);
-    }
-
-    private PolicyEnforcementMode ResolveMode()
-    {
-        var mode = configuration["PolicyEngine:Core.Establishment"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? "Off";
-        return Enum.TryParse<PolicyEnforcementMode>(mode, true, out var parsed)
-            ? parsed
-            : PolicyEnforcementMode.Off;
-    }
-
-    private bool IsLabScale()
-    {
-        var value = configuration["NationalScope:IsLabScale"];
-        return bool.TryParse(value, out var parsed) && parsed;
     }
 }

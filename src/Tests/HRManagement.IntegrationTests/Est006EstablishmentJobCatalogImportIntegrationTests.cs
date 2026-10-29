@@ -43,7 +43,9 @@ public class Est006EstablishmentJobCatalogImportIntegrationTests
         Assert.Null(error);
         Assert.NotNull(changeRequest);
 
-        var (success, submitError) = await lifecycle.SubmitForApprovalAsync(
+        var (success, submitError) = await EstablishmentApprovalTestHelper.SubmitAndApproveAsync(
+            db,
+            lifecycle,
             changeRequest!.Id,
             Syr001LegislationIds.Law50_2004,
             decisionReference: "DEC-BULK",
@@ -100,12 +102,12 @@ public class Est006EstablishmentJobCatalogImportIntegrationTests
             codeGen.Object,
             new PolicyOrchestrator(
                 db,
-                Mock.Of<IWorkflowStarter>(),
+                new WorkflowStarter(db, new WorkflowEngine(), NullLogger<WorkflowStarter>.Instance),
                 new PolicyPublishedSnapshotCache(new MemoryCache(new MemoryCacheOptions())),
                 NullLogger<PolicyOrchestrator>.Instance),
             new EstablishmentLegalSourceValidator(new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db))),
             applier,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), NullLogger<WorkflowStarter>.Instance),
             config);
     }
 

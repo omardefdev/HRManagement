@@ -17,6 +17,8 @@ public class WorkflowPanelViewModel
     public bool CanReject { get; set; }
     public string? BlockReason { get; set; }
     public string? MissingWorkflowWarning { get; set; }
+    /// <summary>PLAN-25: the stuck item can be given its workflow from the panel (HrCoreWrite).</summary>
+    public bool CanRestartApproval { get; set; }
     public IReadOnlyList<WorkflowStepViewModel> Steps { get; set; } = [];
 }
 

@@ -11,6 +11,7 @@ using HRManagement.SharedKernel.Legal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using HR.Core.Infrastructure.Services.Policy;
+using HRManagement.ServiceDefaults.Workflow;
 using Moq;
 
 namespace HRManagement.UnitTests;
@@ -24,6 +25,8 @@ public class Syr001OfferLegalSourceTests
             .Options;
         var db = new HRCoreDbContext(options);
         await LegislationRegisterSeeder.SeedAsync(db);
+        // PLAN-25 (G-02): a submit always starts the approval, so the published definitions must exist.
+        await WorkflowPackSeeder.SeedAsync(db);
 
         var provider = new LegislationRegisterProvider(db);
         var validator = new RecruitmentLegalSourceValidator(provider);
@@ -41,7 +44,7 @@ public class Syr001OfferLegalSourceTests
             Mock.Of<IPolicyOrchestrator>(),
             codeGenerator.Object,
             validator,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkflowStarter>.Instance),
             config,
             Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
             new FakePayrollGradeLookup());
@@ -127,7 +130,10 @@ public class Syr001OfferLegalSourceTests
         var (success, error) = await offerService.SubmitForApprovalAsync(offer!.Id, Guid.NewGuid(), "test");
 
         Assert.True(success, error);
-        Assert.Equal(OfferStatus.Issued, (await db.OfferLetters.SingleAsync()).Status);
+        // PLAN-25 (D-1): submit starts the two-step approval; the offer is issued only when it completes.
+        var saved = await db.OfferLetters.SingleAsync();
+        Assert.Equal(OfferStatus.PendingApproval, saved.Status);
+        Assert.NotNull(saved.WorkflowInstanceId);
     }
 
     private static async Task<RecruitmentApplication> SeedRankedApplicationAsync(

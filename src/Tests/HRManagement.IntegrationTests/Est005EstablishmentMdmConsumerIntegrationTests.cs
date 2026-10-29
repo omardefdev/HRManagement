@@ -40,7 +40,9 @@ public class Est005EstablishmentMdmConsumerIntegrationTests
                 OccupationalGroup = "JC-ADM"
             });
 
-        var (success, error) = await lifecycle.SubmitForApprovalAsync(
+        var (success, error) = await EstablishmentApprovalTestHelper.SubmitAndApproveAsync(
+            db,
+            lifecycle,
             request.Id,
             Syr001LegislationIds.Law50_2004,
             decisionReference: "DEC-MDM",
@@ -89,7 +91,7 @@ public class Est005EstablishmentMdmConsumerIntegrationTests
 
         var orchestrator = new PolicyOrchestrator(
             db,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), NullLogger<WorkflowStarter>.Instance),
             new PolicyPublishedSnapshotCache(new MemoryCache(new MemoryCacheOptions())),
             NullLogger<PolicyOrchestrator>.Instance);
 
@@ -99,7 +101,7 @@ public class Est005EstablishmentMdmConsumerIntegrationTests
             orchestrator,
             new EstablishmentLegalSourceValidator(new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db))),
             applier,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), NullLogger<WorkflowStarter>.Instance),
             config);
     }
 
