@@ -32,6 +32,8 @@ public sealed class CompetitionsController(
     ExamAdmissionCardDocumentService cards,
     CompetitionResultsService results,
     CompetitionObjectionService objections,
+    CompetitionAllocationService allocation,
+    CompetitionOfferService competitionOffers,
     IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IAuthorizationService authorization,
@@ -202,6 +204,26 @@ public sealed class CompetitionsController(
             Results = latest is null ? [] : await LoadResultsAsync(latest.Id, ct),
             ResultsWorkflow = latest?.WorkflowInstanceId is null ? null : await BuildResultsWorkflowAsync(latest, ct),
             Objections = await objections.ListAsync(id, ct),
+            Allocations = await LoadAllocationsAsync(id, ct),
+            Reserves = await db.CompetitionReserveEntries.AsNoTracking()
+                .Where(e => e.CompetitionLine!.CompetitionId == id)
+                .OrderBy(e => e.CompetitionLine!.LineNo).ThenBy(e => e.LineRank)
+                .Select(e => new ReserveRow(e.CompetitionLineId, e.CompetitionLine!.LineNo, e.LineRank, e.RecruitmentApplication!.ApplicantFullName, e.ReserveUntil, e.Status))
+                .Take(2000)
+                .ToListAsync(ct),
+            RecallLog = await db.AuditLogs.AsNoTracking()
+                .Where(a => a.EntityType == CompetitionLifecycleService.EntityType && a.EntityId == id
+                    && (a.Action == CompetitionReserveService.RecallAuditAction || a.Action == CompetitionReserveService.ExhaustedAuditAction))
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(100)
+                .Select(a => new RecallLogRow(a.CreatedAt, a.Action, a.ChangedFields))
+                .ToListAsync(ct),
+            OfferResults = TempData["OfferResults"] is string offerJson
+                ? System.Text.Json.JsonSerializer.Deserialize<List<CompetitionOfferItemResult>>(offerJson) ?? []
+                : [],
+            CanFinalize = competition.Status == RecruitmentCompetitionStatus.ResultsPublished
+                && CompetitionWorkflowRules.ObjectionDeadlineUtc(competition.ResultsFirstPublishedAt, competition.ObjectionWindowDays) is DateTime finalizeAfter
+                && DateTime.UtcNow > finalizeAfter,
             ObjectionDeadlineUtc = CompetitionWorkflowRules.ObjectionDeadlineUtc(competition.ResultsFirstPublishedAt, competition.ObjectionWindowDays),
             MarkerCandidates = await db.Employees.AsNoTracking()
                 .OrderBy(e => e.FullName)
@@ -421,6 +443,65 @@ public sealed class CompetitionsController(
         TempData["Success"] = "سُجّل الاعتراض؛ عيّن المراجع المستقل من صفحة الاعتراض.";
         return RedirectToAction("Details", "RecruitmentAppeals", new { id = appeal.Id });
     }
+
+    // ---- HCM-031 (P5): finalize, bulk offers ---------------------------------------------------------------------------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreApprove)]
+    public async Task<IActionResult> Finalize(Guid id, CancellationToken ct)
+    {
+        var result = await allocation.FinalizeAsync(id, ParseUserId(User), ct);
+        return Result((result.Success, result.Error), id, result.AlreadyFinalized
+            ? "المسابقة منتهية مسبقاً."
+            : $"أُنهيت المسابقة: {result.Allocated} مخصَّص، {result.Reserve} في الاحتياط، {result.NotSuccessful} غير ناجح.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> CreateOfferDrafts(Guid id, Guid? lineId, DateTime? proposedStartDate, int? validityDays, CancellationToken ct)
+    {
+        if (proposedStartDate is not DateTime start)
+            return Result((false, "تاريخ المباشرة المقترح مطلوب."), id, null);
+        var items = await competitionOffers.CreateDraftsAsync(id, lineId, DateTime.SpecifyKind(start, DateTimeKind.Utc), validityDays, ParseUserId(User), ct);
+        return OfferBatchResult(id, items, "مسودة عرض");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> SubmitOfferDrafts(Guid id, Guid? lineId, CancellationToken ct)
+    {
+        var items = await competitionOffers.SubmitDraftsAsync(id, lineId, ParseUserId(User), UserName(User), ct);
+        return OfferBatchResult(id, items, "عرض قُدّم للاعتماد");
+    }
+
+    private IActionResult OfferBatchResult(Guid id, IReadOnlyList<CompetitionOfferItemResult> items, string label)
+    {
+        var ok = items.Count(i => i.Success);
+        TempData[ok == items.Count ? "Success" : "Error"] = $"{label}: {ok} من {items.Count}.";
+        TempData["OfferResults"] = System.Text.Json.JsonSerializer.Serialize(items.Take(500).ToList());
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private async Task<IReadOnlyList<AllocationRow>> LoadAllocationsAsync(Guid competitionId, CancellationToken ct) =>
+        await db.CompetitionAllocations.AsNoTracking()
+            .Where(a => a.CompetitionId == competitionId && a.AllocatedLineId != null)
+            .OrderBy(a => a.AllocatedLine!.LineNo).ThenBy(a => a.RecruitmentApplication!.Rank)
+            .Take(2000)
+            .Select(a => new AllocationRow(
+                a.AllocatedLineId!.Value,
+                a.AllocatedLine!.LineNo,
+                a.AllocatedLine.Title,
+                a.RecruitmentApplication!.ApplicantFullName,
+                a.RecruitmentApplication.Rank,
+                a.AllocatedRequisition != null ? a.AllocatedRequisition.RequisitionNumber : null,
+                a.PreferenceOrderSatisfied,
+                a.FromReserve,
+                a.RecruitmentApplication.Status,
+                a.RecruitmentApplication.ActiveOfferLetter != null ? a.RecruitmentApplication.ActiveOfferLetter.Status : null))
+            .ToListAsync(ct);
 
     private async Task<IReadOnlyList<ResultVersionRow>> LoadResultVersionsAsync(Guid competitionId, CancellationToken ct)
     {

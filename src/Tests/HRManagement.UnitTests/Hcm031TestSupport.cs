@@ -327,6 +327,53 @@ internal static class Hcm031TestSupport
         Assert.True(published, publishError);
     }
 
+    /// <summary>Replaces an application's preferences with the given lines (in order).</summary>
+    public static async Task SetPreferencesAsync(HRCoreDbContext db, RecruitmentApplication application, params Guid[] lineIds)
+    {
+        db.CompetitionPreferences.RemoveRange(await db.CompetitionPreferences.Where(p => p.RecruitmentApplicationId == application.Id).ToListAsync());
+        await db.SaveChangesAsync();
+        for (var i = 0; i < lineIds.Length; i++)
+            db.CompetitionPreferences.Add(new CompetitionPreference
+            {
+                TenantId = application.TenantId,
+                RecruitmentApplicationId = application.Id,
+                CompetitionLineId = lineIds[i],
+                Order = i + 1
+            });
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Publishes the results and moves the first publication back past the objection window.</summary>
+    public static async Task PublishAndCloseWindowAsync(HRCoreDbContext db, Guid competitionId)
+    {
+        await PublishResultsAsync(db, competitionId);
+        var competition = await db.RecruitmentCompetitions.SingleAsync(c => c.Id == competitionId);
+        competition.ResultsFirstPublishedAt = DateTime.UtcNow.AddDays(-(competition.ObjectionWindowDays + 1));
+        await db.SaveChangesAsync();
+    }
+
+    public static CompetitionAllocationService CreateAllocation(HRCoreDbContext db) =>
+        new(db, new CompetitionObjectionService(db, Hcm028AppealTestSupport.CreateService(db), CreateResults(db)));
+
+    /// <summary>The offer service as DI builds it (with the competition reserve recall).</summary>
+    public static RecruitmentOfferService CreateOfferServiceWithRecall(
+        HRCoreDbContext db, HR.Core.Infrastructure.Integration.IPayrollGradeLookup? gradeLookup = null, RecruitmentOptions? options = null)
+    {
+        var codes = new Mock<ICodeGenerator>();
+        codes.Setup(g => g.GenerateAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new CodeGenerationResult { Code = $"OFF-H31-{Interlocked.Increment(ref _counter):00000}" });
+        return new RecruitmentOfferService(
+            db,
+            Mock.Of<HR.Core.Infrastructure.Services.Policy.IPolicyOrchestrator>(),
+            codes.Object,
+            new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db)),
+            Hcm027TestSupport.CreateStarter(db),
+            Hcm027TestSupport.Config(),
+            Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions()),
+            gradeLookup ?? new FakePayrollGradeLookup { Result = new HR.Core.Infrastructure.Integration.PayrollGradeLookupResult.Found(500_000m, 900_000m, 600_000m, "درجة") },
+            new CompetitionReserveService(db));
+    }
+
     public static async Task<Employee> SeedEmployeeAsync(HRCoreDbContext db, string name)
     {
         var employee = new Employee

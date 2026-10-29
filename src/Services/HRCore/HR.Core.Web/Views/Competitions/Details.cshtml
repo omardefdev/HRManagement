@@ -599,7 +599,112 @@
         }
     </div>
     <div class="tab-pane fade" id="tab-allocation" role="tabpanel" aria-labelledby="tab-allocation-btn">
-        <p class="text-muted mb-0">يتاح التخصيص والعروض بعد انتهاء مدة الاعتراض.</p>
+        @if (Model.CanFinalize && Model.CanApprove)
+        {
+            <form asp-action="Finalize" asp-route-id="@c.Id" method="post" class="mb-3"
+                  data-hr-confirm="سيُخصَّص الناجحون على الشواغر حسب الجدارة ثم التفضيل، وتُنشأ قوائم احتياط الأسطر، ويُرفض غير الناجحين. لا يمكن التراجع عن الإنهاء."
+                  data-hr-confirm-title="إنهاء المسابقة" data-hr-confirm-variant="danger">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger btn-sm">إنهاء المسابقة والتخصيص</button>
+            </form>
+        }
+        else if (c.Status != RecruitmentCompetitionStatus.Finalized)
+        {
+            <p class="text-muted">يتاح الإنهاء والتخصيص بعد نشر النتائج وانتهاء مدة الاعتراض دون اعتراض معلّق.</p>
+        }
+        @if (Model.OfferResults.Count > 0)
+        {
+            <div class="alert alert-info">
+                <p class="fw-bold mb-1">نتيجة الإجراء الجماعي:</p>
+                <ul class="mb-0 small">
+                    @foreach (var item in Model.OfferResults)
+                    {
+                        <li>@item.ApplicantFullName (@(item.RequisitionNumber ?? "—")): @(item.Success ? "تم" : item.Error)</li>
+                    }
+                </ul>
+            </div>
+        }
+        @if (c.Status == RecruitmentCompetitionStatus.Finalized && Model.CanWrite)
+        {
+            <div class="card mb-3">
+                <div class="card-header">العروض بالجملة</div>
+                <div class="card-body">
+                    <form asp-action="CreateOfferDrafts" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end"
+                          data-hr-confirm="ستُنشأ مسودات عروض للمخصَّصين دون عرض نشط، بدرجة السطر وراتب سلّم الرواتب وفق الإعداد المعتمد." data-hr-confirm-title="إنشاء مسودات العروض">
+                        @Html.AntiForgeryToken()
+                        <div class="col-md-3">
+                            <label class="form-label small" for="offerLine">السطر</label>
+                            <select id="offerLine" name="lineId" class="form-select form-select-sm">
+                                <option value="">— كل الأسطر —</option>
+                                @foreach (var line in Model.Lines) { <option value="@line.Line.Id">@line.Line.LineNo — @line.Line.Title</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small" for="offerStart">تاريخ المباشرة المقترح</label>
+                            <input id="offerStart" name="proposedStartDate" type="date" class="form-control form-control-sm" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small" for="offerValidity">الصلاحية (أيام)</label>
+                            <input id="offerValidity" name="validityDays" type="number" min="3" max="60" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-2"><button type="submit" class="btn btn-primary btn-sm">إنشاء المسودات</button></div>
+                    </form>
+                    <form asp-action="SubmitOfferDrafts" asp-route-id="@c.Id" method="post" class="mt-2"
+                          data-hr-confirm="ستُقدَّم كل مسودات عروض المسابقة إلى مسار اعتماد العرض المعتاد (كل عرض على حدة)." data-hr-confirm-title="تقديم العروض للاعتماد">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-primary btn-sm">تقديم كل المسودات للاعتماد</button>
+                    </form>
+                </div>
+            </div>
+        }
+        @if (Model.Allocations.Count > 0)
+        {
+            <h6>التخصيص</h6>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th scope="col">السطر</th><th scope="col">الرتبة</th><th scope="col">المرشح</th><th scope="col">طلب الشاغر</th><th scope="col">ترتيب التفضيل</th><th scope="col">الحالة</th><th scope="col">العرض</th></tr></thead>
+                    <tbody>
+                        @foreach (var a in Model.Allocations)
+                        {
+                            <tr>
+                                <td>@a.LineNo — @a.LineTitle</td>
+                                <td>@(a.Rank?.ToString() ?? "—")</td>
+                                <td>@a.ApplicantFullName @(a.FromReserve ? "(من الاحتياط)" : "")</td>
+                                <td>@(a.RequisitionNumber ?? "—")</td>
+                                <td>@(a.PreferenceOrder?.ToString() ?? "—")</td>
+                                <td>@Html.HrEnumDisplay(a.Status)</td>
+                                <td>@if (a.OfferStatus is { } os) { @Html.HrEnumDisplay(os) } else { <text>—</text> }</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (Model.Reserves.Count > 0)
+        {
+            <h6>قوائم احتياط الأسطر</h6>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th scope="col">السطر</th><th scope="col">ترتيب الاحتياط</th><th scope="col">المرشح</th><th scope="col">صالح حتى</th><th scope="col">الحالة</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in Model.Reserves)
+                        {
+                            <tr><td>@r.LineNo</td><td>@r.LineRank</td><td>@r.ApplicantFullName</td><td>@r.ReserveUntil.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td><td>@Html.HrEnumDisplay(r.Status)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (Model.RecallLog.Count > 0)
+        {
+            <h6>سجل الاستدعاء من الاحتياط</h6>
+            <ul class="small">
+                @foreach (var log in Model.RecallLog)
+                {
+                    <li>@log.At.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) — @(log.Action == HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService.RecallAuditAction ? "استدعاء مرشح احتياط" : HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService.NoValidReserveNotice)</li>
+                }
+            </ul>
+        }
     </div>
 </div>
 

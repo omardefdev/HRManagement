@@ -204,8 +204,24 @@ public sealed record ResultVersionRow(CompetitionResultVersion Version, int Cand
 public sealed record ResultRow(Guid ApplicationId, string ExamNumber, string ApplicantFullName, decimal? ExamScore, decimal? FinalScore,
     int? Rank, CompetitionResultOutcome Outcome, bool TieUnresolved, string? TieDecisionReason);
 
+/// <summary>HCM-031 (P5): an allocated candidate on the allocation tab.</summary>
+public sealed record AllocationRow(Guid LineId, int LineNo, string LineTitle, string ApplicantFullName, int? Rank, string? RequisitionNumber,
+    int? PreferenceOrder, bool FromReserve, RecruitmentApplicationStatus Status, OfferStatus? OfferStatus);
+
+/// <summary>HCM-031 (P5): a line reserve entry.</summary>
+public sealed record ReserveRow(Guid LineId, int LineNo, int LineRank, string ApplicantFullName, DateOnly ReserveUntil, CompetitionReserveEntryStatus Status);
+
+/// <summary>HCM-031 (P5): an entry of the recall log (audit).</summary>
+public sealed record RecallLogRow(DateTime At, string Action, string? Details);
+
 public sealed class CompetitionDetailsViewModel
 {
+    public IReadOnlyList<AllocationRow> Allocations { get; init; } = [];
+    public IReadOnlyList<ReserveRow> Reserves { get; init; } = [];
+    public IReadOnlyList<RecallLogRow> RecallLog { get; init; } = [];
+    public IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionOfferItemResult> OfferResults { get; init; } = [];
+    public bool CanFinalize { get; init; }
+
     public IReadOnlyList<ResultVersionRow> ResultVersions { get; init; } = [];
     /// <summary>The latest version's rows (top ranks and every unresolved tie).</summary>
     public IReadOnlyList<ResultRow> Results { get; init; } = [];
