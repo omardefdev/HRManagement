@@ -106,6 +106,21 @@ if (-not $SkipComposeUp) {
         throw "Could not prepare ownership of the Acceptance Data Protection volume."
     }
 
+    # PLAN-33 (decision 6): File.Storage runs on its Local provider in acceptance (the pinned MinIO image can no longer
+    # be pulled); its object root is a named volume the non-root app user must own.
+    $fileStorageVolume = "${projectName}_acceptance_file_storage"
+    docker volume create $fileStorageVolume | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not create the Acceptance File.Storage volume."
+    }
+    docker run --rm --user 0:0 --entrypoint sh `
+        -v "${fileStorageVolume}:/var/hrm/file-storage" `
+        "${projectName}-hr-gateway:latest" `
+        -c "mkdir -p /var/hrm/file-storage && chown -R 1654:1654 /var/hrm/file-storage"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not prepare ownership of the Acceptance File.Storage volume."
+    }
+
     # PLAN-30 (COM-030): host folder of the candidate notification FileDrop (bind-mounted into hr-core-web). Create it
     # before compose does (as root) and let the non-root app user (1654) write it; a no-op on Docker Desktop for Windows.
     $candidateNotifications = Join-Path $root "artifacts/acceptance/candidate-notifications"

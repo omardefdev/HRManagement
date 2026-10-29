@@ -26,7 +26,10 @@ services:
       - "6573:5672"
       - "15683:15672"
 
+  # PLAN-33 (decision 6): the pinned MinIO image can no longer be pulled (PLAN-30-EXECUTION), so the acceptance stack
+  # runs File.Storage on its Local provider (volume acceptance_file_storage) and MinIO only on explicit request.
   minio:
+    profiles: ["acceptance-minio"]
     container_name: !reset null
     ports: !override
       - "6900:9000"
@@ -78,6 +81,14 @@ services:
     volumes:
       - acceptance_data_protection:/var/hrm/dpkeys
       - ./artifacts/acceptance/candidate-notifications:/var/hrm/candidate-notifications
+    # PLAN-33: HR.Core never talks to MinIO (only File.Storage does); without this MinIO would be started for it.
+    depends_on: !override
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
 
   hr-contracts-web:
     container_name: !reset null
@@ -175,8 +186,21 @@ services:
     container_name: !reset null
     ports: !override
       - "6340:8080"
-    environment: *acceptance-service
-    volumes: *acceptance-dp-volumes
+    environment:
+      <<: *acceptance-service
+      # PLAN-33 (decision 6): Local provider instead of the unpullable MinIO image; ClamAV stays required.
+      FileStorage__Provider: Local
+      FileStorage__LocalRootPath: /var/hrm/file-storage
+    volumes:
+      - acceptance_data_protection:/var/hrm/dpkeys
+      - acceptance_file_storage:/var/hrm/file-storage
+    depends_on: !override
+      clamav:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   hr-gateway:
     container_name: !reset null
@@ -193,3 +217,4 @@ services:
 
 volumes:
   acceptance_data_protection:
+  acceptance_file_storage:
