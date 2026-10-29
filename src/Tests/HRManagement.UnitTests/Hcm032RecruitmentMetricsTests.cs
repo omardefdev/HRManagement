@@ -47,10 +47,10 @@ public class Hcm032RecruitmentMetricsTests
         Assert.Equal(FunnelReachRules.Stages, funnel.Stages.Select(s => s.Stage));
         Assert.Equal(18, funnel.CoveredCount);
         Assert.Equal(66.7m, funnel.CoveragePercent);
-        // Current status: Submitted B6 C3; UnderReview B5 C2; Shortlisted C1; Rejected A2 A3 A4 B2 B4 C4 D3 D4 D5;
+        // Current status: Submitted B6 C3; UnderReview B4 (upheld appeal) B5 C2; Shortlisted C1; Rejected A2 A3 A4 B2 C4 D3 D4 D5;
         // Hired A1 B1 C5; Ranked B9 D1 D6; Withdrawn A6 B8; OfferDeclined A5 B3 B10; ReserveListed B7 D2.
         Assert.Equal(
-            [(St.Submitted, 2), (St.UnderReview, 2), (St.Shortlisted, 1), (St.Rejected, 9), (St.Hired, 3), (St.Ranked, 3),
+            [(St.Submitted, 2), (St.UnderReview, 3), (St.Shortlisted, 1), (St.Rejected, 8), (St.Hired, 3), (St.Ranked, 3),
              (St.Withdrawn, 2), (St.OfferDeclined, 3), (St.ReserveListed, 2)],
             funnel.CurrentStatuses.Select(s => (s.Status, s.Count)));
     }
@@ -94,6 +94,7 @@ public class Hcm032RecruitmentMetricsTests
     //   Submitted     17 values: 1×7 (B5 B7 B9 B10 C2 C5 D6), 2×7 (B1 B2 B3 B4 B8 D3 D4), 3×2 (D2 D5), 4 (D1) → median 9th = 2
     //   UnderReview   12 values: 1 1 2 3 3 4 5 5 5 5 5 5 (B4 B10 B9 B7 D6 D4 B1 B2 B3 D1 D2 D3) → (4 + 5) / 2 = 4.5
     //   Shortlisted   11 values: 1 2 3 7 8 11 46 46 46 46 46 → 11
+    //   Rejected      B4 09-07 → 09-20 (appeal upheld, back to UnderReview) = 13 (other rejections are final)
     //   InterviewScheduled B1 5, B3 5 → 5; Assessed B1 5, B3 5 → 5; Ranked B1 2, B3 7, B7 12, B10 4 → (4 + 7) / 2 = 5.5
     //   OfferExtended B1 3, B3 7, B10 3 → 3; OfferAccepted B1 6 → 6; ReserveListed D6 15 → 15
     [Fact]
@@ -107,7 +108,7 @@ public class Hcm032RecruitmentMetricsTests
         Assert.Equal(27, result.CohortCount);
         Assert.Equal(18, result.CoveredCount);
         Assert.Equal(
-            [(St.Submitted, 2m, 17), (St.UnderReview, 4.5m, 12), (St.Shortlisted, 11m, 11), (St.InterviewScheduled, 5m, 2),
+            [(St.Submitted, 2m, 17), (St.UnderReview, 4.5m, 12), (St.Shortlisted, 11m, 11), (St.Rejected, 13m, 1), (St.InterviewScheduled, 5m, 2),
              (St.Assessed, 5m, 2), (St.Ranked, 5.5m, 4), (St.OfferExtended, 3m, 3), (St.OfferAccepted, 6m, 1), (St.ReserveListed, 15m, 1)],
             result.Rows.Select(r => (r.Status, r.MedianDays!.Value, r.N)));
     }
@@ -157,7 +158,8 @@ public class Hcm032RecruitmentMetricsTests
     }
 
     // Appealable rejections in the period (default kinds SelectionDecision, NotSelectedOnHire, OfferRevoked):
-    // A2 A3 B2 B4 C4 = 5 (A4 RequisitionClosed and D3 D4 D5 CompetitionResult are not appealable). Appeals filed: AP(B2),
+    // A2, A3 (no kind → SelectionDecision), B2, B4 (rejection cleared by its upheld appeal; the Rejected event 09-07 counts), C4
+    // = 5 (A4 RequisitionClosed and D3 D4 D5 CompetitionResult are not appealable). Appeals filed: AP(B2),
     // AP(B4) = 2 → 40 %. Decided: Upheld 1 (B4), Dismissed 1 (B2). Objections: filed 2 (D3, D4), upheld 1, dismissed 1.
     [Fact]
     public async Task Appeal_rate_and_objections_match_the_hand_calculation()
@@ -421,6 +423,67 @@ public class Hcm032RecruitmentMetricsTests
         public Guid? TenantId { get; } = tenantId;
         public bool IsPlatformOperator => false;
         public Guid RequireTenantId() => tenantId;
+    }
+
+    /// <summary>
+    /// Review F1: an appeal upheld through the real workflow handler clears the application's rejection; the denominator
+    /// still counts that rejection (from its event). Four rejected, four appealed, two upheld → 4 / 4 = 100 % (the cleared
+    /// columns alone gave 4 / 2 = 200 %).
+    /// </summary>
+    [Fact]
+    public async Task Appeal_rate_counts_rejections_cleared_by_an_upheld_appeal()
+    {
+        await using var db = Hcm027TestSupport.CreateContext();
+        var requisition = await Hcm027TestSupport.SeedRequisitionAsync(db, "F1");
+        var apps = new List<HR.Core.Domain.Entities.RecruitmentApplication>();
+        for (var i = 0; i < 4; i++)
+            apps.Add(await Hcm027TestSupport.SeedApplicationAsync(db, requisition, St.Submitted, rank: null, name: "F1-" + i));
+        foreach (var app in apps)
+            HR.Core.Domain.Services.ApplicationRejection.Apply(app, RecruitmentRejectionKind.SelectionDecision, "قرار", DateTime.UtcNow);
+        await db.SaveChangesAsync();
+
+        var appeals = apps.Select(a => new HR.Core.Domain.Entities.RecruitmentAppeal
+        {
+            RecruitmentApplicationId = a.Id, Kind = RecruitmentAppealKind.Rejection, Reason = "استئناف للاختبار",
+            Status = RecruitmentAppealStatus.Pending, CreatedAt = DateTime.UtcNow.AddSeconds(1)
+        }).ToList();
+        db.RecruitmentAppeals.AddRange(appeals);
+        await db.SaveChangesAsync();
+        var handler = new HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealWorkflowHandler(db);
+        foreach (var appeal in appeals.Take(2))
+        {
+            appeal.Outcome = RecruitmentAppealOutcome.Upheld;
+            appeal.Decision = "قبول الاستئناف";
+            await handler.HandleAsync(new HR.Core.Domain.Entities.Workflow.WorkflowInstance
+            {
+                EntityType = "RecruitmentAppeal", EntityId = appeal.Id, StepHistoryJson = "[]"
+            }, approved: true, reason: null);
+        }
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        Assert.Equal(2, await db.RecruitmentApplications.CountAsync(a => a.RejectedAt == null && a.RequisitionId == requisition.Id));
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var result = await CreateService(db).GetAppealsAsync(new RecruitmentMetricsFilter { From = today.AddDays(-1), To = today.AddDays(2) }, Unrestricted);
+
+        Assert.Equal((4, 4, 100m), (result.AppealsFiled, result.AppealableRejections, result.AppealRate!.Value));
+    }
+
+    /// <summary>Review F2: "published for more than N days" counts calendar days (UTC dates), the unit the list shows.</summary>
+    [Theory]
+    [InlineData(2026, 8, 30, 8, false)]  // 60 calendar days before 2026-10-29 (instant gap 60 d 4 h — the old instant rule listed it) → not stale
+    [InlineData(2026, 8, 29, 23, true)]  // 61 calendar days → stale
+    public async Task Stale_published_boundary_is_in_calendar_days(int y, int m, int d, int h, bool stale)
+    {
+        var (db, service) = await SeedAsync();
+        await using var _ = db;
+        await db.RecruitmentRequisitions.Where(r => r.Id == R2)
+            .ExecuteUpdateAsync(u => u.SetProperty(r => r.PublishedAt, new DateTime(y, m, d, h, 0, 0, DateTimeKind.Utc)));
+
+        var result = await service.GetOpenVacanciesAsync(Period, Unrestricted);
+
+        Assert.Equal(stale, result.StalePublished.Any(s => s.RequisitionId == R2));
+        Assert.All(result.StalePublished, s => Assert.True(s.DaysPublished > result.StalePublishedDays));
     }
 
     [Fact]

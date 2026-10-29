@@ -159,6 +159,23 @@ public class Hcm032ExportTests
         Assert.IsType<ForbidResult>(await Ctl.Controller(db, Ctl.BranchManager("bad")).ExportApplicationsCsv(PeriodForm, NoJobs(), ct: CancellationToken.None));
     }
 
+    /// <summary>Review F5: an out-of-scope org-unit filter yields no data and does not name the unit in the provenance.</summary>
+    [Fact]
+    public async Task Out_of_scope_unit_is_not_named_in_the_export_header()
+    {
+        await using var db = await Ctl.SeededAsync();
+        var form = new RecruitmentReportFilterForm { From = "2026-01-01", To = "2026-11-01", OrgUnitId = UnitHq };
+
+        var outOfScope = WorkbookText(Assert.IsType<FileContentResult>(
+            await Ctl.Controller(db, Ctl.BranchManager()).ExportExcel(form, CancellationToken.None)).FileContents);
+        var inScope = WorkbookText(Assert.IsType<FileContentResult>(
+            await Ctl.Controller(db, Ctl.Hr()).ExportExcel(form, CancellationToken.None)).FileContents);
+
+        Assert.DoesNotContain("الإدارة المركزية", outOfScope);
+        Assert.Contains("خارج النطاق", outOfScope);
+        Assert.Contains("الوحدة: الإدارة المركزية", inScope);
+    }
+
     [Fact]
     public async Task Exports_print_gregorian_dates_under_ar_sa()
     {

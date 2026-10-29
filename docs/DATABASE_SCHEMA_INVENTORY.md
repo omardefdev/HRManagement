@@ -128,3 +128,14 @@
 | | `CompetitionAllocations` (جديد) | المسابقة، الطلب، السطر والطلب الشاغر الموزَّع، ترتيب التفضيل المحقق، `FromReserve` |
 | | `CompetitionReserveEntries` (جديد) | السطر، الطلب، `LineRank`، `ReserveUntil`، الحالة، `RecalledRequisitionId` |
 | | `RecruitmentAppeals` | + `Kind` varchar not null default `'Rejection'` (للصفوف القائمة)، `CompetitionResultVersionId`، `ObjectionExamCandidateId`، `ObjectionCorrectedScore` |
+## إضافات HCM-032 / PLAN-32 (تحرير يدوي)
+
+حُدِّث هذا الجرد يدوياً لـ PLAN-32 لأن Python غير متاح على جهاز التنفيذ (المولّد `scripts/extract_database_inventory.py` لم يُشغَّل)؛
+يُعاد توليده عند توفره. الترحيلات الثلاثة إضافية فقط (لا إعادة كتابة لبيانات قائمة).
+
+| الترحيل | الجدول | الأعمدة / الفهارس |
+|---------|--------|-------------------|
+| `HCM032_OfferDeclineCategory` (HR.Core) | `OfferLetters` | + `DeclineReasonCategory` varchar(20) nullable (`Salary`/`Location`/`OtherOffer`/`Personal`/`JobContent`/`Other`؛ الصفوف القديمة null = «غير مصنف») |
+| `HCM032_AnalyticsIndexes` (HR.Core) | `RecruitmentApplications` | فهرس `(TenantId, AppliedAt)` |
+| | `RecruitmentApplicationEvents` | فهرس `(TenantId, EventType, ToStatus, OccurredAt)` |
+| `ANA032_RecruitmentRequisitionFacts` (Dev.Analytics) | `RecruitmentRequisitionFacts` (جديد) | `Id`، `TenantId`، `RequisitionId`، `OrgUnitId`، `Outcome` varchar(16)، `ClosedAt`، `Applicants`، `HiredCount`، `TimeToFillDays`?، أعداد القنوات الأربع، أعداد نتائج العروض الأربع، `SchemaVersion`، `CreatedAt`/`UpdatedAt`؛ فريد `(TenantId, RequisitionId)` وفهرس `(TenantId, ClosedAt)`؛ RLS مُشدَّد (TEN-002C) |

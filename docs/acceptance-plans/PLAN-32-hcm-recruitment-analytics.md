@@ -1,7 +1,8 @@
 # PLAN-32 — تقارير ومؤشرات التوظيف (PLAN-HCM-J)
 
 **Scope:** HCM-001 + ANA-001 + STR-007 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-21  
-**Status:** In progress — التنفيذ P0–P8 على الفرع `feature/plan-32-recruitment-analytics`  
+**Status:** Implemented — التنفيذ P0–P8 على الفرع `feature/plan-32-recruitment-analytics`؛ AC-HCM-32a..d ناجحة على مكدّس القبول (2026-10-29)؛
+التقرير: [`reports/plan32-final-report.md`](../../reports/plan32-final-report.md)  
 **Priority:** P2  
 **Depends on:** PLAN-26..31 منفذة، PLAN-25 مؤجلة
 
@@ -114,3 +115,40 @@ $env:RUN_ACCEPTANCE = "true"; dotnet test src/Tests/HRManagement.AcceptanceTests
 ## Effort estimate
 
 4–5 أيام عمل: الخدمة والمؤشرات (2)، الواجهة (1)، التصدير (0.5)، الاختبارات (1)، اختياري: الدلالة/اللقطة (+1).
+
+---
+
+## ملاحظات التنفيذ (2026-10-29)
+
+السجل الكامل للقرارات K1–K25 مع أسبابها: [`reports/plan32-progress.md`](../../reports/plan32-progress.md)؛ التعريفات الدقيقة:
+[`docs/STR_007_KPI_DEFINITIONS.md`](../STR_007_KPI_DEFINITIONS.md)؛ دليل التنفيذ:
+[`execution/PLAN-32-EXECUTION.md`](execution/PLAN-32-EXECUTION.md).
+
+### ما نُفّذ
+
+- اثنا عشر مؤشراً `recruitment_*` في STR-007 (الوثيقة ومصفوفة `kpi-matrix.json`، المالك product-hr والمدقق audit، الأهداف
+  «TBD» دون اختراع قيم، وخطوط أساس مجمّدة بلا قيمة للمؤشرات الزمنية)، وحاسبات نقية (`KpiStatistics`، `FunnelReachRules`،
+  `TimeToFillRules`، `ApprovalSlaRules`، `SmallCellSuppression`).
+- `RecruitmentMetricsService` للقراءة فقط بنطاق الوحدة، ومطابق لحساب يدوي موثق في الاختبار (AC-HCM-32a).
+- شاشة «تقارير التوظيف» وصفحة كل طلب شاغر، والتصدير Excel/PDF/CSV (ومهمة تصدير خلفية) بلا رقم وطني.
+- فئة سبب رفض العرض (عمود جديد اختياري) إلزامية في مساري الرفض.
+- فهرسان داعمان بعد `EXPLAIN` على PostgreSQL بحجم 50,000 طلب؛ لا لقطة يومية (الميزانية محققة: ≈ 1.2 ث / 0.3 ث).
+- حدث `IRecruitmentRequisitionClosed` عبر صندوق الصادر إلى Dev.Analytics وبطاقة «التوظيف» بحجب الخلايا الصغيرة، وتسجيل المقاييس
+  في طبقتي الدلالة ANA-001 وPROD-006.
+
+### انحرافات واجتهادات
+
+- **زمن الملء من تاريخ الاعتماد** لا من `RequestedDate` (البند 2) — اتساقاً مع `hire_cycle_time` المجمّد.
+- **مزيج القنوات من `IntakeChannel`** لا من أعمدة المعرّفات المصدرية (البند 3).
+- **بلوغ مراحل القمع تراكمي** (بلوغ مرحلة يعني ما قبلها) و«قائمة الاحتياط» تُحسب «مرتّباً» (K2).
+- **فلتر وحدة خارج النطاق ← «لا بيانات»** لا 403 (K3).
+- **التصدير بطلبات GET** لأن البوابة تشترط `HrCoreWrite` لكل POST تحت `/ui/hr-core` (K14)؛ لا تغيير في قواعد البوابة.
+- **تعريفات مسارات الاعتماد تُقرأ من المستأجر الافتراضي** عبر الاستثناء النظامي المعتمد (كما `WorkflowStarter`) — خلل كُشف
+  في اختبار بذرة القبول وأُصلح باختبار انحدار (K24).
+
+### مؤجل
+
+- **مؤشرات العدالة:** لا قرار GOV-001، وجنس المرشح غير مجمّع.
+- **أهداف المؤشرات:** تحدد بعد أول ربع مجمّد (TBD).
+- **نطاق شاشات قوائم التوظيف القائمة** (`RecruitmentApplicationsController`، `RecruitmentRequisitionsController`) — PLAN-25 (البند 10).
+- **اللقطة اليومية `RecruitmentDailySnapshot`:** غير مطلوبة عند الحجم المقاس.

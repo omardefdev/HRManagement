@@ -17,7 +17,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 | P5 | Scale | Done (snapshot not needed) | `perf(hcm032): analytics indexes and scale test` |
 | P6 | Analytics integration (additive) | Done | `feat(ana032): recruitment requisition aggregates to Dev.Analytics and semantic-layer registration` |
 | P7 | Acceptance and regression | Done (AC-HCM-32a..d Pass live) | `test(hcm032): acceptance AC-HCM-32a..d and regression` |
-| P8 | Docs, validate script, independent review, final report | Not started | |
+| P8 | Docs, validate script, independent review, final report | Done | `docs(hcm032): plan status, KPI definitions, execution guide, validate script, final report` |
 
 ## Branch
 
@@ -199,7 +199,22 @@ Skipped).
 
 ## Next step
 
-P8 — docs (drafted, uncommitted: `PLAN-32-EXECUTION.md`, `HCM_001_GAP_STUDY.md` G-21, `HCM_001_RECRUITMENT.md`;
-to do: PLAN-32 status/notes/deviations, `ANA_001_ANALYTICS.md`, `REP_001_REPORTS.md`, `DATABASE_SCHEMA_INVENTORY.md` by hand
-(no Python)); `scripts/hcm032-validate.ps1` (drafted) run to PASS; independent review subagent + refuters; fixes with
-regression tests; `reports/plan32-final-report.md`; commit; then merge the branch into local `main` (user rule) and test there.
+PLAN-32 complete. Remaining (user rule, memory `merge-all-work-into-local-main`): merge
+`feature/plan-32-recruitment-analytics` into local `main` (`--no-ff`), build and run the Hcm032 / regression filters on `main`.
+Never push.
+
+## P8 — independent review (2026-10-29)
+
+Six findings from a fresh read-only reviewer; each attacked by a refuter agent (three refuters in parallel):
+
+| # | Verdict | Action |
+|---|---------|--------|
+| F1 appeal-rate denominator lost rejections cleared by an upheld appeal (and rejections without a kind) | Confirmed (+ second undercount) | Fixed in `GetAppealsAsync`; realistic fixture (B4 cleared, A3 without kind); regression test through `RecruitmentAppealWorkflowHandler.HandleAsync`; definition clarified in the STR-007 doc and matrix (rate can exceed 100 % by definition) |
+| F2 stale-published cut-off by instant, list in calendar days | Confirmed | Cut-off on UTC dates; theory test |
+| F3 open-vacancy exclusion through cancelled/closed attached requisitions | Refuted (unreachable) | — |
+| F4 competitions panel allocated/recalled, unit filter | Refuted (K13, spec-silent) | — (unit-filtered allocated/recalled is an option) |
+| F5 export provenance names an out-of-scope unit | Confirmed (by-id name oracle; the lookup API refuses it) | Named only in scope, else «خارج النطاق»; test |
+| F6 objections/appeal-review SLA for branch users | Refuted (decision 6 clause 3; pending objections have no unit) | — |
+
+After the fixes: `Hcm032*` 110 / 110; `hr-core-web` rebuilt and AC-HCM-32a..d re-run live 4 / 4 Pass (evidence refreshed);
+`scripts/hcm032-validate.ps1` PASS.

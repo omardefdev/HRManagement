@@ -283,7 +283,7 @@
     {
       "id": "recruitment_appeal_rate",
       "name": "Recruitment appeal rate",
-      "definition": "Appeals (Kind = Rejection) filed in [From, To) / applications rejected in [From, To) with an appealable RejectionKind (Recruitment:AppealableRejectionKinds) * 100; outcome distribution of appeals decided in the period; result objections (Kind = ResultObjection) reported separately: filed, upheld, dismissed",
+      "definition": "Appeals (Kind = Rejection) filed in [From, To) / applications rejected in [From, To) with an appealable RejectionKind (Recruitment:AppealableRejectionKinds; a rejection without a kind counts as SelectionDecision; a rejection cleared by an upheld appeal is dated by its last StatusChanged -> Rejected event before the appeal) * 100; outcome distribution of appeals decided in the period; result objections (Kind = ResultObjection) reported separately: filed, upheld, dismissed",
       "unit": "percent",
       "formula": "appealsFiled / appealableRejections * 100",
       "sourceRef": "HR.Core RecruitmentAppeals (PLAN-28, PLAN-31) + RecruitmentApplications (RejectedAt, RejectionKind)",
@@ -313,7 +313,7 @@
     {
       "id": "recruitment_open_vacancies",
       "name": "Open vacancies",
-      "definition": "As of today: Vacant funded positions with no requisition in Draft, PendingApproval, Approved or Published and no requisition attached to an open competition line; plus requisitions Published for more than Recruitment:Analytics:StalePublishedDays (default 60); listed oldest first",
+      "definition": "As of today: Vacant funded positions with no requisition in Draft, PendingApproval, Approved or Published and no requisition attached to an open competition line; plus requisitions Published for more than Recruitment:Analytics:StalePublishedDays (default 60) calendar days; listed oldest first",
       "unit": "count",
       "formula": "count(vacantWithoutRequisition); count(publishedFor > staleDays)",
       "sourceRef": "HR.Core FundedPositions (EST-001) + RecruitmentRequisitions + CompetitionLines",

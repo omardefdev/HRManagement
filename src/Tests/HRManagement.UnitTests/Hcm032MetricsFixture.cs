@@ -103,8 +103,10 @@ internal static class Hcm032MetricsFixture
         Offer(db, a1, P1, "O1", OfferStatus.Accepted, created: Utc(2026, 2, 4), issued: Utc(2026, 2, 5), accepted: Utc(2026, 2, 8));
         App(db, "A2", R1, RecruitmentIntakeChannel.Legacy, Utc(2026, 1, 16), RecruitmentApplicationStatus.Rejected,
             screened: Utc(2026, 1, 20), ranked: Utc(2026, 1, 28), rejected: (Utc(2026, 2, 10), RecruitmentRejectionKind.NotSelectedOnHire));
-        App(db, "A3", R1, RecruitmentIntakeChannel.Public, Utc(2026, 1, 17), RecruitmentApplicationStatus.Rejected,
+        // Legacy rejection without a kind (pre-HCM-028): appealable as SelectionDecision.
+        var a3 = App(db, "A3", R1, RecruitmentIntakeChannel.Public, Utc(2026, 1, 17), RecruitmentApplicationStatus.Rejected,
             screened: Utc(2026, 1, 20), rejected: (Utc(2026, 1, 25), RecruitmentRejectionKind.SelectionDecision));
+        a3.RejectionKind = null;
         App(db, "A4", R1, RecruitmentIntakeChannel.Public, Utc(2026, 1, 17), RecruitmentApplicationStatus.Rejected,
             rejected: (Utc(2026, 3, 1), RecruitmentRejectionKind.RequisitionClosed));
         var a5 = App(db, "A5", R1, RecruitmentIntakeChannel.Internal, Utc(2026, 1, 18), RecruitmentApplicationStatus.OfferDeclined,
@@ -134,9 +136,10 @@ internal static class Hcm032MetricsFixture
             (9, 16, S.Assessed), (9, 21, S.Ranked), (9, 28, S.OfferExtended), (10, 5, S.OfferDeclined));
         Event(db, b3, RecruitmentApplicationEventTypes.OfferIssued, (int)OfferStatus.Issued, Utc(2026, 9, 28), o4);
 
-        var b4 = App(db, "B4", R3, RecruitmentIntakeChannel.HrEntered, Utc(2026, 9, 4), RecruitmentApplicationStatus.Rejected,
-            rejected: (Utc(2026, 9, 7), RecruitmentRejectionKind.SelectionDecision));
-        Events(db, b4, (9, 4, S.Submitted), (9, 6, S.UnderReview), (9, 7, S.Rejected));
+        // Rejected 09-07, appeal upheld 09-20: as RecruitmentAppealWorkflowHandler does, the rejection is cleared and the
+        // application goes back to UnderReview (only the event log keeps the rejection).
+        var b4 = App(db, "B4", R3, RecruitmentIntakeChannel.HrEntered, Utc(2026, 9, 4), RecruitmentApplicationStatus.UnderReview);
+        Events(db, b4, (9, 4, S.Submitted), (9, 6, S.UnderReview), (9, 7, S.Rejected), (9, 20, S.UnderReview));
         Appeal(db, b4, RecruitmentAppealKind.Rejection, filed: Utc(2026, 9, 8), decided: Utc(2026, 9, 20), RecruitmentAppealOutcome.Upheld);
 
         var b5 = App(db, "B5", R3, RecruitmentIntakeChannel.Public, Utc(2026, 10, 1), RecruitmentApplicationStatus.UnderReview);

@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/ui/hr-core/RecruitmentReports/ExportApplicationsCsv?From=2026-08-01\u0026To=2026-10-01",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T12:58:47.5801612Z",
+  "capturedAtUtc": "2026-10-29T13:29:03.9704185Z",
   "body": {
     "contentType": "text/csv",
     "length": 1302

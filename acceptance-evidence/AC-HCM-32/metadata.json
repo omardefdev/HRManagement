@@ -1,12 +1,12 @@
 {
   "scenario": "AC-HCM-32c exports: no national id in Excel; read-only CSV without names",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-executive-reader",
-  "correlationId": "c19c5a2d-f845-46b2-b1a3-cff29d86135d",
-  "capturedAtUtc": "2026-10-29T12:58:46.6433920Z",
+  "correlationId": "f32658af-fc00-4cf3-a2e2-b55e2a681b5b",
+  "capturedAtUtc": "2026-10-29T13:29:01.6572737Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "608652e5207d2598460f7900ceb4724d5ed763d2"
+  "gitSha": "5d80b388448053739b07fac8af00f1a447c04081"
 }

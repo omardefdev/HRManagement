@@ -444,8 +444,24 @@ public sealed class RecruitmentMetricsService(
         var appeals = db.RecruitmentAppeals.AsNoTracking().Where(a => appIds.Contains(a.RecruitmentApplicationId));
 
         var appealable = _recruitment.GetAppealableRejectionKinds().ToArray();
-        var rejections = await applications.CountAsync(a => a.RejectedAt >= from && a.RejectedAt < to
-            && a.RejectionKind != null && appealable.Contains(a.RejectionKind.Value), ct);
+        // Applications rejected in the period with an appealable kind. Two cases the current columns hide (review F1):
+        // a rejection without a kind (pre-HCM-028) is appealable as SelectionDecision (RecruitmentAppealWorkflowRules); and
+        // an upheld appeal clears RejectedAt/RejectionKind, so its rejection is the last StatusChanged → Rejected event
+        // before the appeal was filed (filing already required an appealable kind).
+        const int rejectedStatus = (int)RecruitmentApplicationStatus.Rejected;
+        var rejections = await applications.CountAsync(a =>
+            (a.RejectedAt >= from && a.RejectedAt < to
+                && appealable.Contains(a.RejectionKind ?? RecruitmentRejectionKind.SelectionDecision))
+            || db.RecruitmentAppeals.Any(p => p.RecruitmentApplicationId == a.Id && p.Kind == RecruitmentAppealKind.Rejection
+                && (p.Outcome == RecruitmentAppealOutcome.Upheld || p.Outcome == RecruitmentAppealOutcome.UpheldRankCorrection)
+                && db.RecruitmentApplicationEvents
+                    .Where(e => e.RecruitmentApplicationId == a.Id && e.EventType == RecruitmentApplicationEventTypes.StatusChanged
+                        && e.ToStatus == rejectedStatus && e.OccurredAt <= p.CreatedAt)
+                    .Max(e => (DateTime?)e.OccurredAt) >= from
+                && db.RecruitmentApplicationEvents
+                    .Where(e => e.RecruitmentApplicationId == a.Id && e.EventType == RecruitmentApplicationEventTypes.StatusChanged
+                        && e.ToStatus == rejectedStatus && e.OccurredAt <= p.CreatedAt)
+                    .Max(e => (DateTime?)e.OccurredAt) < to), ct);
         var filed = await appeals.CountAsync(a => a.Kind == RecruitmentAppealKind.Rejection && a.CreatedAt >= from && a.CreatedAt < to, ct);
         var decided = await appeals
             .Where(a => a.Kind == RecruitmentAppealKind.Rejection && a.Outcome != null && a.DecidedAt >= from && a.DecidedAt < to)
@@ -524,7 +540,8 @@ public sealed class RecruitmentMetricsService(
                 KpiStatistics.CalendarDays(r.Since, now))).ToList();
         }
 
-        var staleBefore = now.AddDays(-staleDays);
+        // "More than N days" in calendar days (UTC dates), the unit shown in the list (review F2).
+        var staleBefore = asOf.AddDays(-staleDays).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var stale = Requisitions(filter, resolved)
             .Where(r => r.Status == RequisitionStatus.Published && (r.PublishedAt ?? r.ApprovedDate ?? r.RequestedDate) < staleBefore);
         var staleCount = await stale.CountAsync(ct);

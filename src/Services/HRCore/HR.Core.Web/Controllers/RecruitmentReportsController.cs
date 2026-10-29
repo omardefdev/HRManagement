@@ -232,8 +232,11 @@ public class RecruitmentReportsController(
         var label = scope.MustFilter ? "وحدات نطاق المستخدم فقط" : "كل الوحدات";
         if (filter.OrgUnitId is { } unitId)
         {
-            var name = await db.OrgUnits.AsNoTracking().Where(u => u.Id == unitId).Select(u => u.NameAr).FirstOrDefaultAsync(ct);
-            label += " — الوحدة: " + (name ?? unitId.ToString());
+            // Only a unit in scope is named (review F5): an out-of-scope id gets no data and no name, as the lookup API.
+            var name = scope.CanAccess(unitId)
+                ? await db.OrgUnits.AsNoTracking().Where(u => u.Id == unitId).Select(u => u.NameAr).FirstOrDefaultAsync(ct)
+                : null;
+            label += " — الوحدة: " + (name ?? "خارج النطاق");
         }
         if (filter.Channel is { } channel)
             label += " — القناة: " + RecruitmentReportFormat.Label(channel);
