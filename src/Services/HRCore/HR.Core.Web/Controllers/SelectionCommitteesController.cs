@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[RecruitmentOrgScope(RecruitmentScopeKind.CommitteeSession)]
 public sealed class SelectionCommitteesController(
     HRCoreDbContext db,
     SelectionCommitteeService committeeService,

@@ -24,6 +24,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[RecruitmentOrgScope(RecruitmentScopeKind.Application)]
 public class RecruitmentApplicationsController(
     HRCoreDbContext db,
     RecruitmentIntegrationService integration,
@@ -822,6 +823,8 @@ public class RecruitmentApplicationsController(
             .Include(a => a.Requisition)
             .Include(a => a.ActiveOfferLetter)
             .AsQueryable();
+        // PLAN-25 (D10): branch-scoped users list their units only.
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {

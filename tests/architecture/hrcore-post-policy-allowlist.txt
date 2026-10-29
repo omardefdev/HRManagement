@@ -1,0 +1,51 @@
+# PLAN-25 (G-15) ratchet: HR.Core.Web [HttpPost] actions that, on 2026-10-29, had neither [Authorize(Policy = ...)] nor
+# [AllowAnonymous]. Format: Controller.Action | reason. Checked by
+# src/Tests/HRManagement.UnitTests/Architecture/HrCorePostActionsHaveExplicitPolicyTests.cs:
+#   - a POST missing from this list fails the build of trust (new offender);
+#   - an entry whose action is now protected must be removed (the list only shrinks);
+#   - recruitment controllers may never appear here.
+# Every entry below is reached only through the global Module.HrCore filter (admin, hr-core, supervisory, executive,
+# branch-manager, hr-management-approver) and, behind the gateway, its HrCoreWrite rule for mutating requests.
+# Follow-up: give each one HrCoreWrite (HrCoreDelete for Delete) after checking its personas.
+ApprovedCVs.Create | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+ApprovedCVs.Delete | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+ApprovedCVs.Edit | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+ApprovedCVs.FinalizeApproval | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+CareerPaths.AddStep | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+CareerPaths.Create | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+CareerPaths.Delete | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+CareerPaths.RemoveStep | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+Contacts.Create | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+Contacts.Delete | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+Contacts.Edit | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+DailyAttendanceRecords.BulkEntry | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+DailyAttendanceRecords.ClosePeriod | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+DailyAttendanceRecords.Create | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+DailyAttendanceRecords.Delete | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+DailyAttendanceRecords.Edit | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+DiwanCorrespondences.Create | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+Documents.Create | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+Documents.Delete | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+Documents.Edit | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+EmployeeProfiles.Save | employee file data — Module.HrCore + gateway HrCoreWrite only; follow-up (check ESS overlap first)
+ExportJobs.Cancel | class has [Authorize] without a policy; the job is owned by its requester — follow-up
+FieldInspectionVisits.Create | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+HrStatisticReports.Create | branch operations (OrgBranchControllers) used by branch managers — needs a branch-write policy decision; follow-up
+KeyPositions.Create | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+KeyPositions.Delete | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+KeyPositions.Edit | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+Qualifications.Create | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+Qualifications.Delete | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+Qualifications.Edit | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+Rosters.AddAssignment | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Rosters.Create | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Rosters.Delete | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Rosters.RemoveAssignment | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Shifts.Create | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Shifts.Delete | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Shifts.Edit | time & attendance planning — Module.HrCore + gateway HrCoreWrite only; follow-up
+Signatures.Verify | signature verification (read-like POST) — Module.HrCore only; follow-up
+SuccessionPlans.AddCandidate | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+SuccessionPlans.Create | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+SuccessionPlans.Delete | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up
+SuccessionPlans.RemoveCandidate | talent/HR master data (non-recruitment) — Module.HrCore + gateway HrCoreWrite only; follow-up

@@ -11,8 +11,8 @@
 | P1 approval start coordinator | Done | 8360b5e |
 | P2 repair endpoint + script | Done | 9db6397 |
 | P3 step roles + gates | Done | d9a7976 |
-| P4 retire RECRUITMENT-HIRE | Done | (P4 commit) |
-| P5 write policies + org scope | Pending | |
+| P4 retire RECRUITMENT-HIRE | Done | b0f911e |
+| P5 write policies + org scope | Done | (P5 commit) |
 | P6 prod-like journey, AC-HCM-25, CI | Pending | |
 | P7 live verification | Pending | |
 | P8 docs, review, final report | Pending | |
@@ -128,10 +128,20 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 - `Hcm025RecruitmentHireRetiredTests` (AC-HCM-25g, unit): Enforce on a fresh database, on a pre-PLAN-25 database (rule + published definition + binding, patched twice), and on the static fallback → Allowed, no instance; the kept deny rules still refuse. Orphan instances are cancelled by the P2 repair.
 - Regression: unit 4115/4131 (16 known environment failures); integration filter (+Hire, Seed) 92/101 — 7 failures, all pre-existing (4 hire-closure/establishment-hire also fail on unmodified `main`, 3 baseline).
 
+## P5 notes
+
+- **Write policies:** `PublicJobPostings` and `TalentMarketplace` — `Create`/`Edit` (GET and POST)/`ChangeApplicationStatus`/`DeclareCitizenCoi` → `HrCoreWrite`, `Delete` → `HrCoreDelete`. Legacy (not requisition-linked) closing-date changes are audited (`ClosingDateChanged`, before/after) and a change to a date before today is refused when applications exist (`LegacyPostingClosingDateRules`).
+- **Ratchet:** `Architecture/HrCorePostActionsHaveExplicitPolicyTests` — every `[HttpPost]` in HR.Core.Web has a policy (action or class) or `[AllowAnonymous]`; `tests/architecture/hrcore-post-policy-allowlist.txt` freezes the 42 non-recruitment offenders with a reason; the list may only shrink; no recruitment controller may be listed (all 9 recruitment offenders are fixed).
+- **Org scope (D10):** `RecruitmentOrgScopeFilter` (class attribute) on RecruitmentRequisitions (Requisition), RecruitmentApplications (Application), OfferLetters (Offer), SelectionCommittees (CommitteeSession): for branch-scoped users every id argument — the `id` route value of the controller's kind and `requisitionId`/`applicationId`/`recruitmentApplicationId`/`offerId`/`sessionId` arguments or posted-form properties — must resolve inside the scope, else **404** (GET and POST alike); records without an org unit are central-only; an invalid scope claim → 403; unrestricted users skip the queries. Lists (`Index`) are filtered (`RecruitmentOrgScopeQueries.InScope`). Competitions: `CentralOnly` → 403 for branch users on every action (PLAN-32 rule). The scope service is resolved from request services so the manual controller constructions in tests stay unchanged.
+- **Not covered (follow-up, recorded):** `PromoteFromCitizen(citizenApplicationId)` / `PromoteFromInternal(internalApplicationId)` ids are not mapped (citizen/internal applications reach the requisition through the posting), `RecruitmentAssessmentCriteria`, `RecruitmentReports` (already scoped by PLAN-32), `TalentMarketplace` vacancy org units.
+- No acceptance seed needed changing for scope (the approve/reject POSTs already enforced it since PLAN-21; AC-21/22/WF-23 use in-scope pool positions) — to be confirmed live in P7.
+- **Tests:** `Hcm025OrgScopeTests` (5: list own unit only vs central all; foreign Details and foreign committee list 404; foreign route POST and foreign form-field POST 404 with a central control, own POST works; competitions 403 for branch users; invalid claim 403), `Hcm025PostingPoliciesTests` (3: approver POST Edit/Delete and GET Edit → 403 — AC-HCM-25f; hr-core edit audited, retroactive close refused; hr-core delete 403, admin 200).
+- **Regression:** unit 4118/4134 (16 known environment); integration filter (+Scope/Recruitment/Bola/Iam) 104/110 — 4 pre-existing.
+
 ## Open issues
 
 - `-warnaserror` fails on the pre-existing NU1903 SSH.NET advisory (IntegrationTests); not introduced here.
 
 ## Next step
 
-P5: explicit write policies on PublicJobPostings/TalentMarketplace + ClosingDate audit, `HrCorePostActionsHaveExplicitPolicyTests` ratchet + allow-list, org scope on requisitions/applications/offers/committees (lists, details 404, POSTs), competitions central-only.
+P6: prod-like compose mirrors decision 10, prod-like journey green + CI filter, `AcHcm25ProductionApprovalTests` (25a..h).

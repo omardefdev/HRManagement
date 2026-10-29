@@ -22,6 +22,7 @@ using Microsoft.Extensions.Options;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[RecruitmentOrgScope(RecruitmentScopeKind.Requisition)]
 public class RecruitmentRequisitionsController(
     HRCoreDbContext db,
     RecruitmentRequisitionService requisitionService,
@@ -114,6 +115,8 @@ public class RecruitmentRequisitionsController(
                 .ThenInclude(p => p.JobCatalogEntry)
             .Include(r => r.PublicJobPosting)
             .AsQueryable();
+        // PLAN-25 (D10): branch-scoped users list their units only.
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
 
         if (status is RequisitionStatus s)
             query = query.Where(r => r.Status == s);

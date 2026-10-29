@@ -24,6 +24,8 @@ namespace HR.Core.Web.Controllers;
 /// with <c>HrCoreWrite</c>, approve through the workflow (<c>RECRUITMENT-COMPETITION-APPROVAL</c>).
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+// PLAN-25 (D10): competitions are central-only (PLAN-32) — branch-scoped users are refused on every action.
+[RecruitmentOrgScope(RecruitmentScopeKind.CentralOnly)]
 public sealed class CompetitionsController(
     HRCoreDbContext db,
     CompetitionLifecycleService lifecycle,

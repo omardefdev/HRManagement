@@ -36,6 +36,7 @@ namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 
+[RecruitmentOrgScope(RecruitmentScopeKind.Offer)]
 public class OfferLettersController(
 
     HRCoreDbContext db,
@@ -68,6 +69,8 @@ public class OfferLettersController(
             .Include(o => o.FundedPosition)
 
             .AsQueryable();
+        // PLAN-25 (D10): branch-scoped users list their units only.
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
 
 
 
