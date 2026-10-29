@@ -1,6 +1,6 @@
 ﻿# Acceptance evidence summary (AC-01..AC-37)
 
-Generated: 2026-10-29 16:18:26 UTC
+Generated: 2026-10-29 17:12:17 UTC
 
 | AC | Status | Contract | Missing |
 |----|--------|----------|---------|

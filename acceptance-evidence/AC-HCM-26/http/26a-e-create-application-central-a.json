@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:15:55.0679233Z",
+  "capturedAtUtc": "2026-10-29T16:58:25.0425198Z",
   "body": {
     "fields": [
-      "ApplicantFullName=\u0645\u0631\u0634\u062D AC26 c8fd6afe68",
-      "RequisitionId=f4e49ae9-f586-4d7f-af4f-1a07ed09544d",
+      "ApplicantFullName=\u0645\u0631\u0634\u062D AC26 60fa324f5a",
+      "RequisitionId=f29b92a3-ff67-45c6-b802-885b6e469474",
       "Notes=AC-HCM-26"
     ],
     "postStatus": 302,

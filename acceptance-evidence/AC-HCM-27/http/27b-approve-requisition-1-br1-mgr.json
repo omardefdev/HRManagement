@@ -1,17 +1,17 @@
 {
   "step": "27b-approve-requisition-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/b738e978-6d66-42c9-8722-1fadeb3dad3a",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/4fc66a41-a4ff-4652-aa42-64cff6858d29",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:07:12.3553478Z",
+  "capturedAtUtc": "2026-10-29T17:05:29.2279417Z",
   "body": {
     "fields": [
-      "RequisitionId=b738e978-6d66-42c9-8722-1fadeb3dad3a",
+      "RequisitionId=4fc66a41-a4ff-4652-aa42-64cff6858d29",
       "Comments=AC-HCM-27 step 1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/b738e978-6d66-42c9-8722-1fadeb3dad3a",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/b738e978-6d66-42c9-8722-1fadeb3dad3a",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/4fc66a41-a4ff-4652-aa42-64cff6858d29",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/4fc66a41-a4ff-4652-aa42-64cff6858d29",
     "alerts": [
       "\u0647\u0630\u0647 \u0627\u0644\u062E\u0637\u0648\u0629 \u062A\u062A\u0637\u0644\u0628 \u062F\u0648\u0631 \u00ABhr-management-approver\u00BB."
     ]

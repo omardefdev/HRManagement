@@ -3,9 +3,9 @@
   "method": "GET",
   "url": "/ui/hr-core/RecruitmentReports/ExportExcel?From=2026-08-01\u0026To=2026-10-01",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:07:06.9578920Z",
+  "capturedAtUtc": "2026-10-29T17:05:20.9266685Z",
   "body": {
     "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "length": 21208
+    "length": 21602
   }
 }

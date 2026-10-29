@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAssessmentCriteria/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:18:04.9271917Z",
+  "capturedAtUtc": "2026-10-29T17:10:37.2414985Z",
   "body": {
     "fields": [
-      "RequisitionId=4cfb2cfb-a770-4c51-bd22-be3bca52a1a8",
+      "RequisitionId=10a269aa-ccd8-418b-b165-5c44629664a0",
       "Title=\u0645\u0639\u0627\u064A\u064A\u0631 \u0631\u062D\u0644\u0629 E2E",
       "Items.Index=r0",
       "Items[r0].Key=interview",
@@ -32,6 +32,6 @@
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/4cfb2cfb-a770-4c51-bd22-be3bca52a1a8"
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/10a269aa-ccd8-418b-b165-5c44629664a0"
   }
 }

@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/Finalize/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:15:00.1391221Z",
+  "capturedAtUtc": "2026-10-29T16:58:09.2512238Z",
   "body": {
     "fields": [],
     "postStatus": 302,

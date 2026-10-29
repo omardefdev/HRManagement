@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/a0000001-0000-4000-8000-000000000919",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:15:39.0742125Z",
+  "capturedAtUtc": "2026-10-29T16:54:16.7979088Z",
   "body": {
     "fields": [
       "OfferId=a0000001-0000-4000-8000-000000000919",

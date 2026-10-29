@@ -94,7 +94,7 @@
 
 - التحقق الحي على مكدس القبول (الملف المخبري) مع `ACCEPTANCE_REQUIRE_ALL=true` (PLAN-33، 2026-10-29): `acceptance-evidence/AC-HCM-21`، `AC-HCM-22`، `AC-WF-23` (صندوق العمل حسب دور الخطوة والنطاق والمراجع المستقل).
 - رحلة التوظيف الكاملة على ملف القبول: `acceptance-evidence/AC-HCM-33` (نجاح)؛ النسخة الشبيهة بالإنتاج `acceptance-evidence/AC-HCM-33/prodlike` تفشل في المرحلة 1 بسبب G-02.
-- نتائج «Pass» مسجّلة في `result.json` من تشغيل خططها: `AC-HCM-28` (الاستئناف والمراجع المستقل، 2026-10-22)، و`AC-HCM-30` (بوابة المرشح)، و`AC-HCM-31` (المصححون)، و`AC-HCM-32` (التقارير والتصدير) (2026-10-29).
+- نتائج «Pass» مسجّلة في `result.json` من إعادة التشغيل الحي في PLAN-33 P6 (2026-10-29): `AC-HCM-28` (الاستئناف والمراجع المستقل)، و`AC-HCM-30` (بوابة المرشح)، و`AC-HCM-31` (المصححون)، و`AC-HCM-32` (التقارير والتصدير).
 - اختبارات الوحدة: `src/Tests/HRManagement.UnitTests/GatewayPathAuthorizationMiddlewareTests.cs`، `Hcm032ExportTests.cs` (مطابقة قاعدة الأسماء للسياسة).
 
 ## أدوار تشغيلية مقترحة في Keycloak

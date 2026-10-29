@@ -1,19 +1,19 @@
 {
   "step": "26a-e-26a-publish-without-criteria-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/f4e49ae9-f586-4d7f-af4f-1a07ed09544d",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/f29b92a3-ff67-45c6-b802-885b6e469474",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:15:53.3409203Z",
+  "capturedAtUtc": "2026-10-29T16:58:23.2762365Z",
   "body": {
     "fields": [
       "applicationClosingDate=2026-11-08"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/f4e49ae9-f586-4d7f-af4f-1a07ed09544d",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/f29b92a3-ff67-45c6-b802-885b6e469474",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/f4e49ae9-f586-4d7f-af4f-1a07ed09544d",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/f29b92a3-ff67-45c6-b802-885b6e469474",
     "alerts": [
       "\u003Ci class=\u0022fas fa-exclamation-triangle ms-1\u0022\u003E",
       "\u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0645\u0639\u0627\u064A\u064A\u0631",

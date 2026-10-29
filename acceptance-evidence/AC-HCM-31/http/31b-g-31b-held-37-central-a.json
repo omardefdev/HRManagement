@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/MarkSessionHeld/a0000001-0000-4000-8000-000000000537",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:12:36.7743415Z",
+  "capturedAtUtc": "2026-10-29T16:55:29.5793117Z",
   "body": {
     "fields": [],
     "postStatus": 302,

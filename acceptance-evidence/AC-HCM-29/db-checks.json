@@ -1,11 +1,11 @@
 {
-  "requisition": "3c42b23c-d718-4410-beae-393effcd0f43",
-  "offer": "01500813-caea-4104-afc9-66a921fa4019",
-  "hash": "fc99dc08cffbe3eb6cc7b0af09dd80df882de590a2f1e70ef5107a854c4019b2",
-  "applicationId": "5d4cd942-1117-4706-bf57-8d92c0fad6d1",
-  "employeeId": "2c25a120-04eb-4753-b43e-bb5bc123732d",
-  "contract": "0d0c9754-3066-484c-bc43-f11554f42eae|AGENCY-A-ACC-LAW50-PERM|G5|400000.00|law50|Permanent|01500813-caea-4104-afc9-66a921fa4019|Pending",
-  "transaction": "990b010f-3828-47d5-a465-e4303d0385d7|5d4cd942-1117-4706-bf57-8d92c0fad6d1|3c42b23c-d718-4410-beae-393effcd0f43|01500813-caea-4104-afc9-66a921fa4019|2026-11-12",
+  "requisition": "7f07c908-655d-4108-9671-3dd8876e98c2",
+  "offer": "b9329ac1-bd11-4083-ad0c-739b91eea59c",
+  "hash": "a7fb82237849e3084d0cb2535fcd94278df9132ce83545c1faaa4ae78819e66c",
+  "applicationId": "310dc71c-3902-4b7e-ab14-1286d3f16b47",
+  "employeeId": "00b3fb7c-697c-4e97-9681-f362e38d8875",
+  "contract": "f6c77f1c-a715-4240-a167-52cf0c73665b|AGENCY-A-ACC-LAW50-PERM|G5|400000.00|law50|Permanent|b9329ac1-bd11-4083-ad0c-739b91eea59c|Pending",
+  "transaction": "0dff6f2f-3da1-4f2d-a284-0edf464fb356|310dc71c-3902-4b7e-ab14-1286d3f16b47|7f07c908-655d-4108-9671-3dd8876e98c2|b9329ac1-bd11-4083-ad0c-739b91eea59c|2026-11-12",
   "profile": "400000.00|G5|true",
   "decision": "-2026-00001|\u0642\u0631\u0627\u0631 \u062A\u0639\u064A\u064A\u0646: \u0645\u0631\u0634\u062D \u0627\u0644\u062E\u0637\u062929 \u2014 \u062A\u062C\u0631\u064A\u0628\u064A \u2014 \u062F\u0627\u0626\u0645 \u0648\u0641\u0642 \u0627\u0644\u0642\u0627\u0646\u0648\u0646 50 \u0627\u0644\u062F\u0631\u062C\u0629 G5|1"
 }

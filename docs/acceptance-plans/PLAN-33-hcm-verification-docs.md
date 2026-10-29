@@ -1,7 +1,7 @@
 # PLAN-33 — التحقق الحي لمسار التوظيف وتصحيح التوثيق (PLAN-HCM-K)
 
 **Scope:** HCM-001 + QA-004 + REL-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-23, G-24  
-**Status:** Proposed  
+**Status:** Implemented (CI not executed) — 2026-10-29  
 **Priority:** P0 (البنود 1–2 مع PLAN-25)، ثم مستمر: يُغلق جزء منه مع كل خطة  
 **Depends on:** PLAN-26..32 منفذة؛ PLAN-25 مؤجلة (G-02 مفتوحة)
 
@@ -150,3 +150,13 @@ dotnet test src/Tests/HRManagement.E2E --filter RecruitmentToHireJourney
 ## Effort estimate
 
 6–8 أيام عمل موزعة: الإطار والبذور (2)، إكمال AC-21/22 (1.5)، E2E (2)، الإزالة والتوثيق (1.5). سيناريوهات PLAN-25..32 محسوبة داخل خططها.
+
+## ملاحظات التنفيذ والانحرافات (2026-10-29)
+
+التقرير النهائي: [`reports/plan33-final-report.md`](../../reports/plan33-final-report.md)؛ سجل التقدم والقرارات: [`reports/plan33-progress.md`](../../reports/plan33-progress.md).
+
+- **الإطار:** `AcceptanceGate` و`[RequiredAcceptance]` و`ACCEPTANCE_REQUIRE_ALL` واختبار المعمارية `AcceptanceSkipPatternArchitectureTests`؛ أُزيلت كل أنماط النجاح الصامت ومرّت كل تخطيات البيانات الخام (34) عبر البوابة، وصار `result.json` يحفظ نتيجة كل سيناريو وأسوأها للمجلد. كشفت المراجعة المستقلة (P8) أن صفة «مطلوب» كانت تضيع بعد `await` داخل الدوال المساعدة، فصُحّح ذلك (`AsyncLocal`) وأُثبت حيّاً.
+- **البذور:** `AcceptanceRecruitmentStatesPatch` (بدل `AcceptanceDataSeeder.SeedRecruitmentStatesAsync`: البذرة الأساسية لا تُعاد على بيئة قائمة، فاتُّبع نمط الرقع) و`testdata/acceptance/recruitment-states.json`. الحالات للقراءة والرفض فقط، والسيناريوهات المغيِّرة تنشئ طلباتها على مجموعة مناصب `AC33-POOL`.
+- **النتائج الحية** (بيئة نظيفة، `ACCEPTANCE_REQUIRE_ALL=true`): AC-HCM-21a–d و22a–e وAC-WF-23a–f و26..32 ناجحة عدا AC-HCM-26h **محجوب** (لا شخصية مركزية ثانية بدور `hr-core`)؛ رحلة E2E ناجحة على ملف القبول؛ النسخة الشبيهة بالإنتاج تتوقف عند أول اعتماد (G-02).
+- **انحرافات:** رحلة E2E عبر HTTP من البوابة لا عبر متصفح Playwright (المتصفحات غير مثبّتة ويتطلب تثبيتها pwsh 7 وتنزيلاً)؛ لم يُعَد توليد `DATABASE_SCHEMA_INVENTORY` بالمولّد لغياب Python (أعيد تنفيذ فحوصه يدوياً)؛ لم تُشغَّل CI البعيدة ولم يُدفع شيء؛ تحقُّق YAML بنيوي فقط.
+- **إصلاح البيئة:** File.Storage بمزوّد Local في بيئة القبول (صورة MinIO لم تعد متاحة)، وترميز UTF-8 دون BOM لمزامنة Keycloak في `acceptance-up.ps1` على PowerShell 5.1.

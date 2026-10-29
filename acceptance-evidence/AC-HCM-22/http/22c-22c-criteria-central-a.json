@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAssessmentCriteria/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:15:28.2264886Z",
+  "capturedAtUtc": "2026-10-29T16:54:04.5051835Z",
   "body": {
     "fields": [
-      "RequisitionId=b37ac54c-15dc-4d4a-a104-7497d8f6c726",
+      "RequisitionId=540cd953-ab13-4dc0-986b-b5629faf1037",
       "Title=PLAN-33",
       "Items.Index=r0",
       "Items[r0].Key=interview",
@@ -31,7 +31,7 @@
       "Items[r2].IsMandatory=true"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/b37ac54c-15dc-4d4a-a104-7497d8f6c726#assessment-criteria",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/b37ac54c-15dc-4d4a-a104-7497d8f6c726"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/540cd953-ab13-4dc0-986b-b5629faf1037#assessment-criteria",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/540cd953-ab13-4dc0-986b-b5629faf1037"
   }
 }

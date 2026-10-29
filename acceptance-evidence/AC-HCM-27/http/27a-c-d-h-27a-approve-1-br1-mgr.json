@@ -1,17 +1,17 @@
 {
   "step": "27a-c-d-h-27a-approve-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/ae7fe223-d971-4668-a183-34b65289fb5b",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/036afefc-56f4-432b-ae0d-bea9380b4a8b",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:10:06.8202484Z",
+  "capturedAtUtc": "2026-10-29T17:08:17.1783118Z",
   "body": {
     "fields": [
-      "OfferId=ae7fe223-d971-4668-a183-34b65289fb5b",
+      "OfferId=036afefc-56f4-432b-ae0d-bea9380b4a8b",
       "Comments=AC-HCM-27 27a-approve-1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/ae7fe223-d971-4668-a183-34b65289fb5b",
-    "final": "/ui/hr-core/OfferLetters/Details/ae7fe223-d971-4668-a183-34b65289fb5b",
+    "redirect": "/ui/hr-core/OfferLetters/Details/036afefc-56f4-432b-ae0d-bea9380b4a8b",
+    "final": "/ui/hr-core/OfferLetters/Details/036afefc-56f4-432b-ae0d-bea9380b4a8b",
     "alerts": [
       "\u0647\u0630\u0647 \u0627\u0644\u062E\u0637\u0648\u0629 \u062A\u062A\u0637\u0644\u0628 \u062F\u0648\u0631 \u00ABhr-management-approver\u00BB."
     ]

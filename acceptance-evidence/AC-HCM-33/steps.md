@@ -33,17 +33,17 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 
 ## Executed
 
-- 16:18:03 1 requisition
-  - after submit: PendingApproval|fb6c0f55-73ab-4ba6-acaf-94190e8f6bc4
-- 16:18:05 2 approval and publication
-- 16:18:06 3 public application
-- 16:18:08 4 selection
+- 17:10:36 1 requisition
+  - after submit: PendingApproval|d5aa39a9-5d34-4aba-b584-d979c4091dc5
+- 17:10:37 2 approval and publication
+- 17:10:38 3 public application
+- 17:10:40 4 selection
   - test-only SQL: interview slot moved one hour into the past (as AC-HCM-26)
-- 16:18:12 5 offer
-- 16:18:15 6 candidate acceptance
-- 16:18:16 7 hire
-- 16:18:17 8 contracts and correlation
-- 16:18:19 done
+- 17:10:44 5 offer
+- 17:10:46 6 candidate acceptance
+- 17:10:47 7 hire
+- 17:10:47 8 contracts and correlation
+- 17:10:49 done
 
 
 ## 33d
@@ -51,5 +51,3 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 AC-HCM-33d — evidence folders for AC-HCM-21, 22, 26–33 and AC-WF-23 hold the eight items.
 
 Checked by scripts/hcm033-validate.ps1 (metadata, steps, before, after, audit, db-checks, timing, result + http/*.json) after the P6 run: PASS. AC-HCM-25 does not exist (PLAN-25 deferred).
-
-

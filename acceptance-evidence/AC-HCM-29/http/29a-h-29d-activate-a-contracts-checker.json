@@ -1,15 +1,15 @@
 {
   "step": "29a-h-29d-activate-a-contracts-checker",
   "method": "POST",
-  "url": "/ui/hr-contracts/Contracts/Activate/0d0c9754-3066-484c-bc43-f11554f42eae",
+  "url": "/ui/hr-contracts/Contracts/Activate/f6c77f1c-a715-4240-a167-52cf0c73665b",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:03:13.6726798Z",
+  "capturedAtUtc": "2026-10-29T17:10:31.3500439Z",
   "body": {
     "fields": [
-      "id=0d0c9754-3066-484c-bc43-f11554f42eae"
+      "id=f6c77f1c-a715-4240-a167-52cf0c73665b"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-contracts/Contracts/Details/0d0c9754-3066-484c-bc43-f11554f42eae",
-    "final": "/ui/hr-contracts/Contracts/Details/0d0c9754-3066-484c-bc43-f11554f42eae"
+    "redirect": "/ui/hr-contracts/Contracts/Details/f6c77f1c-a715-4240-a167-52cf0c73665b",
+    "final": "/ui/hr-contracts/Contracts/Details/f6c77f1c-a715-4240-a167-52cf0c73665b"
   }
 }

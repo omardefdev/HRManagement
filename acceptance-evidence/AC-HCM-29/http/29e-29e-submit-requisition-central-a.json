@@ -1,13 +1,13 @@
 {
   "step": "29e-29e-submit-requisition-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/3fc5a13c-8671-46a0-98b0-fa7d5ac06c78",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/6dd30a0e-076c-4cdf-8226-a0fe5e2e621e",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:02:37.6018231Z",
+  "capturedAtUtc": "2026-10-29T17:09:58.7827968Z",
   "body": {
     "fields": [],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/3fc5a13c-8671-46a0-98b0-fa7d5ac06c78",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/3fc5a13c-8671-46a0-98b0-fa7d5ac06c78"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/6dd30a0e-076c-4cdf-8226-a0fe5e2e621e",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/6dd30a0e-076c-4cdf-8226-a0fe5e2e621e"
   }
 }

@@ -16,8 +16,8 @@
 | P4 Requisition-to-hire E2E + prod-like | done | `d91b7b8` |
 | P5 Remove phantom evidence | done | `69ad2e3` |
 | P6 Live acceptance run | done (1 scenario Blocked: AC-HCM-26h) | `4467a4e` |
-| P7 Docs corrections and CI | done | (P7 commit) |
-| P8 Validate script, review, final report | pending | — |
+| P7 Docs corrections and CI | done | `c0d7e91` |
+| P8 Validate script, review, final report | done | `dec3133` + (P8 commit) |
 
 ## Decisions
 
@@ -58,7 +58,7 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-P8: independent review workflow (finder + refuter) over git diff main...HEAD, fix survivors, final report, PLAN-33 doc status, run scripts/hcm033-validate.ps1 with tests, commit.
+None — PLAN-33 complete (local commits only, not pushed, CI not executed). See reports/plan33-final-report.md.
 
 ## P5 notes
 
@@ -130,3 +130,15 @@ P8: independent review workflow (finder + refuter) over git diff main...HEAD, fi
   `completion-backlog/09` HCM-001 card, `THESIS_CAPABILITY_TRUTH_REGISTER_CURRENT.md`, `HCM_001_GAP_STUDY.md` (status
   per G item, §7 checklist: 1 not met, 2 not met, 3 partly met (26h Blocked), 4 met).
 - CI files were changed in P1/P4 (structural check in `hcm033-validate.ps1`; CI not executed).
+
+## P8 notes
+
+- `scripts/hcm033-validate.ps1` (UTF-8 with BOM for PowerShell 5.1): silent patterns, eight items per recruitment folder,
+  docs (no phantom artifacts, no «مختصر → تعيين»), YAML structural check, Hcm001/Hcm033/guard/gate tests. PASS.
+- Independent review workflow: 4 hunters (silent passes, evidence, docs, required scenarios), 2 refuters per finding;
+  20 findings, 18 survived. Fixed: required-ness lost after an await in helpers (AsyncLocal capture + regression tests +
+  live proof), stale Pass after a throw (Fail until WriteResult), journey Blocked on skip, AC-WF-23c precondition +
+  positive control, 8 doc defects, stale HTTP captures pruned, prod-like evidence re-run on committed code, 33b claim
+  re-proven at helper level. Accepted as limitations (final report §10): shared before/after/audit files per folder.
+- Final runs on committed code: see reports/plan33-final-report.md §4.1 (45/46 + journey Pass; prod-like stops at G-02).
+- `acceptance-up.ps1` PS 5.1 fix verified end to end by the second reset.

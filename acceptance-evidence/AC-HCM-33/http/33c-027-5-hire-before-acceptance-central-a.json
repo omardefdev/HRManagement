@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:18:15.4646048Z",
+  "capturedAtUtc": "2026-10-29T17:10:46.0984267Z",
   "body": {
     "fields": [
-      "ApplicationId=98aaf092-d7a2-4145-b47a-2d2a034ce2b0",
+      "ApplicationId=50ef0ee3-6966-414b-a5af-591d80b1c02f",
       "Mode=CreateNew",
       "NationalId=***",
       "FirstName=\u0645\u0631\u0634\u062D",
@@ -19,6 +19,6 @@
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentApplications/Details/98aaf092-d7a2-4145-b47a-2d2a034ce2b0"
+    "final": "/ui/hr-core/RecruitmentApplications/Details/50ef0ee3-6966-414b-a5af-591d80b1c02f"
   }
 }

@@ -1,16 +1,16 @@
 {
   "step": "22c-22c-step-3-a-management-approver",
   "method": "POST",
-  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/95f36eb9-15d4-401c-ad14-877cbc2a49d4",
+  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/5cfaa263-810d-46b0-9962-6b793fc0a1a8",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:15:30.9416804Z",
+  "capturedAtUtc": "2026-10-29T16:54:07.5879273Z",
   "body": {
     "fields": [
-      "SessionId=95f36eb9-15d4-401c-ad14-877cbc2a49d4",
+      "SessionId=5cfaa263-810d-46b0-9962-6b793fc0a1a8",
       "Comments=PLAN-33 22c-step-3"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/95f36eb9-15d4-401c-ad14-877cbc2a49d4",
-    "final": "/ui/hr-core/SelectionCommittees/Details/95f36eb9-15d4-401c-ad14-877cbc2a49d4"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/5cfaa263-810d-46b0-9962-6b793fc0a1a8",
+    "final": "/ui/hr-core/SelectionCommittees/Details/5cfaa263-810d-46b0-9962-6b793fc0a1a8"
   }
 }

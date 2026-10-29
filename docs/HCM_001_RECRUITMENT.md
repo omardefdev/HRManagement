@@ -130,7 +130,7 @@ in remote CI (branch not pushed). Plan documents: `docs/acceptance-plans/PLAN-2x
 | PLAN-30 | Candidate experience, unified channel, notifications (AC-HCM-30) | Implemented — verified | `acceptance-evidence/AC-HCM-30/`; `reports/plan30-final-report.md` | Pass ×8 — PLAN-33 P6, 2026-10-29 (30c document scan now runs with File.Storage) |
 | PLAN-31 | Multi-vacancy competitions and exams (AC-HCM-31) | Implemented — verified | `acceptance-evidence/AC-HCM-31/`; `reports/plan31-final-report.md` | Pass ×2 — PLAN-33 P6 after `acceptance-reset.ps1`, 2026-10-29 |
 | PLAN-32 | Recruitment reports and KPIs (AC-HCM-32) | Implemented — verified | `acceptance-evidence/AC-HCM-32/`; `reports/plan32-final-report.md` | Pass ×4 — PLAN-33 P6, 2026-10-29 |
-| PLAN-33 | Live verification of the recruitment path and documentation (AC-HCM-21/22, AC-WF-23, AC-HCM-33) | Implemented — verified on the acceptance (lab) profile (CI not executed); the prod-like journey fails at the first approval (G-02, PLAN-25) | `acceptance-evidence/AC-HCM-33/`, `acceptance-evidence/AC-HCM-33/prodlike/`; `reports/plan33-final-report.md` | Journey Pass (P6 clean stack, 2026-10-29); 33a/33b/33d Pass; prod-like Fail at stage «1 requisition» (2026-10-29) |
+| PLAN-33 | Live verification of the recruitment path and documentation (AC-HCM-21/22, AC-WF-23, AC-HCM-33) | Implemented — verified on the acceptance (lab) profile (CI not executed); the prod-like journey fails at the first approval (G-02, PLAN-25) | `acceptance-evidence/AC-HCM-33/`, `acceptance-evidence/AC-HCM-33/prodlike/`; `reports/plan33-final-report.md` | Journey Pass (P6 clean stack, 2026-10-29); 33a/33b/33d Pass (33d checked by `scripts/hcm033-validate.ps1`); prod-like Fail at stage «1 requisition» (2026-10-29) |
 
 PLAN-33 verification assets: `src/Tests/HRManagement.AcceptanceTests/AcceptanceGate.cs` (a missing precondition is
 recorded as `Blocked` and skipped, or fails `[RequiredAcceptance]` scenarios under `ACCEPTANCE_REQUIRE_ALL=true`),
@@ -153,8 +153,9 @@ Details: [HCM_001_GAP_STUDY](HCM_001_GAP_STUDY.md) (section 4.1).
 
 ### Earlier plans (HCM-01 – HCM-07)
 
-Scope per plan is in the [Plan map](#plan-map-hcm-001); none of them has an evidence folder under
-`acceptance-evidence/` with a `result.json` (`acceptance-evidence/HCM-01/` holds only `steps.md`).
+Scope per plan is in the [Plan map](#plan-map-hcm-001). Only the Plan-6 candidate DSAR slice has an evidence folder with
+a `result.json`: `acceptance-evidence/HCM-06-DSAR/` (`AcHcm06CandidateDsarTests`, Pass — PLAN-33 P6, 2026-10-29). The
+other earlier plans have no `result.json` under `acceptance-evidence/` (`acceptance-evidence/HCM-01/` holds only `steps.md`).
 
 Plan-7 delivers internal vacancy promotion: HR manages internal postings via `TalentMarketplaceController`; employees self-apply via `EssTalentController` (`ModuleEss`); promoted applications enter the unified selection pipeline.
 

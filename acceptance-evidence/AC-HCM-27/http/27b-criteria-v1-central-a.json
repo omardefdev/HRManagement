@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAssessmentCriteria/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:07:12.7381351Z",
+  "capturedAtUtc": "2026-10-29T17:05:29.6098346Z",
   "body": {
     "fields": [
-      "RequisitionId=b738e978-6d66-42c9-8722-1fadeb3dad3a",
+      "RequisitionId=4fc66a41-a4ff-4652-aa42-64cff6858d29",
       "Title=AC-HCM-27",
       "Items.Index=r0",
       "Items[r0].Key=interview",
@@ -31,8 +31,8 @@
       "Items[r2].IsMandatory=true"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/b738e978-6d66-42c9-8722-1fadeb3dad3a#assessment-criteria",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/b738e978-6d66-42c9-8722-1fadeb3dad3a",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/4fc66a41-a4ff-4652-aa42-64cff6858d29#assessment-criteria",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/4fc66a41-a4ff-4652-aa42-64cff6858d29",
     "alerts": [
       "\u003Ci class=\u0022fas fa-ban ms-1\u0022\u003E"
     ]

@@ -1,15 +1,15 @@
 {
   "step": "29a-h-29a-publish-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/3c42b23c-d718-4410-beae-393effcd0f43",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/7f07c908-655d-4108-9671-3dd8876e98c2",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:03:06.3972363Z",
+  "capturedAtUtc": "2026-10-29T17:10:24.2943109Z",
   "body": {
     "fields": [
       "applicationClosingDate=2026-11-08"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/3c42b23c-d718-4410-beae-393effcd0f43",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/3c42b23c-d718-4410-beae-393effcd0f43"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/7f07c908-655d-4108-9671-3dd8876e98c2",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/7f07c908-655d-4108-9671-3dd8876e98c2"
   }
 }

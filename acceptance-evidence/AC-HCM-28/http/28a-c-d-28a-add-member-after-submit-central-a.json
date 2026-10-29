@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/AddMember",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:12:05.4477426Z",
+  "capturedAtUtc": "2026-10-29T16:54:58.6629891Z",
   "body": {
     "fields": [
       "sessionId=a0000001-0000-4000-8000-000000000511",

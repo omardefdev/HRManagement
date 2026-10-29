@@ -518,7 +518,10 @@ dotnet test src/Tests/HRManagement.IntegrationTests --filter "FullyQualifiedName
 
 # رحلة طلب الشاغر حتى التعيين عبر البوابة (تتطلب بيئة القبول scripts/acceptance-up.ps1 ومتغيرات
 # RUN_PLAYWRIGHT_E2E وGATEWAY_BASE_URL وKEYCLOAK_BASE_URL وKEYCLOAK_HR_GATEWAY_CLIENT_SECRET — انظر رأس الملف)
-dotnet test src/Tests/HRManagement.E2E --filter "Category=Journey"
+dotnet test src/Tests/HRManagement.E2E --filter "Category=Journey&FullyQualifiedName~RecruitmentToHireJourneyE2ETests"
+
+# النسخة الشبيهة بالإنتاج (docker-compose.acceptance-prodlike.yml؛ تفشل حالياً في المرحلة الأولى بسبب G-02)
+dotnet test src/Tests/HRManagement.E2E --filter "Category=JourneyProdLike"
 ```
 
 ---

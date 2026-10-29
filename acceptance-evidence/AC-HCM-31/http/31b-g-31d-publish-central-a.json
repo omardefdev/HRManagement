@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/PublishResults/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:12:46.6308826Z",
+  "capturedAtUtc": "2026-10-29T16:55:39.4115587Z",
   "body": {
     "fields": [
-      "versionId=f55c80bb-dc76-4f8b-9aaa-8f9ada370612"
+      "versionId=e84dac8c-47fb-4f07-a233-7821f01a84b5"
     ],
     "postStatus": 302,
     "redirect": "/ui/hr-core/Competitions/Details/a0000001-0000-4000-8000-000000000526",

@@ -1,12 +1,12 @@
 {
   "step": "31b-g-31b-card-pdf-central-a",
   "method": "GET",
-  "url": "/ui/hr-core/Competitions/AdmissionCard/27a6fa66-21fd-4f2e-8d4b-7d887192ec7c",
+  "url": "/ui/hr-core/Competitions/AdmissionCard/70795cf8-6724-4d57-bd3b-277e017cc826",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:12:36.2993538Z",
+  "capturedAtUtc": "2026-10-29T16:55:29.1194973Z",
   "body": {
     "contentType": "application/pdf",
-    "length": 41778,
+    "length": 42112,
     "head": "%PDF"
   }
 }

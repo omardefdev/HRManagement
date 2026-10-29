@@ -1,9 +1,9 @@
 {
   "step": "30c-30c-cv-download-central-a",
   "method": "GET",
-  "url": "/ui/hr-core/RecruitmentApplications/CandidateDocument/b9e8e92f-ebb5-42a8-b81e-832c14c06def",
+  "url": "/ui/hr-core/RecruitmentApplications/CandidateDocument/3e80fa24-15b5-40eb-82a4-2e0d7b5980f5",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:03:30.2969465Z",
+  "capturedAtUtc": "2026-10-29T17:00:22.1169866Z",
   "body": {
     "contentType": "application/pdf",
     "length": 45,

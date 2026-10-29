@@ -3,9 +3,9 @@
   "method": "AMQP",
   "url": "ICandidateAccepted",
   "statusCode": 0,
-  "capturedAtUtc": "2026-10-29T16:02:56.0030395Z",
+  "capturedAtUtc": "2026-10-29T17:10:10.6925745Z",
   "body": {
-    "employeeId": "44ebe524-dacd-4401-b335-a4ec1469fccc",
+    "employeeId": "92954084-f1f9-4b8e-890f-6b95e5f1697f",
     "internalMobility": true
   }
 }
