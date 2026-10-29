@@ -1,5 +1,53 @@
 @model IReadOnlyList<HR.Core.Domain.Entities.InternalVacancy>
-@{ ViewData["Title"] = "سوق المواهب الداخلي"; }
+@{
+    ViewData["Title"] = "سوق المواهب الداخلي";
+    var competitions = ViewBag.Competitions as IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.Competitions.PublicCompetitionView> ?? [];
+}
+@if (competitions.Count > 0)
+{
+    @* HCM-031 (PLAN-31): competitions open to internal candidates — one application per competition with ordered line preferences. *@
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title mb-0">مسابقات التوظيف المفتوحة</h3></div>
+        <div class="card-body">
+            @foreach (var view in competitions)
+            {
+                var c = view.Competition;
+                <div class="border rounded p-3 mb-2">
+                    <h5 class="mb-1">@c.Number — @c.Title</h5>
+                    <div class="text-muted small mb-2">يُغلق في @c.ApplicationClosingDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) • حتى @c.MaxLinesPerCandidate أسطر بالتفضيل</div>
+                    <ul class="small mb-2">
+                        @foreach (var line in view.Lines)
+                        {
+                            <li>السطر @line.LineNo: @line.Title — الدرجة @line.GradeCode — @line.Vacancies شواغر</li>
+                        }
+                    </ul>
+                    <form asp-action="ApplyCompetition" method="post" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="competitionId" value="@c.Id" />
+                        @for (var i = 0; i < Math.Max(1, c.MaxLinesPerCandidate); i++)
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label small" for="pref-@c.Id-@i">التفضيل @(i + 1)@(i == 0 ? " (مطلوب)" : "")</label>
+                                <select class="form-select form-select-sm" id="pref-@c.Id-@i" name="preferences[@i]" required="@(i == 0 ? "required" : null)">
+                                    <option value="">— اختر —</option>
+                                    @foreach (var line in view.Lines)
+                                    {
+                                        <option value="@line.Id">@line.LineNo — @line.Title</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        <div class="col-md-4">
+                            <label class="form-label small" for="motivation-@c.Id">مسوّغات الترشّح (اختياري)</label>
+                            <input class="form-control form-control-sm" id="motivation-@c.Id" name="motivation" maxlength="2000" />
+                        </div>
+                        <div class="col-md-2"><button type="submit" class="btn btn-primary btn-sm w-100">ترشّح للمسابقة</button></div>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+}
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">الشواغر الداخلية المتاحة</h3>

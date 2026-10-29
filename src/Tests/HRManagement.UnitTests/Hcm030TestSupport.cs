@@ -147,7 +147,8 @@ internal static class Hcm030TestSupport
             new UnifiedIntakeService(db, recruitmentOptions),
             new CandidatePublicStatusService(db, recruitmentOptions),
             CreateCandidateDocumentService(db, documentClient),
-            recruitmentOptions), new ClaimsPrincipal(new ClaimsIdentity()));
+            recruitmentOptions,
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))), new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
     /// <summary>HCM-030 (E3): the portal's outbox has no ambient tenant (as in production).</summary>
@@ -162,7 +163,8 @@ internal static class Hcm030TestSupport
             .Build();
         var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim("employee_id", employeeId.ToString())], "test"));
         return WithContext(new EssTalentController(
-            db, new RecruitmentApplicationIntakeService(db), config, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), CreatePublicStatus(db)), user);
+            db, new RecruitmentApplicationIntakeService(db), config, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), CreatePublicStatus(db),
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))), user);
     }
 
     public static PublicJobPostingsController CreatePublicJobPostingsController(HRCoreDbContext db) =>

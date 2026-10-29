@@ -25,6 +25,7 @@ namespace HR.Core.Web.Controllers;
 public sealed class CompetitionsController(
     HRCoreDbContext db,
     CompetitionLifecycleService lifecycle,
+    CompetitionIntakeService intake,
     IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IAuthorizationService authorization,
@@ -128,7 +129,7 @@ public sealed class CompetitionsController(
         return View(vm);
     }
 
-    public async Task<IActionResult> Details(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Details(Guid id, int page = 1, RecruitmentApplicationStatus? applicantStatus = null, CancellationToken ct = default)
     {
         var competition = await db.RecruitmentCompetitions.AsNoTracking()
             .Include(c => c.Lines).ThenInclude(l => l.JobCatalogEntry)
@@ -182,8 +183,81 @@ public sealed class CompetitionsController(
             Workflow = workflow,
             CanWrite = await CanAsync(HrManagementPolicies.HrCoreWrite),
             CanApprove = await CanAsync(HrManagementPolicies.HrCoreApprove),
-            ApplicationCount = await db.RecruitmentApplications.CountAsync(a => a.CompetitionId == id, ct)
+            ApplicationCount = await db.RecruitmentApplications.CountAsync(a => a.CompetitionId == id, ct),
+            Applicants = await LoadApplicantsAsync(id, page, applicantStatus, ct),
+            BulkResults = ReadBulkResults()
         });
+    }
+
+    /// <summary>HCM-031 (P2): bulk screening on «المتقدمون» (UnderReview / Shortlisted = admitted to the exam / Rejected).</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> ScreenApplicants(
+        Guid id,
+        List<Guid>? applicationIds,
+        RecruitmentApplicationStatus target,
+        bool conflictOfInterestDeclared,
+        string? eligibilityOverrideReason,
+        string? rejectionNote,
+        CancellationToken ct)
+    {
+        if (applicationIds is not { Count: > 0 })
+        {
+            TempData["Error"] = "اختر متقدماً واحداً على الأقل.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        var results = await intake.BulkTransitionAsync(
+            id, applicationIds, target, conflictOfInterestDeclared, eligibilityOverrideReason, rejectionNote, ParseUserId(User), ct);
+        var ok = results.Count(r => r.Success);
+        TempData[ok == results.Count ? "Success" : "Error"] = $"نُفّذ الإجراء على {ok} من {results.Count} طلب.";
+        TempData["BulkResults"] = System.Text.Json.JsonSerializer.Serialize(results.Where(r => !r.Success).Take(100).ToList());
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private IReadOnlyList<CompetitionBulkItemResult> ReadBulkResults() =>
+        TempData["BulkResults"] is string json
+            ? System.Text.Json.JsonSerializer.Deserialize<List<CompetitionBulkItemResult>>(json) ?? []
+            : [];
+
+    private async Task<CompetitionApplicantsViewModel> LoadApplicantsAsync(
+        Guid competitionId, int page, RecruitmentApplicationStatus? status, CancellationToken ct)
+    {
+        var query = db.RecruitmentApplications.AsNoTracking().Where(a => a.CompetitionId == competitionId);
+        if (status is not null)
+            query = query.Where(a => a.Status == status);
+        var total = await query.CountAsync(ct);
+        page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / (double)CompetitionsPaging.PageSize)));
+        var rows = await query
+            .OrderBy(a => a.AppliedAt).ThenBy(a => a.Id)
+            .Skip((page - 1) * CompetitionsPaging.PageSize)
+            .Take(CompetitionsPaging.PageSize)
+            .Select(a => new { a.Id, a.ApplicantFullName, a.IntakeChannel, a.Status, a.AppliedAt, a.EligibilityFlags })
+            .ToListAsync(ct);
+        var ids = rows.Select(r => r.Id).ToList();
+        var preferences = (await db.CompetitionPreferences.AsNoTracking()
+                .Where(p => ids.Contains(p.RecruitmentApplicationId))
+                .OrderBy(p => p.Order)
+                .Select(p => new { p.RecruitmentApplicationId, p.Order, p.CompetitionLine!.LineNo, p.CompetitionLine.Title, p.EligibilityFlags })
+                .ToListAsync(ct))
+            .ToLookup(p => p.RecruitmentApplicationId);
+        return new CompetitionApplicantsViewModel
+        {
+            Total = total,
+            Page = page,
+            Status = status,
+            Rows = rows.Select(r => new CompetitionApplicantRow(
+                r.Id,
+                r.ApplicantFullName,
+                r.IntakeChannel,
+                r.Status,
+                r.AppliedAt,
+                preferences[r.Id].Select(p => $"{p.Order}. السطر {p.LineNo} — {p.Title}"
+                    + (p.EligibilityFlags is null ? "" : $" ({string.Join("، ", RecruitmentEligibilityRules.Parse(p.EligibilityFlags).Select(RecruitmentEligibilityRules.LabelAr))})"))
+                    .ToList(),
+                RecruitmentEligibilityRules.Parse(r.EligibilityFlags).Select(RecruitmentEligibilityRules.LabelAr).ToList()))
+                .ToList()
+        };
     }
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]

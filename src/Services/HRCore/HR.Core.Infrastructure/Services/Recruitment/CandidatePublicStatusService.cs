@@ -47,6 +47,9 @@ public sealed class CandidatePublicStatusService(HRCoreDbContext db, IOptions<Re
                 .ToListAsync(ct))
             .ToLookup(e => e.RecruitmentApplicationId, e => new CandidateEventInput(e.EventType, e.FromStatus, e.ToStatus, e.OccurredAt));
 
+        var competitionInputs = await LoadCompetitionInputsAsync(
+            applications.Where(a => a.CompetitionId is not null).Select(a => a.Id).ToList(), forPublicPortal, ct);
+
         var settings = options.Value;
         var now = DateTime.UtcNow;
         return applications.ToDictionary(a => a.Id, a =>
@@ -66,9 +69,22 @@ public sealed class CandidatePublicStatusService(HRCoreDbContext db, IOptions<Re
                 AppealDeadlineUtc = appealDeadline,
                 Events = events[a.Id].ToList(),
                 NowUtc = now,
-                DisplayZone = TimeZoneInfo.Local
+                DisplayZone = TimeZoneInfo.Local,
+                Competition = competitionInputs.GetValueOrDefault(a.Id)
             });
         });
+    }
+
+    /// <summary>HCM-031 (PLAN-31): the competition state of competition applications (exam, results, objection, allocation).</summary>
+    private Task<Dictionary<Guid, CandidateCompetitionInput>> LoadCompetitionInputsAsync(
+        IReadOnlyList<Guid> competitionApplicationIds,
+        bool forPublicPortal,
+        CancellationToken ct)
+    {
+        // PLAN-31 P2: intake only — the exam (P3), results/objection (P4) and allocation (P5) fields are filled in later phases.
+        _ = forPublicPortal;
+        _ = ct;
+        return Task.FromResult(competitionApplicationIds.ToDictionary(id => id, _ => new CandidateCompetitionInput()));
     }
 
     private static IQueryable<T> Scoped<T>(DbSet<T> set, bool forPublicPortal) where T : class =>

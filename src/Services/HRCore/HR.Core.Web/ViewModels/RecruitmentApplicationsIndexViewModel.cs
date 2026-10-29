@@ -22,6 +22,8 @@ public class RecruitmentApplicationsFilter
     public string? Status { get; set; }
     public Guid? RequisitionId { get; set; }
     public bool LegacyOnly { get; set; }
+    /// <summary>HCM-031 (PLAN-31): only the applications of one competition.</summary>
+    public Guid? CompetitionId { get; set; }
     public bool? HasOffer { get; set; }
     /// <summary>HCM-030 (D4): only applications with eligibility flags.</summary>
     public bool WithEligibilityFlags { get; set; }

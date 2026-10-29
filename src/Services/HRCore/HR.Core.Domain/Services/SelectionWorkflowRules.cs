@@ -74,7 +74,8 @@ public static class SelectionWorkflowRules
             if (legacyHireWithoutOffer
                 && application.Status == RecruitmentApplicationStatus.Shortlisted
                 && to == RecruitmentApplicationStatus.Hired
-                && application.RequisitionId is null)
+                && application.RequisitionId is null
+                && application.CompetitionId is null)
                 return true;
 
             return false;
@@ -133,7 +134,8 @@ public static class SelectionWorkflowRules
 
         if (legacyHireWithoutOffer
             && application.Status == RecruitmentApplicationStatus.Shortlisted
-            && application.RequisitionId is null)
+            && application.RequisitionId is null
+            && application.CompetitionId is null)
             list.Add(RecruitmentApplicationStatus.Hired);
 
         return list;

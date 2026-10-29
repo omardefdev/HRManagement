@@ -91,7 +91,8 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
                 citizenRecords.NotificationLog,
                 citizenRecords.Offers,
                 citizenRecords.OtpChallengeCount,
-                citizenRecords.OtpFailedAttemptCount
+                citizenRecords.OtpFailedAttemptCount,
+                competition = citizenRecords.Competition
             });
         }
 
@@ -128,7 +129,8 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
             records.NotificationLog,
             records.Offers,
             records.OtpChallengeCount,
-            records.OtpFailedAttemptCount
+            records.OtpFailedAttemptCount,
+            competition = records.Competition
         });
     }
 
@@ -201,13 +203,34 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
         return Ok(new { hash, citizens, recruitments });
     }
 
+    /// <summary>
+    /// HCM-031 (PLAN-31): the competition part of a competition application — the competition and the ordered line
+    /// preferences (null for any other application).
+    /// </summary>
+    private async Task<object?> CompetitionRecordAsync(Guid recruitmentId, CancellationToken ct)
+    {
+        var competition = await db.RecruitmentApplications.AsNoTracking()
+            .Where(a => a.Id == recruitmentId && a.CompetitionId != null)
+            .Select(a => new { a.Competition!.Number, a.Competition.Title, a.Competition.Status })
+            .FirstOrDefaultAsync(ct);
+        if (competition is null)
+            return null;
+        var preferences = await db.CompetitionPreferences.AsNoTracking()
+            .Where(p => p.RecruitmentApplicationId == recruitmentId)
+            .OrderBy(p => p.Order)
+            .Select(p => new { order = p.Order, lineNo = p.CompetitionLine!.LineNo, line = p.CompetitionLine.Title, eligibilityFlags = p.EligibilityFlags })
+            .ToListAsync(ct);
+        return new { number = competition.Number, title = competition.Title, status = competition.Status.ToString(), preferences };
+    }
+
     /// <summary>PLAN-30 K2: the candidate's records besides the application rows (metadata and counts only).</summary>
     public sealed record CandidateRecords(
         IReadOnlyList<object> Documents,
         IReadOnlyList<object> NotificationLog,
         IReadOnlyList<object> Offers,
         int OtpChallengeCount,
-        int OtpFailedAttemptCount);
+        int OtpFailedAttemptCount,
+        object? Competition = null);
 
     /// <summary>
     /// PLAN-30 K2: document metadata (no content, no file id), the message log (masked recipient, template, status, times —
@@ -286,7 +309,8 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
                 declinedAt = o.DeclinedAt
             }).ToList(),
             otpCount,
-            otpAttempts);
+            otpAttempts,
+            recruitmentId is Guid competitionApplicationId ? await CompetitionRecordAsync(competitionApplicationId, ct) : null);
     }
 
     /// <summary>Masks runs of 9 or more digits (a national ID or phone number typed into a file name).</summary>

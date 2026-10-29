@@ -181,7 +181,110 @@
         }
     </div>
     <div class="tab-pane fade" id="tab-applicants" role="tabpanel" aria-labelledby="tab-applicants-btn">
-        <p class="text-muted mb-0">تظهر طلبات التقديم بعد إعلان المسابقة.</p>
+        @{ var applicants = Model.Applicants; }
+        @if (Model.BulkResults.Count > 0)
+        {
+            <div class="alert alert-warning">
+                <p class="fw-bold mb-1">طلبات لم يُنفَّذ عليها الإجراء:</p>
+                <ul class="mb-0">
+                    @foreach (var failure in Model.BulkResults)
+                    {
+                        <li>@failure.ApplicantName — @failure.Error</li>
+                    }
+                </ul>
+            </div>
+        }
+        <form method="get" asp-action="Details" asp-route-id="@c.Id" class="row g-2 mb-3 align-items-end">
+            <div class="col-md-4">
+                <label for="applicantStatus" class="form-label">حالة الطلب</label>
+                <select id="applicantStatus" name="applicantStatus" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<RecruitmentApplicationStatus>()">
+                    <option value="">— الكل —</option>
+                </select>
+            </div>
+            <div class="col-md-2"><button type="submit" class="btn btn-outline-secondary btn-sm">تصفية</button></div>
+            <div class="col-md-6 text-muted small">العدد: @applicants.Total</div>
+        </form>
+        @if (applicants.Rows.Count == 0)
+        {
+            <p class="text-muted mb-0">لا توجد طلبات تقديم.</p>
+        }
+        else
+        {
+            <form asp-action="ScreenApplicants" asp-route-id="@c.Id" method="post"
+                  data-hr-confirm="سيُنفَّذ الإجراء المختار على الطلبات المحددة." data-hr-confirm-title="إجراء جماعي على المتقدمين">
+                @Html.AntiForgeryToken()
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="visually-hidden">تحديد</span></th>
+                                <th scope="col">المتقدم</th>
+                                <th scope="col">القناة</th>
+                                <th scope="col">الحالة</th>
+                                <th scope="col">تاريخ التقديم</th>
+                                <th scope="col">التفضيلات</th>
+                                <th scope="col">ملاحظات الأهلية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in applicants.Rows)
+                            {
+                                <tr>
+                                    <td><input class="form-check-input" type="checkbox" name="applicationIds" value="@row.Id" id="app-@row.Id" aria-label="تحديد @row.ApplicantFullName" /></td>
+                                    <td><a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@row.Id">@row.ApplicantFullName</a></td>
+                                    <td>@Html.HrEnumDisplay(row.Channel)</td>
+                                    <td>@Html.HrEnumDisplay(row.Status)</td>
+                                    <td>@row.AppliedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td class="small">@foreach (var p in row.Preferences) { <div>@p</div> }</td>
+                                    <td class="small">@(row.FlagLabels.Count == 0 ? "—" : string.Join("، ", row.FlagLabels))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (Model.CanWrite && c.Status is RecruitmentCompetitionStatus.Announced or RecruitmentCompetitionStatus.IntakeClosed)
+                {
+                    <div class="row g-2 align-items-end border-top pt-2">
+                        <div class="col-md-3">
+                            <label for="bulkTarget" class="form-label">الإجراء</label>
+                            <select id="bulkTarget" name="target" class="form-select form-select-sm">
+                                <option value="@RecruitmentApplicationStatus.UnderReview">قيد الفرز</option>
+                                <option value="@RecruitmentApplicationStatus.Shortlisted">قبول للاختبار</option>
+                                <option value="@RecruitmentApplicationStatus.Rejected">رفض</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="bulkOverride" class="form-label">سبب تجاوز ملاحظات الأهلية</label>
+                            <input id="bulkOverride" name="eligibilityOverrideReason" class="form-control form-control-sm" maxlength="1000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="bulkRejectNote" class="form-label">ملاحظة الرفض</label>
+                            <input id="bulkRejectNote" name="rejectionNote" class="form-control form-control-sm" maxlength="1000" />
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="bulkCoi" name="conflictOfInterestDeclared" value="true" />
+                                <label class="form-check-label small" for="bulkCoi">أقر بعدم وجود تعارض مصالح مع المتقدمين المحددين</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">تنفيذ على المحدد</button>
+                        </div>
+                    </div>
+                }
+            </form>
+            @if (applicants.Pages > 1)
+            {
+                <nav aria-label="صفحات المتقدمين" class="mt-2">
+                    <ul class="pagination pagination-sm mb-0">
+                        @for (var p = Math.Max(1, applicants.Page - 5); p <= Math.Min(applicants.Pages, applicants.Page + 5); p++)
+                        {
+                            <li class="page-item @(p == applicants.Page ? "active" : "")">
+                                <a class="page-link" asp-action="Details" asp-route-id="@c.Id" asp-route-page="@p" asp-route-applicantStatus="@applicants.Status">@p</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
     </div>
     <div class="tab-pane fade" id="tab-exams" role="tabpanel" aria-labelledby="tab-exams-btn">
         <p class="text-muted mb-0">تُضاف جلسات الامتحان بعد إغلاق التقديم.</p>

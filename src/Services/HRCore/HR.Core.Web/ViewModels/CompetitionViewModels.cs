@@ -147,8 +147,36 @@ public sealed record CompetitionLineRow(
     IReadOnlyList<CompetitionLineRequisitionRow> Requisitions,
     IReadOnlyList<AttachableRequisition> Attachable);
 
+/// <summary>HCM-031 (P2): one applicant on the «المتقدمون» tab.</summary>
+public sealed record CompetitionApplicantRow(
+    Guid Id,
+    string ApplicantFullName,
+    RecruitmentIntakeChannel Channel,
+    RecruitmentApplicationStatus Status,
+    DateTime AppliedAt,
+    IReadOnlyList<string> Preferences,
+    IReadOnlyList<string> FlagLabels);
+
+public sealed class CompetitionApplicantsViewModel
+{
+    public IReadOnlyList<CompetitionApplicantRow> Rows { get; init; } = [];
+    public int Total { get; init; }
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = CompetitionsPaging.PageSize;
+    public RecruitmentApplicationStatus? Status { get; init; }
+    public int Pages => Math.Max(1, (int)Math.Ceiling(Total / (double)PageSize));
+}
+
+public static class CompetitionsPaging
+{
+    public const int PageSize = 50;
+}
+
 public sealed class CompetitionDetailsViewModel
 {
+    public CompetitionApplicantsViewModel Applicants { get; init; } = new();
+    public IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionBulkItemResult> BulkResults { get; init; } = [];
+
     public required RecruitmentCompetition Competition { get; init; }
     public string LegalSourceLabel { get; init; } = "—";
     public IReadOnlyList<CompetitionLineRow> Lines { get; init; } = [];

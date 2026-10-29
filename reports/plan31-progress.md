@@ -11,7 +11,7 @@ Baseline: [`reports/plan31-baseline.md`](plan31-baseline.md).
 |-------|-------|--------|-----------|
 | P0 | Baseline, mapping, pre-implementation notes | Done | `docs(hcm031): baseline, pre-implementation notes and progress log` |
 | P1 | Competition model, lines, approval workflow, announce, HR screens (31a) | Done | `feat(hcm031): recruitment competitions — lines, requisition grouping, approval workflow, announcement` |
-| P2 | Intake with line preferences | Pending | |
+| P2 | Intake with line preferences | Done | `feat(hcm031): competition intake with ordered line preferences` |
 | P3 | Exams: seating, admission cards, attendance, anonymous double marking (31b, 31c) | Pending | |
 | P4 | Results, approval, publication, objections, versions (31d, 31e) | Pending | |
 | P5 | Finalize, allocation, reserve recall, bulk offers (31f, 31g) | Pending | |
@@ -45,6 +45,10 @@ Prompt decisions 1–9 are adopted as written (recorded in Arabic at the top of 
 | J13 | **Line criteria** are frozen automatically at submit: each line takes the active criteria version of its first attached requisition (by number); rejected approval unfreezes them. No criteria picker in the UI. | Simplest; J2 guarantees all versions share one shape anyway. |
 | J14 | **Cancelling a competition** closes its posting/vacancy and rejects open competition applications with kind `RequisitionCancelled` (note «إلغاء المسابقة»); attached requisitions stay attached for history but are released (`HoldsRequisitions` = false), so they can be closed or cancelled individually. | No new rejection kind; requisition status cannot go back from Published. |
 | J15 | **Workflow handler wiring**: `CompetitionWorkflowHandler` is an optional last constructor parameter of `WorkflowInstanceActionService` (DI supplies it), so the six manual constructions in tests keep compiling. | Avoids touching PLAN-27/28 test support. |
+| J16 | **Public competition apply is a separate page** (`/careers/competitions/{id}`, view `PublicCareers/Competition.cshtml`) that mirrors the PLAN-30 form; the PLAN-30 `Details.cshtml` is untouched. The competition posting (no requisition) redirects there from `Details` and from `Apply`, so it can never produce a legacy unlinked citizen row. Profile checks were extracted to `ValidateProfileAsync` (same logic for both paths). | No change to the accessibility-scanned PLAN-30 view; one pipeline for profile/contact/documents. |
+| J17 | **Required documents of a competition** = union of its attached requisitions' `RequiredDocumentTypes`. | A competition has no document list of its own. |
+| J18 | **Bulk screening** reuses `RecruitmentSelectionService.TransitionStatusAsync`; admitting to the exam (`Shortlisted`) records the actor's conflict-of-interest declaration (checkbox) and needs the PLAN-30 override reason for flagged applications; `Submitted` passes through `UnderReview`. | Existing gates unchanged. |
+| J19 | **Projection**: competition states are implemented now in the pure `CandidatePublicStatusProjection` (input `CandidateCompetitionInput`); `CandidatePublicStatusService.LoadCompetitionInputsAsync` fills exam/results/allocation data in P3–P5. The timeline relabels «مدعو للمقابلة» → «الامتحان» and «قيد التقييم النهائي» → «النتائج» for competition applications. | One place for all public states. |
 | J11 | **Exam numbers**: 8 decimal digits from `RandomNumberGenerator`, unique per competition (DB unique index + retry). | Fixed length, not derived from order or identity. |
 
 ## P0 map — RequisitionId-null assumptions (competition application = `CompetitionId` set, `RequisitionId` null)
@@ -125,6 +129,7 @@ has no competition instrument. Usable as a competition legal source: `SYR-LAW-50
 
 | Phase | Files |
 |-------|-------|
+| P2 | Infra: `CompetitionIntakeService` (public/internal apply, preferences, per-line eligibility, bulk screening, required-document union), `RecruitmentIntakeCloser` (competition pass; attached requisitions excluded from the requisition pass), `UnifiedIntakeService.ReevaluateDocumentFlagAsync` (competition branch), `CandidatePublicStatusService` (competition input hook), `CandidateRetentionService` (competition trigger), `RecruitmentHireClosureService` (J10). Domain: `CandidatePublicStatusProjection` (competition states), `CandidateApplicationLegalLifecycleService.RetentionTrigger`, `RecruitmentWorkflowRules.CanHire` / `SelectionWorkflowRules` (J10). Web: `PublicCareersController` (`Competition`, `ApplyCompetition`, competition-posting redirects, `ValidateProfileAsync`), `CompetitionApplyViewModel`, `Views/PublicCareers/Competition.cshtml`, `EssTalentController.ApplyCompetition` + ESS index section, `CompetitionsController` («المتقدمون» tab + `ScreenApplicants`), `RecruitmentApplicationsController`/`Index.cshtml` (legacy filter, «مسابقة» badge, `CompetitionId` filter), `DsarInternalController` (competition record), `scripts/hcm006-a11y-scan.ps1` (+Competition view). Tests: `Hcm031IntakeTests` (16). |
 | P1 | Domain: `RecruitmentCompetition`, `CompetitionLine`, `CompetitionPreference`, enums (`RecruitmentCompetitionStatus`, `CompetitionReconcileRule`, `CompetitionTieBreak`), `CompetitionWorkflowRules`; `RecruitmentRequisition.CompetitionLineId`, `RecruitmentApplication.CompetitionId/CompetitionLineId`. Infra: `Data/Configurations/Recruitment/CompetitionConfigurations.cs`, `HRCoreDbContext` (DbSets, FKs, unique `(TenantId, CompetitionId, NationalIdHash)`), `CompetitionLifecycleService`, `CompetitionWorkflowHandler`, `WorkflowPackSeeder` (`RECRUITMENT-COMPETITION-APPROVAL`, id `f0050016`), `CodeGenerationSeeder` + `CodeEntityKind.RecruitmentCompetition` + `CodeGenerationRequests.RecruitmentCompetition()`, `WorkflowInstanceActionService` (dispatch + creator SoD), `RecruitmentRequisitionLifecycleService` (attached guards), `RecruitmentOptions.Competition`. Web: `CompetitionsController`, `CompetitionViewModels`, `Views/Competitions/*`, menu entry, `WorkflowDeepLinkResolver`, `Program.cs`, `appsettings.Development.json` (acceptance/dev legal defaults only). Tests: `Hcm031TestSupport`, `Hcm031CompetitionLifecycleTests` (18). |
 | P0 | `reports/plan31-baseline.md`, `reports/plan31-progress.md`, `docs/acceptance-plans/PLAN-31-hcm-competitions-exams.md` (pre-implementation block), `docs/acceptance-plans/execution/PLAN-31-AGENT-PROMPT.md` (prompt, committed as-is) |
 
@@ -140,6 +145,17 @@ has no competition instrument. Usable as a competition legal source: `SYR-LAW-50
 | P0 | full unit suite | 3675 pass / 10 fail (environment-only set, see baseline) |
 | P1 | `Hcm031` | 18 / 18 pass |
 | P1 | full unit suite | 3693 pass / 10 fail — exactly the baseline set (Ten002 lists only the pre-existing files) |
+| P2 | `Hcm031` | 34 / 34 pass |
+| P2 | full unit suite | 3708 pass / 11 fail — the baseline 10 + the known full-run flake `Hcm029CandidateAcceptedV4Tests.External_hire_publishes_v4_with_the_offer_terms` (passes alone, 4/4; recorded by PLAN-30) |
+| P2 | `hcm006-a11y-scan.ps1` | PASS (11 views, incl. `PublicCareers/Competition.cshtml`) |
+| P2 | `ux003-no-native-confirm.ps1` | fails on pre-existing views only (`RecruitmentRequisitions/Details`, `ReferenceCatalog/Details`, `_WorkflowActionPanel`); no new view uses `confirm()` |
+
+## Modified existing tests (justification)
+
+| Test file | Change | Why |
+|-----------|--------|-----|
+| `UnitTests/Hcm030TestSupport.cs` | `PublicCareersController` and `EssTalentController` constructions get the new `CompetitionIntakeService` argument | constructor parameter added in P2; behaviour unchanged |
+| `IntegrationTests/PublicCareersApplyTests.cs`, `IntegrationTests/PublicCareersRequisitionGateTests.cs` | same argument added to `PublicCareersController` (4 constructions) | same |
 
 ## Open issues
 
@@ -147,4 +163,4 @@ has no competition instrument. Usable as a competition legal source: `SYR-LAW-50
 
 ## Next step
 
-P2: competition intake — public apply `/careers/competitions/{id}` with ordered preferences (reuse the PLAN-30 apply pipeline), internal apply through ESS, duplicate message, per-line eligibility flags, intake close (job pass), fix the RequisitionId-null assumptions (projection, HR index/legacy filter, retention trigger, DSAR, legacy hire hole J10), HR «المتقدمون» tab, `Hcm031IntakeTests`.
+P3: migration `HCM031_Exams` (ExamSession, ExamCandidate, ExamMarkerAssignment, ExamScore), `ExamSeatingService`, admission card PDF (`ExamAdmissionCardDocumentService` + Web document), attendance, marker role `hr-exam-marker` + policy `HrCoreExamMarking` (J7), personas `a-exam-marker`, `-2`, `-3` (catalog counts in 4 places), `ExamMarkingController` (exam numbers only), `ExamMarkingRules` (blind double marking, reconciliation J12), tests `Hcm031SeatingTests`, `Hcm031MarkingTests`, `Hcm031MarkerAccessTests`, `Hcm031AdmissionCardTests`. Two commits.

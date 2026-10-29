@@ -188,7 +188,8 @@ public sealed class RecruitmentHireClosureService(
             throw new InvalidOperationException(appealError);
 
         var offer = app.ActiveOfferLetter;
-        var requiresOffer = !legacyWithoutOffer || app.RequisitionId is not null;
+        // HCM-031 (J10): competition applications always need an accepted offer.
+        var requiresOffer = !legacyWithoutOffer || app.RequisitionId is not null || app.CompetitionId is not null;
 
         if (requiresOffer)
         {

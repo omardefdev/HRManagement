@@ -2,6 +2,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
+using HR.Core.Infrastructure.Services.Recruitment.Competitions;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.ViewModels;
@@ -19,7 +20,8 @@ public class EssTalentController(
     RecruitmentApplicationIntakeService intake,
     IConfiguration configuration,
     UnifiedIntakeService unifiedIntake,
-    CandidatePublicStatusService publicStatus) : Controller
+    CandidatePublicStatusService publicStatus,
+    CompetitionIntakeService competitionIntake) : Controller
 {
     [HttpGet("")]
     [HttpGet("Index")]
@@ -56,7 +58,76 @@ public class EssTalentController(
             .AsNoTracking()
             .ToListAsync();
 
+        // HCM-031 (PLAN-31): announced competitions open to internal candidates (apply with line preferences).
+        ViewBag.Competitions = await competitionIntake.GetInternalOpenAsync();
         return View(vacancies);
+    }
+
+    /// <summary>HCM-031 (PLAN-31, P2): internal apply to a competition with ordered line preferences.</summary>
+    [HttpPost("ApplyCompetition")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApplyCompetition(Guid competitionId, List<Guid?> preferences, string? motivation)
+    {
+        var employeeId = HrOrgScopeVisibility.GetEmployeeId(User);
+        if (employeeId is null) return Forbid();
+
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId.Value);
+        if (employee is null || !IsEligibleApplicant(employee))
+        {
+            TempData["Error"] = "حسابك غير مؤهل للترشّح الداخلي.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var competition = await competitionIntake.LoadForIntakeAsync(competitionId, forPublicPortal: false);
+        if (competition?.InternalVacancyId is not Guid vacancyId
+            || !HR.Core.Domain.Services.RequisitionWorkflowRules.AllowsInternalChannel(competition.PublishingChannel))
+        {
+            TempData["Error"] = CompetitionIntakeService.NotAvailableMessage;
+            return RedirectToAction(nameof(Index));
+        }
+        var intakeError = CompetitionIntakeService.IntakeError(competition, DateOnly.FromDateTime(DateTime.UtcNow));
+        var preferenceError = CompetitionIntakeService.ValidatePreferences(
+            competition, competition.Lines.Select(l => l.Id).ToList(), preferences ?? [], out var orderedLines);
+        if ((intakeError ?? preferenceError) is string error)
+        {
+            TempData["Error"] = error;
+            return RedirectToAction(nameof(Index));
+        }
+
+        var hash = employee.NationalIdHash
+            ?? (string.IsNullOrWhiteSpace(employee.NationalId) ? null : HRManagement.SharedKernel.PiiMask.Sha256Hex(employee.NationalId.Trim()));
+        if (hash is null)
+        {
+            TempData["Error"] = "لا يمكن الترشّح دون رقم وطني مسجل في ملفك.";
+            return RedirectToAction(nameof(Index));
+        }
+        if (await competitionIntake.HasApplicationAsync(competition.TenantId, competition.Id, hash, forPublicPortal: false))
+        {
+            TempData["Error"] = CompetitionIntakeService.DuplicateMessage;
+            return RedirectToAction(nameof(MyApplications));
+        }
+
+        var internalApp = new InternalApplication
+        {
+            TenantId = employee.TenantId,
+            InternalVacancyId = vacancyId,
+            EmployeeId = employeeId.Value,
+            RequisitionId = null,
+            Motivation = motivation,
+            Status = InternalApplicationStatus.Submitted,
+            AppliedAt = DateTime.UtcNow
+        };
+        try
+        {
+            await competitionIntake.SubmitInternalAsync(internalApp, employee, competition, orderedLines);
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Error"] = CompetitionIntakeService.DuplicateMessage;
+            return RedirectToAction(nameof(MyApplications));
+        }
+        TempData["Success"] = "تم تقديم ترشّحك على المسابقة بنجاح";
+        return RedirectToAction(nameof(MyApplications));
     }
 
     [HttpPost("Apply")]

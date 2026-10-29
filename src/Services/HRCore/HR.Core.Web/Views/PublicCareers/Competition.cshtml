@@ -1,0 +1,308 @@
+@model HR.Core.Infrastructure.Services.Recruitment.Competitions.PublicCompetitionView
+@using System.Globalization
+@{
+    var competition = Model.Competition;
+    ViewData["Title"] = competition.Title;
+    Layout = "_PublicLayout";
+    var applyModel = ViewBag.ApplyModel as HR.Core.Web.ViewModels.CompetitionApplyViewModel
+        ?? new HR.Core.Web.ViewModels.CompetitionApplyViewModel { CompetitionId = competition.Id };
+    var qualifications = ViewBag.Qualifications as IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.QualificationOption> ?? [];
+    var documentLimits = ViewBag.DocumentLimits as HR.Core.Infrastructure.Services.Recruitment.RecruitmentCandidateDocumentsOptions
+        ?? new HR.Core.Infrastructure.Services.Recruitment.RecruitmentCandidateDocumentsOptions();
+    var perFileMb = Math.Min(documentLimits.MaxBytes, HRManagement.FileStorage.FileUploadConstraints.CandidateDocument.MaxBytes) / (1024 * 1024);
+    var totalMb = documentLimits.MaxTotalBytes / (1024 * 1024);
+    var requiredDocuments = Model.RequiredDocumentTypes;
+    var documentInputs = HR.Core.Domain.Services.CandidateDocumentTypes.All
+        .OrderBy(t => requiredDocuments.Contains(t.Code) ? 0 : 1)
+        .ToList();
+    var maxBirthDate = DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.MinApplicantAge);
+    var slots = Math.Max(1, competition.MaxLinesPerCandidate);
+    var applyErrors = ViewData.ModelState
+        .SelectMany(e => e.Value!.Errors.Select(x => (Key: e.Key, x.ErrorMessage)))
+        .Where(e => !string.IsNullOrEmpty(e.ErrorMessage))
+        .ToList();
+    string? Err(string key) => ViewData.ModelState[key]?.Errors.FirstOrDefault()?.ErrorMessage;
+    string Invalid(string key) => Err(key) is null ? "false" : "true";
+    string InvalidClass(string key) => Err(key) is null ? "" : " is-invalid";
+    var documentFieldIds = documentInputs.ToDictionary(
+        t => HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.FieldFor(t.Code), t => "cmp-doc-" + t.Code.ToLowerInvariant());
+    string? ApplyTarget(string key) => key switch
+    {
+        "Preferences" => "cmp-pref-1",
+        "FullName" => "cmp-fullname",
+        "NationalId" => "cmp-nationalid",
+        "Phone" => "cmp-phone",
+        "Email" => "cmp-email",
+        "EducationLevelCode" => "cmp-education",
+        "Specialization" => "cmp-specialization",
+        "GraduationYear" => "cmp-graduation",
+        "YearsOfExperience" => "cmp-experience",
+        "BirthDate" => "cmp-birthdate",
+        "PreferredChannel" => "cmp-channel-email",
+        "CoverNote" => "cmp-cover",
+        "PrivacyConsent" => "cmp-privacy-consent",
+        _ => documentFieldIds.TryGetValue(key, out var inputId) ? inputId : null
+    };
+}
+@if (TempData["Error"] is string topError)
+{
+    <div class="alert alert-danger" role="alert">@topError</div>
+}
+<div class="careers-card mb-4">
+    <div class="card-body">
+        <h1 class="card-title careers-posting-title">@competition.Title</h1>
+        <p class="text-muted mb-2"><i class="fas fa-hashtag ms-1" aria-hidden="true"></i> رقم المسابقة: <bdi dir="ltr">@competition.Number</bdi></p>
+        <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للتقديم: <bdi dir="ltr">@competition.ApplicationClosingDate.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)</bdi></p>
+        @if (!Model.IntakeOpen)
+        {
+            <p><span class="badge bg-secondary">التقديم مغلق</span></p>
+        }
+        <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-list ms-1" aria-hidden="true"></i> الشواغر المعلنة</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <caption class="visually-hidden">أسطر المسابقة وعدد الشواغر في كل سطر</caption>
+                <thead><tr><th scope="col">السطر</th><th scope="col">المسمى</th><th scope="col">الدرجة</th><th scope="col">الجهة</th><th scope="col">عدد الشواغر</th></tr></thead>
+                <tbody>
+                    @foreach (var line in Model.Lines)
+                    {
+                        <tr><td>@line.LineNo</td><td>@line.Title</td><td>@line.GradeCode</td><td>@(line.OrgUnitName ?? "—")</td><td>@line.Vacancies</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-clipboard-list ms-1" aria-hidden="true"></i> شروط التقديم</h2>
+        <p class="text-muted">@(competition.ApplicationConditions ?? "وفق الأنظمة النافذة.")</p>
+        <p class="text-muted small mb-0">يمكنك اختيار حتى @competition.MaxLinesPerCandidate أسطر بترتيب تفضيلك؛ يُخصَّص الناجحون حسب الجدارة ثم التفضيل.</p>
+        @if (requiredDocuments.Count > 0)
+        {
+            <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-paperclip ms-1" aria-hidden="true"></i> المستندات المطلوبة</h2>
+            <ul class="text-muted mb-0">
+                @foreach (var type in requiredDocuments)
+                {
+                    <li>@HR.Core.Domain.Services.CandidateDocumentTypes.LabelAr(type)</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@if (!Model.IntakeOpen)
+{
+    <div class="alert alert-secondary">
+        <i class="fas fa-lock ms-1" aria-hidden="true"></i> انتهت فترة التقديم على هذه المسابقة. يمكنك متابعة طلبك من صفحة «طلبي».
+    </div>
+}
+else
+{
+<div class="careers-card">
+    <div class="card-body">
+        <h2 class="h5 careers-section-title mb-4" id="cmp-apply-title"><i class="fas fa-paper-plane ms-2" aria-hidden="true"></i> التقديم على المسابقة</h2>
+        @if (applyErrors.Count > 0)
+        {
+            <div class="alert alert-danger border-0 shadow-sm" role="alert" tabindex="-1" data-hr-error-summary aria-labelledby="cmp-errors-title">
+                <p class="fw-bold mb-1" id="cmp-errors-title">يرجى تصحيح ما يلي:</p>
+                <ul class="mb-0">
+                    @foreach (var (key, message) in applyErrors)
+                    {
+                        var target = ApplyTarget(key);
+                        if (target is null)
+                        {
+                            <li>@message</li>
+                        }
+                        else
+                        {
+                            <li><a href="#@target">@message</a></li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+        <form asp-action="ApplyCompetition" method="post" enctype="multipart/form-data" class="careers-form" aria-labelledby="cmp-apply-title">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="CompetitionId" value="@competition.Id" />
+            <input type="hidden" name="PublicJobPostingId" value="@competition.PublicJobPostingId" />
+            <div class="visually-hidden" aria-hidden="true">
+                <label for="cmp-website-hp">لا تملأ هذا الحقل</label>
+                <input id="cmp-website-hp" name="Website" tabindex="-1" autocomplete="off" />
+            </div>
+            <fieldset class="mb-3" aria-describedby="cmp-pref-help@(Err("Preferences") is null ? "" : " cmp-pref-error")">
+                <legend class="form-label fs-6 fw-bold">تفضيلات الأسطر</legend>
+                <small id="cmp-pref-help" class="text-muted d-block mb-2">التفضيل الأول مطلوب، والبقية اختيارية دون تكرار.</small>
+                <div class="row g-3">
+                    @for (var i = 0; i < slots; i++)
+                    {
+                        var selected = i < applyModel.Preferences.Count ? applyModel.Preferences[i] : null;
+                        var prefId = $"cmp-pref-{i + 1}";
+                        <div class="col-md-6">
+                            <label class="form-label" for="@prefId">التفضيل @(i + 1)@(i == 0 ? " (مطلوب)" : " (اختياري)")</label>
+                            <select id="@prefId" name="Preferences[@i]" class="form-select@(InvalidClass("Preferences"))" aria-invalid="@Invalid("Preferences")"
+                                    aria-describedby="cmp-pref-help" required="@(i == 0 ? "required" : null)" aria-required="@(i == 0 ? "true" : null)">
+                                <option value="">— اختر سطراً —</option>
+                                @foreach (var line in Model.Lines)
+                                {
+                                    <option value="@line.Id" selected="@(selected == line.Id ? "selected" : null)">@line.LineNo — @line.Title (@line.GradeCode)</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                </div>
+                @if (Err("Preferences") is { } prefError) { <div class="invalid-feedback d-block" id="cmp-pref-error">@prefError</div> }
+            </fieldset>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="cmp-fullname">الاسم الكامل</label>
+                    <input id="cmp-fullname" name="FullName" class="form-control@(InvalidClass("FullName"))" maxlength="300" autocomplete="name"
+                           value="@applyModel.FullName" required aria-required="true" aria-invalid="@Invalid("FullName")"
+                           aria-describedby="@(Err("FullName") is null ? null : "cmp-fullname-error")" />
+                    @if (Err("FullName") is { } fullNameError) { <div class="invalid-feedback d-block" id="cmp-fullname-error">@fullNameError</div> }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="cmp-nationalid">الرقم الوطني</label>
+                    <input id="cmp-nationalid" name="NationalId" class="form-control@(InvalidClass("NationalId"))" maxlength="20" inputmode="numeric"
+                           autocomplete="off" value="@applyModel.NationalId" required aria-required="true" aria-invalid="@Invalid("NationalId")"
+                           aria-describedby="@(Err("NationalId") is null ? null : "cmp-nationalid-error")" />
+                    @if (Err("NationalId") is { } nationalIdError) { <div class="invalid-feedback d-block" id="cmp-nationalid-error">@nationalIdError</div> }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="cmp-phone">رقم الهاتف</label>
+                    <input id="cmp-phone" name="Phone" type="tel" class="form-control@(InvalidClass("Phone"))" inputmode="tel" autocomplete="tel" maxlength="20"
+                           value="@applyModel.Phone" aria-invalid="@Invalid("Phone")"
+                           aria-describedby="cmp-phone-help@(Err("Phone") is null ? "" : " cmp-phone-error")" />
+                    <small id="cmp-phone-help" class="text-muted d-block">مثال: <bdi dir="ltr">0999123456</bdi> — يلزم إدخال الهاتف أو البريد الإلكتروني</small>
+                    @if (Err("Phone") is { } phoneError) { <div class="invalid-feedback d-block" id="cmp-phone-error">@phoneError</div> }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="cmp-email">البريد الإلكتروني</label>
+                    <input id="cmp-email" name="Email" type="email" class="form-control@(InvalidClass("Email"))" autocomplete="email" maxlength="150"
+                           value="@applyModel.Email" aria-invalid="@Invalid("Email")"
+                           aria-describedby="@(Err("Email") is null ? null : "cmp-email-error")" />
+                    @if (Err("Email") is { } emailError) { <div class="invalid-feedback d-block" id="cmp-email-error">@emailError</div> }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="cmp-education">المؤهل العلمي</label>
+                    <select id="cmp-education" name="EducationLevelCode" class="form-select@(InvalidClass("EducationLevelCode"))"
+                            aria-invalid="@Invalid("EducationLevelCode")"
+                            aria-describedby="@(Err("EducationLevelCode") is null ? null : "cmp-education-error")">
+                        <option value="">— اختر —</option>
+                        @foreach (var q in qualifications)
+                        {
+                            <option value="@q.Code" selected="@(string.Equals(applyModel.EducationLevelCode, q.Code, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@q.NameAr</option>
+                        }
+                    </select>
+                    @if (Err("EducationLevelCode") is { } educationError) { <div class="invalid-feedback d-block" id="cmp-education-error">@educationError</div> }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="cmp-specialization">التخصص</label>
+                    <input id="cmp-specialization" name="Specialization" class="form-control@(InvalidClass("Specialization"))" maxlength="200"
+                           value="@applyModel.Specialization" aria-invalid="@Invalid("Specialization")"
+                           aria-describedby="@(Err("Specialization") is null ? null : "cmp-specialization-error")" />
+                    @if (Err("Specialization") is { } specializationError) { <div class="invalid-feedback d-block" id="cmp-specialization-error">@specializationError</div> }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="cmp-graduation">سنة التخرج</label>
+                    <input id="cmp-graduation" name="GraduationYear" type="number" class="form-control@(InvalidClass("GraduationYear"))" inputmode="numeric"
+                           min="@HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.MinGraduationYear" max="@DateTime.UtcNow.Year" value="@applyModel.GraduationYear"
+                           aria-invalid="@Invalid("GraduationYear")"
+                           aria-describedby="@(Err("GraduationYear") is null ? null : "cmp-graduation-error")" />
+                    @if (Err("GraduationYear") is { } graduationError) { <div class="invalid-feedback d-block" id="cmp-graduation-error">@graduationError</div> }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="cmp-experience">سنوات الخبرة</label>
+                    <input id="cmp-experience" name="YearsOfExperience" type="number" class="form-control@(InvalidClass("YearsOfExperience"))" min="0" max="60" step="0.5"
+                           value="@applyModel.YearsOfExperience?.ToString(CultureInfo.InvariantCulture)"
+                           aria-invalid="@Invalid("YearsOfExperience")"
+                           aria-describedby="@(Err("YearsOfExperience") is null ? null : "cmp-experience-error")" />
+                    @if (Err("YearsOfExperience") is { } experienceError) { <div class="invalid-feedback d-block" id="cmp-experience-error">@experienceError</div> }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="cmp-birthdate">تاريخ الميلاد</label>
+                    <input id="cmp-birthdate" name="BirthDate" type="date" class="form-control@(InvalidClass("BirthDate"))"
+                           max="@maxBirthDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)"
+                           value="@applyModel.BirthDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)"
+                           aria-invalid="@Invalid("BirthDate")"
+                           aria-describedby="cmp-birthdate-help@(Err("BirthDate") is null ? "" : " cmp-birthdate-error")" />
+                    <small id="cmp-birthdate-help" class="text-muted">يُستخدم للتحقق من شروط العمر فقط ولا يظهر إلا لفريق التوظيف.</small>
+                    @if (Err("BirthDate") is { } birthDateError) { <div class="invalid-feedback d-block" id="cmp-birthdate-error">@birthDateError</div> }
+                </div>
+                <fieldset class="col-12" aria-describedby="cmp-documents-help">
+                    <legend class="form-label fs-6 fw-bold">المستندات</legend>
+                    <small id="cmp-documents-help" class="text-muted d-block mb-2">
+                        PDF أو JPG أو PNG، حتى @perFileMb ميغابايت للملف و@totalMb ميغابايت للمجموع، و@documentLimits.MaxFiles ملفات على الأكثر.
+                        المستند المطلوب غير المرفق لا يمنع التقديم، لكنه يظهر ملاحظةً لفريق التوظيف.
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <strong>عند إعادة عرض النموذج يجب اختيار الملفات من جديد.</strong>
+                        }
+                    </small>
+                    <div class="row g-3">
+                        @foreach (var (code, label) in documentInputs)
+                        {
+                            var field = HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.FieldFor(code);
+                            var inputId = "cmp-doc-" + code.ToLowerInvariant();
+                            var isRequired = requiredDocuments.Contains(code);
+                            var multiple = code is HR.Core.Domain.Services.CandidateDocumentTypes.Certificate
+                                or HR.Core.Domain.Services.CandidateDocumentTypes.Other;
+                            var docError = Err(field);
+                            <div class="col-md-6">
+                                <label class="form-label" for="@inputId">@label@(isRequired ? " (مطلوب)" : " (اختياري)")</label>
+                                <input id="@inputId" name="@field" type="file" class="form-control@(InvalidClass(field))" accept=".pdf,.jpg,.jpeg,.png"
+                                       multiple="@(multiple ? "multiple" : null)" aria-invalid="@Invalid(field)"
+                                       aria-describedby="cmp-documents-help@(docError is null ? "" : $" {inputId}-error")" />
+                                @if (docError is not null) { <div class="invalid-feedback d-block" id="@inputId-error">@docError</div> }
+                            </div>
+                        }
+                    </div>
+                </fieldset>
+                @{ var channel = applyModel.PreferredChannel; }
+                <fieldset class="col-12" aria-describedby="cmp-channel-help@(Err("PreferredChannel") is null ? "" : " cmp-channel-error")">
+                    <legend class="form-label fs-6 fw-bold">إشعارات حالة الطلب</legend>
+                    <small id="cmp-channel-help" class="text-muted d-block mb-2">
+                        نرسل إليك إشعاراً عند كل مرحلة (الاستلام، بطاقة الامتحان، نشر النتائج، القرار) دون أي بيانات شخصية أو درجات.
+                    </small>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="PreferredChannel" id="cmp-channel-email" value="Email" aria-invalid="@Invalid("PreferredChannel")"
+                               @(channel == HRManagement.SharedKernel.Notifications.NotificationChannel.Email ? "checked" : "") />
+                        <label class="form-check-label" for="cmp-channel-email">البريد الإلكتروني</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="PreferredChannel" id="cmp-channel-sms" value="Sms" aria-invalid="@Invalid("PreferredChannel")"
+                               @(channel == HRManagement.SharedKernel.Notifications.NotificationChannel.Sms ? "checked" : "") />
+                        <label class="form-check-label" for="cmp-channel-sms">رسالة نصية</label>
+                    </div>
+                    @if (Err("PreferredChannel") is { } channelError) { <div class="invalid-feedback d-block" id="cmp-channel-error">@channelError</div> }
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cmp-notification-consent" name="NotificationConsent" value="true"
+                               @(applyModel.NotificationConsent ? "checked" : "") />
+                        <label class="form-check-label" for="cmp-notification-consent">
+                            @HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.NotificationConsentText
+                        </label>
+                    </div>
+                </fieldset>
+                <div class="col-12">
+                    <label class="form-label" for="cmp-cover">نبذة / مسوّغات</label>
+                    <textarea id="cmp-cover" name="CoverNote" class="form-control@(InvalidClass("CoverNote"))" rows="3" aria-invalid="@Invalid("CoverNote")"
+                              aria-describedby="@(Err("CoverNote") is null ? null : "cmp-cover-error")">@applyModel.CoverNote</textarea>
+                    @if (Err("CoverNote") is { } coverError) { <div class="invalid-feedback d-block" id="cmp-cover-error">@coverError</div> }
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input@(InvalidClass("PrivacyConsent"))" type="checkbox" id="cmp-privacy-consent" name="PrivacyConsent" value="true"
+                               required aria-required="true" aria-invalid="@Invalid("PrivacyConsent")"
+                               aria-describedby="@(Err("PrivacyConsent") is null ? null : "cmp-privacy-consent-error")" @(applyModel.PrivacyConsent ? "checked" : "") />
+                        <label class="form-check-label" for="cmp-privacy-consent">
+                            أوافق على معالجة بياناتي لغرض التوظيف —
+                            <a asp-action="Privacy" target="_blank">إشعار الخصوصية<span class="visually-hidden"> (يفتح في نافذة جديدة)</span></a>
+                        </label>
+                        @if (Err("PrivacyConsent") is { } privacyError) { <div class="invalid-feedback d-block" id="cmp-privacy-consent-error">@privacyError</div> }
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1" aria-hidden="true"></i> إرسال الطلب</button>
+                <a asp-action="Index" class="btn careers-btn-outline me-2">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="~/js/careers-portal.js" asp-append-version="true"></script>
+}

@@ -29,7 +29,8 @@ public class PublicCareersController(
     UnifiedIntakeService unifiedIntake,
     CandidatePublicStatusService publicStatus,
     CandidateDocumentService candidateDocuments,
-    IOptions<RecruitmentOptions> recruitmentOptions) : Controller
+    IOptions<RecruitmentOptions> recruitmentOptions,
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService competitionIntake) : Controller
 {
     [HttpGet("")]
     [HttpGet("index")]
@@ -64,6 +65,10 @@ public class PublicCareersController(
         if (posting is null || (!posting.IsPublished && !intakeClosed) || !IsCareersVisible(posting))
             return NotFound();
 
+        // HCM-031: a competition is announced by one posting; its page carries the lines and the preference form.
+        if (posting.RequisitionId is null && await competitionIntake.CompetitionIdForPostingAsync(posting.Id) is Guid competitionId)
+            return RedirectToAction(nameof(Competition), new { id = competitionId });
+
         await PopulateDetailsAsync(posting, new CitizenApplicationApplyViewModel { PublicJobPostingId = id }, intakeClosed);
         return View(posting);
     }
@@ -88,6 +93,10 @@ public class PublicCareersController(
             TempData["Error"] = "الإعلان غير متاح للتقديم";
             return RedirectToAction(nameof(Index));
         }
+
+        // HCM-031: a competition posting is applied to with line preferences on its own page, never as a legacy posting.
+        if (posting.RequisitionId is null && await competitionIntake.CompetitionIdForPostingAsync(posting.Id) is Guid postedCompetitionId)
+            return RedirectToAction(nameof(Competition), new { id = postedCompetitionId });
 
         var nationalIdHash = PiiMask.Sha256Hex(vm.NationalId.Trim());
 
@@ -114,18 +123,7 @@ public class PublicCareersController(
         }
 
         // HCM-030 (D1): profile checks (all fields optional).
-        var qualifications = await unifiedIntake.GetQualificationOptionsAsync(posting.TenantId);
-        vm.EducationLevelCode = string.IsNullOrWhiteSpace(vm.EducationLevelCode) ? null : vm.EducationLevelCode.Trim();
-        if (vm.EducationLevelCode is not null
-            && !qualifications.Any(q => string.Equals(q.Code, vm.EducationLevelCode, StringComparison.OrdinalIgnoreCase)))
-            ModelState.AddModelError(nameof(vm.EducationLevelCode), "المؤهل العلمي غير صالح.");
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        if (vm.GraduationYear > today.Year)
-            ModelState.AddModelError(nameof(vm.GraduationYear), "سنة التخرج لا يمكن أن تكون في المستقبل.");
-        if (vm.BirthDate is DateOnly birthDate
-            && RecruitmentEligibilityRules.AgeOn(birthDate, today) is < CitizenApplicationApplyViewModel.MinApplicantAge
-                or > CitizenApplicationApplyViewModel.MaxApplicantAge)
-            ModelState.AddModelError(nameof(vm.BirthDate), "تاريخ الميلاد غير صالح.");
+        await ValidateProfileAsync(vm, posting.TenantId);
 
         // COM-030 (F2): contact (normalized) and the status-notification consent.
         var contact = ValidateContact(vm, requisitionLinked: posting.Requisition is not null);
@@ -207,6 +205,134 @@ public class PublicCareersController(
         return RedirectToAction(nameof(Submitted));
     }
 
+    /// <summary>HCM-031 (PLAN-31, P2): competition announcement — lines, closing date, «شروط التقديم» and the preference form.</summary>
+    [HttpGet("competitions/{id:guid}")]
+    public async Task<IActionResult> Competition(Guid id)
+    {
+        var view = await competitionIntake.GetPublicAsync(id);
+        if (view is null)
+            return NotFound();
+        await PopulateCompetitionAsync(view, new CompetitionApplyViewModel { CompetitionId = id });
+        return View(view);
+    }
+
+    /// <summary>
+    /// HCM-031 (PLAN-31, P2): apply to a competition with ordered line preferences — the PLAN-30 pipeline (profile,
+    /// contact and consent, documents relayed to File.Storage before anything is staged), then one competition
+    /// application (<c>RequisitionId</c> null) linked from the citizen row, in one save.
+    /// </summary>
+    [HttpPost("competitions/apply")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting(PublicCareersRateLimitExtensions.PolicyName)]
+    public async Task<IActionResult> ApplyCompetition(CompetitionApplyViewModel vm)
+    {
+        if (!string.IsNullOrWhiteSpace(vm.Website))
+        {
+            TempData["Error"] = "تعذر معالجة الطلب.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var view = await competitionIntake.GetPublicAsync(vm.CompetitionId);
+        var competition = view is null ? null : await competitionIntake.LoadForIntakeAsync(vm.CompetitionId, forPublicPortal: true);
+        if (view is null || competition is null)
+        {
+            TempData["Error"] = HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.NotAvailableMessage;
+            return RedirectToAction(nameof(Index));
+        }
+        var intakeError = HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.IntakeError(
+            competition, DateOnly.FromDateTime(DateTime.UtcNow));
+        if (intakeError is not null)
+        {
+            TempData["Error"] = intakeError;
+            return RedirectToAction(nameof(Competition), new { id = competition.Id });
+        }
+
+        var nationalIdHash = PiiMask.Sha256Hex(vm.NationalId.Trim());
+        if (await competitionIntake.HasApplicationAsync(competition.TenantId, competition.Id, nationalIdHash, forPublicPortal: true))
+        {
+            TempData["Error"] = HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.DuplicateMessage;
+            return RedirectToAction(nameof(Competition), new { id = competition.Id });
+        }
+
+        var preferenceError = HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.ValidatePreferences(
+            competition, competition.Lines.Select(l => l.Id).ToList(), vm.Preferences, out var orderedLines);
+        if (preferenceError is not null)
+            ModelState.AddModelError("Preferences", preferenceError);
+
+        await ValidateProfileAsync(vm, competition.TenantId);
+        var contact = ValidateContact(vm, requisitionLinked: true);
+
+        IReadOnlyList<(string DocumentType, IFormFile File, string FieldName)> attached = vm.AttachedFiles();
+        IReadOnlyList<PreparedCandidateFile> prepared = [];
+        if (attached.Count > 0)
+        {
+            var outcome = await CandidateDocumentFileValidator.PrepareAsync(
+                attached.Select(a => new CandidateDocumentFileValidator.Input(a.DocumentType, a.File, a.FieldName)).ToList(),
+                recruitmentOptions.Value.CandidateDocuments);
+            foreach (var (field, error) in outcome.Errors)
+                ModelState.AddModelError(field, error);
+            prepared = outcome.Files;
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateCompetitionAsync(view, vm);
+            return View("Competition", view);
+        }
+
+        IReadOnlyList<(PreparedCandidateFile File, CandidateDocumentUploadResult.Uploaded Upload)> uploads = [];
+        if (prepared.Count > 0)
+        {
+            var uploaded = await candidateDocuments.UploadAllAsync(competition.TenantId, prepared);
+            if (uploaded is null)
+            {
+                ModelState.AddModelError(string.Empty, CandidateDocumentService.UploadFailedMessage);
+                await PopulateCompetitionAsync(view, vm);
+                return View("Competition", view);
+            }
+            uploads = uploaded;
+        }
+
+        var model = new CitizenApplication
+        {
+            TenantId = competition.TenantId,
+            PublicJobPostingId = competition.PublicJobPostingId!.Value,
+            RequisitionId = null,
+            FullName = vm.FullName,
+            NationalId = vm.NationalId.Trim(),
+            NationalIdHash = nationalIdHash,
+            Phone = contact.Phone,
+            Email = contact.Email,
+            NotificationChannel = contact.Channel,
+            NotificationConsentAt = contact.Channel is null ? null : DateTime.UtcNow,
+            CoverNote = vm.CoverNote,
+            EducationLevelCode = vm.EducationLevelCode?.ToUpperInvariant(),
+            Specialization = string.IsNullOrWhiteSpace(vm.Specialization) ? null : vm.Specialization.Trim(),
+            GraduationYear = vm.GraduationYear,
+            YearsOfExperience = vm.YearsOfExperience,
+            BirthDate = vm.BirthDate,
+            ReferenceNumber = (await codeGenerator.GenerateAsync(CodeGenerationRequests.CitizenReference())).Code,
+            Status = CitizenApplicationStatus.Received,
+            SubmittedAt = DateTime.UtcNow
+        };
+        db.CitizenApplications.Add(model);
+        var application = competitionIntake.CreateFromCitizen(model, competition, orderedLines, uploads.Select(u => u.File.DocumentType));
+        candidateDocuments.Stage(competition.TenantId, application.Id, model.Id, uploads, CandidateDocument.UploadedByCandidate);
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent second application of the same person (unique (TenantId, CompetitionId, NationalIdHash)).
+            TempData["Error"] = HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.DuplicateMessage;
+            return RedirectToAction(nameof(Competition), new { id = competition.Id });
+        }
+
+        TempData["Reference"] = model.ReferenceNumber;
+        return RedirectToAction(nameof(Submitted));
+    }
+
     [HttpGet("submitted")]
     public IActionResult Submitted()
     {
@@ -252,6 +378,33 @@ public class PublicCareersController(
 
     [HttpGet("privacy")]
     public IActionResult Privacy() => View();
+
+    /// <summary>HCM-030 (D1): profile checks (all fields optional); errors go to ModelState.</summary>
+    private async Task ValidateProfileAsync(CitizenApplicationApplyViewModel vm, Guid tenantId)
+    {
+        var qualifications = await unifiedIntake.GetQualificationOptionsAsync(tenantId);
+        vm.EducationLevelCode = string.IsNullOrWhiteSpace(vm.EducationLevelCode) ? null : vm.EducationLevelCode.Trim();
+        if (vm.EducationLevelCode is not null
+            && !qualifications.Any(q => string.Equals(q.Code, vm.EducationLevelCode, StringComparison.OrdinalIgnoreCase)))
+            ModelState.AddModelError(nameof(vm.EducationLevelCode), "المؤهل العلمي غير صالح.");
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (vm.GraduationYear > today.Year)
+            ModelState.AddModelError(nameof(vm.GraduationYear), "سنة التخرج لا يمكن أن تكون في المستقبل.");
+        if (vm.BirthDate is DateOnly birthDate
+            && RecruitmentEligibilityRules.AgeOn(birthDate, today) is < CitizenApplicationApplyViewModel.MinApplicantAge
+                or > CitizenApplicationApplyViewModel.MaxApplicantAge)
+            ModelState.AddModelError(nameof(vm.BirthDate), "تاريخ الميلاد غير صالح.");
+    }
+
+    /// <summary>HCM-031: competition page data (apply form, qualifications, document limits).</summary>
+    private async Task PopulateCompetitionAsync(
+        HR.Core.Infrastructure.Services.Recruitment.Competitions.PublicCompetitionView view,
+        CompetitionApplyViewModel applyModel)
+    {
+        ViewBag.ApplyModel = applyModel;
+        ViewBag.Qualifications = await unifiedIntake.GetQualificationOptionsAsync(view.Competition.TenantId);
+        ViewBag.DocumentLimits = recruitmentOptions.Value.CandidateDocuments;
+    }
 
     /// <summary>Details view data: apply form, intake state and (HCM-030 D1/D2) qualifications and criteria labels.</summary>
     private async Task PopulateDetailsAsync(PublicJobPosting posting, CitizenApplicationApplyViewModel applyModel, bool intakeClosed)

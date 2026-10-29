@@ -801,8 +801,12 @@ public class RecruitmentApplicationsController(
         if (filter.RequisitionId is Guid reqId)
             query = query.Where(x => x.RequisitionId == reqId);
 
+        // HCM-031 (PLAN-31): a competition application has no requisition until allocation but is never legacy.
         if (filter.LegacyOnly)
-            query = query.Where(x => x.RequisitionId == null);
+            query = query.Where(x => x.RequisitionId == null && x.CompetitionId == null);
+
+        if (filter.CompetitionId is Guid competitionId)
+            query = query.Where(x => x.CompetitionId == competitionId);
 
         // HCM-030 (D4): «مع ملاحظات أهلية».
         if (filter.WithEligibilityFlags)

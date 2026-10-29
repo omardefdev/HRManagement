@@ -96,6 +96,16 @@ public static class CandidateApplicationLegalLifecycleService
     /// </summary>
     public static DateTime? RetentionTrigger(RecruitmentApplication application, RecruitmentRequisition? requisition)
     {
+        // HCM-031 (PLAN-31): a competition application is triggered by the competition's end (finalized or cancelled),
+        // even after allocation set its requisition; while the competition runs (or is not loaded) it never triggers.
+        if (application.CompetitionId is not null)
+            return application.Competition?.Status switch
+            {
+                RecruitmentCompetitionStatus.Finalized => application.Competition.FinalizedAt,
+                RecruitmentCompetitionStatus.Cancelled => application.Competition.CancelledAt,
+                _ => null
+            };
+
         if (requisition is not null
             && requisition.Status is not (RequisitionStatus.Closed or RequisitionStatus.Cancelled))
             return null;

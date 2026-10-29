@@ -15,7 +15,8 @@ public static class RecruitmentWorkflowRules
             legacyHireWithoutOffer: true);
 
     public static bool CanHire(RecruitmentApplication application, bool legacyHireWithoutOffer = false) =>
-        CanHire(application.Status, application.RequisitionId, application.ActiveOfferLetter, legacyHireWithoutOffer);
+        // HCM-031 (J10): a competition application (no requisition until allocation) is never a legacy hire without offer.
+        CanHire(application.Status, application.RequisitionId, application.ActiveOfferLetter, legacyHireWithoutOffer && application.CompetitionId is null);
 
     public static bool CanHire(RecruitmentApplicationStatus status) =>
         CanHire(status, requisitionId: null, activeOffer: null, legacyHireWithoutOffer: true);

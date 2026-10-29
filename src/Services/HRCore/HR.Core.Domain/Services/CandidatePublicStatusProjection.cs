@@ -36,7 +36,22 @@ public sealed record CandidatePublicStatusInput
 
     /// <summary>Zone used for the dates in the Arabic labels (default UTC).</summary>
     public TimeZoneInfo? DisplayZone { get; init; }
+
+    /// <summary>HCM-031 (PLAN-31): set for a competition application (its exam, results, objection and allocation state).</summary>
+    public CandidateCompetitionInput? Competition { get; init; }
 }
+
+/// <summary>
+/// HCM-031 (PLAN-31): competition state of an application as the candidate may see it — no score or rank (those are shown
+/// separately on /careers/my after the results are published).
+/// </summary>
+public sealed record CandidateCompetitionInput(
+    DateTime? ExamAtUtc = null,
+    bool ExamHeld = false,
+    bool ResultsPublished = false,
+    bool ObjectionPending = false,
+    string? AllocatedLineTitle = null,
+    bool NotSuccessful = false);
 
 /// <summary>HCM-030 (B2): one public step of the candidate timeline.</summary>
 public sealed record CandidatePublicTimelineStep(string Code, string LabelAr, bool Reached, DateTime? AtUtc, string? DetailAr);
@@ -78,6 +93,13 @@ public static class CandidatePublicStatusProjection
         public const string OfferClosed = "OfferClosed";
         public const string NotAccepted = "NotAccepted";
         public const string Withdrawn = "Withdrawn";
+        // HCM-031 (PLAN-31): competition states.
+        public const string ExamAdmitted = "ExamAdmitted";
+        public const string ResultsPending = "ResultsPending";
+        public const string ResultsPublished = "ResultsPublished";
+        public const string ObjectionPending = "ObjectionPending";
+        public const string CompetitionAllocated = "CompetitionAllocated";
+        public const string NotSuccessful = "NotSuccessful";
     }
 
     public static class Steps
@@ -117,6 +139,11 @@ public static class CandidatePublicStatusProjection
         string code, label;
         string? detail = null;
         DateTime? deadline = null;
+        if (CompetitionState(input, offerIssued, zone) is { } competitionState)
+        {
+            (code, label, detail, deadline) = competitionState;
+        }
+        else
         switch (input.Status)
         {
             case RecruitmentApplicationStatus.Submitted or RecruitmentApplicationStatus.UnderReview:
@@ -193,6 +220,37 @@ public static class CandidatePublicStatusProjection
             Timeline: BuildTimeline(input, code, label, offerIssued));
     }
 
+    /// <summary>
+    /// HCM-031 (PLAN-31): the competition states (null = the generic state applies — reserve list, offers, hire, withdrawal).
+    /// </summary>
+    private static (string Code, string Label, string? Detail, DateTime? Deadline)? CompetitionState(
+        CandidatePublicStatusInput input, bool offerIssued, TimeZoneInfo zone)
+    {
+        if (input.Competition is not { } competition)
+            return null;
+        if (competition.ObjectionPending)
+            return (Codes.ObjectionPending, "اعتراضك قيد المراجعة", null, null);
+
+        switch (input.Status)
+        {
+            case RecruitmentApplicationStatus.Shortlisted when competition.ResultsPublished:
+                return (Codes.ResultsPublished, "النتائج منشورة — راجع نتيجتك", null, null);
+            case RecruitmentApplicationStatus.Shortlisted when competition.ExamHeld:
+                return (Codes.ResultsPending, "بانتظار النتائج", null, null);
+            case RecruitmentApplicationStatus.Shortlisted:
+                return competition.ExamAtUtc is DateTime examAt
+                    ? (Codes.ExamAdmitted, $"مقبول للاختبار — {FormatDate(examAt, zone)}", $"موعد الامتحان: {FormatDateTime(examAt, zone)}", examAt)
+                    : (Codes.ExamAdmitted, "مقبول للاختبار", null, null);
+            case RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.OfferExtended
+                when !offerIssued && competition.AllocatedLineTitle is { } line:
+                return (Codes.CompetitionAllocated, $"مرشح للتعيين على {line}", null, null);
+            case RecruitmentApplicationStatus.Rejected when competition.NotSuccessful:
+                return (Codes.NotSuccessful, "غير ناجح", null, null);
+            default:
+                return null;
+        }
+    }
+
     private static IReadOnlyList<CandidatePublicTimelineStep> BuildTimeline(
         CandidatePublicStatusInput input,
         string code,
@@ -251,13 +309,17 @@ public static class CandidatePublicStatusProjection
             Reach(Steps.Offer, null);
 
         var isDecision = code is Codes.Accepted or Codes.ReserveListed or Codes.OfferClosed or Codes.NotAccepted
-            or Codes.Withdrawn;
+            or Codes.Withdrawn or Codes.NotSuccessful;
+        // HCM-031: in a competition the "interview" step is the exam and the final evaluation is the results.
+        var competition = input.Competition is not null;
+        if (input.Competition is { ResultsPublished: true })
+            Reach(Steps.FinalEvaluation, null);
         var steps = new List<CandidatePublicTimelineStep>
         {
             Step(Steps.Received, "تم استلام الطلب", reached),
             Step(Steps.Review, "قيد المراجعة", reached),
-            Step(Steps.Interview, "مدعو للمقابلة", reached),
-            Step(Steps.FinalEvaluation, "قيد التقييم النهائي", reached),
+            Step(Steps.Interview, competition ? "الامتحان" : "مدعو للمقابلة", reached),
+            Step(Steps.FinalEvaluation, competition ? "النتائج" : "قيد التقييم النهائي", reached),
             Step(Steps.Offer, "عرض العمل", reached)
         };
         if (reached.ContainsKey(Steps.Appeal))

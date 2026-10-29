@@ -274,13 +274,25 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
     /// </summary>
     public async Task ReevaluateDocumentFlagAsync(RecruitmentApplication app, CancellationToken ct = default)
     {
-        if (app.RequisitionId is not Guid requisitionId)
-            return;
         var tenantId = app.TenantId;
-        var requisition = app.Requisition
-            ?? await db.RecruitmentRequisitions
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
-                .FirstAsync(r => r.Id == requisitionId && r.TenantId == tenantId, ct);
+        string? requiredTypes;
+        if (app.CompetitionId is Guid competitionId && app.RequisitionId is null)
+        {
+            // HCM-031 (PLAN-31): a competition asks for the union of its requisitions' required types.
+            requiredTypes = await Competitions.CompetitionIntakeService.RequiredDocumentTypesAsync(db, tenantId, competitionId, ct);
+        }
+        else if (app.RequisitionId is Guid requisitionId)
+        {
+            var requisition = app.Requisition
+                ?? await db.RecruitmentRequisitions
+                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                    .FirstAsync(r => r.Id == requisitionId && r.TenantId == tenantId, ct);
+            requiredTypes = requisition.RequiredDocumentTypes;
+        }
+        else
+        {
+            return;
+        }
         var saved = await db.CandidateDocuments
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
             .Where(d => d.TenantId == tenantId && d.RecruitmentApplicationId == app.Id)
@@ -289,7 +301,12 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
         var staged = db.CandidateDocuments.Local
             .Where(d => d.RecruitmentApplicationId == app.Id && db.Entry(d).State == EntityState.Added)
             .Select(d => d.DocumentType);
-        ApplyDocumentFlag(app, requisition, saved.Concat(staged));
+        var required = CandidateDocumentTypes.RequiredFor(app.IntakeChannel, requiredTypes);
+        var updated = RecruitmentEligibilityRules.WithRequiredDocuments(app.EligibilityFlags, required, saved.Concat(staged));
+        if (updated == app.EligibilityFlags)
+            return;
+        app.EligibilityFlags = updated;
+        app.EligibilityEvaluatedAt = DateTime.UtcNow;
     }
 
     private async Task<IReadOnlyList<string?>> EmployeeQualificationCodesAsync(Guid employeeId, CancellationToken ct) =>

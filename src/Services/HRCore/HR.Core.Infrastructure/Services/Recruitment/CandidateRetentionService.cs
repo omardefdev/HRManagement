@@ -294,7 +294,7 @@ public sealed class CandidateRetentionService(
         Scope scope, Guid applicationId, CandidateRetentionRunRequest request, Guid? actor, CancellationToken ct)
     {
         await LockPairRowsAsync(scope, applicationId, ct);
-        var application = await Query<RecruitmentApplication>(scope).Include(a => a.Requisition)
+        var application = await Query<RecruitmentApplication>(scope).Include(a => a.Requisition).Include(a => a.Competition)
             .FirstOrDefaultAsync(a => a.Id == applicationId, ct);
         if (application is null)
             return false;
@@ -621,8 +621,12 @@ public sealed class CandidateRetentionService(
         var appeals = Query<RecruitmentAppeal>(scope);
         return Query<RecruitmentApplication>(scope)
             .Where(a => a.HiredEmployeeId == null)
-            .Where(a => (a.RequisitionId == null && a.AppliedAt <= cutoff)
-                || (a.RequisitionId != null
+            // HCM-031 (PLAN-31): competition applications are triggered by the competition's end only.
+            .Where(a => (a.CompetitionId != null
+                    && ((a.Competition!.Status == RecruitmentCompetitionStatus.Finalized && a.Competition.FinalizedAt <= cutoff)
+                        || (a.Competition.Status == RecruitmentCompetitionStatus.Cancelled && a.Competition.CancelledAt <= cutoff)))
+                || (a.CompetitionId == null && a.RequisitionId == null && a.AppliedAt <= cutoff)
+                || (a.CompetitionId == null && a.RequisitionId != null
                     && (a.Requisition!.Status == RequisitionStatus.Closed || a.Requisition.Status == RequisitionStatus.Cancelled)
                     && (a.Requisition.ClosedDate ?? a.Requisition.CancelledAt ?? a.AppliedAt) <= cutoff))
             .Where(a => a.AnonymizedAt == null
