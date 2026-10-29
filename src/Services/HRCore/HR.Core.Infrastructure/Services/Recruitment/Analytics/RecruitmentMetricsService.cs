@@ -782,20 +782,16 @@ public sealed class RecruitmentMetricsService(
         OrgAccessScope scope,
         int page = 1,
         int pageSize = SearchFilterBase.MaxPageSize,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        int maxPageSize = SearchFilterBase.MaxPageSize)
     {
         page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, SearchFilterBase.MaxPageSize);
+        pageSize = Math.Clamp(pageSize, 1, Math.Max(1, maxPageSize));
         var resolved = await ResolveAsync(filter, scope, ct);
         if (resolved is null)
             return new RequisitionTableResult(0, page, pageSize, []);
 
-        var (from, to) = (filter.FromUtc, filter.ToUtc);
-        var requisitions = Requisitions(filter, resolved).Where(r =>
-            (r.Status != RequisitionStatus.Closed && r.Status != RequisitionStatus.Cancelled)
-            || (r.RequestedDate >= from && r.RequestedDate < to)
-            || (r.ClosedDate >= from && r.ClosedDate < to)
-            || (r.CancelledAt >= from && r.CancelledAt < to));
+        var requisitions = ActiveRequisitions(filter, resolved);
         var total = await requisitions.CountAsync(ct);
         var rows = await requisitions
             .OrderBy(r => r.ApprovedDate ?? r.RequestedDate).ThenBy(r => r.RequisitionNumber)
@@ -806,6 +802,30 @@ public sealed class RecruitmentMetricsService(
             .ToListAsync(ct);
         var built = await BuildRequisitionRowsAsync(rows, filter, resolved, scope, ct);
         return new RequisitionTableResult(total, page, pageSize, built);
+    }
+
+    private IQueryable<RecruitmentRequisition> ActiveRequisitions(RecruitmentMetricsFilter filter, ScopeFilter resolved)
+    {
+        var (from, to) = (filter.FromUtc, filter.ToUtc);
+        return Requisitions(filter, resolved).Where(r =>
+            (r.Status != RequisitionStatus.Closed && r.Status != RequisitionStatus.Cancelled)
+            || (r.RequestedDate >= from && r.RequestedDate < to)
+            || (r.ClosedDate >= from && r.ClosedDate < to)
+            || (r.CancelledAt >= from && r.CancelledAt < to));
+    }
+
+    /// <summary>Ids of the requisition table rows (export row cap, <c>ExportQueryLimits</c>); null when out of scope.</summary>
+    public async Task<IQueryable<Guid>?> RequisitionIdsAsync(RecruitmentMetricsFilter filter, OrgAccessScope scope, CancellationToken ct = default)
+    {
+        var resolved = await ResolveAsync(filter, scope, ct);
+        return resolved is null ? null : ActiveRequisitions(filter, resolved).Select(r => r.Id);
+    }
+
+    /// <summary>Ids of the cohort (applications export row cap, <c>ExportQueryLimits</c>); null when out of scope.</summary>
+    public async Task<IQueryable<Guid>?> CohortIdsAsync(RecruitmentMetricsFilter filter, OrgAccessScope scope, CancellationToken ct = default)
+    {
+        var resolved = await ResolveAsync(filter, scope, ct);
+        return resolved is null ? null : CohortQuery(filter, resolved).Select(a => a.Id);
     }
 
     private sealed record RequisitionHeader(

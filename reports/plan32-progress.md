@@ -13,7 +13,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 | P1 | Definitions, pure calculators, decline category | Done | `feat(hcm032): recruitment KPI definitions, calculators and offer decline categories` |
 | P2 | `RecruitmentMetricsService` (read-only, scoped) | Done | `feat(hcm032): recruitment metrics service with org scope and coverage` |
 | P3 | UI | Done | `feat(hcm032): recruitment reports screen with funnel, requisitions and overdue approvals` |
-| P4 | Exports | Not started | |
+| P4 | Exports | Done | `feat(hcm032): recruitment report exports (Excel, PDF, scoped CSV job) without national id` |
 | P5 | Scale | Not started | |
 | P6 | Analytics integration (additive) | Not started | |
 | P7 | Acceptance and regression | Not started | |
@@ -46,6 +46,8 @@ Prompt decisions 1–10 are adopted as written (recorded in Arabic at the top of
 | K14 | **Exports are GET actions** (audited `BulkExport`, bounded) on `RecruitmentReportsController`. The gateway maps every POST under `/ui/hr-core` to `HrCoreWrite`, so a read-only user (executive, branch manager) could not reach a POST export; AC-HCM-32c needs the read-only export. No gateway rule is changed (PLAN-25 deferred). | Additive and keeps generic authorization untouched. |
 | K15 | **No small-cell suppression on the HR.Core screen**: its breakdowns (stage, status, channel, decline category, appeal outcome, workflow step) are not personal attributes; suppression applies to the Dev.Analytics publication (P6). Dates/numbers on the screen and exports go through `RecruitmentReportFormat` (invariant, Gregorian); filter dates are `yyyy-MM-dd` strings parsed invariantly. The org-unit and competition option lists convert ids in memory (SQLite printed upper-case GUIDs). | Decision 7 scope of suppression; culture safety. |
 | K16 | **Overdue approval links** go to the existing screen of the entity (requisition, offer, application, appeal, committee, competition; result version → its competition), else to the workflow instance. | Drill-through without new authorization. |
+| K17 | **Applications CSV job**: template `hrcore.recruitment.applications.csv` (`ExportJobTemplates.HrCoreRecruitmentApplicationsCsv`); the job's `FilterJson` carries the filter, the allowed org units at request time (null = unrestricted) and `IncludeNames` (requester held HrCoreWrite). `EnqueueAsync` no longer replaces a non-employees filter with the employees scope filter. Download re-check (besides the generic same user/tenant/scope hash): names file → the user must still hold HrCoreWrite (`RecruitmentReportAccess`, a role mirror of the policy pinned by a test over every role); unrestricted file → the user must still be unrestricted. The job streams rows in pages of `ChunkSize`. | Prompt P4: names captured in the snapshot and re-checked at download. |
+| K18 | **Exports**: Excel sheets المؤشرات، القمع (with stage time and channels)، طلبات الشاغر (all active requisitions, capped by `ExportQueryLimits`)، الاعتمادات المتأخرة، العروض، الاستئنافات، الشواغر المفتوحة, plus المسابقات for unrestricted users; every sheet starts with the provenance block (report, period, scope, generation time UTC, definitions version, source); numbers are numeric cells, dates `yyyy-MM-dd` text. PDF = the same summary (KPIs, funnel, overdue approvals, vacancy counts) on the official RTL layout. CSV with RFC 4180 CRLF line ends and a formula-injection guard. | REP-001 provenance; culture safety. |
 
 ## P0 maps
 
@@ -117,6 +119,7 @@ Skipped).
 | Phase | Files |
 |-------|-------|
 | P1 | Domain: `Enums/OfferDeclineReasonCategory.cs`, `Services/RecruitmentKpi/{KpiStatistics,FunnelReachRules,TimeToFillRules,ApprovalSlaRules,SmallCellSuppression}.cs`, `Entities/OfferLetter.cs`; Infrastructure: `HRCoreDbContext`, migration + snapshot, `RecruitmentOfferService` (decline category); Web: `OfferLettersController`, `OfferOnBehalfService`, `CandidatePortalController`/`Service`, `CandidatePortalViewModels` (`CandidatePortalDeclineForm`), `DeclineOfferForm`, `Views/OfferLetters/Details.cshtml`, `Views/CandidatePortal/Index.cshtml`; docs `STR_007_KPI_DEFINITIONS.md`, `str-value/kpi-matrix.json`; tests `Hcm032{KpiStatistics,FunnelReachRules,ApprovalSlaRules,DeclineCategory}Tests` |
+| P4 | Web: `Controllers/RecruitmentReportsController.Exports.cs`, `Services/RecruitmentReportDocuments.cs`, `Views/RecruitmentReports/Index.cshtml` (buttons); Infrastructure: `Analytics/{RecruitmentApplicationsCsv,RecruitmentReportAccess}.cs`, `RecruitmentMetricsService` (export id queries, requisition page cap), `ExportJobs/HRCoreExportJobService.cs` (template, payload, download re-check); SharedKernel `ExportJobModels.cs` (template constant); `docs/QUERY_EXPORT_INVENTORY.md` (regenerated); tests `Hcm032ExportTests` |
 | P3 | Web: `Controllers/RecruitmentReportsController.cs`, `ViewModels/RecruitmentReportsViewModels.cs` (filter form, view models, `RecruitmentReportFormat`), `Views/RecruitmentReports/{Index,Requisition}.cshtml`, `wwwroot/js/recruitment-reports.js`, `Views/Shared/_Layout.cshtml` (menu «تقارير التوظيف»); `RecruitmentMetricsModels` (overdue row carries requisition/competition id); tests `Hcm032RecruitmentReportsControllerTests` |
 | P2 | `Infrastructure/Services/Recruitment/Analytics/{RecruitmentMetricsService,RecruitmentMetricsModels}.cs`, `RecruitmentOptions` (`RecruitmentAnalyticsOptions`), `HR.Core.Web/Program.cs` (DI); tests `Hcm032MetricsFixture`, `Hcm032RecruitmentMetricsTests` |
 | P0 | `reports/plan32-baseline.md`, `reports/plan32-progress.md`, `docs/acceptance-plans/PLAN-32-hcm-recruitment-analytics.md`, `docs/acceptance-plans/execution/PLAN-32-AGENT-PROMPT.md` (added as-is) |
@@ -140,6 +143,9 @@ Skipped).
 | P2 | Regression `Hcm032|Hcm02|Hcm03|Reports|Str007|Perf004|Program|Options` | 1059 / 1059 pass |
 | P3 | `Hcm032*` unit tests | 82 / 82 pass |
 | P3 | Regression `Architecture|Ux0|Csp|A11y|Accessib|Bola|Hcm006|Nonce|Authoriz|Reports|Hcm02|Hcm03|Layout|Menu|Nav` | 1167 / 1168 — the failure is `BolaArchitectureTests.Employee_scoped_controller_actions_apply_org_scope_guard` (environment-only baseline list; offenders are HR.Contracts/Payroll, not PLAN-32) |
+| P4 | `Hcm032*` unit tests | 96 / 96 pass |
+| P4 | Regression `Inventory|Perf00|Export|Hcm032|Reports|Hcm02|Hcm03|Pdf` | 1131 / 1132 — the failure is `ArabicPdfGenerationTests.Pdf_arabic_validate_script_passes` (execution policy; the script passes with Bypass) |
+| P4 | `inventory-unbounded-queries.ps1` | regenerated (401 rows, 20 unbounded — none in PLAN-32 code) |
 
 ## Modified existing tests
 
@@ -156,11 +162,17 @@ Skipped).
   work to its own worktree `.claude/worktrees/plan31-acceptance` (branch `fix/plan-31-acceptance-run`) and reverted its
   files here. It uses the **acceptance stack (hrm-acceptance)** for AC-HCM-31 "for the next while"; the images are built
   from `main` (no PLAN-32 code) — relevant for P7. This session commits explicit paths only.
+- 15:xx update from that session: local `main` is now `006ff3a` (AC-HCM-31 live-run fixes: gateway workflow actions for
+  results approval, `AcceptanceCompetitionPatch` cycle fix, `AcHcm31CompetitionTests` waits — our `ReasonCategory` line
+  untouched). The acceptance stack is free and was rebuilt from `main`; `scripts/acceptance-reset.ps1` re-arms it.
+  **Merge `main` into this branch before P7**, and merge this branch into local `main` when PLAN-32 is done (user rule).
+- `ArabicPdfGenerationTests.Pdf_arabic_validate_script_passes` fails here only because the test host's PowerShell
+  execution policy blocks the script; `powershell -ExecutionPolicy Bypass -File scripts/pdf-arabic-validate.ps1` passes
+  (same environment class as the baseline `*Validate_script_passes` entries).
 
 ## Next step
 
-P4 — exports on `RecruitmentReportsController` (GET, K14): `ExportExcel` (ClosedXML sheets المؤشرات، القمع، طلبات الشاغر،
-الاعتمادات المتأخرة، العروض، الاستئنافات، الشواغر المفتوحة + provenance header), `ExportPdf` (QuestPDF official layout),
-`ExportApplicationsCsv` (sync ≤ `MaxExportRows`, else ExportJobs template `hrcore.recruitment.applications.csv` with the
-names flag in the auth snapshot, re-checked at download); buttons on `Index.cshtml`; regenerate `QUERY_EXPORT_INVENTORY.md`;
-`Hcm032ExportTests`.
+P5 — `Hcm032Scale` integration test (Testcontainers PostgreSQL; 50,000 applications, 250,000 events, 2,000 requisitions,
+20,000 offers, 5,000 workflow instances): the `Index` set of metric calls (12-month unrestricted < 3 s, branch < 1.5 s),
+timings to `artifacts/hcm032-perf/`; `EXPLAIN` the hot queries; migration `HCM032_AnalyticsIndexes` only where a
+sequential scan shows; snapshot table only if the budget still fails.

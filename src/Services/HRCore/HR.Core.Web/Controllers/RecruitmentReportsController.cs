@@ -61,7 +61,8 @@ public partial class RecruitmentReportsController(
         (await authorization.AuthorizeAsync(User, HrManagementPolicies.HrCoreWrite)).Succeeded;
 
     internal async Task<RecruitmentReportsViewModel> BuildAsync(
-        RecruitmentMetricsFilter filter, OrgAccessScope scope, int page, CancellationToken ct)
+        RecruitmentMetricsFilter filter, OrgAccessScope scope, int page, CancellationToken ct,
+        int requisitionPageSize = HRManagement.SharedKernel.ViewModels.SearchFilterBase.MaxPageSize)
     {
         // Sequential: one DbContext per request (the service memoises the shared cohort and hire loads).
         var funnel = await metrics.GetFunnelAsync(filter, scope, ct);
@@ -81,7 +82,7 @@ public partial class RecruitmentReportsController(
             Vacancies = await metrics.GetOpenVacanciesAsync(filter, scope, ct),
             Approvals = await metrics.GetApprovalSlaAsync(filter, scope, ct),
             Competitions = await metrics.GetCompetitionsAsync(filter, scope, ct),
-            Requisitions = await metrics.GetRequisitionTableAsync(filter, scope, page, ct: ct),
+            Requisitions = await metrics.GetRequisitionTableAsync(filter, scope, page, requisitionPageSize, ct, maxPageSize: requisitionPageSize),
             OrgUnits = await OrgUnitOptionsAsync(scope, ct),
             CompetitionOptions = scope.IsUnrestricted ? await CompetitionOptionsAsync(ct) : [],
             IsScoped = scope.MustFilter,

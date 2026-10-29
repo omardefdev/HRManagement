@@ -20,7 +20,13 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-2"><i class="fas fa-chart-line" aria-hidden="true"></i> تقارير التوظيف</h1>
+    <div class="btn-group mb-2" role="group" aria-label="تصدير التقرير">
+        <a asp-action="ExportExcel" asp-all-route-data="exportRoute" class="btn btn-sm btn-outline-success"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</a>
+        <a asp-action="ExportPdf" asp-all-route-data="exportRoute" class="btn btn-sm btn-outline-danger"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</a>
+        <a asp-action="ExportApplicationsCsv" asp-all-route-data="exportRoute" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-csv" aria-hidden="true"></i> تفاصيل الطلبات (CSV)</a>
+    </div>
 </div>
+<p class="small text-muted">التصدير مجمّع ولا يتضمن الرقم الوطني. ملف تفاصيل الطلبات يتضمن أسماء المرشحين لمن يملك صلاحية التعديل فقط، وإن تجاوز @HRManagement.SharedKernel.ViewModels.SearchFilterBase.MaxExportRows صفاً يُجدول تصديراً خلفياً.</p>
 
 <form asp-action="Index" method="get" class="card card-body mb-3" aria-label="فلاتر التقرير">
     <div class="row g-2 align-items-end">
