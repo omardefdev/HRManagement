@@ -16,6 +16,7 @@ namespace HRManagement.AcceptanceTests;
 /// ranking precondition of the appeal requisitions (ranking is AC-HCM-26's scope) and for time travel (appeal window).
 /// Flash (TempData) messages are not observable through the gateway, so negatives are asserted on database state.
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm28CommitteeAppealTests
 {
     private const string Ac = "AC-HCM-28";
@@ -39,7 +40,9 @@ public class AcHcm28CommitteeAppealTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("28a-c-d", "AC-HCM-28a/c/d committee votes, COI, decisions, approval, minutes, ranking gate");
-        Skip.If(await Sql($"SELECT COALESCE(\"SubmittedAt\"::text,'') FROM \"SelectionCommitteeSessions\" WHERE \"Id\"='{CommitteeSession}';") != "",
+        AcceptanceGate.RequireData(s.Recorder,
+            await Sql($"SELECT COALESCE(\"SubmittedAt\"::text,'') FROM \"SelectionCommitteeSessions\" WHERE \"Id\"='{CommitteeSession}';") == "",
+            "جلسة اللجنة المهيّأة في بيانات البذر أُرسلت مسبقاً — شغّل scripts/acceptance-reset.ps1 (البذر يُستخدم مرة واحدة)",
             "The seeded committee session was already submitted — run scripts/acceptance-reset.ps1 (seed is single-use).");
         WriteScenarioSteps(s.Recorder, """
             Personas: central-a (HR secretary), br1-mgr (steps 1–2), a-management-approver (step 3).
@@ -150,7 +153,9 @@ public class AcHcm28CommitteeAppealTests
                 $"SELECT COALESCE(string_agg(\"Id\"::text, ',' ORDER BY \"AssessmentScore\" DESC), '') FROM \"RecruitmentApplications\" " +
                 $"WHERE \"RequisitionId\"='{CommitteeRequisition}' AND \"Status\" IN ({AppAssessed},{AppRanked});"))
             .Split(',', StringSplitOptions.RemoveEmptyEntries);
-        Skip.If(candidates.Length == 0, "No Assessed/Ranked candidate left on REQ-2026-A-CMT1 — run scripts/acceptance-reset.ps1.");
+        AcceptanceGate.RequireData(s.Recorder, candidates.Length != 0,
+            "لم يتبقَّ مرشح مُقيَّم أو مُرتَّب على الطلب REQ-2026-A-CMT1 — شغّل scripts/acceptance-reset.ps1",
+            "No Assessed/Ranked candidate left on REQ-2026-A-CMT1 — run scripts/acceptance-reset.ps1.");
 
         await s.Central.PostAsync("28b-create-session", "ui/hr-core/SelectionCommittees/CreateSession",
             $"ui/hr-core/SelectionCommittees?requisitionId={CommitteeRequisition}",
@@ -207,7 +212,9 @@ public class AcHcm28CommitteeAppealTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("28e-f-g-i", "AC-HCM-28e/f/g/i reject → appeal → independent reviewer → explicit outcomes");
-        Skip.If(s.Compliance2 is null, s.Compliance2Missing);
+        AcceptanceGate.RequireData(s.Recorder, s.Compliance2 is not null,
+            "شخصية مسؤول الامتثال الثاني a-compliance-2 غير متاحة (مفقودة من personas.json أو يتعذّر تسجيل دخولها)",
+            s.Compliance2Missing);
         WriteScenarioSteps(s.Recorder, """
             Personas: central-a (HR: rejects, files, assigns), a-compliance (assigned reviewer), a-compliance-2 (not assigned).
             1. A requisition is created, approved and published through the UI; three HR applications; test-only precondition: ranks 1..3.
@@ -446,7 +453,9 @@ public class AcHcm28CommitteeAppealTests
     private static async Task<RankedRequisition> CreateRankedRequisitionAsync(Session s, int rankedCount)
     {
         var positionId = await FindFreeGradedBr1PositionAsync(s.Central);
-        Skip.If(positionId is null, "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
+        AcceptanceGate.RequireData(s.Recorder, positionId is not null,
+            "لم يتبقَّ في الجهة (أ) منصب ممول شاغر مُدرَّج في الفرع الأول دون طلب شاغر يحجبه",
+            "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
         var row = (await Sql($"SELECT COALESCE(\"GradeCode\",'') || '|' || \"OrgUnitId\" FROM \"FundedPositions\" WHERE \"Id\"='{positionId}';")).Split('|');
 
         await s.Central.PostAsync("create-requisition", "ui/hr-core/RecruitmentRequisitions/Create", "ui/hr-core/RecruitmentRequisitions/Create",
@@ -558,7 +567,8 @@ public class AcHcm28CommitteeAppealTests
     private static async Task<GradeBounds> RequireGradeBoundsAsync(Session s, RankedRequisition req)
     {
         var page = await s.Central.GetAsync("payroll-grade-hint", AppDetails(req.Ranked[0]));
-        Skip.If(page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+        AcceptanceGate.RequireData(s.Recorder, !page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+            "تعذّر على HR.Core الوصول إلى خدمة الرواتب للاستعلام عن حدود الدرجة (تكامل الخدمة إلى الخدمة)",
             "HR.Core cannot reach the Payroll grade lookup — see PLAN-27-EXECUTION (S2S secret, payroll.grades.read).");
         var row = await AcceptanceMessagingHelper.QueryAcceptancePostgresTextAsync("payroll_db",
             $"SELECT g.\"MinSalary\"::text || '|' || g.\"MaxSalary\"::text FROM \"PayGrades\" g JOIN \"SalaryScales\" sc ON sc.\"Id\"=g.\"SalaryScaleId\" " +

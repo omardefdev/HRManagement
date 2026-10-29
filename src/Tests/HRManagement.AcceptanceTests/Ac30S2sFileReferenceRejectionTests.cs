@@ -24,7 +24,8 @@ public class Ac30S2sFileReferenceRejectionTests
         form.Add(new ByteArrayContent(pdf) { Headers = { ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf") } },
             "file", "ac30-seed.pdf");
         var uploadResp = await http.PostAsync("api/files", form);
-        Skip.If(uploadResp.StatusCode == HttpStatusCode.NotFound, "File storage not deployed.");
+        AcceptanceGate.RequireData(recorder, uploadResp.StatusCode != HttpStatusCode.NotFound,
+            "خدمة تخزين الملفات غير منشورة", "File storage not deployed.");
         Assert.Equal(HttpStatusCode.Created, uploadResp.StatusCode);
         var uploadBody = await uploadResp.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(uploadBody);

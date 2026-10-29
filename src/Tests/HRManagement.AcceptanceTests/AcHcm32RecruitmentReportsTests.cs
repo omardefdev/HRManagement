@@ -14,6 +14,7 @@ namespace HRManagement.AcceptanceTests;
 /// 37 days), REQ-2026-A-AC32-2 (Aleppo) and REQ-2026-A-AC32-3 (RIF, approval pending since 2026-09-01, past the 48 h SLA).
 /// Reports are read-only GETs: no fixture is changed, so the journey can be repeated.
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm32RecruitmentReportsTests
 {
     private const string Ac = "AC-HCM-32";
@@ -29,7 +30,7 @@ public class AcHcm32RecruitmentReportsTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("32a", "AC-HCM-32a funnel and time-to-fill of REQ-2026-A-AC32-1 equal the hand calculation");
-        await RequireFixturesAsync();
+        await RequireFixturesAsync(s);
         s.Recorder.WriteSteps("""
             32a. central-a opens «تقارير التوظيف» for REQ-2026-A-AC32-1. Expected (hand calculation in AcceptanceRecruitmentReportsPatch):
                  funnel Applied 6 · Screened 4 · Shortlisted 3 · Interviewed 3 · Assessed 3 · Ranked 3 · OfferIssued 2 · OfferAccepted 1 ·
@@ -57,7 +58,7 @@ public class AcHcm32RecruitmentReportsTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("32b", "AC-HCM-32b br1-mgr sees RIF requisitions only; the Aleppo unit and requisition give no data");
-        await RequireFixturesAsync();
+        await RequireFixturesAsync(s);
         s.Recorder.WriteSteps("""
             32b. br1-mgr (RIF scope) opens the report for Aug–Sep 2026: REQ-2026-A-AC32-1 (RIF) is listed, REQ-2026-A-AC32-2 (Aleppo) is not.
                  Negative: the same report filtered on the Aleppo unit shows no data (0 applications, no requisition), and the
@@ -88,7 +89,7 @@ public class AcHcm32RecruitmentReportsTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("32c", "AC-HCM-32c exports: no national id in Excel; read-only CSV without names");
-        await RequireFixturesAsync();
+        await RequireFixturesAsync(s);
         var executive = await PersonaUiAsync(s, "a-executive-reader");
         s.Recorder.WriteSteps("""
             32c. central-a downloads the Excel report (Aug–Sep 2026): no AC-HCM-32 national id (320320000NN), no 9–11 digit run, not
@@ -133,8 +134,10 @@ public class AcHcm32RecruitmentReportsTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("32d", "AC-HCM-32d the approval of REQ-2026-A-AC32-3 (pending since 2026-09-01) is listed as overdue");
-        await RequireFixturesAsync();
-        Skip.If(await Scalar($"SELECT COUNT(*) FROM \"WorkflowInstances\" WHERE \"Id\"='{AcceptanceSeedIds.RecruitmentReportsWorkflowInstanceId:D}' AND \"Status\"='InProgress';") != 1,
+        await RequireFixturesAsync(s);
+        AcceptanceGate.RequireData(s.Recorder,
+            await Scalar($"SELECT COUNT(*) FROM \"WorkflowInstances\" WHERE \"Id\"='{AcceptanceSeedIds.RecruitmentReportsWorkflowInstanceId:D}' AND \"Status\"='InProgress';") == 1,
+            "مثيل الاعتماد الخاص بـ AC-HCM-32d غير مُهيّأ أو اتُّخذ عليه إجراء — شغّل scripts/acceptance-reset.ps1",
             "The AC-HCM-32d approval instance is not seeded or was acted on — run scripts/acceptance-reset.ps1.");
         s.Recorder.WriteSteps("""
             32d. central-a opens the report: «الاعتمادات المتأخرة» lists REQ-2026-A-AC32-3 (RECRUITMENT-REQUISITION-APPROVAL, step 1, waiting
@@ -154,8 +157,10 @@ public class AcHcm32RecruitmentReportsTests
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static async Task RequireFixturesAsync() =>
-        Skip.If(await Scalar("SELECT COUNT(*) FROM \"RecruitmentRequisitions\" WHERE \"RequisitionNumber\" LIKE 'REQ-2026-A-AC32-%';") != 3,
+    private static async Task RequireFixturesAsync(Session s) =>
+        AcceptanceGate.RequireData(s.Recorder,
+            await Scalar("SELECT COUNT(*) FROM \"RecruitmentRequisitions\" WHERE \"RequisitionNumber\" LIKE 'REQ-2026-A-AC32-%';") == 3,
+            "بيانات تهيئة AC-HCM-32 غير مُهيّأة — أعد بناء hr-core-web من هذا الفرع (AcceptanceRecruitmentReportsPatch)",
             "The AC-HCM-32 fixtures are not seeded — rebuild hr-core-web from this branch (AcceptanceRecruitmentReportsPatch).");
 
     /// <summary>The count column of each body row of the table with <paramref name="tableId"/>.</summary>

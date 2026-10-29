@@ -4,6 +4,7 @@ using HRManagement.E2E;
 namespace HRManagement.AcceptanceTests;
 
 /// <summary>AC-HCM-21: Requisition approval UI — workflow panel and SoD via MVC/API.</summary>
+[RequiredAcceptance]
 public class AcHcm21RequisitionApprovalUiTests
 {
     [SkippableFact]
@@ -22,20 +23,14 @@ public class AcHcm21RequisitionApprovalUiTests
         recorder.CaptureHttp("list-pending", "GET", "/ui/hr-core/RecruitmentRequisitions?status=PendingApproval",
             (int)listResp.StatusCode, listBody.Length > 500 ? listBody[..500] : listBody);
 
-        if (listResp.StatusCode != HttpStatusCode.OK)
-        {
-            recorder.WriteResult("Skip", "No pending requisitions list access or empty stack.");
-            return;
-        }
+        AcceptanceGate.RequireData(recorder, listResp.StatusCode == HttpStatusCode.OK,
+            "القائمة غير متاحة أو البيئة فارغة", "No pending requisitions list access or empty stack.");
 
         var detailsHref = ExtractFirstDetailsHref(listBody);
-        if (detailsHref is null)
-        {
-            recorder.WriteResult("Skip", "No pending requisition available for creator SoD check.");
-            return;
-        }
+        AcceptanceGate.RequireData(recorder, detailsHref is not null,
+            "لا يوجد سجل معلق مناسب للفحص", "No pending requisition available for creator SoD check.");
 
-        var detailsResp = await http.GetAsync(detailsHref.TrimStart('/'));
+        var detailsResp = await http.GetAsync(detailsHref!.TrimStart('/'));
         var detailsBody = await detailsResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("creator-details", "GET", detailsHref, (int)detailsResp.StatusCode,
             detailsBody.Length > 800 ? detailsBody[..800] : detailsBody);

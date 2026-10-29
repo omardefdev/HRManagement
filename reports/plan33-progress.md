@@ -9,7 +9,7 @@
 | Phase | Status | Commit |
 |-------|--------|--------|
 | P0 Baseline, inventory, notes | done | (this commit) |
-| P1 Explicit skips, required scenarios, architecture guard | in progress (code written, tests green) | — |
+| P1 Explicit skips, required scenarios, architecture guard | done | (P1 commit) |
 | P2 Deterministic recruitment states | pending | — |
 | P3 AC-HCM-21/22, AC-WF-23 | pending | — |
 | P4 Requisition-to-hire E2E + prod-like | pending | — |
@@ -45,7 +45,10 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 | P0 | `dotnet build HRManagement.slnx` | 0 errors |
 | P0 | unit `Hcm0|Acceptance|E2e|Architecture` | 1191/1192 — known baseline failure `BolaArchitectureTests` |
 | P1 | `AcceptanceGateTests` | 8/8 |
-| P1 | `AcceptanceSkipPatternArchitectureTests` | 6/6 |
+| P1 | `AcceptanceSkipPatternArchitectureTests` | 7/7 (adds raw `Skip.If` rule) |
+| P1 | `AcceptanceGateTests` (+ shared-folder aggregation) | 9/9 |
+| P1 | acceptance project without stack | 23 passed (static), 90 skipped, 0 failed — no live test passes without the stack (AC-HCM-33a) |
+| P1 | same, `ACCEPTANCE_REQUIRE_ALL=true`, filter `AcHcm2|Ac33` | 18 failed (required), 1 skipped (Ac33, not required) — AC-HCM-33b |
 
 ## Open issues
 
@@ -54,4 +57,15 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-Finish P1: convert the 34 raw `Skip.If` data gates in `Ac*` files to `AcceptanceGate.RequireData`, extend the architecture guard, fix the conditional assertion bypasses in Ac12/Ac20/Ac32/AcHcm30c (inventory §B), commit P1.
+Commit P2 (seed patch, constants, `recruitment-states.json`, loader and tests are written and green), then P3.
+
+## P1 notes
+
+- K6: `EvidenceRecorder.ScenarioKey` — several tests share one AC folder; `result.json` now keeps a `scenarios` map and its
+  top-level status is the worst (Fail > Blocked > Pass), so a later Pass can no longer hide an earlier Fail/Blocked
+  (inventory §C). `WriteScenarioSteps` / `WriteScenarioDbChecks` write `steps-<key>.md` / `db-checks-<key>.json`.
+- K7: all 34 raw `Skip.If`/`Skip.IfNot` data gates in `Ac*` files now go through `AcceptanceGate.RequireData` (Blocked
+  evidence + REQUIRE_ALL); the guard forbids raw skips. Conditional assertion bypasses fixed: Ac12 (submit/approve
+  gated, SoD assertions always run), Ac20 (log/cross-db files gated), Ac32 (asset NotFound gated, then 200 asserted),
+  AcHcm30c (File.Storage upload failure → Blocked). AcHcm26h logs in before the second-persona check (recorder needed).
+- `[RequiredAcceptance]` on AcHcm21, 22, 26–32, AcWf23.

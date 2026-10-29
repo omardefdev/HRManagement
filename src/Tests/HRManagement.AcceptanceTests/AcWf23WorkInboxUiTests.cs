@@ -4,6 +4,7 @@ using HRManagement.E2E;
 namespace HRManagement.AcceptanceTests;
 
 /// <summary>AC-WF-23: unified work inbox UI.</summary>
+[RequiredAcceptance]
 public class AcWf23WorkInboxUiTests
 {
     [SkippableFact]

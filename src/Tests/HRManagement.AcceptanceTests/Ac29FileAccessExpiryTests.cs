@@ -31,7 +31,8 @@ public class Ac29FileAccessExpiryTests
         var uploadBody = await uploadResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("http-upload", "POST", "/api/files", (int)uploadResp.StatusCode,
             JsonSerializer.Deserialize<object>(uploadBody));
-        Skip.If(uploadResp.StatusCode == HttpStatusCode.NotFound, "File storage not in acceptance stack.");
+        AcceptanceGate.RequireData(recorder, uploadResp.StatusCode != HttpStatusCode.NotFound,
+            "خدمة تخزين الملفات غير موجودة في بيئة القبول", "File storage not in acceptance stack.");
         Assert.Equal(HttpStatusCode.Created, uploadResp.StatusCode);
 
         using var uploadDoc = JsonDocument.Parse(uploadBody);

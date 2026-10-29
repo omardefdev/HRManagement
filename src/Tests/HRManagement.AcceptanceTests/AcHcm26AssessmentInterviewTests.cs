@@ -15,6 +15,7 @@ namespace HRManagement.AcceptanceTests;
 /// Direct SQL is used only for evidence checks and for two documented test-only preconditions:
 /// moving an interview/closing date into the past (time travel) and inserting an Issued offer (AC-HCM-26h).
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm26AssessmentInterviewTests
 {
     private const string Ac = "AC-HCM-26";
@@ -197,7 +198,9 @@ public class AcHcm26AssessmentInterviewTests
         var reqId = await Sql(
             $"SELECT r.\"Id\" FROM \"RecruitmentRequisitions\" r WHERE r.\"TenantId\"='{TenantA}' AND r.\"Status\"='Published' " +
             "AND EXISTS (SELECT 1 FROM \"RecruitmentApplications\" a WHERE a.\"RequisitionId\"=r.\"Id\" AND a.\"Status\" IN (4,9)) ORDER BY r.\"RequisitionNumber\" LIMIT 1;");
-        Skip.If(string.IsNullOrWhiteSpace(reqId), "No published requisition with an accepted/hired candidate in agency A (acceptance seed pipeline missing).");
+        AcceptanceGate.RequireData(recorder, !string.IsNullOrWhiteSpace(reqId),
+            "لا يوجد في الجهة (أ) طلب شاغر منشور عليه مرشح قبل العرض أو عُيّن (مسار بيانات البذر للقبول مفقود)",
+            "No published requisition with an accepted/hired candidate in agency A (acceptance seed pipeline missing).");
 
         var html = await central.PostAsync("26g-cancel-with-accepted", $"ui/hr-core/RecruitmentRequisitions/Cancel/{reqId}",
             $"ui/hr-core/RecruitmentRequisitions/Details/{reqId}", [new("reason", "محاولة إلغاء رغم وجود مرشح قبل العرض")]);
@@ -212,16 +215,17 @@ public class AcHcm26AssessmentInterviewTests
     public async Task Ac26_h_freeze_cascade_through_establishment_workflow()
     {
         AcceptanceEnv.RequireEnabled();
+        var (recorder, central, br1, approver) = await StartAsync("26h", "AC-HCM-26h freeze cascade");
         // ESTABLISHMENT-CHANGE-APPROVAL is central-only (EstablishmentChangesController requires central write scope) and
         // step 1 needs an hr-core approver other than the creator (SoD). The persona catalog must provide one.
         var secondCentralHrCore = AcceptanceHarness.LoadPersonas().FirstOrDefault(p =>
             p.Id != "central-a" && p.Enabled
             && string.IsNullOrWhiteSpace(p.ScopeOrgUnitId) && p.Roles.Contains("hr-core")
             && p.TenantId == TenantA);
-        Skip.If(secondCentralHrCore is null,
+        AcceptanceGate.RequireData(recorder, secondCentralHrCore is not null,
+            "لا توجد في الجهة (أ) شخصية مركزية ثانية بدور hr-core لاعتماد الخطوة الأولى من ESTABLISHMENT-CHANGE-APPROVAL (فصل المهام عن central-a)",
             "No second central hr-core persona in agency A to approve ESTABLISHMENT-CHANGE-APPROVAL step 1 (SoD with central-a). " +
             "The freeze cascade is covered on PostgreSQL by Hcm026EstablishmentCascadeIntegrationTests.");
-        var (recorder, central, br1, approver) = await StartAsync("26h", "AC-HCM-26h freeze cascade");
         WriteScenarioSteps(recorder, """
             1. Publish two requisitions (positions P1, P2), each with one HR application.
             2. Test-only precondition: insert an Issued offer on P2's application.
@@ -337,7 +341,9 @@ public class AcHcm26AssessmentInterviewTests
         EvidenceRecorder recorder, Ui central, Ui br1, Ui approver)
     {
         var positionId = await FindFreeBr1PositionAsync(central);
-        Skip.If(positionId is null, "No vacant BR1 funded position without a blocking requisition is left in agency A.");
+        AcceptanceGate.RequireData(recorder, positionId is not null,
+            "لم يتبقَّ في الجهة (أ) منصب ممول شاغر في الفرع الأول دون طلب شاغر يحجبه",
+            "No vacant BR1 funded position without a blocking requisition is left in agency A.");
 
         await central.PostAsync("create-requisition", "ui/hr-core/RecruitmentRequisitions/Create",
             "ui/hr-core/RecruitmentRequisitions/Create", CreateRequisitionForm(positionId!));

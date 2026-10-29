@@ -18,6 +18,7 @@ namespace HRManagement.AcceptanceTests;
 /// mutates it; <c>scripts/acceptance-reset.ps1</c> re-arms it). Ids the UI shows only through TempData are read by SQL.
 /// Test-only SQL preconditions are documented at each use. No national id or score reaches a candidate message.
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm31CompetitionTests
 {
     private const string Ac = "AC-HCM-31";
@@ -42,7 +43,9 @@ public class AcHcm31CompetitionTests
         var s = await StartAsync("31a", "AC-HCM-31a competition: lines, attach approved requisitions, approval, announcement");
         var drafts = new[] { AcceptanceSeedIds.CompetitionDraftRequisition1Id, AcceptanceSeedIds.CompetitionDraftRequisition2Id, AcceptanceSeedIds.CompetitionDraftRequisition3Id }
             .Select(id => id.ToString("D")).ToArray();
-        Skip.If(await Scalar($"SELECT COUNT(*) FROM \"RecruitmentRequisitions\" WHERE \"Id\" IN ('{string.Join("','", drafts)}') AND \"Status\"='Approved' AND \"CompetitionLineId\" IS NULL;") != 3,
+        AcceptanceGate.RequireData(s.Recorder,
+            await Scalar($"SELECT COUNT(*) FROM \"RecruitmentRequisitions\" WHERE \"Id\" IN ('{string.Join("','", drafts)}') AND \"Status\"='Approved' AND \"CompetitionLineId\" IS NULL;") == 3,
+            "طلبات الشواغر الخاصة بـ AC-HCM-31a غير مُهيّأة أو مرتبطة مسبقاً بمسابقة — أعد بناء hr-core-web (AcceptanceCompetitionPatch) أو شغّل scripts/acceptance-reset.ps1",
             "The AC-HCM-31a requisitions are not seeded or already attached — rebuild hr-core-web (AcceptanceCompetitionPatch) or run scripts/acceptance-reset.ps1.");
         s.Recorder.WriteSteps("""
             1. central-a creates a competition (legal inputs entered per competition), adds two lines (grade of each line = grade of
@@ -123,7 +126,8 @@ public class AcHcm31CompetitionTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("31b-g", "AC-HCM-31b..g seating → marking → results → objection → allocation → offers → recall");
-        Skip.If(await CompetitionStatusAsync(CompetitionId) != "IntakeClosed",
+        AcceptanceGate.RequireData(s.Recorder, await CompetitionStatusAsync(CompetitionId) == "IntakeClosed",
+            $"المسابقة {AcceptanceSeedIds.CompetitionNumber} ليست في حالة إغلاق التقديم (نقلها تشغيل سابق) — شغّل scripts/acceptance-reset.ps1",
             $"Competition {AcceptanceSeedIds.CompetitionNumber} is not at IntakeClosed (an earlier run moved it on) — run scripts/acceptance-reset.ps1.");
         s.Recorder.WriteSteps("""
             31b. central-a seats the 120 admitted applicants in the two sessions (random 8-digit exam numbers), issues the admission
@@ -240,7 +244,9 @@ public class AcHcm31CompetitionTests
         var objector = AcceptanceSeedIds.CompetitionApplicantId(1).ToString("D");
         var objectorPaper = await Sql($"SELECT \"Id\" || '|' || \"ExamNumber\" || '|' || COALESCE(\"FinalMark\"::text,'') FROM \"ExamCandidates\" WHERE \"RecruitmentApplicationId\"='{objector}';");
         var (paper, examNumber, oldMark) = (objectorPaper.Split('|')[0], objectorPaper.Split('|')[1], objectorPaper.Split('|')[2]);
-        Skip.If(oldMark.Length == 0, "31e: the objecting applicant was marked absent in this run (seating order) — rerun after reset.");
+        AcceptanceGate.RequireData(s.Recorder, oldMark.Length != 0,
+            "31e: سُجّل المتقدم المعترض غائباً في هذا التشغيل (ترتيب المقاعد) — أعد التشغيل بعد إعادة التهيئة",
+            "31e: the objecting applicant was marked absent in this run (seating order) — rerun after reset.");
         var firstPublishedAt = await Sql($"SELECT \"ResultsFirstPublishedAt\"::text FROM \"RecruitmentCompetitions\" WHERE \"Id\"='{CompetitionId}';");
         await s.Central.PostAsync("31e-file", $"ui/hr-core/Competitions/FileObjection/{CompetitionId}", Details(CompetitionId),
             [new("examNumber", examNumber), new("reason", "يطلب المتقدم إعادة تدقيق جمع علامات ورقته (اختبار قبول)")]);
@@ -299,7 +305,8 @@ public class AcHcm31CompetitionTests
             new("proposedStartDate", DateTime.UtcNow.Date.AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
             new("validityDays", "14")
         ]);
-        Skip.If(draftsPage.Contains("تعذّر التحقق من سلم الرواتب", StringComparison.Ordinal),
+        AcceptanceGate.RequireData(s.Recorder, !draftsPage.Contains("تعذّر التحقق من سلم الرواتب", StringComparison.Ordinal),
+            "تعذّر على HR.Core الوصول إلى خدمة الرواتب للاستعلام عن حدود الدرجة",
             "HR.Core cannot reach the Payroll grade lookup (see PLAN-27-EXECUTION).");
         var offers = (await Sql(
                 "SELECT string_agg(o.\"Id\"::text, ',' ORDER BY a.\"Rank\") FROM \"OfferLetters\" o JOIN \"RecruitmentApplications\" a ON a.\"Id\"=o.\"RecruitmentApplicationId\" " +
@@ -319,7 +326,9 @@ public class AcHcm31CompetitionTests
         var (vacatedRequisition, line) = (vacated.Split('|')[0], vacated.Split('|')[1]);
         var firstReserve = await Sql(
             $"SELECT \"RecruitmentApplicationId\" FROM \"CompetitionReserveEntries\" WHERE \"CompetitionLineId\"='{line}' AND \"Status\"='Active' ORDER BY \"LineRank\" LIMIT 1;");
-        Skip.If(!Guid.TryParse(firstReserve, out _), "31g: the declined offer's line has no active reserve in this run.");
+        AcceptanceGate.RequireData(s.Recorder, Guid.TryParse(firstReserve, out _),
+            "31g: لا يوجد احتياطي نشط على سطر العرض المرفوض في هذا التشغيل",
+            "31g: the declined offer's line has no active reserve in this run.");
         await s.Central.PostAsync("31g-decline", $"ui/hr-core/OfferLetters/DeclineOffer/{declined}", OfferDetails(declined),
             [new("id", declined), new("ReasonCategory", "Personal"), new("Reason", "اعتذر المرشح عن الالتحاق (اختبار قبول)")]);
         Assert.Equal(OfferDeclined, (int)await Scalar($"SELECT \"Status\" FROM \"OfferLetters\" WHERE \"Id\"='{declined}';"));

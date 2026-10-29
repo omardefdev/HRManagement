@@ -21,20 +21,14 @@ public class AcEst24EstablishmentWorkflowUiTests
         recorder.CaptureHttp("list-pending-changes", "GET", "/ui/hr-core/EstablishmentChanges?status=PendingApproval",
             (int)listResp.StatusCode, listBody.Length > 500 ? listBody[..500] : listBody);
 
-        if (listResp.StatusCode != HttpStatusCode.OK)
-        {
-            recorder.WriteResult("Skip", "No establishment changes list access or empty stack.");
-            return;
-        }
+        AcceptanceGate.RequireData(recorder, listResp.StatusCode == HttpStatusCode.OK,
+            "القائمة غير متاحة أو البيئة فارغة", "No establishment changes list access or empty stack.");
 
         var detailsHref = ExtractFirstDetailsHref(listBody, "EstablishmentChanges/Details/");
-        if (detailsHref is null)
-        {
-            recorder.WriteResult("Skip", "No pending establishment change available.");
-            return;
-        }
+        AcceptanceGate.RequireData(recorder, detailsHref is not null,
+            "لا يوجد سجل معلق مناسب للفحص", "No pending establishment change available.");
 
-        var detailsResp = await http.GetAsync(detailsHref.TrimStart('/'));
+        var detailsResp = await http.GetAsync(detailsHref!.TrimStart('/'));
         var detailsBody = await detailsResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("establishment-details", "GET", detailsHref, (int)detailsResp.StatusCode,
             detailsBody.Length > 800 ? detailsBody[..800] : detailsBody);
@@ -65,9 +59,10 @@ public class AcEst24EstablishmentWorkflowUiTests
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Contains("صندوق العمل", body, StringComparison.OrdinalIgnoreCase);
 
-        recorder.WriteResult(body.Contains("EstablishmentChanges/Details", StringComparison.OrdinalIgnoreCase)
-            ? "Pass"
-            : "Skip");
+        AcceptanceGate.RequireData(recorder,
+            body.Contains("EstablishmentChanges/Details", StringComparison.OrdinalIgnoreCase),
+            "لا يوجد تغيير ملاك معلق في صندوق العمل", "No pending establishment change deep link in the work inbox.");
+        recorder.WriteResult("Pass");
     }
 
     [SkippableFact]

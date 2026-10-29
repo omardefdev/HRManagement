@@ -19,6 +19,7 @@ namespace HRManagement.AcceptanceTests;
 /// requisition through the UI (as AC-HCM-27..29). Ids and references the UI shows only through TempData are read by SQL.
 /// Test-only SQL preconditions are documented at each use. One-time codes and national ids never reach the evidence.
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm30CandidateExperienceTests
 {
     private const string Ac = "AC-HCM-30";
@@ -66,7 +67,7 @@ public class AcHcm30CandidateExperienceTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("30a-b-h", "AC-HCM-30a/b/h public apply → HR → rejection → portal status → appeal");
-        await RequireCandidateExperienceRequisitionAsync();
+        await RequireCandidateExperienceRequisitionAsync(s);
         WriteScenarioSteps(s, """
             1. AC-30a: a citizen applies on the seeded requisition REQ-2026-A-CX01 through the gateway (/careers/{posting}) with email +
                notification consent (documents: AC-30c) → RecruitmentApplication Submitted at once, IntakeChannel Public, linked to the
@@ -131,7 +132,7 @@ public class AcHcm30CandidateExperienceTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("30c", "AC-HCM-30c CV + certificate → Clean on HR Details; .exe and > 5 MB refused; EICAR quarantined, not downloadable");
-        await RequireCandidateExperienceRequisitionAsync();
+        await RequireCandidateExperienceRequisitionAsync(s);
         WriteScenarioSteps(s, """
             1. AC-30c: an apply with a CV named malware.exe (MZ bytes) → the form is shown again, nothing is saved.
             2. AC-30c: an apply with a 5 MB + 1 byte PDF → refused, nothing is saved.
@@ -163,12 +164,16 @@ public class AcHcm30CandidateExperienceTests
             ("CvFile", "cv.pdf", "application/pdf", CleanPdf),
             ("CertificateFiles", "certificate.pdf", "application/pdf", CleanPdf)
         ]);
-        if (docsApply.FinalPath != "/careers/submitted" && docsApply.Body.Contains(UploadFailedMessage, StringComparison.Ordinal))
+        var documentUploadFailed = docsApply.FinalPath != "/careers/submitted"
+                                   && docsApply.Body.Contains(UploadFailedMessage, StringComparison.Ordinal);
+        if (documentUploadFailed)
         {
             WriteDbChecks(s, new { exeRows = 0, oversizedRows = 0, documentsApply = "upload failed (File.Storage unavailable)" });
             s.Recorder.FlushTiming();
-            Skip.If(true, "File.Storage not in acceptance stack (MinIO image) — the clean/EICAR document steps need it; the .exe and > 5 MB refusals passed.");
         }
+        AcceptanceGate.RequireData(s.Recorder, !documentUploadFailed,
+            "خدمة تخزين الملفات (File.Storage) غير موجودة في بيئة القبول — خطوات المستند السليم وملف EICAR تحتاجها؛ نجح رفض ملف .exe والملف الأكبر من 5 ميغابايت",
+            "File.Storage not in acceptance stack (MinIO image) — the clean/EICAR document steps need it; the .exe and > 5 MB refusals passed.");
         Assert.Equal("/careers/submitted", docsApply.FinalPath);
         var docsRow = await RequireCitizenRowAsync(withDocs);
         var docs = await Sql(
@@ -216,7 +221,7 @@ public class AcHcm30CandidateExperienceTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("30d-e", "AC-HCM-30d/e flags + override reason; interview → one FileDrop message; 30b negative");
-        await RequireCandidateExperienceRequisitionAsync();
+        await RequireCandidateExperienceRequisitionAsync(s);
         WriteScenarioSteps(s, """
             1. AC-30d: a citizen applies with a diploma (DIP < BACH) and 1 year of experience (< 2) → flags BelowMinQualification and
                BelowMinExperience; HR Details shows «دون المؤهل المطلوب»; the application is screened (UnderReview);
@@ -368,7 +373,7 @@ public class AcHcm30CandidateExperienceTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("30f-negative", "AC-HCM-30f (negative) 5 wrong codes → locked; another person's reference + national id → no access");
-        await RequireCandidateExperienceRequisitionAsync();
+        await RequireCandidateExperienceRequisitionAsync(s);
         WriteScenarioSteps(s, """
             1. Two citizens (L and P) apply on REQ-2026-A-CX01.
             2. AC-30f: L requests a code; five wrong codes → «رمز التحقق غير صحيح…» then locked (PortalLockedUntil, audit
@@ -435,7 +440,7 @@ public class AcHcm30CandidateExperienceTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("30h-negative", "AC-HCM-30h (negative) appeal after the window");
-        await RequireCandidateExperienceRequisitionAsync();
+        await RequireCandidateExperienceRequisitionAsync(s);
         WriteScenarioSteps(s, """
             1. A citizen applies; central-a rejects with a note; test-only SQL moves RejectedAt 15 days back (as AC-28g).
             2. AC-30h: /careers/my shows «انتهت مدة الاستئناف» and no «تقديم الاستئناف» button; a POST to /careers/my/appeal is refused
@@ -488,7 +493,9 @@ public class AcHcm30CandidateExperienceTests
 
         var dueApp = AcceptanceSeedIds.CandidateRetentionDueApplicationId.ToString("D");
         var heldApp = AcceptanceSeedIds.CandidateRetentionHeldApplicationId.ToString("D");
-        Skip.If(await Scalar($"SELECT COUNT(*) FROM \"RecruitmentApplications\" WHERE \"Id\" IN ('{dueApp}','{heldApp}');") != 2,
+        AcceptanceGate.RequireData(recorder,
+            await Scalar($"SELECT COUNT(*) FROM \"RecruitmentApplications\" WHERE \"Id\" IN ('{dueApp}','{heldApp}');") == 2,
+            "بيانات تهيئة الاحتفاظ الخاصة بـ AC-HCM-30i غير مُهيّأة — أعد بناء hr-core-web (AcceptanceCandidateExperiencePatch) أو أعد تهيئة البيئة",
             "The AC-HCM-30i retention fixtures are not seeded — rebuild hr-core-web (AcceptanceCandidateExperiencePatch) or reset the stack.");
         var before = await Sql(
             "SELECT string_agg(\"Id\" || ':' || COALESCE(\"AnonymizedAt\"::text,'-'), ',' ORDER BY \"Id\") FROM \"RecruitmentApplications\" " +
@@ -550,13 +557,16 @@ public class AcHcm30CandidateExperienceTests
         var received = AcceptanceSeedIds.CandidateBackfillCitizenReceivedId.ToString("D");
         var underReview = AcceptanceSeedIds.CandidateBackfillCitizenUnderReviewId.ToString("D");
         var internalId = AcceptanceSeedIds.Br1InternalApplicationId.ToString("D");
-        Skip.If(await Scalar($"SELECT COUNT(*) FROM \"CitizenApplications\" WHERE \"Id\" IN ('{received}','{underReview}');") != 2,
+        AcceptanceGate.RequireData(recorder,
+            await Scalar($"SELECT COUNT(*) FROM \"CitizenApplications\" WHERE \"Id\" IN ('{received}','{underReview}');") == 2,
+            "بيانات تهيئة الترحيل الموحّد الخاصة بـ AC-HCM-30j غير مُهيّأة — أعد بناء hr-core-web (AcceptanceCandidateExperiencePatch) أو أعد تهيئة البيئة",
             "The AC-HCM-30j backfill fixtures are not seeded — rebuild hr-core-web (AcceptanceCandidateExperiencePatch) or reset the stack.");
         // The patch never re-arms the fixtures: after one run they stay linked and a rerun would prove nothing.
         var fixturesUnlinked =
             await Scalar($"SELECT COUNT(*) FROM \"CitizenApplications\" WHERE \"Id\" IN ('{received}','{underReview}') AND \"PromotedRecruitmentApplicationId\" IS NULL;") +
             await Scalar($"SELECT COUNT(*) FROM \"InternalApplications\" WHERE \"Id\"='{internalId}' AND \"PromotedRecruitmentApplicationId\" IS NULL;");
-        Skip.If(fixturesUnlinked != 3,
+        AcceptanceGate.RequireData(recorder, fixturesUnlinked == 3,
+            "بيانات تهيئة AC-HCM-30j رُبطت في تشغيل سابق — شغّل scripts/acceptance-reset.ps1 لإعادة تهيئتها",
             "The AC-HCM-30j backfill fixtures were already linked by an earlier run — run scripts/acceptance-reset.ps1 to re-arm them.");
 
         const string unlinkedSql =
@@ -667,8 +677,10 @@ public class AcHcm30CandidateExperienceTests
             yearsOfExperience);
     }
 
-    private static async Task RequireCandidateExperienceRequisitionAsync() =>
-        Skip.If(await Scalar($"SELECT COUNT(*) FROM \"RecruitmentRequisitions\" WHERE \"Id\"='{CxRequisition}' AND \"Status\"='Published';") != 1,
+    private static async Task RequireCandidateExperienceRequisitionAsync(Session s) =>
+        AcceptanceGate.RequireData(s.Recorder,
+            await Scalar($"SELECT COUNT(*) FROM \"RecruitmentRequisitions\" WHERE \"Id\"='{CxRequisition}' AND \"Status\"='Published';") == 1,
+            "طلب الشاغر REQ-2026-A-CX01 الخاص بالخطة 30 غير مُهيّأ أو غير منشور — أعد بناء hr-core-web (AcceptanceCandidateExperiencePatch) أو أعد تهيئة البيئة",
             "The PLAN-30 requisition REQ-2026-A-CX01 is not seeded or not published — rebuild hr-core-web (AcceptanceCandidateExperiencePatch) or reset the stack.");
 
     /// <summary>The citizen row (by national-id hash) and its linked recruitment application; the reference is TempData-only in the UI.</summary>
@@ -820,7 +832,9 @@ public class AcHcm30CandidateExperienceTests
     private static async Task<PublishedRequisition> CreatePublishedRequisitionAsync(Session s, string step)
     {
         var positionId = await FindFreeGradedBr1PositionAsync(s.Central);
-        Skip.If(positionId is null, "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
+        AcceptanceGate.RequireData(s.Recorder, positionId is not null,
+            "لم يتبقَّ في الجهة (أ) منصب ممول شاغر مُدرَّج في الفرع الأول دون طلب شاغر يحجبه",
+            "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
         var grade = await Sql($"SELECT COALESCE(\"GradeCode\",'') FROM \"FundedPositions\" WHERE \"Id\"='{positionId}';");
 
         await s.Central.PostAsync($"{step}-create-requisition", "ui/hr-core/RecruitmentRequisitions/Create", "ui/hr-core/RecruitmentRequisitions/Create",
@@ -855,7 +869,8 @@ public class AcHcm30CandidateExperienceTests
     private static async Task<GradeBounds> RequireGradeBoundsAsync(Session s, PublishedRequisition req, string appId)
     {
         var page = await s.Central.GetAsync("payroll-grade-hint", AppDetails(appId));
-        Skip.If(page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+        AcceptanceGate.RequireData(s.Recorder, !page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+            "تعذّر على HR.Core الوصول إلى خدمة الرواتب للاستعلام عن حدود الدرجة",
             "HR.Core cannot reach the Payroll grade lookup (see PLAN-27-EXECUTION).");
         var row = await AcceptanceMessagingHelper.QueryAcceptancePostgresTextAsync("payroll_db",
             "SELECT g.\"MinSalary\"::text || '|' || g.\"MaxSalary\"::text FROM \"PayGrades\" g JOIN \"SalaryScales\" sc ON sc.\"Id\"=g.\"SalaryScaleId\" " +
@@ -876,7 +891,8 @@ public class AcHcm30CandidateExperienceTests
             new("ProposedStartDate", DateTime.UtcNow.Date.AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
             new("ValidityDays", "14")
         ]);
-        Skip.If(page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+        AcceptanceGate.RequireData(s.Recorder, !page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+            "تعذّر على HR.Core الوصول إلى خدمة الرواتب للاستعلام عن حدود الدرجة",
             "HR.Core cannot reach the Payroll grade lookup (see PLAN-27-EXECUTION).");
         var offerId = await Sql($"SELECT \"Id\" FROM \"OfferLetters\" WHERE \"RecruitmentApplicationId\"='{appId}' ORDER BY \"CreatedAt\" DESC LIMIT 1;");
         Assert.True(Guid.TryParse(offerId, out _), $"{step}: offer was not created for application {appId}.");

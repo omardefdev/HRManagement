@@ -20,6 +20,7 @@ namespace HRManagement.AcceptanceTests;
 /// at each use: ranks (AC-HCM-26's scope), the application national id, the contract signature/commencement needed to
 /// activate, and moving the hire transaction to Executing with the non-PLAN-29 checklist items completed.
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm29HireContractTests
 {
     private const string Ac = "AC-HCM-29";
@@ -220,7 +221,9 @@ public class AcHcm29HireContractTests
         Assert.Contains(reason, await s.Maker.GetAsync("29e-banner", step2));
 
         var temporaryTypeId = await ContractsSql($"SELECT \"Id\"::text FROM \"ContractTypes\" WHERE \"Code\"='{TemporaryType}';");
-        Skip.IfNot(Guid.TryParse(temporaryTypeId, out _), $"Contract type {TemporaryType} is not seeded — reset the acceptance stack (scripts/acceptance-reset.ps1).");
+        AcceptanceGate.RequireData(s.Recorder, Guid.TryParse(temporaryTypeId, out _),
+            $"نوع العقد {TemporaryType} غير مُهيّأ في بيانات البذر — أعد تهيئة بيئة القبول (scripts/acceptance-reset.ps1)",
+            $"Contract type {TemporaryType} is not seeded — reset the acceptance stack (scripts/acceptance-reset.ps1).");
         await s.Maker.PostAsync("29e-create-contract", "ui/hr-contracts/HireWizard/CreatePendingContract", step2,
             [new("transactionId", txnId), new("contractTypeId", temporaryTypeId)]);
         var contract = await ContractsSql(
@@ -312,7 +315,9 @@ public class AcHcm29HireContractTests
     private static async Task<RankedRequisition> CreateRankedRequisitionAsync(Session s, string step, int rankedCount)
     {
         var positionId = await FindFreeGradedBr1PositionAsync(s.Central);
-        Skip.If(positionId is null, "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
+        AcceptanceGate.RequireData(s.Recorder, positionId is not null,
+            "لم يتبقَّ في الجهة (أ) منصب ممول شاغر مُدرَّج في الفرع الأول دون طلب شاغر يحجبه",
+            "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
         var row = await Sql($"SELECT COALESCE(\"GradeCode\",'') || '|' || \"OrgUnitId\" FROM \"FundedPositions\" WHERE \"Id\"='{positionId}';");
         var grade = row.Split('|')[0];
         var orgUnitId = row.Split('|')[1];
@@ -361,7 +366,8 @@ public class AcHcm29HireContractTests
     private static async Task<GradeBounds> RequireGradeBoundsAsync(Session s, RankedRequisition req)
     {
         var page = await s.Central.GetAsync("payroll-grade-hint", $"ui/hr-core/RecruitmentApplications/Details/{req.Ranked[0]}");
-        Skip.If(page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+        AcceptanceGate.RequireData(s.Recorder, !page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+            "تعذّر على HR.Core الوصول إلى خدمة الرواتب للاستعلام عن حدود الدرجة",
             "HR.Core cannot reach the Payroll grade lookup (see PLAN-27-EXECUTION).");
         var row = await PayrollSql(
             "SELECT g.\"MinSalary\"::text || '|' || g.\"MaxSalary\"::text FROM \"PayGrades\" g JOIN \"SalaryScales\" sc ON sc.\"Id\"=g.\"SalaryScaleId\" " +

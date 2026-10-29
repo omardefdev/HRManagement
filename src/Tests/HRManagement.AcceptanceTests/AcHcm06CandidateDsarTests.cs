@@ -32,7 +32,8 @@ public class AcHcm06CandidateDsarTests
         var createBody = await createResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("http-create-candidate-dsar", "POST", "/api/compliance/api/dsar",
             (int)createResp.StatusCode, JsonSerializer.Deserialize<object>(createBody));
-        Skip.If(createResp.StatusCode == HttpStatusCode.NotFound,
+        AcceptanceGate.RequireData(recorder, createResp.StatusCode != HttpStatusCode.NotFound,
+            "خدمة الامتثال غير منشورة في بيئة القبول",
             "Compliance service not deployed in acceptance stack.");
 
         Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
@@ -47,7 +48,8 @@ public class AcHcm06CandidateDsarTests
         var fulfillBody = await fulfillResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("http-fulfill", "POST", $"/api/compliance/api/dsar/{dsarId:D}/fulfill",
             (int)fulfillResp.StatusCode, JsonSerializer.Deserialize<object>(fulfillBody));
-        Skip.If(fulfillResp.StatusCode == HttpStatusCode.BadRequest,
+        AcceptanceGate.RequireData(recorder, fulfillResp.StatusCode != HttpStatusCode.BadRequest,
+            "مصدر بيانات المرشح في خدمة HR.Core لطلبات الوصول غير متاح في بيئة القبول",
             "HR.Core candidate DSAR source unavailable in acceptance stack.");
         Assert.Equal(HttpStatusCode.OK, fulfillResp.StatusCode);
 
