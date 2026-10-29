@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/ui/hr-core/RecruitmentApplications",
   "statusCode": 403,
-  "capturedAtUtc": "2026-10-29T11:55:50.6726751Z",
+  "capturedAtUtc": "2026-10-29T16:12:39.0994342Z",
   "body": {
     "length": 40,
     "head": "Forb"

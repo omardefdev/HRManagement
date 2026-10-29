@@ -288,7 +288,7 @@ public class AcHcm29HireContractTests
         var maker = AcceptanceHarness.RequirePersona("a-contracts-maker");
         var checker = AcceptanceHarness.RequirePersona("a-contracts-checker");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         recorder.WriteMetadata(scenario, $"{central.Id}+{br1.Id}+{approver.Id}+{maker.Id}+{checker.Id}");
         return new Session(
             recorder,

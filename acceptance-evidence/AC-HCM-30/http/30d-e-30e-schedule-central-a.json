@@ -3,18 +3,18 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/ScheduleInterview",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T03:58:50.8853880Z",
+  "capturedAtUtc": "2026-10-29T16:04:01.7077820Z",
   "body": {
     "fields": [
-      "ApplicationId=2f267d28-0c64-4f44-a2c7-3ae9ee28faa0",
-      "ScheduledAt=2026-10-31T03:58",
+      "ApplicationId=3dff166b-065e-4651-bbaa-fa30e958779f",
+      "ScheduledAt=2026-10-31T16:04",
       "Mode=InPerson",
       "Location=\u0642\u0627\u0639\u0629 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0627\u062A",
       "PanelEmployeeIds=a0000001-0000-4000-8000-000000000201",
       "PanelNotes=AC-HCM-30"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentApplications/Details/2f267d28-0c64-4f44-a2c7-3ae9ee28faa0#interviews",
-    "final": "/ui/hr-core/RecruitmentApplications/Details/2f267d28-0c64-4f44-a2c7-3ae9ee28faa0"
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/3dff166b-065e-4651-bbaa-fa30e958779f#interviews",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/3dff166b-065e-4651-bbaa-fa30e958779f"
   }
 }

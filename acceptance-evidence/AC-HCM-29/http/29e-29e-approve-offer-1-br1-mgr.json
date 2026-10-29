@@ -1,16 +1,16 @@
 {
   "step": "29e-29e-approve-offer-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/fab009c7-200f-4dd0-bbe4-964586995a21",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/44eca760-1f9f-4d6b-9b5c-468bd468def8",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T17:31:40.3806960Z",
+  "capturedAtUtc": "2026-10-29T16:02:41.4290666Z",
   "body": {
     "fields": [
-      "OfferId=fab009c7-200f-4dd0-bbe4-964586995a21",
+      "OfferId=44eca760-1f9f-4d6b-9b5c-468bd468def8",
       "Comments=AC-HCM-29 step 1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/fab009c7-200f-4dd0-bbe4-964586995a21",
-    "final": "/ui/hr-core/OfferLetters/Details/fab009c7-200f-4dd0-bbe4-964586995a21"
+    "redirect": "/ui/hr-core/OfferLetters/Details/44eca760-1f9f-4d6b-9b5c-468bd468def8",
+    "final": "/ui/hr-core/OfferLetters/Details/44eca760-1f9f-4d6b-9b5c-468bd468def8"
   }
 }

@@ -1,95 +1,61 @@
-- **AC-36**: Pass — Run acceptance-pdf-arabic.ps1 for sample PDFs (`9d02ff78-aacf-4b8b-bca6-5d99e3dcef33`)
-- **AC-04**: Pass (`21c7348a-cf70-4b50-948b-062d6b89e32e`)
-- **AC-01**: Pass (`df28bb41-298a-48d2-8fac-bf0221d44f2a`)
-- **AC-04**: Pass (`6e7fe246-1852-4326-b96c-c9fe148abc9d`)
-- **AC-01**: Pass (`863d4cb6-4f4f-456e-a18a-574f82e96096`)
-- **AC-01**: Pass (`9d19e3db-cc38-449e-b179-ad8477547608`)
-- **AC-04**: Pass (`3c323d5b-99ea-429f-a5ac-3314b36b68bf`)
-- **AC-01**: Pass (`b3736061-e959-4a96-b87c-2233527b269f`)
-- **AC-05**: Pass (`eda1d1d7-eb95-4772-ba61-b3b74182131c`)
-- **AC-04**: Pass (`dd97b565-0edf-4dcf-8ab2-bff975c51bae`)
-- **AC-01**: Pass (`6a971083-8f4f-45cc-8fb2-92935993880b`)
-- **AC-05**: Pass (`b2d29898-6731-4b7a-a5ce-8c7d73b41bcc`)
-- **AC-04**: Pass (`2f0b4129-ae3f-431e-a8e5-8e1298003707`)
-- **AC-03**: Pass (`e6885327-88cf-4429-ab1d-0a9c56f8e047`)
-- **AC-01**: Pass (`33babfda-a1f7-4cd0-a8a7-30b573a9d2dc`)
-- **AC-05**: Pass (`259ea5de-ca3c-4642-a7b1-6c320a6f7020`)
-- **AC-03**: Pass (`1eb8b63e-d689-4428-bc56-e9076cf61666`)
-- **AC-04**: Pass (`899b81ee-1f14-466b-a23e-c74027950bcb`)
-- **AC-01**: Pass (`03eaa20b-d31e-45ee-b71d-ad506165913a`)
-- **AC-02**: Pass (`61caaaa6-323b-48e2-bf1d-015f4d628c02`)
-- **AC-05**: Pass (`2520754e-996a-4186-ac37-cf9c5169f9bd`)
-- **AC-04**: Pass (`d523484c-6621-4966-93b3-1db26256b00a`)
-- **AC-02**: Pass (`cd60464c-49e2-43f2-8da3-f1791aa025fd`)
-- **AC-01**: Pass (`c7dba097-c055-4224-ac12-1a89de51cc72`)
-- **AC-03**: Pass (`272958eb-6589-4b57-922f-2517f63a5145`)
-- **AC-05**: Pass (`670589c1-1b7e-45e5-a942-97ffeaf7dcd5-negative`)
-- **AC-05**: Pass (`c1742d9b-0da1-4711-aa87-d765b1703a0f`)
-- **AC-EST-12**: Pass (`7b77d570-4750-48eb-9b51-59854020ac50`)
-- **AC-EST-12**: Pass (`04faaa55-923f-426d-affe-08aea12fe732`)
-- **AC-EST-10**: Pass (`932e4633-78b3-4629-ba9e-af55f618a607`)
-- **AC-EST-11**: Pass (`cd699944-9a8d-4fdf-ada6-67905047cb2b`)
-- **AC-HCM-26**: Pass (`f1e72e8a-2935-4175-996e-89ea4f4c49cb`)
-- **AC-HCM-26**: Pass (`943cfca2-0640-4d89-a85f-7cc6beead5fd`)
-- **AC-HCM-26**: Pass (`c6cb94a3-596b-4536-a4ae-2e6f375d3f60`)
-- **AC-HCM-26**: Pass (`abda0b5b-1cb4-4c69-87fd-d64a476db3d5`)
-- **AC-HCM-27**: Pass (`8c3afdf4-377f-407c-adca-37bd91611da7`)
-- **AC-HCM-27**: Pass (`22eecf9d-560c-4978-809a-0fe53b1df384`)
-- **AC-HCM-27**: Pass (`7c18fdf5-f7cd-4c5d-abfd-c1062d6a4477`)
-- **AC-HCM-27**: Pass (`e9dd0e44-09f8-4368-9434-628be2dce0f7`)
-- **AC-HCM-28**: Pass (`c26d9b91-7733-4eca-b9d3-f48af228aaea`)
-- **AC-HCM-28**: Pass (`369935cc-7f3d-49e1-ae99-e0f50e40b9e5`)
-- **AC-HCM-28**: Pass (`6227ff1c-28f9-4506-832e-121e230b233d`)
-- **AC-HCM-28**: Pass (`5e34d649-67d3-4c00-9d63-ddcb10230b1e`)
-- **AC-HCM-29**: Pass (`f062fa35-5dd0-4ff5-926d-f5840e9c10ea`)
-- **AC-HCM-29**: Pass (`64b049a3-adac-479b-a142-fe76ab6a553f`)
-- **AC-HCM-29**: Pass (`2b281986-8843-445a-a163-16e971b62896`)
-- **AC-HCM-30**: Pass (`12739b0b-0f48-4824-9e42-56bc5d9610a0`)
-- **AC-HCM-30**: Pass (`8b140af2-5028-4ab0-8491-283c21515a28`)
-- **AC-HCM-30**: Pass (`c1152c51-527d-4d10-8dc4-0762b8457783`)
-- **AC-HCM-30**: Pass (`94e960c0-037e-489b-89d7-1d0607e7e1eb`)
-- **AC-HCM-30**: Pass (`b05424d3-42cb-4f69-bceb-a384b63a1fd3`)
-- **AC-HCM-30**: Pass (`e7ebfd7b-cc9c-4c7a-afea-bb7b155f1a08`)
-- **AC-HCM-30**: Pass (`4fe865fa-2780-47f2-bed5-8dc470f6c2ef`)
-- **AC-HCM-30**: Pass (`195cf63f-d31e-47d0-89aa-70c1e24deedf`)
-- **AC-HCM-31**: Pass (`a56cc6dc-ab8d-4fe0-88a5-b770a88d83bc`)
-- **AC-HCM-31**: Pass (`28b9c684-0fae-4de9-8b2d-6b36bad4e3b4`)
-- **AC-HCM-31**: Pass (`2fe7489e-8e93-4989-891b-36c3cce390d8`)
-- **AC-HCM-32**: Pass (`81bc8a56-36a1-415c-b59a-1318a123d1d9`)
-- **AC-HCM-32**: Pass (`ef562d33-9988-467c-984a-c0ba10654f51`)
-- **AC-HCM-32**: Pass (`fa075aa2-7026-4a0d-b803-8a175aae3fc8`)
-- **AC-HCM-32**: Pass (`c19c5a2d-f845-46b2-b1a3-cff29d86135d`)
-- **AC-HCM-32**: Pass (`450952f4-8dc1-4e35-b66e-ef92b48d333d`)
-- **AC-HCM-32**: Pass (`40378a43-701c-4e12-bc12-890e80784b76`)
-- **AC-HCM-32**: Pass (`e61169ba-9688-40ea-beb6-2c85bfd39075`)
-- **AC-HCM-32**: Pass (`f32658af-fc00-4cf3-a2e2-b55e2a681b5b`)
-- **AC-HCM-21** (21b): Pass (`01c363b0-1699-4d72-a430-0f14653de102`)
-- **AC-WF-23** (23b): Pass (`2b921dac-9cf7-4775-8ee3-6ec127ced4c0`)
-- **AC-WF-23** (23d): Pass (`b0e7ea73-d27f-4ec5-ace8-14e90d8b2a29`)
-- **AC-WF-23** (23c): Pass (`0213842e-e3bb-400e-902b-d289b58447cc`)
-- **AC-WF-23** (23e): Pass (`ae85441a-8130-47aa-a7dc-71cd2667a74e`)
-- **AC-WF-23** (23f): Pass (`775e9cf4-911d-4d20-a6b5-5f2292ad960d`)
-- **AC-WF-23** (23a): Pass (`16a92f63-9cc9-4c09-b849-c3e992b0696b`)
-- **AC-HCM-22** (22b): Pass (`9464fa4a-8f87-44fc-91f7-1c02e72c2bbe`)
-- **AC-HCM-22** (22d): Pass (`ffd85a86-84a9-4bca-8d51-31fbeaeb8150`)
-- **AC-HCM-21** (21c): Pass (`d4c99a21-5213-4dcc-8cee-0b5389511501`)
-- **AC-HCM-21** (21a): Pass (`1c53cfb4-7104-47b9-ba7e-6e2884ccebf7`)
-- **AC-HCM-21** (21d): Pass (`8abb9b38-7729-4242-bd71-0b93b8a58a85`)
-- **AC-HCM-22** (22c): Pass (`65631f04-219f-4534-a344-bdd6a3006b01`)
-- **AC-HCM-22** (22a): Pass (`c7638237-aa37-4da5-be88-03bc82cca4f1`)
-- **AC-HCM-22** (22e): Pass (`e7b0e3a1-4197-4dae-af96-67f28e609e72`)
-- **AC-WF-23** (23b): Pass (`f8a999b3-edbf-4449-ad60-4d0e26ae016d`)
-- **AC-WF-23** (23d): Pass (`fb47f470-78f1-4ac1-979f-08caf063fd39`)
-- **AC-WF-23** (23c): Pass (`022bc3ba-3ae7-4148-af7a-dddfddbb0827`)
-- **AC-WF-23** (23e): Pass (`94952759-3751-4dcb-a5a9-4720677548c3`)
-- **AC-WF-23** (23f): Pass (`bbe59e8d-5eb1-4640-a1a1-668736325fea`)
-- **AC-WF-23** (23a): Pass (`6186ace5-f16f-4e2b-9f82-33e2c00f022e`)
-- **AC-HCM-21** (21b): Pass (`d1e70293-49d0-4a96-9cb0-9b6674c6f748`)
-- **AC-HCM-21** (21c): Pass (`230b5772-6cb1-4145-97aa-ac6f9bb40f8f`)
-- **AC-HCM-21** (21a): Pass (`1156a31d-21c1-42ae-af3b-8a6979b02100`)
-- **AC-HCM-21** (21d): Pass (`af3e3e93-529a-4b0b-947f-b2e400ee94bf`)
-- **AC-HCM-22** (22d): Pass (`f5a9ac1f-2e99-465c-a2d1-822dc8932479`)
-- **AC-HCM-22** (22c): Pass (`348f00b6-41c5-47aa-81ab-2ebe8a579fa7`)
-- **AC-HCM-22** (22a): Pass (`b5dc2fe6-3232-4819-b409-bad7c0312440`)
-- **AC-HCM-22** (22b): Pass (`e7c686d9-031c-465f-a130-a6c2a2da0da2`)
-- **AC-HCM-22** (22e): Pass (`dd0abc48-ff7a-4fb4-bcc1-635f6f9cb8a6`)
+﻿# Acceptance evidence summary (AC-01..AC-37)
+
+Generated: 2026-10-29 16:18:26 UTC
+
+| AC | Status | Contract | Missing |
+|----|--------|----------|---------|
+| AC-01 | Pass | complete | - |
+| AC-02 | Pass | incomplete | steps.md, before.json, audit.json |
+| AC-03 | Pass | incomplete | steps.md, before.json, after.json |
+| AC-04 | Pass | incomplete | steps.md, before.json, after.json, audit.json |
+| AC-05 | Pass | incomplete | steps.md, before.json, after.json |
+| AC-16 | NoResult | incomplete | metadata.json, steps.md, before.json, after.json, audit.json, timing.json, result.json |
+| AC-22 | NoResult | incomplete | metadata.json, steps.md, before.json, after.json, audit.json, db-checks.json, timing.json, result.json |
+| AC-28 | NoResult | incomplete | metadata.json, steps.md, before.json, after.json, audit.json, db-checks.json, timing.json, result.json |
+| AC-30 | NoResult | incomplete | metadata.json, steps.md, after.json, audit.json, db-checks.json, timing.json, result.json |
+| AC-34 | Pass (Script contract verified; run pwsh scripts/acceptance-backup-restore.ps1 for live RTO) | incomplete | steps.md, before.json, after.json, audit.json |
+| AC-36 | Pass (Run acceptance-pdf-arabic.ps1 for sample PDFs) | incomplete | steps.md, before.json, after.json, audit.json |
+| AC-37 | NoResult | incomplete | steps.md, before.json, after.json, audit.json, db-checks.json, timing.json, result.json |
+| AC-EST-10 | Pass | complete | - |
+| AC-EST-11 | Pass | complete | - |
+| AC-EST-12 | Pass | complete | - |
+| AC-HCM-21 | Pass | complete | - |
+| AC-HCM-22 | Pass | complete | - |
+| AC-HCM-26 | Blocked (26h: Blocked — No second central hr-core persona in agency A to approve ESTABLISHMENT-CHANGE-APPROVAL step 1 (SoD with central-a). The freeze cascade is covered on PostgreSQL by Hcm026EstablishmentCascadeIntegrationTests. — لا توجد في الجهة (أ) شخصية مركزية ثانية بدور hr-core لاعتماد الخطوة الأولى من ESTABLISHMENT-CHANGE-APPROVAL (فصل المهام عن central-a)) | complete | - |
+| AC-HCM-27 | Pass | complete | - |
+| AC-HCM-28 | Pass | complete | - |
+| AC-HCM-29 | Pass | complete | - |
+| AC-HCM-30 | Pass | complete | - |
+| AC-HCM-31 | Pass | complete | - |
+| AC-HCM-32 | Pass | complete | - |
+| AC-HCM-33 | Pass | complete | - |
+| AC-WF-23 | Pass | complete | - |
+
+## Not yet executed
+- AC-06
+- AC-07
+- AC-08
+- AC-09
+- AC-10
+- AC-11
+- AC-12
+- AC-13
+- AC-14
+- AC-15
+- AC-17
+- AC-18
+- AC-19
+- AC-20
+- AC-21
+- AC-23
+- AC-24
+- AC-25
+- AC-26
+- AC-27
+- AC-29
+- AC-31
+- AC-32
+- AC-33
+- AC-35
+
+**Totals:** 20 Pass, 1 Deferred/Blocked, 0 Fail, 25 not run.

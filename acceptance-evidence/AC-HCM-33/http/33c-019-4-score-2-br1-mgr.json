@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/SubmitScores",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T15:26:16.1073886Z",
+  "capturedAtUtc": "2026-10-29T16:18:11.9274716Z",
   "body": {
     "fields": [
-      "ApplicationId=85a6cbe2-b355-4bfc-81f2-84888674edb0",
+      "ApplicationId=98aaf092-d7a2-4145-b47a-2d2a034ce2b0",
       "Scores[interview]=60",
       "Scores[exam]=50",
       "Scores[experience]=70",
@@ -15,6 +15,6 @@
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentApplications/Details/85a6cbe2-b355-4bfc-81f2-84888674edb0"
+    "final": "/ui/hr-core/RecruitmentApplications/Details/98aaf092-d7a2-4145-b47a-2d2a034ce2b0"
   }
 }

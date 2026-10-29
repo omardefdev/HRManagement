@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/AddMember",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T11:59:51.4098305Z",
+  "capturedAtUtc": "2026-10-29T16:12:05.4477426Z",
   "body": {
     "fields": [
       "sessionId=a0000001-0000-4000-8000-000000000511",
-      "employeeId=00473c33-2438-d141-b2ab-3e6caf82b84a",
+      "employeeId=01c8af60-68b1-2548-9362-59f92e014e81",
       "role=Member",
       "hasConflictOfInterest=false"
     ],

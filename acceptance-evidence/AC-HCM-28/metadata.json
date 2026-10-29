@@ -1,12 +1,12 @@
 {
-  "scenario": "AC-HCM-28b duplicate member, creator self-approval",
+  "scenario": "AC-HCM-28h no hire while an appeal is pending",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver\u002Ba-compliance\u002Ba-compliance-2",
-  "correlationId": "5e34d649-67d3-4c00-9d63-ddcb10230b1e",
-  "capturedAtUtc": "2026-10-22T12:03:15.5647632Z",
+  "correlationId": "0b1219df-7db9-4c68-85fa-7a8fad6602a8",
+  "capturedAtUtc": "2026-10-29T16:12:14.2340977Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "271cbb507e78379e97959b4ad7b0548ca7f8548c"
+  "gitSha": "69ad2e3b6303205a382a0de5124d4583cd1a1b81"
 }

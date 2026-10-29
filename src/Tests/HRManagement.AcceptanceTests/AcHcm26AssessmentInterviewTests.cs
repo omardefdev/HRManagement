@@ -310,7 +310,7 @@ public class AcHcm26AssessmentInterviewTests
         var br1Persona = AcceptanceHarness.RequirePersona("br1-mgr");
         var approverPersona = AcceptanceHarness.RequirePersona("a-management-approver");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(centralPersona);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         ScenarioTags.AddOrUpdate(recorder, tag);
         ExpectedFlash.Clear();
         recorder.WriteMetadata(scenario, $"{centralPersona.Id}+{br1Persona.Id}+{approverPersona.Id}");

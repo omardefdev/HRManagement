@@ -1,12 +1,12 @@
 {
-  "scenario": "AC-HCM-27f/g hire \u2192 reserve list \u2192 reserve expiry",
+  "scenario": "AC-HCM-27e offer expiry job",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver\u002Ba-management-approver-2",
-  "correlationId": "e9dd0e44-09f8-4368-9434-628be2dce0f7",
-  "capturedAtUtc": "2026-10-22T06:39:40.0990427Z",
+  "correlationId": "3e48ec6b-7b50-4dab-8809-3a03ff5bb3c7",
+  "capturedAtUtc": "2026-10-29T16:10:11.7892302Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "70f0e537a1f12764da9e8af8a198373e7540cd81"
+  "gitSha": "69ad2e3b6303205a382a0de5124d4583cd1a1b81"
 }

@@ -3,6 +3,6 @@
   "method": "DOCKER",
   "url": "restart hrm-acceptance-hr-core-web-1",
   "statusCode": 0,
-  "capturedAtUtc": "2026-10-21T19:43:07.8240186Z",
+  "capturedAtUtc": "2026-10-29T16:16:23.6354988Z",
   "body": "hrm-acceptance-hr-core-web-1\n"
 }

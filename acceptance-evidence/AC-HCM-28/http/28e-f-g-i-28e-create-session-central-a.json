@@ -3,15 +3,15 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/CreateSession",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T12:03:01.1859652Z",
+  "capturedAtUtc": "2026-10-29T16:11:47.8406631Z",
   "body": {
     "fields": [
-      "requisitionId=09cef017-fe77-4066-b033-aa8409233973",
-      "committeeDate=2026-10-22T12:03",
+      "requisitionId=5689041a-5956-4aa3-a78b-7a12ec80881c",
+      "committeeDate=2026-10-29T16:11",
       "purpose=Ranking"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/90567c99-f87e-4da4-966b-50ef97362464",
-    "final": "/ui/hr-core/SelectionCommittees/Details/90567c99-f87e-4da4-966b-50ef97362464"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/5e7b572d-3ca8-4c81-8807-5b37ea45aa58",
+    "final": "/ui/hr-core/SelectionCommittees/Details/5e7b572d-3ca8-4c81-8807-5b37ea45aa58"
   }
 }

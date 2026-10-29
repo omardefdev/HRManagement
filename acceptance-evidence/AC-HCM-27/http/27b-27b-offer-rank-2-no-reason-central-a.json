@@ -3,21 +3,21 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/CreateOffer",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T06:37:53.7426714Z",
+  "capturedAtUtc": "2026-10-29T16:07:14.9593142Z",
   "body": {
     "fields": [
-      "ApplicationId=fe499f6b-be85-46a0-804e-4182979da2d0",
-      "OfferedSalary=205000",
-      "GradeCode=G9",
-      "ProposedStartDate=2026-11-21",
+      "ApplicationId=c960d28f-a0b1-4ba3-bb32-d8453811b0ed",
+      "OfferedSalary=400000",
+      "GradeCode=G5",
+      "ProposedStartDate=2026-11-28",
       "ValidityDays=14"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentApplications/Details/fe499f6b-be85-46a0-804e-4182979da2d0",
-    "final": "/ui/hr-core/RecruitmentApplications/Details/fe499f6b-be85-46a0-804e-4182979da2d0",
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/c960d28f-a0b1-4ba3-bb32-d8453811b0ed",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/c960d28f-a0b1-4ba3-bb32-d8453811b0ed",
     "alerts": [
       "\u0628\u0646\u0648\u062F \u0645\u0631\u062D\u0644\u0629 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u062A\u064F\u0641\u062A\u062D \u0644\u0644\u062A\u0642\u064A\u064A\u0645 \u0628\u0639\u062F \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u0628\u0646\u062A\u064A\u062C\u0629 \u00AB\u062D\u0636\u0631\u00BB.",
-      "\u062D\u062F\u0648\u062F \u0627\u0644\u062F\u0631\u062C\u0629 G9 \u0641\u064A \u0633\u0644\u0651\u0645 \u0627\u0644\u0631\u0648\u0627\u062A\u0628 \u0627\u0644\u0633\u0627\u0631\u064A: \u003Cstrong\u003E180,000\u2013230,000",
+      "\u062D\u062F\u0648\u062F \u0627\u0644\u062F\u0631\u062C\u0629 G5 \u0641\u064A \u0633\u0644\u0651\u0645 \u0627\u0644\u0631\u0648\u0627\u062A\u0628 \u0627\u0644\u0633\u0627\u0631\u064A: \u003Cstrong\u003E300,000\u2013500,000",
       "\u0627\u0644\u0645\u0631\u0634\u062D \u0644\u064A\u0633 \u0627\u0644\u062A\u0627\u0644\u064A \u0628\u0627\u0644\u062C\u062F\u0627\u0631\u0629 (\u0627\u0644\u0631\u062A\u0628\u0629 \u0627\u0644\u0645\u062A\u0627\u062D\u0629: 1). \u064A\u062A\u0637\u0644\u0628 \u0625\u0635\u062F\u0627\u0631 \u0627\u0644\u0639\u0631\u0636 \u062A\u062C\u0627\u0648\u0632 \u0627\u0644\u062C\u062F\u0627\u0631\u0629 \u0628\u0645\u0628\u0631\u0631 \u0645\u0643\u062A\u0648\u0628 (30 \u062D\u0631\u0641\u0627\u064B \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644) \u0648\u0645\u0633\u0627\u0631 \u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0633\u062A\u062B\u0646\u0627\u0626\u064A \u0645\u0646 \u062B\u0644\u0627\u062B \u062E\u0637\u0648\u0627\u062A."
     ]
   }

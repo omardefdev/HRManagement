@@ -3,15 +3,15 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/SaveLine",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T11:55:41.0254927Z",
+  "capturedAtUtc": "2026-10-29T16:12:30.0651163Z",
   "body": {
     "fields": [
-      "CompetitionId=400a5537-a143-4566-8f9d-2c2f3cb61480",
+      "CompetitionId=6a4873fb-c5d8-48ae-81a9-2b57525f050c",
       "Title=\u0627\u0644\u0633\u0637\u0631 \u0627\u0644\u062B\u0627\u0646\u064A (\u0642\u0628\u0648\u0644)",
       "GradeCode=G3"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/Competitions/Details/400a5537-a143-4566-8f9d-2c2f3cb61480",
-    "final": "/ui/hr-core/Competitions/Details/400a5537-a143-4566-8f9d-2c2f3cb61480"
+    "redirect": "/ui/hr-core/Competitions/Details/6a4873fb-c5d8-48ae-81a9-2b57525f050c",
+    "final": "/ui/hr-core/Competitions/Details/6a4873fb-c5d8-48ae-81a9-2b57525f050c"
   }
 }

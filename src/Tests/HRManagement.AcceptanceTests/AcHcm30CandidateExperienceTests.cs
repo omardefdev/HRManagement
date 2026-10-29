@@ -477,7 +477,7 @@ public class AcHcm30CandidateExperienceTests
         AcceptanceEnv.RequireEnabled();
         var admin = AcceptanceHarness.RequirePersona("a-directory-checker");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(admin);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = "30i" };
         recorder.WriteMetadata("AC-HCM-30i retention apply: due pair anonymized + files released; legal hold untouched", admin.Id);
         var s = new Session(recorder, "30i", null!, null!, null!, new Ui(await CreateClientAsync(admin, correlationId), recorder, admin.Id, "30i"));
         WriteScenarioSteps(s, """
@@ -542,7 +542,7 @@ public class AcHcm30CandidateExperienceTests
         AcceptanceEnv.RequireEnabled();
         var central = AcceptanceHarness.RequirePersona("central-a");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = "30j" };
         recorder.WriteMetadata("AC-HCM-30j unified-intake backfill: dry run, apply, second apply", "operator (scripts/hcm030-backfill-unified-intake.ps1)");
         var s = new Session(recorder, "30j", null!, null!, null!, null);
         WriteScenarioSteps(s, """
@@ -637,7 +637,7 @@ public class AcHcm30CandidateExperienceTests
         var br1 = AcceptanceHarness.RequirePersona("br1-mgr");
         var approver = AcceptanceHarness.RequirePersona("a-management-approver");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         recorder.WriteMetadata(scenario, $"{central.Id}+{br1.Id}+{approver.Id}+citizen (anonymous)");
         return new Session(
             recorder,

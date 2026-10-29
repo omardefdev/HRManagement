@@ -1,7 +1,9 @@
 {
-  "applications": "1:4:,2:3:2026-10-21,3:12:2027-04-22,-:3:",
-  "offers": "-2026-00007:3:false:300000.00-500000.00",
+  "applications": "1:11:",
+  "offers": "-2026-00009:5:false:300000.00-500000.00",
   "workflow": "RECRUITMENT-OFFER-APPROVAL",
-  "requisition": "Closed",
-  "expectedRejections": []
+  "requisition": "Published",
+  "expectedRejections": [
+    "\u0627\u0646\u062A\u0647\u062A \u0635\u0644\u0627\u062D\u064A\u0629 \u0627\u0644\u0639\u0631\u0636 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u0642\u0628\u0648\u0644\u0647."
+  ]
 }

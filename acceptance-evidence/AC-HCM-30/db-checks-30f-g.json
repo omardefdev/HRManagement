@@ -1,12 +1,12 @@
 {
-  "requisition": "53be8846-541b-4759-b5a2-4ac82622bdab",
+  "requisition": "532a0600-5f83-4cea-afc1-7274364e9e19",
   "declined": {
-    "offer": "3e75ef75-52d0-48df-9321-7c676d7a9397",
-    "application": "fffbcdee-3e1e-490f-9bca-fc44d50280a5"
+    "offer": "8314967b-e798-4747-99a2-f48f39d42826",
+    "application": "71575176-839c-4aaa-8c03-ff06bff968ed"
   },
   "accepted": {
-    "offer": "89956f02-b191-4a75-93b2-9c69d4e68fb1",
-    "application": "63504e10-d55d-4d59-8a80-836789b5b282",
+    "offer": "6f2ae8c5-0588-4350-b8f4-e2e53f75abb4",
+    "application": "41e9e25c-8410-4469-ae90-15b48891ac12",
     "autoDrafted": false
   }
 }

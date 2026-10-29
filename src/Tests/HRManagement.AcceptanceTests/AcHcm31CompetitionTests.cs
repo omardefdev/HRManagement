@@ -411,7 +411,7 @@ public class AcHcm31CompetitionTests
         var br1 = AcceptanceHarness.RequirePersona("br1-mgr");
         var approver = AcceptanceHarness.RequirePersona("a-management-approver");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         recorder.WriteMetadata(scenario, $"{central.Id}+{br1.Id}+{approver.Id}+a-compliance+a-exam-marker(-2,-3)+anonymous");
         return new Session(
             recorder,

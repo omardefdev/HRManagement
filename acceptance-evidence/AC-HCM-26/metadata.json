@@ -1,12 +1,12 @@
 {
-  "scenario": "AC-HCM-26i intake close job",
+  "scenario": "AC-HCM-26h freeze cascade",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver",
-  "correlationId": "abda0b5b-1cb4-4c69-87fd-d64a476db3d5",
-  "capturedAtUtc": "2026-10-21T19:42:59.0183800Z",
+  "correlationId": "314993c8-874a-4f6e-b34a-189fe528999f",
+  "capturedAtUtc": "2026-10-29T16:17:37.9960797Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "e9181f0a19fde1ada952c5ff65fa5d48082521b3"
+  "gitSha": "69ad2e3b6303205a382a0de5124d4583cd1a1b81"
 }

@@ -3,22 +3,22 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/ScheduleInterview",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-21T19:42:42.4198309Z",
+  "capturedAtUtc": "2026-10-29T16:15:56.9212509Z",
   "body": {
     "fields": [
-      "ApplicationId=682eb263-5d35-4595-b4c7-0f2f8cc425ab",
-      "ScheduledAt=2026-10-23T19:42",
+      "ApplicationId=39970412-9f5c-410b-be42-b4de54bef784",
+      "ScheduledAt=2026-10-31T16:15",
       "Mode=InPerson",
       "Location=\u0642\u0627\u0639\u0629 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0627\u062A",
       "PanelEmployeeIds=a0000001-0000-4000-8000-000000000201",
       "PanelNotes=AC-HCM-26"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentApplications/Details/682eb263-5d35-4595-b4c7-0f2f8cc425ab#interviews",
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/39970412-9f5c-410b-be42-b4de54bef784#interviews",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentApplications/Details/682eb263-5d35-4595-b4c7-0f2f8cc425ab",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/39970412-9f5c-410b-be42-b4de54bef784",
     "alerts": [
       "\u0628\u0646\u0648\u062F \u0645\u0631\u062D\u0644\u0629 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u062A\u064F\u0641\u062A\u062D \u0644\u0644\u062A\u0642\u064A\u064A\u0645 \u0628\u0639\u062F \u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u0628\u0646\u062A\u064A\u062C\u0629 \u00AB\u062D\u0636\u0631\u00BB."
     ]

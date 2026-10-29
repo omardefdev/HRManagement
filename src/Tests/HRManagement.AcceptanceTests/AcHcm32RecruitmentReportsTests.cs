@@ -204,7 +204,7 @@ public class AcHcm32RecruitmentReportsTests
         var central = AcceptanceHarness.RequirePersona("central-a");
         var br1 = AcceptanceHarness.RequirePersona("br1-mgr");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         recorder.WriteMetadata(scenario, $"{central.Id}+{br1.Id}+a-executive-reader");
         return new Session(recorder, tag, correlationId,
             new Ui(await CreateClientAsync(central, correlationId), recorder, central.Id, tag),

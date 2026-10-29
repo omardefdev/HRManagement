@@ -291,7 +291,7 @@ public class AcHcm27OfferMeritTests
         var approverPersona = AcceptanceHarness.RequirePersona("a-management-approver");
         var approver2Persona = AcceptanceHarness.LoadPersonas().FirstOrDefault(p => p.Id == "a-management-approver-2" && p.Enabled);
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(centralPersona);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         ScenarioTags.AddOrUpdate(recorder, tag);
         ExpectedFlash.Clear();
         recorder.WriteMetadata(scenario, $"{centralPersona.Id}+{br1Persona.Id}+{approverPersona.Id}+{approver2Persona?.Id ?? "-"}");

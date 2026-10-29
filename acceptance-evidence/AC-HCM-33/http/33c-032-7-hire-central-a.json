@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T15:26:24.0822536Z",
+  "capturedAtUtc": "2026-10-29T16:18:17.5627578Z",
   "body": {
     "fields": [
-      "ApplicationId=85a6cbe2-b355-4bfc-81f2-84888674edb0",
+      "ApplicationId=98aaf092-d7a2-4145-b47a-2d2a034ce2b0",
       "Mode=CreateNew",
       "NationalId=***",
       "FirstName=\u0645\u0631\u0634\u062D",

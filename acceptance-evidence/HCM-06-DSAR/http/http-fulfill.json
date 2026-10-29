@@ -1,0 +1,21 @@
+{
+  "step": "http-fulfill",
+  "method": "POST",
+  "url": "/api/compliance/api/dsar/8e9440b8-975f-4ce3-bcbf-b4a30f8594c9/fulfill",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:15:09.1150609Z",
+  "body": {
+    "id": "8e9440b8-975f-4ce3-bcbf-b4a30f8594c9",
+    "tenantId": "a0000001-0000-4000-8000-000000000001",
+    "requestType": 0,
+    "status": 2,
+    "subjectEmployeeId": null,
+    "subjectCitizenApplicationId": null,
+    "subjectNationalIdHash": "b23359b06ab41e7dfea33c2b34d86b44c210e439ee401e63e4832f71e881b7c2",
+    "requestedAt": "2026-10-29T16:15:08.871634Z",
+    "completedAt": "2026-10-29T16:15:09.1073547Z",
+    "notes": "HCM-006 candidate DSAR",
+    "discoveryPackageJson": "{\u0022version\u0022:1,\u0022card\u0022:\u0022PRV-002\u0022,\u0022tenantId\u0022:\u0022a0000001-0000-4000-8000-000000000001\u0022,\u0022subjectEmployeeId\u0022:null,\u0022subjectNationalIdHash\u0022:\u0022b23359b06ab41e7dfea33c2b34d86b44c210e439ee401e63e4832f71e881b7c2\u0022,\u0022subjectCitizenApplicationId\u0022:null,\u0022exportedAtUtc\u0022:\u00222026-10-29T16:15:09.1014575Z\u0022,\u0022exportedByUserId\u0022:\u00224f3f6b85-f085-224a-a16d-bbe4d615674a\u0022,\u0022requesterUserId\u0022:\u00224f3f6b85-f085-224a-a16d-bbe4d615674a\u0022,\u0022packageContentHash\u0022:\u00226344677e2b2740db83c0a315f7049a013853eac2fda5e9fb9222a2eb36c797c8\u0022,\u0022sources\u0022:[{\u0022service\u0022:\u0022HR.Core.Candidate\u0022,\u0022collected\u0022:true,\u0022error\u0022:null}],\u0022fields\u0022:[{\u0022source\u0022:\u0022HR.Core.Candidate\u0022,\u0022name\u0022:\u0022hash\u0022,\u0022value\u0022:\u0022b23359b06ab41e7dfea33c2b34d86b44c210e439ee401e63e4832f71e881b7c2\u0022},{\u0022source\u0022:\u0022HR.Core.Candidate\u0022,\u0022name\u0022:\u0022citizens\u0022,\u0022value\u0022:\u0022[]\u0022},{\u0022source\u0022:\u0022HR.Core.Candidate\u0022,\u0022name\u0022:\u0022recruitments\u0022,\u0022value\u0022:\u0022[{\\u0022id\\u0022:\\u00220839ace5-7304-cc4a-96f1-18d5619b2554\\u0022,\\u0022type\\u0022:\\u0022RecruitmentApplication\\u0022,\\u0022status\\u0022:0,\\u0022appliedAt\\u0022:\\u00222026-06-01T00:00:00Z\\u0022,\\u0022hiredEmployeeId\\u0022:null,\\u0022birthDate\\u0022:null,\\u0022educationLevelCode\\u0022:null,\\u0022specialization\\u0022:null,\\u0022graduationYear\\u0022:null,\\u0022yearsOfExperience\\u0022:null,\\u0022intakeChannel\\u0022:\\u0022HrEntered\\u0022,\\u0022eligibilityFlags\\u0022:null,\\u0022eligibilityEvaluatedAt\\u0022:null,\\u0022documents\\u0022:[],\\u0022notificationLog\\u0022:[],\\u0022offers\\u0022:[],\\u0022otpChallengeCount\\u0022:0,\\u0022otpFailedAttemptCount\\u0022:0}]\u0022},{\u0022source\u0022:\u0022Compliance\u0022,\u0022name\u0022:\u0022requestType\u0022,\u0022value\u0022:\u0022Access\u0022},{\u0022source\u0022:\u0022Compliance\u0022,\u0022name\u0022:\u0022requestedAt\u0022,\u0022value\u0022:\u00222026-10-29T16:15:08.871634Z\u0022},{\u0022source\u0022:\u0022Compliance\u0022,\u0022name\u0022:\u0022subjectNationalIdHash\u0022,\u0022value\u0022:\u0022b23359b06ab41e7dfea33c2b34d86b44c210e439ee401e63e4832f71e881b7c2\u0022}]}",
+    "packageContentHash": "6344677e2b2740db83c0a315f7049a013853eac2fda5e9fb9222a2eb36c797c8"
+  }
+}

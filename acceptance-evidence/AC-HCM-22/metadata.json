@@ -1,12 +1,12 @@
 {
   "scenario": "AC-HCM-22e lab scale: offer submit \u2192 PendingApproval \u002B WorkflowInstanceId",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver",
-  "correlationId": "dd0abc48-ff7a-4fb4-bcc1-635f6f9cb8a6",
-  "capturedAtUtc": "2026-10-29T15:16:18.7335552Z",
+  "correlationId": "34712f76-18d4-4376-83c6-6c5c5a531af7",
+  "capturedAtUtc": "2026-10-29T16:15:39.9137282Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "29670a04e770ce476ff9c5d9467cf4c45fdf588e"
+  "gitSha": "69ad2e3b6303205a382a0de5124d4583cd1a1b81"
 }

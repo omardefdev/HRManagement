@@ -1,11 +1,8 @@
 {
-  "requisitionId": "29fbab2b-29da-47cb-aa28-83e103ad5ae2",
-  "positionId": "d7ddb7e9-18c8-6449-8e02-508a5561d1f3",
+  "requisitionId": "1440ea91-2954-4482-9533-e3d25fcf0e21",
+  "positionId": "a0000001-0000-4000-8000-000000000946",
   "grade": "G5",
   "ranked": [
-    "85b35adb-8b36-46ba-b438-06d385d6d446",
-    "9fd91e5b-5820-47ae-94df-85c78905286f",
-    "0a646614-80c7-4fdc-9c3e-e9835e326575"
-  ],
-  "assessed": "955fa6db-ce8b-404c-b3d9-58327b55dd4a"
+    "98134772-2670-480d-b028-6e07230d3586"
+  ]
 }

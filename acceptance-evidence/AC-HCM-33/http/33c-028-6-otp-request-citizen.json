@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/careers/my/login",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T15:26:20.8142364Z",
+  "capturedAtUtc": "2026-10-29T16:18:15.9071439Z",
   "body": {
     "fields": [
       "ReferenceNumber=-2026-00010",

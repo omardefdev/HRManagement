@@ -408,7 +408,7 @@ public class AcHcm28CommitteeAppealTests
         var compliance = AcceptanceHarness.RequirePersona("a-compliance");
         var compliance2 = AcceptanceHarness.LoadPersonas().FirstOrDefault(p => p.Id == "a-compliance-2" && p.Enabled);
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         ScenarioTags.AddOrUpdate(recorder, tag);
         ExpectedFlash.Clear();
         recorder.WriteMetadata(scenario, $"{central.Id}+{br1.Id}+{approver.Id}+{compliance.Id}+{compliance2?.Id ?? "-"}");

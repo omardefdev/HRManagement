@@ -13,6 +13,14 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# PLAN-33: Windows PowerShell 5.1 prefixes text piped to native commands with a UTF-8 BOM, which kcadm rejects
+# ("Not a valid JSON document - Unexpected character (code 65279)") in sync-keycloak-dev-realm.ps1 (PLAN-30 guide).
+if ($PSVersionTable.PSVersion.Major -lt 6) {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [Console]::InputEncoding = $utf8NoBom
+    [Console]::OutputEncoding = $utf8NoBom
+    $OutputEncoding = $utf8NoBom
+}
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $projectName = "hrm-acceptance"

@@ -3,14 +3,14 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAppeals/Resubmit",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T12:03:11.9393421Z",
+  "capturedAtUtc": "2026-10-29T16:11:57.2498530Z",
   "body": {
     "fields": [
-      "id=9b5b6b50-f6d7-43a9-9304-52e6f84d01c2",
+      "id=a5afc13a-9f0d-4ee5-b2e2-175aebdd90df",
       "additionalInfo=\u0623\u064F\u0631\u0641\u0642 \u0645\u062D\u0636\u0631 \u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629 \u0627\u0644\u0645\u0648\u0642\u0651\u0639 \u0645\u0646 \u0627\u0644\u0644\u062C\u0646\u0629"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/9b5b6b50-f6d7-43a9-9304-52e6f84d01c2",
-    "final": "/ui/hr-core/RecruitmentAppeals/Details/9b5b6b50-f6d7-43a9-9304-52e6f84d01c2"
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/a5afc13a-9f0d-4ee5-b2e2-175aebdd90df",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/a5afc13a-9f0d-4ee5-b2e2-175aebdd90df"
   }
 }

@@ -1,3 +1,17 @@
+## 33a
+
+AC-HCM-33a — acceptance without data shows Skipped, never Passed.
+
+Observed 2026-10-29 (PLAN-33 P1): `dotnet test src/Tests/HRManagement.AcceptanceTests` without RUN_ACCEPTANCE → 23 passed (static, stack-free tests only), 90 skipped, 0 failed: no live scenario passes without the stack. Guarded by AcceptanceSkipPatternArchitectureTests (no WriteResult("Skip"), no result+return, no raw Skip.If, every Ac* method asserts) and AcceptanceGateTests (Blocked written, then Skip).
+
+
+## 33b
+
+AC-HCM-33b — ACCEPTANCE_REQUIRE_ALL=true turns a skipped required scenario into a failure.
+
+Observed: (1) P1, without the stack, filter `AcHcm2|Ac33`: 18 failed (required AcHcm2x scenarios), 1 skipped (Ac33, not required). (2) P6 live run on the clean stack: AC-HCM-26h (required, precondition missing) failed with «Required acceptance scenario blocked (ACCEPTANCE_REQUIRE_ALL=true): No second central hr-core persona…» and recorded Blocked in acceptance-evidence/AC-HCM-26/result.json.
+
+
 ## 33c
 
 Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-approver (step 2), an anonymous citizen.
@@ -14,18 +28,28 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 6. Citizen: OTP sign-in (code read from the FileDrop message); refusal: a wrong code opens no session; accepts on /careers/my.
 7. central-a: hire as a new employee (the citizen's national id).
 8. HR.Contracts: Appointment transaction for the employee and a contract with the offer grade and salary; the X-Correlation-ID of the
-   run is echoed by the gateway on the hire and appears in the HR.Core and HR.Contracts logs (Ac15 pattern).
+   run is echoed by the gateway on the hire, and the gateway audit holds it for the HR.Core hire and the HR.Contracts requests
+   (Ac15 pattern). HR.Contracts does not persist or log the message correlation id (follow-up).
 
 ## Executed
 
-- 15:26:05 1 requisition
-  - after submit: PendingApproval|8da6e3eb-0106-4c03-bd83-7f81d74266cc
-- 15:26:08 2 approval and publication
-- 15:26:09 3 public application
-- 15:26:12 4 selection
+- 16:18:03 1 requisition
+  - after submit: PendingApproval|fb6c0f55-73ab-4ba6-acaf-94190e8f6bc4
+- 16:18:05 2 approval and publication
+- 16:18:06 3 public application
+- 16:18:08 4 selection
   - test-only SQL: interview slot moved one hour into the past (as AC-HCM-26)
-- 15:26:16 5 offer
-- 15:26:20 6 candidate acceptance
-- 15:26:22 7 hire
-- 15:26:24 8 contracts and correlation
-- 15:26:26 done
+- 16:18:12 5 offer
+- 16:18:15 6 candidate acceptance
+- 16:18:16 7 hire
+- 16:18:17 8 contracts and correlation
+- 16:18:19 done
+
+
+## 33d
+
+AC-HCM-33d — evidence folders for AC-HCM-21, 22, 26–33 and AC-WF-23 hold the eight items.
+
+Checked by scripts/hcm033-validate.ps1 (metadata, steps, before, after, audit, db-checks, timing, result + http/*.json) after the P6 run: PASS. AC-HCM-25 does not exist (PLAN-25 deferred).
+
+

@@ -3,15 +3,15 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAppeals/Decide",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T15:15:59.5867436Z",
+  "capturedAtUtc": "2026-10-29T16:15:23.0292108Z",
   "body": {
     "fields": [
-      "id=9f7964cf-4a17-41ab-8ad1-597b59b6fcbc",
+      "id=778d8ad4-24e4-4479-a619-bde4af625c3f",
       "outcome=Upheld",
       "rationale=\u062B\u0628\u062A \u0644\u0644\u0645\u0631\u0627\u062C\u0639 \u0627\u0644\u0645\u0633\u062A\u0642\u0644 \u0623\u0646 \u0642\u0631\u0627\u0631 \u0627\u0644\u0641\u0631\u0632 \u0644\u0645 \u064A\u0631\u0627\u0639\u0650 \u0627\u0644\u0645\u0624\u0647\u0644\u0627\u062A \u0627\u0644\u0645\u0631\u0641\u0642\u0629 \u0628\u0627\u0644\u0637\u0644\u0628"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/9f7964cf-4a17-41ab-8ad1-597b59b6fcbc",
-    "final": "/ui/hr-core/RecruitmentAppeals/Details/9f7964cf-4a17-41ab-8ad1-597b59b6fcbc"
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/778d8ad4-24e4-4479-a619-bde4af625c3f",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/778d8ad4-24e4-4479-a619-bde4af625c3f"
   }
 }

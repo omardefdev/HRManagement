@@ -2,12 +2,12 @@
   "step": "26a-e-create-application-central-a",
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Create",
-  "statusCode": 404,
-  "capturedAtUtc": "2026-10-21T19:42:40.4717211Z",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:15:55.0679233Z",
   "body": {
     "fields": [
-      "ApplicantFullName=\u0645\u0631\u0634\u062D AC26 93c56f6f57",
-      "RequisitionId=147ee51c-aeaa-4c00-b282-e8e70fe392b3",
+      "ApplicantFullName=\u0645\u0631\u0634\u062D AC26 c8fd6afe68",
+      "RequisitionId=f4e49ae9-f586-4d7f-af4f-1a07ed09544d",
       "Notes=AC-HCM-26"
     ],
     "postStatus": 302,

@@ -1,6 +1,20 @@
 {
   "status": "Pass",
   "reason": null,
-  "correlationId": "2fe7489e-8e93-4989-891b-36c3cce390d8",
-  "recordedAtUtc": "2026-10-29T11:59:14.1762245Z"
+  "correlationId": "b91c3094-dd79-47ee-ac78-5378ce41c14e",
+  "recordedAtUtc": "2026-10-29T16:15:06.5713668Z",
+  "scenarios": {
+    "31a": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "7f49e14c-b5c7-442b-a56a-56b4e632dfdf",
+      "recordedAtUtc": "2026-10-29T16:12:33.3819050Z"
+    },
+    "31b-g": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "b91c3094-dd79-47ee-ac78-5378ce41c14e",
+      "recordedAtUtc": "2026-10-29T16:15:06.5713668Z"
+    }
+  }
 }

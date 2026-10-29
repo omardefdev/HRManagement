@@ -12,18 +12,19 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 6. Citizen: OTP sign-in (code read from the FileDrop message); refusal: a wrong code opens no session; accepts on /careers/my.
 7. central-a: hire as a new employee (the citizen's national id).
 8. HR.Contracts: Appointment transaction for the employee and a contract with the offer grade and salary; the X-Correlation-ID of the
-   run is echoed by the gateway on the hire and appears in the HR.Core and HR.Contracts logs (Ac15 pattern).
+   run is echoed by the gateway on the hire, and the gateway audit holds it for the HR.Core hire and the HR.Contracts requests
+   (Ac15 pattern). HR.Contracts does not persist or log the message correlation id (follow-up).
 
 ## Executed
 
-- 15:26:05 1 requisition
-  - after submit: PendingApproval|8da6e3eb-0106-4c03-bd83-7f81d74266cc
-- 15:26:08 2 approval and publication
-- 15:26:09 3 public application
-- 15:26:12 4 selection
+- 16:18:03 1 requisition
+  - after submit: PendingApproval|fb6c0f55-73ab-4ba6-acaf-94190e8f6bc4
+- 16:18:05 2 approval and publication
+- 16:18:06 3 public application
+- 16:18:08 4 selection
   - test-only SQL: interview slot moved one hour into the past (as AC-HCM-26)
-- 15:26:16 5 offer
-- 15:26:20 6 candidate acceptance
-- 15:26:22 7 hire
-- 15:26:24 8 contracts and correlation
-- 15:26:26 done
+- 16:18:12 5 offer
+- 16:18:15 6 candidate acceptance
+- 16:18:16 7 hire
+- 16:18:17 8 contracts and correlation
+- 16:18:19 done

@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-21T19:42:53.9566841Z",
+  "capturedAtUtc": "2026-10-29T16:16:09.3247870Z",
   "body": {
     "fields": [
       "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "FundedPositionId=f3fbc8ec-7f76-bc4c-a584-e18fc9caa358",
+      "FundedPositionId=a0000001-0000-4000-8000-000000000954",
       "JobTitle=\u0648\u0638\u064A\u0641\u0629 AC-HCM-26",
       "JustificationNotes=PLAN-26 acceptance",
       "LegalSourceId=SYR-LAW-50-2004",
@@ -15,11 +15,11 @@
       "PublishingChannel=PublicOnly"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/64652c7e-ad8f-4d64-a914-3845dd6e2ed5",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/fb163a15-cb3d-42f7-bed6-4b8554122d59",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/64652c7e-ad8f-4d64-a914-3845dd6e2ed5",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/fb163a15-cb3d-42f7-bed6-4b8554122d59",
     "alerts": []
   }
 }
