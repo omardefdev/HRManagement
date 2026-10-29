@@ -11,8 +11,8 @@
 | P0 Baseline, inventory, notes | done | (this commit) |
 | P1 Explicit skips, required scenarios, architecture guard | done | `5d4e4d0
 ` |
-| P2 Deterministic recruitment states | done | (P2 commit) |
-| P3 AC-HCM-21/22, AC-WF-23 | pending | — |
+| P2 Deterministic recruitment states | done | `b93ddba` (+ fix `29670a0`) |
+| P3 AC-HCM-21/22, AC-WF-23 | done | (P3 commit) |
 | P4 Requisition-to-hire E2E + prod-like | pending | — |
 | P5 Remove phantom evidence | pending | — |
 | P6 Live acceptance run | pending | — |
@@ -58,30 +58,34 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-P3: rewrite AcHcm21, AcHcm22, AcWf23 on `RecruitmentStates.Load()` ids; runtime flows use `AC33-POOL-*` positions.
+P4: write `RecruitmentToHireJourneyE2ETests` (HTTP through the gateway on the acceptance stack), the prod-like variant, CI wiring; run both live.
 
-## P1 notes
+## P3 notes
 
-- K6: `EvidenceRecorder.ScenarioKey` — several tests share one AC folder; `result.json` now keeps a `scenarios` map and its
-  top-level status is the worst (Fail > Blocked > Pass), so a later Pass can no longer hide an earlier Fail/Blocked
-  (inventory §C). `WriteScenarioSteps` / `WriteScenarioDbChecks` write `steps-<key>.md` / `db-checks-<key>.json`.
-- K7: all 34 raw `Skip.If`/`Skip.IfNot` data gates in `Ac*` files now go through `AcceptanceGate.RequireData` (Blocked
-  evidence + REQUIRE_ALL); the guard forbids raw skips. Conditional assertion bypasses fixed: Ac12 (submit/approve
-  gated, SoD assertions always run), Ac20 (log/cross-db files gated), Ac32 (asset NotFound gated, then 200 asserted),
-  AcHcm30c (File.Storage upload failure → Blocked). AcHcm26h logs in before the second-persona check (recorder needed).
-- `[RequiredAcceptance]` on AcHcm21, 22, 26–32, AcWf23.
+- `RecruitmentAcceptance.cs`: one shared UI client (`AcceptanceUi`), persona sessions, SQL helpers and recruitment
+  steps for AC-HCM-21/22 and AC-WF-23 (AC-HCM-26..32 keep their own copies; not refactored in this plan). `audit.json`
+  is now a real `AuditLogs` query for the state-changing scenarios.
+- Scenario mapping: 21b, 22b (SoD) and 23a–f (inbox) read the seeded states; 22c negative uses the seeded chair-only
+  session and the positive uses the seeded roster on a fresh pool requisition (committee submit needs an assessed
+  candidate, so the seeded ready session — on the approved requisition without candidates — provides the roster);
+  22d positive files a new appeal on the seeded published requisition, the negative uses the seeded pending appeal
+  (a-compliance-2 → 404 and refused Decide; its token page is a second appeal assigned to it, which it then dismisses).
+  21a/c/d, 22a/c/e create their requisitions on the pool. 21c/21d/22e clean up (reject/cancel).
+- Test-only SQL preconditions (documented in steps): 22a/22e Ranked 1, 22c Assessed — ranking is AC-HCM-26's scope; the
+  real path runs in the E2E journey.
+- G-04 (open): a step approved by the wrong role is not refused server-side; not asserted as a refusal anywhere.
+- Non-lab behaviour (21d/22e, G-02): `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` — real
+  host, HTTP form posts, 6/6: non-lab requisition and offer → PendingApproval without workflow + warning + approve
+  refused (offer never Issued); non-lab committee → locked without workflow and **no** warning (silent stall);
+  lab counterparts start the workflows.
+- Seed defect found live and fixed (`29670a0`): application ↔ active offer insert cycle crashed HR.Core start-up on
+  PostgreSQL; the seed test now runs on SQLite and reproduces it without the fix.
+- Decision 6 fixed in `fix(acceptance)` commit: File.Storage on the Local provider (22a's on-behalf acceptance with a
+  signed PDF now passes, proving uploads work).
 
-## P2 notes
-
-- K8: `AcceptanceRecruitmentStatesPatch` (HR.Core, runs on every boot after the PLAN-32 patch, add-if-absent keyed by
-  `RecruitmentStatesDraftRequisitionId`). States are **read-only for the scenarios** (they read them or are refused on
-  them), so repeated runs need no reset. Scenarios that change state (21a/c/d, 22a/c/d/e, E2E) create their own
-  requisition on the 40-position pool `AC33-POOL-01…40` (G5, RIF). Restore everything with `scripts/acceptance-reset.ps1`
-  then `scripts/acceptance-up.ps1` (volumes dropped, the patch reseeds). Ids `a0000001-0000-4000-8000-0000000009xx`.
-- K9: creators/initiators are central-a's Keycloak `sub`, computed by `AcceptanceKeycloakIds` (C# twin of
-  `Get-AcceptanceKeycloakUserId`, cross-checked against the script's output in `Hcm033RecruitmentStatesSeedTests`).
-  The appeal reviewer is bound by employee id (`a-compliance`), as PLAN-28 does; the legacy `ApprovalRequest` step role is
-  `hr-core`, requested by central-a. Must be confirmed live in P6 (JWT `sub` == deterministic id).
-- Offers sit on two extra assessed applications (rank 4 PendingApproval, rank 5 Issued), so Ranked 1/2/3 stay Ranked.
-- Tests: `Hcm033RecruitmentStatesSeedTests` (2, in-memory seed incl. idempotency), `RecruitmentStatesFileTests` (JSON ==
-  constants).
+| Live run (acceptance stack, `ACCEPTANCE_REQUIRE_ALL=true`) | Result |
+|---|---|
+| AcWf23 + 21b + 22b (first run) | 8/8 Pass |
+| 21a/c/d, 22a/c/d/e (after fixing the pool SQL: Status stored as text) | 7/7 Pass |
+| AcHcm21 + AcHcm22 + AcWf23 second pass (repeatability) | 15/15 Pass |
+| `Hcm033LabScaleBehaviourTests` (integration) | 6/6 Pass |

@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-WF-23a br1-mgr lists the step-1 items of RIF",
+  "personaId": "br1-mgr",
+  "correlationId": "6186ace5-f16f-4e2b-9f82-33e2c00f022e",
+  "capturedAtUtc": "2026-10-29T15:15:43.1571555Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "29670a04e770ce476ff9c5d9467cf4c45fdf588e"
+}

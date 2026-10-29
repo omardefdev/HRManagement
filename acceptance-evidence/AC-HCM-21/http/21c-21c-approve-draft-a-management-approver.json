@@ -1,0 +1,16 @@
+{
+  "step": "21c-21c-approve-draft-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/d386f0ed-1e8b-4da2-a395-1d236e97afbe",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T15:15:49.2892717Z",
+  "body": {
+    "fields": [
+      "RequisitionId=d386f0ed-1e8b-4da2-a395-1d236e97afbe",
+      "Comments=PLAN-33 21c-approve-draft"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/d386f0ed-1e8b-4da2-a395-1d236e97afbe",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/d386f0ed-1e8b-4da2-a395-1d236e97afbe"
+  }
+}

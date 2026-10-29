@@ -1,0 +1,2 @@
+Seed: legacy ApprovalRequest a0000001-0000-4000-8000-000000000926 (Pending, step 1 role hr-core, requested by central-a).
+Expected: br1-mgr's inbox lists it with the «legacy» badge and the /Approvals/Review/<id> link, and the review page opens.

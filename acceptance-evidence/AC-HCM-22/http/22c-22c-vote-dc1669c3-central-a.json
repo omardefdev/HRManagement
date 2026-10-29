@@ -1,0 +1,18 @@
+{
+  "step": "22c-22c-vote-dc1669c3-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/RecordVote",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T15:16:07.8565662Z",
+  "body": {
+    "fields": [
+      "sessionId=74925c78-1039-45a9-a0e4-23551498f67f",
+      "memberId=dc1669c3-26ea-4377-b7b4-427cf81a0cf5",
+      "applicationId=084eadc0-f02a-49ff-9535-56b8bcfcbb8f",
+      "vote=Agree"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/74925c78-1039-45a9-a0e4-23551498f67f#votes",
+    "final": "/ui/hr-core/SelectionCommittees/Details/74925c78-1039-45a9-a0e4-23551498f67f"
+  }
+}

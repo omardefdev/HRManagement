@@ -1,0 +1,16 @@
+{
+  "step": "21b-21b-creator-post-approve-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/a0000001-0000-4000-8000-000000000902",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T15:15:44.9328545Z",
+  "body": {
+    "fields": [
+      "RequisitionId=a0000001-0000-4000-8000-000000000902",
+      "Comments=PLAN-33 21b self-approval attempt"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/a0000001-0000-4000-8000-000000000902",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/a0000001-0000-4000-8000-000000000902"
+  }
+}

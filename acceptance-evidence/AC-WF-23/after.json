@@ -1,0 +1,17 @@
+{
+  "scenario": "23a",
+  "checks": {
+    "persona": "br1-mgr",
+    "links": [
+      "/RecruitmentRequisitions/Details/a0000001-0000-4000-8000-000000000803",
+      "/RecruitmentRequisitions/Details/a0000001-0000-4000-8000-000000000902",
+      "/OfferLetters/Details/a0000001-0000-4000-8000-000000000919",
+      "/Approvals/Review/a0000001-0000-4000-8000-000000000926",
+      "/OfferLetters/Details/462b484f-6a66-414a-9181-2d2a3a2f9f56",
+      "/OfferLetters/Details/f20b8bee-a912-4e14-bdb8-47d065135630",
+      "/OfferLetters/Details/bf91fc34-a91e-4e7b-9620-f18c91a49651",
+      "/OfferLetters/Details/2ca98e3d-44c7-4042-a3fe-b6a317f064a4"
+    ],
+    "pendingBadge": 8
+  }
+}
