@@ -7,8 +7,8 @@ Status **Implemented (acceptance evidence pending)**. Execution guide:
 [`docs/acceptance-plans/execution/PLAN-30-EXECUTION.md`](../docs/acceptance-plans/execution/PLAN-30-EXECUTION.md).
 Earlier handoffs: [`reports/plan30-session1-handoff.md`](plan30-session1-handoff.md), [`reports/plan30-session2-handoff.md`](plan30-session2-handoff.md).
 
-Commits 16 (K), 17 (L) and 18 (M) are **pending in this working tree** (uncommitted when this report was written; the
-orchestrator commits them).
+Commits 16 (K), 17 (L) and 18 (M) are 76fe409, a1b9ae1 and 7af0c79; the orchestrator committed them after this report was written,
+and they include the review fixes listed in section 6.
 
 ## 1. Summary per workstream
 
@@ -63,7 +63,7 @@ orchestrator commits them).
 - **J — HR on-behalf acceptance (commit `da1e61b`).** `OfferOnBehalfService`: «قبول نيابةً عن المرشح» requires a reason
   ≥ 20 characters and a signed evidence file (relayed server-side, scanned), audited `AcceptOfferOnBehalf`; optional decline
   evidence; Clean-only `OfferLetters/Evidence` download; `data-hr-confirm` instead of native `confirm()`; `HrCoreWrite` kept.
-- **K — Privacy and accessibility (commit 16, pending).** Retention deletes OTP challenges, clears the portal lock and last
+- **K — Privacy and accessibility (commit 16, 76fe409).** Retention deletes OTP challenges, clears the portal lock and last
   request time, releases on-behalf offer evidence and neutralizes the candidate free text of offers and appeals
   (`AcceptanceNote`, `DeclineReason`, `RevokeReason`, appeal `Reason`/`AdditionalInfo` → «—»); pairs with such residue
   become due again. DSAR candidate export gains
@@ -71,11 +71,11 @@ orchestrator commits them).
   `docs/PRV_001_DPIA_RECRUITMENT.md` and three ROPA activities (`pa-hcm-candidate-otp`, `pa-hcm-candidate-documents`,
   `pa-hcm-candidate-notifications`). `hcm006-a11y-scan.ps1` scans 10 views; all violations fixed (error summaries,
   `aria-describedby`/`aria-invalid`, OTP `one-time-code`/`numeric`, no inline styles/handlers, icons `aria-hidden`).
-- **L — Acceptance (commit 17, pending).** `AcHcm30CandidateExperienceTests` (8 tests for AC-HCM-30a..j),
+- **L — Acceptance (commit 17, a1b9ae1).** `AcHcm30CandidateExperienceTests` (8 tests for AC-HCM-30a..j),
   `AcceptanceCandidateExperiencePatch` fixtures, `-DockerContainer` on the backfill script, acceptance OTP limits raised,
   `prepare-keycloak-import.ps1` Windows PowerShell 5.1 fix. Live run: 7/8 pass; 30c skips its File.Storage steps when
   File.Storage is absent (§7).
-- **M — Script and docs (commit 18, pending).** `scripts/hcm030-validate.ps1`; `PLAN-30-EXECUTION.md`; plan status and
+- **M — Script and docs (commit 18, 7af0c79).** `scripts/hcm030-validate.ps1`; `PLAN-30-EXECUTION.md`; plan status and
   "Implementation notes / deviations"; `HCM_001_RECRUITMENT.md` (PLAN-30 section, G-16/G-17/G-18 and the PLAN-30 part of
   G-20 addressed — also in `HCM_001_GAP_STUDY.md`), `COM_001_NOTIFICATIONS.md` (OTP and providers per environment),
   `GOV_001_RETENTION_SCHEDULE.md` + `GOV_001_RETENTION_RUNBOOK.md` (OTP challenges and evidence files in the pair rule),
@@ -103,9 +103,9 @@ orchestrator commits them).
 | 13 | `f910a77` | feat(gw030): forward the careers session cookie on the careers route only |
 | 14 | `d3080c4` | feat(hcm030): /careers/my — status, timeline, interviews, documents, offer PDF, accept/decline, withdraw, appeal |
 | 15 | `da1e61b` | feat(hcm030): HR on-behalf offer acceptance requires reason and evidence |
-| 16 | *(pending)* | feat(hcm030): privacy (DSAR, ROPA, OTP anonymization) and accessibility scan for candidate pages |
-| 17 | *(pending)* | test(hcm030): integration + acceptance AC-HCM-30a..j |
-| 18 | *(pending)* | docs(hcm030): plan status, execution guide, notifications/retention/file docs, validate script |
+| 16 | 76fe409 | feat(hcm030): privacy (DSAR, ROPA, OTP anonymization) and accessibility scan for candidate pages |
+| 17 | a1b9ae1 | test(hcm030): integration + acceptance AC-HCM-30a..j |
+| 18 | 7af0c79 | docs(hcm030): plan status, execution guide, notifications/retention/file docs, validate script |
 
 ## 3. Migrations per service and data steps
 
@@ -441,4 +441,4 @@ f219fed feat(hcm030): application event log and candidate public status projecti
 0d58720 feat(hcm030): unified intake — public and internal applications enter the recruitment path at Submitted
 ```
 
-(Commits 16–18 are pending in the working tree.)
+(Plus this commit, which records the hashes of commits 16–18.)
