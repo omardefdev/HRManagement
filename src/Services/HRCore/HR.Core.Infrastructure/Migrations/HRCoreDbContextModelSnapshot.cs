@@ -4324,6 +4324,8 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.HasIndex("SourceInternalApplicationId");
 
+                    b.HasIndex("TenantId", "AppliedAt");
+
                     b.HasIndex("TenantId", "RequisitionId");
 
                     b.HasIndex("TenantId", "CompetitionId", "NationalIdHash")
@@ -4386,6 +4388,8 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("RecruitmentApplicationId");
 
                     b.HasIndex("TenantId", "RecruitmentApplicationId", "OccurredAt");
+
+                    b.HasIndex("TenantId", "EventType", "ToStatus", "OccurredAt");
 
                     b.ToTable("RecruitmentApplicationEvents");
                 });

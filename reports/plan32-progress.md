@@ -14,7 +14,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 | P2 | `RecruitmentMetricsService` (read-only, scoped) | Done | `feat(hcm032): recruitment metrics service with org scope and coverage` |
 | P3 | UI | Done | `feat(hcm032): recruitment reports screen with funnel, requisitions and overdue approvals` |
 | P4 | Exports | Done | `feat(hcm032): recruitment report exports (Excel, PDF, scoped CSV job) without national id` |
-| P5 | Scale | Not started | |
+| P5 | Scale | Done (snapshot not needed) | `perf(hcm032): analytics indexes and scale test` |
 | P6 | Analytics integration (additive) | Not started | |
 | P7 | Acceptance and regression | Not started | |
 | P8 | Docs, validate script, independent review, final report | Not started | |
@@ -47,6 +47,8 @@ Prompt decisions 1–10 are adopted as written (recorded in Arabic at the top of
 | K15 | **No small-cell suppression on the HR.Core screen**: its breakdowns (stage, status, channel, decline category, appeal outcome, workflow step) are not personal attributes; suppression applies to the Dev.Analytics publication (P6). Dates/numbers on the screen and exports go through `RecruitmentReportFormat` (invariant, Gregorian); filter dates are `yyyy-MM-dd` strings parsed invariantly. The org-unit and competition option lists convert ids in memory (SQLite printed upper-case GUIDs). | Decision 7 scope of suppression; culture safety. |
 | K16 | **Overdue approval links** go to the existing screen of the entity (requisition, offer, application, appeal, committee, competition; result version → its competition), else to the workflow instance. | Drill-through without new authorization. |
 | K17 | **Applications CSV job**: template `hrcore.recruitment.applications.csv` (`ExportJobTemplates.HrCoreRecruitmentApplicationsCsv`); the job's `FilterJson` carries the filter, the allowed org units at request time (null = unrestricted) and `IncludeNames` (requester held HrCoreWrite). `EnqueueAsync` no longer replaces a non-employees filter with the employees scope filter. Download re-check (besides the generic same user/tenant/scope hash): names file → the user must still hold HrCoreWrite (`RecruitmentReportAccess`, a role mirror of the policy pinned by a test over every role); unrestricted file → the user must still be unrestricted. The job streams rows in pages of `ChunkSize`. | Prompt P4: names captured in the snapshot and re-checked at download. |
+| K19 | **Scale measurement**: `Hcm032RecruitmentAnalyticsScaleTests` (category `Hcm032Scale`, opt-in `HCM032_PERF=1`, `perf/hcm032-recruitment-analytics-scale.ps1`) runs the 13 metric calls of `Index` on a fresh service per run; the budget is asserted on the run after one warm-up (EF query compilation; cold timings are recorded too). Every SELECT of the measured run is captured by a `DbCommandInterceptor` and `EXPLAIN ANALYZE`d with its parameters (`artifacts/hcm032-perf/plans.txt`). | Steady-state timings; indexes decided from real plans. |
+| K20 | **Indexes** (`HCM032_AnalyticsIndexes`): `RecruitmentApplicationEvents (TenantId, EventType, ToStatus, OccurredAt)` — the hires sub-plan sequentially scanned the events (hashed SubPlan now on the index, 164 → 116 ms); `RecruitmentApplications (TenantId, AppliedAt)` — the cohort scan; in the single-tenant scale DB 88 % of rows match so PostgreSQL still prefers the sequential scan (correct plan), the index serves multi-tenant tables. Other sequential scans are on small per-tenant tables (≤ 8 ms each), no index added. **No snapshot table**: the budget is met with exact live queries. | Prompt P5: indexes only where EXPLAIN shows a sequential scan on a hot path. |
 | K18 | **Exports**: Excel sheets المؤشرات، القمع (with stage time and channels)، طلبات الشاغر (all active requisitions, capped by `ExportQueryLimits`)، الاعتمادات المتأخرة، العروض، الاستئنافات، الشواغر المفتوحة, plus المسابقات for unrestricted users; every sheet starts with the provenance block (report, period, scope, generation time UTC, definitions version, source); numbers are numeric cells, dates `yyyy-MM-dd` text. PDF = the same summary (KPIs, funnel, overdue approvals, vacancy counts) on the official RTL layout. CSV with RFC 4180 CRLF line ends and a formula-injection guard. | REP-001 provenance; culture safety. |
 
 ## P0 maps
@@ -119,6 +121,7 @@ Skipped).
 | Phase | Files |
 |-------|-------|
 | P1 | Domain: `Enums/OfferDeclineReasonCategory.cs`, `Services/RecruitmentKpi/{KpiStatistics,FunnelReachRules,TimeToFillRules,ApprovalSlaRules,SmallCellSuppression}.cs`, `Entities/OfferLetter.cs`; Infrastructure: `HRCoreDbContext`, migration + snapshot, `RecruitmentOfferService` (decline category); Web: `OfferLettersController`, `OfferOnBehalfService`, `CandidatePortalController`/`Service`, `CandidatePortalViewModels` (`CandidatePortalDeclineForm`), `DeclineOfferForm`, `Views/OfferLetters/Details.cshtml`, `Views/CandidatePortal/Index.cshtml`; docs `STR_007_KPI_DEFINITIONS.md`, `str-value/kpi-matrix.json`; tests `Hcm032{KpiStatistics,FunnelReachRules,ApprovalSlaRules,DeclineCategory}Tests` |
+| P5 | `HRCoreDbContext` (two indexes), migration `HCM032_AnalyticsIndexes` + snapshot; `IntegrationTests/Hcm032RecruitmentAnalyticsScaleTests.cs`; `perf/hcm032-recruitment-analytics-scale.ps1` |
 | P4 | Web: `Controllers/RecruitmentReportsController.Exports.cs`, `Services/RecruitmentReportDocuments.cs`, `Views/RecruitmentReports/Index.cshtml` (buttons); Infrastructure: `Analytics/{RecruitmentApplicationsCsv,RecruitmentReportAccess}.cs`, `RecruitmentMetricsService` (export id queries, requisition page cap), `ExportJobs/HRCoreExportJobService.cs` (template, payload, download re-check); SharedKernel `ExportJobModels.cs` (template constant); `docs/QUERY_EXPORT_INVENTORY.md` (regenerated); tests `Hcm032ExportTests` |
 | P3 | Web: `Controllers/RecruitmentReportsController.cs`, `ViewModels/RecruitmentReportsViewModels.cs` (filter form, view models, `RecruitmentReportFormat`), `Views/RecruitmentReports/{Index,Requisition}.cshtml`, `wwwroot/js/recruitment-reports.js`, `Views/Shared/_Layout.cshtml` (menu «تقارير التوظيف»); `RecruitmentMetricsModels` (overdue row carries requisition/competition id); tests `Hcm032RecruitmentReportsControllerTests` |
 | P2 | `Infrastructure/Services/Recruitment/Analytics/{RecruitmentMetricsService,RecruitmentMetricsModels}.cs`, `RecruitmentOptions` (`RecruitmentAnalyticsOptions`), `HR.Core.Web/Program.cs` (DI); tests `Hcm032MetricsFixture`, `Hcm032RecruitmentMetricsTests` |
@@ -129,6 +132,7 @@ Skipped).
 | Migration | Phase | Change |
 |-----------|-------|--------|
 | `20261029111828_HCM032_OfferDeclineCategory` | P1 | nullable `OfferLetters.DeclineReasonCategory` varchar(20); no data rewritten |
+| `HCM032_AnalyticsIndexes` | P5 | two indexes: `IX_RecruitmentApplications_TenantId_AppliedAt`, `IX_RecruitmentApplicationEvents_TenantId_EventType_ToStatus_Oc~`; no data change |
 
 ## Test results
 
@@ -146,6 +150,9 @@ Skipped).
 | P4 | `Hcm032*` unit tests | 96 / 96 pass |
 | P4 | Regression `Inventory|Perf00|Export|Hcm032|Reports|Hcm02|Hcm03|Pdf` | 1131 / 1132 — the failure is `ArabicPdfGenerationTests.Pdf_arabic_validate_script_passes` (execution policy; the script passes with Bypass) |
 | P4 | `inventory-unbounded-queries.ps1` | regenerated (401 rows, 20 unbounded — none in PLAN-32 code) |
+| P5 | Scale (PostgreSQL 16, 50,000 apps / 250,000 events / 2,000 requisitions / 20,000 offers / 5,333 workflow instances / 20 units; seeding 35 s) — before indexes | unrestricted 1,219 ms (cold 2,148), branch 275 ms (cold 344) — PASS |
+| P5 | Scale — after `HCM032_AnalyticsIndexes` | unrestricted 1,225 ms (budget 3,000), branch 299 ms (budget 1,500) — PASS; per step unrestricted: funnel 718, time-to-fill 136, stage time 115, requisitions 131, approvals 47, rest < 30 |
+| P5 | `Migration|Schema|Index|Hcm032` unit filter; `has-pending-model-changes` | 226 / 226 pass; none |
 
 ## Modified existing tests
 
@@ -172,7 +179,11 @@ Skipped).
 
 ## Next step
 
-P5 — `Hcm032Scale` integration test (Testcontainers PostgreSQL; 50,000 applications, 250,000 events, 2,000 requisitions,
-20,000 offers, 5,000 workflow instances): the `Index` set of metric calls (12-month unrestricted < 3 s, branch < 1.5 s),
-timings to `artifacts/hcm032-perf/`; `EXPLAIN` the hot queries; migration `HCM032_AnalyticsIndexes` only where a
-sequential scan shows; snapshot table only if the budget still fails.
+P6 — semantic layer (already edited, uncommitted: `docs/ana/semantic-layer.json` measures, `docs/prod-semantic/semantic-layer-matrix.json`
+`semanticMetrics.registeredMeasures`; ANA-001/PROD-006 validators PASS); contract `IRecruitmentRequisitionClosed`
+(MessageContracts/Events, `SchemaVersion => 1`, aggregates only); publish via the MassTransit EF outbox (`IPublishEndpoint`
+in the same SaveChanges) from the three close paths: `RecruitmentHireClosureService` (`TryClose` true),
+`RecruitmentRequisitionLifecycleService.CloseAsync`, and `RecruitmentRequisitionCascade.StageCancellationAsync` callers
+(`CancelAsync`, `EstablishmentChangeApplier` freeze); `event-schema-inventory.json` + `MESSAGE_EVENT_MATRIX.md`;
+Dev.Analytics `RecruitmentRequisitionFact` (new table + migration in Analytics), idempotent consumer, «التوظيف» card with
+small-cell suppression; tests (contract compat, idempotency, suppression).
