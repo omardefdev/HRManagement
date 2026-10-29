@@ -96,6 +96,27 @@ public class AcceptanceGateTests
     }
 
     [Fact]
+    public void Started_scenario_that_never_records_a_result_counts_as_failed()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "hr-acceptance-gate-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            new EvidenceRecorder("AC-HCM-22", "c1", root) { ScenarioKey = "22a" }.WriteResult("Pass");
+            // A later run of 22a starts and then throws before WriteResult.
+            new EvidenceRecorder("AC-HCM-22", "c2", root) { ScenarioKey = "22a" }.WriteMetadata("AC-HCM-22a rerun", "central-a");
+
+            using var result = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "AC-HCM-22", "result.json")));
+            Assert.Equal("Fail", result.RootElement.GetProperty("status").GetString());
+            Assert.Equal("Fail", result.RootElement.GetProperty("scenarios").GetProperty("22a").GetProperty("status").GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Required_attribute_on_class_is_found_from_async_test_method()
     {
         var sample = new RequiredSample();
@@ -110,6 +131,29 @@ public class AcceptanceGateTests
     {
         await Task.Yield();
         Assert.False(AcceptanceGate.IsRequiredScenario(new StackTrace()));
+    }
+
+    [Fact]
+    [RequiredAcceptance]
+    public async Task Required_is_kept_in_a_helper_after_an_await()
+    {
+        // As RequireEnabled does at the start of every scenario; the helper's gate runs after a real await, when this
+        // method is no longer on the physical stack (PLAN-33 P8 review finding).
+        Assert.True(AcceptanceGate.CaptureRequired(new StackTrace()));
+        Assert.True(await GateInHelperAsync());
+    }
+
+    [Fact]
+    public async Task Optional_stays_optional_in_a_helper_after_an_await()
+    {
+        Assert.False(AcceptanceGate.CaptureRequired(new StackTrace()));
+        Assert.False(await GateInHelperAsync());
+    }
+
+    private static async Task<bool> GateInHelperAsync()
+    {
+        await Task.Delay(5);
+        return AcceptanceGate.IsRequired(new StackTrace());
     }
 
     [Fact]

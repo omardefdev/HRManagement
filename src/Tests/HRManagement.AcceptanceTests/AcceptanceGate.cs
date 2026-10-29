@@ -23,19 +23,26 @@ public static class AcceptanceGate
     public static bool RequireAll =>
         string.Equals(Environment.GetEnvironmentVariable(RequireAllVariable), "true", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Whether the running scenario is required, captured where the stack still shows the test method (the synchronous
+    /// start of the test, <see cref="RequireEnabled()"/>). After an await inside a helper the test method is no longer on
+    /// the physical stack, so <see cref="RequireData"/> reads this value, which flows with the async context.
+    /// </summary>
+    private static readonly AsyncLocal<bool?> CapturedRequired = new();
+
     /// <summary>Skips (or fails, when required) unless <c>RUN_ACCEPTANCE=true</c>. Writes no evidence: nothing ran.</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void RequireEnabled() =>
         Evaluate(null, AcceptanceEnv.IsEnabled,
             "اختبارات القبول غير مفعّلة", "Set RUN_ACCEPTANCE=true to run acceptance tests.",
-            RequireAll, IsRequiredScenario(new StackTrace()));
+            RequireAll, CaptureRequired(new StackTrace()));
 
     /// <summary>As <see cref="RequireEnabled()"/>, recording <c>Blocked</c> in the scenario's evidence folder.</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void RequireEnabled(EvidenceRecorder recorder) =>
         Evaluate(recorder, AcceptanceEnv.IsEnabled,
             "اختبارات القبول غير مفعّلة", "Set RUN_ACCEPTANCE=true to run acceptance tests.",
-            RequireAll, IsRequiredScenario(new StackTrace()));
+            RequireAll, CaptureRequired(new StackTrace()));
 
     /// <summary>
     /// Stops the scenario when <paramref name="condition"/> is false: <c>result.json = Blocked</c>, then Skip, or
@@ -43,7 +50,18 @@ public static class AcceptanceGate
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void RequireData(EvidenceRecorder recorder, bool condition, string reasonAr, string reasonEn) =>
-        Evaluate(recorder, condition, reasonAr, reasonEn, RequireAll, IsRequiredScenario(new StackTrace()));
+        Evaluate(recorder, condition, reasonAr, reasonEn, RequireAll, IsRequired(new StackTrace()));
+
+    /// <summary>Stack walk at the start of the test; the result flows into every awaited helper of the scenario.</summary>
+    internal static bool CaptureRequired(StackTrace stack)
+    {
+        var required = IsRequiredScenario(stack);
+        CapturedRequired.Value = required;
+        return required;
+    }
+
+    /// <summary>The captured value (set by <see cref="RequireEnabled()"/>), else the stack walk at the call site.</summary>
+    internal static bool IsRequired(StackTrace stack) => CapturedRequired.Value ?? IsRequiredScenario(stack);
 
     /// <summary>Core decision, with the environment and the attribute lookup passed in (unit-tested).</summary>
     internal static void Evaluate(

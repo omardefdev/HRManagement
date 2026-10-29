@@ -59,6 +59,11 @@ public sealed class EvidenceRecorder
             imageTag = Environment.GetEnvironmentVariable("IMAGE_TAG")
         };
         WriteJson("metadata.json", meta);
+
+        // PLAN-33: a keyed scenario counts as failed until it records its own result, so a test that throws (or is
+        // aborted) never leaves an earlier run's Pass standing in result.json.
+        if (ScenarioKey is not null)
+            WriteMergedResult("Fail", "Started but did not record a result (the test failed or was aborted before WriteResult).");
     }
 
     public void WriteSteps(string markdown) => File.WriteAllText(Path.Combine(_acFolder, "steps.md"), markdown);

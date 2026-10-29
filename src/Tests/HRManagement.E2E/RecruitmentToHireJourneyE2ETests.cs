@@ -82,7 +82,13 @@ internal static class RecruitmentJourney
             await RunCoreAsync(ev, correlationId);
             ev.Result("Pass", null, Plan);
         }
-        catch (Exception ex) when (ex is not SkipException)
+        catch (SkipException ex)
+        {
+            // A missing precondition is Blocked, never a leftover Pass (and the zero-skip CI step fails the job).
+            ev.Result("Blocked", $"Precondition missing at «{ev.Stage}»: {ex.Message}", Plan);
+            throw;
+        }
+        catch (Exception ex)
         {
             ev.Result("Fail", $"Stopped at «{ev.Stage}»: {ex.Message.Split('\n')[0]}", Plan);
             throw;

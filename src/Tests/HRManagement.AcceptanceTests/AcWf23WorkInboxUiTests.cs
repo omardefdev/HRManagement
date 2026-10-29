@@ -68,12 +68,25 @@ public class AcWf23WorkInboxUiTests
     public async Task Wf23_c_creator_gets_no_actionable_items_of_its_own()
     {
         AcceptanceEnv.RequireEnabled();
-        var s = await StartAsync(Ac, "23c", "AC-WF-23c central-a gets none of the items it created", "central-a");
+        var s = await StartAsync(Ac, "23c", "AC-WF-23c central-a gets none of the items it created", "central-a", "br1-mgr");
         var st = RecruitmentStates.Load();
         s.Steps("""
             central-a (hr-core, whole agency) created every seeded item. Expected: none of them is listed (creator SoD),
             although its role would match step 1.
+            Precondition: the seeded items are still pending (SQL). Positive control: br1-mgr, with the same step role, does
+            list the step-1 requisition and offer — so their absence for central-a is the creator rule, not missing data.
             """);
+
+        var pending = await Scalar(
+            "SELECT (SELECT COUNT(*) FROM \"WorkflowInstances\" WHERE \"Status\"='InProgress' AND \"Id\" IN " +
+            $"('{st.Requisitions.PendingStep1.WorkflowInstanceId:D}','{st.Requisitions.PendingStep2.WorkflowInstanceId:D}','{st.Offers.PendingApproval.WorkflowInstanceId:D}','{st.Appeal.WorkflowInstanceId:D}'))" +
+            $" + (SELECT COUNT(*) FROM \"ApprovalRequests\" WHERE \"Status\"=0 AND \"Id\"='{st.LegacyApprovalRequest.Id:D}');");
+        AcceptanceGate.RequireData(s.Recorder, pending == 5,
+            "العناصر المبذورة لم تعد معلقة — شغّل scripts/acceptance-reset.ps1",
+            $"Only {pending} of the 5 seeded inbox items are still pending — run scripts/acceptance-reset.ps1.");
+        var control = await InboxAsync(s["br1-mgr"], "23c-control-inbox");
+        Assert.True(control.Has(Req(st.Requisitions.PendingStep1.Id)) && control.Has(Offer(st.Offers.PendingApproval.Id)),
+            "Control: br1-mgr should list the seeded step-1 items.");
 
         var inbox = await InboxAsync(s["central-a"], "23c-inbox");
         foreach (var own in new[]
