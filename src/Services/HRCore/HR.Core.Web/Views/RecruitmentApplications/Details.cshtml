@@ -170,6 +170,64 @@
         }
     </div>
 
+    @if (app.IntakeChannel == RecruitmentIntakeChannel.Public || Model.Notifications.Count > 0)
+    {
+        @* COM-030 (F7): candidate email/SMS messages; masked recipient, no body. *@
+        <div class="card mb-3" id="notifications">
+            <div class="card-header"><h5 class="mb-0">الإشعارات</h5></div>
+            @if (Model.Notifications.Count == 0)
+            {
+                <div class="card-body"><span class="text-muted">لا توجد إشعارات لهذا الطلب (لم يوافق المتقدّم على تلقي الإشعارات أو لم يُخطَّط أي إشعار بعد).</span></div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">الحدث</th>
+                                <th scope="col">القناة</th>
+                                <th scope="col">الحالة</th>
+                                <th scope="col">المستلم</th>
+                                <th scope="col">الوقت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var note in Model.Notifications)
+                            {
+                                var badge = note.Status switch
+                                {
+                                    CandidateNotificationStatus.Sent => "bg-success",
+                                    CandidateNotificationStatus.Failed => "bg-danger",
+                                    CandidateNotificationStatus.Expired => "bg-warning text-dark",
+                                    CandidateNotificationStatus.Suppressed => "bg-dark",
+                                    _ => "bg-secondary"
+                                };
+                                <tr>
+                                    <td>@CandidateNotificationTemplates.LabelAr(note.TemplateCode)</td>
+                                    <td>@Html.HrEnumDisplay(note.Channel)</td>
+                                    <td>
+                                        <span class="badge @badge">@Html.HrEnumDisplay(note.Status)</span>
+                                        @if (note.Status != CandidateNotificationStatus.Sent && note.Attempts > 0)
+                                        {
+                                            <span class="text-muted small ms-1">محاولات: @note.Attempts</span>
+                                        }
+                                        @if (note.Status == CandidateNotificationStatus.Failed && !string.IsNullOrWhiteSpace(note.LastError))
+                                        {
+                                            <span class="text-muted small ms-1">(@note.LastError)</span>
+                                        }
+                                    </td>
+                                    <td dir="ltr">@note.RecipientMasked</td>
+                                    <td>@((note.SentAt ?? note.CreatedAt).ToLocalTime().ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
     <partial name="_InterviewsPanel" model="Model" />
     <partial name="_AssessmentScoringPanel" model="Model.ScoringPanel" />
 }

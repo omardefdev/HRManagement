@@ -49,7 +49,20 @@ public class RecruitmentApplicationDetailsViewModel
     public IReadOnlyList<HR.Core.Web.Services.CandidateDocumentRow> Documents { get; set; } = [];
     /// <summary>HCM-030 (E6): required document types of the requisition still missing.</summary>
     public IReadOnlyList<string> MissingDocumentTypes { get; set; } = [];
+    /// <summary>COM-030 (F7): candidate messages (masked recipient; the body is not shown to HR here), newest first.</summary>
+    public IReadOnlyList<CandidateNotificationRow> Notifications { get; set; } = [];
 }
+
+/// <summary>COM-030 (F7): one row of the «الإشعارات» card.</summary>
+public sealed record CandidateNotificationRow(
+    string TemplateCode,
+    HRManagement.SharedKernel.Notifications.NotificationChannel Channel,
+    CandidateNotificationStatus Status,
+    string RecipientMasked,
+    DateTime CreatedAt,
+    DateTime? SentAt,
+    int Attempts,
+    string? LastError);
 
 public class AssignRankForm
 {

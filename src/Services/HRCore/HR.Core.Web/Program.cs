@@ -155,6 +155,10 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 // HCM-027 (F4): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.ReserveExpiryEnabled.
 if (builder.Configuration.GetValue("Recruitment:Jobs:ReserveExpiryEnabled", true))
     builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.RecruitmentReserveExpiryJob>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.CandidateNotificationDispatcher>();
+// COM-030 (PLAN-30 F4): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.CandidateNotificationsEnabled.
+if (builder.Configuration.GetValue("Recruitment:Jobs:CandidateNotificationsEnabled", true))
+    builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.CandidateNotificationJob>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();
@@ -195,6 +199,9 @@ builder.Services.AddScoped<HR.Core.Web.Services.RecruitmentAppealWorkflowUiServi
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentInterviewService>();
 builder.Services.Configure<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions>(
     builder.Configuration.GetSection(HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions.SectionName));
+// COM-030 (PLAN-30 F1): candidate email/SMS senders per Notifications:Candidate:Provider (None | FileDrop | Smtp+Sms).
+HRManagement.ServiceDefaults.Notifications.CandidateNotificationChannelExtensions.AddCandidateNotificationChannels(
+    builder.Services, builder.Configuration);
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAssessmentCriteriaService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentScoringService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.SelectionCommitteeService>();

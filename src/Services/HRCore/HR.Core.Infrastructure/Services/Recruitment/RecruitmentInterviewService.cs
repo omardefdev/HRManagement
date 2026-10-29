@@ -191,7 +191,8 @@ public sealed class RecruitmentInterviewService(
         slot.Outcome = outcome;
         slot.OutcomeNotes = trimmedNotes;
         // NoShow leaves the application status unchanged — rejection or rescheduling is an HR decision.
-        // PLAN-30: notify the candidate of the outcome.
+        // The outcome is an internal assessment: no candidate message. The candidate is notified at the decision points
+        // (rejection, reserve list, offer, hire) by CandidateNotificationDispatcher (COM-030).
 
         await db.SaveChangesAsync(ct);
         return (true, null);

@@ -31,6 +31,7 @@ public class Est004EstablishmentPlanningIntegrationTests : IClassFixture<WebAppl
             builder.UseSetting("Recruitment:Jobs:IntakeCloseEnabled", "false"); // HCM-026: no background intake job in tests
             builder.UseSetting("Recruitment:Jobs:OfferExpiryEnabled", "false"); // HCM-027: no background offer expiry job in tests
             builder.UseSetting("Recruitment:Jobs:ReserveExpiryEnabled", "false"); // HCM-027: no background reserve expiry job in tests
+            builder.UseSetting("Recruitment:Jobs:CandidateNotificationsEnabled", "false"); // COM-030: no background candidate notification job in tests
             builder.UseEnvironment(Environments.Development);
             builder.UseSetting("ConnectionStrings:HRCoreDb", $"Data Source={_dbPath}");
             builder.ConfigureAppConfiguration((_, config) =>

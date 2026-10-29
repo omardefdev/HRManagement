@@ -121,6 +121,16 @@ public class RecruitmentApplicationsController(
             CandidateDocumentTypes.RequiredFor(app.IntakeChannel, app.Requisition?.RequiredDocumentTypes),
             documents.Select(d => d.DocumentType));
 
+        // COM-030 (F7): candidate messages of this application (tenant-filtered; masked recipient only).
+        var notifications = await db.CandidateNotifications
+            .AsNoTracking()
+            .Where(n => n.RecruitmentApplicationId == id)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(50)
+            .Select(n => new CandidateNotificationRow(
+                n.TemplateCode, n.Channel, n.Status, n.RecipientMasked, n.CreatedAt, n.SentAt, n.Attempts, n.LastError))
+            .ToListAsync();
+
         return View(new RecruitmentApplicationDetailsViewModel
         {
             Application = app,
@@ -148,7 +158,8 @@ public class RecruitmentApplicationsController(
             DefaultProposedStartDate = defaultStartDate,
             CommitteeGate = committeeGate,
             Documents = documents,
-            MissingDocumentTypes = missingDocumentTypes
+            MissingDocumentTypes = missingDocumentTypes,
+            Notifications = notifications
         });
     }
 

@@ -17,7 +17,8 @@ public sealed class RecruitmentOfferExpirer(
 {
     public async Task<int> ExpireDueAsync(DateTime nowUtc, CancellationToken ct)
     {
-        // PLAN-30: reminder 48h before expiry
+        // PLAN-30 (F5): the reminder before expiry (Recruitment:OfferReminderHours, 48) is recorded by
+        // CandidateNotificationDispatcher.RemindDueOffersAsync every minute, so this method's contract is unchanged.
         var due = await db.OfferLetters
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.BackgroundQueueProcessing)
             .Include(o => o.RecruitmentApplication)
