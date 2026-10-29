@@ -612,7 +612,7 @@ public sealed class RecruitmentMetricsService(
             overdue.Add(new OverdueApprovalRow(instance.Id, definition.Code, definition.Name, instance.EntityType, instance.EntityId,
                 entities.TryGetValue((instance.EntityType, instance.EntityId), out var info) ? info.Label : instance.EntityType,
                 instance.CurrentStepLevel, current?.Name ?? $"الخطوة {instance.CurrentStepLevel}", current?.RoleRequired ?? "",
-                start, KpiStatistics.Round(age), sla.Hours, sla.Source));
+                start, KpiStatistics.Round(age), sla.Hours, sla.Source, info?.RequisitionId, info?.CompetitionId));
         }
 
         var stepRows = completed

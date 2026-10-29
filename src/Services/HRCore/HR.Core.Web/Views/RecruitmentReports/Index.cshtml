@@ -1,0 +1,464 @@
+@model HR.Core.Web.ViewModels.RecruitmentReportsViewModel
+@using HR.Core.Domain.Enums
+@using HR.Core.Web.ViewModels
+@using F = HR.Core.Web.ViewModels.RecruitmentReportFormat
+@{
+    ViewData["Title"] = "تقارير التوظيف";
+    var filter = Model.Filter;
+    var toInclusive = filter.To.AddDays(-1);
+    var exportRoute = new Dictionary<string, string?>
+    {
+        ["From"] = F.Date(filter.From),
+        ["To"] = F.Date(filter.To),
+        ["OrgUnitId"] = filter.OrgUnitId?.ToString(),
+        ["RequisitionId"] = filter.RequisitionId?.ToString(),
+        ["Channel"] = filter.Channel?.ToString(),
+        ["CompetitionId"] = filter.CompetitionId?.ToString()
+    };
+    string Coverage(decimal? value) => value is null ? "—" : F.Percent(value);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-2"><i class="fas fa-chart-line" aria-hidden="true"></i> تقارير التوظيف</h1>
+</div>
+
+<form asp-action="Index" method="get" class="card card-body mb-3" aria-label="فلاتر التقرير">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label" for="report-from">من تاريخ</label>
+            <input type="date" class="form-control form-control-sm" id="report-from" name="From" value="@F.Date(filter.From)" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="report-to">حتى تاريخ (ضمناً)</label>
+            <input type="date" class="form-control form-control-sm" id="report-to" name="To" value="@F.Date(filter.To)" aria-describedby="report-to-help" />
+            <small id="report-to-help" class="text-muted">نهاية الفترة غير مشمولة: @F.Date(toInclusive) آخر يوم.</small>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="report-unit">الوحدة التنظيمية</label>
+            <select class="form-select form-select-sm" id="report-unit" name="OrgUnitId">
+                <option value="">@(Model.IsScoped ? "كل وحدات نطاقي" : "كل الوحدات")</option>
+                @foreach (var unit in Model.OrgUnits)
+                {
+                    <option value="@unit.Value" selected="@(filter.OrgUnitId?.ToString() == unit.Value)">@unit.Label</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="report-channel">قناة التقديم</label>
+            <select class="form-select form-select-sm" id="report-channel" name="Channel">
+                <option value="">كل القنوات</option>
+                @foreach (var channel in Enum.GetValues<RecruitmentIntakeChannel>())
+                {
+                    <option value="@channel" selected="@(filter.Channel == channel)">@F.Label(channel)</option>
+                }
+            </select>
+        </div>
+        @if (!Model.IsScoped)
+        {
+            <div class="col-md-3">
+                <label class="form-label" for="report-competition">المسابقة</label>
+                <select class="form-select form-select-sm" id="report-competition" name="CompetitionId">
+                    <option value="">بلا تحديد</option>
+                    @foreach (var competition in Model.CompetitionOptions)
+                    {
+                        <option value="@competition.Value" selected="@(filter.CompetitionId?.ToString() == competition.Value)">@competition.Label</option>
+                    }
+                </select>
+            </div>
+        }
+        @if (filter.RequisitionId is { } requisitionId)
+        {
+            <input type="hidden" name="RequisitionId" value="@requisitionId" />
+        }
+        <div class="col-md-12 col-lg-auto">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter" aria-hidden="true"></i> تطبيق</button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">الفترة الافتراضية</a>
+        </div>
+    </div>
+    @if (filter.RequisitionId is not null)
+    {
+        <p class="mb-0 mt-2 small">التقرير مقصور على طلب شاغر واحد. <a asp-action="Index">إزالة الفلتر</a></p>
+    }
+</form>
+
+<p class="small text-muted" id="report-provenance">
+    الفترة: @F.PeriodLabel(filter) (توقيت UTC) · النطاق: @(Model.IsScoped ? "وحدات نطاقك فقط" : "كل الوحدات") ·
+    أُنشئ في @F.DateTimeUtc(Model.GeneratedAt) · إصدار التعريفات @Model.DefinitionsVersion ·
+    المصدر: HR.Core (طلبات التوظيف وسجل أحداثها، العروض، الاستئنافات، مسارات الاعتماد). أعداد دقيقة، والتعريفات في STR-007.
+</p>
+
+@* ------------------------------------------------------------------ KPI cards *@
+<section aria-labelledby="kpi-title" class="mb-3">
+    <h2 class="h5" id="kpi-title">المؤشرات الرئيسية</h2>
+    <div class="row">
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">زمن الملء (أيام)</h3>
+                <p class="h4 mb-1">@F.Value(Model.TimeToFill.Days.Median) <small class="text-muted">وسيط</small></p>
+                <p class="small mb-0">P90: @F.Value(Model.TimeToFill.Days.P90) · n = @F.Number(Model.TimeToFill.Days.N)</p>
+                <p class="small text-muted mb-0">التغطية @Coverage(Model.TimeToFill.Days.CoveragePercent) · بديل البداية @F.Number(Model.TimeToFill.StartFallbackCount) · بديل التعيين @F.Number(Model.TimeToFill.HiredFallbackCount)</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">زمن التعيين (أيام)</h3>
+                <p class="h4 mb-1">@F.Value(Model.TimeToHire.Median) <small class="text-muted">وسيط</small></p>
+                <p class="small mb-0">P90: @F.Value(Model.TimeToHire.P90) · n = @F.Number(Model.TimeToHire.N)</p>
+                <p class="small text-muted mb-0">التغطية @Coverage(Model.TimeToHire.CoveragePercent) · قيم بديلة @F.Number(Model.TimeToHire.FallbackCount)</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">نسبة قبول العروض</h3>
+                <p class="h4 mb-1">@F.Percent(Model.Offers.AcceptanceRate)</p>
+                <p class="small mb-0">مقبول @F.Number(Model.Offers.Accepted) · مرفوض @F.Number(Model.Offers.Declined) · منتهٍ @F.Number(Model.Offers.Expired) · n = @F.Number(Model.Offers.Decided)</p>
+                <p class="small text-muted mb-0">الملغاة (@F.Number(Model.Offers.Revoked)) مستبعدة من النسبة.</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">الطلبات في الفترة</h3>
+                <p class="h4 mb-1">@F.Number(Model.Funnel.CohortCount)</p>
+                <p class="small mb-0">معيّنون @F.Number(Model.Funnel.Stages[^1].Count)</p>
+                <p class="small text-muted mb-0">تغطية سجل الأحداث @Coverage(Model.Funnel.CoveragePercent) (@F.Number(Model.Funnel.CoveredCount) من @F.Number(Model.Funnel.CohortCount))</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">معدل الاستئناف</h3>
+                <p class="h4 mb-1">@F.Percent(Model.Appeals.AppealRate)</p>
+                <p class="small mb-0">استئنافات @F.Number(Model.Appeals.AppealsFiled) ÷ رفض قابل للاستئناف @F.Number(Model.Appeals.AppealableRejections)</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">تجاوزات الجدارة</h3>
+                <p class="h4 mb-1">@F.Percent(Model.Merit.MeritOverrideRate)</p>
+                <p class="small mb-0">@F.Number(Model.Merit.MeritOverrides) من @F.Number(Model.Merit.OffersCreated) عرضاً · استثنائية @F.Number(Model.Merit.ExceptionOffers) (@F.Percent(Model.Merit.ExceptionRate))</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">الشواغر المفتوحة</h3>
+                <p class="h4 mb-1">@F.Number(Model.Vacancies.VacantWithoutRequisitionCount)</p>
+                <p class="small mb-0">مناصب شاغرة بلا طلب · منشورة منذ أكثر من @F.Number(Model.Vacancies.StalePublishedDays) يوماً: @F.Number(Model.Vacancies.StalePublishedCount)</p>
+            </div></div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card h-100"><div class="card-body">
+                <h3 class="h6">اعتمادات متأخرة</h3>
+                <p class="h4 mb-1">@F.Number(Model.Approvals.OverdueCount)</p>
+                <p class="small mb-0">من @F.Number(Model.Approvals.InProgressCount) مسار قيد التنفيذ</p>
+            </div></div>
+        </div>
+    </div>
+</section>
+
+@* ------------------------------------------------------------------ funnel *@
+<section class="card mb-3" aria-labelledby="funnel-title">
+    <div class="card-header"><h2 class="card-title h5" id="funnel-title">قمع التوظيف</h2></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-lg-6">
+                <canvas id="recruitment-funnel-chart" height="260" role="img" aria-label="رسم أعمدة أفقي لقمع التوظيف؛ القيم في الجدول المجاور" data-chart="funnel"></canvas>
+            </div>
+            <div class="col-lg-6">
+                <table class="table table-sm table-striped" id="funnel-table">
+                    <caption>عدد طلبات الفترة (@F.Number(Model.Funnel.CohortCount)) التي بلغت كل مرحلة؛ البلوغ من سجل الأحداث أو القرائن الموثقة.</caption>
+                    <thead><tr><th scope="col">المرحلة</th><th scope="col">العدد</th><th scope="col">من المتقدمين</th></tr></thead>
+                    <tbody>
+                        @foreach (var stage in Model.Funnel.Stages)
+                        {
+                            <tr><th scope="row">@F.StageLabel(stage.Stage)</th><td>@F.Number(stage.Count)</td><td>@F.Percent(HR.Core.Domain.Services.RecruitmentKpi.KpiStatistics.Rate(stage.Count, Model.Funnel.CohortCount))</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <table class="table table-sm" id="status-table">
+                    <caption>الحالة الحالية لطلبات الفترة</caption>
+                    <thead><tr><th scope="col">الحالة</th><th scope="col">العدد</th></tr></thead>
+                    <tbody>
+                        @foreach (var status in Model.Funnel.CurrentStatuses)
+                        {
+                            <tr><th scope="row">@F.Label(status.Status)</th><td>@F.Number(status.Count)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-lg-6">
+                <table class="table table-sm" id="stage-time-table">
+                    <caption>وسيط الأيام في كل حالة (الطلبات ذات سجل الأحداث فقط؛ التغطية @Coverage(Model.StageTime.CoveragePercent))</caption>
+                    <thead><tr><th scope="col">الحالة</th><th scope="col">وسيط الأيام</th><th scope="col">n</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.StageTime.Rows)
+                        {
+                            <tr><th scope="row">@F.Label(row.Status)</th><td>@F.Value(row.MedianDays)</td><td>@F.Number(row.N)</td></tr>
+                        }
+                        @if (Model.StageTime.Rows.Count == 0)
+                        {
+                            <tr><td colspan="3">لا بيانات.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ------------------------------------------------------------------ requisitions *@
+<section class="card mb-3" aria-labelledby="requisitions-title">
+    <div class="card-header"><h2 class="card-title h5" id="requisitions-title">طلبات الشاغر (@F.Number(Model.Requisitions.Total))</h2></div>
+    <div class="card-body table-responsive">
+        <table class="table table-sm table-hover" id="requisitions-table">
+            <caption>طلبات الشاغر المفتوحة أو التي طُلبت أو أُغلقت أو أُلغيت في الفترة، الأقدم أولاً. العمر بالأيام من الاعتماد (أو الطلب) حتى الإغلاق أو اليوم.</caption>
+            <thead>
+                <tr>
+                    <th scope="col">الطلب</th><th scope="col">الوظيفة</th><th scope="col">الوحدة</th><th scope="col">الحالة</th>
+                    <th scope="col">الاعتماد</th><th scope="col">العمر</th><th scope="col">المتقدمون</th><th scope="col">قائمة مختصرة</th>
+                    <th scope="col">عروض</th><th scope="col">تعيين</th><th scope="col">زمن الملء</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Requisitions.Rows)
+                {
+                    <tr>
+                        <th scope="row"><a asp-action="Requisition" asp-route-id="@r.RequisitionId">@r.RequisitionNumber</a></th>
+                        <td><a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@r.RequisitionId">@r.JobTitle</a></td>
+                        <td>@r.OrgUnitName</td>
+                        <td>@F.Label(r.Status)</td>
+                        <td>@F.Date(r.ApprovedDate)</td>
+                        <td>@F.Number(r.AgeDays)</td>
+                        <td><a asp-controller="RecruitmentApplications" asp-action="Index" asp-route-RequisitionId="@r.RequisitionId">@F.Number(r.Applicants)</a></td>
+                        <td>@F.Number(r.Stages[2].Count)</td>
+                        <td>@F.Number(r.Stages[6].Count)</td>
+                        <td>@F.Number(r.Stages[8].Count)</td>
+                        <td>@F.Number(r.TimeToFillDays)</td>
+                    </tr>
+                }
+                @if (Model.Requisitions.Rows.Count == 0)
+                {
+                    <tr><td colspan="11">لا بيانات.</td></tr>
+                }
+            </tbody>
+        </table>
+        @{
+            var pages = (int)Math.Ceiling(Model.Requisitions.Total / (double)Model.Requisitions.PageSize);
+        }
+        @if (pages > 1)
+        {
+            <nav aria-label="صفحات طلبات الشاغر">
+                <ul class="pagination pagination-sm">
+                    @for (var p = 1; p <= pages; p++)
+                    {
+                        var pageRoute = new Dictionary<string, string?>(exportRoute) { ["Page"] = p.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+                        <li class="page-item @(p == Model.Requisitions.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-all-route-data="pageRoute" aria-current="@(p == Model.Requisitions.Page ? "page" : null)">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+</section>
+
+@* ------------------------------------------------------------------ overdue approvals (AC-HCM-32d) *@
+<section class="card mb-3" aria-labelledby="approvals-title">
+    <div class="card-header"><h2 class="card-title h5" id="approvals-title">الاعتمادات المتأخرة (@F.Number(Model.Approvals.OverdueCount))</h2></div>
+    <div class="card-body table-responsive">
+        <table class="table table-sm" id="overdue-approvals-table">
+            <caption>خطوات اعتماد التوظيف قيد التنفيذ التي تجاوز عمرها المهلة. المهلة: مهلة الخطوة إن حُددت، وإلا سياسة المسار، وإلا السياسة الافتراضية (قيمة سياسة تنظيمية مؤقتة، لا قيمة قانونية).</caption>
+            <thead>
+                <tr><th scope="col">الكيان</th><th scope="col">المسار</th><th scope="col">الخطوة</th><th scope="col">الدور</th><th scope="col">بداية الخطوة</th><th scope="col">العمر (ساعات)</th><th scope="col">المهلة (ساعات)</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model.Approvals.Overdue)
+                {
+                    <tr>
+                        <th scope="row"><a href="@Url.Content("~" + F.EntityLink(o))">@o.EntityLabel</a></th>
+                        <td>@o.WorkflowName <small class="text-muted d-block">@o.WorkflowCode</small></td>
+                        <td>@o.StepName</td>
+                        <td>@o.RoleRequired</td>
+                        <td>@F.DateTimeUtc(o.StepStartedAt)</td>
+                        <td>@F.Value(o.AgeHours)</td>
+                        <td>@F.Number(o.SlaHours) <small class="text-muted d-block">@F.SlaSourceLabel(o.SlaSource)</small></td>
+                    </tr>
+                }
+                @if (Model.Approvals.Overdue.Count == 0)
+                {
+                    <tr><td colspan="7">لا اعتمادات متأخرة.</td></tr>
+                }
+            </tbody>
+        </table>
+        <table class="table table-sm" id="step-durations-table">
+            <caption>مدة خطوات الاعتماد المنجزة في الفترة (ساعات).</caption>
+            <thead><tr><th scope="col">المسار</th><th scope="col">الخطوة</th><th scope="col">الوسيط</th><th scope="col">P90</th><th scope="col">n</th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Approvals.CompletedSteps)
+                {
+                    <tr><th scope="row">@s.WorkflowName</th><td>@s.StepLevel — @s.StepName</td><td>@F.Value(s.MedianHours)</td><td>@F.Value(s.P90Hours)</td><td>@F.Number(s.N)</td></tr>
+                }
+                @if (Model.Approvals.CompletedSteps.Count == 0)
+                {
+                    <tr><td colspan="5">لا بيانات.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="row">
+    @* -------------------------------------------------------------- offers and declines *@
+    <section class="col-lg-6 mb-3" aria-labelledby="offers-title">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h5" id="offers-title">العروض وأسباب رفضها</h2>
+            <table class="table table-sm" id="offers-table">
+                <caption>العروض التي حُسمت نتيجتها في الفترة.</caption>
+                <thead><tr><th scope="col">النتيجة</th><th scope="col">العدد</th></tr></thead>
+                <tbody>
+                    <tr><th scope="row">مقبول</th><td>@F.Number(Model.Offers.Accepted)</td></tr>
+                    <tr><th scope="row">مرفوض</th><td>@F.Number(Model.Offers.Declined)</td></tr>
+                    <tr><th scope="row">منتهي الصلاحية</th><td>@F.Number(Model.Offers.Expired)</td></tr>
+                    <tr><th scope="row">ملغى (خارج النسبة)</th><td>@F.Number(Model.Offers.Revoked)</td></tr>
+                </tbody>
+            </table>
+            <table class="table table-sm" id="decline-reasons-table">
+                <caption>أسباب الرفض (@F.Number(Model.Declines.Total))</caption>
+                <thead><tr><th scope="col">فئة السبب</th><th scope="col">العدد</th></tr></thead>
+                <tbody>
+                    @foreach (var c in Model.Declines.ByCategory)
+                    {
+                        <tr><th scope="row">@c.Label</th><td>@F.Number(c.Count)</td></tr>
+                    }
+                    @foreach (var c in Model.Declines.ByDeclinedBy)
+                    {
+                        <tr><th scope="row">بواسطة: @c.Label</th><td>@F.Number(c.Count)</td></tr>
+                    }
+                    @if (Model.Declines.Total == 0)
+                    {
+                        <tr><td colspan="2">لا بيانات.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div></div>
+    </section>
+
+    @* -------------------------------------------------------------- channels *@
+    <section class="col-lg-6 mb-3" aria-labelledby="channels-title">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h5" id="channels-title">مزيج القنوات</h2>
+            <canvas id="recruitment-channel-chart" height="180" role="img" aria-label="رسم أعمدة لطلبات كل قناة والمعيّنين منها؛ القيم في الجدول أدناه" data-chart="channels"></canvas>
+            <table class="table table-sm" id="channels-table">
+                <caption>طلبات الفترة حسب قناة التقديم ونسبة التعيين منها.</caption>
+                <thead><tr><th scope="col">القناة</th><th scope="col">الطلبات</th><th scope="col">المعيّنون</th><th scope="col">نسبة التعيين</th></tr></thead>
+                <tbody>
+                    @foreach (var c in Model.Channels.Rows)
+                    {
+                        <tr><th scope="row">@F.Label(c.Channel)</th><td>@F.Number(c.Applied)</td><td>@F.Number(c.Hired)</td><td>@F.Percent(c.HireRate)</td></tr>
+                    }
+                    @if (Model.Channels.Rows.Count == 0)
+                    {
+                        <tr><td colspan="4">لا بيانات.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div></div>
+    </section>
+
+    @* -------------------------------------------------------------- appeals *@
+    <section class="col-lg-6 mb-3" aria-labelledby="appeals-title">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h5" id="appeals-title">الاستئنافات والاعتراضات</h2>
+            <table class="table table-sm" id="appeals-table">
+                <caption>نتائج الاستئنافات التي بُتّ فيها في الفترة، واعتراضات نتائج المسابقات.</caption>
+                <thead><tr><th scope="col">البند</th><th scope="col">العدد</th></tr></thead>
+                <tbody>
+                    <tr><th scope="row">استئنافات مقدمة</th><td>@F.Number(Model.Appeals.AppealsFiled)</td></tr>
+                    <tr><th scope="row">رفض قابل للاستئناف</th><td>@F.Number(Model.Appeals.AppealableRejections)</td></tr>
+                    @foreach (var o in Model.Appeals.DecidedOutcomes)
+                    {
+                        <tr><th scope="row">@o.Label</th><td>@F.Number(o.Count)</td></tr>
+                    }
+                    <tr><th scope="row">اعتراضات مقدمة</th><td>@F.Number(Model.Appeals.ObjectionsFiled)</td></tr>
+                    <tr><th scope="row">اعتراضات مقبولة</th><td>@F.Number(Model.Appeals.ObjectionsUpheld)</td></tr>
+                    <tr><th scope="row">اعتراضات مرفوضة</th><td>@F.Number(Model.Appeals.ObjectionsDismissed)</td></tr>
+                </tbody>
+            </table>
+        </div></div>
+    </section>
+
+    @* -------------------------------------------------------------- open vacancies *@
+    <section class="col-lg-6 mb-3" aria-labelledby="vacancies-title">
+        <div class="card h-100"><div class="card-body">
+            <h2 class="h5" id="vacancies-title">الشواغر المفتوحة (حتى @F.Date(Model.Vacancies.AsOf))</h2>
+            <table class="table table-sm" id="vacant-positions-table">
+                <caption>مناصب شاغرة بلا طلب شاغر نشط (@F.Number(Model.Vacancies.VacantWithoutRequisitionCount))، الأقدم أولاً.</caption>
+                <thead><tr><th scope="col">المنصب</th><th scope="col">الدرجة</th><th scope="col">الوحدة</th><th scope="col">شاغر منذ</th><th scope="col">أيام</th></tr></thead>
+                <tbody>
+                    @foreach (var v in Model.Vacancies.VacantWithoutRequisition)
+                    {
+                        <tr><th scope="row">@v.PositionCode</th><td>@v.GradeCode</td><td>@v.OrgUnitName</td><td>@F.Date(v.VacantSince)</td><td>@F.Number(v.DaysVacant)</td></tr>
+                    }
+                    @if (Model.Vacancies.VacantWithoutRequisition.Count == 0)
+                    {
+                        <tr><td colspan="5">لا بيانات.</td></tr>
+                    }
+                </tbody>
+            </table>
+            <table class="table table-sm" id="stale-requisitions-table">
+                <caption>طلبات منشورة منذ أكثر من @F.Number(Model.Vacancies.StalePublishedDays) يوماً (@F.Number(Model.Vacancies.StalePublishedCount)).</caption>
+                <thead><tr><th scope="col">الطلب</th><th scope="col">الوظيفة</th><th scope="col">الوحدة</th><th scope="col">النشر</th><th scope="col">أيام</th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.Vacancies.StalePublished)
+                    {
+                        <tr><th scope="row"><a asp-action="Requisition" asp-route-id="@s.RequisitionId">@s.RequisitionNumber</a></th><td>@s.JobTitle</td><td>@s.OrgUnitName</td><td>@F.Date(s.PublishedAt)</td><td>@F.Number(s.DaysPublished)</td></tr>
+                    }
+                    @if (Model.Vacancies.StalePublished.Count == 0)
+                    {
+                        <tr><td colspan="5">لا بيانات.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div></div>
+    </section>
+</div>
+
+@* ------------------------------------------------------------------ competitions (unrestricted only) *@
+@if (Model.Competitions.Visible)
+{
+    <section class="card mb-3" aria-labelledby="competitions-title">
+        <div class="card-header"><h2 class="card-title h5" id="competitions-title">المسابقات</h2></div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm" id="competitions-table">
+                <caption>المسابقات المعلنة في الفترة أو الجارية. مجاميع على مستوى المسابقة كاملة.</caption>
+                <thead>
+                    <tr><th scope="col">المسابقة</th><th scope="col">الحالة</th><th scope="col">المتقدمون</th><th scope="col">المقبولون للاختبار</th><th scope="col">الحاضرون</th><th scope="col">الناجحون</th><th scope="col">المخصَّصون</th><th scope="col">الاحتياط</th><th scope="col">المستدعَون</th><th scope="col">اعتراضات (مقبولة)</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.Competitions.Rows)
+                    {
+                        <tr>
+                            <th scope="row"><a asp-controller="Competitions" asp-action="Details" asp-route-id="@c.CompetitionId">@c.Number</a> <small class="d-block">@c.Title</small></th>
+                            <td>@F.Label(c.Status)</td><td>@F.Number(c.Applicants)</td><td>@F.Number(c.Admitted)</td><td>@F.Number(c.Present)</td>
+                            <td>@F.Number(c.Passed)</td><td>@F.Number(c.Allocated)</td><td>@F.Number(c.Reserve)</td><td>@F.Number(c.Recalled)</td>
+                            <td>@F.Number(c.ObjectionsFiled) (@F.Number(c.ObjectionsUpheld))</td>
+                        </tr>
+                    }
+                    @if (Model.Competitions.Rows.Count == 0)
+                    {
+                        <tr><td colspan="10">لا بيانات.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+<script type="application/json" id="recruitment-report-data">@Html.Raw(Model.ChartJson)</script>
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+    <script src="~/js/recruitment-reports.js" asp-append-version="true"></script>
+}

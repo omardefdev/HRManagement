@@ -12,7 +12,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 | P0 | Baseline, orientation, notes | Done | `docs(hcm032): baseline, pre-implementation notes and progress log` |
 | P1 | Definitions, pure calculators, decline category | Done | `feat(hcm032): recruitment KPI definitions, calculators and offer decline categories` |
 | P2 | `RecruitmentMetricsService` (read-only, scoped) | Done | `feat(hcm032): recruitment metrics service with org scope and coverage` |
-| P3 | UI | Not started | |
+| P3 | UI | Done | `feat(hcm032): recruitment reports screen with funnel, requisitions and overdue approvals` |
 | P4 | Exports | Not started | |
 | P5 | Scale | Not started | |
 | P6 | Analytics integration (additive) | Not started | |
@@ -37,13 +37,15 @@ Prompt decisions 1–10 are adopted as written (recorded in Arabic at the top of
 | K5 | **Decline category validation** lives in `RecruitmentOfferService.GetDeclineError` (new parameter, null or undefined value refused with «يجب اختيار فئة سبب الرفض.»), so both the HR on-behalf pre-check and the service enforce it. `SettleForWithdrawalAsync` sets `Other`. The portal decline gets its own form `CandidatePortalDeclineForm` (`Text`, `Category`); the shared `CandidatePortalTextForm` is unchanged. | One rule for both paths; no change to the other portal forms. |
 | K6 | **Stage time** uses `Received` as the first status event (its `ToStatus` is the initial status), then consecutive `StatusChanged` events; the last status (no end) is not counted. | Otherwise the time in Submitted would never be measured. |
 | K7 | **Approval SLA ages and step durations in hours** (median/P90 one decimal); skipped history entries are not steps but move the next step's start. | SLA is configured in hours. |
-
 | K8 | **Org-unit filter = the unit and its descendants** (MaterializedPath prefix, as `OrgScopeService`), intersected with the caller's scope. | A ministry-level unit should include its directorates. |
 | K9 | **Shared loads per request**: the cohort (applications applied in the period, their funnel events and offer evidence, loaded in id batches of 5,000) and the hires (all-time, in scope) are memoised in the scoped service, so the `Index` set of KPI calls reads them once. The memo key is culture-free (a record `ToString` formats dates with the current culture — it crashed under ar-SA/Um Al-Qura). | Scale budget (P5); culture safety. |
 | K10 | **Offer outcome dates**: Accepted `AcceptedDate`, Declined `DeclinedAt`, Expired `ExpiredAt ?? ExpiryDate` (offers expired before the expiry job), Revoked `RevokedAt`; the current status is the final outcome. Offers, appeals and objections are scoped through their application. | Documented fallback for old expired rows. |
 | K11 | **Open vacancies**: "vacant since" = the latest close/cancel date of a requisition on the position, else the position's creation; the vacant-position list is empty under a requisition or competition filter; stale = `PublishedAt ?? ApprovedDate ?? RequestedDate` older than `StalePublishedDays`. Lists keep the oldest 100; counts are exact. | The funded position has no vacant-since column. |
 | K12 | **Approval SLA scope**: a workflow entity's unit — requisition → its position; offer → the offer's funded position; application/appeal → the application's requisition; committee session → its requisition; competition / result version → none (unrestricted only). Bound: recruitment instances in progress, or started before the period end and not completed before its start; only those histories are parsed. | Decision 6; bounded JSON parsing (prompt P2). |
 | K13 | **Competitions panel**: competitions announced in the period, or announced and not finalized/cancelled (or the filtered one), max 100; admitted = reached Shortlisted (status, event or an exam paper), present = a paper with attendance Present, passed = `Passed` in `CurrentResultVersionId`, allocated = allocations not from reserve, reserve = applications with a reserve entry (ever), recalled = entries `Recalled`. | Definitions of the prompt made countable. |
+| K14 | **Exports are GET actions** (audited `BulkExport`, bounded) on `RecruitmentReportsController`. The gateway maps every POST under `/ui/hr-core` to `HrCoreWrite`, so a read-only user (executive, branch manager) could not reach a POST export; AC-HCM-32c needs the read-only export. No gateway rule is changed (PLAN-25 deferred). | Additive and keeps generic authorization untouched. |
+| K15 | **No small-cell suppression on the HR.Core screen**: its breakdowns (stage, status, channel, decline category, appeal outcome, workflow step) are not personal attributes; suppression applies to the Dev.Analytics publication (P6). Dates/numbers on the screen and exports go through `RecruitmentReportFormat` (invariant, Gregorian); filter dates are `yyyy-MM-dd` strings parsed invariantly. The org-unit and competition option lists convert ids in memory (SQLite printed upper-case GUIDs). | Decision 7 scope of suppression; culture safety. |
+| K16 | **Overdue approval links** go to the existing screen of the entity (requisition, offer, application, appeal, committee, competition; result version → its competition), else to the workflow instance. | Drill-through without new authorization. |
 
 ## P0 maps
 
@@ -115,6 +117,7 @@ Skipped).
 | Phase | Files |
 |-------|-------|
 | P1 | Domain: `Enums/OfferDeclineReasonCategory.cs`, `Services/RecruitmentKpi/{KpiStatistics,FunnelReachRules,TimeToFillRules,ApprovalSlaRules,SmallCellSuppression}.cs`, `Entities/OfferLetter.cs`; Infrastructure: `HRCoreDbContext`, migration + snapshot, `RecruitmentOfferService` (decline category); Web: `OfferLettersController`, `OfferOnBehalfService`, `CandidatePortalController`/`Service`, `CandidatePortalViewModels` (`CandidatePortalDeclineForm`), `DeclineOfferForm`, `Views/OfferLetters/Details.cshtml`, `Views/CandidatePortal/Index.cshtml`; docs `STR_007_KPI_DEFINITIONS.md`, `str-value/kpi-matrix.json`; tests `Hcm032{KpiStatistics,FunnelReachRules,ApprovalSlaRules,DeclineCategory}Tests` |
+| P3 | Web: `Controllers/RecruitmentReportsController.cs`, `ViewModels/RecruitmentReportsViewModels.cs` (filter form, view models, `RecruitmentReportFormat`), `Views/RecruitmentReports/{Index,Requisition}.cshtml`, `wwwroot/js/recruitment-reports.js`, `Views/Shared/_Layout.cshtml` (menu «تقارير التوظيف»); `RecruitmentMetricsModels` (overdue row carries requisition/competition id); tests `Hcm032RecruitmentReportsControllerTests` |
 | P2 | `Infrastructure/Services/Recruitment/Analytics/{RecruitmentMetricsService,RecruitmentMetricsModels}.cs`, `RecruitmentOptions` (`RecruitmentAnalyticsOptions`), `HR.Core.Web/Program.cs` (DI); tests `Hcm032MetricsFixture`, `Hcm032RecruitmentMetricsTests` |
 | P0 | `reports/plan32-baseline.md`, `reports/plan32-progress.md`, `docs/acceptance-plans/PLAN-32-hcm-recruitment-analytics.md`, `docs/acceptance-plans/execution/PLAN-32-AGENT-PROMPT.md` (added as-is) |
 
@@ -135,6 +138,8 @@ Skipped).
 | P1 | STR-007 validator (22 KPIs); `has-pending-model-changes` | PASS; none |
 | P2 | `Hcm032RecruitmentMetricsTests` (every KPI vs the hand tables; unrestricted, branch, denied, out-of-scope, competition-filter, org-unit, channel/requisition filters; names/references) | 21 / 21 pass |
 | P2 | Regression `Hcm032|Hcm02|Hcm03|Reports|Str007|Perf004|Program|Options` | 1059 / 1059 pass |
+| P3 | `Hcm032*` unit tests | 82 / 82 pass |
+| P3 | Regression `Architecture|Ux0|Csp|A11y|Accessib|Bola|Hcm006|Nonce|Authoriz|Reports|Hcm02|Hcm03|Layout|Menu|Nav` | 1167 / 1168 — the failure is `BolaArchitectureTests.Employee_scoped_controller_actions_apply_org_scope_guard` (environment-only baseline list; offenders are HR.Contracts/Payroll, not PLAN-32) |
 
 ## Modified existing tests
 
@@ -154,6 +159,8 @@ Skipped).
 
 ## Next step
 
-P3 — `RecruitmentReportsController` (`HrCoreReadOnly`) `Index` + `Requisition/{id}`, view models, views (funnel chart +
-data table, requisitions, overdue approvals, offers, channels, appeals, merit, vacancies, competitions), JS file
-(`wwwroot/js/recruitment-reports.js`, data from `<script type="application/json">`), menu «تقارير التوظيف», controller tests.
+P4 — exports on `RecruitmentReportsController` (GET, K14): `ExportExcel` (ClosedXML sheets المؤشرات، القمع، طلبات الشاغر،
+الاعتمادات المتأخرة، العروض، الاستئنافات، الشواغر المفتوحة + provenance header), `ExportPdf` (QuestPDF official layout),
+`ExportApplicationsCsv` (sync ≤ `MaxExportRows`, else ExportJobs template `hrcore.recruitment.applications.csv` with the
+names flag in the auth snapshot, re-checked at download); buttons on `Index.cshtml`; regenerate `QUERY_EXPORT_INVENTORY.md`;
+`Hcm032ExportTests`.

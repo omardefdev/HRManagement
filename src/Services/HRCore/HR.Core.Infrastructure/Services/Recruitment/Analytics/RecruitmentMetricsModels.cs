@@ -151,7 +151,9 @@ public sealed record OverdueApprovalRow(
     DateTime StepStartedAt,
     decimal AgeHours,
     int SlaHours,
-    ApprovalSlaSource SlaSource);
+    ApprovalSlaSource SlaSource,
+    Guid? RequisitionId,
+    Guid? CompetitionId);
 
 public sealed record StepDurationRow(
     string WorkflowCode,
