@@ -8,8 +8,8 @@
 | Phase | Status | Commit |
 |-------|--------|--------|
 | P0 baseline, inventory, notes | Done | e05632d |
-| P1 approval start coordinator | Done | (P1 commit) |
-| P2 repair endpoint + script | Pending | |
+| P1 approval start coordinator | Done | 8360b5e |
+| P2 repair endpoint + script | Done | (P2 commit) |
 | P3 step roles + gates | Pending | |
 | P4 retire RECRUITMENT-HIRE | Pending | |
 | P5 write policies + org scope | Pending | |
@@ -99,10 +99,16 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 - Settings: Production/Staging get `PolicyEngine:Core.Recruitment=Shadow` and `Recruitment:Approvals` (`AlwaysStartWorkflow=true`, `FailIfDefinitionMissing=true`).
 - Tests modified (behaviour change, not weakening): `Hcm033LabScaleBehaviourTests` (3 non-lab tests flipped to "now starts", restart test added), `Syr001RecruitmentLegalSourceTests` and `Syr001OfferLegalSourceTests` (real starter + seeded definitions; the offer test expected `Issued` on submit — stale, now PendingApproval with an instance; it was a known baseline failure and now passes), `Est002`/`Est005`/`Est006` integration tests (asserted the defect "Off mode applies on submit"; now submit → PendingApproval → approved through the real handler → Applied, via `EstablishmentApprovalTestHelper`), AC-HCM-21d/22e step notes. `IntegrationTestAuth` gains an `X-Test-Employee-Id` header.
 
+## P2 notes
+
+- `ApprovalRepairService` (Infrastructure/Services/Workflow) + `RecruitmentAdminController` `POST api/recruitment/admin/repair-approvals?dryRun=true` (`HrCoreDelete`, `[ApiController]`). Tenant = caller (context filter). Each repair goes through the entity's `RestartApprovalAsync` (same coordinator as a submit, audited `ApprovalWorkflowRestarted`); appeals through the new `RecruitmentAppealService.RestartReviewWorkflowAsync` (only Pending + assigned reviewer + not awaiting info + no instance — PLAN-28 rules); orphan `RecruitmentApplication` (RECRUITMENT-HIRE) instances → `Cancelled` with a history entry and `OrphanHireWorkflowCancelled` audit. A failed row (e.g. missing definition) is reported `Failed` with its message, never thrown.
+- `scripts/hcm025-repair-stuck-approvals.ps1`: password grant on `hr-gateway-client` (the acceptance harness pattern), gateway `/api/hr-core/api/recruitment/admin/repair-approvals`, dry run by default, `-Apply`, CSV + JSON under `artifacts/hcm025-repair/`. Credentials from parameters or `HCM025_ADMIN_USERNAME`/`HCM025_ADMIN_PASSWORD`; on a local acceptance stack the password may come from the untracked `.acceptance/credentials.json` and the client secret from `.env`; nothing is written or logged. Default user `acc-a-directory-checker` (the only hr-admin persona).
+- Tests: `Hcm025ApprovalRepairTests` 3/3 (dry run changes nothing; apply repairs exactly the 6 listed rows, 5 restart audits + 1 orphan audit, idempotent; missing definition reported), `Hcm025ProductionApprovalIntegrationTests.Repair_endpoint_…` (hr-core 403, admin dry run lists, apply starts, idempotent).
+
 ## Open issues
 
 - `-warnaserror` fails on the pre-existing NU1903 SSH.NET advisory (IntegrationTests); not introduced here.
 
 ## Next step
 
-P2: admin repair endpoint `POST /api/recruitment/admin/repair-approvals?dryRun=true` (HrCoreDelete) + `scripts/hcm025-repair-stuck-approvals.ps1` + tests.
+P3: `WorkflowActionActor` with all roles + employee id, `WorkflowStageGuard` role check (approve + reject), `IWorkflowApprovalGate` classes, panel builder parity.

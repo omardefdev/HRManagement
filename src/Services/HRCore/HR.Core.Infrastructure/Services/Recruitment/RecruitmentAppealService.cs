@@ -161,6 +161,37 @@ public sealed class RecruitmentAppealService(
     }
 
     /// <summary>
+    /// PLAN-25 (G-02 repair): starts RECRUITMENT-APPEAL-REVIEW for a pending appeal that has an assigned reviewer, is not
+    /// waiting for information and has no instance. A missing definition is reported as an error (H5 still lets the
+    /// reviewer decide directly).
+    /// </summary>
+    public async Task<(bool Success, string? Error)> RestartReviewWorkflowAsync(
+        Guid appealId,
+        Guid? actorUserId,
+        string? actorUserName = null,
+        CancellationToken ct = default)
+    {
+        var appeal = await LoadAppealAsync(appealId, ct);
+        if (appeal is null) return (false, NotFoundMessage);
+        if (appeal.Status != RecruitmentAppealStatus.Pending
+            || appeal.WorkflowInstanceId is not null
+            || appeal.IsAwaitingInfo
+            || (appeal.IndependentReviewerEmployeeId is null && appeal.IndependentReviewerId is null))
+            return (false, ApprovalRestartRules.NotStuckMessage);
+
+        var (instanceId, startError) = await StartReviewWorkflowAsync(appeal, actorUserId, actorUserName, ct);
+        if (startError is not null || instanceId is not Guid started)
+        {
+            await DiscardChangesAsync(ct);
+            return (false, startError ?? ApprovalStartCoordinator.MissingDefinitionMessage);
+        }
+
+        ApprovalRestartRules.AddRestartAudit(db, nameof(RecruitmentAppeal), appeal.Id, started, actorUserId);
+        await db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    /// <summary>
     /// HCM-028 (H3): the assigned reviewer's explicit outcome. The outcome is stored, then the review step is approved;
     /// <see cref="RecruitmentAppealWorkflowHandler"/> applies its effect. Without a workflow instance (one could not be
     /// started — H5) the decision is applied directly under the same checks and audited as <c>AppealDecidedWithoutWorkflow</c>.

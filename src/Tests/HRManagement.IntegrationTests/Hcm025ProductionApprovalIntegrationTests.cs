@@ -159,6 +159,31 @@ public sealed class Hcm025ProductionApprovalIntegrationTests(
         Assert.Equal(FundedPositionStatus.Frozen, await PositionStatusAsync(host, seed.PositionId));
     }
 
+    [SkippableFact]
+    public async Task Repair_endpoint_is_admin_only_dry_run_lists_and_apply_starts_the_stuck_requisition()
+    {
+        var host = await HostAsync();
+        var seed = await SeedAsync(host, RequisitionStatus.PendingApproval);
+        const string url = "/api/recruitment/admin/repair-approvals";
+
+        using (var hrCore = CreateClient(host, Submitter, [HrManagementRoles.HrCore]))
+            Assert.Equal(HttpStatusCode.Forbidden, (await hrCore.PostAsync($"{url}?dryRun=true", null)).StatusCode);
+
+        using var admin = CreateClient(host, StepOneApprover, [HrManagementRoles.Admin]);
+        var dry = await admin.PostAsync($"{url}?dryRun=true", null);
+        Assert.Equal(HttpStatusCode.OK, dry.StatusCode);
+        Assert.Contains(seed.RequisitionId.ToString("D"), await dry.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        Assert.Null(await WithDbAsync(host, db => db.RecruitmentRequisitions.AsNoTracking()
+            .Where(r => r.Id == seed.RequisitionId).Select(r => r.WorkflowInstanceId).SingleAsync()));
+
+        var apply = await admin.PostAsync($"{url}?dryRun=false", null);
+        Assert.Equal(HttpStatusCode.OK, apply.StatusCode);
+        Assert.NotNull(await WithDbAsync(host, db => db.RecruitmentRequisitions.AsNoTracking()
+            .Where(r => r.Id == seed.RequisitionId).Select(r => r.WorkflowInstanceId).SingleAsync()));
+        var again = await (await admin.PostAsync($"{url}?dryRun=true", null)).Content.ReadAsStringAsync();
+        Assert.DoesNotContain(seed.RequisitionId.ToString("D"), again, StringComparison.OrdinalIgnoreCase);
+    }
+
     // ---------------------------------------------------------------- host
 
     private async Task<WebApplicationFactory<HRCoreWebProgram>> HostAsync()
