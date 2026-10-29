@@ -220,6 +220,15 @@ builder.Services.AddScoped<HR.Core.Web.Services.WorkflowInboxQueryService>();
 builder.Services.AddScoped<HR.Core.Web.Services.HrCoreWorkInboxService>();
 builder.Services.AddScoped<IWorkInboxService, HR.Core.Web.Services.HrCoreWorkInboxService>();
 builder.Services.AddPublicCareersRateLimiting(builder.Configuration);
+// HCM-030 (PLAN-30 H): /careers/my one-time code (key from Recruitment:Portal:OtpHmacKey, required in Production),
+// careers_session cookie and the client address used by the careers-otp limiter.
+builder.Services.AddSingleton(sp => new HR.Core.Infrastructure.Services.Recruitment.CandidateOtpKeyRing(
+    sp.GetRequiredService<IConfiguration>(),
+    sp.GetRequiredService<ILogger<HR.Core.Infrastructure.Services.Recruitment.CandidateOtpKeyRing>>()));
+builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.CandidateOtpStartupValidator>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.CandidateOtpService>();
+builder.Services.AddSingleton(CareersClientIpResolver.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton<HR.Core.Web.Services.CandidatePortalSession>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>();
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<HR.Core.Infrastructure.ExportJobs.IHRCoreExportJobService, HR.Core.Infrastructure.ExportJobs.HRCoreExportJobService>();

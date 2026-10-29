@@ -67,6 +67,20 @@ public class CitizenApplication : AuditableEntity
     [Display(Name = "تاريخ الموافقة على الإشعارات")]
     public DateTime? NotificationConsentAt { get; set; }
 
+    /// <summary>
+    /// HCM-030 (PLAN-30 H2): <c>/careers/my</c> sign-in refused until this time after
+    /// <c>Recruitment:Portal:OtpMaxAttempts</c> wrong codes (audited as <c>CandidatePortalLocked</c>).
+    /// </summary>
+    [Display(Name = "إيقاف دخول البوابة حتى")]
+    public DateTime? PortalLockedUntil { get; set; }
+
+    /// <summary>
+    /// HCM-030 (PLAN-30 H2): when the last <c>/careers/my</c> code was requested. Claimed with one conditional update so
+    /// concurrent requests cannot both pass the <c>Recruitment:Portal:OtpResendSeconds</c> window.
+    /// </summary>
+    [Display(Name = "آخر طلب رمز تحقق")]
+    public DateTime? PortalOtpRequestedAt { get; set; }
+
     [Display(Name = "نبذة/مسوّغات")]
     public string? CoverNote { get; set; }
 

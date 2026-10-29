@@ -179,6 +179,33 @@ public sealed class RecruitmentPortalOptions
     /// normalize national phone numbers (<c>0999…</c> → <c>+963999…</c>).
     /// </summary>
     public string PhoneCountryCode { get; set; } = DefaultPhoneCountryCode;
+
+    // HCM-030 (PLAN-30 H2–H4): /careers/my one-time code and session. The HMAC key is not bound here: it is read from
+    // Recruitment:Portal:OtpHmacKey (secret config / env) by CandidateOtpKeyRing.
+
+    /// <summary><c>Recruitment:Portal:OtpResendSeconds</c> — a new code is refused (silently) within this many seconds of the previous one.</summary>
+    public int OtpResendSeconds { get; set; } = 60;
+
+    /// <summary><c>Recruitment:Portal:OtpValidityMinutes</c> — lifetime of a code (default 10).</summary>
+    public int OtpValidityMinutes { get; set; } = 10;
+
+    /// <summary><c>Recruitment:Portal:OtpMaxAttempts</c> — wrong codes (within <see cref="LockMinutes"/>) before the portal is locked.</summary>
+    public int OtpMaxAttempts { get; set; } = 5;
+
+    /// <summary><c>Recruitment:Portal:LockMinutes</c> — how long sign-in stays locked after <see cref="OtpMaxAttempts"/> wrong codes.</summary>
+    public int LockMinutes { get; set; } = 30;
+
+    /// <summary><c>Recruitment:Portal:SessionMinutes</c> — absolute lifetime of the <c>careers_session</c> cookie (not sliding).</summary>
+    public int SessionMinutes { get; set; } = 30;
+
+    /// <summary>
+    /// <c>Recruitment:Portal:OtpRequestsPerIpPer10Min</c> — code requests per client address per 10 minutes (the
+    /// <c>careers-otp</c> limiter; read from configuration at startup).
+    /// </summary>
+    public int OtpRequestsPerIpPer10Min { get; set; } = 5;
+
+    /// <summary><c>Recruitment:Portal:OtpVerifyPerIpPer10Min</c> — code checks per client address per 10 minutes.</summary>
+    public int OtpVerifyPerIpPer10Min { get; set; } = 20;
 }
 
 /// <summary>

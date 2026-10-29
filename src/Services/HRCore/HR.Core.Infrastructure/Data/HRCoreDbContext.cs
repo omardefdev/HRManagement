@@ -54,6 +54,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<CandidateDocument> CandidateDocuments => Set<CandidateDocument>();
     public DbSet<CandidateNotification> CandidateNotifications => Set<CandidateNotification>();
     public DbSet<CandidateRetentionRun> CandidateRetentionRuns => Set<CandidateRetentionRun>();
+    public DbSet<CandidateOtpChallenge> CandidateOtpChallenges => Set<CandidateOtpChallenge>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<Shift> Shifts => Set<Shift>();
@@ -475,6 +476,17 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.Entity<CandidateRetentionRun>(entity =>
         {
             entity.HasIndex(e => new { e.TenantId, e.StartedAt });
+        });
+
+        // HCM-030 (PLAN-30 H1): /careers/my one-time codes (HMAC only; removed with the citizen row).
+        modelBuilder.Entity<CandidateOtpChallenge>(entity =>
+        {
+            entity.HasOne<CitizenApplication>()
+                  .WithMany()
+                  .HasForeignKey(e => e.CitizenApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Channel).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.TenantId, e.CitizenApplicationId, e.CreatedAt });
         });
 
         modelBuilder.Entity<RecruitmentAssessmentCriteria>(entity =>

@@ -1,0 +1,44 @@
+@model CandidatePortalCodeViewModel
+@{
+    ViewData["Title"] = "إدخال رمز التحقق";
+    Layout = "_PublicLayout";
+    var codeError = ViewData.ModelState[nameof(CandidatePortalCodeViewModel.Code)]?.Errors.FirstOrDefault()?.ErrorMessage;
+}
+<h1 class="careers-page-title"><i class="fas fa-key ms-2" aria-hidden="true"></i> إدخال رمز التحقق</h1>
+<div class="careers-card">
+    <div class="card-body">
+        @if (codeError is not null)
+        {
+            <div class="alert alert-danger border-0 shadow-sm" role="alert" tabindex="-1" data-hr-error-summary aria-labelledby="portal-code-errors-title">
+                <p class="fw-bold mb-1" id="portal-code-errors-title">تعذّر التحقق:</p>
+                <ul class="mb-0"><li><a href="#portal-code">@codeError</a></li></ul>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(Model.Notice))
+        {
+            <div class="alert alert-info border-0 shadow-sm" role="status" tabindex="-1" data-hr-focus-notice>
+                <i class="fas fa-info-circle ms-1" aria-hidden="true"></i> @Model.Notice
+            </div>
+        }
+        <form asp-action="Verify" method="post" class="careers-form" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ReferenceNumber" value="@Model.ReferenceNumber" />
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label" for="portal-code">رمز التحقق (6 أرقام)</label>
+                    <input id="portal-code" name="Code" class="form-control@(codeError is null ? "" : " is-invalid")" maxlength="6"
+                           inputmode="numeric" autocomplete="one-time-code" required aria-required="true"
+                           aria-invalid="@(codeError is null ? "false" : "true")"
+                           aria-describedby="portal-code-help@(codeError is null ? "" : " portal-code-error")" />
+                    <small id="portal-code-help" class="text-muted d-block">الرمز صالح لمدة محدودة ولمرة واحدة فقط.</small>
+                    @if (codeError is not null) { <div class="invalid-feedback d-block" id="portal-code-error">@codeError</div> }
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn careers-btn-primary w-100"><i class="fas fa-sign-in-alt ms-1" aria-hidden="true"></i> دخول</button>
+                </div>
+            </div>
+        </form>
+        <p class="mt-3 mb-0"><a asp-action="Login">لم يصلك الرمز؟ اطلب رمزاً جديداً</a></p>
+    </div>
+</div>
+<script src="~/js/careers-portal.js" asp-append-version="true"></script>

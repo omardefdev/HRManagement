@@ -257,6 +257,8 @@ services:
       ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:?SVC_HR_CORE_CLIENT_SECRET required}
       ServiceIdentity__Scope: file-storage.references
       ServiceIdentity__ApiAudience: api-hr-core
+      # HCM-030 (PLAN-30 H): /careers/my one-time-code HMAC key (>= 32 chars); hr-core refuses to start without it.
+      Recruitment__Portal__OtpHmacKey: ${HR_CORE_OTP_HMAC_KEY:?HR_CORE_OTP_HMAC_KEY required}
       Keycloak__AdditionalValidAudiences: api-hr-core;hr-gateway-client
       # SEC-004 / IAM-004: clear dev MinIO defaults — hr-core uses service identity, not direct MinIO.
       FileStorage__AccessKey: ""

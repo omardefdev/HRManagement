@@ -357,6 +357,56 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("CandidateNotifications");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CandidateOtpChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CitizenApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodeHmac")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CitizenApplicationId");
+
+                    b.HasIndex("TenantId", "CitizenApplicationId", "CreatedAt");
+
+                    b.ToTable("CandidateOtpChallenges");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.CandidateRetentionRun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -557,6 +607,12 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("PortalLockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("PortalOtpRequestedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("PromotedRecruitmentApplicationId")
                         .HasColumnType("uuid");
@@ -6293,6 +6349,15 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", null)
                         .WithMany()
                         .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CandidateOtpChallenge", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.CitizenApplication", null)
+                        .WithMany()
+                        .HasForeignKey("CitizenApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

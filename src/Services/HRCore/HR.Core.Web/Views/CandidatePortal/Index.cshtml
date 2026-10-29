@@ -1,0 +1,19 @@
+@model CandidatePortalContext
+@{
+    ViewData["Title"] = "طلباتي";
+    Layout = "_PublicLayout";
+}
+@* HCM-030 (H4): signed-in landing page; the status, timeline and candidate actions are added by workstream I. *@
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1 class="careers-page-title mb-0"><i class="fas fa-folder-open ms-2" aria-hidden="true"></i> طلباتي</h1>
+    <form asp-action="Logout" method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn careers-btn-outline"><i class="fas fa-sign-out-alt ms-1" aria-hidden="true"></i> خروج</button>
+    </form>
+</div>
+<div class="careers-card">
+    <div class="card-body">
+        <p class="mb-2">الرقم المرجعي للطلب: <span class="careers-badge"><bdi dir="ltr">@Model.ReferenceNumber</bdi></span></p>
+        <p class="text-muted mb-0">تنتهي الجلسة تلقائياً بعد مدة محددة من الدخول، ويمكنك الخروج في أي وقت.</p>
+    </div>
+</div>
