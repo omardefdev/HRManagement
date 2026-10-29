@@ -13,8 +13,8 @@
 ` |
 | P2 Deterministic recruitment states | done | `b93ddba` (+ fix `29670a0`) |
 | P3 AC-HCM-21/22, AC-WF-23 | done | `95c70e1` (+ stack fix `4588a23`) |
-| P4 Requisition-to-hire E2E + prod-like | done | (P4 commit) |
-| P5 Remove phantom evidence | pending | — |
+| P4 Requisition-to-hire E2E + prod-like | done | `d91b7b8` |
+| P5 Remove phantom evidence | done | (P5 commit) |
 | P6 Live acceptance run | pending | — |
 | P7 Docs corrections and CI | pending | — |
 | P8 Validate script, review, final report | pending | — |
@@ -58,40 +58,16 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-Commit P5 (SharedKernel.Recruitment deleted, Hcm001 behaviour tests and hcm001-validate.ps1 already written and green — re-run the git grep proof first), then P6.
+P6: full serial live run (rebuild every image from this branch, filter AcHcm21|22|AcWf23|AcHcm26..32|AcHcm06 with REQUIRE_ALL, then the journey), summarize evidence, check eight items per folder.
 
-## P4 notes
+## P5 notes
 
-- `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` (`Category=Journey`) + `RecruitmentJourneyHarness.cs`
-  (self-contained copies of the acceptance helpers: the E2E project cannot reference the acceptance project, which
-  references it). All steps are HTTP through the gateway; **Playwright browsers are not used** — they are not installed
-  here (installing needs pwsh 7 and a download) and the HR screens are server-rendered forms; the test sends the same
-  requests the UI does. Deviation from the prompt, recorded for the final report.
-- Real path, no ranking shortcut: criteria → two-step approval → publish → public apply with PDF CV (File.Storage +
-  ClamAV) → screen → COI → shortlist → interview → two assessors → Assessed → rank 1 → offer → two-step approval →
-  Issued → candidate OTP sign-in (code from FileDrop) → accept on /careers/my → hire → HR.Contracts Appointment +
-  contract (grade G5, offer salary, source offer). Test-only SQL: interview slot moved into the past (as AC-HCM-26), the
-  closing date moved to yesterday and restored for the late-apply refusal.
-- Refusals per stage: approver has no approve form at step 1 (server-side role check = G-04, not asserted as refusal);
-  late apply (closed page has no form; POST with an earlier token refused, no citizen row); offer before ranking (no
-  offer row); creator approving own offer (state unchanged); hire before acceptance (not hired); wrong OTP (no session).
-- Correlation (Ac15 pattern): gateway echo on the hire, gateway_audit_entries rows for the run id including the HR.Core
-  hire and HR.Contracts requests; the async consumer side effect is tied by application/offer lineage. **Finding:**
-  HR.Contracts applies the message X-Correlation-ID to its execution context but persists/logs it nowhere on the
-  success path, and neither service's text logs print it → follow-up (observability), not a product defect.
-- Prod-like: `docker-compose.acceptance-prodlike.yml` (IsLabScale=false, HardEnforceCeilings=true, no PolicyEngine →
-  Off, CommitteeApprovalDefault=true, Retention.Apply=false, Contracts fallback=false; environment stays Acceptance).
-  `RecruitmentToHireJourneyProdLikeE2ETests` (`Category=JourneyProdLike`, skips unless hr-core runs with
-  IsLabScale=false). Run once: **stops at stage 1** — after submit `PendingApproval` with no workflow instance (G-02).
-  Evidence: `acceptance-evidence/AC-HCM-33/prodlike/` (result Fail, stageReached «1 requisition»). A first attempt hit a
-  transient 502 right after the container recreate (gateway upstream not ready) and was re-run.
-- CI (not executed): `e2e-journeys.yml` — new `recruitment-journey` job (acceptance-up.ps1 -SkipLiveVerification,
-  filter on the lab journey, zero-skip + must-pass check, evidence upload, reset); `journeys` job excludes the recruitment
-  journey, gets the zero-skip step, and now passes `--profile full-stack` (without it only infrastructure started — a
-  pre-existing defect found by the map). `ci.yml` e2e job (demo stack) excludes `JourneyProdLike` and the recruitment
-  journey. Filters checked locally with `dotnet test --filter` (selection counts as intended).
-
-| Live run | Result |
-|---|---|
-| Journey, acceptance profile (after fixes: closing-date token, correlation evidence) | Pass (15 s), again Pass after restoring the lab profile (22 s) |
-| Journey, prod-like | Fail at «1 requisition» — G-02 (expected), evidence recorded |
+- `git grep` over code, csproj, props, scripts (`*.ps1`, `*.py`, `*.sh`), JSON and YAML: no consumer of
+  `HRManagement.SharedKernel.Recruitment` besides `Hcm001RecruitmentTests` and `hcm001-validate.ps1`; the thesis and
+  diagram generators read DbContexts/snapshots only. The three files are **deleted** (no `[Obsolete]` needed).
+- `Hcm001RecruitmentTests` (11): behaviour smoke tests on `RequisitionWorkflowRules`, `SelectionWorkflowRules`,
+  `OfferWorkflowRules` (incl. `MarkIssued`/expiry), `RecruitmentAppealWorkflowRules` (window, single appeal, assigned
+  reviewer), the real entity files, a guard that the SharedKernel folder stays gone, and the validate script.
+- `scripts/hcm001-validate.ps1` checks the real HR.Core artifacts (entities, enums, the four rule classes, offer and
+  application properties) and fails if `SharedKernel/Recruitment` returns; the doc check now looks for
+  `RecruitmentApplication`. Result: PASS; Hcm001 11/11; solution build 0 errors.
