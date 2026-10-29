@@ -268,13 +268,8 @@ public class EstablishmentChangesController(
     private static string? NormalizeLegalSourceId(string? legalSourceId) =>
         string.IsNullOrWhiteSpace(legalSourceId) ? null : legalSourceId.Trim();
 
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-    {
-        var userId = ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(userId, userName, actorRole);
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {

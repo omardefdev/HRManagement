@@ -90,7 +90,8 @@ public class SoDRequisitionApprovalTests
 
         var result = await service.ApproveAsync(
             instance.Id,
-            new WorkflowActionActor(creatorId, "creator", "hr-management-approver"),
+            // PLAN-25 (G-04): the creator holds the step-1 role, so the refusal is the creator SoD rule, not the role check.
+            new WorkflowActionActor(creatorId, "creator", "hr-core"),
             comments: null,
             targetStepLevel: 1);
 

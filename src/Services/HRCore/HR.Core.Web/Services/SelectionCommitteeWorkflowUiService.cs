@@ -1,53 +1,41 @@
 using System.Security.Claims;
 using HR.Core.Domain.Entities;
-using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow;
+using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HR.Core.Web.ViewModels;
-using HRManagement.ServiceDefaults;
-using HRManagement.ServiceDefaults.Workflow;
 
 namespace HR.Core.Web.Services;
 
-public sealed class SelectionCommitteeWorkflowUiService(
-    HRCoreDbContext db,
-    EstablishmentScopeService establishmentScope)
+/// <summary>
+/// PLAN-25 (G-04): approve/reject availability comes from the server evaluator (creator, member on the final step, quorum
+/// on approve, step role, branch scope).
+/// </summary>
+public sealed class SelectionCommitteeWorkflowUiService(HRCoreDbContext db, WorkflowApprovalEvaluator? evaluator = null)
 {
+    private readonly WorkflowApprovalEvaluator _evaluator = evaluator ?? WorkflowApprovalEvaluator.CreateDefault(db);
+
     public async Task<SelectionCommitteeDetailsViewModel> BuildDetailsAsync(
         SelectionCommitteeSession session,
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, session.WorkflowInstanceId, ct);
-        var userId = WorkflowPanelBuilder.ParseUserId(user);
-        var actorEmployeeId = HrOrgScopeVisibility.GetEmployeeId(user);
-        var accessScope = await establishmentScope.GetScopeAsync(user, ct);
-        var orgUnitId = session.Requisition?.FundedPosition?.OrgUnitId;
 
-        var workflowPanel = WorkflowPanelBuilder.Build(
+        var workflowPanel = await WorkflowPanelBuilder.BuildAsync(
             instance,
             definition,
             user,
-            userId,
             new WorkflowPanelBuildOptions
             {
                 IsAwaitingApproval = session.ApprovedAt is null
                     && (session.WorkflowInstanceId is not null || session.SubmittedAt is not null),
-                EntityCreatedBy = session.CreatedBy,
-                CreatorSoDMessage = SelectionCommitteeRules.ApproverIsMemberOrCreatorMessage,
                 MissingWorkflowWarning = session.WorkflowInstanceId is null && session.SubmittedAt is not null && session.ApprovedAt is null
-                    ? HR.Core.Infrastructure.Services.Workflow.ApprovalRestartRules.StuckWarning
-                    : null,
-                AdditionalBlockReason = (inst, step, actorId) =>
-                {
-                    var orgBlock = WorkflowInboxOrgScope.GetBlockReason(accessScope, orgUnitId);
-                    if (orgBlock is not null)
-                        return orgBlock;
-
-                    // HCM-028: same rule as SelectionCommitteeLifecycleService.ApproveStepAsync.
-                    return SelectionCommitteeRules.ValidateApproval(
-                        inst.CurrentStepLevel, session.Members, session.CreatedBy, actorId, actorEmployeeId);
-                }
-            });
+                    ? ApprovalRestartRules.StuckWarning
+                    : null
+            },
+            _evaluator,
+            ct);
 
         return new SelectionCommitteeDetailsViewModel
         {

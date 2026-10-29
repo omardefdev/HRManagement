@@ -9,8 +9,8 @@
 |-------|--------|--------|
 | P0 baseline, inventory, notes | Done | e05632d |
 | P1 approval start coordinator | Done | 8360b5e |
-| P2 repair endpoint + script | Done | (P2 commit) |
-| P3 step roles + gates | Pending | |
+| P2 repair endpoint + script | Done | 9db6397 |
+| P3 step roles + gates | Done | (P3 commit) |
 | P4 retire RECRUITMENT-HIRE | Pending | |
 | P5 write policies + org scope | Pending | |
 | P6 prod-like journey, AC-HCM-25, CI | Pending | |
@@ -105,10 +105,26 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 - `scripts/hcm025-repair-stuck-approvals.ps1`: password grant on `hr-gateway-client` (the acceptance harness pattern), gateway `/api/hr-core/api/recruitment/admin/repair-approvals`, dry run by default, `-Apply`, CSV + JSON under `artifacts/hcm025-repair/`. Credentials from parameters or `HCM025_ADMIN_USERNAME`/`HCM025_ADMIN_PASSWORD`; on a local acceptance stack the password may come from the untracked `.acceptance/credentials.json` and the client secret from `.env`; nothing is written or logged. Default user `acc-a-directory-checker` (the only hr-admin persona).
 - Tests: `Hcm025ApprovalRepairTests` 3/3 (dry run changes nothing; apply repairs exactly the 6 listed rows, 5 restart audits + 1 orphan audit, idempotent; missing definition reported), `Hcm025ProductionApprovalIntegrationTests.Repair_endpoint_…` (hr-core 403, admin dry run lists, apply starts, idempotent).
 
+## P3 notes
+
+- **Actor:** `WorkflowActionActor(UserId, UserName, IReadOnlySet<string> Roles, EmployeeId, ScopeOrgUnitClaim)` in its own file; `FromPrincipal` (all `ClaimTypes.Role`, `role` and identity role-type claims, `employee_id`, `scope_org_unit_id`) replaces every `CreateWorkflowActor`/`CreateActor` (Competitions, EstablishmentChanges, OfferLetters, RecruitmentRequisitions, SelectionCommittees, WorkflowInstances); RecruitmentAppealsController no longer hard-codes `Compliance`. A single-role compatibility constructor remains **for tests only** (no product caller — grep). The step signature records the step's role when the actor holds it (`SignatureRole`).
+- **Guard:** `WorkflowStageGuard.ValidateStructure` / `ValidateStepRole` / `ValidateInitiator` / `ValidateReject` + `WorkflowStepRoleOptions` (`Workflow:AdminBypass`, `Workflow:EnforceStepRoleEntityTypes`; null list = recruitment + establishment default). Messages are now Arabic (the two `WorkflowStageGuardTests` that matched English substrings assert the constants).
+- **Gates** (`Services/Workflow/Gates`): `IWorkflowApprovalGate` takes a `WorkflowGateContext(instance, definition, step, actor, kind)` — the prompt's shape plus the pinned definition (the override rule needs its code). Seven gates: Requisition, Offer, Committee, Appeal, Competition, Results, EstablishmentChange; `WorkflowGateOrgScope` (OrgScopeService on the actor's claims; same messages as the inbox, whose constants now point at it).
+- **Evaluator** `WorkflowApprovalEvaluator` — order: structure → step role → entity gate → initiator rule (approve only). Used by `WorkflowInstanceActionService.ApproveAsync` **and** `RejectAsync` (reject had no check before) and by `WorkflowPanelBuilder.BuildAsync` (all detail panels: requisition, offer, committee, appeal, establishment, competition, results). `ValidateSelfApprovalAsync` deleted.
+- **Rules moved, one test each** (`Hcm025ApprovalGatesTests`): requisition creator; offer creator; override distinct approvers; committee creator; committee quorum; committee member on the final step; appeal explicit outcome; competition creator; results computer/creator, submitter, tie resolver, distinct approvers; establishment creator. New: appeal assigned reviewer on the server; branch scope on requisition/offer/committee; central-only for competition/results/establishment (PLAN-32 rule; panels already showed it for establishment).
+- **Deliberate approve/reject differences (decision 6):** approve-only — committee quorum, override and results distinct approvers (a previous approver may still reject), appeal explicit outcome, the initiator-on-later-steps rule. Everything else applies to both.
+- **Defence in depth:** the committee member/quorum check in `SelectionCommitteeLifecycleService.ApproveStepAsync` is **removed** (the gate runs on every approve); the lifecycle passes the controller's employee id on the actor. `RecruitmentAppealService` keeps its own reviewer check before storing the outcome (needed before the workflow call) and passes the reviewer's employee id on the actor.
+- **Work inbox:** keeps its bulk, pre-loaded rule evaluation (no per-row queries) but its step-role check is now the server rule for enforced types (`WorkflowStepRoleOptions` from DI). Admin bypass in the inbox remains only for non-enforced types, as on the server.
+- **Appeal panel:** decisions are explicit forms, so its buttons follow the evaluator's reject-side check (role + assigned reviewer); the approve side additionally needs the outcome the decision form supplies.
+- **Shared view:** `_WorkflowActionPanel` now hides the approve form when `CanApprove` is false (it was always shown).
+- **Settings:** `Workflow` section in `appsettings.json`, `.Production.json`, `.Staging.json` — `AdminBypass=false`, the seven enforced entity types. Assets/transfer/other domains: not enforced (R2) — follow-up.
+- **Tests:** `WorkflowStageGuardRoleTests` (21), `Hcm025ApprovalGatesTests` (16), `Hcm025PanelServerParityTests` (6 states × 7 users × approve/reject = 84 cases, panel == server). Modified: `Hcm027OfferOutcomeTests` / `Hcm027OverrideWorkflowTests` (approvers now hold the step roles — they approved step 1 as hr-management-approver), `SoDRequisitionApprovalTests` (creator holds hr-core so the SoD rule, not the role, refuses), `WorkflowStageGuardTests` (Arabic message constants), 5 UI-service constructions (no scope service argument).
+- **Regression:** full unit suite 4108/4124 — the 16 failures are the known environment list (ar-SA, execution policy, Str005, Ten002, Bola, Syr001ProductionBinding); integration filter (+Inbox/Approval/Asset) 87/97, 3 baseline failures, 7 skips. Full integration suite: 26 failures before the SoD fix; 25 are pre-existing — 14 re-run on unmodified `main` in a temporary worktree fail identically (hire closure, payroll batch/run, contract chain), the rest are the `IHrCoreActiveRegimeClient` DI family + the 3 baseline.
+
 ## Open issues
 
 - `-warnaserror` fails on the pre-existing NU1903 SSH.NET advisory (IntegrationTests); not introduced here.
 
 ## Next step
 
-P3: `WorkflowActionActor` with all roles + employee id, `WorkflowStageGuard` role check (approve + reject), `IWorkflowApprovalGate` classes, panel builder parity.
+P4: deactivate R-REC-HIRE (`DeactivateRuleIfPresentAsync`), unpublish RECRUITMENT-HIRE on existing databases, `WorkflowDefinitionsHaveHandlersTests`, AC-HCM-25g test.

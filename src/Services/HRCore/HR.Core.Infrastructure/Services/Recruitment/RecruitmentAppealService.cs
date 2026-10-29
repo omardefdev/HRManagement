@@ -236,7 +236,7 @@ public sealed class RecruitmentAppealService(
 
         if (instance is not null)
         {
-            var result = await workflowActions.ApproveAsync(instance.Id, actor.Workflow, trimmed, targetStepLevel: null, ct);
+            var result = await workflowActions.ApproveAsync(instance.Id, WorkflowActor(actor), trimmed, targetStepLevel: null, ct);
             if (!result.Success)
             {
                 await DiscardChangesAsync(ct);
@@ -273,7 +273,7 @@ public sealed class RecruitmentAppealService(
 
         if (instance is not null)
         {
-            var result = await workflowActions.RejectAsync(instance.Id, actor.Workflow, trimmed, ct);
+            var result = await workflowActions.RejectAsync(instance.Id, WorkflowActor(actor), trimmed, ct);
             return result.Success ? (true, null) : (false, result.Error ?? "تعذّر طلب المعلومات.");
         }
 
@@ -442,6 +442,10 @@ public sealed class RecruitmentAppealService(
         appeal.WorkflowInstanceId = instanceId;
         return (instanceId, null);
     }
+
+    /// <summary>PLAN-25: the appeal gate identifies the reviewer by employee id, carried on the workflow actor.</summary>
+    private static WorkflowActionActor WorkflowActor(AppealReviewActor actor) =>
+        actor.Workflow with { EmployeeId = actor.Workflow.EmployeeId ?? actor.EmployeeId };
 
     private Task<RecruitmentAppeal?> LoadAppealAsync(Guid appealId, CancellationToken ct) =>
         db.RecruitmentAppeals

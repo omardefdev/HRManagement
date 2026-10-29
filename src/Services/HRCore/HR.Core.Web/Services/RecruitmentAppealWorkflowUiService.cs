@@ -3,6 +3,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HR.Core.Web.ViewModels;
 
 namespace HR.Core.Web.Services;
@@ -12,8 +13,10 @@ namespace HR.Core.Web.Services;
 /// (outcome / request information), so <see cref="WorkflowPanelViewModel.CanApprove"/> only tells whether the current
 /// user is the assigned reviewer on an active step.
 /// </summary>
-public sealed class RecruitmentAppealWorkflowUiService(HRCoreDbContext db)
+public sealed class RecruitmentAppealWorkflowUiService(HRCoreDbContext db, WorkflowApprovalEvaluator? evaluator = null)
 {
+    private readonly WorkflowApprovalEvaluator _evaluator = evaluator ?? WorkflowApprovalEvaluator.CreateDefault(db);
+
     public async Task<WorkflowPanelViewModel?> BuildPanelAsync(
         RecruitmentAppeal? appeal,
         ClaimsPrincipal user,
@@ -33,20 +36,19 @@ public sealed class RecruitmentAppealWorkflowUiService(HRCoreDbContext db)
             };
 
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, appeal.WorkflowInstanceId, ct);
-        var userId = WorkflowPanelBuilder.ParseUserId(user);
 
-        return WorkflowPanelBuilder.Build(
+        // PLAN-25 (G-04): the evaluator's reject-side check (step role «compliance» + the assigned reviewer). The approve
+        // side would also require the explicit outcome, which the decision form itself supplies.
+        var panel = await WorkflowPanelBuilder.BuildAsync(
             instance,
             definition,
             user,
-            userId,
-            new WorkflowPanelBuildOptions
-            {
-                IsAwaitingApproval = appeal.Status == RecruitmentAppealStatus.Pending,
-                BlockInitiatorOnLaterSteps = false,
-                AdditionalBlockReason = (_, _, _) => RecruitmentAppealAccess.CanDecide(appeal, user)
-                    ? null
-                    : RecruitmentAppealWorkflowRules.NotAssignedReviewerMessage
-            });
+            new WorkflowPanelBuildOptions { IsAwaitingApproval = appeal.Status == RecruitmentAppealStatus.Pending },
+            _evaluator,
+            ct);
+        var canDecide = panel.CanReject;
+        panel.CanApprove = canDecide;
+        panel.BlockReason = canDecide ? null : panel.BlockReason;
+        return panel;
     }
 }

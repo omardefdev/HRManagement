@@ -17,6 +17,9 @@
         <strong>إجراء الاعتماد — @Model.CurrentStepName</strong>
     </div>
     <div class="card-body">
+        @* PLAN-25: approve and reject come from the same server-side checks; either may be unavailable alone. *@
+        @if (Model.CanApprove)
+        {
         <form asp-controller="@controller"
               asp-action="@approveAction"
               asp-route-id="@entityId"
@@ -36,6 +39,7 @@
                 <button type="submit" class="btn btn-success btn-sm">@approveLabel</button>
             </div>
         </form>
+        }
 
         @if (Model.CanReject)
         {

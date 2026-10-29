@@ -55,7 +55,7 @@ public class Hcm021RequisitionApprovalUiTests
         requisition.WorkflowInstanceId = instance.Id;
         await db.SaveChangesAsync();
 
-        var service = new RecruitmentRequisitionWorkflowUiService(db, WorkflowInboxTestSupport.CreateEstablishmentScopeService(db));
+        var service = new RecruitmentRequisitionWorkflowUiService(db);
         var vm = await service.BuildDetailsAsync(requisition, CreateUser(CreatorId, "hr-core"));
 
         Assert.False(vm.Workflow.CanApprove);
@@ -70,7 +70,7 @@ public class Hcm021RequisitionApprovalUiTests
         requisition.WorkflowInstanceId = instance.Id;
         await db.SaveChangesAsync();
 
-        var service = new RecruitmentRequisitionWorkflowUiService(db, WorkflowInboxTestSupport.CreateEstablishmentScopeService(db));
+        var service = new RecruitmentRequisitionWorkflowUiService(db);
         var vm = await service.BuildDetailsAsync(requisition, CreateUser(HrReviewerId, "hr-core"));
 
         Assert.True(vm.Workflow.CanApprove);

@@ -25,7 +25,7 @@ public class WorkflowStageGuardTests
     {
         var state = new WorkflowInstanceState { CurrentStepLevel = 1, Status = WorkflowStatus.InProgress, StepHistory = [] };
         var error = WorkflowStageGuard.ValidateApprove(state, TwoStepDefinition(), Guid.NewGuid(), Guid.NewGuid(), targetStepLevel: 2);
-        Assert.Contains("skip", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(WorkflowStageGuard.SkipStageMessage, error); // PLAN-25: Arabic message
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class WorkflowStageGuardTests
         var initiator = Guid.NewGuid();
         var state = new WorkflowInstanceState { CurrentStepLevel = 2, Status = WorkflowStatus.InProgress, StepHistory = [] };
         var error = WorkflowStageGuard.ValidateApprove(state, TwoStepDefinition(), initiator, initiator, targetStepLevel: null);
-        Assert.Contains("initiator", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(WorkflowStageGuard.InitiatorLaterStageMessage, error); // PLAN-25: Arabic message
     }
 
     [Fact]

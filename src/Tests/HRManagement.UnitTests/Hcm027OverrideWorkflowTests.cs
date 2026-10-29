@@ -150,8 +150,13 @@ public class Hcm027OverrideWorkflowTests
         Assert.Contains("R-OFF-ISSUE", decisions[1]);
     }
 
+    // PLAN-25 (G-04): the approver holds both step roles; these tests are about the distinct-approver and creator rules.
     private static Task<WorkflowActionResult> Approve(WorkflowInstanceActionService actions, Guid instanceId, Guid actor) =>
-        actions.ApproveAsync(instanceId, new WorkflowActionActor(actor, "approver", "hr-management-approver"), "ok", null);
+        actions.ApproveAsync(
+            instanceId,
+            new WorkflowActionActor(actor, "approver", new HashSet<string> { "hr-core", "hr-management-approver" }),
+            "ok",
+            null);
 
     private static async Task<Guid> SubmitOverrideOfferAsync(HRCoreDbContext db)
     {

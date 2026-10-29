@@ -5,6 +5,7 @@ using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Establishment;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Infrastructure.Services.Recruitment.Competitions;
+using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
@@ -14,8 +15,6 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Workflow;
-
-public sealed record WorkflowActionActor(Guid? UserId, string? UserName, string? Role);
 
 public sealed record WorkflowActionResult(bool Success, string? Error, WorkflowInstance? Instance);
 
@@ -46,8 +45,13 @@ public sealed class WorkflowInstanceActionService(
     RecruitmentAppealWorkflowHandler appealHandler,
     EstablishmentChangeWorkflowHandler establishmentChangeHandler,
     // HCM-031 (PLAN-31): optional so the existing manual constructions (tests) keep compiling; DI always supplies it.
-    CompetitionWorkflowHandler? competitionHandler = null) : IWorkflowInstanceActionService
+    CompetitionWorkflowHandler? competitionHandler = null,
+    // PLAN-25 (G-04): DI supplies the evaluator with every gate and the Workflow options; manual constructions get the
+    // same gates with the default options (no admin bypass).
+    WorkflowApprovalEvaluator? evaluator = null) : IWorkflowInstanceActionService
 {
+    private readonly WorkflowApprovalEvaluator _evaluator = evaluator ?? WorkflowApprovalEvaluator.CreateDefault(context);
+
     public async Task<WorkflowActionResult> ApproveAsync(
         Guid instanceId,
         WorkflowActionActor actor,
@@ -63,17 +67,15 @@ public sealed class WorkflowInstanceActionService(
         if (definition is null)
             return new WorkflowActionResult(false, "Workflow definition not found for this instance version.", null);
 
+        // Stage guard (status, no skipping, initiator, step role) then the entity gate (SoD, quorum, reviewer, scope).
+        var blockReason = await _evaluator.GetBlockReasonAsync(
+            instance, definition, actor, WorkflowActionKind.Approve, targetStepLevel, ct);
+        if (blockReason is not null)
+            return new WorkflowActionResult(false, blockReason, null);
+
         var snapshot = WorkflowDefinitionMapper.ToSnapshot(definition);
         var state = WorkflowDefinitionMapper.ToState(instance);
-
-        var guardError = WorkflowStageGuard.ValidateApprove(
-            state, snapshot, actor.UserId, instance.InitiatedBy, targetStepLevel);
-        if (guardError is not null)
-            return new WorkflowActionResult(false, guardError, null);
-
-        var sodError = await ValidateSelfApprovalAsync(instance, definition, actor.UserId, ct);
-        if (sodError is not null)
-            return new WorkflowActionResult(false, sodError, null);
+        var stepRole = snapshot.Steps.FirstOrDefault(s => s.Level == instance.CurrentStepLevel)?.RoleRequired;
 
         var result = engine.ApproveStep(state, snapshot, actor.UserId, actor.UserName, comments);
         if (!result.Success)
@@ -89,7 +91,7 @@ public sealed class WorkflowInstanceActionService(
             instance.StepHistoryJson = JsonSerializer.Serialize(history);
 
             await signatures.RecordStepActionAsync(
-                instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.Role, ct);
+                instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), ct);
         }
 
         if (result.NewStatus == WorkflowStatus.Completed)
@@ -117,6 +119,13 @@ public sealed class WorkflowInstanceActionService(
         if (definition is null)
             return new WorkflowActionResult(false, "Workflow definition not found for this instance version.", null);
 
+        // PLAN-25 (G-04): a reject passes the same role check and gates (the committee quorum is approve-only).
+        var blockReason = await _evaluator.GetBlockReasonAsync(instance, definition, actor, WorkflowActionKind.Reject, ct: ct);
+        if (blockReason is not null)
+            return new WorkflowActionResult(false, blockReason, null);
+
+        var stepRole = WorkflowDefinitionMapper.ToSnapshot(definition).Steps
+            .FirstOrDefault(s => s.Level == instance.CurrentStepLevel)?.RoleRequired;
         var state = WorkflowDefinitionMapper.ToState(instance);
         var result = engine.Reject(state, actor.UserId, actor.UserName, comments);
         if (!result.Success)
@@ -131,7 +140,7 @@ public sealed class WorkflowInstanceActionService(
             instance.StepHistoryJson = JsonSerializer.Serialize(history);
 
             await signatures.RecordStepActionAsync(
-                instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.Role, ct);
+                instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), ct);
         }
 
         instance.CompletedAt = DateTime.UtcNow;
@@ -140,96 +149,6 @@ public sealed class WorkflowInstanceActionService(
         await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: ct);
 
         return new WorkflowActionResult(true, null, instance);
-    }
-
-    private async Task<string?> ValidateSelfApprovalAsync(
-        WorkflowInstance instance,
-        WorkflowDefinition definition,
-        Guid? actorUserId,
-        CancellationToken ct)
-    {
-        // HCM-028 (H3): an appeal review is approved only through RecruitmentAppealService.DecideAsync, which stores the
-        // explicit outcome on the tracked appeal first (FindAsync sees it before it is saved).
-        if (string.Equals(instance.EntityType, "RecruitmentAppeal", StringComparison.OrdinalIgnoreCase))
-        {
-            var appeal = await context.RecruitmentAppeals.FindAsync([instance.EntityId], ct);
-            if (appeal is { Outcome: null })
-                return "يجب البت في الاستئناف بنتيجة صريحة من صفحة الاستئناف.";
-        }
-
-        if (!actorUserId.HasValue)
-            return null;
-
-        if (string.Equals(instance.EntityType, "RecruitmentRequisition", StringComparison.OrdinalIgnoreCase))
-        {
-            var requisition = await context.RecruitmentRequisitions.AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == instance.EntityId, ct);
-            if (requisition?.CreatedBy == actorUserId)
-                return "لا يمكن للمنشئ اعتماد طلبه الخاص.";
-        }
-
-        // HCM-031: the creator of a competition never approves it.
-        if (string.Equals(instance.EntityType, CompetitionLifecycleService.EntityType, StringComparison.OrdinalIgnoreCase))
-        {
-            var competition = await context.RecruitmentCompetitions.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == instance.EntityId, ct);
-            if (competition?.CreatedBy == actorUserId)
-                return "لا يمكن للمنشئ اعتماد مسابقته الخاصة.";
-        }
-
-        // HCM-031 (J5): competition results — never the person who computed the draft, a distinct approver per step.
-        if (string.Equals(instance.EntityType, CompetitionResultsService.EntityType, StringComparison.OrdinalIgnoreCase))
-        {
-            var version = await context.CompetitionResultVersions.AsNoTracking()
-                .FirstOrDefaultAsync(v => v.Id == instance.EntityId, ct);
-            if (version?.ComputedBy == actorUserId || version?.CreatedBy == actorUserId)
-                return "لا يجوز لمن احتسب النتائج اعتمادها.";
-            // Nor the person who submitted them, nor anyone who decided a tie on this computation (it set the order).
-            if (instance.InitiatedBy is Guid initiator && initiator == actorUserId)
-                return "لا يجوز لمن قدّم النتائج للاعتماد اعتمادها.";
-            if (version is not null && actorUserId is Guid actor && await context.AuditLogs.AsNoTracking().AnyAsync(a =>
-                    a.EntityType == CompetitionLifecycleService.EntityType && a.EntityId == version.CompetitionId
-                    && a.Action == CompetitionResultsService.ResolveTieAuditAction && a.UserId == actor
-                    && a.CreatedAt >= version.ComputedAt, ct))
-                return "لا يجوز لمن بتّ في التعادل اعتماد النتائج.";
-            if (OfferOverrideApprovalRules.HasApprovedEarlierStep(instance.StepHistoryJson, instance.CurrentStepLevel, actorUserId))
-                return "يجب أن يعتمد كل خطوة من خطوات اعتماد النتائج شخص مختلف.";
-        }
-
-        if (string.Equals(instance.EntityType, "EstablishmentChangeRequest", StringComparison.OrdinalIgnoreCase))
-        {
-            var changeRequest = await context.EstablishmentChangeRequests.AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == instance.EntityId, ct);
-            if (changeRequest?.CreatedBy == actorUserId)
-                return "لا يمكن للمنشئ اعتماد طلبه الخاص.";
-        }
-
-        // HCM-028: the session creator never approves the committee; member and quorum checks need the actor's
-        // employee id and live in SelectionCommitteeLifecycleService.ApproveStepAsync.
-        if (string.Equals(instance.EntityType, "SelectionCommitteeSession", StringComparison.OrdinalIgnoreCase))
-        {
-            var session = await context.SelectionCommitteeSessions.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == instance.EntityId, ct);
-            var committeeError = SelectionCommitteeRules.ValidateApproval(
-                instance.CurrentStepLevel, members: null, session?.CreatedBy, actorUserId, actorEmployeeId: null);
-            if (committeeError is not null)
-                return committeeError;
-        }
-
-        if (string.Equals(instance.EntityType, "OfferLetter", StringComparison.OrdinalIgnoreCase))
-        {
-            var offer = await context.OfferLetters.AsNoTracking()
-                .FirstOrDefaultAsync(o => o.Id == instance.EntityId, ct);
-            if (offer?.CreatedBy == actorUserId)
-                return "لا يمكن للمنشئ اعتماد عرضه الخاص.";
-
-            // HCM-027: merit override offers need a distinct approver for every step.
-            if (OfferOverrideApprovalRules.IsOverrideWorkflow(definition.Code)
-                && OfferOverrideApprovalRules.HasApprovedEarlierStep(instance.StepHistoryJson, instance.CurrentStepLevel, actorUserId))
-                return OfferOverrideApprovalRules.SameApproverMessage;
-        }
-
-        return null;
     }
 
     private async Task PublishWorkflowOutcomeAsync(

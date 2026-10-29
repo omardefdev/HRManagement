@@ -86,7 +86,7 @@ public class Est024EstablishmentWorkflowUiTests
         await using var db = CreateContext();
         var (request, _) = await SeedPendingChangeAsync(db, CreatorId, stepLevel: 1);
 
-        var service = new EstablishmentChangeWorkflowUiService(db, WorkflowInboxTestSupport.CreateEstablishmentScopeService(db));
+        var service = new EstablishmentChangeWorkflowUiService(db);
         var vm = await service.BuildDetailsAsync(request, CreateUser(CreatorId, "hr-core"));
 
         Assert.False(vm.Workflow.CanApprove);

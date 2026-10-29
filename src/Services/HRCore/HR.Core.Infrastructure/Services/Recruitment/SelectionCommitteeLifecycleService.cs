@@ -148,17 +148,13 @@ public sealed class SelectionCommitteeLifecycleService(
         string? comments,
         CancellationToken ct = default)
     {
-        var (session, instance, error) = await LoadForActionAsync(sessionId, ct);
+        var (_, instance, error) = await LoadForActionAsync(sessionId, ct);
         if (error is not null) return (false, error);
 
-        var members = await db.SelectionCommitteeMembers.AsNoTracking()
-            .Where(m => m.SessionId == sessionId)
-            .ToListAsync(ct);
-        var sodError = SelectionCommitteeRules.ValidateApproval(
-            instance!.CurrentStepLevel, members, session!.CreatedBy, actor.UserId, actorEmployeeId);
-        if (sodError is not null) return (false, sodError);
-
-        var result = await workflowActions.ApproveAsync(instance.Id, actor, comments, instance.CurrentStepLevel, ct);
+        // PLAN-25 (G-04): quorum, member and creator rules now live in CommitteeApprovalGate, which the action service runs
+        // on every approve (and the panel shows); the actor carries the employee id it needs.
+        var result = await workflowActions.ApproveAsync(
+            instance!.Id, actor with { EmployeeId = actor.EmployeeId ?? actorEmployeeId }, comments, instance.CurrentStepLevel, ct);
         return result.Success ? (true, null) : (false, result.Error ?? "تعذّر اعتماد اللجنة.");
     }
 
@@ -173,7 +169,8 @@ public sealed class SelectionCommitteeLifecycleService(
         var (_, instance, error) = await LoadForActionAsync(sessionId, ct);
         if (error is not null) return (false, error);
 
-        var result = await workflowActions.RejectAsync(instance!.Id, actor, comments, ct);
+        var result = await workflowActions.RejectAsync(
+            instance!.Id, actor with { EmployeeId = actor.EmployeeId ?? actorEmployeeId }, comments, ct);
         return result.Success ? (true, null) : (false, result.Error ?? "تعذّر رفض اللجنة.");
     }
 

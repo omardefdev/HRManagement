@@ -6,6 +6,7 @@ using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Infrastructure.Services.Recruitment.Competitions;
 using HR.Core.Infrastructure.Services.Workflow;
+using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HR.Core.Web.Services;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
@@ -37,7 +38,8 @@ public sealed class CompetitionsController(
     IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IAuthorizationService authorization,
-    IOptions<RecruitmentOptions> options) : Controller
+    IOptions<RecruitmentOptions> options,
+    WorkflowApprovalEvaluator approvalEvaluator) : Controller
 {
     public async Task<IActionResult> Index(RecruitmentCompetitionStatus? status, CancellationToken ct)
     {
@@ -174,17 +176,14 @@ public sealed class CompetitionsController(
             .FirstOrDefaultAsync(ct);
         var legalSource = await legislationProvider.GetByIdAsync(competition.LegalSourceId, ct);
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, competition.ApprovalWorkflowInstanceId, ct);
-        var workflow = WorkflowPanelBuilder.Build(
+        // PLAN-25 (G-04): the server evaluator (creator SoD, step role, central only).
+        var workflow = await WorkflowPanelBuilder.BuildAsync(
             instance,
             definition,
             User,
-            WorkflowPanelBuilder.ParseUserId(User),
-            new WorkflowPanelBuildOptions
-            {
-                IsAwaitingApproval = competition.Status == RecruitmentCompetitionStatus.PendingApproval,
-                EntityCreatedBy = competition.CreatedBy,
-                CreatorSoDMessage = "لا يمكن للمنشئ اعتماد مسابقته الخاصة."
-            });
+            new WorkflowPanelBuildOptions { IsAwaitingApproval = competition.Status == RecruitmentCompetitionStatus.PendingApproval },
+            approvalEvaluator,
+            ct);
 
         return View(new CompetitionDetailsViewModel
         {
@@ -541,21 +540,14 @@ public sealed class CompetitionsController(
     private async Task<WorkflowPanelViewModel> BuildResultsWorkflowAsync(CompetitionResultVersion version, CancellationToken ct)
     {
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, version.WorkflowInstanceId, ct);
-        var userId = WorkflowPanelBuilder.ParseUserId(User);
-        // Same exclusions as WorkflowInstanceActionService (the server check): the submitter and a tie resolver.
-        var tieResolved = userId is Guid me && await db.AuditLogs.AsNoTracking().AnyAsync(a =>
-            a.EntityType == CompetitionLifecycleService.EntityType && a.EntityId == version.CompetitionId
-            && a.Action == CompetitionResultsService.ResolveTieAuditAction && a.UserId == me && a.CreatedAt >= version.ComputedAt, ct);
-        return WorkflowPanelBuilder.Build(instance, definition, User, userId, new WorkflowPanelBuildOptions
-        {
-            IsAwaitingApproval = version.Status == CompetitionResultVersionStatus.PendingApproval,
-            EntityCreatedBy = version.ComputedBy ?? version.CreatedBy,
-            CreatorSoDMessage = "لا يجوز لمن احتسب النتائج اعتمادها.",
-            AdditionalBlockReason = (inst, _, actorId) =>
-                actorId is Guid actor && inst.InitiatedBy == actor ? "لا يجوز لمن قدّم النتائج للاعتماد اعتمادها."
-                : tieResolved ? "لا يجوز لمن بتّ في التعادل اعتماد النتائج."
-                : null
-        });
+        // PLAN-25 (G-04): the server evaluator — computer, submitter, tie resolvers, distinct approvers, step role.
+        return await WorkflowPanelBuilder.BuildAsync(
+            instance,
+            definition,
+            User,
+            new WorkflowPanelBuildOptions { IsAwaitingApproval = version.Status == CompetitionResultVersionStatus.PendingApproval },
+            approvalEvaluator,
+            ct);
     }
 
     private async Task<IReadOnlyList<ExamSessionRow>> LoadExamSessionsAsync(Guid competitionId, CancellationToken ct)
@@ -810,11 +802,8 @@ public sealed class CompetitionsController(
             .ToListAsync(ct);
     }
 
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-    {
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(ParseUserId(user), UserName(user), actorRole);
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
     private static string? UserName(ClaimsPrincipal user) => user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
 
