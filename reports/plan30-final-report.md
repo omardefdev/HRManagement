@@ -340,7 +340,7 @@ All deviations are listed in the plan's "Implementation notes / deviations"; the
    10.0.0 dependency has advisories; 4.18.2 was too new (6 days) for the version-age rule.
 4. **Upload failure behaviour:** any File.Storage error or transport failure fails the whole apply (or the portal document
    upload) with «تعذّر رفع المستندات حالياً، يرجى المحاولة لاحقاً.» and saves nothing — never a 500, never a half-saved
-   application. Uploads happen before staging; a partial failure can leave an unreferenced `Pending` file (GC issue, §9).
+   application. Uploads happen before staging; a partial failure can leave an unreferenced `Pending` file (collected once GC all-tenant mode is enabled, §9).
 5. **Channel-sender abstraction beside `INotificationService`** (COM-001 decision 4 / D-8 wording); preferred channel only;
    templates in one C# class; **salary banned in every message**.
 6. **Link columns reused** instead of `SourceCitizenApplicationId`; **`OfferExtended` at draft** handled by keying on
@@ -364,13 +364,22 @@ All deviations are listed in the plan's "Implementation notes / deviations"; the
 
 **Deferred follow-ups**
 
-- File-reference outbox dispatcher tenant filter (`FileReferenceOutboxDispatcher.ProcessBatchAsync`, no `X-Tenant-ID`):
-  Register/Release rows of candidate documents, offer evidence and retention releases probably never reach File.Storage.
-- File.Storage GC tenant filter (`FilePlatformService.CollectGarbageAsync`): orphan `Pending` files are never collected.
+- ~~File-reference outbox dispatcher tenant filter~~ — **fixed** on `fix/file-reference-tenant-filters`
+  (`fix(file-ref): deliver outbox rows across tenants…`): due rows of every tenant are read through
+  `IgnoreTenantFilterForSystem(BackgroundQueueProcessing)` and sent with their own `TenantId` as `X-Tenant-ID`; a row
+  without `TenantId` goes `Dead`. Unit + Testcontainers tests (`FileReferenceOutboxTenantDeliveryTests`,
+  `FileReferenceTenantPipelineIntegrationTests`).
+- ~~File.Storage GC tenant filter~~ — **fixed behind a guard** (`fix(fs): let the tenantless GC job…`): the GC job marks and
+  purges tenant-owned files only with `FileStorage__GarbageCollection__AllTenants=true` (default `false`). Set it only after
+  the dispatcher fix is deployed and the Register backlog drained (enable order in `docs/FILE_SERVICE.md`), otherwise GC
+  deletes candidate files whose Register is still queued. Tests: `FileGarbageCollectionTenantTests` + the integration class.
+- `RegisterReference` Module grant for API uploads: decided **not** to add one (it would widen a private upload);
+  rationale in `docs/FILE_SERVICE.md` (Access grants on RegisterReference).
 - Production Data Protection key ring for hr-core (`DataProtection__KeyRingPath` absent in `docker-compose.production.yml`).
 - Audit-log PII on anonymization (`AuditSaveChangesInterceptor` old values of non-redacted columns, which now include the
   offer and appeal free text that retention neutralizes).
-- Production RLS for cross-tenant jobs (`hr_core_app` NOBYPASSRLS without `app.current_tenant`).
+- Production RLS for cross-tenant jobs (`hr_core_app` NOBYPASSRLS without `app.current_tenant`). Also blocks the two fixes
+  above in Production (file-reference outbox dispatcher; File.Storage GC under `file_storage_app`).
 - Production compose lacks `file-storage.service-upload` in hr-core `ServiceIdentity__Scope`, `Integration__FileStorageBaseUrl`
   and `Recruitment__PublicPortalBaseUrl`; the production realm needs the scope on `svc-hr-core`.
 - D-8 provider (SMTP/SMS and processor contract): until then no candidate message and no OTP in Production/Staging.

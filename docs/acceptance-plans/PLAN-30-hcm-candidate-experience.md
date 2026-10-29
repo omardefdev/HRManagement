@@ -291,18 +291,23 @@ File.Storage steps with that reason instead of failing.
 
 **Deferred follow-ups**
 
-- `FileReferenceOutboxDispatcher` reads the outbox under the tenant filter in a background scope and sends no
-  `X-Tenant-ID`: tenant-stamped Register/Release rows (candidate documents, offer evidence, retention releases) probably never
-  reach File.Storage.
-- `FilePlatformService.CollectGarbageAsync` has no tenant bypass: orphan `Pending` files (failed or partial uploads) are never
-  collected.
+- ~~`FileReferenceOutboxDispatcher` reads the outbox under the tenant filter and sends no `X-Tenant-ID`~~ — **fixed** after
+  PLAN-30 (branch `fix/file-reference-tenant-filters`): rows of every tenant are read through
+  `IgnoreTenantFilterForSystem(BackgroundQueueProcessing)` and sent with their own `TenantId` as `X-Tenant-ID`.
+- ~~`FilePlatformService.CollectGarbageAsync` has no tenant bypass~~ — **fixed behind a guard**: the GC job collects and
+  purges tenant-owned orphans only with `FileStorage__GarbageCollection__AllTenants=true` (default `false`), to be set only
+  after the dispatcher fix is deployed and its Register backlog is drained (`docs/FILE_SERVICE.md`, Garbage collection).
+  Both jobs still read nothing in Production until the "Production RLS" item below is solved.
+- `RegisterReference` and Module grants: decided not to add a Module grant to API-uploaded files (`docs/FILE_SERVICE.md`,
+  Access grants on RegisterReference).
 - Production Data Protection key ring for hr-core: `docker-compose.production.yml` sets no `DataProtection__KeyRingPath` for
   `hr-core-web`, so `careers_session` cookies (and PII field encryption) do not survive a restart or reach another replica.
 - `AuditSaveChangesInterceptor` copies old values of non-`[AuditRedact]` columns into `EntityAuditLog` on anonymization
   (names, contact, cover note, notes, profile except `BirthDate`, and the offer/appeal free text that retention now
   neutralizes — K1 fix: `AcceptanceNote`, `DeclineReason`, `RevokeReason`, appeal `Reason`/`AdditionalInfo` → «—»).
-- Production RLS: cross-tenant jobs (notification dispatcher, retention job, every recruitment job) run under `hr_core_app`
-  without `app.current_tenant` and read no rows on RLS-hardened tables.
+- Production RLS: cross-tenant jobs (notification dispatcher, retention job, every recruitment job, the file-reference
+  outbox dispatcher) run under `hr_core_app` without `app.current_tenant` and read no rows on RLS-hardened tables; the same
+  holds for File.Storage's GC and scan jobs under `file_storage_app`.
 - Production compose: hr-core `ServiceIdentity__Scope` lacks `file-storage.service-upload`, and there is no
   `Integration__FileStorageBaseUrl` or `Recruitment__PublicPortalBaseUrl`; the production realm needs the scope linked to
   `svc-hr-core`. Until then every apply with files fails with the Arabic message.
