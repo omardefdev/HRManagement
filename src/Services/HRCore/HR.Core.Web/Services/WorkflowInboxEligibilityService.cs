@@ -34,7 +34,13 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
                 EntityCreatedBy = options.EntityCreatedBy,
                 BlockInitiatorOnLaterSteps = options.BlockInitiatorOnLaterSteps,
                 CreatorSoDMessage = options.CreatorSoDMessage,
-                AdditionalBlockReason = options.AdditionalBlockReason,
+                // PLAN-25 (review finding 6): the override distinct-approver rule, as OfferApprovalGate applies it.
+                AdditionalBlockReason = (inst, step, actorId) =>
+                    options.AdditionalBlockReason?.Invoke(inst, step, actorId)
+                    ?? (OfferOverrideApprovalRules.IsOverrideWorkflow(definition.Code)
+                        && OfferOverrideApprovalRules.HasApprovedEarlierStep(inst.StepHistoryJson, inst.CurrentStepLevel, actorId)
+                            ? OfferOverrideApprovalRules.SameApproverMessage
+                            : null),
                 StepRoleOptions = _stepRoleOptions
             });
         return panel.CanApprove;

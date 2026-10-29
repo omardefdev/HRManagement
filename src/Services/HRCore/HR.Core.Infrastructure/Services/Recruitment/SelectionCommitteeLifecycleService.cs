@@ -116,8 +116,9 @@ public sealed class SelectionCommitteeLifecycleService(
                 session.TenantId,
                 CommitteeWorkflowCode,
                 PolicyDomains.CoreRecruitment,
-                actorUserId,
-                actorUserName,
+                // PLAN-25 (review finding 10): the record's creator stays the initiator (initiator rule); the audit names the actor.
+                session.CreatedBy ?? actorUserId,
+                session.CreatedBy is null ? actorUserName : null,
                 BuildApprovalContextJson(session)),
             async instanceId =>
             {

@@ -16,7 +16,8 @@ public sealed class SelectionCommitteeWorkflowHandler(HRCoreDbContext db)
             return;
 
         var session = await db.SelectionCommitteeSessions.FirstOrDefaultAsync(s => s.Id == instance.EntityId, ct);
-        if (session is null || session.ApprovedAt is not null)
+        // PLAN-25 (review finding 2): only the linked instance of a submitted session decides it.
+        if (session is null || session.ApprovedAt is not null || session.SubmittedAt is null || session.WorkflowInstanceId != instance.Id)
             return;
 
         if (approved)

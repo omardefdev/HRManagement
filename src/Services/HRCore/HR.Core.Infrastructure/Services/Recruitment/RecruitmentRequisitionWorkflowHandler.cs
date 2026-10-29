@@ -14,7 +14,8 @@ public sealed class RecruitmentRequisitionWorkflowHandler(HRCoreDbContext db)
 
         var requisition = await db.RecruitmentRequisitions
             .FirstOrDefaultAsync(r => r.Id == instance.EntityId, ct);
-        if (requisition is null || requisition.Status != RequisitionStatus.PendingApproval)
+        // PLAN-25 (review finding 2): only the instance linked to the requisition decides it.
+        if (requisition is null || requisition.Status != RequisitionStatus.PendingApproval || requisition.WorkflowInstanceId != instance.Id)
             return;
 
         if (approved)

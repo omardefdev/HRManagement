@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+// PLAN-25 (review finding 5): branch users see and act on postings of their units only (applicants' personal data).
+[RecruitmentOrgScope(RecruitmentScopeKind.PublicPosting)]
 public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStatusService publicStatus) : Controller
 {
     public async Task<IActionResult> Index(bool? isPublished, string? entity, string? q, DateOnly? closingFrom, DateOnly? closingTo)
@@ -21,6 +23,7 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
             .Include(p => p.Applications)
             .Include(p => p.Requisition)
             .AsQueryable();
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
         if (isPublished is bool pub)
             query = query.Where(p => p.IsPublished == pub);
         if (!string.IsNullOrWhiteSpace(entity))

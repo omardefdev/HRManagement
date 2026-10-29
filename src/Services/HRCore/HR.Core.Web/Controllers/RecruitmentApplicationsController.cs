@@ -169,6 +169,7 @@ public class RecruitmentApplicationsController(
     /// Other tenants' documents and non-Clean files are not found.
     /// </summary>
     [HttpGet]
+    [RecruitmentScopeId(RecruitmentScopeKind.CandidateDocument)]
     public async Task<IActionResult> CandidateDocument(Guid id, CancellationToken ct)
     {
         var (document, result) = await candidateDocuments.OpenAsync(id, ct);

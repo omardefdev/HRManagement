@@ -142,8 +142,9 @@ public sealed class EstablishmentChangeLifecycleService(
                 request.TenantId,
                 EstablishmentChangeWorkflowCode,
                 PolicyDomains.CoreEstablishment,
-                actorUserId,
-                actorUserName,
+                // PLAN-25 (review finding 10): the record's creator stays the initiator (initiator rule); the audit names the actor.
+                request.CreatedBy ?? actorUserId,
+                request.CreatedBy is null ? actorUserName : null,
                 BuildApprovalContextJson(request)),
             async instanceId =>
             {
@@ -206,6 +207,17 @@ public sealed class EstablishmentChangeLifecycleService(
         if (request is null) return (false, "طلب التغيير غير موجود.");
         if (!EstablishmentChangeWorkflowRules.CanCancel(request.Status))
             return (false, "لا يمكن إلغاء الطلب في حالته الحالية.");
+
+        // PLAN-25 (review finding 9): every submitted request now has a workflow — cancel it with the request.
+        if (request.WorkflowInstanceId is Guid instanceId)
+        {
+            var instance = await db.WorkflowInstances.FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+            if (instance is { Status: HRManagement.SharedKernel.Workflow.WorkflowStatus.InProgress })
+            {
+                instance.Status = HRManagement.SharedKernel.Workflow.WorkflowStatus.Cancelled;
+                instance.CompletedAt = DateTime.UtcNow;
+            }
+        }
 
         request.Status = EstablishmentChangeStatus.Cancelled;
         request.WorkflowInstanceId = null;

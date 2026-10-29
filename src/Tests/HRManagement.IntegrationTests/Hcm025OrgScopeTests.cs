@@ -79,6 +79,55 @@ public sealed class Hcm025OrgScopeTests(Hcm025ScopeAndPolicyTestHost fx) : IClas
             db.RecruitmentRequisitions.AsNoTracking().Where(r => r.Id == own.Id).Select(r => r.Status).SingleAsync()));
     }
 
+    /// <summary>Review findings 4 and 5: a foreign candidate document and a foreign posting (with its applicants) are 404.</summary>
+    [Fact]
+    public async Task Foreign_candidate_document_and_foreign_posting_are_404_for_the_branch_user()
+    {
+        var own = await fx.SeedRequisitionAsync(fx.Branch1);
+        var foreign = await fx.SeedRequisitionAsync(fx.Branch2);
+        var (foreignDocument, foreignPosting, ownPosting) = await fx.WithDbAsync(async db =>
+        {
+            var app = new HR.Core.Domain.Entities.RecruitmentApplication
+            {
+                TenantId = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId,
+                ApplicantFullName = "مرشح خارج النطاق",
+                AppliedPosition = "محلل",
+                RequisitionId = foreign.Id,
+                AppliedAt = DateTime.UtcNow
+            };
+            db.RecruitmentApplications.Add(app);
+            var document = new HR.Core.Domain.Entities.CandidateDocument
+            {
+                TenantId = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId,
+                RecruitmentApplicationId = app.Id,
+                DocumentType = "CV",
+                FileId = Guid.NewGuid(),
+                OriginalFileName = "cv.pdf",
+                ContentType = "application/pdf"
+            };
+            db.CandidateDocuments.Add(document);
+            var postings = new[] { foreign.Id, own.Id }.Select(r => new HR.Core.Domain.Entities.PublicJobPosting
+            {
+                TenantId = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId,
+                Title = "إعلان",
+                IsPublished = true,
+                RequisitionId = r
+            }).ToArray();
+            db.PublicJobPostings.AddRange(postings);
+            await db.SaveChangesAsync();
+            return (document.Id, postings[0].Id, postings[1].Id);
+        });
+        using var branch = fx.Client(BranchUser, BranchRoles, fx.Branch1);
+
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await branch.GetAsync($"/RecruitmentApplications/CandidateDocument/{foreignDocument:D}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await branch.GetAsync($"/PublicJobPostings/Details/{foreignPosting:D}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await branch.GetAsync($"/PublicJobPostings/Details/{ownPosting:D}")).StatusCode);
+        var list = await (await branch.GetAsync("/PublicJobPostings")).Content.ReadAsStringAsync();
+        Assert.Contains(ownPosting.ToString("D"), list, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(foreignPosting.ToString("D"), list, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task Competitions_are_central_only()
     {

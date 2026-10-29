@@ -56,6 +56,8 @@ public class RecruitmentRequisitionWorkflowIntegrationTests
             Status = HRManagement.SharedKernel.Workflow.WorkflowStatus.Completed
         };
         db.WorkflowInstances.Add(instance);
+        // PLAN-25 (review finding 2): the handler acts only on the requisition's linked instance.
+        req.WorkflowInstanceId = instance.Id;
         await db.SaveChangesAsync();
 
         var handler = new RecruitmentRequisitionWorkflowHandler(db);
@@ -97,6 +99,7 @@ public class RecruitmentRequisitionWorkflowIntegrationTests
 
         var instance = new HR.Core.Domain.Entities.Workflow.WorkflowInstance
         {
+            Id = req.WorkflowInstanceId!.Value,   // PLAN-25: the linked instance
             EntityType = "RecruitmentRequisition",
             EntityId = req.Id,
             Status = HRManagement.SharedKernel.Workflow.WorkflowStatus.Rejected

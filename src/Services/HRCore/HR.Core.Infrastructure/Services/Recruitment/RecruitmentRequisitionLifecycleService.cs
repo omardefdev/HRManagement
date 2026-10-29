@@ -103,8 +103,9 @@ public sealed class RecruitmentRequisitionLifecycleService(
                 req.TenantId,
                 RequisitionApprovalWorkflowCode,
                 PolicyDomains.CoreRecruitment,
-                actorUserId,
-                actorUserName,
+                // PLAN-25 (review finding 10): the record's creator stays the initiator (initiator rule); the audit names the actor.
+                req.CreatedBy ?? actorUserId,
+                req.CreatedBy is null ? actorUserName : null,
                 JsonSerializer.Serialize(new
                 {
                     requisitionId = req.Id,

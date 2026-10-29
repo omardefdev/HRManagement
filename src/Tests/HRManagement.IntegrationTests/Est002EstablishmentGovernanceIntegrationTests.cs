@@ -104,6 +104,9 @@ public class Est002EstablishmentGovernanceIntegrationTests
             EntityId = request.Id,
             InitiatedBy = Guid.NewGuid()
         };
+        // PLAN-25 (review finding 2): the handler acts only on the request's linked instance.
+        request.WorkflowInstanceId = instance.Id;
+        await db.SaveChangesAsync();
 
         await handler.HandleAsync(instance, approved: false, reason: "no");
 

@@ -1,5 +1,7 @@
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Policy;
+using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
@@ -97,7 +99,7 @@ public sealed class ApprovalStartCoordinator(
                 return new ApprovalStartResult(policyInstanceId, null);
         }
 
-        var existing = await FindInProgressInstanceAsync(request.EntityType, request.EntityId, ct);
+        var existing = await FindReusableInstanceAsync(request, ct);
         if (existing is not null)
             return new ApprovalStartResult(existing, null);
 
@@ -162,10 +164,30 @@ public sealed class ApprovalStartCoordinator(
         }
     }
 
-    private Task<Guid?> FindInProgressInstanceAsync(string entityType, Guid entityId, CancellationToken ct) =>
-        db.WorkflowInstances.AsNoTracking()
-            .Where(i => i.EntityType == entityType && i.EntityId == entityId && i.Status == WorkflowStatus.InProgress)
+    /// <summary>
+    /// Never two instances: an in-progress instance of the same entity is reused only when it runs the requested workflow
+    /// code and nobody has acted on it yet (first step, empty history) — so a pre-created or half-approved instance can never
+    /// be adopted to skip a step or a stricter workflow (PLAN-25 review finding 1).
+    /// </summary>
+    private async Task<Guid?> FindReusableInstanceAsync(ApprovalStartRequest request, CancellationToken ct)
+    {
+        var candidates = await db.WorkflowInstances.AsNoTracking()
+            .Where(i => i.EntityType == request.EntityType && i.EntityId == request.EntityId && i.Status == WorkflowStatus.InProgress)
             .OrderByDescending(i => i.StartedAt)
-            .Select(i => (Guid?)i.Id)
-            .FirstOrDefaultAsync(ct);
+            .Select(i => new { i.Id, i.DefinitionId, i.CurrentStepLevel, i.StepHistoryJson })
+            .ToListAsync(ct);
+        foreach (var candidate in candidates.Where(c => c.CurrentStepLevel == 1 && (string.IsNullOrWhiteSpace(c.StepHistoryJson) || c.StepHistoryJson.Trim() == "[]")))
+        {
+            var code = await db.WorkflowDefinitions
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+                .AsNoTracking()
+                .Where(d => d.Id == candidate.DefinitionId)
+                .Select(d => d.Code)
+                .FirstOrDefaultAsync(ct);
+            if (string.Equals(code, request.WorkflowCode, StringComparison.OrdinalIgnoreCase))
+                return candidate.Id;
+        }
+
+        return null;
+    }
 }

@@ -15,7 +15,19 @@ public enum RecruitmentScopeKind
     Application,
     Offer,
     CommitteeSession,
+    CandidateDocument,
+    PublicPosting,
     CentralOnly
+}
+
+/// <summary>
+/// PLAN-25 (review finding 4): on an action whose <c>id</c> is not the controller's record (e.g. a candidate document
+/// download on RecruitmentApplications), names the kind <c>id</c> resolves to.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class RecruitmentScopeIdAttribute(RecruitmentScopeKind kind) : Attribute
+{
+    public RecruitmentScopeKind Kind { get; } = kind;
 }
 
 /// <summary>
@@ -43,7 +55,8 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
         ["applicationId"] = RecruitmentScopeKind.Application,
         ["recruitmentApplicationId"] = RecruitmentScopeKind.Application,
         ["offerId"] = RecruitmentScopeKind.Offer,
-        ["sessionId"] = RecruitmentScopeKind.CommitteeSession
+        ["sessionId"] = RecruitmentScopeKind.CommitteeSession,
+        ["postingId"] = RecruitmentScopeKind.PublicPosting
     };
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -61,7 +74,8 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
             return;
         }
 
-        foreach (var (kind, id) in CollectIds(context.ActionArguments))
+        var routeIdKind = context.ActionDescriptor.EndpointMetadata.OfType<RecruitmentScopeIdAttribute>().FirstOrDefault()?.Kind ?? idKind;
+        foreach (var (kind, id) in CollectIds(context.ActionArguments, routeIdKind))
         {
             var (found, orgUnitId) = await ResolveOrgUnitAsync(kind, id, context.HttpContext.RequestAborted);
             if (found && (orgUnitId is null || !scope.CanAccess(orgUnitId.Value)))
@@ -74,14 +88,14 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
         await next();
     }
 
-    private IEnumerable<(RecruitmentScopeKind Kind, Guid Id)> CollectIds(IDictionary<string, object?> arguments)
+    private static IEnumerable<(RecruitmentScopeKind Kind, Guid Id)> CollectIds(IDictionary<string, object?> arguments, RecruitmentScopeKind routeIdKind)
     {
         foreach (var (name, value) in arguments)
         {
             if (value is Guid guid)
             {
                 if (string.Equals(name, "id", StringComparison.OrdinalIgnoreCase))
-                    yield return (idKind, guid);
+                    yield return (routeIdKind, guid);
                 else if (NamedIds.TryGetValue(name, out var kind))
                     yield return (kind, guid);
                 continue;
@@ -113,6 +127,12 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
                 .Where(o => o.Id == id).Select(o => new OrgUnitRow((Guid?)o.FundedPosition!.OrgUnitId)),
             RecruitmentScopeKind.CommitteeSession => db.SelectionCommitteeSessions.AsNoTracking()
                 .Where(s => s.Id == id).Select(s => new OrgUnitRow((Guid?)s.Requisition!.FundedPosition!.OrgUnitId)),
+            RecruitmentScopeKind.CandidateDocument => db.CandidateDocuments.AsNoTracking()
+                .Where(d => d.Id == id)
+                .Join(db.RecruitmentApplications, d => d.RecruitmentApplicationId, a => a.Id,
+                    (_, a) => new OrgUnitRow((Guid?)a.Requisition!.FundedPosition!.OrgUnitId)),
+            RecruitmentScopeKind.PublicPosting => db.PublicJobPostings.AsNoTracking()
+                .Where(p => p.Id == id).Select(p => new OrgUnitRow((Guid?)p.Requisition!.FundedPosition!.OrgUnitId)),
             _ => null
         };
         if (rows is null)
@@ -153,6 +173,16 @@ public static class RecruitmentOrgScopeQueries
             return query;
         var allowed = scope.AllowedOrgUnitIds.ToList();
         return query.Where(a => a.Requisition != null && allowed.Contains(a.Requisition.FundedPosition!.OrgUnitId));
+    }
+
+    /// <summary>PLAN-25 (review finding 5): legacy postings without a requisition are central-only.</summary>
+    public static IQueryable<HR.Core.Domain.Entities.PublicJobPosting> InScope(
+        this IQueryable<HR.Core.Domain.Entities.PublicJobPosting> query, OrgAccessScope scope)
+    {
+        if (!scope.MustFilter)
+            return query;
+        var allowed = scope.AllowedOrgUnitIds.ToList();
+        return query.Where(p => p.Requisition != null && allowed.Contains(p.Requisition.FundedPosition!.OrgUnitId));
     }
 
     public static IQueryable<HR.Core.Domain.Entities.OfferLetter> InScope(

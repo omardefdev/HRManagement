@@ -20,7 +20,8 @@ public sealed class OfferLetterWorkflowHandler(HRCoreDbContext db, OfferLetterDo
             return;
 
         var offer = await db.OfferLetters.FirstOrDefaultAsync(o => o.Id == instance.EntityId, ct);
-        if (offer is null || offer.Status != OfferStatus.PendingApproval)
+        // PLAN-25 (review finding 2): only the instance linked to the offer decides it.
+        if (offer is null || offer.Status != OfferStatus.PendingApproval || offer.WorkflowInstanceId != instance.Id)
             return;
 
         if (approved)
