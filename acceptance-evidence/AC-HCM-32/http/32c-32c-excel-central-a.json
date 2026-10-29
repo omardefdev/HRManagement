@@ -1,0 +1,11 @@
+{
+  "step": "32c-32c-excel-central-a",
+  "method": "GET",
+  "url": "/ui/hr-core/RecruitmentReports/ExportExcel?From=2026-08-01\u0026To=2026-10-01",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T12:58:47.5133104Z",
+  "body": {
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "length": 20501
+  }
+}

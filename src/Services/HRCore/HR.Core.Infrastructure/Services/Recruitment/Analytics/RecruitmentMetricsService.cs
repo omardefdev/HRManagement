@@ -5,6 +5,7 @@ using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services.RecruitmentKpi;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.ViewModels;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
@@ -558,8 +559,14 @@ public sealed class RecruitmentMetricsService(
 
         var now = UtcNow;
         var (from, to) = (filter.FromUtc, filter.ToUtc);
-        var definitions = (await db.WorkflowDefinitions.AsNoTracking()
-                .Where(d => d.Code.StartsWith(RecruitmentWorkflowPrefix))
+        // The published workflow pack lives in the default tenant (as WorkflowStarter resolves it); definitions hold no
+        // tenant data. The instances below stay tenant-filtered.
+        var tenantId = db.CurrentTenantId;
+        var definitions = (await db.WorkflowDefinitions
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+                .AsNoTracking()
+                .Where(d => d.Code.StartsWith(RecruitmentWorkflowPrefix)
+                    && (tenantId == null || d.TenantId == tenantId || d.TenantId == TenantDefaults.DefaultTenantId))
                 .Select(d => new { d.Id, d.Code, d.Name, d.StepsJson })
                 .ToListAsync(ct))
             .ToDictionary(d => d.Id, d => (d.Code, d.Name, Steps: DeserializeOrEmpty<WorkflowStepSnapshot>(d.StepsJson)));

@@ -1,0 +1,11 @@
+{
+  "step": "32c-32c-csv-read-only-a-executive-reader",
+  "method": "GET",
+  "url": "/ui/hr-core/RecruitmentReports/ExportApplicationsCsv?From=2026-08-01\u0026To=2026-10-01",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T12:58:47.5625886Z",
+  "body": {
+    "contentType": "text/csv",
+    "length": 1045
+  }
+}

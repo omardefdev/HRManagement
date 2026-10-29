@@ -16,7 +16,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 | P4 | Exports | Done | `feat(hcm032): recruitment report exports (Excel, PDF, scoped CSV job) without national id` |
 | P5 | Scale | Done (snapshot not needed) | `perf(hcm032): analytics indexes and scale test` |
 | P6 | Analytics integration (additive) | Done | `feat(ana032): recruitment requisition aggregates to Dev.Analytics and semantic-layer registration` |
-| P7 | Acceptance and regression | Not started | |
+| P7 | Acceptance and regression | Done (AC-HCM-32a..d Pass live) | `test(hcm032): acceptance AC-HCM-32a..d and regression` |
 | P8 | Docs, validate script, independent review, final report | Not started | |
 
 ## Branch
@@ -52,6 +52,8 @@ Prompt decisions 1–10 are adopted as written (recorded in Arabic at the top of
 | K21 | **`IRecruitmentRequisitionClosed` v1** (aggregates: tenant, requisition, org unit, outcome Closed/Cancelled, closed at, applicants, hires, time-to-fill days, four channel counts, four offer outcome counts; no person-level member — pinned by a test). Staged by `RecruitmentRequisitionClosedEvent.StageAsync` just before the save of every close path (hire closure when `TryClose` closes it, `CloseAsync`, `CancelAsync`, position-freeze cascade) so the MassTransit EF outbox writes it in the same transaction. The aggregates are the saved rows overlaid with the tracked unsaved changes of that save; a hire made in the same save counts from now. `IPublishEndpoint` is an optional last constructor parameter of `RecruitmentRequisitionLifecycleService` and `EstablishmentChangeApplier` (DI supplies it; manual test constructions keep compiling and publish nothing). | Atomic with the close without new transactions; decision 9. |
 | K22 | **Dev.Analytics**: new table `RecruitmentRequisitionFacts` (migration `ANA032_RecruitmentRequisitionFacts`, unique `(TenantId, RequisitionId)`, RLS hardening re-applied with the idempotent `TenantRlsMigrationHelper`), consumer `RecruitmentRequisitionClosedConsumer` upserting per requisition (redelivery = same row; the global inbox filter also dedupes by message id). «التوظيف» card on `Dashboards/Index` (last 12 months): closed / cancelled counts, filled and median time-to-fill, channel and offer-outcome breakdowns with counts 1–4 shown «<5» (`RecruitmentFactRules`, threshold 5); the median is suppressed with a small filled count. Demo data, `AnalyticsEvents`, read models and `Ac19` untouched. | Decisions 7, 9. |
 | K23 | **Semantic layer**: six measures (`recruitment_funnel`, `_time_to_fill`, `_time_to_hire`, `_offer_acceptance`, `_appeal_rate`, `_open_vacancies`) added to `docs/ana/semantic-layer.json` `measures` in their shape plus `kpi_ref`, `as_of`, `privacy` (min group 5); PROD-006 has no measures list, so `semanticMetrics.registeredMeasures` was added (id, kpiRef, ownerRole, grain, asOf, privacyMinCellSize, sourceRef). Both validators PASS unchanged. Contract registered in `docs/rel-compat/event-schema-inventory.json` (category analytics, outbox) and `docs/MESSAGE_EVENT_MATRIX.md` §2; REL-004 validator PASS. | Additive. |
+| K24 | **Approval SLA reads the workflow definitions through the sanctioned system bypass** (`IgnoreTenantFilterForSystem(PolicyResolution)`, current tenant or `TenantDefaults.DefaultTenantId`, as `WorkflowStarter`): the national workflow pack is published in the default tenant, so under a tenant context the tenant-filtered read found no recruitment definitions and the approval KPI was empty for every agency. Found by `Hcm032AcceptanceSeedTests`; regression test `Approval_sla_resolves_definitions_of_the_default_tenant_under_a_tenant_context`. Instances stay tenant-filtered. | Real bug the single-tenant scale and SQLite fixtures could not show. |
+| K25 | **AC-HCM-32 fixtures** (`AcceptanceRecruitmentReportsPatch`, ids `…0801–0804`, positions `AC32-POS-*`, events suppressed and marked planned, national ids `320320000NN`) — added once; the tests are GET-only so they are repeatable. | Isolation from the other journeys. |
 | K18 | **Exports**: Excel sheets المؤشرات، القمع (with stage time and channels)، طلبات الشاغر (all active requisitions, capped by `ExportQueryLimits`)، الاعتمادات المتأخرة، العروض، الاستئنافات، الشواغر المفتوحة, plus المسابقات for unrestricted users; every sheet starts with the provenance block (report, period, scope, generation time UTC, definitions version, source); numbers are numeric cells, dates `yyyy-MM-dd` text. PDF = the same summary (KPIs, funnel, overdue approvals, vacancy counts) on the official RTL layout. CSV with RFC 4180 CRLF line ends and a formula-injection guard. | REP-001 provenance; culture safety. |
 
 ## P0 maps
@@ -162,6 +164,12 @@ Skipped).
 | P6 | Full unit suite (before the two fixes below) | 3951 / 3971 — 10 baseline env failures, 7 `*_validate_script_passes` (execution policy; scripts pass with Bypass), and 3 real: `Hcm029CandidateAcceptedV4Tests` ×2 (now also publishes the close event → expectations updated) and `ModuleSidebarNavTests` (partial controller split → exports merged into `RecruitmentReportsController.cs`) |
 | P6 | After the fixes: `Hcm029|ModuleSidebarNav|Hcm032|Est0|Establishment|Requisition|Rel004|MessageContract|Analytics|Outbox` | 354 / 354 pass |
 | P6 | ANA-001 / PROD-006 / REL-004 validators; Analytics `has-pending-model-changes` | PASS / PASS / PASS; none |
+| P7 | Merge of local `main` (006ff3a) into the branch | clean (merge commit `608652e`); our AC-31 `ReasonCategory` line kept |
+| P7 | `Hcm032AcceptanceSeedTests` (+ the default-tenant regression test in `Hcm032RecruitmentMetricsTests`) | pass; `Hcm032*` 120 / 120 with `Ten002` |
+| P7 | Full unit suite | 3959 / 3976 — the 17 failures are environment-only: the 10 baseline ones (`Str005`×4, `Learning…Certificate_Number`, `Syr001`×2, `Ten002…IgnoreQueryFilters` (offenders `BenefitPlanSeeder`, `AcceptanceCandidateExperiencePatch` — not PLAN-32), `San001…Validate_script`, `Bola…org_scope_guard`) and 7 `*_validate_script_passes` (execution policy) |
+| P7 | Integration `Hcm02|Hcm03|PublicCareers` (PostgreSQL 16) | 33 pass, 2 skipped (opt-in scale tests), 1 failed: `Hcm028AppealGovernanceMigrationTests` (Hijri culture, environment-only baseline) |
+| P7 | **AC-HCM-32a..d live** (`hrm-acceptance`, `hr-core-web` and `dev-analytics-web` rebuilt from this branch; migrations `HCM032_*` applied at startup; fixtures seeded) | **4 / 4 Pass** (`acceptance-evidence/AC-HCM-32/`); first run 3 / 4 — the test's xlsx reader missed the `<x:t>` prefix (test fix, no product change) |
+| P7 | Decline paths live: AC-HCM-27 and AC-HCM-30 | 10 pass, 1 skip (AC-30c: File.Storage not in the stack), 1 fail: `Ac27_f_g` at the HR paper acceptance (line 223: offer stays Issued) — the step uploads acceptance evidence to File.Storage, which the stack does not run (MinIO image not pullable, as in PLAN-30/31); PLAN-32 does not touch the accept path. The HR decline with `ReasonCategory` (27a/c/d/h) and the portal decline (30f/g) pass. Their evidence folders were restored (not committed). |
 
 ## Modified existing tests
 
@@ -191,8 +199,7 @@ Skipped).
 
 ## Next step
 
-P7 — merge local `main` (006ff3a, AC-HCM-31 fixes) into this branch; wire `AcceptanceRecruitmentReportsPatch` (written,
-uncommitted, with the `AcceptanceSeedIds.RecruitmentReports*` ids) into `AcceptanceSeedOrchestrator`; seed test;
-`AcHcm32RecruitmentReportsTests` (32a funnel/time-to-fill on REQ-2026-A-AC32-1 = 6,4,3,3,3,3,2,1,1 and 37 days; 32b br1-mgr
-scope / br2 unit → no data, REQ-2 → 404; 32c Excel without national id, a-executive-reader CSV without names; 32d overdue
-REQ-2026-A-AC32-3); rebuild `hr-core-web` from this branch and run with `RUN_ACCEPTANCE=true`; regression filters.
+P8 — docs (drafted, uncommitted: `PLAN-32-EXECUTION.md`, `HCM_001_GAP_STUDY.md` G-21, `HCM_001_RECRUITMENT.md`;
+to do: PLAN-32 status/notes/deviations, `ANA_001_ANALYTICS.md`, `REP_001_REPORTS.md`, `DATABASE_SCHEMA_INVENTORY.md` by hand
+(no Python)); `scripts/hcm032-validate.ps1` (drafted) run to PASS; independent review subagent + refuters; fixes with
+regression tests; `reports/plan32-final-report.md`; commit; then merge the branch into local `main` (user rule) and test there.

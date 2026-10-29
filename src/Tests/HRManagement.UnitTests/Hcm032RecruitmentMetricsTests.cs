@@ -3,6 +3,7 @@ using HR.Core.Domain.Services.RecruitmentKpi;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment.Analytics;
 using HRManagement.ServiceDefaults;
+using Microsoft.EntityFrameworkCore;
 using static HRManagement.UnitTests.Hcm032MetricsFixture;
 using F = HR.Core.Domain.Services.RecruitmentKpi.RecruitmentFunnelStage;
 using St = HR.Core.Domain.Enums.RecruitmentApplicationStatus;
@@ -394,6 +395,32 @@ public class Hcm032RecruitmentMetricsTests
         Assert.Equal(10, detail.Funnel.CohortCount);
         // B1 hired 2026-10-01 → time to hire on the detail rows.
         Assert.Equal(Utc(2026, 10, 1), withNames.Single(r => r.CandidateName == CandidateNamePrefix + "B1").HiredAt);
+    }
+
+    /// <summary>
+    /// Regression (P7, found by the acceptance seed test): the workflow pack is published in the default tenant, so a
+    /// tenant-scoped request must still resolve the recruitment definitions of its own (tenant-filtered) instances.
+    /// </summary>
+    [Fact]
+    public async Task Approval_sla_resolves_definitions_of_the_default_tenant_under_a_tenant_context()
+    {
+        var (db, _) = await SeedAsync();
+        await using var __ = db;
+        await db.WorkflowDefinitions.ExecuteUpdateAsync(u => u.SetProperty(d => d.TenantId, HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId));
+        var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<HRCoreDbContext>()
+            .UseSqlite(db.Database.GetDbConnection()).Options;
+        await using var scoped = new HRCoreDbContext(options, new FixedTenant(Guid.Empty));
+
+        var result = await CreateService(scoped).GetApprovalSlaAsync(Period, Unrestricted);
+
+        Assert.Equal((3, 2), (result.InProgressCount, result.OverdueCount));
+    }
+
+    private sealed class FixedTenant(Guid tenantId) : HRManagement.SharedKernel.Tenancy.ITenantContext
+    {
+        public Guid? TenantId { get; } = tenantId;
+        public bool IsPlatformOperator => false;
+        public Guid RequireTenantId() => tenantId;
     }
 
     [Fact]
