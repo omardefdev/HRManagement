@@ -262,6 +262,81 @@ namespace Dev.Analytics.Infrastructure.Migrations
                     b.ToTable("ReadModels");
                 });
 
+            modelBuilder.Entity("Dev.Analytics.Domain.Entities.RecruitmentRequisitionFact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Applicants")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApplicantsHrEntered")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApplicantsInternal")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApplicantsLegacy")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApplicantsPublic")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("HiredCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OffersAccepted")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OffersDeclined")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OffersExpired")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OffersRevoked")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("OrgUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("RequisitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("TimeToFillDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "ClosedAt");
+
+                    b.HasIndex("TenantId", "RequisitionId")
+                        .IsUnique();
+
+                    b.ToTable("RecruitmentRequisitionFacts");
+                });
+
             modelBuilder.Entity("Dev.Analytics.Domain.Entities.Report", b =>
                 {
                     b.Property<Guid>("Id")

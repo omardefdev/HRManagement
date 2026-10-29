@@ -3230,6 +3230,10 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("DeclineReasonCategory")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime?>("DeclinedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -4320,6 +4324,8 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.HasIndex("SourceInternalApplicationId");
 
+                    b.HasIndex("TenantId", "AppliedAt");
+
                     b.HasIndex("TenantId", "RequisitionId");
 
                     b.HasIndex("TenantId", "CompetitionId", "NationalIdHash")
@@ -4382,6 +4388,8 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("RecruitmentApplicationId");
 
                     b.HasIndex("TenantId", "RecruitmentApplicationId", "OccurredAt");
+
+                    b.HasIndex("TenantId", "EventType", "ToStatus", "OccurredAt");
 
                     b.ToTable("RecruitmentApplicationEvents");
                 });

@@ -132,6 +132,9 @@ public sealed class RecruitmentOptions
     /// <summary>HCM-031 (PLAN-31): competition settings (<c>Recruitment:Competition:*</c>).</summary>
     public RecruitmentCompetitionOptions Competition { get; set; } = new();
 
+    /// <summary>HCM-032 (PLAN-32): recruitment reports and KPIs (<c>Recruitment:Analytics:*</c>).</summary>
+    public RecruitmentAnalyticsOptions Analytics { get; set; } = new();
+
     /// <summary>
     /// COM-030 (F6): <c>Recruitment:PublicPortalBaseUrl</c> — public origin of the careers portal (e.g.
     /// <c>https://hr.example.gov.sy</c>) used for the links in candidate messages. Empty (default; Production/Staging until
@@ -155,6 +158,27 @@ public sealed class RecruitmentOptions
 /// HCM-030 (G1/G3): automated candidate retention (GOV-001 <c>ret-recruitment-application</c>). Production keeps
 /// <see cref="Apply"/> false (dry run: counts only) until the data protection officer approves.
 /// </summary>
+/// <summary>
+/// HCM-032 (PLAN-32): <c>Recruitment:Analytics:*</c>. The approval SLA hours are an organizational policy value (decision 5),
+/// provisional and documented, never a legal value; a step's <c>TimeoutHours</c> wins when a definition sets it.
+/// </summary>
+public sealed class RecruitmentAnalyticsOptions
+{
+    /// <summary>A requisition Published for more days than this is listed as stale.</summary>
+    public int StalePublishedDays { get; set; } = 60;
+
+    public int DefaultApprovalSlaHours { get; set; } = HR.Core.Domain.Services.RecruitmentKpi.ApprovalSlaRules.FallbackDefaultHours;
+
+    /// <summary>Per workflow code (e.g. <c>Recruitment:Analytics:ApprovalSlaHours:RECRUITMENT-OFFER-APPROVAL</c> = 24).</summary>
+    public Dictionary<string, int> ApprovalSlaHours { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Small-cell threshold (STR-007 <c>privacyRules.minCellSize</c>).</summary>
+    public int MinCellSize { get; set; } = HR.Core.Domain.Services.RecruitmentKpi.SmallCellSuppression.DefaultThreshold;
+
+    /// <summary>Default report period: the last N full calendar months (UTC).</summary>
+    public int DefaultPeriodMonths { get; set; } = 12;
+}
+
 public sealed class RecruitmentRetentionOptions
 {
     /// <summary>

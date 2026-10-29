@@ -147,6 +147,10 @@ public class DeclineOfferForm
     [StringLength(1000)]
     public string? Reason { get; set; }
 
+    /// <summary>HCM-032 (PLAN-32, decision 4): required category of the decline.</summary>
+    [Display(Name = "فئة سبب الرفض")]
+    public HR.Core.Domain.Enums.OfferDeclineReasonCategory? ReasonCategory { get; set; }
+
     /// <summary>HCM-030 (J): optional signed paper decline (pdf/jpg/png ≤ 5 MB), relayed to File.Storage server-side.</summary>
     [Display(Name = "مستند إثبات الرفض (اختياري)")]
     public IFormFile? EvidenceFile { get; set; }

@@ -132,7 +132,7 @@ public class Hcm027ReserveListTests
         var offer = await IssueOfferAsync(db, first.Id);
         Assert.Null(await reserveList.GetNextCandidateSuggestionAsync(req.Id));
 
-        var (declined, error) = await CreateOfferService(db).DeclineAsync(offer.Id, "قبل عرضاً آخر", OfferDeclinedBy.HrOnBehalf);
+        var (declined, error) = await CreateOfferService(db).DeclineAsync(offer.Id, "قبل عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, OfferDeclinedBy.HrOnBehalf);
         Assert.True(declined, error);
 
         var suggestion = await reserveList.GetNextCandidateSuggestionAsync(req.Id);
@@ -157,7 +157,7 @@ public class Hcm027ReserveListTests
         var second = await SeedApplicationAsync(db, req, RecruitmentApplicationStatus.Ranked, 2);
         var service = CreateOfferService(db, options: new RecruitmentOptions { AutoDraftNextOffer = true });
         var offer = await IssueOfferAsync(db, first.Id, service, validityDays: 10, salary: 5100);
-        Assert.True((await service.DeclineAsync(offer.Id, "ظروف عائلية", OfferDeclinedBy.HrOnBehalf)).Success);
+        Assert.True((await service.DeclineAsync(offer.Id, "ظروف عائلية", OfferDeclineReasonCategory.Personal, OfferDeclinedBy.HrOnBehalf)).Success);
 
         var (draft, error) = await service.TryAutoDraftNextOfferAsync(offer.Id, CreatorId);
 
@@ -184,7 +184,7 @@ public class Hcm027ReserveListTests
         await SeedApplicationAsync(db, req, RecruitmentApplicationStatus.Ranked, 2);
         var service = CreateOfferService(db);
         var offer = await IssueOfferAsync(db, first.Id, service);
-        Assert.True((await service.DeclineAsync(offer.Id, "ظروف عائلية", OfferDeclinedBy.HrOnBehalf)).Success);
+        Assert.True((await service.DeclineAsync(offer.Id, "ظروف عائلية", OfferDeclineReasonCategory.Personal, OfferDeclinedBy.HrOnBehalf)).Success);
 
         var (draft, error) = await service.TryAutoDraftNextOfferAsync(offer.Id, CreatorId);
 

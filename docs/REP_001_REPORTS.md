@@ -60,6 +60,22 @@ Each report entry contains:
 | ANA-001 | Analytics warehouse (later) |
 | REP-001 | Statutory report catalog and governance |
 
+## Recruitment reports (HCM-032 / PLAN-32)
+
+«تقارير التوظيف» (`HR.Core RecruitmentReports/Index`, `HrCoreReadOnly`) is an operational report, not a statutory one; it
+follows the same provenance and export rules:
+
+- **Provenance:** every view and export states the period (UTC, half-open `[From, To)`), the scope (all units / the user's
+  units / a unit, channel, requisition or competition filter), the generation time (Gregorian, invariant `yyyy-MM-dd HH:mm UTC`),
+  the definitions version (`STR-007/2026-10-29`) and the source (HR.Core recruitment tables and event log). The Excel export
+  repeats this block at the top of every sheet; the PDF prints it as a field table.
+- **Drill-through:** requisition rows link to the per-requisition report and to `RecruitmentRequisitions/Details`; applicant
+  counts to the applications list (its own authorization, PLAN-25 deferred); overdue approvals to the entity's screen.
+- **Export controls:** Excel and PDF (aggregates) and the applications CSV are GET actions audited as `BulkExport` and capped
+  by `ExportQueryLimits` (10,000 rows); above the cap the CSV becomes the export job `hrcore.recruitment.applications.csv`
+  (scope and the names flag captured at request time, re-checked at download). No national id in any export; candidate
+  names only for `HrCoreWrite`. Dates are Gregorian text, numbers invariant.
+
 ## Acceptance Criteria Mapping
 
 - [x] Statutory catalog with legal authority and golden datasets

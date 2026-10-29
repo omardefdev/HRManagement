@@ -523,6 +523,36 @@ decisions J1–J39: [`reports/plan31-progress.md`](../reports/plan31-progress.md
   `COMPETITION_NOT_SUCCESSFUL`) with no score, rank or national id (decision 4). Retention starts at the competition's end;
   DSAR carries papers, marks, results, allocation and reserve.
 
+## PLAN-32 — Recruitment reports and KPIs (HCM-J)
+
+Plan: [PLAN-32](acceptance-plans/PLAN-32-hcm-recruitment-analytics.md); execution: [PLAN-32-EXECUTION](acceptance-plans/execution/PLAN-32-EXECUTION.md);
+decisions K1–K23: [`reports/plan32-progress.md`](../reports/plan32-progress.md); KPI definitions:
+[`STR_007_KPI_DEFINITIONS.md`](STR_007_KPI_DEFINITIONS.md). Addresses G-21.
+
+- **KPIs** (`recruitment_*`, STR-007): funnel, time to fill (from approval, fallback request — aligned with the frozen
+  `hire_cycle_time`), time to hire, stage time, offer acceptance (revoked excluded), decline reasons by category, channel mix,
+  appeal rate and objections, merit/exception offers, open vacancies, approval SLA, competitions. Timings come from
+  `RecruitmentApplicationEvent`; rows older than the event log use documented evidence fallbacks, and every KPI shows its `n`
+  and coverage. Exact counts; median and P90 (nearest rank) by the rules in `KpiStatistics`.
+- **`RecruitmentMetricsService`** (read-only, `AsNoTracking`, tenant-filtered) takes the caller's `OrgAccessScope`: a
+  requisition's unit is its funded position's; a branch manager sees only its units; an out-of-scope org-unit filter returns
+  no data; competition aggregates are for unrestricted users only.
+- **«تقارير التوظيف»** (`RecruitmentReports/Index`, `HrCoreReadOnly`; menu under «التوظيف والاستقطاب»): KPI cards with n and
+  coverage, the funnel (Chart.js + data table), requisitions with ages, overdue approvals (SLA = step `TimeoutHours`, else
+  `Recruitment:Analytics:ApprovalSlaHours:{code}`, else 48 h — an organizational policy value), offers and decline categories,
+  channels, appeals/objections, merit overrides, open vacancies, competitions; `RecruitmentReports/Requisition/{id}` per
+  requisition. Candidate names only for `HrCoreWrite`, otherwise the application reference.
+- **Exports** (GET, audited `BulkExport`, bounded): Excel (seven sheets + competitions, REP-001 provenance block), PDF summary,
+  applications CSV (synchronous up to 10,000 rows, else export job `hrcore.recruitment.applications.csv` with the names flag
+  captured and re-checked at download). Never a national id.
+- **Offer decline category** (`OfferLetter.DeclineReasonCategory`: الراتب، مكان العمل، عرض آخر، أسباب شخصية، طبيعة العمل، أخرى) is
+  required on the HR and portal decline forms; withdrawal-driven declines are «أخرى»; older declines «غير مصنف».
+- **Dev.Analytics:** `IRecruitmentRequisitionClosed` (aggregates only) on every close path through the HR.Core outbox →
+  `RecruitmentRequisitionFact` and the «التوظيف» dashboard card with small cells shown «<5».
+- **Deferred:** fairness metrics (no GOV-001 decision; candidate gender not collected), KPI targets (TBD after the first
+  frozen quarter), org scope of the recruitment list screens (PLAN-25, finding D10), daily snapshot (not needed at the
+  measured scale).
+
 ## Acceptance Criteria Mapping
 
 - [x] No announcement without funded position — `PositionId` required on requisition
@@ -558,6 +588,7 @@ decisions J1–J39: [`reports/plan31-progress.md`](../reports/plan31-progress.md
 - [x] PLAN-30 G-18 — accurate public status and timeline, PII-free candidate notifications, `/careers/my` with OTP (offer PDF, accept/decline, withdraw, appeal, documents), restricted HR on-behalf acceptance
 - [x] PLAN-30 G-20 (candidate data) — pair-aware retention job with legal hold, dry run by default, admin screen
 - [x] PLAN-31 G-19 — multi-vacancy competitions with per-competition legal inputs, anonymous double-marked exams, approved and published results with an objection window and versions, allocation by merit and preference, line reserve recall, bulk offers into the per-offer approval (AC-HCM-31a..g Pass live, 2026-10-29)
+- [x] PLAN-32 G-21 — recruitment KPIs (STR-007 `recruitment_*`) with n and coverage, «تقارير التوظيف» under org scope, overdue approvals against a documented SLA, exports without national id and names only for HrCoreWrite, Dev.Analytics aggregates with small-cell suppression (AC-HCM-32a..d Pass live, 2026-10-29)
 
 ## Plan map (HCM-001)
 
@@ -576,6 +607,7 @@ decisions J1–J39: [`reports/plan31-progress.md`](../reports/plan31-progress.md
 | PLAN-29 | Safe hire closure, employment type, `ICandidateAccepted` v4 → contract → payroll, contract-type map with intervention, appointment decision / medical steps, commencement watch, offer letter PDF (G-12, G-13, G-22 addressed; G-18 offer letter; D-6) |
 | PLAN-30 | Unified intake and backfill, application events, public status projection, profile and eligibility flags, candidate documents (File.Storage service upload), candidate notifications (channel senders, FileDrop lab), pair-aware retention, `/careers/my` with OTP and the gateway cookie allow-list, HR on-behalf acceptance with evidence (G-16, G-17, G-18 addressed; G-20 candidate-data part; D-4) |
 | PLAN-31 | Competitions and lines, intake with line preferences, exam sessions/seating/admission cards, anonymous double marking (`hr-exam-marker`), results approval/publication, objections and result versions, allocation and line reserves, bulk offers, portal/notifications/retention/DSAR for competitions (G-19 addressed; D-2 inputs per competition) |
+| PLAN-32 | Recruitment KPIs and «تقارير التوظيف» (funnel, time to fill/hire, stage time, offers and decline categories, channels, appeals, merit overrides, open vacancies, approval SLA, competitions), scoped exports, `IRecruitmentRequisitionClosed` → Dev.Analytics (G-21 addressed) |
 
 ## Artifacts
 

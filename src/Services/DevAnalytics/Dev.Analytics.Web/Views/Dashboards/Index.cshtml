@@ -1,4 +1,4 @@
-@model (IReadOnlyList<Dev.Analytics.Domain.Entities.Dashboard> Dashboards, IReadOnlyList<Dev.Analytics.Domain.Entities.KPI> Kpis, IReadOnlyList<Dev.Analytics.Domain.Entities.ETLJob> Jobs)
+@model (IReadOnlyList<Dev.Analytics.Domain.Entities.Dashboard> Dashboards, IReadOnlyList<Dev.Analytics.Domain.Entities.KPI> Kpis, IReadOnlyList<Dev.Analytics.Domain.Entities.ETLJob> Jobs, Dev.Analytics.Domain.Services.RecruitmentCard Recruitment)
 @{ ViewData["Title"] = "لوحات ومؤشرات"; }
 <p><a asp-action="Create" class="btn btn-primary btn-sm">لوحة جديدة</a></p>
 
@@ -49,5 +49,42 @@
         </div>
     </div>
 </div>
+
+@* HCM-032 (PLAN-32): aggregates of HR.Core's closed requisitions; counts 1–4 are shown «<5». *@
+<section class="card mb-3" aria-labelledby="recruitment-card-title" id="recruitment-card">
+    <div class="card-header"><h2 class="h6 mb-0" id="recruitment-card-title">التوظيف</h2></div>
+    <div class="card-body small">
+        <p class="mb-2">
+            طلبات شاغر أُغلقت في آخر 12 شهراً: @Model.Recruitment.RequisitionsClosed · ملغاة: @Model.Recruitment.RequisitionsCancelled ·
+            مُلئت: @Model.Recruitment.Filled · وسيط زمن الملء (أيام): @Model.Recruitment.MedianTimeToFillDays
+        </p>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-sm">
+                    <caption>المتقدمون حسب قناة التقديم (الأعداد من 1 إلى 4 محجوبة)</caption>
+                    <thead><tr><th scope="col">القناة</th><th scope="col">المتقدمون</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.Recruitment.Channels)
+                        {
+                            <tr><th scope="row">@row.Label</th><td>@row.Value</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm">
+                    <caption>نتائج العروض (الأعداد من 1 إلى 4 محجوبة)</caption>
+                    <thead><tr><th scope="col">النتيجة</th><th scope="col">العدد</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.Recruitment.OfferOutcomes)
+                        {
+                            <tr><th scope="row">@row.Label</th><td>@row.Value</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
 
 <p><a asp-controller="Reports" asp-action="Index">التقارير</a></p>

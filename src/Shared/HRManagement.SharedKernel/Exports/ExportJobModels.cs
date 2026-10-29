@@ -44,6 +44,8 @@ public static class ExportJobTemplates
     public const string PayrollRegister = "payroll.register.csv";
     public const string PayrollEosCsv = "payroll.eos.csv";
     public const string HrCoreEmployeesCsv = "hrcore.employees.csv";
+    /// <summary>HCM-032 (PLAN-32): recruitment applications detail, scoped, names only for HrCoreWrite.</summary>
+    public const string HrCoreRecruitmentApplicationsCsv = "hrcore.recruitment.applications.csv";
     public const string ContractsLeaveCsv = "contracts.leave.csv";
     public const string ContractsAdvanceCsv = "contracts.advance.csv";
     public const string ComplianceComplaintsCsv = "compliance.complaints.csv";

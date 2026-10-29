@@ -321,7 +321,7 @@ public class AcHcm31CompetitionTests
             $"SELECT \"RecruitmentApplicationId\" FROM \"CompetitionReserveEntries\" WHERE \"CompetitionLineId\"='{line}' AND \"Status\"='Active' ORDER BY \"LineRank\" LIMIT 1;");
         Skip.If(!Guid.TryParse(firstReserve, out _), "31g: the declined offer's line has no active reserve in this run.");
         await s.Central.PostAsync("31g-decline", $"ui/hr-core/OfferLetters/DeclineOffer/{declined}", OfferDetails(declined),
-            [new("id", declined), new("Reason", "اعتذر المرشح عن الالتحاق (اختبار قبول)")]);
+            [new("id", declined), new("ReasonCategory", "Personal"), new("Reason", "اعتذر المرشح عن الالتحاق (اختبار قبول)")]);
         Assert.Equal(OfferDeclined, (int)await Scalar($"SELECT \"Status\" FROM \"OfferLetters\" WHERE \"Id\"='{declined}';"));
         Assert.Equal($"{AppRanked}|{vacatedRequisition}|{line}", await Sql(
             $"SELECT \"Status\"::text || '|' || \"RequisitionId\" || '|' || \"CompetitionLineId\" FROM \"RecruitmentApplications\" WHERE \"Id\"='{firstReserve}';"));

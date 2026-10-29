@@ -444,6 +444,8 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .IsUnique()
                   .HasFilter("\"CompetitionId\" IS NOT NULL AND \"NationalIdHash\" IS NOT NULL");
             entity.HasIndex(e => new { e.TenantId, e.CompetitionId, e.Status });
+            // HCM-032 (PLAN-32, P5): the report cohort (applications applied in a period); EXPLAIN showed a sequential scan.
+            entity.HasIndex(e => new { e.TenantId, e.AppliedAt });
         });
 
         // HCM-030 (B1): append-only application event log (no PII).
@@ -455,6 +457,9 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.Cascade);
             entity.Property(e => e.EventType).HasMaxLength(40);
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.OccurredAt });
+            // HCM-032 (PLAN-32, P5): hired-time lookups (StatusChanged → Hired) and period event queries; EXPLAIN showed a
+            // sequential scan of the events in the hires sub-plan.
+            entity.HasIndex(e => new { e.TenantId, e.EventType, e.ToStatus, e.OccurredAt });
             entity.HasIndex(e => e.OccurredAt)
                   .HasFilter("\"NotificationsPlannedAt\" IS NULL")
                   .HasDatabaseName("IX_RecruitmentApplicationEvents_NotificationsPending");
@@ -561,6 +566,8 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .IsUnique();
             entity.Property(e => e.GradeMinSalary).HasPrecision(18, 2);
             entity.Property(e => e.GradeMaxSalary).HasPrecision(18, 2);
+            // HCM-032 (PLAN-32): nullable; old declines stay null («غير مصنف»).
+            entity.Property(e => e.DeclineReasonCategory).HasConversion<string>().HasMaxLength(20);
             // HCM-029 (D2): hex SHA-256 → char(64).
             entity.Property(e => e.DocumentSha256).HasMaxLength(64).IsFixedLength();
         });

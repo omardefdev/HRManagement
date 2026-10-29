@@ -130,6 +130,7 @@
                 <dt class="col-sm-3">تاريخ الرفض</dt><dd class="col-sm-9">@(offer.DeclinedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
                 <dt class="col-sm-3">رفض بواسطة</dt>
                 <dd class="col-sm-9">@(offer.DeclinedBy == HR.Core.Domain.Entities.OfferDeclinedBy.Candidate ? "المرشح" : "HR نيابة عن المرشح")</dd>
+                <dt class="col-sm-3">فئة سبب الرفض</dt><dd class="col-sm-9">@HR.Core.Domain.Enums.OfferDeclineReasonCategories.LabelAr(offer.DeclineReasonCategory)</dd>
                 <dt class="col-sm-3">سبب الرفض</dt><dd class="col-sm-9">@(offer.DeclineReason ?? "—")</dd>
                 @if (offer.DeclineEvidenceFileId is not null)
                 {
@@ -228,6 +229,14 @@
                                 <h6>رفض العرض</h6>
                                 <p class="form-text mb-1">يُسجَّل الرفض بواسطة: HR نيابة عن المرشح.</p>
                                 <label class="form-label" for="DeclineReason">سبب الرفض</label>
+                                <label class="form-label" for="DeclineReasonCategory">فئة سبب الرفض</label>
+                                <select name="ReasonCategory" id="DeclineReasonCategory" class="form-select mb-2" required aria-required="true">
+                                    <option value="">— اختر الفئة —</option>
+                                    @foreach (var category in Enum.GetValues<HR.Core.Domain.Enums.OfferDeclineReasonCategory>())
+                                    {
+                                        <option value="@category">@HR.Core.Domain.Enums.OfferDeclineReasonCategories.LabelAr(category)</option>
+                                    }
+                                </select>
                                 <textarea name="Reason" id="DeclineReason" class="form-control mb-2" rows="2"
                                           minlength="@HR.Core.Domain.Services.OfferWorkflowRules.MinDeclineReasonLength" maxlength="1000" required></textarea>
                                 <label class="form-label" for="DeclineEvidenceFile">مستند إثبات الرفض (اختياري)</label>

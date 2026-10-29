@@ -137,6 +137,8 @@ public sealed class CandidatePortalPostedValues
 {
     public string? AcceptFullName { get; set; }
     public string? DeclineReason { get; set; }
+    /// <summary>HCM-032: the category picked with the decline reason.</summary>
+    public HR.Core.Domain.Enums.OfferDeclineReasonCategory? DeclineCategory { get; set; }
     public string? WithdrawReason { get; set; }
     public string? AppealReason { get; set; }
     /// <summary>HCM-031: the typed result objection.</summary>
@@ -151,6 +153,15 @@ public sealed class CandidatePortalAcceptForm
 
     [StringLength(200)]
     public string? FullName { get; set; }
+}
+
+/// <summary>HCM-032 (PLAN-32, decision 4): offer decline on <c>/careers/my</c> — reason and its required category.</summary>
+public sealed class CandidatePortalDeclineForm
+{
+    [StringLength(4000)]
+    public string? Text { get; set; }
+
+    public HR.Core.Domain.Enums.OfferDeclineReasonCategory? Category { get; set; }
 }
 
 /// <summary>HCM-030 (I): decline reason, appeal reason or requested information (one text field).</summary>

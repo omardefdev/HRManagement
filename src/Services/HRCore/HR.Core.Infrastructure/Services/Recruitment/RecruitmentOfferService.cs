@@ -282,7 +282,7 @@ public sealed class RecruitmentOfferService(
     /// when it can. HCM-030 (J): the HR on-behalf action checks this before relaying the optional evidence file, so a refused
     /// decline stores nothing.
     /// </summary>
-    public static string? GetDeclineError(OfferLetter offer, string? reason, string declinedBy)
+    public static string? GetDeclineError(OfferLetter offer, string? reason, OfferDeclineReasonCategory? category, string declinedBy)
     {
         if (!OfferWorkflowRules.CanDecline(offer))
             return "لا يمكن رفض هذا العرض.";
@@ -293,6 +293,9 @@ public sealed class RecruitmentOfferService(
             return "سبب الرفض يجب ألا يتجاوز 1000 حرف.";
         if (!OfferDeclinedBy.IsValid(declinedBy))
             return "جهة الرفض غير صالحة.";
+        // HCM-032 (PLAN-32, decision 4): every new decline is categorised (HR and portal paths).
+        if (category is null || !Enum.IsDefined(category.Value))
+            return DeclineCategoryRequiredMessage;
         return null;
     }
 
@@ -301,9 +304,12 @@ public sealed class RecruitmentOfferService(
     /// HCM-030) or recorded by HR on their behalf. The application becomes OfferDeclined; the offer stays in its history.
     /// HCM-030 (J): <paramref name="evidenceFileId"/> is the optional signed paper decline HR attached.
     /// </summary>
+    public const string DeclineCategoryRequiredMessage = "يجب اختيار فئة سبب الرفض.";
+
     public async Task<(bool Success, string? Error)> DeclineAsync(
         Guid offerId,
         string? reason,
+        OfferDeclineReasonCategory? category,
         string declinedBy,
         Guid? actorUserId = null,
         Guid? evidenceFileId = null,
@@ -311,18 +317,19 @@ public sealed class RecruitmentOfferService(
     {
         var offer = await LoadOfferAsync(offerId, ct);
         if (offer is null) return (false, "خطاب العرض غير موجود.");
-        if (GetDeclineError(offer, reason, declinedBy) is string declineError)
+        if (GetDeclineError(offer, reason, category, declinedBy) is string declineError)
             return (false, declineError);
         var trimmed = reason!.Trim();
 
         var now = DateTime.UtcNow;
         offer.Status = OfferStatus.Declined;
         offer.DeclineReason = trimmed;
+        offer.DeclineReasonCategory = category;
         offer.DeclinedAt = now;
         offer.DeclinedBy = declinedBy;
         offer.DeclineEvidenceFileId = evidenceFileId;
         SettleApplication(offer, RecruitmentApplicationStatus.OfferDeclined, $"رفض العرض: {trimmed}", now);
-        AddAudit(offer, "DeclineOffer", actorUserId, new { reason = trimmed, declinedBy, evidenceFileId });
+        AddAudit(offer, "DeclineOffer", actorUserId, new { reason = trimmed, category = category!.Value.ToString(), declinedBy, evidenceFileId });
         // PLAN-30: notify candidate
 
         await db.SaveChangesAsync(ct);
@@ -337,12 +344,13 @@ public sealed class RecruitmentOfferService(
     public async Task<OfferSettlementResult> DeclineAndDraftNextAsync(
         Guid offerId,
         string? reason,
+        OfferDeclineReasonCategory? category,
         string declinedBy,
         Guid? actorUserId,
         Guid? evidenceFileId = null,
         CancellationToken ct = default)
     {
-        var (success, error) = await DeclineAsync(offerId, reason, declinedBy, actorUserId, evidenceFileId, ct);
+        var (success, error) = await DeclineAsync(offerId, reason, category, declinedBy, actorUserId, evidenceFileId, ct);
         if (!success)
             return new OfferSettlementResult(false, error, null, null);
         var (draft, draftError) = await DraftNextOfferAfterSettlementAsync(offerId, actorUserId, ct);
@@ -387,6 +395,8 @@ public sealed class RecruitmentOfferService(
         {
             offer.Status = OfferStatus.Declined;
             offer.DeclineReason = text;
+            // HCM-032 (PLAN-32, decision 4): a decline caused by the withdrawal is categorised Other, its text kept.
+            offer.DeclineReasonCategory = OfferDeclineReasonCategory.Other;
             offer.DeclinedAt = now;
             offer.DeclinedBy = OfferDeclinedBy.Candidate;
             AddAudit(offer, "DeclineOffer", actorUserId: null, new { reason = text, declinedBy = OfferDeclinedBy.Candidate, withdrawal = true });

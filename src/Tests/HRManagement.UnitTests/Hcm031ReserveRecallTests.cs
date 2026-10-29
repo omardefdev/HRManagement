@@ -53,7 +53,7 @@ public sealed class Hcm031ReserveRecallTests
         var decliner = await db.RecruitmentApplications.AsNoTracking().SingleAsync(x => x.Id == fx.Applications[1].Id);
         var offer = await IssueOfferAsync(db, offers, decliner.Id);
 
-        var settlement = await offers.DeclineAndDraftNextAsync(offer.Id, "قبلت عرضاً آخر", OfferDeclinedBy.Candidate, null);
+        var settlement = await offers.DeclineAndDraftNextAsync(offer.Id, "قبلت عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, OfferDeclinedBy.Candidate, null);
 
         Assert.True(settlement.Success, settlement.Error);
         var recalled = await db.RecruitmentApplications.AsNoTracking().SingleAsync(x => x.Id == fx.Applications[5].Id);
@@ -87,7 +87,7 @@ public sealed class Hcm031ReserveRecallTests
         var offers = CreateOfferServiceWithRecall(db);
         var offer = await IssueOfferAsync(db, offers, fx.Applications[1].Id);
 
-        await offers.DeclineAndDraftNextAsync(offer.Id, "قبلت عرضاً آخر", OfferDeclinedBy.Candidate, null);
+        await offers.DeclineAndDraftNextAsync(offer.Id, "قبلت عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, OfferDeclinedBy.Candidate, null);
 
         Assert.Equal(RecruitmentApplicationStatus.ReserveListed, (await db.RecruitmentApplications.AsNoTracking().SingleAsync(x => x.Id == fx.Applications[5].Id)).Status);
         Assert.Equal(RecruitmentApplicationStatus.ReserveListed, (await db.RecruitmentApplications.AsNoTracking().SingleAsync(x => x.Id == fx.Applications[6].Id)).Status);

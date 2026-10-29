@@ -1,4 +1,5 @@
 using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
@@ -83,6 +84,7 @@ public sealed class OfferOnBehalfService(
     public async Task<OfferSettlementResult> DeclineAsync(
         Guid offerId,
         string? reason,
+        OfferDeclineReasonCategory? category,
         IFormFile? evidence,
         Guid? actorUserId,
         CancellationToken ct = default)
@@ -94,7 +96,7 @@ public sealed class OfferOnBehalfService(
             var offer = await LoadAsync(offerId, ct);
             if (offer is null)
                 return new OfferSettlementResult(false, OfferNotFoundMessage, null, null);
-            if (RecruitmentOfferService.GetDeclineError(offer, reason, OfferDeclinedBy.HrOnBehalf) is string declineError)
+            if (RecruitmentOfferService.GetDeclineError(offer, reason, category, OfferDeclinedBy.HrOnBehalf) is string declineError)
                 return new OfferSettlementResult(false, declineError, null, null);
 
             var (uploaded, uploadError) = await UploadAndStageAsync(offer, evidence, DeclineEvidenceField, ct);
@@ -103,7 +105,7 @@ public sealed class OfferOnBehalfService(
             fileId = uploaded;
         }
 
-        var result = await offers.DeclineAndDraftNextAsync(offerId, reason, OfferDeclinedBy.HrOnBehalf, actorUserId, fileId, ct);
+        var result = await offers.DeclineAndDraftNextAsync(offerId, reason, category, OfferDeclinedBy.HrOnBehalf, actorUserId, fileId, ct);
         if (!result.Success && fileId is Guid staged)
             UnstageReference(staged);
         return result;

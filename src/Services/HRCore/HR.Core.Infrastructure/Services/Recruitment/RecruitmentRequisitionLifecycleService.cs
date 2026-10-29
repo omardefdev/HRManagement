@@ -20,7 +20,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
     RecruitmentLegalSourceValidator legalSourceValidator,
     IWorkflowStarter workflowStarter,
     IConfiguration configuration,
-    IOptions<RecruitmentOptions> recruitmentOptions)
+    IOptions<RecruitmentOptions> recruitmentOptions,
+    MassTransit.IPublishEndpoint? publish = null)
 {
     private const string RequisitionApprovalWorkflowCode = "RECRUITMENT-REQUISITION-APPROVAL";
     public async Task<(bool Success, string? Error)> SubmitForApprovalAsync(
@@ -299,6 +300,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
         await RecruitmentRequisitionCascade.RejectOpenApplicationsAsync(
             db, req.Id, RecruitmentRejectionKind.RequisitionClosed, "إغلاق الشاغر", now, ct);
         await RecruitmentRequisitionCascade.CancelScheduledInterviewsAsync(db, req.Id, "إغلاق الشاغر", ct);
+        // HCM-032 (PLAN-32): aggregate close event on the outbox, same save.
+        await Analytics.RecruitmentRequisitionClosedEvent.StageAsync(db, publish, req, ct);
 
         await db.SaveChangesAsync(ct);
         return (true, null);
@@ -343,6 +346,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
             return (false, blocked);
 
         await RecruitmentRequisitionCascade.StageCancellationAsync(db, req, trimmedReason ?? "إلغاء المسودة", actorUserId, ct);
+        // HCM-032 (PLAN-32): aggregate close event on the outbox, same save.
+        await Analytics.RecruitmentRequisitionClosedEvent.StageAsync(db, publish, req, ct);
         await db.SaveChangesAsync(ct);
         return (true, null);
     }

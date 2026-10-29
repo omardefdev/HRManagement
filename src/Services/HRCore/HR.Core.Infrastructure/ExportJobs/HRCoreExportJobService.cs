@@ -8,6 +8,7 @@ using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Exports;
 using HRManagement.SharedKernel.Tenancy;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Recruitment.Analytics;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -40,7 +41,8 @@ public sealed class HRCoreExportJobService(
     IExportArtifactStore artifacts,
     IOptions<ExportJobOptions> options,
     OrgScopeService orgScope,
-    ITenantContext? tenantContext = null) : IHRCoreExportJobService
+    ITenantContext? tenantContext = null,
+    HR.Core.Infrastructure.Services.Recruitment.Analytics.RecruitmentMetricsService? recruitmentMetrics = null) : IHRCoreExportJobService
 {
     public const string ServiceKey = "hr-core";
 
@@ -62,7 +64,8 @@ public sealed class HRCoreExportJobService(
             return (false, null, "تعذّر تحديد هوية المستخدم.");
 
         var (templateCode, templateVersion) = ResolveTemplate(exportType);
-        var filterJson = scope.MustFilter
+        // HCM-032: other templates carry their own scope in the filter they pass (the employees filter is replaced here).
+        var filterJson = scope.MustFilter && exportType is ExportJobTemplates.HrCoreEmployeesCsv or "ExportEmployeesCsv"
             ? JsonSerializer.Serialize(new EmployeesFilter(scope.AllowedOrgUnitIds.ToList()))
             : JsonSerializer.Serialize(filter);
         var job = new ExportJob
@@ -195,6 +198,17 @@ public sealed class HRCoreExportJobService(
                 scope.MustFilter ? scope.AllowedOrgUnitIds : null))
             return (false, null, null, null, "غير مصرح بتحميل هذا التصدير.");
 
+        // HCM-032 (PLAN-32): a recruitment export made with names is downloadable only while the user still holds
+        // HrCoreWrite, and one made unrestricted only while the user is still unrestricted.
+        if (job.TemplateCode == RecruitmentApplicationsCsv.TemplateCode)
+        {
+            var filter = RecruitmentApplicationsExportFilter.Parse(job.FilterJson);
+            if (filter is null
+                || (filter.IncludeNames && !RecruitmentReportAccess.CanSeeCandidateNames(user))
+                || (filter.AllowedOrgUnitIds is null && scope.MustFilter))
+                return (false, null, null, null, "غير مصرح بتحميل هذا التصدير.");
+        }
+
         var stream = await artifacts.OpenReadAsync(
             new ExportArtifactRef(job.ResultFileId.Value, job.ResultObjectKey!, job.ResultContentType ?? "application/octet-stream", job.ResultFileName ?? "export.bin"),
             ct);
@@ -240,6 +254,32 @@ public sealed class HRCoreExportJobService(
             return ($"employees-{DateTime.UtcNow:yyyyMMdd}.csv", "text/csv; charset=utf-8", total);
         }
 
+        if (job.ExportType == RecruitmentApplicationsCsv.TemplateCode)
+        {
+            if (recruitmentMetrics is null)
+                throw new InvalidOperationException("Recruitment metrics are not available for this export.");
+            var filter = RecruitmentApplicationsExportFilter.Parse(job.FilterJson)
+                ?? throw new InvalidOperationException("Invalid recruitment export filter.");
+            // Scope and the names flag were captured when the job was requested (download re-checks both).
+            await writer.WriteLineAsync(RecruitmentApplicationsCsv.Header(filter.IncludeNames));
+            var total = 0;
+            await foreach (var row in recruitmentMetrics.StreamApplicationDetailsAsync(
+                               filter.ToFilter(), filter.ToScope(), filter.IncludeNames, chunk, ct))
+            {
+                await writer.WriteLineAsync(RecruitmentApplicationsCsv.Line(row, filter.IncludeNames));
+                total++;
+                if (total % chunk == 0)
+                {
+                    if (await IsCancelledAsync(job.Id, ct)) break;
+                    job.ProcessedCount = total;
+                    job.LeaseUntil = DateTime.UtcNow.AddSeconds(options.Value.LeaseSeconds);
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+            await writer.FlushAsync(ct);
+            return (RecruitmentApplicationsCsv.FileName(DateTime.UtcNow), "text/csv; charset=utf-8", total);
+        }
+
         throw new InvalidOperationException($"Unsupported export type: {job.ExportType}");
     }
 
@@ -261,6 +301,7 @@ public sealed class HRCoreExportJobService(
     private static (string Code, string Version) ResolveTemplate(string exportType) => exportType switch
     {
         ExportJobTemplates.HrCoreEmployeesCsv or "ExportEmployeesCsv" => (ExportJobTemplates.HrCoreEmployeesCsv, ExportJobTemplates.Version1),
+        RecruitmentApplicationsCsv.TemplateCode => (RecruitmentApplicationsCsv.TemplateCode, ExportJobTemplates.Version1),
         _ => (exportType, ExportJobTemplates.Version1)
     };
 

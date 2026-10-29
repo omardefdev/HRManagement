@@ -107,6 +107,20 @@ public static class AcceptanceSeedIds
 
     public const string Br1SampleCostCenter = "CC-BR1-01";
 
+    /// <summary>PLAN-32 AC-HCM-32: RIF requisition closed by a hire (funnel / time-to-fill fixture).</summary>
+    public static readonly Guid RecruitmentReportsRequisition1Id = Guid.Parse("a0000001-0000-4000-8000-000000000801");
+    /// <summary>PLAN-32 AC-HCM-32: Aleppo requisition (out of br1-mgr's scope).</summary>
+    public static readonly Guid RecruitmentReportsRequisition2Id = Guid.Parse("a0000001-0000-4000-8000-000000000802");
+    /// <summary>PLAN-32 AC-HCM-32d: RIF requisition whose approval step is past its SLA.</summary>
+    public static readonly Guid RecruitmentReportsRequisition3Id = Guid.Parse("a0000001-0000-4000-8000-000000000803");
+    public static readonly Guid RecruitmentReportsWorkflowInstanceId = Guid.Parse("a0000001-0000-4000-8000-000000000804");
+    public const string RecruitmentReportsRequisition1Number = "REQ-2026-A-AC32-1";
+    public const string RecruitmentReportsRequisition2Number = "REQ-2026-A-AC32-2";
+    public const string RecruitmentReportsRequisition3Number = "REQ-2026-A-AC32-3";
+    public const string RecruitmentReportsApplicantPrefix = "مرشح تقرير AC32";
+    /// <summary>11-digit national ids of the AC-HCM-32 applicants (…01–…09); exports must never contain them.</summary>
+    public const string RecruitmentReportsNationalIdPrefix = "320320000";
+
     public const string NationalIdBr1 = "99100000327";
     public const string NationalIdD1 = "99100000328";
     public const string NationalIdBr2 = "99100000598";

@@ -289,7 +289,7 @@ public sealed class Hcm030OnBehalfAcceptanceTests
         var (offerId, _) = await IssueOfferAsync(db);
         var files = new FakeCandidateDocumentClient();
 
-        var result = await CreateService(db, files).DeclineAsync(offerId, "قبل عرضاً آخر", evidence: null, HrUserId);
+        var result = await CreateService(db, files).DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, evidence: null, HrUserId);
 
         Assert.True(result.Success, result.Error);
         Assert.Empty(files.Uploads);
@@ -308,7 +308,7 @@ public sealed class Hcm030OnBehalfAcceptanceTests
         var (offerId, _) = await IssueOfferAsync(db);
         var files = new FakeCandidateDocumentClient();
 
-        var result = await CreateService(db, files).DeclineAsync(offerId, "قبل عرضاً آخر", Form(Pdf(), "signed-decline.pdf"), HrUserId);
+        var result = await CreateService(db, files).DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, Form(Pdf(), "signed-decline.pdf"), HrUserId);
 
         Assert.True(result.Success, result.Error);
         var upload = Assert.Single(files.Uploads);
@@ -331,7 +331,7 @@ public sealed class Hcm030OnBehalfAcceptanceTests
         var files = new FakeCandidateDocumentClient();
 
         var result = await CreateService(db, files)
-            .DeclineAsync(offerId, new string('ر', reasonLength), Form(Pdf()), HrUserId);
+            .DeclineAsync(offerId, new string('ر', reasonLength), OfferDeclineReasonCategory.OtherOffer, Form(Pdf()), HrUserId);
 
         Assert.False(result.Success);
         Assert.StartsWith(expectedError, result.Error, StringComparison.Ordinal);
@@ -346,7 +346,7 @@ public sealed class Hcm030OnBehalfAcceptanceTests
         var (offerId, _) = await IssueOfferAsync(db);
 
         var result = await CreateService(db, new FakeCandidateDocumentClient { FailAfter = 0 })
-            .DeclineAsync(offerId, "قبل عرضاً آخر", Form(Pdf()), HrUserId);
+            .DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, Form(Pdf()), HrUserId);
 
         Assert.False(result.Success);
         Assert.Equal(OfferOnBehalfService.EvidenceUploadFailedMessage, result.Error);
@@ -418,7 +418,7 @@ public sealed class Hcm030OnBehalfAcceptanceTests
 
     // ------------------------------------------------------------------ helpers
 
-    private static async Task<(Guid OfferId, Guid ApplicationId)> IssueOfferAsync(HRCoreDbContext db)
+    internal static async Task<(Guid OfferId, Guid ApplicationId)> IssueOfferAsync(HRCoreDbContext db)
     {
         var (offerId, appId) = await Hcm027OfferOutcomeTests.CreateOfferAsync(db, approve: true);
         // The offer's tenant differs from the (empty) tenant the outbox writer stamps in these tests.
@@ -442,7 +442,7 @@ public sealed class Hcm030OnBehalfAcceptanceTests
         Assert.False(await db.AuditLogs.AnyAsync(l => l.EntityId == offerId && (l.Action == "AcceptOfferOnBehalf" || l.Action == "DeclineOffer")));
     }
 
-    private static OfferOnBehalfService CreateService(HRCoreDbContext db, ICandidateDocumentUploadClient files) =>
+    internal static OfferOnBehalfService CreateService(HRCoreDbContext db, ICandidateDocumentUploadClient files) =>
         new(db, CreateOfferService(db), files, new EfFileReferenceOutbox(db),
             Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 

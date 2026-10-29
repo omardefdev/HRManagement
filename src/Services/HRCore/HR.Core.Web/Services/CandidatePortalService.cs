@@ -346,6 +346,7 @@ public sealed class CandidatePortalService(
     public Task<CandidatePortalActionResult> DeclineOfferAsync(
         CandidatePortalContext session,
         string? reason,
+        OfferDeclineReasonCategory? category,
         CancellationToken ct = default) =>
         InSessionTenantAsync(session, async () =>
         {
@@ -355,10 +356,12 @@ public sealed class CandidatePortalService(
             if (!OfferWorkflowRules.CanAccept(offer))
                 return CandidatePortalActionResult.Fail(string.Empty, ExpiredOfferReplyMessage);
 
-            var result = await offers.DeclineAndDraftNextAsync(offer.Id, reason, OfferDeclinedBy.Candidate, actorUserId: null, ct: ct);
+            var result = await offers.DeclineAndDraftNextAsync(offer.Id, reason, category, OfferDeclinedBy.Candidate, actorUserId: null, ct: ct);
             if (!result.Success)
                 return CandidatePortalActionResult.Fail(
-                    result.Error is not null && result.Error.StartsWith("سبب", StringComparison.Ordinal) ? nameof(CandidatePortalTextForm.Text) : string.Empty,
+                    result.Error == RecruitmentOfferService.DeclineCategoryRequiredMessage ? nameof(CandidatePortalDeclineForm.Category)
+                    : result.Error is not null && result.Error.StartsWith("سبب", StringComparison.Ordinal) ? nameof(CandidatePortalDeclineForm.Text)
+                    : string.Empty,
                     result.Error ?? ActionFailedMessage);
             LogNextDraft("decline", result.NextDraft, result.NextDraftError);
             return CandidatePortalActionResult.Ok;

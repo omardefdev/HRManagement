@@ -79,6 +79,7 @@
     <li class="nav-item"><a asp-controller="RecruitmentApplications" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>التوظيف والاستقطاب</p></a></li>
     <li class="nav-item"><a asp-controller="RecruitmentRequisitions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-signature"></i><p>طلبات الشاغر</p></a></li>
     <li class="nav-item"><a asp-controller="Competitions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-users-rectangle"></i><p>مسابقات التوظيف</p></a></li>
+    <li class="nav-item"><a asp-controller="RecruitmentReports" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-chart-line"></i><p>تقارير التوظيف</p></a></li>
     @if (HR.Core.Web.Services.ExamMarkerAccess.IsMarker(User))
     {
         <li class="nav-item"><a asp-controller="ExamMarking" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-pen-to-square"></i><p>تصحيح الامتحانات</p></a></li>

@@ -60,6 +60,79 @@
       "type": "average",
       "owner": "HR Analytics",
       "source": "employment_records"
+    },
+    {
+      "code": "recruitment_funnel",
+      "name": "Recruitment Funnel",
+      "definition": "Applications with AppliedAt in the period that reached each stage (Applied → Hired); STR-007 recruitment_funnel",
+      "grain": "requisition × period",
+      "type": "exact_count",
+      "owner": "product-hr",
+      "source": "HR.Core recruitment_applications + recruitment_application_events",
+      "kpi_ref": "docs/str-value/kpi-matrix.json#recruitment_funnel",
+      "as_of": "cohort by AppliedAt; stage reached as of the report time",
+      "privacy": { "minimum_group_size": 5, "suppress_small_cells": true }
+    },
+    {
+      "code": "recruitment_time_to_fill",
+      "name": "Recruitment Time to Fill",
+      "definition": "Median and P90 calendar days from requisition approval (fallback request) to the first hire, for requisitions filled in the period",
+      "grain": "requisition",
+      "type": "median",
+      "owner": "product-hr",
+      "source": "HR.Core recruitment_requisitions + recruitment_application_events",
+      "kpi_ref": "docs/str-value/kpi-matrix.json#recruitment_time_to_fill",
+      "as_of": "event timestamp of the hire (late data by event time, not arrival)",
+      "privacy": { "minimum_group_size": 5, "suppress_small_cells": true }
+    },
+    {
+      "code": "recruitment_time_to_hire",
+      "name": "Recruitment Time to Hire",
+      "definition": "Median and P90 calendar days from application to hire, for applications hired in the period",
+      "grain": "application (aggregated per requisition)",
+      "type": "median",
+      "owner": "product-hr",
+      "source": "HR.Core recruitment_applications + recruitment_application_events",
+      "kpi_ref": "docs/str-value/kpi-matrix.json#recruitment_time_to_hire",
+      "as_of": "event timestamp of the hire",
+      "privacy": { "minimum_group_size": 5, "suppress_small_cells": true }
+    },
+    {
+      "code": "recruitment_offer_acceptance",
+      "name": "Offer Acceptance Rate",
+      "definition": "Accepted / (Accepted + Declined + Expired) × 100 for offers settled in the period; revoked offers excluded",
+      "grain": "requisition × period",
+      "type": "ratio",
+      "owner": "product-hr",
+      "source": "HR.Core offer_letters",
+      "kpi_ref": "docs/str-value/kpi-matrix.json#recruitment_offer_acceptance_rate",
+      "as_of": "offer outcome date",
+      "privacy": { "minimum_group_size": 5, "suppress_small_cells": true }
+    },
+    {
+      "code": "recruitment_appeal_rate",
+      "name": "Recruitment Appeal Rate",
+      "definition": "Rejection appeals filed / appealable rejections × 100 in the period",
+      "grain": "period",
+      "type": "ratio",
+      "owner": "product-hr",
+      "source": "HR.Core recruitment_appeals + recruitment_applications",
+      "kpi_ref": "docs/str-value/kpi-matrix.json#recruitment_appeal_rate",
+      "as_of": "filing and rejection dates",
+      "privacy": { "minimum_group_size": 5, "suppress_small_cells": true }
+    },
+    {
+      "code": "recruitment_open_vacancies",
+      "name": "Open Vacancies",
+      "definition": "Vacant funded positions without an active requisition, and requisitions published for more than the stale threshold",
+      "grain": "daily (as of today)",
+      "type": "exact_count",
+      "owner": "product-hr",
+      "source": "HR.Core funded_positions + recruitment_requisitions",
+      "kpi_ref": "docs/str-value/kpi-matrix.json#recruitment_open_vacancies",
+      "reconciles_with": "EST-001 position occupancy",
+      "as_of": "report date",
+      "privacy": { "minimum_group_size": 5, "suppress_small_cells": true }
     }
   ],
   "dimensions": [

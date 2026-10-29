@@ -299,10 +299,12 @@ public sealed class RecruitmentHireClosureService(
         if (offer is not null)
             offer.IsConvertedToEmployee = true;
 
+        // HCM-032 (PLAN-32): a hire that fills the last vacancy closes the requisition → aggregate event on the outbox.
+        var requisitionClosed = false;
         if (requisition is not null)
         {
             requisitionCloseService.DecrementVacancy(requisition);
-            requisitionCloseService.TryClose(requisition);
+            requisitionClosed = requisitionCloseService.TryClose(requisition);
             requisitionCloseService.UnpublishPosting(requisition.PublicJobPosting);
             requisitionCloseService.CloseInternalVacancy(requisition.InternalVacancy);
             if (requisition.InternalVacancyId is null)
@@ -328,6 +330,8 @@ public sealed class RecruitmentHireClosureService(
             previousOrgUnitId,
             orgUnitId,
             cancellationToken);
+        if (requisitionClosed)
+            await Analytics.RecruitmentRequisitionClosedEvent.StageAsync(db, publish, requisition!, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

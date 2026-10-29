@@ -78,7 +78,7 @@ public class AcHcm27OfferMeritTests
 
         // AC-27d: decline → OfferDeclined → next candidate suggested → offer for rank 2 without override.
         await s.Central.PostAsync("27d-decline", $"ui/hr-core/OfferLetters/DeclineOffer/{offer1}", OfferDetails(offer1),
-            [new("id", offer1), new("Reason", "قبل المرشح عرضاً من جهة أخرى")]);
+            [new("id", offer1), new("ReasonCategory", "OtherOffer"), new("Reason", "قبل المرشح عرضاً من جهة أخرى")]);
         Assert.Equal(OfferDeclined, await OfferStatusAsync(offer1));
         Assert.Equal("قبل المرشح عرضاً من جهة أخرى|HrOnBehalf", await Sql(
             $"SELECT \"DeclineReason\" || '|' || \"DeclinedBy\" FROM \"OfferLetters\" WHERE \"Id\"='{offer1}';"));

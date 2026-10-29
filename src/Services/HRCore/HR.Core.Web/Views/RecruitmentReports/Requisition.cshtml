@@ -1,0 +1,96 @@
+@model HR.Core.Web.ViewModels.RecruitmentRequisitionReportViewModel
+@using F = HR.Core.Web.ViewModels.RecruitmentReportFormat
+@{
+    var r = Model.Detail.Requisition;
+    ViewData["Title"] = "تقرير طلب الشاغر " + r.RequisitionNumber;
+    string Coverage(decimal? value) => value is null ? "—" : F.Percent(value);
+}
+
+<nav aria-label="مسار التنقل" class="mb-2">
+    <a asp-action="Index" asp-route-RequisitionId="@r.RequisitionId"><i class="fas fa-arrow-right" aria-hidden="true"></i> تقارير التوظيف لهذا الطلب</a>
+    · <a asp-action="Index">كل التقارير</a>
+    · <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@r.RequisitionId">صفحة طلب الشاغر</a>
+</nav>
+
+<h1 class="h4">تقرير طلب الشاغر @r.RequisitionNumber — @r.JobTitle</h1>
+<p class="small text-muted">
+    الوحدة: @r.OrgUnitName · الحالة: @F.Label(r.Status) · الطلب @F.Date(r.RequestedDate) · الاعتماد @F.Date(r.ApprovedDate) ·
+    النشر @F.Date(r.PublishedAt) · الإغلاق @F.Date(r.EndedAt) · العمر @F.Number(r.AgeDays) يوماً · زمن الملء @F.Number(r.TimeToFillDays) ·
+    كل طلبات التوظيف على هذا الطلب بلا قيد زمني · أُنشئ في @F.DateTimeUtc(Model.GeneratedAt)
+</p>
+
+<section class="card mb-3" aria-labelledby="req-funnel-title">
+    <div class="card-header"><h2 class="card-title h5" id="req-funnel-title">القمع (@F.Number(Model.Detail.Funnel.CohortCount) طلباً؛ تغطية الأحداث @Coverage(Model.Detail.Funnel.CoveragePercent))</h2></div>
+    <div class="card-body row">
+        <div class="col-lg-6">
+            <canvas id="requisition-funnel-chart" height="240" role="img" aria-label="رسم أعمدة أفقي لقمع هذا الطلب؛ القيم في الجدول المجاور" data-chart="funnel"></canvas>
+        </div>
+        <div class="col-lg-6">
+            <table class="table table-sm" id="requisition-funnel-table">
+                <caption>عدد الطلبات التي بلغت كل مرحلة</caption>
+                <thead><tr><th scope="col">المرحلة</th><th scope="col">العدد</th></tr></thead>
+                <tbody>
+                    @foreach (var stage in Model.Detail.Funnel.Stages)
+                    {
+                        <tr><th scope="row">@F.StageLabel(stage.Stage)</th><td>@F.Number(stage.Count)</td></tr>
+                    }
+                </tbody>
+            </table>
+            <table class="table table-sm" id="requisition-stage-time-table">
+                <caption>وسيط الأيام في كل حالة (الطلبات ذات سجل الأحداث)</caption>
+                <thead><tr><th scope="col">الحالة</th><th scope="col">وسيط الأيام</th><th scope="col">n</th></tr></thead>
+                <tbody>
+                    @foreach (var row in Model.Detail.StageTime.Rows)
+                    {
+                        <tr><th scope="row">@F.Label(row.Status)</th><td>@F.Value(row.MedianDays)</td><td>@F.Number(row.N)</td></tr>
+                    }
+                    @if (Model.Detail.StageTime.Rows.Count == 0)
+                    {
+                        <tr><td colspan="3">لا بيانات.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="card mb-3" aria-labelledby="req-offers-title">
+    <div class="card-header"><h2 class="card-title h5" id="req-offers-title">سجل العروض</h2></div>
+    <div class="card-body table-responsive">
+        <table class="table table-sm" id="requisition-offers-table">
+            <caption>عروض هذا الطلب بترتيب الإنشاء. @(Model.ShowNames ? "" : "يظهر مرجع الطلب بدل اسم المرشح.")</caption>
+            <thead>
+                <tr>
+                    <th scope="col">العرض</th><th scope="col">@(Model.ShowNames ? "المرشح" : "مرجع الطلب")</th><th scope="col">الحالة</th>
+                    <th scope="col">الإنشاء</th><th scope="col">الإصدار</th><th scope="col">النتيجة</th><th scope="col">فئة الرفض</th><th scope="col">استثناء</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model.Detail.Offers)
+                {
+                    <tr>
+                        <th scope="row"><a asp-controller="OfferLetters" asp-action="Details" asp-route-id="@o.OfferId">@o.OfferNumber</a></th>
+                        <td>@(Model.ShowNames ? o.CandidateName : o.ApplicationReference)</td>
+                        <td>@F.Label(o.Status)</td>
+                        <td>@F.Date(o.CreatedAt)</td>
+                        <td>@F.Date(o.IssuedDate)</td>
+                        <td>@F.Date(o.OutcomeAt)</td>
+                        <td>@(o.DeclineCategory ?? "—")</td>
+                        <td>@(o.IsMeritOverride ? "تجاوز جدارة" : o.IsExceptionOffer ? "عرض استثنائي" : "—")</td>
+                    </tr>
+                }
+                @if (Model.Detail.Offers.Count == 0)
+                {
+                    <tr><td colspan="8">لا عروض.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script type="application/json" id="recruitment-report-data">@Html.Raw(Model.ChartJson)</script>
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+    <script src="~/js/recruitment-reports.js" asp-append-version="true"></script>
+}

@@ -13,7 +13,15 @@ public class DashboardsController(AnalyticsDbContext db) : Controller
         var dashboards = await db.Dashboards.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.MaxPageSize).ToListAsync();
         var kpis = await db.KPIs.AsNoTracking().OrderBy(x => x.Code).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync();
         var jobs = await db.ETLJobs.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync();
-        return View((dashboards, kpis, jobs));
+        // HCM-032 (PLAN-32): «التوظيف» — requisitions closed in the last 12 months, small cells suppressed.
+        var since = DateTime.UtcNow.AddMonths(-12);
+        var facts = await db.RecruitmentRequisitionFacts.AsNoTracking()
+            .Where(f => f.ClosedAt >= since)
+            .OrderByDescending(f => f.ClosedAt)
+            .Take(SearchFilterBase.MaxExportRows)
+            .ToListAsync();
+        var recruitment = Dev.Analytics.Domain.Services.RecruitmentFactRules.BuildCard(facts);
+        return View((dashboards, kpis, jobs, recruitment));
     }
 
     public async Task<IActionResult> Details(Guid id)

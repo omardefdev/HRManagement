@@ -37,6 +37,24 @@ Defined in `docs/ana/semantic-layer.json`:
 - National aggregate permission is separate from operational tenant access
 - Late data is handled via event timestamps, not arrival time
 
+## Recruitment (HCM-032 / PLAN-32)
+
+- **Measures** `recruitment_funnel`, `recruitment_time_to_fill`, `recruitment_time_to_hire`, `recruitment_offer_acceptance`,
+  `recruitment_appeal_rate`, `recruitment_open_vacancies` are registered in `docs/ana/semantic-layer.json` with owner
+  (product-hr), grain, as-of semantics (event time of the hire / outcome, report date for vacancies) and the privacy threshold
+  (minimum group 5); their full definitions are the STR-007 KPIs of the same name (`docs/STR_007_KPI_DEFINITIONS.md`).
+- **Exact counts** inside the tenant: the HR.Core report («تقارير التوظيف») computes every KPI live from the source tables
+  (no sampling, no approximation); at 50,000 applications / 250,000 events the full report takes ≈ 1.2 s (scale test
+  `Hcm032RecruitmentAnalyticsScaleTests`), so no snapshot table is kept.
+- **Late data** by event time: timings use `RecruitmentApplicationEvent.OccurredAt`; rows older than the event log use
+  documented evidence fallbacks and are counted separately (coverage shown with every KPI).
+- **Publication to Dev.Analytics** (`IRecruitmentRequisitionClosed`, aggregates only, outbox): one
+  `RecruitmentRequisitionFact` per closed or cancelled requisition (idempotent per requisition). The «التوظيف» card shows
+  counts 1–4 as «<5» (small-cell suppression) and suppresses the median of fewer than five filled requisitions. National
+  aggregation across tenants is not part of this card (operational tenant only).
+- **Reconciliation:** the fact counts reconcile with the HR.Core report for the same requisition (applicants, hires, time to
+  fill, channel and offer counts are computed by the same rules — `RecruitmentRequisitionClosedEvent`).
+
 ## Artifacts
 
 | File | Purpose |

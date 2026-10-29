@@ -375,7 +375,7 @@ public class OfferLettersController(
         // HCM-027: HR records a paper decline on the candidate's behalf (HrOnBehalf); the candidate declines on /careers/my
         // (CandidatePortalService, Candidate). Both use DeclineAndDraftNextAsync, so the next-candidate draft is the same.
         // HCM-030 (J): the signed paper decline is optional evidence.
-        var result = await onBehalf.DeclineAsync(id, form.Reason, form.EvidenceFile, ParseUserId(User), ct);
+        var result = await onBehalf.DeclineAsync(id, form.Reason, form.ReasonCategory, form.EvidenceFile, ParseUserId(User), ct);
 
         TempData[result.Success ? "Success" : "Error"] = result.Success
             ? "تم رفض خطاب العرض" + NextOfferSuffix(result.NextDraft, result.NextDraftError)

@@ -327,7 +327,7 @@ public class AcHcm30CandidateExperienceTests
         var g = s.Citizen("30g");
         var gPage = await SignInAsync(s, g, "30g", declining, rows[0]);
         Assert.Contains("بانتظار ردك", gPage);
-        await g.PostAsync("30g-decline", "careers/my/offer/decline", "careers/my", [new("Text", DeclineReason)]);
+        await g.PostAsync("30g-decline", "careers/my/offer/decline", "careers/my", [new("Category", "Salary"), new("Text", DeclineReason)]);
         Assert.Equal($"{OfferDeclined}|Candidate|{DeclineReason}", await Sql(
             $"SELECT \"Status\"::text || '|' || \"DeclinedBy\" || '|' || \"DeclineReason\" FROM \"OfferLetters\" WHERE \"Id\"='{offer1}';"));
         Assert.Equal(AppOfferDeclined, await AppStatusAsync(rows[0].ApplicationId));
