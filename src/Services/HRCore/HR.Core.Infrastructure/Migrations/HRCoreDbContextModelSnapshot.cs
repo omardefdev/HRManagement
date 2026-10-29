@@ -259,6 +259,104 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("CandidateDocuments");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CandidateNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RecipientMasked")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TemplateCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("IX_CandidateNotifications_PendingDue")
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("TenantId", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "RecruitmentApplicationId", "CreatedAt");
+
+                    b.ToTable("CandidateNotifications");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.CareerPath", b =>
                 {
                     b.Property<Guid>("Id")
@@ -396,6 +494,13 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("NationalIdHash")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("NotificationChannel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("NotificationConsentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
@@ -6117,6 +6222,20 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasOne("HR.Core.Domain.Entities.CitizenApplication", null)
                         .WithMany()
                         .HasForeignKey("CitizenApplicationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", null)
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CandidateNotification", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplicationEvent", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", null)

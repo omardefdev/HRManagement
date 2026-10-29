@@ -11,6 +11,7 @@ using HRManagement.SharedKernel.ViewModels;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.SharedKernel.CodeGeneration;
+using HRManagement.SharedKernel.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -126,6 +127,9 @@ public class PublicCareersController(
                 or > CitizenApplicationApplyViewModel.MaxApplicantAge)
             ModelState.AddModelError(nameof(vm.BirthDate), "تاريخ الميلاد غير صالح.");
 
+        // COM-030 (F2): contact (normalized) and the status-notification consent.
+        var contact = ValidateContact(vm, requisitionLinked: posting.Requisition is not null);
+
         // HCM-030 (E5): attachments, requisition-linked postings only (a legacy posting has no recruitment application to
         // hold them, so its form shows no file inputs). Checked locally before anything is relayed.
         IReadOnlyList<(string DocumentType, IFormFile File, string FieldName)> attached =
@@ -171,8 +175,10 @@ public class PublicCareersController(
             FullName = vm.FullName,
             NationalId = vm.NationalId.Trim(),
             NationalIdHash = nationalIdHash,
-            Phone = vm.Phone,
-            Email = vm.Email,
+            Phone = contact.Phone,
+            Email = contact.Email,
+            NotificationChannel = contact.Channel,
+            NotificationConsentAt = contact.Channel is null ? null : DateTime.UtcNow,
             CoverNote = vm.CoverNote,
             EducationLevelCode = vm.EducationLevelCode?.ToUpperInvariant(),
             Specialization = string.IsNullOrWhiteSpace(vm.Specialization) ? null : vm.Specialization.Trim(),
@@ -185,7 +191,6 @@ public class PublicCareersController(
         };
         db.CitizenApplications.Add(model);
 
-        // PLAN-30 S2: the channel consent.
         // HCM-030 (A2): a requisition-linked application enters the recruitment path at Submitted in the same save.
         // Legacy postings (no requisition) keep the citizen row only.
         if (posting.Requisition is not null)
@@ -256,6 +261,64 @@ public class PublicCareersController(
         // HCM-030 (E4/E5): required document types and the attachment limits (help text).
         ViewBag.RequiredDocumentTypes = CandidateDocumentTypes.Parse(posting.Requisition?.RequiredDocumentTypes);
         ViewBag.DocumentLimits = recruitmentOptions.Value.CandidateDocuments;
+    }
+
+    /// <summary>
+    /// COM-030 (F2): every new application needs a phone or an email; given values must be valid (the phone is
+    /// stored in E.164 with <c>Recruitment:Portal:PhoneCountryCode</c>). Consent needs a channel (Email/Sms) whose contact
+    /// is present; the channel is kept only with consent (legacy postings get no status messages, so no consent).
+    /// Errors go to ModelState; the result holds the values to store.
+    /// </summary>
+    private (string? Phone, string? Email, NotificationChannel? Channel) ValidateContact(
+        CitizenApplicationApplyViewModel vm, bool requisitionLinked)
+    {
+        string? phone = null;
+        if (!string.IsNullOrWhiteSpace(vm.Phone))
+        {
+            if (CandidateContactRules.TryNormalizePhone(vm.Phone, recruitmentOptions.Value.Portal.PhoneCountryCode, out var normalized))
+                phone = normalized;
+            else
+                ModelState.AddModelError(nameof(vm.Phone), "رقم الهاتف غير صالح.");
+        }
+
+        string? email = null;
+        if (!string.IsNullOrWhiteSpace(vm.Email))
+        {
+            if (CandidateContactRules.IsValidEmail(vm.Email))
+                email = vm.Email.Trim();
+            else
+                ModelState.AddModelError(nameof(vm.Email), "البريد الإلكتروني غير صالح.");
+        }
+
+        // Every new application needs a contact (legacy postings too); consent and channel are requisition-only.
+        if (string.IsNullOrWhiteSpace(vm.Phone) && string.IsNullOrWhiteSpace(vm.Email))
+            ModelState.AddModelError(nameof(vm.Phone), "يرجى إدخال رقم الهاتف أو البريد الإلكتروني للتواصل بشأن طلبك.");
+
+        if (!requisitionLinked)
+            return (phone, email, null);
+
+        if (vm.PreferredChannel is not null and not (NotificationChannel.Email or NotificationChannel.Sms))
+        {
+            ModelState.AddModelError(nameof(vm.PreferredChannel), "قناة الإشعارات غير صالحة.");
+            return (phone, email, null);
+        }
+        if (!vm.NotificationConsent)
+            return (phone, email, null);
+
+        switch (vm.PreferredChannel)
+        {
+            case null:
+                ModelState.AddModelError(nameof(vm.PreferredChannel), "يرجى اختيار قناة الإشعارات.");
+                return (phone, email, null);
+            case NotificationChannel.Email when string.IsNullOrWhiteSpace(vm.Email):
+                ModelState.AddModelError(nameof(vm.PreferredChannel), "لتلقي الإشعارات بالبريد الإلكتروني يرجى إدخال البريد الإلكتروني.");
+                return (phone, email, null);
+            case NotificationChannel.Sms when string.IsNullOrWhiteSpace(vm.Phone):
+                ModelState.AddModelError(nameof(vm.PreferredChannel), "لتلقي الإشعارات برسالة نصية يرجى إدخال رقم الهاتف.");
+                return (phone, email, null);
+            default:
+                return (phone, email, vm.PreferredChannel);
+        }
     }
 
     private IQueryable<PublicJobPosting> PublicPostings() =>

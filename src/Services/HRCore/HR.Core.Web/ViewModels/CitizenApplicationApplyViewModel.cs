@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Services;
+using HRManagement.SharedKernel.Notifications;
 
 namespace HR.Core.Web.ViewModels;
 
@@ -61,6 +62,17 @@ public class CitizenApplicationApplyViewModel
 
     [Display(Name = "حقل أمان")]
     public string? Website { get; set; }
+
+    // COM-030 (PLAN-30 F2): status notifications (requisition-linked postings only). Without consent no status message
+    // is sent; the chosen channel needs its contact (Email → email, Sms → phone).
+
+    [Display(Name = "قناة الإشعارات")]
+    public NotificationChannel? PreferredChannel { get; set; }
+
+    [Display(Name = "الموافقة على الإشعارات")]
+    public bool NotificationConsent { get; set; }
+
+    public const string NotificationConsentText = "أوافق على تلقي إشعارات حول طلبي عبر القناة المختارة";
 
     // HCM-030 (E5): attachments (requisition-linked postings only). One input per type; a missing required type is an
     // eligibility flag, never a refusal.

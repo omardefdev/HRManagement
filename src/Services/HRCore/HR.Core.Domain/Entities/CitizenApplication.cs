@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Enums;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Notifications;
 
 namespace HR.Core.Domain.Entities;
 
@@ -54,6 +55,17 @@ public class CitizenApplication : AuditableEntity
     [Display(Name = "البريد الإلكتروني")]
     [StringLength(150)]
     public string? Email { get; set; }
+
+    /// <summary>
+    /// COM-030 (PLAN-30 F2): the channel the candidate chose for status notifications (Email or Sms, stored as string);
+    /// set only together with <see cref="NotificationConsentAt"/>.
+    /// </summary>
+    [Display(Name = "قناة الإشعارات")]
+    public NotificationChannel? NotificationChannel { get; set; }
+
+    /// <summary>COM-030 (F2): when the candidate consented to status notifications; null = no status notifications.</summary>
+    [Display(Name = "تاريخ الموافقة على الإشعارات")]
+    public DateTime? NotificationConsentAt { get; set; }
 
     [Display(Name = "نبذة/مسوّغات")]
     public string? CoverNote { get; set; }

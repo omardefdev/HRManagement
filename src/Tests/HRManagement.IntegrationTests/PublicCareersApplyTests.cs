@@ -32,7 +32,8 @@ public class PublicCareersApplyTests
             PublicJobPostingId = posting.Id,
             FullName = "Test Applicant",
             NationalId = "1234567890",
-            Phone = "099",
+            // COM-030 (F2): the phone is validated and normalized now ("099" is not a phone number).
+            Phone = "0999123456",
             Email = "t@test.sy"
         });
 

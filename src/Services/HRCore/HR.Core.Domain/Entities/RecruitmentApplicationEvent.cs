@@ -36,7 +36,10 @@ public class RecruitmentApplicationEvent : BaseEntity
     [Display(Name = "وقت الحدث")]
     public DateTime OccurredAt { get; set; }
 
-    /// <summary>PLAN-30 S2: set by the notification dispatcher once the candidate messages are planned.</summary>
+    /// <summary>
+    /// COM-030 (PLAN-30 F4): set by <c>CandidateNotificationDispatcher.PlanAsync</c> once the candidate messages are planned
+    /// (also for events that send none). The only update ever made to an event row.
+    /// </summary>
     [Display(Name = "تاريخ تخطيط الإشعارات")]
     public DateTime? NotificationsPlannedAt { get; set; }
 }
@@ -57,9 +60,16 @@ public static class RecruitmentApplicationEventTypes
     public const string AppealFiled = "AppealFiled";
     public const string AppealDecided = "AppealDecided";
 
+    /// <summary>
+    /// PLAN-30 (F5): offer expiry reminder (one per issued offer, <c>RelatedEntityId</c> = offer id). Not recorded by the
+    /// change-tracker recorder: added explicitly by the reminder pass with TenantId, OccurredAt and ToStatus set.
+    /// </summary>
+    public const string OfferExpiryReminder = "OfferExpiryReminder";
+
     public static readonly IReadOnlyList<string> All =
     [
         Received, StatusChanged, InterviewScheduled, InterviewRescheduled, InterviewCancelled,
-        OfferIssued, OfferAccepted, OfferDeclined, OfferExpired, OfferRevoked, AppealFiled, AppealDecided
+        OfferIssued, OfferAccepted, OfferDeclined, OfferExpired, OfferRevoked, AppealFiled, AppealDecided,
+        OfferExpiryReminder
     ];
 }

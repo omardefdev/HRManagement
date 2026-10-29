@@ -1,6 +1,7 @@
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HRManagement.SharedKernel.Enums;
+using HRManagement.ServiceDefaults;
 
 namespace HR.Core.Infrastructure.Services.Recruitment;
 
@@ -38,6 +39,13 @@ public sealed class RecruitmentOptions
     /// The offer service accepts 3..60; the expiry is set when the offer is issued.
     /// </summary>
     public int OfferValidityDays { get; set; } = 14;
+
+    /// <summary>
+    /// PLAN-30 (F5): <c>Recruitment:OfferReminderHours</c> — an <c>OfferExpiryReminder</c> event (one per offer) is recorded
+    /// for Issued offers that expire within this many hours (default 48; 0 or less turns the reminder off). Recorded by
+    /// <c>CandidateNotificationDispatcher.RemindDueOffersAsync</c>.
+    /// </summary>
+    public int OfferReminderHours { get; set; } = 48;
 
     /// <summary>
     /// HCM-027 (E4): <c>Recruitment:MaxStartDays</c> — the proposed start date must be within this many days
@@ -114,6 +122,38 @@ public sealed class RecruitmentOptions
 
     /// <summary>HCM-030 (E3): candidate document limits (<c>Recruitment:CandidateDocuments:*</c>).</summary>
     public RecruitmentCandidateDocumentsOptions CandidateDocuments { get; set; } = new();
+
+    /// <summary>COM-030 (F2): public apply form settings (<c>Recruitment:Portal:*</c>).</summary>
+    public RecruitmentPortalOptions Portal { get; set; } = new();
+
+    /// <summary>
+    /// COM-030 (F6): <c>Recruitment:PublicPortalBaseUrl</c> — public origin of the careers portal (e.g.
+    /// <c>https://hr.example.gov.sy</c>) used for the links in candidate messages. Empty (default; Production/Staging until
+    /// provisioned): messages carry no link — there is deliberately no fallback to <c>HrGateway:PublicBaseUrl</c>, which is
+    /// localhost in the base settings.
+    /// </summary>
+    public string? PublicPortalBaseUrl { get; set; }
+
+    /// <summary>
+    /// COM-030 (F6): <c>{PublicPortalBaseUrl}/careers/track</c> (no query: the page asks for the reference and national id
+    /// again), or null when <see cref="PublicPortalBaseUrl"/> is empty. PLAN-30 S3: switch to <c>/careers/my</c>.
+    /// </summary>
+    public string? PublicTrackUrl() =>
+        string.IsNullOrWhiteSpace(PublicPortalBaseUrl)
+            ? null
+            : PublicPortalBaseUrl.Trim().TrimEnd('/') + ProductionHostExtensions.PublicCareersGatewayPrefix + "/track";
+}
+
+/// <summary>COM-030 (F2): settings of the public apply form.</summary>
+public sealed class RecruitmentPortalOptions
+{
+    public const string DefaultPhoneCountryCode = "963";
+
+    /// <summary>
+    /// <c>Recruitment:Portal:PhoneCountryCode</c> — international dialling code (digits only, default <c>963</c>) used to
+    /// normalize national phone numbers (<c>0999…</c> → <c>+963999…</c>).
+    /// </summary>
+    public string PhoneCountryCode { get; set; } = DefaultPhoneCountryCode;
 }
 
 /// <summary>
@@ -182,4 +222,13 @@ public sealed class RecruitmentJobsOptions
 
     /// <summary>HCM-027: <c>Recruitment:Jobs:ReserveExpiryIntervalMinutes</c> (default 1440, daily).</summary>
     public int ReserveExpiryIntervalMinutes { get; set; } = 1440;
+
+    /// <summary>
+    /// COM-030 (PLAN-30 F4): <c>Recruitment:Jobs:CandidateNotificationsEnabled</c> — runs <c>CandidateNotificationJob</c>
+    /// (offer reminders, planning and sending of candidate messages; default true).
+    /// </summary>
+    public bool CandidateNotificationsEnabled { get; set; } = true;
+
+    /// <summary>COM-030: <c>Recruitment:Jobs:CandidateNotificationsIntervalSeconds</c> (default 60, at least 10).</summary>
+    public int CandidateNotificationsIntervalSeconds { get; set; } = 60;
 }

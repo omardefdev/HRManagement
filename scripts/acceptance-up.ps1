@@ -106,6 +106,18 @@ if (-not $SkipComposeUp) {
         throw "Could not prepare ownership of the Acceptance Data Protection volume."
     }
 
+    # PLAN-30 (COM-030): host folder of the candidate notification FileDrop (bind-mounted into hr-core-web). Create it
+    # before compose does (as root) and let the non-root app user (1654) write it; a no-op on Docker Desktop for Windows.
+    $candidateNotifications = Join-Path $root "artifacts/acceptance/candidate-notifications"
+    New-Item -ItemType Directory -Force -Path $candidateNotifications | Out-Null
+    docker run --rm --user 0:0 --entrypoint sh `
+        -v "${candidateNotifications}:/var/hrm/candidate-notifications" `
+        "${projectName}-hr-gateway:latest" `
+        -c "chown 1654:1654 /var/hrm/candidate-notifications && chmod 0775 /var/hrm/candidate-notifications"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not prepare the candidate notification FileDrop folder."
+    }
+
     Write-Host "== Starting hrm-acceptance with Seed__Profile=Acceptance =="
     $upArgs = @("up", "-d", "--wait", "--no-build")
     docker compose -p $projectName @composeArgs --profile full-stack @upArgs

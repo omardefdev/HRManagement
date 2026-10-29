@@ -128,6 +128,8 @@ services:
       FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
       FileStorage__SecretKey: ${MINIO_ROOT_PASSWORD:-hrminio_secret_change_me}
       FileStorage__UseSsl: "false"
+      # COM-030: Development uses the FileDrop channel; /app is root-owned in the image, so write under /tmp.
+      Notifications__Candidate__FileDrop__Path: /tmp/candidate-notifications
     depends_on:
       postgresql:
         condition: service_healthy

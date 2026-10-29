@@ -52,6 +52,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<RecruitmentApplication> RecruitmentApplications => Set<RecruitmentApplication>();
     public DbSet<RecruitmentApplicationEvent> RecruitmentApplicationEvents => Set<RecruitmentApplicationEvent>();
     public DbSet<CandidateDocument> CandidateDocuments => Set<CandidateDocument>();
+    public DbSet<CandidateNotification> CandidateNotifications => Set<CandidateNotification>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<Shift> Shifts => Set<Shift>();
@@ -448,6 +449,27 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => new { e.TenantId, e.FileId }).IsUnique();
         });
 
+        // COM-030 (PLAN-30 F3): candidate notifications (durable queue + history; masked recipient only).
+        modelBuilder.Entity<CandidateNotification>(entity =>
+        {
+            entity.HasOne<RecruitmentApplication>()
+                  .WithMany()
+                  .HasForeignKey(e => e.RecruitmentApplicationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<RecruitmentApplicationEvent>()
+                  .WithMany()
+                  .HasForeignKey(e => e.EventId)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.EventType).HasMaxLength(40);
+            entity.Property(e => e.Channel).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.TenantId, e.IdempotencyKey }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.CreatedAt });
+            entity.HasIndex(e => e.NextAttemptAt)
+                  .HasFilter("\"Status\" = 'Pending'")
+                  .HasDatabaseName("IX_CandidateNotifications_PendingDue");
+        });
+
         modelBuilder.Entity<RecruitmentAssessmentCriteria>(entity =>
         {
             entity.HasOne(e => e.Requisition)
@@ -664,6 +686,8 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasFilter("\"RequisitionId\" IS NOT NULL AND \"NationalIdHash\" IS NOT NULL");
             entity.Property(e => e.NationalIdHash).HasMaxLength(64);
             entity.Property(e => e.YearsOfExperience).HasPrecision(4, 1);
+            // COM-030 (F2): Email | Sms.
+            entity.Property(e => e.NotificationChannel).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<SelectionCommitteeSession>(entity =>

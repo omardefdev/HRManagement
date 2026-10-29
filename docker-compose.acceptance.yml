@@ -63,7 +63,14 @@ services:
       ServiceIdentity__Scope: file-storage.references payroll.grades.read file-storage.service-upload
       # PLAN-30 (HCM-030 E2): candidate documents go to File.Storage directly (caller proof signed), not via the gateway.
       Integration__FileStorageBaseUrl: http://file-storage-web:8080
-    volumes: *acceptance-dp-volumes
+      # PLAN-30 (COM-030): candidate messages go to FileDrop files that acceptance tests read on the host
+      # (artifacts/acceptance/candidate-notifications/{sha256(idempotencyKey)}.json; format in docs/COM_001_NOTIFICATIONS.md).
+      Notifications__Candidate__Provider: FileDrop
+      Notifications__Candidate__FileDrop__Path: /var/hrm/candidate-notifications
+      Recruitment__PublicPortalBaseUrl: http://localhost:6200
+    volumes:
+      - acceptance_data_protection:/var/hrm/dpkeys
+      - ./artifacts/acceptance/candidate-notifications:/var/hrm/candidate-notifications
 
   hr-contracts-web:
     container_name: !reset null

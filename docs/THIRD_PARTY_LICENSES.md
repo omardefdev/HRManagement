@@ -21,6 +21,7 @@
 | Bootstrap 5 | MIT | Yes | CSS framework |
 | jQuery | MIT | Yes | Client script |
 | QuestPDF | Community / Commercial | Review | PDF generation — verify edition at sale time |
+| MailKit / MimeKit | MIT | Yes | SMTP email for candidate notifications (COM-030); transitive BouncyCastle.Cryptography (MIT) |
 
 ## Commercial product guidance
 

@@ -131,11 +131,16 @@ else
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-phone">رقم الهاتف</label>
-                    <input id="apply-phone" name="Phone" class="form-control" value="@applyModel.Phone" />
+                    <input id="apply-phone" name="Phone" type="tel" class="form-control" inputmode="tel" autocomplete="tel" maxlength="20"
+                           value="@applyModel.Phone" aria-describedby="apply-phone-help apply-phone-error" />
+                    <small id="apply-phone-help" class="text-muted d-block">مثال: <bdi dir="ltr">0999123456</bdi> أو <bdi dir="ltr">+963999123456</bdi> — يلزم إدخال الهاتف أو البريد الإلكتروني</small>
+                    @Html.ValidationMessage("Phone", null, new { @class = "text-danger small d-block", id = "apply-phone-error" })
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-email">البريد الإلكتروني</label>
-                    <input id="apply-email" name="Email" type="email" class="form-control" value="@applyModel.Email" />
+                    <input id="apply-email" name="Email" type="email" class="form-control" autocomplete="email" maxlength="150"
+                           value="@applyModel.Email" aria-describedby="apply-email-error" />
+                    @Html.ValidationMessage("Email", null, new { @class = "text-danger small d-block", id = "apply-email-error" })
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-education">المؤهل العلمي</label>
@@ -202,7 +207,35 @@ else
                         </div>
                     </fieldset>
                 }
-                @* PLAN-30 S2: the notification channel consent. *@
+                @if (!isLegacy)
+                {
+                    @* COM-030 (F2): status notifications only with consent, on the chosen channel. *@
+                    var channel = applyModel.PreferredChannel;
+                    <fieldset class="col-12" aria-describedby="apply-channel-help apply-channel-error">
+                        <legend class="form-label fs-6 fw-bold">إشعارات حالة الطلب</legend>
+                        <small id="apply-channel-help" class="text-muted d-block mb-2">
+                            نرسل إليك إشعاراً عند كل مرحلة من طلبك (الاستلام، المقابلة، العرض، القرار) دون أي بيانات شخصية.
+                        </small>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="PreferredChannel" id="apply-channel-email" value="Email"
+                                   @(channel == HRManagement.SharedKernel.Notifications.NotificationChannel.Email ? "checked" : "") />
+                            <label class="form-check-label" for="apply-channel-email">البريد الإلكتروني</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="PreferredChannel" id="apply-channel-sms" value="Sms"
+                                   @(channel == HRManagement.SharedKernel.Notifications.NotificationChannel.Sms ? "checked" : "") />
+                            <label class="form-check-label" for="apply-channel-sms">رسالة نصية</label>
+                        </div>
+                        @Html.ValidationMessage("PreferredChannel", null, new { @class = "text-danger small d-block", id = "apply-channel-error" })
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="apply-notification-consent" name="NotificationConsent" value="true"
+                                   @(applyModel.NotificationConsent ? "checked" : "") />
+                            <label class="form-check-label" for="apply-notification-consent">
+                                @HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.NotificationConsentText
+                            </label>
+                        </div>
+                    </fieldset>
+                }
                 <div class="col-12">
                     <label class="form-label" for="apply-cover">نبذة / مسوّغات</label>
                     <textarea id="apply-cover" name="CoverNote" class="form-control" rows="3">@applyModel.CoverNote</textarea>

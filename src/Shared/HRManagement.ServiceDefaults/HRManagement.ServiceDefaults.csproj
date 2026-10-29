@@ -18,6 +18,10 @@
     <PackageReference Include="Serilog.Sinks.Seq" />
     <!-- QA-001: latest stable clears Moderate GHSA advisories on Api/OTLP exporter -->
     <PackageReference Include="Microsoft.Extensions.Http.Polly" />
+    <!-- COM-030: SMTP sender of candidate notifications (Notifications/SmtpEmailNotificationSender.cs). -->
+    <PackageReference Include="MailKit" />
+    <!-- Lifts MimeKit's System.Security.Cryptography.Pkcs 10.0.0 (known advisories) to the patched version. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
