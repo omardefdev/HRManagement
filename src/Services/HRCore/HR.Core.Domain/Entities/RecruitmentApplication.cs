@@ -135,7 +135,7 @@ public class RecruitmentApplication : AuditableEntity
 
 
     // HCM-030 (D1, G-17): application profile snapshot (from the citizen row or the employee). BirthDate is personal data — never logged (audit-redacted), shown to
-    // HR on the application details only. PLAN-30 S2: include in candidate anonymization.
+    // HR on the application details only. Cleared by candidate anonymization (HCM-030 G2, CandidateApplicationLegalLifecycleService.TryAnonymize).
 
     /// <summary>MDM <c>CatalogKind.Qualification</c> code (DIP/BACH/MASTER/PHD …).</summary>
     [StringLength(20)]

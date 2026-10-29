@@ -159,6 +159,11 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Candidate
 // COM-030 (PLAN-30 F4): also re-checked every cycle via IOptionsMonitor<RecruitmentOptions>.Jobs.CandidateNotificationsEnabled.
 if (builder.Configuration.GetValue("Recruitment:Jobs:CandidateNotificationsEnabled", true))
     builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.CandidateNotificationJob>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.CandidateRetentionService>();
+// HCM-030 (G3): weekly, a dry run unless Recruitment:Retention:Apply; also re-checked every cycle via
+// IOptionsMonitor<RecruitmentOptions>.Jobs.CandidateRetentionEnabled.
+if (builder.Configuration.GetValue("Recruitment:Jobs:CandidateRetentionEnabled", true))
+    builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.CandidateRetentionJob>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();

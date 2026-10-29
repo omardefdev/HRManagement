@@ -17,6 +17,7 @@ public class HRCoreJwtBearerIntegrationTests : IClassFixture<WebApplicationFacto
             builder.UseSetting("Recruitment:Jobs:OfferExpiryEnabled", "false"); // HCM-027: no background offer expiry job in tests
             builder.UseSetting("Recruitment:Jobs:ReserveExpiryEnabled", "false"); // HCM-027: no background reserve expiry job in tests
             builder.UseSetting("Recruitment:Jobs:CandidateNotificationsEnabled", "false"); // COM-030: no background candidate notification job in tests
+            builder.UseSetting("Recruitment:Jobs:CandidateRetentionEnabled", "false"); // HCM-030 (G3): no background candidate retention job in tests
             builder.ConfigureAppConfiguration((_, config) =>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>

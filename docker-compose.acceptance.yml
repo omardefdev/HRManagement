@@ -68,6 +68,8 @@ services:
       Notifications__Candidate__Provider: FileDrop
       Notifications__Candidate__FileDrop__Path: /var/hrm/candidate-notifications
       Recruitment__PublicPortalBaseUrl: http://localhost:6200
+      # HCM-030 (G3): candidate retention anonymizes in acceptance (Production stays a dry run until DPO approval).
+      Recruitment__Retention__Apply: "true"
     volumes:
       - acceptance_data_protection:/var/hrm/dpkeys
       - ./artifacts/acceptance/candidate-notifications:/var/hrm/candidate-notifications

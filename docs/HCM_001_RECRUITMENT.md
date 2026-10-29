@@ -260,6 +260,9 @@ eligibility and terms checks; from the expiry job it runs in the expired offer's
   `CandidateNotificationsIntervalSeconds`, lock 8675315) records the offer reminder (`Recruitment:OfferReminderHours` = 48,
   one `OfferExpiryReminder` event per Issued offer), plans candidate messages from the application events and sends them
   (see `docs/COM_001_NOTIFICATIONS.md`).
+- `CandidateRetentionJob` (HCM-030 G, weekly, `Recruitment:Jobs:CandidateRetentionEnabled` /
+  `CandidateRetentionIntervalMinutes` = 10080, lock 8675316) anonymizes due candidate pairs after
+  `Recruitment:Retention:Months` (36); a dry run unless `Recruitment:Retention:Apply` (see `docs/GOV_001_RETENTION_RUNBOOK.md`).
 - Reserve status and «حتى {date}» are shown on application details, the application list and the rank board.
 - Recall from the reserve on non-commencement is PLAN-29.
 

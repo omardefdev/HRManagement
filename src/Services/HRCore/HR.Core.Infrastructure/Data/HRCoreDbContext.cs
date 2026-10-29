@@ -53,6 +53,7 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<RecruitmentApplicationEvent> RecruitmentApplicationEvents => Set<RecruitmentApplicationEvent>();
     public DbSet<CandidateDocument> CandidateDocuments => Set<CandidateDocument>();
     public DbSet<CandidateNotification> CandidateNotifications => Set<CandidateNotification>();
+    public DbSet<CandidateRetentionRun> CandidateRetentionRuns => Set<CandidateRetentionRun>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<Shift> Shifts => Set<Shift>();
@@ -468,6 +469,12 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => e.NextAttemptAt)
                   .HasFilter("\"Status\" = 'Pending'")
                   .HasDatabaseName("IX_CandidateNotifications_PendingDue");
+        });
+
+        // HCM-030 (G3): candidate retention run log (one row per tenant per run; counts only).
+        modelBuilder.Entity<CandidateRetentionRun>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.StartedAt });
         });
 
         modelBuilder.Entity<RecruitmentAssessmentCriteria>(entity =>

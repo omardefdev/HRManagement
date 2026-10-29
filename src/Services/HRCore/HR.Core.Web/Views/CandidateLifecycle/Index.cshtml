@@ -1,0 +1,134 @@
+@model HR.Core.Web.ViewModels.CandidateLifecycleIndexViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "الاحتفاظ ببيانات المرشحين";
+    static string Date(DateTime? value) => value?.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture) ?? "—";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0"><i class="fas fa-user-shield ms-1" aria-hidden="true"></i> الاحتفاظ ببيانات المرشحين</h3>
+        <div class="d-flex gap-2 flex-wrap">
+            <form asp-action="DryRun" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-vial" aria-hidden="true"></i> تشغيل تجريبي
+                </button>
+            </form>
+            @if (Model.ApplyEnabled)
+            {
+                <form asp-action="Apply" method="post"
+                      data-hr-confirm="سيُخفى نهائياً اسم المرشح ورقمه الوطني وبيانات التواصل والملف الشخصي وتُحذف مستنداته لكل الطلبات المستحقة في هذه الجهة (@Model.Counts.Due). لا يمكن التراجع عن ذلك."
+                      data-hr-confirm-title="تأكيد تنفيذ الإخفاء"
+                      data-hr-confirm-variant="danger"
+                      data-hr-confirm-label="تنفيذ الإخفاء">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger btn-sm" disabled="@(Model.Counts.Due == 0)">
+                        <i class="fas fa-user-slash" aria-hidden="true"></i> تنفيذ الإخفاء
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+    <div class="card-body">
+        <p class="text-muted">
+            يُخفى الطلب (طلب التوظيف مع طلب البوابة أو الترشّح الداخلي المرتبط به) بعد مرور @Model.RetentionMonths شهراً على إغلاق
+            الشاغر أو إلغائه، أو على تاريخ التقديم إن لم يرتبط بشاغر. لا يُخفى طلب لشاغر مفتوح أو لمرشح عُيّن أو عليه حجز قانوني
+            أو استئناف معلّق.
+        </p>
+        @if (!Model.ApplyEnabled)
+        {
+            <div class="alert alert-info" role="status">
+                هذه البيئة في وضع التشغيل التجريبي (Recruitment:Retention:Apply = false): تُسجَّل الأعداد فقط ولا يُعدَّل أي سجل.
+            </div>
+        }
+        @if (!Model.JobEnabled)
+        {
+            <div class="alert alert-warning" role="status">المهمة الأسبوعية للاحتفاظ معطّلة في هذه البيئة.</div>
+        }
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-4"><div class="border rounded p-2"><div class="text-muted small">المستحق للإخفاء</div><div class="fs-4">@Model.Counts.Due</div></div></div>
+            <div class="col-md-4"><div class="border rounded p-2"><div class="text-muted small">مستثنى — حجز قانوني</div><div class="fs-4">@Model.Counts.SkippedLegalHold</div></div></div>
+            <div class="col-md-4"><div class="border rounded p-2"><div class="text-muted small">مستثنى — استئناف معلّق</div><div class="fs-4">@Model.Counts.SkippedAppeal</div></div></div>
+        </div>
+
+        <h4 class="h6">الطلبات المستحقة</h4>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>المرجع</th>
+                        <th>طلب الشاغر</th>
+                        <th>تاريخ البدء</th>
+                        <th>سبب الاستحقاق</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Due.Items)
+                    {
+                        <tr>
+                            <td dir="ltr" class="text-end">@item.Reference</td>
+                            <td>@(item.RequisitionNumber ?? "—")</td>
+                            <td dir="ltr" class="text-end">@item.TriggerDate.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)</td>
+                            <td>@HR.Core.Web.ViewModels.CandidateLifecycleIndexViewModel.ReasonLabel(item, Model.RetentionMonths)</td>
+                        </tr>
+                    }
+                    @if (Model.Due.Items.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-3">لا توجد طلبات مستحقة للإخفاء.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Due))
+
+        <h4 class="h6 mt-4">سجل التشغيل</h4>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>بدأ في</th>
+                        <th>انتهى في</th>
+                        <th>النوع</th>
+                        <th>المستحق</th>
+                        <th>أُخفي</th>
+                        <th>حجز قانوني</th>
+                        <th>استئناف معلّق</th>
+                        <th>بدأه</th>
+                        <th>خطأ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var run in Model.Runs)
+                    {
+                        <tr>
+                            <td dir="ltr" class="text-end">@Date(run.StartedAt)</td>
+                            <td dir="ltr" class="text-end">@Date(run.FinishedAt)</td>
+                            <td>
+                                @if (run.DryRun)
+                                {
+                                    <span class="badge bg-secondary">تجريبي</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">تنفيذ</span>
+                                }
+                            </td>
+                            <td>@run.DueCount</td>
+                            <td>@run.AnonymizedCount</td>
+                            <td>@run.SkippedLegalHold</td>
+                            <td>@run.SkippedAppeal</td>
+                            <td>@(run.TriggeredBy == HR.Core.Domain.Entities.CandidateRetentionRun.JobTrigger ? "المهمة الأسبوعية" : "مسؤول النظام")</td>
+                            <td dir="ltr" class="text-end small">@(run.Error ?? "—")</td>
+                        </tr>
+                    }
+                    @if (Model.Runs.Count == 0)
+                    {
+                        <tr><td colspan="9" class="text-center text-muted py-3">لم يُسجَّل أي تشغيل بعد.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

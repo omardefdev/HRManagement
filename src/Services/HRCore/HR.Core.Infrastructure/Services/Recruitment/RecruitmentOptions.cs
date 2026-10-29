@@ -126,6 +126,9 @@ public sealed class RecruitmentOptions
     /// <summary>COM-030 (F2): public apply form settings (<c>Recruitment:Portal:*</c>).</summary>
     public RecruitmentPortalOptions Portal { get; set; } = new();
 
+    /// <summary>HCM-030 (G1/G3): candidate retention settings (<c>Recruitment:Retention:*</c>).</summary>
+    public RecruitmentRetentionOptions Retention { get; set; } = new();
+
     /// <summary>
     /// COM-030 (F6): <c>Recruitment:PublicPortalBaseUrl</c> — public origin of the careers portal (e.g.
     /// <c>https://hr.example.gov.sy</c>) used for the links in candidate messages. Empty (default; Production/Staging until
@@ -142,6 +145,28 @@ public sealed class RecruitmentOptions
         string.IsNullOrWhiteSpace(PublicPortalBaseUrl)
             ? null
             : PublicPortalBaseUrl.Trim().TrimEnd('/') + ProductionHostExtensions.PublicCareersGatewayPrefix + "/track";
+}
+
+/// <summary>
+/// HCM-030 (G1/G3): automated candidate retention (GOV-001 <c>ret-recruitment-application</c>). Production keeps
+/// <see cref="Apply"/> false (dry run: counts only) until the data protection officer approves.
+/// </summary>
+public sealed class RecruitmentRetentionOptions
+{
+    /// <summary>
+    /// <c>Recruitment:Retention:Months</c> — months after the trigger date (requisition closed or cancelled, else the
+    /// application date) before a candidate pair is anonymized (default 36, GOV-001: 3 years).
+    /// </summary>
+    public int Months { get; set; } = HR.Core.Domain.Services.CandidateApplicationLegalLifecycleService.DefaultRetentionMonths;
+
+    /// <summary>
+    /// <c>Recruitment:Retention:Apply</c> — false (default): every run is a dry run that only records counts; true: due pairs
+    /// are anonymized. True in the acceptance profile; Production stays false until DPO approval.
+    /// </summary>
+    public bool Apply { get; set; }
+
+    /// <summary><c>Recruitment:Retention:BatchSize</c> — pairs loaded per batch (default 100, 1..1000).</summary>
+    public int BatchSize { get; set; } = 100;
 }
 
 /// <summary>COM-030 (F2): settings of the public apply form.</summary>
@@ -231,4 +256,13 @@ public sealed class RecruitmentJobsOptions
 
     /// <summary>COM-030: <c>Recruitment:Jobs:CandidateNotificationsIntervalSeconds</c> (default 60, at least 10).</summary>
     public int CandidateNotificationsIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// HCM-030 (G3): <c>Recruitment:Jobs:CandidateRetentionEnabled</c> — runs <c>CandidateRetentionJob</c> (default true; a dry
+    /// run unless <c>Recruitment:Retention:Apply</c> is true).
+    /// </summary>
+    public bool CandidateRetentionEnabled { get; set; } = true;
+
+    /// <summary>HCM-030 (G3): <c>Recruitment:Jobs:CandidateRetentionIntervalMinutes</c> (default 10080, weekly; at least 60).</summary>
+    public int CandidateRetentionIntervalMinutes { get; set; } = 10080;
 }

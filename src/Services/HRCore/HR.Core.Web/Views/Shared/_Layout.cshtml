@@ -99,6 +99,10 @@
 
     <li class="nav-header">بوابة المواطن للتوظيف</li>
     <li class="nav-item"><a asp-controller="PublicJobPostings" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-globe"></i><p>الإعلانات وطلبات المواطنين</p></a></li>
+    @if (User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.Admin))
+    {
+        <li class="nav-item"><a asp-controller="CandidateLifecycle" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-shield"></i><p>الاحتفاظ ببيانات المرشحين</p></a></li>
+    }
 
     <li class="nav-header">الحوكمة</li>
     <li class="nav-item">
