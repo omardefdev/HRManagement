@@ -299,7 +299,7 @@
     "service": "Dev.Analytics",
     "context": "AnalyticsDbContext",
     "database": "analytics_db",
-    "dbset_count": 10,
+    "dbset_count": 11,
     "entity_sets": [
       {
         "entity": "Report",
@@ -324,6 +324,10 @@
       {
         "entity": "AnalyticsEvent",
         "set": "AnalyticsEvents"
+      },
+      {
+        "entity": "RecruitmentRequisitionFact",
+        "set": "RecruitmentRequisitionFacts"
       },
       {
         "entity": "DataRefreshSchedule",
@@ -352,9 +356,10 @@
       "IntegrationMessageReceipts",
       "KPIs",
       "ReadModels",
+      "RecruitmentRequisitionFacts",
       "Reports"
     ],
-    "business_table_count": 8,
+    "business_table_count": 9,
     "infrastructure_tables": [
       "AuditLogs",
       "IntegrationMessageReceipts"
@@ -738,50 +743,6 @@
         "set": "CandidateOtpChallenges"
       },
       {
-        "entity": "RecruitmentCompetition",
-        "set": "RecruitmentCompetitions"
-      },
-      {
-        "entity": "CompetitionLine",
-        "set": "CompetitionLines"
-      },
-      {
-        "entity": "CompetitionPreference",
-        "set": "CompetitionPreferences"
-      },
-      {
-        "entity": "ExamSession",
-        "set": "ExamSessions"
-      },
-      {
-        "entity": "ExamCandidate",
-        "set": "ExamCandidates"
-      },
-      {
-        "entity": "ExamMarkerAssignment",
-        "set": "ExamMarkerAssignments"
-      },
-      {
-        "entity": "ExamScore",
-        "set": "ExamScores"
-      },
-      {
-        "entity": "CompetitionResultVersion",
-        "set": "CompetitionResultVersions"
-      },
-      {
-        "entity": "CompetitionResult",
-        "set": "CompetitionResults"
-      },
-      {
-        "entity": "CompetitionAllocation",
-        "set": "CompetitionAllocations"
-      },
-      {
-        "entity": "CompetitionReserveEntry",
-        "set": "CompetitionReserveEntries"
-      },
-      {
         "entity": "ApprovalRequest",
         "set": "ApprovalRequests"
       },
@@ -936,6 +897,50 @@
       {
         "entity": "RecruitmentRequisition",
         "set": "RecruitmentRequisitions"
+      },
+      {
+        "entity": "RecruitmentCompetition",
+        "set": "RecruitmentCompetitions"
+      },
+      {
+        "entity": "CompetitionLine",
+        "set": "CompetitionLines"
+      },
+      {
+        "entity": "CompetitionPreference",
+        "set": "CompetitionPreferences"
+      },
+      {
+        "entity": "ExamSession",
+        "set": "ExamSessions"
+      },
+      {
+        "entity": "ExamCandidate",
+        "set": "ExamCandidates"
+      },
+      {
+        "entity": "ExamMarkerAssignment",
+        "set": "ExamMarkerAssignments"
+      },
+      {
+        "entity": "ExamScore",
+        "set": "ExamScores"
+      },
+      {
+        "entity": "CompetitionResultVersion",
+        "set": "CompetitionResultVersions"
+      },
+      {
+        "entity": "CompetitionResult",
+        "set": "CompetitionResults"
+      },
+      {
+        "entity": "CompetitionAllocation",
+        "set": "CompetitionAllocations"
+      },
+      {
+        "entity": "CompetitionReserveEntry",
+        "set": "CompetitionReserveEntries"
       },
       {
         "entity": "OfferLetter",

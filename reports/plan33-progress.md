@@ -15,8 +15,8 @@
 | P3 AC-HCM-21/22, AC-WF-23 | done | `95c70e1` (+ stack fix `4588a23`) |
 | P4 Requisition-to-hire E2E + prod-like | done | `d91b7b8` |
 | P5 Remove phantom evidence | done | `69ad2e3` |
-| P6 Live acceptance run | done (1 scenario Blocked: AC-HCM-26h) | (P6 commit) |
-| P7 Docs corrections and CI | pending | — |
+| P6 Live acceptance run | done (1 scenario Blocked: AC-HCM-26h) | `4467a4e` |
+| P7 Docs corrections and CI | done | (P7 commit) |
 | P8 Validate script, review, final report | pending | — |
 
 ## Decisions
@@ -58,7 +58,7 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-P7: commit the doc corrections (written and independently checked by the P7 workflow) after updating HCM_001_RECRUITMENT.md "Last live result" cells for 26..32 with the P6 results; then P8.
+P8: independent review workflow (finder + refuter) over git diff main...HEAD, fix survivors, final report, PLAN-33 doc status, run scripts/hcm033-validate.ps1 with tests, commit.
 
 ## P5 notes
 
@@ -115,3 +115,18 @@ P7: commit the doc corrections (written and independently checked by the P7 work
 | AC-HCM-06 (candidate DSAR) | Pass | acceptance-evidence/HCM-06-DSAR |
 | AC-HCM-33c journey | Pass | acceptance-evidence/AC-HCM-33 |
 | AC-HCM-33 prod-like | Fail at «1 requisition» (G-02) | acceptance-evidence/AC-HCM-33/prodlike |
+
+## P7 notes
+
+- Doc workflow: one writer + one independent verifier per document (14 agents); every verifier corrected its file
+  against code and evidence. Documents: `HCM_001_RECRUITMENT.md` (real HR.Core.Domain model, plan/status/evidence
+  matrix PLAN-21..33 from P6, phantom artifacts removed, known gaps), `HIRE_ONBOARDING_GUIDE.md` (single flow via the
+  approved offer and its acceptance; no «مختصر → تعيين»; G-02 once as a note; contract type from the regime map),
+  `HIRE_RBAC_MATRIX.md` (ESS = `hr-employee` via `Module.Ess`; compliance reviewer, committee chair/member by employee,
+  assessor = `hr-core` with no assessor role, exam marker, candidate OTP session, report readers, branch scope, G-04
+  marked), `MESSAGE_EVENT_MATRIX.md` (ICandidateAccepted v4, IContractActivated, IRecruitmentRequisitionClosed v1,
+  internal events, correlation gap), `DATABASE_SCHEMA_INVENTORY.{json,md}` (generator not run — no Python; checks
+  re-implemented by reading DbContexts/snapshots; only gap was Dev.Analytics `RecruitmentRequisitionFacts`, added),
+  `completion-backlog/09` HCM-001 card, `THESIS_CAPABILITY_TRUTH_REGISTER_CURRENT.md`, `HCM_001_GAP_STUDY.md` (status
+  per G item, §7 checklist: 1 not met, 2 not met, 3 partly met (26h Blocked), 4 met).
+- CI files were changed in P1/P4 (structural check in `hcm033-validate.ps1`; CI not executed).

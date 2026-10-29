@@ -88,13 +88,17 @@
 - **معايير القبول:** لا إعلان بلا مركز؛ معايير التقييم versioned وقابلة للتفسير؛ اللجنة والمصالح مدققة؛ المرشح يتابع Case؛ التحويل idempotent ولا يعيد الإدخال.
 - **التحقق:** public portal abuse/accessibility، duplicate applications، committee workflow، candidate→employee E2E.
 - **الاعتماديات:** EST-001, WF-001, GOV-001, FUN-001.
-- **الحالة:** Done
+- **الحالة:** منفذ وظيفياً ومتحقق منه على ملف القبول المختبري (`NationalScope:IsLabScale=true` ومحرك السياسات Off) في 2026-10-29؛ **ليس Done للإنتاج**: ربط مسار الاعتماد في الإنتاج (G-02) وفحص دور الخطوة على الخادم (G-04) مفتوحان في PLAN-25 (Proposed، مؤجلة). لم يُشغَّل CI البعيد على فرع PLAN-33 (لا push).
 - **أدلة الإغلاق:**
-  - [docs/HCM_001_RECRUITMENT.md](../HCM_001_RECRUITMENT.md)
-  - `src/Shared/HRManagement.SharedKernel/Recruitment/RecruitmentRequisition.cs` (`RequisitionStatus`, `PositionId`, `VacancyCount`)
-  - `src/Shared/HRManagement.SharedKernel/Recruitment/CandidateApplication.cs` (`ApplicationStatus`, `ConflictOfInterestDeclared`, `AssessmentScore`)
-  - `src/Shared/HRManagement.SharedKernel/Recruitment/OfferLetter.cs` (`OfferStatus`, `IsConvertedToEmployee`, `OfferedSalary`)
-  - `scripts/hcm001-validate.ps1` / `Hcm001RecruitmentTests`
+  - دراسة الفجوات والحالة الفعلية: [docs/HCM_001_GAP_STUDY.md](../HCM_001_GAP_STUDY.md)؛ الوصف الوظيفي: [docs/HCM_001_RECRUITMENT.md](../HCM_001_RECRUITMENT.md)؛ الخطط [PLAN-25](../acceptance-plans/PLAN-25-hcm-production-workflow-binding.md) و[PLAN-33](../acceptance-plans/PLAN-33-hcm-verification-docs.md).
+  - النموذج الفعلي في `src/Services/HRCore/HR.Core.Domain/`: الكيانات `Entities/RecruitmentRequisition.cs` و`RecruitmentApplication.cs` و`OfferLetter.cs` و`RecruitmentAppeal.cs` و`RecruitmentAssessmentCriteria.cs` و`RecruitmentAssessmentScore.cs` و`RecruitmentInterviewSlot.cs` و`SelectionCommitteeSession.cs` و`SelectionCommitteeMemberCoi.cs` و`RecruitmentCompetition.cs` و`PublicJobPosting.cs` و`CitizenApplication.cs`؛ والتعدادات `Enums/RequisitionStatus.cs` و`RecruitmentApplicationStatus.cs` و`OfferStatus.cs`.
+  - قواعد المجال في `HR.Core.Domain/Services/`: `RequisitionWorkflowRules` و`RecruitmentRequisitionService` و`RequisitionCloseService` و`SelectionWorkflowRules` و`SelectionCommitteeRules` و`OfferWorkflowRules` و`OfferEligibilityRules` و`OfferTermsRules` و`RecruitmentAppealWorkflowRules` و`RecruitmentWorkflowRules` و`CandidateApplicationLegalLifecycleService`؛ والإغلاق الذري للتعيين `HR.Core.Infrastructure/Services/Recruitment/RecruitmentHireClosureService.cs`.
+  - الحالات الحتمية للقبول: `HR.Core.Infrastructure/Seeding/AcceptanceRecruitmentStatesPatch.cs` + `testdata/acceptance/recruitment-states.json`.
+  - اختبارات الوحدة: `Hcm001RecruitmentTests` (اختبارات سلوك على قواعد `HR.Core.Domain` حلت محل اختبارات الانعكاس)، وأجنحة `Hcm026*`..`Hcm032*` في `src/Tests/HRManagement.UnitTests/`، و`Hcm033RecruitmentStatesSeedTests`، وحارس البنية `Architecture/AcceptanceSkipPatternArchitectureTests.cs`.
+  - اختبارات التكامل: أجنحة `Hcm026*`..`Hcm032*` و`RecruitmentHireClosureIntegrationTests` في `src/Tests/HRManagement.IntegrationTests/`، و`Hcm033LabScaleBehaviourTests` (6/6) الذي يثبت سلوك G-02: خارج المختبر مع محرك السياسات Off يبقى الطلب والعرض `PendingApproval` بلا مثيل مسار مع تحذير في الواجهة، ويُرفض الاعتماد ولا يصل العرض إلى `Issued`، وتُقفل اللجنة بلا مسار ودون أي تحذير (توقف صامت).
+  - اختبارات القبول (`src/Tests/HRManagement.AcceptanceTests/`، إطار `AcceptanceGate`): `AcHcm21RequisitionApprovalUiTests` و`AcHcm22RecruitmentWorkflowsUiTests` و`AcHcm26`..`AcHcm32` و`AcWf23WorkInboxUiTests`، وجميعها `[RequiredAcceptance]`. مع `ACCEPTANCE_REQUIRE_ALL=true`: AC-HCM-21a–d وAC-HCM-22a–e وAC-WF-23a–f Pass (2026-10-29)؛ والأدلة في `acceptance-evidence/AC-HCM-21` و`AC-HCM-22` و`AC-WF-23` (خريطة `scenarios` في `result.json`) و`acceptance-evidence/AC-HCM-26`..`AC-HCM-32` (Pass في تشغيلات خطط PLAN-26..32 بين 2026-10-21 و2026-10-29).
+  - رحلة E2E: `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` (`Category=Journey`) من الطلب حتى العقد في HR.Contracts — Pass على ملف القبول (`acceptance-evidence/AC-HCM-33`). المتغير الشبيه بالإنتاج (`docker-compose.acceptance-prodlike.yml`، `Category=JourneyProdLike`، مستثنى من CI حتى PLAN-25) **Fail** في المرحلة الأولى: الطلب المقدَّم `PendingApproval` بلا مثيل مسار (G-02)؛ الدليل `acceptance-evidence/AC-HCM-33/prodlike`.
+  - `scripts/hcm001-validate.ps1` يتحقق من الملفات الفعلية ويمنع عودة `SharedKernel.Recruitment` (نموذج شبحي بلا مستهلك وقت التشغيل، حُذف في PLAN-33).
 
 ## HCM-002 — الوقت والحضور والورديات والإضافي
 
