@@ -287,10 +287,15 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             && pathValue.EndsWith(".styles.css", StringComparison.OrdinalIgnoreCase)
             && pathValue.IndexOf('/', "/ui/hr-core/".Length) < 0);
 
-    /// <summary>MVC workflow approve/reject actions (PLAN-21..24) use branch-operation policy, not write.</summary>
+    /// <summary>
+    /// MVC workflow approve/reject actions (PLAN-21..24) use branch-operation policy, not write. HCM-031: the competition
+    /// results approval (<c>Competitions/ApproveResultsWorkflow</c>, step 2 by <c>hr-management-approver</c>) is one of them.
+    /// </summary>
     private static bool IsHrCoreWorkflowMvcAction(string pathValue) =>
         pathValue.Contains("/ApproveWorkflow", StringComparison.OrdinalIgnoreCase)
-        || pathValue.Contains("/RejectWorkflow", StringComparison.OrdinalIgnoreCase);
+        || pathValue.Contains("/RejectWorkflow", StringComparison.OrdinalIgnoreCase)
+        || pathValue.Contains("/ApproveResultsWorkflow", StringComparison.OrdinalIgnoreCase)
+        || pathValue.Contains("/RejectResultsWorkflow", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryGetPolicy(PathString path, out string moduleSegment, out string policyName)
     {

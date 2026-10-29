@@ -3,7 +3,7 @@
 **Date:** 2026-10-29
 **Branch:** `feature/plan-31-competitions-exams` (local only, not pushed), from the PLAN-30 tip `35d4efc` (PLAN-30 is not merged to `main`).
 **Plan:** [`docs/acceptance-plans/PLAN-31-hcm-competitions-exams.md`](../docs/acceptance-plans/PLAN-31-hcm-competitions-exams.md) —
-Status **Implemented (acceptance evidence pending)**. Execution guide:
+Status **Implemented and accepted (AC-HCM-31a..g Pass live)**. Execution guide:
 [`docs/acceptance-plans/execution/PLAN-31-EXECUTION.md`](../docs/acceptance-plans/execution/PLAN-31-EXECUTION.md).
 Progress log with decisions J1–J39, maps, files and test runs: [`reports/plan31-progress.md`](plan31-progress.md); baseline:
 [`reports/plan31-baseline.md`](plan31-baseline.md).
@@ -20,7 +20,8 @@ Progress log with decisions J1–J39, maps, files and test runs: [`reports/plan3
 | P5 | `5e4c0a4`, `9369a5f` | Finalize: merit-then-preference allocation to line requisitions (replaces the PLAN-28 committee gate for attached requisitions, J4), line reserve lists, the rest rejected (kind CompetitionResult), idempotent and serialized (`FOR UPDATE`); reserve recall on decline/expiry/revoke/withdrawal; reserve expiry; bulk offer drafts into the per-offer approval |
 | P6 | `028c434` | `/careers/my` competition section (preferences, admission card, result only after publication, objection or «انتهت مدة الاعتراض في …», allocation/reserve); public status inputs; seven notification templates without score/rank/national id and no duplicate generic messages; retention clears the competition residue; DSAR papers/marks/results/allocation/reserve |
 | P7 | `d03db0c` | PostgreSQL integration tests, the 10,000-applicant scale test, AC-HCM-31a..g acceptance tests and their seed patch |
-| P8 | this commit | Validate script, execution guide, plan status and deviations, legal binding, RBAC, recruitment/onboarding/gap/event/schema docs, independent review, this report |
+| P8 | `2ffa3a3` | Validate script, execution guide, plan status and deviations, legal binding, RBAC, recruitment/onboarding/gap/event/schema docs, independent review, this report |
+| Acceptance | branch `fix/plan-31-acceptance-run` | AC-HCM-31a..g run live and passing; seed insert cycle, results-approval gateway policy and acceptance fixtures fixed (section 4) |
 
 Single-requisition recruitment is unchanged: the PLAN-21..30 unit and integration suites pass at their baseline (section 3).
 
@@ -36,7 +37,7 @@ that change behaviour visibly:
 - **J12** — reconcile rules `Average` / `ReconcilerDecides` / `AverageOfClosestTwo` as defined in the log.
 - **J29/J30/J31** — finalize settles every open application; one recall hook on the common offer-settlement path; line entries drive reserve expiry.
 - **J34** — no duplicate candidate messages for competition applications.
-- **J37** — the AC-HCM-31 live run was not executed (see section 4).
+- **J37** — AC-HCM-31 was run live on the acceptance stack and passes (see section 4).
 
 ## 3. Test results
 
@@ -50,15 +51,32 @@ that change behaviour visibly:
 | `hcm006-a11y-scan.ps1` | PASS (12 views, incl. `PublicCareers/Competition`, `PublicCareers/CompetitionResults` and the competition section of `CandidatePortal/Index`) |
 | `ux003-no-native-confirm.ps1` | fails on pre-existing views only; no PLAN-31 view uses `confirm()` |
 | EF model | `has-pending-model-changes`: none |
-| AC-HCM-31a..g | **not run** (section 4) |
+| AC-HCM-31a..g (live, hrm-acceptance) | **2 / 2 Pass** (31a; 31b–g journey), 3 min 37 s — section 4 |
 
-## 4. Acceptance — not run
+## 4. Acceptance — AC-HCM-31a..g Pass (live)
 
-The acceptance stack is up, but its `hr-core-web` image predates PLAN-31 and its realm has neither the `hr-exam-marker`
-role nor the three marker users. Running AC-HCM-31 needs an image rebuild (applies the three migrations and
-`AcceptanceCompetitionPatch`) and a **Keycloak realm re-import**, which replaces the shared acceptance realm; that was not
-done unattended. The tests compile and skip without `RUN_ACCEPTANCE`; their fixtures are verified by
-`Hcm031AcceptanceSeedTests`. Steps: [`PLAN-31-EXECUTION.md`](../docs/acceptance-plans/execution/PLAN-31-EXECUTION.md).
+Run on 2026-10-29 at the owner's request, from branch `fix/plan-31-acceptance-run` (merged to `main`), on the
+`hrm-acceptance` stack rebuilt from `main` (all fourteen services; MinIO and `file-storage-web` left out as in PLAN-30 —
+the MinIO image is no longer pullable; no PLAN-31 step needs File.Storage). Evidence: `acceptance-evidence/AC-HCM-31/`
+(steps, 285 HTTP captures, db-checks, timing).
+
+| Scenario | Result |
+|----------|--------|
+| 31a — competition from three approved requisitions, published requisition refused, creator refused, two approvers, announcement, public page | Pass |
+| 31b–g — 120 seated, cards PDF, attendance, three markers (exam numbers only, HR pages closed to them), double marking with a reconciled paper, results with SoD and publication (public list without names), RESULTS_PUBLISHED, HR objection → reviewer assigned → upheld by a-compliance → version 2 published, OBJECTION_DECIDED, finalize (5 allocated by merit and preference, 77 on reserve, idempotent), bulk offers through the per-offer approval, decline → first reserve of the line recalled | Pass |
+
+What it took (decision J37): the three marker personas change the acceptance pack fingerprint, so the acceptance data
+was reset (`scripts/acceptance-reset.ps1`, project volumes only; credentials kept) and a fresh realm imported. The live
+run found and fixed three defects, each with a test:
+
+- **Seed insert cycle** — `AcceptanceCompetitionPatch` saved competition line → criteria → requisition → line in one batch;
+  PostgreSQL refused it and `hr-core-web` crash-looped. Fixed (criteria linked after the first save) and guarded by
+  `Hcm031AcceptanceSeedIntegrationTests` (fails on the old code).
+- **Gateway policy** — `Competitions/ApproveResultsWorkflow`/`RejectResultsWorkflow` fell into the gateway's
+  `HrCoreWrite` rule, so the HR director (step 2) got 403. They are workflow actions → `HrCoreBranchOperation`.
+- **Acceptance fixture/test** — offer approval checks the approver's org scope, so the dedicated positions moved to a
+  RIF unit; the objection's independent reviewer is assigned before deciding; notification waits are 4 minutes (planning
+  takes 100 events per minute; RESULTS_PUBLISHED arrived after 124 s).
 
 ## 5. Independent review
 
@@ -85,7 +103,7 @@ A second adversarial pass (three lenses, each finding attacked by a refuter) rev
 - Reserve recall on non-commencement after hire — `// PLAN-31 follow-up:` marker in `CompetitionReserveService` (decision 8).
 - No push channel to HR (since PLAN-30): exhausted reserves are shown on the competition's allocation tab and audited.
 - PLAN-25 stays deferred (decision 9).
-- Run AC-HCM-31a..g after the rebuild and realm re-import; regenerate `docs/DATABASE_SCHEMA_INVENTORY.*` with
+- Regenerate `docs/DATABASE_SCHEMA_INVENTORY.*` with
   `scripts/extract_database_inventory.py` when Python is available (edited by hand here).
 - Legal inputs remain «يُحدَّد من المرجع المعتمد عند اعتماد D-2» ([`docs/syr/legal-source-binding.md`](../docs/syr/legal-source-binding.md)).
 

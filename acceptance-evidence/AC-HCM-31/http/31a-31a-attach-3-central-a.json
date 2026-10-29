@@ -1,0 +1,16 @@
+{
+  "step": "31a-31a-attach-3-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/Competitions/AttachRequisition/400a5537-a143-4566-8f9d-2c2f3cb61480",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T11:55:41.5854622Z",
+  "body": {
+    "fields": [
+      "lineId=60ccc661-6d03-4c92-b2f6-76b45b141624",
+      "requisitionId=a0000001-0000-4000-8000-000000000525"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/Competitions/Details/400a5537-a143-4566-8f9d-2c2f3cb61480",
+    "final": "/ui/hr-core/Competitions/Details/400a5537-a143-4566-8f9d-2c2f3cb61480"
+  }
+}

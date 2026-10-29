@@ -61,7 +61,7 @@ public sealed class Hcm031AcceptanceSeedTests
         var positions = await db.FundedPositions.IgnoreQueryFilters()
             .Where(p => attached.Select(r => r.FundedPositionId).Contains(p.Id)).ToListAsync();
         Assert.All(positions, p => Assert.StartsWith("AC31-POS-", p.PositionCode, StringComparison.Ordinal));
-        Assert.Equal("HQ", AcceptanceSeedCatalog.GetOrgUnit(positions[0].OrgUnitId).SiteCode);
+        Assert.Equal("RIF", AcceptanceSeedCatalog.GetOrgUnit(positions[0].OrgUnitId).SiteCode); // br1-mgr scope (offer approval)
 
         // A second pass adds nothing.
         await using (var again = new HRCoreDbContext(options))

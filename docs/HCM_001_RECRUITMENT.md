@@ -557,7 +557,7 @@ decisions J1–J39: [`reports/plan31-progress.md`](../reports/plan31-progress.md
 - [x] PLAN-30 G-17 — candidate profile, requisition criteria, eligibility flags (never reject), candidate documents scanned in File.Storage
 - [x] PLAN-30 G-18 — accurate public status and timeline, PII-free candidate notifications, `/careers/my` with OTP (offer PDF, accept/decline, withdraw, appeal, documents), restricted HR on-behalf acceptance
 - [x] PLAN-30 G-20 (candidate data) — pair-aware retention job with legal hold, dry run by default, admin screen
-- [x] PLAN-31 G-19 — multi-vacancy competitions with per-competition legal inputs, anonymous double-marked exams, approved and published results with an objection window and versions, allocation by merit and preference, line reserve recall, bulk offers into the per-offer approval (AC-HCM-31 live acceptance run pending a realm re-import)
+- [x] PLAN-31 G-19 — multi-vacancy competitions with per-competition legal inputs, anonymous double-marked exams, approved and published results with an objection window and versions, allocation by merit and preference, line reserve recall, bulk offers into the per-offer approval (AC-HCM-31a..g Pass live, 2026-10-29)
 
 ## Plan map (HCM-001)
 

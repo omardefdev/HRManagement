@@ -1,0 +1,17 @@
+{
+  "step": "31b-g-31c-assign-2-37-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/Competitions/AssignMarker/a0000001-0000-4000-8000-000000000526",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T11:55:49.7840661Z",
+  "body": {
+    "fields": [
+      "sessionId=a0000001-0000-4000-8000-000000000537",
+      "employeeId=2e4a5bd5-ef17-0746-b90d-4867b31f5833",
+      "role=Second"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/Competitions/Details/a0000001-0000-4000-8000-000000000526",
+    "final": "/ui/hr-core/Competitions/Details/a0000001-0000-4000-8000-000000000526"
+  }
+}
