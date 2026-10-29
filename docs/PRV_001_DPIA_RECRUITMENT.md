@@ -1,0 +1,15 @@
+# DPIA — Public recruitment and candidate self-service (PRV-001)
+
+Covers the high-risk recruitment activities of the ROPA ([`prv-ropa/processing-activities.json`](./prv-ropa/processing-activities.json)):
+`pa-hcm-public-recruitment`, `pa-hcm-candidate-otp`, `pa-hcm-candidate-documents` and `pa-hcm-candidate-notifications`
+(HCM-006, HCM-030 / PLAN-30).
+
+| Item | Detail |
+|---|---|
+| Activity | `pa-hcm-public-recruitment` (public careers intake, `/careers/track`); `pa-hcm-candidate-otp` (`/careers/my` one-time code and session); `pa-hcm-candidate-documents` (CV and certificates uploaded with the application, on-behalf offer evidence); `pa-hcm-candidate-notifications` (status messages by email or SMS) |
+| Data | Identity (name, national ID — stored with a SHA-256 hash for lookups), contact (phone, email), profile (birth date, education, specialization, graduation year, experience), application status and timeline, uploaded documents (file metadata in HR.Core, content in File.Storage), message log (masked recipient, template, status), code challenges (keyed hash of the code and of the client address only) |
+| Risk | Unauthorized access to another applicant's file (reference + national ID guessing), code brute force, exposure of national ID or contact data in messages, URLs or logs, malicious uploads, retention beyond the recruitment purpose, disclosure to an unapproved SMTP/SMS processor |
+| Necessity | Public recruitment procedure: receive applications, verify eligibility, inform the applicant of decisions, interview dates and offers, let the applicant accept/decline an offer, withdraw or appeal without visiting the agency |
+| Measures | Tenant isolation; national ID hash, never in URLs, messages or logs; consent checkbox and opt-in notification channel; neutral answers on lookup and code request; codes are 6 digits, stored as HMAC-SHA256 with a secret key outside the database, valid 10 minutes, compared in constant time, 5 wrong codes lock sign-in, resend window per application, per-client and shared rate limits; `careers_session` cookie HttpOnly, SameSite=Strict, path `/careers`, Secure in Production/Staging, Data Protection payload with absolute expiry; every portal action loads the application from the session only, anti-forgery on every POST; uploads limited to pdf/jpg/png ≤ 5 MB, malware-scanned, quarantined files never served; messages carry no national ID and no salary, the stored copy of a code message is redacted; `[AuditRedact]` on message bodies and code hashes; DSAR export with metadata and counts only; pair-aware retention (`ret-recruitment-application`) anonymizes both rows, releases files, neutralizes messages and deletes code challenges |
+| Residual risk | Medium — accepted, on condition that the SMTP/SMS processor is contracted and listed in the [subprocessor register](./PRV_001_SUBPROCESSOR_REGISTER.md) before production sending is enabled (يُحدَّد عند D-8; until then `Notifications:Candidate:Provider=None` in Production/Staging) |
+| Approval | DPO + HCM owner |

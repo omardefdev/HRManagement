@@ -57,7 +57,9 @@ public sealed record CandidateRetentionCounts(int Due, int SkippedLegalHold, int
 /// <para>
 /// Anonymization runs in one transaction per pair: both rows through <c>TryAnonymize</c>, the internal row's free text,
 /// every <see cref="CandidateDocument"/> file released through the File.Storage reference outbox (explicit tenant) and its
-/// row deleted, every <see cref="CandidateNotification"/> neutralized (pending ones suppressed), and one PII-free audit row.
+/// row deleted, every <see cref="CandidateNotification"/> neutralized (pending ones suppressed), the /careers/my code
+/// challenges deleted, the on-behalf offer evidence released and the candidate free text of offers and appeals neutralized
+/// (PLAN-30 K1), and one PII-free audit row.
 /// A run writes one <see cref="CandidateRetentionRun"/> per tenant (counts only).
 /// </para>
 /// <para>
@@ -333,10 +335,17 @@ public sealed class CandidateRetentionService(
 
         var notifications = await NeutralizeNotificationsAsync(scope, applicationId, ct);
 
-        // PLAN-30 S3: OTP challenges — delete the pair's portal OTP challenge rows here once session 3 adds them.
+        // PLAN-30 K1: the pair's /careers/my code challenges are deleted (TryAnonymize cleared the lock and the last
+        // request time) and the on-behalf offer evidence files are released.
+        var otpChallenges = await DeleteOtpChallengesAsync(scope, citizens.Select(c => c.Id).ToList(), ct);
+        var offerEvidence = await ReleaseOfferEvidenceAsync(scope, applicationId, ct);
+        // PLAN-30 K1: free text typed by or about the candidate on offers and appeals (the /careers/my decline, withdraw
+        // and appeal forms, the on-behalf acceptance note). Statuses, dates and the channel (AcceptedBy/DeclinedBy/FiledBy)
+        // are kept; HR's own decision text is not candidate data and stays.
+        var freeTextRows = await NeutralizeOfferAndAppealTextAsync(scope, applicationId, ct);
 
         AddAudit(scope.TenantId, nameof(RecruitmentApplication), applicationId, actor, request.TriggeredBy,
-            citizens.Count, internals.Count, documents.Count, notifications);
+            citizens.Count, internals.Count, documents.Count, notifications, otpChallenges, offerEvidence, freeTextRows);
         return true;
     }
 
@@ -382,9 +391,11 @@ public sealed class CandidateRetentionService(
             .ToListAsync(ct);
         ReleaseAndDelete(scope.TenantId, documents);
 
-        // PLAN-30 S3: OTP challenges — delete the row's portal OTP challenges here once session 3 adds them.
+        // PLAN-30 K1: the row's /careers/my code challenges (an unlinked row has no offer).
+        var otpChallenges = await DeleteOtpChallengesAsync(scope, [citizenId], ct);
 
-        AddAudit(scope.TenantId, nameof(CitizenApplication), citizenId, actor, request.TriggeredBy, 1, 0, documents.Count, 0);
+        AddAudit(scope.TenantId, nameof(CitizenApplication), citizenId, actor, request.TriggeredBy, 1, 0, documents.Count, 0,
+            otpChallenges, 0, 0);
         return true;
     }
 
@@ -399,8 +410,13 @@ public sealed class CandidateRetentionService(
 
         foreach (var document in documents)
             fileReferenceOutbox.EnqueueRelease(document.FileId, HolderKey(document));
+        StampReleaseTenant(tenantId, documents.Select(d => d.FileId).ToHashSet());
 
-        var fileIds = documents.Select(d => d.FileId).ToHashSet();
+        db.CandidateDocuments.RemoveRange(documents);
+    }
+
+    private void StampReleaseTenant(Guid tenantId, IReadOnlySet<Guid> fileIds)
+    {
         foreach (var entry in db.ChangeTracker.Entries<FileReferenceOutboxMessage>())
         {
             if (entry.State == EntityState.Added
@@ -408,9 +424,92 @@ public sealed class CandidateRetentionService(
                 && fileIds.Contains(entry.Entity.FileId))
                 entry.Entity.TenantId = tenantId;
         }
-
-        db.CandidateDocuments.RemoveRange(documents);
     }
+
+    /// <summary>PLAN-30 K1: deletes the /careers/my code challenges of the given citizen rows; returns how many.</summary>
+    private async Task<int> DeleteOtpChallengesAsync(Scope scope, List<Guid> citizenIds, CancellationToken ct)
+    {
+        if (citizenIds.Count == 0)
+            return 0;
+        var challenges = await Query<CandidateOtpChallenge>(scope)
+            .Where(o => citizenIds.Contains(o.CitizenApplicationId))
+            .ToListAsync(ct);
+        db.CandidateOtpChallenges.RemoveRange(challenges);
+        return challenges.Count;
+    }
+
+    /// <summary>
+    /// PLAN-30 K1: releases the on-behalf acceptance/decline evidence of the pair's offers
+    /// (<c>hr-core:OfferLetter:{Id:N}:AcceptanceEvidence</c> / <c>…:DeclineEvidence</c>, the keys
+    /// <c>OfferOnBehalfService</c> registered) with the pair's tenant, and clears the ids; returns how many files.
+    /// </summary>
+    private async Task<int> ReleaseOfferEvidenceAsync(Scope scope, Guid applicationId, CancellationToken ct)
+    {
+        var offers = await Query<OfferLetter>(scope)
+            .Where(o => o.RecruitmentApplicationId == applicationId
+                && (o.AcceptanceEvidenceFileId != null || o.DeclineEvidenceFileId != null))
+            .ToListAsync(ct);
+        var fileIds = new HashSet<Guid>();
+        foreach (var offer in offers)
+        {
+            if (offer.AcceptanceEvidenceFileId is { } acceptance)
+            {
+                fileReferenceOutbox.EnqueueRelease(acceptance, OfferEvidenceHolderKey(offer.Id, AcceptanceEvidenceField));
+                fileIds.Add(acceptance);
+                offer.AcceptanceEvidenceFileId = null;
+            }
+            if (offer.DeclineEvidenceFileId is { } decline)
+            {
+                fileReferenceOutbox.EnqueueRelease(decline, OfferEvidenceHolderKey(offer.Id, DeclineEvidenceField));
+                fileIds.Add(decline);
+                offer.DeclineEvidenceFileId = null;
+            }
+        }
+        StampReleaseTenant(scope.TenantId, fileIds);
+        return fileIds.Count;
+    }
+
+    /// <summary>
+    /// PLAN-30 K1: replaces the candidate free text of the pair's offers (<c>AcceptanceNote</c>, <c>DeclineReason</c>,
+    /// <c>RevokeReason</c>) and appeals (<c>Reason</c>, <c>AdditionalInfo</c>) with <see cref="NeutralizedText"/>;
+    /// returns how many offer and appeal rows changed.
+    /// </summary>
+    private async Task<int> NeutralizeOfferAndAppealTextAsync(Scope scope, Guid applicationId, CancellationToken ct)
+    {
+        var offers = await Query<OfferLetter>(scope)
+            .Where(o => o.RecruitmentApplicationId == applicationId
+                && ((o.AcceptanceNote != null && o.AcceptanceNote != NeutralizedText)
+                    || (o.DeclineReason != null && o.DeclineReason != NeutralizedText)
+                    || (o.RevokeReason != null && o.RevokeReason != NeutralizedText)))
+            .ToListAsync(ct);
+        foreach (var offer in offers)
+        {
+            offer.AcceptanceNote = Neutralize(offer.AcceptanceNote);
+            offer.DeclineReason = Neutralize(offer.DeclineReason);
+            offer.RevokeReason = Neutralize(offer.RevokeReason);
+        }
+
+        var appeals = await Query<RecruitmentAppeal>(scope)
+            .Where(x => x.RecruitmentApplicationId == applicationId
+                && (x.Reason != NeutralizedText || (x.AdditionalInfo != null && x.AdditionalInfo != NeutralizedText)))
+            .ToListAsync(ct);
+        foreach (var appeal in appeals)
+        {
+            appeal.Reason = NeutralizedText;
+            appeal.AdditionalInfo = Neutralize(appeal.AdditionalInfo);
+        }
+        return offers.Count + appeals.Count;
+
+        static string? Neutralize(string? value) => value is null ? null : NeutralizedText;
+    }
+
+    /// <summary>Holder fields of the on-behalf evidence (same values as <c>OfferOnBehalfService</c>).</summary>
+    public const string AcceptanceEvidenceField = "AcceptanceEvidence";
+    public const string DeclineEvidenceField = "DeclineEvidence";
+
+    /// <summary>Same holder key as the registration (<c>OfferOnBehalfService.HolderKey</c>).</summary>
+    public static string OfferEvidenceHolderKey(Guid offerId, string field) =>
+        FileReferenceClientExtensions.BuildHolderKey(HrFileServices.HrCore, nameof(OfferLetter), offerId, field);
 
     /// <summary>Same holder key as the registration (<c>CandidateDocumentService.HolderKey</c>).</summary>
     public static string HolderKey(CandidateDocument document) =>
@@ -444,7 +543,8 @@ public sealed class CandidateRetentionService(
     /// </summary>
     private void AddAudit(
         Guid tenantId, string entityType, Guid entityId, Guid? actor, string triggeredBy,
-        int citizenRows, int internalRows, int documents, int notifications) =>
+        int citizenRows, int internalRows, int documents, int notifications, int otpChallenges, int offerEvidence,
+        int offerAndAppealTextRows) =>
         db.AuditLogs.Add(new EntityAuditLog
         {
             TenantId = tenantId,
@@ -459,7 +559,10 @@ public sealed class CandidateRetentionService(
                 citizenRows,
                 internalRows,
                 documentsReleased = documents,
-                notificationsNeutralized = notifications
+                notificationsNeutralized = notifications,
+                otpChallengesDeleted = otpChallenges,
+                offerEvidenceReleased = offerEvidence,
+                offerAndAppealTextNeutralized = offerAndAppealTextRows
             })
         });
 
@@ -504,7 +607,8 @@ public sealed class CandidateRetentionService(
     /// <summary>
     /// Pairs past retention that still hold data: not hired; requisition closed or cancelled (or none); trigger date on or
     /// before the cutoff; and not fully anonymized — either row not anonymized yet, or something left behind (documents,
-    /// messages not neutralized, profile or free text, the internal row's motivation).
+    /// messages not neutralized, profile or free text, the internal row's motivation, /careers/my code challenges or
+    /// sign-in state, on-behalf offer evidence, offer or appeal free text).
     /// </summary>
     private IQueryable<RecruitmentApplication> PastRetentionPairs(Scope scope, DateTime cutoff)
     {
@@ -512,6 +616,9 @@ public sealed class CandidateRetentionService(
         var internals = Query<InternalApplication>(scope);
         var documents = Query<CandidateDocument>(scope);
         var notifications = Query<CandidateNotification>(scope);
+        var otpChallenges = Query<CandidateOtpChallenge>(scope);
+        var offers = Query<OfferLetter>(scope);
+        var appeals = Query<RecruitmentAppeal>(scope);
         return Query<RecruitmentApplication>(scope)
             .Where(a => a.HiredEmployeeId == null)
             .Where(a => (a.RequisitionId == null && a.AppliedAt <= cutoff)
@@ -527,10 +634,19 @@ public sealed class CandidateRetentionService(
                         || c.Phone != null || c.Email != null || c.CoverNote != null
                         || c.NotificationChannel != null || c.NotificationConsentAt != null
                         || c.BirthDate != null || c.EducationLevelCode != null || c.Specialization != null
-                        || c.GraduationYear != null || c.YearsOfExperience != null))
+                        || c.GraduationYear != null || c.YearsOfExperience != null
+                        || c.PortalLockedUntil != null || c.PortalOtpRequestedAt != null))
                 || internals.Any(i => (i.PromotedRecruitmentApplicationId == a.Id || i.Id == a.SourceInternalApplicationId)
                     && i.Motivation != null)
                 || documents.Any(d => d.RecruitmentApplicationId == a.Id)
+                || otpChallenges.Any(o => citizens.Any(c => c.PromotedRecruitmentApplicationId == a.Id && c.Id == o.CitizenApplicationId))
+                || offers.Any(o => o.RecruitmentApplicationId == a.Id
+                    && (o.AcceptanceEvidenceFileId != null || o.DeclineEvidenceFileId != null
+                        || (o.AcceptanceNote != null && o.AcceptanceNote != NeutralizedText)
+                        || (o.DeclineReason != null && o.DeclineReason != NeutralizedText)
+                        || (o.RevokeReason != null && o.RevokeReason != NeutralizedText)))
+                || appeals.Any(x => x.RecruitmentApplicationId == a.Id
+                    && (x.Reason != NeutralizedText || (x.AdditionalInfo != null && x.AdditionalInfo != NeutralizedText)))
                 || notifications.Any(n => n.RecruitmentApplicationId == a.Id
                     && (n.Body != NeutralizedText || n.RecipientMasked != NeutralizedText || n.Subject != null)));
     }

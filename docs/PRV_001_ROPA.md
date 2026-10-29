@@ -21,6 +21,7 @@ All 14 services have at least one processing activity in the JSON register. High
 | Payroll | [PRV_001_DPIA_PAYROLL.md](./PRV_001_DPIA_PAYROLL.md) |
 | Health | [PRV_001_DPIA_HEALTH.md](./PRV_001_DPIA_HEALTH.md) |
 | Evaluation | [PRV_001_DPIA_EVALUATION.md](./PRV_001_DPIA_EVALUATION.md) |
+| Public recruitment, candidate OTP/portal, documents, notifications | [PRV_001_DPIA_RECRUITMENT.md](./PRV_001_DPIA_RECRUITMENT.md) |
 
 ## Runtime alignment
 

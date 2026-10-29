@@ -112,6 +112,16 @@
             color: #4a4a4a;
             font-size: 0.9rem;
         }
+        /* PLAN-30 K4: the error summary / notice focused after a post (careers-portal.js) shows a visible focus ring. */
+        [data-hr-error-summary]:focus,
+        [data-hr-focus-notice]:focus {
+            outline: 3px solid #6b1f2a;
+            outline-offset: 2px;
+        }
+        .careers-posting-title { font-size: 1.4rem; }
+        .careers-accent { color: #6b1f2a; }
+        .careers-muted-icon { color: #b9a779; }
+        .careers-success { color: #2e7d32; }
         .careers-form .form-control:focus {
             border-color: #b9a779;
             box-shadow: 0 0 0 0.2rem rgba(185,167,121,0.25);

@@ -270,7 +270,7 @@ else if (!string.IsNullOrEmpty(Model.Notice))
 
 @if (appeal is not null || FormErr("Appeal", "") is not null || FormErr("AppealInfo", "") is not null)
 {
-    <section class="careers-card mt-3" id="portal-appeal" aria-labelledby="portal-appeal-title">
+    <section class="careers-card mt-3" id="portal-appeal" tabindex="-1" aria-labelledby="portal-appeal-title">
         <div class="card-body">
             <h2 class="careers-section-title h5" id="portal-appeal-title"><i class="fas fa-balance-scale ms-2" aria-hidden="true"></i> الاستئناف</h2>
             @switch (appeal?.State ?? (CandidatePortalAppealState)(-1))
@@ -389,7 +389,7 @@ else if (!string.IsNullOrEmpty(Model.Notice))
 
 @if (Model.CanWithdraw || Model.WithdrawBlockedByAcceptance || WithdrawErr() is not null)
 {
-    <section class="careers-card mt-3" id="portal-withdraw" aria-labelledby="portal-withdraw-title">
+    <section class="careers-card mt-3" id="portal-withdraw" tabindex="-1" aria-labelledby="portal-withdraw-title">
         <div class="card-body">
             <h2 class="careers-section-title h5" id="portal-withdraw-title"><i class="fas fa-user-minus ms-2" aria-hidden="true"></i> الانسحاب من الطلب</h2>
             @if (Model.WithdrawBlockedByAcceptance)

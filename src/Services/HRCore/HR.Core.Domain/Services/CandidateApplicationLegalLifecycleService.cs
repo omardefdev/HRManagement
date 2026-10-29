@@ -143,7 +143,8 @@ public static class CandidateApplicationLegalLifecycleService
     }
 
     /// <summary>
-    /// Anonymizes the citizen row: identity, contact and consent, cover note and the HCM-030 profile. Idempotent: an
+    /// Anonymizes the citizen row: identity, contact and consent, cover note and the HCM-030 profile. Also clears the
+    /// /careers/my sign-in state (lock and last code request; PLAN-30 K1). Idempotent: an
     /// already anonymized row keeps its date and placeholders but any field left behind (rows anonymized before HCM-030)
     /// is cleared too.
     /// </summary>
@@ -166,6 +167,8 @@ public static class CandidateApplicationLegalLifecycleService
         application.Specialization = null;
         application.GraduationYear = null;
         application.YearsOfExperience = null;
+        application.PortalLockedUntil = null;
+        application.PortalOtpRequestedAt = null;
         application.AnonymizedAt ??= utcNow ?? DateTime.UtcNow;
         return (true, null);
     }

@@ -4,12 +4,12 @@
 }
 <div class="careers-card text-center">
     <div class="card-body p-5">
-        <i class="fas fa-check-circle fa-3x mb-3" style="color:#2e7d32;"></i>
-        <h3 style="color:#2e7d32; font-weight:700;" class="mb-3">تم استلام طلبك بنجاح</h3>
+        <i class="fas fa-check-circle fa-3x mb-3 careers-success" aria-hidden="true"></i>
+        <h1 class="h3 careers-success fw-bold mb-3">تم استلام طلبك بنجاح</h1>
         <p class="text-muted fs-5">احتفظ بالرقم المرجعي التالي لتتبّع حالة طلبك:</p>
-        <h2 class="my-3"><span class="careers-badge">@ViewBag.Reference</span></h2>
+        <p class="h2 my-3"><span class="careers-badge"><bdi dir="ltr">@ViewBag.Reference</bdi></span></p>
         <div class="mt-4">
-            <a asp-action="Track" class="btn careers-btn-primary"><i class="fas fa-search ms-1"></i> تتبّع الطلب</a>
+            <a asp-action="Track" class="btn careers-btn-primary"><i class="fas fa-search ms-1" aria-hidden="true"></i> تتبّع الطلب</a>
             <a asp-action="Index" class="btn careers-btn-outline me-2">العودة للوظائف</a>
         </div>
     </div>

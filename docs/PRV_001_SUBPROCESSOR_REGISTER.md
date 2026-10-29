@@ -8,5 +8,6 @@
 | Observability (Seq/Prometheus/Grafana host) | Logs/metrics/traces | PII-minimized; redaction required | Approved (platform) |
 | External treasury channel | Payment execution | MoU / EXT-003 agreement | Conditional |
 | Civil registry adapter | Identity verification | EXT-002 agreement | Conditional |
+| SMTP/SMS processor — يُحدَّد عند D-8 | Candidate notifications and `/careers/my` one-time codes (HCM-030) | Contract + sovereignty per SOV-002; no national ID or salary in messages | Conditional (production sending off until listed) |
 
 No unlisted subprocessor may receive production personal data.

@@ -292,12 +292,173 @@ public class Hcm030RetentionJobTests
         using var json = JsonDocument.Parse(audit.ChangedFields!);
         Assert.Equal(2, json.RootElement.GetProperty("documentsReleased").GetInt32());
         Assert.Equal(2, json.RootElement.GetProperty("notificationsNeutralized").GetInt32());
+        Assert.Equal(0, json.RootElement.GetProperty("otpChallengesDeleted").GetInt32());
+        Assert.Equal(0, json.RootElement.GetProperty("offerEvidenceReleased").GetInt32());
 
         // Fully anonymized: the next run finds nothing.
         var next = Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
         Assert.Equal(0, next.DueCount);
         Assert.Equal(0, next.AnonymizedCount);
         Assert.Equal(2, await db.CandidateRetentionRuns.CountAsync());
+    }
+
+    [Fact]
+    public async Task Apply_deletes_otp_challenges_clears_the_portal_lock_and_releases_offer_evidence()
+    {
+        // PLAN-30 K1: the pair's /careers/my codes and sign-in state go; the on-behalf evidence files are released with the
+        // pair's tenant and their ids cleared. Another pair's challenge stays.
+        await using var db = CreateContext();
+        var pair = await SeedPublicPairAsync(db, "OTP", closedAt: Due);
+        var other = await SeedPublicPairAsync(db, "KEEP", closedAt: NotYet);
+        pair.Citizen.PortalLockedUntil = Now.AddMinutes(10);
+        pair.Citizen.PortalOtpRequestedAt = Now.AddMinutes(-5);
+        db.CandidateOtpChallenges.AddRange(
+            NewOtpChallenge(pair.Citizen, consumed: true),
+            NewOtpChallenge(pair.Citizen, consumed: false),
+            NewOtpChallenge(other.Citizen, consumed: false));
+        var accepted = NewOffer(pair, "OFF-RET-1", OfferStatus.Accepted);
+        accepted.AcceptedBy = OfferAcceptedBy.HrOnBehalf;
+        accepted.AcceptanceEvidenceFileId = Guid.NewGuid();
+        var declined = NewOffer(pair, "OFF-RET-2", OfferStatus.Declined);
+        declined.DeclinedBy = OfferDeclinedBy.HrOnBehalf;
+        declined.DeclineEvidenceFileId = Guid.NewGuid();
+        db.OfferLetters.AddRange(accepted, declined);
+        await db.SaveChangesAsync();
+        var acceptanceFile = accepted.AcceptanceEvidenceFileId.Value;
+        var declineFile = declined.DeclineEvidenceFileId.Value;
+
+        var run = Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+        Assert.Equal(1, run.AnonymizedCount);
+
+        var challenges = await db.CandidateOtpChallenges.AsNoTracking().ToListAsync();
+        var left = Assert.Single(challenges);
+        Assert.Equal(other.Citizen.Id, left.CitizenApplicationId);
+        var citizen = await db.CitizenApplications.AsNoTracking().SingleAsync(c => c.Id == pair.Citizen.Id);
+        Assert.Null(citizen.PortalLockedUntil);
+        Assert.Null(citizen.PortalOtpRequestedAt);
+
+        var offers = await db.OfferLetters.AsNoTracking().Where(o => o.RecruitmentApplicationId == pair.App.Id).ToListAsync();
+        Assert.All(offers, o =>
+        {
+            Assert.Null(o.AcceptanceEvidenceFileId);
+            Assert.Null(o.DeclineEvidenceFileId);
+        });
+        var releases = await db.FileReferenceOutbox.AsNoTracking()
+            .Where(o => o.Operation == FileReferenceOutboxOps.Release && (o.FileId == acceptanceFile || o.FileId == declineFile))
+            .ToListAsync();
+        Assert.Equal(2, releases.Count);
+        Assert.All(releases, r => Assert.Equal(Hcm030TestSupport.TenantA, r.TenantId));
+        Assert.Equal($"hr-core:OfferLetter:{accepted.Id:N}:AcceptanceEvidence", releases.Single(r => r.FileId == acceptanceFile).HolderKey);
+        Assert.Equal($"hr-core:OfferLetter:{declined.Id:N}:DeclineEvidence", releases.Single(r => r.FileId == declineFile).HolderKey);
+
+        var audit = await db.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.Action == CandidateRetentionService.AnonymizedAuditAction);
+        using var json = JsonDocument.Parse(audit.ChangedFields!);
+        Assert.Equal(2, json.RootElement.GetProperty("otpChallengesDeleted").GetInt32());
+        Assert.Equal(2, json.RootElement.GetProperty("offerEvidenceReleased").GetInt32());
+        Assert.Equal(2, json.RootElement.GetProperty("documentsReleased").GetInt32());
+    }
+
+    [Fact]
+    public async Task Pair_anonymized_with_otp_residue_or_offer_evidence_left_is_due_again()
+    {
+        // Rows anonymized before PLAN-30 K1 kept their code challenges, lock and evidence: the pair is picked up again.
+        await using var db = CreateContext();
+        var pair = await SeedPublicPairAsync(db, "RES", closedAt: Due);
+        Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+        Assert.Equal(0, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+
+        db.CandidateOtpChallenges.Add(NewOtpChallenge(pair.Citizen, consumed: true));
+        await db.SaveChangesAsync();
+        Assert.Equal(1, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+        Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+        Assert.Empty(await db.CandidateOtpChallenges.AsNoTracking().ToListAsync());
+
+        var citizen = await db.CitizenApplications.SingleAsync(c => c.Id == pair.Citizen.Id);
+        citizen.PortalLockedUntil = Now;
+        await db.SaveChangesAsync();
+        Assert.Equal(1, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+        Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+
+        var offer = NewOffer(pair, "OFF-RES-1", OfferStatus.Declined);
+        offer.DeclineEvidenceFileId = Guid.NewGuid();
+        db.OfferLetters.Add(offer);
+        await db.SaveChangesAsync();
+        Assert.Equal(1, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+        Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+        Assert.Equal(0, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+        Assert.Null((await db.OfferLetters.AsNoTracking().SingleAsync(o => o.Id == offer.Id)).DeclineEvidenceFileId);
+    }
+
+    [Fact]
+    public async Task Apply_neutralizes_offer_and_appeal_free_text_and_a_pair_with_text_left_is_due_again()
+    {
+        // PLAN-30 K1: the /careers/my decline/withdraw/appeal text and the on-behalf note are candidate data; statuses,
+        // channels and HR's decision stay. A pair anonymized with such text left is picked up again.
+        await using var db = CreateContext();
+        var pair = await SeedPublicPairAsync(db, "TXT", closedAt: Due);
+        var declined = NewOffer(pair, "OFF-TXT-1", OfferStatus.Declined);
+        declined.DeclinedBy = OfferDeclinedBy.Candidate;
+        declined.DeclineReason = "أعتذر لظروف صحية، للتواصل 0999123456";
+        var revoked = NewOffer(pair, "OFF-TXT-2", OfferStatus.Revoked);
+        revoked.RevokeReason = "انسحاب المرشح: ظروف عائلية";
+        var accepted = NewOffer(pair, "OFF-TXT-3", OfferStatus.Accepted);
+        accepted.AcceptedBy = OfferAcceptedBy.HrOnBehalf;
+        accepted.AcceptanceNote = "قبول هاتفي موثّق من المرشح بتاريخ المقابلة";
+        var untouchedOffer = NewOffer(pair, "OFF-TXT-4", OfferStatus.Issued);
+        db.OfferLetters.AddRange(declined, revoked, accepted, untouchedOffer);
+        var appeal = new RecruitmentAppeal
+        {
+            TenantId = pair.App.TenantId,
+            RecruitmentApplicationId = pair.App.Id,
+            Status = RecruitmentAppealStatus.Decided,
+            FiledBy = RecruitmentAppealFiledBy.Candidate,
+            Reason = "أعترض على القرار لظروفي الشخصية",
+            InfoRequest = "يرجى إرفاق ما يثبت الخبرة",
+            AdditionalInfo = "عملت لدى جهة خاصة خمس سنوات",
+            Decision = "رُفض الاستئناف"
+        };
+        db.RecruitmentAppeals.Add(appeal);
+        await db.SaveChangesAsync();
+
+        var run = Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+        Assert.Equal(1, run.AnonymizedCount);
+
+        var offers = await db.OfferLetters.AsNoTracking().ToDictionaryAsync(o => o.Id);
+        Assert.Equal(CandidateRetentionService.NeutralizedText, offers[declined.Id].DeclineReason);
+        Assert.Equal(OfferDeclinedBy.Candidate, offers[declined.Id].DeclinedBy);
+        Assert.Equal(OfferStatus.Declined, offers[declined.Id].Status);
+        Assert.Equal(CandidateRetentionService.NeutralizedText, offers[revoked.Id].RevokeReason);
+        Assert.Equal(CandidateRetentionService.NeutralizedText, offers[accepted.Id].AcceptanceNote);
+        Assert.Equal(OfferAcceptedBy.HrOnBehalf, offers[accepted.Id].AcceptedBy);
+        Assert.Null(offers[accepted.Id].DeclineReason);
+        Assert.Null(offers[untouchedOffer.Id].AcceptanceNote);
+        Assert.Null(offers[untouchedOffer.Id].DeclineReason);
+        Assert.Null(offers[untouchedOffer.Id].RevokeReason);
+
+        var storedAppeal = await db.RecruitmentAppeals.AsNoTracking().SingleAsync(x => x.Id == appeal.Id);
+        Assert.Equal(CandidateRetentionService.NeutralizedText, storedAppeal.Reason);
+        Assert.Equal(CandidateRetentionService.NeutralizedText, storedAppeal.AdditionalInfo);
+        Assert.Equal(RecruitmentAppealStatus.Decided, storedAppeal.Status);
+        Assert.Equal(RecruitmentAppealFiledBy.Candidate, storedAppeal.FiledBy);
+        Assert.Equal("رُفض الاستئناف", storedAppeal.Decision);
+
+        var audit = await db.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.Action == CandidateRetentionService.AnonymizedAuditAction);
+        Assert.DoesNotContain("0999123456", audit.ChangedFields);
+        using (var json = JsonDocument.Parse(audit.ChangedFields!))
+            Assert.Equal(4, json.RootElement.GetProperty("offerAndAppealTextNeutralized").GetInt32());
+        Assert.Equal(0, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+
+        // Text written after the anonymization (e.g. a late decline note) makes the pair due again.
+        var late = await db.OfferLetters.SingleAsync(o => o.Id == untouchedOffer.Id);
+        late.DeclineReason = "سبب متأخر";
+        await db.SaveChangesAsync();
+        Assert.Equal(1, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
+        Assert.Single(await Service(db, apply: true).RunAsync(Request(apply: true)));
+        Assert.Equal(CandidateRetentionService.NeutralizedText,
+            (await db.OfferLetters.AsNoTracking().SingleAsync(o => o.Id == untouchedOffer.Id)).DeclineReason);
+        Assert.Equal(0, (await Service(db).CountAsync(Hcm030TestSupport.TenantA, Now)).Due);
     }
 
     [Fact]
@@ -511,7 +672,10 @@ public class Hcm030RetentionJobTests
         var recent = NewLegacyCitizen(posting, "L-2", submittedAt: NotYet);
         var held = NewLegacyCitizen(posting, "L-3", submittedAt: Due);
         held.LegalHold = true;
+        due.PortalLockedUntil = Now.AddMinutes(10);
+        due.PortalOtpRequestedAt = Now.AddMinutes(-5);
         db.CitizenApplications.AddRange(due, recent, held);
+        db.CandidateOtpChallenges.AddRange(NewOtpChallenge(due, consumed: false), NewOtpChallenge(held, consumed: false));
         await db.SaveChangesAsync();
 
         Assert.True(CandidateApplicationLegalLifecycleService.CanPurge(due, null, Now));
@@ -539,6 +703,15 @@ public class Hcm030RetentionJobTests
         Assert.Null(stored["L-2"].AnonymizedAt);
         Assert.Null(stored["L-3"].AnonymizedAt);
         Assert.Equal(CitizenEmail, stored["L-3"].Email);
+        // PLAN-30 K1: the anonymized row's code challenges and sign-in state go; the held row keeps its challenge.
+        Assert.Null(stored["L-1"].PortalLockedUntil);
+        Assert.Null(stored["L-1"].PortalOtpRequestedAt);
+        var challenge = Assert.Single(await db.CandidateOtpChallenges.AsNoTracking().ToListAsync());
+        Assert.Equal(held.Id, challenge.CitizenApplicationId);
+        var audit = await db.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.Action == CandidateRetentionService.AnonymizedAuditAction);
+        using var json = JsonDocument.Parse(audit.ChangedFields!);
+        Assert.Equal(1, json.RootElement.GetProperty("otpChallengesDeleted").GetInt32());
     }
 
     [Fact]
@@ -697,6 +870,28 @@ public class Hcm030RetentionJobTests
         await db.SaveChangesAsync();
         return new Pair(fx.Requisition, app, citizen, documents);
     }
+
+    private static CandidateOtpChallenge NewOtpChallenge(CitizenApplication citizen, bool consumed) => new()
+    {
+        TenantId = citizen.TenantId,
+        CitizenApplicationId = citizen.Id,
+        CodeHmac = new string('a', 64),
+        Channel = NotificationChannel.Email,
+        ExpiresAt = Now.AddMinutes(10),
+        Attempts = 1,
+        ConsumedAt = consumed ? Now.AddMinutes(-1) : null,
+        RequestIp = new string('b', 64)
+    };
+
+    private static OfferLetter NewOffer(Pair pair, string number, OfferStatus status) => new()
+    {
+        TenantId = pair.App.TenantId,
+        RecruitmentApplicationId = pair.App.Id,
+        FundedPositionId = pair.Requisition.FundedPositionId,
+        OfferNumber = number,
+        Status = status,
+        ProposedStartDate = Due
+    };
 
     private static CandidateNotification NewNotification(
         RecruitmentApplication app, string template, CandidateNotificationStatus status) => new()

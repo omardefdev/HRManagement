@@ -23,6 +23,34 @@
     var documentInputs = HR.Core.Domain.Services.CandidateDocumentTypes.All
         .OrderBy(t => requiredDocuments.Contains(t.Code) ? 0 : 1)
         .ToList();
+    // PLAN-30 K4: one error summary (focused by careers-portal.js) linking each error to its field; a field in error carries
+    // aria-invalid and aria-describedby to its own message.
+    var applyErrors = ViewData.ModelState
+        .SelectMany(e => e.Value!.Errors.Select(x => (Key: e.Key, x.ErrorMessage)))
+        .Where(e => !string.IsNullOrEmpty(e.ErrorMessage))
+        .ToList();
+    string? Err(string key) => ViewData.ModelState[key]?.Errors.FirstOrDefault()?.ErrorMessage;
+    string Invalid(string key) => Err(key) is null ? "false" : "true";
+    string InvalidClass(string key) => Err(key) is null ? "" : " is-invalid";
+    var documentFieldIds = documentInputs.ToDictionary(
+        t => HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.FieldFor(t.Code), t => "apply-doc-" + t.Code.ToLowerInvariant());
+    string? ApplyTarget(string key) => key switch
+    {
+        "FullName" => "apply-fullname",
+        "NationalId" => "apply-nationalid",
+        "Phone" => "apply-phone",
+        "Email" => "apply-email",
+        "EducationLevelCode" => "apply-education",
+        "Specialization" => "apply-specialization",
+        "GraduationYear" => "apply-graduation",
+        "YearsOfExperience" => "apply-experience",
+        "BirthDate" => "apply-birthdate",
+        "PreferredChannel" => "apply-channel-email",
+        "NotificationConsent" => "apply-notification-consent",
+        "CoverNote" => "apply-cover",
+        "PrivacyConsent" => "privacy-consent",
+        _ => documentFieldIds.TryGetValue(key, out var inputId) ? inputId : null
+    };
 }
 @if (isLegacy)
 {
@@ -30,15 +58,15 @@
 }
 <div class="careers-card mb-4">
     <div class="card-body">
-        <h3 class="card-title" style="font-size:1.4rem;">@Model.Title</h3>
+        <h1 class="card-title careers-posting-title">@Model.Title</h1>
         <p class="card-subtitle mb-3">
-            <i class="fas fa-building ms-1"></i> @(Model.Entity ?? "—")
-            @if (!string.IsNullOrWhiteSpace(Model.Location)) { <span>• <i class="fas fa-map-marker-alt ms-1"></i> @Model.Location</span> }
+            <i class="fas fa-building ms-1" aria-hidden="true"></i> @(Model.Entity ?? "—")
+            @if (!string.IsNullOrWhiteSpace(Model.Location)) { <span>• <i class="fas fa-map-marker-alt ms-1" aria-hidden="true"></i> @Model.Location</span> }
         </p>
         @if (Model.Requisition is not null)
         {
             <p class="text-muted mb-2">
-                <i class="fas fa-file-alt ms-1"></i> طلب الشاغر: <strong>@Model.Requisition.RequisitionNumber</strong>
+                <i class="fas fa-file-alt ms-1" aria-hidden="true"></i> طلب الشاغر: <strong>@Model.Requisition.RequisitionNumber</strong>
             </p>
         }
         @if (intakeClosed)
@@ -47,17 +75,17 @@
         }
         @if (closingDate is DateOnly closing)
         {
-            <p style="color:#6b1f2a;"><i class="fas fa-clock ms-1"></i> آخر موعد للتقديم: @closing.ToString("dd-MM-yyyy")</p>
+            <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للتقديم: <bdi dir="ltr">@closing.ToString("dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture)</bdi></p>
         }
         @if (!string.IsNullOrWhiteSpace(Model.Description))
         {
-            <h6 class="mt-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-file-alt ms-1"></i> الوصف</h6>
+            <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-file-alt ms-1" aria-hidden="true"></i> الوصف</h2>
             <p class="text-muted">@Model.Description</p>
         }
         @if (criteria is { IsEmpty: false })
         {
             @* HCM-030 (D2): checked at intake as notes for the screening team — an application is never refused for them. *@
-            <h6 class="mt-3 careers-section-title"><i class="fas fa-clipboard-list ms-1"></i> شروط التقديم</h6>
+            <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-clipboard-list ms-1" aria-hidden="true"></i> شروط التقديم</h2>
             <ul class="text-muted mb-2">
                 @if (criteria.MinQualificationCode is { } minCode)
                 {
@@ -84,7 +112,7 @@
         @if (requiredDocuments.Count > 0)
         {
             @* HCM-030 (E4): a missing document is a note for the screening team, not a refusal. *@
-            <h6 class="mt-3 careers-section-title"><i class="fas fa-paperclip ms-1"></i> المستندات المطلوبة</h6>
+            <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-paperclip ms-1" aria-hidden="true"></i> المستندات المطلوبة</h2>
             <ul class="text-muted mb-2">
                 @foreach (var type in requiredDocuments)
                 {
@@ -94,7 +122,7 @@
         }
         @if (!string.IsNullOrWhiteSpace(Model.Requirements))
         {
-            <h6 class="mt-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-list-check ms-1"></i> الشروط والمؤهلات</h6>
+            <h2 class="h6 mt-3 careers-section-title"><i class="fas fa-list-check ms-1" aria-hidden="true"></i> الشروط والمؤهلات</h2>
             <p class="text-muted">@Model.Requirements</p>
         }
     </div>
@@ -103,7 +131,7 @@
 @if (intakeClosed)
 {
     <div class="alert alert-secondary">
-        <i class="fas fa-lock ms-1"></i> انتهت فترة التقديم على هذه الوظيفة. يمكنك متابعة طلب سابق من صفحة «تتبع الطلب».
+        <i class="fas fa-lock ms-1" aria-hidden="true"></i> انتهت فترة التقديم على هذه الوظيفة. يمكنك متابعة طلب سابق من صفحة «تتبع الطلب».
         <a asp-action="Track" class="alert-link">تتبع الطلب</a>
     </div>
 }
@@ -111,70 +139,109 @@ else
 {
 <div class="careers-card">
     <div class="card-body">
-        <h5 style="color:#6b1f2a; font-weight:700; margin-bottom:1.25rem;"><i class="fas fa-paper-plane ms-2"></i> تقديم طلب توظيف</h5>
-        <form asp-action="Apply" method="post" enctype="multipart/form-data" class="careers-form" aria-label="نموذج تقديم طلب توظيف">
+        <h2 class="h5 careers-section-title mb-4" id="apply-title"><i class="fas fa-paper-plane ms-2" aria-hidden="true"></i> تقديم طلب توظيف</h2>
+        @if (applyErrors.Count > 0)
+        {
+            <div class="alert alert-danger border-0 shadow-sm" role="alert" tabindex="-1" data-hr-error-summary aria-labelledby="apply-errors-title">
+                <p class="fw-bold mb-1" id="apply-errors-title">يرجى تصحيح ما يلي:</p>
+                <ul class="mb-0">
+                    @foreach (var (key, message) in applyErrors)
+                    {
+                        var target = ApplyTarget(key);
+                        if (target is null)
+                        {
+                            <li>@message</li>
+                        }
+                        else
+                        {
+                            <li><a href="#@target">@message</a></li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+        <form asp-action="Apply" method="post" enctype="multipart/form-data" class="careers-form" aria-labelledby="apply-title">
             @Html.AntiForgeryToken()
             <input type="hidden" name="PublicJobPostingId" value="@Model.Id" />
             <div class="visually-hidden" aria-hidden="true">
                 <label for="website-hp">لا تملأ هذا الحقل</label>
                 <input id="website-hp" name="Website" tabindex="-1" autocomplete="off" />
             </div>
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="apply-fullname">الاسم الكامل</label>
-                    <input id="apply-fullname" name="FullName" class="form-control" value="@applyModel.FullName" required />
+                    <input id="apply-fullname" name="FullName" class="form-control@(InvalidClass("FullName"))" maxlength="300" autocomplete="name"
+                           value="@applyModel.FullName" required aria-required="true" aria-invalid="@Invalid("FullName")"
+                           aria-describedby="@(Err("FullName") is null ? null : "apply-fullname-error")" />
+                    @if (Err("FullName") is { } fullNameError) { <div class="invalid-feedback d-block" id="apply-fullname-error">@fullNameError</div> }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-nationalid">الرقم الوطني</label>
-                    <input id="apply-nationalid" name="NationalId" class="form-control" value="@applyModel.NationalId" required />
+                    <input id="apply-nationalid" name="NationalId" class="form-control@(InvalidClass("NationalId"))" maxlength="20" inputmode="numeric"
+                           autocomplete="off" value="@applyModel.NationalId" required aria-required="true" aria-invalid="@Invalid("NationalId")"
+                           aria-describedby="@(Err("NationalId") is null ? null : "apply-nationalid-error")" />
+                    @if (Err("NationalId") is { } nationalIdError) { <div class="invalid-feedback d-block" id="apply-nationalid-error">@nationalIdError</div> }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-phone">رقم الهاتف</label>
-                    <input id="apply-phone" name="Phone" type="tel" class="form-control" inputmode="tel" autocomplete="tel" maxlength="20"
-                           value="@applyModel.Phone" aria-describedby="apply-phone-help apply-phone-error" />
+                    <input id="apply-phone" name="Phone" type="tel" class="form-control@(InvalidClass("Phone"))" inputmode="tel" autocomplete="tel" maxlength="20"
+                           value="@applyModel.Phone" aria-invalid="@Invalid("Phone")"
+                           aria-describedby="apply-phone-help@(Err("Phone") is null ? "" : " apply-phone-error")" />
                     <small id="apply-phone-help" class="text-muted d-block">مثال: <bdi dir="ltr">0999123456</bdi> أو <bdi dir="ltr">+963999123456</bdi> — يلزم إدخال الهاتف أو البريد الإلكتروني</small>
-                    @Html.ValidationMessage("Phone", null, new { @class = "text-danger small d-block", id = "apply-phone-error" })
+                    @if (Err("Phone") is { } phoneError) { <div class="invalid-feedback d-block" id="apply-phone-error">@phoneError</div> }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-email">البريد الإلكتروني</label>
-                    <input id="apply-email" name="Email" type="email" class="form-control" autocomplete="email" maxlength="150"
-                           value="@applyModel.Email" aria-describedby="apply-email-error" />
-                    @Html.ValidationMessage("Email", null, new { @class = "text-danger small d-block", id = "apply-email-error" })
+                    <input id="apply-email" name="Email" type="email" class="form-control@(InvalidClass("Email"))" autocomplete="email" maxlength="150"
+                           value="@applyModel.Email" aria-invalid="@Invalid("Email")"
+                           aria-describedby="@(Err("Email") is null ? null : "apply-email-error")" />
+                    @if (Err("Email") is { } emailError) { <div class="invalid-feedback d-block" id="apply-email-error">@emailError</div> }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-education">المؤهل العلمي</label>
-                    <select id="apply-education" name="EducationLevelCode" class="form-select">
+                    <select id="apply-education" name="EducationLevelCode" class="form-select@(InvalidClass("EducationLevelCode"))"
+                            aria-invalid="@Invalid("EducationLevelCode")"
+                            aria-describedby="@(Err("EducationLevelCode") is null ? null : "apply-education-error")">
                         <option value="">— اختر —</option>
                         @foreach (var q in qualifications)
                         {
                             <option value="@q.Code" selected="@(string.Equals(applyModel.EducationLevelCode, q.Code, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@q.NameAr</option>
                         }
                     </select>
-                    @Html.ValidationMessage("EducationLevelCode", null, new { @class = "text-danger small" })
+                    @if (Err("EducationLevelCode") is { } educationError) { <div class="invalid-feedback d-block" id="apply-education-error">@educationError</div> }
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="apply-specialization">التخصص</label>
-                    <input id="apply-specialization" name="Specialization" class="form-control" maxlength="200" value="@applyModel.Specialization" />
+                    <input id="apply-specialization" name="Specialization" class="form-control@(InvalidClass("Specialization"))" maxlength="200"
+                           value="@applyModel.Specialization" aria-invalid="@Invalid("Specialization")"
+                           aria-describedby="@(Err("Specialization") is null ? null : "apply-specialization-error")" />
+                    @if (Err("Specialization") is { } specializationError) { <div class="invalid-feedback d-block" id="apply-specialization-error">@specializationError</div> }
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="apply-graduation">سنة التخرج</label>
-                    <input id="apply-graduation" name="GraduationYear" type="number" class="form-control" inputmode="numeric"
-                           min="@HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.MinGraduationYear" max="@DateTime.UtcNow.Year" value="@applyModel.GraduationYear" />
-                    @Html.ValidationMessage("GraduationYear", null, new { @class = "text-danger small" })
+                    <input id="apply-graduation" name="GraduationYear" type="number" class="form-control@(InvalidClass("GraduationYear"))" inputmode="numeric"
+                           min="@HR.Core.Web.ViewModels.CitizenApplicationApplyViewModel.MinGraduationYear" max="@DateTime.UtcNow.Year" value="@applyModel.GraduationYear"
+                           aria-invalid="@Invalid("GraduationYear")"
+                           aria-describedby="@(Err("GraduationYear") is null ? null : "apply-graduation-error")" />
+                    @if (Err("GraduationYear") is { } graduationError) { <div class="invalid-feedback d-block" id="apply-graduation-error">@graduationError</div> }
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="apply-experience">سنوات الخبرة</label>
-                    <input id="apply-experience" name="YearsOfExperience" type="number" class="form-control" min="0" max="60" step="0.5"
-                           value="@applyModel.YearsOfExperience?.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
-                    @Html.ValidationMessage("YearsOfExperience", null, new { @class = "text-danger small" })
+                    <input id="apply-experience" name="YearsOfExperience" type="number" class="form-control@(InvalidClass("YearsOfExperience"))" min="0" max="60" step="0.5"
+                           value="@applyModel.YearsOfExperience?.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                           aria-invalid="@Invalid("YearsOfExperience")"
+                           aria-describedby="@(Err("YearsOfExperience") is null ? null : "apply-experience-error")" />
+                    @if (Err("YearsOfExperience") is { } experienceError) { <div class="invalid-feedback d-block" id="apply-experience-error">@experienceError</div> }
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="apply-birthdate">تاريخ الميلاد</label>
-                    <input id="apply-birthdate" name="BirthDate" type="date" class="form-control" max="@maxBirthDate.ToString("yyyy-MM-dd")"
-                           value="@applyModel.BirthDate?.ToString("yyyy-MM-dd")" aria-describedby="apply-birthdate-help" />
+                    <input id="apply-birthdate" name="BirthDate" type="date" class="form-control@(InvalidClass("BirthDate"))"
+                           max="@maxBirthDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)"
+                           value="@applyModel.BirthDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)"
+                           aria-invalid="@Invalid("BirthDate")"
+                           aria-describedby="apply-birthdate-help@(Err("BirthDate") is null ? "" : " apply-birthdate-error")" />
                     <small id="apply-birthdate-help" class="text-muted">يُستخدم للتحقق من شروط العمر فقط ولا يظهر إلا لفريق التوظيف.</small>
-                    @Html.ValidationMessage("BirthDate", null, new { @class = "text-danger small d-block" })
+                    @if (Err("BirthDate") is { } birthDateError) { <div class="invalid-feedback d-block" id="apply-birthdate-error">@birthDateError</div> }
                 </div>
                 @if (!isLegacy)
                 {
@@ -197,11 +264,13 @@ else
                                 var isRequired = requiredDocuments.Contains(code);
                                 var multiple = code is HR.Core.Domain.Services.CandidateDocumentTypes.Certificate
                                     or HR.Core.Domain.Services.CandidateDocumentTypes.Other;
+                                var docError = Err(field);
                                 <div class="col-md-6">
                                     <label class="form-label" for="@inputId">@label@(isRequired ? " (مطلوب)" : " (اختياري)")</label>
-                                    <input id="@inputId" name="@field" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png"
-                                           multiple="@(multiple ? "multiple" : null)" aria-describedby="apply-documents-help @inputId-error" />
-                                    @Html.ValidationMessage(field, null, new { @class = "text-danger small d-block", id = inputId + "-error" })
+                                    <input id="@inputId" name="@field" type="file" class="form-control@(InvalidClass(field))" accept=".pdf,.jpg,.jpeg,.png"
+                                           multiple="@(multiple ? "multiple" : null)" aria-invalid="@Invalid(field)"
+                                           aria-describedby="apply-documents-help@(docError is null ? "" : $" {inputId}-error")" />
+                                    @if (docError is not null) { <div class="invalid-feedback d-block" id="@inputId-error">@docError</div> }
                                 </div>
                             }
                         </div>
@@ -211,22 +280,22 @@ else
                 {
                     @* COM-030 (F2): status notifications only with consent, on the chosen channel. *@
                     var channel = applyModel.PreferredChannel;
-                    <fieldset class="col-12" aria-describedby="apply-channel-help apply-channel-error">
+                    <fieldset class="col-12" aria-describedby="apply-channel-help@(Err("PreferredChannel") is null ? "" : " apply-channel-error")">
                         <legend class="form-label fs-6 fw-bold">إشعارات حالة الطلب</legend>
                         <small id="apply-channel-help" class="text-muted d-block mb-2">
                             نرسل إليك إشعاراً عند كل مرحلة من طلبك (الاستلام، المقابلة، العرض، القرار) دون أي بيانات شخصية.
                         </small>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="PreferredChannel" id="apply-channel-email" value="Email"
+                            <input class="form-check-input" type="radio" name="PreferredChannel" id="apply-channel-email" value="Email" aria-invalid="@Invalid("PreferredChannel")"
                                    @(channel == HRManagement.SharedKernel.Notifications.NotificationChannel.Email ? "checked" : "") />
                             <label class="form-check-label" for="apply-channel-email">البريد الإلكتروني</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="PreferredChannel" id="apply-channel-sms" value="Sms"
+                            <input class="form-check-input" type="radio" name="PreferredChannel" id="apply-channel-sms" value="Sms" aria-invalid="@Invalid("PreferredChannel")"
                                    @(channel == HRManagement.SharedKernel.Notifications.NotificationChannel.Sms ? "checked" : "") />
                             <label class="form-check-label" for="apply-channel-sms">رسالة نصية</label>
                         </div>
-                        @Html.ValidationMessage("PreferredChannel", null, new { @class = "text-danger small d-block", id = "apply-channel-error" })
+                        @if (Err("PreferredChannel") is { } channelError) { <div class="invalid-feedback d-block" id="apply-channel-error">@channelError</div> }
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" id="apply-notification-consent" name="NotificationConsent" value="true"
                                    @(applyModel.NotificationConsent ? "checked" : "") />
@@ -238,23 +307,29 @@ else
                 }
                 <div class="col-12">
                     <label class="form-label" for="apply-cover">نبذة / مسوّغات</label>
-                    <textarea id="apply-cover" name="CoverNote" class="form-control" rows="3">@applyModel.CoverNote</textarea>
+                    <textarea id="apply-cover" name="CoverNote" class="form-control@(InvalidClass("CoverNote"))" rows="3" aria-invalid="@Invalid("CoverNote")"
+                              aria-describedby="@(Err("CoverNote") is null ? null : "apply-cover-error")">@applyModel.CoverNote</textarea>
+                    @if (Err("CoverNote") is { } coverError) { <div class="invalid-feedback d-block" id="apply-cover-error">@coverError</div> }
                 </div>
                 <div class="col-12">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="privacy-consent" name="PrivacyConsent" value="true" required @(applyModel.PrivacyConsent ? "checked" : "") />
+                        <input class="form-check-input@(InvalidClass("PrivacyConsent"))" type="checkbox" id="privacy-consent" name="PrivacyConsent" value="true"
+                               required aria-required="true" aria-invalid="@Invalid("PrivacyConsent")"
+                               aria-describedby="@(Err("PrivacyConsent") is null ? null : "privacy-consent-error")" @(applyModel.PrivacyConsent ? "checked" : "") />
                         <label class="form-check-label" for="privacy-consent">
                             أوافق على معالجة بياناتي لغرض التوظيف —
-                            <a asp-action="Privacy" target="_blank">إشعار الخصوصية</a>
+                            <a asp-action="Privacy" target="_blank">إشعار الخصوصية<span class="visually-hidden"> (يفتح في نافذة جديدة)</span></a>
                         </label>
+                        @if (Err("PrivacyConsent") is { } privacyError) { <div class="invalid-feedback d-block" id="privacy-consent-error">@privacyError</div> }
                     </div>
                 </div>
             </div>
             <div class="mt-3">
-                <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1"></i> إرسال الطلب</button>
+                <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1" aria-hidden="true"></i> إرسال الطلب</button>
                 <a asp-action="Index" class="btn careers-btn-outline me-2">رجوع</a>
             </div>
         </form>
     </div>
 </div>
+<script src="~/js/careers-portal.js" asp-append-version="true"></script>
 }

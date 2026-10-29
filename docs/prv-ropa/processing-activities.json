@@ -31,6 +31,45 @@
       "dpiaRef": "PRV_001_DPIA_RECRUITMENT.md"
     },
     {
+      "id": "pa-hcm-candidate-otp",
+      "service": "HR.Core",
+      "purpose": "Candidate one-time code verification and /careers/my session (status, offer response, withdrawal, appeal)",
+      "legalBasis": "Public recruitment procedure / applicant consent",
+      "dataCategories": ["Contact", "Application", "AuthenticationCode"],
+      "dataSubjects": ["Applicants"],
+      "recipients": ["SMTP/SMS processor (يُحدَّد عند D-8)", "Compliance(DSAR, counts only)"],
+      "retentionPolicy": "ret-recruitment-application",
+      "securityMeasures": ["TenantIsolation", "NationalIdHash", "CodeHmac", "AttemptLockout", "RateLimit", "SessionCookieHardening", "AntiForgery", "AuditRedact"],
+      "highRisk": true,
+      "dpiaRef": "PRV_001_DPIA_RECRUITMENT.md"
+    },
+    {
+      "id": "pa-hcm-candidate-documents",
+      "service": "HR.Core",
+      "purpose": "Candidate documents (CV, certificates) and on-behalf offer evidence for screening and selection",
+      "legalBasis": "Public recruitment procedure / applicant consent",
+      "dataCategories": ["PII", "Application", "Documents"],
+      "dataSubjects": ["Applicants"],
+      "recipients": ["File.Storage", "HR.Core(selection)", "Compliance(DSAR, metadata only)"],
+      "retentionPolicy": "ret-recruitment-application",
+      "securityMeasures": ["TenantIsolation", "MalwareScan", "TypeAndSizeLimit", "FileReferenceRelease", "RBAC"],
+      "highRisk": true,
+      "dpiaRef": "PRV_001_DPIA_RECRUITMENT.md"
+    },
+    {
+      "id": "pa-hcm-candidate-notifications",
+      "service": "HR.Core",
+      "purpose": "Candidate status notifications (received, decision, interview, offer) by email or SMS",
+      "legalBasis": "Applicant consent (notification channel opt-in)",
+      "dataCategories": ["Contact", "Application"],
+      "dataSubjects": ["Applicants"],
+      "recipients": ["SMTP/SMS processor (يُحدَّد عند D-8)", "Compliance(DSAR, masked log)"],
+      "retentionPolicy": "ret-recruitment-application",
+      "securityMeasures": ["TenantIsolation", "ConsentCheckbox", "NoNationalIdInMessages", "MaskedRecipient", "AuditRedact"],
+      "highRisk": true,
+      "dpiaRef": "PRV_001_DPIA_RECRUITMENT.md"
+    },
+    {
       "id": "pa-payroll-compensation",
       "service": "Payroll",
       "purpose": "Compensation calculation and payment batching",
