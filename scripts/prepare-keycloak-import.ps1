@@ -98,7 +98,9 @@ function Get-AcceptanceEmployeeId($Persona) {
     }
     $value = "{0}|employee|{1:D5}" -f $agency, $globalIndex
     $payload = [System.Text.Encoding]::UTF8.GetBytes("HRM|acceptance-v2|$value")
-    $hash = [System.Security.Cryptography.SHA256]::HashData($payload)
+    # SHA256.Create().ComputeHash (not the .NET 5+ static HashData) so Windows PowerShell 5.1 can run it (#Requires 5.1).
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { $hash = $sha.ComputeHash($payload) } finally { $sha.Dispose() }
     $guidBytes = [byte[]]$hash[0..15]
     $guidBytes[6] = [byte](($guidBytes[6] -band 0x0F) -bor 0x40)
     $guidBytes[8] = [byte](($guidBytes[8] -band 0x3F) -bor 0x80)

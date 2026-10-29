@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-HCM-30a/b/h public apply \u2192 HR \u2192 rejection \u2192 portal status \u2192 appeal",
+  "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver\u002Bcitizen (anonymous)",
+  "correlationId": "195cf63f-d31e-47d0-89aa-70c1e24deedf",
+  "capturedAtUtc": "2026-10-29T04:40:04.1404445Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "da1e61b59c4799606c1614bbcd6abf74a26745fe"
+}

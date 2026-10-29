@@ -1,0 +1,15 @@
+{
+  "step": "30d-e-30d-declare-coi-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/DeclareCoi",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T03:58:49.4698430Z",
+  "body": {
+    "fields": [
+      "id=2f267d28-0c64-4f44-a2c7-3ae9ee28faa0"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/2f267d28-0c64-4f44-a2c7-3ae9ee28faa0",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/2f267d28-0c64-4f44-a2c7-3ae9ee28faa0"
+  }
+}

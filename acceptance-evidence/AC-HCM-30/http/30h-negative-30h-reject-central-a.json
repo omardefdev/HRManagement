@@ -1,0 +1,17 @@
+{
+  "step": "30h-negative-30h-reject-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/SetStatus",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T04:01:33.0016274Z",
+  "body": {
+    "fields": [
+      "id=71a2058c-4247-4fbf-ad52-101acd7b8ff4",
+      "status=Rejected",
+      "rejectionNote=AC-HCM-30h"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/71a2058c-4247-4fbf-ad52-101acd7b8ff4",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/71a2058c-4247-4fbf-ad52-101acd7b8ff4"
+  }
+}

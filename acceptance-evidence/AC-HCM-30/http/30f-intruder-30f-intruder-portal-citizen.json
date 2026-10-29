@@ -1,0 +1,10 @@
+{
+  "step": "30f-intruder-30f-intruder-portal-citizen",
+  "method": "GET",
+  "url": "/careers/my",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-10-29T04:01:49.0877477Z",
+  "body": {
+    "location": "/careers/my/login"
+  }
+}

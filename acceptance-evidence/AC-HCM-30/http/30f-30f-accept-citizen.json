@@ -1,0 +1,16 @@
+{
+  "step": "30f-30f-accept-citizen",
+  "method": "POST",
+  "url": "/careers/my/offer/accept",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T04:01:45.2339310Z",
+  "body": {
+    "fields": [
+      "Acknowledge=true",
+      "FullName=(set)"
+    ],
+    "postStatus": 302,
+    "redirect": "/careers/my?done=accepted",
+    "final": "/careers/my"
+  }
+}

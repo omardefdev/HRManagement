@@ -1,0 +1,12 @@
+{
+  "requisition": "53be8846-541b-4759-b5a2-4ac82622bdab",
+  "declined": {
+    "offer": "3e75ef75-52d0-48df-9321-7c676d7a9397",
+    "application": "fffbcdee-3e1e-490f-9bca-fc44d50280a5"
+  },
+  "accepted": {
+    "offer": "89956f02-b191-4a75-93b2-9c69d4e68fb1",
+    "application": "63504e10-d55d-4d59-8a80-836789b5b282",
+    "autoDrafted": false
+  }
+}

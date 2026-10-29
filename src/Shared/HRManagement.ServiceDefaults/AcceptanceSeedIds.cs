@@ -46,6 +46,25 @@ public static class AcceptanceSeedIds
 
     public const string CommitteeRequisitionNumber = "REQ-2026-A-CMT1";
 
+    /// <summary>PLAN-30 (AC-HCM-30a–e/h): agency A published requisition with eligibility criteria and required documents.</summary>
+    public static readonly Guid CandidateExperienceRequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000512");
+    public static readonly Guid CandidateExperiencePostingId = Guid.Parse("a0000001-0000-4000-8000-000000000513");
+    public const string CandidateExperienceRequisitionNumber = "REQ-2026-A-CX01";
+
+    /// <summary>PLAN-30 (AC-HCM-30j): unlinked citizen rows on that requisition (Received, UnderReview) for the backfill.</summary>
+    public static readonly Guid CandidateBackfillCitizenReceivedId = Guid.Parse("a0000001-0000-4000-8000-000000000514");
+    public static readonly Guid CandidateBackfillCitizenUnderReviewId = Guid.Parse("a0000001-0000-4000-8000-000000000515");
+
+    /// <summary>PLAN-30 (AC-HCM-30i): cancelled requisition with a due pair (one document) and a legal-hold twin.</summary>
+    public static readonly Guid CandidateRetentionRequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000516");
+    public static readonly Guid CandidateRetentionDueApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000517");
+    public static readonly Guid CandidateRetentionDueCitizenId = Guid.Parse("a0000001-0000-4000-8000-000000000518");
+    public static readonly Guid CandidateRetentionHeldApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000519");
+    public static readonly Guid CandidateRetentionHeldCitizenId = Guid.Parse("a0000001-0000-4000-8000-000000000520");
+    public static readonly Guid CandidateRetentionDueDocumentId = Guid.Parse("a0000001-0000-4000-8000-000000000521");
+    public static readonly Guid CandidateRetentionDueFileId = Guid.Parse("a0000001-0000-4000-8000-000000000522");
+    public const string CandidateRetentionRequisitionNumber = "REQ-2022-A-RET1";
+
     public static readonly Guid AcceptanceAssetBr1Id = Guid.Parse("a0000001-0000-4000-8000-000000000601");
     public static readonly Guid AcceptanceAssetBr1AssignmentId = Guid.Parse("a0000001-0000-4000-8000-000000000602");
     public const string AcceptanceAssetBr1Tag = "ACCEPT-ASSET-BR1";

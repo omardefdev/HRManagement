@@ -70,6 +70,11 @@ services:
       Recruitment__PublicPortalBaseUrl: http://localhost:6200
       # HCM-030 (G3): candidate retention anonymizes in acceptance (Production stays a dry run until DPO approval).
       Recruitment__Retention__Apply: "true"
+      # HCM-030 (PLAN-30 H3/L): every host test reaches the portal through the gateway from one client address, so the
+      # per-IP OTP windows are raised here (defaults 5 requests / 20 checks per 10 minutes); the per-application database
+      # counters (resend window, wrong codes, lock) keep their defaults and are what AC-HCM-30f asserts.
+      Recruitment__Portal__OtpRequestsPerIpPer10Min: "60"
+      Recruitment__Portal__OtpVerifyPerIpPer10Min: "120"
     volumes:
       - acceptance_data_protection:/var/hrm/dpkeys
       - ./artifacts/acceptance/candidate-notifications:/var/hrm/candidate-notifications

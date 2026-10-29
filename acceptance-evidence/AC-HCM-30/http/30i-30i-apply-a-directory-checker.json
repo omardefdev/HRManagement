@@ -1,0 +1,13 @@
+{
+  "step": "30i-30i-apply-a-directory-checker",
+  "method": "POST",
+  "url": "/ui/hr-core/CandidateLifecycle/apply",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T04:01:50.3902558Z",
+  "body": {
+    "fields": [],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/CandidateLifecycle/Index",
+    "final": "/ui/hr-core/CandidateLifecycle/Index"
+  }
+}

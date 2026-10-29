@@ -159,6 +159,75 @@ public class AcceptanceSeedTests
     }
 
     [Fact]
+    public async Task Acceptance_candidate_experience_patch_seeds_the_ac_hcm_30_fixtures_once()
+    {
+        // PLAN-30 (AC-HCM-30a–e/h, 30i, 30j): requisition with criteria and required documents, two unlinked citizen rows,
+        // a cancelled requisition with a due pair (one document) and a held twin; idempotent, never resets a changed row.
+        var options = new DbContextOptionsBuilder<HRCoreDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using (var seed = new HRCoreDbContext(options))
+        {
+            await AcceptanceDataSeeder.SeedAsync(seed, NullLogger.Instance);
+            await AcceptanceCandidateExperiencePatch.ApplyAsync(seed, NullLogger.Instance);
+        }
+
+        await using var db = new HRCoreDbContext(options);
+        var cx = await db.RecruitmentRequisitions.IgnoreQueryFilters()
+            .SingleAsync(r => r.Id == AcceptanceSeedIds.CandidateExperienceRequisitionId);
+        Assert.Equal(HR.Core.Domain.Enums.RequisitionStatus.Published, cx.Status);
+        Assert.Equal(AcceptanceSeedIds.AgencyAId, cx.TenantId);
+        Assert.Equal("BACH", cx.MinQualificationCode);
+        Assert.Equal(2m, cx.MinYearsOfExperience);
+        Assert.Equal(["Cv", "Certificate"], HR.Core.Domain.Services.CandidateDocumentTypes.Parse(cx.RequiredDocumentTypes));
+        Assert.Equal(AcceptanceSeedIds.CandidateExperiencePostingId, cx.PublicJobPostingId);
+        Assert.True(cx.ApplicationClosingDate > DateOnly.FromDateTime(DateTime.UtcNow));
+        Assert.Equal(1, await db.RecruitmentRequisitions.IgnoreQueryFilters().CountAsync(r => r.FundedPositionId == cx.FundedPositionId));
+        var position = await db.FundedPositions.IgnoreQueryFilters().SingleAsync(p => p.Id == cx.FundedPositionId);
+        Assert.Equal("RIF", AcceptanceSeedCatalog.GetOrgUnit(position.OrgUnitId).SiteCode);
+        Assert.True(await db.PublicJobPostings.IgnoreQueryFilters().AnyAsync(p => p.Id == AcceptanceSeedIds.CandidateExperiencePostingId && p.IsPublished));
+        Assert.True(await db.RecruitmentAssessmentCriteria.IgnoreQueryFilters().AnyAsync(c => c.RequisitionId == cx.Id && c.IsActive));
+
+        Guid[] backfillIds = [AcceptanceSeedIds.CandidateBackfillCitizenReceivedId, AcceptanceSeedIds.CandidateBackfillCitizenUnderReviewId];
+        var backfill = await db.CitizenApplications.IgnoreQueryFilters().Where(c => backfillIds.Contains(c.Id)).ToListAsync();
+        Assert.Equal(2, backfill.Count);
+        Assert.All(backfill, c =>
+        {
+            Assert.Equal(cx.Id, c.RequisitionId);
+            Assert.Null(c.PromotedRecruitmentApplicationId);
+            // Recent: the legacy retention rule (36 months after submission) must never reach them in acceptance.
+            Assert.True(c.SubmittedAt > DateTime.UtcNow.AddMonths(-1));
+        });
+
+        var retention = await db.RecruitmentRequisitions.IgnoreQueryFilters()
+            .SingleAsync(r => r.Id == AcceptanceSeedIds.CandidateRetentionRequisitionId);
+        Assert.Equal(HR.Core.Domain.Enums.RequisitionStatus.Cancelled, retention.Status);
+        Assert.True(retention.CancelledAt <= DateTime.UtcNow.AddMonths(-36));
+        Guid[] pairIds = [AcceptanceSeedIds.CandidateRetentionDueApplicationId, AcceptanceSeedIds.CandidateRetentionHeldApplicationId];
+        var pairs = await db.RecruitmentApplications.IgnoreQueryFilters().Where(a => pairIds.Contains(a.Id)).ToListAsync();
+        Assert.Equal(2, pairs.Count);
+        Assert.Single(pairs, a => a.LegalHold);
+        Assert.Equal(2, await db.CitizenApplications.IgnoreQueryFilters()
+            .CountAsync(c => c.PromotedRecruitmentApplicationId != null && pairIds.Contains(c.PromotedRecruitmentApplicationId.Value)));
+        Assert.Equal(AcceptanceSeedIds.CandidateRetentionDueFileId, (await db.CandidateDocuments.IgnoreQueryFilters()
+            .SingleAsync(d => d.RecruitmentApplicationId == AcceptanceSeedIds.CandidateRetentionDueApplicationId)).FileId);
+        Assert.Equal(0, await db.RecruitmentApplicationEvents.IgnoreQueryFilters().CountAsync(e => pairIds.Contains(e.RecruitmentApplicationId)));
+
+        // A second pass adds nothing and keeps what the tests/jobs changed.
+        var due = pairs.Single(a => !a.LegalHold);
+        due.AnonymizedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        await using (var again = new HRCoreDbContext(options))
+            await AcceptanceCandidateExperiencePatch.ApplyAsync(again, NullLogger.Instance);
+        await using var check = new HRCoreDbContext(options);
+        Assert.Equal(2, await check.RecruitmentRequisitions.IgnoreQueryFilters().CountAsync(r =>
+            r.Id == AcceptanceSeedIds.CandidateExperienceRequisitionId || r.Id == AcceptanceSeedIds.CandidateRetentionRequisitionId));
+        Assert.Equal(2, await check.CitizenApplications.IgnoreQueryFilters().CountAsync(c => backfillIds.Contains(c.Id)));
+        Assert.Equal(2, await check.RecruitmentApplications.IgnoreQueryFilters().CountAsync(a => pairIds.Contains(a.Id)));
+        Assert.NotNull((await check.RecruitmentApplications.IgnoreQueryFilters().SingleAsync(a => a.Id == due.Id)).AnonymizedAt);
+    }
+
+    [Fact]
     public void AcceptanceSeedIds_are_stable()
     {
         Assert.Equal("AGENCY-A", AcceptanceSeedIds.AgencyACode);

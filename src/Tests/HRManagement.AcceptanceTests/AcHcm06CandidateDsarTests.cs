@@ -56,6 +56,9 @@ public class AcHcm06CandidateDsarTests
         File.WriteAllText(Path.Combine(recorder.Folder, "candidate-package.json"), packageJson);
 
         Assert.DoesNotMatch(new Regex(@"\b\d{11}\b"), packageJson);
+        // PLAN-30 K2: /careers/my code challenges are exported as counts only.
+        Assert.DoesNotContain("codeHmac", packageJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("requestIp", packageJson, StringComparison.OrdinalIgnoreCase);
         using var packageDoc = JsonDocument.Parse(packageJson);
         Assert.False(string.IsNullOrWhiteSpace(
             packageDoc.RootElement.GetProperty("packageContentHash").GetString()));

@@ -8,14 +8,21 @@
 #   powershell -File scripts/hcm030-backfill-unified-intake.ps1                 # dry run (default): report only
 #   powershell -File scripts/hcm030-backfill-unified-intake.ps1 -Apply
 #   powershell -File scripts/hcm030-backfill-unified-intake.ps1 -Apply -ConnectionString "Host=localhost;..."
+#   powershell -File scripts/hcm030-backfill-unified-intake.ps1 -Apply -DockerContainer hrm-acceptance-postgresql-1
 #
 # -ConnectionString (default: $env:HRCORE_DB_CONNECTION) may be an Npgsql string ("Host=...;Username=...") or anything
 # psql accepts (libpq keywords or a postgresql:// URI).
+# -DockerContainer runs the SQL with the psql inside that PostgreSQL container instead of a host psql (docker cp +
+# docker exec; -Database, default hr_core_db, and -DbUser, default hrm_ci as in the acceptance/CI stacks);
+# -ConnectionString is then ignored.
 
 param(
     [switch]$DryRun,
     [switch]$Apply,
     [string]$ConnectionString = "",
+    [string]$DockerContainer = "",
+    [string]$Database = "hr_core_db",
+    [string]$DbUser = "hrm_ci",
     [string]$RepoRoot = ""
 )
 
@@ -67,8 +74,22 @@ try {
     # No BOM: psql would read it as part of the first statement.
     [IO.File]::WriteAllText($tmp, $sql, (New-Object Text.UTF8Encoding $false))
     $env:PGCLIENTENCODING = "UTF8"
-    $rows = @(& psql $ConnectionString -q -v ON_ERROR_STOP=1 -At -F '|' -f $tmp)
-    if ($LASTEXITCODE -ne 0) { throw "psql failed ($LASTEXITCODE)" }
+    if ($DockerContainer) {
+        $containerFile = "/tmp/hcm030-backfill-unified-intake-$([Guid]::NewGuid().ToString('N')).sql"
+        & docker cp -q $tmp "${DockerContainer}:$containerFile"
+        if ($LASTEXITCODE -ne 0) { throw "docker cp to $DockerContainer failed ($LASTEXITCODE)" }
+        try {
+            $rows = @(& docker exec -e PGCLIENTENCODING=UTF8 $DockerContainer psql -U $DbUser -d $Database -q -v ON_ERROR_STOP=1 -At -F '|' -f $containerFile)
+            if ($LASTEXITCODE -ne 0) { throw "psql in $DockerContainer failed ($LASTEXITCODE)" }
+        }
+        finally {
+            & docker exec $DockerContainer rm -f $containerFile | Out-Null
+        }
+    }
+    else {
+        $rows = @(& psql $ConnectionString -q -v ON_ERROR_STOP=1 -At -F '|' -f $tmp)
+        if ($LASTEXITCODE -ne 0) { throw "psql failed ($LASTEXITCODE)" }
+    }
 }
 finally {
     Remove-Item $tmp -Force -ErrorAction SilentlyContinue

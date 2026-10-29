@@ -1,0 +1,16 @@
+{
+  "step": "30f-30f-otp-verify-citizen",
+  "method": "POST",
+  "url": "/careers/my/verify",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T04:01:45.1665108Z",
+  "body": {
+    "fields": [
+      "ReferenceNumber=-2026-00011",
+      "Code=***"
+    ],
+    "postStatus": 302,
+    "redirect": "/careers/my",
+    "final": "/careers/my"
+  }
+}

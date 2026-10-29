@@ -1,0 +1,24 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "12739b0b-0f48-4824-9e42-56bc5d9610a0",
+  "httpObservationCount": 9,
+  "lastHttpObservation": {
+    "step": "30b-negative-30b-negative-otp-verify-citizen",
+    "method": "POST",
+    "url": "/careers/my/verify",
+    "statusCode": 200,
+    "capturedAtUtc": "2026-10-29T04:01:24.0366324Z",
+    "body": {
+      "fields": [
+        "ReferenceNumber=-2026-00007",
+        "Code=***"
+      ],
+      "postStatus": 302,
+      "redirect": "/careers/my",
+      "final": "/careers/my"
+    }
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

@@ -1,0 +1,12 @@
+{
+  "step": "30f-30f-offer-letter-citizen",
+  "method": "GET",
+  "url": "/careers/my/offer/letter",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T04:01:45.1839530Z",
+  "body": {
+    "contentType": "application/pdf",
+    "length": 49308,
+    "head": "%PDF"
+  }
+}

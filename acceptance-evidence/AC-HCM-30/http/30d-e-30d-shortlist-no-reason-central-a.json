@@ -1,0 +1,16 @@
+{
+  "step": "30d-e-30d-shortlist-no-reason-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/SetStatus",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T03:58:49.5355287Z",
+  "body": {
+    "fields": [
+      "id=2f267d28-0c64-4f44-a2c7-3ae9ee28faa0",
+      "status=Shortlisted"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/2f267d28-0c64-4f44-a2c7-3ae9ee28faa0",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/2f267d28-0c64-4f44-a2c7-3ae9ee28faa0"
+  }
+}
