@@ -234,6 +234,41 @@ public class Hcm031CompetitionIntegrationTests(Hcm026PostgresFixture fixture) : 
         Assert.Equal(RecruitmentApplicationStatus.Hired, (await check.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == winner.Id)).Status);
     }
 
+    [SkippableFact]
+    public async Task Two_concurrent_recalls_on_one_line_take_two_distinct_reserves()
+    {
+        Skip.IfNot(fixture.Available, fixture.UnavailableReason);
+        var tenant = Guid.NewGuid();
+        var seed = await SeedPublishedAsync(tenant, [95m, 90m, 85m, 80m, 75m], [2]);
+        List<(Guid AppId, Guid RequisitionId)> vacated;
+        await using (var db = fixture.CreateContext(tenant))
+        {
+            Assert.True((await CreateAllocation(db).FinalizeAsync(seed.CompetitionId, Actor)).Success);
+            // Both allocated candidates leave at the same moment (test data: status set directly).
+            var allocated = await db.RecruitmentApplications.Where(a => a.CompetitionId == seed.CompetitionId && a.Status == RecruitmentApplicationStatus.Ranked).ToListAsync();
+            Assert.Equal(2, allocated.Count);
+            vacated = allocated.Select(a => (a.Id, a.RequisitionId!.Value)).ToList();
+            foreach (var app in allocated)
+                app.Status = RecruitmentApplicationStatus.Withdrawn;
+            await db.SaveChangesAsync();
+        }
+
+        await using var dbA = fixture.CreateContext(tenant);
+        await using var dbB = fixture.CreateContext(tenant);
+        var results = await Task.WhenAll(
+            Task.Run(() => new CompetitionReserveService(dbA).RecallForVacancyAsync(vacated[0].RequisitionId, Actor)),
+            Task.Run(() => new CompetitionReserveService(dbB).RecallForVacancyAsync(vacated[1].RequisitionId, Actor)));
+
+        Assert.All(results, r => Assert.True(r.Recalled, r.Notice));
+        Assert.NotEqual(results[0].RecalledApplicationId, results[1].RecalledApplicationId);
+        await using var check = fixture.CreateContext(tenant);
+        for (var i = 0; i < 2; i++)
+            Assert.Equal(vacated[i].RequisitionId,
+                (await check.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == results[i].RecalledApplicationId)).RequisitionId);
+        var fromReserve = await check.CompetitionAllocations.AsNoTracking().Where(a => a.CompetitionId == seed.CompetitionId && a.FromReserve).ToListAsync();
+        Assert.Equal(2, fromReserve.Select(a => a.RecruitmentApplicationId).Distinct().Count());
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private sealed record Seeded(Guid CompetitionId, IReadOnlyList<Guid> LineIds, IReadOnlyList<Guid> ApplicationIds);

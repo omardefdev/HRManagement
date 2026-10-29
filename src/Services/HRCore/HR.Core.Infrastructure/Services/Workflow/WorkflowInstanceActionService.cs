@@ -184,6 +184,14 @@ public sealed class WorkflowInstanceActionService(
                 .FirstOrDefaultAsync(v => v.Id == instance.EntityId, ct);
             if (version?.ComputedBy == actorUserId || version?.CreatedBy == actorUserId)
                 return "لا يجوز لمن احتسب النتائج اعتمادها.";
+            // Nor the person who submitted them, nor anyone who decided a tie on this computation (it set the order).
+            if (instance.InitiatedBy is Guid initiator && initiator == actorUserId)
+                return "لا يجوز لمن قدّم النتائج للاعتماد اعتمادها.";
+            if (version is not null && actorUserId is Guid actor && await context.AuditLogs.AsNoTracking().AnyAsync(a =>
+                    a.EntityType == CompetitionLifecycleService.EntityType && a.EntityId == version.CompetitionId
+                    && a.Action == CompetitionResultsService.ResolveTieAuditAction && a.UserId == actor
+                    && a.CreatedAt >= version.ComputedAt, ct))
+                return "لا يجوز لمن بتّ في التعادل اعتماد النتائج.";
             if (OfferOverrideApprovalRules.HasApprovedEarlierStep(instance.StepHistoryJson, instance.CurrentStepLevel, actorUserId))
                 return "يجب أن يعتمد كل خطوة من خطوات اعتماد النتائج شخص مختلف.";
         }

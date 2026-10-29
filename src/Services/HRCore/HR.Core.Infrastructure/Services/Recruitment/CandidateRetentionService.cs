@@ -655,10 +655,13 @@ public sealed class CandidateRetentionService(
         var appeals = Query<RecruitmentAppeal>(scope);
         var examCandidates = Query<ExamCandidate>(scope);
         var preferences = Query<CompetitionPreference>(scope);
+        var liveCompetitionStatuses = CandidateApplicationLegalLifecycleService.CompetitionLiveStatuses.ToList();
         return Query<RecruitmentApplication>(scope)
             .Where(a => a.HiredEmployeeId == null)
-            // HCM-031 (PLAN-31): competition applications are triggered by the competition's end only.
+            // HCM-031 (PLAN-31): competition applications are triggered by the competition's end only, and never while
+            // they still hold a line or a live reserve place.
             .Where(a => (a.CompetitionId != null
+                    && !liveCompetitionStatuses.Contains(a.Status)
                     && ((a.Competition!.Status == RecruitmentCompetitionStatus.Finalized && a.Competition.FinalizedAt <= cutoff)
                         || (a.Competition.Status == RecruitmentCompetitionStatus.Cancelled && a.Competition.CancelledAt <= cutoff)))
                 || (a.CompetitionId == null && a.RequisitionId == null && a.AppliedAt <= cutoff)

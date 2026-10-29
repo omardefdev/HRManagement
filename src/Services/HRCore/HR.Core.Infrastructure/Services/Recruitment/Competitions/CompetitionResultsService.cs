@@ -35,6 +35,8 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
 {
     public const string ApprovalWorkflowCode = "RECRUITMENT-RESULTS-APPROVAL";
     public const string EntityType = nameof(CompetitionResultVersion);
+    public const string ResolveTieAuditAction = "ResolveResultsTie";
+    public const string ClosedCompetitionMessage = "المسابقة ملغاة أو منتهية؛ لا يمكن تقديم نتائجها أو نشرها.";
     public const int PublicPageSize = 100;
 
     /// <summary>
@@ -215,7 +217,7 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
             row.TieDecisionReason = reason!.Trim()[..Math.Min(500, reason.Trim().Length)];
         }
         version.Sha256 = CompetitionScoringRules.ComputeSha256(version.VersionNo, results);
-        Audit(version.TenantId, version.CompetitionId, "ResolveResultsTie", actorUserId,
+        Audit(version.TenantId, version.CompetitionId, ResolveTieAuditAction, actorUserId,
             new { version.VersionNo, rank = startRank, size = orderedApplicationIds.Count, reason = reason!.Trim() });
         await db.SaveChangesAsync(ct);
         return (true, null);
@@ -230,6 +232,8 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
             return (false, "نسخة النتائج غير موجودة.");
         if (version.Status != CompetitionResultVersionStatus.Draft)
             return (false, "تُقدَّم مسودة النتائج للاعتماد فقط.");
+        if (version.Competition.Status is RecruitmentCompetitionStatus.Cancelled or RecruitmentCompetitionStatus.Finalized)
+            return (false, ClosedCompetitionMessage);
         var ties = await db.CompetitionResults.CountAsync(r => r.ResultVersionId == versionId && r.TieUnresolved, ct);
         if (ties > 0)
             return (false, $"{CompetitionScoringRules.UnresolvedTieMessage}: {ties} متقدماً في حالة تعادل؛ يجب البت فيه قبل الاعتماد.");
@@ -266,6 +270,8 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
             return (false, "نسخة النتائج غير موجودة.");
         if (version.Status != CompetitionResultVersionStatus.Approved)
             return (false, "تُنشر نسخة النتائج بعد اعتمادها فقط.");
+        if (version.Competition.Status is RecruitmentCompetitionStatus.Cancelled or RecruitmentCompetitionStatus.Finalized)
+            return (false, ClosedCompetitionMessage);
         var competition = version.Competition;
         var now = DateTime.UtcNow;
 
@@ -300,13 +306,15 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
     }
 
     /// <summary>The public list of the current published version (exam number + outcome only; anonymous portal).</summary>
-    public async Task<PublicResultsView?> GetPublicAsync(Guid competitionId, int page, CancellationToken ct = default)
+    public async Task<PublicResultsView?> GetPublicAsync(Guid competitionId, int page, CancellationToken ct = default, bool publicChannelOnly = false)
     {
         var competition = await db.RecruitmentCompetitions
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == competitionId, ct);
-        if (competition?.CurrentResultVersionId is not Guid versionId)
+        // The anonymous /careers list exists only for competitions announced on the public channel (HR's PDF always).
+        if (competition?.CurrentResultVersionId is not Guid versionId
+            || (publicChannelOnly && !RequisitionWorkflowRules.AllowsPublicChannel(competition.PublishingChannel)))
             return null;
         var version = await db.CompetitionResultVersions
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)

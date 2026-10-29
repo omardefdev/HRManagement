@@ -63,6 +63,27 @@ For any randomly sampled HR decision (hire, promote, leave, salary, dismiss, pen
 3. Verify the article, effective date, and certified text hash
 4. Confirm the text is from an authorized source (Official Gazette or ministry)
 
+## Recruitment Competitions (HCM-031, PLAN-31)
+
+A multi-vacancy competition (`RecruitmentCompetition`) carries its own `LegalSourceId` (validated against the register
+like a requisition) and **per-competition legal inputs**, entered by HR and approved with the competition
+(RECRUITMENT-COMPETITION-APPROVAL). The system holds **no legal value** for any of them: base, Staging and Production
+configuration define no `Recruitment:Competition:Defaults` (checked by `scripts/hcm031-validate.ps1`); Development only
+pre-fills the form with laboratory values.
+
+| Input | Field | Binding |
+|-------|-------|---------|
+| مدة الاعتراض على النتائج (أيام، من أول نشر) | `ObjectionWindowDays` (1–60) | يُحدَّد من المرجع المعتمد عند اعتماد D-2 |
+| مدة صلاحية قائمة الاحتياط (أشهر) | `ReserveValidityMonths` (0–36) | يُحدَّد من المرجع المعتمد عند اعتماد D-2 |
+| الحد الأقصى للأسطر لكل مرشح | `MaxLinesPerCandidate` (≥ 1) | يُحدَّد من المرجع المعتمد عند اعتماد D-2 |
+| علامة النجاح (وعلامة نجاح خاصة بالسطر) | `PassMark`, `CompetitionLine.LinePassMark` | يُحدَّد من المرجع المعتمد عند اعتماد D-2 |
+| عتبة الفرق بين المصححين وقاعدة المطابقة | `ReconcileThreshold`, `ReconcileRule` | يُحدَّد من المرجع المعتمد عند اعتماد D-2 |
+| ترتيب كسر التعادل | `TieBreakOrder` | يُحدَّد من المرجع المعتمد عند اعتماد D-2 |
+
+The ranges above are input validation only (`CompetitionWorkflowRules`), not legal values. Every result version stores
+its computation (`Sha256`, diff, approval instance), so a published ranking traces to the competition's approved inputs
+and to its legal source. Acceptance fixtures (`AcceptanceCompetitionPatch`) use test data, never asserted as law.
+
 ## Integration Points
 
 - **SYR-003**: Service regime assignment references legal sources

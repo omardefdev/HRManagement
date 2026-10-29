@@ -23,7 +23,7 @@
                 </div>
                 <div class="col-md-3">
                     <label asp-for="LinePassMark" class="form-label"></label>
-                    <input asp-for="LinePassMark" class="form-control" type="number" step="0.01" min="0" max="100" aria-describedby="linePassHelp" />
+                    <input asp-for="LinePassMark" value="@(Model.LinePassMark is decimal linePass ? InvariantDecimal.Format(linePass) : string.Empty)" class="form-control" type="number" step="0.01" min="0" max="100" aria-describedby="linePassHelp" />
                     <div id="linePassHelp" class="form-text">اختياري — يُترك فارغاً لاعتماد درجة نجاح المسابقة.</div>
                 </div>
                 <div class="col-md-6">

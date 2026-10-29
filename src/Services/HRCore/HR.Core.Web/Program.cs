@@ -101,7 +101,9 @@ builder.AddHrLocalization();
 builder.Services.AddWorkflowEngine();
 
 builder.Services.AddHrQuestPdfDocuments();
-builder.Services.AddControllersWithViews()
+// HCM-031: culture-invariant decimals from number inputs (the default request culture ar-SY uses «٫»).
+builder.Services.AddControllersWithViews(options =>
+        options.ModelBinderProviders.Insert(0, new HR.Core.Web.ModelBinding.InvariantDecimalModelBinderProvider()))
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrCore);
 builder.Services.AddHrOpenApi("HR.Core API");
 

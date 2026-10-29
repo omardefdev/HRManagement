@@ -475,6 +475,54 @@ Addresses G-16, G-17, G-18 and the candidate-data part of G-20 (D-4 self-service
   `Recruitment:Retention:Apply` (false in Production/Staging). Admin screen «الاحتفاظ ببيانات المرشحين»
   (`CandidateLifecycle/Index`). Details: [GOV_001_RETENTION_RUNBOOK](GOV_001_RETENTION_RUNBOOK.md).
 
+## PLAN-31 — Multi-vacancy competitions and exams (HCM-I)
+
+Plan: [PLAN-31](acceptance-plans/PLAN-31-hcm-competitions-exams.md); execution: [PLAN-31-EXECUTION](acceptance-plans/execution/PLAN-31-EXECUTION.md);
+decisions J1–J39: [`reports/plan31-progress.md`](../reports/plan31-progress.md). Addresses G-19 (D-2: legal inputs per competition).
+
+### Competition and lines
+
+- `RecruitmentCompetition` groups `CompetitionLine`s; each line (title, grade, optional job/unit, optional line pass mark)
+  attaches approved, unpublished requisitions of its grade — a requisition stays one funded position (decision 2). The legal
+  inputs (objection window, reserve validity, max lines per candidate, pass mark, reconcile threshold/rule, tie-break order)
+  are entered per competition; Production/Staging hold no defaults (decision 1). Approval RECRUITMENT-COMPETITION-APPROVAL
+  (creator excluded); announcement publishes the attached requisitions and one posting (`/careers/competitions/{id}`) and/or an
+  internal vacancy. Attached requisitions refuse their own publish/attach/criteria changes while the competition holds them.
+- One application per person per competition (`RecruitmentApplication.CompetitionId`, `RequisitionId` null until allocation),
+  ordered `CompetitionPreference`s up to the maximum, per-line eligibility flags, the union of the lines' required documents.
+  Intake closes with the competition's closing date (`RecruitmentIntakeCloser`).
+
+### Exams and anonymous double marking
+
+- `ExamSession`s per type; «التوزيع على القاعات» gives each admitted applicant one random 8-digit exam number (kept on re-seating);
+  admission card PDF with a SHA-256 verification code. Attendance, then «اعتماد انعقاد الجلسة» opens marking.
+- Markers are assigned by employee (first, second, reconciler; role `hr-exam-marker`, policy `HrCoreExamMarking`, gateway rule
+  `/ui/hr-core/ExamMarking`); they see exam numbers only, never each other's marks. Above the threshold the reconciler marks and
+  the competition's rule decides. «إغلاق التصحيح» stores `FinalMark` and locks the marks.
+
+### Results, objections, allocation
+
+- Results: exam points (normalized) + non-exam assessment of the reference criteria, outcome against the pass mark, one overall
+  rank; unresolved ties need a recorded decision. RECRUITMENT-RESULTS-APPROVAL (committee then HR director; the person who
+  computed is excluded). Publication: public list by exam number (HTML + PDF); the candidate sees score and rank on «طلبي» only.
+- Objections (decision 5) reuse `RecruitmentAppeal` (`Kind = ResultObjection`) within the window counted from the first
+  publication; the independent compliance reviewer (markers excluded) upholds with a corrected mark → a new result version,
+  approved and published; the previous version is superseded.
+- «إنهاء المسابقة» (after the window, no pending objection): merit then preference allocation to the lines' requisitions (ranked
+  on the requisition — this replaces the PLAN-28 committee gate for attached requisitions, J4), line reserve lists with expiry,
+  the rest rejected (kind `CompetitionResult`). Idempotent and serialized (`FOR UPDATE`).
+- Bulk offer drafts (salary rule `Recruitment:Competition:DefaultOfferSalary`) into the existing per-offer approval
+  (decision 7). Decline, expiry, revocation or withdrawal recalls the first valid reserve of the same line onto the vacated
+  requisition (decision 8); non-commencement only leaves a follow-up marker. The hire publishes `ICandidateAccepted` v4 unchanged.
+
+### Candidate side
+
+- `/careers/my`: preferences, exams with «تنزيل بطاقة الامتحان», result after publication, objection form or «انتهت مدة الاعتراض
+  في …», objection status, allocation or reserve. Seven messages (`ADMISSION_CARD_READY`, `RESULTS_PUBLISHED`,
+  `OBJECTION_DECIDED`, `COMPETITION_ALLOCATED`, `COMPETITION_RESERVE`, `COMPETITION_RESERVE_RECALLED`,
+  `COMPETITION_NOT_SUCCESSFUL`) with no score, rank or national id (decision 4). Retention starts at the competition's end;
+  DSAR carries papers, marks, results, allocation and reserve.
+
 ## Acceptance Criteria Mapping
 
 - [x] No announcement without funded position — `PositionId` required on requisition
@@ -509,6 +557,7 @@ Addresses G-16, G-17, G-18 and the candidate-data part of G-20 (D-4 self-service
 - [x] PLAN-30 G-17 — candidate profile, requisition criteria, eligibility flags (never reject), candidate documents scanned in File.Storage
 - [x] PLAN-30 G-18 — accurate public status and timeline, PII-free candidate notifications, `/careers/my` with OTP (offer PDF, accept/decline, withdraw, appeal, documents), restricted HR on-behalf acceptance
 - [x] PLAN-30 G-20 (candidate data) — pair-aware retention job with legal hold, dry run by default, admin screen
+- [x] PLAN-31 G-19 — multi-vacancy competitions with per-competition legal inputs, anonymous double-marked exams, approved and published results with an objection window and versions, allocation by merit and preference, line reserve recall, bulk offers into the per-offer approval (AC-HCM-31 live acceptance run pending a realm re-import)
 
 ## Plan map (HCM-001)
 
@@ -526,6 +575,7 @@ Addresses G-16, G-17, G-18 and the candidate-data part of G-20 (D-4 self-service
 | PLAN-28 | Committee decision body and ranking gate, single governed appeal path, rejection kinds, hire block, compliance access slice (G-09, G-10 addressed; G-05 appeal part; D-5) |
 | PLAN-29 | Safe hire closure, employment type, `ICandidateAccepted` v4 → contract → payroll, contract-type map with intervention, appointment decision / medical steps, commencement watch, offer letter PDF (G-12, G-13, G-22 addressed; G-18 offer letter; D-6) |
 | PLAN-30 | Unified intake and backfill, application events, public status projection, profile and eligibility flags, candidate documents (File.Storage service upload), candidate notifications (channel senders, FileDrop lab), pair-aware retention, `/careers/my` with OTP and the gateway cookie allow-list, HR on-behalf acceptance with evidence (G-16, G-17, G-18 addressed; G-20 candidate-data part; D-4) |
+| PLAN-31 | Competitions and lines, intake with line preferences, exam sessions/seating/admission cards, anonymous double marking (`hr-exam-marker`), results approval/publication, objections and result versions, allocation and line reserves, bulk offers, portal/notifications/retention/DSAR for competitions (G-19 addressed; D-2 inputs per competition) |
 
 ## Artifacts
 

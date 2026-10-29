@@ -22,6 +22,7 @@ public sealed class CompetitionAllocationService(HRCoreDbContext db, Competition
     public const string NotSuccessfulNote = "غير ناجح في المسابقة";
     public const string NotAdmittedNote = "لم يُقبل للاختبار في المسابقة";
     public const string NoLineNote = "ناجح دون شاغر في الأسطر المفضلة ودون قائمة احتياط";
+    public const string StaleCorrectionMessage = "قُبل اعتراض بعد احتساب النتائج المنشورة؛ أعد احتساب النتائج واعتمدها وانشرها قبل الإنهاء.";
 
     public async Task<CompetitionFinalizeResult> FinalizeAsync(Guid competitionId, Guid? actorUserId, CancellationToken ct = default)
     {
@@ -41,12 +42,18 @@ public sealed class CompetitionAllocationService(HRCoreDbContext db, Competition
         var now = DateTime.UtcNow;
         var deadline = CompetitionWorkflowRules.ObjectionDeadlineUtc(competition.ResultsFirstPublishedAt, competition.ObjectionWindowDays)!.Value;
         if (now <= deadline)
-            return new(false, $"لا يمكن الإنهاء قبل انتهاء مدة الاعتراض ({deadline:yyyy/MM/dd HH:mm} UTC).", 0, 0, 0);
+            return new(false, $"لا يمكن الإنهاء قبل انتهاء مدة الاعتراض ({deadline.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)} UTC).", 0, 0, 0);
         if (await objections.HasPendingAsync(competitionId, ct))
             return new(false, "يوجد اعتراض قيد المراجعة؛ لا يمكن إنهاء المسابقة قبل البت فيه.", 0, 0, 0);
         if (await db.CompetitionResultVersions.AnyAsync(v => v.CompetitionId == competitionId
                 && v.Status != CompetitionResultVersionStatus.Published && v.Status != CompetitionResultVersionStatus.Superseded, ct))
             return new(false, "توجد نسخة نتائج لم تُنشر بعد؛ انشرها أو احذف مسودتها قبل الإنهاء.", 0, 0, 0);
+        // An objection upheld after the published version was computed (its recompute was refused while another version
+        // was awaiting approval) is not in these results: recompute, approve and publish first.
+        var computedAt = await db.CompetitionResultVersions.Where(v => v.Id == versionId).Select(v => v.ComputedAt).FirstAsync(ct);
+        if (await db.ExamScores.AnyAsync(s => s.Round == ExamScoreRound.ObjectionCorrection
+                && s.ExamCandidate!.CompetitionId == competitionId && s.SubmittedAt > computedAt, ct))
+            return new(false, StaleCorrectionMessage, 0, 0, 0);
 
         var results = await db.CompetitionResults.AsNoTracking()
             .Where(r => r.ResultVersionId == versionId)
@@ -58,6 +65,14 @@ public sealed class CompetitionAllocationService(HRCoreDbContext db, Competition
                 .Select(p => new { p.RecruitmentApplicationId, p.CompetitionLineId })
                 .ToListAsync(ct))
             .ToLookup(p => p.RecruitmentApplicationId, p => p.CompetitionLineId);
+        // Only applications still open take part: a passed candidate who withdrew or was rejected after publication
+        // must not consume a line vacancy (nor a reserve rank).
+        var terminal = SelectionWorkflowRules.TerminalStatuses.ToList();
+        var openIds = await db.RecruitmentApplications.AsNoTracking()
+            .Where(a => a.CompetitionId == competitionId && !terminal.Contains(a.Status))
+            .Select(a => a.Id)
+            .ToListAsync(ct);
+        var open = openIds.ToHashSet();
         var lines = competition.Lines.OrderBy(l => l.LineNo)
             .Select(l => new AllocationLine(
                 l.Id,
@@ -65,7 +80,8 @@ public sealed class CompetitionAllocationService(HRCoreDbContext db, Competition
                 CompetitionWorkflowRules.EffectivePassMark(competition, l)))
             .ToList();
         var passed = results
-            .Where(r => r.Outcome == CompetitionResultOutcome.Passed && r.FinalScore is not null && r.OverallRank is not null)
+            .Where(r => r.Outcome == CompetitionResultOutcome.Passed && r.FinalScore is not null && r.OverallRank is not null
+                && open.Contains(r.RecruitmentApplicationId))
             .Select(r => new AllocationCandidate(r.RecruitmentApplicationId, r.OverallRank!.Value, r.ExamNumber, r.FinalScore!.Value,
                 preferences[r.RecruitmentApplicationId].ToList()))
             .ToList();
@@ -76,12 +92,7 @@ public sealed class CompetitionAllocationService(HRCoreDbContext db, Competition
         var reserveApps = plan.Reserves.Select(r => r.ApplicationId).ToHashSet();
         var criteriaByLine = competition.Lines.ToDictionary(l => l.Id, l => l.CriteriaVersionId);
         var reserveUntil = DateOnly.FromDateTime(now).AddMonths(competition.ReserveValidityMonths);
-        var terminal = SelectionWorkflowRules.TerminalStatuses.ToList();
 
-        var openIds = await db.RecruitmentApplications.AsNoTracking()
-            .Where(a => a.CompetitionId == competitionId && !terminal.Contains(a.Status))
-            .Select(a => a.Id)
-            .ToListAsync(ct);
         int allocated = 0, reserve = 0, notSuccessful = 0;
         var autoDetect = db.ChangeTracker.AutoDetectChangesEnabled;
         db.ChangeTracker.AutoDetectChangesEnabled = false;

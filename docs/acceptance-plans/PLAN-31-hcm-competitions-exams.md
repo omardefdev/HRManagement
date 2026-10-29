@@ -1,7 +1,8 @@
 # PLAN-31 — المسابقات متعددة الشواغر والاختبارات (PLAN-HCM-I)
 
 **Scope:** HCM-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-19  
-**Status:** Proposed — **مشروط بالقرار D-2**  
+**Status:** Implemented (acceptance evidence pending) — D-2 قرره المالك 2026-10-29؛ التنفيذ P0–P8 على الفرع
+`feature/plan-31-competitions-exams`، التقرير: [`reports/plan31-final-report.md`](../../reports/plan31-final-report.md)  
 **Priority:** P2 (يصبح P1 إن كان النظام القانوني المعتمد يشترط المسابقة للتعيين)  
 **Depends on:** PLAN-26..30 منفذة، PLAN-25 مؤجلة
 
@@ -146,6 +147,22 @@ pwsh perf/hcm031-competition-scale.ps1
 | Migrations | `HCM031_Competitions`، `HCM031_Exams`، `HCM031_Results` |
 | Tests | `Hcm031*`، `AcHcm31CompetitionTests`، `perf/hcm031-competition-scale.ps1` |
 | Docs | `HCM_001_RECRUITMENT.md`، `docs/syr/legal-source-binding.md`، `HIRE_ONBOARDING_GUIDE.md` |
+
+## حالة التنفيذ والانحرافات (2026-10-29)
+
+| البند | الحالة |
+|-------|--------|
+| AC-HCM-31a..g | مكتوبة في `AcHcm31CompetitionTests` ببيانات `AcceptanceCompetitionPatch`؛ **لم تُشغَّل حيّاً**: تحتاج إعادة بناء `hr-core-web`/`hr-gateway` وإعادة استيراد realm القبول (`hr-exam-marker` والمصححون الثلاثة) — انظر [PLAN-31-EXECUTION](execution/PLAN-31-EXECUTION.md) |
+| اختبار الحجم | ✅ 10,000 متقدم، 4 أسطر، 20 جلسة: 5.9 ثانية على PostgreSQL 16 (الحد 60) |
+| التكامل (PostgreSQL) | ✅ قيود التفرّد، التصحيح المتزامن، الإنهاء المتزامن، مسار التوزيع حتى التعيين |
+| الحالة `ObjectionWindow` | لم تُنشأ كحالة: المسابقة تبقى `ResultsPublished` والمدة تُحسب من أول نشر (J1) |
+| لجنة الاختيار (PLAN-28) | تحل محلها خطوة «لجنة المسابقة» في اعتماد النتائج للطلبات الملحقة بمسابقة (J4/J5) |
+| `RECRUITMENT-OFFER-BATCH-APPROVAL` | لم يُنفذ (اختياري، القرار 7) — كل عرض يمر باعتماده القائم |
+| عدم المباشرة بعد التعيين | لا استدعاء تلقائياً من الاحتياط؛ علامة متابعة `// PLAN-31 follow-up:` (القرار 8) |
+| إشعار HR بنفاد الاحتياط | في تبويب التوزيع وسجل التدقيق (لا قناة دفع لـ HR) |
+| وصول المصحح | إدخالات خاصة بالدور على نمط PLAN-28 (لا تغيير عام في البوابات؛ PLAN-25 مؤجلة) |
+
+قائمة القرارات J1–J39 في [`reports/plan31-progress.md`](../../reports/plan31-progress.md).
 
 ## Effort estimate
 

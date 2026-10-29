@@ -42,12 +42,28 @@ public sealed class CompetitionReserveService(HRCoreDbContext db)
             || requisition.Status != RequisitionStatus.Published)
             return new(false, null, null);
 
+        // Two vacancies of the same competition can open at once (an HR revoke and a candidate decline): serialize the
+        // recall on the competition row (as FinalizeAsync does) and decide the holder and the entry under that lock, so
+        // the second caller sees the first one's recall and moves to the next reserve. Joins a caller's transaction.
+        await using var transaction = db.Database.IsRelational() && db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(ct)
+            : null;
+        if (db.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            await db.Database.ExecuteSqlRawAsync(
+                "SELECT 1 FROM \"RecruitmentCompetitions\" WHERE \"Id\" = {0} FOR UPDATE", [requisition.CompetitionId], ct);
+
         var holding = new[]
         {
             RecruitmentApplicationStatus.Ranked, RecruitmentApplicationStatus.OfferExtended, RecruitmentApplicationStatus.OfferAccepted,
             RecruitmentApplicationStatus.Hired
         };
         if (await db.RecruitmentApplications.AnyAsync(a => a.RequisitionId == requisitionId && holding.Contains(a.Status), ct))
+            return new(false, null, null);
+        // An offer still open on the requisition (same predicate as the offer service's «other active offer») blocks any
+        // new draft: recalling now would strand the reserve; the offer's settlement recalls later.
+        if (await db.OfferLetters.AnyAsync(o => o.RecruitmentApplication != null && o.RecruitmentApplication.RequisitionId == requisitionId
+                && (o.Status == OfferStatus.Draft || o.Status == OfferStatus.PendingApproval || o.Status == OfferStatus.Issued
+                    || (o.Status == OfferStatus.Accepted && !o.IsConvertedToEmployee)), ct))
             return new(false, null, null);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -61,6 +77,8 @@ public sealed class CompetitionReserveService(HRCoreDbContext db)
         {
             Audit(requisition.TenantId, requisition.CompetitionId, ExhaustedAuditAction, actorUserId, new { requisitionId, lineId = requisition.LineId });
             await db.SaveChangesAsync(ct);
+            if (transaction is not null)
+                await transaction.CommitAsync(ct);
             return new(false, null, NoValidReserveNotice);
         }
 
@@ -102,6 +120,8 @@ public sealed class CompetitionReserveService(HRCoreDbContext db)
         Audit(requisition.TenantId, requisition.CompetitionId, RecallAuditAction, actorUserId,
             new { requisitionId, lineId = requisition.LineId, applicationId = app.Id, entry.LineRank, removed = others.Count });
         await db.SaveChangesAsync(ct);
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
         return new(true, app.Id, null);
     }
 

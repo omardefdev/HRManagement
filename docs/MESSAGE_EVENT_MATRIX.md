@@ -1,6 +1,6 @@
 # Message Event Matrix (MassTransit)
 
-**Last updated:** 2026-10-29 — PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
+**Last updated:** 2026-10-29 — PLAN-31 competition events → candidate notifications (§5a); PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
 
 Event categories: **domain** | **workflow integration** | **external seam** | **dead-end**.  
 Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [INBOX_IDEMPOTENCY.md](./INBOX_IDEMPOTENCY.md) / [IDEMPOTENCY_STRATEGY.md](./IDEMPOTENCY_STRATEGY.md) | Sagas: [PROCESS_SAGAS.md](./PROCESS_SAGAS.md)
@@ -91,7 +91,17 @@ legacy, backfilled and suppressed (`SuppressApplicationEvents`) changes send not
 | `OfferAccepted` | offer status → `Accepted` (candidate on `/careers/my` or HR on behalf) | `OFFER_ACCEPTED` |
 | `OfferDeclined` / `OfferExpired` / `OfferRevoked` | offer status changed | — (the application `StatusChanged` covers the outcome) |
 | `AppealFiled` | `RecruitmentAppeal` added (HR or the candidate on `/careers/my`) | — |
-| `AppealDecided` | appeal `Pending` → decided | `APPEAL_DECIDED` (outcome label only) |
+| `AppealDecided` | appeal `Pending` → decided | `APPEAL_DECIDED` (outcome label only); a result objection (`Kind = ResultObjection`, PLAN-31) → `OBJECTION_DECIDED` |
+| `AdmissionCardReady` (PLAN-31) | `ExamSeatingService.IssueAdmissionCardsAsync`, one per seated paper | `ADMISSION_CARD_READY` |
+| `ResultsPublished` (PLAN-31) | `CompetitionResultsService.PublishAsync`, one per application of the published version | `RESULTS_PUBLISHED` (no score, no rank) |
+| `CompetitionAllocated` / `CompetitionReserve` / `CompetitionNotSuccessful` (PLAN-31) | `CompetitionAllocationService.FinalizeAsync` | `COMPETITION_ALLOCATED` / `COMPETITION_RESERVE` (until date) / `COMPETITION_NOT_SUCCESSFUL` |
+| `CompetitionReserveRecalled` (PLAN-31) | `CompetitionReserveService` recall onto a vacated requisition | `COMPETITION_RESERVE_RECALLED` |
+
+PLAN-31: for a competition application the generic `StatusChanged` → `Rejected` (kind `CompetitionResult`) and
+→ `ReserveListed` messages are suppressed (the finalize events above carry them); other rejections of a competition
+application (cancellation, reserve expiry) keep `APP_REJECTED`. The event type `ObjectionDecided` is mapped to
+`OBJECTION_DECIDED` but not recorded today (the `AppealDecided` path carries objections). No PLAN-31 bus contract was
+added: an allocated candidate's hire publishes `ICandidateAccepted` v4 unchanged (`RequisitionId` = the allocated requisition).
 
 Not an event: the `/careers/my` one-time code (`EventType = OtpRequested` on its `CandidateNotification` row) is sent
 synchronously by `CandidateOtpService` and never queued. The same events drive the candidate timeline

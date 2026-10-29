@@ -41,7 +41,7 @@ public static class AcceptanceCompetitionPatch
     public static async Task ApplyAsync(HRCoreDbContext db, ILogger? logger = null, CancellationToken ct = default)
     {
         var agencyId = AcceptanceSeedIds.AgencyAId;
-        if (!await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == agencyId, ct))
+        if (!await All(db.Tenants).AnyAsync(t => t.Id == agencyId, ct))
             return;
 
         var previousTenant = TenantIdFlow.Get();

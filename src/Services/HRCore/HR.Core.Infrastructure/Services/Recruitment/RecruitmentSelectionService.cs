@@ -16,6 +16,14 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
     public const string CompetitionRankingMessage =
         "يُحدَّد الترتيب في المسابقة باعتماد النتائج ونشرها ثم إنهاء المسابقة، لا يدوياً ولا بلجنة اختيار.";
 
+    /// <summary>HCM-031: after seating, a competition application changes status only through the competition.</summary>
+    public const string CompetitionManualTransitionMessage =
+        "تُدار حالة طلب المسابقة من المسابقة نفسها بعد التوزيع على القاعات؛ المتاح يدوياً الرفض أو تسجيل الانسحاب فقط.";
+
+    /// <summary>HCM-031: an allocated competition application with a live offer leaves through the offer.</summary>
+    public const string CompetitionActiveOfferMessage =
+        "لهذا الطلب عرض قائم؛ اسحب العرض أو سجّل اعتذار المرشح عنه من صفحة العرض، فيُستدعى الاحتياط آلياً.";
+
     public async Task<(bool Success, string? Error)> DeclareCoiAsync(
         RecruitmentApplication application,
         Guid? actorUserId,
@@ -420,6 +428,22 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
 
         var app = await LoadApplicationAsync(applicationId, ct);
         if (app is null) return (false, "الطلب غير موجود.");
+
+        // HCM-031 (PLAN-31 review): once a competition has seated its exam, its applications move only through the
+        // competition (results, finalize, offers); HR may still reject or record a withdrawal.
+        if (app.CompetitionId is Guid competitionId
+            && to is not (RecruitmentApplicationStatus.Rejected or RecruitmentApplicationStatus.Withdrawn)
+            && await db.RecruitmentCompetitions.AnyAsync(c => c.Id == competitionId
+                && c.Status != RecruitmentCompetitionStatus.Announced && c.Status != RecruitmentCompetitionStatus.IntakeClosed, ct))
+            return (false, CompetitionManualTransitionMessage);
+        // An allocated competition application leaves through its offer first (revoke/decline settle it and recall the
+        // line reserve); rejecting it around a live offer would leave the requisition blocked.
+        if (app.CompetitionId is not null
+            && to is RecruitmentApplicationStatus.Rejected or RecruitmentApplicationStatus.Withdrawn
+            && app.ActiveOfferLetter is { } activeOffer
+            && (activeOffer.Status is OfferStatus.Draft or OfferStatus.PendingApproval or OfferStatus.Issued
+                || (activeOffer.Status == OfferStatus.Accepted && !activeOffer.IsConvertedToEmployee)))
+            return (false, CompetitionActiveOfferMessage);
 
         if (!SelectionWorkflowRules.CanTransition(app, to, legacyHireWithoutOffer))
         {

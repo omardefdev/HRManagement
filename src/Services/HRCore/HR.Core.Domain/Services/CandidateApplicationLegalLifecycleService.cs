@@ -94,12 +94,23 @@ public static class CandidateApplicationLegalLifecycleService
     /// HCM-030 (G1): trigger date of a pair — requisition <c>ClosedDate</c> ?? <c>CancelledAt</c> ?? the application's
     /// <c>AppliedAt</c>; null while the requisition is open (open requisitions never trigger).
     /// </summary>
+    /// <summary>
+    /// HCM-031 (PLAN-31 review): a competition application in these statuses still holds a line (allocated or recalled,
+    /// with its offer cycle) or a live reserve place, so it never triggers retention; it does once it leaves (rejected,
+    /// withdrawn, offer declined, reserve expired). Hired applications are excluded by the pair rule.
+    /// </summary>
+    public static readonly RecruitmentApplicationStatus[] CompetitionLiveStatuses =
+    [
+        RecruitmentApplicationStatus.Ranked, RecruitmentApplicationStatus.OfferExtended,
+        RecruitmentApplicationStatus.OfferAccepted, RecruitmentApplicationStatus.ReserveListed
+    ];
+
     public static DateTime? RetentionTrigger(RecruitmentApplication application, RecruitmentRequisition? requisition)
     {
         // HCM-031 (PLAN-31): a competition application is triggered by the competition's end (finalized or cancelled),
         // even after allocation set its requisition; while the competition runs (or is not loaded) it never triggers.
         if (application.CompetitionId is not null)
-            return application.Competition?.Status switch
+            return CompetitionLiveStatuses.Contains(application.Status) ? null : application.Competition?.Status switch
             {
                 RecruitmentCompetitionStatus.Finalized => application.Competition.FinalizedAt,
                 RecruitmentCompetitionStatus.Cancelled => application.Competition.CancelledAt,

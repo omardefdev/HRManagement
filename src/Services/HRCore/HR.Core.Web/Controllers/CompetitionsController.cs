@@ -542,11 +542,19 @@ public sealed class CompetitionsController(
     {
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, version.WorkflowInstanceId, ct);
         var userId = WorkflowPanelBuilder.ParseUserId(User);
+        // Same exclusions as WorkflowInstanceActionService (the server check): the submitter and a tie resolver.
+        var tieResolved = userId is Guid me && await db.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityType == CompetitionLifecycleService.EntityType && a.EntityId == version.CompetitionId
+            && a.Action == CompetitionResultsService.ResolveTieAuditAction && a.UserId == me && a.CreatedAt >= version.ComputedAt, ct);
         return WorkflowPanelBuilder.Build(instance, definition, User, userId, new WorkflowPanelBuildOptions
         {
             IsAwaitingApproval = version.Status == CompetitionResultVersionStatus.PendingApproval,
             EntityCreatedBy = version.ComputedBy ?? version.CreatedBy,
-            CreatorSoDMessage = "لا يجوز لمن احتسب النتائج اعتمادها."
+            CreatorSoDMessage = "لا يجوز لمن احتسب النتائج اعتمادها.",
+            AdditionalBlockReason = (inst, _, actorId) =>
+                actorId is Guid actor && inst.InitiatedBy == actor ? "لا يجوز لمن قدّم النتائج للاعتماد اعتمادها."
+                : tieResolved ? "لا يجوز لمن بتّ في التعادل اعتماد النتائج."
+                : null
         });
     }
 

@@ -465,7 +465,11 @@
             @if (c.CurrentResultVersionId is not null)
             {
                 <p class="small"><a asp-action="ResultsDocument" asp-route-id="@c.Id">تنزيل قائمة النتائج المنشورة (PDF)</a>
-                    · <a href="/careers/competitions/@c.Id/results">الصفحة العامة</a></p>
+                    @if (HR.Core.Domain.Services.RequisitionWorkflowRules.AllowsPublicChannel(c.PublishingChannel))
+                    {
+                        <text>· <a href="/careers/competitions/@c.Id/results">الصفحة العامة</a></text>
+                    }
+                </p>
             }
         }
         @if (latest is not null)

@@ -135,7 +135,7 @@ public class RecruitmentApplicationsController(
         {
             Application = app,
             RankBoard = rankBoard,
-            AllowedStatusTransitions = SelectionWorkflowRules.GetAllowedTargets(app, legacyFlag),
+            AllowedStatusTransitions = await CompetitionFilteredTargetsAsync(app, SelectionWorkflowRules.GetAllowedTargets(app, legacyFlag)),
             ScoringPanel = scoringPanel,
             LegacyHireWithoutOffer = legacyFlag,
             CanHire = RecruitmentWorkflowRules.CanHire(app, legacyFlag) && hireBlockedReason is null,
@@ -301,12 +301,25 @@ public class RecruitmentApplicationsController(
         Guid id,
         RecruitmentApplicationStatus status,
         string? rejectionNote = null,
-        string? eligibilityOverrideReason = null)
+        string? eligibilityOverrideReason = null,
+        [FromServices] HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService? competitionReserve = null)
     {
         var legacyFlag = ResolveLegacyHireWithoutOffer();
+        // HCM-031 (decision 8): the requisition an allocated competition application holds, read before it leaves.
+        var heldRequisitionId = status is RecruitmentApplicationStatus.Rejected or RecruitmentApplicationStatus.Withdrawn
+            ? await db.RecruitmentApplications.AsNoTracking()
+                .Where(a => a.Id == id && a.CompetitionId != null)
+                .Select(a => a.RequisitionId)
+                .FirstOrDefaultAsync()
+            : null;
         var (success, error) = await selection.TransitionStatusAsync(
             id, status, legacyFlag, rejectionNote, eligibilityOverrideReason, ParseUserId(User));
-        TempData[success ? "Success" : "Error"] = success ? "تم تحديث حالة الطلب" : error;
+        string? recallNotice = null;
+        if (success && competitionReserve is not null && heldRequisitionId is Guid vacated)
+            recallNotice = (await competitionReserve.RecallForVacancyAsync(vacated, ParseUserId(User))).Notice;
+        TempData[success ? "Success" : "Error"] = success
+            ? recallNotice is null ? "تم تحديث حالة الطلب" : $"تم تحديث حالة الطلب. {recallNotice}"
+            : error;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -665,6 +678,27 @@ public class RecruitmentApplicationsController(
     }
 
     private static RecruitmentApplicationCreateViewModel NewCreateModel() => new();
+
+    /// <summary>
+    /// HCM-031: the buttons match <see cref="RecruitmentSelectionService.TransitionStatusAsync"/> for competition applications —
+    /// after seating only reject/withdraw, and not those while an offer is still open (it leaves through the offer).
+    /// </summary>
+    private async Task<IReadOnlyList<RecruitmentApplicationStatus>> CompetitionFilteredTargetsAsync(
+        RecruitmentApplication app, IReadOnlyList<RecruitmentApplicationStatus> targets)
+    {
+        if (app.CompetitionId is not Guid competitionId)
+            return targets;
+        var status = await db.RecruitmentCompetitions.AsNoTracking()
+            .Where(c => c.Id == competitionId).Select(c => (RecruitmentCompetitionStatus?)c.Status).FirstOrDefaultAsync();
+        var seated = status is not (RecruitmentCompetitionStatus.Announced or RecruitmentCompetitionStatus.IntakeClosed);
+        var liveOffer = app.ActiveOfferLetter is { } offer
+            && (offer.Status is OfferStatus.Draft or OfferStatus.PendingApproval or OfferStatus.Issued
+                || (offer.Status == OfferStatus.Accepted && !offer.IsConvertedToEmployee));
+        return targets
+            .Where(t => !seated || t is RecruitmentApplicationStatus.Rejected or RecruitmentApplicationStatus.Withdrawn)
+            .Where(t => !liveOffer || t is not (RecruitmentApplicationStatus.Rejected or RecruitmentApplicationStatus.Withdrawn))
+            .ToList();
+    }
 
     /// <summary>HCM-030 (D1): qualification code → Arabic name for the profile panel.</summary>
     private async Task<IReadOnlyDictionary<string, string>> QualificationNamesAsync(Guid tenantId) =>

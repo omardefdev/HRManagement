@@ -14,6 +14,12 @@
 | P0.x | تقديم الاستئناف نيابة عن المرشح، تعيين المراجع، استيفاء المعلومات | `hr-core` | `HrCore.Write` (PLAN-28) |
 | P0.x | قرار الاستئناف / طلب معلومات (المراجع المستقل المعيّن فقط) | `compliance` (+ مطالبة `employee_id`) | `HrCore.AppealReview` + فحص المراجع في الخدمة |
 | P0.x | صندوق عمل HR.Core | قراء HR.Core + `compliance` (استئنافاته فقط) | `HrCore.WorkInbox` |
+| P0.x | المسابقات (PLAN-31): إنشاء، أسطر، إلحاق طلبات، إعلان، جلسات الامتحان، التوزيع على القاعات، البطاقات، الحضور، تعيين المصححين، احتساب النتائج ونشرها، الاعتراض نيابةً، مسودات العروض | `hr-core` | `HrCore.Write` |
+| P0.x | إنهاء المسابقة (التوزيع) وإلغاؤها | `hr-core` / `hr-management-approver` | `HrCore.Approve` |
+| P0.x | اعتماد المسابقة / اعتماد النتائج: الخطوة 1 «مراجعة HR» أو «لجنة المسابقة» / الخطوة 2 | `hr-core` أو `branch-manager` / `hr-management-approver` | `HrCore.BranchOperation` + فحص الخادم (دور الخطوة): المنشئ ومن احتسب النتائج لا يعتمدان، ولا يتكرر المعتمد |
+| P0.x | تصحيح الامتحانات (أرقام الامتحان فقط) | `hr-exam-marker` (+ ربط الموظف عند أول دخول) | `HrCore.ExamMarking` (مسار البوابة `/ui/hr-core/ExamMarking` وإدخال وحدة HR.Core) |
+| P0.x | قرار الاعتراض على النتيجة (المراجع المستقل؛ مصححو المسابقة مستبعدون) | `compliance` | `HrCore.AppealReview` |
+| P0.x | قائمة النتائج العامة وبطاقة الامتحان والاعتراض في «طلبي» | *(عام / جلسة `careers_session`)* | بدون تسجيل HR |
 | P0.x | ترشّح ESS | `hr-core` (Ess) | `Module.Ess` |
 | P1.1 | استلام مرشح / معاملة تعيين | `hr-contracts`, `hr-core` | `Module.HrContracts`, `HrContracts.HireExecute` (معالج) |
 | P1.2 | تصنيف وعقد ومباشرة | `hr-contracts` | `HrContracts.Approve` (تفعيل عقد) |

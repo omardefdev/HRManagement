@@ -341,14 +341,14 @@ public class PublicCareersController(
     [HttpGet("competitions/{id:guid}/results")]
     public async Task<IActionResult> CompetitionResults(Guid id, int page = 1)
     {
-        var view = await competitionResults.GetPublicAsync(id, page);
+        var view = await competitionResults.GetPublicAsync(id, page, publicChannelOnly: true);
         return view is null ? NotFound() : View(view);
     }
 
     [HttpGet("competitions/{id:guid}/results.pdf")]
     public async Task<IActionResult> CompetitionResultsPdf(Guid id)
     {
-        var view = await competitionResults.GetPublicAsync(id, 1);
+        var view = await competitionResults.GetPublicAsync(id, 1, publicChannelOnly: true);
         if (view is null)
             return NotFound();
         var rows = await competitionResults.GetPublicRowsAsync(view.Competition.TenantId, view.Version.Id);

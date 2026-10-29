@@ -599,7 +599,7 @@
     "service": "HR.Core",
     "context": "HRCoreDbContext",
     "database": "hr_core_db",
-    "dbset_count": 98,
+    "dbset_count": 109,
     "entity_sets": [
       {
         "entity": "Employee",
@@ -736,6 +736,50 @@
       {
         "entity": "CandidateOtpChallenge",
         "set": "CandidateOtpChallenges"
+      },
+      {
+        "entity": "RecruitmentCompetition",
+        "set": "RecruitmentCompetitions"
+      },
+      {
+        "entity": "CompetitionLine",
+        "set": "CompetitionLines"
+      },
+      {
+        "entity": "CompetitionPreference",
+        "set": "CompetitionPreferences"
+      },
+      {
+        "entity": "ExamSession",
+        "set": "ExamSessions"
+      },
+      {
+        "entity": "ExamCandidate",
+        "set": "ExamCandidates"
+      },
+      {
+        "entity": "ExamMarkerAssignment",
+        "set": "ExamMarkerAssignments"
+      },
+      {
+        "entity": "ExamScore",
+        "set": "ExamScores"
+      },
+      {
+        "entity": "CompetitionResultVersion",
+        "set": "CompetitionResultVersions"
+      },
+      {
+        "entity": "CompetitionResult",
+        "set": "CompetitionResults"
+      },
+      {
+        "entity": "CompetitionAllocation",
+        "set": "CompetitionAllocations"
+      },
+      {
+        "entity": "CompetitionReserveEntry",
+        "set": "CompetitionReserveEntries"
       },
       {
         "entity": "ApprovalRequest",
@@ -1013,6 +1057,12 @@
       "CodePolicyTemplates",
       "CodePolicyVersions",
       "CodeSequenceCounters",
+      "CompetitionAllocations",
+      "CompetitionLines",
+      "CompetitionPreferences",
+      "CompetitionReserveEntries",
+      "CompetitionResultVersions",
+      "CompetitionResults",
       "ConflictingRolePairs",
       "ContactInfos",
       "DailyAttendanceRecords",
@@ -1026,6 +1076,10 @@
       "EmploymentStatusHistories",
       "EstablishmentChangeLogs",
       "EstablishmentChangeRequests",
+      "ExamCandidates",
+      "ExamMarkerAssignments",
+      "ExamScores",
+      "ExamSessions",
       "ExportJobs",
       "FieldInspectionVisits",
       "FileReferenceOutbox",
@@ -1070,6 +1124,7 @@
       "RecruitmentApplications",
       "RecruitmentAssessmentCriteria",
       "RecruitmentAssessmentScores",
+      "RecruitmentCompetitions",
       "RecruitmentInterviewPanelMembers",
       "RecruitmentInterviewSlots",
       "RecruitmentRequisitions",
@@ -1097,7 +1152,7 @@
       "WorkforcePlanLines",
       "WorkforcePlans"
     ],
-    "business_table_count": 96,
+    "business_table_count": 107,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",

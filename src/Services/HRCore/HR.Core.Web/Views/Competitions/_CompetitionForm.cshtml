@@ -65,11 +65,11 @@
         </div>
         <div class="col-md-3">
             <label asp-for="PassMark" class="form-label"></label>
-            <input asp-for="PassMark" class="form-control" type="number" step="0.01" min="0" max="100" />
+            <input asp-for="PassMark" value="@(Model.PassMark is decimal passMark ? InvariantDecimal.Format(passMark) : string.Empty)" class="form-control" type="number" step="0.01" min="0" max="100" />
         </div>
         <div class="col-md-3">
             <label asp-for="ReconcileThreshold" class="form-label"></label>
-            <input asp-for="ReconcileThreshold" class="form-control" type="number" step="0.01" min="0" aria-describedby="thresholdHelp" />
+            <input asp-for="ReconcileThreshold" value="@(Model.ReconcileThreshold is decimal threshold ? InvariantDecimal.Format(threshold) : string.Empty)" class="form-control" type="number" step="0.01" min="0" aria-describedby="thresholdHelp" />
             <div id="thresholdHelp" class="form-text">إذا تجاوز الفرق بين المصححَين الأول والثاني هذه العتبة يُحال الدفتر إلى مصحح ثالث.</div>
         </div>
         <div class="col-md-3">
