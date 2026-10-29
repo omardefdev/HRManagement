@@ -43,6 +43,9 @@ public static class OfferWorkflowRules
     public const int MinDeclineReasonLength = 5;
     public const int MinRevokeReasonLength = 10;
 
+    /// <summary>HCM-030 (J): reason required when HR records a paper acceptance on the candidate's behalf.</summary>
+    public const int MinOnBehalfAcceptanceReasonLength = 20;
+
     public static readonly string ValidityDaysRangeMessage =
         $"مدة صلاحية العرض يجب أن تكون بين {MinValidityDays} و{MaxValidityDays} يوماً.";
 

@@ -140,12 +140,30 @@ public class OfferLetterDetailsViewModel
     public HR.Core.Infrastructure.Services.Recruitment.OfferLetterDocumentView? Document { get; set; }
 }
 
-/// <summary>HCM-027: decline recorded by HR on the candidate's behalf (Candidate is reserved for PLAN-30).</summary>
+/// <summary>HCM-027: decline recorded by HR on the candidate's behalf (the candidate declines on /careers/my, HCM-030).</summary>
 public class DeclineOfferForm
 {
     [Display(Name = "سبب الرفض")]
     [StringLength(1000)]
     public string? Reason { get; set; }
+
+    /// <summary>HCM-030 (J): optional signed paper decline (pdf/jpg/png ≤ 5 MB), relayed to File.Storage server-side.</summary>
+    [Display(Name = "مستند إثبات الرفض (اختياري)")]
+    public IFormFile? EvidenceFile { get; set; }
+}
+
+/// <summary>
+/// HCM-030 (PLAN-30 J): «قبول نيابةً عن المرشح» — HR records a paper acceptance. Reason and evidence are mandatory
+/// (checked by <see cref="HR.Core.Web.Services.OfferOnBehalfService"/>); the candidate accepts on /careers/my.
+/// </summary>
+public class AcceptOfferOnBehalfForm
+{
+    [Display(Name = "سبب القبول نيابةً عن المرشح")]
+    [StringLength(1000)]
+    public string? Reason { get; set; }
+
+    [Display(Name = "مستند إثبات القبول")]
+    public IFormFile? EvidenceFile { get; set; }
 }
 
 public class RevokeOfferForm

@@ -1,19 +1,446 @@
-@model CandidatePortalContext
+@using System.Globalization
+@using HR.Core.Domain.Services
+@model CandidatePortalPageViewModel
 @{
-    ViewData["Title"] = "طلباتي";
+    ViewData["Title"] = "طلبي";
     Layout = "_PublicLayout";
+    // HCM-030 (PLAN-30 I): «طلبي». Every form posts no id: the server takes the application, offer and appeal from the
+    // session. Errors are keyed "{form}.{field}" (form alone = whole form); dates are invariant (yyyy/MM/dd).
+    string? Err(string key) => ViewData.ModelState[key]?.Errors.FirstOrDefault()?.ErrorMessage;
+    string? FormErr(string form, string field) => Err($"{form}.{field}") ?? (field == "" ? Err(form) : null);
+    string Invalid(string? error) => error is null ? "" : " is-invalid";
+    string Date(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local)
+        .ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
+    string Time(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local)
+        .ToString("HH:mm", CultureInfo.InvariantCulture);
+    // Any withdraw error, for the section shown without the confirm panel (the application can no longer be withdrawn).
+    string? WithdrawErr() => FormErr("Withdraw", "Reason") ?? FormErr("Withdraw", "Confirm") ?? FormErr("Withdraw", "");
+    string Target(string key) => key switch
+    {
+        "Withdraw" or "Withdraw.Reason" or "Withdraw.Confirm" when !Model.ShowWithdrawConfirm => "portal-withdraw",
+        "Accept.Acknowledge" => "portal-accept-ack",
+        "Accept.FullName" => "portal-accept-name",
+        "Accept" => "portal-offer",
+        "Decline" or "Decline.Text" => "portal-decline-reason",
+        "Withdraw.Confirm" => "portal-withdraw-confirm",
+        "Withdraw" or "Withdraw.Reason" => "portal-withdraw-reason",
+        "Appeal" or "Appeal.Text" => "portal-appeal-reason",
+        "AppealInfo" or "AppealInfo.Text" => "portal-appeal-info",
+        "Documents.CvFile" => "portal-doc-Cv",
+        "Documents.CertificateFiles" => "portal-doc-Certificate",
+        "Documents.IdCopyFile" => "portal-doc-IdCopy",
+        "Documents.OtherFiles" => "portal-doc-Other",
+        _ => "portal-documents"
+    };
+    string PublicBadge(string code) => code switch
+    {
+        CandidatePublicStatusProjection.Codes.Accepted => "bg-success",
+        CandidatePublicStatusProjection.Codes.NotAccepted => "bg-danger",
+        CandidatePublicStatusProjection.Codes.OfferPending => "bg-primary",
+        CandidatePublicStatusProjection.Codes.InterviewInvited => "bg-info text-dark",
+        CandidatePublicStatusProjection.Codes.OfferClosed or CandidatePublicStatusProjection.Codes.Withdrawn => "bg-secondary",
+        CandidatePublicStatusProjection.Codes.ReserveListed => "bg-dark",
+        _ => "bg-warning text-dark"
+    };
+    var errors = ViewData.ModelState
+        .SelectMany(e => e.Value!.Errors.Select(x => (Key: e.Key, x.ErrorMessage)))
+        .Where(e => !string.IsNullOrEmpty(e.ErrorMessage))
+        .ToList();
+    var status = Model.Status;
+    var offer = Model.Offer;
+    var appeal = Model.Appeal;
+    var maxMb = (Model.MaxDocumentBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture);
+    var maxTotalMb = (Model.MaxTotalDocumentBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture);
 }
-@* HCM-030 (H4): signed-in landing page; the status, timeline and candidate actions are added by workstream I. *@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h1 class="careers-page-title mb-0"><i class="fas fa-folder-open ms-2" aria-hidden="true"></i> طلباتي</h1>
+    <h1 class="careers-page-title mb-0"><i class="fas fa-folder-open ms-2" aria-hidden="true"></i> طلبي</h1>
     <form asp-action="Logout" method="post">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn careers-btn-outline"><i class="fas fa-sign-out-alt ms-1" aria-hidden="true"></i> خروج</button>
     </form>
 </div>
-<div class="careers-card">
-    <div class="card-body">
-        <p class="mb-2">الرقم المرجعي للطلب: <span class="careers-badge"><bdi dir="ltr">@Model.ReferenceNumber</bdi></span></p>
-        <p class="text-muted mb-0">تنتهي الجلسة تلقائياً بعد مدة محددة من الدخول، ويمكنك الخروج في أي وقت.</p>
+
+@if (errors.Count > 0)
+{
+    <div class="alert alert-danger border-0 shadow-sm" role="alert" tabindex="-1" data-hr-error-summary aria-labelledby="portal-errors-title">
+        <p class="fw-bold mb-1" id="portal-errors-title">تعذّر تنفيذ الطلب:</p>
+        <ul class="mb-0">
+            @foreach (var (key, message) in errors)
+            {
+                <li><a href="#@Target(key)">@message</a></li>
+            }
+        </ul>
     </div>
-</div>
+}
+else if (!string.IsNullOrEmpty(Model.Notice))
+{
+    <div class="alert alert-success border-0 shadow-sm" role="status" tabindex="-1" data-hr-focus-notice>
+        <i class="fas fa-check-circle ms-1" aria-hidden="true"></i> @Model.Notice
+    </div>
+}
+
+<section class="careers-card" aria-labelledby="portal-summary-title">
+    <div class="card-body">
+        <h2 class="careers-section-title h5" id="portal-summary-title">ملخص الطلب</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الرقم المرجعي</dt>
+            <dd class="col-sm-9"><bdi dir="ltr">@Model.ReferenceNumber</bdi></dd>
+            <dt class="col-sm-3">الوظيفة</dt>
+            <dd class="col-sm-9">@(Model.JobTitle ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ التقديم</dt>
+            <dd class="col-sm-9"><bdi dir="ltr">@Date(Model.SubmittedAtUtc)</bdi></dd>
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9 mb-0">
+                @if (status is not null)
+                {
+                    <span class="badge rounded-pill px-3 py-2 @PublicBadge(status.Code)">@status.LabelAr</span>
+                    @if (!string.IsNullOrWhiteSpace(status.DetailAr))
+                    {
+                        <p class="mb-0 mt-2">@status.DetailAr</p>
+                    }
+                }
+                else
+                {
+                    <span class="badge rounded-pill px-3 py-2 bg-secondary">@Model.LegacyStatusLabel</span>
+                }
+            </dd>
+        </dl>
+        <p class="text-muted small mt-3 mb-0">تنتهي الجلسة تلقائياً في <bdi dir="ltr">@Time(Model.SessionExpiresAtUtc)</bdi>، ويمكنك الخروج في أي وقت.</p>
+    </div>
+</section>
+
+@if (status is not null)
+{
+    <section class="careers-card mt-3" aria-labelledby="portal-timeline-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-timeline-title"><i class="fas fa-stream ms-2" aria-hidden="true"></i> مسار الطلب</h2>
+            <ol class="list-group list-group-numbered">
+                @foreach (var step in status.Timeline)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-start @(step.Reached ? "" : "text-muted")">
+                        <div>
+                            <div class="fw-bold">@step.LabelAr</div>
+                            @if (!string.IsNullOrWhiteSpace(step.DetailAr))
+                            {
+                                <small>@step.DetailAr</small>
+                            }
+                            @if (step.AtUtc is DateTime at)
+                            {
+                                <small class="d-block"><bdi dir="ltr">@Date(at)</bdi></small>
+                            }
+                        </div>
+                        @if (step.Reached)
+                        {
+                            <span class="badge bg-success rounded-pill"><i class="fas fa-check" aria-hidden="true"></i><span class="visually-hidden">تم</span></span>
+                        }
+                        else
+                        {
+                            <span class="visually-hidden">لم تتم بعد</span>
+                        }
+                    </li>
+                }
+            </ol>
+        </div>
+    </section>
+}
+
+@if (Model.Interviews.Count > 0)
+{
+    <section class="careers-card mt-3" aria-labelledby="portal-interviews-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-interviews-title"><i class="fas fa-calendar-alt ms-2" aria-hidden="true"></i> المقابلات</h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <caption class="visually-hidden">مواعيد المقابلات</caption>
+                    <thead>
+                        <tr><th scope="col">التاريخ</th><th scope="col">الوقت</th><th scope="col">المكان</th><th scope="col">الحالة</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var interview in Model.Interviews)
+                        {
+                            <tr class="@(interview.Upcoming ? "fw-bold" : "")">
+                                <td><bdi dir="ltr">@interview.DateText</bdi></td>
+                                <td><bdi dir="ltr">@interview.TimeText</bdi></td>
+                                <td>@interview.PlaceText</td>
+                                <td>@interview.StatusLabel</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+}
+
+@if (offer is not null || FormErr("Accept", "") is not null || FormErr("Decline", "") is not null)
+{
+    <section class="careers-card mt-3" id="portal-offer" tabindex="-1" aria-labelledby="portal-offer-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-offer-title"><i class="fas fa-file-signature ms-2" aria-hidden="true"></i> عرض العمل</h2>
+            @if (offer is null)
+            {
+                <p class="mb-0">@NoOfferText()</p>
+            }
+            else
+            {
+                <dl class="row">
+                    <dt class="col-sm-3">رقم العرض</dt>
+                    <dd class="col-sm-9"><bdi dir="ltr">@offer.OfferNumber</bdi></dd>
+                    <dt class="col-sm-3">الوظيفة</dt>
+                    <dd class="col-sm-9">@offer.PositionTitle</dd>
+                    <dt class="col-sm-3">الدرجة</dt>
+                    <dd class="col-sm-9"><bdi dir="ltr">@(offer.GradeCode ?? "—")</bdi></dd>
+                    <dt class="col-sm-3">الراتب الشهري</dt>
+                    <dd class="col-sm-9"><bdi dir="ltr">@offer.SalaryText</bdi> ل.س</dd>
+                    <dt class="col-sm-3">تاريخ المباشرة المقترح</dt>
+                    <dd class="col-sm-9"><bdi dir="ltr">@offer.StartDateText</bdi></dd>
+                    @if (offer.ExpiresOnText is not null && !offer.IsAccepted)
+                    {
+                        <dt class="col-sm-3">آخر موعد للرد</dt>
+                        <dd class="col-sm-9"><bdi dir="ltr">@offer.ExpiresOnText</bdi></dd>
+                    }
+                    @if (offer.VerificationCode is not null)
+                    {
+                        <dt class="col-sm-3">رمز التحقق من الخطاب</dt>
+                        <dd class="col-sm-9"><bdi dir="ltr">@offer.VerificationCode</bdi></dd>
+                    }
+                </dl>
+                @if (offer.CanDownload)
+                {
+                    <p><a class="btn careers-btn-outline" asp-action="OfferLetter"><i class="fas fa-file-pdf ms-1" aria-hidden="true"></i> تنزيل خطاب العرض</a></p>
+                }
+                @if (offer.IsAccepted)
+                {
+                    <div class="alert alert-success mb-0" role="status">تم قبول العرض. ستتواصل معك جهة التوظيف لاستكمال إجراءات التعيين.</div>
+                }
+                else if (offer.IsExpired)
+                {
+                    <div class="alert alert-secondary mb-0" role="status">انتهت صلاحية العرض ولا يمكن الرد عليه.</div>
+                }
+                else if (offer.CanRespond)
+                {
+                    var ackError = FormErr("Accept", "Acknowledge");
+                    var nameError = FormErr("Accept", "FullName");
+                    var declineError = FormErr("Decline", "Text") ?? FormErr("Decline", "");
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <form asp-action="AcceptOffer" method="post" class="careers-form border rounded p-3 h-100" novalidate aria-labelledby="portal-accept-title">
+                                @Html.AntiForgeryToken()
+                                <h3 class="h6 fw-bold" id="portal-accept-title">قبول العرض</h3>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input@(Invalid(ackError))" type="checkbox" id="portal-accept-ack" name="Acknowledge" value="true"
+                                           required aria-required="true" aria-invalid="@(ackError is null ? "false" : "true")"
+                                           aria-describedby="@(ackError is null ? null : "portal-accept-ack-error")" />
+                                    <label class="form-check-label" for="portal-accept-ack">أقرّ بأنني اطلعت على شروط العرض وأقبلها</label>
+                                    @if (ackError is not null) { <div class="invalid-feedback d-block" id="portal-accept-ack-error">@ackError</div> }
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="portal-accept-name">الاسم الكامل</label>
+                                    <input id="portal-accept-name" name="FullName" class="form-control@(Invalid(nameError))" maxlength="200"
+                                           value="@Model.Posted.AcceptFullName" autocomplete="name" required aria-required="true"
+                                           aria-invalid="@(nameError is null ? "false" : "true")"
+                                           aria-describedby="portal-accept-name-help@(nameError is null ? "" : " portal-accept-name-error")" />
+                                    <small id="portal-accept-name-help" class="text-muted d-block">اكتب اسمك الكامل كما ورد في طلبك تأكيداً للقبول.</small>
+                                    @if (nameError is not null) { <div class="invalid-feedback d-block" id="portal-accept-name-error">@nameError</div> }
+                                </div>
+                                <button type="submit" class="btn careers-btn-primary"><i class="fas fa-check ms-1" aria-hidden="true"></i> قبول العرض</button>
+                            </form>
+                        </div>
+                        <div class="col-lg-6">
+                            <form asp-action="DeclineOffer" method="post" class="careers-form border rounded p-3 h-100" novalidate aria-labelledby="portal-decline-title">
+                                @Html.AntiForgeryToken()
+                                <h3 class="h6 fw-bold" id="portal-decline-title">الاعتذار عن العرض</h3>
+                                <div class="mb-3">
+                                    <label class="form-label" for="portal-decline-reason">سبب الاعتذار</label>
+                                    <textarea id="portal-decline-reason" name="Text" rows="3" maxlength="1000" class="form-control@(Invalid(declineError))"
+                                              required aria-required="true" aria-invalid="@(declineError is null ? "false" : "true")"
+                                              aria-describedby="portal-decline-help@(declineError is null ? "" : " portal-decline-error")">@Model.Posted.DeclineReason</textarea>
+                                    <small id="portal-decline-help" class="text-muted d-block">5 أحرف على الأقل. لا يمكن التراجع عن الاعتذار بعد إرساله.</small>
+                                    @if (declineError is not null) { <div class="invalid-feedback d-block" id="portal-decline-error">@declineError</div> }
+                                </div>
+                                <button type="submit" class="btn btn-outline-danger"><i class="fas fa-times ms-1" aria-hidden="true"></i> الاعتذار عن العرض</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </section>
+}
+
+@if (appeal is not null || FormErr("Appeal", "") is not null || FormErr("AppealInfo", "") is not null)
+{
+    <section class="careers-card mt-3" id="portal-appeal" aria-labelledby="portal-appeal-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-appeal-title"><i class="fas fa-balance-scale ms-2" aria-hidden="true"></i> الاستئناف</h2>
+            @switch (appeal?.State ?? (CandidatePortalAppealState)(-1))
+            {
+                case CandidatePortalAppealState.CanFile:
+                    var appealError = FormErr("Appeal", "Text") ?? FormErr("Appeal", "");
+                    <p>يمكنك الاستئناف على قرار عدم القبول@(appeal!.DateText is null ? "" : " حتى ")<bdi dir="ltr">@appeal!.DateText</bdi>.</p>
+                    <form asp-action="Appeal" method="post" class="careers-form" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label" for="portal-appeal-reason">سبب الاستئناف</label>
+                            <textarea id="portal-appeal-reason" name="Text" rows="4" maxlength="2000" class="form-control@(Invalid(appealError))"
+                                      required aria-required="true" aria-invalid="@(appealError is null ? "false" : "true")"
+                                      aria-describedby="portal-appeal-help@(appealError is null ? "" : " portal-appeal-error")">@Model.Posted.AppealReason</textarea>
+                            <small id="portal-appeal-help" class="text-muted d-block">20 حرفاً على الأقل. يُراجَع الاستئناف من جهة مستقلة عن لجنة الاختيار.</small>
+                            @if (appealError is not null) { <div class="invalid-feedback d-block" id="portal-appeal-error">@appealError</div> }
+                        </div>
+                        <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1" aria-hidden="true"></i> تقديم الاستئناف</button>
+                    </form>
+                    break;
+                case CandidatePortalAppealState.WindowClosed:
+                    <p class="mb-0">انتهت مدة الاستئناف في <bdi dir="ltr">@appeal!.DateText</bdi></p>
+                    break;
+                case CandidatePortalAppealState.AwaitingInfo:
+                    var infoError = FormErr("AppealInfo", "Text") ?? FormErr("AppealInfo", "");
+                    <p>استئنافك قيد المراجعة، وطلب المراجع المعلومات التالية:</p>
+                    <blockquote class="border-start border-3 ps-3 mb-3">@appeal!.InfoRequest</blockquote>
+                    <form asp-action="AppealInfo" method="post" class="careers-form" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label" for="portal-appeal-info">المعلومات المطلوبة</label>
+                            <textarea id="portal-appeal-info" name="Text" rows="4" maxlength="4000" class="form-control@(Invalid(infoError))"
+                                      required aria-required="true" aria-invalid="@(infoError is null ? "false" : "true")"
+                                      aria-describedby="portal-appeal-info-help@(infoError is null ? "" : " portal-appeal-info-error")">@Model.Posted.AppealInfo</textarea>
+                            <small id="portal-appeal-info-help" class="text-muted d-block">10 أحرف على الأقل.</small>
+                            @if (infoError is not null) { <div class="invalid-feedback d-block" id="portal-appeal-info-error">@infoError</div> }
+                        </div>
+                        <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1" aria-hidden="true"></i> إرسال المعلومات</button>
+                    </form>
+                    break;
+                case CandidatePortalAppealState.Pending:
+                    <p class="mb-0">استئنافك قيد المراجعة، وستُبلَّغ بنتيجته.</p>
+                    break;
+                case CandidatePortalAppealState.Decided:
+                    <p class="mb-0">تم البت في استئنافك. تظهر النتيجة في حالة الطلب أعلاه.</p>
+                    break;
+                default:
+                    <p class="mb-0">لا يمكن تقديم استئناف على هذا الطلب حالياً.</p>
+                    break;
+            }
+        </div>
+    </section>
+}
+
+@if (status is not null && (Model.Documents.Count > 0 || Model.MissingDocumentTypes.Count > 0 || FormErr("Documents", "") is not null))
+{
+    <section class="careers-card mt-3" id="portal-documents" tabindex="-1" aria-labelledby="portal-documents-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-documents-title"><i class="fas fa-paperclip ms-2" aria-hidden="true"></i> المستندات</h2>
+            @if (Model.Documents.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <caption class="visually-hidden">المستندات المرفوعة</caption>
+                        <thead>
+                            <tr><th scope="col">النوع</th><th scope="col">الملف</th><th scope="col">الحجم</th><th scope="col">تاريخ الرفع</th><th scope="col">حالة الفحص</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var document in Model.Documents)
+                            {
+                                <tr>
+                                    <td>@document.TypeLabel</td>
+                                    <td><bdi>@document.FileName</bdi></td>
+                                    <td>@document.SizeText</td>
+                                    <td><bdi dir="ltr">@document.UploadedOnText</bdi></td>
+                                    <td>@document.ScanLabel</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            @if (Model.MissingDocumentTypes.Count > 0)
+            {
+                <p class="mb-2">مستندات مطلوبة لم تُرفع بعد: @string.Join("، ", Model.MissingDocumentTypes.Select(t => t.LabelAr))</p>
+                @if (Model.CanUploadDocuments)
+                {
+                    <form asp-action="Documents" method="post" enctype="multipart/form-data" class="careers-form" novalidate>
+                        @Html.AntiForgeryToken()
+                        <p class="text-muted small" id="portal-docs-help">PDF أو JPG أو PNG، بحد أقصى @maxMb ميغابايت للملف و@maxTotalMb ميغابايت للمجموع.</p>
+                        @foreach (var (code, label) in Model.MissingDocumentTypes)
+                        {
+                            var field = CitizenApplicationApplyViewModel.FieldFor(code);
+                            var docError = FormErr("Documents", field);
+                            var multiple = code is CandidateDocumentTypes.Certificate or CandidateDocumentTypes.Other;
+                            <div class="mb-3">
+                                <label class="form-label" for="portal-doc-@code">@label</label>
+                                <input type="file" id="portal-doc-@code" name="@field" class="form-control@(Invalid(docError))"
+                                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple="@(multiple ? "multiple" : null)"
+                                       aria-invalid="@(docError is null ? "false" : "true")"
+                                       aria-describedby="portal-docs-help@(docError is null ? "" : $" portal-doc-{code}-error")" />
+                                @if (docError is not null) { <div class="invalid-feedback d-block" id="portal-doc-@code-error">@docError</div> }
+                            </div>
+                        }
+                        <button type="submit" class="btn careers-btn-primary"><i class="fas fa-upload ms-1" aria-hidden="true"></i> رفع المستندات</button>
+                    </form>
+                }
+                else if (Model.DocumentsClosedReason is not null)
+                {
+                    <p class="text-muted mb-0">@Model.DocumentsClosedReason</p>
+                }
+            }
+        </div>
+    </section>
+}
+
+@if (Model.CanWithdraw || Model.WithdrawBlockedByAcceptance || WithdrawErr() is not null)
+{
+    <section class="careers-card mt-3" id="portal-withdraw" aria-labelledby="portal-withdraw-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-withdraw-title"><i class="fas fa-user-minus ms-2" aria-hidden="true"></i> الانسحاب من الطلب</h2>
+            @if (Model.WithdrawBlockedByAcceptance)
+            {
+                <p class="mb-0">@HR.Core.Infrastructure.Services.Recruitment.RecruitmentSelectionService.AcceptedOfferWithdrawMessage</p>
+            }
+            else if (!Model.CanWithdraw)
+            {
+                @* Only after a refused post (withdrawn in another tab, or settled by HR meanwhile): the error alone. *@
+                <p class="text-danger mb-0" id="portal-withdraw-error" role="alert">@WithdrawErr()</p>
+            }
+            else if (!Model.ShowWithdrawConfirm)
+            {
+                <p>يمكنك سحب طلبك ما دام قيد المعالجة. إن كان لديك عرض بانتظار ردك فسيُعدّ الانسحاب اعتذاراً عنه.</p>
+                <a class="btn btn-outline-danger" asp-action="Index" asp-route-step="withdraw" asp-fragment="portal-withdraw-confirm-title">الانسحاب من الطلب</a>
+            }
+            else
+            {
+                var reasonError = FormErr("Withdraw", "Reason") ?? FormErr("Withdraw", "");
+                var confirmError = FormErr("Withdraw", "Confirm");
+                <div class="border border-danger rounded p-3" role="region" aria-labelledby="portal-withdraw-confirm-title">
+                    <h3 class="h6 fw-bold text-danger" id="portal-withdraw-confirm-title" tabindex="-1">تأكيد الانسحاب</h3>
+                    <p>لا يمكن التراجع عن الانسحاب بعد تأكيده.</p>
+                    <form asp-action="Withdraw" method="post" class="careers-form" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label" for="portal-withdraw-reason">سبب الانسحاب</label>
+                            <textarea id="portal-withdraw-reason" name="Reason" rows="3" maxlength="500" class="form-control@(Invalid(reasonError))"
+                                      required aria-required="true" aria-invalid="@(reasonError is null ? "false" : "true")"
+                                      aria-describedby="portal-withdraw-help@(reasonError is null ? "" : " portal-withdraw-reason-error")">@Model.Posted.WithdrawReason</textarea>
+                            <small id="portal-withdraw-help" class="text-muted d-block">5 أحرف على الأقل.</small>
+                            @if (reasonError is not null) { <div class="invalid-feedback d-block" id="portal-withdraw-reason-error">@reasonError</div> }
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input@(Invalid(confirmError))" type="checkbox" id="portal-withdraw-confirm" name="Confirm" value="true"
+                                   required aria-required="true" aria-invalid="@(confirmError is null ? "false" : "true")"
+                                   aria-describedby="@(confirmError is null ? null : "portal-withdraw-confirm-error")" />
+                            <label class="form-check-label" for="portal-withdraw-confirm">أؤكد رغبتي في الانسحاب من هذا الطلب</label>
+                            @if (confirmError is not null) { <div class="invalid-feedback d-block" id="portal-withdraw-confirm-error">@confirmError</div> }
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-user-minus ms-1" aria-hidden="true"></i> تأكيد الانسحاب</button>
+                            <a class="btn careers-btn-outline" asp-action="Index">إلغاء</a>
+                        </div>
+                    </form>
+                </div>
+            }
+        </div>
+    </section>
+}
+<script src="~/js/careers-portal.js" asp-append-version="true"></script>
+@functions {
+    private static string NoOfferText() => "لا يوجد عرض بانتظار ردك.";
+}

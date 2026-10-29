@@ -106,9 +106,12 @@ if (-not $compliance2 -or $compliance2.roles -notcontains "compliance" -or $comp
 
 # Markers left for later plans.
 $appealService = Get-Content -Raw (Resolve-RepoPath "src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/RecruitmentAppealService.cs")
-foreach ($marker in @("// PLAN-30: candidate files via /careers", "// PLAN-25: always start workflow")) {
+foreach ($marker in @("// PLAN-25: always start workflow")) {
     if (-not $appealService.Contains($marker)) { $failures += "marker missing in RecruitmentAppealService: $marker" }
 }
+# HCM-030 (PLAN-30 I) resolved the PLAN-30 marker: the candidate files the appeal on /careers/my.
+$portalService = Get-Content -Raw (Resolve-RepoPath "src/Services/HRCore/HR.Core.Web/Services/CandidatePortalService.cs")
+if (-not $portalService.Contains("RecruitmentAppealFiledBy.Candidate")) { $failures += "CandidatePortalService must file candidate appeals (RecruitmentAppealFiledBy.Candidate)" }
 
 if (-not $SkipModelCheck) {
     Write-Host "Checking for pending EF model changes..."

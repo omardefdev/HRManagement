@@ -35,6 +35,23 @@ public class OfferLetter : AuditableEntity
     [Display(Name = "تاريخ القبول")]
     public DateTime? AcceptedDate { get; set; }
 
+    /// <summary>
+    /// HCM-030 (PLAN-30 I/J): <c>Candidate</c> (accepted on <c>/careers/my</c>) or <c>HrOnBehalf</c> (see
+    /// <see cref="OfferAcceptedBy"/>); null for offers accepted before HCM-030.
+    /// </summary>
+    [StringLength(20)]
+    [Display(Name = "قبول بواسطة")]
+    public string? AcceptedBy { get; set; }
+
+    /// <summary>HCM-030 (J): reason recorded when HR accepts on the candidate's behalf.</summary>
+    [StringLength(1000)]
+    [Display(Name = "ملاحظة القبول")]
+    public string? AcceptanceNote { get; set; }
+
+    /// <summary>HCM-030 (J): File.Storage id of the signed paper acceptance (HR on behalf).</summary>
+    [Display(Name = "مستند إثبات القبول")]
+    public Guid? AcceptanceEvidenceFileId { get; set; }
+
     [Display(Name = "الراتب المعروض")]
     public decimal OfferedSalary { get; set; }
 
@@ -80,6 +97,10 @@ public class OfferLetter : AuditableEntity
     [StringLength(20)]
     [Display(Name = "رفض بواسطة")]
     public string? DeclinedBy { get; set; }
+
+    /// <summary>HCM-030 (J): optional File.Storage id of the signed paper decline (HR on behalf).</summary>
+    [Display(Name = "مستند إثبات الرفض")]
+    public Guid? DeclineEvidenceFileId { get; set; }
 
     [StringLength(1000)]
     [Display(Name = "سبب الإلغاء")]
@@ -140,9 +161,29 @@ public class OfferLetter : AuditableEntity
 /// <summary>HCM-027: values of <see cref="OfferLetter.DeclinedBy"/>.</summary>
 public static class OfferDeclinedBy
 {
-    /// <summary>Reserved for candidate self-service (PLAN-30).</summary>
+    /// <summary>HCM-030: the candidate declined (or withdrew) on <c>/careers/my</c>.</summary>
     public const string Candidate = "Candidate";
     public const string HrOnBehalf = "HrOnBehalf";
 
     public static bool IsValid(string? value) => value is Candidate or HrOnBehalf;
+}
+
+/// <summary>HCM-030 (PLAN-30 I/J): values of <see cref="OfferLetter.AcceptedBy"/>.</summary>
+public static class OfferAcceptedBy
+{
+    /// <summary>The candidate accepted on <c>/careers/my</c> (typed acknowledgement).</summary>
+    public const string Candidate = "Candidate";
+
+    /// <summary>HR recorded a paper acceptance (reason and evidence required).</summary>
+    public const string HrOnBehalf = "HrOnBehalf";
+
+    public static bool IsValid(string? value) => value is Candidate or HrOnBehalf;
+
+    /// <summary>HCM-030 (J): «قبول بواسطة» on OfferLetters/Details; offers accepted before HCM-030 have no channel.</summary>
+    public static string LabelAr(string? value) => value switch
+    {
+        Candidate => "المرشح عبر بوابة التوظيف",
+        HrOnBehalf => "HR نيابة عن المرشح",
+        _ => "غير مسجَّل (قبول سابق لتسجيل جهة القبول)"
+    };
 }

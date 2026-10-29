@@ -171,7 +171,7 @@ domain text). Event → template: `Received`→`APP_RECEIVED`, `InterviewSchedul
 `AppealDecided`→`APPEAL_DECIDED`; others send nothing. The input record cannot carry the candidate name, national id,
 birth date, salary/grade, scores, rank, committee data, panel names or notes (`Hcm030NotificationPiiGuardTests`). SMS is
 one Arabic (UCS-2) segment of at most 70 characters, without links; emails carry the reference and the
-`{Recruitment:PublicPortalBaseUrl}/careers/track` link (omitted when the option is empty). Masked recipients for
+`{Recruitment:PublicPortalBaseUrl}/careers/my` link (HCM-030 I; omitted when the option is empty). Masked recipients for
 history: `PiiMask.Email` / `PiiMask.Phone`. `ExpiresAt`: interview messages expire at the interview time even when it
 is already past (a past slot cancelled later expires unsent; +1 day only when no slot time is known), offer messages at
 the offer expiry, a rejection at the appeal deadline, reserve at the end of the reserve date, a withdrawal after 7 days,

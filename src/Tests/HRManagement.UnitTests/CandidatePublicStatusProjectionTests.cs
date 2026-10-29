@@ -244,7 +244,9 @@ public class CandidatePublicStatusProjectionTests
     {
         Assert.False(CandidatePublicStatusProjection.Project(Input(RecruitmentApplicationStatus.Hired)).CanWithdraw);
         Assert.False(CandidatePublicStatusProjection.Project(Input(RecruitmentApplicationStatus.Rejected)).CanWithdraw);
-        Assert.True(CandidatePublicStatusProjection.Project(Input(RecruitmentApplicationStatus.OfferAccepted)).CanWithdraw);
+        // HCM-030 (PLAN-30 I, DECISIONS I): no portal withdrawal once the offer is accepted (no workflow exit).
+        Assert.False(CandidatePublicStatusProjection.Project(Input(RecruitmentApplicationStatus.OfferAccepted)).CanWithdraw);
+        Assert.True(CandidatePublicStatusProjection.Project(Input(RecruitmentApplicationStatus.OfferExtended)).CanWithdraw);
     }
 
     [Fact]

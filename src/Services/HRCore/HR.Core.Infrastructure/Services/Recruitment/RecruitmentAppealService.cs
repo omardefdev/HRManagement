@@ -57,7 +57,8 @@ public sealed class RecruitmentAppealService(
         Guid? actorEmployeeId = null,
         CancellationToken ct = default)
     {
-        // PLAN-30: candidate files via /careers (FiledBy = Candidate); HR files on the candidate's behalf today.
+        // HCM-030 (PLAN-30 I): the candidate files on /careers/my (FiledBy = Candidate, no user, CandidatePortalService);
+        // HR files on the candidate's behalf (HrOnBehalf).
         if (!RecruitmentAppealFiledBy.IsValid(filedBy))
             return (null, "جهة تقديم الاستئناف غير صالحة.");
 

@@ -183,7 +183,10 @@ public static class CandidatePublicStatusProjection
                 && (input.ActiveOfferExpiryUtc is null || input.ActiveOfferExpiryUtc > input.NowUtc),
             CanAppeal: canAppeal,
             AppealOpenUntil: canAppeal ? input.AppealDeadlineUtc : null,
-            CanWithdraw: !SelectionWorkflowRules.TerminalStatuses.Contains(input.Status),
+            // HCM-030 (PLAN-30 I, DECISIONS I): open statuses before OfferAccepted — an accepted offer has no workflow exit.
+            CanWithdraw: !SelectionWorkflowRules.TerminalStatuses.Contains(input.Status)
+                && input.Status != RecruitmentApplicationStatus.OfferAccepted
+                && input.ActiveOfferStatus != OfferStatus.Accepted,
             NextInterview: input.Status is RecruitmentApplicationStatus.Shortlisted or RecruitmentApplicationStatus.InterviewScheduled
                 ? nextInterview
                 : null,

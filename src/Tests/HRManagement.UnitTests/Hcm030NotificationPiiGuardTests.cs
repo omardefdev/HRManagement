@@ -109,27 +109,27 @@ public class Hcm030NotificationPiiGuardTests
     }
 
     [Fact]
-    public void Email_carries_the_track_link_only_when_configured()
+    public void Email_carries_the_portal_link_only_when_configured()
     {
         var (app, slot, offer, appeal) = SensitiveWorld();
         var options = new RecruitmentOptions { PublicPortalBaseUrl = "https://hr.example.gov.sy/" };
-        Assert.Equal("https://hr.example.gov.sy/careers/track", options.PublicTrackUrl());
-        Assert.Null(new RecruitmentOptions().PublicTrackUrl());
+        Assert.Equal("https://hr.example.gov.sy/careers/my", options.CandidatePortalUrl());
+        Assert.Null(new RecruitmentOptions().CandidatePortalUrl());
 
         var withLink = T.Render(T.AppReceived, NotificationChannel.Email, Input(app, slot, offer, appeal) with
         {
-            TrackUrl = options.PublicTrackUrl()
+            PortalUrl = options.CandidatePortalUrl()
         });
         var withoutLink = T.Render(T.AppReceived, NotificationChannel.Email, Input(app, slot, offer, appeal));
         var sms = T.Render(T.AppReceived, NotificationChannel.Sms, Input(app, slot, offer, appeal) with
         {
-            TrackUrl = options.PublicTrackUrl()
+            PortalUrl = options.CandidatePortalUrl()
         });
 
-        Assert.Contains("https://hr.example.gov.sy/careers/track", withLink.Body, StringComparison.Ordinal);
+        Assert.Contains("https://hr.example.gov.sy/careers/my", withLink.Body, StringComparison.Ordinal);
         Assert.DoesNotContain("http", withoutLink.Body, StringComparison.Ordinal);
         Assert.DoesNotContain("http", sms.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain("?", withLink.Body.Split("careers/track")[1].Split('\n')[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("?", withLink.Body.Split("careers/my")[1].Split('\n')[0], StringComparison.Ordinal);
     }
 
     [Fact]

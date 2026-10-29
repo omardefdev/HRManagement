@@ -328,7 +328,8 @@ public sealed class Hcm030CareersSessionTests
             new CandidateOtpKeyRing(Key),
             Options.Create(new RecruitmentOptions { Portal = { OtpResendSeconds = 0 } }),
             NullLogger<CandidateOtpService>.Instance);
-        var controller = new CandidatePortalController(otp, sessions, CareersClientIpResolver.FromConfiguration(new ConfigurationBuilder().Build()));
+        var controller = new CandidatePortalController(
+            otp, sessions, CareersClientIpResolver.FromConfiguration(new ConfigurationBuilder().Build()), portalService: null!);
         var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) };
         http.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("198.51.100.20");
         controller.ControllerContext = new ControllerContext { HttpContext = http };

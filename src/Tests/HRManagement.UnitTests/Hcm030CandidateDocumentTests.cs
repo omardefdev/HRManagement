@@ -233,7 +233,7 @@ public class Hcm030CandidateDocumentTests
         var app = await db.RecruitmentApplications.Include(a => a.Requisition).SingleAsync();
         Assert.Contains(R.MissingRequiredDocuments, R.Parse(app.EligibilityFlags));
 
-        // PLAN-30 S3 path: a later upload is staged, then the flag is re-evaluated before the save.
+        // HCM-030 (I) /careers/my path: a later upload is staged, then the flag is re-evaluated before the save.
         db.CandidateDocuments.Add(new CandidateDocument
         {
             TenantId = TenantA,
@@ -262,7 +262,7 @@ public class Hcm030CandidateDocumentTests
         vm.CvFile = Form(Pdf(), "cv.pdf");
         await CreatePublicCareersController(seedDb, new FakeCandidateDocumentClient()).Apply(vm);
 
-        // PLAN-30 S3 (/careers/my): tenant query filters on, no ambient tenant (EffectiveTenantId = Guid.Empty).
+        // HCM-030 (I) /careers/my: tenant query filters on, no ambient tenant (EffectiveTenantId = Guid.Empty).
         using var db = new HRCoreDbContext(
             new DbContextOptionsBuilder<HRCoreDbContext>().UseSqlite(connection).Options, Mock.Of<ITenantContext>());
         var apps = db.RecruitmentApplications.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal);

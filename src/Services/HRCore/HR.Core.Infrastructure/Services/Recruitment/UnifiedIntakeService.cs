@@ -267,7 +267,8 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
 
     /// <summary>
     /// HCM-030 (E4): re-evaluates the document flag after the application's documents changed — saved rows plus the
-    /// ones staged in this context (no save). PLAN-30 S3: called when the candidate uploads missing documents.
+    /// ones staged in this context (no save). Also called when the candidate uploads missing documents on /careers/my
+    /// (<c>CandidatePortalService.UploadDocumentsAsync</c>).
     /// The anonymous portal has no ambient tenant, so the reads bypass the tenant filter and are scoped explicitly to
     /// the application's own tenant.
     /// </summary>

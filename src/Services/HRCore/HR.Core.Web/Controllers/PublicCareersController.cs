@@ -220,13 +220,17 @@ public class PublicCareersController(
     [HttpPost("track")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting(PublicCareersRateLimitExtensions.PolicyName)]
-    public async Task<IActionResult> Track(string referenceNumber, string nationalId)
+    public async Task<IActionResult> Track(string? referenceNumber, string? nationalId)
     {
+        if (string.IsNullOrWhiteSpace(referenceNumber) || string.IsNullOrWhiteSpace(nationalId))
+        {
+            ViewBag.NotFound = true;
+            return View();
+        }
+
         var hash = PiiMask.Sha256Hex(nationalId.Trim());
         var application = await db.CitizenApplications
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
-            .Include(a => a.PublicJobPosting)
-            .Include(a => a.Requisition)
             .AsNoTracking()
             .FirstOrDefaultAsync(a =>
                 a.ReferenceNumber == referenceNumber
@@ -239,11 +243,10 @@ public class PublicCareersController(
         }
 
         // HCM-030 (B3): a linked application shows its real public status; legacy rows keep the citizen status.
+        // HCM-030 (PLAN-30 I): this lookup needs no one-time code, so it shows the public status label only; the timeline,
+        // interviews, offer terms and the candidate actions (offer reply, withdraw, appeal) are on /careers/my.
         if (application.PromotedRecruitmentApplicationId is Guid appId)
             ViewBag.PublicView = await publicStatus.GetViewAsync(appId, forPublicPortal: true);
-        else
-            ViewBag.Timeline = BuildLegacyTimeline(application);
-        // PLAN-30 S3: /careers/my (OTP) adds the candidate actions (offer reply, withdraw, appeal) on CandidatePublicView.
         return View("TrackResult", application);
     }
 
@@ -331,29 +334,5 @@ public class PublicCareersController(
             return true;
 
         return posting.Requisition is { Status: RequisitionStatus.Published };
-    }
-
-    /// <summary>
-    /// Citizen-status timeline of legacy rows (no requisition, or not yet linked). Linked rows use
-    /// <see cref="CandidatePublicStatusService"/>; the interview and hire steps, which only meant "promoted", are gone.
-    /// </summary>
-    private static IReadOnlyList<(string Label, bool Reached, string? Detail)> BuildLegacyTimeline(CitizenApplication app)
-    {
-        var status = app.Status;
-        bool reached(CitizenApplicationStatus min) => (int)status >= (int)min;
-
-        return
-        [
-            ("تم استلام الطلب", true, app.SubmittedAt.ToString("yyyy-MM-dd")),
-            ("قيد المراجعة", reached(CitizenApplicationStatus.UnderReview), null),
-            ("القائمة المختصرة", reached(CitizenApplicationStatus.Shortlisted), null),
-            ("القرار", status is CitizenApplicationStatus.Accepted or CitizenApplicationStatus.Rejected,
-                status switch
-                {
-                    CitizenApplicationStatus.Accepted => "مقبول",
-                    CitizenApplicationStatus.Rejected => "مرفوض — يمكن الاستئناف عبر الجهة",
-                    _ => null
-                })
-        ];
     }
 }

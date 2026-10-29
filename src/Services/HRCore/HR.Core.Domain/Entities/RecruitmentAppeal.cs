@@ -81,7 +81,7 @@ public class RecruitmentAppeal : AuditableEntity
 /// <summary>HCM-028 (H1): values of <see cref="RecruitmentAppeal.FiledBy"/>.</summary>
 public static class RecruitmentAppealFiledBy
 {
-    /// <summary>Reserved for candidate self-service (PLAN-30).</summary>
+    /// <summary>HCM-030: the candidate filed on <c>/careers/my</c>.</summary>
     public const string Candidate = "Candidate";
     public const string HrOnBehalf = "HrOnBehalf";
 

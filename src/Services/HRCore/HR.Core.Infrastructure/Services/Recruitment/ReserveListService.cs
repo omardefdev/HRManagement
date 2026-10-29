@@ -36,7 +36,8 @@ public sealed class ReserveListService(
 
     /// <summary>
     /// HCM-027 (F3): «المرشح التالي بالجدارة» banner — only for a Published requisition where an offer was declined,
-    /// expired or revoked (its application now OfferDeclined/Rejected) and no other offer occupies the requisition.
+    /// expired or revoked (its application now OfferDeclined/Rejected — or, HCM-030, Withdrawn when the offer was settled
+    /// by the candidate's withdrawal) and no other offer occupies the requisition.
     /// </summary>
     public async Task<NextCandidateSuggestion?> GetNextCandidateSuggestionAsync(Guid requisitionId, CancellationToken ct = default)
     {
@@ -48,10 +49,14 @@ public sealed class ReserveListService(
         var offers = db.OfferLetters.AsNoTracking()
             .Where(o => o.RecruitmentApplication != null && o.RecruitmentApplication.RequisitionId == requisitionId);
 
+        var prefix = RecruitmentOfferService.WithdrawalReasonPrefix;
         var hasSettledOffer = await offers.AnyAsync(o =>
             (o.Status == OfferStatus.Declined || o.Status == OfferStatus.Expired || o.Status == OfferStatus.Revoked)
             && (o.RecruitmentApplication!.Status == RecruitmentApplicationStatus.OfferDeclined
-                || o.RecruitmentApplication.Status == RecruitmentApplicationStatus.Rejected), ct);
+                || o.RecruitmentApplication.Status == RecruitmentApplicationStatus.Rejected
+                || (o.RecruitmentApplication.Status == RecruitmentApplicationStatus.Withdrawn
+                    && ((o.Status == OfferStatus.Declined && o.DeclineReason != null && o.DeclineReason.StartsWith(prefix))
+                        || (o.Status == OfferStatus.Revoked && o.RevokeReason != null && o.RevokeReason.StartsWith(prefix))))), ct);
         if (!hasSettledOffer)
             return null;
 

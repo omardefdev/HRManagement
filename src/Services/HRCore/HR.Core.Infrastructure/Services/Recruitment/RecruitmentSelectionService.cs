@@ -453,6 +453,80 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         return (true, null);
     }
 
+    public const string AcceptedOfferWithdrawMessage = "تم قبول العرض؛ للانسحاب يرجى التواصل مع جهة التوظيف.";
+    public const string CannotWithdrawMessage = "لا يمكن الانسحاب من الطلب في حالته الحالية.";
+    public const int MaxWithdrawReasonLength = 500;
+
+    /// <summary>
+    /// HCM-030 (PLAN-30 I, DECISIONS I): the candidate withdraws on <c>/careers/my</c>. Allowed from every open status before
+    /// <see cref="RecruitmentApplicationStatus.OfferAccepted"/> (an accepted offer has no workflow exit: the candidate is
+    /// told to contact the employer). The active offer is settled first in the same save
+    /// (<see cref="RecruitmentOfferService.SettleForWithdrawalAsync"/>: Issued → Declined by the candidate, Draft/PendingApproval
+    /// → Revoked with the approval cancelled), then the application becomes Withdrawn. Audited <c>WithdrawByCandidate</c>
+    /// (actor Candidate, no user). <paramref name="offers"/> is a parameter, not a dependency, so this service keeps its
+    /// one-argument constructor. Returns the settled offer id so the caller can run the HCM-027 next-candidate draft.
+    /// </summary>
+    public async Task<(bool Success, string? Error, Guid? SettledOfferId)> WithdrawByCandidateAsync(
+        Guid applicationId,
+        string? reason,
+        RecruitmentOfferService offers,
+        CancellationToken ct = default)
+    {
+        var trimmed = reason?.Trim();
+        if (trimmed is null || trimmed.Length < OfferWorkflowRules.MinDeclineReasonLength)
+            return (false, $"سبب الانسحاب مطلوب ({OfferWorkflowRules.MinDeclineReasonLength} أحرف على الأقل).", null);
+        if (trimmed.Length > MaxWithdrawReasonLength)
+            return (false, $"سبب الانسحاب يجب ألا يتجاوز {MaxWithdrawReasonLength} حرف.", null);
+
+        var app = await LoadApplicationAsync(applicationId, ct);
+        if (app is null) return (false, "الطلب غير موجود.", null);
+        // Terminal first: a Hired application keeps its accepted offer, but there is nothing left to withdraw from.
+        if (SelectionWorkflowRules.TerminalStatuses.Contains(app.Status))
+            return (false, CannotWithdrawMessage, null);
+        if (app.Status is RecruitmentApplicationStatus.OfferAccepted
+            || app.ActiveOfferLetter?.Status == OfferStatus.Accepted)
+            return (false, AcceptedOfferWithdrawMessage, null);
+        if (!SelectionWorkflowRules.CanTransition(app, RecruitmentApplicationStatus.Withdrawn))
+            return (false, CannotWithdrawMessage, null);
+
+        var now = DateTime.UtcNow;
+        var fromStatus = app.Status;
+        Guid? settledOfferId = null;
+        if (app.ActiveOfferLetter is { Status: OfferStatus.Draft or OfferStatus.PendingApproval or OfferStatus.Issued } offer)
+        {
+            settledOfferId = offer.Id;
+            await offers.SettleForWithdrawalAsync(offer, trimmed, now, ct);
+        }
+        else
+        {
+            app.Notes = string.IsNullOrWhiteSpace(app.Notes)
+                ? RecruitmentOfferService.WithdrawalReasonPrefix + trimmed
+                : $"{app.Notes}\n{RecruitmentOfferService.WithdrawalReasonPrefix}{trimmed}";
+        }
+
+        // SettleApplication leaves the status alone for an offer that is not the active one; set it in every case.
+        app.Status = RecruitmentApplicationStatus.Withdrawn;
+        app.ReviewedAt = now;
+        db.AuditLogs.Add(new EntityAuditLog
+        {
+            TenantId = app.TenantId,
+            EntityType = nameof(RecruitmentApplication),
+            EntityId = app.Id,
+            Action = "WithdrawByCandidate",
+            UserId = null,
+            ChangedFields = JsonSerializer.Serialize(new
+            {
+                actor = "Candidate",
+                fromStatus = fromStatus.ToString(),
+                settledOfferId,
+                reason = trimmed
+            })
+        });
+
+        await db.SaveChangesAsync(ct);
+        return (true, null, settledOfferId);
+    }
+
     private Task<RecruitmentApplication?> LoadApplicationAsync(Guid id, CancellationToken ct) =>
         db.RecruitmentApplications
             .Include(a => a.ActiveOfferLetter)

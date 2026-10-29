@@ -2578,6 +2578,17 @@ namespace HR.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AcceptanceEvidenceFileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AcceptanceNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("AcceptedBy")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime?>("AcceptedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -2585,6 +2596,9 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DeclineEvidenceFileId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("DeclineReason")

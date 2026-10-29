@@ -4,16 +4,16 @@
 @{
     ViewData["Title"] = "حالة الطلب";
     Layout = "_PublicLayout";
-    // HCM-030 (B3): linked applications use the public projection; legacy rows keep the citizen status.
+    // HCM-030 (PLAN-30 I): read-only lookup without a one-time code — the public status label only. The timeline,
+    // interviews, offer terms and the candidate actions are on /careers/my (after the code).
     var publicView = ViewBag.PublicView as CandidatePublicView;
-    var timeline = ViewBag.Timeline as IReadOnlyList<(string Label, bool Reached, string? Detail)> ?? [];
-    string Badge(CitizenApplicationStatus s) => s switch
+    string LegacyBadge(CitizenApplicationStatus s) => s switch
     {
-        CitizenApplicationStatus.Accepted => "background:#2e7d32; color:#fff;",
-        CitizenApplicationStatus.Rejected => "background:#c62828; color:#fff;",
-        CitizenApplicationStatus.Shortlisted => "background:#0277bd; color:#fff;",
-        CitizenApplicationStatus.UnderReview => "background:#f9a825; color:#333;",
-        _ => "background:#757575; color:#fff;"
+        CitizenApplicationStatus.Accepted => "bg-success",
+        CitizenApplicationStatus.Rejected => "bg-danger",
+        CitizenApplicationStatus.Shortlisted => "bg-info text-dark",
+        CitizenApplicationStatus.UnderReview => "bg-warning text-dark",
+        _ => "bg-secondary"
     };
     string StatusLabel(CitizenApplicationStatus s) => s switch
     {
@@ -35,133 +35,31 @@
         _ => "bg-warning text-dark"
     };
 }
-<h2 class="careers-page-title"><i class="fas fa-clipboard-check ms-2"></i> حالة الطلب</h2>
-<div class="careers-card">
+<h1 class="careers-page-title"><i class="fas fa-clipboard-check ms-2" aria-hidden="true"></i> حالة الطلب</h1>
+<section class="careers-card" aria-label="حالة الطلب">
     <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <span class="text-muted small">الرقم المرجعي</span>
-                    <p class="fw-bold mb-0">@Model.ReferenceNumber</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <span class="text-muted small">الوظيفة</span>
-                    <p class="fw-bold mb-0">@(Model.Requisition?.JobTitle ?? Model.PublicJobPosting?.Title ?? "—")</p>
-                    @if (Model.Requisition is not null)
-                    {
-                        <span class="text-muted small">طلب الشاغر: @Model.Requisition.RequisitionNumber</span>
-                    }
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <span class="text-muted small">مقدّم الطلب</span>
-                    <p class="fw-bold mb-0">@Model.FullName</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <span class="text-muted small">تاريخ التقديم</span>
-                    <p class="fw-bold mb-0">@Model.SubmittedAt.ToString("yyyy-MM-dd")</p>
-                </div>
-            </div>
-            <div class="col-12">
-                <div class="mb-0">
-                    <span class="text-muted small">الحالة</span>
-                    @if (publicView is not null)
-                    {
-                        <p class="mb-0" role="status"><span class="badge rounded-pill px-3 py-2 @PublicBadge(publicView.Code)">@publicView.LabelAr</span></p>
-                        @if (!string.IsNullOrWhiteSpace(publicView.DetailAr))
-                        {
-                            <p class="mb-0 mt-2">@publicView.DetailAr</p>
-                        }
-                    }
-                    else
-                    {
-                        <p class="mb-0"><span class="badge rounded-pill px-3 py-2" style="@Badge(Model.Status)">@StatusLabel(Model.Status)</span></p>
-                    }
-                </div>
-            </div>
-            @if (publicView is null && Model.Status == CitizenApplicationStatus.Rejected)
-            {
-                <div class="col-12">
-                    <div class="alert alert-info mb-0 mt-2">
-                        <i class="fas fa-info-circle ms-1"></i>
-                        في حال الرفض يمكنكم الاستئناف عبر الجهة المعلنة خلال المدة النظامية — راجعوا
-                        <a asp-action="Privacy">إشعار الخصوصية</a>.
-                    </div>
-                </div>
-            }
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الرقم المرجعي</dt>
+            <dd class="col-sm-9"><bdi dir="ltr">@Model.ReferenceNumber</bdi></dd>
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9 mb-0" role="status">
+                @if (publicView is not null)
+                {
+                    <span class="badge rounded-pill px-3 py-2 @PublicBadge(publicView.Code)">@publicView.LabelAr</span>
+                }
+                else
+                {
+                    <span class="badge rounded-pill px-3 py-2 @LegacyBadge(Model.Status)">@StatusLabel(Model.Status)</span>
+                }
+            </dd>
+        </dl>
+        <div class="alert alert-info mb-0 mt-3">
+            <i class="fas fa-info-circle ms-1" aria-hidden="true"></i>
+            لعرض مسار الطلب ومواعيد المقابلات والعرض والرد عليه أو الاستئناف أو الانسحاب، ادخل إلى
+            <a asp-controller="CandidatePortal" asp-action="Login">طلبي</a> برمز تحقق يُرسل إلى وسيلة التواصل المسجلة في الطلب.
         </div>
     </div>
-</div>
-
-<div class="careers-card mt-3">
-    <div class="card-body">
-        <h5 class="mb-3" style="color:#6b1f2a; font-weight:700;"><i class="fas fa-stream ms-2"></i> مسار الطلب</h5>
-        <ol class="list-group list-group-numbered" aria-label="مراحل مسار طلب التوظيف">
-            @if (publicView is not null)
-            {
-                @foreach (var step in publicView.Timeline)
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-start @(step.Reached ? "" : "text-muted")">
-                        <div>
-                            <div class="fw-bold">@step.LabelAr</div>
-                            @if (!string.IsNullOrWhiteSpace(step.DetailAr))
-                            {
-                                <small>@step.DetailAr</small>
-                            }
-                            @if (step.AtUtc is DateTime at)
-                            {
-                                <small class="d-block">@at.ToLocalTime().ToString("yyyy-MM-dd")</small>
-                            }
-                        </div>
-                        @if (step.Reached)
-                        {
-                            <span class="badge bg-success rounded-pill"><i class="fas fa-check" aria-hidden="true"></i><span class="visually-hidden">تم</span></span>
-                        }
-                    </li>
-                }
-            }
-            else
-            {
-                @foreach (var step in timeline)
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-start @(step.Reached ? "" : "text-muted")">
-                        <div>
-                            <div class="fw-bold">@step.Label</div>
-                            @if (!string.IsNullOrWhiteSpace(step.Detail))
-                            {
-                                <small>@step.Detail</small>
-                            }
-                        </div>
-                        @if (step.Reached)
-                        {
-                            <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
-                        }
-                    </li>
-                }
-            }
-        </ol>
-        @* PLAN-30 S3: /careers/my (OTP) — offer reply, withdraw and appeal from CanRespondToOffer / CanWithdraw / CanAppeal. *@
-        @if (publicView?.NextInterview is { } interview)
-        {
-            <div class="mt-3">
-                <h6 class="fw-bold">موعد المقابلة</h6>
-                <p class="mb-1">
-                    <i class="fas fa-calendar-alt ms-1"></i>
-                    @interview.ScheduledAtUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm") — @interview.ModeAr
-                    @if (!string.IsNullOrWhiteSpace(interview.Location))
-                    {
-                        <span> — @interview.Location</span>
-                    }
-                </p>
-            </div>
-        }
-    </div>
-</div>
+</section>
 <div class="mt-3">
-    <a asp-action="Track" class="btn careers-btn-outline"><i class="fas fa-search ms-1"></i> تتبّع طلب آخر</a>
+    <a asp-action="Track" class="btn careers-btn-outline"><i class="fas fa-search ms-1" aria-hidden="true"></i> تتبّع طلب آخر</a>
 </div>

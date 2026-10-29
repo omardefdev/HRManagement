@@ -138,13 +138,14 @@ public sealed class RecruitmentOptions
     public string? PublicPortalBaseUrl { get; set; }
 
     /// <summary>
-    /// COM-030 (F6): <c>{PublicPortalBaseUrl}/careers/track</c> (no query: the page asks for the reference and national id
-    /// again), or null when <see cref="PublicPortalBaseUrl"/> is empty. PLAN-30 S3: switch to <c>/careers/my</c>.
+    /// COM-030 (F6) / HCM-030 (PLAN-30 I): <c>{PublicPortalBaseUrl}/careers/my</c> — the candidate's self-service page
+    /// (no query: the sign-in asks for the reference and national id, then a one-time code), or null when
+    /// <see cref="PublicPortalBaseUrl"/> is empty.
     /// </summary>
-    public string? PublicTrackUrl() =>
+    public string? CandidatePortalUrl() =>
         string.IsNullOrWhiteSpace(PublicPortalBaseUrl)
             ? null
-            : PublicPortalBaseUrl.Trim().TrimEnd('/') + ProductionHostExtensions.PublicCareersGatewayPrefix + "/track";
+            : PublicPortalBaseUrl.Trim().TrimEnd('/') + ProductionHostExtensions.PublicCareersGatewayPrefix + "/my";
 }
 
 /// <summary>

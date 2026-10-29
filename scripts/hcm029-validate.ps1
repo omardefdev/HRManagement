@@ -131,7 +131,9 @@ $markers = @{
     "src/Services/HRContracts/HR.Contracts.Infrastructure/Services/HireCommencementWatcher.cs" = "PLAN-29 follow-up: cancel hire for non-commencement"
     "src/Services/HRContracts/HR.Contracts.Application/Features/HireCases/IssueAppointmentDecision.cs" = "PLAN-29 follow-up: register in Diwan / sign"
     "src/Services/HRContracts/HR.Contracts.Web/Controllers/HireWizardController.cs" = "PLAN-29 follow-up: consume HR.Health fitness result"
-    "src/Services/HRCore/HR.Core.Web/Controllers/OfferLettersController.cs" = "PLAN-30: candidate download from /careers"
+    "src/Services/HRCore/HR.Core.Web/Controllers/OfferLettersController.cs" = "PLAN-29 follow-up: archive in File.Storage"
+    # HCM-030 (PLAN-30 I) resolved "PLAN-30: candidate download from /careers": the portal renders the same PDF.
+    "src/Services/HRCore/HR.Core.Web/Services/CandidatePortalService.cs" = "OfferLetterDocument.Generate"
 }
 foreach ($entry in $markers.GetEnumerator()) {
     if (-not (Get-Content -Raw (Resolve-RepoPath $entry.Key)).Contains($entry.Value)) { $failures += "marker missing in $($entry.Key): $($entry.Value)" }

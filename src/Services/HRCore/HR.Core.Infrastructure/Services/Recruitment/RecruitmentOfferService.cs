@@ -209,61 +209,204 @@ public sealed class RecruitmentOfferService(
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> AcceptAsync(Guid offerId, CancellationToken ct = default)
+    public const string ExpiredOfferMessage = "انتهت صلاحية العرض ولا يمكن قبوله.";
+
+    /// <summary>
+    /// Pre-HCM-030 callers (HR, no channel): the acceptance is recorded as <see cref="OfferAcceptedBy.HrOnBehalf"/> without a
+    /// note or evidence.
+    /// </summary>
+    public Task<(bool Success, string? Error)> AcceptAsync(Guid offerId, CancellationToken ct = default) =>
+        AcceptAsync(offerId, OfferAcceptedBy.HrOnBehalf, note: null, evidenceFileId: null, actorUserId: null, ct);
+
+    /// <summary>
+    /// HCM-030 (PLAN-30 I/J): accepts an issued, unexpired offer through a channel — <see cref="OfferAcceptedBy.Candidate"/>
+    /// (<c>/careers/my</c>, no user) or <see cref="OfferAcceptedBy.HrOnBehalf"/> (with the reason and evidence the HR action
+    /// requires). Audited as <c>AcceptOffer</c> / <c>AcceptOfferOnBehalf</c>.
+    /// </summary>
+    public async Task<(bool Success, string? Error)> AcceptAsync(
+        Guid offerId,
+        string acceptedBy,
+        string? note,
+        Guid? evidenceFileId,
+        Guid? actorUserId,
+        CancellationToken ct = default)
     {
+        if (!OfferAcceptedBy.IsValid(acceptedBy))
+            return (false, "جهة القبول غير صالحة.");
+        var trimmedNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        if (trimmedNote is { Length: > 1000 })
+            return (false, "ملاحظة القبول يجب ألا تتجاوز 1000 حرف.");
+
         var offer = await LoadOfferAsync(offerId, ct);
         if (offer is null) return (false, "خطاب العرض غير موجود.");
-        if (!OfferWorkflowRules.CanAccept(offer))
-            return (false, offer.Status == OfferStatus.Issued ? "انتهت صلاحية العرض ولا يمكن قبوله." : "لا يمكن قبول هذا العرض.");
-        if (offer.RecruitmentApplication!.Status != RecruitmentApplicationStatus.OfferExtended)
-            return (false, "لا يمكن قبول العرض إلا لطلب في حالة «عرض مُمدَّد».");
+        if (GetAcceptError(offer) is string acceptError)
+            return (false, acceptError);
 
+        var now = DateTime.UtcNow;
         offer.Status = OfferStatus.Accepted;
-        offer.AcceptedDate = DateTime.UtcNow;
+        offer.AcceptedDate = now;
+        offer.AcceptedBy = acceptedBy;
+        offer.AcceptanceNote = trimmedNote;
+        offer.AcceptanceEvidenceFileId = evidenceFileId;
 
         var app = offer.RecruitmentApplication!;
         app.Status = RecruitmentApplicationStatus.OfferAccepted;
-        app.ReviewedAt = DateTime.UtcNow;
+        app.ReviewedAt = now;
+        AddAudit(
+            offer,
+            acceptedBy == OfferAcceptedBy.HrOnBehalf ? "AcceptOfferOnBehalf" : "AcceptOffer",
+            actorUserId,
+            new { acceptedBy, note = trimmedNote, evidenceFileId });
 
         await db.SaveChangesAsync(ct);
         return (true, null);
     }
 
     /// <summary>
-    /// HCM-027 (G-06): the candidate declined an issued offer (recorded by HR on their behalf until PLAN-30).
-    /// The application becomes OfferDeclined; the offer stays in its history.
+    /// Why <paramref name="offer"/> (loaded with its application) cannot be accepted now; null when it can. HCM-030 (J): the
+    /// HR on-behalf action checks this before relaying the evidence file, so a refused acceptance stores nothing.
+    /// </summary>
+    public static string? GetAcceptError(OfferLetter offer)
+    {
+        if (!OfferWorkflowRules.CanAccept(offer))
+            return offer.Status == OfferStatus.Issued ? ExpiredOfferMessage : "لا يمكن قبول هذا العرض.";
+        if (offer.RecruitmentApplication?.Status != RecruitmentApplicationStatus.OfferExtended)
+            return "لا يمكن قبول العرض إلا لطلب في حالة «عرض مُمدَّد».";
+        return null;
+    }
+
+    /// <summary>
+    /// Why <paramref name="offer"/> cannot be declined with <paramref name="reason"/> by <paramref name="declinedBy"/>; null
+    /// when it can. HCM-030 (J): the HR on-behalf action checks this before relaying the optional evidence file, so a refused
+    /// decline stores nothing.
+    /// </summary>
+    public static string? GetDeclineError(OfferLetter offer, string? reason, string declinedBy)
+    {
+        if (!OfferWorkflowRules.CanDecline(offer))
+            return "لا يمكن رفض هذا العرض.";
+        var trimmed = reason?.Trim();
+        if (trimmed is null || trimmed.Length < OfferWorkflowRules.MinDeclineReasonLength)
+            return $"سبب الرفض مطلوب ({OfferWorkflowRules.MinDeclineReasonLength} أحرف على الأقل).";
+        if (trimmed.Length > 1000)
+            return "سبب الرفض يجب ألا يتجاوز 1000 حرف.";
+        if (!OfferDeclinedBy.IsValid(declinedBy))
+            return "جهة الرفض غير صالحة.";
+        return null;
+    }
+
+    /// <summary>
+    /// HCM-027 (G-06): the candidate declined an issued offer — on <c>/careers/my</c> (<see cref="OfferDeclinedBy.Candidate"/>,
+    /// HCM-030) or recorded by HR on their behalf. The application becomes OfferDeclined; the offer stays in its history.
+    /// HCM-030 (J): <paramref name="evidenceFileId"/> is the optional signed paper decline HR attached.
     /// </summary>
     public async Task<(bool Success, string? Error)> DeclineAsync(
         Guid offerId,
         string? reason,
         string declinedBy,
         Guid? actorUserId = null,
+        Guid? evidenceFileId = null,
         CancellationToken ct = default)
     {
         var offer = await LoadOfferAsync(offerId, ct);
         if (offer is null) return (false, "خطاب العرض غير موجود.");
-        if (!OfferWorkflowRules.CanDecline(offer))
-            return (false, "لا يمكن رفض هذا العرض.");
-        var trimmed = reason?.Trim();
-        if (trimmed is null || trimmed.Length < OfferWorkflowRules.MinDeclineReasonLength)
-            return (false, $"سبب الرفض مطلوب ({OfferWorkflowRules.MinDeclineReasonLength} أحرف على الأقل).");
-        if (trimmed.Length > 1000)
-            return (false, "سبب الرفض يجب ألا يتجاوز 1000 حرف.");
-        if (!OfferDeclinedBy.IsValid(declinedBy))
-            return (false, "جهة الرفض غير صالحة.");
+        if (GetDeclineError(offer, reason, declinedBy) is string declineError)
+            return (false, declineError);
+        var trimmed = reason!.Trim();
 
         var now = DateTime.UtcNow;
         offer.Status = OfferStatus.Declined;
         offer.DeclineReason = trimmed;
         offer.DeclinedAt = now;
         offer.DeclinedBy = declinedBy;
+        offer.DeclineEvidenceFileId = evidenceFileId;
         SettleApplication(offer, RecruitmentApplicationStatus.OfferDeclined, $"رفض العرض: {trimmed}", now);
-        AddAudit(offer, "DeclineOffer", actorUserId, new { reason = trimmed, declinedBy });
+        AddAudit(offer, "DeclineOffer", actorUserId, new { reason = trimmed, declinedBy, evidenceFileId });
         // PLAN-30: notify candidate
 
         await db.SaveChangesAsync(ct);
         return (true, null);
     }
+
+    /// <summary>
+    /// HCM-030 (PLAN-30 I): <see cref="DeclineAsync"/> followed by the HCM-027 (F3) next-candidate draft
+    /// (<see cref="DraftNextOfferAfterSettlementAsync"/>), so a decline on <c>/careers/my</c> and one recorded by HR behave
+    /// the same. The suggestion banner (option off) needs nothing here: <see cref="ReserveListService"/> derives it.
+    /// </summary>
+    public async Task<OfferSettlementResult> DeclineAndDraftNextAsync(
+        Guid offerId,
+        string? reason,
+        string declinedBy,
+        Guid? actorUserId,
+        Guid? evidenceFileId = null,
+        CancellationToken ct = default)
+    {
+        var (success, error) = await DeclineAsync(offerId, reason, declinedBy, actorUserId, evidenceFileId, ct);
+        if (!success)
+            return new OfferSettlementResult(false, error, null, null);
+        var (draft, draftError) = await DraftNextOfferAfterSettlementAsync(offerId, actorUserId, ct);
+        return new OfferSettlementResult(true, null, draft, draftError);
+    }
+
+    /// <summary>
+    /// HCM-027 (F3): <see cref="TryAutoDraftNextOfferAsync"/> after an offer was settled (decline, revoke, candidate
+    /// withdrawal). The settlement is already saved: a failure of the draft is returned as an error and never undoes it
+    /// (same rule as <see cref="RecruitmentOfferExpirer"/>).
+    /// </summary>
+    public async Task<(OfferLetter? Draft, string? Error)> DraftNextOfferAfterSettlementAsync(
+        Guid settledOfferId,
+        Guid? actorUserId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await TryAutoDraftNextOfferAsync(settledOfferId, actorUserId, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            db.ChangeTracker.Clear();
+            return (null, NextDraftFailedMessage);
+        }
+    }
+
+    public const string NextDraftFailedMessage = "تعذّر إنشاء مسودة العرض للمرشح التالي حالياً.";
+
+    /// <summary>HCM-030 (PLAN-30 I): prefix of the decline/revoke reason of an offer settled by the candidate's withdrawal.</summary>
+    public const string WithdrawalReasonPrefix = "انسحاب المرشح: ";
+
+    /// <summary>
+    /// HCM-030 (PLAN-30 I, DECISIONS I): stages (no save) the settlement of the application's active offer when the candidate
+    /// withdraws — Issued → Declined by the candidate; Draft/PendingApproval → Revoked with the approval cancelled — and moves
+    /// the application to Withdrawn. Never Rejected/Ranked. An Accepted offer has no workflow exit and is refused by the caller.
+    /// </summary>
+    internal async Task SettleForWithdrawalAsync(OfferLetter offer, string reason, DateTime now, CancellationToken ct)
+    {
+        var text = Truncate(WithdrawalReasonPrefix + reason, 1000);
+        if (offer.Status == OfferStatus.Issued)
+        {
+            offer.Status = OfferStatus.Declined;
+            offer.DeclineReason = text;
+            offer.DeclinedAt = now;
+            offer.DeclinedBy = OfferDeclinedBy.Candidate;
+            AddAudit(offer, "DeclineOffer", actorUserId: null, new { reason = text, declinedBy = OfferDeclinedBy.Candidate, withdrawal = true });
+        }
+        else
+        {
+            offer.Status = OfferStatus.Revoked;
+            offer.RevokeReason = text;
+            offer.RevokedAt = now;
+            await CancelApprovalAsync(offer, now, ct);
+            AddAudit(offer, "RevokeOffer", actorUserId: null, new { reason = text, revertToRanked = false, withdrawal = true });
+        }
+
+        SettleApplication(offer, RecruitmentApplicationStatus.Withdrawn, text, now);
+    }
+
+    /// <summary>The offer was settled by the candidate's withdrawal (its application is now Withdrawn).</summary>
+    internal static bool IsSettledByWithdrawal(OfferLetter offer) =>
+        (offer.Status == OfferStatus.Declined && offer.DeclineReason != null && offer.DeclineReason.StartsWith(WithdrawalReasonPrefix))
+        || (offer.Status == OfferStatus.Revoked && offer.RevokeReason != null && offer.RevokeReason.StartsWith(WithdrawalReasonPrefix));
+
+    private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
 
     /// <summary>
     /// HCM-027 (G-06): HR withdraws a Draft/PendingApproval/Issued offer. An in-progress approval is cancelled.
@@ -293,16 +436,7 @@ public sealed class RecruitmentOfferService(
         offer.Status = OfferStatus.Revoked;
         offer.RevokeReason = trimmed;
         offer.RevokedAt = now;
-
-        if (offer.WorkflowInstanceId is Guid instanceId)
-        {
-            var instance = await db.WorkflowInstances.FirstOrDefaultAsync(i => i.Id == instanceId, ct);
-            if (instance is { Status: WorkflowStatus.InProgress })
-            {
-                instance.Status = WorkflowStatus.Cancelled;
-                instance.CompletedAt = now;
-            }
-        }
+        await CancelApprovalAsync(offer, now, ct);
 
         SettleApplication(
             offer,
@@ -340,6 +474,19 @@ public sealed class RecruitmentOfferService(
         SettleApplication(offer, RecruitmentApplicationStatus.OfferDeclined, ExpiryNote, nowUtc);
         AddAudit(offer, "ExpireOffer", actorUserId: null, new { expiryDate = offer.ExpiryDate });
         // PLAN-30: notify candidate
+    }
+
+    /// <summary>An in-progress approval of a revoked offer is cancelled (shared by revoke and candidate withdrawal).</summary>
+    private async Task CancelApprovalAsync(OfferLetter offer, DateTime now, CancellationToken ct)
+    {
+        if (offer.WorkflowInstanceId is not Guid instanceId)
+            return;
+        var instance = await db.WorkflowInstances.FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+        if (instance is { Status: WorkflowStatus.InProgress })
+        {
+            instance.Status = WorkflowStatus.Cancelled;
+            instance.CompletedAt = now;
+        }
     }
 
     /// <summary>Moves the application off this offer; the offer stays in OfferLetters as history.</summary>
@@ -382,7 +529,8 @@ public sealed class RecruitmentOfferService(
 
     /// <summary>
     /// HCM-027 (F3): when <c>Recruitment:AutoDraftNextOffer</c> is on and the previous offer was declined, expired
-    /// or revoked (its application is now OfferDeclined/Rejected) on a still Published requisition, drafts an offer
+    /// or revoked (its application is now OfferDeclined/Rejected — or, HCM-030, Withdrawn when the offer was settled by the
+    /// candidate's withdrawal) on a still Published requisition, drafts an offer
     /// for the next candidate by merit with the previous grade, salary, validity and justifications, through
     /// <see cref="CreateDraftAsync"/> (same eligibility and terms checks). A start date already in the past
     /// becomes today + 30 days. Returns (null, null) when nothing is to be done.
@@ -398,7 +546,8 @@ public sealed class RecruitmentOfferService(
         var previous = await LoadOfferAsync(previousOfferId, ct);
         if (previous?.RecruitmentApplication is not { RequisitionId: Guid requisitionId } previousApp
             || previous.Status is not (OfferStatus.Declined or OfferStatus.Expired or OfferStatus.Revoked)
-            || previousApp.Status is not (RecruitmentApplicationStatus.OfferDeclined or RecruitmentApplicationStatus.Rejected)
+            || !(previousApp.Status is RecruitmentApplicationStatus.OfferDeclined or RecruitmentApplicationStatus.Rejected
+                || (previousApp.Status == RecruitmentApplicationStatus.Withdrawn && IsSettledByWithdrawal(previous)))
             || previousApp.Requisition?.Status != RequisitionStatus.Published)
             return (null, null);
 
@@ -563,3 +712,9 @@ public sealed class RecruitmentOfferService(
     }
 }
 
+
+/// <summary>
+/// HCM-030 (PLAN-30 I): outcome of a decline (or withdrawal) and of the HCM-027 next-candidate draft that follows it.
+/// <see cref="NextDraft"/>/<see cref="NextDraftError"/> are for HR only — the candidate portal never shows them.
+/// </summary>
+public sealed record OfferSettlementResult(bool Success, string? Error, OfferLetter? NextDraft, string? NextDraftError);

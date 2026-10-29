@@ -167,7 +167,7 @@ public sealed class CandidateNotificationDispatcher(
 
         var context = await LoadPlanningContextAsync(events, ct);
         var opts = options.Value;
-        var trackUrl = opts.PublicTrackUrl();
+        var portalUrl = opts.CandidatePortalUrl();
         var appealableKinds = opts.GetAppealableRejectionKinds();
 
         var inserted = 0;
@@ -179,7 +179,7 @@ public sealed class CandidateNotificationDispatcher(
             CandidateNotification? notification;
             try
             {
-                notification = BuildNotification(ev, context, nowUtc, trackUrl, opts.AppealWindowDays, appealableKinds);
+                notification = BuildNotification(ev, context, nowUtc, portalUrl, opts.AppealWindowDays, appealableKinds);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -272,7 +272,7 @@ public sealed class CandidateNotificationDispatcher(
         RecruitmentApplicationEvent ev,
         PlanningContext context,
         DateTime nowUtc,
-        string? trackUrl,
+        string? portalUrl,
         int appealWindowDays,
         IReadOnlyCollection<RecruitmentRejectionKind> appealableKinds)
     {
@@ -324,7 +324,7 @@ public sealed class CandidateNotificationDispatcher(
             slot,
             offer,
             appeal,
-            trackUrl,
+            portalUrl,
             appealWindowDays,
             appealableKinds,
             DisplayZone);

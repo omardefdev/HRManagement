@@ -19,8 +19,8 @@ public sealed record CandidateNotificationTemplateInput
     /// <summary><c>RecruitmentApplicationEvent.OccurredAt</c>; base of the expiry of most messages.</summary>
     public required DateTime OccurredAtUtc { get; init; }
 
-    /// <summary>Public track page (<c>{Recruitment:PublicPortalBaseUrl}/careers/track</c>); no link when null.</summary>
-    public string? TrackUrl { get; init; }
+    /// <summary>Candidate portal (<c>{Recruitment:PublicPortalBaseUrl}/careers/my</c>, HCM-030 I); no link when null.</summary>
+    public string? PortalUrl { get; init; }
 
     public DateTime? InterviewAtUtc { get; init; }
     public InterviewMode? InterviewMode { get; init; }
@@ -37,7 +37,7 @@ public sealed record CandidateNotificationTemplateInput
     public DateOnly? ReserveUntil { get; init; }
     public RecruitmentAppealOutcome? AppealOutcome { get; init; }
 
-    /// <summary>Zone of the dates in the text (default UTC); /careers/track uses <c>TimeZoneInfo.Local</c>.</summary>
+    /// <summary>Zone of the dates in the text (default UTC); /careers/my uses <c>TimeZoneInfo.Local</c>.</summary>
     public TimeZoneInfo? DisplayZone { get; init; }
 }
 
@@ -56,9 +56,8 @@ public sealed record CandidateNotificationContent(
 /// <item>Hard rules: no national id, salary, birth date, scores, rank, committee data, internal notes, panel names or
 /// candidate name (the input cannot carry them).</item>
 /// <item>SMS: one UCS-2 segment (<see cref="SmsMaxLength"/> characters with a 15-character reference), no link.</item>
-/// <item>Email: subject + short body + reference + track link (when configured) + automated-message footer.</item>
+/// <item>Email: subject + short body + reference + <c>/careers/my</c> link (when configured) + automated-message footer.</item>
 /// </list>
-/// PLAN-30 S3: the links switch from <c>/careers/track</c> to <c>/careers/my</c>.
 /// </summary>
 public static class CandidateNotificationTemplates
 {
@@ -127,7 +126,7 @@ public static class CandidateNotificationTemplates
         RecruitmentInterviewSlot? slot = null,
         OfferLetter? offer = null,
         RecruitmentAppeal? appeal = null,
-        string? trackUrl = null,
+        string? portalUrl = null,
         int appealWindowDays = RecruitmentAppealWorkflowRules.DefaultAppealWindowDays,
         IReadOnlyCollection<RecruitmentRejectionKind>? appealableKinds = null,
         TimeZoneInfo? displayZone = null)
@@ -144,7 +143,7 @@ public static class CandidateNotificationTemplates
         {
             ReferenceNumber = referenceNumber,
             OccurredAtUtc = occurredAtUtc,
-            TrackUrl = trackUrl,
+            PortalUrl = portalUrl,
             InterviewAtUtc = slot?.ScheduledAt,
             InterviewMode = slot?.Mode,
             InterviewLocation = slot?.Location,
@@ -235,8 +234,8 @@ public static class CandidateNotificationTemplates
             return new CandidateNotificationContent(templateCode, channel, null, text.Sms, expires);
 
         var lines = new List<string> { text.Email, $"رقم الطلب المرجعي: {reference}" };
-        if (!string.IsNullOrWhiteSpace(input.TrackUrl))
-            lines.Add($"تابع حالة طلبك عبر بوابة التوظيف: {input.TrackUrl}");
+        if (!string.IsNullOrWhiteSpace(input.PortalUrl))
+            lines.Add($"تابع حالة طلبك عبر بوابة التوظيف: {input.PortalUrl}");
         lines.Add(string.Empty);
         lines.Add(Footer);
         return new CandidateNotificationContent(

@@ -115,7 +115,7 @@ public class RecruitmentApplicationsController(
         var hireBlockedReason = await RecruitmentHireAppealGuard.ValidateAsync(db, app.RequisitionId, BlockHireOnPendingAppeal());
 
         // HCM-030 (E6): documents with their scan state (File.Storage, through HR.Core's service identity).
-        // PLAN-30 S3: candidate uploads missing documents from /careers/my
+        // HCM-030 (PLAN-30 I): the candidate uploads missing documents from /careers/my (CandidatePortalService).
         var documents = await candidateDocuments.GetRowsAsync(app);
         var missingDocumentTypes = CandidateDocumentTypes.Missing(
             CandidateDocumentTypes.RequiredFor(app.IntakeChannel, app.Requisition?.RequiredDocumentTypes),
