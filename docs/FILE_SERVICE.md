@@ -32,8 +32,37 @@ Example: `hr-core:Employee:3fa85f64-5717-4562-b3fc-2c963f66afa6:PhotoFileId`
 
 ## Garbage collection
 
-- Pending uploads with no references after 24h → deleted
-- Active files with refCount=0 after grace period → deleted
+- Pending uploads with no references after `OrphanUploadTtlHours` (24 h) → marked `PendingPurge`
+- Active files with refCount=0 after `ReleaseGraceHours` (24 h) → marked `PendingPurge`
+- Purge queue re-checks live references and retention, deletes the object, then sets `Deleted`
+
+`FileGarbageCollectorJob` (hourly, advisory lock) runs without a request tenant. It reaches tenant-owned files only when
+`FileStorage:GarbageCollection:AllTenants=true` (env `FileStorage__GarbageCollection__AllTenants`, **default `false`**):
+then `CollectGarbageAsync(allTenants: true)` and `ProcessPurgeQueueAsync(allTenants: true)` read `Files`,
+`FileReferences` and `FilePurgeWorkItems` through `IgnoreTenantFilterForSystem(BackgroundQueueProcessing)` and keep each
+purge item in its file's tenant. With `false` the job touches no tenant-owned file (the behaviour before the fix) and
+logs a warning at start. Calls from a request (`POST api/files/admin/process-purge`, `CollectGarbageAsync()`) stay inside the
+request tenant.
+
+**Enable order (the guard exists because of it).** A `Pending` file is an orphan only if its Register never arrives.
+Before the outbox fix, HR.Core's Register rows were never delivered, so candidate documents and offer evidence are
+`Pending` and older than 24 h although they are in use. Collecting them first would delete them.
+
+1. Deploy HR.Core with the per-tenant file-reference outbox dispatcher and File.Storage with `AllTenants` unset.
+2. Wait until HR.Core's backlog is delivered (`hr_core_db`):
+   `SELECT "Status", "Operation", COUNT(*) FROM "FileReferenceOutbox" GROUP BY 1, 2;` — no `Pending` Register rows left
+   except new ones. Look at every `Dead` Register row: its file is still `Pending` and would be collected 24 h later. Fix
+   the cause, then re-queue: `UPDATE "FileReferenceOutbox" SET "Status"='Pending', "Attempt"=0, "NextAttemptAt"=now()
+   WHERE "Status"='Dead' AND "Operation"='Register';`
+3. Only then set `FileStorage__GarbageCollection__AllTenants=true` on file-storage and restart it.
+
+The same applies whenever a holder's Register delivery is down for longer than the TTL: a Register row goes `Dead` after
+`FileStorage__ReferenceOutbox__MaxAttempts` (10, about 35 min of backoff) and is not retried by itself.
+
+**Production RLS caveat.** Production app roles are `NOBYPASSRLS` (`docker/init-service-roles.sh`) and neither job sets
+`app.current_tenant`, so on RLS-hardened tables both the HR.Core dispatcher and the GC job read no rows in Production —
+the open item "Production RLS for cross-tenant jobs" (PLAN-30 deferred follow-ups) that also blocks the scan queue and the
+recruitment jobs. The fixes work where the connection bypasses RLS (Development/acceptance owner or superuser).
 
 ## Domain services
 
@@ -65,7 +94,28 @@ HR users download through **HR.Core proxies**, never `/api/files`: `RecruitmentA
 `OfferLetters/Evidence` (tenant check + metadata check + content via the service identity; `Clean` only,
 buffered ≤ 5 MB). References are registered/released through the HR.Core file-reference outbox with an explicit tenant.
 
-Known issues (pre-existing): `FileReferenceOutboxDispatcher` reads the outbox under the tenant filter in a background scope
-and sends no `X-Tenant-ID`, so tenant-stamped Register/Release rows probably never reach File.Storage; `CollectGarbageAsync`
-has no tenant bypass, so tenant-owned orphan `Pending` files are not collected. Production compose does not yet give hr-core
-the `file-storage.service-upload` scope or `Integration__FileStorageBaseUrl`.
+Fixed (after PLAN-30): `FileReferenceOutboxDispatcherJob.ProcessBatchAsync` now reads every tenant's due rows through
+`IgnoreTenantFilterForSystem(BackgroundQueueProcessing)` and sends each row's `TenantId` as `X-Tenant-ID`
+(`ITenantFileReferenceDelivery`; a row without `TenantId` goes `Dead`), so candidate documents, offer evidence and retention
+releases reach File.Storage and become `Active` / are released in their own tenant. The GC job can collect tenant-owned
+orphans once `FileStorage__GarbageCollection__AllTenants=true` is set **after** that delivery is live (see Garbage
+collection: enable order). Both still read nothing in Production under `NOBYPASSRLS` until the cross-tenant-job RLS item is
+solved. Still open: production compose does not yet give hr-core the `file-storage.service-upload` scope or
+`Integration__FileStorageBaseUrl`.
+
+## Access grants on RegisterReference
+
+`POST /api/files/{id}/references` calls `FileAccessGrantService.CreateGrantAsync(…, Visibility = Module)`, which returns
+the file's existing non-revoked grant when there is one. So:
+
+- a browser upload (`POST /api/files`) keeps its `Uploader`/`Private` grant (grantee = uploader) after Register;
+- a service upload keeps its `Service`/`Module` grant (module `hr-core`, holder = client id);
+- only a file with no live grant (legacy rows, or a file kept by legal hold / `RetainUntil` after its last release revoked
+  its grants, then registered again) gets a Module grant derived from the holder key.
+
+Decision: **RegisterReference does not add a Module grant to API-uploaded files.** Access is decided by the newest grant
+(`FindGrantByFileAsync`), so a second Module grant would silently widen a user's private upload to every principal whose
+roles match the holder's module, chosen by whoever registers the reference rather than by the owner. Holders that need
+their users to read a file serve it through their own endpoint (as HR.Core does for candidate documents and offer
+evidence) or create the upload with the right visibility. The per-tenant outbox fix does not change this: the grant is
+created in the request tenant, which is now the row's tenant.

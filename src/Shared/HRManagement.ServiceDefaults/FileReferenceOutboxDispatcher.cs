@@ -100,14 +100,21 @@ public sealed class FileReferenceOutboxDispatcherJob<TContext>(
         }
     }
 
+    public const string MissingTenantError = "Outbox row has no TenantId; it is not delivered without a tenant.";
+
+    /// <summary>
+    /// Delivers due rows of every tenant. The job runs without a request tenant (EffectiveTenantId = Guid.Empty), so it
+    /// reads through the sanctioned background bypass and sends each row with its own TenantId as X-Tenant-ID.
+    /// </summary>
     public static async Task<int> ProcessBatchAsync(
         DbContext db,
-        IFileReferenceClient delivery,
+        ITenantFileReferenceDelivery delivery,
         CancellationToken cancellationToken,
         int batchSize = 50)
     {
         var now = DateTime.UtcNow;
         var items = await db.Set<FileReferenceOutboxMessage>()
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.BackgroundQueueProcessing)
             .Where(x => x.Status == FileReferenceOutboxStatus.Pending && x.NextAttemptAt <= now)
             .OrderBy(x => x.NextAttemptAt)
             .Take(batchSize)
@@ -116,12 +123,21 @@ public sealed class FileReferenceOutboxDispatcherJob<TContext>(
         var processed = 0;
         foreach (var item in items)
         {
+            if (item.TenantId == Guid.Empty)
+            {
+                // File.Storage resolves the file in the request tenant; guessing one would cross tenants.
+                item.Status = FileReferenceOutboxStatus.Dead;
+                item.LastError = MissingTenantError;
+                await db.SaveChangesAsync(cancellationToken);
+                continue;
+            }
+
             try
             {
                 if (item.Operation == FileReferenceOutboxOps.Register)
-                    await delivery.RegisterReferenceAsync(item.FileId, item.HolderKey, cancellationToken);
+                    await delivery.RegisterReferenceForTenantAsync(item.TenantId, item.FileId, item.HolderKey, cancellationToken);
                 else if (item.Operation == FileReferenceOutboxOps.Release)
-                    await delivery.ReleaseReferenceAsync(item.FileId, item.HolderKey, cancellationToken);
+                    await delivery.ReleaseReferenceForTenantAsync(item.TenantId, item.FileId, item.HolderKey, cancellationToken);
                 else
                     throw new InvalidOperationException($"Unknown outbox operation '{item.Operation}'.");
 

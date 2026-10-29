@@ -297,12 +297,12 @@ public class File001LifecycleTests : IAsyncDisposable
         public Guid RequireTenantId() => tenantId;
     }
 
-    private sealed class FlakyReferenceClient : IFileReferenceClient
+    private sealed class FlakyReferenceClient : ITenantFileReferenceDelivery
     {
         public int FailuresRemaining { get; set; }
         public int RegisterCalls { get; private set; }
 
-        public Task RegisterReferenceAsync(Guid fileId, string holderKey, CancellationToken cancellationToken = default)
+        public Task RegisterReferenceForTenantAsync(Guid tenantId, Guid fileId, string holderKey, CancellationToken cancellationToken = default)
         {
             if (FailuresRemaining-- > 0)
                 throw new HttpRequestException("transient");
@@ -310,7 +310,7 @@ public class File001LifecycleTests : IAsyncDisposable
             return Task.CompletedTask;
         }
 
-        public Task ReleaseReferenceAsync(Guid fileId, string holderKey, CancellationToken cancellationToken = default) =>
+        public Task ReleaseReferenceForTenantAsync(Guid tenantId, Guid fileId, string holderKey, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }
 

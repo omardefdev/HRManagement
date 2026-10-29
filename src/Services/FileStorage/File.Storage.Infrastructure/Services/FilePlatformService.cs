@@ -213,21 +213,28 @@ public sealed class FilePlatformService(
     /// <summary>
     /// Phase 1 of two-phase delete: mark PendingPurge and enqueue purge work. Does not delete MinIO object.
     /// </summary>
-    public async Task<bool> TryDeleteWhenUnreferencedAsync(
+    public Task<bool> TryDeleteWhenUnreferencedAsync(
         Guid fileId,
         Guid? deletedBy,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        TryDeleteWhenUnreferencedAsync(fileId, deletedBy, allTenants: false, cancellationToken);
+
+    private async Task<bool> TryDeleteWhenUnreferencedAsync(
+        Guid fileId,
+        Guid? deletedBy,
+        bool allTenants,
+        CancellationToken cancellationToken)
     {
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        var record = await db.Files.FirstOrDefaultAsync(x => x.Id == fileId, cancellationToken);
+        var record = await Scoped(db.Files, allTenants).FirstOrDefaultAsync(x => x.Id == fileId, cancellationToken);
         if (record is null || record.IsDeleted)
         {
             await tx.CommitAsync(cancellationToken);
             return record is not null;
         }
 
-        var liveRefs = await db.FileReferences.CountAsync(x => x.FileId == fileId, cancellationToken);
+        var liveRefs = await Scoped(db.FileReferences, allTenants).CountAsync(x => x.FileId == fileId, cancellationToken);
         if (liveRefs > 0 || record.ReferenceCount > 0)
         {
             await tx.CommitAsync(cancellationToken);
@@ -240,7 +247,7 @@ public sealed class FilePlatformService(
             return false;
         }
 
-        await EnqueuePendingPurgeAsync(record, deletedBy, forceReason: null, cancellationToken);
+        await EnqueuePendingPurgeAsync(record, deletedBy, forceReason: null, cancellationToken, allTenants);
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return true;
@@ -288,12 +295,25 @@ public sealed class FilePlatformService(
         await tx.CommitAsync(cancellationToken);
     }
 
-    public async Task<int> CollectGarbageAsync(CancellationToken cancellationToken = default)
+    public Task<int> CollectGarbageAsync(CancellationToken cancellationToken = default) =>
+        CollectGarbageAsync(allTenants: false, cancellationToken);
+
+    /// <summary>
+    /// Marks unreferenced files for purge: Pending uploads older than <c>OrphanUploadTtlHours</c> and released Active files
+    /// past <c>ReleaseGraceHours</c>. With <paramref name="allTenants"/> (the GC job, which has no request tenant) every
+    /// tenant's files are considered through the sanctioned background bypass; otherwise only the ambient tenant's.
+    /// <para>
+    /// Only enable <paramref name="allTenants"/> once holders deliver their Register calls per tenant (HR.Core's
+    /// file-reference outbox): a Pending file is "orphaned" only if its Register will never come, so collecting while a
+    /// backlog of undelivered Registers exists deletes files that are in use. See <c>FileGarbageCollectorJob</c>.
+    /// </para>
+    /// </summary>
+    public async Task<int> CollectGarbageAsync(bool allTenants, CancellationToken cancellationToken = default)
     {
         var orphanCutoff = DateTime.UtcNow.AddHours(-GetOrphanTtlHours());
         var graceCutoff = DateTime.UtcNow.AddHours(-GetReleaseGraceHours());
 
-        var candidateIds = await db.Files
+        var candidateIds = await Scoped(db.Files, allTenants)
             .Where(x => !x.IsDeleted && x.ReferenceCount == 0 && !x.LegalHold)
             .Where(x => x.RetainUntil == null || x.RetainUntil <= DateTime.UtcNow)
             .Where(x =>
@@ -305,7 +325,7 @@ public sealed class FilePlatformService(
         var marked = 0;
         foreach (var id in candidateIds)
         {
-            if (await TryDeleteWhenUnreferencedAsync(id, deletedBy: null, cancellationToken))
+            if (await TryDeleteWhenUnreferencedAsync(id, deletedBy: null, allTenants, cancellationToken))
                 marked++;
         }
 
@@ -313,10 +333,17 @@ public sealed class FilePlatformService(
     }
 
     /// <summary>Phase 2: process due purge work items with exponential backoff.</summary>
-    public async Task<int> ProcessPurgeQueueAsync(CancellationToken cancellationToken = default, int batchSize = 50)
+    public Task<int> ProcessPurgeQueueAsync(CancellationToken cancellationToken = default, int batchSize = 50) =>
+        ProcessPurgeQueueAsync(allTenants: false, cancellationToken, batchSize);
+
+    /// <summary>
+    /// Phase 2 for every tenant (<paramref name="allTenants"/>, the GC job) or the ambient tenant only. Live references
+    /// and retention are re-checked per item before the object is deleted.
+    /// </summary>
+    public async Task<int> ProcessPurgeQueueAsync(bool allTenants, CancellationToken cancellationToken = default, int batchSize = 50)
     {
         var now = DateTime.UtcNow;
-        var items = await db.FilePurgeWorkItems
+        var items = await Scoped(db.FilePurgeWorkItems, allTenants)
             .Where(x => x.Status == FilePurgeWorkItemStatus.Pending && x.NextAttemptAt <= now)
             .OrderBy(x => x.NextAttemptAt)
             .Take(batchSize)
@@ -325,7 +352,7 @@ public sealed class FilePlatformService(
         var succeeded = 0;
         foreach (var item in items)
         {
-            var file = await db.Files.FirstOrDefaultAsync(x => x.Id == item.FileId, cancellationToken);
+            var file = await Scoped(db.Files, allTenants).FirstOrDefaultAsync(x => x.Id == item.FileId, cancellationToken);
             if (file is null)
             {
                 item.Status = FilePurgeWorkItemStatus.Succeeded;
@@ -343,7 +370,7 @@ public sealed class FilePlatformService(
                 continue;
             }
 
-            var liveRefs = await db.FileReferences.CountAsync(x => x.FileId == item.FileId, cancellationToken);
+            var liveRefs = await Scoped(db.FileReferences, allTenants).CountAsync(x => x.FileId == item.FileId, cancellationToken);
             if (liveRefs > 0 || file.ReferenceCount > 0)
             {
                 // Safety: never delete object while live refs exist.
@@ -822,7 +849,8 @@ public sealed class FilePlatformService(
         FileRecord record,
         Guid? deletedBy,
         string? forceReason,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool allTenants = false)
     {
         record.IsDeleted = true;
         record.DeletedAt = DateTime.UtcNow;
@@ -833,7 +861,7 @@ public sealed class FilePlatformService(
 
         var alreadyQueued = db.FilePurgeWorkItems.Local
             .Any(x => x.FileId == record.Id && x.Status == FilePurgeWorkItemStatus.Pending)
-            || await db.FilePurgeWorkItems
+            || await Scoped(db.FilePurgeWorkItems, allTenants)
                 .AnyAsync(x => x.FileId == record.Id && x.Status == FilePurgeWorkItemStatus.Pending, cancellationToken);
 
         if (!alreadyQueued)
@@ -850,6 +878,13 @@ public sealed class FilePlatformService(
             });
         }
     }
+
+    /// <summary>
+    /// The GC job has no request tenant (EffectiveTenantId = Guid.Empty), so its all-tenant pass reads through the
+    /// sanctioned background bypass; every other caller stays inside its tenant filter.
+    /// </summary>
+    private static IQueryable<T> Scoped<T>(DbSet<T> set, bool allTenants) where T : class =>
+        allTenants ? set.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.BackgroundQueueProcessing) : set;
 
     private static bool IsRetentionBlocked(FileRecord record) =>
         record.LegalHold || (record.RetainUntil is { } until && until > DateTime.UtcNow);
