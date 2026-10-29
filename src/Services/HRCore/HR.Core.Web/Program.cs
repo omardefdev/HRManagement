@@ -197,6 +197,8 @@ HR.Core.Infrastructure.Integration.PayrollGradeLookupExtensions.AddPayrollGradeL
 HR.Core.Web.Services.CandidateDocumentUploadClientExtensions.AddCandidateDocumentUploadClient(builder.Services, builder.Configuration);
 builder.Services.AddScoped<HR.Core.Web.Services.CandidateDocumentService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterDocumentService>();
+// HCM-030 (PLAN-30 J): HR on-behalf offer acceptance/decline with the evidence relayed to File.Storage.
+builder.Services.AddScoped<HR.Core.Web.Services.OfferOnBehalfService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealWorkflowHandler>();
@@ -229,6 +231,8 @@ builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.Ca
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.CandidateOtpService>();
 builder.Services.AddSingleton(CareersClientIpResolver.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<HR.Core.Web.Services.CandidatePortalSession>();
+// HCM-030 (PLAN-30 I): /careers/my page and candidate actions (session tenant as the ambient tenant).
+builder.Services.AddScoped<HR.Core.Web.Services.CandidatePortalService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>();
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<HR.Core.Infrastructure.ExportJobs.IHRCoreExportJobService, HR.Core.Infrastructure.ExportJobs.HRCoreExportJobService>();

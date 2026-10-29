@@ -183,7 +183,7 @@ public class AcHcm27OfferMeritTests
 
         await Sql($"UPDATE \"OfferLetters\" SET \"ExpiryDate\" = now() - interval '1 day' WHERE \"Id\"='{offer}';");
 
-        await s.Central.PostAsync("27e-accept-expired", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), [new("id", offer)]);
+        await s.Central.PostAsync("27e-accept-expired", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), OfferOnBehalfEvidence.AcceptFields(offer), withEvidence: true);
         ExpectedFlash.Add("انتهت صلاحية العرض ولا يمكن قبوله.");
         Assert.Equal(OfferIssued, await OfferStatusAsync(offer));
 
@@ -219,8 +219,12 @@ public class AcHcm27OfferMeritTests
         var bounds = await RequireGradeBoundsAsync(s, req);
         var offer = await CreateOfferAsync(s, "27f-offer", req.Ranked[0], bounds.Mid, req.Grade);
         await SubmitAndApproveAsync(s, "27f", offer, expectedWorkflow: "RECRUITMENT-OFFER-APPROVAL", s.Br1, s.Approver);
-        await s.Central.PostAsync("27f-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), [new("id", offer)]);
+        await s.Central.PostAsync("27f-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), OfferOnBehalfEvidence.AcceptFields(offer), withEvidence: true);
         Assert.Equal(OfferAccepted, await OfferStatusAsync(offer));
+        // HCM-030 (PLAN-30 J): a paper acceptance recorded by HR carries the channel, the evidence file and its audit row.
+        Assert.Equal("HrOnBehalf", (await Sql($"SELECT COALESCE(\"AcceptedBy\",'') FROM \"OfferLetters\" WHERE \"Id\"='{offer}';")).Trim());
+        Assert.Equal(1, await Scalar($"SELECT COUNT(*) FROM \"OfferLetters\" WHERE \"Id\"='{offer}' AND \"AcceptanceEvidenceFileId\" IS NOT NULL;"));
+        Assert.Equal(1, await Scalar($"SELECT COUNT(*) FROM \"AuditLogs\" WHERE \"EntityId\"='{offer}' AND \"Action\"='AcceptOfferOnBehalf';"));
         Assert.Equal(AppOfferAccepted, await AppStatusAsync(req.Ranked[0]));
 
         var nationalId = "01" + Random.Shared.NextInt64(100_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
@@ -667,7 +671,7 @@ public class AcHcm27OfferMeritTests
         }
 
         /// <summary>Loads <paramref name="tokenPage"/> for an antiforgery token, posts the form and returns the final page (redirects followed).</summary>
-        public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields)
+        public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields, bool withEvidence = false)
         {
             var page = await FollowRedirectsAsync(await SendAsync(HttpMethod.Get, tokenPage));
             var pageHtml = await page.Content.ReadAsStringAsync();
@@ -676,7 +680,7 @@ public class AcHcm27OfferMeritTests
             Assert.True(token.Success, $"No antiforgery token on {tokenPage}.");
 
             var form = new List<KeyValuePair<string, string>>(fields) { new("__RequestVerificationToken", WebUtility.HtmlDecode(token.Groups[1].Value)) };
-            var posted = await SendAsync(HttpMethod.Post, path, new FormUrlEncodedContent(form));
+            var posted = await SendAsync(HttpMethod.Post, path, OfferOnBehalfEvidence.Content(form, withEvidence));
             var postStatus = (int)posted.StatusCode;
             var redirect = posted.Headers.Location?.ToString();
             var resp = await FollowRedirectsAsync(posted);

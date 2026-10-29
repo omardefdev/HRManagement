@@ -345,17 +345,18 @@ public class OfferLettersController(
     [ValidateAntiForgeryToken]
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-
-    public async Task<IActionResult> AcceptOffer(Guid id)
-
+    public async Task<IActionResult> AcceptOffer(
+        Guid id,
+        AcceptOfferOnBehalfForm form,
+        [FromServices] OfferOnBehalfService onBehalf,
+        CancellationToken ct)
     {
-
-        var (success, error) = await offerService.AcceptAsync(id);
-
-        TempData[success ? "Success" : "Error"] = success ? "تم قبول خطاب العرض" : error;
-
+        // HCM-030 (PLAN-30 J): «قبول نيابةً عن المرشح» — a paper acceptance recorded by HR, restricted by a mandatory reason
+        // (≥ 20 characters), the signed evidence and the AcceptOfferOnBehalf audit row; the candidate accepts on /careers/my.
+        // Policy stays HrCoreWrite: HrCoreApprove is not narrower (it adds HrManagementApprover), so it would widen access.
+        var (success, error) = await onBehalf.AcceptAsync(id, form.Reason, form.EvidenceFile, ParseUserId(User), ct);
+        TempData[success ? "Success" : "Error"] = success ? "تم تسجيل قبول خطاب العرض نيابةً عن المرشح" : error;
         return RedirectToAction(nameof(Details), new { id });
-
     }
 
 
@@ -365,15 +366,20 @@ public class OfferLettersController(
     [ValidateAntiForgeryToken]
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-
-    public async Task<IActionResult> DeclineOffer(Guid id, DeclineOfferForm form)
-
+    public async Task<IActionResult> DeclineOffer(
+        Guid id,
+        DeclineOfferForm form,
+        [FromServices] OfferOnBehalfService onBehalf,
+        CancellationToken ct)
     {
+        // HCM-027: HR records a paper decline on the candidate's behalf (HrOnBehalf); the candidate declines on /careers/my
+        // (CandidatePortalService, Candidate). Both use DeclineAndDraftNextAsync, so the next-candidate draft is the same.
+        // HCM-030 (J): the signed paper decline is optional evidence.
+        var result = await onBehalf.DeclineAsync(id, form.Reason, form.EvidenceFile, ParseUserId(User), ct);
 
-        // HCM-027: HR records the decline on the candidate's behalf. PLAN-30: candidate self-service (Candidate).
-        var (success, error) = await offerService.DeclineAsync(id, form.Reason, OfferDeclinedBy.HrOnBehalf, ParseUserId(User));
-
-        TempData[success ? "Success" : "Error"] = success ? "تم رفض خطاب العرض" + await AutoDraftNextOfferAsync(id) : error;
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? "تم رفض خطاب العرض" + NextOfferSuffix(result.NextDraft, result.NextDraftError)
+            : result.Error;
 
         return RedirectToAction(nameof(Details), new { id });
 
@@ -393,7 +399,15 @@ public class OfferLettersController(
 
         var (success, error) = await offerService.RevokeAsync(id, form.Reason, form.RevertToRanked, ParseUserId(User));
 
-        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء خطاب العرض" + await AutoDraftNextOfferAsync(id) : error;
+        var suffix = string.Empty;
+
+        if (success)
+        {
+            var (draft, draftError) = await offerService.DraftNextOfferAfterSettlementAsync(id, ParseUserId(User));
+            suffix = NextOfferSuffix(draft, draftError);
+        }
+
+        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء خطاب العرض" + suffix : error;
 
         return RedirectToAction(nameof(Details), new { id });
 
@@ -403,7 +417,7 @@ public class OfferLettersController(
 
     /// <summary>
     /// HCM-029 (D3): official offer letter PDF, generated on demand, only for Issued or Accepted offers.
-    /// PLAN-30: candidate download from /careers
+    /// HCM-030 (PLAN-30 I): the candidate downloads the same PDF from /careers/my (CandidatePortalService.GetOfferLetterAsync).
     /// PLAN-29 follow-up: archive in File.Storage
     /// </summary>
     [HttpGet]
@@ -423,13 +437,36 @@ public class OfferLettersController(
         return File(pdf, "application/pdf", $"offer-letter-{document.Data.OfferNumber}.pdf");
     }
 
+    /// <summary>
+    /// HCM-030 (PLAN-30 J): streams the signed paper acceptance/decline HR attached, through HR.Core's service identity
+    /// (HR users lack ModuleFileStorage), like RecruitmentApplications/CandidateDocument. Clean files only.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Evidence(
+        Guid id,
+        OfferEvidenceKind kind,
+        [FromServices] OfferOnBehalfService onBehalf,
+        CancellationToken ct)
+    {
+        var (offer, result) = await onBehalf.OpenEvidenceAsync(id, kind, ct);
+        switch (result)
+        {
+            case CandidateFileContentResult.Found found:
+                return File(found.Content, found.ContentType,
+                    found.FileName ?? $"offer-{offer!.OfferNumber}-{kind.ToString().ToLowerInvariant()}-evidence");
+            case CandidateFileContentResult.Unavailable when offer is not null:
+                TempData["Error"] = CandidateDocumentService.DownloadUnavailableMessage;
+                return RedirectToAction(nameof(Details), new { id });
+            default:
+                return NotFound();
+        }
+    }
+
     /// <summary>HCM-027 (F3): Recruitment:AutoDraftNextOffer — suffix for the success message.</summary>
 
-    private async Task<string> AutoDraftNextOfferAsync(Guid previousOfferId)
+    private static string NextOfferSuffix(OfferLetter? draft, string? error)
 
     {
-
-        var (draft, error) = await offerService.TryAutoDraftNextOfferAsync(previousOfferId, ParseUserId(User));
 
         if (draft is not null)
 

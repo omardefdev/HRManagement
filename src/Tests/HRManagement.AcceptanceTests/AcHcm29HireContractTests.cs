@@ -70,7 +70,7 @@ public class AcHcm29HireContractTests
         Assert.Equal("application/pdf", pdfType);
         Assert.Equal("%PDF", pdfHead);
 
-        await s.Central.PostAsync("29a-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), [new("id", offer)]);
+        await s.Central.PostAsync("29a-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), OfferOnBehalfEvidence.AcceptFields(offer), withEvidence: true);
         Assert.Equal(OfferAccepted, await OfferStatusAsync(offer));
         var appId = req.Ranked[0];
         var nationalId = "29" + Random.Shared.NextInt64(100_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
@@ -195,7 +195,7 @@ public class AcHcm29HireContractTests
         var bounds = await RequireGradeBoundsAsync(s, req);
         var offer = await CreateOfferAsync(s, "29e-offer", req.Ranked[0], bounds.Mid, req.Grade);
         await SubmitAndApproveAsync(s, "29e", offer);
-        await s.Central.PostAsync("29e-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), [new("id", offer)]);
+        await s.Central.PostAsync("29e-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), OfferOnBehalfEvidence.AcceptFields(offer), withEvidence: true);
         var appId = req.Ranked[0];
         var nationalId = "29" + Random.Shared.NextInt64(100_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
 
@@ -612,7 +612,7 @@ public class AcHcm29HireContractTests
             return (resp.StatusCode, resp.Content.Headers.ContentType?.MediaType, head);
         }
 
-        public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields)
+        public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields, bool withEvidence = false)
         {
             var page = await FollowRedirectsAsync(await SendAsync(HttpMethod.Get, tokenPage));
             var pageHtml = await page.Content.ReadAsStringAsync();
@@ -621,7 +621,7 @@ public class AcHcm29HireContractTests
             Assert.True(token.Success, $"No antiforgery token on {tokenPage}.");
 
             var form = new List<KeyValuePair<string, string>>(fields) { new("__RequestVerificationToken", WebUtility.HtmlDecode(token.Groups[1].Value)) };
-            var posted = await SendAsync(HttpMethod.Post, path, new FormUrlEncodedContent(form));
+            var posted = await SendAsync(HttpMethod.Post, path, OfferOnBehalfEvidence.Content(form, withEvidence));
             var postStatus = (int)posted.StatusCode;
             var redirect = posted.Headers.Location?.ToString();
             var resp = await FollowRedirectsAsync(posted);

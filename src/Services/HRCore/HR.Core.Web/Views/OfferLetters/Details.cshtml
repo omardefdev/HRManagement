@@ -101,12 +101,46 @@
             <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(offer.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
             <dt class="col-sm-3">مدة الصلاحية</dt><dd class="col-sm-9">@offer.ValidityDays يوماً (تُحسب من تاريخ الإصدار)</dd>
             <dt class="col-sm-3">تاريخ القبول</dt><dd class="col-sm-9">@(offer.AcceptedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            @if (offer.Status == OfferStatus.Accepted || offer.AcceptedBy is not null)
+            {
+                @* HCM-030 (PLAN-30 J): who accepted — the candidate on /careers/my, or HR on behalf with reason and evidence. *@
+                <dt class="col-sm-3">قبول بواسطة</dt>
+                <dd class="col-sm-9">@HR.Core.Domain.Entities.OfferAcceptedBy.LabelAr(offer.AcceptedBy)</dd>
+                @if (offer.AcceptedBy == HR.Core.Domain.Entities.OfferAcceptedBy.HrOnBehalf)
+                {
+                    <dt class="col-sm-3">سبب القبول نيابةً عن المرشح</dt><dd class="col-sm-9">@(offer.AcceptanceNote ?? "—")</dd>
+                    <dt class="col-sm-3">مستند إثبات القبول</dt>
+                    <dd class="col-sm-9">
+                        @if (offer.AcceptanceEvidenceFileId is not null)
+                        {
+                            <a asp-action="Evidence" asp-route-id="@offer.Id" asp-route-kind="@HR.Core.Web.Services.OfferEvidenceKind.Acceptance">
+                                <i class="fas fa-file-download" aria-hidden="true"></i> تنزيل مستند الإثبات
+                            </a>
+                            <span class="text-muted">(متاح بعد اجتياز الفحص الأمني)</span>
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </dd>
+                }
+            }
             @if (offer.Status == OfferStatus.Declined)
             {
                 <dt class="col-sm-3">تاريخ الرفض</dt><dd class="col-sm-9">@(offer.DeclinedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
                 <dt class="col-sm-3">رفض بواسطة</dt>
                 <dd class="col-sm-9">@(offer.DeclinedBy == HR.Core.Domain.Entities.OfferDeclinedBy.Candidate ? "المرشح" : "HR نيابة عن المرشح")</dd>
                 <dt class="col-sm-3">سبب الرفض</dt><dd class="col-sm-9">@(offer.DeclineReason ?? "—")</dd>
+                @if (offer.DeclineEvidenceFileId is not null)
+                {
+                    <dt class="col-sm-3">مستند إثبات الرفض</dt>
+                    <dd class="col-sm-9">
+                        <a asp-action="Evidence" asp-route-id="@offer.Id" asp-route-kind="@HR.Core.Web.Services.OfferEvidenceKind.Decline">
+                            <i class="fas fa-file-download" aria-hidden="true"></i> تنزيل مستند الإثبات
+                        </a>
+                        <span class="text-muted">(متاح بعد اجتياز الفحص الأمني)</span>
+                    </dd>
+                }
             }
             @if (offer.Status == OfferStatus.Revoked)
             {
@@ -143,32 +177,52 @@
     </div>
     @if (canWrite && (Model.CanSubmit || Model.CanAccept))
     {
-        <div class="card-footer d-flex flex-wrap gap-2">
-            @if (Model.CanSubmit)
-            {
+        @if (Model.CanSubmit)
+        {
+            <div class="card-footer d-flex flex-wrap gap-2">
                 <form asp-action="SubmitOffer" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@offer.Id" />
                     <button type="submit" class="btn btn-warning btn-sm">تقديم للاعتماد</button>
                 </form>
-            }
-            @if (Model.CanAccept)
-            {
-                <form asp-action="AcceptOffer" method="post" class="d-inline" onsubmit="return confirm('تأكيد قبول خطاب العرض؟');">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@offer.Id" />
-                    <button type="submit" class="btn btn-success btn-sm">قبول العرض</button>
-                </form>
-            }
-        </div>
-        @if (Model.CanDecline || Model.CanRevoke)
+            </div>
+        }
+        @if (Model.CanAccept || Model.CanDecline || Model.CanRevoke)
         {
             <div class="card-footer">
+                @if (Model.CanAccept || Model.CanDecline)
+                {
+                    <p class="form-text mb-2">يردّ المرشح على العرض من بوابة التوظيف («طلبي»). يُستخدم القبول أو الرفض هنا فقط لتسجيل ردّ ورقي سلّمه المرشح.</p>
+                }
                 <div class="row g-3">
+                    @if (Model.CanAccept)
+                    {
+                        @* HCM-030 (PLAN-30 J): paper acceptance recorded by HR — reason (≥ 20) and signed evidence are mandatory. *@
+                        <div class="col-lg-4 col-md-6">
+                            <form asp-action="AcceptOffer" method="post" enctype="multipart/form-data"
+                                  data-hr-confirm="سيُسجَّل قبول خطاب العرض نيابةً عن المرشح مع السبب ومستند الإثبات، ولا يمكن التراجع عن القبول."
+                                  data-hr-confirm-title="تأكيد القبول نيابةً عن المرشح"
+                                  data-hr-confirm-label="تسجيل القبول">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@offer.Id" />
+                                <h6>قبول نيابةً عن المرشح</h6>
+                                <p class="form-text mb-1">يُسجَّل القبول بواسطة: HR نيابة عن المرشح.</p>
+                                <label class="form-label" for="AcceptReason">سبب القبول نيابةً عن المرشح</label>
+                                <textarea name="Reason" id="AcceptReason" class="form-control mb-1" rows="2" aria-describedby="AcceptReasonHint"
+                                          minlength="@HR.Core.Domain.Services.OfferWorkflowRules.MinOnBehalfAcceptanceReasonLength" maxlength="1000" required></textarea>
+                                <div id="AcceptReasonHint" class="form-text mb-2">@HR.Core.Domain.Services.OfferWorkflowRules.MinOnBehalfAcceptanceReasonLength حرفاً على الأقل.</div>
+                                <label class="form-label" for="AcceptEvidenceFile">مستند إثبات القبول</label>
+                                <input type="file" name="EvidenceFile" id="AcceptEvidenceFile" class="form-control mb-1" aria-describedby="AcceptEvidenceHint"
+                                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
+                                <div id="AcceptEvidenceHint" class="form-text mb-2">نسخة موقّعة من قبول المرشح: PDF أو JPG أو PNG حتى 5 ميغابايت.</div>
+                                <button type="submit" class="btn btn-success btn-sm">تسجيل القبول نيابةً عن المرشح</button>
+                            </form>
+                        </div>
+                    }
                     @if (Model.CanDecline)
                     {
-                        <div class="col-md-6">
-                            <form asp-action="DeclineOffer" method="post">
+                        <div class="col-lg-4 col-md-6">
+                            <form asp-action="DeclineOffer" method="post" enctype="multipart/form-data">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@offer.Id" />
                                 <h6>رفض العرض</h6>
@@ -176,13 +230,17 @@
                                 <label class="form-label" for="DeclineReason">سبب الرفض</label>
                                 <textarea name="Reason" id="DeclineReason" class="form-control mb-2" rows="2"
                                           minlength="@HR.Core.Domain.Services.OfferWorkflowRules.MinDeclineReasonLength" maxlength="1000" required></textarea>
+                                <label class="form-label" for="DeclineEvidenceFile">مستند إثبات الرفض (اختياري)</label>
+                                <input type="file" name="EvidenceFile" id="DeclineEvidenceFile" class="form-control mb-1" aria-describedby="DeclineEvidenceHint"
+                                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" />
+                                <div id="DeclineEvidenceHint" class="form-text mb-2">رفض ورقي موقّع من المرشح إن وُجد: PDF أو JPG أو PNG حتى 5 ميغابايت.</div>
                                 <button type="submit" class="btn btn-outline-danger btn-sm">تسجيل رفض المرشح</button>
                             </form>
                         </div>
                     }
                     @if (Model.CanRevoke)
                     {
-                        <div class="col-md-6">
+                        <div class="col-lg-4 col-md-6">
                             <form asp-action="Revoke" method="post">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@offer.Id" />

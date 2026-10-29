@@ -360,7 +360,7 @@ public class AcHcm28CommitteeAppealTests
         foreach (var (ui, step) in new[] { (s.Br1, "28h-offer-1"), (s.Approver, "28h-offer-2") })
             await ui.PostAsync(step, $"ui/hr-core/OfferLetters/ApproveWorkflow/{offer}", offerPage, [new("OfferId", offer), new("Comments", $"AC-HCM-28 {step}")]);
         Assert.Equal(OfferIssued, await Scalar($"SELECT \"Status\" FROM \"OfferLetters\" WHERE \"Id\"='{offer}';"));
-        await s.Central.PostAsync("28h-accept", "ui/hr-core/OfferLetters/AcceptOffer", offerPage, [new("id", offer)]);
+        await s.Central.PostAsync("28h-accept", "ui/hr-core/OfferLetters/AcceptOffer", offerPage, OfferOnBehalfEvidence.AcceptFields(offer), withEvidence: true);
         Assert.Equal(OfferAccepted, await Scalar($"SELECT \"Status\" FROM \"OfferLetters\" WHERE \"Id\"='{offer}';"));
 
         var hireForm = HireForm(req);
@@ -717,7 +717,7 @@ public class AcHcm28CommitteeAppealTests
             return resp.StatusCode;
         }
 
-        public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields)
+        public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields, bool withEvidence = false)
         {
             var page = await FollowRedirectsAsync(await SendAsync(HttpMethod.Get, tokenPage));
             var pageHtml = await page.Content.ReadAsStringAsync();
@@ -726,7 +726,7 @@ public class AcHcm28CommitteeAppealTests
             Assert.True(token.Success, $"No antiforgery token on {tokenPage}.");
 
             var form = new List<KeyValuePair<string, string>>(fields) { new("__RequestVerificationToken", WebUtility.HtmlDecode(token.Groups[1].Value)) };
-            var posted = await SendAsync(HttpMethod.Post, path, new FormUrlEncodedContent(form));
+            var posted = await SendAsync(HttpMethod.Post, path, OfferOnBehalfEvidence.Content(form, withEvidence));
             var postStatus = (int)posted.StatusCode;
             var redirect = posted.Headers.Location?.ToString();
             var resp = await FollowRedirectsAsync(posted);
