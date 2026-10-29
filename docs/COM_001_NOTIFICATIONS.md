@@ -115,6 +115,32 @@ from the idempotency key (`{sha256(key)[..32]}@{sender domain}`) so a resend car
 lost answer may still deliver twice. HTTP SMS sends `reference` = the idempotency key; de-duplication depends on the
 provider.
 
+### One-time codes for `/careers/my` (HCM-030, PLAN-30 H)
+
+The sign-in code is a transactional message the candidate asked for: it needs no status-notification consent and does
+**not** go through the planner/dispatcher queue. `CandidateOtpService.RequestAsync` sends it synchronously through
+`NotificationChannelSenderRegistry.For(channel)` (the preferred channel, else the other one with a usable contact) with
+template `OTP`, key `otp:{challengeId}:{channel}`, subject «بوابة التوظيف — رمز التحقق» (email) and the text
+«رمز التحقق لبوابة التوظيف: {code} — صالح 10 دقائق، لا تشاركه مع أحد.». It then records one `CandidateNotification` row
+(`EventType = OtpRequested`, no event id) with the code replaced by `******` and a **terminal** status (`Sent` or `Failed`,
+`NextAttemptAt` null), so the dispatcher never re-sends the redacted body. The FileDrop copy holds the plain code (lab only;
+acceptance reads it). With `Provider=None` (Production/Staging until D-8) or `NotConfigured`, no code can be sent and the
+portal still answers the neutral message «إذا كانت البيانات صحيحة فسيصلك رمز تحقق على وسيلة التواصل المسجلة.». The code
+itself is stored only as HMAC-SHA256 with `Recruitment:Portal:OtpHmacKey`.
+
+### Providers per environment and PII rules (summary)
+
+| Environment | `Provider` | Candidate messages | OTP |
+|-------------|------------|--------------------|-----|
+| Development | `FileDrop` (`artifacts/candidate-notifications`) | files | files (plain code) |
+| Acceptance | `FileDrop` (bind mount `./artifacts/acceptance/candidate-notifications`) | files | files (plain code) |
+| Staging / Production | `None` (D-8 pending; FileDrop refused in Production) | stay `Pending` until expiry, never marked sent | not sent (neutral answer) |
+
+Consent: «أوافق على تلقي إشعارات حول طلبي عبر القناة المختارة» (stored as `NotificationChannel` + `NotificationConsentAt`);
+no consent → no status message. Idempotency: unique `(TenantId, IdempotencyKey)`. PII: no name, national id, birth date,
+salary/grade, score, rank, committee, panel, note or reason in any message; stored rows keep only the masked recipient;
+audit rows never hold the address or the body; retention neutralizes rows of anonymized candidates.
+
 ### Planner/dispatcher job (HR.Core, PLAN-30 F4/F5)
 
 `HR.Core.Infrastructure/Services/Recruitment/CandidateNotificationJob` (`BackgroundService`, PostgreSQL advisory lock

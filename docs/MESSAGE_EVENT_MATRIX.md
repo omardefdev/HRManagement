@@ -1,6 +1,6 @@
 # Message Event Matrix (MassTransit)
 
-**Last updated:** 2026-05-29 — hire case workflow, checklist, diwan on completion.
+**Last updated:** 2026-10-29 — PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
 
 Event categories: **domain** | **workflow integration** | **external seam** | **dead-end**.  
 Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [INBOX_IDEMPOTENCY.md](./INBOX_IDEMPOTENCY.md) / [IDEMPOTENCY_STRATEGY.md](./IDEMPOTENCY_STRATEGY.md) | Sagas: [PROCESS_SAGAS.md](./PROCESS_SAGAS.md)
@@ -69,6 +69,33 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | Separation | `PublishSeparationHandler` + `SeparationEventPublished` flag |
 | Leave → HR.Core status | `LeaveApprovedConsumer` sets `OnLeave` with reason marker |
 | Offer terms to payroll (PLAN-29) | `ICandidateAccepted` v4 terms → `Contract.GradeCode/AgreedBaseSalary/LegalRegimeId/EmploymentType`; `IContractActivated.BaseSalary = AgreedBaseSalary`, `PayGradeCode = GradeCode` (null for contracts created outside recruitment; members exist since v2 — no bump); Payroll resolves the grade in the scale in force at `StartDate`, out-of-range/no salary → review hold |
+
+## 5a. HR.Core internal application events (not bus messages, PLAN-30)
+
+`RecruitmentApplicationEvent` rows (table `RecruitmentApplicationEvents`) are written by
+`RecruitmentApplicationEventRecorder` in the **same save** as the change (change tracker only, no PII, append-only except
+`NotificationsPlannedAt`). They are **not** published to RabbitMQ; `CandidateNotificationJob` (lock 8675315, every 60 s)
+reads rows with `NotificationsPlannedAt IS NULL`, plans at most one `CandidateNotification` per event on the candidate's
+chosen channel (key `{eventId}:{channel}`, unique per tenant) and sends it through `INotificationChannelSender`
+([COM_001_NOTIFICATIONS.md](./COM_001_NOTIFICATIONS.md)). Only `Public` intake with consent is notified; internal, HR-entered,
+legacy, backfilled and suppressed (`SuppressApplicationEvents`) changes send nothing.
+
+| Event (`EventType`) | Trigger | Candidate message (template) |
+|---------------------|---------|------------------------------|
+| `Received` | `RecruitmentApplication` added (`IntakeChannel = Public` only) | `APP_RECEIVED` |
+| `StatusChanged` → `Rejected` / `ReserveListed` / `Hired` / `Withdrawn` | application status changed | `APP_REJECTED` (appeal deadline when appealable) / `APP_RESERVE` / `APP_HIRED` / `APP_WITHDRAWN` |
+| `StatusChanged` (other targets) | application status changed | — (marked planned) |
+| `InterviewScheduled` / `InterviewRescheduled` / `InterviewCancelled` | interview slot added / added as reschedule / cancelled | `INTERVIEW_SCHEDULED` / `INTERVIEW_RESCHEDULED` / `INTERVIEW_CANCELLED` |
+| `OfferIssued` | offer status → `Issued` (still `Issued` at planning) | `OFFER_ISSUED` (no salary) |
+| `OfferExpiryReminder` | dispatcher pass: `Issued` offer expiring within `Recruitment:OfferReminderHours` (48), one per offer | `OFFER_REMINDER` |
+| `OfferAccepted` | offer status → `Accepted` (candidate on `/careers/my` or HR on behalf) | `OFFER_ACCEPTED` |
+| `OfferDeclined` / `OfferExpired` / `OfferRevoked` | offer status changed | — (the application `StatusChanged` covers the outcome) |
+| `AppealFiled` | `RecruitmentAppeal` added (HR or the candidate on `/careers/my`) | — |
+| `AppealDecided` | appeal `Pending` → decided | `APPEAL_DECIDED` (outcome label only) |
+
+Not an event: the `/careers/my` one-time code (`EventType = OtpRequested` on its `CandidateNotification` row) is sent
+synchronously by `CandidateOtpService` and never queued. The same events drive the candidate timeline
+(`CandidatePublicStatusProjection`).
 
 ## 6. Messaging infrastructure
 

@@ -30,7 +30,7 @@
 - **ما يُخفى (معاملة واحدة لكل زوج):** الاسم والرقم الوطني (عناصر نائبة `ANON`) والهاتف والبريد وقناة الإشعار وتاريخ الموافقة
   والنبذة والملف الشخصي (تاريخ الميلاد، المؤهل، التخصص، سنة التخرج، سنوات الخبرة) وملاحظات الطلب والرفض وسبب تجاوز
   الأهلية ومسوّغات الترشّح الداخلي؛ تُحرَّر ملفات `CandidateDocument` عبر outbox مراجع الملفات (TenantId صريح) وتُحذف
-  صفوفها؛ تُفرَّغ نصوص `CandidateNotification` ويُوقَف المعلّق منها. يبقى الرقم المرجعي وتواريخ الحالة.
+  صفوفها؛ تُفرَّغ نصوص `CandidateNotification` ويُوقَف المعلّق منها. **(HCM-030 K1)** تُحذف رموز التحقق `CandidateOtpChallenge` لصفوف البوابة في الزوج، ويُفرَّغ `PortalLockedUntil` و`PortalOtpRequestedAt`، وتُحرَّر ملفات إثبات القبول/الرفض بالنيابة (`OfferLetter.AcceptanceEvidenceFileId`/`DeclineEvidenceFileId`، مفتاح الحامل `hr-core:OfferLetter:{id}:AcceptanceEvidence`/`…:DeclineEvidence`) ويُصفَّر المعرّف؛ وتُستبدل النصوص الحرة للمرشح في العروض (`AcceptanceNote` و`DeclineReason` و`RevokeReason`) والاستئنافات (`Reason` و`AdditionalInfo`) بالعلامة «—» مع إبقاء الحالة والتواريخ والقناة (`AcceptedBy`/`DeclinedBy`/`FiledBy`) وقرار الاستئناف؛ وصف التدقيق يحمل `otpChallengesDeleted` و`offerEvidenceReleased` و`offerAndAppealTextNeutralized`. الزوج المُخفى سابقاً وبقيت فيه رموز OTP أو قفل البوابة أو ملف إثبات أو نص حر في عرض أو استئناف يعود مستحقاً. صف البوابة القديم غير المرتبط تُحذف رموزه أيضاً. يبقى الرقم المرجعي وتواريخ الحالة.
 - **المهمة:** `CandidateRetentionJob` أسبوعياً (`Recruitment:Jobs:CandidateRetentionEnabled`،
   `CandidateRetentionIntervalMinutes` = 10080، قفل 8675316، دفعات 100). تفحص المهمة كل ساعة وتعالج كل جهة ليس لها تشغيل
   مهمة **مكتمل** (`FinishedAt` غير فارغ) خلال الفترة، فلا يتكرر التشغيل بعد إعادة التشغيل، والتشغيل المقطوع (إيقاف، إلغاء،

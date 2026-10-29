@@ -239,7 +239,7 @@ Step 3 moves to `compliance` once PLAN-25 is implemented.
 
 | Operation | Offer | Application |
 |-----------|-------|-------------|
-| Decline (HR on the candidate's behalf; `Candidate` reserved for PLAN-30), reason ≥ 5 | `Declined` | `OfferDeclined` |
+| Decline (HR on the candidate's behalf, optional evidence; or the candidate on `/careers/my` — PLAN-30), reason ≥ 5 | `Declined` | `OfferDeclined` |
 | Revoke, reason ≥ 10, administrative error | `Revoked` (workflow cancelled) | back to `Ranked` |
 | Revoke, other reason | `Revoked` | `Rejected` |
 | `RecruitmentOfferExpiryJob` (hourly, lock 8675313) | `Expired` | `OfferDeclined` «انتهاء صلاحية العرض» |
@@ -316,7 +316,7 @@ Otherwise: «لا يقبل هذا النوع من الرفض الاستئناف.
 
 ### Appeal lifecycle (single path)
 
-1. **File** — HR on the candidate's behalf (`FiledBy = HrOnBehalf`; `Candidate` is reserved for PLAN-30), reason of
+1. **File** — HR on the candidate's behalf (`FiledBy = HrOnBehalf`) or the candidate on `/careers/my` (`FiledBy = Candidate`, PLAN-30), reason of
    20+ chars. No reviewer and no workflow yet; the application's `AppealStatus` becomes `Pending` (no rank and no offer
    for it, and no hire on the requisition — `Recruitment:BlockHireOnPendingAppeal`, default true).
 2. **Assign** — HR (`HrCoreWrite`) picks the reviewer from the employee picker (`IndependentReviewerEmployeeId`).
@@ -334,7 +334,7 @@ Otherwise: «لا يقبل هذا النوع من الرفض الاستئناف.
 | `Upheld` | application → `UnderReview`, rejection fields and rank cleared, scores kept |
 | `UpheldRankCorrection` | application → `Assessed` → ranked at `CorrectedRank` with the rationale as override reason (audited `AppealRankCorrection`; the committee gate does not apply). Needs a rank before rejection and a Published requisition |
 | `Dismissed` | stays `Rejected` with its original kind/date/note |
-| `UpheldNoRemedy` | stays `Rejected`; audited `AppealUpheldNoRemedy` (compliance alert is PLAN-30) |
+| `UpheldNoRemedy` | stays `Rejected`; audited `AppealUpheldNoRemedy` (compliance alert: deferred follow-up, `// PLAN-30: alert compliance` in `RecruitmentAppealWorkflowHandler`) |
 
    On a Closed/Cancelled requisition only `Dismissed` / `UpheldNoRemedy` are allowed. A generic workflow approval
    without a stored outcome is refused.
@@ -392,7 +392,7 @@ at the start date; out-of-range salary → profile + review hold).
 When an offer is issued the SHA-256 of a canonical JSON of its rendered fields is stored (`DocumentSha256`,
 `DocumentGeneratedAt`; migration `HCM029_OfferDocument`). `GET OfferLetters/Document/{id}` (Issued/Accepted) renders
 the Arabic PDF on demand with «رمز التحقق» (first 12 hex characters of the stored hash); a later difference is shown
-as a warning, never re-hashed. Candidate download (PLAN-30) and File.Storage archiving are follow-ups.
+as a warning, never re-hashed. The candidate downloads it on `/careers/my` (PLAN-30); File.Storage archiving is a follow-up.
 
 ### Appointment decision and medical step (G-22, D-6)
 
@@ -400,6 +400,80 @@ The hire checklist gains «إصدار قرار التعيين» (`HireChecklist:
 الطبي قبل التعيين» (`HireChecklist:RequireMedicalFitness`, default off); completion and the hire saga require them.
 Overdue commencement (`Recruitment:CommencementDeadlineDays` in HR.Contracts, default 30) is flagged and opens an
 intervention (detection only). Details: [HIRE_ONBOARDING_GUIDE](HIRE_ONBOARDING_GUIDE.md).
+
+## PLAN-30 — Candidate experience, unified channel and notifications (HCM-H)
+
+Plan: [PLAN-30](acceptance-plans/PLAN-30-hcm-candidate-experience.md); execution: [PLAN-30-EXECUTION](acceptance-plans/execution/PLAN-30-EXECUTION.md).
+Addresses G-16, G-17, G-18 and the candidate-data part of G-20 (D-4 self-service; D-8 provider still pending).
+
+### Unified intake (session 1, G-16)
+
+- Every requisition-linked application — public (`PublicCareersController.Apply`) or internal (`EssTalentController.Apply`) —
+  creates its `RecruitmentApplication` at `Submitted` immediately (`UnifiedIntakeService`), linked through the existing
+  `CitizenApplication`/`InternalApplication.PromotedRecruitmentApplicationId` (now unique, filtered). `IntakeChannel`
+  (`HrEntered`/`Public`/`Internal`/`Legacy`) marks the source. HR screens one list per requisition
+  (`RecruitmentApplications?RequisitionId=…`); the channel rows' own status is no longer written for linked rows, and the
+  old status/COI actions refuse them with «يُدار هذا الطلب من مسار التوظيف الموحد.». Legacy postings without a requisition
+  keep the old flow. Cross-channel duplicates on a requisition are refused.
+- Backfill of rows submitted before unification: `scripts/hcm030-backfill-unified-intake.ps1` (dry run by default, `-Apply`,
+  `-ConnectionString` or `-DockerContainer`), mapping in `UnifiedIntakeStatusMapping` = the SQL; no events, no messages.
+
+### Public status and application events (session 1)
+
+- `RecruitmentApplicationEvent` (append-only, no PII) records `Received`, `StatusChanged`, `Interview*`, `Offer*`,
+  `AppealFiled`, `AppealDecided` in the same save. It drives the timeline and the candidate notifications.
+- `CandidatePublicStatusProjection` maps internal statuses to the candidate view: «قيد المراجعة», «مدعو للمقابلة»,
+  «قيد التقييم النهائي», «عرض بانتظار ردك حتى …», «مقبول — بانتظار استكمال التعيين», «في قائمة الاحتياط حتى …»,
+  «العرض منتهٍ/مرفوض», «غير مقبول» (+ appeal deadline), «منسحب». No rank, score, committee, panel, note or salary. A draft or
+  pending offer is not shown as an offer (`OfferExtended` is set at draft).
+
+### Profile and eligibility (session 1, G-17)
+
+- Apply form: qualification (MDM codes), specialization, graduation year, years of experience, birth date; requisition
+  criteria (`MinQualificationCode`, `MinYearsOfExperience`, `MinAge`/`MaxAge`) shown as «شروط التقديم».
+- `RecruitmentEligibilityRules` flags (never rejects): `BelowMinQualification`, `QualificationUnranked`,
+  `BelowMinExperience`, `AgeBelowMin`, `AgeAboveMax`, `MissingProfileData`, `MissingRequiredDocuments`. Shortlisting a
+  flagged application needs a reason (≥ 10) → `EligibilityOverride` audit. Ranks/age bounds are options
+  (`Recruitment:Eligibility:*`).
+
+### Candidate documents (session 2, G-17)
+
+- `CandidateDocument` (CV, certificate, ID copy, other) uploaded on the apply form and relayed by HR.Core to File.Storage
+  through the service upload (`api/files/service-upload`, scope `file-storage.service-upload`, profile `CandidateDocument`:
+  pdf/jpg/png ≤ 5 MB, quarantine + scan). Limits: 5 files, 9 MiB per post. `RecruitmentRequisition.RequiredDocumentTypes`.
+  Any upload failure fails the whole apply («تعذّر رفع المستندات حالياً، يرجى المحاولة لاحقاً.»).
+- HR Details «المستندات» card: «سليم» (download through HR.Core), «قيد الفحص», «محجور — غير متاح», «تعذّر الفحص — غير متاح».
+
+### Candidate notifications (session 2, G-18)
+
+- One message per decision event on the candidate's chosen channel (email or SMS) with consent; FileDrop in the lab, provider
+  `None` in Production/Staging until D-8. No national id, name or salary. HR Details «الإشعارات» card. Job
+  `CandidateNotificationJob` (lock 8675315) and the 48 h offer reminder. Details: [COM_001_NOTIFICATIONS](COM_001_NOTIFICATIONS.md).
+
+### Candidate portal `/careers/my` (session 3, G-18, D-4)
+
+- Sign-in «الدخول إلى طلباتي»: reference number + national id → a 6-digit one-time code sent on the registered contact (neutral
+  answer always; 60 s resend window; 10-minute validity; 5 wrong codes → 30-minute lock audited `CandidatePortalLocked`) →
+  `careers_session` cookie (Data Protection, absolute 30 minutes, HttpOnly, SameSite=Strict, path `/careers`). The gateway
+  forwards that exact cookie only on the `careers-public` route. OTP endpoints use `careers-otp` (shared public window + per-client
+  window). Codes are stored only as HMAC (`Recruitment:Portal:OtpHmacKey`, required in Production).
+- «طلبي»: status and deadline, timeline, interviews (no panel names), documents (upload missing ones while intake is open),
+  offer card with terms and salary, «تنزيل خطاب العرض» (PDF + verification code), accept (acknowledgement + typed full name,
+  `AcceptedBy = Candidate`), decline with a reason (`DeclinedBy = Candidate`, same next-candidate behaviour as HR), withdraw
+  (in-page confirmation; before `OfferAccepted` only; settles the active offer), appeal within the window
+  (`FiledBy = Candidate`) and answers to information requests. Every action loads the application from the session only and
+  runs under the session tenant.
+- `/careers/track` remains a read-only lookup that shows only the public status label.
+- HR on-behalf acceptance (`OfferLetters/Details` «قبول نيابةً عن المرشح»): reason ≥ 20 + signed evidence file, audited
+  `AcceptOfferOnBehalf`; policy `HrCoreWrite`. Details show who accepted («المرشح عبر بوابة التوظيف» / «HR نيابة عن المرشح»).
+
+### Candidate retention (session 2/3, G-20 part)
+
+- Pair rule (application + channel row): requisition closed/cancelled + `Recruitment:Retention:Months` (36), not hired, no legal
+  hold, no pending appeal. Anonymization clears identity, contact, profile and free text on both rows, releases and deletes
+  documents and on-behalf offer evidence, neutralizes messages and deletes OTP challenges. Dry run unless
+  `Recruitment:Retention:Apply` (false in Production/Staging). Admin screen «الاحتفاظ ببيانات المرشحين»
+  (`CandidateLifecycle/Index`). Details: [GOV_001_RETENTION_RUNBOOK](GOV_001_RETENTION_RUNBOOK.md).
 
 ## Acceptance Criteria Mapping
 
@@ -431,6 +505,10 @@ intervention (detection only). Details: [HIRE_ONBOARDING_GUIDE](HIRE_ONBOARDING_
 - [x] PLAN-29 G-13 — `ICandidateAccepted` v4 offer terms → contract (type by service regime, grade, salary) → `IContractActivated` → pay profile; explicit lineage columns; internal mobility opens no Appointment
 - [x] PLAN-29 G-22 — appointment decision step (D-6), optional pre-employment medical, overdue-commencement intervention
 - [x] PLAN-29 G-18 (offer letter) — official offer letter PDF with a verification hash fixed at issue
+- [x] PLAN-30 G-16 — one intake path: public and internal applications enter `RecruitmentApplication` at `Submitted`; one screening list; backfill of pre-unification rows
+- [x] PLAN-30 G-17 — candidate profile, requisition criteria, eligibility flags (never reject), candidate documents scanned in File.Storage
+- [x] PLAN-30 G-18 — accurate public status and timeline, PII-free candidate notifications, `/careers/my` with OTP (offer PDF, accept/decline, withdraw, appeal, documents), restricted HR on-behalf acceptance
+- [x] PLAN-30 G-20 (candidate data) — pair-aware retention job with legal hold, dry run by default, admin screen
 
 ## Plan map (HCM-001)
 
@@ -447,6 +525,7 @@ intervention (detection only). Details: [HIRE_ONBOARDING_GUIDE](HIRE_ONBOARDING_
 | PLAN-27 | Merit order, exception offers, offer terms (Payroll grade lookup), decline/revoke/expiry, reserve list (G-06, G-07 addressed; G-20 partly; D-7) |
 | PLAN-28 | Committee decision body and ranking gate, single governed appeal path, rejection kinds, hire block, compliance access slice (G-09, G-10 addressed; G-05 appeal part; D-5) |
 | PLAN-29 | Safe hire closure, employment type, `ICandidateAccepted` v4 → contract → payroll, contract-type map with intervention, appointment decision / medical steps, commencement watch, offer letter PDF (G-12, G-13, G-22 addressed; G-18 offer letter; D-6) |
+| PLAN-30 | Unified intake and backfill, application events, public status projection, profile and eligibility flags, candidate documents (File.Storage service upload), candidate notifications (channel senders, FileDrop lab), pair-aware retention, `/careers/my` with OTP and the gateway cookie allow-list, HR on-behalf acceptance with evidence (G-16, G-17, G-18 addressed; G-20 candidate-data part; D-4) |
 
 ## Artifacts
 
@@ -459,7 +538,7 @@ intervention (detection only). Details: [HIRE_ONBOARDING_GUIDE](HIRE_ONBOARDING_
 | `scripts/hcm001-validate.ps1` | Validates HCM-001 artifacts |
 | `scripts/hcm001-migrate-legacy-applications.ps1` | Backfill RequisitionId / flag legacy apps |
 | `src/Services/HRCore/HR.Core.Domain/Services/CandidateApplicationLegalLifecycleService.cs` | Candidate anonymize/purge (Plan-6) |
-| `scripts/hcm006-a11y-scan.ps1` | Public careers a11y baseline (Plan-6) |
+| `scripts/hcm006-a11y-scan.ps1` | Public careers a11y baseline (Plan-6); PLAN-30 K4: candidate portal, apply form, label/for, error linking, OTP input, focus on errors, nonce CSP |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm06CandidateDsarTests.cs` | Candidate DSAR acceptance (Plan-6) |
 | `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/RecruitmentHireClosureService.cs` | Atomic hire closure |
 | `Hcm001RecruitmentTests.cs` | Unit tests |
@@ -479,11 +558,22 @@ intervention (detection only). Details: [HIRE_ONBOARDING_GUIDE](HIRE_ONBOARDING_
 | `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/OfferLetterDocumentService.cs` | Offer letter data and verification hash |
 | `src/Services/HRContracts/HR.Contracts.Application/Features/HireCases/ContractTypeResolver.cs` | Contract type by service regime / employment type |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm29HireContractTests.cs` | AC-HCM-29a..i acceptance |
+| `scripts/hcm030-validate.ps1` | Validates PLAN-30 artifacts, HR.Core migrations (no File.Storage migration), config per environment, `Hcm030`/`Fs030` tests, a11y scan and ROPA |
+| `scripts/hcm030-backfill-unified-intake.ps1` | Links pre-unification citizen/internal rows (dry run by default, `-Apply`, `-DockerContainer`) |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/UnifiedIntakeService.cs` | Unified intake, linking, duplicate check, eligibility criteria |
+| `src/Services/HRCore/HR.Core.Domain/Services/CandidatePublicStatusProjection.cs` | Candidate public status and timeline |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/CandidateNotificationDispatcher.cs` | Candidate message planning and sending |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/CandidateRetentionService.cs` | Pair-aware candidate retention |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/CandidateOtpService.cs` | `/careers/my` one-time code |
+| `src/Services/HRCore/HR.Core.Web/Services/CandidatePortalService.cs` | `/careers/my` page and candidate actions |
+| `src/Services/HRCore/HR.Core.Web/Services/OfferOnBehalfService.cs` | HR on-behalf acceptance/decline with evidence |
+| `src/Tests/HRManagement.AcceptanceTests/AcHcm30CandidateExperienceTests.cs` | AC-HCM-30a..j acceptance |
 
 ## Validation
 
 - `scripts/hcm001-validate.ps1`
 - `scripts/hcm029-validate.ps1` (PLAN-29)
+- `scripts/hcm030-validate.ps1` (PLAN-30)
 - `Hcm001RecruitmentTests`
 - `scripts/hcm026-validate.ps1` — `Hcm026*` unit tests + `Hcm021|Hcm022` regression
 - `scripts/hcm027-validate.ps1` — `Hcm027*` unit tests + `Hcm026|Hcm022` regression

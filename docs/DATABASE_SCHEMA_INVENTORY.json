@@ -599,7 +599,7 @@
     "service": "HR.Core",
     "context": "HRCoreDbContext",
     "database": "hr_core_db",
-    "dbset_count": 93,
+    "dbset_count": 98,
     "entity_sets": [
       {
         "entity": "Employee",
@@ -716,6 +716,26 @@
       {
         "entity": "RecruitmentApplication",
         "set": "RecruitmentApplications"
+      },
+      {
+        "entity": "RecruitmentApplicationEvent",
+        "set": "RecruitmentApplicationEvents"
+      },
+      {
+        "entity": "CandidateDocument",
+        "set": "CandidateDocuments"
+      },
+      {
+        "entity": "CandidateNotification",
+        "set": "CandidateNotifications"
+      },
+      {
+        "entity": "CandidateRetentionRun",
+        "set": "CandidateRetentionRuns"
+      },
+      {
+        "entity": "CandidateOtpChallenge",
+        "set": "CandidateOtpChallenges"
       },
       {
         "entity": "ApprovalRequest",
@@ -981,6 +1001,10 @@
       "ApprovedCVs",
       "AuditLogs",
       "BenefitPlans",
+      "CandidateDocuments",
+      "CandidateNotifications",
+      "CandidateOtpChallenges",
+      "CandidateRetentionRuns",
       "CareerPathSteps",
       "CareerPaths",
       "CitizenApplications",
@@ -1042,6 +1066,7 @@
       "PublicJobPostings",
       "Qualifications",
       "RecruitmentAppeals",
+      "RecruitmentApplicationEvents",
       "RecruitmentApplications",
       "RecruitmentAssessmentCriteria",
       "RecruitmentAssessmentScores",
@@ -1072,7 +1097,7 @@
       "WorkforcePlanLines",
       "WorkforcePlans"
     ],
-    "business_table_count": 91,
+    "business_table_count": 96,
     "infrastructure_tables": [
       "AuditLogs",
       "InboxState",

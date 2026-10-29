@@ -40,6 +40,25 @@ Delete is restricted to Admin, PlatformAdmin, or FileStorage service role.
 - URLs are bound to the grant; revoked grants invalidate URLs.
 - The client cannot specify the holder — the server derives it from the authenticated context.
 
+### Service upload endpoint (FS-030, PLAN-30)
+
+`api/files/service-upload` (`FilesServiceUploadController`) is authorized by the service policy
+`Service.FileStorageServiceUpload` only: a service account token with scope `file-storage.service-upload` from client
+`svc-hr-core` (401 without/invalid token; 403 for another client, a missing scope or an interactive user). The scope grants
+nothing on `FilesApiController`. Object-level rules:
+
+- the tenant comes from the required `X-Tenant-ID` header (service tokens carry no tenant claim);
+- the upload creates one `FileAccessGrant` (HolderType `Service`, HolderId = calling client id, Module `hr-core`,
+  Visibility `Module`, GranteeId = caller `sub`);
+- `metadata` and `content` answer only for files that the **same client** service-uploaded in the **same tenant** (grant not
+  revoked, file not deleted); anything else is silently omitted (metadata) or 404 (content) — no existence leak;
+- content is served only when `ScanStatus = Clean`; checksum mismatch → 409.
+
+End users never reach these files directly. HR.Core exposes them through its own actions, which apply the HR policy and the
+tenant filter first: `RecruitmentApplications/CandidateDocument/{id}` (candidate documents) and `OfferLetters/Evidence`
+(signed on-behalf acceptance/decline evidence, PLAN-30 J), both Clean-only. Candidates on `/careers/my` can upload missing
+documents (relayed by HR.Core) but never download through the portal.
+
 ## Acceptance criteria mapping
 
 | Criterion | Implementation |
