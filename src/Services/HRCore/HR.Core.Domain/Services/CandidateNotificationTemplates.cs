@@ -73,11 +73,21 @@ public static class CandidateNotificationTemplates
     public const string AppHired = "APP_HIRED";
     public const string AppWithdrawn = "APP_WITHDRAWN";
     public const string AppealDecided = "APPEAL_DECIDED";
+    // HCM-031 (PLAN-31): competition messages — never a score, a rank or a national id (decision 4).
+    public const string AdmissionCardReady = "ADMISSION_CARD_READY";
+    public const string ResultsPublished = "RESULTS_PUBLISHED";
+    public const string ObjectionDecided = "OBJECTION_DECIDED";
+    public const string CompetitionAllocated = "COMPETITION_ALLOCATED";
+    public const string CompetitionReserve = "COMPETITION_RESERVE";
+    public const string CompetitionReserveRecalled = "COMPETITION_RESERVE_RECALLED";
+    public const string CompetitionNotSuccessful = "COMPETITION_NOT_SUCCESSFUL";
 
     public static readonly IReadOnlyList<string> All =
     [
         AppReceived, InterviewScheduled, InterviewRescheduled, InterviewCancelled, OfferIssued, OfferReminder,
-        AppRejected, AppReserve, OfferAccepted, AppHired, AppWithdrawn, AppealDecided
+        AppRejected, AppReserve, OfferAccepted, AppHired, AppWithdrawn, AppealDecided,
+        AdmissionCardReady, ResultsPublished, ObjectionDecided, CompetitionAllocated, CompetitionReserve,
+        CompetitionReserveRecalled, CompetitionNotSuccessful
     ];
 
     /// <summary>One Arabic (UCS-2) SMS segment.</summary>
@@ -103,6 +113,13 @@ public static class CandidateNotificationTemplates
         RecruitmentApplicationEventTypes.OfferExpiryReminder => OfferReminder,
         RecruitmentApplicationEventTypes.OfferAccepted => OfferAccepted,
         RecruitmentApplicationEventTypes.AppealDecided => AppealDecided,
+        RecruitmentApplicationEventTypes.AdmissionCardReady => AdmissionCardReady,
+        RecruitmentApplicationEventTypes.ResultsPublished => ResultsPublished,
+        RecruitmentApplicationEventTypes.ObjectionDecided => ObjectionDecided,
+        RecruitmentApplicationEventTypes.CompetitionAllocated => CompetitionAllocated,
+        RecruitmentApplicationEventTypes.CompetitionReserve => CompetitionReserve,
+        RecruitmentApplicationEventTypes.CompetitionReserveRecalled => CompetitionReserveRecalled,
+        RecruitmentApplicationEventTypes.CompetitionNotSuccessful => CompetitionNotSuccessful,
         RecruitmentApplicationEventTypes.StatusChanged => (RecruitmentApplicationStatus?)toStatus switch
         {
             RecruitmentApplicationStatus.Rejected => AppRejected,
@@ -226,6 +243,29 @@ public static class CandidateNotificationTemplates
             AppealDecided => ("نتيجة الاستئناف",
                 $"تم البت في استئنافك: {AppealOutcomeAr(input.AppealOutcome)}.",
                 $"استئنافك على الطلب {reference}: {AppealOutcomeAr(input.AppealOutcome)}."),
+            AdmissionCardReady => ("بطاقة الامتحان",
+                "صدرت بطاقة دخول الامتحان الخاصة بك، ويمكنك تنزيلها من صفحة «طلبي».",
+                $"صدرت بطاقة امتحانك، المرجع {reference}. نزّلها من صفحة طلبي."),
+            ResultsPublished => ("نتائج المسابقة",
+                "نُشرت نتائج المسابقة. اطّلع على نتيجتك من صفحة «طلبي».",
+                $"نُشرت نتائج المسابقة، المرجع {reference}. راجع صفحة طلبي."),
+            ObjectionDecided => ("قرار الاعتراض",
+                "صدر قرار المراجع المستقل في اعتراضك على النتيجة، والتفاصيل في صفحة «طلبي».",
+                $"صدر قرار اعتراضك، المرجع {reference}. راجع صفحة طلبي."),
+            CompetitionAllocated => ("الترشيح للتعيين",
+                "تم ترشيحك للتعيين على أحد شواغر المسابقة، وستتواصل معك الجهة بشأن العرض الوظيفي.",
+                $"رُشّحت للتعيين في المسابقة، المرجع {reference}."),
+            CompetitionReserve => ("قائمة احتياط المسابقة",
+                input.ReserveUntil is DateOnly competitionUntil
+                    ? $"أُدرج اسمك في قائمة احتياط المسابقة حتى {FormatDate(competitionUntil)}."
+                    : "أُدرج اسمك في قائمة احتياط المسابقة.",
+                $"أُدرجت في قائمة احتياط المسابقة، المرجع {reference}."),
+            CompetitionReserveRecalled => ("الاستدعاء من قائمة الاحتياط",
+                "تم استدعاؤك من قائمة الاحتياط للترشيح على شاغر، وستتواصل معك الجهة بشأن العرض الوظيفي.",
+                $"استُدعيت من قائمة الاحتياط، المرجع {reference}."),
+            CompetitionNotSuccessful => ("نتيجة المسابقة",
+                "نأسف لإبلاغك بأنك لم تكن من المرشحين للتعيين في هذه المسابقة. شكراً لاهتمامك.",
+                $"انتهت المسابقة دون ترشيحك، المرجع {reference}."),
             _ => throw new ArgumentOutOfRangeException(nameof(templateCode), templateCode, "Unknown candidate template.")
         };
 
@@ -258,7 +298,7 @@ public static class CandidateNotificationTemplates
             OfferIssued or OfferReminder =>
                 input.OfferExpiryUtc is DateTime expiry && expiry > occurred ? expiry : standard,
             AppRejected => input.AppealDeadlineUtc is DateTime deadline && deadline > occurred ? deadline : standard,
-            AppReserve => input.ReserveUntil is DateOnly until
+            AppReserve or CompetitionReserve => input.ReserveUntil is DateOnly until
                 ? DateTime.SpecifyKind(until.ToDateTime(TimeOnly.MaxValue), DateTimeKind.Utc)
                 : standard,
             AppWithdrawn => occurred.AddDays(7),
@@ -281,6 +321,13 @@ public static class CandidateNotificationTemplates
         AppHired => "استكمال التعيين",
         AppWithdrawn => "الانسحاب",
         AppealDecided => "نتيجة الاستئناف",
+        AdmissionCardReady => "بطاقة الامتحان",
+        ResultsPublished => "نشر نتائج المسابقة",
+        ObjectionDecided => "قرار الاعتراض",
+        CompetitionAllocated => "الترشيح للتعيين",
+        CompetitionReserve => "قائمة احتياط المسابقة",
+        CompetitionReserveRecalled => "الاستدعاء من الاحتياط",
+        CompetitionNotSuccessful => "عدم الترشيح في المسابقة",
         _ => templateCode
     };
 

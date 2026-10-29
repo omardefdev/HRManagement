@@ -220,7 +220,52 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
             .OrderBy(p => p.Order)
             .Select(p => new { order = p.Order, lineNo = p.CompetitionLine!.LineNo, line = p.CompetitionLine.Title, eligibilityFlags = p.EligibilityFlags })
             .ToListAsync(ct);
-        return new { number = competition.Number, title = competition.Title, status = competition.Status.ToString(), preferences };
+        // HCM-031 (P6): exam numbers (8 digits — below the 9-digit national-id masking), marks, results, allocation, reserve.
+        var papers = await db.ExamCandidates.AsNoTracking()
+            .Where(c => c.RecruitmentApplicationId == recruitmentId)
+            .OrderBy(c => c.ExamType)
+            .Select(c => new
+            {
+                examNumber = c.ExamNumber,
+                examType = c.ExamType.ToString(),
+                session = c.ExamSession!.Title,
+                scheduledAt = c.ExamSession.ScheduledAt,
+                seat = c.SeatNumber,
+                attendance = c.Attendance.ToString(),
+                finalMark = c.FinalMark,
+                marks = c.Scores.OrderBy(s => s.Round).Select(s => new { round = s.Round.ToString(), score = s.Score, submittedAt = s.SubmittedAt }).ToList(),
+                admissionCardIssuedAt = c.AdmissionCardIssuedAt
+            })
+            .ToListAsync(ct);
+        var results = await db.CompetitionResults.AsNoTracking()
+            .Where(r => r.RecruitmentApplicationId == recruitmentId)
+            .OrderBy(r => r.ResultVersion!.VersionNo)
+            .Select(r => new
+            {
+                version = r.ResultVersion!.VersionNo,
+                versionStatus = r.ResultVersion.Status.ToString(),
+                examScore = r.ExamScore,
+                finalScore = r.FinalScore,
+                rank = r.OverallRank,
+                outcome = r.Outcome.ToString()
+            })
+            .ToListAsync(ct);
+        var allocation = await db.CompetitionAllocations.AsNoTracking()
+            .Where(a => a.RecruitmentApplicationId == recruitmentId)
+            .OrderBy(a => a.CreatedAt)
+            .Select(a => new
+            {
+                line = a.AllocatedLine != null ? a.AllocatedLine.Title : null,
+                requisitionNumber = a.AllocatedRequisition != null ? a.AllocatedRequisition.RequisitionNumber : null,
+                preferenceOrder = a.PreferenceOrderSatisfied,
+                fromReserve = a.FromReserve
+            })
+            .ToListAsync(ct);
+        var reserve = await db.CompetitionReserveEntries.AsNoTracking()
+            .Where(e => e.RecruitmentApplicationId == recruitmentId)
+            .Select(e => new { line = e.CompetitionLine!.Title, lineRank = e.LineRank, reserveUntil = e.ReserveUntil, status = e.Status.ToString() })
+            .ToListAsync(ct);
+        return new { number = competition.Number, title = competition.Title, status = competition.Status.ToString(), preferences, papers, results, allocation, reserve };
     }
 
     /// <summary>PLAN-30 K2: the candidate's records besides the application rows (metadata and counts only).</summary>

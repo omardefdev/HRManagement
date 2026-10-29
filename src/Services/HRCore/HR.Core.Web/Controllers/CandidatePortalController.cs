@@ -34,8 +34,31 @@ public class CandidatePortalController(
         ["withdrawn"] = "تم سحب طلبك.",
         ["appealed"] = "تم تقديم الاستئناف، وستُبلَّغ بنتيجته.",
         ["info"] = "تم إرسال المعلومات المطلوبة إلى مراجع الاستئناف.",
-        ["uploaded"] = "تم رفع المستندات، وستخضع للفحص قبل اعتمادها."
+        ["uploaded"] = "تم رفع المستندات، وستخضع للفحص قبل اعتمادها.",
+        ["objected"] = "تم تقديم اعتراضك على النتيجة، وستُبلَّغ بقرار المراجع المستقل."
     };
+
+    /// <summary>HCM-031 (PLAN-31): «بطاقة الامتحان» of the session's application for one exam type.</summary>
+    [HttpGet("competition/card")]
+    [CandidatePortalSession]
+    public async Task<IActionResult> AdmissionCard(string? type, CancellationToken ct)
+    {
+        var card = await portalService.GetAdmissionCardAsync(Portal, type, ct);
+        if (card is not { } file)
+            return RedirectToAction(nameof(Index));
+        Response.Headers.CacheControl = "no-store";
+        return File(file.Pdf, "application/pdf", file.FileName);
+    }
+
+    /// <summary>HCM-031 (PLAN-31): files a result objection while the window is open (checked again by the service).</summary>
+    [HttpPost("competition/objection")]
+    [ValidateAntiForgeryToken]
+    [CandidatePortalSession]
+    public async Task<IActionResult> Objection(CandidatePortalTextForm form, string? examType, CancellationToken ct)
+    {
+        var result = await portalService.FileObjectionAsync(Portal, form.Text, examType, ct);
+        return await AfterAsync(result, "objected", "Objection", posted => posted.ObjectionReason = form.Text, ct);
+    }
 
     /// <summary>HCM-030 (PLAN-30 I): «طلبي». <paramref name="step"/> = <c>withdraw</c> opens the withdrawal confirm panel.</summary>
     [HttpGet("")]

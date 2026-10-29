@@ -1,3 +1,4 @@
+using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
@@ -76,15 +77,55 @@ public sealed class CandidatePublicStatusService(HRCoreDbContext db, IOptions<Re
     }
 
     /// <summary>HCM-031 (PLAN-31): the competition state of competition applications (exam, results, objection, allocation).</summary>
-    private Task<Dictionary<Guid, CandidateCompetitionInput>> LoadCompetitionInputsAsync(
+    private async Task<Dictionary<Guid, CandidateCompetitionInput>> LoadCompetitionInputsAsync(
         IReadOnlyList<Guid> competitionApplicationIds,
         bool forPublicPortal,
         CancellationToken ct)
     {
-        // PLAN-31 P2: intake only — the exam (P3), results/objection (P4) and allocation (P5) fields are filled in later phases.
-        _ = forPublicPortal;
-        _ = ct;
-        return Task.FromResult(competitionApplicationIds.ToDictionary(id => id, _ => new CandidateCompetitionInput()));
+        if (competitionApplicationIds.Count == 0)
+            return [];
+        var ids = competitionApplicationIds.ToList();
+        var apps = await Scoped(db.RecruitmentApplications, forPublicPortal).AsNoTracking()
+            .Where(a => ids.Contains(a.Id))
+            .Select(a => new
+            {
+                a.Id,
+                a.Status,
+                a.RejectionKind,
+                LineTitle = a.CompetitionLine != null ? a.CompetitionLine.Title : null,
+                a.Competition!.CurrentResultVersionId
+            })
+            .ToListAsync(ct);
+        var papers = (await Scoped(db.ExamCandidates, forPublicPortal).AsNoTracking()
+                .Where(c => ids.Contains(c.RecruitmentApplicationId))
+                .Select(c => new { c.RecruitmentApplicationId, c.ExamSession!.ScheduledAt, c.ExamSession.Status })
+                .ToListAsync(ct))
+            .ToLookup(p => p.RecruitmentApplicationId);
+        var versionIds = apps.Where(a => a.CurrentResultVersionId != null).Select(a => a.CurrentResultVersionId!.Value).Distinct().ToList();
+        var published = (await Scoped(db.CompetitionResults, forPublicPortal).AsNoTracking()
+                .Where(r => versionIds.Contains(r.ResultVersionId) && ids.Contains(r.RecruitmentApplicationId))
+                .Select(r => r.RecruitmentApplicationId)
+                .ToListAsync(ct))
+            .ToHashSet();
+        var objecting = (await Scoped(db.RecruitmentAppeals, forPublicPortal).AsNoTracking()
+                .Where(x => ids.Contains(x.RecruitmentApplicationId) && x.Kind == RecruitmentAppealKind.ResultObjection
+                    && x.Status == RecruitmentAppealStatus.Pending)
+                .Select(x => x.RecruitmentApplicationId)
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        return apps.ToDictionary(a => a.Id, a =>
+        {
+            var appPapers = papers[a.Id].ToList();
+            var allocated = a.Status is RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.OfferExtended;
+            return new CandidateCompetitionInput(
+                ExamAtUtc: appPapers.Count == 0 ? null : appPapers.Min(p => p.ScheduledAt),
+                ExamHeld: appPapers.Count > 0 && appPapers.All(p => p.Status is ExamSessionStatus.Held or ExamSessionStatus.MarkingClosed),
+                ResultsPublished: published.Contains(a.Id),
+                ObjectionPending: objecting.Contains(a.Id),
+                AllocatedLineTitle: allocated ? a.LineTitle : null,
+                NotSuccessful: a.Status == RecruitmentApplicationStatus.Rejected && a.RejectionKind == RecruitmentRejectionKind.CompetitionResult);
+        });
     }
 
     private static IQueryable<T> Scoped<T>(DbSet<T> set, bool forPublicPortal) where T : class =>

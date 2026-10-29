@@ -56,6 +56,8 @@ public sealed class CandidatePortalPageViewModel
 
     public CandidatePortalOfferCard? Offer { get; init; }
     public CandidatePortalAppealCard? Appeal { get; init; }
+    /// <summary>HCM-031 (PLAN-31): set for a competition application.</summary>
+    public CandidatePortalCompetitionCard? Competition { get; init; }
 
     public bool CanWithdraw { get; init; }
 
@@ -110,12 +112,35 @@ public enum CandidatePortalAppealState
 public sealed record CandidatePortalAppealCard(CandidatePortalAppealState State, string? DateText, string? InfoRequest);
 
 /// <summary>HCM-030 (I): typed values echoed back after a refused post.</summary>
+/// <summary>HCM-031 (PLAN-31): the competition part of «طلبي».</summary>
+public sealed record CandidatePortalCompetitionCard(
+    string Number,
+    string Title,
+    IReadOnlyList<string> Preferences,
+    IReadOnlyList<CandidatePortalExamRow> Exams,
+    CandidatePortalCompetitionResult? Result,
+    bool CanObject,
+    string? ObjectionDeadline,
+    string? ObjectionClosedText,
+    string? ObjectionStatusText,
+    IReadOnlyList<(string Type, string Label)> ObjectionPapers,
+    string? AllocationText,
+    IReadOnlyList<string> ReserveTexts);
+
+/// <summary>HCM-031: one exam the candidate is seated for (the card is downloaded by exam type — no id in the URL).</summary>
+public sealed record CandidatePortalExamRow(string Type, string TypeLabel, string Title, string When, string Venue, int Seat, string ExamNumber, bool CardIssued);
+
+/// <summary>HCM-031: the candidate's own result — shown only once the results are published.</summary>
+public sealed record CandidatePortalCompetitionResult(string? FinalScore, int? Rank, string OutcomeLabel, string PublishedOn);
+
 public sealed class CandidatePortalPostedValues
 {
     public string? AcceptFullName { get; set; }
     public string? DeclineReason { get; set; }
     public string? WithdrawReason { get; set; }
     public string? AppealReason { get; set; }
+    /// <summary>HCM-031: the typed result objection.</summary>
+    public string? ObjectionReason { get; set; }
     public string? AppealInfo { get; set; }
 }
 

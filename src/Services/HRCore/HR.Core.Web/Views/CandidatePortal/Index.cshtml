@@ -26,6 +26,7 @@
         "Withdraw" or "Withdraw.Reason" => "portal-withdraw-reason",
         "Appeal" or "Appeal.Text" => "portal-appeal-reason",
         "AppealInfo" or "AppealInfo.Text" => "portal-appeal-info",
+        "Objection" or "Objection.Text" => "portal-objection-reason",
         "Documents.CvFile" => "portal-doc-Cv",
         "Documents.CertificateFiles" => "portal-doc-Certificate",
         "Documents.IdCopyFile" => "portal-doc-IdCopy",
@@ -263,6 +264,87 @@ else if (!string.IsNullOrEmpty(Model.Notice))
                         </div>
                     </div>
                 }
+            }
+        </div>
+    </section>
+}
+
+@if (Model.Competition is { } competition)
+{
+    @* HCM-031 (PLAN-31): competition — preferences, admission cards, the own result (after publication), objection, allocation. *@
+    <section class="careers-card mt-3" id="portal-competition" tabindex="-1" aria-labelledby="portal-competition-title">
+        <div class="card-body">
+            <h2 class="careers-section-title h5" id="portal-competition-title"><i class="fas fa-list-ol ms-2" aria-hidden="true"></i> المسابقة <bdi dir="ltr">@competition.Number</bdi> — @competition.Title</h2>
+            <h3 class="h6">تفضيلاتك</h3>
+            <ul>
+                @foreach (var preference in competition.Preferences) { <li>@preference</li> }
+            </ul>
+            @if (competition.Exams.Count > 0)
+            {
+                <h3 class="h6">الامتحانات</h3>
+                <ul>
+                    @foreach (var exam in competition.Exams)
+                    {
+                        <li>
+                            @exam.TypeLabel — @exam.Title — <bdi dir="ltr">@exam.When</bdi> — @exam.Venue — المقعد @exam.Seat — الرقم الامتحاني <bdi dir="ltr">@exam.ExamNumber</bdi>
+                            @if (exam.CardIssued)
+                            {
+                                <a asp-action="AdmissionCard" asp-route-type="@exam.Type" class="ms-2"><i class="fas fa-download ms-1" aria-hidden="true"></i> تنزيل بطاقة الامتحان</a>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            @if (competition.Result is { } result)
+            {
+                <h3 class="h6">نتيجتك (منشورة في <bdi dir="ltr">@result.PublishedOn</bdi>)</h3>
+                <dl class="row">
+                    <dt class="col-sm-3">الدرجة النهائية</dt><dd class="col-sm-9">@(result.FinalScore ?? "—")</dd>
+                    <dt class="col-sm-3">الترتيب العام</dt><dd class="col-sm-9">@(result.Rank?.ToString(CultureInfo.InvariantCulture) ?? "—")</dd>
+                    <dt class="col-sm-3">النتيجة</dt><dd class="col-sm-9">@result.OutcomeLabel</dd>
+                </dl>
+            }
+            @if (!string.IsNullOrEmpty(competition.ObjectionStatusText))
+            {
+                <p>@competition.ObjectionStatusText</p>
+            }
+            @if (competition.CanObject)
+            {
+                var objectionError = FormErr("Objection", "Text") ?? FormErr("Objection", "");
+                <p>يمكنك الاعتراض على نتيجتك حتى <bdi dir="ltr">@competition.ObjectionDeadline</bdi>.</p>
+                <form asp-action="Objection" method="post" class="careers-form" novalidate>
+                    @Html.AntiForgeryToken()
+                    @if (competition.ObjectionPapers.Count > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label" for="portal-objection-paper">الامتحان موضوع الاعتراض</label>
+                            <select id="portal-objection-paper" name="examType" class="form-select">
+                                @foreach (var (type, label) in competition.ObjectionPapers) { <option value="@type">@label</option> }
+                            </select>
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label" for="portal-objection-reason">سبب الاعتراض</label>
+                        <textarea id="portal-objection-reason" name="Text" rows="4" maxlength="2000" class="form-control@(Invalid(objectionError))"
+                                  required aria-required="true" aria-invalid="@(objectionError is null ? "false" : "true")"
+                                  aria-describedby="portal-objection-help@(objectionError is null ? "" : " portal-objection-error")">@Model.Posted.ObjectionReason</textarea>
+                        <small id="portal-objection-help" class="text-muted d-block">20 حرفاً على الأقل. يُراجَع الاعتراض من جهة مستقلة عن المصححين.</small>
+                        @if (objectionError is not null) { <div class="invalid-feedback d-block" id="portal-objection-error">@objectionError</div> }
+                    </div>
+                    <button type="submit" class="btn careers-btn-primary"><i class="fas fa-paper-plane ms-1" aria-hidden="true"></i> تقديم الاعتراض</button>
+                </form>
+            }
+            else if (!string.IsNullOrEmpty(competition.ObjectionClosedText))
+            {
+                <p class="mb-2">@competition.ObjectionClosedText</p>
+            }
+            @if (!string.IsNullOrEmpty(competition.AllocationText))
+            {
+                <p class="fw-bold mb-0">@competition.AllocationText</p>
+            }
+            @foreach (var reserve in competition.ReserveTexts)
+            {
+                <p class="mb-0">@reserve</p>
             }
         </div>
     </section>

@@ -313,6 +313,16 @@ public sealed class CandidateNotificationDispatcher(
         if (templateCode == CandidateNotificationTemplates.AppealDecided && appeal is null)
             return null;
 
+        // HCM-031 (PLAN-31): a competition application is told by its competition messages — the generic rejection and
+        // reserve messages of the same status change would repeat them; a decided result objection has its own message.
+        if (app.CompetitionId is not null && ev.EventType == RecruitmentApplicationEventTypes.StatusChanged
+            && ((templateCode == CandidateNotificationTemplates.AppRejected
+                    && app.RejectionKind == RecruitmentRejectionKind.CompetitionResult)
+                || templateCode == CandidateNotificationTemplates.AppReserve))
+            return null;
+        if (templateCode == CandidateNotificationTemplates.AppealDecided && appeal!.Kind == RecruitmentAppealKind.ResultObjection)
+            templateCode = CandidateNotificationTemplates.ObjectionDecided;
+
         var key = CandidateNotification.IdempotencyKeyFor(ev.Id, channel.Value);
         if (context.ExistingKeys.Contains((ev.TenantId, key)))
             return null;

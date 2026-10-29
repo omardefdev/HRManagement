@@ -49,7 +49,9 @@ public sealed class CandidatePortalService(
     IOptions<RecruitmentOptions> options,
     ILogger<CandidatePortalService> logger,
     // HCM-031 (PLAN-31): optional so the existing manual constructions (tests) keep compiling; DI always supplies it.
-    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService? competitionReserve = null)
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService? competitionReserve = null,
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionObjectionService? competitionObjections = null,
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamAdmissionCardDocumentService? admissionCards = null)
 {
     public const string Actor = "Candidate";
 
@@ -110,7 +112,7 @@ public sealed class CandidatePortalService(
                 .Select(s => new { s.ScheduledAt, s.Mode, s.Location, s.Status })
                 .ToListAsync(ct);
             var documents = await candidateDocuments.GetRowsAsync(app, ct);
-            var missing = MissingDocumentTypes(app, documents.Select(d => d.DocumentType));
+            var missing = await MissingDocumentTypesAsync(app, documents.Select(d => d.DocumentType), ct);
             var intakeError = await DocumentIntakeErrorAsync(session, app, documents.Count, ct);
 
             return new CandidatePortalPageViewModel
@@ -139,6 +141,7 @@ public sealed class CandidatePortalService(
                 MaxTotalDocumentBytes = Settings.CandidateDocuments.MaxTotalBytes,
                 Offer = await OfferCardAsync(app, now, ct),
                 Appeal = await AppealCardAsync(app, now, ct),
+                Competition = await CompetitionCardAsync(app, now, ct),
                 CanWithdraw = view?.CanWithdraw == true,
                 // Not for a terminal application (Hired keeps its accepted offer): nothing to withdraw from there.
                 WithdrawBlockedByAcceptance = !SelectionWorkflowRules.TerminalStatuses.Contains(app.Status)
@@ -146,6 +149,160 @@ public sealed class CandidatePortalService(
                         || app.ActiveOfferLetter?.Status == OfferStatus.Accepted)
             };
         });
+
+    // ------------------------------------------------------------------ competition (HCM-031)
+
+    /// <summary>
+    /// HCM-031 (PLAN-31, P6): «بطاقة الامتحان» — the issued admission card of the session's application for an exam type
+    /// (the type, never an id, comes from the page). Null when not issued.
+    /// </summary>
+    public Task<(byte[] Pdf, string FileName)?> GetAdmissionCardAsync(CandidatePortalContext session, string? examType, CancellationToken ct = default) =>
+        InSessionTenantAsync<(byte[] Pdf, string FileName)?>(session, async () =>
+        {
+            if (session.RecruitmentApplicationId is not Guid appId || admissionCards is null)
+                return null;
+            var card = (await admissionCards.GetIssuedForApplicationAsync(session.TenantId, appId, ct))
+                .FirstOrDefault(c => string.Equals(TypeOf(c), examType, StringComparison.Ordinal));
+            if (card is null)
+                return null;
+            db.AuditLogs.Add(new HRManagement.SharedKernel.Entities.EntityAuditLog
+            {
+                TenantId = session.TenantId,
+                EntityType = nameof(RecruitmentApplication),
+                EntityId = appId,
+                Action = "CandidatePortalAdmissionCardDownloaded",
+                ChangedFields = System.Text.Json.JsonSerializer.Serialize(new { actor = Actor, examType })
+            });
+            await db.SaveChangesAsync(ct);
+            return (ExamAdmissionCardDocument.Generate(card), $"admission-card-{card.Data.ExamNumber}.pdf");
+        });
+
+    /// <summary>
+    /// HCM-031 (PLAN-31, P6): files a result objection on the session's application (window, one pending objection and
+    /// the paper are checked again by <c>CompetitionObjectionService</c>).
+    /// </summary>
+    public Task<CandidatePortalActionResult> FileObjectionAsync(CandidatePortalContext session, string? reason, string? examType, CancellationToken ct = default) =>
+        InSessionTenantAsync(session, async () =>
+        {
+            if (session.RecruitmentApplicationId is not Guid appId || competitionObjections is null)
+                return CandidatePortalActionResult.Fail(string.Empty, NoApplicationMessage);
+            Guid? paperId = null;
+            if (!string.IsNullOrEmpty(examType) && Enum.TryParse<ExamSessionType>(examType, out var type))
+                paperId = await db.ExamCandidates
+                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                    .Where(c => c.TenantId == session.TenantId && c.RecruitmentApplicationId == appId && c.ExamType == type)
+                    .Select(c => (Guid?)c.Id)
+                    .FirstOrDefaultAsync(ct);
+            var (appeal, error) = await competitionObjections.FileAsync(appId, paperId, reason, RecruitmentAppealFiledBy.Candidate, actorUserId: null, ct: ct);
+            return appeal is null
+                ? CandidatePortalActionResult.Fail(error is not null && error.StartsWith("سبب", StringComparison.Ordinal) ? "Text" : string.Empty, error ?? ActionFailedMessage)
+                : CandidatePortalActionResult.Ok;
+        });
+
+    private async Task<CandidatePortalCompetitionCard?> CompetitionCardAsync(RecruitmentApplication app, DateTime now, CancellationToken ct)
+    {
+        if (app.CompetitionId is not Guid competitionId)
+            return null;
+        var competition = await db.RecruitmentCompetitions
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+            .AsNoTracking()
+            .FirstAsync(c => c.Id == competitionId && c.TenantId == app.TenantId, ct);
+        var preferences = await db.CompetitionPreferences
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+            .AsNoTracking()
+            .Where(p => p.TenantId == app.TenantId && p.RecruitmentApplicationId == app.Id)
+            .OrderBy(p => p.Order)
+            .Select(p => $"{p.Order}. {p.CompetitionLine!.Title} ({p.CompetitionLine.GradeCode})")
+            .ToListAsync(ct);
+        var papers = await db.ExamCandidates
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+            .AsNoTracking()
+            .Where(c => c.TenantId == app.TenantId && c.RecruitmentApplicationId == app.Id)
+            .OrderBy(c => c.ExamSession!.ScheduledAt)
+            .Select(c => new { c.ExamType, c.ExamSession!.Title, c.ExamSession.ScheduledAt, c.ExamSession.Venue, c.SeatNumber, c.ExamNumber, Issued = c.AdmissionCardIssuedAt != null })
+            .ToListAsync(ct);
+
+        // The score, rank and outcome are shown only once the results are published (never in a message).
+        CandidatePortalCompetitionResult? result = null;
+        if (competition.CurrentResultVersionId is Guid versionId)
+        {
+            var row = await db.CompetitionResults
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                .AsNoTracking()
+                .Where(r => r.TenantId == app.TenantId && r.ResultVersionId == versionId && r.RecruitmentApplicationId == app.Id)
+                .Select(r => new { r.FinalScore, r.OverallRank, r.Outcome, r.ResultVersion!.PublishedAt })
+                .FirstOrDefaultAsync(ct);
+            if (row is not null)
+                result = new CandidatePortalCompetitionResult(
+                    row.FinalScore?.ToString("0.##", CultureInfo.InvariantCulture),
+                    row.OverallRank,
+                    CompetitionResultsDocument.OutcomeAr(row.Outcome),
+                    row.PublishedAt is DateTime published ? FormatDate(published) : "—");
+        }
+
+        var deadline = CompetitionWorkflowRules.ObjectionDeadlineUtc(competition.ResultsFirstPublishedAt, competition.ObjectionWindowDays);
+        var objection = await db.RecruitmentAppeals
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+            .AsNoTracking()
+            .Where(a => a.TenantId == app.TenantId && a.RecruitmentApplicationId == app.Id && a.Kind == RecruitmentAppealKind.ResultObjection)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => new { a.Status, a.Outcome })
+            .FirstOrDefaultAsync(ct);
+        var canObject = result is not null && competitionObjections is not null
+            && await competitionObjections.GetFilingErrorAsync(app, now, ct) is null;
+        var objectionStatus = objection switch
+        {
+            null => null,
+            { Status: RecruitmentAppealStatus.Pending } => "اعتراضك قيد المراجعة",
+            { Outcome: RecruitmentAppealOutcome.ObjectionUpheld } => "قُبل اعتراضك وصُحّحت العلامة؛ ستُنشر النتائج المعدّلة بعد اعتمادها.",
+            _ => "رُفض اعتراضك."
+        };
+
+        string? allocation = null;
+        if (app.CompetitionLineId is not null && app.Status is RecruitmentApplicationStatus.Ranked or RecruitmentApplicationStatus.OfferExtended
+            or RecruitmentApplicationStatus.OfferAccepted or RecruitmentApplicationStatus.Hired)
+        {
+            var lineTitle = await db.CompetitionLines.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                .Where(l => l.Id == app.CompetitionLineId && l.TenantId == app.TenantId).Select(l => l.Title).FirstOrDefaultAsync(ct);
+            allocation = $"مرشح للتعيين على {lineTitle}";
+        }
+        var reserves = app.Status == RecruitmentApplicationStatus.ReserveListed
+            ? await db.CompetitionReserveEntries
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                .AsNoTracking()
+                .Where(e => e.TenantId == app.TenantId && e.RecruitmentApplicationId == app.Id && e.Status == CompetitionReserveEntryStatus.Active)
+                .Select(e => new { e.CompetitionLine!.Title, e.ReserveUntil })
+                .ToListAsync(ct)
+            : [];
+
+        return new CandidatePortalCompetitionCard(
+            competition.Number,
+            competition.Title,
+            preferences,
+            papers.Select(p => new CandidatePortalExamRow(
+                p.ExamType.ToString(),
+                ExamAdmissionCardDocumentServiceLabel(p.ExamType),
+                p.Title,
+                $"{FormatDate(p.ScheduledAt)} {FormatTime(p.ScheduledAt)}",
+                p.Venue,
+                p.SeatNumber,
+                p.ExamNumber,
+                p.Issued)).ToList(),
+            result,
+            canObject,
+            deadline is DateTime d ? FormatDate(d) : null,
+            deadline is DateTime closed && now > closed && objection is null ? $"انتهت مدة الاعتراض في {FormatDate(closed)}" : null,
+            objectionStatus,
+            papers.Count > 1 ? papers.Select(p => (p.ExamType.ToString(), ExamAdmissionCardDocumentServiceLabel(p.ExamType))).ToList() : [],
+            allocation,
+            reserves.Select(r => $"في قائمة الاحتياط على {r.Title} حتى {r.ReserveUntil.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)}").ToList());
+    }
+
+    private static string ExamAdmissionCardDocumentServiceLabel(ExamSessionType type) =>
+        HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamAdmissionCardDocumentService.ExamTypeLabel(type);
+
+    private static string TypeOf(HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamAdmissionCardView card) =>
+        card.Data.ExamTypeLabel switch { "كتابي" => nameof(ExamSessionType.Written), "عملي" => nameof(ExamSessionType.Practical), _ => nameof(ExamSessionType.Oral) };
 
     // ------------------------------------------------------------------ offer
 
@@ -356,7 +513,7 @@ public sealed class CandidatePortalService(
             var intakeError = await DocumentIntakeErrorAsync(session, app, existing.Count, ct);
             if (intakeError is not null)
                 return CandidatePortalActionResult.Fail(string.Empty, intakeError);
-            var missing = MissingDocumentTypes(app, existing);
+            var missing = await MissingDocumentTypesAsync(app, existing, ct);
             if (missing.Count == 0)
                 return CandidatePortalActionResult.Fail(string.Empty, NoMissingDocumentsMessage);
             if (attached.Count == 0)
@@ -462,10 +619,14 @@ public sealed class CandidatePortalService(
                 .ThenInclude(r => r!.FundedPosition)
             .FirstOrDefaultAsync(a => a.Id == appId && a.TenantId == session.TenantId, ct);
 
-    private static IReadOnlyList<string> MissingDocumentTypes(RecruitmentApplication app, IEnumerable<string> provided) =>
-        CandidateDocumentTypes.Missing(
-            CandidateDocumentTypes.RequiredFor(app.IntakeChannel, app.Requisition?.RequiredDocumentTypes),
-            provided);
+    /// <summary>HCM-031 (PLAN-31): a competition application asks for the union of its requisitions' required types.</summary>
+    private async Task<IReadOnlyList<string>> MissingDocumentTypesAsync(RecruitmentApplication app, IEnumerable<string> provided, CancellationToken ct)
+    {
+        var required = app.CompetitionId is Guid competitionId && app.RequisitionId is null
+            ? await HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.RequiredDocumentTypesAsync(db, app.TenantId, competitionId, ct)
+            : app.Requisition?.RequiredDocumentTypes;
+        return CandidateDocumentTypes.Missing(CandidateDocumentTypes.RequiredFor(app.IntakeChannel, required), provided);
+    }
 
     /// <summary>
     /// Null while the candidate may still add documents: the application is open and the requisition still takes
@@ -478,7 +639,23 @@ public sealed class CandidatePortalService(
         int existingCount,
         CancellationToken ct)
     {
-        if (SelectionWorkflowRules.TerminalStatuses.Contains(app.Status) || app.Requisition is null)
+        if (SelectionWorkflowRules.TerminalStatuses.Contains(app.Status))
+            return DocumentsClosedMessage;
+        if (app.CompetitionId is Guid competitionId && app.RequisitionId is null)
+        {
+            // HCM-031 (PLAN-31): documents can be added while the competition still takes applications.
+            var competition = await db.RecruitmentCompetitions
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)
+                .AsNoTracking()
+                .FirstAsync(c => c.Id == competitionId && c.TenantId == app.TenantId, ct);
+            if (HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService.IntakeError(
+                    competition, DateOnly.FromDateTime(DateTime.UtcNow)) is not null)
+                return DocumentsClosedMessage;
+            return existingCount >= Settings.CandidateDocuments.MaxFiles
+                ? CandidateDocumentFileValidator.TooManyFilesMessage(Settings.CandidateDocuments.MaxFiles)
+                : null;
+        }
+        if (app.Requisition is null)
             return DocumentsClosedMessage;
         var closingDate = await db.CitizenApplications
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PublicCareersPortal)

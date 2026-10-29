@@ -343,10 +343,44 @@ public sealed class CandidateRetentionService(
         // and appeal forms, the on-behalf acceptance note). Statuses, dates and the channel (AcceptedBy/DeclinedBy/FiledBy)
         // are kept; HR's own decision text is not candidate data and stays.
         var freeTextRows = await NeutralizeOfferAndAppealTextAsync(scope, applicationId, ct);
+        freeTextRows += await ClearCompetitionDataAsync(scope, applicationId, ct);
 
         AddAudit(scope.TenantId, nameof(RecruitmentApplication), applicationId, actor, request.TriggeredBy,
             citizens.Count, internals.Count, documents.Count, notifications, otpChallenges, offerEvidence, freeTextRows);
         return true;
+    }
+
+    /// <summary>
+    /// HCM-031 (PLAN-31): competition data of the pair (no save). The exam number, marks and results are kept (the
+    /// results are an immutable published record keyed by exam number; the application row itself is anonymized), while
+    /// what identified the candidate is cleared: the admission card hash (it covers the name), the per-line eligibility
+    /// notes and the markers' notes. Objection text is neutralized with the other appeal text.
+    /// </summary>
+    private async Task<int> ClearCompetitionDataAsync(Scope scope, Guid applicationId, CancellationToken ct)
+    {
+        var rows = 0;
+        foreach (var paper in await Query<ExamCandidate>(scope)
+                     .Where(c => c.RecruitmentApplicationId == applicationId && (c.AdmissionCardSha256 != null || c.AdmissionCardIssuedAt != null))
+                     .ToListAsync(ct))
+        {
+            paper.AdmissionCardSha256 = null;
+            paper.AdmissionCardIssuedAt = null;
+            rows++;
+        }
+        foreach (var preference in await Query<CompetitionPreference>(scope)
+                     .Where(p => p.RecruitmentApplicationId == applicationId && p.EligibilityFlags != null)
+                     .ToListAsync(ct))
+        {
+            preference.EligibilityFlags = null;
+            rows++;
+        }
+        var paperIds = await Query<ExamCandidate>(scope).Where(c => c.RecruitmentApplicationId == applicationId).Select(c => c.Id).ToListAsync(ct);
+        foreach (var score in await Query<ExamScore>(scope).Where(s => paperIds.Contains(s.ExamCandidateId) && s.Note != null).ToListAsync(ct))
+        {
+            score.Note = null;
+            rows++;
+        }
+        return rows;
     }
 
     /// <summary>
@@ -619,6 +653,8 @@ public sealed class CandidateRetentionService(
         var otpChallenges = Query<CandidateOtpChallenge>(scope);
         var offers = Query<OfferLetter>(scope);
         var appeals = Query<RecruitmentAppeal>(scope);
+        var examCandidates = Query<ExamCandidate>(scope);
+        var preferences = Query<CompetitionPreference>(scope);
         return Query<RecruitmentApplication>(scope)
             .Where(a => a.HiredEmployeeId == null)
             // HCM-031 (PLAN-31): competition applications are triggered by the competition's end only.
@@ -652,7 +688,10 @@ public sealed class CandidateRetentionService(
                 || appeals.Any(x => x.RecruitmentApplicationId == a.Id
                     && (x.Reason != NeutralizedText || (x.AdditionalInfo != null && x.AdditionalInfo != NeutralizedText)))
                 || notifications.Any(n => n.RecruitmentApplicationId == a.Id
-                    && (n.Body != NeutralizedText || n.RecipientMasked != NeutralizedText || n.Subject != null)));
+                    && (n.Body != NeutralizedText || n.RecipientMasked != NeutralizedText || n.Subject != null))
+                // HCM-031: competition residue (admission card hash, per-line eligibility notes).
+                || examCandidates.Any(c => c.RecruitmentApplicationId == a.Id && c.AdmissionCardSha256 != null)
+                || preferences.Any(p => p.RecruitmentApplicationId == a.Id && p.EligibilityFlags != null));
     }
 
     private IQueryable<RecruitmentApplication> Held(Scope scope, IQueryable<RecruitmentApplication> pairs)
