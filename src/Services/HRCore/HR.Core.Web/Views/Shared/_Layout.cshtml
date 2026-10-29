@@ -4,7 +4,13 @@
 }
 
 @section SidebarItems {
-    @if (HR.Core.Web.Services.RecruitmentAppealAccess.IsComplianceOnly(User))
+    @if (HR.Core.Web.Services.ExamMarkerAccess.IsExamMarkerOnly(User))
+    {
+        @* HCM-031 (PLAN-31): the exam marker only reaches the anonymous marking screens (no module navigation). *@
+        <li class="nav-header">تصحيح الامتحانات</li>
+        <li class="nav-item"><a asp-controller="ExamMarking" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-pen-to-square"></i><p>جلسات التصحيح</p></a></li>
+    }
+    else if (HR.Core.Web.Services.RecruitmentAppealAccess.IsComplianceOnly(User))
     {
         @* HCM-028 (F5): the compliance reviewer only reaches the appeal pages and the work inbox. *@
         <li class="nav-header">نواة الموارد البشرية (HR.Core)</li>
@@ -73,6 +79,10 @@
     <li class="nav-item"><a asp-controller="RecruitmentApplications" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-user-plus"></i><p>التوظيف والاستقطاب</p></a></li>
     <li class="nav-item"><a asp-controller="RecruitmentRequisitions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-file-signature"></i><p>طلبات الشاغر</p></a></li>
     <li class="nav-item"><a asp-controller="Competitions" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-users-rectangle"></i><p>مسابقات التوظيف</p></a></li>
+    @if (HR.Core.Web.Services.ExamMarkerAccess.IsMarker(User))
+    {
+        <li class="nav-item"><a asp-controller="ExamMarking" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-pen-to-square"></i><p>تصحيح الامتحانات</p></a></li>
+    }
     @if (User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.Admin) || User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.HrCore) || User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.Compliance))
     {
         <li class="nav-item"><a asp-controller="RecruitmentAppeals" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-gavel"></i><p>استئنافات التوظيف</p></a></li>

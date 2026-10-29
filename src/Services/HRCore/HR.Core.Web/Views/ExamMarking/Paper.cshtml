@@ -1,0 +1,39 @@
+@model HR.Core.Web.ViewModels.ExamMarkingPaperViewModel
+@using System.Globalization
+@using HR.Core.Domain.Enums
+@{
+    var p = Model.Paper;
+    ViewData["Title"] = $"الدفتر {p.ExamNumber}";
+}
+
+@if (TempData["Error"] is string err) { <div class="alert alert-danger" role="alert">@err</div> }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="mb-0">الرقم الامتحاني <bdi dir="ltr">@p.ExamNumber</bdi> — @Html.HrEnumDisplay(Model.Role)</h3>
+        <a asp-action="Session" asp-route-id="@Model.SessionId" class="btn btn-outline-secondary btn-sm">رجوع</a>
+    </div>
+    <div class="card-body">
+        @if (Model.Role == ExamMarkerRole.Reconciler && p.FirstMark is decimal first && p.SecondMark is decimal second)
+        {
+            <dl class="row">
+                <dt class="col-sm-3">علامة المصحح الأول</dt><dd class="col-sm-9">@first.ToString("0.##", CultureInfo.InvariantCulture)</dd>
+                <dt class="col-sm-3">علامة المصحح الثاني</dt><dd class="col-sm-9">@second.ToString("0.##", CultureInfo.InvariantCulture)</dd>
+            </dl>
+        }
+        <form asp-action="Submit" asp-route-id="@p.ExamCandidateId" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="sessionId" value="@Model.SessionId" />
+            <div class="col-md-3">
+                <label for="score" class="form-label">العلامة (من @p.MaxScore.ToString("0.##", CultureInfo.InvariantCulture))</label>
+                <input id="score" name="score" type="number" step="0.25" min="0" max="@p.MaxScore.ToString(CultureInfo.InvariantCulture)" class="form-control"
+                       value="@p.OwnMark?.ToString(CultureInfo.InvariantCulture)" required aria-required="true" />
+            </div>
+            <div class="col-md-7">
+                <label for="note" class="form-label">ملاحظة (اختياري، دون أي بيانات تعريفية)</label>
+                <input id="note" name="note" class="form-control" maxlength="500" />
+            </div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary">حفظ العلامة</button></div>
+        </form>
+    </div>
+</div>

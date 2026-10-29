@@ -1,0 +1,46 @@
+@model HR.Core.Web.ViewModels.ExamMarkingIndexViewModel
+@using System.Globalization
+@{ ViewData["Title"] = "تصحيح الامتحانات"; }
+
+@if (TempData["Success"] is string ok) { <div class="alert alert-success" role="status">@ok</div> }
+@if (TempData["Error"] is string err) { <div class="alert alert-danger" role="alert">@err</div> }
+@if (Model.HoldsHrReadAccess)
+{
+    <div class="alert alert-warning" role="alert">@HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamSeatingService.HrReadAccessWarning — يجري تسجيل ذلك في سجل التدقيق.</div>
+}
+
+<div class="card">
+    <div class="card-header"><h3 class="mb-0">جلسات التصحيح المكلف بها</h3></div>
+    <div class="card-body">
+        @if (Model.MissingEmployee)
+        {
+            <p class="text-muted mb-0">حسابك غير مرتبط بموظف؛ لا يمكن عرض تكليفات التصحيح.</p>
+        }
+        else if (Model.Sessions.Count == 0)
+        {
+            <p class="text-muted mb-0">لا توجد جلسات مفتوحة للتصحيح.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th scope="col">الجلسة</th><th scope="col">النوع</th><th scope="col">الموعد</th><th scope="col">دورك</th><th scope="col">الدفاتر</th><th scope="col">المُنجز</th><th scope="col">الحالة</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in Model.Sessions)
+                        {
+                            <tr>
+                                <td><a asp-action="Session" asp-route-id="@s.SessionId">@s.Title</a></td>
+                                <td>@Html.HrEnumDisplay(s.Type)</td>
+                                <td>@s.ScheduledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</td>
+                                <td>@Html.HrEnumDisplay(s.Role)</td>
+                                <td>@s.Papers</td>
+                                <td>@s.Done</td>
+                                <td>@Html.HrEnumDisplay(s.Status)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

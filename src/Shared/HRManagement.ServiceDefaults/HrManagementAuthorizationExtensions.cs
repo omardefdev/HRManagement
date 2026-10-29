@@ -111,6 +111,11 @@ public static class HrManagementAuthorizationExtensions
                 || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
                 || c.User.IsInRole(HrManagementRoles.Compliance)));
 
+            // HCM-031 (PLAN-31): exam markers reach HR.Core only for the anonymous marking screens. Not added to
+            // ModuleHrCore / HrCoreReadOnly / HrCoreWorkInbox, so a marker never reaches application data.
+            options.AddPolicy(HrManagementPolicies.HrCoreExamMarking, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.HrExamMarker)));
+
             // Shared lookup — interactive users OR service tokens with hr-core.lookup (IAM-004).
             options.AddPolicy(HrManagementPolicies.HrCoreLookup, p => p.RequireAssertion(c =>
                 (c.User.Identity?.IsAuthenticated == true && !ServiceCallerPrincipal.IsServiceAccount(c.User))

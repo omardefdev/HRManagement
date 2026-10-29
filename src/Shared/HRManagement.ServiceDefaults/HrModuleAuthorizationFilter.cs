@@ -40,7 +40,9 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
             || string.Equals(controller, "DirectoryInternalSync", StringComparison.OrdinalIgnoreCase)
             // HCM-028 (PLAN-25 slice): HrCoreAppealReview / HrCoreWorkInbox admit the compliance reviewer.
             || string.Equals(controller, "RecruitmentAppeals", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "WorkInbox", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(controller, "WorkInbox", StringComparison.OrdinalIgnoreCase)
+            // HCM-031 (PLAN-31): the marking controller carries HrCoreExamMarking (the exam marker role only).
+            || string.Equals(controller, "ExamMarking", StringComparison.OrdinalIgnoreCase))
             return;
 
         if (context.HttpContext.User.Identity?.IsAuthenticated != true)

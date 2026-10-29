@@ -160,6 +160,13 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                 return true;
             }
 
+            // HCM-031 (PLAN-31): the exam marker reaches the anonymous marking screens only (GET and POST of marks).
+            if (pathValue.StartsWith("/ui/hr-core/ExamMarking", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = HrManagementPolicies.HrCoreExamMarking;
+                return true;
+            }
+
             if (string.Equals(httpMethod, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
             {
                 policy = pathValue.StartsWith("/ui/hr-core/WorkInbox", StringComparison.OrdinalIgnoreCase)

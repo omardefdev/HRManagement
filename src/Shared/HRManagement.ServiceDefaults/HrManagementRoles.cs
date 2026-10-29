@@ -48,6 +48,12 @@ public static class HrManagementRoles
 
     /// <summary>مدقق مستقل للقراءة والتحقق من الأدلة دون صلاحيات تشغيلية.</summary>
     public const string Auditor = "auditor";
+
+    /// <summary>
+    /// HCM-031 (PLAN-31): exam marker — reaches only the anonymous marking screens of HR.Core (exam numbers, never
+    /// identities). Not part of the HR.Core module or read roles.
+    /// </summary>
+    public const string HrExamMarker = "hr-exam-marker";
 }
 
 /// <summary>Authorization policy names (one per module).</summary>
@@ -91,6 +97,9 @@ public static class HrManagementPolicies
 
     /// <summary>HCM-028 (PLAN-25 slice): HR.Core work inbox — the read-only roles plus compliance (appeals only).</summary>
     public const string HrCoreWorkInbox = "HrCore.WorkInbox";
+
+    /// <summary>HCM-031 (PLAN-31): the anonymous exam marking screens — the exam marker role only.</summary>
+    public const string HrCoreExamMarking = "HrCore.ExamMarking";
 
     /// <summary>Lookup APIs shared across modules — any authenticated user (no NationalId in responses).</summary>
     public const string HrCoreLookup = "HrCore.Lookup";

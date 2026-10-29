@@ -9,7 +9,7 @@ public class AcceptanceIdentityPopulationTests
     {
         AcceptanceEnv.RequireEnabled();
         var personas = AcceptanceHarness.LoadPersonas();
-        Assert.Equal(57, personas.Count);
+        Assert.Equal(60, personas.Count);
 
         var successful = 0;
         var expectedDenials = 0;
@@ -68,7 +68,7 @@ public class AcceptanceIdentityPopulationTests
             }
         }
 
-        Assert.Equal(53, successful);
+        Assert.Equal(56, successful);
         Assert.Equal(2, expectedDenials);
         Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
