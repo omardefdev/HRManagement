@@ -1,0 +1,95 @@
+# PLAN-25 — Progress (checkpoint)
+
+**Branch:** `feature/plan-25-production-approvals` (from `main` @ `3893a5d`, PLAN-33 merged). Local only — never pushed.
+**Prompt:** `docs/acceptance-plans/execution/PLAN-25-AGENT-PROMPT.md`. Baseline: `reports/plan25-baseline.md`.
+
+## Phase status
+
+| Phase | Status | Commit |
+|-------|--------|--------|
+| P0 baseline, inventory, notes | Done | (this commit) |
+| P1 approval start coordinator | Pending | |
+| P2 repair endpoint + script | Pending | |
+| P3 step roles + gates | Pending | |
+| P4 retire RECRUITMENT-HIRE | Pending | |
+| P5 write policies + org scope | Pending | |
+| P6 prod-like journey, AC-HCM-25, CI | Pending | |
+| P7 live verification | Pending | |
+| P8 docs, review, final report | Pending | |
+
+## Decisions (prompt decisions 1–10 adopted as written; refinements below)
+
+| # | Decision | Reason |
+|---|----------|--------|
+| R1 | `Workflow:AdminBypass` = **false in every environment** (base `appsettings.json`), not only Production/Staging | Inventory: no unit/integration/acceptance/E2E test approves a workflow step as `hr-admin`; the only admin uses are reviewer-eligibility and legacy `ApprovalStep` checks |
+| R2 | `Workflow:EnforceStepRoleEntityTypes` = RecruitmentRequisition, OfferLetter, SelectionCommitteeSession, RecruitmentAppeal, RecruitmentCompetition, CompetitionResultVersion, EstablishmentChangeRequest | Decision 4. **AssetAssignment / AssetLossReport stay out**: their step-1 role depends on which seeder ran first (`WorkflowPackSeeder` hr-core vs `AssetAssignmentWorkflowSeeder` admin-logistics), and AdminLogistics starts them over HTTP; enforcing would need a seed/persona decision — follow-up. Transfers, leave, card requests approve outside `WorkflowInstanceActionService` (no instance to guard) |
+| R3 | Step-1 role: the seed says **`hr-core`** for every recruitment/establishment workflow; `branch-manager` alone does **not** approve step 1. Only `acc-negative-invalid-scope` has branch-manager without hr-core. `HIRE_RBAC_MATRIX.md` already says hr-core; no doc mismatch to fix beyond stating the server enforces it | Seed defines the rule |
+| R4 | Coordinator is called **before** any entity mutation; the entity status and `WorkflowInstanceId` are set together after a non-null instance, inside one relational transaction when the provider is relational | `WorkflowStarter` and `PolicyOrchestrator` call `SaveChangesAsync` themselves, so earlier mutations (e.g. the committee's `SubmittedAt`/`LockedAt`) would otherwise be saved even when the start fails |
+| R5 | Appeals (`RecruitmentAppealService.StartReviewWorkflowAsync`) and competitions/results already always start — **not** routed through the coordinator (they have their own deliberate semantics: H5 "no definition → reviewer decides directly", competition start error). Verified only | Prompt decision 3 ("only if trivial") |
+| R6 | `FailIfDefinitionMissing` controls whether the coordinator reports a missing definition as an error (true) or as `(null, null)` for callers with their own report (repair dry run). The submit paths never change status without an instance regardless of the flag | Decision 2 wins over the flag |
+| R7 | The prod-like compose keeps `ASPNETCORE_ENVIRONMENT=Acceptance` (personas, seed), so `appsettings.Production.json` is not loaded there; it therefore **mirrors** decision 10's Production values explicitly (`PolicyEngine__Core.Recruitment=Shadow`, `Recruitment__Approvals__AlwaysStartWorkflow=true`, `Workflow__AdminBypass=false`) | Otherwise the prod-like run would test "Off", not the Production value |
+
+## Inventory (P0)
+
+### Approval starts / PendingApproval setters (src, non-test)
+
+| Path | Before PLAN-25 |
+|------|----------------|
+| `RecruitmentRequisitionLifecycleService.SubmitForApprovalAsync` | Off: PendingApproval always, workflow only if `IsLabScale`; Shadow/Enforce: `policyResult.WorkflowInstanceId` (null in Shadow) |
+| `RecruitmentOfferService.SubmitForApprovalAsync` (normal + override code) | same pattern |
+| `SelectionCommitteeLifecycleService.SubmitForApprovalAsync` | `SubmittedAt`/`LockedAt` set unconditionally, workflow only if `IsLabScale` (Off) or from policy |
+| `EstablishmentChangeLifecycleService.SubmitForApprovalAsync` | Off+lab: PendingApproval + workflow; **Off+non-lab: applied immediately without approval**; Shadow/Enforce: policy id (null in Shadow) |
+| `RecruitmentAppealService.StartReviewWorkflowAsync` | policy, then `??=` start — always starts (PLAN-28) |
+| `CompetitionLifecycleService.SubmitForApprovalAsync`, `CompetitionResultsService.SubmitForApprovalAsync` | unconditional start, error when no definition (PLAN-31) |
+| `PolicyOrchestrator.EnforceAsync` | starts only in Enforce + Allowed + TriggerWorkflow |
+| `WorkflowInstancesController.Start` (API) | AdminLogistics asset assignment / loss (HTTP) |
+
+### Remaining `IsLabScale` uses (non-test)
+
+The four lifecycle services above (gates), three `*WorkflowUiService` warning texts, `NationalScopeOptions`, `NationalScopeGuard` (startup log). After P1 only the options/guard remain.
+
+### Actors and callers
+
+`CreateWorkflowActor` in Competitions, EstablishmentChanges, OfferLetters, RecruitmentRequisitions, SelectionCommittees and `CreateActor` in WorkflowInstances take the **first** role claim; RecruitmentAppealsController hard-codes `Compliance`. Callers of `ApproveAsync`/`RejectAsync`: those controllers, `SelectionCommitteeLifecycleService.Approve/RejectStepAsync`, `RecruitmentAppealService.DecideAsync/RequestInfoAsync`. Test constructions: SoDRequisitionApprovalTests, Est024, Hcm021, Hcm027 (×2), Hcm028 (support + lifecycle + committee), Hcm031 (support, lifecycle, results, review-fix).
+
+### Workflow definitions without an outcome handler
+
+ServiceTransaction (HIRE-WIZARD), SeparationRecord, CardRequest, TransferRequest, **RecruitmentApplication (RECRUITMENT-HIRE)**, DisciplinaryAction, Ticket. Only RECRUITMENT-HIRE is in scope (G-14); the others go on the architecture-test allow-list with a reason.
+
+### POST actions without an explicit policy (HR.Core.Web)
+
+51 `[HttpPost]` actions: ApprovedCVs 4, CareerPaths 4, Contacts 3, Documents 3, EmployeeProfiles 1, ExportJobs 1 (`[Authorize]` only), KeyPositions 3, HrStatisticReports 1, DailyAttendanceRecords 5, FieldInspectionVisits 1, DiwanCorrespondences 1, Qualifications 3, Rosters 4, Shifts 3, Signatures 1, SuccessionPlans 4, **PublicJobPostings 5, TalentMarketplace 4 (recruitment)**. All PUT/DELETE/PATCH are in policy-protected classes. The MVC module filter applies `Module.HrCore` (includes branch-manager and hr-management-approver) to every method; the GET/POST split exists only at the gateway.
+
+### Recruitment screens without org scope (D10)
+
+RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/ExtendClosingDate/Close/Cancel/…; RecruitmentApplications everything; OfferLetters Index/Details/Submit/Accept/Decline/Revoke/Document/Evidence; SelectionCommittees Index/Details and every POST except Approve/Reject; Competitions everything (central-only rule from PLAN-32 not applied). Already scoped: approve/reject POSTs of requisitions/offers/committees, requisition Create/Edit, VacantPositions, RecruitmentAppeals, RecruitmentReports.
+
+### Stuck rows on the acceptance database (read-only SQL, 2026-10-29)
+
+| Query | Rows |
+|-------|------|
+| Requisitions `PendingApproval`, `WorkflowInstanceId IS NULL` | **1** — `3ceea897-5cc4-46f2-b211-7fe3abb4ecf4` (`-2026-00020`, created 17:11 by PLAN-33's prod-like journey run) |
+| Offers `PendingApproval` without instance | 0 |
+| Committee sessions submitted, not approved, without instance | 0 |
+| Establishment change requests without instance | 0 (table empty) |
+| Appeals `Pending` without instance | 1 — `7b02d6d0-…` with **no reviewer assigned** (correct: the review starts at assignment; not a repair target) |
+| `WorkflowInstances` of `RecruitmentApplication` (RECRUITMENT-HIRE) | 0 |
+
+## Test and live-run results
+
+| When | Run | Result |
+|------|-----|--------|
+| P0 | unit baseline filter | 1534/1535 (known `BolaArchitectureTests`) |
+| P0 | integration baseline filter | 68/73, 3 pre-existing failures, 2 opt-in skips |
+
+## Files changed
+
+- P0: `reports/plan25-baseline.md`, `reports/plan25-progress.md`, `docs/acceptance-plans/PLAN-25-hcm-production-workflow-binding.md`, `docs/acceptance-plans/execution/PLAN-25-AGENT-PROMPT.md`
+
+## Open issues
+
+- `-warnaserror` fails on the pre-existing NU1903 SSH.NET advisory (IntegrationTests); not introduced here.
+
+## Next step
+
+P1: add `ApprovalStartCoordinator` + `RecruitmentApprovalOptions`, refactor requisition/offer/committee/establishment submits.
