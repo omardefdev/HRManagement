@@ -48,6 +48,24 @@
       "enabled": true
     },
     {
+      "id": "central-a2",
+      "username": "acc-central-a2",
+      "passwordEnv": "ACCEPTANCE_CENTRAL_A2_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 44,
+      "purpose": "Second central HR approver (PLAN-25): step 1 of central-only workflows — competitions, results, establishment changes — where central-a is the creator (SoD)",
+      "scenarios": [
+        "AC-HCM-26",
+        "AC-HCM-31"
+      ],
+      "enabled": true
+    },
+    {
       "id": "a-management-approver",
       "username": "acc-a-management-approver",
       "passwordEnv": "ACCEPTANCE_A_MANAGEMENT_APPROVER_PASSWORD",
