@@ -9,8 +9,9 @@ using Yarp.ReverseProxy.Transforms.Builder;
 namespace HRManagement.ServiceDefaults;
 
 /// <summary>
-/// Forwards the gateway OIDC access token to upstream module services.
-/// Strips gateway OIDC/session cookies but preserves module antiforgery cookies for form POSTs.
+/// Forwards the gateway OIDC access token to upstream module services (never on the anonymous careers route).
+/// Strips gateway OIDC/session cookies but preserves module antiforgery cookies for form POSTs
+/// (and, on the careers route only, the candidate portal <c>careers_session</c> cookie).
 /// </summary>
 public sealed class GatewayAccessTokenTransformProvider : ITransformProvider
 {
@@ -40,11 +41,21 @@ public sealed class GatewayAccessTokenTransformProvider : ITransformProvider
             }
         }
 
+        // HCM-030 (H5): the candidate portal session cookie reaches HR.Core on the careers route only.
+        var forwardCareersSession = GatewayUpstreamCookieForwarding.IsCareersRoute(context.Route.RouteId, pathPattern);
+
         context.AddRequestTransform(async transformContext =>
         {
             var httpContext = transformContext.HttpContext;
-            var accessToken = await httpContext.GetTokenAsync("access_token");
-            if (string.IsNullOrEmpty(accessToken)
+            // HCM-030 (H5): the public candidate portal never receives staff credentials. A signed-in staff browser
+            // (or a client Bearer header) would otherwise authenticate upstream, and HR.Core's TenantContext prefers the
+            // token's tenant_id claim over the portal session tenant (DECISIONS H.1).
+            var accessToken = forwardCareersSession ? null : await httpContext.GetTokenAsync("access_token");
+            if (forwardCareersSession)
+            {
+                transformContext.ProxyRequest.Headers.Authorization = null;
+            }
+            else if (string.IsNullOrEmpty(accessToken)
                 && AuthenticationHeaderValue.TryParse(httpContext.Request.Headers.Authorization, out var incoming)
                 && string.Equals(incoming.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
             {
@@ -60,11 +71,12 @@ public sealed class GatewayAccessTokenTransformProvider : ITransformProvider
             transformContext.ProxyRequest.Headers.Remove("Cookie");
             if (httpContext.Request.Headers.TryGetValue("Cookie", out var incomingCookies))
             {
-                var antiforgeryCookies = GatewayUpstreamCookieForwarding.BuildAntiforgeryCookieHeader(
-                    incomingCookies.ToString());
-                if (!string.IsNullOrEmpty(antiforgeryCookies))
+                var upstreamCookies = GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(
+                    incomingCookies.ToString(),
+                    forwardCareersSession);
+                if (!string.IsNullOrEmpty(upstreamCookies))
                 {
-                    transformContext.ProxyRequest.Headers.TryAddWithoutValidation("Cookie", antiforgeryCookies);
+                    transformContext.ProxyRequest.Headers.TryAddWithoutValidation("Cookie", upstreamCookies);
                 }
             }
 

@@ -123,4 +123,21 @@ public class GatewayRoutingConfigurationTests
         Assert.Equal("hr-core-cluster", route["ClusterId"]);
         Assert.Contains("/careers/", route["Match:Path"] ?? string.Empty, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Careers_public_route_is_the_only_route_that_forwards_the_careers_session_cookie()
+    {
+        // HCM-030 (PLAN-30 H5): the gateway allow-list keys on this route id / path; it must stay in step with appsettings.
+        var config = LoadGatewayConfiguration();
+        var route = config.GetSection($"ReverseProxy:Routes:{GatewayUpstreamCookieForwarding.CareersRouteId}");
+        Assert.True(route.Exists());
+        Assert.Equal("/careers/{**catch-all}", route["Match:Path"]);
+        Assert.False(route.GetSection("Transforms").Exists());
+
+        var careersRoutes = config.GetSection("ReverseProxy:Routes").GetChildren()
+            .Where(r => GatewayUpstreamCookieForwarding.IsCareersRoute(r.Key, r["Match:Path"]))
+            .Select(r => r.Key)
+            .ToList();
+        Assert.Equal([GatewayUpstreamCookieForwarding.CareersRouteId], careersRoutes);
+    }
 }
