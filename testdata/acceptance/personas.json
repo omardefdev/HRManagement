@@ -400,6 +400,57 @@
       "enabled": true
     },
     {
+      "id": "a-exam-marker",
+      "username": "acc-a-exam-marker",
+      "passwordEnv": "ACCEPTANCE_A_EXAM_MARKER_PASSWORD",
+      "roles": [
+        "hr-exam-marker"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 41,
+      "purpose": "First exam marker (anonymous marking, exam numbers only)",
+      "scenarios": [
+        "AC-HCM-31"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-exam-marker-2",
+      "username": "acc-a-exam-marker-2",
+      "passwordEnv": "ACCEPTANCE_A_EXAM_MARKER_2_PASSWORD",
+      "roles": [
+        "hr-exam-marker"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 42,
+      "purpose": "Second exam marker (blind second round)",
+      "scenarios": [
+        "AC-HCM-31"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "a-exam-marker-3",
+      "username": "acc-a-exam-marker-3",
+      "passwordEnv": "ACCEPTANCE_A_EXAM_MARKER_3_PASSWORD",
+      "roles": [
+        "hr-exam-marker"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 43,
+      "purpose": "Exam reconciler (third marker when the first two marks differ beyond the threshold)",
+      "scenarios": [
+        "AC-HCM-31"
+      ],
+      "enabled": true
+    },
+    {
       "id": "a-directory-maker",
       "username": "acc-a-directory-maker",
       "passwordEnv": "ACCEPTANCE_A_DIRECTORY_MAKER_PASSWORD",
