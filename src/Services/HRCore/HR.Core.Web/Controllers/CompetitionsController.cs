@@ -26,6 +26,9 @@ public sealed class CompetitionsController(
     HRCoreDbContext db,
     CompetitionLifecycleService lifecycle,
     CompetitionIntakeService intake,
+    ExamSeatingService seating,
+    ExamMarkingService marking,
+    ExamAdmissionCardDocumentService cards,
     IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IAuthorizationService authorization,
@@ -185,8 +188,167 @@ public sealed class CompetitionsController(
             CanApprove = await CanAsync(HrManagementPolicies.HrCoreApprove),
             ApplicationCount = await db.RecruitmentApplications.CountAsync(a => a.CompetitionId == id, ct),
             Applicants = await LoadApplicantsAsync(id, page, applicantStatus, ct),
-            BulkResults = ReadBulkResults()
+            BulkResults = ReadBulkResults(),
+            ExamSessions = await LoadExamSessionsAsync(id, ct),
+            MarkerCandidates = await db.Employees.AsNoTracking()
+                .OrderBy(e => e.FullName)
+                .Take(500)
+                .Select(e => new SelectListItem(e.FullName, e.Id.ToString()))
+                .ToListAsync(ct)
         });
+    }
+
+    // ---- HCM-031 (P3): exams ---------------------------------------------------------------------------------------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> AddExamSession(
+        Guid id, ExamSessionType type, string? title, DateTime? scheduledAt, int durationMinutes, string? venue, int capacity, decimal maxScore,
+        CancellationToken ct)
+    {
+        var (_, error) = await seating.CreateSessionAsync(
+            id, new ExamSessionInput(type, title, scheduledAt?.ToUniversalTime(), durationMinutes, venue, capacity, maxScore), ParseUserId(User), ct);
+        return Result((error is null, error), id, "تمت إضافة جلسة الامتحان.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RemoveExamSession(Guid id, Guid sessionId, CancellationToken ct) =>
+        Result(await seating.RemoveSessionAsync(sessionId, ParseUserId(User), ct), id, "تم حذف جلسة الامتحان.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> AssignMarker(Guid id, Guid sessionId, Guid? employeeId, ExamMarkerRole role, CancellationToken ct)
+    {
+        if (employeeId is not Guid employee)
+            return Result((false, "اختر الموظف المصحح."), id, null);
+        return Result(await seating.AssignMarkerAsync(sessionId, employee, role, ParseUserId(User), ct), id, "تم تكليف المصحح.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RemoveMarker(Guid id, Guid assignmentId, CancellationToken ct) =>
+        Result(await seating.RemoveMarkerAsync(assignmentId, ParseUserId(User), ct), id, "تم إلغاء تكليف المصحح.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> Seat(Guid id, CancellationToken ct)
+    {
+        var result = await seating.SeatAsync(id, ParseUserId(User), ct);
+        return Result((result.Success, result.Error), id, $"تم توزيع {result.Seated} متقدماً على القاعات.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> IssueAdmissionCards(Guid id, CancellationToken ct)
+    {
+        var (ok, error, issued) = await seating.IssueAdmissionCardsAsync(id, ParseUserId(User), ct);
+        return Result((ok, error), id, $"صدرت {issued} بطاقة امتحان.");
+    }
+
+    public async Task<IActionResult> ExamSession(Guid id, CancellationToken ct)
+    {
+        var session = await db.ExamSessions.AsNoTracking().Include(s => s.Competition).FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (session is null) return NotFound();
+        var candidates = await db.ExamCandidates.AsNoTracking()
+            .Where(c => c.ExamSessionId == id)
+            .OrderBy(c => c.SeatNumber)
+            .Select(c => new ExamCandidateRow(c.Id, c.ExamNumber, c.SeatNumber, c.RecruitmentApplication!.ApplicantFullName,
+                c.Attendance, c.AdmissionCardIssuedAt != null, c.FinalMark))
+            .ToListAsync(ct);
+        return View(new ExamSessionDetailsViewModel
+        {
+            Session = session,
+            Competition = session.Competition!,
+            Candidates = candidates,
+            CanWrite = await CanAsync(HrManagementPolicies.HrCoreWrite)
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> SetAttendance(Guid id, List<Guid>? present, List<Guid>? absent, CancellationToken ct)
+    {
+        var map = new Dictionary<Guid, ExamAttendance>();
+        foreach (var candidateId in present ?? []) map[candidateId] = ExamAttendance.Present;
+        foreach (var candidateId in absent ?? []) map[candidateId] = ExamAttendance.Absent;
+        var (ok, error) = map.Count == 0 ? (false, "اختر الحضور أو الغياب لمتقدم واحد على الأقل.") : await seating.SetAttendanceAsync(id, map, ParseUserId(User), ct);
+        TempData[ok ? "Success" : "Error"] = ok ? "تم تسجيل الحضور." : error;
+        return RedirectToAction(nameof(ExamSession), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> MarkSessionHeld(Guid id, CancellationToken ct)
+    {
+        var (ok, error) = await seating.MarkHeldAsync(id, ParseUserId(User), ct);
+        TempData[ok ? "Success" : "Error"] = ok ? "اعتُمد انعقاد الجلسة وفُتح التصحيح." : error;
+        return RedirectToAction(nameof(ExamSession), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> CloseMarking(Guid id, CancellationToken ct)
+    {
+        var (ok, error) = await marking.CloseMarkingAsync(id, ParseUserId(User), ct);
+        TempData[ok ? "Success" : "Error"] = ok ? "أُغلق التصحيح وثُبّتت العلامات." : error;
+        return RedirectToAction(nameof(ExamSession), new { id });
+    }
+
+    /// <summary>HCM-031 (P3): admission card PDF for HR (issued cards only).</summary>
+    public async Task<IActionResult> AdmissionCard(Guid id, CancellationToken ct)
+    {
+        var card = await cards.GetAsync(id, ct);
+        if (card is null) return NotFound();
+        if (!card.IsIssued)
+        {
+            TempData["Error"] = ExamAdmissionCardDocumentService.NotIssuedMessage;
+            return RedirectToAction(nameof(Index));
+        }
+        SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, "Competitions/AdmissionCard");
+        return File(HR.Core.Web.Services.ExamAdmissionCardDocument.Generate(card), "application/pdf", $"admission-card-{card.Data.ExamNumber}.pdf");
+    }
+
+    private async Task<IReadOnlyList<ExamSessionRow>> LoadExamSessionsAsync(Guid competitionId, CancellationToken ct)
+    {
+        var sessions = await db.ExamSessions.AsNoTracking()
+            .Where(s => s.CompetitionId == competitionId)
+            .OrderBy(s => s.ScheduledAt)
+            .ToListAsync(ct);
+        var rows = new List<ExamSessionRow>();
+        foreach (var session in sessions)
+        {
+            var counts = await db.ExamCandidates.AsNoTracking()
+                .Where(c => c.ExamSessionId == session.Id)
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Seated = g.Count(),
+                    Present = g.Count(c => c.Attendance == ExamAttendance.Present),
+                    Absent = g.Count(c => c.Attendance == ExamAttendance.Absent),
+                    Cards = g.Count(c => c.AdmissionCardIssuedAt != null)
+                })
+                .FirstOrDefaultAsync(ct);
+            var (_, complete, awaiting) = session.Status is ExamSessionStatus.Held or ExamSessionStatus.MarkingClosed
+                ? await marking.ProgressAsync(session.Id, ct)
+                : (0, 0, 0);
+            var markers = await db.ExamMarkerAssignments.AsNoTracking()
+                .Where(m => m.ExamSessionId == session.Id)
+                .OrderBy(m => m.Role)
+                .Select(m => new ExamMarkerRow(m.Id, m.MarkerEmployee != null ? m.MarkerEmployee.FullName : "—", m.Role, m.MarkerUserId != null, m.HoldsHrReadAccess))
+                .ToListAsync(ct);
+            rows.Add(new ExamSessionRow(session, counts?.Seated ?? 0, counts?.Present ?? 0, counts?.Absent ?? 0, complete, awaiting, counts?.Cards ?? 0, markers));
+        }
+        return rows;
     }
 
     /// <summary>HCM-031 (P2): bulk screening on «المتقدمون» (UnderReview / Shortlisted = admitted to the exam / Rejected).</summary>

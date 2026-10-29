@@ -97,6 +97,10 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<RecruitmentCompetition> RecruitmentCompetitions => Set<RecruitmentCompetition>();
     public DbSet<CompetitionLine> CompetitionLines => Set<CompetitionLine>();
     public DbSet<CompetitionPreference> CompetitionPreferences => Set<CompetitionPreference>();
+    public DbSet<ExamSession> ExamSessions => Set<ExamSession>();
+    public DbSet<ExamCandidate> ExamCandidates => Set<ExamCandidate>();
+    public DbSet<ExamMarkerAssignment> ExamMarkerAssignments => Set<ExamMarkerAssignment>();
+    public DbSet<ExamScore> ExamScores => Set<ExamScore>();
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
     public DbSet<SelectionCommitteeSession> SelectionCommitteeSessions => Set<SelectionCommitteeSession>();
     public DbSet<SelectionCommitteeMember> SelectionCommitteeMembers => Set<SelectionCommitteeMember>();
@@ -1124,6 +1128,10 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.ApplyConfiguration(new Configurations.Recruitment.RecruitmentCompetitionConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionLineConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionPreferenceConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamSessionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamCandidateConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamMarkerAssignmentConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamScoreConfiguration());
 
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureFileReferenceOutbox();

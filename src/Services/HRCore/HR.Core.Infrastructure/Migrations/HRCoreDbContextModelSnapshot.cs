@@ -1827,6 +1827,265 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("EstablishmentChangeRequests");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamCandidate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AdmissionCardIssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AdmissionCardSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Attendance")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CompetitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExamNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("ExamSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExamType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("FinalMark")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SeatNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("ExamSessionId", "SeatNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CompetitionId", "ExamType", "ExamNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CompetitionId", "ExamType", "RecruitmentApplicationId")
+                        .IsUnique();
+
+                    b.ToTable("ExamCandidates");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamMarkerAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ExamSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("HoldsHrReadAccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("MarkerEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("MarkerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MarkerEmployeeId");
+
+                    b.HasIndex("ExamSessionId", "MarkerEmployeeId")
+                        .IsUnique()
+                        .HasFilter("\"MarkerEmployeeId\" IS NOT NULL");
+
+                    b.HasIndex("ExamSessionId", "Role")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "MarkerEmployeeId");
+
+                    b.HasIndex("TenantId", "MarkerUserId");
+
+                    b.ToTable("ExamMarkerAssignments");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ExamCandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MarkerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("RecruitmentAppealId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Round")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamCandidateId", "Round")
+                        .IsUnique()
+                        .HasFilter("\"Round\" <> 'ObjectionCorrection'");
+
+                    b.ToTable("ExamScores");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CompetitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("MarkingClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<DateTime>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Venue")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionId", "Type", "ScheduledAt");
+
+                    b.ToTable("ExamSessions", t =>
+                        {
+                            t.HasCheckConstraint("CK_ExamSessions_Capacity", "\"Capacity\" >= 1");
+
+                            t.HasCheckConstraint("CK_ExamSessions_MaxScore", "\"MaxScore\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.FieldInspectionVisit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6940,6 +7199,65 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("LegalSource");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamCandidate", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.ExamSession", "ExamSession")
+                        .WithMany("Candidates")
+                        .HasForeignKey("ExamSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ExamSession");
+
+                    b.Navigation("RecruitmentApplication");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamMarkerAssignment", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.ExamSession", "ExamSession")
+                        .WithMany("Markers")
+                        .HasForeignKey("ExamSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.Employee", "MarkerEmployee")
+                        .WithMany()
+                        .HasForeignKey("MarkerEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ExamSession");
+
+                    b.Navigation("MarkerEmployee");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamScore", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.ExamCandidate", "ExamCandidate")
+                        .WithMany("Scores")
+                        .HasForeignKey("ExamCandidateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExamCandidate");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamSession", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentCompetition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.FinanceBudgetLine", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.FinanceBudgetImportBatch", "Batch")
@@ -7731,6 +8049,18 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("Qualifications");
 
                     b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamCandidate", b =>
+                {
+                    b.Navigation("Scores");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.ExamSession", b =>
+                {
+                    b.Navigation("Candidates");
+
+                    b.Navigation("Markers");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.FinanceBudgetImportBatch", b =>

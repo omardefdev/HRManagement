@@ -172,8 +172,36 @@ public static class CompetitionsPaging
     public const int PageSize = 50;
 }
 
+/// <summary>HCM-031 (P3): a marker of a session on the HR exams tab.</summary>
+public sealed record ExamMarkerRow(Guid AssignmentId, string EmployeeName, ExamMarkerRole Role, bool Bound, bool HoldsHrReadAccess);
+
+/// <summary>HCM-031 (P3): a session on the HR exams tab.</summary>
+public sealed record ExamSessionRow(
+    ExamSession Session,
+    int Seated,
+    int Present,
+    int Absent,
+    int Complete,
+    int AwaitingReconciler,
+    int CardsIssued,
+    IReadOnlyList<ExamMarkerRow> Markers);
+
+/// <summary>HCM-031 (P3): HR page of one session — seated candidates (HR sees names) and attendance.</summary>
+public sealed record ExamCandidateRow(Guid Id, string ExamNumber, int SeatNumber, string ApplicantFullName, ExamAttendance Attendance, bool CardIssued, decimal? FinalMark);
+
+public sealed class ExamSessionDetailsViewModel
+{
+    public required ExamSession Session { get; init; }
+    public required RecruitmentCompetition Competition { get; init; }
+    public IReadOnlyList<ExamCandidateRow> Candidates { get; init; } = [];
+    public bool CanWrite { get; init; }
+}
+
 public sealed class CompetitionDetailsViewModel
 {
+    public IReadOnlyList<ExamSessionRow> ExamSessions { get; init; } = [];
+    public IReadOnlyList<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> MarkerCandidates { get; init; } = [];
+
     public CompetitionApplicantsViewModel Applicants { get; init; } = new();
     public IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionBulkItemResult> BulkResults { get; init; } = [];
 

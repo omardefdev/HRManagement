@@ -66,10 +66,28 @@ public static class RecruitmentApplicationEventTypes
     /// </summary>
     public const string OfferExpiryReminder = "OfferExpiryReminder";
 
+    // HCM-031 (PLAN-31): competition events, added explicitly by the competition services (RelatedEntityId = the exam
+    // candidate, result version, appeal or competition line). They carry no score, rank or national id.
+    public const string AdmissionCardReady = "AdmissionCardReady";
+    public const string ResultsPublished = "ResultsPublished";
+    public const string ObjectionDecided = "ObjectionDecided";
+    public const string CompetitionAllocated = "CompetitionAllocated";
+    public const string CompetitionReserve = "CompetitionReserve";
+    public const string CompetitionReserveRecalled = "CompetitionReserveRecalled";
+    public const string CompetitionNotSuccessful = "CompetitionNotSuccessful";
+
+    public static readonly IReadOnlyList<string> Competition =
+    [
+        AdmissionCardReady, ResultsPublished, ObjectionDecided, CompetitionAllocated, CompetitionReserve,
+        CompetitionReserveRecalled, CompetitionNotSuccessful
+    ];
+
     public static readonly IReadOnlyList<string> All =
     [
         Received, StatusChanged, InterviewScheduled, InterviewRescheduled, InterviewCancelled,
         OfferIssued, OfferAccepted, OfferDeclined, OfferExpired, OfferRevoked, AppealFiled, AppealDecided,
-        OfferExpiryReminder
+        OfferExpiryReminder,
+        AdmissionCardReady, ResultsPublished, ObjectionDecided, CompetitionAllocated, CompetitionReserve,
+        CompetitionReserveRecalled, CompetitionNotSuccessful
     ];
 }

@@ -170,6 +170,82 @@ internal static class Hcm031TestSupport
         return await db.RecruitmentCompetitions.Include(c => c.Lines).SingleAsync(c => c.Id == competition.Id);
     }
 
+    public static ExamSeatingService CreateSeating(HRCoreDbContext db) =>
+        new(db, new ExamAdmissionCardDocumentService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+
+    /// <summary>
+    /// Announced competition with intake closed and <paramref name="applicants"/> applications admitted to the exam
+    /// (Shortlisted, seeded directly — test data), plus written sessions of the given capacities (max score 100).
+    /// </summary>
+    public static async Task<(RecruitmentCompetition Competition, IReadOnlyList<ExamSession> Sessions)> SeedExamReadyAsync(
+        HRCoreDbContext db, int applicants, params int[] capacities)
+    {
+        var competition = await SeedAnnouncedCompetitionAsync(db, 3, 2);
+        Assert.True((await CreateLifecycle(db).CloseIntakeAsync(competition.Id, Creator)).Success);
+        await SeedAdmittedApplicationsAsync(db, competition, applicants);
+        var seating = CreateSeating(db);
+        var sessions = new List<ExamSession>();
+        for (var i = 0; i < capacities.Length; i++)
+        {
+            var (session, error) = await seating.CreateSessionAsync(competition.Id,
+                new ExamSessionInput(ExamSessionType.Written, $"القاعة {i + 1}", DateTime.UtcNow.AddDays(10 + i), 120, $"المبنى أ — القاعة {i + 1}", capacities[i], 100m),
+                Creator);
+            Assert.Null(error);
+            sessions.Add(session!);
+        }
+        return (await db.RecruitmentCompetitions.SingleAsync(c => c.Id == competition.Id), sessions);
+    }
+
+    public static async Task<IReadOnlyList<RecruitmentApplication>> SeedAdmittedApplicationsAsync(
+        HRCoreDbContext db, RecruitmentCompetition competition, int count, RecruitmentApplicationStatus status = RecruitmentApplicationStatus.Shortlisted)
+    {
+        var lines = await db.CompetitionLines.Where(l => l.CompetitionId == competition.Id).OrderBy(l => l.LineNo).ToListAsync();
+        var applications = new List<RecruitmentApplication>();
+        for (var i = 0; i < count; i++)
+        {
+            var nationalId = $"H31-{competition.Number}-{Interlocked.Increment(ref _counter):D7}";
+            var application = new RecruitmentApplication
+            {
+                TenantId = competition.TenantId,
+                ApplicantFullName = $"متقدم {i + 1}",
+                NationalId = nationalId,
+                NationalIdHash = HRManagement.SharedKernel.PiiMask.Sha256Hex(nationalId),
+                CompetitionId = competition.Id,
+                AppliedPosition = competition.Title,
+                AppliedAt = DateTime.UtcNow.AddMinutes(-count + i),
+                Status = status,
+                ConflictOfInterestDeclared = true,
+                IntakeChannel = RecruitmentIntakeChannel.Public
+            };
+            applications.Add(application);
+            for (var p = 0; p < lines.Count; p++)
+                db.CompetitionPreferences.Add(new CompetitionPreference
+                {
+                    TenantId = competition.TenantId,
+                    RecruitmentApplicationId = application.Id,
+                    CompetitionLineId = lines[(i + p) % lines.Count].Id,
+                    Order = p + 1
+                });
+        }
+        db.RecruitmentApplications.AddRange(applications);
+        await db.SaveChangesAsync();
+        return applications;
+    }
+
+    public static async Task<Employee> SeedEmployeeAsync(HRCoreDbContext db, string name)
+    {
+        var employee = new Employee
+        {
+            FullName = name,
+            NationalId = $"9{Interlocked.Increment(ref _counter):D10}",
+            CurrentStatus = HRManagement.SharedKernel.Enums.EmploymentStatus.Active,
+            BirthDate = new DateTime(1985, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+        };
+        db.Employees.Add(employee);
+        await db.SaveChangesAsync();
+        return employee;
+    }
+
     public static async Task ApproveAsync(HRCoreDbContext db, CompetitionLifecycleService lifecycle, Guid competitionId)
     {
         var (submitted, error) = await lifecycle.SubmitForApprovalAsync(competitionId, Creator, "creator");

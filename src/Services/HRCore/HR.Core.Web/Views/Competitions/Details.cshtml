@@ -287,10 +287,137 @@
         }
     </div>
     <div class="tab-pane fade" id="tab-exams" role="tabpanel" aria-labelledby="tab-exams-btn">
-        <p class="text-muted mb-0">تُضاف جلسات الامتحان بعد إغلاق التقديم.</p>
+        @if (Model.CanWrite && c.Status is RecruitmentCompetitionStatus.IntakeClosed or RecruitmentCompetitionStatus.Examining)
+        {
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <form asp-action="Seat" asp-route-id="@c.Id" method="post"
+                      data-hr-confirm="سيُوزَّع المقبولون للاختبار على الجلسات حسب السعة بترتيب الرقم الامتحاني (يُعاد التوزيع إن وُجد)." data-hr-confirm-title="التوزيع على القاعات">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary btn-sm">التوزيع على القاعات</button>
+                </form>
+                @if (c.Status == RecruitmentCompetitionStatus.Examining)
+                {
+                    <form asp-action="IssueAdmissionCards" asp-route-id="@c.Id" method="post"
+                          data-hr-confirm="ستصدر بطاقات الامتحان لكل من وُزّع ولن يُسمح بإعادة التوزيع بعدها." data-hr-confirm-title="إصدار بطاقات الامتحان" data-hr-confirm-variant="warning">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-primary btn-sm">إصدار بطاقات الامتحان</button>
+                    </form>
+                }
+            </div>
+        }
+        @if (Model.ExamSessions.Count == 0)
+        {
+            <p class="text-muted">لا توجد جلسات امتحان.</p>
+        }
+        @foreach (var row in Model.ExamSessions)
+        {
+            var s = row.Session;
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <a asp-action="ExamSession" asp-route-id="@s.Id"><strong>@s.Title</strong></a>
+                    <span class="small text-muted">@Html.HrEnumDisplay(s.Type) · @s.ScheduledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) UTC · @s.Venue · السعة @s.Capacity · العلامة العظمى @s.MaxScore.ToString("0.##", CultureInfo.InvariantCulture) · @Html.HrEnumDisplay(s.Status)</span>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-2">الموزعون @row.Seated · حاضر @row.Present · غائب @row.Absent · البطاقات الصادرة @row.CardsIssued</p>
+                    <h6>المصححون</h6>
+                    @if (row.Markers.Count == 0) { <p class="text-muted small">لم يُكلَّف مصححون.</p> }
+                    <ul class="small">
+                        @foreach (var m in row.Markers)
+                        {
+                            <li>
+                                @Html.HrEnumDisplay(m.Role): @m.EmployeeName @(m.Bound ? "" : "(لم يدخل بعد)")
+                                @if (m.HoldsHrReadAccess)
+                                {
+                                    <span class="badge bg-warning text-dark">@HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamSeatingService.HrReadAccessWarning</span>
+                                }
+                                @if (Model.CanWrite && s.Status != ExamSessionStatus.MarkingClosed)
+                                {
+                                    <form asp-action="RemoveMarker" asp-route-id="@c.Id" method="post" class="d-inline"
+                                          data-hr-confirm="سيُلغى تكليف المصحح." data-hr-confirm-title="إلغاء تكليف">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="assignmentId" value="@m.AssignmentId" />
+                                        <button type="submit" class="btn btn-link btn-sm p-0">إلغاء</button>
+                                    </form>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    @if (Model.CanWrite && s.Status != ExamSessionStatus.MarkingClosed)
+                    {
+                        <form asp-action="AssignMarker" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="sessionId" value="@s.Id" />
+                            <div class="col-md-5">
+                                <label class="form-label small" for="marker-@s.Id">الموظف المصحح</label>
+                                <select class="form-select form-select-sm" id="marker-@s.Id" name="employeeId" asp-items="Model.MarkerCandidates" data-hr-picker="select">
+                                    <option value="">— اختر —</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small" for="role-@s.Id">الدور</label>
+                                <select class="form-select form-select-sm" id="role-@s.Id" name="role" asp-items="Html.GetEnumSelectList<ExamMarkerRole>()"></select>
+                            </div>
+                            <div class="col-md-2"><button type="submit" class="btn btn-outline-primary btn-sm">تكليف</button></div>
+                        </form>
+                        <p class="form-text">يمكن تكليف موظف يملك صلاحية الاطلاع على بيانات الموارد البشرية، لكن ذلك يظهر تنبيهاً ويُسجَّل في التدقيق عند دخوله.</p>
+                    }
+                    @if (Model.CanWrite && s.Status == ExamSessionStatus.Planned && row.Seated == 0)
+                    {
+                        <form asp-action="RemoveExamSession" asp-route-id="@c.Id" method="post"
+                              data-hr-confirm="ستُحذف جلسة الامتحان." data-hr-confirm-title="حذف الجلسة" data-hr-confirm-variant="danger">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="sessionId" value="@s.Id" />
+                            <button type="submit" class="btn btn-outline-danger btn-sm">حذف الجلسة</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+        @if (Model.CanWrite && c.Status is RecruitmentCompetitionStatus.Announced or RecruitmentCompetitionStatus.IntakeClosed or RecruitmentCompetitionStatus.Examining)
+        {
+            <div class="card">
+                <div class="card-header">جلسة امتحان جديدة</div>
+                <div class="card-body">
+                    <form asp-action="AddExamSession" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <div class="col-md-2"><label class="form-label small" for="ns-type">النوع</label><select id="ns-type" name="type" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<ExamSessionType>()"></select></div>
+                        <div class="col-md-3"><label class="form-label small" for="ns-title">العنوان</label><input id="ns-title" name="title" class="form-control form-control-sm" maxlength="200" required /></div>
+                        <div class="col-md-3"><label class="form-label small" for="ns-at">الموعد</label><input id="ns-at" name="scheduledAt" type="datetime-local" class="form-control form-control-sm" required /></div>
+                        <div class="col-md-2"><label class="form-label small" for="ns-duration">المدة (دقيقة)</label><input id="ns-duration" name="durationMinutes" type="number" min="1" max="600" class="form-control form-control-sm" required /></div>
+                        <div class="col-md-2"><label class="form-label small" for="ns-capacity">السعة</label><input id="ns-capacity" name="capacity" type="number" min="1" class="form-control form-control-sm" required /></div>
+                        <div class="col-md-5"><label class="form-label small" for="ns-venue">المكان</label><input id="ns-venue" name="venue" class="form-control form-control-sm" maxlength="300" required /></div>
+                        <div class="col-md-2"><label class="form-label small" for="ns-max">العلامة العظمى</label><input id="ns-max" name="maxScore" type="number" step="0.01" min="0.01" class="form-control form-control-sm" required /></div>
+                        <div class="col-md-2"><button type="submit" class="btn btn-primary btn-sm">إضافة الجلسة</button></div>
+                    </form>
+                </div>
+            </div>
+        }
     </div>
     <div class="tab-pane fade" id="tab-scores" role="tabpanel" aria-labelledby="tab-scores-btn">
-        <p class="text-muted mb-0">تظهر حالة التصحيح بعد جلسات الامتحان.</p>
+        @if (Model.ExamSessions.Count == 0)
+        {
+            <p class="text-muted mb-0">تظهر حالة التصحيح بعد جلسات الامتحان.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th scope="col">الجلسة</th><th scope="col">الحاضرون</th><th scope="col">مكتمل التصحيح</th><th scope="col">بانتظار المصحح الثالث</th><th scope="col">الحالة</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Model.ExamSessions)
+                        {
+                            <tr>
+                                <td><a asp-action="ExamSession" asp-route-id="@row.Session.Id">@row.Session.Title</a></td>
+                                <td>@row.Present</td>
+                                <td>@row.Complete</td>
+                                <td>@row.AwaitingReconciler</td>
+                                <td>@Html.HrEnumDisplay(row.Session.Status)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
     <div class="tab-pane fade" id="tab-results" role="tabpanel" aria-labelledby="tab-results-btn">
         <p class="text-muted mb-0">تظهر نسخ النتائج بعد انتهاء التصحيح.</p>
