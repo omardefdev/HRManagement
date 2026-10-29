@@ -18,6 +18,15 @@ This is a **single prompt for one autonomous session**. Run it as phases **P0–
 
 **If you are resuming:** at start, or after any context compaction or restart, read `reports/plan34-progress.md` and `git log --oneline -20` **first**. Continue from the recorded next step. Never redo a committed phase.
 
+**Timing (the owner measures execution time, so this is mandatory):**
+- The **very first action** of the session, before reading anything else, is to create `reports/plan34-progress.md`. Its first line is:
+  `Started (UTC): <timestamp>`
+  where the timestamp comes from `(Get-Date).ToUniversalTime().ToString('o')`.
+- Every phase entry records `Finished (UTC): <timestamp>`, taken the same way.
+- On every resume, append `Resumed (UTC): <timestamp>` with the reason (new session, compaction, BLOCKED answered).
+- Never edit an earlier timestamp.
+- `scripts/plan-timing.ps1` reads the `Started` line and the git history.
+
 **Context discipline.**
 - Use subagents for broad read-only searches.
 - Use `git grep` rather than a recursive grep over `bin`/`obj`.
@@ -94,7 +103,7 @@ Prompt-level decisions:
 
 | # | Decision |
 |---|----------|
-| P-1 | **The program documents are committed first, in P0**, as their own docs commit on this branch. They were written by the planning session on 2026-10-30 and are currently untracked: the 14 `docs/*_GAP_STUDY.md` (not `HCM_001`), `docs/PROGRAM_COMPLETION_ROADMAP.md`, `docs/OWNER_DECISIONS_REGISTER.md`, `docs/gap-study-verification/*`, `docs/acceptance-plans/PLAN-34..65-*.md`, and this prompt. |
+| P-1 | **The program documents are committed first, in P0**, as their own docs commit on this branch. They were written by the planning session on 2026-10-30 and are currently untracked: the 14 `docs/*_GAP_STUDY.md` (not `HCM_001`), `docs/PROGRAM_COMPLETION_ROADMAP.md`, `docs/OWNER_DECISIONS_REGISTER.md`, `docs/gap-study-verification/*`, `docs/acceptance-plans/PLAN-34..65-*.md`, this prompt, and `scripts/plan-timing.ps1` (measures plan durations from git). |
 | P-2 | **No push.** Pushing is PLAN-35, done by the owner after deciding repository visibility (the GitHub repo is currently **public**). At the end, merge into local `main` with `--no-ff`, as PLAN-25..33 did. |
 | P-3 | **Linux parity is the bar.** "Green" means `pwsh scripts/ci-local.ps1` is green on a clean HEAD **and** the Windows/ar-SA unit and integration runs are green. If Testcontainers cannot reach sibling containers from inside the ci-local container on Docker Desktop, use `-SkipTestcontainers`: it prints the step as explicitly «not run». Then run the Testcontainers tests natively on Windows, and record both. |
 | P-4 | **Product code changes are minimal and limited to:** the twelve controllers and the two scope helpers (§4); the two seeding bypasses (`Ten002`); the governance guards (clock and date parsing); the dependency bump. Everything else is test code, scripts, CI and docs. Product defects found along the way are **recorded, not fixed**: CON/MOV per §5 rule 2, TRN certificate culture → wave 2. |
@@ -159,6 +168,7 @@ Prompt-level decisions:
 
 ## P0 — Branch, program docs, baseline, inventory
 
+0. **Already done as your first action:** `reports/plan34-progress.md` with its `Started (UTC):` line (see «Timing»). It is committed with the P0 baseline commit.
 1. Set up the branch:
    - `git status`: confirm the facts above;
    - `git switch -c feature/plan-34-qa-pushable-baseline` from `main`.
@@ -173,7 +183,7 @@ Prompt-level decisions:
 
    Record every failure in `reports/plan34-baseline.md` and compare it with the plan's §3/§5 tables. Any **extra** failure is listed with a one-line hypothesis.
 4. **Dated-obligations inventory** (plan 0.6): every JSON or config with `expiresOn|nextDue|reviewBy|renewBy|expiryDate|validUntil|validTo`, using `git grep`.
-5. Create `reports/plan34-progress.md`.
+5. Fill `reports/plan34-progress.md`, which already holds the `Started` line.
    Commit: `chore(qa034): baseline and dated-obligations inventory`.
 
 ## P1 — Time bombs: dated obligations, injectable clock, STR-005 closure (plan §2)
@@ -346,6 +356,12 @@ A refuter agent attacks each finding. Fix what survives, with a regression test 
    - what will run on the first push;
    - the owner's visibility decision (public → private recommended);
    - running gitleaks locally before pushing.
+10. **Timing:**
+    - total wall-clock, from `Started` to the merge;
+    - per-phase durations, from the `Finished` stamps;
+    - time spent waiting on long runs: Docker image builds, the full Linux ci-local run, Testcontainers, compose `up`;
+    - the number of resumes and their reasons;
+    - the output of `pwsh scripts/plan-timing.ps1 -From 25 -To 34` **after the merge**, so this plan's span sits next to PLAN-25..33.
 
 **Merge:** `git switch main && git merge --no-ff feature/plan-34-qa-pushable-baseline -m "Merge branch 'feature/plan-34-qa-pushable-baseline' into main (PLAN-34 pushable baseline)"`. **Do not push.**
 
