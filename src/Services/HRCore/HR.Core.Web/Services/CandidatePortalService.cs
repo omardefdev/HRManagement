@@ -47,7 +47,9 @@ public sealed class CandidatePortalService(
     CandidateDocumentService candidateDocuments,
     UnifiedIntakeService unifiedIntake,
     IOptions<RecruitmentOptions> options,
-    ILogger<CandidatePortalService> logger)
+    ILogger<CandidatePortalService> logger,
+    // HCM-031 (PLAN-31): optional so the existing manual constructions (tests) keep compiling; DI always supplies it.
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService? competitionReserve = null)
 {
     public const string Actor = "Candidate";
 
@@ -258,6 +260,11 @@ public sealed class CandidatePortalService(
             {
                 var (draft, draftError) = await offers.DraftNextOfferAfterSettlementAsync(offerId, actorUserId: null, ct);
                 LogNextDraft("withdrawal", draft, draftError);
+            }
+            else if (competitionReserve is not null)
+            {
+                // HCM-031 (decision 8): an allocated competition candidate withdrew before any offer — recall the line reserve.
+                await competitionReserve.RecallAfterWithdrawalAsync(appId, actorUserId: null, ct);
             }
             return CandidatePortalActionResult.Ok;
         });

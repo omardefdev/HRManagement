@@ -26,7 +26,9 @@ public sealed class RecruitmentOfferService(
     IWorkflowStarter workflowStarter,
     IConfiguration configuration,
     IOptions<RecruitmentOptions> recruitmentOptions,
-    IPayrollGradeLookup payrollGradeLookup)
+    IPayrollGradeLookup payrollGradeLookup,
+    // HCM-031 (PLAN-31): optional so the existing manual constructions (tests) keep compiling; DI always supplies it.
+    Competitions.CompetitionReserveService? competitionReserve = null)
 {
     public const string OfferApprovalWorkflowCode = "RECRUITMENT-OFFER-APPROVAL";
 
@@ -540,6 +542,11 @@ public sealed class RecruitmentOfferService(
         Guid? actorUserId,
         CancellationToken ct = default)
     {
+        // HCM-031 (PLAN-31, decision 8): a vacated competition requisition first recalls the line's reserve (whatever the
+        // auto-draft option); the next candidate by merit below is then the recalled one.
+        if (competitionReserve is not null)
+            await competitionReserve.RecallAfterSettlementAsync(previousOfferId, actorUserId, ct);
+
         if (!AutoDraftNextOfferEnabled)
             return (null, null);
 

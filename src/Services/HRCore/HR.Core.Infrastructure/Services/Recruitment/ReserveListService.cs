@@ -125,7 +125,9 @@ public sealed class ReserveListService(
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.BackgroundQueueProcessing)
             .Where(a => a.Status == RecruitmentApplicationStatus.ReserveListed
                         && a.ReserveUntil != null
-                        && a.ReserveUntil < todayUtc)
+                        && a.ReserveUntil < todayUtc
+                        // HCM-031: competition reserves expire per line entry (CompetitionReserveService.ExpireAsync).
+                        && a.CompetitionId == null)
             .ToListAsync(ct);
         if (due.Count == 0)
             return 0;
