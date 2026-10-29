@@ -32,9 +32,13 @@ public sealed class Hcm033RecruitmentStatesSeedTests
     [Fact]
     public async Task Recruitment_states_patch_seeds_the_ac_hcm_33_states_once()
     {
-        var options = new DbContextOptionsBuilder<HRCoreDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        // SQLite (relational): detects insert-order cycles the InMemory provider ignores (the patch must save in two phases).
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<HRCoreDbContext>().UseSqlite(connection).Options;
         await using (var seed = new HRCoreDbContext(options))
         {
+            await seed.Database.EnsureCreatedAsync();
             await AcceptanceDataSeeder.SeedAsync(seed, NullLogger.Instance);
             await WorkflowPackSeeder.SeedAsync(seed);
             await AcceptanceRecruitmentStatesPatch.ApplyAsync(seed, NullLogger.Instance);

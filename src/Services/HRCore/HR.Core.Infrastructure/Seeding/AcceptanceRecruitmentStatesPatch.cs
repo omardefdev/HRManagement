@@ -141,8 +141,6 @@ public static class AcceptanceRecruitmentStatesPatch
             offerIssuedApp, publishedPosition, OfferStatus.Issued, centralA);
         issuedOffer.IssuedDate = Created.AddDays(8);
         issuedOffer.ExpiryDate = Utc(2028, 8, 1);
-        offerPendingApp.ActiveOfferLetter = pendingOffer;
-        offerIssuedApp.ActiveOfferLetter = issuedOffer;
 
         var complianceEmployee = AcceptancePersonaCatalog.Get("a-compliance").Employee!.Id;
         var appeal = new RecruitmentAppeal
@@ -156,6 +154,11 @@ public static class AcceptanceRecruitmentStatesPatch
         };
         db.RecruitmentAppeals.Add(appeal);
 
+        await db.SaveChangesAsync(ct);
+
+        // Application ↔ active offer is a cycle for the relational insert order: link the offers in a second save.
+        offerPendingApp.ActiveOfferLetterId = pendingOffer.Id;
+        offerIssuedApp.ActiveOfferLetterId = issuedOffer.Id;
         await db.SaveChangesAsync(ct);
 
         await StartAsync(db, tenant, "RECRUITMENT-REQUISITION-APPROVAL", nameof(RecruitmentRequisition), pending1.Id,
