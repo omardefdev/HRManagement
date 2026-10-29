@@ -9,10 +9,7 @@
     ViewData["WorkflowConfirmReject"] = "رفض طلب تغيير الملاك وإرجاعه إلى المسودة؟";
 }
 
-@if (!string.IsNullOrWhiteSpace(Model.MissingWorkflowWarning))
-{
-    <div class="alert alert-warning">@Model.MissingWorkflowWarning</div>
-}
+<partial name="_WorkflowRestartPanel" model="Model" />
 
 @if (Model.HasWorkflowInstance)
 {

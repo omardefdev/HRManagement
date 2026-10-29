@@ -3,44 +3,38 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow;
+using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HR.Core.Web.ViewModels;
 
 namespace HR.Core.Web.Services;
 
-public sealed class OfferLetterWorkflowUiService(
-    HRCoreDbContext db,
-    EstablishmentScopeService establishmentScope)
+/// <summary>
+/// PLAN-25 (G-04): approve/reject availability comes from the server evaluator (creator SoD, override distinct approvers,
+/// step role, branch scope).
+/// </summary>
+public sealed class OfferLetterWorkflowUiService(HRCoreDbContext db, WorkflowApprovalEvaluator? evaluator = null)
 {
+    private readonly WorkflowApprovalEvaluator _evaluator = evaluator ?? WorkflowApprovalEvaluator.CreateDefault(db);
+
     public async Task<OfferLetterDetailsViewModel> BuildDetailsAsync(
         OfferLetter offer,
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, offer.WorkflowInstanceId, ct);
-        var userId = WorkflowPanelBuilder.ParseUserId(user);
-        var accessScope = await establishmentScope.GetScopeAsync(user, ct);
-        var orgUnitId = offer.FundedPosition?.OrgUnitId;
 
-        var workflowPanel = WorkflowPanelBuilder.Build(
+        var workflowPanel = await WorkflowPanelBuilder.BuildAsync(
             instance,
             definition,
             user,
-            userId,
             new WorkflowPanelBuildOptions
             {
                 IsAwaitingApproval = offer.Status == OfferStatus.PendingApproval,
-                EntityCreatedBy = offer.CreatedBy,
-                CreatorSoDMessage = "لا يمكن للمنشئ اعتماد عرضه الخاص.",
-                MissingWorkflowWarning = offer.WorkflowInstanceId is null
-                    ? "لم يُنشأ مسار اعتماد لهذا العرض. فعّل PolicyEngine:Core.Recruitment أو استخدم بيئة المختبر (IsLabScale)."
-                    : null,
-                AdditionalBlockReason = (inst, _, actorId) =>
-                    WorkflowInboxOrgScope.GetBlockReason(accessScope, orgUnitId)
-                    ?? (OfferOverrideApprovalRules.IsOverrideWorkflow(definition?.Code)
-                        && OfferOverrideApprovalRules.HasApprovedEarlierStep(inst.StepHistoryJson, inst.CurrentStepLevel, actorId)
-                            ? OfferOverrideApprovalRules.SameApproverMessage
-                            : null)
-            });
+                MissingWorkflowWarning = offer.WorkflowInstanceId is null ? ApprovalRestartRules.StuckWarning : null
+            },
+            _evaluator,
+            ct);
 
         return new OfferLetterDetailsViewModel
         {

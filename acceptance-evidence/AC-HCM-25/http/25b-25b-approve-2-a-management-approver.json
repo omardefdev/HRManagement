@@ -1,0 +1,16 @@
+{
+  "step": "25b-25b-approve-2-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/17596dc3-2288-4733-9526-e83acadbd8a4",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:20.9591587Z",
+  "body": {
+    "fields": [
+      "OfferId=17596dc3-2288-4733-9526-e83acadbd8a4",
+      "Comments=PLAN-33 25b-approve-2"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/17596dc3-2288-4733-9526-e83acadbd8a4",
+    "final": "/ui/hr-core/OfferLetters/Details/17596dc3-2288-4733-9526-e83acadbd8a4"
+  }
+}

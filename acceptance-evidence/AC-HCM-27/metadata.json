@@ -1,12 +1,12 @@
 {
   "scenario": "AC-HCM-27e offer expiry job",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver\u002Ba-management-approver-2",
-  "correlationId": "3189542c-9818-4ed8-8c9d-592c5a831ce0",
-  "capturedAtUtc": "2026-10-29T17:08:22.0301398Z",
+  "correlationId": "a24fc5ca-292a-4e15-a567-f25747ef1075",
+  "capturedAtUtc": "2026-10-29T19:58:42.9802954Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "dec31331314ebc53247d946ce8bdceb2cf3d7f7c"
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
 }

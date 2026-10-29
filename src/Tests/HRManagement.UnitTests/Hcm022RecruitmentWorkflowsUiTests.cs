@@ -57,7 +57,7 @@ public class Hcm022RecruitmentWorkflowsUiTests
         offer.WorkflowInstanceId = (await db.WorkflowInstances.SingleAsync()).Id;
         await db.SaveChangesAsync();
 
-        var service = new OfferLetterWorkflowUiService(db, WorkflowInboxTestSupport.CreateEstablishmentScopeService(db));
+        var service = new OfferLetterWorkflowUiService(db);
         var vm = await service.BuildDetailsAsync(offer, CreateUser(CreatorId, "hr-core"));
 
         Assert.False(vm.Workflow.CanApprove);
@@ -115,7 +115,7 @@ public class Hcm022RecruitmentWorkflowsUiTests
         instance.CurrentStepLevel = 2;
         await db.SaveChangesAsync();
 
-        var service = new SelectionCommitteeWorkflowUiService(db, WorkflowInboxTestSupport.CreateEstablishmentScopeService(db));
+        var service = new SelectionCommitteeWorkflowUiService(db);
         var vm = await service.BuildDetailsAsync(session, CreateUser(HrReviewerId, "hr-core"));
 
         Assert.False(vm.Workflow.CanApprove);

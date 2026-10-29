@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAssessmentCriteria/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:58:48.6812401Z",
+  "capturedAtUtc": "2026-10-29T20:09:21.1079903Z",
   "body": {
     "fields": [
-      "RequisitionId=92db04b2-954d-4886-9409-4a9c5b655c01",
+      "RequisitionId=ef28ae9d-947d-4e96-9ac1-035645bbfad6",
       "Title=AC-HCM-26",
       "Items.Index=r0",
       "Items[r0].Key=interview",
@@ -31,11 +31,11 @@
       "Items[r2].IsMandatory=true"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/92db04b2-954d-4886-9409-4a9c5b655c01#assessment-criteria",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/ef28ae9d-947d-4e96-9ac1-035645bbfad6#assessment-criteria",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/92db04b2-954d-4886-9409-4a9c5b655c01",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/ef28ae9d-947d-4e96-9ac1-035645bbfad6",
     "alerts": [
       "\u003Ci class=\u0022fas fa-ban ms-1\u0022\u003E"
     ]

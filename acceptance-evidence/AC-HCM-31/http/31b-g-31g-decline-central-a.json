@@ -1,17 +1,17 @@
 {
   "step": "31b-g-31g-decline-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/OfferLetters/DeclineOffer/de6508c2-f3a1-4d22-a748-5afb3d9341af",
+  "url": "/ui/hr-core/OfferLetters/DeclineOffer/23b9b95c-939c-4697-bb5b-30990a4a0905",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:58:14.0187322Z",
+  "capturedAtUtc": "2026-10-29T20:08:38.7768859Z",
   "body": {
     "fields": [
-      "id=de6508c2-f3a1-4d22-a748-5afb3d9341af",
+      "id=23b9b95c-939c-4697-bb5b-30990a4a0905",
       "ReasonCategory=Personal",
       "Reason=\u0627\u0639\u062A\u0630\u0631 \u0627\u0644\u0645\u0631\u0634\u062D \u0639\u0646 \u0627\u0644\u0627\u0644\u062A\u062D\u0627\u0642 (\u0627\u062E\u062A\u0628\u0627\u0631 \u0642\u0628\u0648\u0644)"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/de6508c2-f3a1-4d22-a748-5afb3d9341af",
-    "final": "/ui/hr-core/OfferLetters/Details/de6508c2-f3a1-4d22-a748-5afb3d9341af"
+    "redirect": "/ui/hr-core/OfferLetters/Details/23b9b95c-939c-4697-bb5b-30990a4a0905",
+    "final": "/ui/hr-core/OfferLetters/Details/23b9b95c-939c-4697-bb5b-30990a4a0905"
   }
 }

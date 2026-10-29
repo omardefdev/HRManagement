@@ -161,6 +161,37 @@ public sealed class RecruitmentAppealService(
     }
 
     /// <summary>
+    /// PLAN-25 (G-02 repair): starts RECRUITMENT-APPEAL-REVIEW for a pending appeal that has an assigned reviewer, is not
+    /// waiting for information and has no instance. A missing definition is reported as an error (H5 still lets the
+    /// reviewer decide directly).
+    /// </summary>
+    public async Task<(bool Success, string? Error)> RestartReviewWorkflowAsync(
+        Guid appealId,
+        Guid? actorUserId,
+        string? actorUserName = null,
+        CancellationToken ct = default)
+    {
+        var appeal = await LoadAppealAsync(appealId, ct);
+        if (appeal is null) return (false, NotFoundMessage);
+        if (appeal.Status != RecruitmentAppealStatus.Pending
+            || appeal.WorkflowInstanceId is not null
+            || appeal.IsAwaitingInfo
+            || (appeal.IndependentReviewerEmployeeId is null && appeal.IndependentReviewerId is null))
+            return (false, ApprovalRestartRules.NotStuckMessage);
+
+        var (instanceId, startError) = await StartReviewWorkflowAsync(appeal, actorUserId, actorUserName, ct);
+        if (startError is not null || instanceId is not Guid started)
+        {
+            await DiscardChangesAsync(ct);
+            return (false, startError ?? ApprovalStartCoordinator.MissingDefinitionMessage);
+        }
+
+        ApprovalRestartRules.AddRestartAudit(db, nameof(RecruitmentAppeal), appeal.Id, started, actorUserId);
+        await db.SaveChangesAsync(ct);
+        return (true, null);
+    }
+
+    /// <summary>
     /// HCM-028 (H3): the assigned reviewer's explicit outcome. The outcome is stored, then the review step is approved;
     /// <see cref="RecruitmentAppealWorkflowHandler"/> applies its effect. Without a workflow instance (one could not be
     /// started — H5) the decision is applied directly under the same checks and audited as <c>AppealDecidedWithoutWorkflow</c>.
@@ -205,7 +236,7 @@ public sealed class RecruitmentAppealService(
 
         if (instance is not null)
         {
-            var result = await workflowActions.ApproveAsync(instance.Id, actor.Workflow, trimmed, targetStepLevel: null, ct);
+            var result = await workflowActions.ApproveAsync(instance.Id, WorkflowActor(actor), trimmed, targetStepLevel: null, ct);
             if (!result.Success)
             {
                 await DiscardChangesAsync(ct);
@@ -242,7 +273,7 @@ public sealed class RecruitmentAppealService(
 
         if (instance is not null)
         {
-            var result = await workflowActions.RejectAsync(instance.Id, actor.Workflow, trimmed, ct);
+            var result = await workflowActions.RejectAsync(instance.Id, WorkflowActor(actor), trimmed, ct);
             return result.Success ? (true, null) : (false, result.Error ?? "تعذّر طلب المعلومات.");
         }
 
@@ -411,6 +442,10 @@ public sealed class RecruitmentAppealService(
         appeal.WorkflowInstanceId = instanceId;
         return (instanceId, null);
     }
+
+    /// <summary>PLAN-25: the appeal gate identifies the reviewer by employee id, carried on the workflow actor.</summary>
+    private static WorkflowActionActor WorkflowActor(AppealReviewActor actor) =>
+        actor.Workflow with { EmployeeId = actor.Workflow.EmployeeId ?? actor.EmployeeId };
 
     private Task<RecruitmentAppeal?> LoadAppealAsync(Guid appealId, CancellationToken ct) =>
         db.RecruitmentAppeals

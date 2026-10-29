@@ -1,0 +1,18 @@
+{
+  "step": "28b-28b-vote-3-aedad934-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/RecordVote",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:01:22.0927669Z",
+  "body": {
+    "fields": [
+      "sessionId=7e153c01-b462-4ca9-8954-94a2ae068837",
+      "memberId=aedad934-9aa8-47ca-9279-e7cf4d868ec5",
+      "applicationId=d74fa8ec-c701-394f-b837-fa80a487896d",
+      "vote=Agree"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/7e153c01-b462-4ca9-8954-94a2ae068837#votes",
+    "final": "/ui/hr-core/SelectionCommittees/Details/7e153c01-b462-4ca9-8954-94a2ae068837"
+  }
+}

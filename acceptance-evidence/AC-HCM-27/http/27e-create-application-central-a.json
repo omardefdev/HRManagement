@@ -3,22 +3,16 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:08:30.6393259Z",
+  "capturedAtUtc": "2026-10-29T19:58:49.4987393Z",
   "body": {
     "fields": [
-      "ApplicantFullName=AC27 \u0631\u062A\u0628\u06291 9a72ac2c868e4",
-      "RequisitionId=b5806c8a-92c1-4240-8806-2497137ccf64",
+      "ApplicantFullName=AC27 \u0631\u062A\u0628\u06291 c584b20d18c84",
+      "RequisitionId=f5065317-3a78-4725-9b3f-83054799a376",
       "Notes=AC-HCM-27"
     ],
     "postStatus": 302,
     "redirect": "/ui/hr-core/RecruitmentApplications",
     "final": "/ui/hr-core/RecruitmentApplications",
-    "alerts": [
-      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
-      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
-      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
-      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
-      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2"
-    ]
+    "alerts": []
   }
 }

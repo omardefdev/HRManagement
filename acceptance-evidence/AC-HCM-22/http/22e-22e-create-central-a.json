@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:54:18.3739512Z",
+  "capturedAtUtc": "2026-10-29T20:00:42.3421068Z",
   "body": {
     "fields": [
       "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "FundedPositionId=a0000001-0000-4000-8000-000000000942",
+      "FundedPositionId=a0000001-0000-4000-8000-000000000949",
       "JobTitle=\u0648\u0638\u064A\u0641\u0629 PLAN-33 22e",
       "JustificationNotes=PLAN-33 acceptance 22e",
       "LegalSourceId=SYR-LAW-50-2004",
@@ -15,7 +15,7 @@
       "PublishingChannel=PublicOnly"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/71133a4e-4f2a-4d71-8ffb-9c463324a2dc",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/71133a4e-4f2a-4d71-8ffb-9c463324a2dc"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/2bbb9b5a-67ed-4ef2-8668-fe1431b1448a",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/2bbb9b5a-67ed-4ef2-8668-fe1431b1448a"
   }
 }

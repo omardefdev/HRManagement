@@ -28,10 +28,10 @@ public class RecruitmentToHireJourneyE2ETests
 }
 
 /// <summary>
-/// PLAN-33 decision 2: the same journey with production-like recruitment settings (docker-compose.acceptance-prodlike.yml:
-/// IsLabScale=false, policy engine Off as in Production). Excluded from CI until PLAN-25 closes G-02. It asserts the real
-/// outcome: today it fails at the first approval because no workflow instance is created, and its evidence
-/// (acceptance-evidence/AC-HCM-33/prodlike) records that stop point.
+/// PLAN-33 decision 2 / PLAN-25: the same journey with production-like recruitment settings
+/// (docker-compose.acceptance-prodlike.yml: IsLabScale=false, PolicyEngine Core.Recruitment=Shadow, approvals always start,
+/// no admin bypass — the Production values). Green since PLAN-25 closed G-02 and runs in the CI journey filter
+/// (e2e-journeys.yml); evidence in acceptance-evidence/AC-HCM-33/prodlike.
 /// </summary>
 public class RecruitmentToHireJourneyProdLikeE2ETests
 {
@@ -52,7 +52,8 @@ internal static class RecruitmentJourney
     private const string Plan = """
         Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-approver (step 2), an anonymous citizen.
         1. central-a: requisition on a free AC33-POOL position (RIF, G5), criteria v1, submit → PendingApproval + RECRUITMENT-REQUISITION-APPROVAL.
-           Refusal: a-management-approver gets no approve form at step 1 («هذه الخطوة تتطلب دور «hr-core».»; server-side role check = G-04, PLAN-25).
+           Refusal: a-management-approver gets no approve form at step 1 («هذه الخطوة تتطلب دور «hr-core».») and a direct POST
+           of the approval is refused by the server (G-04, PLAN-25) — the instance stays at step 1.
         2. br1-mgr step 1 → a-management-approver step 2 → Approved → publish with a closing date 10 days ahead.
         3. Refusal: with the closing date moved to yesterday (test-only SQL, restored) the citizen's application is refused.
            Citizen applies on /careers with profile, consent and a PDF CV (File.Storage + ClamAV) → CitizenApplication + RecruitmentApplication.
@@ -127,11 +128,16 @@ internal static class RecruitmentJourney
         ev.Note($"after submit: {submitted}");
         Assert.StartsWith("PendingApproval|", submitted);
         Assert.True(Guid.TryParse(submitted.Split('|')[1], out _),
-            "G-02: the submitted requisition has no approval workflow instance (NationalScope:IsLabScale=false with the policy engine Off) — " +
-            "it can never be approved. PLAN-25 must bind the approval workflow in production.");
+            "G-02 regression: the submitted requisition has no approval workflow instance — it can never be approved " +
+            "(PLAN-25: an approval always starts, whatever IsLabScale or the policy mode).");
         var approverView = await approver.GetAsync("1-approver-step1-view", reqPage);
         Assert.Contains("هذه الخطوة تتطلب دور «hr-core».", approverView.Body, StringComparison.Ordinal);
         Assert.DoesNotContain("ApproveWorkflow", approverView.Body, StringComparison.Ordinal);
+        // PLAN-25 (G-04): the server refuses the same approval posted directly (the role check is not only in the UI).
+        await approver.PostAsync("1-approver-step1-post", $"ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/{req}", reqPage,
+            [new("RequisitionId", req), new("Comments", "E2E wrong role")]);
+        Assert.Equal("1", await CoreSql(
+            $"SELECT i.\"CurrentStepLevel\" FROM \"WorkflowInstances\" i JOIN \"RecruitmentRequisitions\" r ON r.\"WorkflowInstanceId\"=i.\"Id\" WHERE r.\"Id\"='{req}';"));
 
         // 2 ── two-step approval + publish
         ev.Enter("2 approval and publication");

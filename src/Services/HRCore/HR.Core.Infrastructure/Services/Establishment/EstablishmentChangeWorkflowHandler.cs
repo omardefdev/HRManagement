@@ -17,7 +17,8 @@ public sealed class EstablishmentChangeWorkflowHandler(
 
         var request = await db.EstablishmentChangeRequests
             .FirstOrDefaultAsync(r => r.Id == instance.EntityId, ct);
-        if (request is null || request.Status != EstablishmentChangeStatus.PendingApproval)
+        // PLAN-25 (review finding 2): only the instance linked to the change request decides it.
+        if (request is null || request.Status != EstablishmentChangeStatus.PendingApproval || request.WorkflowInstanceId != instance.Id)
             return;
 
         if (approved)

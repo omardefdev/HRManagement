@@ -222,10 +222,11 @@ public class Hcm027OfferOutcomeTests
         {
             var instanceId = (await db.OfferLetters.AsNoTracking().SingleAsync(o => o.Id == offer.Id)).WorkflowInstanceId!.Value;
             var actions = CreateActionService(db);
-            foreach (var approver in new[] { ApproverA, ApproverB })
+            // PLAN-25 (G-04): each step by a holder of its role (step 1 hr-core, step 2 hr-management-approver).
+            foreach (var (approver, role) in new[] { (ApproverA, "hr-core"), (ApproverB, "hr-management-approver") })
             {
                 var result = await actions.ApproveAsync(
-                    instanceId, new WorkflowActionActor(approver, "approver", "hr-management-approver"), "ok", null);
+                    instanceId, new WorkflowActionActor(approver, "approver", role), "ok", null);
                 Assert.True(result.Success, result.Error);
             }
         }

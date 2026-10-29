@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAppeals/Decide",
   "statusCode": 404,
-  "capturedAtUtc": "2026-10-29T16:53:59.7733561Z",
+  "capturedAtUtc": "2026-10-29T20:00:23.6206393Z",
   "body": {
     "fields": [
       "id=a0000001-0000-4000-8000-000000000922",

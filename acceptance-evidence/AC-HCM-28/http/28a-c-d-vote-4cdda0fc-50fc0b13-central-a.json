@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/RecordVote",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:54:56.0862919Z",
+  "capturedAtUtc": "2026-10-29T20:01:11.3152188Z",
   "body": {
     "fields": [
       "sessionId=a0000001-0000-4000-8000-000000000511",

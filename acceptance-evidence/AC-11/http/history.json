@@ -1,0 +1,27 @@
+{
+  "step": "history",
+  "method": "GET",
+  "url": "/api/hr-core/api/workflow-instances/1fe5b9b4-a7b4-4dd8-a9f4-c851274594a8/history",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:54.7369294Z",
+  "body": [
+    {
+      "level": 1,
+      "stepName": "\u0645\u0648\u0627\u0641\u0642\u0629 \u0644\u0648\u062C\u0633\u062A\u064A\u0629",
+      "status": 1,
+      "actorId": "089b9c2d-a148-9240-8861-2176b13bcec9",
+      "actorName": null,
+      "comments": "step1 ok",
+      "actionAt": "2026-10-29T20:13:54.6212076Z"
+    },
+    {
+      "level": 2,
+      "stepName": "\u0645\u0648\u0627\u0641\u0642\u0629 \u0625\u062F\u0627\u0631\u064A\u0629",
+      "status": 1,
+      "actorId": "0e02f145-e290-4041-8468-7cf778874c5f",
+      "actorName": null,
+      "comments": "step2 ok",
+      "actionAt": "2026-10-29T20:13:54.6868484Z"
+    }
+  ]
+}

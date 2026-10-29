@@ -104,6 +104,20 @@ public class EstablishmentChangesController(
         return View(vm);
     }
 
+    /// <summary>PLAN-25 (G-02): gives a change request left PendingApproval without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        if (await establishmentScope.ValidateCentralWriteAsync(User) is not null)
+            return Forbid();
+
+        var (success, error) = await lifecycleService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد الطلب" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
@@ -254,13 +268,8 @@ public class EstablishmentChangesController(
     private static string? NormalizeLegalSourceId(string? legalSourceId) =>
         string.IsNullOrWhiteSpace(legalSourceId) ? null : legalSourceId.Trim();
 
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-    {
-        var userId = ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(userId, userName, actorRole);
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {

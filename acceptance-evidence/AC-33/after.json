@@ -1,0 +1,5 @@
+{
+  "note": "Before/after JSON rendered in loss history when reports exist",
+  "privileged": true,
+  "evidenceRefPattern": "AC-32-AC-33-HANDOVER"
+}

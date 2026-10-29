@@ -2,6 +2,6 @@ Live stack = acceptance profile (NationalScope:IsLabScale=true, policy engine Of
 1. central-a submits a new requisition → WorkflowInstanceId set, definition RECRUITMENT-REQUISITION-APPROVAL, InProgress at step 1.
 2. The Details page shows the workflow panel and no «لم يُنشأ مسار اعتماد» warning.
 3. Clean-up: br1-mgr rejects, central-a cancels (frees the pool position).
-The non-lab negative (IsLabScale=false + policy Off → PendingApproval without a workflow and the warning) cannot be
-produced on the shared lab stack; it is proven by the integration test
-src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs (G-02, PLAN-25).
+G-02 is closed (PLAN-25, decision D-1): the submit starts the workflow whatever IsLabScale or the policy mode say.
+The non-lab case is proven by Hcm033LabScaleBehaviourTests (integration) and, with the Production values on
+PostgreSQL, by Hcm025ProductionApprovalIntegrationTests; live on the prod-like profile by AC-HCM-25a.

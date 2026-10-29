@@ -9,6 +9,7 @@ using HRManagement.SharedKernel.Legal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using HR.Core.Infrastructure.Services.Policy;
+using HRManagement.ServiceDefaults.Workflow;
 using Moq;
 
 namespace HRManagement.UnitTests;
@@ -23,6 +24,8 @@ public class Syr001RecruitmentLegalSourceTests
             .Options;
         var db = new HRCoreDbContext(options);
         await LegislationRegisterSeeder.SeedAsync(db);
+        // PLAN-25 (G-02): a submit always starts the approval, so the published definitions must exist.
+        await WorkflowPackSeeder.SeedAsync(db);
 
         var provider = new LegislationRegisterProvider(db);
         var validator = new RecruitmentLegalSourceValidator(provider);
@@ -33,7 +36,7 @@ public class Syr001RecruitmentLegalSourceTests
             db,
             Mock.Of<IPolicyOrchestrator>(),
             validator,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), Microsoft.Extensions.Logging.Abstractions.NullLogger<WorkflowStarter>.Instance),
             config,
             Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()));
 

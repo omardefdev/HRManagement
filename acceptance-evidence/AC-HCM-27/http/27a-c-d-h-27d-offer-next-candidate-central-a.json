@@ -1,8 +1,8 @@
 {
   "step": "27a-c-d-h-27d-offer-next-candidate-central-a",
   "method": "GET",
-  "url": "/ui/hr-core/OfferLetters/Details/036afefc-56f4-432b-ae0d-bea9380b4a8b",
+  "url": "/ui/hr-core/OfferLetters/Details/bfe5a342-7d00-42db-9832-4e9f787b0d9f",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:08:18.9358036Z",
-  "body": "\u003C!DOCTYPE html\u003E\n\n\u003Chtml dir=\u0022rtl\u0022 lang=\u0022ar\u0022\u003E\n\n\u003Chead\u003E\n\n    \u003Cmeta charset=\u0022utf-8\u0022 /\u003E\n\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1.0\u0022 /\u003E\n\n    \u003Ctitle\u003E\u0026#x62A;\u0026#x641;\u0026#x627;\u0026#x635;\u0026#x64A;\u0026#x644; \u0026#x62E;\u0026#x637;\u0026#x627;\u0026#x628; \u0026#x627;\u0026#x644;\u0026#x639;\u0026#x631;\u0026#x636; - \u0026#x646;\u0026#x638;\u0026#x627;\u0026#x645; \u0026#x625;\u0026#x62F;\u0026#x627;\u0026#x631;\u0026#x629; \u0026#x627;\u0026#x644;\u0026#x645;\u0026#x648;\u0026#x627;\u0026#x631;\u0026#x62F; \u0026#x627;\u0026#x644;\u0026#x628;\u0026#x634;\u0026#x631;\u0026#x64A;\u0026#x629;\u003C/title\u003E\n\n    \u003Cstyle nonce=\u0022jAcg5v/OCuzjLAqlJl\u0026#x2B;q9w==\u0022\u003E\r\n    :root {\r\n        --sy-primary: #6b1f2a;\r\n    }\r\n\u003C/style\u003E\r\n\u003Cscript nonce=\u0022jAcg5v/OCuzjLAql"
+  "capturedAtUtc": "2026-10-29T19:58:39.8736669Z",
+  "body": "\u003C!DOCTYPE html\u003E\n\n\u003Chtml dir=\u0022rtl\u0022 lang=\u0022ar\u0022\u003E\n\n\u003Chead\u003E\n\n    \u003Cmeta charset=\u0022utf-8\u0022 /\u003E\n\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1.0\u0022 /\u003E\n\n    \u003Ctitle\u003E\u0026#x62A;\u0026#x641;\u0026#x627;\u0026#x635;\u0026#x64A;\u0026#x644; \u0026#x62E;\u0026#x637;\u0026#x627;\u0026#x628; \u0026#x627;\u0026#x644;\u0026#x639;\u0026#x631;\u0026#x636; - \u0026#x646;\u0026#x638;\u0026#x627;\u0026#x645; \u0026#x625;\u0026#x62F;\u0026#x627;\u0026#x631;\u0026#x629; \u0026#x627;\u0026#x644;\u0026#x645;\u0026#x648;\u0026#x627;\u0026#x631;\u0026#x62F; \u0026#x627;\u0026#x644;\u0026#x628;\u0026#x634;\u0026#x631;\u0026#x64A;\u0026#x629;\u003C/title\u003E\n\n    \u003Cstyle nonce=\u0022J1ZUDEa9lyFcb1ZXF8eGhg==\u0022\u003E\r\n    :root {\r\n        --sy-primary: #6b1f2a;\r\n    }\r\n\u003C/style\u003E\r\n\u003Cscript nonce=\u0022J1ZUDEa9lyFcb1ZXF8eGh"
 }

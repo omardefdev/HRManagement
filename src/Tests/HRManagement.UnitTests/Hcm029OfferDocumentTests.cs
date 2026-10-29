@@ -26,7 +26,7 @@ public class Hcm029OfferDocumentTests
         var offer = await SeedOfferAsync(db, OfferStatus.PendingApproval);
 
         await new OfferLetterWorkflowHandler(db, CreateDocuments(db))
-            .HandleAsync(new WorkflowInstance { EntityType = "OfferLetter", EntityId = offer.Id }, approved: true, null);
+            .HandleAsync(new WorkflowInstance { Id = offer.WorkflowInstanceId ?? Guid.NewGuid(), EntityType = "OfferLetter", EntityId = offer.Id }, approved: true, null);
 
         var issued = await db.OfferLetters.AsNoTracking().SingleAsync(o => o.Id == offer.Id);
         Assert.Equal(OfferStatus.Issued, issued.Status);
@@ -46,7 +46,7 @@ public class Hcm029OfferDocumentTests
         var offer = await SeedOfferAsync(db, OfferStatus.PendingApproval);
 
         await new OfferLetterWorkflowHandler(db)
-            .HandleAsync(new WorkflowInstance { EntityType = "OfferLetter", EntityId = offer.Id }, approved: true, null);
+            .HandleAsync(new WorkflowInstance { Id = offer.WorkflowInstanceId ?? Guid.NewGuid(), EntityType = "OfferLetter", EntityId = offer.Id }, approved: true, null);
 
         Assert.NotNull((await db.OfferLetters.AsNoTracking().SingleAsync(o => o.Id == offer.Id)).DocumentSha256);
     }
@@ -58,7 +58,7 @@ public class Hcm029OfferDocumentTests
         var offer = await SeedOfferAsync(db, OfferStatus.PendingApproval);
 
         await new OfferLetterWorkflowHandler(db, CreateDocuments(db))
-            .HandleAsync(new WorkflowInstance { EntityType = "OfferLetter", EntityId = offer.Id }, approved: false, "مراجعة");
+            .HandleAsync(new WorkflowInstance { Id = offer.WorkflowInstanceId ?? Guid.NewGuid(), EntityType = "OfferLetter", EntityId = offer.Id }, approved: false, "مراجعة");
 
         var draft = await db.OfferLetters.AsNoTracking().SingleAsync(o => o.Id == offer.Id);
         Assert.Equal(OfferStatus.Draft, draft.Status);
@@ -177,7 +177,7 @@ public class Hcm029OfferDocumentTests
     {
         var offer = await SeedOfferAsync(db, OfferStatus.PendingApproval);
         await new OfferLetterWorkflowHandler(db, CreateDocuments(db))
-            .HandleAsync(new WorkflowInstance { EntityType = "OfferLetter", EntityId = offer.Id }, approved: true, null);
+            .HandleAsync(new WorkflowInstance { Id = offer.WorkflowInstanceId ?? Guid.NewGuid(), EntityType = "OfferLetter", EntityId = offer.Id }, approved: true, null);
         return offer;
     }
 
@@ -192,6 +192,8 @@ public class Hcm029OfferDocumentTests
             FundedPositionId = req.FundedPositionId,
             OfferNumber = $"OFF-H29-{Guid.NewGuid():N}"[..20],
             Status = status,
+            // PLAN-25 (review finding 2): the handler acts only on the offer's linked instance.
+            WorkflowInstanceId = status == OfferStatus.PendingApproval ? Guid.NewGuid() : null,
             OfferedSalary = 5000,
             GradeCode = "G5",
             ProposedStartDate = new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc),

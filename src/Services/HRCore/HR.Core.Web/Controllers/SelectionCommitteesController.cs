@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[RecruitmentOrgScope(RecruitmentScopeKind.CommitteeSession)]
 public sealed class SelectionCommitteesController(
     HRCoreDbContext db,
     SelectionCommitteeService committeeService,
@@ -165,6 +166,17 @@ public sealed class SelectionCommitteesController(
         return File(pdf, "application/pdf", $"committee-minutes-{minutes.RequisitionNumber}-{DateTime.UtcNow:yyyyMMdd}.pdf");
     }
 
+    /// <summary>PLAN-25 (G-02): gives a session submitted without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        var (success, error) = await lifecycleService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد اللجنة" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
@@ -246,13 +258,8 @@ public sealed class SelectionCommitteesController(
     private RedirectToActionResult RedirectToDetails(Guid sessionId, string fragment) =>
         RedirectToAction(nameof(Details), null, new { id = sessionId }, fragment);
 
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-    {
-        var userId = ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(userId, userName, actorRole);
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {

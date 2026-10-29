@@ -3,7 +3,7 @@
 31c. Three markers are assigned per session by employee. Each marker sees exam numbers only (no name, no national id) and
      no HR page. First and second markers mark every present paper; one paper differs by 20 (> threshold 10) and the
      reconciler decides it. central-a closes marking.
-31d. Results computed by central-a; approval by br1-mgr (committee) then a-management-approver (central-a, who computed,
+31d. Results computed by central-a; approval by central-a2 (committee) then a-management-approver (central-a, who computed,
      is refused); published. The public list shows exam numbers and outcomes, never a name or national id. Candidates
      with consent get RESULTS_PUBLISHED (no score).
 31e. HR files an objection on behalf of the second portal applicant (by exam number); finalization is refused while it is

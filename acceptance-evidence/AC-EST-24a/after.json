@@ -1,0 +1,16 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "b2b4e51b-d9ea-4e74-9555-023375eb9bce",
+  "httpObservationCount": 2,
+  "lastHttpObservation": {
+    "step": "establishment-details",
+    "method": "GET",
+    "url": "/ui/hr-core/EstablishmentChanges/Details/cf9cf636-7f68-4bae-b5db-82ab2e043015",
+    "statusCode": 200,
+    "capturedAtUtc": "2026-10-29T20:13:56.5884702Z",
+    "body": "\u003C!DOCTYPE html\u003E\n\n\u003Chtml dir=\u0022rtl\u0022 lang=\u0022ar\u0022\u003E\n\n\u003Chead\u003E\n\n    \u003Cmeta charset=\u0022utf-8\u0022 /\u003E\n\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1.0\u0022 /\u003E\n\n    \u003Ctitle\u003E-2026-00001 - \u0026#x646;\u0026#x638;\u0026#x627;\u0026#x645; \u0026#x625;\u0026#x62F;\u0026#x627;\u0026#x631;\u0026#x629; \u0026#x627;\u0026#x644;\u0026#x645;\u0026#x648;\u0026#x627;\u0026#x631;\u0026#x62F; \u0026#x627;\u0026#x644;\u0026#x628;\u0026#x634;\u0026#x631;\u0026#x64A;\u0026#x629;\u003C/title\u003E\n\n    \u003Cstyle nonce=\u0022PCCN4B4vD2CO9TJ8RwzGNA==\u0022\u003E\r\n    :root {\r\n        --sy-primary: #6b1f2a;\r\n    }\r\n\u003C/style\u003E\r\n\u003Cscript nonce=\u0022PCCN4B4vD2CO9TJ8RwzGNA==\u0022\u003E\r\n    window.hrOrganization = {\r\n        name: \u0022\\u0634\\u0639\\u0628\\u0629 \\u0627\\u0644\\u062A\\u0646\\u0638\\u064A\\u0645 \\u0648\\u0627\\u0644\\u0645\\u0648\\u0627\\u0631\\u062F \\u0627\\u0644\\u0628\\u0634\\u0631\\u064A\\u0629\u0022,\r\n        shortName: \u0022\\u0627\\u0644\\u0645\\u0648\\u0627\\u0631\\u062F \\u0627\\u0644\\u062"
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

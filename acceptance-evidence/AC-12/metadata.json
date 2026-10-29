@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-12 payroll SoD",
+  "personaId": "payroll-processor",
+  "correlationId": "4d3ed2a9-24e5-4d85-937a-1b4535a847f8",
+  "capturedAtUtc": "2026-10-29T20:13:52.5500473Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
+}

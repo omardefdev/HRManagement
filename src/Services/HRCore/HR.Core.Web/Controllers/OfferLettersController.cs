@@ -36,6 +36,7 @@ namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 
+[RecruitmentOrgScope(RecruitmentScopeKind.Offer)]
 public class OfferLettersController(
 
     HRCoreDbContext db,
@@ -68,6 +69,8 @@ public class OfferLettersController(
             .Include(o => o.FundedPosition)
 
             .AsQueryable();
+        // PLAN-25 (D10): branch-scoped users list their units only.
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
 
 
 
@@ -185,6 +188,17 @@ public class OfferLettersController(
     }
 
 
+
+    /// <summary>PLAN-25 (G-02): gives an offer left PendingApproval without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        var (success, error) = await offerService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد العرض" : error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
 
     [HttpPost]
 
@@ -476,19 +490,8 @@ public class OfferLettersController(
 
     }
 
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-
-    {
-
-        var userId = ParseUserId(user);
-
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-
-        return new WorkflowActionActor(userId, userName, actorRole);
-
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
 
 

@@ -226,10 +226,14 @@ public class AcHcm26AssessmentInterviewTests
             "لا توجد في الجهة (أ) شخصية مركزية ثانية بدور hr-core لاعتماد الخطوة الأولى من ESTABLISHMENT-CHANGE-APPROVAL (فصل المهام عن central-a)",
             "No second central hr-core persona in agency A to approve ESTABLISHMENT-CHANGE-APPROVAL step 1 (SoD with central-a). " +
             "The freeze cascade is covered on PostgreSQL by Hcm026EstablishmentCascadeIntegrationTests.");
+        // PLAN-25: the establishment step 1 is central-only and the creator (central-a) never approves — the second central
+        // hr-core persona approves it (br1-mgr is branch-scoped and is refused on EstablishmentChanges).
+        var central2 = new Ui(await CreateClientAsync(AcceptanceHarness.RequirePersona(secondCentralHrCore!.Id), Guid.NewGuid().ToString("D")),
+            recorder, secondCentralHrCore.Id, "26h");
         WriteScenarioSteps(recorder, """
             1. Publish two requisitions (positions P1, P2), each with one HR application.
             2. Test-only precondition: insert an Issued offer on P2's application.
-            3. AC-26h (negative): freeze P2 via FundedPositions/Freeze → submit → br1-mgr + a-management-approver approve → apply fails; P2 stays Vacant, requisition stays Published.
+            3. AC-26h (negative): freeze P2 via FundedPositions/Freeze → submit → central-a2 + a-management-approver approve → apply fails; P2 stays Vacant, requisition stays Published.
             4. AC-26h (positive): freeze P1 the same way → P1 Frozen, requisition Cancelled («تجميد المنصب: …»), application Rejected.
             """);
 
@@ -239,13 +243,13 @@ public class AcHcm26AssessmentInterviewTests
             $"INSERT INTO \"OfferLetters\" (\"Id\",\"TenantId\",\"RecruitmentApplicationId\",\"FundedPositionId\",\"OfferNumber\",\"Status\",\"OfferedSalary\",\"ProposedStartDate\",\"IsConvertedToEmployee\",\"CreatedAt\",\"UpdatedAt\") " +
             $"VALUES (gen_random_uuid(),'{TenantA}','{blockedApp}','{blockedPos}','AC26H-{Guid.NewGuid():N}'::varchar(30),2,1000,now() + interval '30 days',false,now(),now());");
 
-        await FreezeThroughWorkflowAsync(recorder, central, br1, approver, blockedPos, "26h-negative");
+        await FreezeThroughWorkflowAsync(recorder, central, central2, approver, blockedPos, "26h-negative");
         Assert.Equal("Vacant", await Sql($"SELECT \"Status\" FROM \"FundedPositions\" WHERE \"Id\"='{blockedPos}';"));
         Assert.Equal("Published", await Sql($"SELECT \"Status\" FROM \"RecruitmentRequisitions\" WHERE \"Id\"='{blockedReq}';"));
 
         var (req, pos) = await CreatePublishedRequisitionAsync(recorder, central, br1, approver);
         var app = await CreateApplicationAsync(central, req);
-        await FreezeThroughWorkflowAsync(recorder, central, br1, approver, pos, "26h-positive");
+        await FreezeThroughWorkflowAsync(recorder, central, central2, approver, pos, "26h-positive");
         Assert.Equal("Frozen", await Sql($"SELECT \"Status\" FROM \"FundedPositions\" WHERE \"Id\"='{pos}';"));
         Assert.Equal("Cancelled|تجميد المنصب: AC-HCM-26h إعادة هيكلة", await Sql(
             $"SELECT \"Status\" || '|' || COALESCE(\"CancellationReason\",'') FROM \"RecruitmentRequisitions\" WHERE \"Id\"='{req}';"));
@@ -397,7 +401,7 @@ public class AcHcm26AssessmentInterviewTests
         return appId;
     }
 
-    private static async Task FreezeThroughWorkflowAsync(EvidenceRecorder recorder, Ui central, Ui br1, Ui approver, string positionId, string step)
+    private static async Task FreezeThroughWorkflowAsync(EvidenceRecorder recorder, Ui central, Ui stepOne, Ui approver, string positionId, string step)
     {
         var positionDetails = $"ui/hr-core/FundedPositions/Details/{positionId}";
         await central.PostAsync($"{step}-freeze-draft", $"ui/hr-core/FundedPositions/Freeze/{positionId}", positionDetails,
@@ -408,7 +412,7 @@ public class AcHcm26AssessmentInterviewTests
         var changeDetails = $"ui/hr-core/EstablishmentChanges/Details/{changeId}";
         await central.PostAsync($"{step}-submit", $"ui/hr-core/EstablishmentChanges/Submit/{changeId}", changeDetails,
             [new("LegalSourceId", Syr001LegislationIds.Law50_2004), new("DecisionReference", "AC-HCM-26h")]);
-        await br1.PostAsync($"{step}-approve-1", $"ui/hr-core/EstablishmentChanges/ApproveWorkflow/{changeId}", changeDetails,
+        await stepOne.PostAsync($"{step}-approve-1", $"ui/hr-core/EstablishmentChanges/ApproveWorkflow/{changeId}", changeDetails,
             [new("ChangeRequestId", changeId), new("Comments", "AC-HCM-26h step 1")]);
         await approver.PostAsync($"{step}-approve-2", $"ui/hr-core/EstablishmentChanges/ApproveWorkflow/{changeId}", changeDetails,
             [new("ChangeRequestId", changeId), new("Comments", "AC-HCM-26h step 2")]);

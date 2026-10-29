@@ -1,8 +1,8 @@
 {
   "scenario": "22e",
   "checks": {
-    "offerId": "0b5a591a-eab5-4aa7-9d65-f26921c7e7f1",
-    "workflowInstanceId": "c377b7e6-11bf-4fcd-9d45-cacb068bb416",
+    "offerId": "a99690d5-1714-4110-9c64-0b2c1cdbd2f0",
+    "workflowInstanceId": "e2320fae-64a7-4d60-b030-0a6ab858ae40",
     "nonLab": "Hcm033LabScaleBehaviourTests (integration)"
   }
 }

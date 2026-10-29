@@ -70,7 +70,7 @@ public class Hcm028CommitteeApprovalTests
         var (sessionId, _) = await SubmitReadySessionAsync(db);
         var workflowId = (await db.SelectionCommitteeSessions.AsNoTracking().SingleAsync(s => s.Id == sessionId)).WorkflowInstanceId!.Value;
 
-        // Bypassing the lifecycle service: WorkflowInstanceActionService.ValidateSelfApprovalAsync still refuses.
+        // Bypassing the lifecycle service: the action service still refuses (CommitteeApprovalGate, PLAN-25).
         var result = await Hcm027TestSupport.CreateActionService(db)
             .ApproveAsync(workflowId, Actor(SecretaryId), null, targetStepLevel: null);
 

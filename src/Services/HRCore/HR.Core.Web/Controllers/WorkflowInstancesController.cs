@@ -19,7 +19,8 @@ namespace HR.Core.Web.Controllers;
 public class WorkflowInstancesController(
     HRCoreDbContext context,
     IWorkflowEngine engine,
-    IWorkflowInstanceActionService workflowActions) : ControllerBase
+    IWorkflowInstanceActionService workflowActions,
+    WorkflowStepRoleOptions stepRoleOptions) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? entityType, [FromQuery] string? status)
@@ -48,6 +49,11 @@ public class WorkflowInstancesController(
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Start([FromBody] StartWorkflowRequest request)
     {
+        // PLAN-25 (review finding 1): recruitment and establishment approvals start only through their submit (the approval
+        // start coordinator, which links the instance); a generic instance could be pre-approved and then adopted.
+        if (stepRoleOptions.IsEnforced(request.EntityType))
+            return BadRequest($"Workflows for '{request.EntityType}' are started by submitting the record, not through this API.");
+
         var tenantId = context.CurrentTenantId ?? TenantDefaults.DefaultTenantId;
         var definition = await context.WorkflowDefinitions
             .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
@@ -135,13 +141,8 @@ public class WorkflowInstancesController(
         return Ok(history);
     }
 
-    private static WorkflowActionActor CreateActor(ClaimsPrincipal user)
-    {
-        var userId = ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(userId, userName, actorRole);
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {

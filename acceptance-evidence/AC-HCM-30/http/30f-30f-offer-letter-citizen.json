@@ -3,10 +3,10 @@
   "method": "GET",
   "url": "/careers/my/offer/letter",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:05:06.0317282Z",
+  "capturedAtUtc": "2026-10-29T20:06:09.0258533Z",
   "body": {
     "contentType": "application/pdf",
-    "length": 48017,
+    "length": 47861,
     "head": "%PDF"
   }
 }

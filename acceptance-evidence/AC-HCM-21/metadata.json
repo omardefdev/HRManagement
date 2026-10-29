@@ -1,12 +1,12 @@
 {
   "scenario": "AC-HCM-21d lab scale: submit creates the WorkflowInstanceId",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver",
-  "correlationId": "ad4c2db4-656b-44e7-bdca-4c08d27d23ff",
-  "capturedAtUtc": "2026-10-29T16:54:31.2440719Z",
+  "correlationId": "efb72e80-ee49-4699-a173-d16338f3029e",
+  "capturedAtUtc": "2026-10-29T19:55:05.2191275Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "dec31331314ebc53247d946ce8bdceb2cf3d7f7c"
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
 }

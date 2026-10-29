@@ -1,0 +1,16 @@
+{
+  "step": "4-rank-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/AssignRank",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:11:08.7889076Z",
+  "body": {
+    "fields": [
+      "ApplicationId=78376cf3-6819-4108-866a-f9d7ba0405dd",
+      "Rank=1"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentApplications/Details/78376cf3-6819-4108-866a-f9d7ba0405dd"
+  }
+}

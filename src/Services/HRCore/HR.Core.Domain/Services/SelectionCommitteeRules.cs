@@ -15,7 +15,7 @@ public static class SelectionCommitteeRules
     public const int MinRankOverrideReasonLength = 20;
 
     public const string LockedMessage = "تم تقديم الجلسة للاعتماد — العضوية مقفلة.";
-    public const string QuorumMessage = "لا يمكن اعتماد خطوة النصاب: يجب 3 أعضاء فعّالين على الأقل (غير منسحبين).";
+    public const string QuorumMessage = "النصاب غير مكتمل: لا يمكن اعتماد خطوة النصاب دون 3 أعضاء فعّالين على الأقل (غير منسحبين).";
     public const string ApproverIsMemberOrCreatorMessage = "لا يجوز لعضو في اللجنة أو منشئها اعتماد الجلسة.";
     public const string QuorumNotMetMessage = "النصاب غير مكتمل: يجب 3 أعضاء على الأقل غير منسحبين.";
     public const string ChairRequiredMessage = "يجب تعيين رئيس واحد للجنة من الأعضاء غير المنسحبين.";

@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/SubmitOfferDrafts/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:58:12.4331262Z",
+  "capturedAtUtc": "2026-10-29T20:08:37.1517027Z",
   "body": {
     "fields": [],
     "postStatus": 302,

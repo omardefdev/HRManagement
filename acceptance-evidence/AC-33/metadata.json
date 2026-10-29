@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-33 asset loss before/after snapshots",
+  "personaId": "br1-mgr",
+  "correlationId": "1e43f983-7a67-4b2e-b9f8-41e47d3c88d0",
+  "capturedAtUtc": "2026-10-29T20:13:46.8136069Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
+}

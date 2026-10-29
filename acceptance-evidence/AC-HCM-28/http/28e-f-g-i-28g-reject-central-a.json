@@ -3,15 +3,15 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/SetStatus",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:54:51.9754212Z",
+  "capturedAtUtc": "2026-10-29T20:01:07.0811904Z",
   "body": {
     "fields": [
-      "id=da9c15f0-4f89-4e48-baab-482ab6e583cf",
+      "id=cf70bc6b-c969-4bb4-9cac-437ffbe79822",
       "status=Rejected",
       "rejectionNote=AC-HCM-28g"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentApplications/Details/da9c15f0-4f89-4e48-baab-482ab6e583cf",
-    "final": "/ui/hr-core/RecruitmentApplications/Details/da9c15f0-4f89-4e48-baab-482ab6e583cf"
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/cf70bc6b-c969-4bb4-9cac-437ffbe79822",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/cf70bc6b-c969-4bb4-9cac-437ffbe79822"
   }
 }

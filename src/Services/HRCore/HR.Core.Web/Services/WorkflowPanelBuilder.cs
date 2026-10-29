@@ -2,6 +2,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow;
+using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Tenancy;
@@ -19,6 +21,9 @@ public sealed class WorkflowPanelBuildOptions
     public bool BlockInitiatorOnLaterSteps { get; init; } = true;
     public string? CreatorSoDMessage { get; init; } = "لا يمكن للمنشئ اعتماد طلبه الخاص.";
     public Func<WorkflowInstance, WorkflowStepSnapshot, Guid?, string?>? AdditionalBlockReason { get; init; }
+
+    /// <summary>PLAN-25: the server step-role rule for the inbox list (detail panels ask the evaluator instead).</summary>
+    public WorkflowStepRoleOptions StepRoleOptions { get; init; } = new();
 }
 
 public static class WorkflowPanelDataLoader
@@ -50,11 +55,75 @@ public static class WorkflowPanelDataLoader
 
 public static class WorkflowPanelBuilder
 {
+    /// <summary>
+    /// PLAN-25 (G-04, decision 5): the detail panels. Approve and reject are offered exactly when the server would accept
+    /// them — the same <see cref="WorkflowApprovalEvaluator"/> (stage guard, step role, entity gate) that
+    /// <c>WorkflowInstanceActionService</c> runs. Only the display state comes from <paramref name="options"/>.
+    /// </summary>
+    public static async Task<WorkflowPanelViewModel> BuildAsync(
+        WorkflowInstance? instance,
+        WorkflowDefinition? definition,
+        ClaimsPrincipal user,
+        WorkflowPanelBuildOptions options,
+        WorkflowApprovalEvaluator evaluator,
+        CancellationToken ct = default)
+    {
+        var (panel, currentStep) = BuildDisplay(instance, definition, user, options);
+        if (instance is null || definition is null || currentStep is null
+            || !options.IsAwaitingApproval || instance.Status != WorkflowStatus.InProgress)
+            return panel;
+
+        var actor = WorkflowActionActor.FromPrincipal(user);
+        var approveBlock = await evaluator.GetBlockReasonAsync(
+            instance, definition, actor, WorkflowActionKind.Approve, instance.CurrentStepLevel, ct);
+        var rejectBlock = await evaluator.GetBlockReasonAsync(instance, definition, actor, WorkflowActionKind.Reject, ct: ct);
+
+        panel.CanApprove = approveBlock is null;
+        panel.CanReject = rejectBlock is null;
+        panel.BlockReason = approveBlock ?? rejectBlock;
+        panel.ApproveTargetStepLevel = panel.CanApprove ? instance.CurrentStepLevel : null;
+        return panel;
+    }
+
+    /// <summary>
+    /// The work inbox's bulk check (no per-row queries): the same domain rules from pre-loaded context and the server's
+    /// step-role rule (<see cref="WorkflowPanelBuildOptions.StepRoleOptions"/>).
+    /// </summary>
     public static WorkflowPanelViewModel Build(
         WorkflowInstance? instance,
         WorkflowDefinition? definition,
         ClaimsPrincipal user,
         Guid? userId,
+        WorkflowPanelBuildOptions options)
+    {
+        var (panel, currentStep) = BuildDisplay(instance, definition, user, options);
+        if (instance is null || definition is null || currentStep is null
+            || !options.IsAwaitingApproval || instance.Status != WorkflowStatus.InProgress)
+            return panel;
+
+        var blockReason = ResolveBlockReason(instance, currentStep, user, userId, options);
+        if (blockReason is not null)
+        {
+            panel.BlockReason = blockReason;
+            return panel;
+        }
+
+        panel.CanApprove = true;
+        panel.CanReject = true;
+        panel.ApproveTargetStepLevel = instance.CurrentStepLevel;
+        return panel;
+    }
+
+    public static Guid? ParseUserId(ClaimsPrincipal user)
+    {
+        var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
+        return Guid.TryParse(v, out var g) ? g : null;
+    }
+
+    private static (WorkflowPanelViewModel Panel, WorkflowStepSnapshot? CurrentStep) BuildDisplay(
+        WorkflowInstance? instance,
+        WorkflowDefinition? definition,
+        ClaimsPrincipal user,
         WorkflowPanelBuildOptions options)
     {
         var panel = new WorkflowPanelViewModel
@@ -64,11 +133,16 @@ public static class WorkflowPanelBuilder
                 && instance is null
                 && options.MissingWorkflowWarning is not null
                     ? options.MissingWorkflowWarning
-                    : null
+                    : null,
+            // PLAN-25: HrCoreWrite (Admin or hr-core) may restart the missing workflow.
+            CanRestartApproval = options.IsAwaitingApproval
+                && instance is null
+                && options.MissingWorkflowWarning is not null
+                && (user.IsInRole(HrManagementRoles.Admin) || user.IsInRole(HrManagementRoles.HrCore))
         };
 
         if (instance is null || definition is null)
-            return panel;
+            return (panel, null);
 
         panel.WorkflowInstanceId = instance.Id;
         panel.WorkflowStatus = instance.Status;
@@ -97,31 +171,7 @@ public static class WorkflowPanelBuilder
         var currentStep = steps.FirstOrDefault(s => s.Level == instance.CurrentStepLevel);
         panel.CurrentStepName = currentStep?.Name;
         panel.CurrentStepRoleRequired = currentStep?.RoleRequired;
-
-        if (!options.IsAwaitingApproval
-            || instance.Status != WorkflowStatus.InProgress
-            || currentStep is null)
-        {
-            return panel;
-        }
-
-        var blockReason = ResolveBlockReason(instance, currentStep, user, userId, options);
-        if (blockReason is not null)
-        {
-            panel.BlockReason = blockReason;
-            return panel;
-        }
-
-        panel.CanApprove = true;
-        panel.CanReject = true;
-        panel.ApproveTargetStepLevel = instance.CurrentStepLevel;
-        return panel;
-    }
-
-    public static Guid? ParseUserId(ClaimsPrincipal user)
-    {
-        var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
-        return Guid.TryParse(v, out var g) ? g : null;
+        return (panel, currentStep);
     }
 
     private static string ResolveStepState(
@@ -156,20 +206,29 @@ public static class WorkflowPanelBuilder
             return "لا يمكن لمنشئ المسار اعتماد مراحل لاحقة.";
         }
 
-        if (!UserHasStepRole(user, currentStep.RoleRequired))
-            return $"هذه الخطوة تتطلب دور «{currentStep.RoleRequired}».";
+        if (!UserHasStepRole(user, currentStep, instance.EntityType, options.StepRoleOptions))
+            return WorkflowStageGuard.StepRoleMessage(currentStep.RoleRequired);
 
         return options.AdditionalBlockReason?.Invoke(instance, currentStep, userId);
     }
 
-    private static bool UserHasStepRole(ClaimsPrincipal user, string roleRequired)
+    private static bool UserHasStepRole(
+        ClaimsPrincipal user,
+        WorkflowStepSnapshot step,
+        string entityType,
+        WorkflowStepRoleOptions stepRoleOptions)
     {
-        if (string.IsNullOrWhiteSpace(roleRequired))
+        if (string.IsNullOrWhiteSpace(step.RoleRequired))
             return true;
+
+        // Enforced entity types: exactly the server rule (no admin bypass unless configured).
+        if (stepRoleOptions.IsEnforced(entityType))
+            return WorkflowStageGuard.ValidateStepRole(
+                step, entityType, WorkflowActionActor.FromPrincipal(user).Roles, stepRoleOptions) is null;
 
         if (user.IsInRole(HrManagementRoles.Admin))
             return true;
 
-        return user.IsInRole(roleRequired);
+        return user.IsInRole(step.RoleRequired);
     }
 }

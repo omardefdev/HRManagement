@@ -11,9 +11,12 @@ namespace HR.Core.Web.Services;
 /// </summary>
 public static class RecruitmentAppealAccess
 {
-    /// <summary>The compliance role (or Admin) may decide an appeal assigned to the actor.</summary>
-    public static bool HasReviewerRole(ClaimsPrincipal user) =>
-        user.IsInRole(HrManagementRoles.Admin) || user.IsInRole(HrManagementRoles.Compliance);
+    /// <summary>
+    /// The compliance role may decide an appeal assigned to the actor. PLAN-25 (review finding 3): admin no longer counts —
+    /// the review step requires «compliance» on the server and Workflow:AdminBypass is false, so the decision forms must
+    /// not be offered to an admin without it.
+    /// </summary>
+    public static bool HasReviewerRole(ClaimsPrincipal user) => user.IsInRole(HrManagementRoles.Compliance);
 
     /// <summary>Compliance without any HR.Core read role: limited to appeals assigned to them.</summary>
     public static bool IsComplianceOnly(ClaimsPrincipal user) =>

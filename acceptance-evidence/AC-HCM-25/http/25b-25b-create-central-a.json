@@ -1,0 +1,21 @@
+{
+  "step": "25b-25b-create-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:15.9530408Z",
+  "body": {
+    "fields": [
+      "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
+      "FundedPositionId=a0000001-0000-4000-8000-000000000963",
+      "JobTitle=\u0648\u0638\u064A\u0641\u0629 PLAN-33 25b",
+      "JustificationNotes=PLAN-33 acceptance 25b",
+      "LegalSourceId=SYR-LAW-50-2004",
+      "BudgetYear=2026",
+      "PublishingChannel=PublicOnly"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/c7ec66a2-0212-48a1-9b5a-503eafd1ee1b",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/c7ec66a2-0212-48a1-9b5a-503eafd1ee1b"
+  }
+}

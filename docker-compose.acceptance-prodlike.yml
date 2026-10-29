@@ -1,5 +1,6 @@
-# PLAN-33 (decision 2): production-like recruitment settings on the acceptance stack, for the
-# RecruitmentToHireJourneyProdLikeE2ETests journey (Category=JourneyProdLike, excluded from CI until PLAN-25).
+# PLAN-33 (decision 2) / PLAN-25 (decision 10): production-like recruitment settings on the acceptance stack, for the
+# RecruitmentToHireJourneyProdLikeE2ETests journey (Category=JourneyProdLike, in the CI journey filter since PLAN-25) and
+# the AC-HCM-25 acceptance scenarios.
 #
 # Layer it LAST on the acceptance set and recreate only the two services it changes:
 #   docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \
@@ -8,20 +9,25 @@
 # Recreate them without this file to return to the lab profile.
 #
 # ASPNETCORE_ENVIRONMENT stays "Acceptance" so the acceptance personas, the Acceptance seed profile (no Demo seed), the
-# local Keycloak, FileDrop OTP delivery and the caller-proof secret keep working. What changes are the Production VALUES
-# that drive recruitment (src/Services/HRCore/HR.Core.Web/appsettings.Production.json, HR.Contracts' Production file):
+# local Keycloak, FileDrop OTP delivery and the caller-proof secret keep working. Because appsettings.Production.json is
+# therefore NOT loaded, the Production VALUES that drive recruitment are mirrored here explicitly
+# (src/Services/HRCore/HR.Core.Web/appsettings.Production.json, HR.Contracts' Production file):
 #   - NationalScope:IsLabScale=false and HardEnforceCeilings=true;
-#   - the policy engine as configured in Production: no PolicyEngine section at all, so every domain resolves to "Off"
-#     (no PolicyEngine__* variable may be set here);
+#   - PolicyEngine:Core.Recruitment=Shadow (PLAN-25 decision 10; no other PolicyEngine key, so every other domain is Off);
+#   - Recruitment:Approvals:AlwaysStartWorkflow=true, FailIfDefinitionMissing=true (PLAN-25 decision 10);
+#   - Workflow:AdminBypass=false (PLAN-25 decision 4; also the default everywhere);
 #   - Recruitment:CommitteeApprovalDefault=true, Recruitment:Retention:Apply=false;
 #   - HR.Contracts: Contracts:AllowDefaultContractTypeFallback=false.
-# Expected today (gap G-02, open until PLAN-25): a requisition submitted here goes to PendingApproval WITHOUT a workflow
-# instance, so the journey stops at the first approval.
+# Since PLAN-25 (G-02 closed) the journey passes here; before PLAN-25 it stopped at the first approval.
 services:
   hr-core-web:
     environment:
       NationalScope__IsLabScale: "false"
       NationalScope__HardEnforceCeilings: "true"
+      PolicyEngine__Core.Recruitment: "Shadow"
+      Recruitment__Approvals__AlwaysStartWorkflow: "true"
+      Recruitment__Approvals__FailIfDefinitionMissing: "true"
+      Workflow__AdminBypass: "false"
       Recruitment__CommitteeApprovalDefault: "true"
       Recruitment__Retention__Apply: "false"
 

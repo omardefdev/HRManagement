@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:10:06.8709850Z",
+  "capturedAtUtc": "2026-10-29T19:55:17.9366027Z",
   "body": {
     "fields": [
-      "ApplicationId=4cd8271b-d88e-4c6b-aa38-80aeb03a36b7",
+      "ApplicationId=9a299a3f-053f-4cf7-9ad6-c9ba53fafd7a",
       "Mode=CreateNew",
       "NationalId=***",
       "FirstName=\u0645\u0631\u0634\u062D",
@@ -19,7 +19,7 @@
       "EmploymentTypeChangeReason=\u0648\u0638\u064A\u0641\u0629 \u0625\u062F\u0627\u0631\u064A\u0629 \u0645\u0633\u0627\u0646\u062F\u0629 \u0648\u0641\u0642 \u0642\u0631\u0627\u0631 \u0627\u0644\u0645\u0644\u0627\u0643"
     ],
     "postStatus": 302,
-    "redirect": "http://localhost:6200/ui/hr-contracts/HireWizard/Continue?employeeId=0a90cd25-0976-49d9-9c47-0aadd6f00fb3",
+    "redirect": "http://localhost:6200/ui/hr-contracts/HireWizard/Continue?employeeId=f50f83e7-654f-47e9-bf99-7d2a402ab2ff",
     "final": "/ui/hr-contracts/HireWizard"
   }
 }

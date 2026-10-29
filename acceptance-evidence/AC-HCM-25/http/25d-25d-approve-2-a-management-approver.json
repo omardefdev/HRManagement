@@ -1,0 +1,16 @@
+{
+  "step": "25d-25d-approve-2-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/0ef8e629-6c20-4a8c-b2c0-1dbb982ec02c",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:31.2331325Z",
+  "body": {
+    "fields": [
+      "RequisitionId=0ef8e629-6c20-4a8c-b2c0-1dbb982ec02c",
+      "Comments=PLAN-33 25d-approve-2"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/0ef8e629-6c20-4a8c-b2c0-1dbb982ec02c",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/0ef8e629-6c20-4a8c-b2c0-1dbb982ec02c"
+  }
+}

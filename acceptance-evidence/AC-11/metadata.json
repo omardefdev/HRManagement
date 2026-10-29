@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-11 policy workflow \u002B signatures",
+  "personaId": "b-branch-manager",
+  "correlationId": "9f36048a-0c35-45c4-a9e1-5fb78cb23fb5",
+  "capturedAtUtc": "2026-10-29T20:13:53.2672024Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
+}

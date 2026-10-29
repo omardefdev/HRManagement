@@ -1,0 +1,16 @@
+{
+  "step": "25e-25e-2-assign-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentAppeals/AssignReviewer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:28.0563226Z",
+  "body": {
+    "fields": [
+      "id=8dc26406-aa2f-4798-b080-e99d51f0dabc",
+      "reviewerEmployeeId=c5b5dac5-519d-1746-8173-1a3340a9b8db"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/8dc26406-aa2f-4798-b080-e99d51f0dabc",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/8dc26406-aa2f-4798-b080-e99d51f0dabc"
+  }
+}

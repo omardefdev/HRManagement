@@ -107,7 +107,8 @@ public sealed class WorkflowStarter(
                     .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.Id == defId, ct);
-                if (bound is not null)
+                // PLAN-25 (G-14): a binding never revives an unpublished (retired) definition.
+                if (bound is { IsPublished: true })
                     return bound;
             }
         }

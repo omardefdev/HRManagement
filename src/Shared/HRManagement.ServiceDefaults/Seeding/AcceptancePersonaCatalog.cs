@@ -106,8 +106,8 @@ public static class AcceptancePersonaCatalog
 
         if (!string.Equals(source.SchemaVersion, AcceptanceSeedCatalog.PackId, StringComparison.Ordinal))
             throw new InvalidOperationException($"Expected persona schema '{AcceptanceSeedCatalog.PackId}', found '{source.SchemaVersion}'.");
-        if (source.Personas.Count != 60)
-            throw new InvalidOperationException($"Acceptance v2 requires exactly 60 personas; found {source.Personas.Count}.");
+        if (source.Personas.Count != 61)
+            throw new InvalidOperationException($"Acceptance v2 requires exactly 61 personas; found {source.Personas.Count}.");
         EnsureUnique(source.Personas.Select(p => p.Id), "persona id");
         EnsureUnique(source.Personas.Select(p => p.Username), "username");
         EnsureUnique(source.Personas.Select(p => p.PasswordEnv), "password environment key");
@@ -221,10 +221,10 @@ public static class AcceptancePersonaCatalog
         if (fixtures.Length != 4)
             throw new InvalidOperationException("Acceptance v2 requires exactly four negative personas.");
         if (regular.Count(p => p.Definition.TenantCode == TenantDefaults.DefaultCode) != 2
-            || regular.Count(p => p.Definition.TenantCode == "AGENCY-A") != 42
+            || regular.Count(p => p.Definition.TenantCode == "AGENCY-A") != 43
             || regular.Count(p => p.Definition.TenantCode == "AGENCY-B") != 8
             || regular.Count(p => p.Definition.TenantCode == "AGENCY-C") != 4)
-            throw new InvalidOperationException("Acceptance persona distribution does not match the approved 2/42/8/4 plan.");
+            throw new InvalidOperationException("Acceptance persona distribution does not match the approved 2/43/8/4 plan (PLAN-25 added central-a2).");
     }
 
     private static void EnsureUnique(IEnumerable<string> values, string label)

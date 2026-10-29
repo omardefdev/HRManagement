@@ -1,7 +1,7 @@
 # دراسة مسار التوظيف (HCM-001) — الوضع الفعلي وما بقي لإكماله
 
 **تاريخ الدراسة:** 2026-10-21  
-**آخر تحديث:** 2026-10-29 (PLAN-33: سطر «الحالة» لكل فجوة مع الخطة والدليل، وتحويل §7 إلى قائمة تحقق بالحالة الفعلية). الأقسام 1–3 تصف الوضع وقت الدراسة ولم تُعدَّل؛ الحالة الراهنة في أسطر «الحالة» وفي §7.  
+**آخر تحديث:** 2026-10-29 (PLAN-25: إغلاق G-02 وG-04 وG-05 وG-14 وG-15 وتحديث §7؛ وقبله PLAN-33: سطر «الحالة» لكل فجوة مع الخطة والدليل، وتحويل §7 إلى قائمة تحقق بالحالة الفعلية). الأقسام 1–3 تصف الوضع وقت الدراسة ولم تُعدَّل؛ الحالة الراهنة في أسطر «الحالة» وفي §7.  
 **النطاق:** مسار التوظيف من طلب الشاغر حتى تسليم المرشح إلى معالج التعيين (FUN-001)، مع نقاط التماس مع العقود والرواتب والبوابة.  
 **المنهج:** قراءة ثابتة للشيفرة في `src/Services/HRCore` و`src/Services/HRContracts` و`src/Shared` والاختبارات والوثائق والأدلة، ومقارنتها بما تدّعيه الوثائق (`HCM_001_RECRUITMENT.md`، PLAN-21/22/23، `HIRE_ONBOARDING_GUIDE.md`، `completion-backlog/09`).  
 **حدود الدراسة:** لم يُبنَ المشروع ولم تُشغَّل الاختبارات (لا يوجد .NET SDK على الجهاز وقت الدراسة). كل فجوة أدناه مدعومة بمرجع ملف/سطر. البنود الموسومة **«يحتاج تحقق»** استنتاجات تحتاج تشغيلاً لتأكيدها.
@@ -75,7 +75,7 @@
 - **الدليل:** `git log` يحوي 3 commits فقط، آخرها `docs(syd): record G0 closure…`. و`git status` تحت `src/Services/HRCore` و`docs/acceptance-plans` و`scripts` يُظهر **283 ملفاً غير متتبَّع و140 ملفاً معدّلاً**، منها كل كيانات التوظيف (`RecruitmentRequisition.cs`، `OfferLetter.cs`، `RecruitmentAppeal.cs`…) وترحيلات `HCM001`–`HCM005`.
 - **الأثر:** لا ضمان أن الشيفرة تُبنى أو أن اختباراتها تنجح في CI، ولا إمكانية مراجعة أو تراجع. ادعاء «green CI» في الوثائق لا يغطي هذا العمل.
 - **الخطة:** PLAN-25 المرحلة 0.
-- **الحالة:** ⚠️ مغلقة جزئياً — شيفرة التوظيف كلها مُودعة الآن في commits محلية (لا ملفات غير متتبَّعة تحت `src/Services/HRCore`)، وآخرها commits فرع PLAN-33 (`7c9dcf2`، `5d4e4d0`، `b93ddba`+`29670a0`، `4588a23`، `95c70e1`، `d91b7b8`، `69ad2e3`). لكن لم يُدفع أي منها إلى المستودع البعيد، فلم يُشغَّل الـ CI البعيد على هذا العمل قط (`reports/plan33-progress.md`: «local only, never pushed»). بقية البند (CI أخضر على البعيد) ضمن PLAN-25 §0 — **Proposed، مؤجلة**.
+- **الحالة:** ⚠️ مغلقة جزئياً — شيفرة التوظيف كلها مُودعة الآن في commits محلية (لا ملفات غير متتبَّعة تحت `src/Services/HRCore`)، وآخرها commits فرع PLAN-33 (`7c9dcf2`، `5d4e4d0`، `b93ddba`+`29670a0`، `4588a23`، `95c70e1`، `d91b7b8`، `69ad2e3`). لكن لم يُدفع أي منها إلى المستودع البعيد، فلم يُشغَّل الـ CI البعيد على هذا العمل قط (`reports/plan33-progress.md`: «local only, never pushed»). وحتى PLAN-25 كل الشيفرة في commits محلية مدموجة في `main` المحلي، ولم يُدفع شيء: الـ CI البعيد لم يُشغَّل بعد. أوامر الدفع والـ CI في `reports/plan25-final-report.md` §12.
 
 #### G-02 — الاعتماد معلّق في إعدادات Staging/Production
 - **الدليل:**
@@ -85,7 +85,7 @@
   - `SelectionCommitteeLifecycleService.cs:44-62`: التقديم في هذا الوضع لا يفعل شيئاً ويعيد نجاحاً.
 - **الأثر:** في الإنتاج يبقى كل طلب شاغر وكل خطاب عرض في `PendingApproval` إلى الأبد، إذ لا يوجد إجراء اعتماد مباشر بديل. الواجهة تعرض فقط تحذير «فعّل PolicyEngine…». المسار متوقف كلياً.
 - **الخطة:** PLAN-25 (فصل بدء مسار الاعتماد عن وضع محرك السياسات).
-- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). أثبت PLAN-33 السلوك الحالي دون إصلاحه: `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` (6/6) — مع `IsLabScale=false` والمحرك `Off` يبقى طلب الشاغر وخطاب العرض في `PendingApproval` بلا نسخة مسار مع تحذير في الواجهة، ويُرفض الاعتماد، ولا يصل العرض إلى `Issued`؛ أما جلسة اللجنة فتُقفَل دون مسار و**دون أي تحذير** (توقف صامت). ونسخة E2E الشبيهة بالإنتاج (`docker-compose.acceptance-prodlike.yml`، `Category=JourneyProdLike`) تتوقف في المرحلة الأولى: الطلب بعد التقديم `PendingApproval` بلا نسخة مسار (`acceptance-evidence/AC-HCM-33/prodlike/result.json`).
+- **الحالة:** ✅ عولجت في [PLAN-25](acceptance-plans/PLAN-25-hcm-production-workflow-binding.md) (القرار D-1) — `ApprovalStartCoordinator`: يبدأ مسار الاعتماد دائماً لطلب الشاغر والعرض (العادي والتجاوز) واللجنة وطلب تغيير الملاك، أياً كان `IsLabScale` أو وضع المحرك (الإنتاج: `Shadow`)؛ والحالة «بانتظار الاعتماد» (أو تقديم اللجنة) لا تُحفظ إلا مع النسخة؛ وغياب التعريف رفض بلا تغيير. للبيانات العالقة: زر «إعادة بدء مسار الاعتماد» وسكربت `scripts/hcm025-repair-stuck-approvals.ps1`. الدليل: `Hcm025ApprovalCoordinatorTests`، `Hcm025ProductionApprovalIntegrationTests` (PostgreSQL بقيم الإنتاج)، AC-HCM-25a/25b/25h، والرحلة الشبيهة بالإنتاج ناجحة كاملة (2026-10-29، `acceptance-evidence/AC-HCM-33/prodlike/`).
 
 #### G-03 — لا توجد طريقة لإنشاء معايير التقييم
 - **الدليل:**
@@ -104,7 +104,7 @@
   - نقاط POST `ApproveWorkflow` محمية بسياسة `HrCoreBranchOperation` العامة: Admin وHrCore وBranchManager وHrManagementApprover.
 - **الأثر:** أي مستخدم `hr-core` غير منشئ يستطيع بطلب POST مباشر اعتماد خطوة تتطلب `hr-management-approver`، أو اعتماد لجنة بلا نصاب، أو البت في استئناف ليس مراجعه المستقل. هذا يكسر فصل الواجبات الذي يدّعيه PLAN-21/22.
 - **الخطة:** PLAN-25.
-- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). `RoleRequired` للخطوة ما زال يُفحص في `WorkflowPanelBuilder` وصندوق العمل فقط، ولا يفحصه `WorkflowStageGuard` ولا `WorkflowEngine` (`src/Shared/HRManagement.ServiceDefaults/Workflow/`) عند POST. نُقل إلى الخادم في PLAN-28 فحص نصاب اللجنة وفصل الواجبات فيها والمراجع المستقل للاستئناف (داخل خدمات الكيان، لا في البوابات العامة).
+- **الحالة:** ✅ عولجت في PLAN-25 — `WorkflowStageGuard.ValidateStepRole` يفحص `RoleRequired` ضمن كل أدوار المستخدم في الاعتماد والرفض (`WorkflowActionActor.FromPrincipal`؛ `Workflow:AdminBypass=false`)، ثم بوابة الكيان (`IWorkflowApprovalGate`: الطلب، العرض، اللجنة، الاستئناف، المسابقة، النتائج، الملاك) التي نُقلت إليها قواعد `ValidateSelfApprovalAsync` وفحوص العضوية والنصاب؛ واللوحات تسأل المقيِّم نفسه. الفرض على أنواع التوظيف والملاك (`Workflow:EnforceStepRoleEntityTypes`)؛ بقية النطاقات متابعة. الدليل: `WorkflowStageGuardRoleTests`، `Hcm025ApprovalGatesTests`، `Hcm025PanelServerParityTests` (84 حالة)، وAC-HCM-25c/25d/25e.
 
 #### G-05 — دور `compliance` لا يصل إلى مراجعة الاستئناف
 - **الدليل:**
@@ -114,7 +114,7 @@
   - الشخصية `a-compliance` في `testdata/acceptance/personas.json` لديها `['compliance']` فقط.
 - **الأثر:** السيناريو AC-HCM-22d غير قابل للتحقيق كما صُمم، فالاستئنافات تبقى معلّقة أو تُحسم بطرق التفاف.
 - **الخطة:** PLAN-25 (الصلاحيات) + PLAN-28 (منطق الاستئناف).
-- **الحالة:** ⚠️ مغلقة جزئياً — عولج جزء الاستئناف في PLAN-28 (شريحة من PLAN-25): متحكما `RecruitmentAppeals` و`WorkInbox` مستثنيان من مرشح الوحدة (`HrModuleAuthorizationFilter`) ويحملان سياستَي `HrCoreAppealReview` و`HrCoreWorkInbox` اللتين تقبلان دور `compliance`، وقواعد البوابة (`GatewayPathAuthorizationMiddleware`) تسمح لمستخدم `compliance` بصفحات الاستئناف وصندوق العمل فقط. الدليل: AC-HCM-28a..i (2026-10-22، `acceptance-evidence/AC-HCM-28/run-summary.md`) وAC-HCM-22d بمراجع `compliance` مُسنَد (2026-10-29، `acceptance-evidence/AC-HCM-22/`). بقية PLAN-25 (البوابات العامة لدور الخطوة) مؤجلة.
+- **الحالة:** ⚠️ مغلقة جزئياً — عولج جزء الاستئناف في PLAN-28 (شريحة من PLAN-25): متحكما `RecruitmentAppeals` و`WorkInbox` مستثنيان من مرشح الوحدة (`HrModuleAuthorizationFilter`) ويحملان سياستَي `HrCoreAppealReview` و`HrCoreWorkInbox` اللتين تقبلان دور `compliance`، وقواعد البوابة (`GatewayPathAuthorizationMiddleware`) تسمح لمستخدم `compliance` بصفحات الاستئناف وصندوق العمل فقط. الدليل: AC-HCM-28a..i (2026-10-22، `acceptance-evidence/AC-HCM-28/run-summary.md`) وAC-HCM-22d بمراجع `compliance` مُسنَد (2026-10-29، `acceptance-evidence/AC-HCM-22/`). وأكمل PLAN-25 الباقي: دور الخطوة `compliance` يُفحص في الخادم، ولم يعد المتحكم يثبّت دور الفاعل على `Compliance`، وبوابة `AppealApprovalGate` تفرض المراجع المعيّن (AC-HCM-25e). ✅
 
 ### 4.2 ثغرات سلامة القرار والحوكمة (P1)
 
@@ -199,12 +199,12 @@
 - **الدليل:** القاعدة `R-REC-HIRE` (`PolicyEngineDomainSeeds.cs:86-91`) تطلق `RECRUITMENT-HIRE` عند `Hire`، لكن `RecruitmentApplicationsController.Hire` يتجاهل `WorkflowInstanceId` ويعيّن فوراً، ولا يوجد handler لـ `RecruitmentApplication` في `WorkflowInstanceActionService`.
 - **الأثر:** عناصر معلّقة في صندوق العمل لا يغيّر اعتمادها شيئاً.
 - **الخطة:** PLAN-25.
-- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). `RECRUITMENT-HIRE` ما زال معرّفاً في `PolicyEngineDomainSeeds.cs` و`WorkflowPackSeeder.cs`، ولا معالج له في `WorkflowInstanceActionService`.
+- **الحالة:** ✅ عولجت في [PLAN-25](acceptance-plans/PLAN-25-hcm-production-workflow-binding.md) — التعيين محكوم باعتماد العرض: القاعدة `R-REC-HIRE` حُذفت من البذور الجديدة وتُعطَّل في مكانها على قواعد البيانات القائمة (`PolicyEngineDomainSeeds.DeactivateRuleIfPresentAsync`)، والتعريف `RECRUITMENT-HIRE` غير منشور (بذرة + تصحيح عند الإقلاع `WorkflowPackSeeder.RetireAsync`)، و`PolicyStaticFallback` لم يعد يطلقه، و`WorkflowStarter` لا يحيي تعريفاً غير منشور عبر الربط، والنسخ اليتيمة تُلغى بسكربت الإصلاح. حارس معماري: `WorkflowDefinitionsHaveHandlersTests`. الدليل: `Hcm025RecruitmentHireRetiredTests` (وضع Enforce)، `Hcm025ApprovalRepairTests`، وAC-HCM-25g/25h (`acceptance-evidence/AC-HCM-25/`).
 
 #### G-15 — ثغرات صلاحيات في متحكمات الإعلانات والشواغر الداخلية
 - **الدليل:** `PublicJobPostingsController` و`TalentMarketplaceController` بلا `[Authorize(HrCoreWrite)]` على `Edit` و`Delete` و`ChangeApplicationStatus` و`DeclareCitizenCoi`، فيكفي دور الوحدة (مثل `hr-management-approver` أو `branch-manager`) لتعديلها. كما أن `ClosingDate` قابل للتعديل في أي وقت دون تدقيق.
 - **الخطة:** PLAN-25.
-- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). إجراءات `Edit` و`Delete` و`ChangeApplicationStatus` و`DeclareCitizenCoi` في `PublicJobPostingsController.cs`، و`Edit` و`Delete` و`ChangeApplicationStatus` في `TalentMarketplaceController.cs`، ما زالت بلا `[Authorize(HrCoreWrite)]` على مستوى المتحكم.
+- **الحالة:** ✅ عولجت في PLAN-25 — `Create`/`Edit`/`ChangeApplicationStatus`/`DeclareCitizenCoi` ← `HrCoreWrite` و`Delete` ← `HrCoreDelete` في `PublicJobPostingsController` و`TalentMarketplaceController`، وتغيير تاريخ الإغلاق في الإعلانات القديمة مدقَّق ولا يُقدَّم إلى ما قبل اليوم مع وجود طلبات. اختبار سقف `HrCorePostActionsHaveExplicitPolicyTests` (قائمة مجمّدة بـ 42 إجراءً غير توظيفي في `tests/architecture/hrcore-post-policy-allowlist.txt`). ونطاق الفرع على شاشات التوظيف (D10 من PLAN-32): `RecruitmentOrgScopeFilter`. الدليل: `Hcm025PostingPoliciesTests`، `Hcm025OrgScopeTests`، وAC-HCM-25f.
 
 ### 4.3 تجربة المرشح وتوحيد القنوات (P1/P2)
 
@@ -339,13 +339,13 @@
 
 ## 7. معيار «اكتمال مسار التوظيف» المقترح
 
-يُعدّ المسار مكتملاً لإصدار v1 عندما تتحقق البنود الأربعة الآتية. الحالة كما في 2026-10-29:
+يُعدّ المسار مكتملاً لإصدار v1 عندما تتحقق البنود الأربعة الآتية. الحالة كما في 2026-10-29 (بعد PLAN-25):
 
 - [ ] **1. تُغلق كل فجوات P0 وP1** (G-01…G-18 عدا ما يؤجَّل بقرار موثّق).
-  **غير متحقق.** G-02 وG-04 وG-14 وG-15 مفتوحة وتنتظر PLAN-25 (Proposed، مؤجلة)، وG-01 مغلقة جزئياً (لا دفع ولا CI بعيد)، وG-05 مغلقة جزئياً (بقية الصلاحيات في PLAN-25). بقية فجوات P0/P1 مغلقة بخططها (انظر سطر «الحالة» لكل فجوة في §4).
-- [ ] **2. ينجح سيناريو E2E واحد على الأقل بإعدادات Production** (`IsLabScale=false`): طلب شاغر ← اعتماد خطوتين ← نشر ← تقديم مواطن مع مرفق ← فرز ← مقابلة مكتملة ← تقييم بمعايير مُنشأة من الواجهة ← ترتيب ← عرض ← قبول المرشح ذاتياً ← تعيين ← عقد بشروط العرض ← معاملة Appointment.
-  **غير متحقق.** الرحلة الشبيهة بالإنتاج موجودة (`src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs`، `Category=JourneyProdLike`، `docker-compose.acceptance-prodlike.yml`) وتتوقف عند أول اعتماد: الطلب بعد التقديم `PendingApproval` بلا نسخة مسار (G-02؛ `acceptance-evidence/AC-HCM-33/prodlike/`). الرحلة نفسها تنجح كاملة على ملف القبول المختبري (`Category=Journey`؛ `acceptance-evidence/AC-HCM-33/`)، من طلب الشاغر حتى معاملة `Appointment` وعقد بدرجة العرض وراتبه.
+  **متحقق عدا G-01.** أغلق PLAN-25 (2026-10-29) G-02 وG-04 وG-05 (الباقي) وG-14 وG-15؛ بقية فجوات P0/P1 مغلقة بخططها. يبقى G-01 مغلقاً جزئياً: كل الشيفرة في commits محلية، ولم يُدفع شيء ولم يُشغَّل الـ CI البعيد (التعليمات في `reports/plan25-final-report.md` §12).
+- [x] **2. ينجح سيناريو E2E واحد على الأقل بإعدادات Production** (`IsLabScale=false`): طلب شاغر ← اعتماد خطوتين ← نشر ← تقديم مواطن مع مرفق ← فرز ← مقابلة مكتملة ← تقييم بمعايير مُنشأة من الواجهة ← ترتيب ← عرض ← قبول المرشح ذاتياً ← تعيين ← عقد بشروط العرض ← معاملة Appointment.
+  **متحقق محلياً (PLAN-25، 2026-10-29).** الرحلة الشبيهة بالإنتاج (`RecruitmentToHireJourneyProdLikeE2ETests`، `Category=JourneyProdLike`، `docker-compose.acceptance-prodlike.yml`: `IsLabScale=false`، `PolicyEngine:Core.Recruitment=Shadow`، بلا تجاوز للمدير) ناجحة كاملة على بيئة نظيفة بصور مبنية من الفرع: من طلب الشاغر حتى معاملة `Appointment` وعقد بدرجة العرض وراتبه، مع رفض الخادم اعتماد الخطوة 1 بدور خاطئ (`acceptance-evidence/AC-HCM-33/prodlike/`). وهي ضمن مرشح رحلات CI (`e2e-journeys.yml`) بخطوة «صفر تخطٍّ»، لكن الـ CI البعيد لم يُشغَّل بعد (G-01).
 - [ ] **3. توجد أدلة `acceptance-evidence/AC-HCM-*` لكل سيناريو موجب وسالب في PLAN-21/22/25…30، ولا يوجد اختبار قبول ينجح دون فحص.**
-  **متحقق جزئياً.** أعاد تشغيل PLAN-33 الحي (P6، بيئة قبول نظيفة، `ACCEPTANCE_REQUIRE_ALL=true`، 2026-10-29) سيناريوهات AC-HCM-21 و22 و26..32 وAC-WF-23: نجح 45 من 46، ومنها AC-HCM-30c واختبار `Ac27_f_g` اللذان تعذّرا سابقاً لغياب File.Storage (تعمل الآن بمزوّد Local)، ونجحت رحلة AC-HCM-33 من طلب الشاغر حتى معاملة التعيين. يبقى AC-HCM-26h **محجوباً (Blocked)**: لا توجد شخصية مركزية ثانية بدور `hr-core` لاعتماد خطوة تغيير الملاك (فصل المهام)، وتغطيه اختبارات التكامل `Hcm026EstablishmentCascadeIntegrationTests`. كل مجلد يحوي العناصر الثمانية، والنتيجة لكل سيناريو في خريطة `scenarios` في `result.json` بكل مجلد (والملخص في `reports/plan33-final-report.md`). سيناريوهات PLAN-25 غير موجودة بعد (الخطة مؤجلة). ولا يمكن لاختبار قبول أن ينجح دون فحص: `AcceptanceGate` يكتب `Blocked` أو يُفشل الاختبار تحت `ACCEPTANCE_REQUIRE_ALL=true`، واختبار المعمارية `AcceptanceSkipPatternArchitectureTests` يمنع الأنماط الصامتة.
+  **متحقق جزئياً.** أعاد تشغيل PLAN-33 الحي (P6، بيئة قبول نظيفة، `ACCEPTANCE_REQUIRE_ALL=true`، 2026-10-29) سيناريوهات AC-HCM-21 و22 و26..32 وAC-WF-23: نجح 45 من 46، ومنها AC-HCM-30c واختبار `Ac27_f_g` اللذان تعذّرا سابقاً لغياب File.Storage (تعمل الآن بمزوّد Local)، ونجحت رحلة AC-HCM-33 من طلب الشاغر حتى معاملة التعيين. يبقى AC-HCM-26h **محجوباً (Blocked)**: لا توجد شخصية مركزية ثانية بدور `hr-core` لاعتماد خطوة تغيير الملاك (فصل المهام)، وتغطيه اختبارات التكامل `Hcm026EstablishmentCascadeIntegrationTests`. كل مجلد يحوي العناصر الثمانية، والنتيجة لكل سيناريو في خريطة `scenarios` في `result.json` بكل مجلد (والملخص في `reports/plan33-final-report.md`). وأضاف PLAN-25 السيناريوهات AC-HCM-25a..h (ناجحة كلها على الملف الشبيه بالإنتاج، `acceptance-evidence/AC-HCM-25/`)، وصار AC-HCM-26h ناجحاً حيّاً بالشخصية المركزية الثانية `central-a2`. ولا يمكن لاختبار قبول أن ينجح دون فحص: `AcceptanceGate` يكتب `Blocked` أو يُفشل الاختبار تحت `ACCEPTANCE_REQUIRE_ALL=true`، واختبار المعمارية `AcceptanceSkipPatternArchitectureTests` يمنع الأنماط الصامتة.
 - [x] **4. تُصحَّح `HCM_001_RECRUITMENT.md` و`HIRE_ONBOARDING_GUIDE.md` و`HIRE_RBAC_MATRIX.md` و`completion-backlog/09` لتعكس الواقع.**
   **متحقق** في PLAN-33 المرحلة P7 (انظر G-24 و`reports/plan33-final-report.md`).

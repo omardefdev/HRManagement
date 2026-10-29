@@ -1,0 +1,19 @@
+{
+  "step": "26h-26h-negative-freeze-draft-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/FundedPositions/Freeze/a0000001-0000-4000-8000-000000000960",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:12:56.2372960Z",
+  "body": {
+    "fields": [
+      "FreezeReason=AC-HCM-26h \u0625\u0639\u0627\u062F\u0629 \u0647\u064A\u0643\u0644\u0629"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/EstablishmentChanges/Details/498a645f-75af-4ea9-90e0-447e264531b9",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/EstablishmentChanges/Details/498a645f-75af-4ea9-90e0-447e264531b9",
+    "alerts": []
+  }
+}

@@ -56,6 +56,34 @@ Evaluated against a JSON context dictionary attached to the instance.
 ### Delegation
 `WorkflowDelegation` allows a principal to delegate workflow actions to another user, optionally scoped to a specific workflow code or entity type, with time bounds.
 
+### Server-side step role and entity gates (PLAN-25, G-04)
+Every approve **and** reject through `WorkflowInstanceActionService` (HR.Core) goes through `WorkflowApprovalEvaluator`
+(`HR.Core.Infrastructure/Services/Workflow/Gates/`), in this order:
+
+1. `WorkflowStageGuard.ValidateStructure` — instance in progress, no stage skipping, the current step exists.
+2. `WorkflowStageGuard.ValidateStepRole` — the step's `RoleRequired` must be one of **all** the actor's roles
+   (`WorkflowActionActor.FromPrincipal`: every `ClaimTypes.Role` / `role` claim, `employee_id`, `scope_org_unit_id`),
+   case-insensitive; message «هذه الخطوة تتطلب دور «{role}».».
+3. The entity gate (`IWorkflowApprovalGate` for the instance's entity type: requisition, offer, committee, appeal,
+   competition, results, establishment change) — SoD, quorum, membership, assigned reviewer, distinct approvers, org scope.
+4. `WorkflowStageGuard.ValidateInitiator` — the initiator never approves later stages (approve only).
+
+Configuration (`Workflow` section of HR.Core.Web):
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `Workflow:AdminBypass` | `false` (all environments) | `hr-admin` may act on a step without its role only when true |
+| `Workflow:EnforceStepRoleEntityTypes` | RecruitmentRequisition, OfferLetter, SelectionCommitteeSession, RecruitmentAppeal, RecruitmentCompetition, CompetitionResultVersion, EstablishmentChangeRequest | entity types whose step role is enforced; other domains (assets, transfers, …) keep their previous behaviour — follow-up |
+
+The detail panels (`WorkflowPanelBuilder.BuildAsync`) ask the same evaluator, so the UI offers exactly what the server
+accepts (`Hcm025PanelServerParityTests`); the work inbox uses the same role rule in its bulk check. Published definitions
+must have an outcome handler or an allow-listed owner (`WorkflowDefinitionsHaveHandlersTests`); RECRUITMENT-HIRE is retired.
+
+### Approval start (PLAN-25, G-02)
+Recruitment and establishment approvals start through `ApprovalStartCoordinator`: the policy engine (when not Off) may deny
+or start another workflow, otherwise the default workflow is started (`Recruitment:Approvals:AlwaysStartWorkflow`, default
+true); the entity is `PendingApproval` only together with the instance. `NationalScope:IsLabScale` no longer decides it.
+
 ## API Endpoints
 
 ### Definitions

@@ -229,10 +229,9 @@ public class RecruitmentAppealsController(
 
     private static AppealReviewActor CreateActor(ClaimsPrincipal user)
     {
-        var userId = WorkflowPanelBuilder.ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
+        // PLAN-25 (G-04): the real roles — the review step requires «compliance» on the server.
         return new AppealReviewActor(
-            new WorkflowActionActor(userId, userName, HrManagementRoles.Compliance),
+            WorkflowActionActor.FromPrincipal(user),
             HrOrgScopeVisibility.GetEmployeeId(user),
             RecruitmentAppealAccess.HasReviewerRole(user));
     }

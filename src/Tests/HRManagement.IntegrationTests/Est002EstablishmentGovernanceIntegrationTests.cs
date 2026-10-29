@@ -43,7 +43,7 @@ public class Est002EstablishmentGovernanceIntegrationTests
     }
 
     [Fact]
-    public async Task Submit_in_off_mode_applies_create_funded_position_and_logs()
+    public async Task Submit_in_off_mode_waits_for_approval_then_applies_create_funded_position_and_logs()
     {
         await using var db = CreateContext();
         await EstablishmentMdmTestHelper.SeedReferenceCatalogAsync(db);
@@ -66,7 +66,9 @@ public class Est002EstablishmentGovernanceIntegrationTests
                 FTE = 1.0m
             });
 
-        var (success, error) = await lifecycle.SubmitForApprovalAsync(
+        var (success, error) = await EstablishmentApprovalTestHelper.SubmitAndApproveAsync(
+            db,
+            lifecycle,
             request.Id,
             Syr001LegislationIds.Law50_2004,
             decisionReference: "DEC-001",
@@ -102,6 +104,9 @@ public class Est002EstablishmentGovernanceIntegrationTests
             EntityId = request.Id,
             InitiatedBy = Guid.NewGuid()
         };
+        // PLAN-25 (review finding 2): the handler acts only on the request's linked instance.
+        request.WorkflowInstanceId = instance.Id;
+        await db.SaveChangesAsync();
 
         await handler.HandleAsync(instance, approved: false, reason: "no");
 
@@ -149,7 +154,7 @@ public class Est002EstablishmentGovernanceIntegrationTests
         var applier = CreateApplier(db);
         var orchestrator = new PolicyOrchestrator(
             db,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), NullLogger<WorkflowStarter>.Instance),
             new PolicyPublishedSnapshotCache(new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions())),
             NullLogger<PolicyOrchestrator>.Instance);
 
@@ -159,7 +164,7 @@ public class Est002EstablishmentGovernanceIntegrationTests
             orchestrator,
             new EstablishmentLegalSourceValidator(new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db))),
             applier,
-            Mock.Of<IWorkflowStarter>(),
+            new WorkflowStarter(db, new WorkflowEngine(), NullLogger<WorkflowStarter>.Instance),
             config);
     }
 

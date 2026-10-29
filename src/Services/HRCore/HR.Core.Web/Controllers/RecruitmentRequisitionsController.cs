@@ -22,6 +22,7 @@ using Microsoft.Extensions.Options;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[RecruitmentOrgScope(RecruitmentScopeKind.Requisition)]
 public class RecruitmentRequisitionsController(
     HRCoreDbContext db,
     RecruitmentRequisitionService requisitionService,
@@ -114,6 +115,8 @@ public class RecruitmentRequisitionsController(
                 .ThenInclude(p => p.JobCatalogEntry)
             .Include(r => r.PublicJobPosting)
             .AsQueryable();
+        // PLAN-25 (D10): branch-scoped users list their units only.
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
 
         if (status is RequisitionStatus s)
             query = query.Where(r => r.Status == s);
@@ -351,6 +354,17 @@ public class RecruitmentRequisitionsController(
             ? "تم رفض طلب الشاغر وإرجاعه إلى المسودة"
             : result.Error ?? "تعذّر رفض الطلب.";
 
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>PLAN-25 (G-02): gives a requisition left PendingApproval without a workflow its approval workflow.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RestartApproval(Guid id)
+    {
+        var (success, error) = await lifecycleService.RestartApprovalAsync(id, ParseUserId(User), User.Identity?.Name);
+        TempData[success ? "Success" : "Error"] = success ? "تمت إعادة بدء مسار اعتماد الطلب" : error;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -714,13 +728,8 @@ public class RecruitmentRequisitionsController(
                 && (excludeRequisitionId == null || r.Id != excludeRequisitionId))
             .AnyAsync();
 
-    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user)
-    {
-        var userId = ParseUserId(user);
-        var userName = user.FindFirstValue("preferred_username") ?? user.Identity?.Name;
-        var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? user.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-        return new WorkflowActionActor(userId, userName, actorRole);
-    }
+    /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
+    private static WorkflowActionActor CreateWorkflowActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {

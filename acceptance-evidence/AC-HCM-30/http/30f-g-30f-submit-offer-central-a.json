@@ -3,13 +3,13 @@
   "method": "POST",
   "url": "/ui/hr-core/OfferLetters/SubmitOffer",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:05:05.1604006Z",
+  "capturedAtUtc": "2026-10-29T20:06:08.2572927Z",
   "body": {
     "fields": [
-      "id=e10f8895-b10a-4ca6-9313-d76d9902f54d"
+      "id=b4066bdc-3c15-4699-9b50-dbe9489e8811"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/e10f8895-b10a-4ca6-9313-d76d9902f54d",
-    "final": "/ui/hr-core/OfferLetters/Details/e10f8895-b10a-4ca6-9313-d76d9902f54d"
+    "redirect": "/ui/hr-core/OfferLetters/Details/b4066bdc-3c15-4699-9b50-dbe9489e8811",
+    "final": "/ui/hr-core/OfferLetters/Details/b4066bdc-3c15-4699-9b50-dbe9489e8811"
   }
 }

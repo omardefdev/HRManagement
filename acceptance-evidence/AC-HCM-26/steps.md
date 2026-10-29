@@ -25,6 +25,13 @@ Personas: central-a (hr-core, assessor 1), br1-mgr (hr-core, approval step 1, as
 1. Find a Published requisition in agency A that has an application in OfferAccepted or Hired (acceptance seed pipeline).
 2. AC-26g (negative): central-a tries to cancel it with a valid reason → rejected, status unchanged.
 
+## 26h
+
+1. Publish two requisitions (positions P1, P2), each with one HR application.
+2. Test-only precondition: insert an Issued offer on P2's application.
+3. AC-26h (negative): freeze P2 via FundedPositions/Freeze → submit → central-a2 + a-management-approver approve → apply fails; P2 stays Vacant, requisition stays Published.
+4. AC-26h (positive): freeze P1 the same way → P1 Frozen, requisition Cancelled («تجميد المنصب: …»), application Rejected.
+
 ## 26i
 
 1. Publish a requisition with a closing date (≥ today + 7).

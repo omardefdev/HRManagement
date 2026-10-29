@@ -22,6 +22,7 @@ public sealed class SelectionCommitteeLifecycleService(
     SelectionCommitteeService committeeService,
     IWorkflowInstanceActionService workflowActions)
 {
+    private readonly ApprovalStartCoordinator approvalStart = new(db, policyOrchestrator, workflowStarter, configuration);
     private const string CommitteeWorkflowCode = "RECRUITMENT-SELECTION-COMMITTEE";
     public const string NoWorkflowMessage = "لا يوجد مسار اعتماد مرتبط بهذه الجلسة.";
 
@@ -48,66 +49,94 @@ public sealed class SelectionCommitteeLifecycleService(
         var submitError = workspace?.SubmitIssues.FirstOrDefault();
         if (submitError is not null) return (false, submitError);
 
-        var now = DateTime.UtcNow;
-        session.SubmittedAt = now;
-        session.LockedAt = now;
-        db.AuditLogs.Add(new EntityAuditLog
-        {
-            EntityType = nameof(SelectionCommitteeSession),
-            EntityId = session.Id,
-            Action = "CommitteeSubmitted",
-            UserId = actorUserId,
-            ChangedFields = JsonSerializer.Serialize(new { decisions = workspace!.Decisions.Count })
-        });
+        var contextJson = BuildApprovalContextJson(session);
 
-        var contextJson = JsonSerializer.Serialize(new
-        {
-            sessionId = session.Id,
-            requisitionId = session.RequisitionId,
-            memberCount = session.Members.Count(m => !m.Recused)
-        });
-
-        var mode = ResolveMode();
-        if (mode == PolicyEnforcementMode.Off)
-        {
-            // PLAN-25: always start workflow
-            if (IsLabScale())
+        // PLAN-25 (G-02): the session is submitted and locked only together with its workflow instance.
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "SelectionCommitteeSession",
+                session.Id,
+                session.TenantId,
+                CommitteeWorkflowCode,
+                PolicyDomains.CoreRecruitment,
+                actorUserId,
+                actorUserName,
+                contextJson,
+                () =>
+                {
+                    var policyRequest = PolicyDomainFactsBuilders.ForGeneric(
+                        PolicyDomains.CoreRecruitment,
+                        "SelectionCommitteeSession",
+                        "SubmitCommittee",
+                        session.Id,
+                        session.TenantId);
+                    policyRequest.ContextJson = contextJson;
+                    return policyRequest;
+                },
+                "مرفوض بسياسة اللجنة."),
+            async instanceId =>
             {
-                session.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-                    CommitteeWorkflowCode,
-                    "SelectionCommitteeSession",
-                    session.Id,
-                    session.TenantId,
-                    actorUserId,
-                    actorUserName,
-                    contextJson,
-                    PolicyDomains.CoreRecruitment,
-                    ct);
-            }
+                var now = DateTime.UtcNow;
+                session.SubmittedAt = now;
+                session.LockedAt = now;
+                session.WorkflowInstanceId = instanceId;
+                db.AuditLogs.Add(new EntityAuditLog
+                {
+                    EntityType = nameof(SelectionCommitteeSession),
+                    EntityId = session.Id,
+                    Action = "CommitteeSubmitted",
+                    UserId = actorUserId,
+                    ChangedFields = JsonSerializer.Serialize(new { decisions = workspace!.Decisions.Count })
+                });
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
 
-            await db.SaveChangesAsync(ct);
-            return (true, null);
-        }
-
-        var policyRequest = PolicyDomainFactsBuilders.ForGeneric(
-            PolicyDomains.CoreRecruitment,
-            "SelectionCommitteeSession",
-            "SubmitCommittee",
-            session.Id,
-            session.TenantId);
-        policyRequest.ContextJson = contextJson;
-        policyRequest.Mode = mode;
-        policyRequest.ActorUserId = actorUserId;
-        policyRequest.ActorUserName = actorUserName;
-
-        var policyResult = await policyOrchestrator.EnforceAsync(policyRequest, ct);
-        if (!policyResult.Allowed)
-            return (false, policyResult.Decision.DenyReason ?? "مرفوض بسياسة اللجنة.");
-
-        session.WorkflowInstanceId = policyResult.WorkflowInstanceId;
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return start.Started ? (true, null) : (false, start.Error);
     }
+
+    /// <summary>PLAN-25: starts the missing workflow of a session that was submitted (locked) without one.</summary>
+    public async Task<(bool Success, string? Error)> RestartApprovalAsync(
+        Guid sessionId,
+        Guid? actorUserId,
+        string? actorUserName,
+        CancellationToken ct = default)
+    {
+        var session = await db.SelectionCommitteeSessions
+            .Include(s => s.Members)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        if (session is null) return (false, "جلسة اللجنة غير موجودة.");
+        if (session.SubmittedAt is null || session.ApprovedAt is not null || session.WorkflowInstanceId is not null)
+            return (false, ApprovalRestartRules.NotStuckMessage);
+
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "SelectionCommitteeSession",
+                session.Id,
+                session.TenantId,
+                CommitteeWorkflowCode,
+                PolicyDomains.CoreRecruitment,
+                // PLAN-25 (review finding 10): the record's creator stays the initiator (initiator rule); the audit names the actor.
+                session.CreatedBy ?? actorUserId,
+                session.CreatedBy is null ? actorUserName : null,
+                BuildApprovalContextJson(session)),
+            async instanceId =>
+            {
+                session.WorkflowInstanceId = instanceId;
+                ApprovalRestartRules.AddRestartAudit(db, nameof(SelectionCommitteeSession), session.Id, instanceId, actorUserId);
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
+
+        return start.Started ? (true, null) : (false, start.Error);
+    }
+
+    private static string BuildApprovalContextJson(SelectionCommitteeSession session) => JsonSerializer.Serialize(new
+    {
+        sessionId = session.Id,
+        requisitionId = session.RequisitionId,
+        memberCount = session.Members.Count(m => !m.Recused)
+    });
 
     /// <summary>
     /// HCM-028 (B): server-side committee checks before a workflow step is approved — quorum from the DB at
@@ -120,17 +149,13 @@ public sealed class SelectionCommitteeLifecycleService(
         string? comments,
         CancellationToken ct = default)
     {
-        var (session, instance, error) = await LoadForActionAsync(sessionId, ct);
+        var (_, instance, error) = await LoadForActionAsync(sessionId, ct);
         if (error is not null) return (false, error);
 
-        var members = await db.SelectionCommitteeMembers.AsNoTracking()
-            .Where(m => m.SessionId == sessionId)
-            .ToListAsync(ct);
-        var sodError = SelectionCommitteeRules.ValidateApproval(
-            instance!.CurrentStepLevel, members, session!.CreatedBy, actor.UserId, actorEmployeeId);
-        if (sodError is not null) return (false, sodError);
-
-        var result = await workflowActions.ApproveAsync(instance.Id, actor, comments, instance.CurrentStepLevel, ct);
+        // PLAN-25 (G-04): quorum, member and creator rules now live in CommitteeApprovalGate, which the action service runs
+        // on every approve (and the panel shows); the actor carries the employee id it needs.
+        var result = await workflowActions.ApproveAsync(
+            instance!.Id, actor with { EmployeeId = actor.EmployeeId ?? actorEmployeeId }, comments, instance.CurrentStepLevel, ct);
         return result.Success ? (true, null) : (false, result.Error ?? "تعذّر اعتماد اللجنة.");
     }
 
@@ -145,7 +170,8 @@ public sealed class SelectionCommitteeLifecycleService(
         var (_, instance, error) = await LoadForActionAsync(sessionId, ct);
         if (error is not null) return (false, error);
 
-        var result = await workflowActions.RejectAsync(instance!.Id, actor, comments, ct);
+        var result = await workflowActions.RejectAsync(
+            instance!.Id, actor with { EmployeeId = actor.EmployeeId ?? actorEmployeeId }, comments, ct);
         return result.Success ? (true, null) : (false, result.Error ?? "تعذّر رفض اللجنة.");
     }
 
@@ -166,21 +192,5 @@ public sealed class SelectionCommitteeLifecycleService(
             return (null, null, "مسار الاعتماد ليس قيد التنفيذ.");
 
         return (session, instance, null);
-    }
-
-    private PolicyEnforcementMode ResolveMode()
-    {
-        var raw = configuration["PolicyEngine:Core.Recruitment"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? nameof(PolicyEnforcementMode.Off);
-        return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode)
-            ? mode
-            : PolicyEnforcementMode.Off;
-    }
-
-    private bool IsLabScale()
-    {
-        var value = configuration["NationalScope:IsLabScale"];
-        return bool.TryParse(value, out var parsed) && parsed;
     }
 }

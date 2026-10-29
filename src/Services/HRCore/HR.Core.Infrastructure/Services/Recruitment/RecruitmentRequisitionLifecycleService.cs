@@ -24,6 +24,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
     MassTransit.IPublishEndpoint? publish = null)
 {
     private const string RequisitionApprovalWorkflowCode = "RECRUITMENT-REQUISITION-APPROVAL";
+    private readonly ApprovalStartCoordinator approvalStart = new(db, policyOrchestrator, workflowStarter, configuration);
+
     public async Task<(bool Success, string? Error)> SubmitForApprovalAsync(
         RecruitmentRequisition requisition,
         Guid? actorUserId,
@@ -41,63 +43,84 @@ public sealed class RecruitmentRequisitionLifecycleService(
         if (legalError is not null)
             return (false, legalError);
 
-        var mode = ResolveMode();
-        if (mode == PolicyEnforcementMode.Off)
-        {
-            req.Status = RequisitionStatus.PendingApproval;
-
-            var contextJson = JsonSerializer.Serialize(new
-            {
-                requisitionId = req.Id,
-                fundedPositionId = req.FundedPositionId,
-                requisitionNumber = req.RequisitionNumber
-            });
-
-            if (IsLabScale())
-            {
-                req.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-                    RequisitionApprovalWorkflowCode,
-                    "RecruitmentRequisition",
-                    req.Id,
-                    req.TenantId,
-                    actorUserId,
-                    actorUserName,
-                    contextJson,
-                    PolicyDomains.CoreRecruitment,
-                    ct);
-            }
-
-            await db.SaveChangesAsync(ct);
-            return (true, null);
-        }
-
-        var policyContextJson = JsonSerializer.Serialize(new
+        // PLAN-25 (G-02): the approval always starts; PendingApproval only together with the instance.
+        var contextJson = JsonSerializer.Serialize(new
         {
             requisitionId = req.Id,
             fundedPositionId = req.FundedPositionId,
             requisitionNumber = req.RequisitionNumber
         });
 
-        var policyRequest = PolicyDomainFactsBuilders.ForRecruitmentRequisition(
-            req.Id,
-            req.TenantId,
-            "SubmitForApproval",
-            req.Status.ToString(),
-            position.Status == FundedPositionStatus.Vacant,
-            req.FundedPositionId,
-            contextJson: policyContextJson);
-        policyRequest.Mode = mode;
-        policyRequest.ActorUserId = actorUserId;
-        policyRequest.ActorUserName = actorUserName;
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "RecruitmentRequisition",
+                req.Id,
+                req.TenantId,
+                RequisitionApprovalWorkflowCode,
+                PolicyDomains.CoreRecruitment,
+                actorUserId,
+                actorUserName,
+                contextJson,
+                () => PolicyDomainFactsBuilders.ForRecruitmentRequisition(
+                    req.Id,
+                    req.TenantId,
+                    "SubmitForApproval",
+                    req.Status.ToString(),
+                    position.Status == FundedPositionStatus.Vacant,
+                    req.FundedPositionId,
+                    contextJson: contextJson),
+                "مرفوض بسياسة التوظيف."),
+            async instanceId =>
+            {
+                req.Status = RequisitionStatus.PendingApproval;
+                req.WorkflowInstanceId = instanceId;
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
 
-        var policyResult = await policyOrchestrator.EnforceAsync(policyRequest, ct);
-        if (!policyResult.Allowed)
-            return (false, policyResult.Decision.DenyReason ?? "مرفوض بسياسة التوظيف.");
+        return start.Started ? (true, null) : (false, start.Error);
+    }
 
-        req.Status = RequisitionStatus.PendingApproval;
-        req.WorkflowInstanceId = policyResult.WorkflowInstanceId;
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+    /// <summary>
+    /// PLAN-25: starts the missing approval of a requisition left <c>PendingApproval</c> without an instance (data from before
+    /// G-02 was closed). Used by the Details restart button and the repair endpoint.
+    /// </summary>
+    public async Task<(bool Success, string? Error)> RestartApprovalAsync(
+        Guid requisitionId,
+        Guid? actorUserId,
+        string? actorUserName,
+        CancellationToken ct = default)
+    {
+        var req = await db.RecruitmentRequisitions.FirstOrDefaultAsync(r => r.Id == requisitionId, ct);
+        if (req is null) return (false, "طلب الشاغر غير موجود.");
+        if (req.Status != RequisitionStatus.PendingApproval || req.WorkflowInstanceId is not null)
+            return (false, ApprovalRestartRules.NotStuckMessage);
+
+        var start = await approvalStart.StartAndApplyAsync(
+            new ApprovalStartRequest(
+                "RecruitmentRequisition",
+                req.Id,
+                req.TenantId,
+                RequisitionApprovalWorkflowCode,
+                PolicyDomains.CoreRecruitment,
+                // PLAN-25 (review finding 10): the record's creator stays the initiator (initiator rule); the audit names the actor.
+                req.CreatedBy ?? actorUserId,
+                req.CreatedBy is null ? actorUserName : null,
+                JsonSerializer.Serialize(new
+                {
+                    requisitionId = req.Id,
+                    fundedPositionId = req.FundedPositionId,
+                    requisitionNumber = req.RequisitionNumber
+                })),
+            async instanceId =>
+            {
+                req.WorkflowInstanceId = instanceId;
+                ApprovalRestartRules.AddRestartAudit(db, "RecruitmentRequisition", req.Id, instanceId, actorUserId);
+                await db.SaveChangesAsync(ct);
+            },
+            ct);
+
+        return start.Started ? (true, null) : (false, start.Error);
     }
 
     /// <param name="applicationClosingDate">HCM-026: sets the closing date at first publish when the requisition has none.</param>
@@ -473,11 +496,5 @@ public sealed class RecruitmentRequisitionLifecycleService(
         return Enum.TryParse<PolicyEnforcementMode>(mode, true, out var parsed)
             ? parsed
             : PolicyEnforcementMode.Off;
-    }
-
-    private bool IsLabScale()
-    {
-        var value = configuration["NationalScope:IsLabScale"];
-        return bool.TryParse(value, out var parsed) && parsed;
     }
 }

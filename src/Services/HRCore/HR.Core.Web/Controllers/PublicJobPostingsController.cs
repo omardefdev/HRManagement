@@ -4,12 +4,17 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Web.ViewModels;
+using HR.Core.Web.Services;
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+// PLAN-25 (review finding 5): branch users see and act on postings of their units only (applicants' personal data).
+[RecruitmentOrgScope(RecruitmentScopeKind.PublicPosting)]
 public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStatusService publicStatus) : Controller
 {
     public async Task<IActionResult> Index(bool? isPublished, string? entity, string? q, DateOnly? closingFrom, DateOnly? closingTo)
@@ -18,6 +23,7 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
             .Include(p => p.Applications)
             .Include(p => p.Requisition)
             .AsQueryable();
+        query = query.InScope(await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext));
         if (isPublished is bool pub)
             query = query.Where(p => p.IsPublished == pub);
         if (!string.IsNullOrWhiteSpace(entity))
@@ -47,12 +53,14 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public IActionResult Create(PublicJobPostingCreateViewModel vm)
     {
         TempData["Info"] = "يُنشأ الإعلان العام من طلب شاغر معتمد — لا إنشاء يدوي.";
         return RedirectToAction("Index", "RecruitmentRequisitions");
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Edit(Guid id)
     {
         var posting = await db.PublicJobPostings
@@ -81,6 +89,7 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Edit(Guid id, PublicJobPostingEditViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
@@ -92,7 +101,16 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // PLAN-25 (G-15): closing-date changes are audited; no retroactive close once applications exist.
+        var hasApplications = await db.CitizenApplications.AnyAsync(a => a.PublicJobPostingId == id);
+        var closingError = LegacyPostingClosingDateRules.Validate(
+            posting.ClosingDate, vm.ClosingDate, hasApplications, DateOnly.FromDateTime(DateTime.UtcNow));
+        if (closingError is not null)
+            ModelState.AddModelError(nameof(vm.ClosingDate), closingError);
+
         if (!ModelState.IsValid) return View(vm);
+        LegacyPostingClosingDateRules.AuditIfChanged(
+            db, nameof(PublicJobPosting), posting.Id, posting.ClosingDate, vm.ClosingDate, ParseUserId());
         posting.Title = vm.Title;
         posting.Entity = vm.Entity;
         posting.Location = vm.Location;
@@ -124,6 +142,7 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> ChangeApplicationStatus(Guid id, Guid postingId, CitizenApplicationStatus status)
     {
         var application = await db.CitizenApplications.FindAsync(id);
@@ -151,6 +170,7 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> DeclareCitizenCoi(Guid id, Guid postingId)
     {
         var application = await db.CitizenApplications.FindAsync(id);
@@ -172,6 +192,7 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var posting = await db.PublicJobPostings.FindAsync(id);
@@ -187,4 +208,9 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
         TempData["Success"] = "تم حذف الإعلان";
         return RedirectToAction(nameof(Index));
     }
+
+    private Guid? ParseUserId() =>
+        Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value, out var id)
+            ? id
+            : null;
 }

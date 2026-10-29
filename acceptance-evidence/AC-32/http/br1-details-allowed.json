@@ -1,0 +1,10 @@
+{
+  "step": "br1-details-allowed",
+  "method": "GET",
+  "url": "/ui/admin-logistics/Assets/Details/a0000001-0000-4000-8000-000000000601",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:48.4571856Z",
+  "body": {
+    "status": "OK"
+  }
+}

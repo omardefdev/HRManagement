@@ -1,0 +1,16 @@
+{
+  "step": "31b-g-31g-approve-offer-1-central-a2",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/23b9b95c-939c-4697-bb5b-30990a4a0905",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:08:37.5220120Z",
+  "body": {
+    "fields": [
+      "OfferId=23b9b95c-939c-4697-bb5b-30990a4a0905",
+      "Comments=AC-HCM-31g step 1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/23b9b95c-939c-4697-bb5b-30990a4a0905",
+    "final": "/ui/hr-core/OfferLetters/Details/23b9b95c-939c-4697-bb5b-30990a4a0905"
+  }
+}

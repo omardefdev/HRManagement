@@ -3,7 +3,10 @@ using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Web.ViewModels;
+using HR.Core.Web.Services;
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -47,9 +50,11 @@ public class TalentMarketplaceController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public IActionResult Create(InternalVacancyCreateViewModel vm) =>
         RedirectToAction("Index", "RecruitmentRequisitions");
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Edit(Guid id)
     {
         var vacancy = await db.InternalVacancies.FindAsync(id);
@@ -76,6 +81,7 @@ public class TalentMarketplaceController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Edit(Guid id, InternalVacancyEditViewModel vm)
     {
         if (id != vm.Id) return BadRequest();
@@ -88,11 +94,21 @@ public class TalentMarketplaceController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // PLAN-25 (G-15): closing-date changes are audited; no retroactive close once applications exist.
+        var hasApplications = await db.InternalApplications.AnyAsync(a => a.InternalVacancyId == id);
+        var closingError = LegacyPostingClosingDateRules.Validate(
+            vacancy.ClosingDate, vm.ClosingDate, hasApplications, DateOnly.FromDateTime(DateTime.UtcNow));
+        if (closingError is not null)
+            ModelState.AddModelError(nameof(vm.ClosingDate), closingError);
+
         if (!ModelState.IsValid)
         {
             await PopulateOrgUnits();
             return View(vm);
         }
+        LegacyPostingClosingDateRules.AuditIfChanged(
+            db, nameof(InternalVacancy), vacancy.Id, vacancy.ClosingDate, vm.ClosingDate,
+            Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value, out var uid) ? uid : null);
         vacancy.Title = vm.Title;
         vacancy.OrgUnitId = vm.OrgUnitId;
         vacancy.Description = vm.Description;
@@ -123,6 +139,7 @@ public class TalentMarketplaceController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> ChangeApplicationStatus(Guid id, Guid vacancyId, InternalApplicationStatus status)
     {
         var application = await db.InternalApplications.FindAsync(id);
@@ -142,6 +159,7 @@ public class TalentMarketplaceController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var vacancy = await db.InternalVacancies.FindAsync(id);

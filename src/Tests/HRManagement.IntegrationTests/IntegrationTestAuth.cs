@@ -21,6 +21,7 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
     public const string ServiceScopeHeader = "X-Test-Service-Scope";
     public const string UserIdHeader = "X-Test-User-Id";
     public const string ScopeOrgUnitHeader = "X-Test-Scope-Org-Unit-Id";
+    public const string EmployeeIdHeader = "X-Test-Employee-Id";
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -93,6 +94,12 @@ internal sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSche
             && Guid.TryParse(scopeOrgUnitHeader.ToString(), out var scopeOrgUnitId))
         {
             claims.Add(new Claim(HrOrgScopeVisibility.ScopeOrgUnitClaimType, scopeOrgUnitId.ToString("D")));
+        }
+
+        if (Request.Headers.TryGetValue(EmployeeIdHeader, out var employeeIdHeader)
+            && Guid.TryParse(employeeIdHeader.ToString(), out var employeeId))
+        {
+            claims.Add(new Claim("employee_id", employeeId.ToString("D")));
         }
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);

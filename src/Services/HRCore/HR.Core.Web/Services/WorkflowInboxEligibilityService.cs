@@ -6,8 +6,11 @@ using HRManagement.ServiceDefaults.Workflow;
 
 namespace HR.Core.Web.Services;
 
-public sealed class WorkflowInboxEligibilityService
+/// <summary>PLAN-25: the step-role rule follows the server (Workflow options registered in DI).</summary>
+public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? stepRoleOptions = null)
 {
+    private readonly WorkflowStepRoleOptions _stepRoleOptions = stepRoleOptions ?? new WorkflowStepRoleOptions();
+
     public bool IsActionable(
         WorkflowInstance instance,
         WorkflowDefinition definition,
@@ -24,7 +27,22 @@ public sealed class WorkflowInboxEligibilityService
 
         var options = BuildOptions(
             instance, context, HrOrgScopeVisibility.GetEmployeeId(user), RecruitmentAppealAccess.HasReviewerRole(user));
-        var panel = WorkflowPanelBuilder.Build(instance, definition, user, userId, options);
+        var panel = WorkflowPanelBuilder.Build(
+            instance, definition, user, userId, new WorkflowPanelBuildOptions
+            {
+                IsAwaitingApproval = options.IsAwaitingApproval,
+                EntityCreatedBy = options.EntityCreatedBy,
+                BlockInitiatorOnLaterSteps = options.BlockInitiatorOnLaterSteps,
+                CreatorSoDMessage = options.CreatorSoDMessage,
+                // PLAN-25 (review finding 6): the override distinct-approver rule, as OfferApprovalGate applies it.
+                AdditionalBlockReason = (inst, step, actorId) =>
+                    options.AdditionalBlockReason?.Invoke(inst, step, actorId)
+                    ?? (OfferOverrideApprovalRules.IsOverrideWorkflow(definition.Code)
+                        && OfferOverrideApprovalRules.HasApprovedEarlierStep(inst.StepHistoryJson, inst.CurrentStepLevel, actorId)
+                            ? OfferOverrideApprovalRules.SameApproverMessage
+                            : null),
+                StepRoleOptions = _stepRoleOptions
+            });
         return panel.CanApprove;
     }
 

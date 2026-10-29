@@ -1,0 +1,15 @@
+{
+  "step": "4-coi-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/DeclareCoi",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:11:05.8081311Z",
+  "body": {
+    "fields": [
+      "id=78376cf3-6819-4108-866a-f9d7ba0405dd"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentApplications/Details/78376cf3-6819-4108-866a-f9d7ba0405dd"
+  }
+}

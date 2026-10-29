@@ -203,6 +203,7 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLett
 builder.Services.AddScoped<HR.Core.Web.Services.OfferOnBehalfService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Workflow.ApprovalRepairService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealWorkflowHandler>();
 // HCM-031 (PLAN-31): recruitment competitions.
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionLifecycleService>();
@@ -264,6 +265,10 @@ builder.Services.AddHrCoreExternalIntegrations(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
 builder.Services.AddOrgScopeAuthorization();
+// PLAN-25 (G-04): Workflow:AdminBypass (false unless set) and Workflow:EnforceStepRoleEntityTypes; registered before the
+// policy engine so its TryAdd default does not apply.
+builder.Services.AddSingleton(builder.Configuration.GetSection(HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions.SectionName)
+    .Get<HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions>() ?? new HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions());
 builder.Services.AddHrPolicyEngine();
 builder.Services.AddHrOrgStructure();
 builder.Services.AddHrLegislationRegister();
