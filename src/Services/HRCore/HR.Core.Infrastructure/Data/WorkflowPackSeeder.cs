@@ -65,7 +65,10 @@ public static class WorkflowPackSeeder
         // PLAN-25: move step 3 to compliance
         new(Guid.Parse("f0050015-0015-4000-8000-000000000015"), "RECRUITMENT-OFFER-OVERRIDE-APPROVAL", "اعتماد عرض استثنائي (تجاوز الجدارة)", "OfferLetter",
             "HCM-027: offers that skip merit order — three distinct approvers",
-            (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver"), (3, "اعتماد استثناء الجدارة", "hr-management-approver"))
+            (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver"), (3, "اعتماد استثناء الجدارة", "hr-management-approver")),
+        new(Guid.Parse("f0050016-0016-4000-8000-000000000016"), "RECRUITMENT-COMPETITION-APPROVAL", "اعتماد مسابقة توظيف", "RecruitmentCompetition",
+            "HCM-031: approval of a multi-vacancy recruitment competition (the creator never approves)",
+            (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver"))
     ];
 
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)

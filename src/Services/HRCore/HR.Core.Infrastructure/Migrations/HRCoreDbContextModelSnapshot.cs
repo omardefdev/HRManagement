@@ -924,6 +924,125 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("CodeSequenceCounters");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompetitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CriteriaVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GradeCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("JobCatalogEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("LineNo")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("LinePassMark")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RequiredCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriteriaVersionId");
+
+                    b.HasIndex("JobCatalogEntryId");
+
+                    b.HasIndex("OrgUnitId");
+
+                    b.HasIndex("CompetitionId", "LineNo")
+                        .IsUnique();
+
+                    b.ToTable("CompetitionLines");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompetitionLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EligibilityFlags")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionLineId");
+
+                    b.HasIndex("RecruitmentApplicationId", "CompetitionLineId")
+                        .IsUnique();
+
+                    b.HasIndex("RecruitmentApplicationId", "Order")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "CompetitionLineId");
+
+                    b.ToTable("CompetitionPreferences", t =>
+                        {
+                            t.HasCheckConstraint("CK_CompetitionPreferences_Order", "\"Order\" >= 1");
+                        });
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.ContactInfo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3527,6 +3646,12 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("CompetitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompetitionLineId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("ConflictOfInterestDeclared")
                         .HasColumnType("boolean");
 
@@ -3656,6 +3781,10 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.HasIndex("ActiveOfferLetterId");
 
+                    b.HasIndex("CompetitionId");
+
+                    b.HasIndex("CompetitionLineId");
+
                     b.HasIndex("CriteriaVersionId");
 
                     b.HasIndex("HiredEmployeeId");
@@ -3665,6 +3794,12 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("SourceInternalApplicationId");
 
                     b.HasIndex("TenantId", "RequisitionId");
+
+                    b.HasIndex("TenantId", "CompetitionId", "NationalIdHash")
+                        .IsUnique()
+                        .HasFilter("\"CompetitionId\" IS NOT NULL AND \"NationalIdHash\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "CompetitionId", "Status");
 
                     b.HasIndex("TenantId", "RequisitionId", "Rank")
                         .IsUnique()
@@ -3855,6 +3990,150 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("RecruitmentAssessmentScores");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentCompetition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AnnouncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("AnnouncementDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("ApplicationClosingDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ApplicationConditions")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("ApprovalWorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CurrentResultVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("IntakeClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InternalVacancyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LegalSourceId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("MaxLinesPerCandidate")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("ObjectionWindowDays")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PassMark")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<Guid?>("PublicJobPostingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PublishingChannel")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ReconcileRule")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<decimal>("ReconcileThreshold")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<int>("ReserveValidityMonths")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ResultsFirstPublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TieBreakOrder")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InternalVacancyId");
+
+                    b.HasIndex("LegalSourceId");
+
+                    b.HasIndex("PublicJobPostingId");
+
+                    b.HasIndex("TenantId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.ToTable("RecruitmentCompetitions", t =>
+                        {
+                            t.HasCheckConstraint("CK_RecruitmentCompetitions_MaxLinesPerCandidate", "\"MaxLinesPerCandidate\" >= 1");
+
+                            t.HasCheckConstraint("CK_RecruitmentCompetitions_ObjectionWindowDays", "\"ObjectionWindowDays\" >= 1 AND \"ObjectionWindowDays\" <= 60");
+
+                            t.HasCheckConstraint("CK_RecruitmentCompetitions_ReserveValidityMonths", "\"ReserveValidityMonths\" >= 0 AND \"ReserveValidityMonths\" <= 36");
+                        });
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewPanelMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3998,6 +4277,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime?>("ClosedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("CompetitionLineId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -4087,6 +4369,8 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompetitionLineId");
 
                     b.HasIndex("FundedPositionId");
 
@@ -6442,6 +6726,57 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("Template");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionLine", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentCompetition", "Competition")
+                        .WithMany("Lines")
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentAssessmentCriteria", "CriteriaVersion")
+                        .WithMany()
+                        .HasForeignKey("CriteriaVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HR.Core.Domain.Entities.JobCatalogEntry", "JobCatalogEntry")
+                        .WithMany()
+                        .HasForeignKey("JobCatalogEntryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HR.Core.Domain.Entities.OrgUnit", "OrgUnit")
+                        .WithMany()
+                        .HasForeignKey("OrgUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Competition");
+
+                    b.Navigation("CriteriaVersion");
+
+                    b.Navigation("JobCatalogEntry");
+
+                    b.Navigation("OrgUnit");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionPreference", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionLine", "CompetitionLine")
+                        .WithMany()
+                        .HasForeignKey("CompetitionLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CompetitionLine");
+
+                    b.Navigation("RecruitmentApplication");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.ContactInfo", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.Employee", "Employee")
@@ -6891,6 +7226,16 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasForeignKey("ActiveOfferLetterId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentCompetition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionLine", "CompetitionLine")
+                        .WithMany()
+                        .HasForeignKey("CompetitionLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("HR.Core.Domain.Entities.RecruitmentAssessmentCriteria", "CriteriaVersion")
                         .WithMany()
                         .HasForeignKey("CriteriaVersionId")
@@ -6912,6 +7257,10 @@ namespace HR.Core.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("ActiveOfferLetter");
+
+                    b.Navigation("Competition");
+
+                    b.Navigation("CompetitionLine");
 
                     b.Navigation("CriteriaVersion");
 
@@ -6961,6 +7310,31 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("RecruitmentApplication");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentCompetition", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.InternalVacancy", "InternalVacancy")
+                        .WithMany()
+                        .HasForeignKey("InternalVacancyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HRManagement.SharedKernel.Legal.LegislationSource", "LegalSource")
+                        .WithMany()
+                        .HasForeignKey("LegalSourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.PublicJobPosting", "PublicJobPosting")
+                        .WithMany()
+                        .HasForeignKey("PublicJobPostingId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("InternalVacancy");
+
+                    b.Navigation("LegalSource");
+
+                    b.Navigation("PublicJobPosting");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewPanelMember", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.Employee", "Employee")
@@ -7007,6 +7381,11 @@ namespace HR.Core.Infrastructure.Migrations
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentRequisition", b =>
                 {
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionLine", "CompetitionLine")
+                        .WithMany("Requisitions")
+                        .HasForeignKey("CompetitionLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("HR.Core.Domain.Entities.FundedPosition", "FundedPosition")
                         .WithMany()
                         .HasForeignKey("FundedPositionId")
@@ -7017,6 +7396,8 @@ namespace HR.Core.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("LegalSourceId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CompetitionLine");
 
                     b.Navigation("FundedPosition");
 
@@ -7328,6 +7709,11 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("Versions");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionLine", b =>
+                {
+                    b.Navigation("Requisitions");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.Employee", b =>
                 {
                     b.Navigation("Contacts");
@@ -7387,6 +7773,11 @@ namespace HR.Core.Infrastructure.Migrations
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentApplication", b =>
                 {
                     b.Navigation("OfferLetters");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentCompetition", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentInterviewSlot", b =>

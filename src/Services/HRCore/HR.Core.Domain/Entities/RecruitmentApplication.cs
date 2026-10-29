@@ -37,6 +37,22 @@ public class RecruitmentApplication : AuditableEntity
 
     public virtual RecruitmentRequisition? Requisition { get; set; }
 
+    /// <summary>
+    /// HCM-031 (PLAN-31): competition application — one per person per competition. <see cref="RequisitionId"/> stays
+    /// null until allocation, which sets it together with <see cref="CompetitionLineId"/>. A null-requisition application
+    /// with a competition is never "legacy".
+    /// </summary>
+    [Display(Name = "المسابقة")]
+    public Guid? CompetitionId { get; set; }
+
+    public virtual RecruitmentCompetition? Competition { get; set; }
+
+    /// <summary>HCM-031: the line the application was allocated (or recalled) to.</summary>
+    [Display(Name = "سطر المسابقة")]
+    public Guid? CompetitionLineId { get; set; }
+
+    public virtual CompetitionLine? CompetitionLine { get; set; }
+
     [Display(Name = "ترشّح داخلي مصدر")]
     public Guid? SourceInternalApplicationId { get; set; }
 

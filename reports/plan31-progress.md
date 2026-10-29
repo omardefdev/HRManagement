@@ -10,7 +10,7 @@ Baseline: [`reports/plan31-baseline.md`](plan31-baseline.md).
 | Phase | Scope | Status | Commit(s) |
 |-------|-------|--------|-----------|
 | P0 | Baseline, mapping, pre-implementation notes | Done | `docs(hcm031): baseline, pre-implementation notes and progress log` |
-| P1 | Competition model, lines, approval workflow, announce, HR screens (31a) | Pending | |
+| P1 | Competition model, lines, approval workflow, announce, HR screens (31a) | Done | `feat(hcm031): recruitment competitions — lines, requisition grouping, approval workflow, announcement` |
 | P2 | Intake with line preferences | Pending | |
 | P3 | Exams: seating, admission cards, attendance, anonymous double marking (31b, 31c) | Pending | |
 | P4 | Results, approval, publication, objections, versions (31d, 31e) | Pending | |
@@ -41,6 +41,10 @@ Prompt decisions 1–9 are adopted as written (recorded in Arabic at the top of 
 | J8 | **Competition posting:** `RecruitmentCompetition.PublicJobPostingId` (posting with `RequisitionId = null`); the public apply resolves the competition by posting id. The citizen row has `RequisitionId = null` and links the competition application through `PromotedRecruitmentApplicationId`, so `/careers/my` (one application per session) works unchanged. | No column on `PublicJobPosting`. |
 | J9 | **Eligibility per preferred line**: flags are evaluated against every attached requisition of each preferred line; the union is stored on the application (`EligibilityFlags`) and the per-line union on `CompetitionPreference.EligibilityFlags`. | "Union of flags, with the line shown." |
 | J10 | **Legacy hole closed:** the legacy "hire without offer" path (`RequisitionId is null && Shortlisted`) and every `RequisitionId == null` legacy filter exclude competition applications (`CompetitionId != null`). | P0 map, §Dangerous. |
+| J12 | **Reconcile rule**: within the threshold the exam score is always the average of the first and second marks; above it the reconciler marks and the rule decides — `Average` (mean of the three), `ReconcilerDecides` (reconciler's mark), `AverageOfClosestTwo` (mean of the closest pair; ties → higher pair). | The prompt names the three rules without defining them; this is the only reading where all three differ. |
+| J13 | **Line criteria** are frozen automatically at submit: each line takes the active criteria version of its first attached requisition (by number); rejected approval unfreezes them. No criteria picker in the UI. | Simplest; J2 guarantees all versions share one shape anyway. |
+| J14 | **Cancelling a competition** closes its posting/vacancy and rejects open competition applications with kind `RequisitionCancelled` (note «إلغاء المسابقة»); attached requisitions stay attached for history but are released (`HoldsRequisitions` = false), so they can be closed or cancelled individually. | No new rejection kind; requisition status cannot go back from Published. |
+| J15 | **Workflow handler wiring**: `CompetitionWorkflowHandler` is an optional last constructor parameter of `WorkflowInstanceActionService` (DI supplies it), so the six manual constructions in tests keep compiling. | Avoids touching PLAN-27/28 test support. |
 | J11 | **Exam numbers**: 8 decimal digits from `RandomNumberGenerator`, unique per competition (DB unique index + retry). | Fixed length, not derived from order or identity. |
 
 ## P0 map — RequisitionId-null assumptions (competition application = `CompetitionId` set, `RequisitionId` null)
@@ -121,11 +125,12 @@ has no competition instrument. Usable as a competition legal source: `SYR-LAW-50
 
 | Phase | Files |
 |-------|-------|
+| P1 | Domain: `RecruitmentCompetition`, `CompetitionLine`, `CompetitionPreference`, enums (`RecruitmentCompetitionStatus`, `CompetitionReconcileRule`, `CompetitionTieBreak`), `CompetitionWorkflowRules`; `RecruitmentRequisition.CompetitionLineId`, `RecruitmentApplication.CompetitionId/CompetitionLineId`. Infra: `Data/Configurations/Recruitment/CompetitionConfigurations.cs`, `HRCoreDbContext` (DbSets, FKs, unique `(TenantId, CompetitionId, NationalIdHash)`), `CompetitionLifecycleService`, `CompetitionWorkflowHandler`, `WorkflowPackSeeder` (`RECRUITMENT-COMPETITION-APPROVAL`, id `f0050016`), `CodeGenerationSeeder` + `CodeEntityKind.RecruitmentCompetition` + `CodeGenerationRequests.RecruitmentCompetition()`, `WorkflowInstanceActionService` (dispatch + creator SoD), `RecruitmentRequisitionLifecycleService` (attached guards), `RecruitmentOptions.Competition`. Web: `CompetitionsController`, `CompetitionViewModels`, `Views/Competitions/*`, menu entry, `WorkflowDeepLinkResolver`, `Program.cs`, `appsettings.Development.json` (acceptance/dev legal defaults only). Tests: `Hcm031TestSupport`, `Hcm031CompetitionLifecycleTests` (18). |
 | P0 | `reports/plan31-baseline.md`, `reports/plan31-progress.md`, `docs/acceptance-plans/PLAN-31-hcm-competitions-exams.md` (pre-implementation block), `docs/acceptance-plans/execution/PLAN-31-AGENT-PROMPT.md` (prompt, committed as-is) |
 
 ## Migrations
 
-None yet.
+- `20261029073330_HCM031_Competitions` — additive only (3 tables, 3 nullable columns, indexes, FKs, check constraints); no data rewrite. `has-pending-model-changes`: none.
 
 ## Test results
 
@@ -133,6 +138,8 @@ None yet.
 |-------|-----|--------|
 | P0 | baseline filter | 909 pass / 1 fail (pre-existing `Syr001…law50`) |
 | P0 | full unit suite | 3675 pass / 10 fail (environment-only set, see baseline) |
+| P1 | `Hcm031` | 18 / 18 pass |
+| P1 | full unit suite | 3693 pass / 10 fail — exactly the baseline set (Ten002 lists only the pre-existing files) |
 
 ## Open issues
 
@@ -140,5 +147,4 @@ None yet.
 
 ## Next step
 
-P1: add the domain entities/enums for competitions, lines and preferences, `CompetitionWorkflowRules`, then migration
-`HCM031_Competitions`, `CompetitionLifecycleService`, workflow `RECRUITMENT-COMPETITION-APPROVAL`, announce, HR UI, tests.
+P2: competition intake — public apply `/careers/competitions/{id}` with ordered preferences (reuse the PLAN-30 apply pipeline), internal apply through ESS, duplicate message, per-line eligibility flags, intake close (job pass), fix the RequisitionId-null assumptions (projection, HR index/legacy filter, retention trigger, DSAR, legacy hire hole J10), HR «المتقدمون» tab, `Hcm031IntakeTests`.

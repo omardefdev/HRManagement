@@ -19,5 +19,7 @@ public enum CodeEntityKind
     EstablishmentChangeRequest,
     JobCatalogEntry,
     /// <summary>FUN-029 (I3): administrative decision numbers (appointment decisions first).</summary>
-    AdministrativeDecision
+    AdministrativeDecision,
+    /// <summary>HCM-031 (PLAN-31): recruitment competition numbers (CMP-YYYY-00001).</summary>
+    RecruitmentCompetition
 }

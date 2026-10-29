@@ -4,6 +4,7 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Establishment;
 using HR.Core.Infrastructure.Services.Recruitment;
+using HR.Core.Infrastructure.Services.Recruitment.Competitions;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
@@ -43,7 +44,9 @@ public sealed class WorkflowInstanceActionService(
     OfferLetterWorkflowHandler offerHandler,
     SelectionCommitteeWorkflowHandler committeeHandler,
     RecruitmentAppealWorkflowHandler appealHandler,
-    EstablishmentChangeWorkflowHandler establishmentChangeHandler) : IWorkflowInstanceActionService
+    EstablishmentChangeWorkflowHandler establishmentChangeHandler,
+    // HCM-031 (PLAN-31): optional so the existing manual constructions (tests) keep compiling; DI always supplies it.
+    CompetitionWorkflowHandler? competitionHandler = null) : IWorkflowInstanceActionService
 {
     public async Task<WorkflowActionResult> ApproveAsync(
         Guid instanceId,
@@ -165,6 +168,15 @@ public sealed class WorkflowInstanceActionService(
                 return "لا يمكن للمنشئ اعتماد طلبه الخاص.";
         }
 
+        // HCM-031: the creator of a competition never approves it.
+        if (string.Equals(instance.EntityType, CompetitionLifecycleService.EntityType, StringComparison.OrdinalIgnoreCase))
+        {
+            var competition = await context.RecruitmentCompetitions.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == instance.EntityId, ct);
+            if (competition?.CreatedBy == actorUserId)
+                return "لا يمكن للمنشئ اعتماد مسابقته الخاصة.";
+        }
+
         if (string.Equals(instance.EntityType, "EstablishmentChangeRequest", StringComparison.OrdinalIgnoreCase))
         {
             var changeRequest = await context.EstablishmentChangeRequests.AsNoTracking()
@@ -233,6 +245,9 @@ public sealed class WorkflowInstanceActionService(
 
         if (string.Equals(instance.EntityType, "EstablishmentChangeRequest", StringComparison.OrdinalIgnoreCase))
             await establishmentChangeHandler.HandleAsync(instance, approved, reason, ct);
+
+        if (competitionHandler is not null)
+            await competitionHandler.HandleAsync(instance, approved, reason, ct);
     }
 
     private async Task PublishAssetAssignmentOutcomeAsync(WorkflowInstance instance, bool approved, string? reason = null)

@@ -118,4 +118,13 @@ public class RecruitmentRequisition : AuditableEntity
     [StringLength(100)]
     [Display(Name = "المستندات المطلوبة")]
     public string? RequiredDocumentTypes { get; set; }
+
+    /// <summary>
+    /// HCM-031 (PLAN-31): the competition line this requisition is attached to. An attached requisition is never
+    /// published on its own (no posting or vacancy of its own); announcing the competition moves it to Published.
+    /// </summary>
+    [Display(Name = "سطر المسابقة")]
+    public Guid? CompetitionLineId { get; set; }
+
+    public virtual CompetitionLine? CompetitionLine { get; set; }
 }

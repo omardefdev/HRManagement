@@ -111,6 +111,9 @@ public sealed class RecruitmentRequisitionLifecycleService(
         if (loaded is null) return (false, "طلب الشاغر غير موجود.");
 
         var (req, position) = loaded.Value;
+        // HCM-031: an attached requisition is published by its competition's announcement only.
+        if (req.CompetitionLineId is not null)
+            return (false, CompetitionWorkflowRules.AttachedRequisitionPublishMessage);
         var hasPublishedPosting = await db.PublicJobPostings
             .AnyAsync(p => p.RequisitionId == req.Id && p.IsPublished, ct);
 
@@ -189,6 +192,8 @@ public sealed class RecruitmentRequisitionLifecycleService(
         if (loaded is null) return (false, "طلب الشاغر غير موجود.");
 
         var (req, position) = loaded.Value;
+        if (req.CompetitionLineId is not null)
+            return (false, CompetitionWorkflowRules.AttachedRequisitionPublishMessage);
         var hasInternalVacancy = req.InternalVacancyId.HasValue
             || await db.InternalVacancies.AnyAsync(v => v.RequisitionId == req.Id, ct);
 
@@ -268,6 +273,10 @@ public sealed class RecruitmentRequisitionLifecycleService(
         if (!RequisitionWorkflowRules.CanClose(req.Status))
             return (false, "يمكن إغلاق الطلبات المنشورة فقط.");
 
+        var competitionBlock = await Competitions.CompetitionLifecycleService.AttachedRequisitionBlockAsync(db, req.Id, ct);
+        if (competitionBlock is not null)
+            return (false, competitionBlock);
+
         // HCM-026: an offer still in flight (or accepted but not converted) must be revoked or completed first.
         var hasActiveOffer = await db.OfferLetters.AnyAsync(
             o => o.RecruitmentApplication != null
@@ -312,6 +321,10 @@ public sealed class RecruitmentRequisitionLifecycleService(
 
         if (!RequisitionWorkflowRules.CanCancel(req.Status))
             return (false, "لا يمكن إلغاء طلب شاغر مغلق أو ملغى.");
+
+        var competitionBlock = await Competitions.CompetitionLifecycleService.AttachedRequisitionBlockAsync(db, req.Id, ct);
+        if (competitionBlock is not null)
+            return (false, competitionBlock);
 
         var trimmedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
         if (trimmedReason is { Length: > 500 })

@@ -94,6 +94,9 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<JobCatalogVersion> JobCatalogVersions => Set<JobCatalogVersion>();
     public DbSet<FundedPositionVersion> FundedPositionVersions => Set<FundedPositionVersion>();
     public DbSet<RecruitmentRequisition> RecruitmentRequisitions => Set<RecruitmentRequisition>();
+    public DbSet<RecruitmentCompetition> RecruitmentCompetitions => Set<RecruitmentCompetition>();
+    public DbSet<CompetitionLine> CompetitionLines => Set<CompetitionLine>();
+    public DbSet<CompetitionPreference> CompetitionPreferences => Set<CompetitionPreference>();
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
     public DbSet<SelectionCommitteeSession> SelectionCommitteeSessions => Set<SelectionCommitteeSession>();
     public DbSet<SelectionCommitteeMember> SelectionCommitteeMembers => Set<SelectionCommitteeMember>();
@@ -419,6 +422,19 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.SetNull);
             entity.Property(e => e.IntakeChannel).HasConversion<string>().HasMaxLength(20);
             entity.Property(e => e.YearsOfExperience).HasPrecision(4, 1);
+            // HCM-031 (PLAN-31): one application per person per competition; RequisitionId stays null until allocation.
+            entity.HasOne(e => e.Competition)
+                  .WithMany()
+                  .HasForeignKey(e => e.CompetitionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.CompetitionLine)
+                  .WithMany()
+                  .HasForeignKey(e => e.CompetitionLineId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TenantId, e.CompetitionId, e.NationalIdHash })
+                  .IsUnique()
+                  .HasFilter("\"CompetitionId\" IS NOT NULL AND \"NationalIdHash\" IS NOT NULL");
+            entity.HasIndex(e => new { e.TenantId, e.CompetitionId, e.Status });
         });
 
         // HCM-030 (B1): append-only application event log (no PII).
@@ -1105,6 +1121,9 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.ApplyConfiguration(new Configurations.Legal.BenefitPlanConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.Legal.ServiceRegimeExceptionConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.Legal.EmploymentRegimeTransitionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.RecruitmentCompetitionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionLineConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionPreferenceConfiguration());
 
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureFileReferenceOutbox();

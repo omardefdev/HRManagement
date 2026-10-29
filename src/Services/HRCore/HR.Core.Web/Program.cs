@@ -202,6 +202,9 @@ builder.Services.AddScoped<HR.Core.Web.Services.OfferOnBehalfService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.OfferLetterWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentAppealWorkflowHandler>();
+// HCM-031 (PLAN-31): recruitment competitions.
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionLifecycleService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionWorkflowHandler>();
 builder.Services.AddScoped<HR.Core.Web.Services.RecruitmentAppealWorkflowUiService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentInterviewService>();
 builder.Services.Configure<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions>(

@@ -24,6 +24,25 @@ public static class CodeGenerationSeeder
         await SeedInventorySkuIfMissingAsync(db, ct);
         await SeedJobCatalogEntryIfMissingAsync(db, ct);
         await SeedAdministrativeDecisionIfMissingAsync(db, ct);
+        await SeedRecruitmentCompetitionIfMissingAsync(db, ct);
+    }
+
+    /// <summary>HCM-031 (PLAN-31): CMP-YYYY-00001 for recruitment competitions.</summary>
+    private static async Task SeedRecruitmentCompetitionIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
+    {
+        if (await db.CodePolicyTemplates.AnyAsync(t => t.EntityKind == CodeEntityKind.RecruitmentCompetition, ct))
+            return;
+
+        await SeedPolicyAsync(db, CodeEntityKind.RecruitmentCompetition, "ترميز مسابقات التوظيف", "CMP",
+            CodeSequenceReset.Yearly,
+            """
+            [
+              {"kind":"Literal","value":"CMP-"},
+              {"kind":"Date","value":"YYYY"},
+              {"kind":"Literal","value":"-"},
+              {"kind":"Sequence","padWidth":5}
+            ]
+            """, ct);
     }
 
     private static async Task SeedNationalDefaultsAsync(HRCoreDbContext db, CancellationToken ct)

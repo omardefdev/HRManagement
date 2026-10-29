@@ -67,6 +67,12 @@ public static class CodeGenerationRequests
         EntityKind = CodeEntityKind.OfferLetter
     };
 
+    /// <summary>HCM-031 (PLAN-31): competition number CMP-YYYY-00001.</summary>
+    public static CodeGenerationRequest RecruitmentCompetition() => new()
+    {
+        EntityKind = CodeEntityKind.RecruitmentCompetition
+    };
+
     /// <summary>FUN-029 (I3): decision number, scoped by decision type (APPT = appointment).</summary>
     public static CodeGenerationRequest AdministrativeDecision(string typeCode) => new()
     {

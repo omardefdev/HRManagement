@@ -49,6 +49,9 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
                 case "EstablishmentChangeRequest":
                     await ResolveEstablishmentChangesAsync(group, ids, result, ct);
                     break;
+                case "RecruitmentCompetition":
+                    await ResolveCompetitionsAsync(group, ids, result, ct);
+                    break;
                 default:
                     foreach (var (instance, definition) in group)
                         result[instance.Id] = BuildFallback(instance, definition);
@@ -193,6 +196,31 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
                 Description: row?.ChangeType.ToString(),
                 EntityTypeLabel: "تغيير ملاك",
                 CurrentStepName: stepName,
+                WorkflowName: definition.Name);
+        }
+    }
+
+    /// <summary>HCM-031 (PLAN-31): competition approval is decided on the competition page.</summary>
+    private async Task ResolveCompetitionsAsync(
+        IEnumerable<(WorkflowInstance Instance, WorkflowDefinition Definition)> pairs,
+        List<Guid> ids,
+        Dictionary<Guid, WorkflowDeepLinkInfo> result,
+        CancellationToken ct)
+    {
+        var rows = await db.RecruitmentCompetitions.AsNoTracking()
+            .Where(c => ids.Contains(c.Id))
+            .Select(c => new { c.Id, c.Number, c.Title })
+            .ToDictionaryAsync(c => c.Id, ct);
+
+        foreach (var (instance, definition) in pairs)
+        {
+            rows.TryGetValue(instance.EntityId, out var row);
+            result[instance.Id] = new WorkflowDeepLinkInfo(
+                DeepLink: $"/Competitions/Details/{instance.EntityId}",
+                Title: row is null ? "اعتماد مسابقة توظيف" : $"اعتماد مسابقة {row.Number} — {row.Title}",
+                Description: row?.Title,
+                EntityTypeLabel: "مسابقة توظيف",
+                CurrentStepName: GetCurrentStepName(instance, definition),
                 WorkflowName: definition.Name);
         }
     }

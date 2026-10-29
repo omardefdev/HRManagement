@@ -129,6 +129,9 @@ public sealed class RecruitmentOptions
     /// <summary>HCM-030 (G1/G3): candidate retention settings (<c>Recruitment:Retention:*</c>).</summary>
     public RecruitmentRetentionOptions Retention { get; set; } = new();
 
+    /// <summary>HCM-031 (PLAN-31): competition settings (<c>Recruitment:Competition:*</c>).</summary>
+    public RecruitmentCompetitionOptions Competition { get; set; } = new();
+
     /// <summary>
     /// COM-030 (F6): <c>Recruitment:PublicPortalBaseUrl</c> — public origin of the careers portal (e.g.
     /// <c>https://hr.example.gov.sy</c>) used for the links in candidate messages. Empty (default; Production/Staging until
@@ -168,6 +171,53 @@ public sealed class RecruitmentRetentionOptions
 
     /// <summary><c>Recruitment:Retention:BatchSize</c> — pairs loaded per batch (default 100, 1..1000).</summary>
     public int BatchSize { get; set; } = 100;
+}
+
+/// <summary>
+/// HCM-031 (PLAN-31): competition settings. <see cref="Defaults"/> only pre-fills the create form and is set in
+/// <c>appsettings.Development.json</c> and the acceptance profile; Production and Staging ship none, so a competition
+/// there is created with explicit values from the approved legal reference (D-2).
+/// </summary>
+public sealed class RecruitmentCompetitionOptions
+{
+    /// <summary><c>Recruitment:Competition:Defaults:*</c> — pre-filled legal inputs (empty = none, the default).</summary>
+    public RecruitmentCompetitionLegalDefaults Defaults { get; set; } = new();
+
+    /// <summary>
+    /// <c>Recruitment:Competition:DefaultOfferSalary</c> — salary of bulk offer drafts from the Payroll grade lookup:
+    /// <c>GradeMin</c> (default) or <c>GradeBase</c>.
+    /// </summary>
+    public CompetitionOfferSalaryRule DefaultOfferSalary { get; set; } = CompetitionOfferSalaryRule.GradeMin;
+
+    public const string DefaultAdmissionCardInstructionsAr =
+        "يُرجى الحضور قبل موعد الامتحان بثلاثين دقيقة مع إبراز هذه البطاقة ووثيقة تعريف شخصية. لا يُسمح باصطحاب الهاتف المحمول إلى القاعة.";
+
+    /// <summary><c>Recruitment:Competition:AdmissionCardInstructionsAr</c> — instructions printed on the admission card (part of its hash).</summary>
+    public string AdmissionCardInstructionsAr { get; set; } = DefaultAdmissionCardInstructionsAr;
+}
+
+/// <summary>HCM-031: pre-filled legal inputs of the create form (all null by default).</summary>
+public sealed class RecruitmentCompetitionLegalDefaults
+{
+    public int? ObjectionWindowDays { get; set; }
+    public int? ReserveValidityMonths { get; set; }
+    public int? MaxLinesPerCandidate { get; set; }
+    public decimal? PassMark { get; set; }
+    public decimal? ReconcileThreshold { get; set; }
+    public CompetitionReconcileRule? ReconcileRule { get; set; }
+    /// <summary>Ordered <see cref="CompetitionTieBreak"/> names, e.g. <c>["ExamScore","AppliedAt"]</c>.</summary>
+    public CompetitionTieBreak[]? TieBreakOrder { get; set; }
+
+    public bool IsEmpty =>
+        ObjectionWindowDays is null && ReserveValidityMonths is null && MaxLinesPerCandidate is null && PassMark is null
+        && ReconcileThreshold is null && ReconcileRule is null && TieBreakOrder is not { Length: > 0 };
+}
+
+/// <summary>HCM-031: salary of a bulk offer draft (<c>Recruitment:Competition:DefaultOfferSalary</c>).</summary>
+public enum CompetitionOfferSalaryRule
+{
+    GradeMin = 0,
+    GradeBase = 1
 }
 
 /// <summary>COM-030 (F2): settings of the public apply form.</summary>
