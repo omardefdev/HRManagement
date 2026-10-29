@@ -35,6 +35,11 @@ public sealed class RecruitmentCompetitionConfiguration : IEntityTypeConfigurati
                .WithMany()
                .HasForeignKey(e => e.InternalVacancyId)
                .OnDelete(DeleteBehavior.SetNull);
+        // HCM-031 (P4): the published results version that currently applies.
+        builder.HasOne<CompetitionResultVersion>()
+               .WithMany()
+               .HasForeignKey(e => e.CurrentResultVersionId)
+               .OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(e => e.Lines)
                .WithOne(l => l.Competition)
                .HasForeignKey(l => l.CompetitionId)

@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities.CodeGeneration;
 using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
 using HR.Core.Domain.Entities.Seeding;
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Domain.Entities.Policy;
@@ -101,6 +102,10 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<ExamCandidate> ExamCandidates => Set<ExamCandidate>();
     public DbSet<ExamMarkerAssignment> ExamMarkerAssignments => Set<ExamMarkerAssignment>();
     public DbSet<ExamScore> ExamScores => Set<ExamScore>();
+    public DbSet<CompetitionResultVersion> CompetitionResultVersions => Set<CompetitionResultVersion>();
+    public DbSet<CompetitionResult> CompetitionResults => Set<CompetitionResult>();
+    public DbSet<CompetitionAllocation> CompetitionAllocations => Set<CompetitionAllocation>();
+    public DbSet<CompetitionReserveEntry> CompetitionReserveEntries => Set<CompetitionReserveEntry>();
     public DbSet<OfferLetter> OfferLetters => Set<OfferLetter>();
     public DbSet<SelectionCommitteeSession> SelectionCommitteeSessions => Set<SelectionCommitteeSession>();
     public DbSet<SelectionCommitteeMember> SelectionCommitteeMembers => Set<SelectionCommitteeMember>();
@@ -806,6 +811,17 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId, e.Status });
             entity.Property(e => e.Outcome).HasConversion<string>().HasMaxLength(32);
+            // HCM-031 (PLAN-31): result objections reuse the appeal (kind, objected version and paper, corrected mark).
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(RecruitmentAppealKind.Rejection).HasSentinel((RecruitmentAppealKind)(-1));
+            entity.Property(e => e.ObjectionCorrectedScore).HasPrecision(7, 2);
+            entity.HasOne<CompetitionResultVersion>()
+                  .WithMany()
+                  .HasForeignKey(e => e.CompetitionResultVersionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ExamCandidate>()
+                  .WithMany()
+                  .HasForeignKey(e => e.ObjectionExamCandidateId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<RecruitmentInterviewSlot>(entity =>
@@ -1132,6 +1148,10 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamCandidateConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamMarkerAssignmentConfiguration());
         modelBuilder.ApplyConfiguration(new Configurations.Recruitment.ExamScoreConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionResultVersionConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionResultConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionAllocationConfiguration());
+        modelBuilder.ApplyConfiguration(new Configurations.Recruitment.CompetitionReserveEntryConfiguration());
 
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureFileReferenceOutbox();

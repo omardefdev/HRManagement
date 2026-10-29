@@ -52,6 +52,9 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
                 case "RecruitmentCompetition":
                     await ResolveCompetitionsAsync(group, ids, result, ct);
                     break;
+                case "CompetitionResultVersion":
+                    await ResolveResultVersionsAsync(group, ids, result, ct);
+                    break;
                 default:
                     foreach (var (instance, definition) in group)
                         result[instance.Id] = BuildFallback(instance, definition);
@@ -196,6 +199,31 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
                 Description: row?.ChangeType.ToString(),
                 EntityTypeLabel: "تغيير ملاك",
                 CurrentStepName: stepName,
+                WorkflowName: definition.Name);
+        }
+    }
+
+    /// <summary>HCM-031 (PLAN-31): results approval is decided on the competition page (results tab).</summary>
+    private async Task ResolveResultVersionsAsync(
+        IEnumerable<(WorkflowInstance Instance, WorkflowDefinition Definition)> pairs,
+        List<Guid> ids,
+        Dictionary<Guid, WorkflowDeepLinkInfo> result,
+        CancellationToken ct)
+    {
+        var rows = await db.CompetitionResultVersions.AsNoTracking()
+            .Where(v => ids.Contains(v.Id))
+            .Select(v => new { v.Id, v.CompetitionId, v.VersionNo, v.Competition!.Number })
+            .ToDictionaryAsync(v => v.Id, ct);
+
+        foreach (var (instance, definition) in pairs)
+        {
+            rows.TryGetValue(instance.EntityId, out var row);
+            result[instance.Id] = new WorkflowDeepLinkInfo(
+                DeepLink: row is null ? $"/WorkflowInstances/Details/{instance.Id}" : $"/Competitions/Details/{row.CompetitionId}",
+                Title: row is null ? "اعتماد نتائج مسابقة" : $"اعتماد نتائج المسابقة {row.Number} — النسخة {row.VersionNo}",
+                Description: row?.Number,
+                EntityTypeLabel: "نتائج مسابقة",
+                CurrentStepName: GetCurrentStepName(instance, definition),
                 WorkflowName: definition.Name);
         }
     }

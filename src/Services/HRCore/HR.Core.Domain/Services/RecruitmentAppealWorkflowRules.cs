@@ -126,6 +126,16 @@ public static class RecruitmentAppealWorkflowRules
         return null;
     }
 
+    /// <summary>HCM-031 (PLAN-31): a result objection is upheld (with a corrected exam mark) or dismissed.</summary>
+    public static string? ValidateObjectionOutcome(RecruitmentAppealOutcome outcome, decimal? correctedScore)
+    {
+        if (outcome is not (RecruitmentAppealOutcome.ObjectionUpheld or RecruitmentAppealOutcome.ObjectionDismissed))
+            return "نتيجة الاعتراض إما قبول بتصحيح العلامة أو رفض.";
+        if (outcome == RecruitmentAppealOutcome.ObjectionUpheld && correctedScore is null)
+            return "قبول الاعتراض يتطلب إدخال العلامة المصحّحة.";
+        return null;
+    }
+
     public static bool HasQuorum(IEnumerable<SelectionCommitteeMember> members, int minimum = 3)
     {
         var active = members.Count(m => !m.Recused);

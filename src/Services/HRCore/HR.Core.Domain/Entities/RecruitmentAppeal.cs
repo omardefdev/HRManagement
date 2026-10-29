@@ -55,6 +55,18 @@ public class RecruitmentAppeal : AuditableEntity
     [Display(Name = "مقدّم الاستئناف")]
     public string? FiledBy { get; set; }
 
+    /// <summary>HCM-031 (PLAN-31, decision 5): a rejection appeal (default) or a competition result objection.</summary>
+    public RecruitmentAppealKind Kind { get; set; } = RecruitmentAppealKind.Rejection;
+
+    /// <summary>HCM-031: the published results version the objection is about.</summary>
+    public Guid? CompetitionResultVersionId { get; set; }
+
+    /// <summary>HCM-031: the objected exam paper (one per exam type).</summary>
+    public Guid? ObjectionExamCandidateId { get; set; }
+
+    /// <summary>HCM-031: the corrected exam mark entered by the independent reviewer when the objection is upheld.</summary>
+    public decimal? ObjectionCorrectedScore { get; set; }
+
     /// <summary>HCM-028 (H2): the filer's employee (<c>employee_id</c> claim), excluded as reviewer.</summary>
     [Display(Name = "موظف مقدّم الاستئناف")]
     public Guid? FiledByEmployeeId { get; set; }

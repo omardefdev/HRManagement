@@ -56,7 +56,8 @@ public class PublicCareersRequisitionGateTests
             new HR.Core.Web.Services.CandidateDocumentService(
                 db, new HR.Core.Web.Services.UnavailableCandidateDocumentUploadClient(), new HRManagement.ServiceDefaults.EfFileReferenceOutbox(db)),
             Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
-            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionResultsService(db, null!));
         var result = await controller.Index();
         var view = Assert.IsType<ViewResult>(result);
         var postings = Assert.IsAssignableFrom<IReadOnlyList<PublicJobPosting>>(view.Model);
@@ -99,7 +100,8 @@ public class PublicCareersRequisitionGateTests
             new HR.Core.Web.Services.CandidateDocumentService(
                 db, new HR.Core.Web.Services.UnavailableCandidateDocumentUploadClient(), new HRManagement.ServiceDefaults.EfFileReferenceOutbox(db)),
             Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
-            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())));
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionResultsService(db, null!));
         var result = await controller.Index();
         var view = Assert.IsType<ViewResult>(result);
         var postings = Assert.IsAssignableFrom<IReadOnlyList<PublicJobPosting>>(view.Model);
@@ -143,7 +145,8 @@ public class PublicCareersRequisitionGateTests
             new HR.Core.Web.Services.CandidateDocumentService(
                 db, new HR.Core.Web.Services.UnavailableCandidateDocumentUploadClient(), new HRManagement.ServiceDefaults.EfFileReferenceOutbox(db)),
             Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()),
-            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())))
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionResultsService(db, null!))
         {
             ControllerContext = new ControllerContext
             {

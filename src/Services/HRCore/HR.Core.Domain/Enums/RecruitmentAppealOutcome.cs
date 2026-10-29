@@ -15,5 +15,20 @@ public enum RecruitmentAppealOutcome
     UpheldNoRemedy = 3,
     /// <summary>History of the removed direct-reopen path (migration HCM028_AppealGovernance); never chosen.</summary>
     [Display(Name = "مسار قديم — إعادة فتح مباشرة")]
-    LegacyReopen = 4
+    LegacyReopen = 4,
+    /// <summary>HCM-031 (PLAN-31, decision 5): result objection upheld — a corrected exam mark, then a new results version.</summary>
+    [Display(Name = "قبول الاعتراض — تصحيح العلامة")]
+    ObjectionUpheld = 5,
+    /// <summary>HCM-031: result objection dismissed — no change.</summary>
+    [Display(Name = "رفض الاعتراض")]
+    ObjectionDismissed = 6
+}
+
+/// <summary>HCM-031 (PLAN-31): what an appeal is about (stored as string; existing rows are rejection appeals).</summary>
+public enum RecruitmentAppealKind
+{
+    [Display(Name = "استئناف رفض")]
+    Rejection = 0,
+    [Display(Name = "اعتراض على نتيجة مسابقة")]
+    ResultObjection = 1
 }

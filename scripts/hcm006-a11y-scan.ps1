@@ -48,7 +48,8 @@ $views = $baselineViews + @(
     "$viewsRoot/PublicCareers/Submitted.cshtml",
     "$viewsRoot/PublicCareers/Privacy.cshtml",
     # HCM-031 (PLAN-31): competition announcement and apply form.
-    "$viewsRoot/PublicCareers/Competition.cshtml"
+    "$viewsRoot/PublicCareers/Competition.cshtml",
+    "$viewsRoot/PublicCareers/CompetitionResults.cshtml"
 )
 $otpView = "$viewsRoot/CandidatePortal/Code.cshtml"
 $focusScript = "src/Services/HRCore/HR.Core.Web/wwwroot/js/careers-portal.js"

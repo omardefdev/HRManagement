@@ -924,6 +924,58 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("CodeSequenceCounters");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AllocatedLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AllocatedRequisitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompetitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("FromReserve")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("PreferenceOrderSatisfied")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AllocatedLineId");
+
+                    b.HasIndex("AllocatedRequisitionId");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("CompetitionId", "RecruitmentApplicationId");
+
+                    b.ToTable("CompetitionAllocations");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1041,6 +1093,201 @@ namespace HR.Core.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_CompetitionPreferences_Order", "\"Order\" >= 1");
                         });
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionReserveEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompetitionLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("LineRank")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("RecalledRequisitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("ReserveUntil")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("StatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("CompetitionLineId", "RecruitmentApplicationId")
+                        .IsUnique();
+
+                    b.HasIndex("CompetitionLineId", "Status", "LineRank");
+
+                    b.ToTable("CompetitionReserveEntries");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExamNumber")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<decimal?>("ExamScore")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<decimal?>("FinalScore")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<decimal?>("InterviewScore")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("OverallRank")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RecruitmentApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResultVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TieDecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("TieUnresolved")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecruitmentApplicationId");
+
+                    b.HasIndex("ResultVersionId", "ExamNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ResultVersionId", "RecruitmentApplicationId")
+                        .IsUnique();
+
+                    b.ToTable("CompetitionResults");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionResultVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompetitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ComputedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ComputedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DiffJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VersionNo")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CompetitionResultVersions_OnePublished")
+                        .HasFilter("\"Status\" = 'Published'");
+
+                    b.HasIndex("CompetitionId", "VersionNo")
+                        .IsUnique();
+
+                    b.ToTable("CompetitionResultVersions");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.ContactInfo", b =>
@@ -3796,6 +4043,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("AssignedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CompetitionResultVersionId")
+                        .HasColumnType("uuid");
+
                     b.Property<int?>("CorrectedRank")
                         .HasColumnType("integer");
 
@@ -3832,6 +4082,20 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime?>("InfoRequestedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Rejection");
+
+                    b.Property<decimal?>("ObjectionCorrectedScore")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.Property<Guid?>("ObjectionExamCandidateId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Outcome")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
@@ -3860,6 +4124,10 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompetitionResultVersionId");
+
+                    b.HasIndex("ObjectionExamCandidateId");
 
                     b.HasIndex("RecruitmentApplicationId");
 
@@ -4371,6 +4639,8 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CurrentResultVersionId");
 
                     b.HasIndex("InternalVacancyId");
 
@@ -6985,6 +7255,37 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("Template");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionAllocation", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionLine", "AllocatedLine")
+                        .WithMany()
+                        .HasForeignKey("AllocatedLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentRequisition", "AllocatedRequisition")
+                        .WithMany()
+                        .HasForeignKey("AllocatedRequisitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentCompetition", null)
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AllocatedLine");
+
+                    b.Navigation("AllocatedRequisition");
+
+                    b.Navigation("RecruitmentApplication");
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionLine", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.RecruitmentCompetition", "Competition")
@@ -7034,6 +7335,55 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("CompetitionLine");
 
                     b.Navigation("RecruitmentApplication");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionReserveEntry", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionLine", "CompetitionLine")
+                        .WithMany()
+                        .HasForeignKey("CompetitionLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CompetitionLine");
+
+                    b.Navigation("RecruitmentApplication");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionResult", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
+                        .WithMany()
+                        .HasForeignKey("RecruitmentApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionResultVersion", "ResultVersion")
+                        .WithMany("Results")
+                        .HasForeignKey("ResultVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecruitmentApplication");
+
+                    b.Navigation("ResultVersion");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionResultVersion", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.RecruitmentCompetition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Competition");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.ContactInfo", b =>
@@ -7528,6 +7878,16 @@ namespace HR.Core.Infrastructure.Migrations
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentAppeal", b =>
                 {
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionResultVersion", null)
+                        .WithMany()
+                        .HasForeignKey("CompetitionResultVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("HR.Core.Domain.Entities.ExamCandidate", null)
+                        .WithMany()
+                        .HasForeignKey("ObjectionExamCandidateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("HR.Core.Domain.Entities.RecruitmentApplication", "RecruitmentApplication")
                         .WithMany()
                         .HasForeignKey("RecruitmentApplicationId")
@@ -7630,6 +7990,11 @@ namespace HR.Core.Infrastructure.Migrations
 
             modelBuilder.Entity("HR.Core.Domain.Entities.RecruitmentCompetition", b =>
                 {
+                    b.HasOne("HR.Core.Domain.Entities.CompetitionResultVersion", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentResultVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("HR.Core.Domain.Entities.InternalVacancy", "InternalVacancy")
                         .WithMany()
                         .HasForeignKey("InternalVacancyId")
@@ -8030,6 +8395,11 @@ namespace HR.Core.Infrastructure.Migrations
             modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionLine", b =>
                 {
                     b.Navigation("Requisitions");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.CompetitionResultVersion", b =>
+                {
+                    b.Navigation("Results");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.Employee", b =>

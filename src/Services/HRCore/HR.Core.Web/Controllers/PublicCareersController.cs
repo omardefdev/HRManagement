@@ -30,7 +30,8 @@ public class PublicCareersController(
     CandidatePublicStatusService publicStatus,
     CandidateDocumentService candidateDocuments,
     IOptions<RecruitmentOptions> recruitmentOptions,
-    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService competitionIntake) : Controller
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService competitionIntake,
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionResultsService competitionResults) : Controller
 {
     [HttpGet("")]
     [HttpGet("index")]
@@ -331,6 +332,28 @@ public class PublicCareersController(
 
         TempData["Reference"] = model.ReferenceNumber;
         return RedirectToAction(nameof(Submitted));
+    }
+
+    /// <summary>
+    /// HCM-031 (PLAN-31, AC-HCM-31d): the published results — exam number and outcome only (no names, no scores), with the
+    /// publication date and the objection deadline. Score, rank and outcome per candidate are on /careers/my after OTP.
+    /// </summary>
+    [HttpGet("competitions/{id:guid}/results")]
+    public async Task<IActionResult> CompetitionResults(Guid id, int page = 1)
+    {
+        var view = await competitionResults.GetPublicAsync(id, page);
+        return view is null ? NotFound() : View(view);
+    }
+
+    [HttpGet("competitions/{id:guid}/results.pdf")]
+    public async Task<IActionResult> CompetitionResultsPdf(Guid id)
+    {
+        var view = await competitionResults.GetPublicAsync(id, 1);
+        if (view is null)
+            return NotFound();
+        var rows = await competitionResults.GetPublicRowsAsync(view.Competition.TenantId, view.Version.Id);
+        return File(CompetitionResultsDocument.Generate(view.Competition, view.Version, rows, view.ObjectionDeadlineUtc),
+            "application/pdf", $"results-{view.Competition.Number}.pdf");
     }
 
     [HttpGet("submitted")]

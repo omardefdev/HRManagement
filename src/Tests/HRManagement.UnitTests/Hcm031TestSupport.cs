@@ -129,9 +129,16 @@ internal static class Hcm031TestSupport
     /// Draft competition with lines of <paramref name="vacanciesPerLine"/> attached requisitions each (default 3 + 2,
     /// AC-HCM-31a), created by <see cref="Creator"/>.
     /// </summary>
-    public static async Task<RecruitmentCompetition> SeedDraftCompetitionAsync(
+    public static Task<RecruitmentCompetition> SeedDraftCompetitionAsync(
         HRCoreDbContext db,
         CompetitionLifecycleService lifecycle,
+        params int[] vacanciesPerLine) =>
+        SeedDraftCompetitionWithCriteriaAsync(db, lifecycle, null, vacanciesPerLine);
+
+    public static async Task<RecruitmentCompetition> SeedDraftCompetitionWithCriteriaAsync(
+        HRCoreDbContext db,
+        CompetitionLifecycleService lifecycle,
+        IReadOnlyList<AssessmentCriteriaItem>? criteria,
         params int[] vacanciesPerLine)
     {
         if (vacanciesPerLine.Length == 0)
@@ -151,7 +158,7 @@ internal static class Hcm031TestSupport
             Assert.Null(lineError);
             for (var v = 0; v < vacanciesPerLine[i]; v++)
             {
-                var requisition = await SeedApprovedRequisitionAsync(db, grade);
+                var requisition = await SeedApprovedRequisitionAsync(db, grade, criteria);
                 var (attached, attachError) = await lifecycle.AttachRequisitionAsync(line!.Id, requisition.Id, Creator);
                 Assert.True(attached, attachError);
             }
@@ -160,10 +167,14 @@ internal static class Hcm031TestSupport
     }
 
     /// <summary>Submits, approves both workflow steps (two people other than the creator) and announces.</summary>
-    public static async Task<RecruitmentCompetition> SeedAnnouncedCompetitionAsync(HRCoreDbContext db, params int[] vacanciesPerLine)
+    public static Task<RecruitmentCompetition> SeedAnnouncedCompetitionAsync(HRCoreDbContext db, params int[] vacanciesPerLine) =>
+        SeedAnnouncedCompetitionWithCriteriaAsync(db, null, vacanciesPerLine);
+
+    public static async Task<RecruitmentCompetition> SeedAnnouncedCompetitionWithCriteriaAsync(
+        HRCoreDbContext db, IReadOnlyList<AssessmentCriteriaItem>? criteria, params int[] vacanciesPerLine)
     {
         var lifecycle = CreateLifecycle(db);
-        var competition = await SeedDraftCompetitionAsync(db, lifecycle, vacanciesPerLine);
+        var competition = await SeedDraftCompetitionWithCriteriaAsync(db, lifecycle, criteria, vacanciesPerLine);
         await ApproveAsync(db, lifecycle, competition.Id);
         var (announced, error) = await lifecycle.AnnounceAsync(competition.Id, Creator);
         Assert.True(announced, error);
@@ -177,10 +188,14 @@ internal static class Hcm031TestSupport
     /// Announced competition with intake closed and <paramref name="applicants"/> applications admitted to the exam
     /// (Shortlisted, seeded directly — test data), plus written sessions of the given capacities (max score 100).
     /// </summary>
-    public static async Task<(RecruitmentCompetition Competition, IReadOnlyList<ExamSession> Sessions)> SeedExamReadyAsync(
-        HRCoreDbContext db, int applicants, params int[] capacities)
+    public static Task<(RecruitmentCompetition Competition, IReadOnlyList<ExamSession> Sessions)> SeedExamReadyAsync(
+        HRCoreDbContext db, int applicants, params int[] capacities) =>
+        SeedExamReadyWithCriteriaAsync(db, null, applicants, capacities);
+
+    public static async Task<(RecruitmentCompetition Competition, IReadOnlyList<ExamSession> Sessions)> SeedExamReadyWithCriteriaAsync(
+        HRCoreDbContext db, IReadOnlyList<AssessmentCriteriaItem>? criteria, int applicants, params int[] capacities)
     {
-        var competition = await SeedAnnouncedCompetitionAsync(db, 3, 2);
+        var competition = await SeedAnnouncedCompetitionWithCriteriaAsync(db, criteria, 3, 2);
         Assert.True((await CreateLifecycle(db).CloseIntakeAsync(competition.Id, Creator)).Success);
         await SeedAdmittedApplicationsAsync(db, competition, applicants);
         var seating = CreateSeating(db);
@@ -230,6 +245,86 @@ internal static class Hcm031TestSupport
         db.RecruitmentApplications.AddRange(applications);
         await db.SaveChangesAsync();
         return applications;
+    }
+
+    /// <summary>Exam only (weight 100) — results need no non-exam assessment.</summary>
+    public static IReadOnlyList<AssessmentCriteriaItem> ExamOnlyCriteria() =>
+        [new("EXAM", "الامتحان الكتابي", 100m, 100m, AssessmentStage.Exam)];
+
+    public sealed record MarkedCompetition(
+        RecruitmentCompetition Competition,
+        IReadOnlyList<RecruitmentApplication> Applications,
+        IReadOnlyDictionary<Guid, ExamCandidate> Papers,
+        ExamSession Session,
+        IReadOnlyList<ExamMarkerActor> Markers);
+
+    /// <summary>
+    /// A competition (lines 3 + 2) whose single written session (max 100) is marked and closed: applicant i gets
+    /// <paramref name="marks"/>[i] from both markers (null = absent). Applications are in application-date order.
+    /// </summary>
+    public static async Task<MarkedCompetition> SeedMarkedAsync(
+        HRCoreDbContext db, IReadOnlyList<decimal?> marks, IReadOnlyList<AssessmentCriteriaItem>? criteria = null)
+    {
+        var (competition, sessions) = await SeedExamReadyWithCriteriaAsync(db, criteria ?? ExamOnlyCriteria(), 0, marks.Count);
+        var applications = await SeedAdmittedApplicationsAsync(db, competition, marks.Count);
+        var seating = CreateSeating(db);
+        var seated = await seating.SeatAsync(competition.Id, Creator);
+        Assert.True(seated.Success, seated.Error);
+        var session = sessions[0];
+        var papers = await db.ExamCandidates.Where(c => c.ExamSessionId == session.Id).ToDictionaryAsync(c => c.RecruitmentApplicationId);
+        var attendance = applications.Select((a, i) => (Paper: papers[a.Id].Id, Present: marks[i] is not null))
+            .ToDictionary(x => x.Paper, x => x.Present ? ExamAttendance.Present : ExamAttendance.Absent);
+        Assert.True((await seating.SetAttendanceAsync(session.Id, attendance, Creator)).Success);
+        Assert.True((await seating.MarkHeldAsync(session.Id, Creator)).Success);
+
+        var markers = new List<ExamMarkerActor>();
+        foreach (var role in new[] { ExamMarkerRole.First, ExamMarkerRole.Second, ExamMarkerRole.Reconciler })
+        {
+            var employee = await SeedEmployeeAsync(db, $"مصحح {role}");
+            Assert.True((await seating.AssignMarkerAsync(session.Id, employee.Id, role, Creator)).Success);
+            markers.Add(new ExamMarkerActor(Guid.NewGuid(), employee.Id, false));
+        }
+        var marking = new ExamMarkingService(db);
+        for (var i = 0; i < applications.Count; i++)
+        {
+            if (marks[i] is not decimal mark)
+                continue;
+            Assert.True((await marking.SubmitAsync(papers[applications[i].Id].Id, mark, null, markers[0])).Success);
+            Assert.True((await marking.SubmitAsync(papers[applications[i].Id].Id, mark, null, markers[1])).Success);
+        }
+        var (closed, error) = await marking.CloseMarkingAsync(session.Id, Creator);
+        Assert.True(closed, error);
+        return new MarkedCompetition(
+            await db.RecruitmentCompetitions.Include(c => c.Lines).SingleAsync(c => c.Id == competition.Id),
+            applications,
+            await db.ExamCandidates.AsNoTracking().Where(c => c.ExamSessionId == session.Id).ToDictionaryAsync(c => c.RecruitmentApplicationId),
+            session,
+            markers);
+    }
+
+    public static CompetitionResultsService CreateResults(HRCoreDbContext db) => new(db, Hcm027TestSupport.CreateStarter(db));
+
+    /// <summary>Computes, approves (committee step then HR director, two people other than the computer) and publishes.</summary>
+    public static async Task<CompetitionResultVersion> PublishResultsAsync(HRCoreDbContext db, Guid competitionId, string? reason = null)
+    {
+        var results = CreateResults(db);
+        var (version, error) = await results.ComputeDraftAsync(competitionId, reason, Creator);
+        Assert.True(version is not null, error);
+        await ApproveAndPublishAsync(db, version!.Id);
+        return await db.CompetitionResultVersions.SingleAsync(v => v.Id == version.Id);
+    }
+
+    public static async Task ApproveAndPublishAsync(HRCoreDbContext db, Guid versionId)
+    {
+        var results = CreateResults(db);
+        var (submitted, submitError) = await results.SubmitForApprovalAsync(versionId, Creator, "creator");
+        Assert.True(submitted, submitError);
+        var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId).Select(v => v.WorkflowInstanceId!.Value).SingleAsync();
+        var actions = CreateActionService(db);
+        Assert.True((await actions.ApproveAsync(instanceId, Actor(Reviewer), null, null)).Success);
+        Assert.True((await actions.ApproveAsync(instanceId, Actor(Approver, "hr-management-approver"), null, null)).Success);
+        var (published, publishError) = await results.PublishAsync(versionId, Creator);
+        Assert.True(published, publishError);
     }
 
     public static async Task<Employee> SeedEmployeeAsync(HRCoreDbContext db, string name)

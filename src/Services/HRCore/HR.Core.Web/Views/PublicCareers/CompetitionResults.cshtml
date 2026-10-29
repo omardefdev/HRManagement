@@ -1,0 +1,50 @@
+@model HR.Core.Infrastructure.Services.Recruitment.Competitions.PublicResultsView
+@using System.Globalization
+@{
+    var competition = Model.Competition;
+    ViewData["Title"] = $"نتائج {competition.Title}";
+    Layout = "_PublicLayout";
+    var pages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Model.PageSize));
+}
+<div class="careers-card mb-4">
+    <div class="card-body">
+        <h1 class="card-title careers-posting-title">النتائج المعلنة — @competition.Title</h1>
+        <p class="text-muted mb-1"><i class="fas fa-hashtag ms-1" aria-hidden="true"></i> رقم المسابقة: <bdi dir="ltr">@competition.Number</bdi></p>
+        <p class="mb-1"><i class="fas fa-calendar ms-1" aria-hidden="true"></i> تاريخ النشر: <bdi dir="ltr">@(Model.Version.PublishedAt?.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture) ?? "—")</bdi></p>
+        @if (Model.ObjectionDeadlineUtc is DateTime deadline)
+        {
+            <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للاعتراض: <bdi dir="ltr">@deadline.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)</bdi></p>
+        }
+        <p class="text-muted small mb-0">تعرض القائمة الرقم الامتحاني والنتيجة فقط. يمكنك الاطلاع على درجتك ورتبتك وتقديم اعتراض خلال المدة من صفحة «طلبي».</p>
+        <p class="mt-2 mb-0"><a asp-action="CompetitionResultsPdf" asp-route-id="@competition.Id">تنزيل القائمة (PDF)</a></p>
+    </div>
+</div>
+<div class="careers-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <caption class="visually-hidden">الأرقام الامتحانية ونتائجها</caption>
+                <thead><tr><th scope="col">الرقم الامتحاني</th><th scope="col">النتيجة</th></tr></thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr><td><bdi dir="ltr">@row.ExamNumber</bdi></td><td>@HR.Core.Web.Services.CompetitionResultsDocument.OutcomeAr(row.Outcome)</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (pages > 1)
+        {
+            <nav aria-label="صفحات النتائج">
+                <ul class="pagination pagination-sm mb-0">
+                    @for (var p = Math.Max(1, Model.Page - 5); p <= Math.Min(pages, Model.Page + 5); p++)
+                    {
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="CompetitionResults" asp-route-id="@competition.Id" asp-route-page="@p" aria-current="@(p == Model.Page ? "page" : null)">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+</div>

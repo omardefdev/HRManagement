@@ -68,7 +68,10 @@ public static class WorkflowPackSeeder
             (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver"), (3, "اعتماد استثناء الجدارة", "hr-management-approver")),
         new(Guid.Parse("f0050016-0016-4000-8000-000000000016"), "RECRUITMENT-COMPETITION-APPROVAL", "اعتماد مسابقة توظيف", "RecruitmentCompetition",
             "HCM-031: approval of a multi-vacancy recruitment competition (the creator never approves)",
-            (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver"))
+            (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver")),
+        new(Guid.Parse("f0050017-0017-4000-8000-000000000017"), "RECRUITMENT-RESULTS-APPROVAL", "اعتماد نتائج مسابقة", "CompetitionResultVersion",
+            "HCM-031: competition results — committee then HR director; distinct approvers, never the person who computed the draft",
+            (1, "لجنة المسابقة", "hr-core"), (2, "اعتماد مدير HR", "hr-management-approver"))
     ];
 
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)

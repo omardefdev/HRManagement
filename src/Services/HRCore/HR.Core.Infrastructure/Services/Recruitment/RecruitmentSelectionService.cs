@@ -12,6 +12,10 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
 {
     public const string DuplicateRankMessage = "الترتيب مستخدم لمرشح آخر على نفس طلب الشاغر.";
 
+    /// <summary>HCM-031 (J4): the results approval of the competition replaces the PLAN-28 committee gate.</summary>
+    public const string CompetitionRankingMessage =
+        "يُحدَّد الترتيب في المسابقة باعتماد النتائج ونشرها ثم إنهاء المسابقة، لا يدوياً ولا بلجنة اختيار.";
+
     public async Task<(bool Success, string? Error)> DeclareCoiAsync(
         RecruitmentApplication application,
         Guid? actorUserId,
@@ -90,6 +94,9 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
 
         var app = await LoadApplicationAsync(applicationId, ct);
         if (app is null) return (false, "الطلب غير موجود.");
+        // HCM-031 (J4): competition ranks come from the approved, published results and finalization only.
+        if (app.CompetitionId is not null)
+            return (false, CompetitionRankingMessage);
 
         var gate = app.RequisitionId is Guid requisitionId
             ? await GetCommitteeRankingGateAsync(requisitionId, ct)
@@ -116,6 +123,9 @@ public sealed class RecruitmentSelectionService(HRCoreDbContext db)
         Guid? actorUserId,
         CancellationToken ct = default)
     {
+        if (await db.RecruitmentRequisitions.AnyAsync(r => r.Id == requisitionId && r.CompetitionLineId != null, ct))
+            return (false, CompetitionRankingMessage, 0);
+
         var gate = await GetCommitteeRankingGateAsync(requisitionId, ct);
         if (gate.ApprovedSession is null)
             return (false, SelectionCommitteeRules.GateNoApprovedSessionMessage, 0);

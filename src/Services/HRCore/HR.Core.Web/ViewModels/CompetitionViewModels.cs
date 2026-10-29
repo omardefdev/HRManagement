@@ -197,8 +197,23 @@ public sealed class ExamSessionDetailsViewModel
     public bool CanWrite { get; init; }
 }
 
+/// <summary>HCM-031 (P4): a results version on the HR results tab.</summary>
+public sealed record ResultVersionRow(CompetitionResultVersion Version, int Candidates, int Passed, int Ties, int Changes);
+
+/// <summary>HCM-031 (P4): one result row (HR sees names and scores; the public sees exam number and outcome only).</summary>
+public sealed record ResultRow(Guid ApplicationId, string ExamNumber, string ApplicantFullName, decimal? ExamScore, decimal? FinalScore,
+    int? Rank, CompetitionResultOutcome Outcome, bool TieUnresolved, string? TieDecisionReason);
+
 public sealed class CompetitionDetailsViewModel
 {
+    public IReadOnlyList<ResultVersionRow> ResultVersions { get; init; } = [];
+    /// <summary>The latest version's rows (top ranks and every unresolved tie).</summary>
+    public IReadOnlyList<ResultRow> Results { get; init; } = [];
+    public CompetitionResultVersion? LatestVersion { get; init; }
+    public WorkflowPanelViewModel? ResultsWorkflow { get; init; }
+    public IReadOnlyList<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionObjectionRow> Objections { get; init; } = [];
+    public DateTime? ObjectionDeadlineUtc { get; init; }
+
     public IReadOnlyList<ExamSessionRow> ExamSessions { get; init; } = [];
     public IReadOnlyList<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> MarkerCandidates { get; init; } = [];
 

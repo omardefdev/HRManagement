@@ -1,5 +1,6 @@
 @model HR.Core.Web.ViewModels.CompetitionDetailsViewModel
 @using HR.Core.Domain.Enums
+@using HR.Core.Domain.Entities
 @using System.Globalization
 @{
     var c = Model.Competition;
@@ -420,10 +421,182 @@
         }
     </div>
     <div class="tab-pane fade" id="tab-results" role="tabpanel" aria-labelledby="tab-results-btn">
-        <p class="text-muted mb-0">تظهر نسخ النتائج بعد انتهاء التصحيح.</p>
+        @{ var latest = Model.LatestVersion; }
+        @if (Model.CanWrite && c.Status is RecruitmentCompetitionStatus.Examining or RecruitmentCompetitionStatus.ResultsDraft or RecruitmentCompetitionStatus.ResultsPublished)
+        {
+            <form asp-action="ComputeResults" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end mb-3"
+                  data-hr-confirm="ستُحتسب مسودة النتائج من العلامات المغلقة وتقييمات المراحل الأخرى (تُستبدل المسودة الحالية إن وُجدت)." data-hr-confirm-title="احتساب النتائج">
+                @Html.AntiForgeryToken()
+                <div class="col-md-8">
+                    <label for="computeReason" class="form-label small">سبب النسخة (يُطلب للنسخ اللاحقة)</label>
+                    <input id="computeReason" name="reason" class="form-control form-control-sm" maxlength="1000" />
+                </div>
+                <div class="col-md-4"><button type="submit" class="btn btn-primary btn-sm">احتساب مسودة النتائج</button></div>
+            </form>
+        }
+        @if (Model.ResultVersions.Count == 0)
+        {
+            <p class="text-muted">لم تُحتسب النتائج بعد.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th scope="col">النسخة</th><th scope="col">الحالة</th><th scope="col">الاحتساب</th><th scope="col">النشر</th><th scope="col">المتقدمون</th><th scope="col">الناجحون</th><th scope="col">تعادل</th><th scope="col">تغييرات</th><th scope="col">رمز التحقق</th><th scope="col">السبب</th></tr></thead>
+                    <tbody>
+                        @foreach (var v in Model.ResultVersions)
+                        {
+                            <tr>
+                                <td>@v.Version.VersionNo</td>
+                                <td>@Html.HrEnumDisplay(v.Version.Status)</td>
+                                <td>@v.Version.ComputedAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</td>
+                                <td>@(v.Version.PublishedAt?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "—")</td>
+                                <td>@v.Candidates</td>
+                                <td>@v.Passed</td>
+                                <td>@v.Ties</td>
+                                <td>@v.Changes</td>
+                                <td><bdi dir="ltr">@(string.IsNullOrWhiteSpace(v.Version.Sha256) ? "—" : v.Version.Sha256.Trim()[..12].ToUpperInvariant())</bdi></td>
+                                <td class="small">@(v.Version.Reason ?? "—")@(v.Version.ReturnReason is null ? "" : $" — أُعيدت: {v.Version.ReturnReason}")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (c.CurrentResultVersionId is not null)
+            {
+                <p class="small"><a asp-action="ResultsDocument" asp-route-id="@c.Id">تنزيل قائمة النتائج المنشورة (PDF)</a>
+                    · <a href="/careers/competitions/@c.Id/results">الصفحة العامة</a></p>
+            }
+        }
+        @if (latest is not null)
+        {
+            <h6 class="mt-3">النسخة @latest.VersionNo — @Html.HrEnumDisplay(latest.Status)</h6>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                @if (Model.CanWrite && latest.Status == CompetitionResultVersionStatus.Draft)
+                {
+                    <form asp-action="SubmitResults" asp-route-id="@c.Id" method="post"
+                          data-hr-confirm="ستُقدَّم نسخة النتائج إلى مسار الاعتماد (لجنة المسابقة ثم مدير الموارد البشرية)." data-hr-confirm-title="تقديم النتائج للاعتماد">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="versionId" value="@latest.Id" />
+                        <button type="submit" class="btn btn-primary btn-sm">تقديم للاعتماد</button>
+                    </form>
+                }
+                @if (Model.CanWrite && latest.Status == CompetitionResultVersionStatus.Approved)
+                {
+                    <form asp-action="PublishResults" asp-route-id="@c.Id" method="post"
+                          data-hr-confirm="ستُنشر النتائج (الرقم الامتحاني والنتيجة فقط) وتبدأ مدة الاعتراض عند أول نشر." data-hr-confirm-title="نشر النتائج" data-hr-confirm-variant="warning">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="versionId" value="@latest.Id" />
+                        <button type="submit" class="btn btn-success btn-sm">نشر النتائج</button>
+                    </form>
+                }
+            </div>
+            @if (Model.ResultsWorkflow is { } resultsWorkflow)
+            {
+                <partial name="_CompetitionWorkflowPanel" model="resultsWorkflow"
+                         view-data='new ViewDataDictionary(ViewData) { ["CompetitionId"] = c.Id, ["ApproveAction"] = "ApproveResultsWorkflow", ["RejectAction"] = "RejectResultsWorkflow", ["FieldPrefix"] = "results", ["VersionId"] = latest.Id }' />
+            }
+            @foreach (var tie in Model.Results.Where(r => r.TieUnresolved).GroupBy(r => r.Rank))
+            {
+                <div class="card border-warning mb-2">
+                    <div class="card-header">@HR.Core.Domain.Services.CompetitionScoringRules.UnresolvedTieMessage — الرتبة @tie.Key</div>
+                    <div class="card-body">
+                        @if (Model.CanWrite && latest.Status == CompetitionResultVersionStatus.Draft)
+                        {
+                            <form asp-action="ResolveTie" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="versionId" value="@latest.Id" />
+                                @{ var position = 1; }
+                                @foreach (var row in tie)
+                                {
+                                    <input type="hidden" name="applicationIds" value="@row.ApplicationId" />
+                                    <div class="col-md-3">
+                                        <label class="form-label small" for="tie-@row.ApplicationId">@row.ExamNumber — @row.ApplicantFullName</label>
+                                        <input id="tie-@row.ApplicationId" name="positions" type="number" min="1" class="form-control form-control-sm" value="@(position++)" required />
+                                    </div>
+                                }
+                                <div class="col-md-6">
+                                    <label class="form-label small" for="tie-reason-@tie.Key">سبب القرار (يُسجَّل ويُعرض في الاعتماد)</label>
+                                    <input id="tie-reason-@tie.Key" name="reason" class="form-control form-control-sm" minlength="10" maxlength="500" required />
+                                </div>
+                                <div class="col-md-2"><button type="submit" class="btn btn-warning btn-sm">تسجيل القرار</button></div>
+                            </form>
+                        }
+                        else
+                        {
+                            <p class="mb-0 small">@string.Join("، ", tie.Select(r => r.ExamNumber))</p>
+                        }
+                    </div>
+                </div>
+            }
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <caption class="small">تُعرض أول 300 رتبة وكل حالات التعادل والغياب.</caption>
+                    <thead><tr><th scope="col">الرتبة</th><th scope="col">الرقم الامتحاني</th><th scope="col">الاسم</th><th scope="col">نقاط الامتحان</th><th scope="col">الدرجة النهائية</th><th scope="col">النتيجة</th><th scope="col">ملاحظة</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in Model.Results)
+                        {
+                            <tr class="@(r.TieUnresolved ? "table-warning" : "")">
+                                <td>@(r.Rank?.ToString() ?? "—")</td>
+                                <td><bdi dir="ltr">@r.ExamNumber</bdi></td>
+                                <td>@r.ApplicantFullName</td>
+                                <td>@(r.ExamScore?.ToString("0.##", CultureInfo.InvariantCulture) ?? "—")</td>
+                                <td>@(r.FinalScore?.ToString("0.##", CultureInfo.InvariantCulture) ?? "—")</td>
+                                <td>@Html.HrEnumDisplay(r.Outcome)</td>
+                                <td class="small">@(r.TieUnresolved ? HR.Core.Domain.Services.CompetitionScoringRules.UnresolvedTieMessage : r.TieDecisionReason)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
     <div class="tab-pane fade" id="tab-objections" role="tabpanel" aria-labelledby="tab-objections-btn">
-        <p class="text-muted mb-0">تظهر الاعتراضات بعد نشر النتائج.</p>
+        @if (Model.ObjectionDeadlineUtc is DateTime objectionDeadline)
+        {
+            <p class="small">آخر موعد للاعتراض: @objectionDeadline.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture) UTC (يُحسب من أول نشر ولا يُعاد فتحه بنسخ لاحقة).</p>
+            @if (Model.CanWrite && DateTime.UtcNow <= objectionDeadline && c.Status == RecruitmentCompetitionStatus.ResultsPublished)
+            {
+                <form asp-action="FileObjection" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end mb-3">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-3">
+                        <label for="objExam" class="form-label small">الرقم الامتحاني</label>
+                        <input id="objExam" name="examNumber" class="form-control form-control-sm" maxlength="16" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="objReason" class="form-label small">سبب الاعتراض (نيابةً عن المتقدم)</label>
+                        <input id="objReason" name="reason" class="form-control form-control-sm" maxlength="2000" required />
+                    </div>
+                    <div class="col-md-3"><button type="submit" class="btn btn-outline-primary btn-sm">تسجيل اعتراض</button></div>
+                </form>
+            }
+        }
+        else
+        {
+            <p class="text-muted">تظهر الاعتراضات بعد نشر النتائج.</p>
+        }
+        @if (Model.Objections.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th scope="col">المتقدم</th><th scope="col">الرقم الامتحاني</th><th scope="col">مقدم من</th><th scope="col">التاريخ</th><th scope="col">الحالة</th><th scope="col">النتيجة</th><th scope="col">المراجع</th></tr></thead>
+                    <tbody>
+                        @foreach (var o in Model.Objections)
+                        {
+                            <tr>
+                                <td><a asp-controller="RecruitmentAppeals" asp-action="Details" asp-route-id="@o.AppealId">@o.ApplicantFullName</a></td>
+                                <td><bdi dir="ltr">@(o.ExamNumber ?? "—")</bdi></td>
+                                <td>@(o.FiledBy == HR.Core.Domain.Entities.RecruitmentAppealFiledBy.Candidate ? "المتقدم" : "الموارد البشرية")</td>
+                                <td>@o.FiledAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                <td>@Html.HrEnumDisplay(o.Status)</td>
+                                <td>@if (o.Outcome is { } oc) { @Html.HrEnumDisplay(oc) } else { <text>—</text> }@(o.CorrectedScore is decimal cs ? $" ({cs.ToString("0.##", CultureInfo.InvariantCulture)})" : "")</td>
+                                <td>@(o.HasReviewer ? "معيّن" : "لم يُعيّن")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
     <div class="tab-pane fade" id="tab-allocation" role="tabpanel" aria-labelledby="tab-allocation-btn">
         <p class="text-muted mb-0">يتاح التخصيص والعروض بعد انتهاء مدة الاعتراض.</p>

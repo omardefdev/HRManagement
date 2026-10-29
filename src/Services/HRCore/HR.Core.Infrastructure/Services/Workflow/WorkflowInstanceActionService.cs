@@ -177,6 +177,17 @@ public sealed class WorkflowInstanceActionService(
                 return "لا يمكن للمنشئ اعتماد مسابقته الخاصة.";
         }
 
+        // HCM-031 (J5): competition results — never the person who computed the draft, a distinct approver per step.
+        if (string.Equals(instance.EntityType, CompetitionResultsService.EntityType, StringComparison.OrdinalIgnoreCase))
+        {
+            var version = await context.CompetitionResultVersions.AsNoTracking()
+                .FirstOrDefaultAsync(v => v.Id == instance.EntityId, ct);
+            if (version?.ComputedBy == actorUserId || version?.CreatedBy == actorUserId)
+                return "لا يجوز لمن احتسب النتائج اعتمادها.";
+            if (OfferOverrideApprovalRules.HasApprovedEarlierStep(instance.StepHistoryJson, instance.CurrentStepLevel, actorUserId))
+                return "يجب أن يعتمد كل خطوة من خطوات اعتماد النتائج شخص مختلف.";
+        }
+
         if (string.Equals(instance.EntityType, "EstablishmentChangeRequest", StringComparison.OrdinalIgnoreCase))
         {
             var changeRequest = await context.EstablishmentChangeRequests.AsNoTracking()

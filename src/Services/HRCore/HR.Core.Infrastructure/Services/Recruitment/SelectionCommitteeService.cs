@@ -28,6 +28,9 @@ public sealed class SelectionCommitteeService(HRCoreDbContext db)
     {
         if (!await db.RecruitmentRequisitions.AnyAsync(r => r.Id == requisitionId, ct))
             return (null, "طلب الشاغر غير موجود.");
+        // HCM-031 (J4): a requisition attached to a competition is ranked by the competition results approval.
+        if (await db.RecruitmentRequisitions.AnyAsync(r => r.Id == requisitionId && r.CompetitionLineId != null, ct))
+            return (null, RecruitmentSelectionService.CompetitionRankingMessage);
 
         var session = new SelectionCommitteeSession
         {

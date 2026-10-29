@@ -4,6 +4,7 @@
     var approveAction = ViewData["ApproveAction"] as string ?? "ApproveWorkflow";
     var rejectAction = ViewData["RejectAction"] as string ?? "RejectWorkflow";
     var prefix = ViewData["FieldPrefix"] as string ?? "competition";
+    var versionId = ViewData["VersionId"] as Guid?;
 }
 
 @if (Model.HasWorkflowInstance)
@@ -25,6 +26,10 @@
                 {
                     <form asp-action="@approveAction" asp-route-id="@competitionId" method="post" class="row g-2 align-items-end">
                         @Html.AntiForgeryToken()
+                        @if (versionId is Guid approveVersion)
+                        {
+                            <input type="hidden" name="versionId" value="@approveVersion" />
+                        }
                         <div class="col-md-8">
                             <label class="form-label" for="@(prefix)ApproveComments">ملاحظات (اختياري)</label>
                             <input type="text" class="form-control" id="@(prefix)ApproveComments" name="comments" maxlength="500" />
@@ -39,6 +44,10 @@
                           data-hr-confirm-title="تأكيد الإرجاع"
                           data-hr-confirm-variant="warning">
                         @Html.AntiForgeryToken()
+                        @if (versionId is Guid rejectVersion)
+                        {
+                            <input type="hidden" name="versionId" value="@rejectVersion" />
+                        }
                         <div class="col-md-8">
                             <label class="form-label" for="@(prefix)RejectComments">سبب الإرجاع</label>
                             <input type="text" class="form-control" id="@(prefix)RejectComments" name="comments" maxlength="500" />

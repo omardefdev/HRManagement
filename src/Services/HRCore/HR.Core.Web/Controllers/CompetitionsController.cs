@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
@@ -29,6 +30,8 @@ public sealed class CompetitionsController(
     ExamSeatingService seating,
     ExamMarkingService marking,
     ExamAdmissionCardDocumentService cards,
+    CompetitionResultsService results,
+    CompetitionObjectionService objections,
     IWorkflowInstanceActionService workflowActions,
     ILegislationRegisterProvider legislationProvider,
     IAuthorizationService authorization,
@@ -163,6 +166,10 @@ public sealed class CompetitionsController(
                 editable ? await lifecycle.GetAttachableRequisitionsAsync(line.Id, ct) : []));
         }
 
+        var latest = await db.CompetitionResultVersions.AsNoTracking()
+            .Where(v => v.CompetitionId == id)
+            .OrderByDescending(v => v.VersionNo)
+            .FirstOrDefaultAsync(ct);
         var legalSource = await legislationProvider.GetByIdAsync(competition.LegalSourceId, ct);
         var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, competition.ApprovalWorkflowInstanceId, ct);
         var workflow = WorkflowPanelBuilder.Build(
@@ -190,6 +197,12 @@ public sealed class CompetitionsController(
             Applicants = await LoadApplicantsAsync(id, page, applicantStatus, ct),
             BulkResults = ReadBulkResults(),
             ExamSessions = await LoadExamSessionsAsync(id, ct),
+            ResultVersions = await LoadResultVersionsAsync(id, ct),
+            LatestVersion = latest,
+            Results = latest is null ? [] : await LoadResultsAsync(latest.Id, ct),
+            ResultsWorkflow = latest?.WorkflowInstanceId is null ? null : await BuildResultsWorkflowAsync(latest, ct),
+            Objections = await objections.ListAsync(id, ct),
+            ObjectionDeadlineUtc = CompetitionWorkflowRules.ObjectionDeadlineUtc(competition.ResultsFirstPublishedAt, competition.ObjectionWindowDays),
             MarkerCandidates = await db.Employees.AsNoTracking()
                 .OrderBy(e => e.FullName)
                 .Take(500)
@@ -316,6 +329,144 @@ public sealed class CompetitionsController(
         }
         SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, "Competitions/AdmissionCard");
         return File(HR.Core.Web.Services.ExamAdmissionCardDocument.Generate(card), "application/pdf", $"admission-card-{card.Data.ExamNumber}.pdf");
+    }
+
+    // ---- HCM-031 (P4): results and objections ------------------------------------------------------------------------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> ComputeResults(Guid id, string? reason, CancellationToken ct)
+    {
+        var (version, error) = await results.ComputeDraftAsync(id, reason, ParseUserId(User), ct);
+        return Result((version is not null, error), id, $"تم احتساب مسودة النتائج (النسخة {version?.VersionNo}).");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> ResolveTie(Guid id, Guid versionId, List<Guid>? applicationIds, List<int>? positions, string? reason, CancellationToken ct)
+    {
+        if (applicationIds is not { Count: > 1 } || positions is null || positions.Count != applicationIds.Count)
+            return Result((false, "حدد ترتيب كل أفراد مجموعة التعادل."), id, null);
+        var ordered = applicationIds.Zip(positions).OrderBy(p => p.Second).Select(p => p.First).ToList();
+        return Result(await results.ResolveTieAsync(versionId, ordered, reason, ParseUserId(User), ct), id, "تم تسجيل قرار التعادل.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> SubmitResults(Guid id, Guid versionId, CancellationToken ct) =>
+        Result(await results.SubmitForApprovalAsync(versionId, ParseUserId(User), UserName(User), ct), id, "قُدّمت النتائج للاعتماد.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    public async Task<IActionResult> ApproveResultsWorkflow(Guid id, Guid versionId, string? comments, CancellationToken ct)
+    {
+        var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId && v.CompetitionId == id)
+            .Select(v => v.WorkflowInstanceId).FirstOrDefaultAsync(ct);
+        if (instanceId is not Guid workflowId)
+            return Result((false, "لا يوجد مسار اعتماد مرتبط بنسخة النتائج."), id, null);
+        var result = await workflowActions.ApproveAsync(workflowId, CreateWorkflowActor(User), comments, targetStepLevel: null, ct);
+        return Result((result.Success, result.Error ?? "تعذّر اعتماد الخطوة."), id, "تم اعتماد خطوة مسار النتائج.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    public async Task<IActionResult> RejectResultsWorkflow(Guid id, Guid versionId, string? comments, CancellationToken ct)
+    {
+        var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId && v.CompetitionId == id)
+            .Select(v => v.WorkflowInstanceId).FirstOrDefaultAsync(ct);
+        if (instanceId is not Guid workflowId)
+            return Result((false, "لا يوجد مسار اعتماد مرتبط بنسخة النتائج."), id, null);
+        var result = await workflowActions.RejectAsync(workflowId, CreateWorkflowActor(User), comments, ct);
+        return Result((result.Success, result.Error ?? "تعذّر رفض الخطوة."), id, "أُعيدت نسخة النتائج إلى المسودة.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> PublishResults(Guid id, Guid versionId, CancellationToken ct) =>
+        Result(await results.PublishAsync(versionId, ParseUserId(User), ct), id, "نُشرت النتائج.");
+
+    /// <summary>HR copy of the public results PDF (current published version).</summary>
+    public async Task<IActionResult> ResultsDocument(Guid id, CancellationToken ct)
+    {
+        var view = await results.GetPublicAsync(id, 1, ct);
+        if (view is null) return NotFound();
+        var rows = await results.GetPublicRowsAsync(view.Competition.TenantId, view.Version.Id, ct);
+        SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, "Competitions/ResultsDocument");
+        return File(HR.Core.Web.Services.CompetitionResultsDocument.Generate(view.Competition, view.Version, rows, view.ObjectionDeadlineUtc),
+            "application/pdf", $"results-{view.Competition.Number}-v{view.Version.VersionNo}.pdf");
+    }
+
+    /// <summary>HR files a result objection on the candidate's behalf (by exam number).</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> FileObjection(Guid id, string? examNumber, string? reason, CancellationToken ct)
+    {
+        var paper = await db.ExamCandidates.AsNoTracking()
+            .Where(c => c.CompetitionId == id && c.ExamNumber == (examNumber ?? "").Trim())
+            .Select(c => new { c.Id, c.RecruitmentApplicationId })
+            .FirstOrDefaultAsync(ct);
+        if (paper is null)
+            return Result((false, "الرقم الامتحاني غير موجود في هذه المسابقة."), id, null);
+        var (appeal, error) = await objections.FileAsync(paper.RecruitmentApplicationId, paper.Id, reason,
+            HR.Core.Domain.Entities.RecruitmentAppealFiledBy.HrOnBehalf, ParseUserId(User), HrOrgScopeVisibility.GetEmployeeId(User), ct);
+        if (appeal is null)
+            return Result((false, error), id, null);
+        TempData["Success"] = "سُجّل الاعتراض؛ عيّن المراجع المستقل من صفحة الاعتراض.";
+        return RedirectToAction("Details", "RecruitmentAppeals", new { id = appeal.Id });
+    }
+
+    private async Task<IReadOnlyList<ResultVersionRow>> LoadResultVersionsAsync(Guid competitionId, CancellationToken ct)
+    {
+        var versions = await db.CompetitionResultVersions.AsNoTracking()
+            .Where(v => v.CompetitionId == competitionId)
+            .OrderByDescending(v => v.VersionNo)
+            .ToListAsync(ct);
+        var rows = new List<ResultVersionRow>();
+        foreach (var v in versions)
+        {
+            var counts = await db.CompetitionResults.AsNoTracking()
+                .Where(r => r.ResultVersionId == v.Id)
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Passed = g.Count(r => r.Outcome == CompetitionResultOutcome.Passed),
+                    Ties = g.Count(r => r.TieUnresolved)
+                })
+                .FirstOrDefaultAsync(ct);
+            var changes = string.IsNullOrWhiteSpace(v.DiffJson) ? 0
+                : System.Text.Json.JsonSerializer.Deserialize<List<CompetitionResultChange>>(v.DiffJson)?.Count ?? 0;
+            rows.Add(new ResultVersionRow(v, counts?.Total ?? 0, counts?.Passed ?? 0, counts?.Ties ?? 0, changes));
+        }
+        return rows;
+    }
+
+    private async Task<IReadOnlyList<ResultRow>> LoadResultsAsync(Guid versionId, CancellationToken ct) =>
+        await db.CompetitionResults.AsNoTracking()
+            .Where(r => r.ResultVersionId == versionId && (r.TieUnresolved || r.OverallRank == null || r.OverallRank <= 300))
+            .OrderBy(r => r.OverallRank == null).ThenBy(r => r.OverallRank).ThenBy(r => r.ExamNumber)
+            .Take(1000)
+            .Select(r => new ResultRow(r.RecruitmentApplicationId, r.ExamNumber, r.RecruitmentApplication!.ApplicantFullName,
+                r.ExamScore, r.FinalScore, r.OverallRank, r.Outcome, r.TieUnresolved, r.TieDecisionReason))
+            .ToListAsync(ct);
+
+    private async Task<WorkflowPanelViewModel> BuildResultsWorkflowAsync(CompetitionResultVersion version, CancellationToken ct)
+    {
+        var (instance, definition) = await WorkflowPanelDataLoader.LoadAsync(db, version.WorkflowInstanceId, ct);
+        var userId = WorkflowPanelBuilder.ParseUserId(User);
+        return WorkflowPanelBuilder.Build(instance, definition, User, userId, new WorkflowPanelBuildOptions
+        {
+            IsAwaitingApproval = version.Status == CompetitionResultVersionStatus.PendingApproval,
+            EntityCreatedBy = version.ComputedBy ?? version.CreatedBy,
+            CreatorSoDMessage = "لا يجوز لمن احتسب النتائج اعتمادها."
+        });
     }
 
     private async Task<IReadOnlyList<ExamSessionRow>> LoadExamSessionsAsync(Guid competitionId, CancellationToken ct)

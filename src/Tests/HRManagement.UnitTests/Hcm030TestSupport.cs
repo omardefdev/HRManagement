@@ -148,7 +148,8 @@ internal static class Hcm030TestSupport
             new CandidatePublicStatusService(db, recruitmentOptions),
             CreateCandidateDocumentService(db, documentClient),
             recruitmentOptions,
-            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()))), new ClaimsPrincipal(new ClaimsIdentity()));
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionIntakeService(db, new UnifiedIntakeService(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())), new RecruitmentSelectionService(db), Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions())),
+            new HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionResultsService(db, null!)), new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
     /// <summary>HCM-030 (E3): the portal's outbox has no ambient tenant (as in production).</summary>

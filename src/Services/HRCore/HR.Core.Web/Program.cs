@@ -209,6 +209,8 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competiti
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamAdmissionCardDocumentService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamSeatingService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamMarkingService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionResultsService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionObjectionService>();
 builder.Services.AddScoped<HR.Core.Web.Services.RecruitmentAppealWorkflowUiService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentInterviewService>();
 builder.Services.Configure<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions>(
