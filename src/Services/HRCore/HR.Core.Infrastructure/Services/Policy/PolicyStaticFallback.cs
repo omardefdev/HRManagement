@@ -173,22 +173,11 @@ public static class PolicyStaticFallback
                 };
             }
 
+            // PLAN-25 (G-14): the hire is governed by the approved, accepted offer — no RECRUITMENT-HIRE workflow.
             return new PolicyDecision
             {
                 Allowed = true,
-                Effects = [PolicyEffect.TriggerWorkflow],
-                EffectDetails =
-                [
-                    new PolicyEffectDefinition
-                    {
-                        Effect = PolicyEffect.TriggerWorkflow,
-                        Params = new Dictionary<string, string>
-                        {
-                            ["workflowCode"] = "RECRUITMENT-HIRE"
-                        }
-                    }
-                ],
-                Explanations = ["fallback: Hire → workflow"]
+                Explanations = ["fallback: Hire allowed (governed by the offer approval)"]
             };
         }
 

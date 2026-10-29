@@ -74,6 +74,15 @@ public static class WorkflowPackSeeder
             (1, "لجنة المسابقة", "hr-core"), (2, "اعتماد مدير HR", "hr-management-approver"))
     ];
 
+    /// <summary>
+    /// PLAN-25 (G-14): workflows kept only so old instances still resolve their pinned definition; never started again
+    /// (seeded unpublished; existing databases are patched by <see cref="RetireAsync"/>).
+    /// </summary>
+    public static readonly IReadOnlySet<string> RetiredCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "RECRUITMENT-HIRE"
+    };
+
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
     {
         foreach (var wf in Workflows)
@@ -98,7 +107,8 @@ public static class WorkflowPackSeeder
                 Code = wf.Code,
                 Name = wf.Name,
                 Version = 1,
-                IsPublished = true,
+                IsPublished = !RetiredCodes.Contains(wf.Code),
+                ValidTo = RetiredCodes.Contains(wf.Code) ? DateTime.UtcNow : null,
                 DomainEntityType = wf.DomainEntityType,
                 StepsJson = JsonSerializer.Serialize(steps),
                 GuardrailRolesJson = "[]",
@@ -107,5 +117,26 @@ public static class WorkflowPackSeeder
         }
 
         await db.SaveChangesAsync(ct);
+
+        await RetireAsync(db, ct);
+    }
+
+    /// <summary>PLAN-25 (G-14): idempotent start-up patch — unpublishes retired definitions in every tenant.</summary>
+    public static async Task RetireAsync(HRCoreDbContext db, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var codes = RetiredCodes.ToList();
+        var published = await db.WorkflowDefinitions
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .Where(d => codes.Contains(d.Code) && d.IsPublished)
+            .ToListAsync(ct);
+        foreach (var definition in published)
+        {
+            definition.IsPublished = false;
+            definition.ValidTo ??= now;
+        }
+
+        if (published.Count > 0)
+            await db.SaveChangesAsync(ct);
     }
 }

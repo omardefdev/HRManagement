@@ -10,8 +10,8 @@
 | P0 baseline, inventory, notes | Done | e05632d |
 | P1 approval start coordinator | Done | 8360b5e |
 | P2 repair endpoint + script | Done | 9db6397 |
-| P3 step roles + gates | Done | (P3 commit) |
-| P4 retire RECRUITMENT-HIRE | Pending | |
+| P3 step roles + gates | Done | d9a7976 |
+| P4 retire RECRUITMENT-HIRE | Done | (P4 commit) |
 | P5 write policies + org scope | Pending | |
 | P6 prod-like journey, AC-HCM-25, CI | Pending | |
 | P7 live verification | Pending | |
@@ -121,10 +121,17 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 - **Tests:** `WorkflowStageGuardRoleTests` (21), `Hcm025ApprovalGatesTests` (16), `Hcm025PanelServerParityTests` (6 states × 7 users × approve/reject = 84 cases, panel == server). Modified: `Hcm027OfferOutcomeTests` / `Hcm027OverrideWorkflowTests` (approvers now hold the step roles — they approved step 1 as hr-management-approver), `SoDRequisitionApprovalTests` (creator holds hr-core so the SoD rule, not the role, refuses), `WorkflowStageGuardTests` (Arabic message constants), 5 UI-service constructions (no scope service argument).
 - **Regression:** full unit suite 4108/4124 — the 16 failures are the known environment list (ar-SA, execution policy, Str005, Ten002, Bola, Syr001ProductionBinding); integration filter (+Inbox/Approval/Asset) 87/97, 3 baseline failures, 7 skips. Full integration suite: 26 failures before the SoD fix; 25 are pre-existing — 14 re-run on unmodified `main` in a temporary worktree fail identically (hire closure, payroll batch/run, contract chain), the rest are the `IHrCoreActiveRegimeClient` DI family + the 3 baseline.
 
+## P4 notes
+
+- Four ways a hire could start RECRUITMENT-HIRE, all closed: (1) rule `R-REC-HIRE` — removed from the base seed and neutralised in place on existing databases by `PolicyEngineDomainSeeds.DeactivateRuleIfPresentAsync` (matches no action, no effect, name prefixed «[معطّلة]»; `PolicyRule` has no `IsActive` column, so no migration); (2) `PolicyStaticFallback` (used when no policy snapshot is published) returned `TriggerWorkflow RECRUITMENT-HIRE` for Hire — now Allowed without a workflow (the accepted-offer denial stays); (3) the definition — seeded unpublished with `ValidTo`, and `WorkflowPackSeeder.RetireAsync` (called from `SeedAsync`, which runs on every start-up for existing databases) unpublishes it in every tenant; (4) the `PolicyWorkflowBinding` for RECRUITMENT-HIRE — removed from the fresh bindings, and `WorkflowStarter` no longer starts a bound definition that is unpublished (falls back to the latest published one for the code, i.e. none). `R-REC-ORG` and `R-REC-HIRE-OFFER` kept.
+- `WorkflowInstanceActionService.HandledEntityTypes` + `Architecture/WorkflowDefinitionsHaveHandlersTests` (published definitions ⊆ handled ∪ allow-list with reasons: ServiceTransaction, SeparationRecord, CardRequest, TransferRequest, DisciplinaryAction, Ticket; the handled set is checked against the dispatch method's source).
+- `Hcm025RecruitmentHireRetiredTests` (AC-HCM-25g, unit): Enforce on a fresh database, on a pre-PLAN-25 database (rule + published definition + binding, patched twice), and on the static fallback → Allowed, no instance; the kept deny rules still refuse. Orphan instances are cancelled by the P2 repair.
+- Regression: unit 4115/4131 (16 known environment failures); integration filter (+Hire, Seed) 92/101 — 7 failures, all pre-existing (4 hire-closure/establishment-hire also fail on unmodified `main`, 3 baseline).
+
 ## Open issues
 
 - `-warnaserror` fails on the pre-existing NU1903 SSH.NET advisory (IntegrationTests); not introduced here.
 
 ## Next step
 
-P4: deactivate R-REC-HIRE (`DeactivateRuleIfPresentAsync`), unpublish RECRUITMENT-HIRE on existing databases, `WorkflowDefinitionsHaveHandlersTests`, AC-HCM-25g test.
+P5: explicit write policies on PublicJobPostings/TalentMarketplace + ClosingDate audit, `HrCorePostActionsHaveExplicitPolicyTests` ratchet + allow-list, org scope on requisitions/applications/offers/committees (lists, details 404, POSTs), competitions central-only.

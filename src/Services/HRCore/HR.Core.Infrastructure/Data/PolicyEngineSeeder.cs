@@ -177,7 +177,6 @@ public static class PolicyEngineSeeder
         (PolicyDomains.ContractsHire, "HIRE-WIZARD", "معاملة توظيف"),
         (PolicyDomains.ContractsSeparation, "SEPARATION-WIZARD", "معاملة انفصال"),
         (PolicyDomains.MovementsTransfer, "TRANSFER-APPROVAL", "موافقة نقل"),
-        (PolicyDomains.CoreRecruitment, "RECRUITMENT-HIRE", "توظيف مرشح"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-REQUISITION-APPROVAL", "اعتماد طلب شاغر"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-APPROVAL", "اعتماد خطاب عرض"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-OVERRIDE-APPROVAL", "اعتماد عرض استثنائي (تجاوز الجدارة)"),

@@ -52,6 +52,23 @@ public sealed class WorkflowInstanceActionService(
 {
     private readonly WorkflowApprovalEvaluator _evaluator = evaluator ?? WorkflowApprovalEvaluator.CreateDefault(context);
 
+    /// <summary>
+    /// PLAN-25 (G-14): entity types whose completed or rejected workflow has an effect here (<see cref="PublishWorkflowOutcomeAsync"/>).
+    /// <c>WorkflowDefinitionsHaveHandlersTests</c> requires every published definition to be one of these or allow-listed.
+    /// </summary>
+    public static readonly IReadOnlySet<string> HandledEntityTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "AssetAssignment",
+        "AssetLossReport",
+        "RecruitmentRequisition",
+        "OfferLetter",
+        "SelectionCommitteeSession",
+        "RecruitmentAppeal",
+        "EstablishmentChangeRequest",
+        CompetitionLifecycleService.EntityType,
+        CompetitionResultsService.EntityType
+    };
+
     public async Task<WorkflowActionResult> ApproveAsync(
         Guid instanceId,
         WorkflowActionActor actor,

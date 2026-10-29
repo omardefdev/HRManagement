@@ -83,12 +83,10 @@ public static class PolicyEngineDomainSeeds
             [],
             [Field("gapCount", "int", "عدد الفجوات")]);
 
+        // PLAN-25 (G-14): no R-REC-HIRE — the hire is governed by the offer approval (existing databases: see
+        // DeactivateRuleIfPresentAsync in SeedIncrementalRulesAsync).
         await SeedDomainIfMissingAsync(db, PolicyDomains.CoreRecruitment, "RecruitmentApplication", "توظيف", ct,
-            [
-                Rule("R-REC-HIRE", "توظيف → workflow", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Hire"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-HIRE"}}]""")
-            ],
+            [],
             [Field("action", "string", "الإجراء")]);
 
         await SeedDomainIfMissingAsync(db, PolicyDomains.CoreEstablishment, "EstablishmentChangeRequest", "ملاك — حوكمة", ct,
@@ -264,8 +262,37 @@ public static class PolicyEngineDomainSeeds
             "تعيين يتطلب عرضاً مقبولاً", 6,
             """{"all":[{"field":"action","operator":"Equals","value":"Hire"},{"field":"hasAcceptedOffer","operator":"Equals","value":"false"}]}""",
             """[{"effect":"Deny","params":{"reason":"يجب قبول خطاب العرض قبل التعيين"}}]""", ct);
+
+        // PLAN-25 (G-14): the orphan RECRUITMENT-HIRE trigger is retired; R-REC-ORG and R-REC-HIRE-OFFER stay.
+        await DeactivateRuleIfPresentAsync(db, "R-REC-HIRE", "توظيف → workflow (أُلغيت: التعيين محكوم باعتماد العرض — PLAN-25)", ct);
         await EnsureFactsFieldAsync(db, PolicyDomains.ArchiveRetention, "legalHold", "bool", "حجز قانوني", ct);
     }
+
+    /// <summary>
+    /// PLAN-25 (G-14): <see cref="AddRuleIfMissingAsync"/> never updates a rule, so a retired rule is neutralised in place:
+    /// it matches no action and has no effect. The row stays (rule keys are never reused). Idempotent.
+    /// </summary>
+    public static async Task DeactivateRuleIfPresentAsync(HRCoreDbContext db, string ruleKey, string reason, CancellationToken ct = default)
+    {
+        var rules = await db.PolicyRules.Where(r => r.RuleKey == ruleKey).ToListAsync(ct);
+        var changed = false;
+        foreach (var rule in rules.Where(r => r.ThenJson != DeactivatedThenJson || r.WhenJson != DeactivatedWhenJson))
+        {
+            rule.WhenJson = DeactivatedWhenJson;
+            rule.ThenJson = DeactivatedThenJson;
+            rule.Name = Truncate($"{DeactivatedNamePrefix}{reason}", 200);
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync(ct);
+    }
+
+    public const string DeactivatedNamePrefix = "[معطّلة] ";
+    public const string DeactivatedWhenJson = """{"all":[{"field":"action","operator":"Equals","value":"__deactivated__"}]}""";
+    public const string DeactivatedThenJson = "[]";
+
+    private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
 
     private static async Task AddRuleIfMissingAsync(
         HRCoreDbContext db,
