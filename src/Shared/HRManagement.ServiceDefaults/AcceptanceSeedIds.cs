@@ -65,6 +65,34 @@ public static class AcceptanceSeedIds
     public static readonly Guid CandidateRetentionDueFileId = Guid.Parse("a0000001-0000-4000-8000-000000000522");
     public const string CandidateRetentionRequisitionNumber = "REQ-2022-A-RET1";
 
+    /// <summary>PLAN-31 (AC-HCM-31a): three approved, unpublished requisitions (exam criteria) to build a competition in the UI.</summary>
+    public static readonly Guid CompetitionDraftRequisition1Id = Guid.Parse("a0000001-0000-4000-8000-000000000523");
+    public static readonly Guid CompetitionDraftRequisition2Id = Guid.Parse("a0000001-0000-4000-8000-000000000524");
+    public static readonly Guid CompetitionDraftRequisition3Id = Guid.Parse("a0000001-0000-4000-8000-000000000525");
+
+    /// <summary>
+    /// PLAN-31 (AC-HCM-31b–g): competition at IntakeClosed — lines 3 + 2 (published requisitions …530–…534), 120 admitted
+    /// applicants, two planned written sessions, a posting, and two applicants linked to citizen rows for /careers/my.
+    /// </summary>
+    public static readonly Guid CompetitionId = Guid.Parse("a0000001-0000-4000-8000-000000000526");
+    public static readonly Guid CompetitionLine1Id = Guid.Parse("a0000001-0000-4000-8000-000000000527");
+    public static readonly Guid CompetitionLine2Id = Guid.Parse("a0000001-0000-4000-8000-000000000528");
+    public static readonly Guid CompetitionPostingId = Guid.Parse("a0000001-0000-4000-8000-000000000529");
+    public static readonly Guid CompetitionPortalCitizen1Id = Guid.Parse("a0000001-0000-4000-8000-000000000535");
+    public static readonly Guid CompetitionPortalCitizen2Id = Guid.Parse("a0000001-0000-4000-8000-000000000536");
+    public static readonly Guid CompetitionSession1Id = Guid.Parse("a0000001-0000-4000-8000-000000000537");
+    public static readonly Guid CompetitionSession2Id = Guid.Parse("a0000001-0000-4000-8000-000000000538");
+    public const string CompetitionNumber = "CMP-2026-A-AC31";
+    public const int CompetitionApplicantCount = 120;
+
+    /// <summary>The <paramref name="index"/>-th (0-based) seeded applicant of the AC-HCM-31 competition (0 and 1 have citizen rows).</summary>
+    public static Guid CompetitionApplicantId(int index) =>
+        Seeding.AcceptanceSeedCatalog.DeterministicGuid(AgencyACode, "competition-applicant-" + index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
+
+    /// <summary>The <paramref name="index"/>-th (0-based) published requisition of the AC-HCM-31 competition (…530–…534).</summary>
+    public static Guid CompetitionRequisitionId(int index) =>
+        Guid.Parse("a0000001-0000-4000-8000-" + (530 + index).ToString("D12", System.Globalization.CultureInfo.InvariantCulture));
+
     public static readonly Guid AcceptanceAssetBr1Id = Guid.Parse("a0000001-0000-4000-8000-000000000601");
     public static readonly Guid AcceptanceAssetBr1AssignmentId = Guid.Parse("a0000001-0000-4000-8000-000000000602");
     public const string AcceptanceAssetBr1Tag = "ACCEPT-ASSET-BR1";
