@@ -11,7 +11,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 |-------|-------|--------|--------|
 | P0 | Baseline, orientation, notes | Done | `docs(hcm032): baseline, pre-implementation notes and progress log` |
 | P1 | Definitions, pure calculators, decline category | Done | `feat(hcm032): recruitment KPI definitions, calculators and offer decline categories` |
-| P2 | `RecruitmentMetricsService` (read-only, scoped) | Not started | |
+| P2 | `RecruitmentMetricsService` (read-only, scoped) | Done | `feat(hcm032): recruitment metrics service with org scope and coverage` |
 | P3 | UI | Not started | |
 | P4 | Exports | Not started | |
 | P5 | Scale | Not started | |
@@ -37,6 +37,13 @@ Prompt decisions 1–10 are adopted as written (recorded in Arabic at the top of
 | K5 | **Decline category validation** lives in `RecruitmentOfferService.GetDeclineError` (new parameter, null or undefined value refused with «يجب اختيار فئة سبب الرفض.»), so both the HR on-behalf pre-check and the service enforce it. `SettleForWithdrawalAsync` sets `Other`. The portal decline gets its own form `CandidatePortalDeclineForm` (`Text`, `Category`); the shared `CandidatePortalTextForm` is unchanged. | One rule for both paths; no change to the other portal forms. |
 | K6 | **Stage time** uses `Received` as the first status event (its `ToStatus` is the initial status), then consecutive `StatusChanged` events; the last status (no end) is not counted. | Otherwise the time in Submitted would never be measured. |
 | K7 | **Approval SLA ages and step durations in hours** (median/P90 one decimal); skipped history entries are not steps but move the next step's start. | SLA is configured in hours. |
+
+| K8 | **Org-unit filter = the unit and its descendants** (MaterializedPath prefix, as `OrgScopeService`), intersected with the caller's scope. | A ministry-level unit should include its directorates. |
+| K9 | **Shared loads per request**: the cohort (applications applied in the period, their funnel events and offer evidence, loaded in id batches of 5,000) and the hires (all-time, in scope) are memoised in the scoped service, so the `Index` set of KPI calls reads them once. The memo key is culture-free (a record `ToString` formats dates with the current culture — it crashed under ar-SA/Um Al-Qura). | Scale budget (P5); culture safety. |
+| K10 | **Offer outcome dates**: Accepted `AcceptedDate`, Declined `DeclinedAt`, Expired `ExpiredAt ?? ExpiryDate` (offers expired before the expiry job), Revoked `RevokedAt`; the current status is the final outcome. Offers, appeals and objections are scoped through their application. | Documented fallback for old expired rows. |
+| K11 | **Open vacancies**: "vacant since" = the latest close/cancel date of a requisition on the position, else the position's creation; the vacant-position list is empty under a requisition or competition filter; stale = `PublishedAt ?? ApprovedDate ?? RequestedDate` older than `StalePublishedDays`. Lists keep the oldest 100; counts are exact. | The funded position has no vacant-since column. |
+| K12 | **Approval SLA scope**: a workflow entity's unit — requisition → its position; offer → the offer's funded position; application/appeal → the application's requisition; committee session → its requisition; competition / result version → none (unrestricted only). Bound: recruitment instances in progress, or started before the period end and not completed before its start; only those histories are parsed. | Decision 6; bounded JSON parsing (prompt P2). |
+| K13 | **Competitions panel**: competitions announced in the period, or announced and not finalized/cancelled (or the filtered one), max 100; admitted = reached Shortlisted (status, event or an exam paper), present = a paper with attendance Present, passed = `Passed` in `CurrentResultVersionId`, allocated = allocations not from reserve, reserve = applications with a reserve entry (ever), recalled = entries `Recalled`. | Definitions of the prompt made countable. |
 
 ## P0 maps
 
@@ -108,6 +115,7 @@ Skipped).
 | Phase | Files |
 |-------|-------|
 | P1 | Domain: `Enums/OfferDeclineReasonCategory.cs`, `Services/RecruitmentKpi/{KpiStatistics,FunnelReachRules,TimeToFillRules,ApprovalSlaRules,SmallCellSuppression}.cs`, `Entities/OfferLetter.cs`; Infrastructure: `HRCoreDbContext`, migration + snapshot, `RecruitmentOfferService` (decline category); Web: `OfferLettersController`, `OfferOnBehalfService`, `CandidatePortalController`/`Service`, `CandidatePortalViewModels` (`CandidatePortalDeclineForm`), `DeclineOfferForm`, `Views/OfferLetters/Details.cshtml`, `Views/CandidatePortal/Index.cshtml`; docs `STR_007_KPI_DEFINITIONS.md`, `str-value/kpi-matrix.json`; tests `Hcm032{KpiStatistics,FunnelReachRules,ApprovalSlaRules,DeclineCategory}Tests` |
+| P2 | `Infrastructure/Services/Recruitment/Analytics/{RecruitmentMetricsService,RecruitmentMetricsModels}.cs`, `RecruitmentOptions` (`RecruitmentAnalyticsOptions`), `HR.Core.Web/Program.cs` (DI); tests `Hcm032MetricsFixture`, `Hcm032RecruitmentMetricsTests` |
 | P0 | `reports/plan32-baseline.md`, `reports/plan32-progress.md`, `docs/acceptance-plans/PLAN-32-hcm-recruitment-analytics.md`, `docs/acceptance-plans/execution/PLAN-32-AGENT-PROMPT.md` (added as-is) |
 
 ## Migrations
@@ -125,6 +133,8 @@ Skipped).
 | P1 | `Hcm032` unit tests | 47 / 47 pass |
 | P1 | Regression `Hcm02|Hcm03|Reports|Str007|Ana001|Prod006|Perf004|ValueKpi|CandidatePortal|Offer` | 1080 / 1081 — the failure is `Syr001OfferLegalSourceTests.OfferSubmit_succeeds_with_law50` (environment-only baseline list) |
 | P1 | STR-007 validator (22 KPIs); `has-pending-model-changes` | PASS; none |
+| P2 | `Hcm032RecruitmentMetricsTests` (every KPI vs the hand tables; unrestricted, branch, denied, out-of-scope, competition-filter, org-unit, channel/requisition filters; names/references) | 21 / 21 pass |
+| P2 | Regression `Hcm032|Hcm02|Hcm03|Reports|Str007|Perf004|Program|Options` | 1059 / 1059 pass |
 
 ## Modified existing tests
 
@@ -137,11 +147,13 @@ Skipped).
 
 ## Open issues
 
-- **Another session works in this same checkout** (observed 14:22–14:28): uncommitted changes to
-  `AcceptanceCompetitionPatch.cs`, `acceptance-evidence/summary.md`, new `acceptance-evidence/AC-HCM-31/` and
-  `Hcm031AcceptanceSeedIntegrationTests.cs`. Not PLAN-32 work; never staged here (explicit `git add` paths only).
+- **Another session (PLAN-31 acceptance) worked in this same checkout** (observed 14:22–14:28). It has since moved its
+  work to its own worktree `.claude/worktrees/plan31-acceptance` (branch `fix/plan-31-acceptance-run`) and reverted its
+  files here. It uses the **acceptance stack (hrm-acceptance)** for AC-HCM-31 "for the next while"; the images are built
+  from `main` (no PLAN-32 code) — relevant for P7. This session commits explicit paths only.
 
 ## Next step
 
-P2 — `HR.Core.Infrastructure/Services/Recruitment/Analytics/RecruitmentMetricsService` + `RecruitmentAnalyticsOptions`
-(`Recruitment:Analytics:*`), DI registration, `Hcm032RecruitmentMetricsTests` with a hand-built SQLite fixture.
+P3 — `RecruitmentReportsController` (`HrCoreReadOnly`) `Index` + `Requisition/{id}`, view models, views (funnel chart +
+data table, requisitions, overdue approvals, offers, channels, appeals, merit, vacancies, competitions), JS file
+(`wwwroot/js/recruitment-reports.js`, data from `<script type="application/json">`), menu «تقارير التوظيف», controller tests.

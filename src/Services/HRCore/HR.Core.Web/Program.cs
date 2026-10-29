@@ -218,6 +218,8 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competiti
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionOfferService>();
 builder.Services.AddScoped<HR.Core.Web.Services.RecruitmentAppealWorkflowUiService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.RecruitmentInterviewService>();
+// HCM-032 (PLAN-32): recruitment reports and KPIs (read-only, org-scoped; Recruitment:Analytics:*).
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Analytics.RecruitmentMetricsService>();
 builder.Services.Configure<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions>(
     builder.Configuration.GetSection(HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions.SectionName));
 // COM-030 (PLAN-30 F1): candidate email/SMS senders per Notifications:Candidate:Provider (None | FileDrop | Smtp+Sms).
