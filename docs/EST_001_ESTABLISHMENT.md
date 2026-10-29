@@ -110,7 +110,7 @@ Mutations from EST-A screens create **draft change requests** (`EstablishmentCha
 | `EstablishmentChangeWorkflowUiService` | Workflow panel on Details (PLAN-24) |
 | WorkInbox | Pending establishment changes with deep link to Details (PLAN-23/24) |
 
-When `PolicyEnforcementMode.Off` **without** `NationalScope:IsLabScale`, submit applies immediately (legacy dev shortcut). With **IsLabScale=true** (default lab) or Enforce/Shadow, submit starts `ESTABLISHMENT-CHANGE-APPROVAL`; completion triggers apply via handler.
+PLAN-25 (G-02): submit **always** starts `ESTABLISHMENT-CHANGE-APPROVAL` through `ApprovalStartCoordinator` — whatever `NationalScope:IsLabScale` or the policy mode (the policy may deny or start another workflow, never skip it). The request becomes `PendingApproval` only together with the instance; with no published definition the submit is refused («لا يوجد تعريف مسار اعتماد منشور لهذا الإجراء.») and nothing changes. The old «Off without IsLabScale → apply immediately» shortcut is removed. Completion (step 1 `hr-core`, step 2 `hr-management-approver`, enforced on the server; the creator never approves or rejects; central HR only) applies the change via the handler. A request left `PendingApproval` without an instance by an earlier build gets «إعادة بدء مسار الاعتماد» on its Details page or `scripts/hcm025-repair-stuck-approvals.ps1`.
 
 ## Temporal (PLAN-EST-C / EST-003)
 

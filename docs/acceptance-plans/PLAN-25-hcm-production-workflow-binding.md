@@ -1,7 +1,7 @@
 # PLAN-25 — ربط اعتمادات التوظيف بالإنتاج وفرض الصلاحيات في الخادم (PLAN-HCM-C)
 
 **Scope:** HCM-001 / WF-001 — إغلاق فجوات P0 في [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-01, G-02, G-04, G-05, G-14, G-15  
-**Status:** In progress (2026-10-29)  
+**Status:** Implemented (CI not executed) — 2026-10-29  
 **Priority:** P0  
 **Depends on:** PLAN-26..33 منفذة  
 **Related cards:** HCM-001, WF-001, IAM-002, PLAN-03 (SoD)  
@@ -32,6 +32,27 @@
 10. الإنتاج/Staging: `PolicyEngine:Core.Recruitment = "Shadow"` و`Recruitment:Approvals:AlwaysStartWorkflow = true`.
 
 التفاصيل والقرارات الإضافية (R1–R7) في [`reports/plan25-progress.md`](../../reports/plan25-progress.md).
+
+## ملاحظات التنفيذ والانحرافات (2026-10-29)
+
+التقرير الختامي: [`reports/plan25-final-report.md`](../../reports/plan25-final-report.md)؛ دليل التنفيذ:
+[PLAN-25-EXECUTION.md](execution/PLAN-25-EXECUTION.md).
+
+| البند | ما نُفّذ | انحراف/ملاحظة |
+|-------|----------|----------------|
+| بدء المسار (G-02) | `ApprovalStartCoordinator` + `RecruitmentApprovalOptions` (`Recruitment:Approvals`) في HR.Core.Infrastructure/Services/Workflow؛ يُستدعى قبل أي تعديل على الكيان، وتُحفظ الحالة مع النسخة في معاملة واحدة على المزوّدات العلائقية؛ يعيد استخدام نسخة قيد التنفيذ للكيان نفسه | الاسم عام لا «Recruitment» لأنه يخدم الملاك أيضاً. الاستئناف والمسابقة لم يُمرَّرا عبره (كانا يبدآن دائماً، ولهما سلوك مقصود: H5 للاستئناف) |
+| الملاك | طلب تغيير الملاك لم يعد يُطبَّق فوراً خارج المختبر؛ ينتظر الاعتماد | كان العيب نفسه (وأشد) |
+| الواجهة | زر «إعادة بدء مسار الاعتماد» (`HrCoreWrite`) بدل تحذير «فعّل PolicyEngine… أو IsLabScale» في الطلب والعرض واللجنة والملاك | — |
+| الإصلاح | `POST /api/recruitment/admin/repair-approvals` (`HrCoreDelete`) + `scripts/hcm025-repair-stuck-approvals.ps1` | — |
+| الدور والبوابات (G-04) | `WorkflowActionActor` بكل الأدوار و`employee_id` ومطالبة النطاق؛ `WorkflowStageGuard.ValidateStepRole`/`ValidateReject`؛ سبع بوابات `IWorkflowApprovalGate`؛ `WorkflowApprovalEvaluator` مشترك بين الخادم ولوحات التفاصيل | سياق البوابة يتضمن تعريف المسار (لقاعدة عرض التجاوز). ترتيب الفحص: البنية ← الدور ← البوابة ← مُطلق المسار. رسائل الحارس بالعربية. حُذف فحص العضوية/النصاب المكرر من `SelectionCommitteeLifecycleService` (البوابة تغطيه دائماً). صندوق العمل يبقي حسابه المجمّع مع قاعدة الدور نفسها |
+| الرفض | الدور والبوابات نفسها | للاعتماد فقط: النصاب، المعتمد المختلف (التجاوز والنتائج)، النتيجة الصريحة للاستئناف، قاعدة مُطلق المسار |
+| الفرض | `Workflow:EnforceStepRoleEntityTypes`: أنواع التوظيف الستة + الملاك؛ `Workflow:AdminBypass=false` في كل البيئات | العهدة والفقدان والنقل خارج الفرض (دور الخطوة 1 للعهدة يختلف بحسب ترتيب البذور) — متابعة |
+| G-14 | تعطيل `R-REC-HIRE` في مكانه (لا عمود `IsActive`)، وإلغاء نشر `RECRUITMENT-HIRE` بتصحيح عند الإقلاع، وإيقاف `PolicyStaticFallback` عن إطلاقه، و`WorkflowStarter` لا يحيي تعريفاً غير منشور عبر الربط | اختبار معماري `WorkflowDefinitionsHaveHandlersTests` |
+| G-15 | سياسات صريحة على الإعلانات والشواغر الداخلية + تدقيق تاريخ الإغلاق ومنع الإغلاق الرجعي مع وجود طلبات؛ اختبار السقف `HrCorePostActionsHaveExplicitPolicyTests` وقائمة مجمّدة بـ 42 إجراءً غير توظيفي | — |
+| D10 | `RecruitmentOrgScopeFilter` على طلبات الشاغر والتوظيف والعروض واللجان (قوائم مصفّاة، تفاصيل 404، POST بمعرّف خارج النطاق 404)؛ المسابقات للمركزية فقط (403) | `PromoteFromCitizen`/`PromoteFromInternal` والشواغر الداخلية — متابعة |
+| الإعداد | Production/Staging: `PolicyEngine:Core.Recruitment=Shadow`، `Recruitment:Approvals`، `Workflow` | الملف الشبيه بالإنتاج يكرّر القيم صراحةً لأن البيئة تبقى `Acceptance` |
+| AC-HCM-25g | الحقائق الحية (القاعدة معطّلة، التعريف غير منشور، لا نسخ قيد التنفيذ) + اختبار وحدة لوضع Enforce | وضع Enforce ليس وضع النشر (الإنتاج Shadow)، فلم يُشغَّل حيّاً |
+| G-01 / CI | الشيفرة كلها في commits محلية | لم يُدفع شيء؛ أوامر الدفع والـ CI في التقرير الختامي §12 |
 
 ## Goal
 

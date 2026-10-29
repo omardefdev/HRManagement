@@ -14,8 +14,8 @@
 | P4 retire RECRUITMENT-HIRE | Done | b0f911e |
 | P5 write policies + org scope | Done | d62120f |
 | P6 prod-like journey, AC-HCM-25, CI | Done | 5290bd5 |
-| P7 live verification | Done | (P7 commit) |
-| P8 docs, review, final report | Pending | |
+| P7 live verification | Done | f962bdc |
+| P8 docs, review, final report | Done | (P8 commit) |
 
 ## Decisions (prompt decisions 1–10 adopted as written; refinements below)
 
@@ -177,4 +177,4 @@ Commit `76470fa`.
 
 ## Next step
 
-P6: prod-like compose mirrors decision 10, prod-like journey green + CI filter, `AcHcm25ProductionApprovalTests` (25a..h).
+None — PLAN-25 complete. Merge `feature/plan-25-production-approvals` into local `main` (no push); push/CI instructions in `reports/plan25-final-report.md` §12.

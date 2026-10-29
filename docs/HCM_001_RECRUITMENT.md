@@ -110,10 +110,11 @@ transitions, issue/expiry/accept), `OfferEligibilityRules` (who can receive an o
 (chair, quorum, majority, lock). Related: `AssessmentCriteriaRules`, `ApplicationRejection`,
 `RecruitmentEligibilityRules`.
 
-## Runtime Status (PLAN-21 – PLAN-33)
+## Runtime Status (PLAN-21 – PLAN-33, PLAN-25)
 
 "Implemented — verified" is used only when the evidence folder's `result.json` has `status: Pass`. All live runs below
-are on the local acceptance stack (lab profile: `NationalScope:IsLabScale=true`, policy engine Off); nothing has run
+are on the local acceptance stack (lab profile: `NationalScope:IsLabScale=true`, policy engine Off), except PLAN-25 and the
+PLAN-25 re-run of the recruitment suites, which ran on the prod-like profile (`docker-compose.acceptance-prodlike.yml`); nothing has run
 in remote CI (branch not pushed). Plan documents: `docs/acceptance-plans/PLAN-2x-*.md` / `PLAN-3x-*.md`.
 
 | Plan | Scope | Status | Evidence path | Last live result |
@@ -122,7 +123,7 @@ in remote CI (branch not pushed). Plan documents: `docs/acceptance-plans/PLAN-2x
 | PLAN-22 | Remaining recruitment approvals from the UI (AC-HCM-22) | Implemented — verified | `acceptance-evidence/AC-HCM-22/` | Pass, 22a–e — PLAN-33 P6, 2026-10-29 (`ACCEPTANCE_REQUIRE_ALL=true`) |
 | PLAN-23 | Unified work inbox (AC-WF-23) | Implemented — verified | `acceptance-evidence/AC-WF-23/` | Pass, 23a–f — PLAN-33 P6, 2026-10-29 (`ACCEPTANCE_REQUIRE_ALL=true`) |
 | PLAN-24 | Establishment change approval + inbox extension (AC-EST-24) | Implemented — verification pending: no `AC-EST-24*` evidence folder is committed (never run live); `AcEst24EstablishmentWorkflowUiTests` is not a `[RequiredAcceptance]` scenario, so a missing precondition is recorded as `Blocked` and skipped even under `ACCEPTANCE_REQUIRE_ALL=true` (before PLAN-33 it skipped silently: `reports/plan33-acceptance-inventory.md`) | — | none recorded |
-| PLAN-25 | Production workflow binding and server-side role enforcement (G-01, G-02, G-04, G-05, G-14, G-15) | Proposed (deferred) | — | — |
+| PLAN-25 | Production workflow binding and server-side role enforcement (G-02, G-04, G-05, G-14, G-15; G-01 local only) | Implemented — verified on the prod-like profile (CI not executed) | `acceptance-evidence/AC-HCM-25/`, `acceptance-evidence/AC-HCM-33/prodlike/`; `reports/plan25-final-report.md` | Pass 25a–h; prod-like journey Pass; recruitment suites on prod-like 51/53 + 26h Pass on rerun (30i is profile-dependent: retention apply is off in Production) — 2026-10-29 |
 | PLAN-26 | Assessment criteria, interview lifecycle, requisition integrity (AC-HCM-26) | Implemented — verified for 26a–g and 26i; AC-HCM-26h verification pending (Blocked: no second central `hr-core` persona to approve the establishment step; the freeze cascade is covered by `Hcm026EstablishmentCascadeIntegrationTests`) | `acceptance-evidence/AC-HCM-26/` (folder status Blocked) | PLAN-33 P6, 2026-10-29: 4 tests Pass, 26h Blocked |
 | PLAN-27 | Offer integrity, merit order, reserve list (AC-HCM-27) | Implemented — verified | `acceptance-evidence/AC-HCM-27/` | Pass ×4 — PLAN-33 P6, 2026-10-29 (27f–g failed in PLAN-32 without File.Storage; passes now) |
 | PLAN-28 | Committee and appeal governance (AC-HCM-28) | Implemented — verified | `acceptance-evidence/AC-HCM-28/` | Pass ×4 — PLAN-33 P6, 2026-10-29 |
@@ -130,26 +131,32 @@ in remote CI (branch not pushed). Plan documents: `docs/acceptance-plans/PLAN-2x
 | PLAN-30 | Candidate experience, unified channel, notifications (AC-HCM-30) | Implemented — verified | `acceptance-evidence/AC-HCM-30/`; `reports/plan30-final-report.md` | Pass ×8 — PLAN-33 P6, 2026-10-29 (30c document scan now runs with File.Storage) |
 | PLAN-31 | Multi-vacancy competitions and exams (AC-HCM-31) | Implemented — verified | `acceptance-evidence/AC-HCM-31/`; `reports/plan31-final-report.md` | Pass ×2 — PLAN-33 P6 after `acceptance-reset.ps1`, 2026-10-29 |
 | PLAN-32 | Recruitment reports and KPIs (AC-HCM-32) | Implemented — verified | `acceptance-evidence/AC-HCM-32/`; `reports/plan32-final-report.md` | Pass ×4 — PLAN-33 P6, 2026-10-29 |
-| PLAN-33 | Live verification of the recruitment path and documentation (AC-HCM-21/22, AC-WF-23, AC-HCM-33) | Implemented — verified on the acceptance (lab) profile (CI not executed); the prod-like journey fails at the first approval (G-02, PLAN-25) | `acceptance-evidence/AC-HCM-33/`, `acceptance-evidence/AC-HCM-33/prodlike/`; `reports/plan33-final-report.md` | Journey Pass (P6 clean stack, 2026-10-29); 33a/33b/33d Pass (33d checked by `scripts/hcm033-validate.ps1`); prod-like Fail at stage «1 requisition» (2026-10-29) |
+| PLAN-33 | Live verification of the recruitment path and documentation (AC-HCM-21/22, AC-WF-23, AC-HCM-33) | Implemented — verified on the acceptance (lab) profile (CI not executed); the prod-like journey passes since PLAN-25 | `acceptance-evidence/AC-HCM-33/`, `acceptance-evidence/AC-HCM-33/prodlike/`; `reports/plan33-final-report.md` | Journey Pass (P6 clean stack, 2026-10-29); 33a/33b/33d Pass (33d checked by `scripts/hcm033-validate.ps1`); prod-like Fail at stage «1 requisition» (2026-10-29) |
 
 PLAN-33 verification assets: `src/Tests/HRManagement.AcceptanceTests/AcceptanceGate.cs` (a missing precondition is
 recorded as `Blocked` and skipped, or fails `[RequiredAcceptance]` scenarios under `ACCEPTANCE_REQUIRE_ALL=true`),
 deterministic recruitment states (`HR.Core.Infrastructure/Seeding/AcceptanceRecruitmentStatesPatch.cs` +
 `testdata/acceptance/recruitment-states.json`), the requisition-to-hire journey
 `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` (`Category=Journey`; the prod-like variant
-`Category=JourneyProdLike` runs on `docker-compose.acceptance-prodlike.yml` and is excluded from CI until PLAN-25), and
+`Category=JourneyProdLike` runs on `docker-compose.acceptance-prodlike.yml` and is in the CI journey filter since PLAN-25), and
 `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` (G-02 behaviour).
 
 ### Known gaps
 
 Details: [HCM_001_GAP_STUDY](HCM_001_GAP_STUDY.md) (section 4.1).
 
-- **G-02** — with `NationalScope:IsLabScale=false` and the policy engine Off (the Staging/Production profile), a
-  submitted requisition or offer stays `PendingApproval` with no workflow instance (the UI shows a warning): approval is
-  refused and the offer is never `Issued`; the selection committee is locked without a workflow and shows no warning. Proven by
-  `Hcm033LabScaleBehaviourTests` and by the prod-like journey failure above. Fix: [PLAN-25](acceptance-plans/PLAN-25-hcm-production-workflow-binding.md).
-- **G-04** — a workflow step's `RoleRequired` is checked only in the UI (workflow panel / work inbox), not on the
-  server POST. Fix: PLAN-25.
+- **G-02 — closed by [PLAN-25](acceptance-plans/PLAN-25-hcm-production-workflow-binding.md):** requisition, offer, committee
+  and establishment-change approvals always start (`ApprovalStartCoordinator`); `PendingApproval` only with the instance,
+  whatever `IsLabScale` or the policy mode. Rows left stuck by earlier builds: «إعادة بدء مسار الاعتماد» or
+  `scripts/hcm025-repair-stuck-approvals.ps1`.
+- **G-04 — closed by PLAN-25:** the step role and the entity rules (SoD, quorum, membership, assigned reviewer, distinct
+  approvers, org scope) are enforced on the server for approve and reject (`WorkflowStageGuard` + `IWorkflowApprovalGate`),
+  and the panels show exactly what the server accepts. Enforced entity types: `Workflow:EnforceStepRoleEntityTypes`.
+- **G-14, G-15 — closed by PLAN-25:** RECRUITMENT-HIRE retired; explicit write policies on postings/vacancies; org scope on
+  the recruitment screens for branch users (D10).
+- **G-01** — all code is in local commits; remote CI has not run (not pushed).
+- **Remaining follow-ups (PLAN-25 §11):** step-role enforcement for non-recruitment domains, the 42 frozen non-recruitment
+  POST actions, branch scope on promote-from-citizen/internal and internal vacancies.
 
 ### Earlier plans (HCM-01 – HCM-07)
 
@@ -709,7 +716,12 @@ decisions K1–K23: [`reports/plan32-progress.md`](../reports/plan32-progress.md
 | `src/Tests/HRManagement.AcceptanceTests/AcceptanceGate.cs` | PLAN-33: `Blocked` + Skip on a missing precondition, Fail for `[RequiredAcceptance]` under `ACCEPTANCE_REQUIRE_ALL=true` |
 | `src/Services/HRCore/HR.Core.Infrastructure/Seeding/AcceptanceRecruitmentStatesPatch.cs`, `testdata/acceptance/recruitment-states.json` | PLAN-33: deterministic recruitment states for AC-HCM-21/22 and AC-WF-23 |
 | `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` | PLAN-33: requisition-to-hire journey (AC-HCM-33; `Journey` / `JourneyProdLike`) |
-| `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` | PLAN-33: G-02 behaviour with `IsLabScale=false` and the policy engine Off |
+| `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` | PLAN-33 / PLAN-25: approvals start with `IsLabScale=false` and the policy engine Off (G-02 closed); restart of a stuck requisition |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Workflow/ApprovalStartCoordinator.cs` | PLAN-25: the single approval-start decision (policy may deny or redirect, never skip) |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Workflow/Gates/` | PLAN-25: `WorkflowApprovalEvaluator` and the per-entity approval gates |
+| `src/Services/HRCore/HR.Core.Infrastructure/Services/Workflow/ApprovalRepairService.cs`, `scripts/hcm025-repair-stuck-approvals.ps1` | PLAN-25: repair of stuck approvals and orphan RECRUITMENT-HIRE instances |
+| `src/Services/HRCore/HR.Core.Web/Services/RecruitmentOrgScopeFilter.cs` | PLAN-25 (D10): branch org scope on the recruitment screens |
+| `src/Tests/HRManagement.AcceptanceTests/AcHcm25ProductionApprovalTests.cs` | PLAN-25: AC-HCM-25a..h |
 
 ## Validation
 
@@ -720,3 +732,4 @@ decisions K1–K23: [`reports/plan32-progress.md`](../reports/plan32-progress.md
 - `scripts/hcm026-validate.ps1` — `Hcm026*` unit tests + `Hcm021|Hcm022` regression
 - `scripts/hcm027-validate.ps1` — `Hcm027*` unit tests + `Hcm026|Hcm022` regression
 - `scripts/hcm028-validate.ps1` — `Hcm028*` unit tests + `Hcm027|Hcm026|Hcm022|Hcm021|Hcm006|Wf023` regression, EF model check
+- `scripts/hcm025-validate.ps1` (PLAN-25) — no approval start gated on `IsLabScale`, Production/Staging settings, guard role check, RECRUITMENT-HIRE retired, prod-like CI journey; `Hcm025|WorkflowStageGuard|Architecture` unit tests
