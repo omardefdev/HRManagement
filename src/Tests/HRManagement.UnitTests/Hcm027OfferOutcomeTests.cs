@@ -19,7 +19,7 @@ public class Hcm027OfferOutcomeTests
         await using var db = CreateContext();
         var (offerId, appId) = await CreateIssuedOfferAsync(db);
 
-        var (success, error) = await CreateOfferService(db).DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclinedBy.HrOnBehalf, CreatorId);
+        var (success, error) = await CreateOfferService(db).DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, OfferDeclinedBy.HrOnBehalf, CreatorId);
         Assert.True(success, error);
 
         db.ChangeTracker.Clear();
@@ -44,7 +44,7 @@ public class Hcm027OfferOutcomeTests
         await using var db = CreateContext();
         var (offerId, _) = await CreateIssuedOfferAsync(db);
 
-        var (success, _) = await CreateOfferService(db).DeclineAsync(offerId, reason, declinedBy);
+        var (success, _) = await CreateOfferService(db).DeclineAsync(offerId, reason, OfferDeclineReasonCategory.Other, declinedBy);
 
         Assert.False(success);
         db.ChangeTracker.Clear();
@@ -178,7 +178,7 @@ public class Hcm027OfferOutcomeTests
         await using var db = CreateContext();
         var (offerId, appId) = await CreateIssuedOfferAsync(db);
         var service = CreateOfferService(db);
-        Assert.True((await service.DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclinedBy.HrOnBehalf)).Success);
+        Assert.True((await service.DeclineAsync(offerId, "قبل عرضاً آخر", OfferDeclineReasonCategory.OtherOffer, OfferDeclinedBy.HrOnBehalf)).Success);
 
         var reqId = (await db.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == appId)).RequisitionId!.Value;
         var second = await db.RecruitmentApplications.SingleAsync(a => a.RequisitionId == reqId && a.Rank == 2);

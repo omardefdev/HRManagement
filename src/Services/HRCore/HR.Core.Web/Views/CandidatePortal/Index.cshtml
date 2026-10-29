@@ -223,6 +223,7 @@ else if (!string.IsNullOrEmpty(Model.Notice))
                     var ackError = FormErr("Accept", "Acknowledge");
                     var nameError = FormErr("Accept", "FullName");
                     var declineError = FormErr("Decline", "Text") ?? FormErr("Decline", "");
+                    var declineCategoryError = FormErr("Decline", "Category");
                     <div class="row g-3">
                         <div class="col-lg-6">
                             <form asp-action="AcceptOffer" method="post" class="careers-form border rounded p-3 h-100" novalidate aria-labelledby="portal-accept-title">
@@ -251,6 +252,19 @@ else if (!string.IsNullOrEmpty(Model.Notice))
                             <form asp-action="DeclineOffer" method="post" class="careers-form border rounded p-3 h-100" novalidate aria-labelledby="portal-decline-title">
                                 @Html.AntiForgeryToken()
                                 <h3 class="h6 fw-bold" id="portal-decline-title">الاعتذار عن العرض</h3>
+                                <div class="mb-3">
+                                    <label class="form-label" for="portal-decline-category">سبب الاعتذار الرئيسي</label>
+                                    <select id="portal-decline-category" name="Category" class="form-select@(Invalid(declineCategoryError))"
+                                            required aria-required="true" aria-invalid="@(declineCategoryError is null ? "false" : "true")"
+                                            aria-describedby="@(declineCategoryError is null ? null : "portal-decline-category-error")">
+                                        <option value="">— اختر —</option>
+                                        @foreach (var category in Enum.GetValues<HR.Core.Domain.Enums.OfferDeclineReasonCategory>())
+                                        {
+                                            <option value="@category" selected="@(Model.Posted.DeclineCategory == category)">@HR.Core.Domain.Enums.OfferDeclineReasonCategories.LabelAr(category)</option>
+                                        }
+                                    </select>
+                                    @if (declineCategoryError is not null) { <div class="invalid-feedback d-block" id="portal-decline-category-error">@declineCategoryError</div> }
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label" for="portal-decline-reason">سبب الاعتذار</label>
                                     <textarea id="portal-decline-reason" name="Text" rows="3" maxlength="1000" class="form-control@(Invalid(declineError))"

@@ -90,6 +90,10 @@ public class OfferLetter : AuditableEntity
     [Display(Name = "سبب الرفض")]
     public string? DeclineReason { get; set; }
 
+    /// <summary>HCM-032 (PLAN-32): required on new declines; null on declines recorded before PLAN-32 («غير مصنف»).</summary>
+    [Display(Name = "فئة سبب الرفض")]
+    public OfferDeclineReasonCategory? DeclineReasonCategory { get; set; }
+
     [Display(Name = "تاريخ الرفض")]
     public DateTime? DeclinedAt { get; set; }
 

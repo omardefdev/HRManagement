@@ -561,6 +561,8 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .IsUnique();
             entity.Property(e => e.GradeMinSalary).HasPrecision(18, 2);
             entity.Property(e => e.GradeMaxSalary).HasPrecision(18, 2);
+            // HCM-032 (PLAN-32): nullable; old declines stay null («غير مصنف»).
+            entity.Property(e => e.DeclineReasonCategory).HasConversion<string>().HasMaxLength(20);
             // HCM-029 (D2): hex SHA-256 → char(64).
             entity.Property(e => e.DocumentSha256).HasMaxLength(64).IsFixedLength();
         });

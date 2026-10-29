@@ -10,7 +10,7 @@ Baseline: [`reports/plan32-baseline.md`](plan32-baseline.md).
 | Phase | Scope | Status | Commit |
 |-------|-------|--------|--------|
 | P0 | Baseline, orientation, notes | Done | `docs(hcm032): baseline, pre-implementation notes and progress log` |
-| P1 | Definitions, pure calculators, decline category | Not started | |
+| P1 | Definitions, pure calculators, decline category | Done | `feat(hcm032): recruitment KPI definitions, calculators and offer decline categories` |
 | P2 | `RecruitmentMetricsService` (read-only, scoped) | Not started | |
 | P3 | UI | Not started | |
 | P4 | Exports | Not started | |
@@ -30,6 +30,13 @@ Prompt decisions 1–10 are adopted as written (recorded in Arabic at the top of
 | # | Decision | Reason |
 |---|----------|--------|
 | K1 | **Targets** of the new KPIs use the existing `cost_per_employee` precedent: `target = { direction, value: null, note: "TBD — set by product-hr after the first frozen quarter" }`. The STR-007 validator accepts any target object. **Baselines** for `baselineRequired` KPIs are added with `value: null`, `prePilotFreeze: true` and a note (same precedent); no number is invented. | Prompt: never invent targets; the validator requires a frozen baseline row for every `baselineRequired` KPI. |
+
+| K2 | **Funnel reach is monotone**: reaching a stage implies every earlier stage (events "to that status or beyond", current status and evidence alike), so stage counts never increase. `ReserveListed` maps to Ranked; `Received` maps to Applied. | "or beyond" + "current status implies every earlier stage"; one rule for all sources keeps the funnel consistent. |
+| K3 | **Out-of-scope org-unit filter → empty result, not 403** (unlike `ReportsController`). `IsDenied` → empty too in the service; the controller returns `Forbid` only for a denied scope. | AC-HCM-32b negative says «لا بيانات». |
+| K4 | **Small-cell rule**: counts 1–4 shown «<5»; zero and ≥ 5 shown; a rate whose numerator or denominator is suppressed is suppressed. | A zero reveals nothing about a person; suppressing derived rates blocks back-calculation. |
+| K5 | **Decline category validation** lives in `RecruitmentOfferService.GetDeclineError` (new parameter, null or undefined value refused with «يجب اختيار فئة سبب الرفض.»), so both the HR on-behalf pre-check and the service enforce it. `SettleForWithdrawalAsync` sets `Other`. The portal decline gets its own form `CandidatePortalDeclineForm` (`Text`, `Category`); the shared `CandidatePortalTextForm` is unchanged. | One rule for both paths; no change to the other portal forms. |
+| K6 | **Stage time** uses `Received` as the first status event (its `ToStatus` is the initial status), then consecutive `StatusChanged` events; the last status (no end) is not counted. | Otherwise the time in Submitted would never be measured. |
+| K7 | **Approval SLA ages and step durations in hours** (median/P90 one decimal); skipped history entries are not steps but move the next step's start. | SLA is configured in hours. |
 
 ## P0 maps
 
@@ -100,11 +107,14 @@ Skipped).
 
 | Phase | Files |
 |-------|-------|
+| P1 | Domain: `Enums/OfferDeclineReasonCategory.cs`, `Services/RecruitmentKpi/{KpiStatistics,FunnelReachRules,TimeToFillRules,ApprovalSlaRules,SmallCellSuppression}.cs`, `Entities/OfferLetter.cs`; Infrastructure: `HRCoreDbContext`, migration + snapshot, `RecruitmentOfferService` (decline category); Web: `OfferLettersController`, `OfferOnBehalfService`, `CandidatePortalController`/`Service`, `CandidatePortalViewModels` (`CandidatePortalDeclineForm`), `DeclineOfferForm`, `Views/OfferLetters/Details.cshtml`, `Views/CandidatePortal/Index.cshtml`; docs `STR_007_KPI_DEFINITIONS.md`, `str-value/kpi-matrix.json`; tests `Hcm032{KpiStatistics,FunnelReachRules,ApprovalSlaRules,DeclineCategory}Tests` |
 | P0 | `reports/plan32-baseline.md`, `reports/plan32-progress.md`, `docs/acceptance-plans/PLAN-32-hcm-recruitment-analytics.md`, `docs/acceptance-plans/execution/PLAN-32-AGENT-PROMPT.md` (added as-is) |
 
 ## Migrations
 
-None yet.
+| Migration | Phase | Change |
+|-----------|-------|--------|
+| `20261029111828_HCM032_OfferDeclineCategory` | P1 | nullable `OfferLetters.DeclineReasonCategory` varchar(20); no data rewritten |
 
 ## Test results
 
@@ -112,12 +122,26 @@ None yet.
 |-------|-----|--------|
 | P0 | Baseline filter `Hcm02|Hcm030|Hcm031|Reports|Str007|Ana001|Prod006|Perf004` | 1008 / 1008 pass |
 | P0 | STR-007 / ANA-001 / PROD-006 validators | PASS / PASS / PASS |
+| P1 | `Hcm032` unit tests | 47 / 47 pass |
+| P1 | Regression `Hcm02|Hcm03|Reports|Str007|Ana001|Prod006|Perf004|ValueKpi|CandidatePortal|Offer` | 1080 / 1081 — the failure is `Syr001OfferLegalSourceTests.OfferSubmit_succeeds_with_law50` (environment-only baseline list) |
+| P1 | STR-007 validator (22 KPIs); `has-pending-model-changes` | PASS; none |
+
+## Modified existing tests
+
+| Test | Why |
+|------|-----|
+| `Hcm027OfferOutcomeTests`, `Hcm027ReserveListTests`, `Hcm031ReserveRecallTests` | `DeclineAsync` / `DeclineAndDraftNextAsync` take the new required category |
+| `Hcm030OnBehalfAcceptanceTests` | same for `OfferOnBehalfService.DeclineAsync`; `IssueOfferAsync`/`CreateService` made `internal` for reuse |
+| `Hcm030CandidatePortalTests` | `DeclineOfferAsync` takes the category; the controller takes `CandidatePortalDeclineForm`; the no-Guid form check covers the new form; `LinkCitizenAsync`/`CreateController` made `internal` for reuse |
+| `AcHcm27OfferMeritTests`, `AcHcm31CompetitionTests`, `AcHcm30CandidateExperienceTests` | decline form posts carry the new required `ReasonCategory` / `Category` field |
 
 ## Open issues
 
-None.
+- **Another session works in this same checkout** (observed 14:22–14:28): uncommitted changes to
+  `AcceptanceCompetitionPatch.cs`, `acceptance-evidence/summary.md`, new `acceptance-evidence/AC-HCM-31/` and
+  `Hcm031AcceptanceSeedIntegrationTests.cs`. Not PLAN-32 work; never staged here (explicit `git add` paths only).
 
 ## Next step
 
-P1 — pure calculators in `HR.Core.Domain/Services/RecruitmentKpi/`, migration `HCM032_OfferDeclineCategory`, decline
-category on both decline forms, KPI definitions in STR-007 docs and matrix.
+P2 — `HR.Core.Infrastructure/Services/Recruitment/Analytics/RecruitmentMetricsService` + `RecruitmentAnalyticsOptions`
+(`Recruitment:Analytics:*`), DI registration, `Hcm032RecruitmentMetricsTests` with a hand-built SQLite fixture.

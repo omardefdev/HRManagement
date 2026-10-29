@@ -85,10 +85,14 @@ public class CandidatePortalController(
     [HttpPost("offer/decline")]
     [ValidateAntiForgeryToken]
     [CandidatePortalSession]
-    public async Task<IActionResult> DeclineOffer(CandidatePortalTextForm form, CancellationToken ct)
+    public async Task<IActionResult> DeclineOffer(CandidatePortalDeclineForm form, CancellationToken ct)
     {
-        var result = await portalService.DeclineOfferAsync(Portal, form.Text, ct);
-        return await AfterAsync(result, "declined", "Decline", posted => posted.DeclineReason = form.Text, ct);
+        var result = await portalService.DeclineOfferAsync(Portal, form.Text, form.Category, ct);
+        return await AfterAsync(result, "declined", "Decline", posted =>
+        {
+            posted.DeclineReason = form.Text;
+            posted.DeclineCategory = form.Category;
+        }, ct);
     }
 
     /// <summary>«تنزيل خطاب العرض» — the PDF of the session's Issued/Accepted offer.</summary>

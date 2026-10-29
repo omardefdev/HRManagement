@@ -151,7 +151,7 @@ public sealed class Hcm030CandidatePortalTests
         var portal = CreatePortal(db);
 
         var accept = await portal.AcceptOfferAsync(session, true, FirstName);
-        var decline = await portal.DeclineOfferAsync(session, DeclineReason);
+        var decline = await portal.DeclineOfferAsync(session, DeclineReason, OfferDeclineReasonCategory.Salary);
         var page = await portal.GetPageAsync(session);
 
         Assert.Equal(RecruitmentOfferService.ExpiredOfferMessage, accept.Errors.Single().Error);
@@ -252,7 +252,7 @@ public sealed class Hcm030CandidatePortalTests
             if (method.GetCustomAttributes(typeof(HttpPostAttribute), false).Length > 0)
                 Assert.NotNull(Attribute.GetCustomAttribute(method, typeof(ValidateAntiForgeryTokenAttribute)));
         }
-        foreach (var form in new[] { typeof(CandidatePortalAcceptForm), typeof(CandidatePortalTextForm), typeof(CandidatePortalWithdrawForm), typeof(CandidatePortalDocumentsForm) })
+        foreach (var form in new[] { typeof(CandidatePortalAcceptForm), typeof(CandidatePortalTextForm), typeof(CandidatePortalDeclineForm), typeof(CandidatePortalWithdrawForm), typeof(CandidatePortalDocumentsForm) })
             Assert.DoesNotContain(form.GetProperties(), p => p.PropertyType == typeof(Guid) || p.PropertyType == typeof(Guid?));
     }
 
@@ -264,7 +264,7 @@ public sealed class Hcm030CandidatePortalTests
         var session = await LinkCitizenAsync(db, appId);
         var controller = CreateController(db, session);
 
-        var result = await controller.DeclineOffer(new CandidatePortalTextForm { Text = "لا" }, CancellationToken.None);
+        var result = await controller.DeclineOffer(new CandidatePortalDeclineForm { Text = "لا", Category = OfferDeclineReasonCategory.Salary }, CancellationToken.None);
 
         var view = Assert.IsType<ViewResult>(result);
         Assert.Equal(nameof(CandidatePortalController.Index), view.ViewName);
@@ -282,7 +282,7 @@ public sealed class Hcm030CandidatePortalTests
         var (offerId, appId) = await Hcm027OfferOutcomeTests.CreateOfferAsync(db, approve: true);
         var session = await LinkCitizenAsync(db, appId);
 
-        var result = await CreatePortal(db, new RecruitmentOptions { AutoDraftNextOffer = true }).DeclineOfferAsync(session, DeclineReason);
+        var result = await CreatePortal(db, new RecruitmentOptions { AutoDraftNextOffer = true }).DeclineOfferAsync(session, DeclineReason, OfferDeclineReasonCategory.Salary);
 
         Assert.True(result.Success, string.Join(" | ", result.Errors.Select(e => e.Error)));
         db.ChangeTracker.Clear();
@@ -303,7 +303,7 @@ public sealed class Hcm030CandidatePortalTests
         var (_, appId) = await Hcm027OfferOutcomeTests.CreateOfferAsync(db, approve: true);
         var session = await LinkCitizenAsync(db, appId);
 
-        Assert.True((await CreatePortal(db).DeclineOfferAsync(session, DeclineReason)).Success);
+        Assert.True((await CreatePortal(db).DeclineOfferAsync(session, DeclineReason, OfferDeclineReasonCategory.Salary)).Success);
 
         var requisitionId = (await db.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == appId)).RequisitionId!.Value;
         var suggestion = await CreateReserveList(db).GetNextCandidateSuggestionAsync(requisitionId);
@@ -775,7 +775,7 @@ public sealed class Hcm030CandidatePortalTests
         return Path.Combine(dir.FullName, relativePath);
     }
 
-    private static CandidatePortalController CreateController(HRCoreDbContext db, CandidatePortalContext session)
+    internal static CandidatePortalController CreateController(HRCoreDbContext db, CandidatePortalContext session)
     {
         var controller = new CandidatePortalController(null!, null!, null!, CreatePortal(db));
         var http = new DefaultHttpContext();
@@ -788,7 +788,7 @@ public sealed class Hcm030CandidatePortalTests
         new(db, Microsoft.Extensions.Options.Options.Create(new RecruitmentOptions()), NullLogger<ReserveListService>.Instance);
 
     /// <summary>Links a public citizen application (posting + reference) to the recruitment application; the session.</summary>
-    private static async Task<CandidatePortalContext> LinkCitizenAsync(HRCoreDbContext db, Guid appId, string nationalId = "0101010101")
+    internal static async Task<CandidatePortalContext> LinkCitizenAsync(HRCoreDbContext db, Guid appId, string nationalId = "0101010101")
     {
         var app = await db.RecruitmentApplications.AsNoTracking().SingleAsync(a => a.Id == appId);
         var posting = new PublicJobPosting { TenantId = app.TenantId, Title = "محلل", IsPublished = true, RequisitionId = app.RequisitionId };
