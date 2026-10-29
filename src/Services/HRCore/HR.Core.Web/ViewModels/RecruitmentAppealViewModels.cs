@@ -42,4 +42,12 @@ public sealed class RecruitmentAppealDetailsViewModel
     public IReadOnlyList<RecruitmentAppealOutcome> AllowedOutcomes { get; init; } = [];
     public bool CanCorrectRank => AllowedOutcomes.Contains(RecruitmentAppealOutcome.UpheldRankCorrection);
     public int? RankBeforeRejection => Application.RankBeforeRejection ?? Application.Rank;
+
+    /// <summary>HCM-031 (PLAN-31): a competition result objection (decided with a corrected exam mark or dismissed).</summary>
+    public bool IsObjection => Appeal.Kind == RecruitmentAppealKind.ResultObjection;
+    /// <summary>HCM-031: the objected paper — exam number, marks by round, the closed mark and the maximum.</summary>
+    public ObjectionPaperView? ObjectionPaper { get; init; }
 }
+
+/// <summary>HCM-031: the paper of a result objection as the independent reviewer sees it.</summary>
+public sealed record ObjectionPaperView(string ExamNumber, decimal MaxScore, decimal? First, decimal? Second, decimal? Reconciler, decimal? FinalMark);

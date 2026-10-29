@@ -186,8 +186,10 @@ public sealed class RecruitmentAppealService(
             return (false, "التعليل يجب ألا يتجاوز 2000 حرف.");
 
         var app = appeal.RecruitmentApplication!;
-        var outcomeError = RecruitmentAppealWorkflowRules.ValidateOutcome(
-            outcome, app.Requisition?.Status, app.RankBeforeRejection ?? app.Rank, correctedRank);
+        var outcomeError = appeal.Kind == RecruitmentAppealKind.ResultObjection
+            ? RecruitmentAppealWorkflowRules.ValidateObjectionOutcome(outcome, appeal.ObjectionCorrectedScore)
+            : RecruitmentAppealWorkflowRules.ValidateOutcome(
+                outcome, app.Requisition?.Status, app.RankBeforeRejection ?? app.Rank, correctedRank);
         if (outcomeError is not null) return (false, outcomeError);
 
         if (outcome == RecruitmentAppealOutcome.UpheldRankCorrection)
@@ -319,6 +321,13 @@ public sealed class RecruitmentAppealService(
             .Where(s => s.RecruitmentApplicationId == app.Id && s.AssessorEmployeeId != null)
             .Select(s => s.AssessorEmployeeId!.Value)
             .ToListAsync(ct));
+
+        // HCM-031 (PLAN-31): a result objection is not reviewed by a marker of the competition's exam sessions.
+        if (app.CompetitionId is Guid competitionId)
+            excluded.UnionWith(await db.ExamMarkerAssignments.AsNoTracking()
+                .Where(m => m.ExamSession!.CompetitionId == competitionId && m.MarkerEmployeeId != null)
+                .Select(m => m.MarkerEmployeeId!.Value)
+                .ToListAsync(ct));
 
         if (appeal.FiledByEmployeeId is Guid filerId) excluded.Add(filerId);
         if (assignerEmployeeId is Guid assignerId) excluded.Add(assignerId);

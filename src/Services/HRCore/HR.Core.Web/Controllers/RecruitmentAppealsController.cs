@@ -27,7 +27,8 @@ public class RecruitmentAppealsController(
     RecruitmentAppealWorkflowUiService workflowUi,
     RecruitmentSelectionService selection,
     OrgScopeService orgScope,
-    IAuthorizationService authorization) : Controller
+    IAuthorizationService authorization,
+    HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionObjectionService objections) : Controller
 {
     public async Task<IActionResult> Index(string? status, CancellationToken ct)
     {
@@ -103,10 +104,26 @@ public class RecruitmentAppealsController(
             ? (await selection.GetCommitteeRankingGateAsync(requisitionId, ct)).DecisionFor(app.Id)
             : null;
 
-        var allowedOutcomes = RecruitmentAppealWorkflowRules.DecidableOutcomes
-            .Where(o => RecruitmentAppealWorkflowRules.ValidateOutcome(
-                o, requisition?.Status, app.RankBeforeRejection ?? app.Rank, correctedRank: 1) is null)
-            .ToList();
+        var isObjection = appeal.Kind == RecruitmentAppealKind.ResultObjection;
+        var allowedOutcomes = isObjection
+            ? [RecruitmentAppealOutcome.ObjectionUpheld, RecruitmentAppealOutcome.ObjectionDismissed]
+            : RecruitmentAppealWorkflowRules.DecidableOutcomes
+                .Where(o => RecruitmentAppealWorkflowRules.ValidateOutcome(
+                    o, requisition?.Status, app.RankBeforeRejection ?? app.Rank, correctedRank: 1) is null)
+                .ToList();
+        ObjectionPaperView? paper = null;
+        if (isObjection && appeal.ObjectionExamCandidateId is Guid paperId)
+        {
+            var row = await db.ExamCandidates.AsNoTracking()
+                .Where(c => c.Id == paperId)
+                .Select(c => new { c.ExamNumber, c.ExamSession!.MaxScore, c.FinalMark, Scores = c.Scores.Select(s => new { s.Round, s.Score }).ToList() })
+                .FirstOrDefaultAsync(ct);
+            if (row is not null)
+            {
+                var marks = HR.Core.Infrastructure.Services.Recruitment.Competitions.ExamMarkingService.MarksOf(row.Scores.Select(s => (s.Round, s.Score)));
+                paper = new ObjectionPaperView(row.ExamNumber, row.MaxScore, marks.First, marks.Second, marks.Reconciler, row.FinalMark);
+            }
+        }
 
         return View(new RecruitmentAppealDetailsViewModel
         {
@@ -120,7 +137,8 @@ public class RecruitmentAppealsController(
             CanAssign = canWrite && pending,
             CanDecide = pending && hasReviewer && !appeal.IsAwaitingInfo && RecruitmentAppealAccess.CanDecide(appeal, User),
             CanResubmit = canWrite && pending && appeal.IsAwaitingInfo,
-            AllowedOutcomes = allowedOutcomes
+            AllowedOutcomes = allowedOutcomes,
+            ObjectionPaper = paper
         });
     }
 
@@ -150,8 +168,16 @@ public class RecruitmentAppealsController(
         RecruitmentAppealOutcome outcome,
         string? rationale,
         int? correctedRank,
-        CancellationToken ct)
+        CancellationToken ct,
+        decimal? correctedScore = null)
     {
+        // HCM-031 (PLAN-31): a result objection is decided with a corrected exam mark (or dismissed) and recomputed.
+        if (outcome is RecruitmentAppealOutcome.ObjectionUpheld or RecruitmentAppealOutcome.ObjectionDismissed)
+        {
+            var (ok, objectionError, notice) = await objections.DecideAsync(id, outcome, rationale, correctedScore, CreateActor(User), ct);
+            TempData[ok ? "Success" : "Error"] = ok ? notice ?? "تم البت في الاعتراض." : objectionError;
+            return RedirectToAction(nameof(Details), new { id });
+        }
         var (success, error) = await appealService.DecideAsync(id, outcome, rationale, correctedRank, CreateActor(User), ct);
         TempData[success ? "Success" : "Error"] = success ? "تم البت في الاستئناف." : error;
         return RedirectToAction(nameof(Details), new { id });

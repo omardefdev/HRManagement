@@ -43,6 +43,25 @@ public sealed class RecruitmentAppealWorkflowHandler(HRCoreDbContext db)
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>HCM-031: the corrected mark of an upheld result objection (round ObjectionCorrection, by the reviewer).</summary>
+    private async Task StageObjectionCorrectionAsync(RecruitmentAppeal appeal, Guid? actorUserId, DateTime now, CancellationToken ct)
+    {
+        if (appeal.ObjectionExamCandidateId is not Guid paperId || appeal.ObjectionCorrectedScore is not decimal corrected)
+            throw new InvalidOperationException("الاعتراض المقبول يتطلب الدفتر والعلامة المصحّحة.");
+        var paper = await db.ExamCandidates.FirstAsync(c => c.Id == paperId, ct);
+        db.ExamScores.Add(new ExamScore
+        {
+            TenantId = paper.TenantId,
+            ExamCandidateId = paper.Id,
+            MarkerUserId = actorUserId ?? Guid.Empty,
+            Round = ExamScoreRound.ObjectionCorrection,
+            Score = corrected,
+            SubmittedAt = now,
+            RecruitmentAppealId = appeal.Id
+        });
+        paper.FinalMark = Math.Round(corrected, 2, MidpointRounding.AwayFromZero);
+    }
+
     /// <summary>Stages the effect of <see cref="RecruitmentAppeal.Outcome"/> on the appeal and its application (no save).</summary>
     internal async Task ApplyOutcomeAsync(RecruitmentAppeal appeal, Guid? actorUserId, Guid? workflowInstanceId, CancellationToken ct)
     {
@@ -88,6 +107,13 @@ public sealed class RecruitmentAppealWorkflowHandler(HRCoreDbContext db)
                 break;
             case RecruitmentAppealOutcome.Dismissed:
                 // The original rejection (kind, date, note) stays.
+                break;
+            case RecruitmentAppealOutcome.ObjectionUpheld:
+                // HCM-031 (PLAN-31): the reviewer's corrected mark replaces the paper's mark; the competition results
+                // are recomputed into a new draft version by CompetitionObjectionService after this decision is saved.
+                await StageObjectionCorrectionAsync(appeal, actorUserId, now, ct);
+                break;
+            case RecruitmentAppealOutcome.ObjectionDismissed:
                 break;
         }
 
