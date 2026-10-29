@@ -9,10 +9,18 @@
 - **الصور:** تتغير `hr-core-web` و`hr-gateway` (قاعدة مسار `/ui/hr-core/ExamMarking` ← سياسة `HrCoreExamMarking`). ترحيلات HR.Core
   الثلاثة `HCM031_Competitions` و`HCM031_Exams` و`HCM031_Results` إضافية فقط وتُطبَّق عند الإقلاع. قبل `acceptance-up` شغّل
   `powershell -ExecutionPolicy Bypass -File scripts/docker-generate-build-manifest.ps1` (كما في PLAN-30).
-- **Keycloak — الدور `hr-exam-marker` والمصححون الثلاثة:** يلزم **إعادة استيراد الـ realm** (`scripts/prepare-keycloak-import.ps1` ثم
-  استيراد القبول): الدور جديد، والشخصيات `a-exam-marker` و`a-exam-marker-2` و`a-exam-marker-3` (موظفو HQ ذوو الترتيب 41–43) جديدة،
-  وعدد الشخصيات صار 60 (الوكالة A: 42). كلمات المرور من متغيرات البيئة `ACCEPTANCE_A_EXAM_MARKER_PASSWORD` و`…_2_PASSWORD`
-  و`…_3_PASSWORD` فقط. إعادة الاستيراد تستبدل realm القبول بأكمله؛ نفّذها حين لا يكون المكدس قيد الاستخدام.
+- **بصمة حزمة القبول تغيّرت:** إضافة المصححين الثلاثة غيّرت `AcceptancePersonaCatalog.ReleaseDigest`، فيرفض `hr-core-web` الإقلاع على بيانات
+  مبذورة بالحزمة السابقة («Acceptance seed data belongs to an older or incomplete pack»). على مكدّس قائم: `scripts/acceptance-reset.ps1`
+  (يحذف مجلدات مشروع `hrm-acceptance` فقط ويحتفظ ببيانات الدخول المحلية) ثم البناء والتشغيل.
+- **Keycloak — الدور `hr-exam-marker` والمصححون الثلاثة:** بعد إعادة الضبط يُستورد realm جديد من `prepare-keycloak-import.ps1`
+  (60 شخصية، الوكالة A: 42؛ كلمات المرور من `ACCEPTANCE_A_EXAM_MARKER_PASSWORD` و`…_2_PASSWORD` و`…_3_PASSWORD` أو `.acceptance`).
+  على realm قائم دون إعادة ضبط: أنشئ الدور بـ `kcadm.sh create roles -r hrmanagement -s name=hr-exam-marker` ثم شغّل
+  `sync-keycloak-dev-realm.ps1` (ينشئ المستخدمين الناقصين؛ لا ينشئ الأدوار). على Windows PowerShell 5.1 اضبط قبله
+  `[Console]::InputEncoding` و`$OutputEncoding` على UTF-8 دون BOM وشغّل السكربت في العملية نفسها (`& ./scripts/...`).
+- **MinIO:** صورته غير قابلة للسحب (كما في PLAN-30)؛ شغّل المكدّس دون `minio` و`file-storage-web` (`compose up --no-deps` للبنية ثم
+  للخدمات الأربع عشرة). لا خطوة في AC-HCM-31 تحتاج File.Storage.
+- **سر عميل البوابة للاختبارات:** `KEYCLOAK_HR_GATEWAY_CLIENT_SECRET` من `.env` (قيمة مختبرية) مع `RUN_ACCEPTANCE` و`GATEWAY_BASE_URL`
+  و`KEYCLOAK_BASE_URL`.
 - **لا مهمة خلفية جديدة:** إغلاق التقديم للمسابقة يتم ضمن `RecruitmentIntakeCloser`، وانتهاء الاحتياط ضمن `RecruitmentReserveExpirer`.
 - **الإعادة:** `powershell -ExecutionPolicy Bypass -File scripts/acceptance-reset.ps1` يعيد المسابقة المبذورة إلى `IntakeClosed`
   (رحلة 31b–g تغيّرها، والاختبار يتخطى نفسه إن وجدها في حالة أخرى).
@@ -20,7 +28,7 @@
 ### بيانات القبول (`AcceptanceCompetitionPatch`)
 
 يعمل عند كل إقلاع بعد حزمة البذر وبعد `AcceptanceCandidateExperiencePatch`، بمعرّفات ثابتة (`AcceptanceSeedIds` 0523–0538)، ويضيف الناقص
-فقط (أحداث الطلب مكبوتة للصفوف المبذورة). الشواغر مخصّصة (`AC31-POS-*` في وحدة فرعية من HQ) فلا تأخذ شواغر `VAC-*` التي تستعملها
+فقط (أحداث الطلب مكبوتة للصفوف المبذورة). الشواغر مخصّصة (`AC31-POS-*` في وحدة فرعية من فرع RIF ضمن نطاق `br1-mgr`، لأن اعتماد العروض يتحقق من نطاق المعتمِد) فلا تأخذ شواغر `VAC-*` التي تستعملها
 رحلات AC-HCM-26..30. مدخلات المسابقة (مدة الاعتراض 7 أيام، الاحتياط 6 أشهر، سطران لكل مرشح، علامة النجاح 50، عتبة المطابقة 10،
 قرار المطابِق، كسر التعادل: علامة الامتحان ثم تاريخ التقديم) **بيانات اختبار وليست قيماً قانونية**.
 
@@ -66,7 +74,7 @@ dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTest
 powershell -ExecutionPolicy Bypass -File perf/hcm031-competition-scale.ps1
 ```
 
-القبول (بعد إعادة بناء `hr-core-web` و`hr-gateway` وإعادة استيراد الـ realm):
+القبول (بعد إعادة الضبط والبناء؛ آخر تشغيل 2026-10-29: **31a و31b–g ناجحان، 3 د 37 ث**):
 
 ```bash
 dotnet test src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj --filter "FullyQualifiedName~AcHcm31"

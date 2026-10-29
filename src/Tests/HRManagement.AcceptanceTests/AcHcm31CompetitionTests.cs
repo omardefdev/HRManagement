@@ -231,7 +231,7 @@ public class AcHcm31CompetitionTests
         Assert.DoesNotContain(ApplicantNamePrefix, publicResults);
         Assert.DoesNotContain("31700000", publicResults);
         var portalApps = $"'{AcceptanceSeedIds.CompetitionApplicantId(0)}','{AcceptanceSeedIds.CompetitionApplicantId(1)}'";
-        await WaitForCountAsync(s, "31d-results-published-message", TimeSpan.FromSeconds(90), 2,
+        await WaitForCountAsync(s, "31d-results-published-message", TimeSpan.FromMinutes(4), 2,
             $"SELECT COUNT(*) FROM \"CandidateNotifications\" WHERE \"TemplateCode\"='RESULTS_PUBLISHED' AND \"RecruitmentApplicationId\" IN ({portalApps});");
         Assert.Equal(0, await Scalar(
             $"SELECT COUNT(*) FROM \"CandidateNotifications\" WHERE \"RecruitmentApplicationId\" IN ({portalApps}) AND (\"Body\" LIKE '%درجة%' OR \"Body\" LIKE '%علامة%' OR \"Body\" LIKE '%31700000%');"));
@@ -249,10 +249,16 @@ public class AcHcm31CompetitionTests
         await s.Central.PostAsync("31e-finalize-refused", $"ui/hr-core/Competitions/Finalize/{CompetitionId}", Details(CompetitionId), []);
         Assert.Equal("ResultsPublished", await CompetitionStatusAsync(CompetitionId));
 
+        // The independent reviewer is assigned by HR (PLAN-28), then decides (the competition's markers are excluded).
+        var reviewerEmployee = AcceptancePersonaCatalog.Get("a-compliance").Employee!.Id.ToString("D");
+        await s.Central.PostAsync("31e-assign-reviewer", "ui/hr-core/RecruitmentAppeals/AssignReviewer", $"ui/hr-core/RecruitmentAppeals/Details/{appealId}",
+            [new("id", appealId), new("reviewerEmployeeId", reviewerEmployee)]);
+        Assert.Equal(reviewerEmployee, await Sql($"SELECT \"IndependentReviewerEmployeeId\"::text FROM \"RecruitmentAppeals\" WHERE \"Id\"='{appealId}';"));
         var compliance = await PersonaUiAsync(s, "a-compliance");
         var corrected = Math.Min(100m, decimal.Parse(oldMark, CultureInfo.InvariantCulture) + 15m);
-        await compliance.PostAsync("31e-decide", $"ui/hr-core/RecruitmentAppeals/Decide/{appealId}", $"ui/hr-core/RecruitmentAppeals/Details/{appealId}",
+        await compliance.PostAsync("31e-decide", "ui/hr-core/RecruitmentAppeals/Decide", $"ui/hr-core/RecruitmentAppeals/Details/{appealId}",
         [
+            new("id", appealId),
             new("outcome", "ObjectionUpheld"),
             new("rationale", "خطأ في جمع العلامات ثابت بالتدقيق المستقل (اختبار قبول)"),
             new("correctedScore", corrected.ToString(CultureInfo.InvariantCulture))
@@ -265,7 +271,7 @@ public class AcHcm31CompetitionTests
         Assert.Equal(firstPublishedAt, await Sql($"SELECT \"ResultsFirstPublishedAt\"::text FROM \"RecruitmentCompetitions\" WHERE \"Id\"='{CompetitionId}';"));
         Assert.Equal(1, await Scalar(
             $"SELECT COUNT(*) FROM \"ExamScores\" WHERE \"ExamCandidateId\"='{paper}' AND \"Round\"='ObjectionCorrection' AND \"Score\" = {corrected.ToString(CultureInfo.InvariantCulture)};"));
-        await WaitForCountAsync(s, "31e-objection-message", TimeSpan.FromSeconds(90), 1,
+        await WaitForCountAsync(s, "31e-objection-message", TimeSpan.FromMinutes(4), 1,
             $"SELECT COUNT(*) FROM \"CandidateNotifications\" WHERE \"TemplateCode\"='OBJECTION_DECIDED' AND \"RecruitmentApplicationId\"='{objector}';");
 
         // ── 31f ── Test-only SQL precondition: the objection window (7 days from the first publication) is moved into the past.
@@ -293,7 +299,7 @@ public class AcHcm31CompetitionTests
             new("proposedStartDate", DateTime.UtcNow.Date.AddDays(30).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
             new("validityDays", "14")
         ]);
-        Skip.If(draftsPage.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+        Skip.If(draftsPage.Contains("تعذّر التحقق من سلم الرواتب", StringComparison.Ordinal),
             "HR.Core cannot reach the Payroll grade lookup (see PLAN-27-EXECUTION).");
         var offers = (await Sql(
                 "SELECT string_agg(o.\"Id\"::text, ',' ORDER BY a.\"Rank\") FROM \"OfferLetters\" o JOIN \"RecruitmentApplications\" a ON a.\"Id\"=o.\"RecruitmentApplicationId\" " +

@@ -52,3 +52,6 @@
 - **AC-HCM-30**: Pass (`e7ebfd7b-cc9c-4c7a-afea-bb7b155f1a08`)
 - **AC-HCM-30**: Pass (`4fe865fa-2780-47f2-bed5-8dc470f6c2ef`)
 - **AC-HCM-30**: Pass (`195cf63f-d31e-47d0-89aa-70c1e24deedf`)
+- **AC-HCM-31**: Pass (`a56cc6dc-ab8d-4fe0-88a5-b770a88d83bc`)
+- **AC-HCM-31**: Pass (`28b9c684-0fae-4de9-8b2d-6b36bad4e3b4`)
+- **AC-HCM-31**: Pass (`2fe7489e-8e93-4989-891b-36c3cce390d8`)

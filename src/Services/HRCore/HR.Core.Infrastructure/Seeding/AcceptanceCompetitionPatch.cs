@@ -84,10 +84,15 @@ public static class AcceptanceCompetitionPatch
         return a is null || b is null ? null : (a, b);
     }
 
+    /// <summary>
+    /// A leaf unit of the RIF branch (br1-mgr scope, like the PLAN-30 requisition): the offer approval checks the approver's
+    /// org scope against the position, and br1-mgr takes the first step of the bulk offers (AC-HCM-31g).
+    /// </summary>
     private static Guid OrgUnitId()
     {
         var agency = AcceptanceSeedCatalog.Agencies.First(a => a.Id == AcceptanceSeedIds.AgencyAId);
-        return agency.OrgUnits.Where(u => u.SiteCode == "HQ" && !u.IsSiteRoot).OrderBy(u => u.Code, StringComparer.Ordinal).First().Id;
+        var site = AcceptanceSeedCatalog.GetOrgUnit(AcceptanceSeedIds.Br1OrgUnitId).SiteCode;
+        return agency.OrgUnits.Where(u => u.SiteCode == site && !u.IsSiteRoot).OrderBy(u => u.Code, StringComparer.Ordinal).First().Id;
     }
 
     private static string CriteriaJson() =>
@@ -227,14 +232,16 @@ public static class AcceptanceCompetitionPatch
             Title = $"{jobs.B.TitleAr} — الإدارة المركزية", GradeCode = jobs.B.GradeCode, JobCatalogEntryId = jobs.B.Id, RequiredCount = 2
         };
         db.CompetitionLines.AddRange(line1, line2);
+        var frozenCriteria = new Dictionary<CompetitionLine, Guid>();
         for (var i = 0; i < 5; i++)
         {
             var line = i < 3 ? line1 : line2;
             var requisition = AddRequisition(db, AcceptanceSeedIds.CompetitionRequisitionId(i), $"REQ-2026-A-AC31-{i + 1}",
                 $"AC31-POS-{i + 1:D2}", i < 3 ? jobs.A : jobs.B, RequisitionStatus.Published, line.Id);
-            // Frozen at submit in the UI flow: each line takes the criteria of its first requisition (J13).
+            // Frozen at submit in the UI flow: each line takes the criteria of its first requisition (J13). Set after the
+            // first save: line → criteria → requisition → line is a cycle within one insert batch.
             if (i is 0 or 3)
-                line.CriteriaVersionId = AcceptanceSeedCatalog.DeterministicGuid("AGENCY-A", $"competition-criteria-{requisition.RequisitionNumber}");
+                frozenCriteria[line] = AcceptanceSeedCatalog.DeterministicGuid("AGENCY-A", $"competition-criteria-{requisition.RequisitionNumber}");
         }
 
         foreach (var (id, n) in new[] { (AcceptanceSeedIds.CompetitionSession1Id, 1), (AcceptanceSeedIds.CompetitionSession2Id, 2) })
@@ -252,6 +259,9 @@ public static class AcceptanceCompetitionPatch
                 MaxScore = 100m,
                 Status = ExamSessionStatus.Planned
             });
+        await db.SaveChangesAsync(ct);
+        foreach (var (line, criteriaId) in frozenCriteria)
+            line.CriteriaVersionId = criteriaId;
         await db.SaveChangesAsync(ct);
 
         db.ChangeTracker.AutoDetectChangesEnabled = false;

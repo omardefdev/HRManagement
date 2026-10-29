@@ -1,0 +1,6 @@
+{
+  "stage": "before",
+  "explicitDomainSnapshot": false,
+  "correlationId": "28b9c684-0fae-4de9-8b2d-6b36bad4e3b4",
+  "note": "No explicit pre-action domain snapshot was captured; see HTTP and DB evidence."
+}

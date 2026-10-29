@@ -1,0 +1,17 @@
+{
+  "step": "31b-g-31c-assign-3-38-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/Competitions/AssignMarker/a0000001-0000-4000-8000-000000000526",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T11:55:50.1121514Z",
+  "body": {
+    "fields": [
+      "sessionId=a0000001-0000-4000-8000-000000000538",
+      "employeeId=d528ade2-3b1f-d048-9848-3a7982082efb",
+      "role=Reconciler"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/Competitions/Details/a0000001-0000-4000-8000-000000000526",
+    "final": "/ui/hr-core/Competitions/Details/a0000001-0000-4000-8000-000000000526"
+  }
+}

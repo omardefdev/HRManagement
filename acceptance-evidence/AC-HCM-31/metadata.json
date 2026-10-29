@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-HCM-31b..g seating \u2192 marking \u2192 results \u2192 objection \u2192 allocation \u2192 offers \u2192 recall",
+  "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver\u002Ba-compliance\u002Ba-exam-marker(-2,-3)\u002Banonymous",
+  "correlationId": "2fe7489e-8e93-4989-891b-36c3cce390d8",
+  "capturedAtUtc": "2026-10-29T11:55:44.8634624Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "bcc582af6fc094d9ccbfba98e92935566ff7d604"
+}

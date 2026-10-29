@@ -1,0 +1,16 @@
+{
+  "step": "31b-g-31c-m1-38-22-a-exam-marker",
+  "method": "POST",
+  "url": "/ui/hr-core/ExamMarking/Submit/f4ae8634-c63a-44b6-8de9-eab4e7495801",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T11:55:54.2099415Z",
+  "body": {
+    "fields": [
+      "score=43",
+      "sessionId=a0000001-0000-4000-8000-000000000538"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/ExamMarking/Session/a0000001-0000-4000-8000-000000000538",
+    "final": "/ui/hr-core/ExamMarking/Session/a0000001-0000-4000-8000-000000000538"
+  }
+}

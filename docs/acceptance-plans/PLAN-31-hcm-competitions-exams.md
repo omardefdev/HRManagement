@@ -1,7 +1,7 @@
 # PLAN-31 — المسابقات متعددة الشواغر والاختبارات (PLAN-HCM-I)
 
 **Scope:** HCM-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-19  
-**Status:** Implemented (acceptance evidence pending) — D-2 قرره المالك 2026-10-29؛ التنفيذ P0–P8 على الفرع
+**Status:** Implemented and accepted — AC-HCM-31a..g Pass (2026-10-29) — D-2 قرره المالك 2026-10-29؛ التنفيذ P0–P8 على الفرع
 `feature/plan-31-competitions-exams`، التقرير: [`reports/plan31-final-report.md`](../../reports/plan31-final-report.md)  
 **Priority:** P2 (يصبح P1 إن كان النظام القانوني المعتمد يشترط المسابقة للتعيين)  
 **Depends on:** PLAN-26..30 منفذة، PLAN-25 مؤجلة
@@ -152,7 +152,7 @@ pwsh perf/hcm031-competition-scale.ps1
 
 | البند | الحالة |
 |-------|--------|
-| AC-HCM-31a..g | مكتوبة في `AcHcm31CompetitionTests` ببيانات `AcceptanceCompetitionPatch`؛ **لم تُشغَّل حيّاً**: تحتاج إعادة بناء `hr-core-web`/`hr-gateway` وإعادة استيراد realm القبول (`hr-exam-marker` والمصححون الثلاثة) — انظر [PLAN-31-EXECUTION](execution/PLAN-31-EXECUTION.md) |
+| AC-HCM-31a..g | ✅ **Pass حيّاً** (2026-10-29) على مكدّس `hrm-acceptance` المبني من `main` بعد إعادة ضبط بيانات القبول (بصمة الحزمة تغيّرت بإضافة المصححين) — الأدلة في `acceptance-evidence/AC-HCM-31/`. كشف التشغيل ثلاثة عيوب أُصلحت باختبارات: دورة إدراج في بذر القبول، وسياسة البوابة لاعتماد النتائج (المدير كان يُرفض بـ 403)، ونطاق اعتماد العروض لشواغر البذر |
 | اختبار الحجم | ✅ 10,000 متقدم، 4 أسطر، 20 جلسة: 5.9 ثانية على PostgreSQL 16 (الحد 60) |
 | التكامل (PostgreSQL) | ✅ قيود التفرّد، التصحيح المتزامن، الإنهاء المتزامن، مسار التوزيع حتى التعيين |
 | الحالة `ObjectionWindow` | لم تُنشأ كحالة: المسابقة تبقى `ResultsPublished` والمدة تُحسب من أول نشر (J1) |
