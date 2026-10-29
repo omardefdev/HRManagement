@@ -328,7 +328,7 @@ public class Hcm032ExportTests
     [Fact]
     public void Every_export_action_is_audited_bounded_and_reachable_by_get()
     {
-        var source = System.IO.File.ReadAllText(RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "RecruitmentReportsController.Exports.cs"));
+        var source = System.IO.File.ReadAllText(RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "RecruitmentReportsController.cs"));
         foreach (var action in new[] { "ExportExcel", "ExportPdf", "ExportApplicationsCsv" })
         {
             Assert.Contains($"SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, \"RecruitmentReports/{action}\")", source);
@@ -349,7 +349,6 @@ public class Hcm032ExportTests
         .Concat(
         [
             RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "RecruitmentReportsController.cs"),
-            RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Controllers", "RecruitmentReportsController.Exports.cs"),
             RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "Services", "RecruitmentReportDocuments.cs"),
             RepoPaths.Resolve("src", "Services", "HRCore", "HR.Core.Web", "ViewModels", "RecruitmentReportsViewModels.cs")
         ]);

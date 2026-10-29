@@ -11,7 +11,15 @@
   },
   "semanticMetrics": {
     "required": true,
-    "unifiedDefinitionRequired": true
+    "unifiedDefinitionRequired": true,
+    "registeredMeasures": [
+      { "id": "recruitment_funnel", "kpiRef": "str-value/kpi-matrix.json#recruitment_funnel", "ownerRole": "product-hr", "grain": "requisition×period", "asOf": "cohort AppliedAt; reach as of report time", "privacyMinCellSize": 5, "sourceRef": "HR.Core RecruitmentApplications + RecruitmentApplicationEvents" },
+      { "id": "recruitment_time_to_fill", "kpiRef": "str-value/kpi-matrix.json#recruitment_time_to_fill", "ownerRole": "product-hr", "grain": "requisition", "asOf": "hire event time", "privacyMinCellSize": 5, "sourceRef": "HR.Core RecruitmentRequisitions + RecruitmentApplicationEvents" },
+      { "id": "recruitment_time_to_hire", "kpiRef": "str-value/kpi-matrix.json#recruitment_time_to_hire", "ownerRole": "product-hr", "grain": "application→requisition", "asOf": "hire event time", "privacyMinCellSize": 5, "sourceRef": "HR.Core RecruitmentApplications + RecruitmentApplicationEvents" },
+      { "id": "recruitment_offer_acceptance", "kpiRef": "str-value/kpi-matrix.json#recruitment_offer_acceptance_rate", "ownerRole": "product-hr", "grain": "requisition×period", "asOf": "offer outcome date", "privacyMinCellSize": 5, "sourceRef": "HR.Core OfferLetters" },
+      { "id": "recruitment_appeal_rate", "kpiRef": "str-value/kpi-matrix.json#recruitment_appeal_rate", "ownerRole": "product-hr", "grain": "period", "asOf": "filing / rejection dates", "privacyMinCellSize": 5, "sourceRef": "HR.Core RecruitmentAppeals" },
+      { "id": "recruitment_open_vacancies", "kpiRef": "str-value/kpi-matrix.json#recruitment_open_vacancies", "ownerRole": "product-hr", "grain": "daily", "asOf": "report date", "privacyMinCellSize": 5, "sourceRef": "HR.Core FundedPositions + RecruitmentRequisitions" }
+    ]
   },
   "scdDimensions": {
     "required": true

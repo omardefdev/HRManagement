@@ -101,6 +101,18 @@
       "notes": "v3 — last bump added optional certification fields; N-1 consumers skip via EventSchemaVersion"
     },
     {
+      "id": "IRecruitmentRequisitionClosed",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "HR.Core RecruitmentHireClosureService / RecruitmentRequisitionLifecycleService (close, cancel) / EstablishmentChangeApplier (freeze)",
+      "consumers": ["Dev.Analytics"],
+      "category": "analytics",
+      "outbox": true,
+      "compatRule": "additive-only-minor",
+      "notes": "v1 (HCM-032 / PLAN-32) — aggregates only (applicants, hires, time-to-fill days, channel and offer outcome counts); no person-level data. Dev.Analytics RecruitmentRequisitionFact, idempotent per (TenantId, RequisitionId)."
+    },
+    {
       "id": "ICandidateAccepted",
       "kind": "event",
       "schemaVersion": 4,

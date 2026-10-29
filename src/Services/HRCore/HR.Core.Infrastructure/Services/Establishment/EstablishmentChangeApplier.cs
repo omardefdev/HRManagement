@@ -43,7 +43,8 @@ public sealed class EstablishmentChangeApplier(
 
     IJobCatalogVersionService jobCatalogVersions,
 
-    IFundedPositionVersionService fundedPositionVersions) : IEstablishmentChangeApplier
+    IFundedPositionVersionService fundedPositionVersions,
+    MassTransit.IPublishEndpoint? publish = null) : IEstablishmentChangeApplier
 
 {
 
@@ -494,7 +495,11 @@ public sealed class EstablishmentChangeApplier(
 
         var cancellationReason = EstablishmentRecruitmentCascadeRules.FreezeCancellationReason(payload.FreezeReason);
         foreach (var requisition in blockingRequisitions)
+        {
             await RecruitmentRequisitionCascade.StageCancellationAsync(db, requisition, cancellationReason, actorUserId: null, ct);
+            // HCM-032 (PLAN-32): aggregate close event on the outbox, same save.
+            await Recruitment.Analytics.RecruitmentRequisitionClosedEvent.StageAsync(db, publish, requisition, ct);
+        }
 
         await db.SaveChangesAsync(ct);
 

@@ -1,6 +1,6 @@
 # Message Event Matrix (MassTransit)
 
-**Last updated:** 2026-10-29 — PLAN-31 competition events → candidate notifications (§5a); PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
+**Last updated:** 2026-10-29 — PLAN-32 `IRecruitmentRequisitionClosed` → Dev.Analytics (§2); PLAN-31 competition events → candidate notifications (§5a); PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
 
 Event categories: **domain** | **workflow integration** | **external seam** | **dead-end**.  
 Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [INBOX_IDEMPOTENCY.md](./INBOX_IDEMPOTENCY.md) / [IDEMPOTENCY_STRATEGY.md](./IDEMPOTENCY_STRATEGY.md) | Sagas: [PROCESS_SAGAS.md](./PROCESS_SAGAS.md)
@@ -39,6 +39,7 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | `IMissionApproved` | HR.Training | Payroll | Payroll: marker | — | Payroll |
 | `ICandidateAccepted` (v4) | HR.Core `RecruitmentHireClosureService` — external hires only (HCM-029: internal mobility publishes `IInternalPlacementCompleted` only) | HR.Contracts | Contract exists check | Yes | Inbound, `Hcm029CandidateAcceptedV4Tests` |
 | `IInternalPlacementCompleted` | HR.Core `RecruitmentHireClosureService` (internal mobility) | HR.Movements `InternalPlacementCompletedConsumer` | consumer | Yes | `InternalHireClosureIntegrationTests` |
+| `IRecruitmentRequisitionClosed` (v1, HCM-032) | HR.Core — every requisition close: hire closure (last vacancy filled), `RecruitmentRequisitionLifecycleService.CloseAsync` / `CancelAsync`, `EstablishmentChangeApplier` (position freeze); aggregates only | Dev.Analytics `RecruitmentRequisitionClosedConsumer` → `RecruitmentRequisitionFact` | unique (TenantId, RequisitionId), upsert | Yes | `Hcm032AnalyticsPublicationTests` |
 | `IProcessInterventionRequested` (Hire, outside the saga) | HR.Contracts — unresolved contract type (`ProcessCandidateAcceptedHandler`), overdue commencement (`HireCommencementWatcher`) | HR.Contracts `ProcessInterventionRequestedConsumer` | one open intervention per (Hire, transaction) | Yes | `Fun029ContractTypeResolverTests`, `Fun029CommencementWatchTests` |
 | `ITransactionRegisteredInDiwan` | HR.Core `DiwanIntegrationService` | HR.Contracts | Transaction idempotent update | Yes | Inbound |
 | `IHireCaseCompleted` | HR.Contracts `PublishHireCaseHandler` | Records.Archive, HR.Core (ديوان) | Archive ref `HIRE-{txn}`; Diwan ref | Yes | Integration |
