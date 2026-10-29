@@ -1,0 +1,16 @@
+{
+  "step": "2-approve-2-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/16dfc9d8-a949-4add-8aa6-2eb367bcff6e",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T15:26:08.4834019Z",
+  "body": {
+    "fields": [
+      "RequisitionId=16dfc9d8-a949-4add-8aa6-2eb367bcff6e",
+      "Comments=E2E step 2"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/16dfc9d8-a949-4add-8aa6-2eb367bcff6e"
+  }
+}

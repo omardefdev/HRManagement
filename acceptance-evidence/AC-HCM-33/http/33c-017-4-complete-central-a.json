@@ -1,0 +1,18 @@
+{
+  "step": "4-complete-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/CompleteInterview",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T15:26:15.6807322Z",
+  "body": {
+    "fields": [
+      "applicationId=85a6cbe2-b355-4bfc-81f2-84888674edb0",
+      "slotId=b2839cab-5418-44a1-9e87-884c767a6b78",
+      "outcome=Attended",
+      "notes=\u062D\u0636\u0631 \u0627\u0644\u0645\u0631\u0634\u062D"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentApplications/Details/85a6cbe2-b355-4bfc-81f2-84888674edb0"
+  }
+}

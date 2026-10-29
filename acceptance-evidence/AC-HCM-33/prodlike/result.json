@@ -1,0 +1,15 @@
+{
+  "scenarios": {
+    "prodlike": {
+      "status": "Fail",
+      "reason": "Stopped at \u00AB1 requisition\u00BB: G-02: the submitted requisition has no approval workflow instance (NationalScope:IsLabScale=false with the policy engine Off) \u2014 it can never be approved. PLAN-25 must bind the approval workflow in production.",
+      "stageReached": "1 requisition",
+      "correlationId": "759d35cb-0768-483d-b524-377e2936764f",
+      "recordedAtUtc": "2026-10-29T15:25:33.5206944Z"
+    }
+  },
+  "status": "Fail",
+  "reason": "prodlike: Fail \u2014 Stopped at \u00AB1 requisition\u00BB: G-02: the submitted requisition has no approval workflow instance (NationalScope:IsLabScale=false with the policy engine Off) \u2014 it can never be approved. PLAN-25 must bind the approval workflow in production.",
+  "correlationId": "759d35cb-0768-483d-b524-377e2936764f",
+  "recordedAtUtc": "2026-10-29T15:25:33.5226881Z"
+}

@@ -1,0 +1,11 @@
+{
+  "scenario": "AC-HCM-33c requisition-to-hire journey (acceptance profile)",
+  "correlationId": "616e7e8c-4d21-42e8-bec4-36b413136340",
+  "capturedAtUtc": "2026-10-29T15:26:04.3975158Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "composeProject": "hrm-acceptance"
+  },
+  "gitSha": "95c70e14df4daee351899562be4e26a00fe19cf7"
+}

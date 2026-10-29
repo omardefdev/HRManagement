@@ -12,8 +12,8 @@
 | P1 Explicit skips, required scenarios, architecture guard | done | `5d4e4d0
 ` |
 | P2 Deterministic recruitment states | done | `b93ddba` (+ fix `29670a0`) |
-| P3 AC-HCM-21/22, AC-WF-23 | done | (P3 commit) |
-| P4 Requisition-to-hire E2E + prod-like | pending | — |
+| P3 AC-HCM-21/22, AC-WF-23 | done | `95c70e1` (+ stack fix `4588a23`) |
+| P4 Requisition-to-hire E2E + prod-like | done | (P4 commit) |
 | P5 Remove phantom evidence | pending | — |
 | P6 Live acceptance run | pending | — |
 | P7 Docs corrections and CI | pending | — |
@@ -58,34 +58,40 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-P4: write `RecruitmentToHireJourneyE2ETests` (HTTP through the gateway on the acceptance stack), the prod-like variant, CI wiring; run both live.
+Commit P5 (SharedKernel.Recruitment deleted, Hcm001 behaviour tests and hcm001-validate.ps1 already written and green — re-run the git grep proof first), then P6.
 
-## P3 notes
+## P4 notes
 
-- `RecruitmentAcceptance.cs`: one shared UI client (`AcceptanceUi`), persona sessions, SQL helpers and recruitment
-  steps for AC-HCM-21/22 and AC-WF-23 (AC-HCM-26..32 keep their own copies; not refactored in this plan). `audit.json`
-  is now a real `AuditLogs` query for the state-changing scenarios.
-- Scenario mapping: 21b, 22b (SoD) and 23a–f (inbox) read the seeded states; 22c negative uses the seeded chair-only
-  session and the positive uses the seeded roster on a fresh pool requisition (committee submit needs an assessed
-  candidate, so the seeded ready session — on the approved requisition without candidates — provides the roster);
-  22d positive files a new appeal on the seeded published requisition, the negative uses the seeded pending appeal
-  (a-compliance-2 → 404 and refused Decide; its token page is a second appeal assigned to it, which it then dismisses).
-  21a/c/d, 22a/c/e create their requisitions on the pool. 21c/21d/22e clean up (reject/cancel).
-- Test-only SQL preconditions (documented in steps): 22a/22e Ranked 1, 22c Assessed — ranking is AC-HCM-26's scope; the
-  real path runs in the E2E journey.
-- G-04 (open): a step approved by the wrong role is not refused server-side; not asserted as a refusal anywhere.
-- Non-lab behaviour (21d/22e, G-02): `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` — real
-  host, HTTP form posts, 6/6: non-lab requisition and offer → PendingApproval without workflow + warning + approve
-  refused (offer never Issued); non-lab committee → locked without workflow and **no** warning (silent stall);
-  lab counterparts start the workflows.
-- Seed defect found live and fixed (`29670a0`): application ↔ active offer insert cycle crashed HR.Core start-up on
-  PostgreSQL; the seed test now runs on SQLite and reproduces it without the fix.
-- Decision 6 fixed in `fix(acceptance)` commit: File.Storage on the Local provider (22a's on-behalf acceptance with a
-  signed PDF now passes, proving uploads work).
+- `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` (`Category=Journey`) + `RecruitmentJourneyHarness.cs`
+  (self-contained copies of the acceptance helpers: the E2E project cannot reference the acceptance project, which
+  references it). All steps are HTTP through the gateway; **Playwright browsers are not used** — they are not installed
+  here (installing needs pwsh 7 and a download) and the HR screens are server-rendered forms; the test sends the same
+  requests the UI does. Deviation from the prompt, recorded for the final report.
+- Real path, no ranking shortcut: criteria → two-step approval → publish → public apply with PDF CV (File.Storage +
+  ClamAV) → screen → COI → shortlist → interview → two assessors → Assessed → rank 1 → offer → two-step approval →
+  Issued → candidate OTP sign-in (code from FileDrop) → accept on /careers/my → hire → HR.Contracts Appointment +
+  contract (grade G5, offer salary, source offer). Test-only SQL: interview slot moved into the past (as AC-HCM-26), the
+  closing date moved to yesterday and restored for the late-apply refusal.
+- Refusals per stage: approver has no approve form at step 1 (server-side role check = G-04, not asserted as refusal);
+  late apply (closed page has no form; POST with an earlier token refused, no citizen row); offer before ranking (no
+  offer row); creator approving own offer (state unchanged); hire before acceptance (not hired); wrong OTP (no session).
+- Correlation (Ac15 pattern): gateway echo on the hire, gateway_audit_entries rows for the run id including the HR.Core
+  hire and HR.Contracts requests; the async consumer side effect is tied by application/offer lineage. **Finding:**
+  HR.Contracts applies the message X-Correlation-ID to its execution context but persists/logs it nowhere on the
+  success path, and neither service's text logs print it → follow-up (observability), not a product defect.
+- Prod-like: `docker-compose.acceptance-prodlike.yml` (IsLabScale=false, HardEnforceCeilings=true, no PolicyEngine →
+  Off, CommitteeApprovalDefault=true, Retention.Apply=false, Contracts fallback=false; environment stays Acceptance).
+  `RecruitmentToHireJourneyProdLikeE2ETests` (`Category=JourneyProdLike`, skips unless hr-core runs with
+  IsLabScale=false). Run once: **stops at stage 1** — after submit `PendingApproval` with no workflow instance (G-02).
+  Evidence: `acceptance-evidence/AC-HCM-33/prodlike/` (result Fail, stageReached «1 requisition»). A first attempt hit a
+  transient 502 right after the container recreate (gateway upstream not ready) and was re-run.
+- CI (not executed): `e2e-journeys.yml` — new `recruitment-journey` job (acceptance-up.ps1 -SkipLiveVerification,
+  filter on the lab journey, zero-skip + must-pass check, evidence upload, reset); `journeys` job excludes the recruitment
+  journey, gets the zero-skip step, and now passes `--profile full-stack` (without it only infrastructure started — a
+  pre-existing defect found by the map). `ci.yml` e2e job (demo stack) excludes `JourneyProdLike` and the recruitment
+  journey. Filters checked locally with `dotnet test --filter` (selection counts as intended).
 
-| Live run (acceptance stack, `ACCEPTANCE_REQUIRE_ALL=true`) | Result |
+| Live run | Result |
 |---|---|
-| AcWf23 + 21b + 22b (first run) | 8/8 Pass |
-| 21a/c/d, 22a/c/d/e (after fixing the pool SQL: Status stored as text) | 7/7 Pass |
-| AcHcm21 + AcHcm22 + AcWf23 second pass (repeatability) | 15/15 Pass |
-| `Hcm033LabScaleBehaviourTests` (integration) | 6/6 Pass |
+| Journey, acceptance profile (after fixes: closing-date token, correlation evidence) | Pass (15 s), again Pass after restoring the lab profile (22 s) |
+| Journey, prod-like | Fail at «1 requisition» — G-02 (expected), evidence recorded |

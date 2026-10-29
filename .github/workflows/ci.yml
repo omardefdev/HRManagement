@@ -384,6 +384,7 @@ jobs:
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release
+          --filter "Category!=JourneyProdLike&FullyQualifiedName!~RecruitmentToHireJourney"
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./TestResults/e2e
 

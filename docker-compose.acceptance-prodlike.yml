@@ -1,0 +1,30 @@
+# PLAN-33 (decision 2): production-like recruitment settings on the acceptance stack, for the
+# RecruitmentToHireJourneyProdLikeE2ETests journey (Category=JourneyProdLike, excluded from CI until PLAN-25).
+#
+# Layer it LAST on the acceptance set and recreate only the two services it changes:
+#   docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \
+#     -f docker-compose.full-stack-gateway.yml -f docker-compose.acceptance.yml -f docker-compose.acceptance-prodlike.yml \
+#     --profile full-stack up -d --no-deps --no-build --force-recreate hr-core-web hr-contracts-web
+# Recreate them without this file to return to the lab profile.
+#
+# ASPNETCORE_ENVIRONMENT stays "Acceptance" so the acceptance personas, the Acceptance seed profile (no Demo seed), the
+# local Keycloak, FileDrop OTP delivery and the caller-proof secret keep working. What changes are the Production VALUES
+# that drive recruitment (src/Services/HRCore/HR.Core.Web/appsettings.Production.json, HR.Contracts' Production file):
+#   - NationalScope:IsLabScale=false and HardEnforceCeilings=true;
+#   - the policy engine as configured in Production: no PolicyEngine section at all, so every domain resolves to "Off"
+#     (no PolicyEngine__* variable may be set here);
+#   - Recruitment:CommitteeApprovalDefault=true, Recruitment:Retention:Apply=false;
+#   - HR.Contracts: Contracts:AllowDefaultContractTypeFallback=false.
+# Expected today (gap G-02, open until PLAN-25): a requisition submitted here goes to PendingApproval WITHOUT a workflow
+# instance, so the journey stops at the first approval.
+services:
+  hr-core-web:
+    environment:
+      NationalScope__IsLabScale: "false"
+      NationalScope__HardEnforceCeilings: "true"
+      Recruitment__CommitteeApprovalDefault: "true"
+      Recruitment__Retention__Apply: "false"
+
+  hr-contracts-web:
+    environment:
+      Contracts__AllowDefaultContractTypeFallback: "false"

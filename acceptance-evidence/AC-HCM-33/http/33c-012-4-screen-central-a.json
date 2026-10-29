@@ -1,0 +1,16 @@
+{
+  "step": "4-screen-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/SetStatus",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T15:26:12.5824237Z",
+  "body": {
+    "fields": [
+      "id=85a6cbe2-b355-4bfc-81f2-84888674edb0",
+      "status=UnderReview"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentApplications/Details/85a6cbe2-b355-4bfc-81f2-84888674edb0"
+  }
+}

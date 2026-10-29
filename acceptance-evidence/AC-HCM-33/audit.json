@@ -1,0 +1,33 @@
+{
+  "explicitAuditQuery": true,
+  "source": "hr_core_db.AuditLogs",
+  "correlationId": "616e7e8c-4d21-42e8-bec4-36b413136340",
+  "rows": [
+    "RecruitmentRequisition|Created|2026-10-29T15:26:06",
+    "RecruitmentRequisition|Updated|2026-10-29T15:26:07",
+    "RecruitmentRequisition|Updated|2026-10-29T15:26:07",
+    "RecruitmentRequisition|Updated|2026-10-29T15:26:08",
+    "RecruitmentRequisition|Updated|2026-10-29T15:26:08",
+    "RecruitmentApplication|Created|2026-10-29T15:26:11",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:12",
+    "RecruitmentApplication|DeclareCoi|2026-10-29T15:26:13",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:13",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:13",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:14",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:15",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:15",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:16",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:16",
+    "OfferLetter|Created|2026-10-29T15:26:17",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:17",
+    "OfferLetter|Updated|2026-10-29T15:26:18",
+    "OfferLetter|Updated|2026-10-29T15:26:18",
+    "OfferLetter|Updated|2026-10-29T15:26:19",
+    "OfferLetter|AcceptOffer|2026-10-29T15:26:21",
+    "OfferLetter|Updated|2026-10-29T15:26:21",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:21",
+    "RecruitmentApplication|Updated|2026-10-29T15:26:23",
+    "RecruitmentRequisition|Updated|2026-10-29T15:26:23",
+    "OfferLetter|Updated|2026-10-29T15:26:23"
+  ]
+}
