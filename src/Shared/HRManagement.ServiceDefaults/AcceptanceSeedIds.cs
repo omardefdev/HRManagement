@@ -121,6 +121,53 @@ public static class AcceptanceSeedIds
     /// <summary>11-digit national ids of the AC-HCM-32 applicants (…01–…09); exports must never contain them.</summary>
     public const string RecruitmentReportsNationalIdPrefix = "320320000";
 
+    /// <summary>
+    /// PLAN-33 (AC-HCM-21/22, AC-WF-23): deterministic recruitment states in RIF (br1-mgr's scope), created by
+    /// <c>AcceptanceRecruitmentStatesPatch</c> and listed in <c>testdata/acceptance/recruitment-states.json</c>. The
+    /// scenarios only read them or are refused on them, so they survive repeated runs.
+    /// </summary>
+    public static readonly Guid RecruitmentStatesDraftRequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000901");
+    public static readonly Guid RecruitmentStatesPendingStep1RequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000902");
+    public static readonly Guid RecruitmentStatesPendingStep2RequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000903");
+    public static readonly Guid RecruitmentStatesApprovedRequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000904");
+    public static readonly Guid RecruitmentStatesPublishedRequisitionId = Guid.Parse("a0000001-0000-4000-8000-000000000905");
+    public static readonly Guid RecruitmentStatesPendingStep1WorkflowId = Guid.Parse("a0000001-0000-4000-8000-000000000906");
+    public static readonly Guid RecruitmentStatesPendingStep2WorkflowId = Guid.Parse("a0000001-0000-4000-8000-000000000907");
+    public static readonly Guid RecruitmentStatesPublishedPostingId = Guid.Parse("a0000001-0000-4000-8000-000000000908");
+    public static readonly Guid RecruitmentStatesCriteriaId = Guid.Parse("a0000001-0000-4000-8000-000000000909");
+    public static readonly Guid RecruitmentStatesSubmittedApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000910");
+    public static readonly Guid RecruitmentStatesShortlistedApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000911");
+    public static readonly Guid RecruitmentStatesAssessedApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000912");
+    public static readonly Guid RecruitmentStatesRanked1ApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000913");
+    public static readonly Guid RecruitmentStatesRanked2ApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000914");
+    public static readonly Guid RecruitmentStatesRanked3ApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000915");
+    public static readonly Guid RecruitmentStatesOfferPendingApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000916");
+    public static readonly Guid RecruitmentStatesOfferIssuedApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000917");
+    public static readonly Guid RecruitmentStatesAppealApplicationId = Guid.Parse("a0000001-0000-4000-8000-000000000918");
+    public static readonly Guid RecruitmentStatesPendingOfferId = Guid.Parse("a0000001-0000-4000-8000-000000000919");
+    public static readonly Guid RecruitmentStatesPendingOfferWorkflowId = Guid.Parse("a0000001-0000-4000-8000-000000000920");
+    public static readonly Guid RecruitmentStatesIssuedOfferId = Guid.Parse("a0000001-0000-4000-8000-000000000921");
+    public static readonly Guid RecruitmentStatesPendingAppealId = Guid.Parse("a0000001-0000-4000-8000-000000000922");
+    public static readonly Guid RecruitmentStatesPendingAppealWorkflowId = Guid.Parse("a0000001-0000-4000-8000-000000000923");
+    public static readonly Guid RecruitmentStatesCommitteeReadySessionId = Guid.Parse("a0000001-0000-4000-8000-000000000924");
+    public static readonly Guid RecruitmentStatesCommitteeShortSessionId = Guid.Parse("a0000001-0000-4000-8000-000000000925");
+    public static readonly Guid RecruitmentStatesLegacyApprovalRequestId = Guid.Parse("a0000001-0000-4000-8000-000000000926");
+    public const string RecruitmentStatesDraftRequisitionNumber = "REQ-2026-A-AC33-DRAFT";
+    public const string RecruitmentStatesPendingStep1RequisitionNumber = "REQ-2026-A-AC33-PEND1";
+    public const string RecruitmentStatesPendingStep2RequisitionNumber = "REQ-2026-A-AC33-PEND2";
+    public const string RecruitmentStatesApprovedRequisitionNumber = "REQ-2026-A-AC33-APPR";
+    public const string RecruitmentStatesPublishedRequisitionNumber = "REQ-2026-A-AC33-PUB";
+    public const string RecruitmentStatesPendingOfferNumber = "OFF-2026-A-AC33-PEND";
+    public const string RecruitmentStatesIssuedOfferNumber = "OFF-2026-A-AC33-ISS";
+    public const int RecruitmentStatesPoolSize = 40;
+
+    /// <summary>
+    /// The <paramref name="index"/>-th (0-based) vacant RIF position (<c>AC33-POOL-01…40</c>, grade G5) reserved for the
+    /// PLAN-33 scenarios that create their own requisition at run time (21a/c, 22a/c/d/e, the E2E journey).
+    /// </summary>
+    public static Guid RecruitmentStatesPoolPositionId(int index) =>
+        Guid.Parse("a0000001-0000-4000-8000-" + (940 + index).ToString("D12", System.Globalization.CultureInfo.InvariantCulture));
+
     public const string NationalIdBr1 = "99100000327";
     public const string NationalIdD1 = "99100000328";
     public const string NationalIdBr2 = "99100000598";

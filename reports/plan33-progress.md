@@ -9,8 +9,9 @@
 | Phase | Status | Commit |
 |-------|--------|--------|
 | P0 Baseline, inventory, notes | done | (this commit) |
-| P1 Explicit skips, required scenarios, architecture guard | done | (P1 commit) |
-| P2 Deterministic recruitment states | pending | — |
+| P1 Explicit skips, required scenarios, architecture guard | done | `5d4e4d0
+` |
+| P2 Deterministic recruitment states | done | (P2 commit) |
 | P3 AC-HCM-21/22, AC-WF-23 | pending | — |
 | P4 Requisition-to-hire E2E + prod-like | pending | — |
 | P5 Remove phantom evidence | pending | — |
@@ -57,7 +58,7 @@ D1–D8 are the prompt's decisions 1–8, recorded (Arabic) in the plan's «تع
 
 ## Next step
 
-Commit P2 (seed patch, constants, `recruitment-states.json`, loader and tests are written and green), then P3.
+P3: rewrite AcHcm21, AcHcm22, AcWf23 on `RecruitmentStates.Load()` ids; runtime flows use `AC33-POOL-*` positions.
 
 ## P1 notes
 
@@ -69,3 +70,18 @@ Commit P2 (seed patch, constants, `recruitment-states.json`, loader and tests ar
   gated, SoD assertions always run), Ac20 (log/cross-db files gated), Ac32 (asset NotFound gated, then 200 asserted),
   AcHcm30c (File.Storage upload failure → Blocked). AcHcm26h logs in before the second-persona check (recorder needed).
 - `[RequiredAcceptance]` on AcHcm21, 22, 26–32, AcWf23.
+
+## P2 notes
+
+- K8: `AcceptanceRecruitmentStatesPatch` (HR.Core, runs on every boot after the PLAN-32 patch, add-if-absent keyed by
+  `RecruitmentStatesDraftRequisitionId`). States are **read-only for the scenarios** (they read them or are refused on
+  them), so repeated runs need no reset. Scenarios that change state (21a/c/d, 22a/c/d/e, E2E) create their own
+  requisition on the 40-position pool `AC33-POOL-01…40` (G5, RIF). Restore everything with `scripts/acceptance-reset.ps1`
+  then `scripts/acceptance-up.ps1` (volumes dropped, the patch reseeds). Ids `a0000001-0000-4000-8000-0000000009xx`.
+- K9: creators/initiators are central-a's Keycloak `sub`, computed by `AcceptanceKeycloakIds` (C# twin of
+  `Get-AcceptanceKeycloakUserId`, cross-checked against the script's output in `Hcm033RecruitmentStatesSeedTests`).
+  The appeal reviewer is bound by employee id (`a-compliance`), as PLAN-28 does; the legacy `ApprovalRequest` step role is
+  `hr-core`, requested by central-a. Must be confirmed live in P6 (JWT `sub` == deterministic id).
+- Offers sit on two extra assessed applications (rank 4 PendingApproval, rank 5 Issued), so Ranked 1/2/3 stay Ranked.
+- Tests: `Hcm033RecruitmentStatesSeedTests` (2, in-memory seed incl. idempotency), `RecruitmentStatesFileTests` (JSON ==
+  constants).

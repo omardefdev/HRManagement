@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "plan33-recruitment-states-v1",
+  "description": "PLAN-33 deterministic recruitment states (AcceptanceRecruitmentStatesPatch). Agency A, RIF (br1-mgr scope). Read-only for the scenarios; restored by scripts/acceptance-reset.ps1 + acceptance-up.ps1.",
+  "agency": {
+    "code": "AGENCY-A",
+    "tenantId": "a0000001-0000-4000-8000-000000000001",
+    "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000102"
+  },
+  "personas": {
+    "creator": "central-a",
+    "step1Approver": "br1-mgr",
+    "step2Approver": "a-management-approver",
+    "appealReviewer": "a-compliance",
+    "otherReviewer": "a-compliance-2"
+  },
+  "requisitions": {
+    "draft": { "id": "a0000001-0000-4000-8000-000000000901", "number": "REQ-2026-A-AC33-DRAFT", "status": "Draft" },
+    "pendingStep1": {
+      "id": "a0000001-0000-4000-8000-000000000902",
+      "number": "REQ-2026-A-AC33-PEND1",
+      "status": "PendingApproval",
+      "workflowInstanceId": "a0000001-0000-4000-8000-000000000906",
+      "currentStep": 1
+    },
+    "pendingStep2": {
+      "id": "a0000001-0000-4000-8000-000000000903",
+      "number": "REQ-2026-A-AC33-PEND2",
+      "status": "PendingApproval",
+      "workflowInstanceId": "a0000001-0000-4000-8000-000000000907",
+      "currentStep": 2
+    },
+    "approved": { "id": "a0000001-0000-4000-8000-000000000904", "number": "REQ-2026-A-AC33-APPR", "status": "Approved" },
+    "published": {
+      "id": "a0000001-0000-4000-8000-000000000905",
+      "number": "REQ-2026-A-AC33-PUB",
+      "status": "Published",
+      "postingId": "a0000001-0000-4000-8000-000000000908",
+      "criteriaId": "a0000001-0000-4000-8000-000000000909",
+      "applicationClosingDate": "2028-08-01"
+    }
+  },
+  "applications": {
+    "submitted": "a0000001-0000-4000-8000-000000000910",
+    "shortlisted": "a0000001-0000-4000-8000-000000000911",
+    "assessed": "a0000001-0000-4000-8000-000000000912",
+    "ranked1": "a0000001-0000-4000-8000-000000000913",
+    "ranked2": "a0000001-0000-4000-8000-000000000914",
+    "ranked3": "a0000001-0000-4000-8000-000000000915",
+    "offerPending": "a0000001-0000-4000-8000-000000000916",
+    "offerIssued": "a0000001-0000-4000-8000-000000000917",
+    "rejectedWithAppeal": "a0000001-0000-4000-8000-000000000918"
+  },
+  "offers": {
+    "pendingApproval": {
+      "id": "a0000001-0000-4000-8000-000000000919",
+      "number": "OFF-2026-A-AC33-PEND",
+      "workflowInstanceId": "a0000001-0000-4000-8000-000000000920",
+      "applicationId": "a0000001-0000-4000-8000-000000000916"
+    },
+    "issued": {
+      "id": "a0000001-0000-4000-8000-000000000921",
+      "number": "OFF-2026-A-AC33-ISS",
+      "applicationId": "a0000001-0000-4000-8000-000000000917"
+    }
+  },
+  "appeal": {
+    "id": "a0000001-0000-4000-8000-000000000922",
+    "applicationId": "a0000001-0000-4000-8000-000000000918",
+    "workflowInstanceId": "a0000001-0000-4000-8000-000000000923"
+  },
+  "committee": {
+    "requisitionId": "a0000001-0000-4000-8000-000000000904",
+    "readySessionId": "a0000001-0000-4000-8000-000000000924",
+    "shortSessionId": "a0000001-0000-4000-8000-000000000925"
+  },
+  "legacyApprovalRequest": { "id": "a0000001-0000-4000-8000-000000000926", "roleRequired": "hr-core" },
+  "positionPool": {
+    "codePrefix": "AC33-POOL-",
+    "size": 40,
+    "firstId": "a0000001-0000-4000-8000-000000000940",
+    "lastId": "a0000001-0000-4000-8000-000000000979"
+  }
+}
