@@ -138,6 +138,15 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 - **Tests:** `Hcm025OrgScopeTests` (5: list own unit only vs central all; foreign Details and foreign committee list 404; foreign route POST and foreign form-field POST 404 with a central control, own POST works; competitions 403 for branch users; invalid claim 403), `Hcm025PostingPoliciesTests` (3: approver POST Edit/Delete and GET Edit → 403 — AC-HCM-25f; hr-core edit audited, retroactive close refused; hr-core delete 403, admin 200).
 - **Regression:** unit 4118/4134 (16 known environment); integration filter (+Scope/Recruitment/Bola/Iam) 104/110 — 4 pre-existing.
 
+## P6 notes
+
+- `docker-compose.acceptance-prodlike.yml` mirrors decision 10 explicitly (R7): `NationalScope__IsLabScale=false`, `PolicyEngine__Core.Recruitment=Shadow`, `Recruitment__Approvals__AlwaysStartWorkflow=true`, `FailIfDefinitionMissing=true`, `Workflow__AdminBypass=false` (+ the PLAN-33 values). Header rewritten.
+- Prod-like journey (`RecruitmentToHireJourneyProdLikeE2ETests`, `Category=JourneyProdLike`): unchanged flow, plus a server-side refusal at stage 1 (a-management-approver POSTs the step-1 approval → the instance stays at step 1); G-02 message reworded as a regression guard.
+- CI (`e2e-journeys.yml`, `recruitment-journey` job): after the lab journey, the job recreates hr-core-web/hr-contracts-web with the prod-like file and runs `Category=JourneyProdLike` with its own zero-skip step. YAML validated structurally by `scripts/hcm025-validate.ps1` (no YAML parser on this machine — same as PLAN-33 K5).
+- `AcHcm25ProductionApprovalTests` (`[RequiredAcceptance]`): 25a/25b gated on the prod-like profile (container env read with `docker inspect`), 25c seeded step-2 requisition + br1-mgr approve/reject POSTs, 25d committee with two members recused by test-only SQL (restored in `finally`), 25e assigned vs other compliance vs hr-core, 25f approver POST Edit → 403, 25g live facts (Enforce proven by unit test — deviation: Enforce is not the deployed mode), 25h repair script dry run/apply on a seeded stuck requisition and an orphan RECRUITMENT-HIRE instance.
+- `SelectionCommitteeRules.QuorumMessage` now starts «النصاب غير مكتمل:» (the wording of the plan); no test compared the literal.
+- **Seed fix (decision 8):** the first prod-like run showed AC-HCM-31a and AC-HCM-31b..g approving competitions as `br1-mgr` (branch-scoped) — competitions are central-only, so the rule stays and the test data changes: new persona `central-a2` (hr-core, agency A, HQ ordinal 44; catalog 60 → 61, agency A 42 → 43 in `AcceptancePersonaCatalog` and `prepare-keycloak-import.ps1`), AC-31 uses it for step 1. It also unblocks AC-HCM-26h (PLAN-33 follow-up: no second central hr-core persona). Needs all images rebuilt (the catalog is embedded in ServiceDefaults) and a Keycloak re-import (the reset regenerates the realm).
+
 ## Open issues
 
 - `-warnaserror` fails on the pre-existing NU1903 SSH.NET advisory (IntegrationTests); not introduced here.

@@ -11,7 +11,7 @@ namespace HRManagement.AcceptanceTests;
 
 /// <summary>
 /// AC-HCM-31a..g (PLAN-31): multi-vacancy competitions through the gateway with the agency A personas — central-a (HR),
-/// br1-mgr (first approval step, hr-core), a-management-approver (second step), a-compliance (independent objection
+/// central-a2 (first approval step, central hr-core — PLAN-25; was br1-mgr), a-management-approver (second step), a-compliance (independent objection
 /// review) and the three exam markers (a-exam-marker, -2, -3; role hr-exam-marker, exam numbers only).
 /// Fixtures come from <c>AcceptanceCompetitionPatch</c>: three approved requisitions for 31a, and competition
 /// <see cref="AcceptanceSeedIds.CompetitionNumber"/> at IntakeClosed with 120 admitted applicants for 31b–g (the journey
@@ -51,7 +51,7 @@ public class AcHcm31CompetitionTests
             1. central-a creates a competition (legal inputs entered per competition), adds two lines (grade of each line = grade of
                its requisitions) and attaches the three approved requisitions (2 + 1).
             2. Negative: a requisition already published (attached to the seeded competition) is refused.
-            3. Submit → RECRUITMENT-COMPETITION-APPROVAL. Negative: the creator cannot approve. br1-mgr then a-management-approver approve.
+            3. Submit → RECRUITMENT-COMPETITION-APPROVAL. Negative: the creator cannot approve. central-a2 then a-management-approver approve.
             4. Announce → one public posting; /careers/competitions/{id} shows the title and both lines; the requisitions are Published.
             """);
 
@@ -135,7 +135,7 @@ public class AcHcm31CompetitionTests
             31c. Three markers are assigned per session by employee. Each marker sees exam numbers only (no name, no national id) and
                  no HR page. First and second markers mark every present paper; one paper differs by 20 (> threshold 10) and the
                  reconciler decides it. central-a closes marking.
-            31d. Results computed by central-a; approval by br1-mgr (committee) then a-management-approver (central-a, who computed,
+            31d. Results computed by central-a; approval by central-a2 (committee) then a-management-approver (central-a, who computed,
                  is refused); published. The public list shows exam numbers and outcomes, never a name or national id. Candidates
                  with consent get RESULTS_PUBLISHED (no score).
             31e. HR files an objection on behalf of the second portal applicant (by exam number); finalization is refused while it is
@@ -360,7 +360,7 @@ public class AcHcm31CompetitionTests
 
     // ── Journeys ─────────────────────────────────────────────────────────────
 
-    /// <summary>Submit (central-a) → negative self-approval when asked → br1-mgr → a-management-approver → publish.</summary>
+    /// <summary>Submit (central-a) → negative self-approval when asked → central-a2 → a-management-approver → publish.</summary>
     private static async Task ApproveAndPublishAsync(Session s, string step, string versionId, bool expectSelfApprovalRefused)
     {
         await s.Central.PostAsync($"{step}-submit-results", $"ui/hr-core/Competitions/SubmitResults/{CompetitionId}", Details(CompetitionId), [new("versionId", versionId)]);
@@ -408,7 +408,9 @@ public class AcHcm31CompetitionTests
     private static async Task<Session> StartAsync(string tag, string scenario)
     {
         var central = AcceptanceHarness.RequirePersona("central-a");
-        var br1 = AcceptanceHarness.RequirePersona("br1-mgr");
+        // PLAN-25 (decision 8): competitions are central-only, so step 1 is approved by a second central hr-core persona
+        // (central-a2) rather than br1-mgr (branch-scoped); central-a stays the creator (SoD).
+        var br1 = AcceptanceHarness.RequirePersona("central-a2");
         var approver = AcceptanceHarness.RequirePersona("a-management-approver");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(central);
         var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };

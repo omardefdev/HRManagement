@@ -51,7 +51,7 @@ jobs:
         run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
 
       # The requisition-to-hire journey needs the acceptance stack (personas, seed, FileDrop) and runs in its own job
-      # below; Category=JourneyProdLike is excluded everywhere until PLAN-25 (G-02).
+      # below, on the lab profile and then on the prod-like profile (Category=JourneyProdLike, PLAN-25).
       - name: Run journey suite
         env:
           RUN_PLAYWRIGHT_E2E: "true"
@@ -92,7 +92,8 @@ jobs:
         run: docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack down -v || true
 
   # PLAN-33 (AC-HCM-33c): requisition → approval → public application → selection → offer → candidate OTP acceptance →
-  # hire → HR.Contracts appointment, on the acceptance profile (lab scale; production-like approval binding is PLAN-25).
+  # hire → HR.Contracts appointment, on the acceptance profile (lab scale) and then with the Production recruitment values
+  # (docker-compose.acceptance-prodlike.yml, PLAN-25).
   recruitment-journey:
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -138,6 +139,39 @@ jobs:
           echo "Passed: ${executed}, skipped: ${skipped}"
           if [ "${skipped}" -gt 0 ] || [ "${executed}" -lt 1 ]; then
             echo "::error::The recruitment journey did not run and pass."
+            exit 1
+          fi
+
+      # PLAN-25 (decision 10, G-02 closed): the same journey with the Production recruitment values
+      # (docker-compose.acceptance-prodlike.yml), zero-skip.
+      - name: Switch hr-core-web and hr-contracts-web to the prod-like profile
+        run: |
+          docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \n            -f docker-compose.full-stack-gateway.yml -f docker-compose.acceptance.yml -f docker-compose.acceptance-prodlike.yml \n            --profile full-stack up -d --no-deps --no-build --force-recreate --wait hr-core-web hr-contracts-web
+
+      - name: Run requisition-to-hire journey (prod-like)
+        env:
+          RUN_PLAYWRIGHT_E2E: "true"
+          GATEWAY_BASE_URL: "http://localhost:6200"
+          KEYCLOAK_BASE_URL: "http://localhost:6388"
+          KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ci-gateway-secret-lab-only
+          COMPOSE_PROJECT_NAME: hrm-acceptance
+        run: >
+          dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
+          --configuration Release --no-build
+          --filter "Category=JourneyProdLike"
+          --logger "trx;LogFileName=recruitment-journey-prodlike-results.trx"
+          --results-directory ./TestResults/recruitment-journey
+
+      - name: Fail on skipped prod-like journey
+        if: always()
+        run: |
+          trx=./TestResults/recruitment-journey/recruitment-journey-prodlike-results.trx
+          if [ ! -f "$trx" ]; then echo "::error::No prod-like test results"; exit 1; fi
+          skipped=$(grep -o 'outcome="NotExecuted"' "$trx" | wc -l || true)
+          executed=$(grep -o 'outcome="Passed"' "$trx" | wc -l || true)
+          echo "Passed: ${executed}, skipped: ${skipped}"
+          if [ "${skipped}" -gt 0 ] || [ "${executed}" -lt 1 ]; then
+            echo "::error::The prod-like recruitment journey did not run and pass."
             exit 1
           fi
 
