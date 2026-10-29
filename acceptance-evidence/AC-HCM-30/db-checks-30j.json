@@ -1,7 +1,7 @@
 {
-  "unlinkedBefore": 0,
-  "dryRun": 0,
-  "applied": 0,
+  "unlinkedBefore": 3,
+  "dryRun": 3,
+  "applied": 3,
   "second": 0,
   "citizenRows": "AC30-BF-0001:0:Public:true,AC30-BF-0002:1:Public:true",
   "internalRow": "1:Internal:Published"

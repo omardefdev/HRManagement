@@ -27,11 +27,9 @@ public class Ac37JourneyRebuildLiveTests
         recorder.CaptureHttp("journey-rebuild", "GET", $"/api/platform/audit/journey/{correlationId}",
             (int)journeyResp.StatusCode, new { length = journeyBody.Length });
 
-        if (journeyResp.StatusCode == HttpStatusCode.NotFound)
-        {
-            recorder.WriteResult("Pass", "No audit rows yet for synthetic correlation — run acceptance-audit-journey.ps1 on warm stack");
-            return;
-        }
+        AcceptanceGate.RequireData(recorder, journeyResp.StatusCode != HttpStatusCode.NotFound,
+            "لا توجد سجلات تدقيق بعد لمعرّف الترابط",
+            "No audit rows yet for synthetic correlation — run acceptance-audit-journey.ps1 on warm stack");
 
         Assert.Equal(HttpStatusCode.OK, journeyResp.StatusCode);
         Assert.Contains("httpEvents", journeyBody, StringComparison.OrdinalIgnoreCase);

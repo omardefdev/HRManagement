@@ -1,6 +1,6 @@
 # Message Event Matrix (MassTransit)
 
-**Last updated:** 2026-10-29 — PLAN-32 `IRecruitmentRequisitionClosed` → Dev.Analytics (§2); PLAN-31 competition events → candidate notifications (§5a); PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
+**Last updated:** 2026-10-29 — PLAN-33 recruitment rows re-checked against `HRManagement.MessageContracts` and the code (fields, `SchemaVersion`, publishers, consumers; hire `IEmployeeCreated`; correlation finding in §6); PLAN-32 `IRecruitmentRequisitionClosed` → Dev.Analytics (§2); PLAN-31 competition events → candidate notifications (§5a); PLAN-30 internal application events → candidate notifications (§5a); 2026-05-29 — hire case workflow, checklist, diwan on completion.
 
 Event categories: **domain** | **workflow integration** | **external seam** | **dead-end**.  
 Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [INBOX_IDEMPOTENCY.md](./INBOX_IDEMPOTENCY.md) / [IDEMPOTENCY_STRATEGY.md](./IDEMPOTENCY_STRATEGY.md) | Sagas: [PROCESS_SAGAS.md](./PROCESS_SAGAS.md)
@@ -11,11 +11,11 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 
 | Event | Publisher | Consumers | Idempotency | Tests |
 |-------|-----------|-----------|-------------|-------|
-| `IEmployeeCreated` | HR.Core `EmployeeIntegrationService` | HR.Contracts, HR.Health, IDCard, Auth.Directory, Payroll, IT.Infra, Dev.Analytics | Inbox filter (+ markers) | Payroll, IT, Analytics, Health |
+| `IEmployeeCreated` (contract `SchemaVersion => 6`; carries `NationalIdHash`, never the raw number) | HR.Core `EmployeeIntegrationService` (direct employee creation); HR.Core `RecruitmentHireClosureService` on an external hire (same save as `ICandidateAccepted`, with `FundedPositionId`/`PositionCode`/`LegalRegimeId`/`PayrollRegimeCode`; not published for internal mobility) | HR.Contracts (org snapshot + personal-file checklist step; never provisions a contract — hire contracts come only from `ICandidateAccepted`, §5), HR.Health, HR.Training, Admin.Logistics, IDCard, Auth.Directory, Payroll, IT.Infra, Dev.Analytics | Inbox filter (+ markers) | Payroll, IT, Analytics, Health |
 
 > **GOV-003:** `IEmployeeCreated` / `IEmployeeStatusChanged` are SoR publish channels for master-employee.v1 — consumers must not rewrite NationalId/FullName.
 | `IEmployeeStatusChanged` | HR.Core | Auth.Directory | Inbox + guard | — |
-| `IContractActivated` | HR.Contracts | Payroll | Inbox + marker | Unit / Idempotent, `Fun029ContractActivatedTests`, `Pay029PayProfileTests` |
+| `IContractActivated` (v2: `ContractId`, `EmployeeId`, `ContractType` = contract type code, `StartDate`, `EndDate`, `BaseSalary` = `Contract.AgreedBaseSalary`, `PayGradeCode` = `Contract.GradeCode`, `CorrelationId`, `SourceSystem`; default member `TenantId` not set by the publisher) | HR.Contracts `ActivateContractHandler` → `MassTransitEventPublisher.PublishContractActivatedAsync` (contract → `Active`) | Payroll `ContractActivatedConsumer` → `HandleContractActivatedCommand` (pay profile; out-of-range / no salary → review hold `PAY029-RANGE` / `PAY029-NOSAL`) | Inbox + marker | Unit / Idempotent, `Fun029ContractActivatedTests`, `Pay029PayProfileTests`, `ContractActivatedConsumerTests` |
 | `ISeparationCompleted` | HR.Contracts | Payroll, Archive, IDCard, Admin.Logistics, Auth.Directory, IT.Infra, Dev.Analytics | Inbox (+ ref/marker) | Payroll, Analytics, Admin |
 | `IMedicalRecommendationIssued` | HR.Health | Compliance | Inbox + marker | Unit |
 | `IMedicalDecisionIssued` | HR.Health | HR.Contracts | Inbox | — |
@@ -37,9 +37,9 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | `ISecondmentExecuted` | HR.Movements | Payroll, Auth.Directory | Payroll: marker; Auth: audit | — | Payroll |
 | `ITrainingCompleted` | HR.Training | HR.Core, Payroll | `IntegrationMessageReceipts` / Payroll marker | — | HR.Core, Payroll |
 | `IMissionApproved` | HR.Training | Payroll | Payroll: marker | — | Payroll |
-| `ICandidateAccepted` (v4) | HR.Core `RecruitmentHireClosureService` — external hires only (HCM-029: internal mobility publishes `IInternalPlacementCompleted` only) | HR.Contracts | Contract exists check | Yes | Inbound, `Hcm029CandidateAcceptedV4Tests` |
-| `IInternalPlacementCompleted` | HR.Core `RecruitmentHireClosureService` (internal mobility) | HR.Movements `InternalPlacementCompletedConsumer` | consumer | Yes | `InternalHireClosureIntegrationTests` |
-| `IRecruitmentRequisitionClosed` (v1, HCM-032) | HR.Core — every requisition close: hire closure (last vacancy filled), `RecruitmentRequisitionLifecycleService.CloseAsync` / `CancelAsync`, `EstablishmentChangeApplier` (position freeze); aggregates only | Dev.Analytics `RecruitmentRequisitionClosedConsumer` → `RecruitmentRequisitionFact` | unique (TenantId, RequisitionId), upsert | Yes | `Hcm032AnalyticsPublicationTests` |
+| `ICandidateAccepted` (v4, `SchemaVersion => 4`) — `EmployeeId`, `EmploymentCategory`, `ExpectedStartDate`, `FullName`, `SourceSystem` = `HR.Core`, `CorrelationId`, `TenantId`, `RecruitmentApplicationId`, `RequisitionId`, `FundedPositionId`, `OfferLetterId`; v4 offer terms (additive, null on v3): `OfferedSalary`, `GradeCode` (offer grade, else the position's), `LegalRegimeId`, `PayrollRegimeCode`, `EmploymentType`, `PositionCode`, `OrgUnitId`, `IsInternalMobility` (always `false` when published) | HR.Core `RecruitmentHireClosureService.PublishHireEventsAsync` — external hires only (HCM-029: internal mobility publishes `IInternalPlacementCompleted` only) | HR.Contracts `CandidateAcceptedConsumer` → `ProcessCandidateAcceptedHandler`: `Appointment` `ServiceTransaction` (→ `InProcess`, lineage columns `RecruitmentApplicationId`/`RequisitionId`/`OfferLetterId`/`ExpectedStartDate`, hire checklist seeded) + a `Pending` contract with the offer terms (§5); unresolved contract type → no contract, `IProcessInterventionRequested`. Not read by the consumer: `FundedPositionId`, `PayrollRegimeCode`, `PositionCode`, `OrgUnitId` | Inbox filter; open `Appointment` exists → lineage/checklist only; contract exists → no second contract; `IsInternalMobility = true` ignored | Yes | `Hcm029CandidateAcceptedV4Tests`, `Fun029CandidateAcceptedV4HandlerTests`, `HireCaseIntegrationTests`; E2E `RecruitmentToHireJourneyE2ETests` (PLAN-33, acceptance profile, `acceptance-evidence/AC-HCM-33`) |
+| `IInternalPlacementCompleted` (v1) — `EmployeeId`, `RecruitmentApplicationId`, `RequisitionId`, `FundedPositionId`, `FromOrgUnitId`, `ToOrgUnitId`, `TenantId`, `CorrelationId` | HR.Core `RecruitmentHireClosureService` (internal mobility; no `ICandidateAccepted`, no `IEmployeeCreated`) | HR.Movements `InternalPlacementCompletedConsumer` → draft `TransferRequest` (`Pending`) when both org units are known and differ | a `Pending` transfer for the same employee/from/to is not duplicated | Yes | `InternalHireClosureIntegrationTests` (in `InternalChannelIntegrationTests.cs`), `Hcm029CandidateAcceptedV4Tests` |
+| `IRecruitmentRequisitionClosed` (v1, HCM-032 / PLAN-32) — `TenantId`, `RequisitionId`, `OrgUnitId`, `Outcome` (`Closed`/`Cancelled`), `ClosedAt`, `Applicants`, `HiredCount`, `TimeToFillDays`, `ApplicantsPublic`/`Internal`/`HrEntered`/`Legacy`, `OffersAccepted`/`Declined`/`Expired`/`Revoked`, `CorrelationId`, `SourceSystem` | HR.Core `RecruitmentRequisitionClosedEvent.StageAsync`, called in the same save by every close path: hire closure (last vacancy filled), `RecruitmentRequisitionLifecycleService.CloseAsync` / `CancelAsync`, `EstablishmentChangeApplier` (position freeze); aggregates only, no person-level data | Dev.Analytics `RecruitmentRequisitionClosedConsumer` → `RecruitmentRequisitionFact` | unique (TenantId, RequisitionId), upsert | Yes | `Hcm032AnalyticsPublicationTests` |
 | `IProcessInterventionRequested` (Hire, outside the saga) | HR.Contracts — unresolved contract type (`ProcessCandidateAcceptedHandler`), overdue commencement (`HireCommencementWatcher`) | HR.Contracts `ProcessInterventionRequestedConsumer` | one open intervention per (Hire, transaction) | Yes | `Fun029ContractTypeResolverTests`, `Fun029CommencementWatchTests` |
 | `ITransactionRegisteredInDiwan` | HR.Core `DiwanIntegrationService` | HR.Contracts | Transaction idempotent update | Yes | Inbound |
 | `IHireCaseCompleted` | HR.Contracts `PublishHireCaseHandler` | Records.Archive, HR.Core (ديوان) | Archive ref `HIRE-{txn}`; Diwan ref | Yes | Integration |
@@ -52,7 +52,7 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | `IAdvanceRequested` | HR.Contracts | Finance portal | Integration tests only |
 | `IJobChangeRequested` | HR.Contracts | HR.Movements (future) | Integration tests only |
 | `IResignationSubmitted` | HR.Contracts | Employee portal | Integration tests only |
-| `IEmployeeOfferAccepted` | HR.Contracts | Recruitment portal | Integration tests only |
+| `IEmployeeOfferAccepted` | HR.Contracts `EmployeeOfferAcceptedConsumer` (same `ProcessCandidateAcceptedCommand`, without offer terms) | Recruitment portal | Integration tests only |
 | `IProbationEvaluationCompleted` | HR.Contracts | HR evaluation | Integration tests only |
 
 ## 4. Dead-end events (published, no v1 consumer)
@@ -69,21 +69,24 @@ Publishing rules: [EVENT_MESH_AUDIT.md](./EVENT_MESH_AUDIT.md) | Idempotency: [I
 | Leave/advance | Single `ServiceTransactionId` per request; approval completes same transaction |
 | Separation | `PublishSeparationHandler` + `SeparationEventPublished` flag |
 | Leave → HR.Core status | `LeaveApprovedConsumer` sets `OnLeave` with reason marker |
-| Offer terms to payroll (PLAN-29) | `ICandidateAccepted` v4 terms → `Contract.GradeCode/AgreedBaseSalary/LegalRegimeId/EmploymentType`; `IContractActivated.BaseSalary = AgreedBaseSalary`, `PayGradeCode = GradeCode` (null for contracts created outside recruitment; members exist since v2 — no bump); Payroll resolves the grade in the scale in force at `StartDate`, out-of-range/no salary → review hold |
+| Offer terms to payroll (PLAN-29) | `ICandidateAccepted` v4 terms → `PendingContractProvisioning.CreatePending` (`Contract.Status = Pending`): `GradeCode`, `AgreedBaseSalary` (= `OfferedSalary`), `LegalRegimeId`, `EmploymentType`, `SourceOfferLetterId` (= `OfferLetterId`); unresolved contract type → terms kept in `ServiceTransaction.PendingContractTerms`; `IContractActivated.BaseSalary = AgreedBaseSalary`, `PayGradeCode = GradeCode` (null for contracts created outside recruitment; members exist since v2 — no bump); Payroll resolves the grade in the scale in force at `StartDate`, out-of-range/no salary → review hold |
 
 ## 5a. HR.Core internal application events (not bus messages, PLAN-30)
 
 `RecruitmentApplicationEvent` rows (table `RecruitmentApplicationEvents`) are written by
 `RecruitmentApplicationEventRecorder` in the **same save** as the change (change tracker only, no PII, append-only except
-`NotificationsPlannedAt`). They are **not** published to RabbitMQ; `CandidateNotificationJob` (lock 8675315, every 60 s)
-reads rows with `NotificationsPlannedAt IS NULL`, plans at most one `CandidateNotification` per event on the candidate's
-chosen channel (key `{eventId}:{channel}`, unique per tenant) and sends it through `INotificationChannelSender`
+`NotificationsPlannedAt`). They are **not** published to RabbitMQ; `CandidateNotificationJob` (advisory lock 8675315,
+every `Recruitment:Jobs:CandidateNotificationsIntervalSeconds` = 60 s, switch `Recruitment:Jobs:CandidateNotificationsEnabled`)
+runs `CandidateNotificationDispatcher` in three passes: offer reminders, planning (rows with `NotificationsPlannedAt IS NULL`
+→ at most one `CandidateNotification` per event on the candidate's consented channel, template from
+`CandidateNotificationTemplates.TemplateCodeFor`, key `{eventId}:{channel}`, unique per tenant) and sending through
+`INotificationChannelSender` via `NotificationChannelSenderRegistry`
 ([COM_001_NOTIFICATIONS.md](./COM_001_NOTIFICATIONS.md)). Only `Public` intake with consent is notified; internal, HR-entered,
 legacy, backfilled and suppressed (`SuppressApplicationEvents`) changes send nothing.
 
 | Event (`EventType`) | Trigger | Candidate message (template) |
 |---------------------|---------|------------------------------|
-| `Received` | `RecruitmentApplication` added (`IntakeChannel = Public` only) | `APP_RECEIVED` |
+| `Received` | `RecruitmentApplication` added (recorded for every channel; message only when `IntakeChannel = Public`) | `APP_RECEIVED` |
 | `StatusChanged` → `Rejected` / `ReserveListed` / `Hired` / `Withdrawn` | application status changed | `APP_REJECTED` (appeal deadline when appealable) / `APP_RESERVE` / `APP_HIRED` / `APP_WITHDRAWN` |
 | `StatusChanged` (other targets) | application status changed | — (marked planned) |
 | `InterviewScheduled` / `InterviewRescheduled` / `InterviewCancelled` | interview slot added / added as reschedule / cancelled | `INTERVIEW_SCHEDULED` / `INTERVIEW_RESCHEDULED` / `INTERVIEW_CANCELLED` |
@@ -113,7 +116,7 @@ synchronously by `CandidateOtpService` and never queued. The same events drive t
 | Concern | Configuration |
 |---------|---------------|
 | Retry | `MassTransit:RetryCount` / `RetryIntervalSeconds` (default 3 × 5s) |
-| Correlation | `X-Correlation-ID` on HTTP publish via `CorrelationIdFlow` |
+| Correlation | `X-Correlation-ID` on HTTP publish via `CorrelationIdFlow` (publish pipe `ApplyOutboundCorrelation` sets the header from `CorrelationIdFlow`, else `Activity.Current.Id`, when absent); `CorrelationIdConsumeFilter` restores it on consume (header, else MassTransit `CorrelationId`) into `CorrelationIdFlow` and the Serilog `LogContext`. HR.Contracts inbound consumers also call `ApplyExecutionContext` (header, else `MessageId`; the body `CorrelationId` is not read). **PLAN-33 finding (follow-up):** on the `ICandidateAccepted` success path HR.Contracts applies the header to its execution context but persists it in no column, and `ProcessCandidateAcceptedHandler` writes no log line on that path (it logs only for internal mobility or an unresolved contract type) — the E2E traces the hire through the gateway audit and the lineage columns instead (`acceptance-evidence/AC-HCM-33/db-checks.json`, `correlation.gap`) |
 | Outbox | HR.Contracts, HR.Core, Payroll DbContexts |
 | DLQ | RabbitMQ `*_error` queues — [RABBITMQ_OPERATIONS.md](./RABBITMQ_OPERATIONS.md) |
 | Versioning | Bump `SchemaVersion`; consumers skip unsupported via `EventSchemaVersion` |

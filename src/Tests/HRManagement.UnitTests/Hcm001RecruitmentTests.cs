@@ -1,18 +1,19 @@
 using System.Diagnostics;
-using System.Reflection;
-using HRManagement.SharedKernel.Entities;
-using HRManagement.SharedKernel.Recruitment;
-using CoreRequisitionStatus = HR.Core.Domain.Enums.RequisitionStatus;
-using HRCoreRecruitmentRequisition = HR.Core.Domain.Entities.RecruitmentRequisition;
+using HR.Core.Domain.Entities;
+using HR.Core.Domain.Enums;
+using HR.Core.Domain.Services;
 
 namespace HRManagement.UnitTests;
 
 using HRManagement.TestSupport;
 
-/// <summary>HCM-001: tests for RecruitmentRequisition, CandidateApplication, and OfferLetter domain entities.</summary>
+/// <summary>
+/// HCM-001 smoke tests of the real recruitment model in <c>HR.Core.Domain</c> (PLAN-33 P5): requisition, selection
+/// and offer state machines and the appeal window. Detailed rules are covered by the <c>Hcm026+</c> suites; these
+/// replace the reflection tests on the removed <c>SharedKernel.Recruitment</c> types.
+/// </summary>
 public class Hcm001RecruitmentTests
 {
-
     private static string RepoRoot
     {
         get
@@ -23,147 +24,148 @@ public class Hcm001RecruitmentTests
     }
 
     [Fact]
-    public void HRCore_RecruitmentRequisition_extends_AuditableEntity()
+    public void Requisition_follows_draft_approval_publish_close()
     {
-        Assert.True(typeof(HRCoreRecruitmentRequisition).IsSubclassOf(typeof(AuditableEntity)));
+        Assert.True(RequisitionWorkflowRules.CanTransition(RequisitionStatus.Draft, RequisitionStatus.PendingApproval));
+        Assert.True(RequisitionWorkflowRules.CanTransition(RequisitionStatus.PendingApproval, RequisitionStatus.Approved));
+        Assert.True(RequisitionWorkflowRules.CanTransition(RequisitionStatus.Approved, RequisitionStatus.Published));
+        Assert.True(RequisitionWorkflowRules.CanTransition(RequisitionStatus.Published, RequisitionStatus.Closed));
     }
 
     [Fact]
-    public void HRCore_RecruitmentRequisition_has_persisted_properties()
+    public void Requisition_rejection_returns_to_draft_and_approval_cannot_be_skipped()
     {
-        var props = typeof(HRCoreRecruitmentRequisition).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Select(p => p.Name).ToList();
-
-        Assert.Contains("RequisitionNumber", props);
-        Assert.Contains("FundedPositionId", props);
-        Assert.Contains("JobTitle", props);
-        Assert.Contains("Status", props);
-        Assert.Contains("RequestedDate", props);
-        Assert.Contains("ApprovedDate", props);
-        Assert.Contains("ClosedDate", props);
-        Assert.Contains("VacancyCount", props);
-        Assert.Contains("LegalSourceId", props);
+        Assert.True(RequisitionWorkflowRules.CanTransition(RequisitionStatus.PendingApproval, RequisitionStatus.Draft));
+        Assert.False(RequisitionWorkflowRules.CanTransition(RequisitionStatus.Draft, RequisitionStatus.Approved));
+        Assert.False(RequisitionWorkflowRules.CanTransition(RequisitionStatus.Draft, RequisitionStatus.Published));
+        Assert.False(RequisitionWorkflowRules.CanTransition(RequisitionStatus.Closed, RequisitionStatus.Published));
+        Assert.False(RequisitionWorkflowRules.CanClose(RequisitionStatus.Approved));
+        Assert.True(RequisitionWorkflowRules.CanEdit(RequisitionStatus.Draft));
+        Assert.False(RequisitionWorkflowRules.CanEdit(RequisitionStatus.Published));
     }
 
     [Fact]
-    public void HRCore_RequisitionStatus_enum_has_expected_values()
+    public void Requisition_publish_requires_an_approved_requisition_on_a_vacant_position()
     {
-        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Draft));
-        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.PendingApproval));
-        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Approved));
-        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Published));
-        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Closed));
-        Assert.True(Enum.IsDefined(typeof(CoreRequisitionStatus), CoreRequisitionStatus.Cancelled));
+        var vacant = new FundedPosition { Status = FundedPositionStatus.Vacant };
+        Assert.True(RequisitionWorkflowRules.CanPublish(RequisitionStatus.Approved, vacant, hasPublishedPosting: false));
+        Assert.False(RequisitionWorkflowRules.CanPublish(RequisitionStatus.PendingApproval, vacant, hasPublishedPosting: false));
+        Assert.False(RequisitionWorkflowRules.CanPublish(RequisitionStatus.Approved, vacant, hasPublishedPosting: true));
+        Assert.False(RequisitionWorkflowRules.CanPublish(
+            RequisitionStatus.Approved, vacant, hasPublishedPosting: false, RecruitmentPublishingChannel.InternalOnly));
     }
 
     [Fact]
-    public void SharedKernel_RecruitmentRequisition_extends_BaseEntity()
+    public void Selection_requires_conflict_of_interest_declaration_before_shortlisting()
     {
-        Assert.True(typeof(RecruitmentRequisition).IsSubclassOf(typeof(BaseEntity)));
+        var application = new RecruitmentApplication { Status = RecruitmentApplicationStatus.UnderReview };
+        Assert.False(SelectionWorkflowRules.CanTransition(application, RecruitmentApplicationStatus.Shortlisted));
+        Assert.NotNull(SelectionWorkflowRules.ValidateTransitionGate(application, RecruitmentApplicationStatus.Shortlisted));
+
+        application.ConflictOfInterestDeclared = true;
+        Assert.True(SelectionWorkflowRules.CanTransition(application, RecruitmentApplicationStatus.Shortlisted));
     }
 
     [Fact]
-    public void RecruitmentRequisition_has_required_properties()
+    public void Selection_assessed_is_system_only_and_ranking_needs_a_rank()
     {
-        var props = typeof(RecruitmentRequisition).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Select(p => p.Name).ToList();
+        Assert.Contains(RecruitmentApplicationStatus.Assessed, SelectionWorkflowRules.SystemOnlyTargets);
 
-        Assert.Contains("RequisitionNumber", props);
-        Assert.Contains("PositionId", props);
-        Assert.Contains("JobTitle", props);
-        Assert.Contains("Status", props);
-        Assert.Contains("RequestedDate", props);
-        Assert.Contains("ApprovedDate", props);
-        Assert.Contains("VacancyCount", props);
-        Assert.Contains("LegalSourceId", props);
+        var assessed = new RecruitmentApplication { Status = RecruitmentApplicationStatus.Assessed };
+        Assert.False(SelectionWorkflowRules.CanTransition(assessed, RecruitmentApplicationStatus.Ranked));
+        assessed.Rank = 1;
+        Assert.True(SelectionWorkflowRules.CanTransition(assessed, RecruitmentApplicationStatus.Ranked));
+
+        var submitted = new RecruitmentApplication { Status = RecruitmentApplicationStatus.Submitted };
+        Assert.False(SelectionWorkflowRules.CanTransition(submitted, RecruitmentApplicationStatus.Hired));
     }
 
     [Fact]
-    public void CandidateApplication_extends_BaseEntity()
+    public void Selection_offer_needs_a_draft_offer_and_no_pending_appeal()
     {
-        Assert.True(typeof(CandidateApplication).IsSubclassOf(typeof(BaseEntity)));
+        var ranked = new RecruitmentApplication { Status = RecruitmentApplicationStatus.Ranked, Rank = 1 };
+        Assert.False(SelectionWorkflowRules.CanTransition(ranked, RecruitmentApplicationStatus.OfferExtended));
+
+        ranked.ActiveOfferLetterId = Guid.NewGuid();
+        Assert.True(SelectionWorkflowRules.CanTransition(ranked, RecruitmentApplicationStatus.OfferExtended));
+
+        ranked.AppealStatus = RecruitmentAppealStatus.Pending;
+        Assert.False(SelectionWorkflowRules.CanTransition(ranked, RecruitmentApplicationStatus.OfferExtended));
     }
 
     [Fact]
-    public void CandidateApplication_has_required_properties()
+    public void Offer_is_approved_before_issue_and_accepted_only_while_issued_and_unexpired()
     {
-        var props = typeof(CandidateApplication).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Select(p => p.Name).ToList();
+        Assert.True(OfferWorkflowRules.CanTransition(OfferStatus.Draft, OfferStatus.PendingApproval));
+        Assert.True(OfferWorkflowRules.CanTransition(OfferStatus.PendingApproval, OfferStatus.Issued));
+        Assert.False(OfferWorkflowRules.CanTransition(OfferStatus.Draft, OfferStatus.Issued));
+        Assert.False(OfferWorkflowRules.CanTransition(OfferStatus.PendingApproval, OfferStatus.Accepted));
+        Assert.False(OfferWorkflowRules.CanTransition(OfferStatus.Accepted, OfferStatus.Revoked));
 
-        Assert.Contains("RequisitionId", props);
-        Assert.Contains("CandidateName", props);
-        Assert.Contains("NationalId", props);
-        Assert.Contains("Status", props);
-        Assert.Contains("SubmittedAt", props);
-        Assert.Contains("AssessmentScore", props);
-        Assert.Contains("Rank", props);
-        Assert.Contains("ConflictOfInterestDeclared", props);
+        var offer = new OfferLetter { Status = OfferStatus.PendingApproval, ValidityDays = 7 };
+        Assert.False(OfferWorkflowRules.CanAccept(offer));
+
+        var issuedAt = DateTime.UtcNow;
+        OfferWorkflowRules.MarkIssued(offer, issuedAt);
+        Assert.Equal(OfferStatus.Issued, offer.Status);
+        Assert.Equal(OfferWorkflowRules.ComputeExpiryDate(issuedAt, 7), offer.ExpiryDate);
+        Assert.True(OfferWorkflowRules.CanAccept(offer));
+        Assert.False(OfferWorkflowRules.CanExpire(offer, issuedAt));
+        Assert.True(OfferWorkflowRules.CanExpire(offer, offer.ExpiryDate!.Value.AddSeconds(1)));
     }
 
     [Fact]
-    public void OfferLetter_extends_BaseEntity()
+    public void Appeal_window_runs_from_rejection_and_allows_one_appeal()
     {
-        Assert.True(typeof(OfferLetter).IsSubclassOf(typeof(BaseEntity)));
+        var rejectedAt = new DateTime(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
+        var application = new RecruitmentApplication
+        {
+            Status = RecruitmentApplicationStatus.Rejected,
+            RejectionKind = RecruitmentRejectionKind.SelectionDecision,
+            RejectedAt = rejectedAt
+        };
+
+        var window = RecruitmentAppealWorkflowRules.DefaultAppealWindowDays;
+        Assert.True(RecruitmentAppealWorkflowRules.CanAppeal(application, rejectedAt.AddDays(window)));
+        Assert.Equal(RecruitmentAppealWorkflowRules.WindowExpiredMessage,
+            RecruitmentAppealWorkflowRules.GetAppealError(application, rejectedAt.AddDays(window).AddMinutes(1)));
+
+        application.AppealStatus = RecruitmentAppealStatus.Pending;
+        Assert.Equal(RecruitmentAppealWorkflowRules.AlreadyAppealedMessage,
+            RecruitmentAppealWorkflowRules.GetAppealError(application, rejectedAt.AddDays(1)));
+
+        var open = new RecruitmentApplication { Status = RecruitmentApplicationStatus.Ranked };
+        Assert.Equal(RecruitmentAppealWorkflowRules.NotRejectedMessage,
+            RecruitmentAppealWorkflowRules.GetAppealError(open, rejectedAt));
     }
 
     [Fact]
-    public void OfferLetter_has_required_properties()
+    public void Appeal_is_decided_only_by_the_assigned_reviewer()
     {
-        var props = typeof(OfferLetter).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Select(p => p.Name).ToList();
+        var reviewer = Guid.NewGuid();
+        var appeal = new RecruitmentAppeal
+        {
+            Status = RecruitmentAppealStatus.Pending,
+            IndependentReviewerEmployeeId = reviewer
+        };
 
-        Assert.Contains("ApplicationId", props);
-        Assert.Contains("PositionId", props);
-        Assert.Contains("OfferNumber", props);
-        Assert.Contains("Status", props);
-        Assert.Contains("OfferedSalary", props);
-        Assert.Contains("IsConvertedToEmployee", props);
-        Assert.Contains("ProposedStartDate", props);
-        Assert.Contains("LegalSourceId", props);
+        Assert.True(RecruitmentAppealWorkflowRules.IsAssignedReviewer(appeal, true, null, reviewer));
+        Assert.False(RecruitmentAppealWorkflowRules.IsAssignedReviewer(appeal, true, null, Guid.NewGuid()));
+        Assert.False(RecruitmentAppealWorkflowRules.IsAssignedReviewer(appeal, false, null, reviewer));
     }
 
     [Fact]
-    public void RequisitionStatus_enum_has_expected_values()
-    {
-        Assert.True(Enum.IsDefined(typeof(RequisitionStatus), RequisitionStatus.Draft));
-        Assert.True(Enum.IsDefined(typeof(RequisitionStatus), RequisitionStatus.Approved));
-        Assert.True(Enum.IsDefined(typeof(RequisitionStatus), RequisitionStatus.Published));
-        Assert.True(Enum.IsDefined(typeof(RequisitionStatus), RequisitionStatus.Closed));
-        Assert.True(Enum.IsDefined(typeof(RequisitionStatus), RequisitionStatus.Cancelled));
-    }
-
-    [Fact]
-    public void ApplicationStatus_enum_has_expected_values()
-    {
-        Assert.True(Enum.IsDefined(typeof(ApplicationStatus), ApplicationStatus.Submitted));
-        Assert.True(Enum.IsDefined(typeof(ApplicationStatus), ApplicationStatus.Shortlisted));
-        Assert.True(Enum.IsDefined(typeof(ApplicationStatus), ApplicationStatus.OfferExtended));
-        Assert.True(Enum.IsDefined(typeof(ApplicationStatus), ApplicationStatus.Accepted));
-        Assert.True(Enum.IsDefined(typeof(ApplicationStatus), ApplicationStatus.Rejected));
-        Assert.True(Enum.IsDefined(typeof(ApplicationStatus), ApplicationStatus.Withdrawn));
-    }
-
-    [Fact]
-    public void OfferStatus_enum_has_expected_values()
-    {
-        Assert.True(Enum.IsDefined(typeof(OfferStatus), OfferStatus.Draft));
-        Assert.True(Enum.IsDefined(typeof(OfferStatus), OfferStatus.Issued));
-        Assert.True(Enum.IsDefined(typeof(OfferStatus), OfferStatus.Accepted));
-        Assert.True(Enum.IsDefined(typeof(OfferStatus), OfferStatus.Declined));
-        Assert.True(Enum.IsDefined(typeof(OfferStatus), OfferStatus.Expired));
-        Assert.True(Enum.IsDefined(typeof(OfferStatus), OfferStatus.Revoked));
-    }
-
-    [Fact]
-    public void Docs_exist()
+    public void Docs_and_real_model_exist()
     {
         Assert.True(System.IO.File.Exists(RepoPaths.Resolve("docs", "HCM_001_RECRUITMENT.md")));
-        Assert.True(System.IO.File.Exists(RepoPaths.Resolve(
-            "src", "Shared", "HRManagement.SharedKernel", "Recruitment", "RecruitmentRequisition.cs")));
-        Assert.True(System.IO.File.Exists(RepoPaths.Resolve(
-            "src", "Shared", "HRManagement.SharedKernel", "Recruitment", "CandidateApplication.cs")));
-        Assert.True(System.IO.File.Exists(RepoPaths.Resolve(
-            "src", "Shared", "HRManagement.SharedKernel", "Recruitment", "OfferLetter.cs")));
+        foreach (var entity in new[] { "RecruitmentRequisition.cs", "RecruitmentApplication.cs", "OfferLetter.cs", "RecruitmentAppeal.cs" })
+        {
+            Assert.True(System.IO.File.Exists(RepoPaths.Resolve(
+                "src", "Services", "HRCore", "HR.Core.Domain", "Entities", entity)), entity);
+        }
+
+        Assert.False(Directory.Exists(Path.Combine(RepoRoot, "src", "Shared", "HRManagement.SharedKernel", "Recruitment")),
+            "SharedKernel.Recruitment is not the runtime model and was removed (PLAN-33).");
     }
 
     [Fact]

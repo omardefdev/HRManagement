@@ -1,0 +1,19 @@
+{
+  "step": "22a-22a-create-offer-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/CreateOffer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:11.9757582Z",
+  "body": {
+    "fields": [
+      "ApplicationId=c501d473-484b-439d-8fe2-01fcc45bb71a",
+      "OfferedSalary=400000",
+      "GradeCode=G5",
+      "ProposedStartDate=2026-11-28",
+      "ValidityDays=14"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/OfferLetters/Details/feec2bd3-ba6d-47fb-afa8-741f40213c62",
+    "final": "/ui/hr-core/OfferLetters/Details/feec2bd3-ba6d-47fb-afa8-741f40213c62"
+  }
+}

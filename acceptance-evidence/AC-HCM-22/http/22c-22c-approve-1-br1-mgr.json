@@ -1,0 +1,16 @@
+{
+  "step": "22c-22c-approve-1-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/540cd953-ab13-4dc0-986b-b5629faf1037",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:04.0209642Z",
+  "body": {
+    "fields": [
+      "RequisitionId=540cd953-ab13-4dc0-986b-b5629faf1037",
+      "Comments=PLAN-33 22c-approve-1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/540cd953-ab13-4dc0-986b-b5629faf1037",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/540cd953-ab13-4dc0-986b-b5629faf1037"
+  }
+}

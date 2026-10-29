@@ -32,7 +32,8 @@ public class Ac27DsarExportTests
         var createBody = await createResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("http-create-dsar", "POST", "/api/compliance/api/dsar",
             (int)createResp.StatusCode, JsonSerializer.Deserialize<object>(createBody));
-        Skip.If(createResp.StatusCode == HttpStatusCode.NotFound,
+        AcceptanceGate.RequireData(recorder, createResp.StatusCode != HttpStatusCode.NotFound,
+            "خدمة الامتثال غير منشورة في بيئة القبول",
             "Compliance service not deployed in acceptance stack.");
 
         Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);

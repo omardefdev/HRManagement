@@ -1,0 +1,17 @@
+{
+  "step": "22e-22e-application-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:19.5246178Z",
+  "body": {
+    "fields": [
+      "ApplicantFullName=AC33 22e 50217350a39e45c",
+      "RequisitionId=71133a4e-4f2a-4d71-8ffb-9c463324a2dc",
+      "Notes=PLAN-33"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications",
+    "final": "/ui/hr-core/RecruitmentApplications"
+  }
+}

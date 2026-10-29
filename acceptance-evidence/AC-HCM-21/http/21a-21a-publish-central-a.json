@@ -1,0 +1,15 @@
+{
+  "step": "21a-21a-publish-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/749d3a14-217a-4dd5-988e-5a66deeb14d5",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:30.3678133Z",
+  "body": {
+    "fields": [
+      "applicationClosingDate=2026-11-28"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/749d3a14-217a-4dd5-988e-5a66deeb14d5",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/749d3a14-217a-4dd5-988e-5a66deeb14d5"
+  }
+}

@@ -19,9 +19,13 @@ $failures = @()
 
 $requiredFiles = @(
     "docs/HCM_001_RECRUITMENT.md",
-    "src/Shared/HRManagement.SharedKernel/Recruitment/RecruitmentRequisition.cs",
-    "src/Shared/HRManagement.SharedKernel/Recruitment/CandidateApplication.cs",
-    "src/Shared/HRManagement.SharedKernel/Recruitment/OfferLetter.cs",
+    "src/Services/HRCore/HR.Core.Domain/Entities/RecruitmentApplication.cs",
+    "src/Services/HRCore/HR.Core.Domain/Entities/OfferLetter.cs",
+    "src/Services/HRCore/HR.Core.Domain/Enums/RecruitmentApplicationStatus.cs",
+    "src/Services/HRCore/HR.Core.Domain/Enums/OfferStatus.cs",
+    "src/Services/HRCore/HR.Core.Domain/Services/SelectionWorkflowRules.cs",
+    "src/Services/HRCore/HR.Core.Domain/Services/OfferWorkflowRules.cs",
+    "src/Services/HRCore/HR.Core.Domain/Services/RecruitmentAppealWorkflowRules.cs",
     "src/Services/HRCore/HR.Core.Domain/Entities/RecruitmentRequisition.cs",
     "src/Services/HRCore/HR.Core.Domain/Enums/RequisitionStatus.cs",
     "src/Services/HRCore/HR.Core.Domain/Services/RequisitionWorkflowRules.cs",
@@ -52,19 +56,10 @@ foreach ($rel in $requiredFiles) {
     }
 }
 
-# Verify RecruitmentRequisition entity
-$reqFile = Resolve-RepoPath "src/Shared/HRManagement.SharedKernel/Recruitment/RecruitmentRequisition.cs"
-if (Test-Path $reqFile) {
-    $content = Get-Content -Raw -Path $reqFile
-    $requiredProps = @("RequisitionNumber", "PositionId", "JobTitle", "Status", "RequestedDate", "VacancyCount")
-    foreach ($prop in $requiredProps) {
-        if ($content -notmatch $prop) {
-            $failures += "RecruitmentRequisition missing required property: $prop"
-        }
-    }
-    if ($content -notmatch "BaseEntity") {
-        $failures += "RecruitmentRequisition must extend BaseEntity"
-    }
+# PLAN-33: SharedKernel.Recruitment was a phantom model (no runtime consumer) and was removed; the runtime model
+# is HR.Core.Domain. It must not come back.
+if (Test-Path (Resolve-RepoPath "src/Shared/HRManagement.SharedKernel/Recruitment")) {
+    $failures += "src/Shared/HRManagement.SharedKernel/Recruitment must not exist (runtime model is HR.Core.Domain)"
 }
 
 # Verify HR.Core persisted RecruitmentRequisition (PLAN-HCM-01)
@@ -86,7 +81,7 @@ $closureFile = Resolve-RepoPath "src/Services/HRCore/HR.Core.Infrastructure/Serv
 if (Test-Path $closureFile) {
     $content = Get-Content -Raw -Path $closureFile
     if ($content -notmatch "RecruitmentHireClosureService") { $failures += "missing RecruitmentHireClosureService" }
-    if ($content -notmatch "ICandidateAccepted") { $failures += "closure service must publish ICandidateAccepted v3" }
+    if ($content -notmatch "ICandidateAccepted") { $failures += "closure service must publish ICandidateAccepted" }
     if ($content -notmatch "AssignEmployee") { $failures += "closure service must assign funded position" }
 }
 
@@ -132,34 +127,20 @@ if (Test-Path $controllerFile) {
     }
 }
 
-# Verify CandidateApplication entity
-$appFile = Resolve-RepoPath "src/Shared/HRManagement.SharedKernel/Recruitment/CandidateApplication.cs"
-if (Test-Path $appFile) {
-    $content = Get-Content -Raw -Path $appFile
-    $requiredProps = @("RequisitionId", "CandidateName", "Status", "SubmittedAt", "AssessmentScore", "ConflictOfInterestDeclared")
-    foreach ($prop in $requiredProps) {
-        if ($content -notmatch $prop) {
-            $failures += "CandidateApplication missing required property: $prop"
-        }
-    }
-    if ($content -notmatch "BaseEntity") {
-        $failures += "CandidateApplication must extend BaseEntity"
+# Verify the real application and offer entities (HR.Core.Domain)
+if (Test-Path $coreAppFile) {
+    $content = Get-Content -Raw -Path $coreAppFile
+    foreach ($prop in @("RequisitionId", "Status", "ConflictOfInterestDeclared", "AssessmentScore", "AppealStatus", "IntakeChannel")) {
+        if ($content -notmatch $prop) { $failures += "RecruitmentApplication missing required property: $prop" }
     }
 }
-
-# Verify OfferLetter entity
-$offerFile = Resolve-RepoPath "src/Shared/HRManagement.SharedKernel/Recruitment/OfferLetter.cs"
-if (Test-Path $offerFile) {
-    $content = Get-Content -Raw -Path $offerFile
-    $requiredProps = @("ApplicationId", "PositionId", "OfferNumber", "Status", "OfferedSalary", "IsConvertedToEmployee")
-    foreach ($prop in $requiredProps) {
-        if ($content -notmatch $prop) {
-            $failures += "OfferLetter missing required property: $prop"
-        }
+$coreOfferFile = Resolve-RepoPath "src/Services/HRCore/HR.Core.Domain/Entities/OfferLetter.cs"
+if (Test-Path $coreOfferFile) {
+    $content = Get-Content -Raw -Path $coreOfferFile
+    foreach ($prop in @("RecruitmentApplicationId", "OfferNumber", "Status", "ValidityDays", "ExpiryDate")) {
+        if ($content -notmatch $prop) { $failures += "HR.Core OfferLetter missing required property: $prop" }
     }
-    if ($content -notmatch "BaseEntity") {
-        $failures += "OfferLetter must extend BaseEntity"
-    }
+    if ($content -notmatch "AuditableEntity") { $failures += "HR.Core OfferLetter must extend AuditableEntity" }
 }
 
 # Verify doc references
@@ -168,7 +149,7 @@ if (Test-Path $docFile) {
     $doc = Get-Content -Raw -Path $docFile
     if ($doc -notmatch "HCM-001") { $failures += "doc missing HCM-001 reference" }
     if ($doc -notmatch "RecruitmentRequisition") { $failures += "doc must describe RecruitmentRequisition" }
-    if ($doc -notmatch "CandidateApplication") { $failures += "doc must describe CandidateApplication" }
+    if ($doc -notmatch "RecruitmentApplication") { $failures += "doc must describe RecruitmentApplication" }
     if ($doc -notmatch "OfferLetter") { $failures += "doc must describe OfferLetter" }
     if ($doc -notmatch "Plan map") { $failures += "doc must include Plan map 1-6" }
 }

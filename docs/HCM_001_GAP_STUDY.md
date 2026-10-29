@@ -1,6 +1,7 @@
 # دراسة مسار التوظيف (HCM-001) — الوضع الفعلي وما بقي لإكماله
 
 **تاريخ الدراسة:** 2026-10-21  
+**آخر تحديث:** 2026-10-29 (PLAN-33: سطر «الحالة» لكل فجوة مع الخطة والدليل، وتحويل §7 إلى قائمة تحقق بالحالة الفعلية). الأقسام 1–3 تصف الوضع وقت الدراسة ولم تُعدَّل؛ الحالة الراهنة في أسطر «الحالة» وفي §7.  
 **النطاق:** مسار التوظيف من طلب الشاغر حتى تسليم المرشح إلى معالج التعيين (FUN-001)، مع نقاط التماس مع العقود والرواتب والبوابة.  
 **المنهج:** قراءة ثابتة للشيفرة في `src/Services/HRCore` و`src/Services/HRContracts` و`src/Shared` والاختبارات والوثائق والأدلة، ومقارنتها بما تدّعيه الوثائق (`HCM_001_RECRUITMENT.md`، PLAN-21/22/23، `HIRE_ONBOARDING_GUIDE.md`، `completion-backlog/09`).  
 **حدود الدراسة:** لم يُبنَ المشروع ولم تُشغَّل الاختبارات (لا يوجد .NET SDK على الجهاز وقت الدراسة). كل فجوة أدناه مدعومة بمرجع ملف/سطر. البنود الموسومة **«يحتاج تحقق»** استنتاجات تحتاج تشغيلاً لتأكيدها.
@@ -74,6 +75,7 @@
 - **الدليل:** `git log` يحوي 3 commits فقط، آخرها `docs(syd): record G0 closure…`. و`git status` تحت `src/Services/HRCore` و`docs/acceptance-plans` و`scripts` يُظهر **283 ملفاً غير متتبَّع و140 ملفاً معدّلاً**، منها كل كيانات التوظيف (`RecruitmentRequisition.cs`، `OfferLetter.cs`، `RecruitmentAppeal.cs`…) وترحيلات `HCM001`–`HCM005`.
 - **الأثر:** لا ضمان أن الشيفرة تُبنى أو أن اختباراتها تنجح في CI، ولا إمكانية مراجعة أو تراجع. ادعاء «green CI» في الوثائق لا يغطي هذا العمل.
 - **الخطة:** PLAN-25 المرحلة 0.
+- **الحالة:** ⚠️ مغلقة جزئياً — شيفرة التوظيف كلها مُودعة الآن في commits محلية (لا ملفات غير متتبَّعة تحت `src/Services/HRCore`)، وآخرها commits فرع PLAN-33 (`7c9dcf2`، `5d4e4d0`، `b93ddba`+`29670a0`، `4588a23`، `95c70e1`، `d91b7b8`، `69ad2e3`). لكن لم يُدفع أي منها إلى المستودع البعيد، فلم يُشغَّل الـ CI البعيد على هذا العمل قط (`reports/plan33-progress.md`: «local only, never pushed»). بقية البند (CI أخضر على البعيد) ضمن PLAN-25 §0 — **Proposed، مؤجلة**.
 
 #### G-02 — الاعتماد معلّق في إعدادات Staging/Production
 - **الدليل:**
@@ -83,6 +85,7 @@
   - `SelectionCommitteeLifecycleService.cs:44-62`: التقديم في هذا الوضع لا يفعل شيئاً ويعيد نجاحاً.
 - **الأثر:** في الإنتاج يبقى كل طلب شاغر وكل خطاب عرض في `PendingApproval` إلى الأبد، إذ لا يوجد إجراء اعتماد مباشر بديل. الواجهة تعرض فقط تحذير «فعّل PolicyEngine…». المسار متوقف كلياً.
 - **الخطة:** PLAN-25 (فصل بدء مسار الاعتماد عن وضع محرك السياسات).
+- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). أثبت PLAN-33 السلوك الحالي دون إصلاحه: `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` (6/6) — مع `IsLabScale=false` والمحرك `Off` يبقى طلب الشاغر وخطاب العرض في `PendingApproval` بلا نسخة مسار مع تحذير في الواجهة، ويُرفض الاعتماد، ولا يصل العرض إلى `Issued`؛ أما جلسة اللجنة فتُقفَل دون مسار و**دون أي تحذير** (توقف صامت). ونسخة E2E الشبيهة بالإنتاج (`docker-compose.acceptance-prodlike.yml`، `Category=JourneyProdLike`) تتوقف في المرحلة الأولى: الطلب بعد التقديم `PendingApproval` بلا نسخة مسار (`acceptance-evidence/AC-HCM-33/prodlike/result.json`).
 
 #### G-03 — لا توجد طريقة لإنشاء معايير التقييم
 - **الدليل:**
@@ -91,6 +94,7 @@
   - الموضع الوحيد الذي يُنشئ `RecruitmentAssessmentCriteria` هو `AcceptanceDataSeeder.cs:637`، ولا متحكم ولا خدمة ولا واجهة.
 - **الأثر:** في أي جهة حقيقية لا يمكن تقييم المرشح، وبالتالي لا يمكن ترتيبه بالمسار السليم. وهذا يدفع المستخدمين إلى طرق التفاف (G-07).
 - **الخطة:** PLAN-26.
+- **الحالة:** ✅ عولجت في [PLAN-26](acceptance-plans/PLAN-26-hcm-assessment-interview-requisition.md) (Implemented) — AC-HCM-26a..g وi ناجحة حيّاً (إعادة التشغيل في PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-26/result.json`؛ حالة المجلد Blocked بسبب 26h).
 
 #### G-04 — دور الخطوة والبوابات الإضافية تُفحص في الواجهة فقط
 - **الدليل:**
@@ -100,6 +104,7 @@
   - نقاط POST `ApproveWorkflow` محمية بسياسة `HrCoreBranchOperation` العامة: Admin وHrCore وBranchManager وHrManagementApprover.
 - **الأثر:** أي مستخدم `hr-core` غير منشئ يستطيع بطلب POST مباشر اعتماد خطوة تتطلب `hr-management-approver`، أو اعتماد لجنة بلا نصاب، أو البت في استئناف ليس مراجعه المستقل. هذا يكسر فصل الواجبات الذي يدّعيه PLAN-21/22.
 - **الخطة:** PLAN-25.
+- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). `RoleRequired` للخطوة ما زال يُفحص في `WorkflowPanelBuilder` وصندوق العمل فقط، ولا يفحصه `WorkflowStageGuard` ولا `WorkflowEngine` (`src/Shared/HRManagement.ServiceDefaults/Workflow/`) عند POST. نُقل إلى الخادم في PLAN-28 فحص نصاب اللجنة وفصل الواجبات فيها والمراجع المستقل للاستئناف (داخل خدمات الكيان، لا في البوابات العامة).
 
 #### G-05 — دور `compliance` لا يصل إلى مراجعة الاستئناف
 - **الدليل:**
@@ -109,7 +114,7 @@
   - الشخصية `a-compliance` في `testdata/acceptance/personas.json` لديها `['compliance']` فقط.
 - **الأثر:** السيناريو AC-HCM-22d غير قابل للتحقيق كما صُمم، فالاستئنافات تبقى معلّقة أو تُحسم بطرق التفاف.
 - **الخطة:** PLAN-25 (الصلاحيات) + PLAN-28 (منطق الاستئناف).
-- **الحالة:** ✅ عولج جزء الاستئناف في PLAN-28 (شريحة من PLAN-25): سياسة `HrCoreAppealReview` و`RecruitmentAppealsController` وصندوق العمل `HrCoreWorkInbox` مستثناة من مرشح الوحدة، وقواعد البوابة تسمح لمستخدم `compliance` بصفحات الاستئناف وصندوق العمل فقط. بقية PLAN-25 (البوابات العامة لدور الخطوة) مؤجلة.
+- **الحالة:** ⚠️ مغلقة جزئياً — عولج جزء الاستئناف في PLAN-28 (شريحة من PLAN-25): متحكما `RecruitmentAppeals` و`WorkInbox` مستثنيان من مرشح الوحدة (`HrModuleAuthorizationFilter`) ويحملان سياستَي `HrCoreAppealReview` و`HrCoreWorkInbox` اللتين تقبلان دور `compliance`، وقواعد البوابة (`GatewayPathAuthorizationMiddleware`) تسمح لمستخدم `compliance` بصفحات الاستئناف وصندوق العمل فقط. الدليل: AC-HCM-28a..i (2026-10-22، `acceptance-evidence/AC-HCM-28/run-summary.md`) وAC-HCM-22d بمراجع `compliance` مُسنَد (2026-10-29، `acceptance-evidence/AC-HCM-22/`). بقية PLAN-25 (البوابات العامة لدور الخطوة) مؤجلة.
 
 ### 4.2 ثغرات سلامة القرار والحوكمة (P1)
 
@@ -119,7 +124,7 @@
   - `OfferStatus.Expired` لا يضبطه أي سطر في الشيفرة، و`CanAccept` يكتفي برفض القبول بعد التاريخ.
 - **الأثر:** طلبات عالقة، ولا «قائمة احتياط»، ولا تتبع لسبب الرفض. ولإكمال الشاغر يُضطر HR إلى تحريك مرشح آخر يدوياً دون قاعدة.
 - **الخطة:** PLAN-27.
-- **الحالة:** ✅ عولجت في PLAN-27 — الرفض/الإلغاء/الانتهاء تحسم الطلب (`OfferDeclined`/`Ranked`/`Rejected`)، مهمة انتهاء العروض، اقتراح المرشح التالي بالجدارة، وقائمة احتياط بمهلة. انظر [HCM_001_RECRUITMENT.md](HCM_001_RECRUITMENT.md#plan-27--offer-integrity-merit-principle-and-reserve-list-hcm-e).
+- **الحالة:** ✅ عولجت في PLAN-27 — الرفض/الإلغاء/الانتهاء تحسم الطلب (`OfferDeclined`/`Ranked`/`Rejected`)، مهمة انتهاء العروض، اقتراح المرشح التالي بالجدارة، وقائمة احتياط بمهلة. انظر [HCM_001_RECRUITMENT.md](HCM_001_RECRUITMENT.md#plan-27--offer-integrity-merit-principle-and-reserve-list-hcm-e). الدليل: AC-HCM-27a..h ناجحة حيّاً (2026-10-22، `acceptance-evidence/AC-HCM-27/run-summary.md`).
 
 #### G-07 — يمكن تجاوز الترتيب والجدارة عند إصدار العرض
 - **الدليل:**
@@ -130,7 +135,7 @@
   - الراتب والدرجة يُدخلان نصاً حراً دون تحقق من درجة المنصب الممول.
 - **الأثر:** خرق مبدأ الجدارة والشفافية، وهو جوهر معايير قبول HCM-001.
 - **الخطة:** PLAN-27.
-- **الحالة:** ✅ عولجت في PLAN-27 — العرض للمرتبين فقط وبترتيب الجدارة، والاستثناء (تجاوز الجدارة/اختلاف الدرجة/راتب غير متحقق) بمبرر ومسار من ثلاثة معتمدين مختلفين؛ الدرجة من المنصب الممول والراتب ضمن حدود سلّم الرواتب في Payroll.
+- **الحالة:** ✅ عولجت في PLAN-27 — العرض للمرتبين فقط وبترتيب الجدارة، والاستثناء (تجاوز الجدارة/اختلاف الدرجة/راتب غير متحقق) بمبرر ومسار من ثلاثة معتمدين مختلفين؛ الدرجة من المنصب الممول والراتب ضمن حدود سلّم الرواتب في Payroll. الدليل: AC-HCM-27a..h (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-27/`).
 
 #### G-08 — دورة المقابلة ناقصة
 - **الدليل:**
@@ -139,6 +144,7 @@
   - الجدولة من `Assessed` أو `Ranked` تعيد الحالة إلى `InterviewScheduled` (`:32-38`)، فتمحو التقدم.
   - لا ربط للمقابلين، ولا درجات لكل معيار، ولا تعدد مقيّمين.
 - **الخطة:** PLAN-26.
+- **الحالة:** ✅ عولجت في [PLAN-26](acceptance-plans/PLAN-26-hcm-assessment-interview-requisition.md) — AC-HCM-26a..g وi ناجحة حيّاً (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-26/result.json`). وتمر رحلة E2E (`RecruitmentToHireJourneyE2ETests`) بالمقابلة ومقيّمَين اثنين قبل الترتيب (`acceptance-evidence/AC-HCM-33/`).
 
 #### G-09 — مساران متوازيان للاستئناف، أحدهما يتجاوز الحوكمة
 - **الدليل:**
@@ -148,7 +154,7 @@
   - اعتماد المسار يعني دائماً «قبول الاستئناف»، ولا يوجد قرار صريح (قبول/رفض/تعديل رتبة).
   - يمكن الاستئناف بعد إتمام التعيين على الشاغر نفسه دون أثر عملي.
 - **الخطة:** PLAN-28.
-- **الحالة:** ✅ عولجت في PLAN-28 — طريق واحد: تقديم بلا مراجع، ثم تعيين مراجع مستقل من منتقي الموظفين (مستقل عن اللجنة والمقابلة والتقييم) يبدأ المسار، وقرار صريح (`Upheld`/`UpheldRankCorrection`/`Dismissed`/`UpheldNoRemedy`) لا يصدره إلا المراجع المعيّن بدور `compliance` ومطالبة `employee_id`، مع طلب معلومات واستيفاء. حُذف `ReopenAppeal` ونُقل تاريخه إلى استئنافات `LegacyReopen`، والمهلة تُحسب من `RejectedAt` بحسب نوع الرفض، ولا تعيين مع استئناف معلق. انظر [HCM_001_RECRUITMENT.md](HCM_001_RECRUITMENT.md#plan-28--selection-committee-and-appeal-governance-hcm-f).
+- **الحالة:** ✅ عولجت في PLAN-28 — طريق واحد: تقديم بلا مراجع، ثم تعيين مراجع مستقل من منتقي الموظفين (مستقل عن اللجنة والمقابلة والتقييم) يبدأ المسار، وقرار صريح (`Upheld`/`UpheldRankCorrection`/`Dismissed`/`UpheldNoRemedy`) لا يصدره إلا المراجع المعيّن بدور `compliance` ومطالبة `employee_id`، مع طلب معلومات واستيفاء. حُذف `ReopenAppeal` ونُقل تاريخه إلى استئنافات `LegacyReopen`، والمهلة تُحسب من `RejectedAt` بحسب نوع الرفض، ولا تعيين مع استئناف معلق. انظر [HCM_001_RECRUITMENT.md](HCM_001_RECRUITMENT.md#plan-28--selection-committee-and-appeal-governance-hcm-f). الدليل: AC-HCM-28a..i (2026-10-22، `acceptance-evidence/AC-HCM-28/run-summary.md`) وAC-HCM-22c/22d (2026-10-29، `acceptance-evidence/AC-HCM-22/`).
 
 #### G-10 — لجنة الاختيار شكلية
 - **الدليل:**
@@ -158,7 +164,7 @@
   - `AddMemberAsync` يقبل الإضافة بعد التقديم أو الاعتماد، ولا يمنع تكرار العضو.
   - لا SoD لمنشئ الجلسة في `ValidateSelfApprovalAsync`، واختيار العضو يتم بـ GUID.
 - **الخطة:** PLAN-28.
-- **الحالة:** ✅ عولجت في PLAN-28 — أصوات وتعارض مصالح لكل مرشح وتوصيات برتبة مقترحة، قفل بعد التقديم، نصاب وفصل واجبات على الخادم، محضر PDF، واعتماد اللجنة شرط للترتيب على الطلبات الخاضعة للجنة (`RequiresCommitteeApproval`، القرار D-5).
+- **الحالة:** ✅ عولجت في PLAN-28 — أصوات وتعارض مصالح لكل مرشح وتوصيات برتبة مقترحة، قفل بعد التقديم، نصاب وفصل واجبات على الخادم، محضر PDF، واعتماد اللجنة شرط للترتيب على الطلبات الخاضعة للجنة (`RequiresCommitteeApproval`، القرار D-5). الدليل: AC-HCM-28a..i (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-28/`). تنبيه: في غير المختبر مع المحرك `Off` تُقفَل الجلسة دون مسار ودون تحذير (انظر G-02).
 
 #### G-11 — سلامة طلب الشاغر مقابل الملاك
 - **الدليل:**
@@ -167,6 +173,7 @@
   - `CloseAsync` لا يحسم الطلبات المفتوحة على الشاغر.
   - `EstablishmentService.FreezePosition` لا يتعامل مع طلبات الشاغر المفتوحة على المنصب.
 - **الخطة:** PLAN-26.
+- **الحالة:** ✅ عولجت في [PLAN-26](acceptance-plans/PLAN-26-hcm-assessment-interview-requisition.md) — الدليل الحي AC-HCM-26a..g وi (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-26/result.json`). استثناء: تتابع تجميد المنصب (AC-HCM-26h) لم يُشغَّل حيّاً قط، لعدم وجود معتمد `hr-core` مركزي ثانٍ في كتالوج الشخصيات؛ وهو مثبت على PostgreSQL في `src/Tests/HRManagement.IntegrationTests/Hcm026EstablishmentCascadeIntegrationTests.cs`. وحالته في إعادة التشغيل الحي (PLAN-33 P6، 2026-10-29) **محجوب (Blocked)** كما في `acceptance-evidence/AC-HCM-26/result.json`، ولذا فحالة المجلد Blocked.
 
 #### G-12 — إنشاء موظف مكرر وأخطاء غير معالجة عند التعيين
 - **الدليل:**
@@ -175,6 +182,7 @@
   - لا مقارنة بين الرقم الوطني المُدخل ورقم الطلب.
   - `EmploymentType` مثبت على `Permanent` (`RecruitmentHireClosureService.cs:309, 394`) أياً كانت فئة التوظيف المختارة (PERMANENT/TEMPORARY/CONTRACT/INTERNSHIP).
 - **الخطة:** PLAN-29.
+- **الحالة:** ✅ عولجت في [PLAN-29](acceptance-plans/PLAN-29-hcm-hire-contract-documents.md) (Implemented) — AC-HCM-29b (رقم وطني لموظف قائم ← رسالة تحقق لا 500) وAC-HCM-29c (رقم وطني مخالف بلا سبب ← رفض) وAC-HCM-29a (نوع العقد مشتق من النظام) ناجحة حيّاً (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-29/`).
 
 #### G-13 — شروط العرض لا تصل إلى العقد
 - **الدليل:**
@@ -185,15 +193,18 @@
   - فئات التوظيف في نموذج التعيين (PERMANENT/TEMPORARY/CONTRACT/INTERNSHIP في `RecruitmentHireViewModel.cs:18-24`) لا تطابق `EmploymentType` في النطاق (Permanent/Administrative/Temporary)، ولا الأصناف الثلاثة في `Requariments.md` (دائم – إداري – متعاقد مؤقت).
   - **يحتاج تحقق:** في التنقل الداخلي يُنشر `ICandidateAccepted` أيضاً، فقد تُنشأ معاملة `Appointment` لموظف قائم.
 - **الخطة:** PLAN-29.
+- **الحالة:** ✅ عولجت في [PLAN-29](acceptance-plans/PLAN-29-hcm-hire-contract-documents.md) — العقد المعلّق بنوع مشتق من نظام الخدمة وبدرجة العرض وراتبه، و`IContractActivated` يحمل الراتب والدرجة إلى Payroll، وتدخل مرئي حين لا يوجد نوع عقد مطابق، ونسب المعاملة إلى طلب التوظيف في حقول صريحة. وتأكد بند «يحتاج تحقق» (التنقل الداخلي كان يُنشئ `Appointment`) وعولج. الدليل: AC-HCM-29a، d، e، h، i (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-29/`)، ورحلة E2E تنتهي بمعاملة `Appointment` وعقد بدرجة العرض وراتبه (`acceptance-evidence/AC-HCM-33/`). ملاحظة متابعة من PLAN-33: HR.Contracts يطبّق `X-Correlation-ID` القادم في ترويسة الرسالة على سياق التنفيذ لكنه لا يحفظه ولا يسجّله في مسار النجاح.
 
 #### G-14 — مسار `RECRUITMENT-HIRE` يتيم في وضع Enforce
 - **الدليل:** القاعدة `R-REC-HIRE` (`PolicyEngineDomainSeeds.cs:86-91`) تطلق `RECRUITMENT-HIRE` عند `Hire`، لكن `RecruitmentApplicationsController.Hire` يتجاهل `WorkflowInstanceId` ويعيّن فوراً، ولا يوجد handler لـ `RecruitmentApplication` في `WorkflowInstanceActionService`.
 - **الأثر:** عناصر معلّقة في صندوق العمل لا يغيّر اعتمادها شيئاً.
 - **الخطة:** PLAN-25.
+- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). `RECRUITMENT-HIRE` ما زال معرّفاً في `PolicyEngineDomainSeeds.cs` و`WorkflowPackSeeder.cs`، ولا معالج له في `WorkflowInstanceActionService`.
 
 #### G-15 — ثغرات صلاحيات في متحكمات الإعلانات والشواغر الداخلية
 - **الدليل:** `PublicJobPostingsController` و`TalentMarketplaceController` بلا `[Authorize(HrCoreWrite)]` على `Edit` و`Delete` و`ChangeApplicationStatus` و`DeclareCitizenCoi`، فيكفي دور الوحدة (مثل `hr-management-approver` أو `branch-manager`) لتعديلها. كما أن `ClosingDate` قابل للتعديل في أي وقت دون تدقيق.
 - **الخطة:** PLAN-25.
+- **الحالة:** ❌ مفتوحة — PLAN-25 (**Proposed، مؤجلة**). إجراءات `Edit` و`Delete` و`ChangeApplicationStatus` و`DeclareCitizenCoi` في `PublicJobPostingsController.cs`، و`Edit` و`Delete` و`ChangeApplicationStatus` في `TalentMarketplaceController.cs`، ما زالت بلا `[Authorize(HrCoreWrite)]` على مستوى المتحكم.
 
 ### 4.3 تجربة المرشح وتوحيد القنوات (P1/P2)
 
@@ -204,14 +215,14 @@
   - الترقية الداخلية لا تنقل إقرار COI (`:599`).
   - لا مزامنة عكسية، و`BuildTimeline` (`PublicCareersController.cs:196, 204`) يعلّم «المقابلة» و«التعيين» كمنجزتين لمجرد الترقية، ولا يُظهر للمرشح الرفض أو التعيين النهائي.
 - **الخطة:** PLAN-30.
-- **الحالة:** ✅ عولجت في PLAN-30 — كل تقديم مرتبط بطلب شاغر (عام أو داخلي) ينشئ `RecruitmentApplication` بحالة `Submitted` فوراً مع `IntakeChannel`، والربط عبر `PromotedRecruitmentApplicationId` (فهرس فريد)، وقائمة فرز واحدة لكل طلب شاغر، وحالة المرشح مشتقة من المسار الرئيسي عبر `CandidatePublicStatusProjection` وسجل `RecruitmentApplicationEvent`، وترحيل الطلبات السابقة بسكربت `hcm030-backfill-unified-intake.ps1`. انظر [HCM_001_RECRUITMENT.md](HCM_001_RECRUITMENT.md#plan-30--candidate-experience-unified-channel-and-notifications-hcm-h).
+- **الحالة:** ✅ عولجت في PLAN-30 — كل تقديم مرتبط بطلب شاغر (عام أو داخلي) ينشئ `RecruitmentApplication` بحالة `Submitted` فوراً مع `IntakeChannel`، والربط عبر `PromotedRecruitmentApplicationId` (فهرس فريد)، وقائمة فرز واحدة لكل طلب شاغر، وحالة المرشح مشتقة من المسار الرئيسي عبر `CandidatePublicStatusProjection` وسجل `RecruitmentApplicationEvent`، وترحيل الطلبات السابقة بسكربت `hcm030-backfill-unified-intake.ps1`. انظر [HCM_001_RECRUITMENT.md](HCM_001_RECRUITMENT.md#plan-30--candidate-experience-unified-channel-and-notifications-hcm-h). الدليل: AC-HCM-30a وb وj ناجحة حيّاً (2026-10-29، `acceptance-evidence/AC-HCM-30/`، و`reports/plan30-final-report.md` §7).
 
 #### G-17 — طلب المواطن بلا مرفقات ولا مؤهلات ولا أهلية، والإعلان بلا تاريخ إغلاق
 - **الدليل:**
   - `CitizenApplicationApplyViewModel` يحوي فقط الاسم والرقم الوطني والهاتف والبريد والملاحظة، رغم أن `FR-PUB-02` في `THESIS_REQUIREMENTS_CATALOG_CURRENT.md:69` يطلب حفظ الملفات عبر File.Storage.
   - `MapToPublicJobPosting` يضبط `ClosingDate = null` (`RecruitmentRequisitionService.cs:65, 86`)، رغم أن `FR-HIRE-01` يطلب أن يحدد الإعلان الفترة.
 - **الخطة:** PLAN-30.
-- **الحالة:** ✅ عولجت (تاريخ الإغلاق في PLAN-26؛ الباقي في PLAN-30) — ملف المرشح (المؤهل والتخصص وسنة التخرج والخبرة وتاريخ الميلاد)، معايير الشاغر، أعلام أهلية لا ترفض (وتجاوزها بسبب مُدقَّق)، ومستندات (CV/شهادة/هوية) تُرفع إلى File.Storage عبر هوية خدمة HR.Core وتُفحص قبل الإتاحة، ومستندات مطلوبة لكل شاغر.
+- **الحالة:** ✅ عولجت (تاريخ الإغلاق في PLAN-26؛ الباقي في PLAN-30) — ملف المرشح (المؤهل والتخصص وسنة التخرج والخبرة وتاريخ الميلاد)، معايير الشاغر، أعلام أهلية لا ترفض (وتجاوزها بسبب مُدقَّق)، ومستندات (CV/شهادة/هوية) تُرفع إلى File.Storage عبر هوية خدمة HR.Core وتُفحص قبل الإتاحة، ومستندات مطلوبة لكل شاغر. الدليل: AC-HCM-30d وAC-HCM-30c ناجحتان حيّاً (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-30/result.json`). وتثبت 30c رفع المستندات السليمة وفحصها وتنزيلها وحجر EICAR (`acceptance-evidence/AC-HCM-30/steps-30c.md` و`db-checks-30c.json`)، وكانت قد تُخطّيت في تشغيل سابق لغياب File.Storage عن مكدّس القبول (`reports/plan30-final-report.md` §7) ثم صارت File.Storage تعمل في القبول بالمزوّد `Local` (commit `4588a23`). ورحلة E2E ترفع ملف PDF مع التقديم العام وتنجح (`acceptance-evidence/AC-HCM-33/`).
 
 #### G-18 — لا إشعارات للمرشح ولا خدمة ذاتية للعرض ولا وثيقة عرض رسمية
 - **الدليل:**
@@ -221,7 +232,7 @@
   - لا توليد PDF لخطاب العرض رغم وجود `HRManagement.Documents.QuestPdf`.
   - التنفيذ الوحيد لـ `INotificationService` هو `InAppNotificationService`. لا يوجد مرسل بريد أو SMS في الشيفرة رغم أن COM-001 يعرّف القناتين، والمرشح الخارجي لا يملك حساباً داخل التطبيق أصلاً.
 - **الخطة:** PLAN-30 (إشعارات وخدمة ذاتية) + PLAN-29 (الوثائق).
-- **الحالة:** ✅ عولجت (الوثيقة في PLAN-29؛ الباقي في PLAN-30) — مرسلات قنوات بريد/SMS بجانب `INotificationService` (محوّل FileDrop في المختبر؛ لا مزوّد في الإنتاج حتى D-8)، رسالة لكل نقطة قرار بلا رقم وطني ولا راتب وبموافقة المرشح، وبوابة `/careers/my` برمز تحقق لمرة واحدة (القرار D-4): تنزيل خطاب العرض، القبول/الاعتذار، الانسحاب، الاستئناف ضمن المهلة، واستكمال المستندات؛ والقبول بالنيابة يبقى `HrCoreWrite` مع سبب ومستند إثبات إلزاميين وتدقيق. متبقٍ: إشعارات المرشحين الداخليين (خارج النطاق) واختيار المزوّد (D-8).
+- **الحالة:** ✅ عولجت (الوثيقة في PLAN-29؛ الباقي في PLAN-30) — مرسلات قنوات بريد/SMS بجانب `INotificationService` (محوّل FileDrop في المختبر؛ لا مزوّد في الإنتاج حتى D-8)، رسالة لكل نقطة قرار بلا رقم وطني ولا راتب وبموافقة المرشح، وبوابة `/careers/my` برمز تحقق لمرة واحدة (القرار D-4): تنزيل خطاب العرض، القبول/الاعتذار، الانسحاب، الاستئناف ضمن المهلة، واستكمال المستندات؛ والقبول بالنيابة يبقى `HrCoreWrite` مع سبب ومستند إثبات إلزاميين وتدقيق. متبقٍ: إشعارات المرشحين الداخليين (خارج النطاق) واختيار المزوّد (D-8). الدليل: AC-HCM-30e–h ناجحة حيّاً (2026-10-29، `acceptance-evidence/AC-HCM-30/`)، وAC-HCM-29f لـ PDF العرض (2026-10-22، `acceptance-evidence/AC-HCM-29/`)، وقبول المرشح للعرض برمز التحقق على `/careers/my` ضمن رحلة E2E (`acceptance-evidence/AC-HCM-33/`).
 
 ### 4.4 قدرات ناقصة (P2)
 
@@ -240,7 +251,7 @@
 #### G-20 — لا أتمتة زمنية
 - **الدليل:** الخدمة الخلفية الوحيدة الخاصة بالنطاق والمسجلة في HR.Core هي `LeaveScheduleReconcilerJob` (`HR.Core.Web/Program.cs:143`). لا مهام لانتهاء العروض، ولا لإغلاق الإعلانات بتاريخها، ولا لتطبيق الاحتفاظ على بيانات المرشحين. `CandidateLifecycleController` واجهة JSON يدوية بلا شاشة.
 - **الخطة:** PLAN-26/27/30.
-- **الحالة:** ✅ عولجت — PLAN-26 (إغلاق التقديم)، PLAN-27 (انتهاء العروض والاحتياط)، PLAN-30 (جزء بيانات المرشحين): مهمة `CandidateRetentionJob` تُخفي هوية الزوج (طلب القناة + طلب التوظيف) بعد إغلاق/إلغاء الشاغر و`Recruitment:Retention:Months` (36) مع احترام الحجز القانوني والاستئناف المعلق، وتحذف المستندات ورموز OTP وتحيّد الرسائل؛ تشغيل تجريبي افتراضياً في الإنتاج حتى اعتماد مسؤول حماية البيانات، وشاشة «الاحتفاظ ببيانات المرشحين» بدل واجهة JSON وحدها.
+- **الحالة:** ✅ عولجت — PLAN-26 (إغلاق التقديم)، PLAN-27 (انتهاء العروض والاحتياط)، PLAN-30 (جزء بيانات المرشحين): مهمة `CandidateRetentionJob` تُخفي هوية الزوج (طلب القناة + طلب التوظيف) بعد إغلاق/إلغاء الشاغر و`Recruitment:Retention:Months` (36) مع احترام الحجز القانوني والاستئناف المعلق، وتحذف المستندات ورموز OTP وتحيّد الرسائل؛ تشغيل تجريبي افتراضياً في الإنتاج حتى اعتماد مسؤول حماية البيانات، وشاشة «الاحتفاظ ببيانات المرشحين» بدل واجهة JSON وحدها. الدليل: `acceptance-evidence/AC-HCM-26/` (2026-10-21)، و`acceptance-evidence/AC-HCM-27/` (2026-10-22)، وAC-HCM-30i (2026-10-29، `acceptance-evidence/AC-HCM-30/`).
 
 #### G-21 — لا تقارير ولا مؤشرات توظيف
 - **الدليل:** لا مؤشرات funnel أو time-to-hire أو تقارير لكل طلب شاغر. ما يوجد في Dev.Analytics بيانات تجريبية فقط (`DemoAnalyticsSeeder.cs`).
@@ -249,11 +260,12 @@
   موثقة للصفوف القديمة والتغطية؛ شاشة «تقارير التوظيف» (قمع، طلبات الشاغر، الاعتمادات المتأخرة عن مهلة موثقة، العروض وأسباب
   رفضها بفئات، القنوات، الاستئنافات والاعتراضات، تجاوزات الجدارة، الشواغر المفتوحة، المسابقات) بنطاق الوحدة؛ تصدير Excel/PDF/CSV
   بلا رقم وطني وبالأسماء لمن يملك `HrCoreWrite` فقط؛ نشر مجاميع `IRecruitmentRequisitionClosed` إلى Dev.Analytics مع حجب الخلايا
-  الصغيرة؛ AC-HCM-32a..d ناجحة على المكدّس (2026-10-29). مؤشرات العدالة مؤجلة (لا قرار GOV-001).
+  الصغيرة؛ AC-HCM-32a..d ناجحة على المكدّس (2026-10-29، `acceptance-evidence/AC-HCM-32/`، `reports/plan32-final-report.md`). مؤشرات العدالة مؤجلة (لا قرار GOV-001).
 
 #### G-22 — قرار التعيين والفحص الطبي قبل التعيين خارج قائمة التحقق
 - **الدليل:** `HireChecklistDefaults` يحوي 7 بنود، ليس بينها «إصدار قرار التعيين» ولا «الفحص الطبي». بينما `Requariments.md` يذكر «إصدار… أوامر التعيين» و«فحوصات… قبل التعيين».
 - **الخطة:** PLAN-29 (بقرار تفعيل قابل للضبط).
+- **الحالة:** ✅ عولجت في [PLAN-29](acceptance-plans/PLAN-29-hcm-hire-contract-documents.md) — أُضيف البندان `AppointmentDecisionIssued` و`PreEmploymentMedical` إلى قائمة التحقق للمعاملات الجديدة، ويُصدر قرار التعيين كـ `AdministrativeDecision` من المعالج. الدليل: AC-HCM-29g (إكمال المعاملة دون القرار مرفوض) ناجحة حيّاً (PLAN-33 P6، 2026-10-29، `acceptance-evidence/AC-HCM-29/`). انحراف عن القرار D-6: بند الفحص الطبي لا يُضاف إلا بالمفتاح العام `HireChecklist:RequireMedicalFitness` (معطّل افتراضياً في `HR.Contracts.Web/appsettings.json`)، لا لكل نظام خدمة.
 
 ### 4.5 فجوات التحقق والتوثيق
 
@@ -265,6 +277,12 @@
   - `Hcm001RecruitmentTests` اختبارات انعكاس ووجود ملفات على `SharedKernel.Recruitment.*`، وهي نماذج **غير مستخدمة** في التشغيل لكنها مذكورة كدليل إغلاق في `completion-backlog/09`.
   - E2E (`HireSeparationJourneyE2ETests`) يبدأ من HireWizard، لا من طلب الشاغر.
 - **الخطة:** PLAN-33.
+- **الحالة:** ✅ عولجت في [PLAN-33](acceptance-plans/PLAN-33-hcm-verification-docs.md) (هذه الخطة؛ التقرير `reports/plan33-final-report.md`):
+  - **لا نجاح دون فحص:** `src/Tests/HRManagement.AcceptanceTests/AcceptanceGate.cs` — غياب الشرط المسبق يكتب `Blocked` في `result.json` ويُتخطّى الاختبار، أو يفشل تحت `ACCEPTANCE_REQUIRE_ALL=true` للسيناريوهات الموسومة `[RequiredAcceptance]` (AcHcm21، 22، 26–32، AcWf23). ويمنع اختبار المعمارية `src/Tests/HRManagement.UnitTests/Architecture/AcceptanceSkipPatternArchitectureTests.cs` نمط «Skip ثم return» وما شابهه.
+  - **حالات حتمية:** `AcceptanceRecruitmentStatesPatch` (`HR.Core.Infrastructure/Seeding`) مع `testdata/acceptance/recruitment-states.json`.
+  - **الأدلة:** على مكدّس القبول (ملف مختبري: `NationalScope:IsLabScale=true` والمحرك `Off`) ومع `ACCEPTANCE_REQUIRE_ALL=true`: AC-HCM-21a..d (4 اختبارات) وAC-HCM-22a..e (5) وAC-WF-23a..f (6) ناجحة في تشغيلين (2026-10-29)، والأدلة في `acceptance-evidence/AC-HCM-21/` و`AC-HCM-22/` و`AC-WF-23/` (`result.json` فيه خريطة `scenarios`).
+  - **E2E من طلب الشاغر:** `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` (`Category=Journey`) ناجح على ملف القبول (`acceptance-evidence/AC-HCM-33/`)؛ ونسخته الشبيهة بالإنتاج (`Category=JourneyProdLike`، مستبعدة من CI حتى PLAN-25) تفشل في المرحلة الأولى بسبب G-02 (`acceptance-evidence/AC-HCM-33/prodlike/`). وكلتا النسختين مستبعدتان من مهمة E2E في `.github/workflows/ci.yml` (`Category!=JourneyProdLike&FullyQualifiedName!~RecruitmentToHireJourney`)، فلا تُشغَّلان إلا على مكدّس القبول.
+  - **الدليل الوهمي أُزيل:** حُذفت نماذج `SharedKernel.Recruitment` (لم يكن لها مستهلك في التشغيل)، وصارت `Hcm001RecruitmentTests` اختبارات سلوك على قواعد `HR.Core.Domain`، ويفحص `scripts/hcm001-validate.ps1` الملفات الفعلية.
 
 #### G-24 — انحراف التوثيق
 - **الدليل:**
@@ -272,6 +290,7 @@
   - قسم Domain Model في `HCM_001_RECRUITMENT.md` يصف نماذج SharedKernel لا الكيانات الفعلية.
   - `HIRE_RBAC_MATRIX.md` لا يذكر `compliance` ولا أدوار اللجنة.
 - **الخطة:** PLAN-33.
+- **الحالة:** ✅ تُعالج في [PLAN-33](acceptance-plans/PLAN-33-hcm-verification-docs.md) المرحلة P7 (تصحيح التوثيق ليطابق الشيفرة، ولكل حالة دليل)، ومنها هذا التحديث للدراسة. الوثائق المصحَّحة ونتيجتها في `reports/plan33-final-report.md`.
 
 ---
 
@@ -320,9 +339,13 @@
 
 ## 7. معيار «اكتمال مسار التوظيف» المقترح
 
-يُعدّ المسار مكتملاً لإصدار v1 عندما:
+يُعدّ المسار مكتملاً لإصدار v1 عندما تتحقق البنود الأربعة الآتية. الحالة كما في 2026-10-29:
 
-1. تُغلق كل فجوات P0 وP1 (G-01…G-18 عدا ما يؤجَّل بقرار موثّق).
-2. ينجح سيناريو E2E واحد على الأقل **بإعدادات Production** (`IsLabScale=false`): طلب شاغر ← اعتماد خطوتين ← نشر ← تقديم مواطن مع مرفق ← فرز ← مقابلة مكتملة ← تقييم بمعايير مُنشأة من الواجهة ← ترتيب ← عرض ← قبول المرشح ذاتياً ← تعيين ← عقد بشروط العرض ← معاملة Appointment.
-3. توجد أدلة `acceptance-evidence/AC-HCM-*` لكل سيناريو موجب وسالب في PLAN-21/22/25…30، ولا يوجد اختبار قبول ينجح دون فحص.
-4. تُصحَّح `HCM_001_RECRUITMENT.md` و`HIRE_ONBOARDING_GUIDE.md` و`HIRE_RBAC_MATRIX.md` و`completion-backlog/09` لتعكس الواقع.
+- [ ] **1. تُغلق كل فجوات P0 وP1** (G-01…G-18 عدا ما يؤجَّل بقرار موثّق).
+  **غير متحقق.** G-02 وG-04 وG-14 وG-15 مفتوحة وتنتظر PLAN-25 (Proposed، مؤجلة)، وG-01 مغلقة جزئياً (لا دفع ولا CI بعيد)، وG-05 مغلقة جزئياً (بقية الصلاحيات في PLAN-25). بقية فجوات P0/P1 مغلقة بخططها (انظر سطر «الحالة» لكل فجوة في §4).
+- [ ] **2. ينجح سيناريو E2E واحد على الأقل بإعدادات Production** (`IsLabScale=false`): طلب شاغر ← اعتماد خطوتين ← نشر ← تقديم مواطن مع مرفق ← فرز ← مقابلة مكتملة ← تقييم بمعايير مُنشأة من الواجهة ← ترتيب ← عرض ← قبول المرشح ذاتياً ← تعيين ← عقد بشروط العرض ← معاملة Appointment.
+  **غير متحقق.** الرحلة الشبيهة بالإنتاج موجودة (`src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs`، `Category=JourneyProdLike`، `docker-compose.acceptance-prodlike.yml`) وتتوقف عند أول اعتماد: الطلب بعد التقديم `PendingApproval` بلا نسخة مسار (G-02؛ `acceptance-evidence/AC-HCM-33/prodlike/`). الرحلة نفسها تنجح كاملة على ملف القبول المختبري (`Category=Journey`؛ `acceptance-evidence/AC-HCM-33/`)، من طلب الشاغر حتى معاملة `Appointment` وعقد بدرجة العرض وراتبه.
+- [ ] **3. توجد أدلة `acceptance-evidence/AC-HCM-*` لكل سيناريو موجب وسالب في PLAN-21/22/25…30، ولا يوجد اختبار قبول ينجح دون فحص.**
+  **متحقق جزئياً.** أعاد تشغيل PLAN-33 الحي (P6، بيئة قبول نظيفة، `ACCEPTANCE_REQUIRE_ALL=true`، 2026-10-29) سيناريوهات AC-HCM-21 و22 و26..32 وAC-WF-23: نجح 45 من 46، ومنها AC-HCM-30c واختبار `Ac27_f_g` اللذان تعذّرا سابقاً لغياب File.Storage (تعمل الآن بمزوّد Local)، ونجحت رحلة AC-HCM-33 من طلب الشاغر حتى معاملة التعيين. يبقى AC-HCM-26h **محجوباً (Blocked)**: لا توجد شخصية مركزية ثانية بدور `hr-core` لاعتماد خطوة تغيير الملاك (فصل المهام)، وتغطيه اختبارات التكامل `Hcm026EstablishmentCascadeIntegrationTests`. كل مجلد يحوي العناصر الثمانية، والنتيجة لكل سيناريو في خريطة `scenarios` في `result.json` بكل مجلد (والملخص في `reports/plan33-final-report.md`). سيناريوهات PLAN-25 غير موجودة بعد (الخطة مؤجلة). ولا يمكن لاختبار قبول أن ينجح دون فحص: `AcceptanceGate` يكتب `Blocked` أو يُفشل الاختبار تحت `ACCEPTANCE_REQUIRE_ALL=true`، واختبار المعمارية `AcceptanceSkipPatternArchitectureTests` يمنع الأنماط الصامتة.
+- [x] **4. تُصحَّح `HCM_001_RECRUITMENT.md` و`HIRE_ONBOARDING_GUIDE.md` و`HIRE_RBAC_MATRIX.md` و`completion-backlog/09` لتعكس الواقع.**
+  **متحقق** في PLAN-33 المرحلة P7 (انظر G-24 و`reports/plan33-final-report.md`).

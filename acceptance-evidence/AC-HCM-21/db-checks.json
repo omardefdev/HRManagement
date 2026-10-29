@@ -1,0 +1,8 @@
+{
+  "lastScenario": "21d",
+  "checks": {
+    "requisitionId": "f839b8f8-f211-46c2-a933-40f4842f9ebc",
+    "workflowInstanceId": "76a9d74f-e43b-415a-853b-d83d0384e4d3",
+    "nonLab": "Hcm033LabScaleBehaviourTests (integration)"
+  }
+}

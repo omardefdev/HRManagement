@@ -13,6 +13,14 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# PLAN-33: Windows PowerShell 5.1 prefixes text piped to native commands with a UTF-8 BOM, which kcadm rejects
+# ("Not a valid JSON document - Unexpected character (code 65279)") in sync-keycloak-dev-realm.ps1 (PLAN-30 guide).
+if ($PSVersionTable.PSVersion.Major -lt 6) {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [Console]::InputEncoding = $utf8NoBom
+    [Console]::OutputEncoding = $utf8NoBom
+    $OutputEncoding = $utf8NoBom
+}
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $projectName = "hrm-acceptance"
@@ -104,6 +112,21 @@ if (-not $SkipComposeUp) {
         -c "mkdir -p /var/hrm/dpkeys && chown -R 1654:1654 /var/hrm/dpkeys"
     if ($LASTEXITCODE -ne 0) {
         throw "Could not prepare ownership of the Acceptance Data Protection volume."
+    }
+
+    # PLAN-33 (decision 6): File.Storage runs on its Local provider in acceptance (the pinned MinIO image can no longer
+    # be pulled); its object root is a named volume the non-root app user must own.
+    $fileStorageVolume = "${projectName}_acceptance_file_storage"
+    docker volume create $fileStorageVolume | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not create the Acceptance File.Storage volume."
+    }
+    docker run --rm --user 0:0 --entrypoint sh `
+        -v "${fileStorageVolume}:/var/hrm/file-storage" `
+        "${projectName}-hr-gateway:latest" `
+        -c "mkdir -p /var/hrm/file-storage && chown -R 1654:1654 /var/hrm/file-storage"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not prepare ownership of the Acceptance File.Storage volume."
     }
 
     # PLAN-30 (COM-030): host folder of the candidate notification FileDrop (bind-mounted into hr-core-web). Create it

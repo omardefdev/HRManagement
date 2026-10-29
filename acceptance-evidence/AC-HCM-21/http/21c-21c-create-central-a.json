@@ -1,0 +1,21 @@
+{
+  "step": "21c-21c-create-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:24.7755256Z",
+  "body": {
+    "fields": [
+      "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
+      "FundedPositionId=a0000001-0000-4000-8000-000000000943",
+      "JobTitle=\u0648\u0638\u064A\u0641\u0629 PLAN-33 21c",
+      "JustificationNotes=PLAN-33 acceptance 21c",
+      "LegalSourceId=SYR-LAW-50-2004",
+      "BudgetYear=2026",
+      "PublishingChannel=PublicOnly"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/7a9642b9-b72d-45c4-8a56-646e5bcf2387",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/7a9642b9-b72d-45c4-8a56-646e5bcf2387"
+  }
+}

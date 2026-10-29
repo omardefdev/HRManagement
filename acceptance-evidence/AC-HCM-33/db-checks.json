@@ -1,0 +1,28 @@
+{
+  "lastScenario": "33c",
+  "checks": {
+    "requisitionId": "10a269aa-ccd8-418b-b165-5c44629664a0",
+    "postingId": "1f9fd4d3-9595-4c82-8382-6a895351f039",
+    "applicationId": "50ef0ee3-6966-414b-a5af-591d80b1c02f",
+    "citizenApplicationId": "9838d75f-d67d-4a30-a102-6a9616fe6894",
+    "offerId": "dad1b490-204f-41bc-b1a3-db3e128e70ac",
+    "salary": 400000,
+    "grade": "G5",
+    "employeeId": "13bf2171-d8d2-4ea1-bdd5-1dbe79d11e8a",
+    "appointmentTransactionId": "b4ca31b5-bf61-4596-98ee-32c08d0b94a5",
+    "contract": {
+      "grade": "G5",
+      "salary": "400000.00",
+      "sourceOffer": "dad1b490-204f-41bc-b1a3-db3e128e70ac"
+    },
+    "correlation": {
+      "id": "eb09044a-a204-403e-adfb-8e2ca3229c5d",
+      "gatewayEcho": "eb09044a-a204-403e-adfb-8e2ca3229c5d",
+      "gatewayAuditRows": "69",
+      "hireRows": "2",
+      "hrContractsRows": "2",
+      "consumerSideEffect": "Appointment transaction \u002B contract linked by RecruitmentApplicationId/OfferLetterId",
+      "gap": "HR.Contracts does not persist or log the message correlation id on the success path (follow-up)"
+    }
+  }
+}

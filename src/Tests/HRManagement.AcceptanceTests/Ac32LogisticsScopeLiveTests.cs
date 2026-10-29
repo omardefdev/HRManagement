@@ -33,16 +33,17 @@ public class Ac32LogisticsScopeLiveTests
         var br1Resp = await br1Http.GetAsync(assetPath);
         recorder.CaptureHttp("br1-details-allowed", "GET", $"/{assetPath}", (int)br1Resp.StatusCode,
             new { status = br1Resp.StatusCode.ToString() });
-        Assert.True(br1Resp.StatusCode is HttpStatusCode.OK or HttpStatusCode.NotFound,
-            $"BR1 manager expected OK/404 (seed), got {br1Resp.StatusCode}");
+        AcceptanceGate.RequireData(recorder, br1Resp.StatusCode != HttpStatusCode.NotFound,
+            "أصل القبول الخاص بالفرع الأول غير مُهيّأ في بيانات البذر — شغّل scripts/acceptance-reset.ps1",
+            "Acceptance asset not seeded (BR1 custody asset details returned 404) — run scripts/acceptance-reset.ps1.");
+        Assert.Equal(HttpStatusCode.OK, br1Resp.StatusCode);
 
         var (_, centralCorrelation) = await AcceptanceHarness.LoginAsync(central);
         using var centralHttp = await AcceptanceHarness.CreateAuthorizedClientAsync(central, centralCorrelation);
         var centralResp = await centralHttp.GetAsync(assetPath);
         recorder.CaptureHttp("central-details-allowed", "GET", $"/{assetPath}", (int)centralResp.StatusCode,
             new { status = centralResp.StatusCode.ToString() });
-        Assert.True(centralResp.StatusCode is HttpStatusCode.OK or HttpStatusCode.NotFound,
-            $"Central expected OK/404 (seed), got {centralResp.StatusCode}");
+        Assert.Equal(HttpStatusCode.OK, centralResp.StatusCode);
 
         recorder.WriteDbChecks(new
         {

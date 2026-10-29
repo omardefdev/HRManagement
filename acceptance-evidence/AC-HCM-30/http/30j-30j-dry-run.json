@@ -3,6 +3,6 @@
   "method": "SCRIPT",
   "url": "scripts/hcm030-backfill-unified-intake.ps1 -DryRun -DockerContainer hrm-acceptance-postgresql-1",
   "statusCode": 0,
-  "capturedAtUtc": "2026-10-29T04:01:26.6684042Z",
-  "body": "HCM-030 unified intake backfill - DRY RUN (rolled back)\n  Total linked: 0\n  Report:       D:\\my projects\\HRManagement\\artifacts\\hcm030-backfill\\unified-intake-dryrun-20261029-070126.csv\n"
+  "capturedAtUtc": "2026-10-29T17:04:42.1191811Z",
+  "body": "HCM-030 unified intake backfill - DRY RUN (rolled back)\n  Citizen Received/Submitted [Published] -\u003E Submitted                        1\n  Citizen UnderReview [Published] -\u003E UnderReview                             1\n  Internal UnderReview [Published] -\u003E UnderReview                            1\n  Total linked: 3\n  Report:       D:\\my projects\\HRManagement\\artifacts\\hcm030-backfill\\unified-intake-dryrun-20261029-200441.csv\n"
 }

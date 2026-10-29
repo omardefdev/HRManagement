@@ -1,15 +1,15 @@
 {
   "step": "31a-31a-approve-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/Competitions/ApproveWorkflow/400a5537-a143-4566-8f9d-2c2f3cb61480",
+  "url": "/ui/hr-core/Competitions/ApproveWorkflow/2044e059-f218-439e-adaa-60249180b02e",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T11:55:43.3172525Z",
+  "capturedAtUtc": "2026-10-29T16:55:24.9411087Z",
   "body": {
     "fields": [
       "comments=AC-HCM-31a step 1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/Competitions/Details/400a5537-a143-4566-8f9d-2c2f3cb61480",
-    "final": "/ui/hr-core/Competitions/Details/400a5537-a143-4566-8f9d-2c2f3cb61480"
+    "redirect": "/ui/hr-core/Competitions/Details/2044e059-f218-439e-adaa-60249180b02e",
+    "final": "/ui/hr-core/Competitions/Details/2044e059-f218-439e-adaa-60249180b02e"
   }
 }

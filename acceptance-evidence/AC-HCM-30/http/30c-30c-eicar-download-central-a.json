@@ -1,0 +1,11 @@
+{
+  "step": "30c-30c-eicar-download-central-a",
+  "method": "GET",
+  "url": "/ui/hr-core/RecruitmentApplications/CandidateDocument/4e577ec7-a2ce-4b61-8fda-14d45cbad99c",
+  "statusCode": 404,
+  "capturedAtUtc": "2026-10-29T17:00:49.7427180Z",
+  "body": {
+    "length": 0,
+    "head": ""
+  }
+}

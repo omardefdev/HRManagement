@@ -1,0 +1,37 @@
+{
+  "step": "22c-22c-criteria-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentAssessmentCriteria/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:04.5051835Z",
+  "body": {
+    "fields": [
+      "RequisitionId=540cd953-ab13-4dc0-986b-b5629faf1037",
+      "Title=PLAN-33",
+      "Items.Index=r0",
+      "Items[r0].Key=interview",
+      "Items[r0].NameAr=\u0627\u0644\u0645\u0642\u0627\u0628\u0644\u0629",
+      "Items[r0].Weight=40",
+      "Items[r0].MaxScore=100",
+      "Items[r0].Stage=Interview",
+      "Items[r0].IsMandatory=true",
+      "Items.Index=r1",
+      "Items[r1].Key=exam",
+      "Items[r1].NameAr=\u0627\u0644\u0627\u062E\u062A\u0628\u0627\u0631",
+      "Items[r1].Weight=30",
+      "Items[r1].MaxScore=100",
+      "Items[r1].Stage=Exam",
+      "Items[r1].IsMandatory=true",
+      "Items.Index=r2",
+      "Items[r2].Key=experience",
+      "Items[r2].NameAr=\u0627\u0644\u062E\u0628\u0631\u0629",
+      "Items[r2].Weight=30",
+      "Items[r2].MaxScore=100",
+      "Items[r2].Stage=Experience",
+      "Items[r2].IsMandatory=true"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/540cd953-ab13-4dc0-986b-b5629faf1037#assessment-criteria",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/540cd953-ab13-4dc0-986b-b5629faf1037"
+  }
+}

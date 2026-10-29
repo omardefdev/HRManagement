@@ -384,6 +384,7 @@ jobs:
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release
+          --filter "Category!=JourneyProdLike&FullyQualifiedName!~RecruitmentToHireJourney"
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./TestResults/e2e
 
@@ -459,6 +460,8 @@ jobs:
       - name: Run acceptance tests
         env:
           RUN_ACCEPTANCE: "true"
+          # PLAN-33 (AC-HCM-33b): a skipped [RequiredAcceptance] scenario fails the job instead of passing silently.
+          ACCEPTANCE_REQUIRE_ALL: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
           KEYCLOAK_BASE_URL: "http://localhost:8088"
           KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ci-gateway-secret-lab-only

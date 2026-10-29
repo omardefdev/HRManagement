@@ -1,9 +1,22 @@
 # PLAN-33 — التحقق الحي لمسار التوظيف وتصحيح التوثيق (PLAN-HCM-K)
 
 **Scope:** HCM-001 + QA-004 + REL-001 — [دراسة الفجوات](../HCM_001_GAP_STUDY.md): G-23, G-24  
-**Status:** Proposed  
+**Status:** Implemented (CI not executed) — 2026-10-29  
 **Priority:** P0 (البنود 1–2 مع PLAN-25)، ثم مستمر: يُغلق جزء منه مع كل خطة  
-**Depends on:** PLAN-00 (إطار الأدلة)، PLAN-25 المرحلة 0
+**Depends on:** PLAN-26..32 منفذة؛ PLAN-25 مؤجلة (G-02 مفتوحة)
+
+## تعديلات قبل التنفيذ (2026-10-29)
+
+نُفِّذت هذه الخطة بموجّه تنفيذ مفصّل ([`execution/PLAN-33-AGENT-PROMPT.md`](execution/PLAN-33-AGENT-PROMPT.md))؛ وحيث يختلفان يُقدَّم الموجّه. القرارات:
+
+1. **PLAN-25 ما زالت مؤجلة.** الفجوة G-02 مفتوحة: مع `NationalScope:IsLabScale=false` ومحرك السياسات `Off` لا تبدأ مسارات اعتماد الطلب والعرض واللجنة (`RecruitmentRequisitionLifecycleService`، `RecruitmentOfferService`، `SelectionCommitteeLifecycleService` مشروطة بـ `IsLabScale`). لذلك تعمل رحلة E2E المطلوبة على **ملف القبول** (نطاق مختبري).
+2. **نسخة شبيهة بالإنتاج** من الرحلة تُكتب الآن: `docker-compose.acceptance-prodlike.yml` بإعدادات الإنتاج، وفئة `Category=JourneyProdLike` **مستبعدة من CI حتى PLAN-25**. تُشغَّل مرة واحدة ويُسجَّل بصدق موضع توقفها (المتوقع: أول اعتماد بسبب G-02)، ويغذّي دليلها PLAN-25. لا يُصلَح G-02 هنا.
+3. **التخطي صريح.** أي شرط مسبق ناقص يمر عبر مساعد واحد (`AcceptanceGate`) يكتب `result.json = Blocked` مع السبب ثم يستدعي `Skip.If`. ومع `ACCEPTANCE_REQUIRE_ALL=true` يصبح تخطي سيناريو مُعلَّم `[RequiredAcceptance]` **فشلاً**.
+4. **تُزال كل أنماط النجاح الصامت، لا أنماط التوظيف وحدها:** `WriteResult("Skip", …); return;` في `AcHcm21` و`AcHcm22` و`AcEst24`، و`WriteResult("Pass", "<not seeded…>"); return;` في `Ac33AssetLossLiveTests` و`Ac37JourneyRebuildLiveTests`. ويمنع اختبار معماري عودتها.
+5. **تُكيَّف السيناريوهات مع التصميم الحالي لا مع نصها الأصلي.** AC-HCM-22d يتبع PLAN-28: الموارد البشرية تقيّد الاستئناف ← يُسنَد مراجع `compliance` مستقل ← المراجع يقرر؛ والسالب: رفض مراجع غير مُسنَد. وسلوك «Off + غير مختبري ← تحذير» في AC-HCM-21d/22e هو سلوك G-02 الحالي، ويُثبت **باختبار تكامل** لا بإعادة تهيئة بيئة القبول المشتركة.
+6. **بيئة القبول يجب أن تكون كاملة:** File.Storage وClamAV ضمنها. سجّلت PLAN-32 تخطي AC-30c وفشل `Ac27_f_g` لأن File.Storage لم تكن تعمل. يُصلَح ملف البيئة أو سكربت تشغيلها، لا الاختبارات.
+7. **لا دفع، ولا يمكن تشغيل CI البعيد هنا.** تُحدَّث ملفات YAML وتُتحقَّق محلياً (تحليل، و`actionlint` إن توفر)، ويذكر التقرير «CI not executed».
+8. **عيب المنتج** الذي يكشفه تشغيل حي يُصلَح مع اختبار انحدار **فقط** إن كان الإصلاح موضعياً وواضحاً. وإلا يُسجَّل متابعةً ويُعلَّم السيناريو `Fail` مع الدليل، ولا يُخفى أبداً.
 
 ## Goal
 
@@ -137,3 +150,13 @@ dotnet test src/Tests/HRManagement.E2E --filter RecruitmentToHireJourney
 ## Effort estimate
 
 6–8 أيام عمل موزعة: الإطار والبذور (2)، إكمال AC-21/22 (1.5)، E2E (2)، الإزالة والتوثيق (1.5). سيناريوهات PLAN-25..32 محسوبة داخل خططها.
+
+## ملاحظات التنفيذ والانحرافات (2026-10-29)
+
+التقرير النهائي: [`reports/plan33-final-report.md`](../../reports/plan33-final-report.md)؛ سجل التقدم والقرارات: [`reports/plan33-progress.md`](../../reports/plan33-progress.md).
+
+- **الإطار:** `AcceptanceGate` و`[RequiredAcceptance]` و`ACCEPTANCE_REQUIRE_ALL` واختبار المعمارية `AcceptanceSkipPatternArchitectureTests`؛ أُزيلت كل أنماط النجاح الصامت ومرّت كل تخطيات البيانات الخام (34) عبر البوابة، وصار `result.json` يحفظ نتيجة كل سيناريو وأسوأها للمجلد. كشفت المراجعة المستقلة (P8) أن صفة «مطلوب» كانت تضيع بعد `await` داخل الدوال المساعدة، فصُحّح ذلك (`AsyncLocal`) وأُثبت حيّاً.
+- **البذور:** `AcceptanceRecruitmentStatesPatch` (بدل `AcceptanceDataSeeder.SeedRecruitmentStatesAsync`: البذرة الأساسية لا تُعاد على بيئة قائمة، فاتُّبع نمط الرقع) و`testdata/acceptance/recruitment-states.json`. الحالات للقراءة والرفض فقط، والسيناريوهات المغيِّرة تنشئ طلباتها على مجموعة مناصب `AC33-POOL`.
+- **النتائج الحية** (بيئة نظيفة، `ACCEPTANCE_REQUIRE_ALL=true`): AC-HCM-21a–d و22a–e وAC-WF-23a–f و26..32 ناجحة عدا AC-HCM-26h **محجوب** (لا شخصية مركزية ثانية بدور `hr-core`)؛ رحلة E2E ناجحة على ملف القبول؛ النسخة الشبيهة بالإنتاج تتوقف عند أول اعتماد (G-02).
+- **انحرافات:** رحلة E2E عبر HTTP من البوابة لا عبر متصفح Playwright (المتصفحات غير مثبّتة ويتطلب تثبيتها pwsh 7 وتنزيلاً)؛ لم يُعَد توليد `DATABASE_SCHEMA_INVENTORY` بالمولّد لغياب Python (أعيد تنفيذ فحوصه يدوياً)؛ لم تُشغَّل CI البعيدة ولم يُدفع شيء؛ تحقُّق YAML بنيوي فقط.
+- **إصلاح البيئة:** File.Storage بمزوّد Local في بيئة القبول (صورة MinIO لم تعد متاحة)، وترميز UTF-8 دون BOM لمزامنة Keycloak في `acceptance-up.ps1` على PowerShell 5.1.

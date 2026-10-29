@@ -3,18 +3,18 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T17:31:57.6686539Z",
+  "capturedAtUtc": "2026-10-29T17:10:29.2013136Z",
   "body": {
     "fields": [
-      "ApplicationId=d8a54966-37d7-440f-a949-263b8708d68e",
+      "ApplicationId=310dc71c-3902-4b7e-ab14-1286d3f16b47",
       "Mode=CreateNew",
       "NationalId=***",
       "FirstName=\u0645\u0631\u0634\u062D",
       "LastName=\u0627\u0644\u062E\u0637\u062929",
-      "BirthDate=1997-10-22",
+      "BirthDate=1997-10-29",
       "Gender=Female",
-      "PrimaryOrgUnitId=cd9ce964-f58d-1a4c-9375-6f1c6bd03858",
-      "ExpectedStartDate=2026-11-05",
+      "PrimaryOrgUnitId=a0000001-0000-4000-8000-000000000102",
+      "ExpectedStartDate=2026-11-12",
       "EmploymentCategory=Permanent"
     ],
     "postStatus": 200,

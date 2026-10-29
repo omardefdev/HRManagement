@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/CreateOfferDrafts/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T11:59:09.0244652Z",
+  "capturedAtUtc": "2026-10-29T16:58:11.9966868Z",
   "body": {
     "fields": [
       "proposedStartDate=2026-11-28",

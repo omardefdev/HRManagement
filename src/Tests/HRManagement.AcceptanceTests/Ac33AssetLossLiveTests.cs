@@ -23,11 +23,9 @@ public class Ac33AssetLossLiveTests
         recorder.CaptureHttp("asset-details", "GET", $"/{assetPath}", (int)resp.StatusCode,
             new { length = html.Length, tag = AcceptanceSeedIds.AcceptanceAssetBr1Tag });
 
-        if (resp.StatusCode == HttpStatusCode.NotFound)
-        {
-            recorder.WriteResult("Pass", "Acceptance asset not seeded in this environment — run acceptance-up with RUN_ACCEPTANCE");
-            return;
-        }
+        AcceptanceGate.RequireData(recorder, resp.StatusCode != HttpStatusCode.NotFound,
+            "أصل القبول غير مبذور في هذه البيئة",
+            "Acceptance asset not seeded in this environment — run acceptance-up with RUN_ACCEPTANCE");
 
         E2eHttp.EnsureNotServerError((int)resp.StatusCode, "asset details");
         Assert.True(resp.StatusCode is HttpStatusCode.OK or HttpStatusCode.Forbidden);

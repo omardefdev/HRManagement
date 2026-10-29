@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/CloseMarking/a0000001-0000-4000-8000-000000000537",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T11:55:53.1178665Z",
+  "capturedAtUtc": "2026-10-29T16:55:34.1011730Z",
   "body": {
     "fields": [],
     "postStatus": 302,

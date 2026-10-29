@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/CandidateLifecycle/apply",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T04:01:50.3902558Z",
+  "capturedAtUtc": "2026-10-29T17:05:11.4360888Z",
   "body": {
     "fields": [],
     "postStatus": 302,

@@ -55,29 +55,31 @@ public class Ac12PayrollSodTests
         recorder.CaptureHttp("submit-for-review", "POST", $"/api/payroll/runs/{runId:D}/submit-for-review",
             (int)submitResp.StatusCode, await submitResp.Content.ReadAsStringAsync());
 
-        if (submitResp.IsSuccessStatusCode)
-        {
-            var approveResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/approve", null);
-            var approveBody = await approveResp.Content.ReadAsStringAsync();
-            recorder.CaptureHttp("approve-distinct-checker", "POST", $"/api/payroll/runs/{runId:D}/approve",
-                (int)approveResp.StatusCode, JsonSerializer.Deserialize<object>(approveBody));
+        AcceptanceGate.RequireData(recorder, submitResp.IsSuccessStatusCode,
+            "تعذّر إرسال مسيّر الرواتب للمراجعة، فلا يمكن تنفيذ فحص فصل المهام لمنع المعتمد من الترحيل",
+            "Payroll run could not be submitted for review, so the approver-post SoD check cannot run.");
 
-            if (approveResp.IsSuccessStatusCode)
-            {
-                var approverPostResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/post", null);
-                var approverPostBody = await approverPostResp.Content.ReadAsStringAsync();
-                recorder.CaptureHttp("post-approver-negative", "POST", $"/api/payroll/runs/{runId:D}/post",
-                    (int)approverPostResp.StatusCode, JsonSerializer.Deserialize<object>(approverPostBody));
-                Assert.Equal(System.Net.HttpStatusCode.BadRequest, approverPostResp.StatusCode);
-                Assert.Contains("ترحيل", approverPostBody, StringComparison.Ordinal);
-            }
-        }
+        var approveResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/approve", null);
+        var approveBody = await approveResp.Content.ReadAsStringAsync();
+        recorder.CaptureHttp("approve-distinct-checker", "POST", $"/api/payroll/runs/{runId:D}/approve",
+            (int)approveResp.StatusCode, JsonSerializer.Deserialize<object>(approveBody));
+
+        AcceptanceGate.RequireData(recorder, approveResp.IsSuccessStatusCode,
+            "تعذّر اعتماد مسيّر الرواتب، فلا يمكن تنفيذ فحص فصل المهام لمنع المعتمد من الترحيل",
+            "Payroll run could not be approved, so the approver-post SoD check cannot run.");
+
+        var approverPostResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/post", null);
+        var approverPostBody = await approverPostResp.Content.ReadAsStringAsync();
+        recorder.CaptureHttp("post-approver-negative", "POST", $"/api/payroll/runs/{runId:D}/post",
+            (int)approverPostResp.StatusCode, JsonSerializer.Deserialize<object>(approverPostBody));
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, approverPostResp.StatusCode);
+        Assert.Contains("ترحيل", approverPostBody, StringComparison.Ordinal);
 
         recorder.WriteDbChecks(new
         {
             runId,
             creatorCannotApprove = true,
-            approverCannotPostWhenApproved = submitResp.IsSuccessStatusCode
+            approverCannotPostWhenApproved = true
         });
         recorder.WriteAfter(new { runId, sodEnforced = true });
         recorder.WriteResult("Pass");

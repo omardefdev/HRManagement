@@ -1,5 +1,6 @@
 {
-  "citizenApplication": "60657abd-12fc-45bd-8201-59272d0eb56e",
-  "recruitmentApplication": "0351e2d5-57ad-48e7-b678-99560facb3d6",
-  "appeal": "ae50d7e6-a9a7-47a5-ba9f-23b9982a3fa7|Candidate|1"
+  "before": "a0000001-0000-4000-8000-000000000517:2026-10-29 16:51:48.177228\u002B00,a0000001-0000-4000-8000-000000000519:-",
+  "run": "0|0|1|dca9f8af-f0ea-2246-ac5b-0bc4b5779040",
+  "due": "true|true|false|false|false",
+  "held": "true|true|true|true|true"
 }

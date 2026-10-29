@@ -1,0 +1,16 @@
+{
+  "step": "22d-22d-1-file-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/FileAppeal",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:53:57.2414772Z",
+  "body": {
+    "fields": [
+      "id=c8493daf-a5f0-4a87-9ac1-812b22f7ff0f",
+      "reason=\u064A\u0639\u062A\u0631\u0636 \u0627\u0644\u0645\u0631\u0634\u062D \u0639\u0644\u0649 \u0642\u0631\u0627\u0631 \u0627\u0644\u0641\u0631\u0632 \u0644\u0639\u062F\u0645 \u0627\u062D\u062A\u0633\u0627\u0628 \u0645\u0624\u0647\u0644\u0627\u062A\u0647 \u0627\u0644\u0639\u0644\u0645\u064A\u0629"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/45306a52-f1da-4f5e-bd59-746ffd467af9",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/45306a52-f1da-4f5e-bd59-746ffd467af9"
+  }
+}

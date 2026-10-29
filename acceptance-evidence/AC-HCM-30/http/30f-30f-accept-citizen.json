@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/careers/my/offer/accept",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T04:01:45.2339310Z",
+  "capturedAtUtc": "2026-10-29T17:05:06.0991443Z",
   "body": {
     "fields": [
       "Acknowledge=true",

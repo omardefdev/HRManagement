@@ -1,0 +1,13 @@
+{
+  "step": "21c-21c-submit-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/7a9642b9-b72d-45c4-8a56-646e5bcf2387",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:54:25.1200424Z",
+  "body": {
+    "fields": [],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/7a9642b9-b72d-45c4-8a56-646e5bcf2387",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/7a9642b9-b72d-45c4-8a56-646e5bcf2387"
+  }
+}

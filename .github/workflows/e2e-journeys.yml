@@ -29,16 +29,17 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/prepare-ci-compose-env.sh
+          # PLAN-33: the application services carry profiles: ["full-stack"]; without the profile only infrastructure starts.
           if [ -n "${IMAGE_TAG}" ]; then
             echo "Using release images tag=${IMAGE_TAG}"
             docker compose \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.images.yml \
-              up -d --wait
+              --profile full-stack up -d --wait
           else
             echo "No IMAGE_TAG — local compose build (pre-release lab)"
-            docker compose -f docker-compose.yml -f docker-compose.services.yml up -d --wait
+            docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack up -d --wait
           fi
 
       - name: Restore / build E2E
@@ -49,6 +50,8 @@ jobs:
       - name: Install Playwright browsers
         run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
 
+      # The requisition-to-hire journey needs the acceptance stack (personas, seed, FileDrop) and runs in its own job
+      # below; Category=JourneyProdLike is excluded everywhere until PLAN-25 (G-02).
       - name: Run journey suite
         env:
           RUN_PLAYWRIGHT_E2E: "true"
@@ -57,9 +60,22 @@ jobs:
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release --no-build
-          --filter "Category=Journey|FullyQualifiedName~E2eSeedPackTests"
+          --filter "(Category=Journey&FullyQualifiedName!~RecruitmentToHireJourney)|FullyQualifiedName~E2eSeedPackTests"
           --logger "trx;LogFileName=e2e-journey-results.trx"
           --results-directory ./TestResults/e2e-journeys
+
+      - name: Fail on skipped mandatory journeys
+        if: always()
+        run: |
+          # Zero-skip policy (as in ci.yml e2e): a skipped journey is a failure.
+          if [ -f ./TestResults/e2e-journeys/e2e-journey-results.trx ]; then
+            skipped=$(grep -o 'outcome="NotExecuted"' ./TestResults/e2e-journeys/e2e-journey-results.trx | wc -l || true)
+            echo "Skipped journeys: ${skipped}"
+            if [ "${skipped}" -gt 0 ]; then
+              echo "::error::Mandatory journeys skipped (${skipped})."
+              exit 1
+            fi
+          fi
 
       - name: Upload E2E artifacts
         if: always()
@@ -73,4 +89,69 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: docker compose -f docker-compose.yml -f docker-compose.services.yml down -v || true
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack down -v || true
+
+  # PLAN-33 (AC-HCM-33c): requisition → approval → public application → selection → offer → candidate OTP acceptance →
+  # hire → HR.Contracts appointment, on the acceptance profile (lab scale; production-like approval binding is PLAN-25).
+  recruitment-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Start acceptance stack
+        shell: pwsh
+        run: |
+          bash scripts/prepare-ci-compose-env.sh
+          ./scripts/acceptance-up.ps1 -SkipLiveVerification
+
+      - name: Restore / build E2E
+        run: |
+          dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
+          dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj -c Release --no-restore
+
+      - name: Run requisition-to-hire journey
+        env:
+          RUN_PLAYWRIGHT_E2E: "true"
+          GATEWAY_BASE_URL: "http://localhost:6200"
+          KEYCLOAK_BASE_URL: "http://localhost:6388"
+          KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ci-gateway-secret-lab-only
+          COMPOSE_PROJECT_NAME: hrm-acceptance
+        run: >
+          dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
+          --configuration Release --no-build
+          --filter "Category=Journey&FullyQualifiedName~RecruitmentToHireJourneyE2ETests"
+          --logger "trx;LogFileName=recruitment-journey-results.trx"
+          --results-directory ./TestResults/recruitment-journey
+
+      - name: Fail on skipped recruitment journey
+        if: always()
+        run: |
+          trx=./TestResults/recruitment-journey/recruitment-journey-results.trx
+          if [ ! -f "$trx" ]; then echo "::error::No test results"; exit 1; fi
+          skipped=$(grep -o 'outcome="NotExecuted"' "$trx" | wc -l || true)
+          executed=$(grep -o 'outcome="Passed"' "$trx" | wc -l || true)
+          echo "Passed: ${executed}, skipped: ${skipped}"
+          if [ "${skipped}" -gt 0 ] || [ "${executed}" -lt 1 ]; then
+            echo "::error::The recruitment journey did not run and pass."
+            exit 1
+          fi
+
+      - name: Upload journey evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recruitment-journey-evidence
+          path: |
+            TestResults/recruitment-journey/**
+            acceptance-evidence/AC-HCM-33/**
+          if-no-files-found: warn
+
+      - name: Tear down
+        if: always()
+        shell: pwsh
+        run: ./scripts/acceptance-reset.ps1

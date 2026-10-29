@@ -1,0 +1,21 @@
+{
+  "step": "http-create-candidate-dsar",
+  "method": "POST",
+  "url": "/api/compliance/api/dsar",
+  "statusCode": 201,
+  "capturedAtUtc": "2026-10-29T17:05:21.5291516Z",
+  "body": {
+    "id": "b3416191-9f2f-4439-b15b-55125d8fa639",
+    "tenantId": "a0000001-0000-4000-8000-000000000001",
+    "requestType": 0,
+    "status": 0,
+    "subjectEmployeeId": null,
+    "subjectCitizenApplicationId": null,
+    "subjectNationalIdHash": "b23359b06ab41e7dfea33c2b34d86b44c210e439ee401e63e4832f71e881b7c2",
+    "requestedAt": "2026-10-29T17:05:21.4823829Z",
+    "completedAt": null,
+    "notes": "HCM-006 candidate DSAR",
+    "discoveryPackageJson": null,
+    "packageContentHash": null
+  }
+}

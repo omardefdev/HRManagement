@@ -1,5 +1,10 @@
 {
+  "documentsApplication": "4d5071b0-d980-4dcc-ae41-6e08e7bb2367",
+  "documents": "Certificate:6781d992-4ed9-49db-a7d2-cd84413ec930:bb287299-2a6a-416b-bac5-420e34c18fad,Cv:3e80fa24-15b5-40eb-82a4-2e0d7b5980f5:deebecf1-3018-4ad8-a6e8-15839c4725bd",
   "exeRows": 0,
   "oversizedRows": 0,
-  "documentsApply": "upload failed (File.Storage unavailable)"
+  "eicarApplication": "08532980-a7ff-48dc-90c4-c14878c89db7",
+  "eicarFile": "c791242b-5888-4739-96af-d523eef12702",
+  "scan": "Infected",
+  "download": 404
 }

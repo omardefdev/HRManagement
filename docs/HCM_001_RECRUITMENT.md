@@ -17,89 +17,145 @@ Model the full recruitment lifecycle from requisition through offer acceptance, 
 
 ## Domain Model
 
-### RecruitmentRequisition Entity
+The runtime model lives in HR.Core: entities in `src/Services/HRCore/HR.Core.Domain/Entities`, enums in
+`src/Services/HRCore/HR.Core.Domain/Enums`, rules in `src/Services/HRCore/HR.Core.Domain/Services`. All entities are
+tenant-scoped (`AuditableEntity` / `BaseEntity`). The former `HRManagement.SharedKernel.Recruitment` classes
+(`RecruitmentRequisition`, `CandidateApplication`, `OfferLetter`) had no runtime consumer and were deleted in PLAN-33;
+`scripts/hcm001-validate.ps1` fails if that folder comes back.
 
-Represents a staffing request linked to a funded position.
+### RecruitmentRequisition
+
+A staffing request for one funded position (EST-001).
 
 ```
 RecruitmentRequisition
-├── Id (Guid)
-├── TenantId (Guid)
-├── RequisitionNumber (string) — unique identifier
-├── PositionId (Guid) — FK to FundedPosition (EST-001)
-├── JobTitle (string)
-├── Status (enum) — Draft, PendingApproval, Approved, Published, Closed, Cancelled
-├── RequestedDate (DateTime)
-├── ApprovedDate (DateTime?)
-├── ClosedDate (DateTime?)
-├── JustificationNotes (string?)
-├── VacancyCount (int) — number of vacancies
-├── LegalSourceId (string?) — law/decree reference
-├── CreatedAt / UpdatedAt
+├── RequisitionNumber, JobTitle, VacancyCount, JustificationNotes, LegalSourceId
+├── FundedPositionId (Guid) — FK to FundedPosition
+├── Status (RequisitionStatus) — Draft, PendingApproval, Approved, Published, Closed, Cancelled
+├── RequestedDate / ApprovedDate / PublishedAt / ClosedDate
+├── WorkflowInstanceId (Guid?) — approval instance (RECRUITMENT-REQUISITION-APPROVAL)
+├── PublishingChannel (RecruitmentPublishingChannel) — PublicOnly, InternalOnly, Both
+├── PublicJobPostingId / InternalVacancyId — channel rows created at publish
+├── ApplicationClosingDate (DateOnly?) / IntakeClosedAt — intake window (PLAN-26)
+├── CancellationReason / CancelledAt / CancelledBy — PLAN-26 cascade
+├── RequiresCommitteeApproval (bool) — ranking gate (PLAN-28, D-5)
+├── MinQualificationCode, MinYearsOfExperience, MinAge, MaxAge, RequiredDocumentTypes — PLAN-30 criteria
+└── CompetitionLineId (Guid?) — attached to a competition line (PLAN-31)
 ```
 
-### CandidateApplication Entity
+### RecruitmentApplication
 
-Tracks a candidate's application for a published requisition.
+One candidate's case on a requisition (or on a competition before allocation).
 
 ```
-CandidateApplication
-├── Id (Guid)
-├── TenantId (Guid)
-├── RequisitionId (Guid) — FK to RecruitmentRequisition
-├── CandidateName (string)
-├── NationalId (string?) — civil ID for identity verification
-├── Email (string?)
-├── Phone (string?)
-├── Status (enum) — Submitted, UnderScreening, Shortlisted, InterviewScheduled, Assessed, Ranked, OfferExtended, Accepted, Rejected, Withdrawn
-├── SubmittedAt (DateTime)
-├── ScreenedAt (DateTime?)
-├── AssessmentScore (decimal?)
-├── Rank (int?)
-├── Notes (string?)
-├── ConflictOfInterestDeclared (bool)
-├── CreatedAt / UpdatedAt
+RecruitmentApplication
+├── ApplicantFullName, NationalId ([AuditRedact]) / NationalIdHash, LegalHold, AnonymizedAt
+├── RequisitionId (Guid?) / CompetitionId / CompetitionLineId / SourceInternalApplicationId
+├── IntakeChannel (RecruitmentIntakeChannel) — HrEntered, Public, Internal, Legacy
+├── Status (RecruitmentApplicationStatus) — Submitted, UnderReview, Shortlisted, InterviewScheduled, Assessed,
+│     Ranked, OfferExtended, OfferAccepted, Hired, Rejected, Withdrawn, OfferDeclined (11), ReserveListed (12)
+├── AssessmentScore (final score written by the scoring service), CriteriaVersionId, Rank / RankedAt, RankOverrideReason / RankOverriddenBy / At
+├── ConflictOfInterestDeclared / ConflictOfInterestDeclaredAt
+├── ActiveOfferLetterId, ReserveUntil / ReserveListedAt
+├── RejectedAt, RejectionKind (RecruitmentRejectionKind), RejectionNote, RankBeforeRejection
+├── AppealStatus (RecruitmentAppealStatus) — None, Pending, Decided
+├── Profile: EducationLevelCode, Specialization, GraduationYear, YearsOfExperience, BirthDate
+├── EligibilityFlags / EligibilityEvaluatedAt / EligibilityOverrideReason
+└── HiredEmployeeId
 ```
 
-### OfferLetter Entity
+`RecruitmentRejectionKind`: SelectionDecision, RequisitionCancelled, RequisitionClosed, NotSelectedOnHire,
+ReserveExpired, OfferRevoked, CompetitionResult. `RecruitmentApplicationEvent` is the append-only, PII-free event log of
+an application (`EventType` from `RecruitmentApplicationEventTypes`, `FromStatus`/`ToStatus`, `RelatedEntityId`,
+`OccurredAt`).
 
-An official offer issued to a ranked candidate.
+### OfferLetter
 
 ```
 OfferLetter
-├── Id (Guid)
-├── TenantId (Guid)
-├── ApplicationId (Guid) — FK to CandidateApplication
-├── PositionId (Guid) — FK to FundedPosition
-├── OfferNumber (string) — unique offer reference
-├── Status (enum) — Draft, PendingApproval, Issued, Accepted, Declined, Expired, Revoked
-├── IssuedDate (DateTime)
-├── ExpiryDate (DateTime)
-├── AcceptedDate (DateTime?)
-├── OfferedSalary (decimal)
-├── GradeCode (string?) — MDM-001 grade reference
-├── ProposedStartDate (DateTime)
-├── LegalSourceId (string?)
-├── IsConvertedToEmployee (bool) — idempotent conversion flag
-├── IsMeritOverride / MeritOverrideReason — PLAN-27 merit exception
-├── ValidityDays (int) — PLAN-27; ExpiryDate = IssuedDate + ValidityDays (end of UTC day)
-├── DeclineReason / DeclinedAt / DeclinedBy, RevokeReason / RevokedAt, ExpiredAt — PLAN-27 outcomes
-├── GradeDeviationReason, SalaryUnverified, SalaryJustification — PLAN-27 exception terms
-├── GradeMinSalary / GradeMaxSalary / SalaryCheckedAt — PLAN-27 Payroll bounds snapshot
-├── CreatedAt / UpdatedAt
+├── RecruitmentApplicationId, FundedPositionId, OfferNumber, LegalSourceId, WorkflowInstanceId
+├── Status (OfferStatus) — Draft, PendingApproval, Issued, Accepted, Declined, Expired, Revoked
+├── IssuedDate (DateTime?) / ValidityDays (default 14) / ExpiryDate (set at issue)
+├── OfferedSalary, GradeCode, ProposedStartDate
+├── IsMeritOverride / MeritOverrideReason — merit exception (PLAN-27)
+├── GradeDeviationReason, SalaryUnverified / SalaryJustification, GradeMinSalary / GradeMaxSalary / SalaryCheckedAt
+├── AcceptedDate, AcceptedBy (OfferAcceptedBy: Candidate | HrOnBehalf), AcceptanceNote, AcceptanceEvidenceFileId
+├── DeclineReason, DeclineReasonCategory (OfferDeclineReasonCategory), DeclinedAt, DeclinedBy, DeclineEvidenceFileId
+├── RevokeReason / RevokedAt, ExpiredAt
+├── DocumentSha256 / DocumentGeneratedAt — SHA-256 of the letter's canonical rendered fields, stored at issue; the PDF prints its first 12 characters as the verification code (PLAN-29)
+└── IsConvertedToEmployee (bool) — idempotent hire conversion
 ```
 
-## Runtime Status (Plans 1–5)
+### Other recruitment entities
 
-| Plan | Capability | Status |
-|------|------------|--------|
-| HCM-01 | Requisition + FundedPosition | Done |
-| HCM-02 | Publish lifecycle + posting bridge | Done |
-| HCM-03 | Unified intake (RequisitionId) | Done |
-| HCM-04 | Selection + offer pipeline | Done |
-| HCM-05 | Hire closure + saga lineage + legacy migration | Done |
-| HCM-06 | Privacy + committee + appeal + candidate UX + portal security | Done |
-| HCM-07 | Internal channel (TalentMarketplace + EssTalent + PromoteFromInternal) | Done |
+| Entity | Role |
+|--------|------|
+| `RecruitmentAppeal` | `Kind` = `Rejection` or `ResultObjection` (PLAN-31); `Status` Pending/Decided; independent reviewer identified by employee (`IndependentReviewerEmployeeId`; legacy `IndependentReviewerId`), `AssignedAt`/`AssignedBy`, `WorkflowInstanceId`; `Outcome` (`RecruitmentAppealOutcome`: Upheld, UpheldRankCorrection, Dismissed, UpheldNoRemedy, LegacyReopen, ObjectionUpheld, ObjectionDismissed), `CorrectedRank`/`ObjectionCorrectedScore`; `FiledBy`; `InfoRequest`/`AdditionalInfo` |
+| `SelectionCommitteeSession` / `SelectionCommitteeMember` / `SelectionCommitteeVote` / `SelectionCommitteeDecision` / `SelectionCommitteeMemberCoi` | Committee per requisition (`Purpose`, chair, submit/lock/approval), members by employee, per-candidate votes, decisions (`Recommendation`, `ProposedRank`, `Rationale`) and conflict declarations (PLAN-28) |
+| `RecruitmentInterviewSlot` / `RecruitmentInterviewPanelMember` | Interview lifecycle (status, mode, outcome, reschedule chain) and panel by employee (PLAN-26) |
+| `RecruitmentAssessmentCriteria` / `RecruitmentAssessmentScore` | Versioned, lockable criteria per requisition; per-item, per-assessor scores (PLAN-26) |
+| `RecruitmentCompetition` / `CompetitionLine` / `CompetitionPreference` / `CompetitionResultVersion` (+ `CompetitionResult`, `CompetitionAllocation`, `CompetitionReserveEntry`) / `ExamSession` (+ `ExamCandidate`, `ExamMarkerAssignment`, `ExamScore`) | Multi-vacancy competitions, line preferences, versioned results, allocation, line reserves and anonymous double-marked exams (PLAN-31) |
+| `CitizenApplication` | Public-channel row (reference number, contact, consent, portal lock), linked through `PromotedRecruitmentApplicationId` (PLAN-30) |
+| `CandidateDocument` | Uploaded document stored in File.Storage (`FileId`) |
+| `CandidateNotification` | Planned/sent candidate message (masked recipient, idempotency key, retry state) |
+| `CandidateOtpChallenge` | `/careers/my` one-time code, stored as HMAC only |
+| `CandidateRetentionRun` | One retention job run (dry run flag, counts, skips) |
+
+### Rule classes (`HR.Core.Domain/Services`)
+
+`RequisitionWorkflowRules` (requisition transitions, blocking statuses, closing date), `SelectionWorkflowRules`
+(application transitions, system-only targets, terminal statuses, transition gates), `OfferWorkflowRules` (offer
+transitions, issue/expiry/accept), `OfferEligibilityRules` (who can receive an offer, merit order),
+`RecruitmentAppealWorkflowRules` (appeal window, appealable kinds, outcome validation, assigned reviewer), `SelectionCommitteeRules`
+(chair, quorum, majority, lock). Related: `AssessmentCriteriaRules`, `ApplicationRejection`,
+`RecruitmentEligibilityRules`.
+
+## Runtime Status (PLAN-21 – PLAN-33)
+
+"Implemented — verified" is used only when the evidence folder's `result.json` has `status: Pass`. All live runs below
+are on the local acceptance stack (lab profile: `NationalScope:IsLabScale=true`, policy engine Off); nothing has run
+in remote CI (branch not pushed). Plan documents: `docs/acceptance-plans/PLAN-2x-*.md` / `PLAN-3x-*.md`.
+
+| Plan | Scope | Status | Evidence path | Last live result |
+|------|-------|--------|---------------|------------------|
+| PLAN-21 | Requisition approval from the UI (AC-HCM-21) | Implemented — verified | `acceptance-evidence/AC-HCM-21/` | Pass, 21a–d — PLAN-33 P6 clean-stack run, 2026-10-29 (`ACCEPTANCE_REQUIRE_ALL=true`) |
+| PLAN-22 | Remaining recruitment approvals from the UI (AC-HCM-22) | Implemented — verified | `acceptance-evidence/AC-HCM-22/` | Pass, 22a–e — PLAN-33 P6, 2026-10-29 (`ACCEPTANCE_REQUIRE_ALL=true`) |
+| PLAN-23 | Unified work inbox (AC-WF-23) | Implemented — verified | `acceptance-evidence/AC-WF-23/` | Pass, 23a–f — PLAN-33 P6, 2026-10-29 (`ACCEPTANCE_REQUIRE_ALL=true`) |
+| PLAN-24 | Establishment change approval + inbox extension (AC-EST-24) | Implemented — verification pending: no `AC-EST-24*` evidence folder is committed (never run live); `AcEst24EstablishmentWorkflowUiTests` is not a `[RequiredAcceptance]` scenario, so a missing precondition is recorded as `Blocked` and skipped even under `ACCEPTANCE_REQUIRE_ALL=true` (before PLAN-33 it skipped silently: `reports/plan33-acceptance-inventory.md`) | — | none recorded |
+| PLAN-25 | Production workflow binding and server-side role enforcement (G-01, G-02, G-04, G-05, G-14, G-15) | Proposed (deferred) | — | — |
+| PLAN-26 | Assessment criteria, interview lifecycle, requisition integrity (AC-HCM-26) | Implemented — verified for 26a–g and 26i; AC-HCM-26h verification pending (Blocked: no second central `hr-core` persona to approve the establishment step; the freeze cascade is covered by `Hcm026EstablishmentCascadeIntegrationTests`) | `acceptance-evidence/AC-HCM-26/` (folder status Blocked) | PLAN-33 P6, 2026-10-29: 4 tests Pass, 26h Blocked |
+| PLAN-27 | Offer integrity, merit order, reserve list (AC-HCM-27) | Implemented — verified | `acceptance-evidence/AC-HCM-27/` | Pass ×4 — PLAN-33 P6, 2026-10-29 (27f–g failed in PLAN-32 without File.Storage; passes now) |
+| PLAN-28 | Committee and appeal governance (AC-HCM-28) | Implemented — verified | `acceptance-evidence/AC-HCM-28/` | Pass ×4 — PLAN-33 P6, 2026-10-29 |
+| PLAN-29 | Hire closure, contract terms, official documents (AC-HCM-29) | Implemented — verified | `acceptance-evidence/AC-HCM-29/` | Pass ×3 — PLAN-33 P6, 2026-10-29 |
+| PLAN-30 | Candidate experience, unified channel, notifications (AC-HCM-30) | Implemented — verified | `acceptance-evidence/AC-HCM-30/`; `reports/plan30-final-report.md` | Pass ×8 — PLAN-33 P6, 2026-10-29 (30c document scan now runs with File.Storage) |
+| PLAN-31 | Multi-vacancy competitions and exams (AC-HCM-31) | Implemented — verified | `acceptance-evidence/AC-HCM-31/`; `reports/plan31-final-report.md` | Pass ×2 — PLAN-33 P6 after `acceptance-reset.ps1`, 2026-10-29 |
+| PLAN-32 | Recruitment reports and KPIs (AC-HCM-32) | Implemented — verified | `acceptance-evidence/AC-HCM-32/`; `reports/plan32-final-report.md` | Pass ×4 — PLAN-33 P6, 2026-10-29 |
+| PLAN-33 | Live verification of the recruitment path and documentation (AC-HCM-21/22, AC-WF-23, AC-HCM-33) | Implemented — verified on the acceptance (lab) profile (CI not executed); the prod-like journey fails at the first approval (G-02, PLAN-25) | `acceptance-evidence/AC-HCM-33/`, `acceptance-evidence/AC-HCM-33/prodlike/`; `reports/plan33-final-report.md` | Journey Pass (P6 clean stack, 2026-10-29); 33a/33b/33d Pass (33d checked by `scripts/hcm033-validate.ps1`); prod-like Fail at stage «1 requisition» (2026-10-29) |
+
+PLAN-33 verification assets: `src/Tests/HRManagement.AcceptanceTests/AcceptanceGate.cs` (a missing precondition is
+recorded as `Blocked` and skipped, or fails `[RequiredAcceptance]` scenarios under `ACCEPTANCE_REQUIRE_ALL=true`),
+deterministic recruitment states (`HR.Core.Infrastructure/Seeding/AcceptanceRecruitmentStatesPatch.cs` +
+`testdata/acceptance/recruitment-states.json`), the requisition-to-hire journey
+`src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` (`Category=Journey`; the prod-like variant
+`Category=JourneyProdLike` runs on `docker-compose.acceptance-prodlike.yml` and is excluded from CI until PLAN-25), and
+`src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` (G-02 behaviour).
+
+### Known gaps
+
+Details: [HCM_001_GAP_STUDY](HCM_001_GAP_STUDY.md) (section 4.1).
+
+- **G-02** — with `NationalScope:IsLabScale=false` and the policy engine Off (the Staging/Production profile), a
+  submitted requisition or offer stays `PendingApproval` with no workflow instance (the UI shows a warning): approval is
+  refused and the offer is never `Issued`; the selection committee is locked without a workflow and shows no warning. Proven by
+  `Hcm033LabScaleBehaviourTests` and by the prod-like journey failure above. Fix: [PLAN-25](acceptance-plans/PLAN-25-hcm-production-workflow-binding.md).
+- **G-04** — a workflow step's `RoleRequired` is checked only in the UI (workflow panel / work inbox), not on the
+  server POST. Fix: PLAN-25.
+
+### Earlier plans (HCM-01 – HCM-07)
+
+Scope per plan is in the [Plan map](#plan-map-hcm-001). Only the Plan-6 candidate DSAR slice has an evidence folder with
+a `result.json`: `acceptance-evidence/HCM-06-DSAR/` (`AcHcm06CandidateDsarTests`, Pass — PLAN-33 P6, 2026-10-29). The
+other earlier plans have no `result.json` under `acceptance-evidence/` (`acceptance-evidence/HCM-01/` holds only `steps.md`).
 
 Plan-7 delivers internal vacancy promotion: HR manages internal postings via `TalentMarketplaceController`; employees self-apply via `EssTalentController` (`ModuleEss`); promoted applications enter the unified selection pipeline.
 
@@ -555,7 +611,7 @@ decisions K1–K23: [`reports/plan32-progress.md`](../reports/plan32-progress.md
 
 ## Acceptance Criteria Mapping
 
-- [x] No announcement without funded position — `PositionId` required on requisition
+- [x] No announcement without funded position — `FundedPositionId` required on requisition
 - [x] Assessment criteria versioned and auditable — score/rank tracked per application
 - [x] Committee and conflicts audited — `ConflictOfInterestDeclared` field
 - [x] Candidate tracks case — status progression with timestamps
@@ -608,22 +664,22 @@ decisions K1–K23: [`reports/plan32-progress.md`](../reports/plan32-progress.md
 | PLAN-30 | Unified intake and backfill, application events, public status projection, profile and eligibility flags, candidate documents (File.Storage service upload), candidate notifications (channel senders, FileDrop lab), pair-aware retention, `/careers/my` with OTP and the gateway cookie allow-list, HR on-behalf acceptance with evidence (G-16, G-17, G-18 addressed; G-20 candidate-data part; D-4) |
 | PLAN-31 | Competitions and lines, intake with line preferences, exam sessions/seating/admission cards, anonymous double marking (`hr-exam-marker`), results approval/publication, objections and result versions, allocation and line reserves, bulk offers, portal/notifications/retention/DSAR for competitions (G-19 addressed; D-2 inputs per competition) |
 | PLAN-32 | Recruitment KPIs and «تقارير التوظيف» (funnel, time to fill/hire, stage time, offers and decline categories, channels, appeals, merit overrides, open vacancies, approval SLA, competitions), scoped exports, `IRecruitmentRequisitionClosed` → Dev.Analytics (G-21 addressed) |
+| PLAN-33 | Live verification of the recruitment path (AcceptanceGate, deterministic recruitment states, AC-HCM-21/22 and AC-WF-23 on seeded states, requisition-to-hire journey and prod-like variant, G-02 behaviour tests), SharedKernel phantom model removed, documentation aligned with the code (G-24) |
 
 ## Artifacts
 
 | File | Purpose |
 |------|---------|
 | `docs/HCM_001_RECRUITMENT.md` | This document |
-| `SharedKernel/Recruitment/RecruitmentRequisition.cs` | Requisition domain entity |
-| `SharedKernel/Recruitment/CandidateApplication.cs` | Application domain entity |
-| `SharedKernel/Recruitment/OfferLetter.cs` | Offer letter domain entity |
-| `scripts/hcm001-validate.ps1` | Validates HCM-001 artifacts |
+| `src/Services/HRCore/HR.Core.Domain/Entities/RecruitmentRequisition.cs`, `RecruitmentApplication.cs`, `OfferLetter.cs` | Runtime recruitment entities (see Domain Model) |
+| `src/Services/HRCore/HR.Core.Domain/Services/` `RequisitionWorkflowRules.cs`, `SelectionWorkflowRules.cs`, `OfferWorkflowRules.cs`, `OfferEligibilityRules.cs`, `RecruitmentAppealWorkflowRules.cs`, `SelectionCommitteeRules.cs` | Recruitment rule classes |
+| `scripts/hcm001-validate.ps1` | Validates the HCM-001 artifacts in HR.Core.Domain and fails if `SharedKernel/Recruitment` reappears (PLAN-33) |
 | `scripts/hcm001-migrate-legacy-applications.ps1` | Backfill RequisitionId / flag legacy apps |
 | `src/Services/HRCore/HR.Core.Domain/Services/CandidateApplicationLegalLifecycleService.cs` | Candidate anonymize/purge (Plan-6) |
 | `scripts/hcm006-a11y-scan.ps1` | Public careers a11y baseline (Plan-6); PLAN-30 K4: candidate portal, apply form, label/for, error linking, OTP input, focus on errors, nonce CSP |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm06CandidateDsarTests.cs` | Candidate DSAR acceptance (Plan-6) |
 | `src/Services/HRCore/HR.Core.Infrastructure/Services/Recruitment/RecruitmentHireClosureService.cs` | Atomic hire closure |
-| `Hcm001RecruitmentTests.cs` | Unit tests |
+| `src/Tests/HRManagement.UnitTests/Hcm001RecruitmentTests.cs` | Behaviour tests on the HR.Core.Domain recruitment rules (PLAN-33) |
 | `scripts/hcm026-validate.ps1` | Validates PLAN-26 artifacts, migrations and `Hcm026` tests |
 | `scripts/hcm026-find-duplicate-requisitions.ps1` | Read-only duplicate check before `HCM026_RequisitionIntegrity` |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm26AssessmentInterviewTests.cs` | AC-HCM-26a..i acceptance |
@@ -650,13 +706,17 @@ decisions K1–K23: [`reports/plan32-progress.md`](../reports/plan32-progress.md
 | `src/Services/HRCore/HR.Core.Web/Services/CandidatePortalService.cs` | `/careers/my` page and candidate actions |
 | `src/Services/HRCore/HR.Core.Web/Services/OfferOnBehalfService.cs` | HR on-behalf acceptance/decline with evidence |
 | `src/Tests/HRManagement.AcceptanceTests/AcHcm30CandidateExperienceTests.cs` | AC-HCM-30a..j acceptance |
+| `src/Tests/HRManagement.AcceptanceTests/AcceptanceGate.cs` | PLAN-33: `Blocked` + Skip on a missing precondition, Fail for `[RequiredAcceptance]` under `ACCEPTANCE_REQUIRE_ALL=true` |
+| `src/Services/HRCore/HR.Core.Infrastructure/Seeding/AcceptanceRecruitmentStatesPatch.cs`, `testdata/acceptance/recruitment-states.json` | PLAN-33: deterministic recruitment states for AC-HCM-21/22 and AC-WF-23 |
+| `src/Tests/HRManagement.E2E/RecruitmentToHireJourneyE2ETests.cs` | PLAN-33: requisition-to-hire journey (AC-HCM-33; `Journey` / `JourneyProdLike`) |
+| `src/Tests/HRManagement.IntegrationTests/Hcm033LabScaleBehaviourTests.cs` | PLAN-33: G-02 behaviour with `IsLabScale=false` and the policy engine Off |
 
 ## Validation
 
 - `scripts/hcm001-validate.ps1`
 - `scripts/hcm029-validate.ps1` (PLAN-29)
 - `scripts/hcm030-validate.ps1` (PLAN-30)
-- `Hcm001RecruitmentTests`
+- `Hcm001RecruitmentTests` — behaviour tests on the HR.Core.Domain rules
 - `scripts/hcm026-validate.ps1` — `Hcm026*` unit tests + `Hcm021|Hcm022` regression
 - `scripts/hcm027-validate.ps1` — `Hcm027*` unit tests + `Hcm026|Hcm022` regression
 - `scripts/hcm028-validate.ps1` — `Hcm028*` unit tests + `Hcm027|Hcm026|Hcm022|Hcm021|Hcm006|Wf023` regression, EF model check

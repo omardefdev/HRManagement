@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAssessmentCriteria/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-22T12:02:57.5375658Z",
+  "capturedAtUtc": "2026-10-29T16:54:39.8172373Z",
   "body": {
     "fields": [
-      "RequisitionId=09cef017-fe77-4066-b033-aa8409233973",
+      "RequisitionId=abf2c97f-5b8b-4132-a253-2b6472d9c6e2",
       "Title=AC-HCM-28",
       "Items.Index=r0",
       "Items[r0].Key=interview",
@@ -31,7 +31,7 @@
       "Items[r2].IsMandatory=true"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/09cef017-fe77-4066-b033-aa8409233973#assessment-criteria",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/09cef017-fe77-4066-b033-aa8409233973"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/abf2c97f-5b8b-4132-a253-2b6472d9c6e2#assessment-criteria",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/abf2c97f-5b8b-4132-a253-2b6472d9c6e2"
   }
 }

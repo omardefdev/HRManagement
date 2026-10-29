@@ -1,0 +1,16 @@
+{
+  "step": "22d-22d-2-assign-compliance-2-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentAppeals/AssignReviewer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T16:53:59.7518601Z",
+  "body": {
+    "fields": [
+      "id=840a34a7-42a6-448e-9198-f80a97b95f12",
+      "reviewerEmployeeId=c5b5dac5-519d-1746-8173-1a3340a9b8db"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/840a34a7-42a6-448e-9198-f80a97b95f12",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/840a34a7-42a6-448e-9198-f80a97b95f12"
+  }
+}

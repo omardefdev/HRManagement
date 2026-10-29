@@ -1,5 +1,10 @@
 {
-  "requisitionId": "ca9b41d5-411b-4685-9505-08b8975dc009",
-  "offer": "db86b17c-9ffd-4bf5-8e49-bdd6b6c11e5f",
-  "workflow": "RECRUITMENT-OFFER-OVERRIDE-APPROVAL"
+  "requisitionId": "31e01c94-72ff-495a-a296-2fdb08264706",
+  "offer1": "036afefc-56f4-432b-ae0d-bea9380b4a8b",
+  "offer2": "88dee2e5-878c-43e8-8774-490aa96ae545",
+  "grade": "G5",
+  "bounds": {
+    "Min": 300000.00,
+    "Max": 500000.00
+  }
 }

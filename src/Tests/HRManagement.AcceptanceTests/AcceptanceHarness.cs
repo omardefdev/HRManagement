@@ -16,8 +16,9 @@ public static class AcceptanceEnv
     public static string KeycloakBaseUrl =>
         (Environment.GetEnvironmentVariable("KEYCLOAK_BASE_URL") ?? "http://localhost:8088").TrimEnd('/');
 
-    public static void RequireEnabled() =>
-        Skip.IfNot(IsEnabled, "Set RUN_ACCEPTANCE=true to run acceptance tests.");
+    /// <summary>Skips unless <c>RUN_ACCEPTANCE=true</c>; fails a required scenario under <c>ACCEPTANCE_REQUIRE_ALL</c>.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public static void RequireEnabled() => AcceptanceGate.RequireEnabled();
 }
 
 public sealed class AcceptancePersonaFile
@@ -164,7 +165,7 @@ public static class AcceptanceHarness
     public static async Task<HttpResponseMessage> ExitTenantAsync(HttpClient http) =>
         await http.PostAsync("api/platform/exit-tenant", null);
 
-    private static string ResolveDataPath(string relative)
+    internal static string ResolveDataPath(string relative)
     {
         var candidates = new[]
         {

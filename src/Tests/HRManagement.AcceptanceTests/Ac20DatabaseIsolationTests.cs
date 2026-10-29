@@ -20,22 +20,22 @@ public class Ac20DatabaseIsolationTests
 
         var evidenceRoot = recorder.Folder;
         var logPath = Path.Combine(evidenceRoot, "verify-roles.log");
-        if (File.Exists(logPath))
-        {
-            var log = await File.ReadAllTextAsync(logPath);
-            recorder.CaptureHttp("verify-roles-log", "SCRIPT", "verify-postgres-service-roles.sh", exitCode == 0 ? 200 : 500,
-                new { log });
-            Assert.Contains("All cross-DB CONNECT checks passed", log, StringComparison.Ordinal);
-        }
+        AcceptanceGate.RequireData(recorder, File.Exists(logPath),
+            "لم ينتج سكربت التحقق ملف السجل verify-roles.log، فلا يمكن التحقق من عزل قواعد البيانات",
+            "verify-roles.log was not produced by the verify script, so the cross-DB CONNECT checks cannot be verified.");
+        var log = await File.ReadAllTextAsync(logPath);
+        recorder.CaptureHttp("verify-roles-log", "SCRIPT", "verify-postgres-service-roles.sh", exitCode == 0 ? 200 : 500,
+            new { log });
+        Assert.Contains("All cross-DB CONNECT checks passed", log, StringComparison.Ordinal);
 
         var crossDbPath = Path.Combine(evidenceRoot, "cross-db-attempt.json");
-        if (File.Exists(crossDbPath))
-        {
-            var crossDbJson = await File.ReadAllTextAsync(crossDbPath);
-            using var doc = JsonDocument.Parse(crossDbJson);
-            Assert.NotEqual(0, doc.RootElement.GetProperty("actualExitCode").GetInt32());
-            recorder.WriteAfter(JsonSerializer.Deserialize<object>(crossDbJson)!);
-        }
+        AcceptanceGate.RequireData(recorder, File.Exists(crossDbPath),
+            "لم ينتج سكربت التحقق ملف cross-db-attempt.json، فلا يمكن التحقق من رفض الاتصال بين قواعد البيانات",
+            "cross-db-attempt.json was not produced by the verify script, so the cross-DB attempt cannot be verified.");
+        var crossDbJson = await File.ReadAllTextAsync(crossDbPath);
+        using var doc = JsonDocument.Parse(crossDbJson);
+        Assert.NotEqual(0, doc.RootElement.GetProperty("actualExitCode").GetInt32());
+        recorder.WriteAfter(JsonSerializer.Deserialize<object>(crossDbJson)!);
 
         Assert.Equal(0, exitCode);
         recorder.WriteResult("Pass");

@@ -1,0 +1,33 @@
+{
+  "scenarios": {
+    "33c": {
+      "status": "Pass",
+      "reason": null,
+      "stageReached": "done",
+      "correlationId": "eb09044a-a204-403e-adfb-8e2ca3229c5d",
+      "recordedAtUtc": "2026-10-29T17:10:49.6500937Z"
+    },
+    "33d": {
+      "status": "Pass",
+      "reason": null,
+      "source": "scripts/hcm033-validate.ps1 after P6",
+      "recordedAtUtc": "2026-10-29T16:18:50.5817693Z"
+    },
+    "33b": {
+      "status": "Pass",
+      "reason": null,
+      "source": "P1 run with ACCEPTANCE_REQUIRE_ALL=true (18 required failed, 1 optional skipped) and P6 live run (AC-HCM-26h failed as required-blocked)",
+      "recordedAtUtc": "2026-10-29T16:18:50.5817693Z"
+    },
+    "33a": {
+      "status": "Pass",
+      "reason": null,
+      "source": "dotnet test (P1, no RUN_ACCEPTANCE): 23 passed / 90 skipped / 0 failed; unit tests AcceptanceSkipPatternArchitectureTests 7/7, AcceptanceGateTests 9/9",
+      "recordedAtUtc": "2026-10-29T16:18:50.5817693Z"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "eb09044a-a204-403e-adfb-8e2ca3229c5d",
+  "recordedAtUtc": "2026-10-29T17:10:49.6512828Z"
+}

@@ -19,6 +19,7 @@ public static class AcceptanceSeedOrchestrator
         await AcceptanceCandidateExperiencePatch.ApplyAsync(db, logger, ct);
         await AcceptanceCompetitionPatch.ApplyAsync(db, logger, ct);
         await AcceptanceRecruitmentReportsPatch.ApplyAsync(db, logger, ct);
+        await AcceptanceRecruitmentStatesPatch.ApplyAsync(db, logger, ct);
         await new OrgUnitVersionService(db, serviceProvider.GetRequiredService<IFundedPositionVersionService>())
             .BackfillMissingVersionsAsync(ct);
         var asOf = serviceProvider.GetRequiredService<EstablishmentAsOfService>();

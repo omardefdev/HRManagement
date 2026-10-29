@@ -16,6 +16,7 @@ namespace HRManagement.AcceptanceTests;
 /// AC-HCM-26's scope, so ranks are set by a documented test-only SQL precondition; direct SQL is otherwise used
 /// only for evidence checks and for time travel (offer expiry date, reserve date).
 /// </summary>
+[RequiredAcceptance]
 public class AcHcm27OfferMeritTests
 {
     private const string Ac = "AC-HCM-27";
@@ -115,7 +116,9 @@ public class AcHcm27OfferMeritTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync("27b", "AC-HCM-27b exception (merit override) offer with three distinct approvers");
-        Skip.If(s.Approver2 is null, s.Approver2Missing);
+        AcceptanceGate.RequireData(s.Recorder, s.Approver2 is not null,
+            "شخصية المعتمد الثاني a-management-approver-2 غير متاحة (مفقودة من personas.json أو يتعذّر تسجيل دخولها)",
+            s.Approver2Missing);
         WriteScenarioSteps(s.Recorder, """
             Personas: central-a (maker), br1-mgr (step 1 «مراجعة HR»), a-management-approver (step 2), a-management-approver-2 (step 3).
             1. Published requisition with ranks 1 and 2 (test-only ranking precondition).
@@ -288,7 +291,7 @@ public class AcHcm27OfferMeritTests
         var approverPersona = AcceptanceHarness.RequirePersona("a-management-approver");
         var approver2Persona = AcceptanceHarness.LoadPersonas().FirstOrDefault(p => p.Id == "a-management-approver-2" && p.Enabled);
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(centralPersona);
-        var recorder = new EvidenceRecorder(Ac, correlationId);
+        var recorder = new EvidenceRecorder(Ac, correlationId) { ScenarioKey = tag };
         ScenarioTags.AddOrUpdate(recorder, tag);
         ExpectedFlash.Clear();
         recorder.WriteMetadata(scenario, $"{centralPersona.Id}+{br1Persona.Id}+{approverPersona.Id}+{approver2Persona?.Id ?? "-"}");
@@ -336,7 +339,9 @@ public class AcHcm27OfferMeritTests
     private static async Task<RankedRequisition> CreateRankedRequisitionAsync(Session s, int rankedCount, bool withAssessed)
     {
         var positionId = await FindFreeGradedBr1PositionAsync(s.Central);
-        Skip.If(positionId is null, "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
+        AcceptanceGate.RequireData(s.Recorder, positionId is not null,
+            "لم يتبقَّ في الجهة (أ) منصب ممول شاغر مُدرَّج في الفرع الأول دون طلب شاغر يحجبه",
+            "No graded vacant BR1 funded position without a blocking requisition is left in agency A.");
         var (grade, orgUnitId) = await PositionGradeAsync(positionId!);
 
         await s.Central.PostAsync("create-requisition", "ui/hr-core/RecruitmentRequisitions/Create",
@@ -382,7 +387,8 @@ public class AcHcm27OfferMeritTests
     private static async Task<GradeBounds> RequireGradeBoundsAsync(Session s, RankedRequisition req)
     {
         var page = await s.Central.GetAsync("payroll-grade-hint", AppDetails(req.Ranked[0]));
-        Skip.If(page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+        AcceptanceGate.RequireData(s.Recorder, !page.Contains("تعذّر التحقق من حدود الدرجة", StringComparison.Ordinal),
+            "تعذّر على HR.Core الوصول إلى خدمة الرواتب للاستعلام عن حدود الدرجة (تكامل الخدمة إلى الخدمة)",
             "HR.Core cannot reach the Payroll grade lookup (Integration:PayrollBaseUrl, svc-hr-core secret or payroll.grades.read scope). " +
             "Rebuild hr-core-web/payroll-web from this branch and run scripts/sync-keycloak-dev-realm.ps1.");
         Assert.Contains($"حدود الدرجة {req.Grade} في سلّم الرواتب الساري", page);

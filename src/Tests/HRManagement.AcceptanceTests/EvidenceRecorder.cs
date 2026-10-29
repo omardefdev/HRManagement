@@ -59,6 +59,11 @@ public sealed class EvidenceRecorder
             imageTag = Environment.GetEnvironmentVariable("IMAGE_TAG")
         };
         WriteJson("metadata.json", meta);
+
+        // PLAN-33: a keyed scenario counts as failed until it records its own result, so a test that throws (or is
+        // aborted) never leaves an earlier run's Pass standing in result.json.
+        if (ScenarioKey is not null)
+            WriteMergedResult("Fail", "Started but did not record a result (the test failed or was aborted before WriteResult).");
     }
 
     public void WriteSteps(string markdown) => File.WriteAllText(Path.Combine(_acFolder, "steps.md"), markdown);
@@ -218,18 +223,71 @@ public sealed class EvidenceRecorder
             result = [];
         }
 
-        result["status"] = status;
-        result["reason"] = reason;
+        var recordedAt = DateTime.UtcNow.ToString("o");
+        var key = ScenarioKey;
+        if (key is null)
+        {
+            result["status"] = status;
+            result["reason"] = reason;
+        }
+        else
+        {
+            // PLAN-33: several tests share one AC folder; keep every scenario's outcome and report the worst one, so a
+            // later Pass can never hide an earlier Fail or Blocked.
+            var scenarios = result["scenarios"] as JsonObject ?? [];
+            scenarios[key] = new JsonObject
+            {
+                ["status"] = status,
+                ["reason"] = reason,
+                ["correlationId"] = _correlationId,
+                ["recordedAtUtc"] = recordedAt
+            };
+            result["scenarios"] = scenarios;
+            var statuses = scenarios.Select(s => s.Value?["status"]?.GetValue<string>() ?? "Unknown").ToList();
+            result["status"] = AggregateStatus(statuses);
+            var open = scenarios
+                .Where(s => (s.Value?["status"]?.GetValue<string>() ?? "Unknown") != "Pass")
+                .Select(s => $"{s.Key}: {s.Value?["status"]?.GetValue<string>()} — {s.Value?["reason"]?.GetValue<string>()}")
+                .ToList();
+            result["reason"] = open.Count == 0 ? null : string.Join("; ", open);
+        }
+
         result["correlationId"] = _correlationId;
-        result["recordedAtUtc"] = DateTime.UtcNow.ToString("o");
+        result["recordedAtUtc"] = recordedAt;
         File.WriteAllText(path, result.ToJsonString(JsonOptions));
     }
+
+    /// <summary>
+    /// Key of the scenario inside a shared AC folder (e.g. <c>21a</c>); when set, <c>result.json</c> keeps a
+    /// <c>scenarios</c> map and its top-level status is the worst of them.
+    /// </summary>
+    public string? ScenarioKey { get; set; }
+
+    /// <summary>Worst status first: Fail, then Blocked (or any non-Pass), then Pass.</summary>
+    public static string AggregateStatus(IEnumerable<string> statuses)
+    {
+        var list = statuses.ToList();
+        if (list.Count == 0) return "Unknown";
+        if (list.Contains("Fail")) return "Fail";
+        if (list.Contains("Blocked")) return "Blocked";
+        return list.All(s => s == "Pass") ? "Pass" : list.First(s => s != "Pass");
+    }
+
+    /// <summary>Per-scenario steps next to the folder's <c>steps.md</c> (<c>steps-21a.md</c>).</summary>
+    public void WriteScenarioSteps(string markdown) =>
+        File.WriteAllText(Path.Combine(_acFolder, $"steps-{RequireKey()}.md"), markdown);
+
+    /// <summary>Per-scenario database checks next to <c>db-checks.json</c> (<c>db-checks-21a.json</c>).</summary>
+    public void WriteScenarioDbChecks(object checks) => WriteJson($"db-checks-{RequireKey()}.json", checks);
+
+    private string RequireKey() =>
+        ScenarioKey ?? throw new InvalidOperationException("Set ScenarioKey before writing per-scenario evidence.");
 
     private void AppendSummary(string status, string? reason)
     {
         var root = Path.GetDirectoryName(_acFolder)!;
         var summaryPath = Path.Combine(root, "summary.md");
-        var line = $"- **{Path.GetFileName(_acFolder)}**: {status}" +
+        var line = $"- **{Path.GetFileName(_acFolder)}**" + (ScenarioKey is null ? "" : $" ({ScenarioKey})") + $": {status}" +
                    (string.IsNullOrWhiteSpace(reason) ? "" : $" — {reason}") +
                    $" (`{_correlationId}`)\n";
         for (var attempt = 0; attempt < 5; attempt++)

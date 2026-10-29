@@ -1,6 +1,32 @@
 {
   "status": "Pass",
   "reason": null,
-  "correlationId": "f32658af-fc00-4cf3-a2e2-b55e2a681b5b",
-  "recordedAtUtc": "2026-10-29T13:29:03.9740008Z"
+  "correlationId": "b52f7cff-3008-47c5-9ef1-1e8ddc46008d",
+  "recordedAtUtc": "2026-10-29T17:05:20.9801430Z",
+  "scenarios": {
+    "32d": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "5715b4e8-219a-4c8e-b074-d14a01f11803",
+      "recordedAtUtc": "2026-10-29T17:05:17.7797528Z"
+    },
+    "32b": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "24eca605-6c32-47ea-91de-0a3406595dcb",
+      "recordedAtUtc": "2026-10-29T17:05:18.7140073Z"
+    },
+    "32a": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "38d98ed6-18e3-41f2-8538-d09bb8cb7717",
+      "recordedAtUtc": "2026-10-29T17:05:19.6051618Z"
+    },
+    "32c": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "b52f7cff-3008-47c5-9ef1-1e8ddc46008d",
+      "recordedAtUtc": "2026-10-29T17:05:20.9801430Z"
+    }
+  }
 }

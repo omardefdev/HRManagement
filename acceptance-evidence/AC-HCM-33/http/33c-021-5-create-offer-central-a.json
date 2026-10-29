@@ -1,0 +1,19 @@
+{
+  "step": "5-create-offer-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/CreateOffer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T17:10:44.4927847Z",
+  "body": {
+    "fields": [
+      "ApplicationId=50ef0ee3-6966-414b-a5af-591d80b1c02f",
+      "OfferedSalary=400000",
+      "GradeCode=G5",
+      "ProposedStartDate=2026-11-28",
+      "ValidityDays=14"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/OfferLetters/Details/dad1b490-204f-41bc-b1a3-db3e128e70ac"
+  }
+}
