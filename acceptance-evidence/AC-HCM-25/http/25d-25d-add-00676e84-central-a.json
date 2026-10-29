@@ -1,0 +1,18 @@
+{
+  "step": "25d-25d-add-00676e84-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/AddMember",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:33.5183478Z",
+  "body": {
+    "fields": [
+      "sessionId=a18a3e06-d20f-4474-86a6-9939b2d62f33",
+      "employeeId=00676e84-b1e0-494d-b994-41fe015cb04c",
+      "role=Member",
+      "hasConflictOfInterest=false"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/a18a3e06-d20f-4474-86a6-9939b2d62f33#members",
+    "final": "/ui/hr-core/SelectionCommittees/Details/a18a3e06-d20f-4474-86a6-9939b2d62f33"
+  }
+}

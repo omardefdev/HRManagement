@@ -12,9 +12,9 @@
 | P2 repair endpoint + script | Done | 9db6397 |
 | P3 step roles + gates | Done | d9a7976 |
 | P4 retire RECRUITMENT-HIRE | Done | b0f911e |
-| P5 write policies + org scope | Done | (P5 commit) |
-| P6 prod-like journey, AC-HCM-25, CI | Pending | |
-| P7 live verification | Pending | |
+| P5 write policies + org scope | Done | d62120f |
+| P6 prod-like journey, AC-HCM-25, CI | Done | 5290bd5 |
+| P7 live verification | Done | (P7 commit) |
 | P8 docs, review, final report | Pending | |
 
 ## Decisions (prompt decisions 1–10 adopted as written; refinements below)
@@ -146,6 +146,30 @@ RecruitmentRequisitions Index/Details/Submit/Publish/PublishInternal/Delete/Exte
 - `AcHcm25ProductionApprovalTests` (`[RequiredAcceptance]`): 25a/25b gated on the prod-like profile (container env read with `docker inspect`), 25c seeded step-2 requisition + br1-mgr approve/reject POSTs, 25d committee with two members recused by test-only SQL (restored in `finally`), 25e assigned vs other compliance vs hr-core, 25f approver POST Edit → 403, 25g live facts (Enforce proven by unit test — deviation: Enforce is not the deployed mode), 25h repair script dry run/apply on a seeded stuck requisition and an orphan RECRUITMENT-HIRE instance.
 - `SelectionCommitteeRules.QuorumMessage` now starts «النصاب غير مكتمل:» (the wording of the plan); no test compared the literal.
 - **Seed fix (decision 8):** the first prod-like run showed AC-HCM-31a and AC-HCM-31b..g approving competitions as `br1-mgr` (branch-scoped) — competitions are central-only, so the rule stays and the test data changes: new persona `central-a2` (hr-core, agency A, HQ ordinal 44; catalog 60 → 61, agency A 42 → 43 in `AcceptancePersonaCatalog` and `prepare-keycloak-import.ps1`), AC-31 uses it for step 1. It also unblocks AC-HCM-26h (PLAN-33 follow-up: no second central hr-core persona). Needs all images rebuilt (the catalog is embedded in ServiceDefaults) and a Keycloak re-import (the reset regenerates the realm).
+
+## P8 review (independent reviewer + refuter)
+
+| # | Finding | Refuter | Origin | Action |
+|---|---------|---------|--------|--------|
+| 1 | Coordinator adopted any in-progress instance (generic `POST api/workflow-instances` could pre-create and pre-approve step 1, or a normal-offer instance could be adopted for an exception offer) | CONFIRMED | PLAN-25 | Fixed: reuse only an instance of the requested code at step 1 with empty history; generic Start refuses enforced entity types — `Hcm025ReviewFixTests.F1_*` |
+| 2 | Outcome handlers never checked `instance.Id == entity.WorkflowInstanceId`; committee handler approved unsubmitted sessions | CONFIRMED | pre-existing | Fixed in the four handlers (+ `SubmittedAt` for committees) — `F2_*`; 8 tests that completed unlinked instances now link them |
+| 3 | Admin assigned as appeal reviewer offered decision forms the server refuses (step role compliance, no bypass) | CONFIRMED | PLAN-25 | Fixed: `RecruitmentAppealAccess.HasReviewerRole` = compliance only — `F3_*` |
+| 4 | Scope filter let a branch user download a foreign candidate document (`CandidateDocument(id)` = document id) | PLAUSIBLE | PLAN-25 gap | Fixed: `[RecruitmentScopeId(CandidateDocument)]` — `Hcm025OrgScopeTests.Foreign_candidate_document_and_foreign_posting_are_404_…` |
+| 5 | `PublicJobPostings` Index/Details not scoped (applicants' personal data) | CONFIRMED | pre-existing (D10 gap) | Fixed: `RecruitmentOrgScope(PublicPosting)`, list filtered, legacy postings central-only — same test |
+| 6 | Inbox lacked the override distinct-approver rule | CONFIRMED | pre-existing | Fixed in `WorkflowInboxEligibilityService` — `F6_*` |
+| 7 | Inbox treats the initiator as creator when `CreatedBy` is null (hides items the server accepts) | PLAUSIBLE | pre-existing | Not changed: hides, never grants; only seed/system rows (CreatedBy is stamped by the audit interceptor). Follow-up |
+| 8 | Concurrent double submit can start two instances (no lock/unique index) | PLAUSIBLE | pre-existing | Not changed (needs a migration); mitigated by finding 2's fix — a stray instance can no longer decide the record. Follow-up |
+| 9 | Cancelling a pending establishment change left its instance running | CONFIRMED | pre-existing (more frequent after G-02) | Fixed — `F9_*` |
+| 10 | Restart/repair skips the policy and makes the restarter the initiator | PLAUSIBLE | PLAN-25 | Initiator fixed (creator stays initiator; the audit names the actor) — `F10_*`. Policy skip kept deliberately: the record already passed the policy at its original submit; repair only restores the missing instance |
+
+Commit `76470fa`.
+
+## P7 notes
+
+- Final stack: all images rebuilt from the branch (compose build directly — `acceptance-up.ps1` without `-NoBuild` fails on PS 5.1 when the local base images are absent), clean reset (realm with 61 personas).
+- Prod-like: recruitment suites 51/53 → AC-HCM-26h fixed (step 1 by `central-a2`, refused before as `br1-mgr` on central-only EstablishmentChanges) and Pass on re-run; AC-HCM-30i fails only on prod-like (Production value `Retention:Apply=false`), Pass on lab. AC-HCM-25 8/8 (re-run once more after 25a/25b were changed to record the profile instead of blocking — CI's acceptance job runs them on the lab profile under REQUIRE_ALL). Prod-like journey **Pass**.
+- Lab: `AcEst24|Ac32Logistics|Ac33AssetLoss|AcWf23|Ac11Policy|Ac12PayrollSod` + `Ac30_i`: 12 Pass, 2 Blocked (Ac12 payroll run not submittable; AcEst24 inbox deep-link precondition), 0 Fail. `Category=Journey`: recruitment journey Pass; 46 Playwright journeys fail — browsers not installed (environment).
+- Repair dry run on the final stack: 0 rows. `scripts/hcm025-validate.ps1`: PASS. `acceptance-evidence/summary.md` regenerated.
 
 ## Open issues
 

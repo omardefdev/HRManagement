@@ -1,0 +1,19 @@
+{
+  "step": "4-offer-before-ranking-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/CreateOffer",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:14:32.4949691Z",
+  "body": {
+    "fields": [
+      "ApplicationId=d6c97c6b-dc81-44ad-b7b7-64e7fbe67ead",
+      "OfferedSalary=1",
+      "GradeCode=G5",
+      "ProposedStartDate=2026-11-28",
+      "ValidityDays=14"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentApplications/Details/d6c97c6b-dc81-44ad-b7b7-64e7fbe67ead"
+  }
+}

@@ -3,6 +3,6 @@
   "method": "GET",
   "url": "/ui/hr-core/api/stats/pending-approvals",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:05:15.5349878Z",
+  "capturedAtUtc": "2026-10-29T20:13:58.9014694Z",
   "body": "{\u0022count\u0022:9,\u0022legacyCount\u0022:1,\u0022workflowCount\u0022:8}"
 }

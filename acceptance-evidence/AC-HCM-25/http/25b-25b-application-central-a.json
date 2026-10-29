@@ -1,0 +1,17 @@
+{
+  "step": "25b-25b-application-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:17.9207545Z",
+  "body": {
+    "fields": [
+      "ApplicantFullName=AC33 25b 4122ba494ed6406",
+      "RequisitionId=c7ec66a2-0212-48a1-9b5a-503eafd1ee1b",
+      "Notes=PLAN-33"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentApplications",
+    "final": "/ui/hr-core/RecruitmentApplications"
+  }
+}

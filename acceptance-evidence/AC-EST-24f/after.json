@@ -1,0 +1,16 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "3a3bb1a8-f97f-43a8-b78c-93773ac160af",
+  "httpObservationCount": 1,
+  "lastHttpObservation": {
+    "step": "pending-approvals",
+    "method": "GET",
+    "url": "/ui/hr-core/api/stats/pending-approvals",
+    "statusCode": 200,
+    "capturedAtUtc": "2026-10-29T20:13:56.0415053Z",
+    "body": "{\u0022count\u0022:9,\u0022legacyCount\u0022:1,\u0022workflowCount\u0022:8}"
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

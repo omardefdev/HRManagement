@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-EST-24e",
+  "personaId": "n/a",
+  "correlationId": "5fb9ab4e-c26b-41bb-9252-a1b23e139a23",
+  "capturedAtUtc": "2026-10-29T20:13:55.6906948Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
+}

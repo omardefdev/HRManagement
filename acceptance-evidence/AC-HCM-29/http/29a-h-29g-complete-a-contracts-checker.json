@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-contracts/HireWizard/Step4Complete",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:10:34.3969622Z",
+  "capturedAtUtc": "2026-10-29T19:55:44.0054504Z",
   "body": {
     "fields": [
-      "transactionId=0dff6f2f-3da1-4f2d-a284-0edf464fb356"
+      "transactionId=fb10dbcb-7e54-47c2-b809-bf1c1c6c93b7"
     ],
     "postStatus": 302,
     "redirect": "/ui/hr-contracts/HireWizard",

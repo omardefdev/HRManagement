@@ -1,0 +1,16 @@
+{
+  "step": "5-approve-1-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/d467b0f4-5ffe-4449-9b82-78c8946dfc7b",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:14:43.0621783Z",
+  "body": {
+    "fields": [
+      "OfferId=d467b0f4-5ffe-4449-9b82-78c8946dfc7b",
+      "Comments=E2E step 1"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/OfferLetters/Details/d467b0f4-5ffe-4449-9b82-78c8946dfc7b"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "step": "6-otp-request-citizen",
+  "method": "POST",
+  "url": "/careers/my/login",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:11:12.4744838Z",
+  "body": {
+    "fields": [
+      "ReferenceNumber=-2026-00010",
+      "NationalId=***"
+    ],
+    "files": null,
+    "postStatus": 200,
+    "final": "/careers/my/login"
+  }
+}

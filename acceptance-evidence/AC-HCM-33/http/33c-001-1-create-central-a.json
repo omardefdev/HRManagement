@@ -3,12 +3,12 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:10:36.8786948Z",
+  "capturedAtUtc": "2026-10-29T20:14:16.0572461Z",
   "body": {
     "fields": [
       "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "FundedPositionId=a0000001-0000-4000-8000-000000000955",
-      "JobTitle=\u0645\u062D\u0644\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0631\u062D\u0644\u0629 7ef8dcdf",
+      "FundedPositionId=a0000001-0000-4000-8000-000000000962",
+      "JobTitle=\u0645\u062D\u0644\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0631\u062D\u0644\u0629 0d5ccf4d",
       "JustificationNotes=PLAN-33 E2E requisition-to-hire",
       "LegalSourceId=SYR-LAW-50-2004",
       "BudgetYear=2026",
@@ -16,6 +16,6 @@
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/10a269aa-ccd8-418b-b165-5c44629664a0"
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/63866eb4-9021-42e8-8328-f671041236e5"
   }
 }

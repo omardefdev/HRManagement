@@ -1,0 +1,20 @@
+{
+  "step": "4-score-2-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/SubmitScores",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:11:08.3248225Z",
+  "body": {
+    "fields": [
+      "ApplicationId=78376cf3-6819-4108-866a-f9d7ba0405dd",
+      "Scores[interview]=60",
+      "Scores[exam]=50",
+      "Scores[experience]=70",
+      "Notes=E2E",
+      "NoConflictDeclared=true"
+    ],
+    "files": null,
+    "postStatus": 302,
+    "final": "/ui/hr-core/RecruitmentApplications/Details/78376cf3-6819-4108-866a-f9d7ba0405dd"
+  }
+}

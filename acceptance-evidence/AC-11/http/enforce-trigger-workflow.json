@@ -1,0 +1,53 @@
+{
+  "step": "enforce-trigger-workflow",
+  "method": "POST",
+  "url": "/api/hr-core/api/policies/enforce",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:54.4492500Z",
+  "body": {
+    "allowed": true,
+    "effects": [
+      "Allow",
+      "RequireEvidence",
+      "TriggerWorkflow"
+    ],
+    "workflowInstanceId": "1fe5b9b4-a7b4-4dd8-a9f4-c851274594a8",
+    "explanations": [
+      "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u062F\u0644\u064A\u0644\u0627\u064B: \u062A\u0637\u0627\u0628\u0642",
+      "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u0633\u064A\u0631 \u0627\u0639\u062A\u0645\u0627\u062F: \u062A\u0637\u0627\u0628\u0642"
+    ],
+    "policyVersionId": "6b761597-4d61-ee4d-a837-78c746ab7f5b",
+    "ledgerId": "03dc056d-9f6e-43c7-965b-09cf911d6e8a",
+    "decision": {
+      "allowed": true,
+      "effects": [
+        0,
+        2,
+        5
+      ],
+      "effectDetails": [
+        {
+          "effect": "RequireEvidence",
+          "params": null
+        },
+        {
+          "effect": "TriggerWorkflow",
+          "params": {
+            "workflowCode": "ASSET-ASSIGN-APPROVAL"
+          }
+        }
+      ],
+      "matchedRuleIds": [
+        "ACC-R-PRIV-EVIDENCE",
+        "ACC-R-PRIV-WORKFLOW"
+      ],
+      "explanations": [
+        "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u062F\u0644\u064A\u0644\u0627\u064B: \u062A\u0637\u0627\u0628\u0642",
+        "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u0633\u064A\u0631 \u0627\u0639\u062A\u0645\u0627\u062F: \u062A\u0637\u0627\u0628\u0642"
+      ],
+      "policyVersionId": "6b761597-4d61-ee4d-a837-78c746ab7f5b",
+      "denyReason": null
+    },
+    "shadowDiffs": []
+  }
+}

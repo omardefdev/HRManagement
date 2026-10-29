@@ -1,5 +1,13 @@
 {
-  "1 requisition": "2026-10-29T17:11:47.7241227Z",
-  "finishedAtUtc": "2026-10-29T17:11:50.0295076Z",
-  "stageReached": "1 requisition"
+  "1 requisition": "2026-10-29T20:10:59.5842673Z",
+  "2 approval and publication": "2026-10-29T20:11:01.1713550Z",
+  "3 public application": "2026-10-29T20:11:02.0366116Z",
+  "4 selection": "2026-10-29T20:11:04.4012203Z",
+  "5 offer": "2026-10-29T20:11:09.1211586Z",
+  "6 candidate acceptance": "2026-10-29T20:11:12.3616666Z",
+  "7 hire": "2026-10-29T20:11:13.5802964Z",
+  "8 contracts and correlation": "2026-10-29T20:11:14.6812114Z",
+  "done": "2026-10-29T20:11:16.3488783Z",
+  "finishedAtUtc": "2026-10-29T20:11:16.3550378Z",
+  "stageReached": "done"
 }

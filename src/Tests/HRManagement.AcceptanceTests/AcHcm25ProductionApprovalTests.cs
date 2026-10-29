@@ -11,7 +11,9 @@ namespace HRManagement.AcceptanceTests;
 /// <summary>
 /// AC-HCM-25a–h (PLAN-25): recruitment approvals with the Production settings (run on the prod-like profile,
 /// <c>docker-compose.acceptance-prodlike.yml</c>: IsLabScale=false, PolicyEngine Core.Recruitment=Shadow, approvals always
-/// start, no admin bypass). 25a/25b need that profile and are Blocked elsewhere; 25c–25h hold on every profile. Refusals
+/// start, no admin bypass). 25a/25b prove the Production values on that profile and record the active profile in their
+/// checks (on the lab profile, as in the CI acceptance job, they still verify that the approval starts and completes);
+/// 25c–25h hold on every profile. Refusals
 /// are asserted on database state (flash messages are not observable through the gateway) and, where the panel shows it,
 /// on the server-computed block reason.
 /// </summary>
@@ -30,15 +32,16 @@ public class AcHcm25ProductionApprovalTests
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "25a", "AC-HCM-25a prod-like: requisition submit → WorkflowInstanceId → two approvals → Approved", Approvers);
         s.Steps("""
-            Profile: prod-like (NationalScope:IsLabScale=false, PolicyEngine:Core.Recruitment=Shadow, Recruitment:Approvals:AlwaysStartWorkflow=true).
+            Profile: prod-like (NationalScope:IsLabScale=false, PolicyEngine:Core.Recruitment=Shadow, Recruitment:Approvals:AlwaysStartWorkflow=true);
+            the active profile is recorded in before.json / db-checks.json.
             1. central-a creates a requisition on a free AC33-POOL position and submits it → PendingApproval with a
                RECRUITMENT-REQUISITION-APPROVAL instance (before PLAN-25: no instance — G-02).
             2. br1-mgr approves step 1, a-management-approver step 2 → Approved, instance Completed.
             """);
-        await RequireProdLikeAsync(s);
+        var profile = await ProfileAsync();
 
         var id = await CreateRequisitionAsync(s, "25a");
-        s.Recorder.WriteBefore(new { requisitionId = id, state = await RequisitionStateAsync(id), profile = "prod-like" });
+        s.Recorder.WriteBefore(new { requisitionId = id, state = await RequisitionStateAsync(id), profile });
         await s["central-a"].PostAsync("25a-submit", $"ui/hr-core/RecruitmentRequisitions/Submit/{id}", ReqDetails(id), []);
         var submitted = (await RequisitionStateAsync(id)).Split('|');
         Assert.Equal("PendingApproval", submitted[0]);
@@ -53,7 +56,7 @@ public class AcHcm25ProductionApprovalTests
         Assert.Equal("Approved|Completed", approved);
 
         await s.AuditAsync(id);
-        s.Checks(new { requisitionId = id, workflowInstanceId = submitted[1], approved });
+        s.Checks(new { requisitionId = id, workflowInstanceId = submitted[1], approved, profile });
         s.Recorder.WriteResult("Pass");
     }
 
@@ -63,11 +66,11 @@ public class AcHcm25ProductionApprovalTests
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "25b", "AC-HCM-25b prod-like: offer submit → two approvals → Issued", Approvers);
         s.Steps("""
-            Profile: prod-like. Precondition (test-only SQL, ranking is AC-HCM-26): an HR application on a published pool requisition is Ranked 1.
+            Profile: prod-like (recorded in db-checks.json). Precondition (test-only SQL, ranking is AC-HCM-26): an HR application on a published pool requisition is Ranked 1.
             1. central-a creates the offer at the G5 mid salary and submits it → PendingApproval with RECRUITMENT-OFFER-APPROVAL at step 1.
             2. br1-mgr approves step 1, a-management-approver step 2 → Issued.
             """);
-        await RequireProdLikeAsync(s);
+        var profile = await ProfileAsync();
 
         var reqId = await PublishRequisitionAsync(s, "25b");
         var appId = await CreateApplicationAsync(s, "25b", reqId);
@@ -89,7 +92,7 @@ public class AcHcm25ProductionApprovalTests
         Assert.Equal(OfferIssued.ToString(CultureInfo.InvariantCulture), (await OfferStateAsync(offerId)).Split('|')[0]);
 
         await s.AuditAsync(offerId, appId);
-        s.Checks(new { offerId, workflowInstanceId = state[1], issued = true });
+        s.Checks(new { offerId, workflowInstanceId = state[1], issued = true, profile });
         s.Recorder.WriteResult("Pass");
     }
 
@@ -393,15 +396,14 @@ public class AcHcm25ProductionApprovalTests
         ui.PostAsync(step, $"ui/hr-core/SelectionCommittees/ApproveWorkflow/{sessionId}", SessionDetails(sessionId),
             [new("SessionId", sessionId), new("Comments", $"PLAN-25 {step}")]);
 
-    /// <summary>25a/25b need the Production values on hr-core-web; elsewhere they are Blocked (Fail under REQUIRE_ALL).</summary>
-    private static async Task RequireProdLikeAsync(RecruitmentSession s)
+    /// <summary>Which recruitment profile hr-core-web runs: «prod-like» only with the Production values of decision 10.</summary>
+    private static async Task<string> ProfileAsync()
     {
         var labScale = await HrCoreEnvAsync("NationalScope__IsLabScale");
         var policy = await HrCoreEnvAsync("PolicyEngine__Core.Recruitment");
-        AcceptanceGate.RequireData(s.Recorder, labScale == "false" && policy == "Shadow",
-            "يتطلب السيناريو ملف الإعدادات الشبيه بالإنتاج (docker-compose.acceptance-prodlike.yml)",
-            $"hr-core-web is not on the prod-like profile (IsLabScale={labScale ?? "unset"}, Core.Recruitment={policy ?? "unset"}) — " +
-            "recreate it with docker-compose.acceptance-prodlike.yml.");
+        return labScale == "false" && policy == "Shadow"
+            ? "prod-like (IsLabScale=false, Core.Recruitment=Shadow)"
+            : $"lab (IsLabScale={labScale ?? "unset"}, Core.Recruitment={policy ?? "unset"})";
     }
 
     private static async Task<string?> HrCoreEnvAsync(string name)

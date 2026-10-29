@@ -1,0 +1,16 @@
+{
+  "scenario": "25h",
+  "explicitAuditQuery": true,
+  "source": "hr_core_db.AuditLogs",
+  "entityIds": [
+    "e0d6a671-2d0d-4556-9b7f-5a857de7cf8e"
+  ],
+  "rows": [
+    "RecruitmentRequisition|e0d6a671-2d0d-4556-9b7f-5a857de7cf8e|Created|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T20:20:39",
+    "RecruitmentRequisition|e0d6a671-2d0d-4556-9b7f-5a857de7cf8e|ApprovalWorkflowRestarted|dca9f8af-f0ea-2246-ac5b-0bc4b5779040|2026-10-29T20:20:42",
+    "RecruitmentRequisition|e0d6a671-2d0d-4556-9b7f-5a857de7cf8e|Updated|dca9f8af-f0ea-2246-ac5b-0bc4b5779040|2026-10-29T20:20:42",
+    "RecruitmentRequisition|e0d6a671-2d0d-4556-9b7f-5a857de7cf8e|Updated|f8074858-ca9a-f843-b006-2609de1492ec|2026-10-29T20:20:43",
+    "RecruitmentRequisition|e0d6a671-2d0d-4556-9b7f-5a857de7cf8e|CancelRequisition|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T20:20:44",
+    "RecruitmentRequisition|e0d6a671-2d0d-4556-9b7f-5a857de7cf8e|Updated|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T20:20:44"
+  ]
+}

@@ -3,12 +3,11 @@
   "explicitAuditQuery": true,
   "source": "hr_core_db.AuditLogs",
   "entityIds": [
-    "0b5a591a-eab5-4aa7-9d65-f26921c7e7f1"
+    "a99690d5-1714-4110-9c64-0b2c1cdbd2f0"
   ],
   "rows": [
-    "OfferLetter|0b5a591a-eab5-4aa7-9d65-f26921c7e7f1|Created|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T16:54:20",
-    "OfferLetter|0b5a591a-eab5-4aa7-9d65-f26921c7e7f1|Updated|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T16:54:20",
-    "OfferLetter|0b5a591a-eab5-4aa7-9d65-f26921c7e7f1|Updated|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T16:54:20",
-    "OfferLetter|0b5a591a-eab5-4aa7-9d65-f26921c7e7f1|Updated|f8074858-ca9a-f843-b006-2609de1492ec|2026-10-29T16:54:21"
+    "OfferLetter|a99690d5-1714-4110-9c64-0b2c1cdbd2f0|Created|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T20:00:44",
+    "OfferLetter|a99690d5-1714-4110-9c64-0b2c1cdbd2f0|Updated|775c2919-e97a-1446-ab7e-eeea07401beb|2026-10-29T20:00:44",
+    "OfferLetter|a99690d5-1714-4110-9c64-0b2c1cdbd2f0|Updated|f8074858-ca9a-f843-b006-2609de1492ec|2026-10-29T20:00:45"
   ]
 }

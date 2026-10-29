@@ -1,0 +1,22 @@
+{
+  "step": "26h-26h-positive-submit-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/EstablishmentChanges/Submit/288353d3-bc0c-48a0-8d9e-88297664a151",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:11.1986561Z",
+  "body": {
+    "fields": [
+      "LegalSourceId=SYR-LAW-50-2004",
+      "DecisionReference=AC-HCM-26h"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/EstablishmentChanges/Details/288353d3-bc0c-48a0-8d9e-88297664a151",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/EstablishmentChanges/Details/288353d3-bc0c-48a0-8d9e-88297664a151",
+    "alerts": [
+      "\u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0646\u0634\u0626 \u0627\u0639\u062A\u0645\u0627\u062F \u0637\u0644\u0628\u0647 \u0627\u0644\u062E\u0627\u0635."
+    ]
+  }
+}

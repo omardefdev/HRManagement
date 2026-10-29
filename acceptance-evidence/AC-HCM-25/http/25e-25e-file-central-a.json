@@ -1,0 +1,16 @@
+{
+  "step": "25e-25e-file-central-a",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/FileAppeal",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:26.4733781Z",
+  "body": {
+    "fields": [
+      "id=11124820-caa3-4b4f-954c-1bd52f875e30",
+      "reason=\u064A\u0639\u062A\u0631\u0636 \u0627\u0644\u0645\u0631\u0634\u062D \u0639\u0644\u0649 \u0642\u0631\u0627\u0631 \u0627\u0644\u0641\u0631\u0632 (PLAN-25)"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/50ffbd75-5a8d-4afc-8b7a-ff638f31dbf6",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/50ffbd75-5a8d-4afc-8b7a-ff638f31dbf6"
+  }
+}

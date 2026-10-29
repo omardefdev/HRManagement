@@ -1,0 +1,20 @@
+{
+  "step": "26h-26h-positive-approve-2-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/EstablishmentChanges/ApproveWorkflow/288353d3-bc0c-48a0-8d9e-88297664a151",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:11.4092347Z",
+  "body": {
+    "fields": [
+      "ChangeRequestId=288353d3-bc0c-48a0-8d9e-88297664a151",
+      "Comments=AC-HCM-26h step 2"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/EstablishmentChanges/Details/288353d3-bc0c-48a0-8d9e-88297664a151",
+    "setCookies": [
+      ".AspNetCore.Mvc.CookieTempDataProvider"
+    ],
+    "final": "/ui/hr-core/EstablishmentChanges/Details/288353d3-bc0c-48a0-8d9e-88297664a151",
+    "alerts": []
+  }
+}

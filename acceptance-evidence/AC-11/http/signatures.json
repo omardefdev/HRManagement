@@ -1,0 +1,39 @@
+{
+  "step": "signatures",
+  "method": "GET",
+  "url": "/api/hr-core/api/signatures?subjectType=AssetAssignment",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:54.7590891Z",
+  "body": [
+    {
+      "id": "bda71684-9403-4119-8d20-3f726f9adc4e",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "subjectType": "AssetAssignment",
+      "subjectId": "1e486e64-569f-40c9-9ed2-d914595e77d2",
+      "signerSubject": "0e02f145-e290-4041-8468-7cf778874c5f",
+      "signerRole": "hr-management-approver",
+      "intent": "approve",
+      "occurredAtUtc": "2026-10-29T20:13:54.687828\u002B00:00",
+      "certificateThumbprint": "93B0E9203DB0957CAF34FE4C560A8698124F3231",
+      "canonicalPayloadHash": "9eb3e6426bf529a75434b70023075a1f9044ac4ca0140fef9f3958ece3904f75",
+      "signatureBase64": "NXzcw/G2XB8N3PmC1KY/bJw0Bp\u002BS2Akj8Q3fE9YoRSl4Oh45HlDGDiQ/kjY/hkMZ468hEjie0Ul3PGF3doyvQk0Tuad7HklrtJ7XpcELmAWe8G\u002BvIg6GoZmhYOBSOgHbYFk7NsAYl9NE9xYwXx9nUMEv2PkD7fQAA7ywck4EtKuJCeco8u\u002B6jWC1FWINt7icMb/cp8f9aCpbTvZBRJNLyltI8Ht2zJbPeX3SGN9IHVLlQgOV7w9A\u002Bb1r6KfYwJ1eQiXc12xEBW0mzvnPwbCUbH9vKOpeK7RgCxZO0Bd999sDXDd3r/LCaB8En0r4Ar3fWYm9PvpPRXWVYR4sNIdKJw==",
+      "algorithm": "SHA256withRSA",
+      "ltvStatus": "None"
+    },
+    {
+      "id": "7a1f62db-540b-48e2-9123-faf2c41f54d6",
+      "tenantId": "a0000002-0000-4000-8000-000000000001",
+      "subjectType": "AssetAssignment",
+      "subjectId": "1e486e64-569f-40c9-9ed2-d914595e77d2",
+      "signerSubject": "089b9c2d-a148-9240-8861-2176b13bcec9",
+      "signerRole": "hr-core",
+      "intent": "approve",
+      "occurredAtUtc": "2026-10-29T20:13:54.630058\u002B00:00",
+      "certificateThumbprint": "93B0E9203DB0957CAF34FE4C560A8698124F3231",
+      "canonicalPayloadHash": "5c0c6ed0c28371c24f42937c8e26779b588a1a17126d30c38f8268c0056a790c",
+      "signatureBase64": "cPB5cUM4we026nyIfN0UPePqpgVpo7/Y7Xn\u002BsMndZKjTm/eqPcqBSmqj6a0BXsv37Bkl6EoMoCPFt/2y/OJZAVwoRJUsaC5un5DRVtGg0l8FyqBbDWGtfNqfiYiIYbHGLZ/7Ggr/mf8TQ/RBEARPik9ahiGRaVXwagj7qnMpte8XG/2biqpU71BuFOymTmxqbmiinXXC1Bx7CX/3LcW9QVimi59EgmOEgIZXwdofozJpWwO8k47vHwKpjXZSsMKWLv2/SMQef\u002BL9ZGXNnH3bC7qAPOzbKQ8Rj1Hu8t/IyL8eaw\u002Bl63DJGpodCAc3mEzYvKm9R8lUS7FjMEp7yDnnyg==",
+      "algorithm": "SHA256withRSA",
+      "ltvStatus": "None"
+    }
+  ]
+}

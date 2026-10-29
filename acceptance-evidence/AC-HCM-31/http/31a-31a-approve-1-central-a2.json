@@ -1,0 +1,15 @@
+{
+  "step": "31a-31a-approve-1-central-a2",
+  "method": "POST",
+  "url": "/ui/hr-core/Competitions/ApproveWorkflow/85c6abcb-672b-4f84-8b69-68090648c386",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:06:19.7257944Z",
+  "body": {
+    "fields": [
+      "comments=AC-HCM-31a step 1"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/Competitions/Details/85c6abcb-672b-4f84-8b69-68090648c386",
+    "final": "/ui/hr-core/Competitions/Details/85c6abcb-672b-4f84-8b69-68090648c386"
+  }
+}

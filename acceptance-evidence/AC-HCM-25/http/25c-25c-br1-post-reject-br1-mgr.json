@@ -1,0 +1,16 @@
+{
+  "step": "25c-25c-br1-post-reject-br1-mgr",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/a0000001-0000-4000-8000-000000000903",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:13.1571119Z",
+  "body": {
+    "fields": [
+      "RequisitionId=a0000001-0000-4000-8000-000000000903",
+      "Comments=PLAN-25 25c wrong role"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/a0000001-0000-4000-8000-000000000903",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/a0000001-0000-4000-8000-000000000903"
+  }
+}

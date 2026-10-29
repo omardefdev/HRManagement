@@ -1,6 +1,7 @@
 Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-approver (step 2), an anonymous citizen.
 1. central-a: requisition on a free AC33-POOL position (RIF, G5), criteria v1, submit → PendingApproval + RECRUITMENT-REQUISITION-APPROVAL.
-   Refusal: a-management-approver gets no approve form at step 1 («هذه الخطوة تتطلب دور «hr-core».»; server-side role check = G-04, PLAN-25).
+   Refusal: a-management-approver gets no approve form at step 1 («هذه الخطوة تتطلب دور «hr-core».») and a direct POST
+   of the approval is refused by the server (G-04, PLAN-25) — the instance stays at step 1.
 2. br1-mgr step 1 → a-management-approver step 2 → Approved → publish with a closing date 10 days ahead.
 3. Refusal: with the closing date moved to yesterday (test-only SQL, restored) the citizen's application is refused.
    Citizen applies on /careers with profile, consent and a PDF CV (File.Storage + ClamAV) → CitizenApplication + RecruitmentApplication.
@@ -17,14 +18,14 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 
 ## Executed
 
-- 17:10:36 1 requisition
-  - after submit: PendingApproval|d5aa39a9-5d34-4aba-b584-d979c4091dc5
-- 17:10:37 2 approval and publication
-- 17:10:38 3 public application
-- 17:10:40 4 selection
+- 20:14:14 1 requisition
+  - after submit: PendingApproval|d0a1a278-499e-4ba1-a04c-2a8061acefa2
+- 20:14:17 2 approval and publication
+- 20:14:18 3 public application
+- 20:14:30 4 selection
   - test-only SQL: interview slot moved one hour into the past (as AC-HCM-26)
-- 17:10:44 5 offer
-- 17:10:46 6 candidate acceptance
-- 17:10:47 7 hire
-- 17:10:47 8 contracts and correlation
-- 17:10:49 done
+- 20:14:39 5 offer
+- 20:14:44 6 candidate acceptance
+- 20:14:45 7 hire
+- 20:14:47 8 contracts and correlation
+- 20:14:49 done

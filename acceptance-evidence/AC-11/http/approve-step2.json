@@ -1,0 +1,26 @@
+{
+  "step": "approve-step2",
+  "method": "POST",
+  "url": "/api/hr-core/api/workflow-instances/1fe5b9b4-a7b4-4dd8-a9f4-c851274594a8/approve",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:13:54.7111820Z",
+  "body": {
+    "definitionId": "f0050001-0001-4000-8000-000000000001",
+    "definitionVersion": 1,
+    "entityType": "AssetAssignment",
+    "entityId": "1e486e64-569f-40c9-9ed2-d914595e77d2",
+    "currentStepLevel": 2,
+    "status": 2,
+    "stepHistoryJson": "[{\u0022Level\u0022:1,\u0022StepName\u0022:\u0022\\u0645\\u0648\\u0627\\u0641\\u0642\\u0629 \\u0644\\u0648\\u062C\\u0633\\u062A\\u064A\\u0629\u0022,\u0022Status\u0022:1,\u0022ActorId\u0022:\u0022089b9c2d-a148-9240-8861-2176b13bcec9\u0022,\u0022ActorName\u0022:null,\u0022Comments\u0022:\u0022step1 ok\u0022,\u0022ActionAt\u0022:\u00222026-10-29T20:13:54.6212076Z\u0022},{\u0022Level\u0022:2,\u0022StepName\u0022:\u0022\\u0645\\u0648\\u0627\\u0641\\u0642\\u0629 \\u0625\\u062F\\u0627\\u0631\\u064A\\u0629\u0022,\u0022Status\u0022:1,\u0022ActorId\u0022:\u00220e02f145-e290-4041-8468-7cf778874c5f\u0022,\u0022ActorName\u0022:null,\u0022Comments\u0022:\u0022step2 ok\u0022,\u0022ActionAt\u0022:\u00222026-10-29T20:13:54.6868484Z\u0022}]",
+    "contextJson": null,
+    "initiatedBy": "089b9c2d-a148-9240-8861-2176b13bcec9",
+    "initiatedByName": null,
+    "startedAt": "2026-10-29T20:13:53.704169Z",
+    "completedAt": "2026-10-29T20:13:54.6918621Z",
+    "approvalRequestId": null,
+    "id": "1fe5b9b4-a7b4-4dd8-a9f4-c851274594a8",
+    "tenantId": "a0000002-0000-4000-8000-000000000001",
+    "createdAt": "2026-10-29T20:13:53.704106Z",
+    "updatedAt": "2026-10-29T20:13:54.6921278Z"
+  }
+}

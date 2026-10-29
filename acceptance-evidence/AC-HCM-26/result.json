@@ -1,38 +1,38 @@
 {
-  "status": "Blocked",
-  "reason": "26h: Blocked \u2014 No second central hr-core persona in agency A to approve ESTABLISHMENT-CHANGE-APPROVAL step 1 (SoD with central-a). The freeze cascade is covered on PostgreSQL by Hcm026EstablishmentCascadeIntegrationTests. \u2014 \u0644\u0627 \u062A\u0648\u062C\u062F \u0641\u064A \u0627\u0644\u062C\u0647\u0629 (\u0623) \u0634\u062E\u0635\u064A\u0629 \u0645\u0631\u0643\u0632\u064A\u0629 \u062B\u0627\u0646\u064A\u0629 \u0628\u062F\u0648\u0631 hr-core \u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u062E\u0637\u0648\u0629 \u0627\u0644\u0623\u0648\u0644\u0649 \u0645\u0646 ESTABLISHMENT-CHANGE-APPROVAL (\u0641\u0635\u0644 \u0627\u0644\u0645\u0647\u0627\u0645 \u0639\u0646 central-a)",
-  "correlationId": "a16ff929-f2df-49ae-8a91-a956ef33f022",
-  "recordedAtUtc": "2026-10-29T17:00:05.0505817Z",
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "81f7e9e7-0102-4c15-be4b-281f8ae7e534",
+  "recordedAtUtc": "2026-10-29T20:13:12.6561669Z",
   "scenarios": {
     "26g-neg": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "32d93f79-7c9b-45f8-a134-526c06850944",
-      "recordedAtUtc": "2026-10-29T16:58:16.8465760Z"
+      "correlationId": "f6998a67-ef69-4f03-8302-c42671f200ce",
+      "recordedAtUtc": "2026-10-29T20:08:42.0103301Z"
     },
     "26a-e": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "ef46bf63-0265-4081-93f1-022e51360e73",
-      "recordedAtUtc": "2026-10-29T16:58:31.8387819Z"
+      "correlationId": "bd57f795-3163-4a5f-9ae2-18a04abca0d5",
+      "recordedAtUtc": "2026-10-29T20:08:59.4694312Z"
     },
     "26f-g": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "60c433d8-6651-4a81-b480-4b8586b8eb05",
-      "recordedAtUtc": "2026-10-29T16:58:41.9076957Z"
+      "correlationId": "affe4c26-b6ff-4ca1-b611-8d8af64cdd68",
+      "recordedAtUtc": "2026-10-29T20:09:11.8733663Z"
     },
     "26i": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "0c5b0982-3684-46d2-82b1-bc1674236f50",
-      "recordedAtUtc": "2026-10-29T17:00:04.4330963Z"
+      "correlationId": "855c952c-118b-4530-89ea-9ac0d3019d0d",
+      "recordedAtUtc": "2026-10-29T20:10:37.0181503Z"
     },
     "26h": {
-      "status": "Blocked",
-      "reason": "No second central hr-core persona in agency A to approve ESTABLISHMENT-CHANGE-APPROVAL step 1 (SoD with central-a). The freeze cascade is covered on PostgreSQL by Hcm026EstablishmentCascadeIntegrationTests. \u2014 \u0644\u0627 \u062A\u0648\u062C\u062F \u0641\u064A \u0627\u0644\u062C\u0647\u0629 (\u0623) \u0634\u062E\u0635\u064A\u0629 \u0645\u0631\u0643\u0632\u064A\u0629 \u062B\u0627\u0646\u064A\u0629 \u0628\u062F\u0648\u0631 hr-core \u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0627\u0644\u062E\u0637\u0648\u0629 \u0627\u0644\u0623\u0648\u0644\u0649 \u0645\u0646 ESTABLISHMENT-CHANGE-APPROVAL (\u0641\u0635\u0644 \u0627\u0644\u0645\u0647\u0627\u0645 \u0639\u0646 central-a)",
-      "correlationId": "a16ff929-f2df-49ae-8a91-a956ef33f022",
-      "recordedAtUtc": "2026-10-29T17:00:05.0505817Z"
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "81f7e9e7-0102-4c15-be4b-281f8ae7e534",
+      "recordedAtUtc": "2026-10-29T20:13:12.6561669Z"
     }
   }
 }

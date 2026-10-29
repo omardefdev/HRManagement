@@ -1,0 +1,7 @@
+{
+  "step": "approve-self-negative",
+  "method": "POST",
+  "url": "/api/payroll/runs/7d399dc9-81b5-41b1-919a-c666e762f455/approve",
+  "statusCode": 403,
+  "capturedAtUtc": "2026-10-29T20:13:52.9563987Z"
+}

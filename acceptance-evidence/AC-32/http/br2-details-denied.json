@@ -1,0 +1,10 @@
+{
+  "step": "br2-details-denied",
+  "method": "GET",
+  "url": "/ui/admin-logistics/Assets/Details/a0000001-0000-4000-8000-000000000601",
+  "statusCode": 403,
+  "capturedAtUtc": "2026-10-29T20:13:48.1130264Z",
+  "body": {
+    "length": 0
+  }
+}

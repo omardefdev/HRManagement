@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-HCM-25h repair script: dry run lists seeded stuck rows; -Apply starts their workflows",
+  "personaId": "central-a\u002Bbr1-mgr",
+  "correlationId": "710ee627-c710-4481-8f27-ee7c932d58ff",
+  "capturedAtUtc": "2026-10-29T20:20:39.1449933Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
+}

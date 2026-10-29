@@ -1,17 +1,17 @@
 {
   "step": "26f-g-submit-requisition-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/f42d0870-c556-497a-b120-33d325403f69",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/efcdb58d-1866-4be7-861a-70b0582e1042",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T16:58:37.9185395Z",
+  "capturedAtUtc": "2026-10-29T20:09:07.8862334Z",
   "body": {
     "fields": [],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/f42d0870-c556-497a-b120-33d325403f69",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/efcdb58d-1866-4be7-861a-70b0582e1042",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/f42d0870-c556-497a-b120-33d325403f69",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/efcdb58d-1866-4be7-861a-70b0582e1042",
     "alerts": [
       "\u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0646\u0634\u0626 \u0627\u0639\u062A\u0645\u0627\u062F \u0637\u0644\u0628\u0647 \u0627\u0644\u062E\u0627\u0635."
     ]

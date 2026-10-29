@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:08:29.5033231Z",
+  "capturedAtUtc": "2026-10-29T19:58:48.3150386Z",
   "body": {
     "fields": [
       "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "FundedPositionId=a0000001-0000-4000-8000-000000000952",
+      "FundedPositionId=a0000001-0000-4000-8000-000000000946",
       "JobTitle=\u0648\u0638\u064A\u0641\u0629 AC-HCM-27",
       "JustificationNotes=PLAN-27 acceptance",
       "LegalSourceId=SYR-LAW-50-2004",
@@ -15,8 +15,8 @@
       "PublishingChannel=PublicOnly"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/b5806c8a-92c1-4240-8806-2497137ccf64",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/b5806c8a-92c1-4240-8806-2497137ccf64",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/f5065317-3a78-4725-9b3f-83054799a376",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/f5065317-3a78-4725-9b3f-83054799a376",
     "alerts": []
   }
 }

@@ -1,12 +1,12 @@
 {
   "scenario": "AC-HCM-26h freeze cascade",
   "personaId": "central-a\u002Bbr1-mgr\u002Ba-management-approver",
-  "correlationId": "a16ff929-f2df-49ae-8a91-a956ef33f022",
-  "capturedAtUtc": "2026-10-29T17:00:04.6259274Z",
+  "correlationId": "81f7e9e7-0102-4c15-be4b-281f8ae7e534",
+  "capturedAtUtc": "2026-10-29T20:12:44.1428554Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "dec31331314ebc53247d946ce8bdceb2cf3d7f7c"
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
 }

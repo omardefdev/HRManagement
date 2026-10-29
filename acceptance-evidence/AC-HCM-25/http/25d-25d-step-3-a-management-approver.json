@@ -1,0 +1,16 @@
+{
+  "step": "25d-25d-step-3-a-management-approver",
+  "method": "POST",
+  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/a18a3e06-d20f-4474-86a6-9939b2d62f33",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-29T20:20:36.3894204Z",
+  "body": {
+    "fields": [
+      "SessionId=a18a3e06-d20f-4474-86a6-9939b2d62f33",
+      "Comments=PLAN-25 25d-step-3"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/a18a3e06-d20f-4474-86a6-9939b2d62f33",
+    "final": "/ui/hr-core/SelectionCommittees/Details/a18a3e06-d20f-4474-86a6-9939b2d62f33"
+  }
+}

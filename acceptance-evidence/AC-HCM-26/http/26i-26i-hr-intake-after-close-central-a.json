@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T17:00:04.4305546Z",
+  "capturedAtUtc": "2026-10-29T20:10:37.0166722Z",
   "body": {
     "fields": [
       "ApplicantFullName=\u0645\u0631\u0634\u062D \u0628\u0639\u062F \u0627\u0644\u0625\u063A\u0644\u0627\u0642",
-      "RequisitionId=92db04b2-954d-4886-9409-4a9c5b655c01"
+      "RequisitionId=ef28ae9d-947d-4e96-9ac1-035645bbfad6"
     ],
     "postStatus": 200,
     "setCookies": [
@@ -15,7 +15,11 @@
     ],
     "final": "/ui/hr-core/RecruitmentApplications/Create",
     "alerts": [
-      "\u0627\u0644\u062A\u0642\u062F\u064A\u0645 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u0634\u0627\u063A\u0631 \u0645\u063A\u0644\u0642."
+      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
+      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
+      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
+      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2",
+      "\u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0646\u0627\u0642\u0635\u0629: 2 \u0645\u0646 2"
     ]
   }
 }
