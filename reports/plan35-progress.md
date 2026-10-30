@@ -224,3 +224,17 @@ journeys jobs free runner disk. actionlint clean, lint/parity tests 12/12.
 
 OWNER ACTION (P5 round 2) - Waiting for owner (UTC): 2026-10-30T17:26:38.8507310Z
 1. `git push origin release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T17:27:47.5851324Z - owner pushed 97020fa («تم»).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41099010391](https://github.com/omardefdev/HRManagement/actions/runs/41099010391) | 97020fa | ci | 17:27:38 | 18:25:54 (58 min) | failure | CI **ok** 31; CodeQL **ok** 32; Gitleaks **ok** 2; notice ok 1; E2E **fail** 28: stack healthy on attempt 2 (cold-start retry: auth-directory-web, dev-analytics-web exit 139 on attempt 1), then "Install Playwright browsers": ubuntu-latest is Ubuntu 26.04 and Playwright 1.50.1 "does not support chromium on ubuntu26.04-x64". ~94 min |
+
+(The first watcher stopped on a GitHub API 502; the run itself was unaffected.) Free-disk step: 15 GB -> 37 GB free.
+
+Round 3 fix (`444e8c29` on release): the E2E and Acceptance jobs of ci.yml and both e2e-journeys jobs run on ubuntu-24.04.
+Later plan: upgrade Microsoft.Playwright (Dependabot PR #20 offers 1.61.0) and drop the pin (dated obligation added
+with the final report). actionlint clean, lint/parity 12/12.
+
+OWNER ACTION (P5 round 3) - Waiting for owner (UTC): 2026-10-30T18:29:02.9968344Z
+1. `git push origin release/plan-35-first-push`
