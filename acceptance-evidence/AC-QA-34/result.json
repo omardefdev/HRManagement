@@ -31,10 +31,10 @@
       "recordedAtUtc": "2026-10-30T13:09:01.9480633Z"
     },
     "34g": {
-      "status": "Blocked",
-      "reason": "The base (CI) realm issues access tokens without realm roles (no \u0027roles\u0027 client scope), so /api/files returns 403 \u0027missing role for this module\u0027 for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41). \u2014 \u0631\u0645\u0632 \u0627\u0644\u0648\u0635\u0648\u0644 \u0641\u064A realm \u0627\u0644\u0623\u0633\u0627\u0633\u064A \u0628\u0644\u0627 \u0623\u062F\u0648\u0627\u0631\u060C \u0641\u0644\u0627 \u064A\u0645\u0631 \u0637\u0644\u0628 \u0627\u0644\u0631\u0641\u0639",
-      "correlationId": "qa34-34g-a787b2e8c2094891b4f6439501aaca1c",
-      "recordedAtUtc": "2026-10-30T13:09:03.5128211Z"
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34g-876a2368479d45e9bfbe807831c2b400",
+      "recordedAtUtc": "2026-10-30T14:29:27.2664794Z"
     },
     "34c": {
       "status": "Pass",
@@ -55,8 +55,8 @@
       "recordedAtUtc": "2026-10-30T13:09:05.0708580Z"
     }
   },
-  "status": "Blocked",
-  "reason": "34g: Blocked \u2014 The base (CI) realm issues access tokens without realm roles (no \u0027roles\u0027 client scope), so /api/files returns 403 \u0027missing role for this module\u0027 for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41). \u2014 \u0631\u0645\u0632 \u0627\u0644\u0648\u0635\u0648\u0644 \u0641\u064A realm \u0627\u0644\u0623\u0633\u0627\u0633\u064A \u0628\u0644\u0627 \u0623\u062F\u0648\u0627\u0631\u060C \u0641\u0644\u0627 \u064A\u0645\u0631 \u0637\u0644\u0628 \u0627\u0644\u0631\u0641\u0639",
-  "correlationId": "qa34-34e-56978f02195f4614bd1bcf3fb7ec55ca",
-  "recordedAtUtc": "2026-10-30T13:09:05.0708580Z"
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "qa34-34g-876a2368479d45e9bfbe807831c2b400",
+  "recordedAtUtc": "2026-10-30T14:29:27.2664794Z"
 }

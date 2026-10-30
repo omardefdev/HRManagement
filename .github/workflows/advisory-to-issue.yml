@@ -8,6 +8,12 @@ on:
 jobs:
   sync:
     name: Dependabot alerts → Issues (SUP-001-E)
+    # PLAN-35 (G-QA-11/15): GITHUB_TOKEN cannot read Dependabot alerts, so the schedule runs only when the owner has set
+    # the secret DEPENDABOT_ALERTS_TOKEN and the variables DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true and
+    # ENABLE_SCHEDULED=true. Until then: workflow_dispatch only (dated obligation SUP001-DEPENDABOT-ALERTS-TOKEN).
+    if: >-
+      github.event_name != 'schedule' ||
+      (vars.ENABLE_SCHEDULED == 'true' && vars.DEPENDABOT_ALERTS_TOKEN_CONFIGURED == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,6 +24,6 @@ jobs:
 
       - name: Sync alerts to issues
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_ALERTS_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash scripts/sync-dependabot-alerts-to-issues.sh

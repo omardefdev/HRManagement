@@ -163,6 +163,47 @@
       "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "unit:CiStepsParityTests (every Category!= filter in scripts/ci/steps.json has an entry)"],
       "owner": "qa",
       "note": "A test category excluded from CI must have an owner plan and a review date."
+    },
+    {
+      "id": "QA-GOVERNANCE-EXCEPTIONS",
+      "file": "docs/qa/governance-exceptions.json",
+      "selector": "exceptions[*]",
+      "idField": "id",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Closed"],
+      "enforcedBy": [
+        "ci:Dated obligations horizon (QA-034)",
+        "unit:Scm001BranchProtectionExceptionTests (scm001-branch-protection-validate.ps1 accepts a relaxed protection value only through an Open, unexpired entry)"
+      ],
+      "owner": "omardefdev",
+      "note": "PLAN-35: branch-protection relaxations (D-QA-1, D-QA-16, merge commits), the Acceptance job disabled until PLAN-41, the Dependabot alerts token. Close by restoring the policy value, never by moving the date."
+    },
+    {
+      "id": "QA-CODEQL-BASELINE",
+      "allowEmpty": true,
+      "file": "docs/qa/codeql-baseline.json",
+      "selector": "entries[*]",
+      "idField": "id",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Fixed"],
+      "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "ci:CodeQL job, scripts/ci/codeql-sarif-gate.ps1 (an expired entry fails the gate)"],
+      "owner": "security",
+      "note": "D-QA-18: every accepted CodeQL finding of level error or security-severity >= 7.0 has an owner and a review date."
+    },
+    {
+      "id": "QA-E2E-QUARANTINE",
+      "allowEmpty": true,
+      "file": "tests/e2e/quarantine.json",
+      "selector": "entries[*]",
+      "idField": "test",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Released"],
+      "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "ci:E2E job (scripts/ci/e2e-quarantine-filter.sh prints every quarantined case)"],
+      "owner": "qa",
+      "note": "PLAN-35 triage rule 3: shallow E2E cases failing for a product reason; fixed in QA-H."
     }
   ],
   "historical": [
@@ -195,6 +236,16 @@
       "file": "testdata/qa/dated-obligations/**",
       "keys": ["expiresOn", "nextDue", "reviewBy"],
       "reason": "Fixtures for dated-obligations-check.ps1 itself (DatedObligationsTests runs them with -AsOfDate)."
+    },
+    {
+      "file": "testdata/qa/codeql-gate/**",
+      "keys": ["reviewBy"],
+      "reason": "Fixtures for scripts/ci/codeql-sarif-gate.ps1 (CodeqlSarifGateTests runs them with -AsOfDate); the live baseline is QA-CODEQL-BASELINE."
+    },
+    {
+      "file": "testdata/qa/branch-protection/**",
+      "keys": ["reviewBy"],
+      "reason": "Fixtures for scripts/scm001-branch-protection-validate.ps1 (Scm001BranchProtectionExceptionTests runs them with -AsOfDate); the live register is QA-GOVERNANCE-EXCEPTIONS."
     }
   ]
 }

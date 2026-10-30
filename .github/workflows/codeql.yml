@@ -1,25 +1,22 @@
 name: codeql
 
+# PLAN-35 (G-QA-07): the per-push and per-PR CodeQL analysis is the "CodeQL" job of ci.yml (a required check); this
+# workflow keeps only the weekly schedule and manual runs, with the same SARIF gate.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   schedule:
     - cron: "17 5 * * 1"
+  workflow_dispatch:
 
 jobs:
   analyze:
-    name: CodeQL (SUP-001-C)
+    name: CodeQL (SUP-001-C, weekly)
+    # The schedule runs only after the owner sets ENABLE_SCHEDULED=true; workflow_dispatch always runs.
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       contents: read
       actions: read
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [csharp]
     steps:
       - uses: actions/checkout@v4
 
@@ -29,14 +26,29 @@ jobs:
 
       - uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: csharp
 
       - name: Build for CodeQL
         run: |
           dotnet restore HRManagement.slnx --locked-mode
           dotnet build HRManagement.slnx --configuration Release --no-restore
 
+      # D-QA-18: upload only when CODE_SCANNING_UPLOAD is true; the gate decides on the SARIF either way.
       - uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
-          upload: false
+          category: "/language:csharp"
+          upload: ${{ vars.CODE_SCANNING_UPLOAD == 'true' && 'always' || 'never' }}
+          output: sarif-results
+
+      - name: CodeQL SARIF gate (new error or security-severity >= 7.0 fails)
+        run: pwsh -NoProfile -File scripts/ci/codeql-sarif-gate.ps1 -Sarif sarif-results -Baseline docs/qa/codeql-baseline.json -OutFile artifacts/codeql-gate.json
+
+      - name: Upload SARIF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-weekly
+          path: |
+            sarif-results/**
+            artifacts/codeql-gate.json
+          if-no-files-found: warn

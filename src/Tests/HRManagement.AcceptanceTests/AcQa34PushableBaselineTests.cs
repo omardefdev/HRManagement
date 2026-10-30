@@ -515,9 +515,9 @@ public class AcQa34PushableBaselineTests
         Assert.NotEqual(0, overlayExit);
         Assert.Contains("MINIO_IMAGE", overlayOut, StringComparison.Ordinal);
 
-        // The gateway admits /api/files for hr-admin or file-storage. In the base (CI) realm the password-grant token of
-        // every persona carries no realm roles (no "roles" client scope; "profile"/"email" are rejected as invalid
-        // scopes), so the upload cannot be authorised here: Blocked, not Pass (realm finding → PLAN-41).
+        // The gateway admits /api/files for hr-admin or file-storage. Until PLAN-35 the base (CI) realm issued tokens
+        // without realm roles (its own clientScopes list replaced Keycloak's built-in roles/profile/email scopes); the
+        // template now carries them (P-1). A token without realm roles is still Blocked, not Pass.
         AcceptanceGate.RequireData(r, tokenRoles.Length > 0,
             "رمز الوصول في realm الأساسي بلا أدوار، فلا يمر طلب الرفع",
             "The base (CI) realm issues access tokens without realm roles (no 'roles' client scope), so /api/files returns 403 'missing role for this module' for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41).");

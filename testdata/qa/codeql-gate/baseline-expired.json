@@ -1,0 +1,16 @@
+{
+  "card": "PLAN-35",
+  "description": "CodeqlSarifGateTests fixture",
+  "entries": [
+    {
+      "id": "CQ-FIXTURE-1",
+      "ruleId": "cs/sql-injection",
+      "path": "src/Fixture/Query.cs",
+      "fingerprint": "aaaa1111:1",
+      "owner": "qa",
+      "reviewBy": "2026-10-01",
+      "status": "Open",
+      "reason": "fixture"
+    }
+  ]
+}

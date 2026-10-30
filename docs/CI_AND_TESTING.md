@@ -164,6 +164,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 | البوابة | إلزامية؟ | ملاحظات |
 |---------|----------|---------|
 | Dated obligations horizon | نعم | `scripts/qa/dated-obligations-check.ps1` (QA-034) |
+| Workflow lint | نعم | `scripts/ci/actionlint.sh`: actionlint + shellcheck بصورة مثبّتة بالـ digest (`docs/qa/tool-pins.json`)؛ و`WorkflowYamlLintTests` (لا `
+` حرفي في `run`، و`--locked-mode` في كل استعادة، وحارس المجدولات) — PLAN-35 |
 | Format | نعم | `dotnet format --verify-no-changes` |
 | Build | نعم | الحل بالكامل، `-warnaserror`؛ NU1903/NU1904 أخطاء في `Directory.Build.props` |
 | Unit + coverage | نعم | `coverlet.runsettings` |
@@ -179,15 +181,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 | No LEGAL_TBD in payroll release path | نعم | `check-no-legal-tbd.py` (GOV-002) |
 | Master data DQ thresholds (offline fixture) | نعم | `gov003-data-quality-report.py` + `testdata/gov003` (GOV-003) |
 | Docker compose build | نعم | تحقق بناء الصور |
-| E2E Playwright smoke | اختياري | وسم `e2e` على PR |
-| E2E Journeys (QA-004) | nightly / pre-release | `.github/workflows/e2e-journeys.yml`؛ صور الإصدار عند `IMAGE_TAG` |
+| E2E (وظيفة `E2E`) | نعم (فحص مطلوب بعد تشغيلين أخضرين، D-QA-2) | المكدّس الأساسي عبر `scripts/ci/compose-up-retry.sh` (ملكية وحدة File.Storage وإعادة محاولة واحدة للإقلاع البارد، PLAN-35)؛ المعزول في [`tests/e2e/quarantine.json`](../tests/e2e/quarantine.json) يُطبع في ملخص الوظيفة |
+| Acceptance | معطّلة حتى PLAN-41 | تعمل فقط حين `vars.ENABLE_ACCEPTANCE_JOB == 'true'`؛ وظيفة «Acceptance disabled notice» تطبع ذلك؛ الالتزام `CI-ACCEPTANCE-DISABLED` في [`docs/qa/governance-exceptions.json`](qa/governance-exceptions.json) |
+| E2E Journeys (QA-004) | nightly / pre-release | `.github/workflows/e2e-journeys.yml`؛ صور الإصدار عند `IMAGE_TAG`؛ المجدول لا يعمل إلا مع `ENABLE_SCHEDULED=true` |
 | E2E axe a11y (UX-002) | مع `RUN_PLAYWRIGHT_E2E=true` | `A11yAxeE2ETests` + `testdata/e2e/axe.min.js` |
-| CodeQL / Gitleaks | نعم (workflows منفصلة) | `.github/workflows/codeql.yml`, `gitleaks.yml` (SUP-001) |
+| CodeQL | نعم (وظيفة `CodeQL` في `ci.yml`) | التحليل ثم `scripts/ci/codeql-sarif-gate.ps1`: يفشل على نتيجة `error` أو `security-severity` ≥ 7.0 خارج [`docs/qa/codeql-baseline.json`](qa/codeql-baseline.json) أو ببند منتهٍ؛ الرفع إلى code scanning فقط مع `vars.CODE_SCANNING_UPLOAD == 'true'` (D-QA-18)؛ `codeql.yml` أسبوعي ويدوي فقط |
+| Gitleaks | نعم (وظيفة `Gitleaks` في `ci.yml`) | `scripts/ci/gitleaks.sh`: صورة gitleaks مثبّتة على التاريخ كاملاً بـ `.gitleaks.toml` (القواعد الافتراضية + استثناءات ضيقة بمسار ونص)؛ يفشل أيضاً إن فحص commits أقل من HEAD (PLAN-35) |
 | Deploy SBOM + Cosign verify | مسار الإصدار | `deploy.yml`؛ انظر [SUP_001_VERIFICATION.md](./SUP_001_VERIFICATION.md) |
 | CSP / security headers | نعم (runtime) | `UseHrSecurityHeaders`؛ انظر [UX_001_VERIFICATION.md](./UX_001_VERIFICATION.md) |
 
-### `gateway-ci.yml` (مسارات Gateway/Shared/Tests)
+### سير العمل المحذوفة والمجدولة (PLAN-35)
 
-نفس بوابات format + build + unit + integration + coverage gate (متوافق مع `ci.yml` بعد QA-001).
+- حُذف `gateway-ci.yml` (كان يكرر الوحدة والتكامل، ويستعيد مشروعين ثم ينسّق الحل كله، و`e2e-gateway` بلا `--profile full-stack`) و`gitleaks.yml` (مكرر لوظيفة `Gitleaks`). `ci.yml` يغطي مساراتهما.
+- المجدولات (`e2e-journeys`، `mutation`، `advisory-to-issue`، `codeql` الأسبوعي، `iac-drift`) لا تعمل بالجدول إلا حين `vars.ENABLE_SCHEDULED == 'true'`؛ يضبطه المالك بعد الاخضرار. `dated-obligations.yml` يعمل أسبوعياً دائماً. `advisory-to-issue` يحتاج أيضاً السر `DEPENDABOT_ALERTS_TOKEN` والمتغير `DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true` (الالتزام `SUP001-DEPENDABOT-ALERTS-TOKEN`)، وسكربته يفشل صراحة عند رفض الطلب.
+- فحص ما قبل الدفع: `powershell -File scripts/plan035-prepush.ps1` (gitleaks على التاريخ كاملاً والمدى، actionlint، ملخص ci-local، الملفات الممنوعة، GOV-001-D، التوقيع)، وخطاف اختياري `powershell -File scripts/scm/install-hooks.ps1`.
 
 قائمة تحقق يدوية للواجهة: [UI_CHECKLIST.md](UI_CHECKLIST.md).

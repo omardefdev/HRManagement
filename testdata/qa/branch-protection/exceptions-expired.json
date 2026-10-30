@@ -1,0 +1,56 @@
+{
+  "card": "PLAN-35",
+  "description": "Scm001BranchProtectionExceptionTests fixture",
+  "exceptions": [
+    {
+      "id": "SCM-REVIEW-COUNT-0",
+      "decision": "D-QA-1",
+      "relaxes": "branch protection: required_approving_review_count 0 (policy 2), require_code_owner_reviews false, require_last_push_approval false - single developer",
+      "owner": "omardefdev",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2026-10-01",
+      "status": "Open",
+      "closeWhen": "A second reviewer exists (SYD-017); restore 2 approvals, code-owner and last-push approval."
+    },
+    {
+      "id": "SCM-UNSIGNED-COMMITS",
+      "decision": "D-QA-16",
+      "relaxes": "branch protection: required_signatures false (policy true); the existing history stays unsigned and is never rewritten for signatures",
+      "owner": "omardefdev",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2026-10-01",
+      "status": "Open",
+      "closeWhen": "The owner has an SSH signing key registered on GitHub; new commits are signed and required_signatures is restored."
+    },
+    {
+      "id": "SCM-MERGE-COMMITS",
+      "decision": "PLAN-35 first push",
+      "relaxes": "branch protection: required_linear_history false (policy true) - the history being pushed contains merge commits and PRs merge with merge commits (P-5)",
+      "owner": "omardefdev",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2026-10-01",
+      "status": "Open",
+      "closeWhen": "The owner chooses squash/rebase merges for PRs; restore required_linear_history."
+    },
+    {
+      "id": "CI-ACCEPTANCE-DISABLED",
+      "decision": "PLAN-35 section 2",
+      "relaxes": "ci.yml job Acceptance runs only when the repository variable ENABLE_ACCEPTANCE_JOB is true; it is not a required check",
+      "owner": "PLAN-41",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2026-10-01",
+      "status": "Open",
+      "closeWhen": "PLAN-41 makes the acceptance job green, sets ENABLE_ACCEPTANCE_JOB=true and adds Acceptance to the required checks."
+    },
+    {
+      "id": "SUP001-DEPENDABOT-ALERTS-TOKEN",
+      "decision": "PLAN-35 section 2 (G-QA-11)",
+      "relaxes": "advisory-to-issue runs on workflow_dispatch only (no schedule) until the secret DEPENDABOT_ALERTS_TOKEN and the variable DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true exist; GITHUB_TOKEN cannot read Dependabot alerts",
+      "owner": "omardefdev",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2026-10-01",
+      "status": "Open",
+      "closeWhen": "The owner creates the fine-grained PAT (Dependabot alerts: read, Issues: write), stores it as DEPENDABOT_ALERTS_TOKEN and sets DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true."
+    }
+  ]
+}

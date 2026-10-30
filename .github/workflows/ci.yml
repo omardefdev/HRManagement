@@ -55,6 +55,9 @@ jobs:
       - name: Dated obligations horizon (QA-034)
         run: bash scripts/ci/run-steps.sh --step "Dated obligations horizon (QA-034)"
 
+      - name: Workflow lint (actionlint)
+        run: bash scripts/ci/run-steps.sh --step "Workflow lint (actionlint)"
+
       - name: STR-002 control runtime validate
         run: bash scripts/ci/run-steps.sh --step "STR-002 control runtime validate"
 
@@ -310,20 +313,23 @@ jobs:
       - name: Prepare CI stack environment
         run: bash scripts/prepare-ci-compose-env.sh
 
+      # PLAN-35 (P-1): volume ownership for file-storage-web and one cold-start retry, CI path only.
       - name: Start stack
-        run: docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack up -d --wait --wait-timeout 600
+        run: bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml --profile full-stack
 
       - name: Wait for gateway health
         run: |
           set -euo pipefail
+          # PLAN-35: the browser tests follow the login redirect to Keycloak, so wait for its realm too.
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:5000/health/live >/dev/null; then
-              echo "Gateway healthy after ${i} attempt(s)"
+            if curl -sf http://localhost:5000/health/live >/dev/null \
+              && curl -sf http://localhost:8088/realms/hrmanagement/.well-known/openid-configuration >/dev/null; then
+              echo "Gateway and Keycloak realm ready after ${i} attempt(s)"
               exit 0
             fi
             sleep 5
           done
-          echo "::error::Gateway /health/live not ready"
+          echo "::error::Gateway /health/live or the Keycloak realm not ready"
           docker compose ps
           docker compose logs hr-gateway --tail 80 || true
           exit 1
@@ -337,16 +343,24 @@ jobs:
       - name: Install Playwright browsers
         run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
 
+      # PLAN-35 (triage rule 3): cases in tests/e2e/quarantine.json are left out here and listed in the job summary.
+      - name: E2E quarantine filter
+        id: quarantine
+        run: |
+          filter=$(bash scripts/ci/e2e-quarantine-filter.sh)
+          echo "filter=${filter}" >> "$GITHUB_OUTPUT"
+
       - name: Run E2E tests
         env:
           RUN_PLAYWRIGHT_E2E: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
           E2E_KEYCLOAK_USER: "hradmin"
           E2E_KEYCLOAK_PASSWORD: "HrAdmin123!"
+          QUARANTINE_FILTER: ${{ steps.quarantine.outputs.filter }}
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release
-          --filter "Category!=JourneyProdLike&FullyQualifiedName!~RecruitmentToHireJourney"
+          --filter "Category!=JourneyProdLike&FullyQualifiedName!~RecruitmentToHireJourney${QUARANTINE_FILTER}"
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory ./TestResults/e2e
 
@@ -363,12 +377,39 @@ jobs:
             fi
           fi
 
+      - name: Upload E2E results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: TestResults/e2e/**
+          if-no-files-found: warn
+
       - name: Tear down stack
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack down -v
 
+  # PLAN-35 (section 2): the acceptance job cannot pass before PLAN-41. It runs only when the repository variable
+  # ENABLE_ACCEPTANCE_JOB is true (dated obligation CI-ACCEPTANCE-DISABLED in docs/qa/governance-exceptions.json);
+  # acceptance-disabled prints that in the run summary. "Acceptance" is the future required-check name.
+  acceptance-disabled:
+    name: Acceptance disabled notice
+    if: vars.ENABLE_ACCEPTANCE_JOB != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acceptance job disabled until PLAN-41
+        run: |
+          echo "::notice::Acceptance job disabled until PLAN-41 (ENABLE_ACCEPTANCE_JOB is not true; obligation CI-ACCEPTANCE-DISABLED, review by 2026-12-14)"
+          {
+            echo "### Acceptance: معطّلة حتى PLAN-41"
+            echo ""
+            echo "The Acceptance job runs only when the repository variable ENABLE_ACCEPTANCE_JOB is true."
+            echo "Dated obligation CI-ACCEPTANCE-DISABLED (docs/qa/governance-exceptions.json), owner PLAN-41, review by 2026-12-14."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   acceptance:
-    name: Acceptance (PLAN-00)
+    name: Acceptance
+    if: vars.ENABLE_ACCEPTANCE_JOB == 'true'
     runs-on: ubuntu-latest
     needs: [build-and-test]
     steps:
@@ -478,21 +519,42 @@ jobs:
         run: |
           dotnet restore HRManagement.slnx --locked-mode
           dotnet build HRManagement.slnx --configuration Release --no-restore
+      # PLAN-35 (D-QA-18): upload to code scanning only when CODE_SCANNING_UPLOAD is true (a private repository needs
+      # GitHub Code Security); the gate below decides on the SARIF either way.
       - uses: github/codeql-action/analyze@v3
         with:
           category: "/language:csharp"
-          upload: false
+          upload: ${{ vars.CODE_SCANNING_UPLOAD == 'true' && 'always' || 'never' }}
+          output: sarif-results
+      - name: CodeQL SARIF gate (new error or security-severity >= 7.0 fails)
+        run: pwsh -NoProfile -File scripts/ci/codeql-sarif-gate.ps1 -Sarif sarif-results -Baseline docs/qa/codeql-baseline.json -OutFile artifacts/codeql-gate.json
+      - name: Upload SARIF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: |
+            sarif-results/**
+            artifacts/codeql-gate.json
+          if-no-files-found: warn
 
   gitleaks:
     name: Gitleaks
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # PLAN-35: the gitleaks image pinned by digest (docs/qa/tool-pins.json) over the whole history with .gitleaks.toml,
+      # instead of gitleaks-action (unpinned gitleaks; with the old rule-less .gitleaks.toml it could not fail).
+      - name: Gitleaks (whole history)
+        run: bash scripts/ci/gitleaks.sh artifacts/gitleaks
+      - name: Upload gitleaks report (redacted)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: artifacts/gitleaks/
+          if-no-files-found: warn

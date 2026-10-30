@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": { "name": "CodeQL", "rules": [] },
+        "extensions": [
+          {
+            "name": "codeql/csharp-queries",
+            "rules": [
+              { "id": "cs/sql-injection", "defaultConfiguration": { "level": "warning" }, "properties": { "security-severity": "8.1" } },
+              { "id": "cs/web/xss", "defaultConfiguration": { "level": "warning" }, "properties": { "security-severity": "6.1" } },
+              { "id": "cs/useless-assignment-to-local", "defaultConfiguration": { "level": "note" }, "properties": {} }
+            ]
+          }
+        ]
+      },
+      "results": [
+        {
+          "ruleId": "cs/sql-injection",
+          "rule": { "id": "cs/sql-injection", "index": 0, "toolComponent": { "index": 0 } },
+          "message": { "text": "fixture" },
+          "locations": [ { "physicalLocation": { "artifactLocation": { "uri": "src/Fixture/NewQuery.cs" }, "region": { "startLine": 10 } } } ],
+          "partialFingerprints": { "primaryLocationLineHash": "bbbb2222:1" }
+        },
+        {
+          "ruleId": "cs/web/xss",
+          "message": { "text": "fixture" },
+          "locations": [ { "physicalLocation": { "artifactLocation": { "uri": "src/Fixture/View.cs" }, "region": { "startLine": 3 } } } ]
+        },
+        {
+          "ruleId": "cs/useless-assignment-to-local",
+          "message": { "text": "fixture" },
+          "locations": [ { "physicalLocation": { "artifactLocation": { "uri": "src/Fixture/Calc.cs" }, "region": { "startLine": 7 } } } ]
+        }
+      ]
+    }
+  ]
+}
