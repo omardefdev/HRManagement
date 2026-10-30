@@ -189,8 +189,9 @@ docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /rep
 secrets (`*-lab-only`, `.env.ci`, `testdata/e2e/personas.json` defaults) are known and must be allow-listed in `.gitleaks.toml`
 deliberately, not silently.
 
-**Also confirm:** `git log -p origin/main..main -- global.json` is empty (it is on this branch); `git status` shows only the local
-`global.json` edit; `artifacts/` stays ignored.
+**Also confirm:** `git log -p origin/main..main -- global.json` shows only `544ba7a` (2026-10-21, before PLAN-26: the deliberate
+SDK pin 10.0.302 → 10.0.400, `rollForward: disable`); no PLAN-34 commit touches it, and the local `rollForward: latestPatch` edit is
+in no commit. `git status` shows only that local `global.json` edit; `artifacts/` stays ignored.
 
 ## 10. Timing
 
