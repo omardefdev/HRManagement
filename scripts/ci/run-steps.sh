@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # QA-034: runs the CI build-and-test steps from scripts/ci/steps.json (the single source of those steps).
 #   bash scripts/ci/run-steps.sh --step "Unit tests"      # one step (what .github/workflows/ci.yml does)
+#   bash scripts/ci/run-steps.sh --step "Restore (locked mode)" --step "Build"   # several, in steps.json order
 #   bash scripts/ci/run-steps.sh --all [--continue-on-error] [--skip "<name>"]... [--out DIR]
 # Each step runs as GitHub runs a `run:` step on Linux: bash --noprofile --norc -eo pipefail, with the step's env.
 # After a failure, --all skips the remaining steps (reported "skipped") except those marked "always", unless
@@ -14,14 +15,14 @@ cd "$ROOT"
 STEPS_FILE="scripts/ci/steps.json"
 OUT="artifacts/ci-local"
 MODE=""
-ONE_STEP=""
+SELECTED=()
 CONTINUE=0
 SKIPS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --all) MODE="all"; shift ;;
-    --step) MODE="one"; ONE_STEP="${2:?--step needs a name}"; shift 2 ;;
+    --step) MODE="one"; SELECTED+=("${2:?--step needs a name}"); shift 2 ;;
     --continue-on-error) CONTINUE=1; shift ;;
     --skip) SKIPS+=("${2:?--skip needs a name}"); shift 2 ;;
     --out) OUT="${2:?--out needs a directory}"; shift 2 ;;
@@ -110,7 +111,10 @@ for f in glob.glob(os.path.join(out, "steps", "*.json")):
 steps = [rows.get(n, {"name": n, "status": "not-recorded", "exit": None, "durationSec": None}) for n in order]
 
 def dirty(cwd):
-    s = git("status", "--porcelain", "-z", "--untracked-files=no", cwd=cwd)
+    # the host checkout (CI_SOURCE_DIR) may be a Windows tree with core.autocrlf=true, which Linux git does not know
+    crlf = os.environ.get("CI_SOURCE_AUTOCRLF") if cwd == os.environ.get("CI_SOURCE_DIR") else None
+    args = (["-c", "core.autocrlf=" + crlf] if crlf else []) + ["status", "--porcelain", "-z", "--untracked-files=no"]
+    s = git(*args, cwd=cwd)
     if s is None:
         return None
     entries, parts, i = [], s.split("\0"), 0
@@ -184,9 +188,26 @@ PY
 
 is_skipped() { local n="$1" s; for s in "${SKIPS[@]+"${SKIPS[@]}"}"; do [[ "$s" == "$n" ]] && return 0; done; return 1; }
 
+is_selected() { local n="$1" s; for s in "${SELECTED[@]}"; do [[ "$s" == "$n" ]] && return 0; done; return 1; }
+
 OVERALL=0
 if [[ "$MODE" == "one" ]]; then
-  run_one "$ONE_STEP"; OVERALL=$?
+  if [[ ${#SELECTED[@]} -eq 1 ]]; then
+    run_one "${SELECTED[0]}"; OVERALL=$?
+    write_summary >/dev/null || true
+    exit $OVERALL
+  fi
+  # several --step: run them in steps.json order, stop at the first failure unless --continue-on-error
+  for s in "${SELECTED[@]}"; do
+    found=0
+    for row in "${STEP_ROWS[@]}"; do [[ "${row%$'\t'*}" == "$s" ]] && found=1; done
+    [[ $found -eq 1 ]] || { echo "run-steps.sh: unknown step: $s" >&2; exit 2; }
+  done
+  for row in "${STEP_ROWS[@]}"; do
+    name="${row%$'\t'*}"
+    is_selected "$name" || continue
+    if ! run_one "$name"; then OVERALL=1; [[ $CONTINUE -eq 1 ]] || break; fi
+  done
   write_summary >/dev/null || true
   exit $OVERALL
 fi

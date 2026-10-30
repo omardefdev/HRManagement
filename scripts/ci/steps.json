@@ -387,10 +387,11 @@
     {
       "name": "Integration tests (Testcontainers)",
       "kind": "test",
-      "run": "dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=integration-tc-results.trx\" --results-directory ./TestResults/integration-tc --filter \"Category=Testcontainers\" --blame-hang-timeout 15m --settings coverlet.runsettings --collect:\"XPlat Code Coverage\"",
+      "run": "dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=integration-tc-results.trx\" --results-directory ./TestResults/integration-tc --filter \"Category=Testcontainers&Category!=ObjectStorage\" --blame-hang-timeout 15m --settings coverlet.runsettings --collect:\"XPlat Code Coverage\"",
       "env": {
         "RUN_TESTCONTAINERS": "true"
-      }
+      },
+      "comment": "Category=ObjectStorage (MinIO) is excluded until PLAN-38 vets an image: tests/ci-exclusions.json, a dated obligation (D-QA-7)."
     },
     {
       "name": "Coverage gate",

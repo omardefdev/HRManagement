@@ -428,6 +428,10 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: api-file-storage;hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # QA-034 (D-QA-7): Local provider on a volume by default (the pinned MinIO image is no longer pullable);
+      # docker-compose.object-storage.yml switches to Minio. ClamAV stays required either way.
+      FileStorage__Provider: ${FILE_STORAGE_PROVIDER:-Local}
+      FileStorage__LocalRootPath: /var/hrm/file-storage
       FileStorage__Endpoint: minio:9000
       # SEC-004: dev-only root defaults — production uses dedicated app key via :?required.
       FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
@@ -436,6 +440,8 @@ services:
       FileStorage__ClamAvHost: clamav
       FileStorage__ClamAvPort: "3310"
       FileStorage__ClamAvRequired: "true"
+    volumes:
+      - file_storage_data:/var/hrm/file-storage
     depends_on:
       clamav:
         condition: service_healthy
@@ -443,5 +449,3 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      minio:
-        condition: service_started

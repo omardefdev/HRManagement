@@ -4,6 +4,7 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1                 # all steps, clean HEAD
 #   pwsh scripts/ci-local.ps1 -ContinueOnError -Out artifacts/ci-local/baseline
 #   pwsh scripts/ci-local.ps1 -Step "Unit tests"
+#   pwsh scripts/ci-local.ps1 -Step "Restore local tools (dotnet-ef)","Restore (locked mode)","Build","Check pending EF model changes"
 #   pwsh scripts/ci-local.ps1 -SkipTestcontainers      # the step is reported "not-run", never silently dropped
 #   pwsh scripts/ci-local.ps1 -Source WorkingTree      # tracked + untracked (not ignored) files of the working tree
 #
@@ -14,7 +15,7 @@
 # build), a named volume for the NuGet cache. Works on Windows PowerShell 5.1 and PowerShell 7. ASCII only.
 
 param(
-    [string]$Step = "",
+    [string[]]$Step = @(),
     [switch]$ContinueOnError,
     [string]$Out = "artifacts/ci-local",
     [switch]$SkipTestcontainers,
@@ -53,7 +54,12 @@ if ($RebuildImage -or -not $haveImage) {
 function ConvertTo-ShellQuoted([string]$value) { return ("'" + ($value -replace "'", "'\''") + "'") }
 
 $runArgs = @()
-if ($Step) { $runArgs += "--step"; $runArgs += (ConvertTo-ShellQuoted $Step) } else { $runArgs += "--all" }
+# -File mode cannot pass arrays, so "a,b" also selects several steps (no step name contains a comma).
+$selected = @($Step | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+if ($selected.Count -gt 0) {
+    foreach ($s in $selected) { $runArgs += "--step"; $runArgs += (ConvertTo-ShellQuoted $s) }
+}
+else { $runArgs += "--all" }
 if ($ContinueOnError) { $runArgs += "--continue-on-error" }
 $skips = @($Skip)
 if ($SkipTestcontainers) { $skips += "Integration tests (Testcontainers)" }
@@ -63,6 +69,9 @@ $outRel = ($Out -replace '\\', '/').TrimEnd('/')
 # double quotes in native-command arguments.
 $argLine = $runArgs -join " "
 Write-Host "ci-local: run-steps.sh $argLine"
+
+$hostAutoCrlf = (& git -C $repo config --get core.autocrlf 2>$null)
+if (-not $hostAutoCrlf) { $hostAutoCrlf = "false" }
 
 $sourceMode = "head-clone"
 if ($Source -eq "WorkingTree") { $sourceMode = "working-tree" }
@@ -81,6 +90,7 @@ $dockerArgs = @(
     "-e", "CI=true",
     "-e", "CI_LOCAL_SOURCE=$sourceMode",
     "-e", "CI_SOURCE_DIR=/src",
+    "-e", "CI_SOURCE_AUTOCRLF=$hostAutoCrlf",
     "-e", "CI_LOCAL_OUT=$outRel",
     "-e", "CI_LOCAL_ARGS=$argLine",
     "-e", "TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal",
@@ -105,7 +115,7 @@ if (Test-Path $summary) {
     foreach ($st in @($s.steps)) {
         if ($st.status -ne "passed") { Write-Host ("  {0,-8} {1}" -f $st.status.ToUpperInvariant(), $st.name) }
     }
-    if ($s.host -and @($s.host.dirtyTracked).Count -gt 0) {
+    if ($sourceMode -eq "head-clone" -and $s.host -and @($s.host.dirtyTracked).Count -gt 0) {
         Write-Host ("ci-local: host working tree has tracked changes not under test: {0}" -f (@($s.host.dirtyTracked) -join ", "))
     }
 }

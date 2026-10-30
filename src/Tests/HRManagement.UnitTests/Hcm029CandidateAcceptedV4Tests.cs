@@ -85,7 +85,7 @@ public class Hcm029CandidateAcceptedV4Tests
         // HCM-032: besides the hire event only the requisition-closed aggregate (the last vacancy was filled).
         var all = Published(publish);
         Assert.Contains(all, p => p.Type == typeof(IRecruitmentRequisitionClosed));
-        var published = Assert.Single(all.Where(p => p.Type != typeof(IRecruitmentRequisitionClosed)));
+        var published = Assert.Single(all, p => p.Type != typeof(IRecruitmentRequisitionClosed));
         Assert.Equal(typeof(IInternalPlacementCompleted), published.Type);
         Assert.Equal(existing.Id, Prop(published.Values, nameof(IInternalPlacementCompleted.EmployeeId)));
         Assert.Equal(RecruitmentApplicationStatus.Hired,

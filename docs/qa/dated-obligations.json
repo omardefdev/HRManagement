@@ -126,6 +126,19 @@
       "note": "Mirror of the C# seed literals: AcceptanceRecruitmentStatesPatch.cs (ClosingDate, issued offer ExpiryDate 2028-08-01) and AcceptanceDataSeeder.AcceptanceSeedApplicationClosingDate (AcceptanceSeedCatalog.ReferenceDate + 2 years). Move the literals and this mirror together."
     },
     {
+      "id": "QA-COVERAGE-TEMPORARY-FLOORS",
+      "file": "coverage-floors.json",
+      "selector": "temporaryFloors[*]",
+      "idField": "assembly",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Restored"],
+      "allowEmpty": true,
+      "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "ci:Coverage gate (floors)"],
+      "owner": "qa",
+      "note": "D-QA-13: a floor lowered to the measured value at first measurement must be ratcheted back by reviewBy; never lower globalThreshold."
+    },
+    {
       "id": "QA-QUARANTINE",
       "allowEmpty": true,
       "file": "tests/quarantine.json",

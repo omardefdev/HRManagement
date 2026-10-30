@@ -1,0 +1,29 @@
+# QA-034 (D-QA-7): opt-in object storage for local stacks. The base stack runs File.Storage on the Local provider
+# because the previously pinned MinIO image can no longer be pulled. With a vetted, digest-pinned image:
+#
+#   MINIO_IMAGE=<registry>/minio@sha256:<digest> FILE_STORAGE_PROVIDER=Minio \
+#     docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.object-storage.yml \
+#     --profile full-stack up -d
+#
+# Without MINIO_IMAGE this overlay fails at `docker compose config` with an explicit message, and so does the base
+# file with `--profile object-storage` ("service \"minio\" has neither an image nor a build context").
+# Production object storage (k8s / docker-compose.production.yml) is PLAN-36/38.
+services:
+  minio:
+    # enabled by this overlay; a vetted, digest-pinned image is mandatory
+    profiles: !reset []
+    image: ${MINIO_IMAGE:?set MINIO_IMAGE to a vetted, digest-pinned MinIO image (D-QA-7; the old pin is no longer pullable)}
+
+  hr-core-web:
+    environment:
+      FileStorage__Provider: Minio
+    depends_on:
+      minio:
+        condition: service_started
+
+  file-storage-web:
+    environment:
+      FileStorage__Provider: Minio
+    depends_on:
+      minio:
+        condition: service_started

@@ -19,16 +19,23 @@ git config --global --add safe.directory '*'
 # then enforce container-only settings (e.g. "HrGateway:InternalBaseUrl must use Docker service DNS") when the EF tools
 # build them at design time.
 unset DOTNET_RUNNING_IN_CONTAINER
+# host.docker.internal also resolves to an IPv6 address this container cannot route ("Network is unreachable",
+# connect timeouts in Testcontainers tests); use its IPv4 address for the sibling containers' published ports.
+if [[ "${TESTCONTAINERS_HOST_OVERRIDE:-}" == "host.docker.internal" ]]; then
+  v4="$(getent ahostsv4 host.docker.internal | awk 'NR==1{print $1}')"
+  [[ -n "$v4" ]] && export TESTCONTAINERS_HOST_OVERRIDE="$v4"
+fi
 rm -rf /work/repo /work/out
 git clone --quiet --no-hardlinks /src /work/repo || { echo "ci-local: git clone of /src failed"; exit 90; }
 cd /work/repo
 if [[ "$CI_LOCAL_SOURCE" == "working-tree" ]]; then
   # only what the host's git reports as changed: modified tracked files and untracked (not ignored) files are
   # copied over the clone of HEAD, deleted tracked files are removed
-  (cd /src && git ls-files -z --modified --others --exclude-standard) \
+  # CI_SOURCE_AUTOCRLF: the host checkout's core.autocrlf (Windows: true), else CRLF files look modified here
+  (cd /src && git -c core.autocrlf="${CI_SOURCE_AUTOCRLF:-false}" ls-files -z --modified --others --exclude-standard) \
     | python3 -c "import os,sys; d=sys.stdin.buffer.read().split(b'\0'); sys.stdout.buffer.write(b'\0'.join(p for p in d if p and os.path.isfile(os.path.join(b'/src', p))))" \
     | (cd /src && tar --null -T - -cf -) | tar -xf - -C /work/repo || { echo "ci-local: working-tree overlay failed"; exit 91; }
-  (cd /src && git ls-files -z --deleted) | (cd /work/repo && xargs -0 -r rm -f --)
+  (cd /src && git -c core.autocrlf="${CI_SOURCE_AUTOCRLF:-false}" ls-files -z --deleted) | (cd /work/repo && xargs -0 -r rm -f --)
   # D-QA-12: CI always uses the committed global.json (a local rollForward edit is reported, never tested)
   git checkout --quiet HEAD -- global.json
   # the copied files come from the Windows checkout (CRLF, no mode bits); compare them with HEAD as the host does

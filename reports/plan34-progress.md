@@ -23,8 +23,8 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P3 red unit tests, test culture | done | `c6086f2` | 2026-10-30T00:30:35.6291998Z |
 | P4 twelve `Index(employeeId)` actions | done | `8caddff` | 2026-10-30T00:35:23.0483667Z |
 | P5 integration test hosts | done | `eed6128` | 2026-10-30T00:50:33.7789136Z |
-| P6 NU1903, warnings as errors | done | P6 commit (`build(qa034): fix NU1903 …`) | 2026-10-30T08:51:37.1598965Z |
-| P7 MinIO, format, EF, coverage | in progress (`9130e36` whitespace; compose + ObjectStorage uncommitted; EF gate green; coverage running) | — |
+| P6 NU1903, warnings as errors | done | `e422f92` | 2026-10-30T08:51:37.1598965Z |
+| P7 MinIO, format, EF, coverage | done | `9130e36` (whitespace) + P7 commit (`fix(qa034): base stack without …`) | 2026-10-30T08:55:16.5069583Z |
 | P8 full green run, AC-QA-34a..i | pending | — |
 | P9 docs, review, final report, merge | pending | — |
 
@@ -188,7 +188,47 @@ All four product fixes approved (Q-1, Q-2, Q-4, Q-5) and Q-3 "fix + suppress MVC
 - Verified: `dotnet list package --vulnerable --include-transitive` → no vulnerable package in any of the 59 projects;
   `dotnet build HRManagement.slnx -c Release -warnaserror` → **0 errors**.
 
-## Pending owner decisions (collected; work that does not depend on them continues)
+## P7 — Finished (UTC): 2026-10-30T08:55:16.5069583Z
+
+**Compose (D-QA-7):** `docker-compose.yml`: `minio` behind `profiles: ["object-storage"]` with `image: ${MINIO_IMAGE:-}` —
+not `:?`, because Compose interpolates every service whatever its profile (a `:?` there breaks the base stack); with the
+profile on and no image, `docker compose config` fails ("service \"minio\" has neither an image nor a build context").
+`hr-core-web` and `file-storage-web` use `FileStorage__Provider: ${FILE_STORAGE_PROVIDER:-Local}` (file-storage on volume
+`file_storage_data:/var/hrm/file-storage`, hr-core under `/tmp/hrm-file-storage`) and no longer `depends_on: minio` (the plan named
+only file-storage-web; hr-core-web had the same dependency). New `docker-compose.object-storage.yml`: enables `minio`
+(`profiles: !reset []`), requires `MINIO_IMAGE` with an explicit `:?` message, switches both services to Minio.
+Verified with `docker compose config`: base OK; `--profile object-storage` without image → fails; overlay without image →
+fails with the explicit message; the acceptance-job file set still resolves.
+
+**Testcontainers:** `RealInfra.MinioImage` comes from `HRM_MINIO_IMAGE` (clear exception when unset);
+`Qa003MinioFileScanTests` carries `Category=ObjectStorage`; the Testcontainers step filters `Category!=ObjectStorage`;
+`tests/ci-exclusions.json` entry (owner PLAN-38, reviewBy 2026-12-14 = +45 days) — a dated obligation.
+**Correction to the baseline:** `FileStorageInboxIdempotencyTests` was not a MinIO failure but the INT002 migration defect (Q-4).
+
+**Steps that never ran:**
+- `dotnet format`: whitespace commit `9130e36` (115 files, token-identical except UTF-8 BOMs dropped per `charset = utf-8`);
+  analyzer findings in `--verify-no-changes`: xUnit2031 in `Hcm029CandidateAcceptedV4Tests` (test fixed), MVC1004 (Q-3, P6).
+  `dotnet format HRManagement.slnx --verify-no-changes --no-restore` → exit 0.
+- EF: `check-pending-ef-model-changes.sh` → **"Pending model change gate passed (15 contexts)"** on Linux; no migration needed.
+  The baseline's 4 failures were the container DNS guard. `check-migration-discovery.sh` → INT002 fixed (Q-4).
+- Coverage: first measurement 90.1% on the gate assemblies (threshold 60%); `Payroll.Application` 73.6% < floor 75% → D-QA-13:
+  floor 73, `temporaryFloors` entry (ratchetTo 75, reviewBy 2026-12-29), obligation `QA-COVERAGE-TEMPORARY-FLOORS`, ADR-QA-002 note.
+  `globalThreshold` unchanged.
+
+**Owner-approved product fixes:** Q-1 `FileUploadHelper.SanitizeFileName` splits on `\` too; Q-2 `FileFinanceBudgetPort`
+parses invariant; Q-4 `[DbContext]`/`[Migration]` on `INT002_IntegrationMessageReceipts`; Q-5 `aria-label`/`title` on the
+OfferLetters clear-filter link. Regression tests: `Plan034CultureAndPathDefectTests` (5 path cases, ar-SY CSV numbers);
+`Hcm030…Long_file_names…`, `Est004…Csv_import_rejects_invalid_rows`, `FileStorageInboxIdempotencyTests` green.
+
+**ci-local fixes found while running:** `--step` may repeat (and `-Step a,b` in ci-local.ps1, since `-File` cannot pass arrays);
+the host's `core.autocrlf` is passed in (Linux git otherwise reports CRLF files of the Windows checkout as modified);
+Testcontainers host override pinned to the IPv4 address of `host.docker.internal` (its IPv6 address is unreachable from the
+container: `CrossTenantRls…`/`Qa003MigrationUpgrade…` timed out / "Network is unreachable").
+
+**Tests (Windows/ar-SA):** unit **4183/0 failed**; integration non-TC **337 passed, 0 failed** (4 opt-in skips); Testcontainers
+minus ObjectStorage **81 passed, 0 failed**. `dotnet build -c Release -warnaserror` 0 errors.
+
+## Owner decisions (all answered 2026-10-30; see "Owner decisions received")
 
 | # | Finding | Why it needs a decision | Proposed |
 |---|---------|------------------------|----------|
@@ -214,7 +254,5 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-P6: Testcontainers.PostgreSql/RabbitMq 4.16.0 and Testcontainers.Minio 4.15.0 (core 4.16.0 → SSH.NET 2026.0.0, first patched
-version of both advisories), `dotnet restore --force-evaluate`, lock files, `WarningsAsErrors` NU1903/NU1904, build step
-`-warnaserror`; the ten compiler warnings need a decision (Q-3) unless non-behavioural. P7 compose edits are already in the
-working tree (verified with `docker compose config`).
+P8: clean tree check; `scripts/ci-local.ps1` on clean HEAD (all 87 steps) → summary.json; base stack without MinIO
+(`prepare-ci-compose-env.sh`, compose up full-stack, clean upload / EICAR); `AcQa34PushableBaselineTests` + evidence folder.
