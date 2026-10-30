@@ -25,6 +25,10 @@ jobs:
         with:
           global-json-file: global.json
 
+      # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same).
+      - name: Free runner disk space
+        run: bash scripts/ci/free-runner-disk.sh
+
       - name: Start stack (release images when IMAGE_TAG set)
         env:
           IMAGE_TAG: ${{ github.event.inputs.image_tag }}
@@ -42,7 +46,8 @@ jobs:
               --profile full-stack up -d --wait
           else
             echo "No IMAGE_TAG — local compose build (pre-release lab)"
-            docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack up -d --wait
+            # PLAN-35: build manifest, file-storage volume ownership and one cold-start retry (as the E2E job of ci.yml).
+            bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml --profile full-stack
           fi
 
       - name: Restore / build E2E
@@ -107,6 +112,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same).
+      - name: Free runner disk space
+        run: bash scripts/ci/free-runner-disk.sh
 
       - name: Start acceptance stack
         shell: pwsh

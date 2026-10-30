@@ -51,6 +51,9 @@ if ($LASTEXITCODE -ne 0) { throw "Acceptance Compose configuration is invalid." 
 if (-not $SkipComposeUp) {
     if (-not $NoBuild) {
         Write-Host "== Building all Acceptance v2 services from the current source =="
+        # PLAN-35: docker/DotnetService.Dockerfile copies docker/build-manifest/ (gitignored, BLD-002); a clean checkout
+        # (CI runner) has none, so generate it as dev-profile-up.ps1 does.
+        & "$PSScriptRoot/docker-generate-build-manifest.ps1" -RepoRoot $root
         $buildArgs = @("build")
         $mcrDnsAvailable = $false
         try {

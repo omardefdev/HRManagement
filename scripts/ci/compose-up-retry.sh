@@ -10,6 +10,9 @@
 #   bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml --profile full-stack
 set -uo pipefail
 
+# docker/DotnetService.Dockerfile copies docker/build-manifest/ (gitignored, BLD-002): a clean checkout has none
+# (E2E run 41089826696 failed with '"/docker/build-manifest": not found').
+pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1 || { echo "::error::build manifest generation failed"; exit 1; }
 docker compose "$@" build || { echo "::error::compose build failed"; exit 1; }
 if docker compose "$@" config --services | grep -qx file-storage-web; then
   docker compose "$@" run --rm --no-deps --user 0:0 --entrypoint sh file-storage-web \
