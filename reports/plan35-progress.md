@@ -209,3 +209,18 @@ Fixes on release/plan-35-first-push (one commit per failure):
 
 OWNER ACTION (P5 round 1) - Waiting for owner (UTC): 2026-10-30T16:25:11.3370154Z
 1. `git push origin release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T16:26:01.2359583Z - owner pushed dada03e («تم»).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41089826696](https://github.com/omardefdev/HRManagement/actions/runs/41089826696) | dada03e | ci | 16:25:57 | 17:24:28 (58.5 min) | failure | CI **ok** 52 (all steps incl. Testcontainers + coverage gate on ubuntu); CodeQL **ok** 18 (gate with the baseline); Gitleaks **ok** 2; notice ok 1; E2E **fail** 7 ("Start stack": '"/docker/build-manifest": not found'); Acceptance skipped. ~80 min |
+| [41089826889](https://github.com/omardefdev/HRManagement/actions/runs/41089826889) | dada03e | hardening-check | 16:25:57 | 16:28:14 | success | 3 |
+| [41089826879](https://github.com/omardefdev/HRManagement/actions/runs/41089826879) | dada03e | iac-plan | 16:25:57 | 16:26:25 | success | ~5 |
+
+Round 2 fix (`97020fac` on release): the E2E job never generated the gitignored BLD-002
+build manifest that docker/DotnetService.Dockerfile copies (locally it existed from earlier runs). compose-up-retry.sh
+and acceptance-up.ps1 generate it first (as dev-profile-up.ps1 does); the journeys job uses compose-up-retry.sh; both
+journeys jobs free runner disk. actionlint clean, lint/parity tests 12/12.
+
+OWNER ACTION (P5 round 2) - Waiting for owner (UTC): 2026-10-30T17:26:38.8507310Z
+1. `git push origin release/plan-35-first-push`
