@@ -182,3 +182,30 @@ Owner action done (UTC): 2026-10-30T15:47:38.3266427Z - owner replied «تم». 
 403 "Upgrade to GitHub Pro" (private on free: protection unavailable -> D-QA-1 fallback, local guard, in P7);
 origin/release/plan-35-first-push = 0f69f52; PR #24 https://github.com/omardefdev/HRManagement/pull/24 opened
 2026-10-30T15:47:18Z; runs started 15:47:21Z: ci 41083926373, hardening-check 41083926377, iac-plan 41083926367 (success, 26 s).
+
+## P5 - remote CI triage on PR #24
+
+PR: https://github.com/omardefdev/HRManagement/pull/24. Pushes go through the owner (P-2 = no). Minutes = per-job
+durations rounded up (the billing API reports 0 ms for these runs so far).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41083926373](https://github.com/omardefdev/HRManagement/actions/runs/41083926373) | 0f69f52 | ci | 15:47:21 | 16:18:20 (31 min) | failure | CI fail 28 (No space left on device in "Verify Docker builds"); CodeQL fail 31 (SARIF gate: 112 results / 108 alerts, all pre-existing); Gitleaks ok 2; notice ok 1; E2E/Acceptance skipped. ~62 min |
+| [41083926377](https://github.com/omardefdev/HRManagement/actions/runs/41083926377) | 0f69f52 | hardening-check | 15:47:21 | 15:51:34 | success | 5 |
+| [41083926367](https://github.com/omardefdev/HRManagement/actions/runs/41083926367) | 0f69f52 | iac-plan | 15:47:21 | 15:47:47 | success | 5 jobs, ~1 each |
+
+Fixes on release/plan-35-first-push (one commit per failure):
+- `5d0b9b6` CodeQL: 108 pre-existing alerts baselined one by one (rule + path + primaryLocationLineHash), owner security
+  (log-forging: platform), reviewBy 2027-01-28 (QA-CODEQL-BASELINE). 83 missing-token-validation (8.8), 16 log-forging
+  (6.1), 3 cleartext storage (7.5), 3 exposure of sensitive info (6.5), 2 path injection (7.5), 1 cookie Secure (5.0).
+  Plan §2 rule 2 (existing alert only with a baseline entry, owner, date). Verified locally: gate OK with the baseline on
+  the run's SARIF, FAILED without it. Recorded as a security backlog for a later plan (final report §10).
+- `dada03e` CI: `scripts/ci/free-runner-disk.sh` (first step of steps.json/ci.yml and of the E2E job), GitHub-hosted
+  Linux only. Parity/lint/gate tests 32/32, actionlint clean.
+- Notices from the run (later plans): Node 20 actions forced to Node 24; CodeQL Action v3 deprecated December 2026;
+  ubuntu-latest moves to Ubuntu 26.
+- On the feature branch (reaches main with the final-report PR): `c8ef2b1` D-QA-1 fallback (protection API 403 on the
+  private free repo -> exception SCM-NO-GITHUB-PROTECTION + local guard check in the validator).
+
+OWNER ACTION (P5 round 1) - Waiting for owner (UTC): 2026-10-30T16:25:11.3370154Z
+1. `git push origin release/plan-35-first-push`
