@@ -52,6 +52,27 @@ public class GatewayRoutingConfigurationTests
     }
 
     [Fact]
+    public void Upstream_health_routes_are_not_anonymous()
+    {
+        // SEC-001 (PLAN-35): an "Anonymous" YARP policy adds AllowAnonymous metadata, and GatewayPathAuthorizationMiddleware
+        // then skips its GatewayDashboard check, so /health/upstreams/* answered 200 to anyone (snapshot 544ba7a). Only the
+        // public careers site may be anonymous.
+        var config = LoadGatewayConfiguration();
+        var routes = config.GetSection("ReverseProxy:Routes").GetChildren().ToList();
+
+        var health = routes.Where(r => (r["Match:Path"] ?? "").StartsWith("/health/upstreams/", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(health);
+        foreach (var route in health)
+            Assert.True(string.IsNullOrEmpty(route["AuthorizationPolicy"]), $"Route {route.Key} sets AuthorizationPolicy '{route["AuthorizationPolicy"]}'");
+
+        var anonymous = routes
+            .Where(r => string.Equals(r["AuthorizationPolicy"], "Anonymous", StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.Key)
+            .ToList();
+        Assert.Equal(["careers-public"], anonymous);
+    }
+
+    [Fact]
     public void Module_catalog_slugs_match_api_route_prefixes()
     {
         var config = LoadGatewayConfiguration();
