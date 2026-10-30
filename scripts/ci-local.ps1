@@ -5,7 +5,7 @@
 #   pwsh scripts/ci-local.ps1 -ContinueOnError -Out artifacts/ci-local/baseline
 #   pwsh scripts/ci-local.ps1 -Step "Unit tests"
 #   pwsh scripts/ci-local.ps1 -Step "Restore local tools (dotnet-ef)","Restore (locked mode)","Build","Check pending EF model changes"
-#   pwsh scripts/ci-local.ps1 -SkipTestcontainers      # the step is reported "not-run", never silently dropped
+#   pwsh scripts/ci-local.ps1 -SkipTestcontainers      # Testcontainers + coverage gate reported "not-run", never silently dropped
 #   pwsh scripts/ci-local.ps1 -Source WorkingTree      # tracked + untracked (not ignored) files of the working tree
 #
 # -Source Head (default): the container clones the committed HEAD of this repository and runs there, so the result
@@ -62,7 +62,9 @@ if ($selected.Count -gt 0) {
 else { $runArgs += "--all" }
 if ($ContinueOnError) { $runArgs += "--continue-on-error" }
 $skips = @($Skip)
-if ($SkipTestcontainers) { $skips += "Integration tests (Testcontainers)" }
+# The coverage gate merges the Testcontainers coverage too; without it the floors are measured on a partial run, so it
+# is reported "not-run" with the Testcontainers step (run both natively on the host, PLAN-34 rule P-3).
+if ($SkipTestcontainers) { $skips += "Integration tests (Testcontainers)"; $skips += "Coverage gate" }
 foreach ($s in $skips) { if ($s) { $runArgs += "--skip"; $runArgs += (ConvertTo-ShellQuoted $s) } }
 $outRel = ($Out -replace '\\', '/').TrimEnd('/')
 # run-steps.sh arguments, shell-quoted; passed by environment because Windows PowerShell 5.1 mangles embedded

@@ -76,13 +76,15 @@ public class AcQa34PushableBaselineTests
     }
 
     private const string TestcontainersStep = "Integration tests (Testcontainers)";
+    private const string CoverageStep = "Coverage gate";
 
     /// <summary>
     /// The evidence rule of plan §1 rule 3: summary of HEAD, nothing dirty, every step of steps.json passed. Rule P-3:
-    /// only the Testcontainers step may be "not-run" (-SkipTestcontainers), and only when <paramref name="nativeTestcontainersGreen"/>
-    /// (the native run of the same HEAD) is true.
+    /// only the Testcontainers step and the coverage gate (which merges the Testcontainers coverage) may be "not-run"
+    /// (-SkipTestcontainers), and only when the native run of the same HEAD proves them
+    /// (<paramref name="nativeTestcontainersGreen"/>, <paramref name="nativeCoverageGreen"/>).
     /// </summary>
-    internal static List<string> SummaryProblems(JsonObject summary, string head, bool nativeTestcontainersGreen = false)
+    internal static List<string> SummaryProblems(JsonObject summary, string head, bool nativeTestcontainersGreen = false, bool nativeCoverageGreen = false)
     {
         var problems = new List<string>();
         if ((string?)summary["gitSha"] != head)
@@ -101,7 +103,8 @@ public class AcQa34PushableBaselineTests
             var status = (string?)step!["status"];
             if (status == "passed")
                 continue;
-            if (status == "not-run" && (string?)step["name"] == TestcontainersStep && nativeTestcontainersGreen)
+            var name = (string?)step["name"];
+            if (status == "not-run" && ((name == TestcontainersStep && nativeTestcontainersGreen) || (name == CoverageStep && nativeCoverageGreen)))
             {
                 notRunAllowed++;
                 continue;
@@ -144,6 +147,16 @@ public class AcQa34PushableBaselineTests
         return linux.Count > 0 ? (linux, "linux ci-local") : (LoadTrx(WindowsRun, "tc.trx"), "native Windows (rule P-3)");
     }
 
+    /// <summary>The coverage gate (scripts/check-coverage.py) run on the native unit + integration + Testcontainers reports.</summary>
+    private static bool NativeCoverageGreen()
+    {
+        var log = Path.Combine(WindowsRun, "coverage-gate.log");
+        if (!File.Exists(log)) return false;
+        var text = File.ReadAllText(log);
+        return text.Contains("Gate line coverage:", StringComparison.Ordinal) && !text.Contains("ERROR", StringComparison.Ordinal)
+               && text.Contains("EXIT=0", StringComparison.Ordinal);
+    }
+
     private static bool NativeTestcontainersGreen()
     {
         var native = LoadTrx(WindowsRun, "tc.trx");
@@ -162,7 +175,8 @@ public class AcQa34PushableBaselineTests
             "لا يوجد summary.json لتشغيل CI المحلي", $"No summary.json in {LinuxRun}; run: powershell -File scripts/ci-local.ps1 -Out artifacts/ci-local/head");
         var head = GitHead();
         var nativeTc = NativeTestcontainersGreen();
-        var problems = SummaryProblems(summary!, head, nativeTc);
+        var nativeCoverage = NativeCoverageGreen();
+        var problems = SummaryProblems(summary!, head, nativeTc, nativeCoverage);
 
         // Negative: the same rule refuses a summary of another commit and a summary with a failed step.
         var otherSha = JsonNode.Parse(summary!.ToJsonString())!.AsObject();
@@ -179,7 +193,9 @@ public class AcQa34PushableBaselineTests
             3. Negative: the rule rejects the same summary with another gitSha and with one failed step.
             4. Rule P-3: on Docker Desktop, Testcontainers inside the ci-local container times out intermittently through the
                desktop port proxy, so the evidence run uses -SkipTestcontainers (the step is "not-run", never dropped) and the
-               Testcontainers suite runs natively on Windows for the same HEAD (artifacts/plan34/windows/tc.trx, 0 failures).
+               Testcontainers suite runs natively on Windows for the same HEAD (artifacts/plan34/windows/tc.trx, 0 failures);
+               the coverage gate, which needs that coverage, is "not-run" too and runs on the native unit + integration +
+               Testcontainers reports (artifacts/plan34/windows/coverage-gate.log).
             """);
         r.WriteScenarioDbChecks(new
         {
@@ -191,6 +207,8 @@ public class AcQa34PushableBaselineTests
             totalSeconds = (summary["steps"] as JsonArray ?? []).Sum(s => s!["durationSec"]?.GetValue<double>() ?? 0),
             trx = summary["trx"],
             nativeTestcontainersGreen = nativeTc,
+            nativeCoverageGreen = nativeCoverage,
+            nativeCoverageGate = File.Exists(Path.Combine(WindowsRun, "coverage-gate.log")) ? File.ReadAllLines(Path.Combine(WindowsRun, "coverage-gate.log")).Where(l => l.Contains("gate ", StringComparison.Ordinal) || l.Contains("Gate line", StringComparison.Ordinal) || l.Contains("[OK]", StringComparison.Ordinal) || l.Contains("[FAIL]", StringComparison.Ordinal)).ToArray() : null,
             rewrittenByRunCount = summary["rewrittenByRunCount"],
             problems,
             negative = new { otherShaRejected, failedStepRejected }
