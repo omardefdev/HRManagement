@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
@@ -84,22 +83,12 @@ public class San001SanctionsTests
     [Fact]
     public void Validate_script_passes()
     {
+        // QA-034 (D-QA-12): the committed global.json is checked (git show HEAD:global.json), so a local rollForward
+        // edit of the working-tree file does not turn this test red; CI and every clone see the committed value.
         var script = RepoPaths.Resolve("scripts", "san001-validate.ps1");
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -RepoRoot \"{RepoRoot}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = RepoRoot
-        };
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit(300_000);
-        Assert.True(proc.ExitCode == 0, $"validate failed ({proc.ExitCode}): {stdout}\n{stderr}");
+        var (exitCode, stdout, stderr) = RepoScriptRunner.RunScript(script);
+        Assert.True(exitCode == 0, $"validate failed ({exitCode}): {stdout}\n{stderr}");
         Assert.Contains("PASS", stdout, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SDK pin read from git show HEAD:global.json", stdout, StringComparison.Ordinal);
     }
 }

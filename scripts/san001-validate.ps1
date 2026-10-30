@@ -1,9 +1,14 @@
 # SAN-001: validate sanctions and supply chain classification artifacts.
 # Usage:
-#   powershell -File scripts/san001-validate.ps1
+#   powershell -File scripts/san001-validate.ps1 [-GlobalJsonSource Committed|WorkingTree]
+# QA-034 (D-QA-12): the SDK pin that ships is the committed global.json, so by default the rollForward rule is checked
+# on `git show HEAD:global.json`; a local, never-committed edit of the working-tree file does not fail the check.
+# Without git (e.g. a container without .git) it falls back to the file. -GlobalJsonSource WorkingTree checks the file.
 
 param(
-    [string]$RepoRoot = ""
+    [string]$RepoRoot = "",
+    [ValidateSet("Committed", "WorkingTree")]
+    [string]$GlobalJsonSource = "Committed"
 )
 
 $ErrorActionPreference = "Stop"
@@ -58,10 +63,24 @@ if (Test-Path $classFile) {
 }
 
 $globalJsonPath = Resolve-RepoPath "global.json"
-if (Test-Path $globalJsonPath) {
-    $gj = Get-Content -Raw $globalJsonPath | ConvertFrom-Json
+$globalJsonText = $null
+$globalJsonFrom = $null
+if ($GlobalJsonSource -eq "Committed" -and (Get-Command git -ErrorAction SilentlyContinue)) {
+    $committed = & git -C $RepoRoot show HEAD:global.json 2>$null
+    if ($LASTEXITCODE -eq 0 -and $committed) {
+        $globalJsonText = ($committed -join "`n")
+        $globalJsonFrom = "git show HEAD:global.json"
+    }
+}
+if ($null -eq $globalJsonText -and (Test-Path $globalJsonPath)) {
+    $globalJsonText = Get-Content -Raw $globalJsonPath
+    $globalJsonFrom = "working tree global.json"
+}
+if ($null -ne $globalJsonText) {
+    Write-Host "SAN-001: SDK pin read from $globalJsonFrom"
+    $gj = $globalJsonText | ConvertFrom-Json
     if ($gj.sdk.rollForward -ne "disable") {
-        $failures += "global.json rollForward must be disable (SAN-001)"
+        $failures += "global.json rollForward must be disable (SAN-001; checked $globalJsonFrom)"
     }
 }
 

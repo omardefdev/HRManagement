@@ -6,6 +6,15 @@
     "mcr.microsoft.com/dotnet/aspnet:10.0",
     "python:3.12-alpine"
   ],
+  "ciLocal": {
+    "comment": "QA-034: docker/ci-local/Dockerfile (local Linux CI runner, never deployed). FROM is an allowedFrom ref pinned by digest; tool versions are build args in the Dockerfile.",
+    "from": "mcr.microsoft.com/dotnet/sdk:10.0@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b",
+    "dotnetSdk": "10.0.400",
+    "dockerCli": "27.5.1",
+    "dockerCompose": "2.32.4",
+    "dockerBuildx": "0.20.1",
+    "actionlint": "1.7.7"
+  },
   "ghcrRetention": {
     "shaTagRetentionDays": 90,
     "digestArtifactRetentionDays": 90,

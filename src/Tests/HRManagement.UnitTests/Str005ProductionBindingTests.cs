@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using HRManagement.ServiceDefaults.ProgramGovernance;
 using Microsoft.Extensions.Configuration;
@@ -10,6 +9,7 @@ using Microsoft.Extensions.Hosting.Internal;
 namespace HRManagement.UnitTests;
 
 using HRManagement.TestSupport;
+using HRManagement.TestSupport.Time;
 
 public class Str005ProductionBindingTests
 {
@@ -23,9 +23,22 @@ public class Str005ProductionBindingTests
         }
     }
 
+    // QA-034: the binding tests run on the matrix asOfDate, not on the real clock (only the canary
+    // RuntimeGovernanceDocumentsTests reads today).
+    private static string MatrixAsOfDate
+    {
+        get
+        {
+            using var doc = JsonDocument.Parse(System.IO.File.ReadAllText(
+                Path.Combine(RepoRoot, "docs", "str-governance", "governance-matrix.json")));
+            return doc.RootElement.GetProperty("asOfDate").GetString()!;
+        }
+    }
+
     private static ServiceProvider BuildProvider(
         string environmentName,
-        Dictionary<string, string?> overrides)
+        Dictionary<string, string?> overrides,
+        TimeProvider? clock = null)
     {
         var values = new Dictionary<string, string?>
         {
@@ -44,6 +57,7 @@ public class Str005ProductionBindingTests
         var config = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
+        services.AddSingleton<TimeProvider>(clock ?? FixedTimeProvider.AtUtcDate(MatrixAsOfDate));
         services.AddSingleton<IHostEnvironment>(new HostingEnvironment
         {
             EnvironmentName = environmentName,
@@ -137,22 +151,36 @@ public class Str005ProductionBindingTests
     public void Runtime_validate_script_passes()
     {
         var script = RepoPaths.Resolve("scripts", "str005-governance-runtime-validate.ps1");
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -RepoRoot \"{RepoRoot}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = RepoRoot
-        };
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit(300_000);
-        Assert.True(proc.ExitCode == 0, $"runtime validate failed ({proc.ExitCode}): {stdout}\n{stderr}");
+        var (exitCode, stdout, stderr) = RepoScriptRunner.RunScript(script, $"-AsOfDate {MatrixAsOfDate}");
+        Assert.True(exitCode == 0, $"runtime validate failed ({exitCode}): {stdout}\n{stderr}");
         Assert.Contains("PASS", stdout, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Runtime_validate_script_fails_on_expired_declared_exception()
+    {
+        var tmp = Path.Combine(Path.GetTempPath(), "str005-script-exp-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tmp);
+        try
+        {
+            var matrix = JsonSerializer.Deserialize<GovernanceMatrixDocument>(
+                System.IO.File.ReadAllText(Path.Combine(RepoRoot, "docs", "str-governance", "governance-matrix.json")))!;
+            matrix.Exceptions[0].ExpiresOn = "2026-07-29";
+            matrix.Exceptions[0].Status = "Declared";
+            var matrixPath = Path.Combine(tmp, "governance-matrix.json");
+            System.IO.File.WriteAllText(matrixPath, JsonSerializer.Serialize(matrix));
+
+            var script = RepoPaths.Resolve("scripts", "str005-governance-runtime-validate.ps1");
+            var (exitCode, stdout, stderr) = RepoScriptRunner.RunScript(
+                script,
+                $"-AsOfDate {MatrixAsOfDate} -MatrixPath \"{matrixPath}\" -OutDir \"{Path.Combine(tmp, "out")}\"");
+            Assert.True(exitCode == 1, $"expected exit 1 ({exitCode}): {stdout}\n{stderr}");
+            Assert.Contains("expired on 2026-07-29", stdout, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(tmp, recursive: true);
+        }
     }
 
     [Fact]

@@ -2,10 +2,15 @@
 param(
     [string]$RegistryPath = "docs/sup-contracts/vendor-contract-registry.json",
     [string]$RepoRoot = "",
-    [int]$ExpiryWarningDays = 90
+    [int]$ExpiryWarningDays = 90,
+    [string]$AsOfDate = ""
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
@@ -17,10 +22,18 @@ function Resolve-RepoPath([string]$rel) {
 $registryFull = Resolve-RepoPath $RegistryPath
 if (-not (Test-Path $registryFull)) { Write-Error "registry not found: $registryFull" }
 
-$r = Get-Content -Raw -Path $registryFull | ConvertFrom-Json
+$r = Get-Content -Raw -Path $registryFull | ConvertFrom-Json @jsonArgs
 $failures = @()
 $warnings = @()
-$today = Get-Date
+# QA-034: yyyy-MM-dd in the invariant culture as UTC days; -AsOfDate keeps the unit test off the real clock
+# (the license and EOL dates are dated obligations in docs/qa/dated-obligations.json).
+$invariant = [System.Globalization.CultureInfo]::InvariantCulture
+$utcStyles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+function ConvertTo-UtcDate($value) {
+    if ($value -is [datetime]) { return [datetime]::SpecifyKind($value.Date, [DateTimeKind]::Utc) }
+    return [datetime]::ParseExact(([string]$value).Trim(), "yyyy-MM-dd", $invariant, $utcStyles).Date
+}
+$today = if ($AsOfDate) { ConvertTo-UtcDate $AsOfDate } else { [datetime]::UtcNow.Date }
 
 if ($r.card -ne "SUP-004") { $failures += "card must be SUP-004" }
 
@@ -41,7 +54,7 @@ foreach ($v in $r.vendors) {
     }
 
     if ($v.licenseExpiry) {
-        $exp = [datetime]::Parse($v.licenseExpiry)
+        $exp = ConvertTo-UtcDate $v.licenseExpiry
         $days = ($exp - $today).Days
         if ($days -lt 0) { $failures += "$($v.id) license expired" }
         elseif ($days -lt $ExpiryWarningDays) {
@@ -50,7 +63,7 @@ foreach ($v in $r.vendors) {
     }
 
     if ($v.eol.eolDate) {
-        $eol = [datetime]::Parse($v.eol.eolDate)
+        $eol = ConvertTo-UtcDate $v.eol.eolDate
         if ($eol -lt $today) { $failures += "$($v.id) EOL date passed" }
     }
 }

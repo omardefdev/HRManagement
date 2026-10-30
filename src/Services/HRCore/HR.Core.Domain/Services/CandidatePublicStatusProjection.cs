@@ -144,59 +144,59 @@ public static class CandidatePublicStatusProjection
             (code, label, detail, deadline) = competitionState;
         }
         else
-        switch (input.Status)
-        {
-            case RecruitmentApplicationStatus.Submitted or RecruitmentApplicationStatus.UnderReview:
-                (code, label) = (Codes.UnderReview, "قيد المراجعة");
-                break;
-            case RecruitmentApplicationStatus.Shortlisted or RecruitmentApplicationStatus.InterviewScheduled:
-                (code, label) = (Codes.InterviewInvited, "مدعو للمقابلة");
-                if (nextInterview is not null)
-                {
-                    detail = $"موعد المقابلة: {FormatDateTime(nextInterview.ScheduledAtUtc, zone)} — {nextInterview.ModeAr}"
-                        + (string.IsNullOrWhiteSpace(nextInterview.Location) ? "" : $" — {nextInterview.Location}");
-                    deadline = nextInterview.ScheduledAtUtc;
-                }
-                break;
-            case RecruitmentApplicationStatus.OfferExtended when offerIssued:
-                (code, label) = (Codes.OfferPending, input.ActiveOfferExpiryUtc is DateTime expiry
-                    ? $"عرض بانتظار ردك حتى {FormatDate(expiry, zone)}"
-                    : "عرض بانتظار ردك");
-                deadline = input.ActiveOfferExpiryUtc;
-                break;
-            // A draft or pending-approval offer is not an offer yet for the candidate.
-            case RecruitmentApplicationStatus.Assessed or RecruitmentApplicationStatus.Ranked
-                or RecruitmentApplicationStatus.OfferExtended:
-                (code, label) = (Codes.FinalEvaluation, "قيد التقييم النهائي");
-                break;
-            case RecruitmentApplicationStatus.OfferAccepted or RecruitmentApplicationStatus.Hired:
-                (code, label) = (Codes.Accepted, "مقبول — بانتظار استكمال التعيين");
-                break;
-            case RecruitmentApplicationStatus.ReserveListed:
-                (code, label) = (Codes.ReserveListed, input.ReserveUntil is DateOnly until
-                    ? $"في قائمة الاحتياط حتى {until.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)}"
-                    : "في قائمة الاحتياط");
-                deadline = input.ReserveUntil?.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-                break;
-            case RecruitmentApplicationStatus.OfferDeclined:
-                (code, label) = (Codes.OfferClosed, "العرض منتهٍ/مرفوض");
-                break;
-            case RecruitmentApplicationStatus.Rejected:
-                (code, label) = (Codes.NotAccepted, "غير مقبول");
-                if (input.AppealStatus == RecruitmentAppealStatus.Pending)
-                    detail = "استئنافك قيد المراجعة";
-                else if (input.AppealOpen)
-                {
-                    detail = input.AppealDeadlineUtc is DateTime appealUntil
-                        ? $"يمكنك الاستئناف حتى {FormatDate(appealUntil, zone)}"
-                        : "يمكنك الاستئناف";
-                    deadline = input.AppealDeadlineUtc;
-                }
-                break;
-            default:
-                (code, label) = (Codes.Withdrawn, "منسحب");
-                break;
-        }
+            switch (input.Status)
+            {
+                case RecruitmentApplicationStatus.Submitted or RecruitmentApplicationStatus.UnderReview:
+                    (code, label) = (Codes.UnderReview, "قيد المراجعة");
+                    break;
+                case RecruitmentApplicationStatus.Shortlisted or RecruitmentApplicationStatus.InterviewScheduled:
+                    (code, label) = (Codes.InterviewInvited, "مدعو للمقابلة");
+                    if (nextInterview is not null)
+                    {
+                        detail = $"موعد المقابلة: {FormatDateTime(nextInterview.ScheduledAtUtc, zone)} — {nextInterview.ModeAr}"
+                            + (string.IsNullOrWhiteSpace(nextInterview.Location) ? "" : $" — {nextInterview.Location}");
+                        deadline = nextInterview.ScheduledAtUtc;
+                    }
+                    break;
+                case RecruitmentApplicationStatus.OfferExtended when offerIssued:
+                    (code, label) = (Codes.OfferPending, input.ActiveOfferExpiryUtc is DateTime expiry
+                        ? $"عرض بانتظار ردك حتى {FormatDate(expiry, zone)}"
+                        : "عرض بانتظار ردك");
+                    deadline = input.ActiveOfferExpiryUtc;
+                    break;
+                // A draft or pending-approval offer is not an offer yet for the candidate.
+                case RecruitmentApplicationStatus.Assessed or RecruitmentApplicationStatus.Ranked
+                    or RecruitmentApplicationStatus.OfferExtended:
+                    (code, label) = (Codes.FinalEvaluation, "قيد التقييم النهائي");
+                    break;
+                case RecruitmentApplicationStatus.OfferAccepted or RecruitmentApplicationStatus.Hired:
+                    (code, label) = (Codes.Accepted, "مقبول — بانتظار استكمال التعيين");
+                    break;
+                case RecruitmentApplicationStatus.ReserveListed:
+                    (code, label) = (Codes.ReserveListed, input.ReserveUntil is DateOnly until
+                        ? $"في قائمة الاحتياط حتى {until.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)}"
+                        : "في قائمة الاحتياط");
+                    deadline = input.ReserveUntil?.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+                    break;
+                case RecruitmentApplicationStatus.OfferDeclined:
+                    (code, label) = (Codes.OfferClosed, "العرض منتهٍ/مرفوض");
+                    break;
+                case RecruitmentApplicationStatus.Rejected:
+                    (code, label) = (Codes.NotAccepted, "غير مقبول");
+                    if (input.AppealStatus == RecruitmentAppealStatus.Pending)
+                        detail = "استئنافك قيد المراجعة";
+                    else if (input.AppealOpen)
+                    {
+                        detail = input.AppealDeadlineUtc is DateTime appealUntil
+                            ? $"يمكنك الاستئناف حتى {FormatDate(appealUntil, zone)}"
+                            : "يمكنك الاستئناف";
+                        deadline = input.AppealDeadlineUtc;
+                    }
+                    break;
+                default:
+                    (code, label) = (Codes.Withdrawn, "منسحب");
+                    break;
+            }
 
         var canAppeal = input.Status == RecruitmentApplicationStatus.Rejected
             && input.AppealStatus != RecruitmentAppealStatus.Pending

@@ -326,7 +326,7 @@ public class Hcm027ReserveListTests
         var legalValidator = new RecruitmentLegalSourceValidator(legislationProvider);
         var regimeValidator = new ServiceRegimeValidator(db, legalValidator);
         var exceptionService = new ServiceRegimeExceptionService(
-            db, regimeValidator, new ServiceRegimeTransitionService(db, regimeValidator));
+            db, new ServiceRegimeTransitionService(db, regimeValidator));
         var closure = new RecruitmentHireClosureService(
             db,
             new EstablishmentService(),

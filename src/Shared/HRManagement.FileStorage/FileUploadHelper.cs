@@ -52,7 +52,9 @@ public static class FileUploadHelper
 
     public static string SanitizeFileName(string fileName)
     {
-        var name = Path.GetFileName(fileName);
+        // QA-034 (owner decision Q-1): browsers may send a Windows path (C:\fakepath\cv.pdf); on Linux
+        // Path.GetFileName does not split on a backslash, so both separators are treated as directory separators.
+        var name = Path.GetFileName(fileName.Replace('\\', '/'));
         foreach (var c in Path.GetInvalidFileNameChars())
             name = name.Replace(c, '_');
         return string.IsNullOrWhiteSpace(name) ? "file.bin" : name;

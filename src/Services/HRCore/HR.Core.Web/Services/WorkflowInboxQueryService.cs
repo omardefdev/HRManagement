@@ -189,103 +189,103 @@ public sealed class WorkflowInboxQueryService(
             switch (group.Key)
             {
                 case "RecruitmentRequisition":
-                {
-                    var rows = await db.RecruitmentRequisitions.AsNoTracking()
-                        .Include(r => r.FundedPosition)
-                        .Where(r => entityIds.Contains(r.Id))
-                        .ToDictionaryAsync(r => r.Id, ct);
-                    foreach (var instance in group)
                     {
-                        rows.TryGetValue(instance.EntityId, out var req);
-                        result[instance.Id] = new WorkflowInboxEntityContext
+                        var rows = await db.RecruitmentRequisitions.AsNoTracking()
+                            .Include(r => r.FundedPosition)
+                            .Where(r => entityIds.Contains(r.Id))
+                            .ToDictionaryAsync(r => r.Id, ct);
+                        foreach (var instance in group)
                         {
-                            ScopeOrgUnitId = req?.FundedPosition?.OrgUnitId,
-                            EntityCreatedBy = req?.CreatedBy ?? instance.InitiatedBy,
-                            IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval
-                        };
-                    }
+                            rows.TryGetValue(instance.EntityId, out var req);
+                            result[instance.Id] = new WorkflowInboxEntityContext
+                            {
+                                ScopeOrgUnitId = req?.FundedPosition?.OrgUnitId,
+                                EntityCreatedBy = req?.CreatedBy ?? instance.InitiatedBy,
+                                IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval
+                            };
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "OfferLetter":
-                {
-                    var rows = await db.OfferLetters.AsNoTracking()
-                        .Include(o => o.FundedPosition)
-                        .Where(o => entityIds.Contains(o.Id))
-                        .ToDictionaryAsync(o => o.Id, ct);
-                    foreach (var instance in group)
                     {
-                        rows.TryGetValue(instance.EntityId, out var offer);
-                        result[instance.Id] = new WorkflowInboxEntityContext
+                        var rows = await db.OfferLetters.AsNoTracking()
+                            .Include(o => o.FundedPosition)
+                            .Where(o => entityIds.Contains(o.Id))
+                            .ToDictionaryAsync(o => o.Id, ct);
+                        foreach (var instance in group)
                         {
-                            ScopeOrgUnitId = offer?.FundedPosition?.OrgUnitId,
-                            EntityCreatedBy = offer?.CreatedBy ?? instance.InitiatedBy,
-                            IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval
-                        };
-                    }
+                            rows.TryGetValue(instance.EntityId, out var offer);
+                            result[instance.Id] = new WorkflowInboxEntityContext
+                            {
+                                ScopeOrgUnitId = offer?.FundedPosition?.OrgUnitId,
+                                EntityCreatedBy = offer?.CreatedBy ?? instance.InitiatedBy,
+                                IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval
+                            };
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "SelectionCommitteeSession":
-                {
-                    var rows = await db.SelectionCommitteeSessions.AsNoTracking()
-                        .Include(s => s.Members)
-                        .Include(s => s.Requisition!)
-                            .ThenInclude(r => r.FundedPosition)
-                        .Where(s => entityIds.Contains(s.Id))
-                        .ToDictionaryAsync(s => s.Id, ct);
-                    foreach (var instance in group)
                     {
-                        rows.TryGetValue(instance.EntityId, out var session);
-                        result[instance.Id] = new WorkflowInboxEntityContext
-                        {
-                            ScopeOrgUnitId = session?.Requisition?.FundedPosition?.OrgUnitId,
-                            EntityCreatedBy = session?.CreatedBy ?? instance.InitiatedBy,
-                            CommitteeMembers = session?.Members.ToList(),
-                            IsAwaitingApproval = session?.ApprovedAt is null
-                        };
-                    }
-
-                    break;
-                }
-                case "RecruitmentAppeal":
-                {
-                    var rows = await db.RecruitmentAppeals.AsNoTracking()
-                        .Include(a => a.RecruitmentApplication!)
-                            .ThenInclude(app => app.Requisition!)
+                        var rows = await db.SelectionCommitteeSessions.AsNoTracking()
+                            .Include(s => s.Members)
+                            .Include(s => s.Requisition!)
                                 .ThenInclude(r => r.FundedPosition)
-                        .Where(a => entityIds.Contains(a.Id))
-                        .ToDictionaryAsync(a => a.Id, ct);
-                    foreach (var instance in group)
-                    {
-                        rows.TryGetValue(instance.EntityId, out var appeal);
-                        result[instance.Id] = new WorkflowInboxEntityContext
+                            .Where(s => entityIds.Contains(s.Id))
+                            .ToDictionaryAsync(s => s.Id, ct);
+                        foreach (var instance in group)
                         {
-                            ScopeOrgUnitId = appeal?.RecruitmentApplication?.Requisition?.FundedPosition?.OrgUnitId,
-                            Appeal = appeal,
-                            IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending
-                        };
-                    }
+                            rows.TryGetValue(instance.EntityId, out var session);
+                            result[instance.Id] = new WorkflowInboxEntityContext
+                            {
+                                ScopeOrgUnitId = session?.Requisition?.FundedPosition?.OrgUnitId,
+                                EntityCreatedBy = session?.CreatedBy ?? instance.InitiatedBy,
+                                CommitteeMembers = session?.Members.ToList(),
+                                IsAwaitingApproval = session?.ApprovedAt is null
+                            };
+                        }
 
-                    break;
-                }
+                        break;
+                    }
+                case "RecruitmentAppeal":
+                    {
+                        var rows = await db.RecruitmentAppeals.AsNoTracking()
+                            .Include(a => a.RecruitmentApplication!)
+                                .ThenInclude(app => app.Requisition!)
+                                    .ThenInclude(r => r.FundedPosition)
+                            .Where(a => entityIds.Contains(a.Id))
+                            .ToDictionaryAsync(a => a.Id, ct);
+                        foreach (var instance in group)
+                        {
+                            rows.TryGetValue(instance.EntityId, out var appeal);
+                            result[instance.Id] = new WorkflowInboxEntityContext
+                            {
+                                ScopeOrgUnitId = appeal?.RecruitmentApplication?.Requisition?.FundedPosition?.OrgUnitId,
+                                Appeal = appeal,
+                                IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending
+                            };
+                        }
+
+                        break;
+                    }
                 case "EstablishmentChangeRequest":
-                {
-                    var rows = await db.EstablishmentChangeRequests.AsNoTracking()
-                        .Where(r => entityIds.Contains(r.Id))
-                        .ToDictionaryAsync(r => r.Id, ct);
-                    foreach (var instance in group)
                     {
-                        rows.TryGetValue(instance.EntityId, out var change);
-                        result[instance.Id] = new WorkflowInboxEntityContext
+                        var rows = await db.EstablishmentChangeRequests.AsNoTracking()
+                            .Where(r => entityIds.Contains(r.Id))
+                            .ToDictionaryAsync(r => r.Id, ct);
+                        foreach (var instance in group)
                         {
-                            EntityCreatedBy = change?.CreatedBy ?? instance.InitiatedBy,
-                            IsAwaitingApproval = change?.Status == EstablishmentChangeStatus.PendingApproval
-                        };
-                    }
+                            rows.TryGetValue(instance.EntityId, out var change);
+                            result[instance.Id] = new WorkflowInboxEntityContext
+                            {
+                                EntityCreatedBy = change?.CreatedBy ?? instance.InitiatedBy,
+                                IsAwaitingApproval = change?.Status == EstablishmentChangeStatus.PendingApproval
+                            };
+                        }
 
-                    break;
-                }
+                        break;
+                    }
             }
         }
 

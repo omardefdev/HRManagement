@@ -6,10 +6,15 @@ param(
     [string]$CatalogPath = "docs/str-legal/control-catalog.json",
     [string]$WatchPath = "docs/str-legal/legislative-watch-stamp.json",
     [string]$RepoRoot = "",
-    [string]$OutDir = "testdata/str002/out"
+    [string]$OutDir = "testdata/str002/out",
+    [string]$AsOfDate = ""
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
@@ -21,7 +26,7 @@ function Resolve-RepoPath([string]$rel) {
 $failures = @()
 $catalogFull = Resolve-RepoPath $CatalogPath
 if (-not (Test-Path $catalogFull)) { Write-Error "catalog not found: $catalogFull" }
-$cat = Get-Content -Raw -Path $catalogFull | ConvertFrom-Json
+$cat = Get-Content -Raw -Path $catalogFull | ConvertFrom-Json @jsonArgs
 
 if ($cat.card -ne "STR-002") { $failures += "card must be STR-002" }
 
@@ -97,7 +102,7 @@ foreach ($rel in $prodFiles) {
         $failures += "missing $rel"
         continue
     }
-    $cfg = Get-Content -Raw -Path $full | ConvertFrom-Json
+    $cfg = Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
     $lc = $cfg.LegalControl
     if ($null -eq $lc) {
         $failures += "$rel missing LegalControl section"
@@ -125,13 +130,25 @@ if (-not (Test-Path $watchFull)) {
     $failures += "missing legislative-watch-stamp.json"
 }
 else {
-    $watch = Get-Content -Raw -Path $watchFull | ConvertFrom-Json
+    $watch = Get-Content -Raw -Path $watchFull | ConvertFrom-Json @jsonArgs
     if (-not $watch.nextDue) {
         $failures += "watch stamp missing nextDue"
     }
     else {
-        $nextDue = [datetime]::Parse([string]$watch.nextDue).ToUniversalTime().Date
-        if ($nextDue -lt [datetime]::UtcNow.Date) {
+        # QA-034: yyyy-MM-dd in the invariant culture as a UTC day; -AsOfDate makes the check testable.
+        $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+        $invariant = [System.Globalization.CultureInfo]::InvariantCulture
+        $today = if ($AsOfDate) { [datetime]::ParseExact($AsOfDate, "yyyy-MM-dd", $invariant, $styles).Date } else { [datetime]::UtcNow.Date }
+        $nextDue = $null
+        if ($watch.nextDue -is [datetime]) { $nextDue = $watch.nextDue.Date }
+        else {
+            $parsed = [datetime]::MinValue
+            if ([datetime]::TryParseExact(([string]$watch.nextDue).Trim(), "yyyy-MM-dd", $invariant, $styles, [ref]$parsed)) { $nextDue = $parsed.Date }
+        }
+        if ($null -eq $nextDue) {
+            $failures += "legislative watch nextDue unparseable: '$($watch.nextDue)' (expected yyyy-MM-dd)"
+        }
+        elseif ($nextDue -lt $today) {
             $failures += "legislative watch overdue: nextDue=$($watch.nextDue)"
         }
     }

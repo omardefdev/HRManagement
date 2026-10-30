@@ -91,25 +91,25 @@ public sealed class Hcm025PanelServerParityTests
             case Scenario.RequisitionStep1:
                 return (await fx.RequisitionAsync()).Instance;
             case Scenario.RequisitionStep2:
-            {
-                var (_, instance) = await fx.RequisitionAsync();
-                await fx.ApprovedStepAsync(instance, StepOne);
-                return instance;
-            }
+                {
+                    var (_, instance) = await fx.RequisitionAsync();
+                    await fx.ApprovedStepAsync(instance, StepOne);
+                    return instance;
+                }
             case Scenario.OfferStep1:
                 return await fx.OfferAsync(exceptionOffer: false);
             case Scenario.OverrideOfferStep2ApprovedBySomeone:
-            {
-                var instance = await fx.OfferAsync(exceptionOffer: true);
-                await fx.ApprovedStepAsync(instance, Someone);
-                return instance;
-            }
+                {
+                    var instance = await fx.OfferAsync(exceptionOffer: true);
+                    await fx.ApprovedStepAsync(instance, Someone);
+                    return instance;
+                }
             case Scenario.CommitteeQuorumWithTwoMembers:
-            {
-                var (instance, _) = await fx.CommitteeAsync(activeMembers: 2);
-                await fx.ApprovedStepAsync(instance, StepOne);
-                return instance;
-            }
+                {
+                    var (instance, _) = await fx.CommitteeAsync(activeMembers: 2);
+                    await fx.ApprovedStepAsync(instance, StepOne);
+                    return instance;
+                }
             case Scenario.RequisitionInOtherBranch:
                 return (await fx.RequisitionAsync(fx.Branch2)).Instance;
             default:

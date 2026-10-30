@@ -7,6 +7,9 @@
     <!-- NU1510: package pruning hints on transitive refs — documented baseline, not actionable without dependency upgrades -->
     <!-- xUnit1031/xUnit2002: async blocking and JsonElement asserts in legacy binding tests — tracked, non-blocking for CI -->
     <NoWarn>$(NoWarn);NU1510;xUnit1031;xUnit2002</NoWarn>
+    <!-- QA-034 (G-QA-04): a known High/Critical vulnerability in any package graph fails restore everywhere, not only
+         in the CI build that passes -warnaserror. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
   </PropertyGroup>
 
   <!-- QA-001 / DB-001: force patched transitive natives used by EF Sqlite (GHSA-2m69-gcr7-jv3q) -->

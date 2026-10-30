@@ -9,6 +9,7 @@ using Payroll.Application.Services;
 using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 using Payroll.Infrastructure.Data;
+using Payroll.Web.Services;
 
 namespace Payroll.Web.Controllers;
 
@@ -27,7 +28,22 @@ public class FraudAlertsController(
 
     public async Task<IActionResult> Index(string? status, string? severity, string? category, Guid? employeeId, DateTime? detectedFrom, DateTime? detectedTo)
     {
+        // QA-034 (IAM-002): branch scope. Payroll has no employee snapshots, so the employee's org unit is the one on
+        // the active pay profile (PayrollEmployeeScope). A restricted user gets 403 for an employee outside the scope
+        // and lists only employees inside it (no active profile = outside, fail-closed); unrestricted is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(scope, scopedEmployeeId, db.EmployeePayProfiles) is { } employeeDenied)
+            return employeeDenied;
+
         var query = db.FraudAlerts.AsNoTracking().AsQueryable();
+        if (scope.MustFilter)
+        {
+            var inScope = db.EmployeePayProfiles.EmployeeIdsInScope(scope);
+            query = query.Where(a => inScope.Contains(a.EmployeeId));
+        }
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(a => a.Status == status.Trim());
         else

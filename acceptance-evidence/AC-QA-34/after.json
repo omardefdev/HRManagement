@@ -1,0 +1,8 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "qa34-34i-151429a5951a484a88af184ad0375442",
+  "httpObservationCount": 0,
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

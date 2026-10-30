@@ -100,7 +100,7 @@ public static class AcceptanceMessagingHelper
         var root = AcceptanceHarness.RepoRoot;
         var scriptPath = Path.Combine(root, "scripts", scriptName);
         var argList = string.Join(' ', args.Select(a => $"-{a.Key} \"{a.Value}\""));
-        var psi = new ProcessStartInfo("pwsh", $"-File \"{scriptPath}\" {argList}")
+        var psi = new ProcessStartInfo("pwsh", $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" {argList}")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,

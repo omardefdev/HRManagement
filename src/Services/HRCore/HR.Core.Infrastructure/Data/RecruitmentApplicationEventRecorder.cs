@@ -133,15 +133,15 @@ internal static class RecruitmentApplicationEventRecorder
 
     private static RecruitmentApplicationEvent New(
         Guid tenantId, Guid applicationId, string type, int? from, int? to, Guid? related) => new()
-    {
-        // Taken from the changed entity: on the anonymous public portal it is the only tenant available.
-        TenantId = tenantId,
-        RecruitmentApplicationId = applicationId,
-        EventType = type,
-        FromStatus = from,
-        ToStatus = to,
-        RelatedEntityId = related
-    };
+        {
+            // Taken from the changed entity: on the anonymous public portal it is the only tenant available.
+            TenantId = tenantId,
+            RecruitmentApplicationId = applicationId,
+            EventType = type,
+            FromStatus = from,
+            ToStatus = to,
+            RelatedEntityId = related
+        };
 
     private static (Guid, string, int?, int?, Guid?) Key(RecruitmentApplicationEvent e) =>
         (e.RecruitmentApplicationId, e.EventType, e.FromStatus, e.ToStatus, e.RelatedEntityId);

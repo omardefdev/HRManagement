@@ -14,6 +14,7 @@ using MediatR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using HRManagement.IntegrationTests.Support;
 
 namespace HRManagement.IntegrationTests;
 
@@ -29,18 +30,11 @@ public class ContractLifecycleIntegrationTests
         services.AddLogging();
         IntegrationTestHelpers.AddDeterministicServiceClients(services);
         services.AddDbContext<ContractsDbContext>(o => o.UseSqlite(connection));
-        services.AddScoped<IContractsRepository, ContractsRepository>();
         services.AddSingleton<IEventPublisher>(spy);
-        services.AddSingleton<IEmployeeLifecycleGate, HR.Contracts.Infrastructure.Services.PassThroughEmployeeLifecycleGate>();
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssemblyContaining<ActivateContractHandler>();
-            cfg.RegisterServicesFromAssemblyContaining<ApproveLeaveRequestHandler>();
-            cfg.RegisterServicesFromAssemblyContaining<ApproveAdvanceRequestHandler>();
-            cfg.RegisterServicesFromAssemblyContaining<PublishSeparationHandler>();
-        });
+        // QA-034: repository, gate, MediatR handlers and the HR.Core active-regime fake (law50) in one place.
+        services.AddContractsApplicationForTests();
 
-        var provider = services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         var scope = provider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
         await db.Database.EnsureCreatedAsync();

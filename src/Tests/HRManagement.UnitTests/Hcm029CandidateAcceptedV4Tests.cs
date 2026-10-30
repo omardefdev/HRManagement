@@ -85,7 +85,7 @@ public class Hcm029CandidateAcceptedV4Tests
         // HCM-032: besides the hire event only the requisition-closed aggregate (the last vacancy was filled).
         var all = Published(publish);
         Assert.Contains(all, p => p.Type == typeof(IRecruitmentRequisitionClosed));
-        var published = Assert.Single(all.Where(p => p.Type != typeof(IRecruitmentRequisitionClosed)));
+        var published = Assert.Single(all, p => p.Type != typeof(IRecruitmentRequisitionClosed));
         Assert.Equal(typeof(IInternalPlacementCompleted), published.Type);
         Assert.Equal(existing.Id, Prop(published.Values, nameof(IInternalPlacementCompleted.EmployeeId)));
         Assert.Equal(RecruitmentApplicationStatus.Hired,
@@ -130,6 +130,12 @@ public class Hcm029CandidateAcceptedV4Tests
             .AddMassTransitTestHarness(x => x.AddConsumer<CaptureConsumer>())
             .BuildServiceProvider(true);
         var harness = provider.GetRequiredService<ITestHarness>();
+        // QA-034 (D-QA-14, root cause): Consumed.Any() returns false once the bus has been idle for the harness's
+        // inactivity window. In the full unit run the thread pool is saturated, the in-memory delivery can start later
+        // than that window and the round trip failed after ~22 s ("flaky"). The assertion is unchanged; the harness
+        // only waits long enough for a loaded machine.
+        harness.TestInactivityTimeout = TimeSpan.FromSeconds(30);
+        harness.TestTimeout = TimeSpan.FromSeconds(90);
         await harness.Start();
         try
         {

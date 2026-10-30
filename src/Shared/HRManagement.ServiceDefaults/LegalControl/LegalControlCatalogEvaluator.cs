@@ -91,14 +91,14 @@ public static class LegalControlCatalogEvaluator
             {
                 failures.Add("legislative-watch-stamp.json missing");
             }
-            else if (!DateTime.TryParse(watchStamp.NextDue, out var nextDue))
+            else if (!GovernanceDateParser.TryParseUtcDate(watchStamp.NextDue, out var nextDue))
             {
-                failures.Add($"legislative watch nextDue unparseable: '{watchStamp.NextDue}'");
+                failures.Add($"legislative watch nextDue unparseable: '{watchStamp.NextDue}' (expected yyyy-MM-dd)");
             }
             else
             {
                 var now = utcNow ?? DateTime.UtcNow;
-                if (nextDue.ToUniversalTime().Date < now.Date)
+                if (nextDue < now.Date)
                     failures.Add($"legislative watch overdue: nextDue={watchStamp.NextDue}");
             }
         }

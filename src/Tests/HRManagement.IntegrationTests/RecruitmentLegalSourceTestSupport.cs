@@ -50,7 +50,7 @@ internal static class RecruitmentLegalSourceTestSupport
     {
         var (regimeValidator, _) = await CreateRegimeSupportAsync(db);
         var transitionService = new ServiceRegimeTransitionService(db, regimeValidator);
-        var exceptionService = new ServiceRegimeExceptionService(db, regimeValidator, transitionService);
+        var exceptionService = new ServiceRegimeExceptionService(db, transitionService);
         return (regimeValidator, exceptionService);
     }
 

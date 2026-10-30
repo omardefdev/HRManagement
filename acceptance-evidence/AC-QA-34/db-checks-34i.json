@@ -1,0 +1,12 @@
+{
+  "vulnExit": 0,
+  "vulnerableProjects": [],
+  "highOrCritical": 0,
+  "buildRun": "dotnet build HRManagement.slnx --configuration Release --no-restore -warnaserror",
+  "buildStepStatus": "passed",
+  "warningsAsErrors": true,
+  "probe": {
+    "exit": 1,
+    "nu1903": true
+  }
+}

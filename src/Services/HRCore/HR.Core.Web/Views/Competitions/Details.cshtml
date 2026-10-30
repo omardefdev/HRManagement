@@ -6,7 +6,6 @@
     var c = Model.Competition;
     ViewData["Title"] = $"المسابقة {c.Number}";
     string D(DateOnly? d) => d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "—";
-    string T(DateTime? d) => d?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "—";
 }
 
 @if (TempData["Success"] is string ok) { <div class="alert alert-success" role="status">@ok</div> }

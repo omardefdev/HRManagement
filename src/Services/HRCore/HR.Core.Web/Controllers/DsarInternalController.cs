@@ -20,7 +20,8 @@ namespace HR.Core.Web.Controllers;
 [Route("api/internal/dsar-subjects")]
 [Authorize(Policy = ServicePolicies.DsarSubjectRead)]
 public sealed partial class DsarInternalController(HRCoreDbContext db) : ControllerBase
-{    [HttpGet("{employeeId:guid}")]
+{
+    [HttpGet("{employeeId:guid}")]
     public async Task<ActionResult<object>> GetSubject(Guid employeeId, CancellationToken ct)
     {
         var employee = await db.Employees.AsNoTracking()
@@ -314,7 +315,14 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
             .OrderBy(o => o.CreatedAt)
             .Select(o => new
             {
-                o.OfferNumber, o.Status, o.IssuedDate, o.ExpiryDate, o.AcceptedBy, o.AcceptedDate, o.DeclinedBy, o.DeclinedAt
+                o.OfferNumber,
+                o.Status,
+                o.IssuedDate,
+                o.ExpiryDate,
+                o.AcceptedBy,
+                o.AcceptedDate,
+                o.DeclinedBy,
+                o.DeclinedAt
             })
             .ToListAsync(ct);
 

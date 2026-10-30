@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace HRManagement.UnitTests;
@@ -77,21 +76,12 @@ public class Sup004ContractTests
     {
         var root = ResolveRepoRoot();
         var script = Path.Combine(root, "scripts", "sup004-validate.ps1");
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell",
-            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -RepoRoot \"{root}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WorkingDirectory = root
-        };
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit();
-        Assert.True(proc.ExitCode == 0, $"sup004-validate failed: {stdout}\n{stderr}");
+        // QA-034: license/EOL dates are checked on the registry's lastReviewed day, not on the real clock; the dates
+        // themselves are dated obligations (docs/qa/dated-obligations.json) watched by the CI horizon step.
+        using var registry = JsonDocument.Parse(Read("docs/sup-contracts/vendor-contract-registry.json"));
+        var asOf = registry.RootElement.GetProperty("lastReviewed").GetString();
+        var (exitCode, stdout, stderr) = HRManagement.TestSupport.RepoScriptRunner.RunScript(script, $"-AsOfDate {asOf}");
+        Assert.True(exitCode == 0, $"sup004-validate failed: {stdout}\n{stderr}");
         Assert.Contains("PASS", stdout);
     }
 }

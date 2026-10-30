@@ -354,11 +354,11 @@ public static class DemoPayrollSeeder
             var status = AcceptanceSeedExecution.IsAcceptance
                 ? PayrollRunStatus.Posted
                 : month switch
-            {
-                <= 4 => PayrollRunStatus.Posted,
-                5 => PayrollRunStatus.Approved,
-                _ => PayrollRunStatus.Calculated
-            };
+                {
+                    <= 4 => PayrollRunStatus.Posted,
+                    5 => PayrollRunStatus.Approved,
+                    _ => PayrollRunStatus.Calculated
+                };
 
             decimal totalNet = 0;
             var pendingLines = 0;

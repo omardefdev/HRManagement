@@ -1,0 +1,58 @@
+{
+  "head": "1a3397ccf812a73aa1fadb60433f58e197c4a983",
+  "summaryGitSha": "1a3397ccf812a73aa1fadb60433f58e197c4a983",
+  "source": "head-clone",
+  "counts": {
+    "passed": 85,
+    "failed": 0,
+    "skipped": 0,
+    "not-run": 2,
+    "not-recorded": 0
+  },
+  "knownLocalOverrides": [],
+  "totalSeconds": 813.5,
+  "trx": [
+    {
+      "file": "TestResults/integration/integration-results.trx",
+      "total": 344,
+      "passed": 340,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "TestResults/unit/unit-results.trx",
+      "total": 4184,
+      "passed": 4184,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "nativeTestcontainersGreen": true,
+  "nativeCoverageGreen": true,
+  "nativeCoverageGate": [
+    "  gate Payroll.Domain: 90.9% (830/913)",
+    "  gate Payroll.Application: 73.6% (661/898)",
+    "  gate HR.Core.Domain: 90.9% (2240/2463)",
+    "  gate HR.Core.Infrastructure: 94.2% (5189/5511)",
+    "  gate HR.Contracts.Domain: 87.0% (309/355)",
+    "  gate HRManagement.SharedKernel: 82.2% (959/1167)",
+    "  gate Compliance.Domain: 92.9% (52/56)",
+    "Gate line coverage: 90.1% (threshold: 60.0%) from 7 assembly(ies), covered lines 10240/11363",
+    "  Compliance.Domain: 92.9% (floor 50.0%) [OK]",
+    "  HR.Contracts.Domain: 87.0% (floor 65.0%) [OK]",
+    "  HR.Core.Domain: 90.9% (floor 70.0%) [OK]",
+    "  HR.Core.Infrastructure: 94.2% (floor 70.0%) [OK]",
+    "  HRManagement.Gateway: 66.2% (floor 25.0%) [OK]",
+    "  HRManagement.ServiceDefaults: 73.3% (floor 40.0%) [OK]",
+    "  Payroll.Application: 73.6% (floor 73.0%) [OK]",
+    "  Payroll.Domain: 90.9% (floor 75.0%) [OK]",
+    "  Payroll.Infrastructure: 82.0% (floor 60.0%) [OK]",
+    "Coverage gate passed."
+  ],
+  "rewrittenByRunCount": 142,
+  "problems": [],
+  "negative": {
+    "otherShaRejected": true,
+    "failedStepRejected": true
+  }
+}

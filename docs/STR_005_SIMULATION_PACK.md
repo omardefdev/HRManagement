@@ -30,6 +30,20 @@ Walkthroughs for card verification (law change / incident / delay). Fixtures und
 5. Risk `RK-STR005-DELAY-SILENT` → Mitigated.
 6. Validate harness must treat eng-only Go-Live evidence as failure (see go-live fixtures).
 
+## Closure of the simulation exceptions (PLAN-34, D-QA-3)
+
+The simulation is finished. Both seed exceptions in `docs/str-governance/governance-matrix.json` are `Closed` on
+2026-10-30 by decision `PG-EXC-2026-10-001` (`docs/str-governance/decision-log.json`); no expiry date was extended.
+`EX-STR005-SIM-INCIDENT-WINDOW` had expired on 2026-09-15 and blocked the STR-005 CI step and the Production/Staging
+startup of Gateway, HR.Core and Payroll; `EX-STR005-SIM-LAW-INTERIM` expired at the end of 2026-10-30.
+
+The walkthroughs and fixtures above remain valid as scenarios. Expiry enforcement is still proven, on a copy of the
+matrix and a fixed clock, by `Str005ProductionBindingTests` and `RuntimeGovernanceDocumentsTests` (AC-QA-34c).
+
+Renewing a real exception requires a new decision row, a `Renewed` status with a different reviewer, and either an image
+rebuild (the matrix is copied to the build output) or `ProgramGovernance:MatrixPath` pointing at a mounted file. Every
+`Declared` exception is a dated obligation in `docs/qa/dated-obligations.json` (warn 30 days, fail 7 days before expiry).
+
 ## Cross-check
 
 | Scenario | decision-log | risk-register | exception |

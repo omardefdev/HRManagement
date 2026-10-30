@@ -9,6 +9,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using HRManagement.IntegrationTests.Support;
 
 namespace HRManagement.IntegrationTests;
 
@@ -57,9 +58,7 @@ public class InboundEventConsumerTests
                 IntegrationTestHelpers.AddSqliteDbContext<ContractsDbContext>(services, connection);
                 services.AddSingleton(Mock.Of<IEventPublisher>());
                 services.AddSingleton(Mock.Of<IEmployeeLifecycleGate>());
-                services.AddMediatR(cfg =>
-                    cfg.RegisterServicesFromAssemblyContaining<ProcessTransactionRegisteredInDiwanHandler>());
-                services.AddScoped<IContractsRepository, ContractsRepository>();
+                services.AddContractsApplicationForTests();
             },
             cfg => cfg.AddConsumer<TransactionRegisteredInDiwanConsumer>());
 

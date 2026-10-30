@@ -154,16 +154,8 @@ public class Iam002OrgScopeTests
     public void Iam002_validate_script_passes()
     {
         var root = ResolveRepoRoot();
-        var psi = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = "powershell",
-            ArgumentList = { "-NoProfile", "-File", Path.Combine(root, "scripts", "iam002-validate.ps1"), "-RepoRoot", root },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        using var proc = System.Diagnostics.Process.Start(psi)!;
-        proc.WaitForExit(30_000);
-        Assert.Equal(0, proc.ExitCode);
+        // QA-034: RepoScriptRunner passes -ExecutionPolicy Bypass (Windows) / uses pwsh (Linux) and drains both streams.
+        var (exitCode, stdout, stderr) = HRManagement.TestSupport.RepoScriptRunner.RunScript(Path.Combine(root, "scripts", "iam002-validate.ps1"));
+        Assert.True(exitCode == 0, $"iam002-validate.ps1 failed ({exitCode}):\n{stdout}\n{stderr}");
     }
 }

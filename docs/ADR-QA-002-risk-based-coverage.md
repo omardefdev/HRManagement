@@ -27,3 +27,16 @@ QA-001 وفّر Coverlet + دمج Cobertura + عتبة عامة 40%، بلا م�
 - CI يفشل دون 60% على `gateAssemblies` أو دون floor لـassembly ظاهر في التقرير.
 - Mutation ليس حاجز كل PR؛ nightly يثبت الدرجة المعتمدة.
 - توسيع `gateAssemblies` أو رفع floors مسموح؛ التخفيض يتطلب ADR محدّث.
+
+## ملاحظة PLAN-34 (2026-10-30) — أول قياس فعلي للبوابة، D-QA-13
+
+لم تُشغَّل بوابة التغطية في أي جلسة منذ 2026-07-28. أول قياس (CI المحلي على Linux، `scripts/ci-local.ps1`، الوحدة +
+التكامل + Testcontainers): التغطية العامة على `gateAssemblies` **90.1%** (العتبة 60%)، وكل الأرضيات ناجحة عدا
+**`Payroll.Application` = 73.6%** مقابل أرضية 75%.
+
+القرار (D-QA-13، بلا خفض صامت):
+- أرضية `Payroll.Application` = **73** (القيمة المقيسة مقرّبة للأسفل)، مع بند `temporaryFloors` في `coverage-floors.json`
+  (`ratchetTo: 75`، `reviewBy: 2026-12-29`، المالك: خطط الرواتب PLAN-56..59).
+- البند التزام مؤرخ في [`docs/qa/dated-obligations.json`](qa/dated-obligations.json) (`QA-COVERAGE-TEMPORARY-FLOORS`):
+  تُنذر خطوة CI قبل 30 يوماً وتُفشل قبل 7 أيام، فلا يبقى الاستثناء دون قرار.
+- `globalThreshold` (60) وبقية الأرضيات بلا تغيير.

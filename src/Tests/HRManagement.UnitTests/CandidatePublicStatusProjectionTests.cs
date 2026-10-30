@@ -22,19 +22,19 @@ public class CandidatePublicStatusProjectionTests
         DateTime? appealDeadline = null,
         RecruitmentAppealStatus appeal = RecruitmentAppealStatus.None,
         DateOnly? reserveUntil = null) => new()
-    {
-        Status = status,
-        AppliedAtUtc = Now.AddDays(-30),
-        ActiveOfferStatus = offer,
-        ActiveOfferExpiryUtc = offerExpiry,
-        Interviews = interviews ?? [],
-        Events = events ?? [],
-        AppealOpen = appealOpen,
-        AppealDeadlineUtc = appealDeadline,
-        AppealStatus = appeal,
-        ReserveUntil = reserveUntil,
-        NowUtc = Now
-    };
+        {
+            Status = status,
+            AppliedAtUtc = Now.AddDays(-30),
+            ActiveOfferStatus = offer,
+            ActiveOfferExpiryUtc = offerExpiry,
+            Interviews = interviews ?? [],
+            Events = events ?? [],
+            AppealOpen = appealOpen,
+            AppealDeadlineUtc = appealDeadline,
+            AppealStatus = appeal,
+            ReserveUntil = reserveUntil,
+            NowUtc = Now
+        };
 
     [Theory]
     [InlineData(RecruitmentApplicationStatus.Submitted, Codes.UnderReview, "قيد المراجعة")]

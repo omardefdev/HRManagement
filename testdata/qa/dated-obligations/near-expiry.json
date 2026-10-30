@@ -1,0 +1,15 @@
+{
+  "card": "QA-034-TEST",
+  "defaults": { "warnDays": 30, "failDays": 7 },
+  "obligations": [
+    {
+      "id": "TEST-near-expiry",
+      "file": "testdata/qa/dated-obligations/fixture-data.json",
+      "selector": "nearExpiry[*]",
+      "idField": "id",
+      "dateField": "nextDue",
+      "enforcedBy": ["test"],
+      "owner": "qa"
+    }
+  ]
+}

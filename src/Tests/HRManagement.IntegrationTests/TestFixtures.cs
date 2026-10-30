@@ -17,7 +17,16 @@ public static class RealInfra
     public const string PostgresImage = "postgres:16-alpine";
     public const string RabbitImage = "rabbitmq:3.13-management-alpine";
     public const string KeycloakImage = "quay.io/keycloak/keycloak:24.0";
-    public const string MinioImage = "minio/minio:RELEASE.2025-04-22T22-12-26Z";
+    /// <summary>
+    /// QA-034 (D-QA-7): the former pin minio/minio:RELEASE.2025-04-22T22-12-26Z can no longer be pulled. A vetted,
+    /// digest-pinned image is supplied through HRM_MINIO_IMAGE; the tests that need it carry Category=ObjectStorage and
+    /// are excluded from CI until PLAN-38 picks the image (tests/ci-exclusions.json, a dated obligation).
+    /// </summary>
+    public static string MinioImage =>
+        Environment.GetEnvironmentVariable("HRM_MINIO_IMAGE") is { Length: > 0 } image
+            ? image
+            : throw new InvalidOperationException(
+                "Set HRM_MINIO_IMAGE to a vetted, digest-pinned MinIO image to run Category=ObjectStorage tests (D-QA-7, PLAN-38).");
 }
 
 /// <summary>Safe DB/object names — avoids C# parsing `{Guid:N[..n]}` as range on the format specifier.</summary>

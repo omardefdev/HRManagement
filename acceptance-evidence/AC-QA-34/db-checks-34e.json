@@ -1,0 +1,57 @@
+{
+  "ContractLifecycleIntegrationTests.PublishSeparation_AlreadyPublished_ReturnsError": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "ContractLifecycleIntegrationTests.PublishSeparation_Complete_PublishesOnce_IdempotentOnRetry": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "ContractLifecycleIntegrationTests.PublishSeparation_IncompleteChecklist_ReturnsError_DoesNotAutoComplete": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "ContractLifecycleIntegrationTests.UpdateAndDeleteSeparation_AfterPublish_AreBlocked": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "Fun002SeparationRecordIntegrationTests.Publish_FutureEffectiveDate_Rejected": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "Fun002SeparationRecordIntegrationTests.Publish_LegalHold_Rejected": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "Int003ProcessSagaTests.DOM001_Publish_DoesNotAutoComplete_ContractTerminated": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "EndToEndReleaseWorkflowSmokeIntegrationTests.ReleaseWorkflow_Contract_Leave_PayrollPost_Separation_ChainSucceeds": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "Fun002SeparationRecordIntegrationTests.Publish_with_law50_regime_publishes_once_and_snapshots_the_regime": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "Fun002SeparationRecordIntegrationTests.Publish_without_an_active_regime_is_refused_without_an_event": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  },
+  "Fun002SeparationRecordIntegrationTests.Publish_with_hr_core_unavailable_fails_without_an_event": {
+    "Total": 1,
+    "Passed": 1,
+    "Failed": 0
+  }
+}

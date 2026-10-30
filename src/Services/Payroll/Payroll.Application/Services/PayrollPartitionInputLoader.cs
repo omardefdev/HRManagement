@@ -497,9 +497,9 @@ public static class PayrollPartitionInputLoader
 
     }
 
-    private static Guid ReadEmployeeId<T>(T entity) => ReadEntityProperty<Guid>(entity, "EmployeeId");
+    private static Guid ReadEmployeeId<T>(T entity) where T : notnull => ReadEntityProperty<Guid>(entity, "EmployeeId");
 
-    private static Guid ReadEntityId<T>(T entity) => ReadEntityProperty<Guid>(entity, "Id");
+    private static Guid ReadEntityId<T>(T entity) where T : notnull => ReadEntityProperty<Guid>(entity, "Id");
 
     private static TProperty ReadEntityProperty<TProperty>(object entity, string propertyName) =>
         (TProperty)entity.GetType().GetProperty(propertyName)!.GetValue(entity)!;

@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -32,8 +33,12 @@ internal static class PayrollPostgresTestSupport
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<ITenantContext>(tenant);
+        // Mirror Payroll.Web: a real tenant turns the TEN-002 query filter on, so inserts must be stamped with that
+        // tenant (TenantIdStampInterceptor) and the RLS session variable set, or every row lands as Guid.Empty and
+        // is invisible to the next query ("التشغيل غير موجود." / "Sequence contains no elements").
         services.AddDbContext<PayrollDbContext>(o =>
-            o.UseNpgsql(cs, n => n.MigrationsAssembly(typeof(PayrollDbContext).Assembly.GetName().Name)));
+            o.UseNpgsql(cs, n => n.MigrationsAssembly(typeof(PayrollDbContext).Assembly.GetName().Name))
+             .AddInterceptors(new TenantIdStampInterceptor(tenant), new NpgsqlTenantSessionInterceptor(tenant)));
         PayrollIntegrationTestSetup.AddPayrollConsumerServices(services);
         if (configure is not null)
             services.PostConfigure(configure);

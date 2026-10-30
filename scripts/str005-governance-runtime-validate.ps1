@@ -15,22 +15,35 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
 
 function Resolve-RepoPath([string]$rel) {
+    if ([IO.Path]::IsPathRooted($rel)) { return $rel }
     return (Join-Path $RepoRoot ($rel -replace '/', [IO.Path]::DirectorySeparatorChar))
 }
 
 function Get-Json([string]$rel) {
     $full = Resolve-RepoPath $rel
     if (-not (Test-Path $full)) { throw "missing $rel ($full)" }
-    return Get-Content -Raw -Path $full | ConvertFrom-Json
+    return Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
+}
+
+# QA-034: yyyy-MM-dd in the invariant culture, as a UTC calendar day (a Hijri thread culture or a non-UTC time zone
+# must not shift the date). PowerShell 7 ConvertFrom-Json may already return [datetime] for ISO strings.
+function ConvertTo-UtcDate($value) {
+    if ($value -is [datetime]) { return [datetime]::SpecifyKind($value.Date, [DateTimeKind]::Utc) }
+    $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+    return [datetime]::ParseExact(([string]$value).Trim(), "yyyy-MM-dd", [System.Globalization.CultureInfo]::InvariantCulture, $styles).Date
 }
 
 $failures = @()
-$now = if ($AsOfDate) { [datetime]::Parse($AsOfDate).ToUniversalTime().Date } else { [datetime]::UtcNow.Date }
+$now = if ($AsOfDate) { ConvertTo-UtcDate $AsOfDate } else { [datetime]::UtcNow.Date }
 
 $m = Get-Json $MatrixPath
 $decisions = Get-Json $DecisionLogPath
@@ -60,7 +73,11 @@ foreach ($ex in @($m.exceptions)) {
         $failures += "$($ex.exceptionId) Declared exception missing expiresOn"
         continue
     }
-    $expires = [datetime]::Parse([string]$ex.expiresOn).ToUniversalTime().Date
+    try { $expires = ConvertTo-UtcDate $ex.expiresOn }
+    catch {
+        $failures += "$($ex.exceptionId) Declared exception expiresOn unparseable '$($ex.expiresOn)' (expected yyyy-MM-dd)"
+        continue
+    }
     if ($expires -lt $now) {
         $failures += "$($ex.exceptionId) Declared exception expired on $($ex.expiresOn)"
     }
@@ -130,7 +147,7 @@ $prodFiles = @(
 foreach ($rel in $prodFiles) {
     $full = Resolve-RepoPath $rel
     if (-not (Test-Path $full)) { $failures += "missing $rel"; continue }
-    $cfg = Get-Content -Raw -Path $full | ConvertFrom-Json
+    $cfg = Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
     $pg = $cfg.ProgramGovernance
     if ($null -eq $pg) { $failures += "$rel missing ProgramGovernance"; continue }
     if ($pg.EnforceOnStartup -ne $true) { $failures += "$rel EnforceOnStartup must be true" }
@@ -140,7 +157,7 @@ foreach ($rel in $prodFiles) {
     }
 }
 
-$outFull = Join-Path $RepoRoot $OutDir
+$outFull = Resolve-RepoPath $OutDir
 New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 $report = [ordered]@{
     card = "STR-005"

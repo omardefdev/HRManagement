@@ -39,8 +39,15 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # QA-034 (D-QA-7): the pinned minio/minio:RELEASE.2025-04-22T22-12-26Z can no longer be pulled. Dev and CI run
+  # File.Storage on the Local provider; MinIO starts only with --profile object-storage (or the
+  # docker-compose.object-storage.yml overlay) and an explicitly vetted, digest-pinned MINIO_IMAGE. Production MinIO
+  # is PLAN-36/38.
   minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    profiles: ["object-storage"]
+    # Compose interpolates every service, active or not, so the requirement is not ":?" here (it would break the
+    # base stack); an empty image fails `config` as soon as the object-storage profile is enabled.
+    image: ${MINIO_IMAGE:-}
     container_name: hrm-minio
     command: server /data --console-address ":9001"
     ports:
@@ -122,7 +129,9 @@ services:
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
       HrAuth__BehindGateway: "true"
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
-      FileStorage__Provider: Minio
+      # QA-034 (D-QA-7): Local by default; docker-compose.object-storage.yml switches to Minio.
+      FileStorage__Provider: ${FILE_STORAGE_PROVIDER:-Local}
+      FileStorage__LocalRootPath: /tmp/hrm-file-storage
       FileStorage__Endpoint: minio:9000
       # SEC-004: dev-only root defaults — production clears these (hr-core uses service identity, not direct MinIO).
       FileStorage__AccessKey: ${MINIO_ROOT_USER:-hrminio}
@@ -135,8 +144,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      minio:
-        condition: service_started
       keycloak:
         condition: service_started
     volumes:
@@ -217,5 +224,6 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  file_storage_data:
   clamav_data:
   hr_core_integration_outbox:

@@ -1,0 +1,457 @@
+{
+  "card": "QA-034",
+  "description": "Single source of the CI build-and-test steps. .github/workflows/ci.yml runs each with `bash scripts/ci/run-steps.sh --step \"<name>\"`; scripts/ci-local.ps1 runs all of them, in this order, in a Linux container. CiStepsParityTests rejects any drift. Fields: name (also the ci.yml step name), kind (guard|build|test|gate), run (bash), env, always (runs even after a failure, like if: always()).",
+  "steps": [
+    {
+      "name": "PowerShell for Linux validation script tests",
+      "kind": "build",
+      "run": "if command -v pwsh >/dev/null 2>&1 && ! command -v powershell >/dev/null 2>&1; then\n  $(command -v sudo || true) ln -sf \"$(command -v pwsh)\" /usr/local/bin/powershell\nfi"
+    },
+    {
+      "name": "Restore local tools (dotnet-ef)",
+      "kind": "build",
+      "run": "dotnet tool restore"
+    },
+    {
+      "name": "Guard against wildcard package versions",
+      "kind": "guard",
+      "run": "set -euo pipefail\nif grep -RInE 'Version=\"(\\*|[0-9]+\\.\\*)\"' --include='*.csproj' .; then\n  echo \"::error::Wildcard PackageReference versions found in .csproj files (DB-001)\"\n  exit 1\nfi\necho \"No wildcard package versions.\""
+    },
+    {
+      "name": "Base image pins (SUP-001-B)",
+      "kind": "guard",
+      "run": "bash scripts/check-base-image-pins.sh"
+    },
+    {
+      "name": "Supply-chain exceptions validity (SUP-001-C)",
+      "kind": "guard",
+      "run": "bash scripts/check-supply-chain-exceptions.sh"
+    },
+    {
+      "name": "License policy (SUP-001-E)",
+      "kind": "guard",
+      "run": "bash scripts/check-license-policy.sh"
+    },
+    {
+      "name": "No external CDN (UX-001-C)",
+      "kind": "guard",
+      "run": "bash scripts/check-no-external-cdn.sh"
+    },
+    {
+      "name": "XSS DOM sinks gate (UX-001-E)",
+      "kind": "guard",
+      "run": "bash scripts/check-xss-dom-sinks.sh"
+    },
+    {
+      "name": "Icon button accessible names (UX-002-E)",
+      "kind": "guard",
+      "run": "python3 scripts/check-icon-button-names.py"
+    },
+    {
+      "name": "Non-prod data policy (GOV-001-D)",
+      "kind": "guard",
+      "run": "python3 scripts/check-non-prod-data-policy.py"
+    },
+    {
+      "name": "No LEGAL_TBD in release path (GOV-002-B)",
+      "kind": "guard",
+      "run": "python3 scripts/check-no-legal-tbd.py"
+    },
+    {
+      "name": "Dated obligations horizon (QA-034)",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/qa/dated-obligations-check.ps1",
+      "comment": "Warns 30 days and fails 7 days before any registered obligation (docs/qa/dated-obligations.json) is due, so the STR-005/STR-002 runtime validators and the Production startup guards never fail first."
+    },
+    {
+      "name": "STR-002 control runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/str002-control-runtime-validate.ps1"
+    },
+    {
+      "name": "STR-003 module runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/str003-module-runtime-validate.ps1"
+    },
+    {
+      "name": "STR-004 nofork runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/str004-nofork-runtime-validate.ps1"
+    },
+    {
+      "name": "STR-005 governance runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/str005-governance-runtime-validate.ps1"
+    },
+    {
+      "name": "STR-006 ownership runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/str006-ownership-runtime-validate.ps1"
+    },
+    {
+      "name": "STR-007 value runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/str007-value-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-001 inventory runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig001-inventory-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-002 codemap runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig002-codemap-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-003 factory runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig003-factory-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-004 match runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig004-match-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-005 evidence runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig005-evidence-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-006 cutover runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig006-cutover-runtime-validate.ps1"
+    },
+    {
+      "name": "MIG-007 onboarding runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/mig007-onboarding-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-001 federation runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext001-federation-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-002 civil-registry runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext002-civil-registry-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-003 treasury-payment runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext003-treasury-payment-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-004 pki-signature runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext004-pki-signature-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-005 api-exchange runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext005-api-exchange-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-006 sandbox-cert pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext006-sandbox-cert-validate.ps1"
+    },
+    {
+      "name": "EXT-006 sandbox-cert runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext006-sandbox-cert-runtime-validate.ps1"
+    },
+    {
+      "name": "EXT-007 sector-catalog pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext007-sector-catalog-validate.ps1"
+    },
+    {
+      "name": "EXT-007 sector-catalog runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/ext007-sector-catalog-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-001 policy-platform pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod001-policy-platform-validate.ps1"
+    },
+    {
+      "name": "PROD-001 policy-platform runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod001-policy-platform-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-002 agency-selfadmin pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod002-agency-selfadmin-validate.ps1"
+    },
+    {
+      "name": "PROD-002 agency-selfadmin runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod002-agency-selfadmin-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-003 employee-selfservice pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod003-employee-selfservice-validate.ps1"
+    },
+    {
+      "name": "PROD-003 employee-selfservice runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod003-employee-selfservice-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-004 remote-branch pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod004-remote-branch-validate.ps1"
+    },
+    {
+      "name": "PROD-004 remote-branch runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod004-remote-branch-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-005 workbox pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod005-workbox-validate.ps1"
+    },
+    {
+      "name": "PROD-005 workbox runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod005-workbox-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-006 semantic-layer pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod006-semantic-layer-validate.ps1"
+    },
+    {
+      "name": "PROD-006 semantic-layer runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod006-semantic-layer-runtime-validate.ps1"
+    },
+    {
+      "name": "PROD-007 extensibility pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod007-extensibility-validate.ps1"
+    },
+    {
+      "name": "PROD-007 extensibility runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/prod007-extensibility-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-001 control-baseline pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov001-control-baseline-validate.ps1"
+    },
+    {
+      "name": "SOV-001 control-baseline runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov001-control-baseline-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-002 data-sovereignty pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov002-data-sovereignty-validate.ps1"
+    },
+    {
+      "name": "SOV-002 data-sovereignty runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov002-data-sovereignty-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-003 key-sovereignty pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov003-key-sovereignty-validate.ps1"
+    },
+    {
+      "name": "SOV-003 key-sovereignty runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov003-key-sovereignty-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-004 zero-trust pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov004-zero-trust-validate.ps1"
+    },
+    {
+      "name": "SOV-004 zero-trust runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov004-zero-trust-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-005 threat-model pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov005-threat-model-validate.ps1"
+    },
+    {
+      "name": "SOV-005 threat-model runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov005-threat-model-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-006 pen-red pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov006-pen-red-validate.ps1"
+    },
+    {
+      "name": "SOV-006 pen-red runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov006-pen-red-runtime-validate.ps1"
+    },
+    {
+      "name": "SOV-007 vendor-exit pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov007-vendor-exit-validate.ps1"
+    },
+    {
+      "name": "SOV-007 vendor-exit runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/sov007-vendor-exit-runtime-validate.ps1"
+    },
+    {
+      "name": "ARC-001 criticality pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/arc001-criticality-validate.ps1"
+    },
+    {
+      "name": "ARC-001 criticality runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/arc001-criticality-runtime-validate.ps1"
+    },
+    {
+      "name": "ARC-002 reference pack validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/arc002-reference-validate.ps1"
+    },
+    {
+      "name": "ARC-002 reference runtime validate",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/arc002-reference-runtime-validate.ps1"
+    },
+    {
+      "name": "Master data DQ report offline (GOV-003-D)",
+      "kind": "guard",
+      "run": "GOV003_DQ_FIXTURE=testdata/gov003/dq-fixture-clean.json python3 scripts/gov003-data-quality-report.py"
+    },
+    {
+      "name": "Restore (locked mode)",
+      "kind": "build",
+      "run": "dotnet restore HRManagement.slnx --locked-mode"
+    },
+    {
+      "name": "Check formatting",
+      "kind": "build",
+      "run": "dotnet format HRManagement.slnx --verify-no-changes --no-restore"
+    },
+    {
+      "name": "Build",
+      "kind": "build",
+      "run": "dotnet build HRManagement.slnx --configuration Release --no-restore -warnaserror",
+      "comment": "QA-034 (G-QA-04): warnings are errors; NU1903/NU1904 are also errors in Directory.Build.props for every build."
+    },
+    {
+      "name": "Check pending EF model changes",
+      "kind": "gate",
+      "run": "bash scripts/check-pending-ef-model-changes.sh"
+    },
+    {
+      "name": "Check EF migration discoverability",
+      "kind": "gate",
+      "run": "bash scripts/check-migration-discovery.sh"
+    },
+    {
+      "name": "Validate FRD-001 anomaly rules binding",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/frd001-validate.ps1"
+    },
+    {
+      "name": "Classify test evidence (separated counts)",
+      "kind": "gate",
+      "run": "python3 scripts/classify-test-evidence.py"
+    },
+    {
+      "name": "Unit tests",
+      "kind": "test",
+      "run": "dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=unit-results.trx\" --results-directory ./TestResults/unit --settings coverlet.runsettings --collect:\"XPlat Code Coverage\""
+    },
+    {
+      "name": "Integration tests (MassTransit InMemory)",
+      "kind": "test",
+      "run": "dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=integration-results.trx\" --results-directory ./TestResults/integration --filter \"Category!=Testcontainers\" --blame-hang-timeout 5m --settings coverlet.runsettings --collect:\"XPlat Code Coverage\""
+    },
+    {
+      "name": "Integration tests (Testcontainers)",
+      "kind": "test",
+      "run": "dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=integration-tc-results.trx\" --results-directory ./TestResults/integration-tc --filter \"Category=Testcontainers&Category!=ObjectStorage\" --blame-hang-timeout 15m --settings coverlet.runsettings --collect:\"XPlat Code Coverage\"",
+      "env": {
+        "RUN_TESTCONTAINERS": "true"
+      },
+      "comment": "Category=ObjectStorage (MinIO) is excluded until PLAN-38 vets an image: tests/ci-exclusions.json, a dated obligation (D-QA-7)."
+    },
+    {
+      "name": "Coverage gate",
+      "kind": "gate",
+      "run": "bash scripts/check-coverage.sh",
+      "env": {
+        "COVERAGE_THRESHOLD": "60"
+      },
+      "comment": "QA-002: 60% on gateAssemblies + per-assembly floors (coverage-floors.json); ratchet — do not lower without ADR"
+    },
+    {
+      "name": "Tech debt measurement (QA-005)",
+      "kind": "gate",
+      "run": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa005-measure-debt.ps1"
+    },
+    {
+      "name": "XL decomposition audit (PGM-001)",
+      "kind": "gate",
+      "run": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pgm001-xl-audit.ps1"
+    },
+    {
+      "name": "Security scan (known vulnerabilities)",
+      "kind": "gate",
+      "run": "bash scripts/check-nuget-vulnerabilities.sh vuln-report.txt"
+    },
+    {
+      "name": "SCA Crit/High fixture (SUP-001-C)",
+      "kind": "gate",
+      "run": "bash scripts/verify-sca-fixture.sh"
+    },
+    {
+      "name": "Install ReportGenerator",
+      "kind": "build",
+      "run": "dotnet tool install -g dotnet-reportgenerator-globaltool",
+      "always": true
+    },
+    {
+      "name": "Generate coverage report",
+      "kind": "build",
+      "run": "REPORTS=\"$(find . -name 'coverage.cobertura.xml' -path '*/TestResults/*' | sort | paste -sd ';' -)\"\nif [ -n \"$REPORTS\" ]; then\n  reportgenerator \"-reports:$REPORTS\" \"-targetdir:coveragereport\" \"-reporttypes:HtmlInline_AzurePipelines;Cobertura\"\nfi",
+      "always": true
+    },
+    {
+      "name": "BLD-002 Docker build validate",
+      "kind": "gate",
+      "run": "pwsh -NoProfile -File scripts/bld002-docker-build-validate.ps1"
+    },
+    {
+      "name": "Generate Docker build manifest",
+      "kind": "build",
+      "run": "pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1"
+    },
+    {
+      "name": "Verify Docker builds",
+      "kind": "build",
+      "run": "docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack build",
+      "env": {
+        "DOCKER_BUILDKIT": "1",
+        "COMPOSE_PARALLEL_LIMIT": "4"
+      }
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace HR.Core.Infrastructure.Services.Establishment;
 
 public sealed record FinanceBudgetImportRow(
@@ -41,9 +43,11 @@ public sealed class FileFinanceBudgetPort : IFinanceBudgetPort
             if (string.IsNullOrWhiteSpace(costCenter)) continue;
 
             var gradeCode = parts.Length > 1 ? NullIfEmpty(parts[1].Trim()) : null;
-            var approvedCount = parts.Length > 2 && int.TryParse(parts[2].Trim(), out var c) ? c : 0;
-            var approvedFte = parts.Length > 3 && decimal.TryParse(parts[3].Trim(), out var f) ? f : approvedCount;
-            decimal? budgetAmount = parts.Length > 4 && decimal.TryParse(parts[4].Trim(), out var b) ? b : null;
+            // QA-034 (owner decision Q-2): CSV is a machine format. With the request culture (ar-SY) "-1" did not parse
+            // (minus sign U+061C + "-") and became 0, and "1000.50" did not parse (decimal separator "٫").
+            var approvedCount = parts.Length > 2 && int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var c) ? c : 0;
+            var approvedFte = parts.Length > 3 && decimal.TryParse(parts[3].Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var f) ? f : approvedCount;
+            decimal? budgetAmount = parts.Length > 4 && decimal.TryParse(parts[4].Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var b) ? b : null;
             var externalRef = parts.Length > 5 ? NullIfEmpty(parts[5].Trim()) : null;
 
             rows.Add(new FinanceBudgetImportRow(costCenter, gradeCode, approvedCount, approvedFte, budgetAmount, externalRef));

@@ -39,7 +39,7 @@ public static class AcceptanceCandidateExperiencePatch
     public static async Task ApplyAsync(HRCoreDbContext db, ILogger? logger = null, CancellationToken ct = default)
     {
         var agencyId = AcceptanceSeedIds.AgencyAId;
-        if (!await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == agencyId, ct))
+        if (!await db.Tenants.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization).AnyAsync(t => t.Id == agencyId, ct))
             return;
 
         var previousTenant = TenantIdFlow.Get();

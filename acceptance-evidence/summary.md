@@ -1,6 +1,6 @@
 ﻿# Acceptance evidence summary (AC-01..AC-37)
 
-Generated: 2026-10-29 20:21:05 UTC
+Generated: 2026-10-30 13:09:10 UTC
 
 | AC | Status | Contract | Missing |
 |----|--------|----------|---------|
@@ -35,6 +35,7 @@ Generated: 2026-10-29 20:21:05 UTC
 | AC-HCM-31 | Pass | complete | - |
 | AC-HCM-32 | Pass | complete | - |
 | AC-HCM-33 | Pass | complete | - |
+| AC-QA-34 | Blocked (34g: Blocked — The base (CI) realm issues access tokens without realm roles (no 'roles' client scope), so /api/files returns 403 'missing role for this module' for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41). — رمز الوصول في realm الأساسي بلا أدوار، فلا يمر طلب الرفع) | complete | - |
 | AC-WF-23 | Pass | complete | - |
 
 ## Not yet executed
@@ -62,4 +63,4 @@ Generated: 2026-10-29 20:21:05 UTC
 - AC-31
 - AC-35
 
-**Totals:** 27 Pass, 2 Deferred/Blocked, 0 Fail, 23 not run.
+**Totals:** 27 Pass, 3 Deferred/Blocked, 0 Fail, 23 not run.

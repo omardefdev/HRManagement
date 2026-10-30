@@ -12,6 +12,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
@@ -27,16 +31,23 @@ foreach ($p in @($matrixFull, $decFull, $riskFull)) {
     if (-not (Test-Path $p)) { Write-Error "missing: $p" }
 }
 
-$m = Get-Content -Raw -Path $matrixFull | ConvertFrom-Json
-$dec = Get-Content -Raw -Path $decFull | ConvertFrom-Json
-$risk = Get-Content -Raw -Path $riskFull | ConvertFrom-Json
+$m = Get-Content -Raw -Path $matrixFull | ConvertFrom-Json @jsonArgs
+$dec = Get-Content -Raw -Path $decFull | ConvertFrom-Json @jsonArgs
+$risk = Get-Content -Raw -Path $riskFull | ConvertFrom-Json @jsonArgs
 $failures = @()
 
 if ($m.card -ne "STR-005") { $failures += "card must be STR-005" }
 if ($dec.card -ne "STR-005") { $failures += "decision-log card must be STR-005" }
 if ($risk.card -ne "STR-005") { $failures += "risk-register card must be STR-005" }
 
-$asOf = if ($AsOfDate) { [datetime]::Parse($AsOfDate) } elseif ($m.asOfDate) { [datetime]::Parse($m.asOfDate) } else { Get-Date }
+# QA-034: yyyy-MM-dd in the invariant culture (PowerShell 7 ConvertFrom-Json may already return [datetime]).
+function ConvertTo-UtcDate($value) {
+    if ($value -is [datetime]) { return [datetime]::SpecifyKind($value.Date, [DateTimeKind]::Utc) }
+    $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+    return [datetime]::ParseExact(([string]$value).Trim(), "yyyy-MM-dd", [System.Globalization.CultureInfo]::InvariantCulture, $styles).Date
+}
+
+$asOf = if ($AsOfDate) { ConvertTo-UtcDate $AsOfDate } elseif ($m.asOfDate) { ConvertTo-UtcDate $m.asOfDate } else { [datetime]::UtcNow.Date }
 
 # Journeys
 $journeyIds = @($m.journeys | ForEach-Object { $_.id })
@@ -105,8 +116,8 @@ foreach ($ex in $m.exceptions) {
         $failures += "exception $($ex.exceptionId) declaredBy equals reviewerRole"
     }
     if ($ex.expiresOn) {
-        $exp = [datetime]::Parse($ex.expiresOn)
-        if ($exp.Date -lt $asOf.Date -and $ex.status -ne "Renewed" -and $ex.status -ne "Closed") {
+        $exp = ConvertTo-UtcDate $ex.expiresOn
+        if ($exp -lt $asOf -and $ex.status -ne "Renewed" -and $ex.status -ne "Closed") {
             $failures += "exception $($ex.exceptionId) expired without renew/close"
         }
     }
@@ -136,7 +147,7 @@ foreach ($key in @("lawChange", "incident", "delay")) {
         $failures += "missing simulation $rel"
         continue
     }
-    $sim = Get-Content -Raw -Path $full | ConvertFrom-Json
+    $sim = Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
     foreach ($f in $simNeed[$key]) {
         if ($null -eq $sim.$f -or ($sim.$f -is [string] -and [string]::IsNullOrWhiteSpace($sim.$f))) {
             $failures += "simulation $key missing $f"
@@ -175,7 +186,7 @@ function Test-MultiSeatOk($seats, $required, $engAliases) {
 }
 
 if (Test-Path $engFull) {
-    $eng = Get-Content -Raw -Path $engFull | ConvertFrom-Json
+    $eng = Get-Content -Raw -Path $engFull | ConvertFrom-Json @jsonArgs
     if ($eng.expectedValidate -ne "FAIL") {
         $failures += "eng-only fixture must declare expectedValidate FAIL"
     }
@@ -186,7 +197,7 @@ if (Test-Path $engFull) {
 }
 
 if (Test-Path $multiFull) {
-    $ms = Get-Content -Raw -Path $multiFull | ConvertFrom-Json
+    $ms = Get-Content -Raw -Path $multiFull | ConvertFrom-Json @jsonArgs
     if ($ms.expectedValidate -ne "PASS") {
         $failures += "multi-seat fixture must declare expectedValidate PASS"
     }

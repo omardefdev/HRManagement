@@ -207,7 +207,11 @@ public class AssetsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // QA-034 (owner decision Q-3): MVC1004 — the view model has a property named like the parameter; renaming the
+    // parameter changes how the form binds, so it is suppressed here and recorded for the logistics plan.
+#pragma warning disable MVC1004
     public async Task<IActionResult> CreateLegacy(AssetLegacyCreateFormViewModel model)
+#pragma warning restore MVC1004
     {
         var entity = new Asset
         {
@@ -291,7 +295,10 @@ public class AssetsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // QA-034 (owner decision Q-3): MVC1004 suppressed for the same reason as CreateLegacy.
+#pragma warning disable MVC1004
     public async Task<IActionResult> Edit(Guid id, AssetEditFormViewModel model)
+#pragma warning restore MVC1004
     {
         if (id != model.Id) return NotFound();
         if (await this.ForbidIfAssetOutOfScopeAsync(db, id, HttpContext.RequestAborted) is { } denied)

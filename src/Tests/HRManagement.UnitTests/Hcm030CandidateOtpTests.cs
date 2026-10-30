@@ -626,7 +626,9 @@ public sealed class Hcm030CandidateOtpTests : IDisposable
 
         using var exhausted = new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 1, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+            PermitLimit = 1,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
         });
         exhausted.AttemptAcquire();
         using var lease = exhausted.AttemptAcquire();

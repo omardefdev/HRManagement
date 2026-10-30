@@ -1,0 +1,27 @@
+{
+  "todayFailures": [],
+  "exceptions": [
+    {
+      "ExceptionId": "EX-STR005-SIM-LAW-INTERIM",
+      "Status": "Closed",
+      "ExpiresOn": "2026-10-30"
+    },
+    {
+      "ExceptionId": "EX-STR005-SIM-INCIDENT-WINDOW",
+      "Status": "Closed",
+      "ExpiresOn": "2026-09-15"
+    }
+  ],
+  "preClosure": {
+    "onExpiryDay": [],
+    "dayAfter": [
+      "EX-STR005-SIM-INCIDENT-WINDOW: Declared exception expired on 2026-09-15"
+    ]
+  },
+  "closureDecision": {
+    "DecisionId": "PG-EXC-2026-10-001",
+    "Type": "ExceptionGrant",
+    "Status": "Approved",
+    "DecidedAt": "2026-10-30"
+  }
+}

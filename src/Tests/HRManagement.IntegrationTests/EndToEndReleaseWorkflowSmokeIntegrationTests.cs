@@ -23,6 +23,7 @@ using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Consumers;
 using Payroll.Infrastructure.Repositories;
+using HRManagement.IntegrationTests.Support;
 
 namespace HRManagement.IntegrationTests;
 
@@ -141,14 +142,8 @@ public class EndToEndReleaseWorkflowSmokeIntegrationTests
                 contractsConn.Open();
                 connections.Add(contractsConn);
                 IntegrationTestHelpers.AddSqliteDbContext<ContractsDbContext>(services, contractsConn);
-                services.AddScoped<IContractsRepository, ContractsRepository>();
                 services.AddSingleton<IExecutionContextAccessor>(new StubExecutionContextAccessor());
-                services.AddSingleton<IEmployeeLifecycleGate, HR.Contracts.Infrastructure.Services.PassThroughEmployeeLifecycleGate>();
-                services.AddMediatR(cfg =>
-                {
-                    cfg.RegisterServicesFromAssemblyContaining<ActivateContractHandler>();
-                    cfg.RegisterServicesFromAssemblyContaining<PublishSeparationHandler>();
-                });
+                services.AddContractsApplicationForTests();
                 services.AddScoped<IEventPublisher>(sp =>
                     new MassTransitEventPublisher(
                         sp.GetRequiredService<IPublishEndpoint>(),

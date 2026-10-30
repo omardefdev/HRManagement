@@ -1,4 +1,6 @@
 using System;
+using File.Storage.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace File.Storage.Infrastructure.Migrations;
 
 /// <summary>INT-002: inbox receipts for File.Storage MassTransit consumers.</summary>
+/// <remarks>
+/// QA-034 (owner decision Q-4): the class had no Designer partial, so without these attributes EF never discovered it
+/// and no database got the IntegrationMessageReceipts table that the model snapshot (and the inbox filter) expects.
+/// </remarks>
+[DbContext(typeof(FileStorageDbContext))]
+[Migration("20260824180000_INT002_IntegrationMessageReceipts")]
 public partial class INT002_IntegrationMessageReceipts : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

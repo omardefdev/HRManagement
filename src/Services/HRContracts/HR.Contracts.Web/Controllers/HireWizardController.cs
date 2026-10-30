@@ -43,11 +43,26 @@ public class HireWizardController : Controller
 
     public async Task<IActionResult> Index(ServiceTransactionState? state, Guid? employeeId)
     {
+        // QA-034 (IAM-002): branch scope. A restricted user gets 403 for an employee outside the scope and lists only
+        // employees inside it (no snapshot = outside, fail-closed); an unrestricted user is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(
+                User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
+            return employeeDenied;
+
         var query = _repo.ServiceTransactions
             .AsNoTracking()
             .Where(t => t.TransactionType == ServiceTransactionType.Appointment
                         && t.State != ServiceTransactionState.Archived
                         && t.State != ServiceTransactionState.Cancelled);
+        if (scope.MustFilter)
+        {
+            var inScope = _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope);
+            query = query.Where(t => inScope.Contains(t.EmployeeId));
+        }
         if (state.HasValue)
             query = query.Where(t => t.State == state.Value);
         if (employeeId.HasValue)

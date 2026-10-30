@@ -105,9 +105,17 @@ public static class AcceptanceRecruitmentStatesPatch
 
         var criteria = new RecruitmentAssessmentCriteria
         {
-            Id = AcceptanceSeedIds.RecruitmentStatesCriteriaId, TenantId = tenant, RequisitionId = published.Id, VersionNumber = 1,
-            Title = "معايير التقييم v1", CriteriaJson = RecruitmentSeedCriteria.Json, IsActive = true,
-            EffectiveFrom = Created, CreatedAt = Created, UpdatedAt = Created, CreatedBy = centralA
+            Id = AcceptanceSeedIds.RecruitmentStatesCriteriaId,
+            TenantId = tenant,
+            RequisitionId = published.Id,
+            VersionNumber = 1,
+            Title = "معايير التقييم v1",
+            CriteriaJson = RecruitmentSeedCriteria.Json,
+            IsActive = true,
+            EffectiveFrom = Created,
+            CreatedAt = Created,
+            UpdatedAt = Created,
+            CreatedBy = centralA
         };
         db.RecruitmentAssessmentCriteria.Add(criteria);
 
@@ -145,12 +153,20 @@ public static class AcceptanceRecruitmentStatesPatch
         var complianceEmployee = AcceptancePersonaCatalog.Get("a-compliance").Employee!.Id;
         var appeal = new RecruitmentAppeal
         {
-            Id = AcceptanceSeedIds.RecruitmentStatesPendingAppealId, TenantId = tenant, RecruitmentApplicationId = appealApp.Id,
-            Kind = RecruitmentAppealKind.Rejection, Status = RecruitmentAppealStatus.Pending,
-            Reason = "استئناف قرار الفرز في حالة قبول ثابتة لاختبارات PLAN-33.", FiledBy = RecruitmentAppealFiledBy.HrOnBehalf,
+            Id = AcceptanceSeedIds.RecruitmentStatesPendingAppealId,
+            TenantId = tenant,
+            RecruitmentApplicationId = appealApp.Id,
+            Kind = RecruitmentAppealKind.Rejection,
+            Status = RecruitmentAppealStatus.Pending,
+            Reason = "استئناف قرار الفرز في حالة قبول ثابتة لاختبارات PLAN-33.",
+            FiledBy = RecruitmentAppealFiledBy.HrOnBehalf,
             FiledByEmployeeId = AcceptancePersonaCatalog.Get("central-a").Employee?.Id,
-            IndependentReviewerEmployeeId = complianceEmployee, AssignedAt = Created.AddDays(7), AssignedBy = centralA,
-            CreatedAt = Created.AddDays(7), UpdatedAt = Created.AddDays(7), CreatedBy = centralA
+            IndependentReviewerEmployeeId = complianceEmployee,
+            AssignedAt = Created.AddDays(7),
+            AssignedBy = centralA,
+            CreatedAt = Created.AddDays(7),
+            UpdatedAt = Created.AddDays(7),
+            CreatedBy = centralA
         };
         db.RecruitmentAppeals.Add(appeal);
 
@@ -182,15 +198,30 @@ public static class AcceptanceRecruitmentStatesPatch
 
         var legacy = new ApprovalRequest
         {
-            Id = AcceptanceSeedIds.RecruitmentStatesLegacyApprovalRequestId, TenantId = tenant, EntityType = "ApprovedCV",
-            EntityId = Id("legacy-approval-entity"), Description = "طلب اعتماد قديم ثابت لاختبار صندوق العمل (AC-WF-23f).",
-            RequestedBy = centralA, RequestedByName = AcceptancePersonaCatalog.Get("central-a").Username, RequestedAt = Created.AddDays(4),
-            Status = ApprovalStatus.Pending, CurrentLevel = 1, CreatedAt = Created.AddDays(4), UpdatedAt = Created.AddDays(4), CreatedBy = centralA
+            Id = AcceptanceSeedIds.RecruitmentStatesLegacyApprovalRequestId,
+            TenantId = tenant,
+            EntityType = "ApprovedCV",
+            EntityId = Id("legacy-approval-entity"),
+            Description = "طلب اعتماد قديم ثابت لاختبار صندوق العمل (AC-WF-23f).",
+            RequestedBy = centralA,
+            RequestedByName = AcceptancePersonaCatalog.Get("central-a").Username,
+            RequestedAt = Created.AddDays(4),
+            Status = ApprovalStatus.Pending,
+            CurrentLevel = 1,
+            CreatedAt = Created.AddDays(4),
+            UpdatedAt = Created.AddDays(4),
+            CreatedBy = centralA
         };
         legacy.Steps.Add(new ApprovalStep
         {
-            Id = Id("legacy-approval-step-1"), TenantId = tenant, ApprovalRequestId = legacy.Id, Level = 1, RoleRequired = "hr-core",
-            Status = ApprovalStatus.Pending, CreatedAt = Created.AddDays(4), UpdatedAt = Created.AddDays(4)
+            Id = Id("legacy-approval-step-1"),
+            TenantId = tenant,
+            ApprovalRequestId = legacy.Id,
+            Level = 1,
+            RoleRequired = "hr-core",
+            Status = ApprovalStatus.Pending,
+            CreatedAt = Created.AddDays(4),
+            UpdatedAt = Created.AddDays(4)
         });
         db.ApprovalRequests.Add(legacy);
 
@@ -214,10 +245,18 @@ public static class AcceptanceRecruitmentStatesPatch
 
         db.WorkflowInstances.Add(new WorkflowInstance
         {
-            Id = instanceId, TenantId = tenant, DefinitionId = definition.Id, DefinitionVersion = definition.Version,
-            EntityType = entityType, EntityId = entityId, CurrentStepLevel = step, Status = WorkflowStatus.InProgress,
-            StepHistoryJson = JsonSerializer.Serialize(approvedSteps), InitiatedBy = initiatedBy,
-            InitiatedByName = AcceptancePersonaCatalog.Get("central-a").Username, StartedAt = Created.AddDays(1)
+            Id = instanceId,
+            TenantId = tenant,
+            DefinitionId = definition.Id,
+            DefinitionVersion = definition.Version,
+            EntityType = entityType,
+            EntityId = entityId,
+            CurrentStepLevel = step,
+            Status = WorkflowStatus.InProgress,
+            StepHistoryJson = JsonSerializer.Serialize(approvedSteps),
+            InitiatedBy = initiatedBy,
+            InitiatedByName = AcceptancePersonaCatalog.Get("central-a").Username,
+            StartedAt = Created.AddDays(1)
         });
         link(instanceId);
         await db.SaveChangesAsync(ct);
@@ -253,15 +292,28 @@ public static class AcceptanceRecruitmentStatesPatch
     {
         db.SelectionCommitteeSessions.Add(new SelectionCommitteeSession
         {
-            Id = id, TenantId = tenant, RequisitionId = requisition.Id, CommitteeDate = Created.AddDays(10), Purpose = CommitteePurpose.Ranking,
-            Findings = "جلسة لجنة ثابتة لاختبارات PLAN-33.", ChairEmployeeId = members[0], CreatedAt = Created, UpdatedAt = Created, CreatedBy = centralA
+            Id = id,
+            TenantId = tenant,
+            RequisitionId = requisition.Id,
+            CommitteeDate = Created.AddDays(10),
+            Purpose = CommitteePurpose.Ranking,
+            Findings = "جلسة لجنة ثابتة لاختبارات PLAN-33.",
+            ChairEmployeeId = members[0],
+            CreatedAt = Created,
+            UpdatedAt = Created,
+            CreatedBy = centralA
         });
         for (var i = 0; i < members.Count; i++)
         {
             db.SelectionCommitteeMembers.Add(new SelectionCommitteeMember
             {
-                Id = Id($"committee-{key}-member-{i + 1}"), TenantId = tenant, SessionId = id, EmployeeId = members[i],
-                Role = i == 0 ? SelectionCommitteeMember.ChairRole : SelectionCommitteeMember.MemberRole, CreatedAt = Created, UpdatedAt = Created
+                Id = Id($"committee-{key}-member-{i + 1}"),
+                TenantId = tenant,
+                SessionId = id,
+                EmployeeId = members[i],
+                Role = i == 0 ? SelectionCommitteeMember.ChairRole : SelectionCommitteeMember.MemberRole,
+                CreatedAt = Created,
+                UpdatedAt = Created
             });
         }
     }
@@ -270,8 +322,14 @@ public static class AcceptanceRecruitmentStatesPatch
     {
         var position = new FundedPosition
         {
-            Id = id, TenantId = tenant, PositionCode = code, GradeCode = "G5", BudgetYear = 2026, Status = FundedPositionStatus.Vacant,
-            OrgUnitId = unit, CreatedAt = Created
+            Id = id,
+            TenantId = tenant,
+            PositionCode = code,
+            GradeCode = "G5",
+            BudgetYear = 2026,
+            Status = FundedPositionStatus.Vacant,
+            OrgUnitId = unit,
+            CreatedAt = Created
         };
         db.FundedPositions.Add(position);
         return position;
@@ -282,10 +340,20 @@ public static class AcceptanceRecruitmentStatesPatch
     {
         var requisition = new RecruitmentRequisition
         {
-            Id = id, TenantId = tenant, RequisitionNumber = number, FundedPositionId = position.Id, JobTitle = "محلل نظم (AC-HCM-33)",
-            Status = status, RequestedDate = Created, VacancyCount = 1, PublishingChannel = RecruitmentPublishingChannel.PublicOnly,
+            Id = id,
+            TenantId = tenant,
+            RequisitionNumber = number,
+            FundedPositionId = position.Id,
+            JobTitle = "محلل نظم (AC-HCM-33)",
+            Status = status,
+            RequestedDate = Created,
+            VacancyCount = 1,
+            PublishingChannel = RecruitmentPublishingChannel.PublicOnly,
             LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004,
-            JustificationNotes = "حالة طلب شاغر ثابتة لاختبارات قبول PLAN-33.", CreatedAt = Created, UpdatedAt = Created, CreatedBy = createdBy
+            JustificationNotes = "حالة طلب شاغر ثابتة لاختبارات قبول PLAN-33.",
+            CreatedAt = Created,
+            UpdatedAt = Created,
+            CreatedBy = createdBy
         };
         db.RecruitmentRequisitions.Add(requisition);
         return requisition;
@@ -298,9 +366,18 @@ public static class AcceptanceRecruitmentStatesPatch
         var applied = Created.AddDays(4).AddHours(n);
         var app = new RecruitmentApplication
         {
-            Id = id, TenantId = tenant, ApplicantFullName = $"مرشح حالة AC33 {n}", NationalId = nationalId,
-            NationalIdHash = PiiMask.Sha256Hex(nationalId), RequisitionId = requisition.Id, AppliedPosition = requisition.JobTitle,
-            IntakeChannel = RecruitmentIntakeChannel.HrEntered, AppliedAt = applied, Status = status, CreatedAt = applied, UpdatedAt = applied,
+            Id = id,
+            TenantId = tenant,
+            ApplicantFullName = $"مرشح حالة AC33 {n}",
+            NationalId = nationalId,
+            NationalIdHash = PiiMask.Sha256Hex(nationalId),
+            RequisitionId = requisition.Id,
+            AppliedPosition = requisition.JobTitle,
+            IntakeChannel = RecruitmentIntakeChannel.HrEntered,
+            AppliedAt = applied,
+            Status = status,
+            CreatedAt = applied,
+            UpdatedAt = applied,
             ScreenedAt = status == RecruitmentApplicationStatus.Submitted ? null : applied.AddDays(1)
         };
         db.RecruitmentApplications.Add(app);
@@ -326,9 +403,17 @@ public static class AcceptanceRecruitmentStatesPatch
         var interviewAt = Created.AddDays(6);
         db.RecruitmentInterviewSlots.Add(new RecruitmentInterviewSlot
         {
-            Id = Id($"interview-{n}"), TenantId = tenant, RecruitmentApplicationId = app.Id, ScheduledAt = interviewAt, Location = "قاعة المقابلات",
-            Status = InterviewSlotStatus.Completed, Mode = InterviewMode.InPerson, CompletedAt = interviewAt.AddHours(1),
-            Outcome = InterviewOutcome.Attended, CreatedAt = Created, UpdatedAt = Created
+            Id = Id($"interview-{n}"),
+            TenantId = tenant,
+            RecruitmentApplicationId = app.Id,
+            ScheduledAt = interviewAt,
+            Location = "قاعة المقابلات",
+            Status = InterviewSlotStatus.Completed,
+            Mode = InterviewMode.InPerson,
+            CompletedAt = interviewAt.AddHours(1),
+            Outcome = InterviewOutcome.Attended,
+            CreatedAt = Created,
+            UpdatedAt = Created
         });
 
         // Two assessors 4 points apart around the score (equal per-item percentages), so the mean is the score.
@@ -339,10 +424,17 @@ public static class AcceptanceRecruitmentStatesPatch
             {
                 db.RecruitmentAssessmentScores.Add(new RecruitmentAssessmentScore
                 {
-                    Id = Id($"score-{n}-{assessor}-{item.Key}"), TenantId = tenant, RecruitmentApplicationId = app.Id,
-                    CriteriaVersionId = criteria.Id, ItemKey = item.Key, AssessorUserId = assessorUserId,
-                    Score = Math.Round((score + delta) / 100m * item.MaxScore, 2, MidpointRounding.AwayFromZero), NoConflictDeclared = true,
-                    SubmittedAt = interviewAt.AddHours(2), CreatedAt = Created, UpdatedAt = Created
+                    Id = Id($"score-{n}-{assessor}-{item.Key}"),
+                    TenantId = tenant,
+                    RecruitmentApplicationId = app.Id,
+                    CriteriaVersionId = criteria.Id,
+                    ItemKey = item.Key,
+                    AssessorUserId = assessorUserId,
+                    Score = Math.Round((score + delta) / 100m * item.MaxScore, 2, MidpointRounding.AwayFromZero),
+                    NoConflictDeclared = true,
+                    SubmittedAt = interviewAt.AddHours(2),
+                    CreatedAt = Created,
+                    UpdatedAt = Created
                 });
             }
         }
@@ -355,10 +447,20 @@ public static class AcceptanceRecruitmentStatesPatch
     {
         var offer = new OfferLetter
         {
-            Id = id, TenantId = tenant, OfferNumber = number, RecruitmentApplicationId = app.Id, FundedPositionId = position.Id, Status = status,
-            OfferedSalary = 500000m, GradeCode = "G5", ValidityDays = 14, ProposedStartDate = Utc(2026, 12, 1),
+            Id = id,
+            TenantId = tenant,
+            OfferNumber = number,
+            RecruitmentApplicationId = app.Id,
+            FundedPositionId = position.Id,
+            Status = status,
+            OfferedSalary = 500000m,
+            GradeCode = "G5",
+            ValidityDays = 14,
+            ProposedStartDate = Utc(2026, 12, 1),
             LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004,
-            CreatedAt = Created.AddDays(8), UpdatedAt = Created.AddDays(8), CreatedBy = createdBy
+            CreatedAt = Created.AddDays(8),
+            UpdatedAt = Created.AddDays(8),
+            CreatedBy = createdBy
         };
         db.OfferLetters.Add(offer);
         return offer;

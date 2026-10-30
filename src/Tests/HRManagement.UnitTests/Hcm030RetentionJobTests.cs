@@ -785,26 +785,26 @@ public class Hcm030RetentionJobTests
 
     internal static RecruitmentApplication NewApplication(
         RecruitmentRequisition? requisition, RecruitmentIntakeChannel channel, DateTime appliedAt) => new()
-    {
-        TenantId = Hcm030TestSupport.TenantA,
-        ApplicantFullName = CitizenName,
-        NationalId = CitizenNationalId,
-        NationalIdHash = PiiMask.Sha256Hex(CitizenNationalId),
-        AppliedPosition = requisition?.JobTitle ?? "محلل",
-        RequisitionId = requisition?.Id,
-        IntakeChannel = channel,
-        AppliedAt = appliedAt,
-        Status = RecruitmentApplicationStatus.Rejected,
-        Notes = "ملاحظة الموارد البشرية",
-        AppealNotes = "ملاحظة استئناف",
-        RejectionNote = "لم يستوفِ شرط الخبرة",
-        EligibilityOverrideReason = "قرار اللجنة",
-        EducationLevelCode = "BACH",
-        Specialization = "تخصص هندسة",
-        GraduationYear = 2015,
-        YearsOfExperience = 6m,
-        BirthDate = new DateOnly(1992, 3, 4)
-    };
+        {
+            TenantId = Hcm030TestSupport.TenantA,
+            ApplicantFullName = CitizenName,
+            NationalId = CitizenNationalId,
+            NationalIdHash = PiiMask.Sha256Hex(CitizenNationalId),
+            AppliedPosition = requisition?.JobTitle ?? "محلل",
+            RequisitionId = requisition?.Id,
+            IntakeChannel = channel,
+            AppliedAt = appliedAt,
+            Status = RecruitmentApplicationStatus.Rejected,
+            Notes = "ملاحظة الموارد البشرية",
+            AppealNotes = "ملاحظة استئناف",
+            RejectionNote = "لم يستوفِ شرط الخبرة",
+            EligibilityOverrideReason = "قرار اللجنة",
+            EducationLevelCode = "BACH",
+            Specialization = "تخصص هندسة",
+            GraduationYear = 2015,
+            YearsOfExperience = 6m,
+            BirthDate = new DateOnly(1992, 3, 4)
+        };
 
     private static CitizenApplication NewLegacyCitizen(PublicJobPosting posting, string reference, DateTime submittedAt) => new()
     {
@@ -895,19 +895,19 @@ public class Hcm030RetentionJobTests
 
     private static CandidateNotification NewNotification(
         RecruitmentApplication app, string template, CandidateNotificationStatus status) => new()
-    {
-        TenantId = app.TenantId,
-        RecruitmentApplicationId = app.Id,
-        EventType = RecruitmentApplicationEventTypes.StatusChanged,
-        Channel = NotificationChannel.Email,
-        TemplateCode = template,
-        RecipientMasked = PiiMask.Email(CitizenEmail),
-        Subject = "بوابة التوظيف — " + template,
-        Body = "نص الرسالة " + template,
-        IdempotencyKey = $"{Guid.NewGuid():D}:Email",
-        Status = status,
-        NextAttemptAt = status == CandidateNotificationStatus.Pending ? app.AppliedAt : null
-    };
+        {
+            TenantId = app.TenantId,
+            RecruitmentApplicationId = app.Id,
+            EventType = RecruitmentApplicationEventTypes.StatusChanged,
+            Channel = NotificationChannel.Email,
+            TemplateCode = template,
+            RecipientMasked = PiiMask.Email(CitizenEmail),
+            Subject = "بوابة التوظيف — " + template,
+            Body = "نص الرسالة " + template,
+            IdempotencyKey = $"{Guid.NewGuid():D}:Email",
+            Status = status,
+            NextAttemptAt = status == CandidateNotificationStatus.Pending ? app.AppliedAt : null
+        };
 
     private static async Task AssertUntouchedAsync(HRCoreDbContext db, Pair pair)
     {

@@ -58,8 +58,12 @@ public static class AcceptanceStack
         using var resp = await http.PostAsync($"{KeycloakBaseUrl}/realms/hrmanagement/protocol/openid-connect/token",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["grant_type"] = "password", ["client_id"] = "hr-gateway-client", ["client_secret"] = secret!,
-                ["username"] = persona.Username, ["password"] = Password(persona), ["scope"] = "openid"
+                ["grant_type"] = "password",
+                ["client_id"] = "hr-gateway-client",
+                ["client_secret"] = secret!,
+                ["username"] = persona.Username,
+                ["password"] = Password(persona),
+                ["scope"] = "openid"
             }));
         var body = await resp.Content.ReadAsStringAsync();
         Assert.True(resp.IsSuccessStatusCode, $"Token for {persona.Id} failed: {(int)resp.StatusCode}.");
@@ -106,8 +110,12 @@ public static class AcceptanceStack
     {
         var psi = new ProcessStartInfo(exe)
         {
-            RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
         using var p = Process.Start(psi)!;
@@ -324,7 +332,9 @@ public sealed class JourneyEvidence
         Directory.CreateDirectory(Path.Combine(Folder, "http"));
         Write("metadata.json", new
         {
-            scenario, correlationId, capturedAtUtc = DateTime.UtcNow.ToString("o"),
+            scenario,
+            correlationId,
+            capturedAtUtc = DateTime.UtcNow.ToString("o"),
             environment = new { gateway = E2eEnv.BaseUrl, keycloak = AcceptanceStack.KeycloakBaseUrl, composeProject = AcceptanceStack.ComposeProject },
             gitSha = AcceptanceStack.RunAsync("git", "rev-parse", "HEAD").GetAwaiter().GetResult().Output.Trim()
         });
@@ -381,7 +391,10 @@ public sealed class JourneyEvidence
         var scenarios = result["scenarios"] as JsonObject ?? [];
         scenarios[_key] = new JsonObject
         {
-            ["status"] = status, ["reason"] = reason, ["stageReached"] = Stage, ["correlationId"] = _correlationId,
+            ["status"] = status,
+            ["reason"] = reason,
+            ["stageReached"] = Stage,
+            ["correlationId"] = _correlationId,
             ["recordedAtUtc"] = DateTime.UtcNow.ToString("o")
         };
         result["scenarios"] = scenarios;

@@ -297,11 +297,23 @@ internal static class RecruitmentJourney
 
         ev.DbChecks(new
         {
-            requisitionId = req, postingId = posting, applicationId = app, citizenApplicationId = citizen, offerId = offer, salary, grade,
-            employeeId = employee, appointmentTransactionId = txn[0], contract = new { grade = contract[0], salary = contract[1], sourceOffer = contract[2] },
+            requisitionId = req,
+            postingId = posting,
+            applicationId = app,
+            citizenApplicationId = citizen,
+            offerId = offer,
+            salary,
+            grade,
+            employeeId = employee,
+            appointmentTransactionId = txn[0],
+            contract = new { grade = contract[0], salary = contract[1], sourceOffer = contract[2] },
             correlation = new
             {
-                id = corr, gatewayEcho = hired.CorrelationHeader, gatewayAuditRows = audited[0], hireRows = audited[1], hrContractsRows = audited[2],
+                id = corr,
+                gatewayEcho = hired.CorrelationHeader,
+                gatewayAuditRows = audited[0],
+                hireRows = audited[1],
+                hrContractsRows = audited[2],
                 consumerSideEffect = "Appointment transaction + contract linked by RecruitmentApplicationId/OfferLetterId",
                 gap = "HR.Contracts does not persist or log the message correlation id on the success path (follow-up)"
             }

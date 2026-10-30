@@ -14,6 +14,8 @@ namespace HRManagement.IntegrationTests;
 
 /// <summary>QA-003-D: FILE scan path on real MinIO + PostgreSQL metadata.</summary>
 [Collection("PgMinio")]
+// QA-034 (D-QA-7): needs a MinIO image (HRM_MINIO_IMAGE); excluded from CI by tests/ci-exclusions.json until PLAN-38.
+[Trait("Category", "ObjectStorage")]
 public class Qa003MinioFileScanTests
 {
     private static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");

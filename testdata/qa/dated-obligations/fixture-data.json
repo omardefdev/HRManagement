@@ -1,0 +1,13 @@
+{
+  "comment": "Fixtures for scripts/qa/dated-obligations-check.ps1, evaluated with -AsOfDate 2026-11-01 (except near-expiry, which is evaluated on the real clock and is always due or past due).",
+  "far": [{ "id": "FAR-31", "expiresOn": "2026-12-02", "status": "Declared" }],
+  "warn30": [{ "id": "WARN-30", "expiresOn": "2026-12-01", "status": "Declared" }],
+  "warn20": [{ "id": "WARN-20", "expiresOn": "2026-11-21", "status": "Declared" }],
+  "fail7": [{ "id": "FAIL-7", "expiresOn": "2026-11-08", "status": "Declared" }],
+  "fail5": [{ "id": "FAIL-5", "expiresOn": "2026-11-06", "status": "Declared" }],
+  "expired": [{ "id": "EXPIRED", "expiresOn": "2026-10-01", "status": "Declared" }],
+  "closed": [{ "id": "CLOSED", "expiresOn": "2026-09-15", "status": "Closed" }],
+  "badDate": [{ "id": "BAD-DATE", "expiresOn": "2026-13-01", "status": "Declared" }],
+  "nearExpiry": [{ "id": "NEAR-EXPIRY", "nextDue": "2026-11-04" }],
+  "watch": { "card": "WATCH", "nextDue": "2026-12-02" }
+}

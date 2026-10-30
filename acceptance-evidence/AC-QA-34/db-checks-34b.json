@@ -1,0 +1,18 @@
+{
+  "today": "2026-10-30",
+  "real": {
+    "exit": 0,
+    "nearest": "Nearest open obligation: QA-CI-EXCLUSIONS/ObjectStorage reviewBy=2026-12-14 in 45 day(s) (tests/ci-exclusions.json)"
+  },
+  "fail5": {
+    "exit": 1,
+    "error": true
+  },
+  "warn20": {
+    "exit": 0,
+    "warning": true
+  },
+  "expired": {
+    "exit": 1
+  }
+}

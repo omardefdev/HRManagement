@@ -101,7 +101,7 @@ public sealed class Hcm028AppealGovernanceMigrationTests : IAsyncLifetime
             ["AppliedPosition"] = "'محلل'",
             ["Status"] = "3",
             ["AppealStatus"] = "'None'",
-            ["ReviewedAt"] = $"'{reviewedAt:yyyy-MM-dd HH:mm:ss}+00'",
+            ["ReviewedAt"] = $"'{reviewedAt.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)}+00'",
             ["AppealNotes"] = appealNotes is null ? "NULL" : $"'{appealNotes}'"
         };
         await using (var columns = new NpgsqlCommand(

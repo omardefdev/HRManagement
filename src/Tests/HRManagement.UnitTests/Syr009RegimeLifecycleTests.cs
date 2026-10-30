@@ -27,7 +27,7 @@ public class Syr009RegimeLifecycleTests
         var legalValidator = new RecruitmentLegalSourceValidator(legislationProvider);
         var regimeValidator = new ServiceRegimeValidator(db, legalValidator);
         var transitionService = new ServiceRegimeTransitionService(db, regimeValidator);
-        var exceptionService = new ServiceRegimeExceptionService(db, regimeValidator, transitionService);
+        var exceptionService = new ServiceRegimeExceptionService(db, transitionService);
         return (db, exceptionService);
     }
 

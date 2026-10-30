@@ -1,0 +1,17 @@
+{
+  "card": "QA-034-TEST",
+  "defaults": { "warnDays": 30, "failDays": 7 },
+  "obligations": [
+    {
+      "id": "TEST-expired",
+      "file": "testdata/qa/dated-obligations/fixture-data.json",
+      "selector": "expired[*]",
+      "idField": "id",
+      "dateField": "expiresOn",
+      "statusField": "status",
+      "closedStatuses": ["Closed", "Renewed"],
+      "enforcedBy": ["test"],
+      "owner": "qa"
+    }
+  ]
+}

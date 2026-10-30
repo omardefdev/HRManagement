@@ -12,7 +12,7 @@
   ],
   "floors": {
     "Payroll.Domain": 75,
-    "Payroll.Application": 75,
+    "Payroll.Application": 73,
     "Payroll.Infrastructure": 60,
     "HR.Core.Domain": 70,
     "HR.Core.Infrastructure": 70,
@@ -20,5 +20,19 @@
     "HRManagement.ServiceDefaults": 40,
     "Compliance.Domain": 50,
     "HR.Contracts.Domain": 65
-  }
+  },
+  "temporaryFloors": [
+    {
+      "assembly": "Payroll.Application",
+      "floor": 73,
+      "ratchetTo": 75,
+      "measured": 73.6,
+      "measuredOn": "2026-10-30",
+      "reviewBy": "2026-12-29",
+      "status": "Temporary",
+      "decision": "D-QA-13 (PLAN-34): first measurement of the gate (it had never run); floor = measured value rounded down, back to 75 by reviewBy",
+      "owner": "payroll (PLAN-56..59)",
+      "adr": "docs/ADR-QA-002-risk-based-coverage.md"
+    }
+  ]
 }

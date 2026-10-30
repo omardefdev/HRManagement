@@ -1,6 +1,9 @@
+using HRManagement.SharedKernel.Legal;
 using HRManagement.TestSupport;
+using HRManagement.TestSupport.Integration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using Payroll.Application;
@@ -28,6 +31,9 @@ internal static class PayrollIntegrationTestSetup
             o.DefaultPartitionSize = 200;
         });
         services.AddSingleton(Mock.Of<IPayrollEventPublisher>());
+        // QA-034 (moved from PLAN-59): the calculator asks HR.Core for service-regime payroll blockers and refuses without
+        // a client; integration hosts get the declared fake (nobody blocked). The blocked path itself is PLAN-59.
+        services.TryAddScoped<IHrCoreServiceRegimeClient, FakeHrCoreServiceRegimeClient>();
         services.AddScoped<PaymentOrderService>();
         services.AddScoped<IPaymentOrderCoordinator, PaymentOrderCoordinator>();
         services.AddScoped<BankReconciliationService>();
