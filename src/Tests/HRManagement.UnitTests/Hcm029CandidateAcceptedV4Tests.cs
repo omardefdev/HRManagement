@@ -130,6 +130,12 @@ public class Hcm029CandidateAcceptedV4Tests
             .AddMassTransitTestHarness(x => x.AddConsumer<CaptureConsumer>())
             .BuildServiceProvider(true);
         var harness = provider.GetRequiredService<ITestHarness>();
+        // QA-034 (D-QA-14, root cause): Consumed.Any() returns false once the bus has been idle for the harness's
+        // inactivity window. In the full unit run the thread pool is saturated, the in-memory delivery can start later
+        // than that window and the round trip failed after ~22 s ("flaky"). The assertion is unchanged; the harness
+        // only waits long enough for a loaded machine.
+        harness.TestInactivityTimeout = TimeSpan.FromSeconds(30);
+        harness.TestTimeout = TimeSpan.FromSeconds(90);
         await harness.Start();
         try
         {

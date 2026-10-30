@@ -112,22 +112,9 @@ public class ArabicPdfGenerationTests
         var script = Path.Combine(repoRoot, "scripts", "pdf-arabic-validate.ps1");
         Assert.True(System.IO.File.Exists(script), "pdf-arabic-validate.ps1 must exist");
 
-        var psi = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = "powershell",
-            ArgumentList = { "-NoProfile", "-File", script, "-RepoRoot", repoRoot },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using var process = System.Diagnostics.Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start pdf-arabic-validate.ps1");
-
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit(120_000);
-
-        Assert.True(process.ExitCode == 0, $"pdf-arabic-validate.ps1 failed:\n{stderr}");
+        // QA-034: RepoScriptRunner passes -ExecutionPolicy Bypass (Windows) / uses pwsh (Linux) and drains both streams.
+        var (exitCode, stdout, stderr) = HRManagement.TestSupport.RepoScriptRunner.RunScript(script);
+        Assert.True(exitCode == 0, $"pdf-arabic-validate.ps1 failed ({exitCode}):\n{stdout}\n{stderr}");
     }
 
     private static string ResolveRepoRoot()

@@ -19,8 +19,8 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 |-------|--------|--------|----------------|
 | P0 branch, program docs, baseline, inventory | done | `02f890b` (docs), `206c656` (baseline), `15592a8` (owner's prompt update) | 2026-10-29T23:24:33Z |
 | P1 dated obligations, clock, STR-005 closure | done | `396e73f` | 2026-10-29T23:39:20.2696362Z |
-| P2 single CI step list, Linux runner | done | P2 commit (`ci(qa034): single source of CI steps …`) | 2026-10-30T00:19:43.9485782Z |
-| P3 red unit tests, test culture | pending | — |
+| P2 single CI step list, Linux runner | done | `c7a675c` | 2026-10-30T00:19:43.9485782Z |
+| P3 red unit tests, test culture | done | P3 commit (`test(qa034): deterministic unit baseline …`) | 2026-10-30T00:30:35.6291998Z |
 | P4 twelve `Index(employeeId)` actions | pending | — |
 | P5 integration test hosts | pending | — |
 | P6 NU1903, warnings as errors | pending | — |
@@ -90,11 +90,34 @@ calls `run-steps.sh --step` only), `.github/workflows/dated-obligations.yml`, `s
 filter registered in `tests/ci-exclusions.json`); a mutation (an inline `run:`) turns it red. `actionlint` 1.7.7 (in the image):
 all workflows clean. Linux baseline: 87 steps, 78 passed, 9 failed — see `reports/plan34-baseline.md` §0.5.
 
+## P3 — Finished (UTC): 2026-10-30T00:30:35.6291998Z
+
+**Files:** `Syr001ProductionBindingTests` (SQLite `HRCoreDbContext`, `ValidateOnBuild`/`ValidateScopes`, resolve from a scope);
+`BenefitPlanSeeder.cs`, `AcceptanceCandidateExperiencePatch.cs` (`IgnoreTenantFilterForSystem(SeedInitialization)`, P-4);
+`scripts/san001-validate.ps1` (`-GlobalJsonSource Committed|WorkingTree`, default Committed = `git show HEAD:global.json`, file
+fallback without git) + `San001SanctionsTests`; the seven `*_validate_script_passes` via `RepoScriptRunner`;
+`Architecture/ScriptInvocationArchitectureTests` (+ self-check); `TestCulture.cs` (`[ModuleInitializer]`, ar-SY) in Unit,
+Integration and Acceptance tests, `TestCultureGuardTests` in Unit and Integration, `TestCultureInitializerPresenceTests`;
+`AcceptanceMessagingHelper.cs` (`-ExecutionPolicy Bypass`, found by the new guard); `Hcm029CandidateAcceptedV4Tests`.
+
+**D-QA-14 resolved, no quarantine:** the `Hcm029…External_hire_publishes_v4_with_the_offer_terms` flake reproduced in the first P3
+full run (failed after 22 s at `RoundTripAsync` `:137`, `Consumed.Any` = false). Root cause: the MassTransit test harness answers
+"not consumed" once the bus has been idle for its inactivity window, and in the full unit run the saturated thread pool can
+delay the in-memory delivery past that window. Fix (test-only): `TestInactivityTimeout = 30 s`, `TestTimeout = 90 s` on that
+harness; the assertion is unchanged. Verified: 3 consecutive full unit runs, `Hcm029` green each time. `tests/quarantine.json`
+stays empty.
+
+**Tests (Windows/ar-SA, full unit suite ×3):** 4177 total, **1 failed** each run: `Est004EstablishmentPlanningTests.Csv_import_rejects_invalid_rows`
+— a product defect exposed by the ar-SY test culture (Q-2 below), left red. All 16 baseline failures are green on Windows
+(`BolaArchitectureTests` turns green with the P4 controller changes in the working tree; it is committed in P4).
+`TestCultureGuardTests` (Integration) 2/2.
+
 ## Pending owner decisions (collected; work that does not depend on them continues)
 
 | # | Finding | Why it needs a decision | Proposed |
 |---|---------|------------------------|----------|
 | Q-1 | `FileUploadHelper.SanitizeFileName` (`src/Shared/HRManagement.FileStorage/FileUploadHelper.cs:55`) uses `Path.GetFileName`, which on Linux does not split `C:akepathcv.pdf`; `Hcm030CandidateDocumentTests.Long_file_names_…` is red on Linux only. Production runs Linux containers, so uploads keep client paths in stored names | product change outside P-4 | `Path.GetFileName(fileName.Replace('\', '/'))` + a unit test per upload service path |
+| Q-2 | `FileFinanceBudgetPort.ParseCsvContent` (`HR.Core.Infrastructure/Services/Establishment/FileFinanceBudgetPort.cs:44-46`) parses CSV numbers with the thread culture. Under ar-SY (the production request culture) "-1" does not parse (minus sign is U+061C + "-"), becomes 0 and the invalid row is imported; "1000.50" does not parse either (decimal separator "٫"), so BudgetAmount becomes null. `Est004…Csv_import_rejects_invalid_rows` is red under the D-QA-11 test culture | product change outside P-4; overriding the culture in the test would hide the defect | parse with `CultureInfo.InvariantCulture` (CSV is a machine format) + a test for "-1" and "1000.50" under ar-SY |
 
 ## Test results (baseline)
 
@@ -112,7 +135,6 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-P3: run the unit suite on Windows with the P3 edits (Syr001, Ten002, San001 `-GlobalJsonSource`, the seven scripts via
-`RepoScriptRunner`, `ScriptInvocationArchitectureTests`, `TestCulture` ×3 + guards), investigate `Hcm029` (D-QA-14), commit P3.
-P4 (twelve actions + `Plan034ScopedIndex*`) and P5 (fakes, `ContractsTestServices`, hosts, `IntegrationHostValidationTests`,
-stale HCM-032 counts) are already drafted in the working tree — run and commit them in order after P3.
+P4: full unit run already shows `BolaArchitectureTests` green; run `Plan034ScopedIndexTests` (SQLite) and
+`Plan034ScopedIndexPostgreSqlTests` (RUN_TESTCONTAINERS), commit P4 (twelve controllers, `EmployeeOrgScopeGuard.EmployeeIdsInScope`,
+`Payroll.Web/Services/PayrollEmployeeScope.cs`, the two test files). Then P5 (already drafted): run the integration suite, commit.

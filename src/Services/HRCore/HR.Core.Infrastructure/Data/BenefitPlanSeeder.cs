@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Benefits;
 using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.Tenancy;
@@ -23,7 +24,7 @@ public static class BenefitPlanSeeder
         foreach (var plan in DemoPlans)
         {
             var existing = await db.BenefitPlans
-                .IgnoreQueryFilters()
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
                 .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.PlanCode == plan.PlanCode, ct);
 
             if (existing is null)
