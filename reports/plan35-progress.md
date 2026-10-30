@@ -239,3 +239,20 @@ with the final report). actionlint clean, lint/parity 12/12.
 OWNER ACTION (P5 round 3) - Waiting for owner (UTC): 2026-10-30T18:29:02.9968344Z
 1. `git push origin release/plan-35-first-push`
 Owner action done (UTC): 2026-10-30T18:29:47.2610920Z - owner pushed 444e8c2 («تم»); run 41107410607 queued 18:29:45Z.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41107410607](https://github.com/omardefdev/HRManagement/actions/runs/41107410607) | 444e8c2 | ci | 18:29:45 | 19:52:33 (83 min) | **success** | CI **ok** 50.4; CodeQL **ok** 31.3; Gitleaks **ok** 1.8; notice ok 0.1; E2E **ok** 32.3 (57 passed / 0 failed / 0 skipped; stack healthy on attempt 2 - cold-start retry, P-1); Acceptance skipped (disabled, CI-ACCEPTANCE-DISABLED). ~116 min |
+| [41107410591](https://github.com/omardefdev/HRManagement/actions/runs/41107410591) | 444e8c2 | hardening-check | 18:29:45 | 18:33:13 | success | 3.5 |
+| [41107410610](https://github.com/omardefdev/HRManagement/actions/runs/41107410610) | 444e8c2 | iac-plan | 18:29:45 | 18:30:12 | success | 0.5 |
+
+PR #24 mergeStateStatus CLEAN. First green E2E (D-QA-2: E2E becomes a required check after two consecutive green runs;
+the push run on main at the same SHA is the second candidate). main (0f69f52) and origin/main (9cb3705) are both
+ancestors of 444e8c2: fast-forward possible.
+
+P5 Finished (UTC): 2026-10-30T19:55:14.0034262Z
+
+OWNER ACTION (P6) - Waiting for owner (UTC): 2026-10-30T19:55:14.0229436Z
+1. `git switch main`
+2. `git merge --ff-only release/plan-35-first-push`
+3. `git push origin main`
