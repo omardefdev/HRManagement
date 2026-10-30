@@ -322,7 +322,13 @@ public class InternalHireClosureIntegrationTests
         Assert.Equal(RequisitionStatus.Closed, reloadedReq.Status);
 
         // PLAN-29: internal mobility publishes IInternalPlacementCompleted only (no ICandidateAccepted → no Appointment).
-        Assert.Equal(1, publish.Invocations.Count);
+        // HCM-032 (PLAN-32): the hire filled the last vacancy, so the requisition-closed aggregate follows (QA-034: the
+        // count of 1 predated HCM-032; the exact message list is asserted instead).
+        Assert.Equal(
+            [typeof(IInternalPlacementCompleted), typeof(IRecruitmentRequisitionClosed)],
+            publish.Invocations
+                .Where(i => i.Method.Name == nameof(IPublishEndpoint.Publish) && i.Method.IsGenericMethod)
+                .Select(i => i.Method.GetGenericArguments()[0]));
         Assert.Contains(
             publish.Invocations,
             i => i.Method.IsGenericMethod

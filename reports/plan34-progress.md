@@ -21,8 +21,8 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P1 dated obligations, clock, STR-005 closure | done | `396e73f` | 2026-10-29T23:39:20.2696362Z |
 | P2 single CI step list, Linux runner | done | `c7a675c` | 2026-10-30T00:19:43.9485782Z |
 | P3 red unit tests, test culture | done | `c6086f2` | 2026-10-30T00:30:35.6291998Z |
-| P4 twelve `Index(employeeId)` actions | done | P4 commit (`fix(qa034): branch scope on the twelve …`) | 2026-10-30T00:35:23.0483667Z |
-| P5 integration test hosts | pending | — |
+| P4 twelve `Index(employeeId)` actions | done | `8caddff` | 2026-10-30T00:35:23.0483667Z |
+| P5 integration test hosts | done | P5 commit (`test(qa034): integration hosts …`) | 2026-10-30T00:50:33.7789136Z |
 | P6 NU1903, warnings as errors | pending | — |
 | P7 MinIO, format, EF, coverage | pending | — |
 | P8 full green run, AC-QA-34a..i | pending | — |
@@ -132,6 +132,41 @@ employee still works; invalid claim → 403). Mutation: the pre-PLAN-34 `Payment
 **Recorded for PLAN-52 (not fixed here):** `LeaveBalancesController.Index` applies the list scope filter only in the `else`
 branch of `if (leaveType.HasValue)` — with a `leaveType` filter, a branch user lists every employee's balances.
 
+## P5 — Finished (UTC): 2026-10-30T00:50:33.7789136Z
+
+**Files (test-only, plan §5 rule 1):** `TestSupport/Integration/FakeHrCoreActiveRegimeClient.cs` (law50 default; `NoRegime`,
+`Unavailable`), `FakeHrCoreServiceRegimeClient.cs` (nobody blocked by default; configurable ids);
+`IntegrationTests/Support/ContractsTestServices.cs` (`AddContractsApplicationForTests`: deterministic clients, repository,
+MediatR, lifecycle gate, active-regime fake — TryAdd so host registrations win) used by `ContractLifecycle`, `Fun002`,
+`Int003`, `EndToEndReleaseWorkflowSmoke`, `InboundEventConsumer`, `ContractSeparationChain`; `PayrollIntegrationTestSetup`
+(`TryAddScoped<IHrCoreServiceRegimeClient, FakeHrCoreServiceRegimeClient>`, scope moved from PLAN-59);
+`PayrollPostgresTestSupport` (TenantIdStamp + NpgsqlTenantSession interceptors, as Payroll.Web); `EstablishmentHireIntegrationTests`
+(`AddHrEstablishmentTemporal`); `SoDForgedApprover`/`SoDPolicy` (fake instead of `Mock.Of`); `Hcm028` (invariant date);
+`InternalChannelIntegrationTests`/`RecruitmentHireClosureIntegrationTests` (exact message-type list instead of a stale count);
+`IntegrationHostValidationTests` (new); `Fun002` +3 AC-QA-34e cases. `ValidateScopes`+`ValidateOnBuild` on the hosts touched.
+
+**Root causes found beyond the plan:**
+- Hire-closure counts: HCM-032 (PLAN-32) added `IRecruitmentRequisitionClosed` when the last vacancy is filled; the unit test
+  was updated then, these two integration tests were not. They now assert the exact ordered list of message types.
+- Payroll on PostgreSQL (5 tests, root-caused by a subagent, change reviewed): the PG host registers a real `ITenantContext`,
+  which turns the TEN-002 query filter on, but had no `TenantIdStampInterceptor`, so seeded rows were saved with
+  `TenantId = Guid.Empty` and every read was filtered out ("التشغيل غير موجود." / "Sequence contains no elements"). The
+  regime client was not their cause. (Note for later: `Qa003OutboxInboxRealInfraTests` and `RabbitDownOutboxTests` use the
+  same pattern; both pass/skip today.)
+- `IHrCoreServiceRegimeClient` is resolved with `GetService` (optional), so `ValidateOnBuild` cannot catch its absence;
+  `IntegrationHostValidationTests` checks required services by name (negative cases for all three hosts).
+
+**Tests (Windows/ar-SA):** integration `Category!=Testcontainers` **337 passed, 0 failed**, 4 skipped (opt-in scale/live tests:
+Hcm031/Hcm032 scale, RabbitDownOutbox, FileScanLiveE2E). Testcontainers **80 passed, 4 failed** (`Qa003MinioFileScanTests` ×3,
+`FileStorageInboxIdempotencyTests` — MinIO image, P7). All 24 baseline non-TC failures and the 5 payroll PG + `Hcm028` TC
+failures are green.
+
+**Product defects recorded (not fixed, plan §5 rule 2):**
+- CON: `PublishSeparationHandler` needs HR.Core live; with HR.Core down the publish throws `HttpRequestException`
+  (pinned by `Fun002…Publish_with_hr_core_unavailable_fails_without_an_event`), `HrCoreActiveRegimeClient.cs:32-33`.
+- MOV: `TransferRequestsController.cs:453-454` calls `regimes.FirstOrDefault()` on the client result and throws when HR.Core
+  is down or returns null.
+
 ## Pending owner decisions (collected; work that does not depend on them continues)
 
 | # | Finding | Why it needs a decision | Proposed |
@@ -155,5 +190,7 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-P5 (drafted in the working tree): run the full integration suite (`Category!=Testcontainers`) and the Testcontainers suite on
-Windows; fix what is test-side; commit P5.
+P6: Testcontainers.PostgreSql/RabbitMq 4.16.0 and Testcontainers.Minio 4.15.0 (core 4.16.0 → SSH.NET 2026.0.0, first patched
+version of both advisories), `dotnet restore --force-evaluate`, lock files, `WarningsAsErrors` NU1903/NU1904, build step
+`-warnaserror`; the ten compiler warnings need a decision (Q-3) unless non-behavioural. P7 compose edits are already in the
+working tree (verified with `docker compose config`).

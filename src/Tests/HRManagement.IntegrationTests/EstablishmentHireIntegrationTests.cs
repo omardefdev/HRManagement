@@ -3,6 +3,7 @@ using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Consumers;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Establishment;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.SharedKernel.Enums;
 using MassTransit;
@@ -150,13 +151,15 @@ public class EstablishmentHireIntegrationTests
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
         services.AddDbContext<HRCoreDbContext>(o => o.UseSqlite(connection));
         services.AddScoped<EstablishmentService>();
+        // QA-034: ProcessPartyAckConsumers needs IFundedPositionVersionService; register it as HR.Core.Web does.
+        services.AddHrEstablishmentTemporal();
         services.AddMassTransitTestHarness(cfg =>
         {
             cfg.AddConsumer<ProcessPartyAckConsumers>();
             cfg.UsingInMemory((context, busCfg) => busCfg.ConfigureEndpoints(context));
         });
 
-        var provider = services.BuildServiceProvider(true);
+        var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         var scope = provider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HRCoreDbContext>();
         await db.Database.EnsureCreatedAsync();

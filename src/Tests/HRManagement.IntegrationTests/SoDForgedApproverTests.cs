@@ -81,7 +81,7 @@ public class SoDForgedApproverTests
             ["approverId"] = forgedUser.ToString("D")
         });
 
-        var controller = new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), Mock.Of<IHrCoreActiveRegimeClient>())
+        var controller = new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), new HRManagement.TestSupport.Integration.FakeHrCoreActiveRegimeClient())
         {
             ControllerContext = new ControllerContext { HttpContext = http },
             TempData = new TempDataDictionary(http, Mock.Of<ITempDataProvider>())

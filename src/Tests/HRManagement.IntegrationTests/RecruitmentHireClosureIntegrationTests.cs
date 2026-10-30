@@ -56,7 +56,13 @@ public class RecruitmentHireClosureIntegrationTests
             .SingleAsync(r => r.EmployeeId == employee.Id);
         Assert.Equal("law50", employmentRecord.LegalRegimeId);
 
-        Assert.Equal(2, publish.Invocations.Count);
+        // ICandidateAccepted + IEmployeeCreated, then (HCM-032, PLAN-32) the requisition-closed aggregate because the hire
+        // filled the last vacancy. QA-034: the count of 2 predated HCM-032; the exact message list is asserted instead.
+        Assert.Equal(
+            [typeof(ICandidateAccepted), typeof(IEmployeeCreated), typeof(IRecruitmentRequisitionClosed)],
+            publish.Invocations
+                .Where(i => i.Method.Name == nameof(IPublishEndpoint.Publish) && i.Method.IsGenericMethod)
+                .Select(i => i.Method.GetGenericArguments()[0]));
     }
 
     [Fact]

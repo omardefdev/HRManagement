@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using HRManagement.IntegrationTests.Support;
 
 namespace HRManagement.IntegrationTests;
 
@@ -163,13 +164,10 @@ public class Int003ProcessSagaTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<ContractsDbContext>(o => o.UseSqlite(connection));
-        services.AddScoped<HR.Contracts.Application.Abstractions.IContractsRepository, HR.Contracts.Infrastructure.Repositories.ContractsRepository>();
         var spy = new SpyEventPublisher();
         services.AddSingleton<HR.Contracts.Application.Abstractions.IEventPublisher>(spy);
-        services.AddSingleton<HR.Contracts.Application.Abstractions.IEmployeeLifecycleGate,
-            HR.Contracts.Infrastructure.Services.PassThroughEmployeeLifecycleGate>();
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<PublishSeparationHandler>());
-        var provider = services.BuildServiceProvider();
+        services.AddContractsApplicationForTests();
+        var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         var scope = provider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
         await db.Database.EnsureCreatedAsync();

@@ -112,7 +112,7 @@ public class SoDPolicyIntegrationTests
         await db.SaveChangesAsync();
 
         var http = new DefaultHttpContext { User = User(creator, "hr-management-approver") };
-        var controller = new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), Mock.Of<IHrCoreActiveRegimeClient>())
+        var controller = new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), new HRManagement.TestSupport.Integration.FakeHrCoreActiveRegimeClient())
         {
             ControllerContext = new ControllerContext { HttpContext = http },
             TempData = TempData(http)
