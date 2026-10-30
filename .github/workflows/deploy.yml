@@ -332,7 +332,7 @@ jobs:
 
       - name: Deploy via SSH
         id: ssh-deploy
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         # DEP-001: never hide SSH failures
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
@@ -367,7 +367,7 @@ jobs:
 
       - name: Post-deploy health gate
         id: health-gate
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
@@ -398,7 +398,7 @@ jobs:
 
       - name: Rollback on health-gate failure
         if: failure() && steps.health-gate.outcome == 'failure'
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
@@ -436,7 +436,7 @@ jobs:
 
       - name: Write deployment record
         if: success()
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
@@ -498,7 +498,7 @@ jobs:
 
       - name: Rollback via SSH
         id: ssh-rollback
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
@@ -527,7 +527,7 @@ jobs:
 
       - name: Post-rollback health gate
         id: health-gate
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
@@ -557,7 +557,7 @@ jobs:
 
       - name: Write rollback deployment record
         if: success()
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
