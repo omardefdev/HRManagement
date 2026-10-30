@@ -17,310 +17,270 @@ jobs:
         with:
           global-json-file: global.json
 
+      # QA-034: every build-and-test step comes from scripts/ci/steps.json (single source; same order locally via
+      # scripts/ci-local.ps1). Add or change steps there; CiStepsParityTests rejects drift between the two files.
       - name: PowerShell for Linux validation script tests
-        run: |
-          if command -v pwsh >/dev/null 2>&1 && ! command -v powershell >/dev/null 2>&1; then
-            sudo ln -sf "$(command -v pwsh)" /usr/local/bin/powershell
-          fi
+        run: bash scripts/ci/run-steps.sh --step "PowerShell for Linux validation script tests"
 
       - name: Restore local tools (dotnet-ef)
-        run: dotnet tool restore
+        run: bash scripts/ci/run-steps.sh --step "Restore local tools (dotnet-ef)"
 
       - name: Guard against wildcard package versions
-        run: |
-          set -euo pipefail
-          if grep -RInE 'Version="(\*|[0-9]+\.\*)"' --include='*.csproj' .; then
-            echo "::error::Wildcard PackageReference versions found in .csproj files (DB-001)"
-            exit 1
-          fi
-          echo "No wildcard package versions."
+        run: bash scripts/ci/run-steps.sh --step "Guard against wildcard package versions"
 
       - name: Base image pins (SUP-001-B)
-        run: bash scripts/check-base-image-pins.sh
+        run: bash scripts/ci/run-steps.sh --step "Base image pins (SUP-001-B)"
 
       - name: Supply-chain exceptions validity (SUP-001-C)
-        run: bash scripts/check-supply-chain-exceptions.sh
+        run: bash scripts/ci/run-steps.sh --step "Supply-chain exceptions validity (SUP-001-C)"
 
       - name: License policy (SUP-001-E)
-        run: bash scripts/check-license-policy.sh
+        run: bash scripts/ci/run-steps.sh --step "License policy (SUP-001-E)"
 
       - name: No external CDN (UX-001-C)
-        run: bash scripts/check-no-external-cdn.sh
+        run: bash scripts/ci/run-steps.sh --step "No external CDN (UX-001-C)"
 
       - name: XSS DOM sinks gate (UX-001-E)
-        run: bash scripts/check-xss-dom-sinks.sh
+        run: bash scripts/ci/run-steps.sh --step "XSS DOM sinks gate (UX-001-E)"
 
       - name: Icon button accessible names (UX-002-E)
-        run: python3 scripts/check-icon-button-names.py
+        run: bash scripts/ci/run-steps.sh --step "Icon button accessible names (UX-002-E)"
 
       - name: Non-prod data policy (GOV-001-D)
-        run: python3 scripts/check-non-prod-data-policy.py
+        run: bash scripts/ci/run-steps.sh --step "Non-prod data policy (GOV-001-D)"
 
       - name: No LEGAL_TBD in release path (GOV-002-B)
-        run: python3 scripts/check-no-legal-tbd.py
+        run: bash scripts/ci/run-steps.sh --step "No LEGAL_TBD in release path (GOV-002-B)"
+
+      - name: Dated obligations horizon (QA-034)
+        run: bash scripts/ci/run-steps.sh --step "Dated obligations horizon (QA-034)"
 
       - name: STR-002 control runtime validate
-        run: pwsh -NoProfile -File scripts/str002-control-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "STR-002 control runtime validate"
 
       - name: STR-003 module runtime validate
-        run: pwsh -NoProfile -File scripts/str003-module-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "STR-003 module runtime validate"
 
       - name: STR-004 nofork runtime validate
-        run: pwsh -NoProfile -File scripts/str004-nofork-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "STR-004 nofork runtime validate"
 
       - name: STR-005 governance runtime validate
-        run: pwsh -NoProfile -File scripts/str005-governance-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "STR-005 governance runtime validate"
 
       - name: STR-006 ownership runtime validate
-        run: pwsh -NoProfile -File scripts/str006-ownership-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "STR-006 ownership runtime validate"
 
       - name: STR-007 value runtime validate
-        run: pwsh -NoProfile -File scripts/str007-value-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "STR-007 value runtime validate"
 
       - name: MIG-001 inventory runtime validate
-        run: pwsh -NoProfile -File scripts/mig001-inventory-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-001 inventory runtime validate"
 
       - name: MIG-002 codemap runtime validate
-        run: pwsh -NoProfile -File scripts/mig002-codemap-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-002 codemap runtime validate"
 
       - name: MIG-003 factory runtime validate
-        run: pwsh -NoProfile -File scripts/mig003-factory-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-003 factory runtime validate"
 
       - name: MIG-004 match runtime validate
-        run: pwsh -NoProfile -File scripts/mig004-match-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-004 match runtime validate"
 
       - name: MIG-005 evidence runtime validate
-        run: pwsh -NoProfile -File scripts/mig005-evidence-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-005 evidence runtime validate"
 
       - name: MIG-006 cutover runtime validate
-        run: pwsh -NoProfile -File scripts/mig006-cutover-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-006 cutover runtime validate"
 
       - name: MIG-007 onboarding runtime validate
-        run: pwsh -NoProfile -File scripts/mig007-onboarding-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "MIG-007 onboarding runtime validate"
 
       - name: EXT-001 federation runtime validate
-        run: pwsh -NoProfile -File scripts/ext001-federation-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-001 federation runtime validate"
 
       - name: EXT-002 civil-registry runtime validate
-        run: pwsh -NoProfile -File scripts/ext002-civil-registry-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-002 civil-registry runtime validate"
 
       - name: EXT-003 treasury-payment runtime validate
-        run: pwsh -NoProfile -File scripts/ext003-treasury-payment-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-003 treasury-payment runtime validate"
 
       - name: EXT-004 pki-signature runtime validate
-        run: pwsh -NoProfile -File scripts/ext004-pki-signature-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-004 pki-signature runtime validate"
 
       - name: EXT-005 api-exchange runtime validate
-        run: pwsh -NoProfile -File scripts/ext005-api-exchange-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-005 api-exchange runtime validate"
 
       - name: EXT-006 sandbox-cert pack validate
-        run: pwsh -NoProfile -File scripts/ext006-sandbox-cert-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-006 sandbox-cert pack validate"
 
       - name: EXT-006 sandbox-cert runtime validate
-        run: pwsh -NoProfile -File scripts/ext006-sandbox-cert-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-006 sandbox-cert runtime validate"
 
       - name: EXT-007 sector-catalog pack validate
-        run: pwsh -NoProfile -File scripts/ext007-sector-catalog-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-007 sector-catalog pack validate"
 
       - name: EXT-007 sector-catalog runtime validate
-        run: pwsh -NoProfile -File scripts/ext007-sector-catalog-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "EXT-007 sector-catalog runtime validate"
 
       - name: PROD-001 policy-platform pack validate
-        run: pwsh -NoProfile -File scripts/prod001-policy-platform-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-001 policy-platform pack validate"
 
       - name: PROD-001 policy-platform runtime validate
-        run: pwsh -NoProfile -File scripts/prod001-policy-platform-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-001 policy-platform runtime validate"
 
       - name: PROD-002 agency-selfadmin pack validate
-        run: pwsh -NoProfile -File scripts/prod002-agency-selfadmin-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-002 agency-selfadmin pack validate"
 
       - name: PROD-002 agency-selfadmin runtime validate
-        run: pwsh -NoProfile -File scripts/prod002-agency-selfadmin-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-002 agency-selfadmin runtime validate"
 
       - name: PROD-003 employee-selfservice pack validate
-        run: pwsh -NoProfile -File scripts/prod003-employee-selfservice-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-003 employee-selfservice pack validate"
 
       - name: PROD-003 employee-selfservice runtime validate
-        run: pwsh -NoProfile -File scripts/prod003-employee-selfservice-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-003 employee-selfservice runtime validate"
 
       - name: PROD-004 remote-branch pack validate
-        run: pwsh -NoProfile -File scripts/prod004-remote-branch-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-004 remote-branch pack validate"
 
       - name: PROD-004 remote-branch runtime validate
-        run: pwsh -NoProfile -File scripts/prod004-remote-branch-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-004 remote-branch runtime validate"
 
       - name: PROD-005 workbox pack validate
-        run: pwsh -NoProfile -File scripts/prod005-workbox-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-005 workbox pack validate"
 
       - name: PROD-005 workbox runtime validate
-        run: pwsh -NoProfile -File scripts/prod005-workbox-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-005 workbox runtime validate"
 
       - name: PROD-006 semantic-layer pack validate
-        run: pwsh -NoProfile -File scripts/prod006-semantic-layer-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-006 semantic-layer pack validate"
 
       - name: PROD-006 semantic-layer runtime validate
-        run: pwsh -NoProfile -File scripts/prod006-semantic-layer-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-006 semantic-layer runtime validate"
 
       - name: PROD-007 extensibility pack validate
-        run: pwsh -NoProfile -File scripts/prod007-extensibility-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-007 extensibility pack validate"
 
       - name: PROD-007 extensibility runtime validate
-        run: pwsh -NoProfile -File scripts/prod007-extensibility-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "PROD-007 extensibility runtime validate"
 
       - name: SOV-001 control-baseline pack validate
-        run: pwsh -NoProfile -File scripts/sov001-control-baseline-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-001 control-baseline pack validate"
 
       - name: SOV-001 control-baseline runtime validate
-        run: pwsh -NoProfile -File scripts/sov001-control-baseline-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-001 control-baseline runtime validate"
 
       - name: SOV-002 data-sovereignty pack validate
-        run: pwsh -NoProfile -File scripts/sov002-data-sovereignty-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-002 data-sovereignty pack validate"
 
       - name: SOV-002 data-sovereignty runtime validate
-        run: pwsh -NoProfile -File scripts/sov002-data-sovereignty-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-002 data-sovereignty runtime validate"
 
       - name: SOV-003 key-sovereignty pack validate
-        run: pwsh -NoProfile -File scripts/sov003-key-sovereignty-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-003 key-sovereignty pack validate"
 
       - name: SOV-003 key-sovereignty runtime validate
-        run: pwsh -NoProfile -File scripts/sov003-key-sovereignty-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-003 key-sovereignty runtime validate"
 
       - name: SOV-004 zero-trust pack validate
-        run: pwsh -NoProfile -File scripts/sov004-zero-trust-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-004 zero-trust pack validate"
 
       - name: SOV-004 zero-trust runtime validate
-        run: pwsh -NoProfile -File scripts/sov004-zero-trust-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-004 zero-trust runtime validate"
 
       - name: SOV-005 threat-model pack validate
-        run: pwsh -NoProfile -File scripts/sov005-threat-model-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-005 threat-model pack validate"
 
       - name: SOV-005 threat-model runtime validate
-        run: pwsh -NoProfile -File scripts/sov005-threat-model-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-005 threat-model runtime validate"
 
       - name: SOV-006 pen-red pack validate
-        run: pwsh -NoProfile -File scripts/sov006-pen-red-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-006 pen-red pack validate"
 
       - name: SOV-006 pen-red runtime validate
-        run: pwsh -NoProfile -File scripts/sov006-pen-red-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-006 pen-red runtime validate"
 
       - name: SOV-007 vendor-exit pack validate
-        run: pwsh -NoProfile -File scripts/sov007-vendor-exit-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-007 vendor-exit pack validate"
 
       - name: SOV-007 vendor-exit runtime validate
-        run: pwsh -NoProfile -File scripts/sov007-vendor-exit-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "SOV-007 vendor-exit runtime validate"
 
       - name: ARC-001 criticality pack validate
-        run: pwsh -NoProfile -File scripts/arc001-criticality-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "ARC-001 criticality pack validate"
 
       - name: ARC-001 criticality runtime validate
-        run: pwsh -NoProfile -File scripts/arc001-criticality-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "ARC-001 criticality runtime validate"
 
       - name: ARC-002 reference pack validate
-        run: pwsh -NoProfile -File scripts/arc002-reference-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "ARC-002 reference pack validate"
 
       - name: ARC-002 reference runtime validate
-        run: pwsh -NoProfile -File scripts/arc002-reference-runtime-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "ARC-002 reference runtime validate"
 
       - name: Master data DQ report offline (GOV-003-D)
-        run: GOV003_DQ_FIXTURE=testdata/gov003/dq-fixture-clean.json python3 scripts/gov003-data-quality-report.py
+        run: bash scripts/ci/run-steps.sh --step "Master data DQ report offline (GOV-003-D)"
 
       - name: Restore (locked mode)
-        run: dotnet restore HRManagement.slnx --locked-mode
+        run: bash scripts/ci/run-steps.sh --step "Restore (locked mode)"
 
       - name: Check formatting
-        run: dotnet format HRManagement.slnx --verify-no-changes --no-restore
+        run: bash scripts/ci/run-steps.sh --step "Check formatting"
 
       - name: Build
-        run: dotnet build HRManagement.slnx --configuration Release --no-restore
+        run: bash scripts/ci/run-steps.sh --step "Build"
 
       - name: Check pending EF model changes
-        run: bash scripts/check-pending-ef-model-changes.sh
+        run: bash scripts/ci/run-steps.sh --step "Check pending EF model changes"
 
       - name: Check EF migration discoverability
-        run: bash scripts/check-migration-discovery.sh
+        run: bash scripts/ci/run-steps.sh --step "Check EF migration discoverability"
 
       - name: Validate FRD-001 anomaly rules binding
-        run: pwsh -NoProfile -File scripts/frd001-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "Validate FRD-001 anomaly rules binding"
 
       - name: Classify test evidence (separated counts)
-        run: python3 scripts/classify-test-evidence.py
+        run: bash scripts/ci/run-steps.sh --step "Classify test evidence (separated counts)"
 
       - name: Unit tests
-        run: >
-          dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj
-          --configuration Release --no-build
-          --logger "trx;LogFileName=unit-results.trx"
-          --results-directory ./TestResults/unit
-          --settings coverlet.runsettings
-          --collect:"XPlat Code Coverage"
+        run: bash scripts/ci/run-steps.sh --step "Unit tests"
 
       - name: Integration tests (MassTransit InMemory)
-        run: >
-          dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj
-          --configuration Release --no-build
-          --logger "trx;LogFileName=integration-results.trx"
-          --results-directory ./TestResults/integration
-          --filter "Category!=Testcontainers"
-          --blame-hang-timeout 5m
-          --settings coverlet.runsettings
-          --collect:"XPlat Code Coverage"
+        run: bash scripts/ci/run-steps.sh --step "Integration tests (MassTransit InMemory)"
 
       - name: Integration tests (Testcontainers)
-        env:
-          RUN_TESTCONTAINERS: "true"
-        run: >
-          dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj
-          --configuration Release --no-build
-          --logger "trx;LogFileName=integration-tc-results.trx"
-          --results-directory ./TestResults/integration-tc
-          --filter "Category=Testcontainers"
-          --blame-hang-timeout 15m
-          --settings coverlet.runsettings
-          --collect:"XPlat Code Coverage"
+        run: bash scripts/ci/run-steps.sh --step "Integration tests (Testcontainers)"
 
       - name: Coverage gate
-        env:
-          # QA-002: 60% on gateAssemblies + per-assembly floors (coverage-floors.json); ratchet — do not lower without ADR
-          COVERAGE_THRESHOLD: "60"
-        run: bash scripts/check-coverage.sh
+        run: bash scripts/ci/run-steps.sh --step "Coverage gate"
 
       - name: Tech debt measurement (QA-005)
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa005-measure-debt.ps1
+        run: bash scripts/ci/run-steps.sh --step "Tech debt measurement (QA-005)"
 
       - name: XL decomposition audit (PGM-001)
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pgm001-xl-audit.ps1
+        run: bash scripts/ci/run-steps.sh --step "XL decomposition audit (PGM-001)"
 
       - name: Security scan (known vulnerabilities)
-        run: bash scripts/check-nuget-vulnerabilities.sh vuln-report.txt
+        run: bash scripts/ci/run-steps.sh --step "Security scan (known vulnerabilities)"
 
       - name: SCA Crit/High fixture (SUP-001-C)
-        run: bash scripts/verify-sca-fixture.sh
+        run: bash scripts/ci/run-steps.sh --step "SCA Crit/High fixture (SUP-001-C)"
 
       - name: Install ReportGenerator
         if: always()
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+        run: bash scripts/ci/run-steps.sh --step "Install ReportGenerator"
 
       - name: Generate coverage report
         if: always()
-        run: |
-          REPORTS="$(find . -name 'coverage.cobertura.xml' -path '*/TestResults/*' | sort | paste -sd ';' -)"
-          if [ -n "$REPORTS" ]; then
-            reportgenerator "-reports:$REPORTS" "-targetdir:coveragereport" "-reporttypes:HtmlInline_AzurePipelines;Cobertura"
-          fi
+        run: bash scripts/ci/run-steps.sh --step "Generate coverage report"
 
       - name: BLD-002 Docker build validate
-        run: pwsh -NoProfile -File scripts/bld002-docker-build-validate.ps1
+        run: bash scripts/ci/run-steps.sh --step "BLD-002 Docker build validate"
 
       - name: Generate Docker build manifest
-        run: pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1
+        run: bash scripts/ci/run-steps.sh --step "Generate Docker build manifest"
 
       - name: Verify Docker builds
-        env:
-          DOCKER_BUILDKIT: 1
-          COMPOSE_PARALLEL_LIMIT: 4
-        run: docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack build
+        run: bash scripts/ci/run-steps.sh --step "Verify Docker builds"
 
       - name: Upload test results
         if: always()
@@ -332,6 +292,8 @@ jobs:
             **/TestResults/**/coverage.cobertura.xml
             coveragereport/
             vuln-report.txt
+            artifacts/ci-local/summary.json
+            artifacts/ci-local/logs/
 
   e2e:
     name: E2E

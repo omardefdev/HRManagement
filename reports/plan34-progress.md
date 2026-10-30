@@ -18,8 +18,8 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | Phase | Status | Commit | Finished (UTC) |
 |-------|--------|--------|----------------|
 | P0 branch, program docs, baseline, inventory | done | `02f890b` (docs), `206c656` (baseline), `15592a8` (owner's prompt update) | 2026-10-29T23:24:33Z |
-| P1 dated obligations, clock, STR-005 closure | done | P1 commit (`fix(qa034): dated-obligations registry …`) | see P1 section |
-| P2 single CI step list, Linux runner | pending | — |
+| P1 dated obligations, clock, STR-005 closure | done | `396e73f` | 2026-10-29T23:39:20.2696362Z |
+| P2 single CI step list, Linux runner | done | P2 commit (`ci(qa034): single source of CI steps …`) | 2026-10-30T00:19:43.9485782Z |
 | P3 red unit tests, test culture | pending | — |
 | P4 twelve `Index(employeeId)` actions | pending | — |
 | P5 integration test hosts | pending | — |
@@ -66,6 +66,36 @@ throws "expired"; legislative watch nextDue passes / +1 day throws). On today's 
 STR-005 pack, STR-002 runtime and SUP-004 all PASS; `dated-obligations-check.ps1` on the real registry exits 0 (nearest
 2027-01-31, STR-002).
 
+## P2 — Finished (UTC): 2026-10-30T00:19:43.9485782Z
+
+**Files:** `scripts/ci/steps.json` (87 steps: the 86 `run:` steps of `build-and-test` in order + "Dated obligations horizon
+(QA-034)" before STR-002), `scripts/ci/run-steps.sh`, `scripts/ci/ci-local-entry.sh`, `scripts/ci-local.ps1`,
+`docker/ci-local/Dockerfile`, `docker/base-image-pins.json` (`ciLocal` pins), `.github/workflows/ci.yml` (`build-and-test`
+calls `run-steps.sh --step` only), `.github/workflows/dated-obligations.yml`, `src/Tests/HRManagement.UnitTests/Architecture/CiStepsParityTests.cs`,
+`reports/plan34-baseline.md` (§0.5).
+
+**Design decisions:**
+- **S-7** `ci-local.ps1` runs the steps on a fresh **clone of HEAD inside the container** (`-Source Head`, default), not in the
+  Windows tree: this is exactly "clean HEAD", keeps the owner's local `global.json` out (reported under `knownLocalOverrides`),
+  and prevents Linux restores from clobbering the Windows `obj/` folders. `-Source WorkingTree` overlays only the files the
+  host's git reports changed (modified/untracked/deleted) and always restores the committed `global.json`.
+- **S-8** Parity fixes for running inside a container: `DOTNET_RUNNING_IN_CONTAINER` is unset (GitHub runners are VMs; the web
+  hosts otherwise enforce container DNS settings at design time and in WebApplicationFactory tests); the temp folder is a host
+  directory mounted at the same path (`TMPDIR=/tmp/hrm-ci-local`) because Testcontainers bind-mounts files from it.
+- **S-9** Run arguments reach the container through environment variables, not `bash -c` text: Windows PowerShell 5.1 mangles
+  embedded double quotes in native arguments. The entry script re-executes from a private copy (bash reads scripts while running).
+- Steps that were `shell: powershell` run the same command from bash (the `powershell`→`pwsh` link exists on Linux).
+
+**Tests:** `CiStepsParityTests` 5/5 (names/order, no inline `run:`, `always` ↔ `if: always()`, well-formed, every `Category!=`
+filter registered in `tests/ci-exclusions.json`); a mutation (an inline `run:`) turns it red. `actionlint` 1.7.7 (in the image):
+all workflows clean. Linux baseline: 87 steps, 78 passed, 9 failed — see `reports/plan34-baseline.md` §0.5.
+
+## Pending owner decisions (collected; work that does not depend on them continues)
+
+| # | Finding | Why it needs a decision | Proposed |
+|---|---------|------------------------|----------|
+| Q-1 | `FileUploadHelper.SanitizeFileName` (`src/Shared/HRManagement.FileStorage/FileUploadHelper.cs:55`) uses `Path.GetFileName`, which on Linux does not split `C:akepathcv.pdf`; `Hcm030CandidateDocumentTests.Long_file_names_…` is red on Linux only. Production runs Linux containers, so uploads keep client paths in stored names | product change outside P-4 | `Path.GetFileName(fileName.Replace('\', '/'))` + a unit test per upload service path |
+
 ## Test results (baseline)
 
 See `reports/plan34-baseline.md`: unit 16 failed / 4141; integration (non-TC) 24 failed / 258; Testcontainers 10 failed / 82.
@@ -82,7 +112,7 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-P2: `scripts/ci/steps.json` from `ci.yml:20-323` (names/order kept; "Dated obligations horizon (QA-034)" before the STR/MIG steps),
-`scripts/ci/run-steps.sh`, `docker/ci-local/Dockerfile` (+ pin in `docker/base-image-pins.json`), `scripts/ci-local.ps1`
-(PS 5.1-compatible), rewrite `build-and-test` in `ci.yml`, `.github/workflows/dated-obligations.yml`, `CiStepsParityTests`,
-then the Linux baseline run (`-ContinueOnError -Out artifacts/ci-local/baseline`) appended to `reports/plan34-baseline.md`.
+P3: run the unit suite on Windows with the P3 edits (Syr001, Ten002, San001 `-GlobalJsonSource`, the seven scripts via
+`RepoScriptRunner`, `ScriptInvocationArchitectureTests`, `TestCulture` ×3 + guards), investigate `Hcm029` (D-QA-14), commit P3.
+P4 (twelve actions + `Plan034ScopedIndex*`) and P5 (fakes, `ContractsTestServices`, hosts, `IntegrationHostValidationTests`,
+stale HCM-032 counts) are already drafted in the working tree — run and commit them in order after P3.

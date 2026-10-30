@@ -112,3 +112,31 @@ Recorded after P2 (needs `scripts/ci-local.ps1`); see the section appended below
 
 The full, verified list from an independent read-only sweep (scripts, tests, product, data) is folded into
 `docs/qa/dated-obligations.json` in P1.
+
+## 0.5 — Linux baseline (`scripts/ci-local.ps1`, after P2)
+
+Run: `powershell -File scripts/ci-local.ps1 -ContinueOnError -Source WorkingTree -Out artifacts/ci-local/baseline`
+(working tree = `396e73f` + the uncommitted P2 runner files and the P3–P5 edits in progress at that moment; the
+committed `global.json` is restored inside the container, so the SDK is 10.0.400). The final copy-back of
+`summary.json` was lost because `ci-local-entry.sh` was edited while bash was still reading it (fixed: the entry script
+now re-executes from a private copy); the step table and trx counts below come from the run's console log
+(`artifacts/plan34/ci-local-baseline.log`, git-ignored).
+
+**87 steps: 78 passed, 9 failed, total 965 s.** Testcontainers ran inside the container against sibling containers
+(`TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal`), so `-SkipTestcontainers` was not needed.
+
+| Failed step | Cause | Container artifact? |
+|-------------|-------|--------------------|
+| Icon button accessible names (UX-002-E) | `HR.Core.Web/Views/OfferLetters/Index.cshtml:39` icon-only control without an accessible name — the Python check never ran on the owner's machine | no — real finding |
+| Check formatting | 657 WHITESPACE + 29 FINALNEWLINE findings in 143 files (part of them CRLF copies of files edited on Windows in the working-tree overlay) | partly |
+| Check pending EF model changes | 4 contexts (HRCore, Training, IDCard, Archive) could not be created at design time: the web host throws "HrGateway:InternalBaseUrl must use Docker service DNS … when running in a container" because the SDK image sets `DOTNET_RUNNING_IN_CONTAINER=true`. The other 11 contexts: "No changes have been made to the model since the last migration" | yes — fixed in `ci-local-entry.sh` (unset; GitHub runners are VMs) |
+| Check EF migration discoverability | `File.Storage.Infrastructure/Migrations/20260824180000_INT002_IntegrationMessageReceipts.cs` has no `[DbContext]`/`[Migration]` attribute, so EF never applies it (also why `Qa003MinioFileScanTests.Clean_…` hit "relation IntegrationMessageReceipts does not exist") | no — real product defect |
+| Unit tests | 4170 total, **2 failed**: `BolaArchitectureTests` (§4) and **`Hcm030CandidateDocumentTests.Long_file_names_are_sanitized_and_shortened_keeping_the_extension`** — `FileUploadHelper.SanitizeFileName` uses `Path.GetFileName`, which on Linux keeps `C:\fakepath\cv.pdf` whole | no — real product defect, Linux only |
+| Integration tests (MassTransit InMemory) | 258 total, **52 failed**: the 24 Windows ones (minus `Hcm028`, Testcontainers) + 28 WebApplicationFactory tests of HR.Core (`Hcm025OrgScope` ×6, `Hcm025PostingPolicies` ×3, `Hcm033LabScaleBehaviour` ×7, `Est004…` ×4, `HRCoreJwtBearer…` ×2, `QuarantineBlocksOperation` ×2, `TenantQuarantineResolveApi` ×2, `CrossTenantApiPenetration`, `FileUploadLifecycle`) failing on the same container DNS guard | the 28 extra: yes |
+| Integration tests (Testcontainers) | 82 total, **18 failed**: payroll PG ×5, MinIO ×4 (`Qa003MinioFileScan` ×3, `FileStorageInboxIdempotency`), `Hcm025ProductionApproval…` ×5 (container DNS guard), `Qa003KeycloakTokenMatrixTests` ×4 ("bind source path does not exist: /tmp/qa003-realm-….json" — the test writes the realm to the container's `/tmp`, which the Docker daemon cannot see) | Hcm025 + Keycloak: yes — fixed (unset; same-path temp mount `TMPDIR=/tmp/hrm-ci-local`) |
+| Coverage gate | not reached meaningfully (test steps failed) | — |
+| Security scan (known vulnerabilities) | NU1903 SSH.NET (P6) | no |
+
+`Hcm028AppealGovernanceMigrationTests` **passes on Linux** (invariant culture) and fails on Windows/ar-SA — the culture
+asymmetry the plan describes. The unit-test differences are the same story in reverse: 14 of the 16 Windows failures
+are environment-only (policy, culture, local `global.json`), while Linux has one failure Windows hides (`Hcm030`).

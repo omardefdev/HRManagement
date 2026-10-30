@@ -1,0 +1,33 @@
+name: dated-obligations
+
+# QA-034: the dated-obligations horizon (docs/qa/dated-obligations.json) is checked every Monday even when nobody
+# pushes, so an exception, review date or watch stamp cannot run out silently. The same step runs inside CI
+# (scripts/ci/steps.json, "Dated obligations horizon (QA-034)"). Warns 30 days and fails 7 days before a due date.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  horizon:
+    name: Dated obligations horizon
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dated obligations horizon (QA-034)
+        run: bash scripts/ci/run-steps.sh --step "Dated obligations horizon (QA-034)" --out artifacts/dated-obligations-run
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dated-obligations
+          path: |
+            artifacts/dated-obligations.json
+            artifacts/dated-obligations-run/
+          if-no-files-found: warn
