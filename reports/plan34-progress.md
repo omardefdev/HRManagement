@@ -24,8 +24,8 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P4 twelve `Index(employeeId)` actions | done | `8caddff` | 2026-10-30T00:35:23.0483667Z |
 | P5 integration test hosts | done | `eed6128` | 2026-10-30T00:50:33.7789136Z |
 | P6 NU1903, warnings as errors | done | `e422f92` | 2026-10-30T08:51:37.1598965Z |
-| P7 MinIO, format, EF, coverage | done | `9130e36` (whitespace) + P7 commit (`fix(qa034): base stack without …`) | 2026-10-30T08:55:16.5069583Z |
-| P8 full green run, AC-QA-34a..i | pending | — |
+| P7 MinIO, format, EF, coverage | done | `9130e36` (whitespace), `35c2959` | 2026-10-30T08:55:16.5069583Z |
+| P8 full green run, AC-QA-34a..i | done (34g Blocked) | `a748dce`, `4115e9d` (evidence HEAD), P8 evidence commit | 2026-10-30T11:30:47.8369785Z |
 | P9 docs, review, final report, merge | pending | — |
 
 ## Decisions
@@ -228,6 +228,33 @@ container: `CrossTenantRls…`/`Qa003MigrationUpgrade…` timed out / "Network i
 **Tests (Windows/ar-SA):** unit **4183/0 failed**; integration non-TC **337 passed, 0 failed** (4 opt-in skips); Testcontainers
 minus ObjectStorage **81 passed, 0 failed**. `dotnet build -c Release -warnaserror` 0 errors.
 
+## P8 — Finished (UTC): 2026-10-30T11:30:47.8369785Z
+
+**Evidence HEAD `4115e9d`** (the evidence commit after it adds only the AC-QA-34 test fixes for 34f/34g/34i and the evidence files).
+
+- **Linux** `powershell -File scripts/ci-local.ps1 -SkipTestcontainers -Out artifacts/ci-local/head` (clean clone of HEAD, SDK 10.0.400):
+  **85 passed, 0 failed, 2 not-run** (Testcontainers, coverage gate — rule P-3), 820 s; `gitSha` = HEAD, `dirtyTracked` = [],
+  host `knownLocalOverrides` = global.json (rollForward only); 142 tracked files rewritten by the steps themselves
+  (`testdata/*/out`, `docs/qa` registries) are listed as `rewrittenByRun`. trx: unit 4183/0, integration 341/0.
+- **Windows/ar-SA** (same HEAD, Release, coverage): `-warnaserror` build 0 errors; unit 4183/0; integration 337/0 (4 opt-in skips);
+  Testcontainers minus ObjectStorage 81/0; coverage gate on these reports **passed** (90.1%; Payroll.Application 73.6% ≥ 73).
+- **Rule P-3:** inside the ci-local container on Docker Desktop, Testcontainers works but PostgreSQL connections through the desktop
+  port proxy time out intermittently (3 of 81 tests, different ones per run; the bridge gateway was tried and Ryuk is unreachable
+  there). GitHub runners are unaffected.
+- **Base stack without MinIO:** `prepare-ci-compose-env.sh` (in the image; it needs pwsh and `python`), `docker compose -f docker-compose.yml
+  -f docker-compose.services.yml --profile full-stack up -d --wait --wait-timeout 600` → every container healthy, no MinIO container,
+  `file-storage-web` `FileStorage__Provider=Local`, gateway `/health/live` 200. `--profile object-storage config` without MINIO_IMAGE →
+  exit 1; the overlay without it → exit 1 with the explicit message. Stack torn down (`down -v`), `.env` restored.
+- **Finding (34g upload half Blocked):** in the base CI realm, password-grant tokens carry **no realm roles** (no `roles` client
+  scope; `profile`/`email` are rejected as invalid scopes), so `/api/files` returns 403 "missing role for this module" for every
+  persona (hradmin, e2e-file-ops). The S2S route was not tried (it needs a service-account secret; refused by the session's
+  permission policy). → PLAN-41 (the CI E2E/acceptance jobs use the same realm).
+- **AC-QA-34 (RUN_ACCEPTANCE=true, ACCEPTANCE_REQUIRE_ALL=true):** 34a, 34b, 34c, 34d, 34e, 34f, 34h, 34i **Pass**; 34g **Blocked**
+  (fails under REQUIRE_ALL, as designed). `acceptance-evidence/AC-QA-34/` (metadata, steps, before, after, audit, db-checks, timing,
+  result + per-scenario steps/db-checks); `acceptance-evidence/summary.md` regenerated.
+- Follow-up noted: the ci-local image has `python3` but no `python` alias (GitHub runners have both); only scripts outside
+  build-and-test (prepare-keycloak-import.ps1) need it.
+
 ## Owner decisions (all answered 2026-10-30; see "Owner decisions received")
 
 | # | Finding | Why it needs a decision | Proposed |
@@ -254,5 +281,5 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-P8: clean tree check; `scripts/ci-local.ps1` on clean HEAD (all 87 steps) → summary.json; base stack without MinIO
-(`prepare-ci-compose-env.sh`, compose up full-stack, clean upload / EICAR); `AcQa34PushableBaselineTests` + evidence folder.
+P9: independent review (fresh subagent on the prompt, the plan and `git diff main...HEAD`) + refuter; fix survivors with a
+regression test; finish `reports/plan34-final-report.md`; commit docs; merge into local `main` with --no-ff; no push.

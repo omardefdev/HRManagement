@@ -1,0 +1,62 @@
+{
+  "scenarios": {
+    "34i": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34i-b9771acb95074a538c0f4506b3bba332",
+      "recordedAtUtc": "2026-10-30T11:22:07.5358539Z"
+    },
+    "34b": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34b-4ece512c2e614c14aaf0dae7a8319cda",
+      "recordedAtUtc": "2026-10-30T11:22:09.2657461Z"
+    },
+    "34h": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34h-d7e3864110d54e3088c3cbb8fb0fdf05",
+      "recordedAtUtc": "2026-10-30T11:22:09.9400361Z"
+    },
+    "34a": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34a-6aacdd2ae4e948018e0be1a689932443",
+      "recordedAtUtc": "2026-10-30T11:22:10.1529448Z"
+    },
+    "34f": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34f-18758dd97bb24ff198e393d391b43c3d",
+      "recordedAtUtc": "2026-10-30T11:22:10.6131999Z"
+    },
+    "34g": {
+      "status": "Blocked",
+      "reason": "The base (CI) realm issues access tokens without realm roles (no \u0027roles\u0027 client scope), so /api/files returns 403 \u0027missing role for this module\u0027 for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41). \u2014 \u0631\u0645\u0632 \u0627\u0644\u0648\u0635\u0648\u0644 \u0641\u064A realm \u0627\u0644\u0623\u0633\u0627\u0633\u064A \u0628\u0644\u0627 \u0623\u062F\u0648\u0627\u0631\u060C \u0641\u0644\u0627 \u064A\u0645\u0631 \u0637\u0644\u0628 \u0627\u0644\u0631\u0641\u0639",
+      "correlationId": "qa34-34g-4df9b14edd48412fbc5b6d8628106c0f",
+      "recordedAtUtc": "2026-10-30T11:29:45.5658844Z"
+    },
+    "34c": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34c-a6b381676590426fadd4d41f106a7442",
+      "recordedAtUtc": "2026-10-30T11:22:12.3114118Z"
+    },
+    "34d": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34d-2f5d164336544aac96aaed533f558887",
+      "recordedAtUtc": "2026-10-30T11:22:12.6737030Z"
+    },
+    "34e": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "qa34-34e-dd30399335ae4c2f9dbe164203571275",
+      "recordedAtUtc": "2026-10-30T11:22:12.9637886Z"
+    }
+  },
+  "status": "Blocked",
+  "reason": "34g: Blocked \u2014 The base (CI) realm issues access tokens without realm roles (no \u0027roles\u0027 client scope), so /api/files returns 403 \u0027missing role for this module\u0027 for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41). \u2014 \u0631\u0645\u0632 \u0627\u0644\u0648\u0635\u0648\u0644 \u0641\u064A realm \u0627\u0644\u0623\u0633\u0627\u0633\u064A \u0628\u0644\u0627 \u0623\u062F\u0648\u0627\u0631\u060C \u0641\u0644\u0627 \u064A\u0645\u0631 \u0637\u0644\u0628 \u0627\u0644\u0631\u0641\u0639",
+  "correlationId": "qa34-34g-4df9b14edd48412fbc5b6d8628106c0f",
+  "recordedAtUtc": "2026-10-30T11:29:45.5658844Z"
+}

@@ -1,0 +1,23 @@
+{
+  "sqlite": {
+    "PayrollRunLifecycleIntegrationTests.PayrollRun_Draft_Calculate_Post_Lifecycle": {},
+    "Perf001PayrollBatchTests.Calculate_Sets_InputFingerprint_And_ProgressFields": {},
+    "Perf001PayrollBatchTests.Fingerprint_Mismatch_Fails_Job": {},
+    "Perf001PayrollBatchTests.Parallel_Partitions_Do_Not_Duplicate_Lines": {},
+    "Perf001PayrollBatchTests.Throughput_100_Employees_Completes": {},
+    "Pay003ResumablePayrollRunTests.Calculate_PerEmployee_Atomic_NoOrphanComponents": {},
+    "Pay003ResumablePayrollRunTests.Calculate_Restart_SkipsCompletedEmployees": {},
+    "Pay003ResumablePayrollRunTests.Pause_Resume_ContinuesFromCheckpoint": {},
+    "Pay003ResumablePayrollRunTests.Snapshot_VersionConflict_Detected": {}
+  },
+  "postgres": {
+    "Pay021DeterminismPostgreSqlTests.DualRun_SameFrozenInputs_BitForBit_On_PostgreSQL": {},
+    "Pay022ResumePostgreSqlTests.DoubleStart_WhileLeaseActive_ReturnsConflict_On_PostgreSQL": {},
+    "Pay022ResumePostgreSqlTests.Pause_Resume_CompletesWithoutDuplicates_On_PostgreSQL": {},
+    "Pay023FrozenRunIsolationTests.Frozen_run_unchanged_after_profile_edit_later_run_reflects_change": {},
+    "Perf001PayrollBatchPostgreSqlTests.ParallelPartitions_DoNotDuplicateLines_On_PostgreSQL": {}
+  },
+  "postgresSource": "native Windows (rule P-3)",
+  "hostValidation": {},
+  "negative": {}
+}

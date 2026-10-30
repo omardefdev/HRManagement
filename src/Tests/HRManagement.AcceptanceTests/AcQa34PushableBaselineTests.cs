@@ -367,10 +367,27 @@ public class AcQa34PushableBaselineTests
     public void Ac34_f_payroll_calculates_on_sqlite_and_postgresql_and_host_validation_names_missing_clients()
     {
         var r = StartTrx("34f", "AC-QA-34f: payroll runs calculate on SQLite and PostgreSQL; a host without the regime client is named by IntegrationHostValidationTests", out _, out var integration, out var tc);
-        var sqlite = new[] { "PayrollRunLifecycleIntegrationTests.", "Perf001PayrollBatchTests.", "Pay003ResumablePayrollRunTests." }
-            .ToDictionary(n => n, n => Count(integration, n));
-        var postgres = new[] { "Pay021DeterminismPostgreSqlTests.", "Pay022ResumePostgreSqlTests.", "Pay023FrozenRunIsolationTests.", "Perf001PayrollBatchPostgreSqlTests." }
-            .ToDictionary(n => n, n => Count(tc, n));
+        // The fourteen payroll tests red at baseline (reports/plan34-baseline.md): 9 on SQLite, 5 on PostgreSQL.
+        var sqlite = new[]
+        {
+            "PayrollRunLifecycleIntegrationTests.PayrollRun_Draft_Calculate_Post_Lifecycle",
+            "Perf001PayrollBatchTests.Calculate_Sets_InputFingerprint_And_ProgressFields",
+            "Perf001PayrollBatchTests.Fingerprint_Mismatch_Fails_Job",
+            "Perf001PayrollBatchTests.Parallel_Partitions_Do_Not_Duplicate_Lines",
+            "Perf001PayrollBatchTests.Throughput_100_Employees_Completes",
+            "Pay003ResumablePayrollRunTests.Calculate_PerEmployee_Atomic_NoOrphanComponents",
+            "Pay003ResumablePayrollRunTests.Calculate_Restart_SkipsCompletedEmployees",
+            "Pay003ResumablePayrollRunTests.Pause_Resume_ContinuesFromCheckpoint",
+            "Pay003ResumablePayrollRunTests.Snapshot_VersionConflict_Detected"
+        }.ToDictionary(n => n, n => Count(integration, n));
+        var postgres = new[]
+        {
+            "Pay021DeterminismPostgreSqlTests.DualRun_SameFrozenInputs_BitForBit_On_PostgreSQL",
+            "Pay022ResumePostgreSqlTests.DoubleStart_WhileLeaseActive_ReturnsConflict_On_PostgreSQL",
+            "Pay022ResumePostgreSqlTests.Pause_Resume_CompletesWithoutDuplicates_On_PostgreSQL",
+            "Pay023FrozenRunIsolationTests.Frozen_run_unchanged_after_profile_edit_later_run_reflects_change",
+            "Perf001PayrollBatchPostgreSqlTests.ParallelPartitions_DoNotDuplicateLines_On_PostgreSQL"
+        }.ToDictionary(n => n, n => Count(tc, n));
         var hostValidation = Count(integration, "IntegrationHostValidationTests.");
         var negative = Count(integration, "IntegrationHostValidationTests.Payroll_host_without_the_service_regime_client_is_named");
         r.WriteScenarioSteps("""
@@ -379,7 +396,7 @@ public class AcQa34PushableBaselineTests
             host with ValidateOnBuild and names a missing IHrCoreServiceRegimeClient (negative case).
             """);
         r.WriteScenarioDbChecks(new { sqlite, postgres, postgresSource = TestcontainersTrx().Source, hostValidation, negative });
-        Assert.All(sqlite.Concat(postgres), kv => Assert.True(kv.Value.Total > 0 && kv.Value.Failed == 0 && kv.Value.Passed == kv.Value.Total, $"{kv.Key}: {kv.Value}"));
+        Assert.All(sqlite.Concat(postgres), kv => Assert.True(kv.Value is { Total: 1, Passed: 1 }, $"{kv.Key}: {kv.Value}"));
         Assert.Equal(14, sqlite.Values.Sum(v => v.Passed) + postgres.Values.Sum(v => v.Passed));
         Assert.True(hostValidation.Failed == 0 && hostValidation.Passed == hostValidation.Total && hostValidation.Total >= 6, hostValidation.ToString());
         Assert.Equal((1, 1, 0), negative);
@@ -429,23 +446,20 @@ public class AcQa34PushableBaselineTests
         var (overlayExit, overlayOut) = Run("docker",
             "compose --env-file .env.ci -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.object-storage.yml --profile full-stack config --quiet");
         var (minioPs, minioOut) = Run("docker", "ps --filter name=hrm-minio --format {{.Names}}");
-        var (providerExit, provider) = Run("docker", "inspect hrm-file-storage-web --format {{range .Config.Env}}{{println .}}{{end}}");
+        var (providerExit, provider) = Run("docker", "inspect hrm-file-storage-web --format \"{{range .Config.Env}}{{println .}}{{end}}\"");
         var providerLine = provider.Split('\n').FirstOrDefault(l => l.StartsWith("FileStorage__Provider=", StringComparison.Ordinal))?.Trim();
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         var health = await http.GetAsync(gateway!.TrimEnd('/') + "/health/live");
-
-        var (scanExit, scanOut) = RunScript("scripts/acceptance-file-scan.ps1",
-            $"-BaseUrl {gateway.TrimEnd('/')} -KeycloakBase {Environment.GetEnvironmentVariable("ACQA34_BASE_STACK_KEYCLOAK") ?? "http://localhost:8088"} " +
-            $"-Username {Environment.GetEnvironmentVariable("ACQA34_BASE_STACK_USER") ?? "hradmin"} -Password {Environment.GetEnvironmentVariable("ACQA34_BASE_STACK_PASSWORD") ?? "HrAdmin123!"} " +
-            $"-ClientSecret {Environment.GetEnvironmentVariable("KEYCLOAK_HR_GATEWAY_CLIENT_SECRET") ?? "ci-gateway-secret-lab-only"}");
+        var (token, tokenRoles) = await FileStorageTokenAsync();
 
         r.WriteScenarioSteps("""
             1. bash scripts/prepare-ci-compose-env.sh; docker compose -f docker-compose.yml -f docker-compose.services.yml
                --profile full-stack up -d --wait --wait-timeout 600 (no MINIO_IMAGE, no MinIO container).
             2. file-storage-web runs with FileStorage__Provider=Local; gateway /health/live = 200.
-            3. scripts/acceptance-file-scan.ps1 through the gateway: a clean file → Clean and downloadable, EICAR →
-               Infected/Quarantined and not downloadable.
+            3. The AC-28 flow (scripts/acceptance-file-scan.ps1) through the gateway, done in-process: token for e2e-file-ops (CI
+               realm persona with the file-storage role, scope openid), POST /api/files clean.pdf → Clean and downloadable; the same PDF with the EICAR signature →
+               Infected/Quarantined and its download refused.
             4. Negative: `--profile object-storage config` without MINIO_IMAGE fails; the object-storage overlay without it
                fails with the explicit message.
             """);
@@ -456,7 +470,7 @@ public class AcQa34PushableBaselineTests
             minioContainers = minioOut.Trim(),
             fileStorageProvider = providerLine,
             providerInspectExit = providerExit,
-            scan = new { exit = scanExit, output = scanOut.Length > 4000 ? scanOut[^4000..] : scanOut },
+            tokenRealmRoles = tokenRoles,
             objectStorageProfileWithoutImage = new { exit = configExit, output = configOut.Trim() },
             objectStorageOverlayWithoutImage = new { exit = overlayExit, output = overlayOut.Trim() }
         });
@@ -464,11 +478,125 @@ public class AcQa34PushableBaselineTests
         Assert.Equal(0, minioPs);
         Assert.True(string.IsNullOrWhiteSpace(minioOut), "a MinIO container is running");
         Assert.Equal("FileStorage__Provider=Local", providerLine);
-        Assert.True(scanExit == 0, scanOut);
         Assert.NotEqual(0, configExit);
         Assert.NotEqual(0, overlayExit);
         Assert.Contains("MINIO_IMAGE", overlayOut, StringComparison.Ordinal);
+
+        // The gateway admits /api/files for hr-admin or file-storage. In the base (CI) realm the password-grant token of
+        // every persona carries no realm roles (no "roles" client scope; "profile"/"email" are rejected as invalid
+        // scopes), so the upload cannot be authorised here: Blocked, not Pass (realm finding → PLAN-41).
+        AcceptanceGate.RequireData(r, tokenRoles.Length > 0,
+            "رمز الوصول في realm الأساسي بلا أدوار، فلا يمر طلب الرفع",
+            "The base (CI) realm issues access tokens without realm roles (no 'roles' client scope), so /api/files returns 403 'missing role for this module' for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41).");
+
+        var scan = await UploadAndScanAsync(gateway.TrimEnd('/'), token);
+        r.WriteScenarioDbChecks(new { gateway, scan, tokenRealmRoles = tokenRoles });
+        Assert.Equal("Clean", scan.Clean.Status);
+        Assert.Equal(200, scan.Clean.Download);
+        Assert.Contains(scan.Eicar.Status, new[] { "Infected", "Quarantined" });
+        Assert.True(scan.Eicar.Download >= 400, $"EICAR download returned {scan.Eicar.Download}");
         r.WriteResult("Pass");
+    }
+
+    private static string? FindDefaultPassword(JsonElement element, string username)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                if (element.TryGetProperty("username", out var u) && u.GetString() == username
+                    && element.TryGetProperty("defaultPassword", out var pw))
+                    return pw.GetString();
+                foreach (var prop in element.EnumerateObject())
+                    if (FindDefaultPassword(prop.Value, username) is { } found) return found;
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    if (FindDefaultPassword(item, username) is { } found) return found;
+                break;
+        }
+
+        return null;
+    }
+
+    private sealed record ScanOutcome(string FileId, string? InitialStatus, string Status, int Download);
+
+    private sealed record ScanEvidence(ScanOutcome Clean, ScanOutcome Eicar);
+
+    /// <summary>Password-grant token of the file-storage persona and the realm roles it carries.</summary>
+    private static async Task<(string Token, string[] RealmRoles)> FileStorageTokenAsync()
+    {
+        var keycloak = (Environment.GetEnvironmentVariable("ACQA34_BASE_STACK_KEYCLOAK") ?? "http://localhost:8088").TrimEnd('/');
+        // The base (CI) realm: e2e-file-ops holds the file-storage role; hradmin does not (403 "missing role for this
+        // module"). Lab-only password from testdata/e2e/personas.json unless ACQA34_BASE_STACK_PASSWORD is set.
+        var user = Environment.GetEnvironmentVariable("ACQA34_BASE_STACK_USER") ?? "e2e-file-ops";
+        var password = Environment.GetEnvironmentVariable("ACQA34_BASE_STACK_PASSWORD");
+        if (string.IsNullOrEmpty(password))
+        {
+            using var personas = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "testdata", "e2e", "personas.json")));
+            password = FindDefaultPassword(personas.RootElement, user)
+                       ?? throw new InvalidOperationException($"no defaultPassword for {user} in testdata/e2e/personas.json");
+        }
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        var tokenResponse = await http.PostAsync($"{keycloak}/realms/hrmanagement/protocol/openid-connect/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "password",
+                ["client_id"] = "hr-gateway-client",
+                ["client_secret"] = Environment.GetEnvironmentVariable("KEYCLOAK_HR_GATEWAY_CLIENT_SECRET") ?? "ci-gateway-secret-lab-only",
+                ["username"] = user,
+                ["password"] = password,
+                ["scope"] = "openid"
+            }));
+        tokenResponse.EnsureSuccessStatusCode();
+        using var tokenJson = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync());
+        var token = tokenJson.RootElement.GetProperty("access_token").GetString()!;
+        var payload = token.Split('.')[1].Replace('-', '+').Replace('_', '/');
+        payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+        using var claims = JsonDocument.Parse(Convert.FromBase64String(payload));
+        var roles = claims.RootElement.TryGetProperty("realm_access", out var ra) && ra.TryGetProperty("roles", out var rr)
+            ? rr.EnumerateArray().Select(x => x.GetString() ?? "").ToArray()
+            : [];
+        return (token, roles);
+    }
+
+    /// <summary>The AC-28 upload/scan flow against the base stack's gateway (File.Storage on the Local provider).</summary>
+    private static async Task<ScanEvidence> UploadAndScanAsync(string gateway, string token)
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var pdf = System.Text.Encoding.UTF8.GetBytes("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
+        var eicar = pdf.Concat(System.Text.Encoding.ASCII.GetBytes(@"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*")).ToArray();
+
+        async Task<ScanOutcome> RunAsync(byte[] bytes, string name, string[] wanted)
+        {
+            using var form = new MultipartFormDataContent();
+            var content = new ByteArrayContent(bytes);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            form.Add(content, "file", name);
+            var upload = await http.PostAsync($"{gateway}/api/files", form);
+            var body = await upload.Content.ReadAsStringAsync();
+            Assert.True(upload.IsSuccessStatusCode, $"upload {name}: HTTP {(int)upload.StatusCode} {body}");
+            using var meta = JsonDocument.Parse(body);
+            var id = meta.RootElement.GetProperty("fileId").GetString()!;
+            var initial = meta.RootElement.TryGetProperty("scanStatus", out var s0) ? s0.GetString() : null;
+            var status = initial ?? "";
+            var deadline = DateTime.UtcNow.AddSeconds(120);
+            while (!wanted.Contains(status) && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(2000);
+                using var poll = JsonDocument.Parse(await http.GetStringAsync($"{gateway}/api/files/{id}"));
+                status = poll.RootElement.GetProperty("scanStatus").GetString() ?? "";
+            }
+
+            var download = await http.GetAsync($"{gateway}/api/files/{id}/download");
+            return new ScanOutcome(id, initial, status, (int)download.StatusCode);
+        }
+
+        return new ScanEvidence(
+            await RunAsync(pdf, "clean.pdf", ["Clean"]),
+            await RunAsync(eicar, "eicar.pdf", ["Infected", "Quarantined"]));
     }
 
     // ---------------------------------------------------------------- 34i
@@ -497,6 +625,8 @@ public class AcQa34PushableBaselineTests
                 <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
               </PropertyGroup>
               <ItemGroup>
+                <!-- Directory.Build.props adds this one without a version (central management is off here) -->
+                <PackageReference Remove="SQLitePCLRaw.bundle_e_sqlite3" />
                 <PackageReference Include="SSH.NET" Version="2025.1.0" />
               </ItemGroup>
             </Project>
