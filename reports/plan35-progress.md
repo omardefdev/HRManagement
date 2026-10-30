@@ -313,3 +313,12 @@ OWNER ACTION (P7) - Waiting for owner (UTC): 2026-10-30T22:43:45.8619130Z
 8. `git push origin plan35-negative-check`
 9. `gh pr create --base main --head plan35-negative-check --title "PLAN-35 negative check (do not merge)" --body "Deliberately failing unit test: proves the CI check turns red on a PR. Closed unmerged."`
 10. `git switch feature/plan-35-qa-push-remote-ci`
+Owner action done (UTC): 2026-10-30T22:46:30.3057635Z - the owner told Claude to run the P7 commands («نفذها انت»); one-off exception to "never push to main yourself" / P-2, on that explicit instruction. Results:
+- 1-3: main fast-forwarded ea4a256 -> 052b506; pushed main + release (main = origin/main = release = 052b506). Push run ci 41140221205 (22:45:38Z).
+- 4: .git/hooks/pre-push installed (ProtectMain=True). Self-test: the guard REFUSES a push to refs/heads/main (exit 1).
+- 5: repository variable ENABLE_SCHEDULED=true.
+- 6: e2e-journeys dispatched on main: run 41140244680.
+- 7: dated-obligations dispatched on main: run [41140248696](https://github.com/omardefdev/HRManagement/actions/runs/41140248696) **success**.
+- 8: plan35-negative-check pushed through the guard (gitleaks + forbidden scans).
+- 9: negative PR https://github.com/omardefdev/HRManagement/pull/25 opened.
+- `scm001-branch-protection-validate.ps1 -CheckLiveGitHub`: OK (live protection unavailable, local guard installed, exception SCM-NO-GITHUB-PROTECTION).
