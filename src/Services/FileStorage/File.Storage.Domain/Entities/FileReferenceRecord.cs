@@ -15,5 +15,5 @@ public class FileReferenceRecord : BaseEntity
     [StringLength(256)]
     public string HolderKey { get; set; } = default!;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public new DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

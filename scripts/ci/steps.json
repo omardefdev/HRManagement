@@ -351,7 +351,8 @@
     {
       "name": "Build",
       "kind": "build",
-      "run": "dotnet build HRManagement.slnx --configuration Release --no-restore"
+      "run": "dotnet build HRManagement.slnx --configuration Release --no-restore -warnaserror",
+      "comment": "QA-034 (G-QA-04): warnings are errors; NU1903/NU1904 are also errors in Directory.Build.props for every build."
     },
     {
       "name": "Check pending EF model changes",

@@ -22,9 +22,9 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P2 single CI step list, Linux runner | done | `c7a675c` | 2026-10-30T00:19:43.9485782Z |
 | P3 red unit tests, test culture | done | `c6086f2` | 2026-10-30T00:30:35.6291998Z |
 | P4 twelve `Index(employeeId)` actions | done | `8caddff` | 2026-10-30T00:35:23.0483667Z |
-| P5 integration test hosts | done | P5 commit (`test(qa034): integration hosts …`) | 2026-10-30T00:50:33.7789136Z |
-| P6 NU1903, warnings as errors | pending | — |
-| P7 MinIO, format, EF, coverage | pending | — |
+| P5 integration test hosts | done | `eed6128` | 2026-10-30T00:50:33.7789136Z |
+| P6 NU1903, warnings as errors | done | P6 commit (`build(qa034): fix NU1903 …`) | 2026-10-30T08:51:37.1598965Z |
+| P7 MinIO, format, EF, coverage | in progress (`9130e36` whitespace; compose + ObjectStorage uncommitted; EF gate green; coverage running) | — |
 | P8 full green run, AC-QA-34a..i | pending | — |
 | P9 docs, review, final report, merge | pending | — |
 
@@ -167,12 +167,36 @@ failures are green.
 - MOV: `TransferRequestsController.cs:453-454` calls `regimes.FirstOrDefault()` on the client result and throws when HR.Core
   is down or returns null.
 
+## Owner decisions received (2026-10-30, in chat)
+
+All four product fixes approved (Q-1, Q-2, Q-4, Q-5) and Q-3 "fix + suppress MVC1004" (recommended option).
+
+## P6 — Finished (UTC): 2026-10-30T08:51:37.1598965Z
+
+- `Testcontainers.PostgreSql`/`RabbitMq` 4.13.0 → **4.16.0**, `Testcontainers.Minio` → **4.15.0** (its latest); the core resolves to
+  4.16.0, which depends on **SSH.NET 2026.0.0** — the first patched version for GHSA-mggc-4xg6-vcxf (< 2026.0.0) and
+  GHSA-q939-rpr3-3284 (<= 2025.1.0). No direct SSH.NET pin, no `supply-chain-exceptions.json` row.
+- Lock files regenerated with `dotnet restore --force-evaluate` **inside the ci-local image (SDK 10.0.400)**, not with the local
+  10.0.403: 16 files change in content (IntegrationTests: Testcontainers/SSH.NET; 14 Domain projects + FileAdapters: the
+  transitive `System.Memory` entry pruned — the same result with either SDK, the old locks predate .NET 10 pruning).
+- `Directory.Build.props`: `WarningsAsErrors` += NU1903;NU1904. Build step in `steps.json`: `-warnaserror`.
+- Q-3 (owner decision): CS0108 `new` on `FileReferenceRecord.CreatedAt`; CS8321 unused local function removed
+  (`Competitions/Details.cshtml`); CS8604 `where T : notnull` on `ReadEmployeeId`/`ReadEntityId`; CS9113 unread
+  `regimeValidator` dropped from `ServiceRegimeExceptionService` (+ 8 call sites; recorded as a possible missing validation);
+  MVC1004 suppressed at `AssetsController.CreateLegacy`/`Edit` with a reason (renaming changes binding; recorded). Test code:
+  CS9124 in `FileReferenceTenantPipelineFixture`.
+- Verified: `dotnet list package --vulnerable --include-transitive` → no vulnerable package in any of the 59 projects;
+  `dotnet build HRManagement.slnx -c Release -warnaserror` → **0 errors**.
+
 ## Pending owner decisions (collected; work that does not depend on them continues)
 
 | # | Finding | Why it needs a decision | Proposed |
 |---|---------|------------------------|----------|
 | Q-1 | `FileUploadHelper.SanitizeFileName` (`src/Shared/HRManagement.FileStorage/FileUploadHelper.cs:55`) uses `Path.GetFileName`, which on Linux does not split `C:akepathcv.pdf`; `Hcm030CandidateDocumentTests.Long_file_names_…` is red on Linux only. Production runs Linux containers, so uploads keep client paths in stored names | product change outside P-4 | `Path.GetFileName(fileName.Replace('\', '/'))` + a unit test per upload service path |
 | Q-2 | `FileFinanceBudgetPort.ParseCsvContent` (`HR.Core.Infrastructure/Services/Establishment/FileFinanceBudgetPort.cs:44-46`) parses CSV numbers with the thread culture. Under ar-SY (the production request culture) "-1" does not parse (minus sign is U+061C + "-"), becomes 0 and the invalid row is imported; "1000.50" does not parse either (decimal separator "٫"), so BudgetAmount becomes null. `Est004…Csv_import_rejects_invalid_rows` is red under the D-QA-11 test culture | product change outside P-4; overriding the culture in the test would hide the defect | parse with `CultureInfo.InvariantCulture` (CSV is a machine format) + a test for "-1" and "1000.50" under ar-SY |
+| Q-3 | `dotnet build -warnaserror` (Release) fails on five product warnings (the sixth, CS9124, was test code and is fixed): CS0108 `FileReferenceRecord.CreatedAt`, CS8321 unused local function `T` in `Competitions/Details.cshtml`, CS8604 ×2 `PayrollPartitionInputLoader.cs:500,502`, CS9113 unread `regimeValidator` in `ServiceRegimeExceptionService`, MVC1004 ×2 `AssetsController.cs:210,294` (also fails `dotnet format --verify-no-changes`) | product changes outside P-4; renaming the MVC1004 parameter changes model binding | non-behavioural fixes for CS0108/CS8321/CS8604/CS9113 (CS9113 recorded as a possible missing validation); MVC1004 suppressed at the two actions with a reason, recorded for the logistics plan |
+| Q-4 | `File.Storage.Infrastructure/Migrations/20260824180000_INT002_IntegrationMessageReceipts.cs` has no `[DbContext]`/`[Migration]` (no Designer file) while the model snapshot contains the table, so EF never creates `IntegrationMessageReceipts`; File.Storage inbox consumers fail on every migrated database (production included). Red: CI step "Check EF migration discoverability", `FileStorageInboxIdempotencyTests` | product (schema) change outside P-4; non-destructive (creates one table) | add the two attributes; EF then applies it on next migrate |
+| Q-5 | UX-002-E: `HR.Core.Web/Views/OfferLetters/Index.cshtml:39` icon-only "clear filters" link without an accessible name (the Python check never ran on this machine) | product markup outside P-4; no behaviour change | `aria-label`/`title` = "مسح عوامل التصفية" |
 
 ## Test results (baseline)
 

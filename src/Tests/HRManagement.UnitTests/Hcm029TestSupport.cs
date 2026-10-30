@@ -64,7 +64,7 @@ internal static class Hcm029TestSupport
         var legalValidator = new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(db));
         var regimeValidator = new ServiceRegimeValidator(db, legalValidator);
         var exceptionService = new ServiceRegimeExceptionService(
-            db, regimeValidator, new ServiceRegimeTransitionService(db, regimeValidator));
+            db, new ServiceRegimeTransitionService(db, regimeValidator));
         return new RecruitmentHireClosureService(
             db,
             new EstablishmentService(),

@@ -182,7 +182,7 @@ public sealed class FileReferenceTenantPipelineFixture : IAsyncLifetime
     {
         public Guid? TenantId { get; } = tenantId;
         public bool IsPlatformOperator => false;
-        public Guid RequireTenantId() => tenantId ?? throw new InvalidOperationException("No tenant.");
+        public Guid RequireTenantId() => TenantId ?? throw new InvalidOperationException("No tenant.");
     }
 
     /// <summary>Stands in for ServiceAuthHandler: marks the outgoing call as the given service client and scope.</summary>

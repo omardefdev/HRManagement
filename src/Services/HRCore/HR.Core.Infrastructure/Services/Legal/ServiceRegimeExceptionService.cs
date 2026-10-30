@@ -9,7 +9,6 @@ namespace HR.Core.Infrastructure.Services.Legal;
 /// <summary>SYR-007: exception queue for unclassified service regimes.</summary>
 public sealed class ServiceRegimeExceptionService(
     HRCoreDbContext db,
-    ServiceRegimeValidator regimeValidator,
     ServiceRegimeTransitionService transitionService)
 {
     public async Task<ServiceRegimeException?> EnqueueIfUnclassifiedAsync(
