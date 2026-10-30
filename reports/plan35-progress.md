@@ -256,3 +256,4 @@ OWNER ACTION (P6) - Waiting for owner (UTC): 2026-10-30T19:55:14.0229436Z
 1. `git switch main`
 2. `git merge --ff-only release/plan-35-first-push`
 3. `git push origin main`
+Owner action done (UTC): 2026-10-30T19:57:19.2627337Z - owner fast-forwarded main to 444e8c2 and pushed («تم»); main = origin/main = 444e8c2. Push runs ci 41119397846 and hardening-check 41119397886 started 19:57:11Z.
