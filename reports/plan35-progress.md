@@ -280,3 +280,36 @@ OWNER ACTION (P6 round 2) - Waiting for owner (UTC): 2026-10-30T21:23:49.2267396
 2. `git merge --ff-only release/plan-35-first-push`
 3. `git push origin main release/plan-35-first-push`
 Owner action done (UTC): 2026-10-30T21:25:20.7280563Z - owner fast-forwarded main to ea4a256 and pushed main + release («تم»); main = origin/main = release = ea4a256. Push run ci 41130907741 started 21:25:12Z.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41130907741](https://github.com/omardefdev/HRManagement/actions/runs/41130907741) | ea4a256 (main push) | ci | 21:25:12 | 22:38:54 (74 min) | **success** | CI **ok** 50.1; CodeQL **ok** 33.3; Gitleaks **ok** 1.7; notice ok 0.1; E2E **ok** 23.5 (57 passed / 0 failed / 0 skipped; stack healthy on attempt 1); Acceptance skipped. ~109 min |
+
+Finding on the green run: the log shows neither the file-storage volume preparation nor the new PostgreSQL TCP wait
+(the volumes were created by the final `up`). `config --services | grep -qx` under `set -o pipefail` reads as
+false when grep exits at the first match and compose gets SIGPIPE (local demo: rc=141). The green E2E therefore did not
+exercise the round-1 fix. Fix `052b506` on release: the service list is read once and tested with a here-string; a
+failing `config --services` fails the step. bash -n clean, helper checked locally (postgresql/file-storage-web yes,
+unknown no).
+
+P6 result: main = origin/main = ea4a256 and its push run is green (CI, CodeQL, Gitleaks, E2E).
+P6 Finished (UTC): 2026-10-30T22:43:45.8391300Z
+
+D-QA-2: E2E green on main once (41130907741). The push of 052b506 below is the second candidate; E2E is promoted to a
+required check (pendingRequiredChecks) only if that run is green too.
+
+P7 preparation: local branch `plan35-negative-check` (`5bff180`, from 052b506) adds one deliberately failing unit
+test (Plan35NegativeCheckTests; verified locally: Failed 1). The guard is installed after the main push (it refuses
+pushes to main).
+
+OWNER ACTION (P7) - Waiting for owner (UTC): 2026-10-30T22:43:45.8619130Z
+1. `git switch main`
+2. `git merge --ff-only release/plan-35-first-push`
+3. `git push origin main release/plan-35-first-push`
+4. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/scm/install-hooks.ps1 -ProtectMain`
+5. `gh variable set ENABLE_SCHEDULED --body true`
+6. `gh workflow run e2e-journeys.yml --ref main`
+7. `gh workflow run dated-obligations.yml --ref main`
+8. `git push origin plan35-negative-check`
+9. `gh pr create --base main --head plan35-negative-check --title "PLAN-35 negative check (do not merge)" --body "Deliberately failing unit test: proves the CI check turns red on a PR. Closed unmerged."`
+10. `git switch feature/plan-35-qa-push-remote-ci`
