@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Services;
 using Payroll.Domain.Constants;
 using Payroll.Infrastructure.Data;
+using Payroll.Web.Services;
 
 namespace Payroll.Web.Controllers;
 
@@ -26,7 +27,22 @@ public class PaymentHoldsController(
 
     public async Task<IActionResult> Index(Guid? employeeId, string? status, string? holdType, DateTime? heldFrom, DateTime? heldTo)
     {
+        // QA-034 (IAM-002): branch scope. Payroll has no employee snapshots, so the employee's org unit is the one on
+        // the active pay profile (PayrollEmployeeScope). A restricted user gets 403 for an employee outside the scope
+        // and lists only employees inside it (no active profile = outside, fail-closed); unrestricted is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(scope, scopedEmployeeId, db.EmployeePayProfiles) is { } employeeDenied)
+            return employeeDenied;
+
         var query = db.PaymentHolds.AsNoTracking().AsQueryable();
+        if (scope.MustFilter)
+        {
+            var inScope = db.EmployeePayProfiles.EmployeeIdsInScope(scope);
+            query = query.Where(h => inScope.Contains(h.EmployeeId));
+        }
         if (employeeId.HasValue) query = query.Where(h => h.EmployeeId == employeeId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(h => h.Status == status.Trim());
         if (!string.IsNullOrWhiteSpace(holdType)) query = query.Where(h => h.HoldType == holdType.Trim());

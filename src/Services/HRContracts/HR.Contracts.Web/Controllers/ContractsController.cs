@@ -9,6 +9,7 @@ using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Web.ViewModels;
 using HRManagement.SharedKernel.ViewModels;
 using HRManagement.ServiceDefaults.Integration;
+using HRManagement.ServiceDefaults;
 
 namespace HR.Contracts.Web.Controllers;
 
@@ -27,9 +28,24 @@ public class ContractsController : Controller
 
     public async Task<IActionResult> Index(ContractStatus? status, Guid? employeeId)
     {
+        // QA-034 (IAM-002): branch scope. A restricted user gets 403 for an employee outside the scope and lists only
+        // employees inside it (no snapshot = outside, fail-closed); an unrestricted user is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(
+                User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
+            return employeeDenied;
+
         var query = _db.Contracts
             .Include(c => c.ContractType)
             .AsNoTracking();
+        if (scope.MustFilter)
+        {
+            var inScope = _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope);
+            query = query.Where(c => inScope.Contains(c.EmployeeId));
+        }
         if (status.HasValue)
             query = query.Where(c => c.Status == status.Value);
         if (employeeId.HasValue)

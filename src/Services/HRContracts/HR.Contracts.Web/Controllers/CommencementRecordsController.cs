@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using HR.Contracts.Web.ViewModels;
 using MediatR;
 using HRManagement.ServiceDefaults.Integration;
+using HR.Contracts.Infrastructure.Data;
+using HRManagement.ServiceDefaults;
+using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
@@ -13,16 +16,33 @@ public class CommencementRecordsController : Controller
 {
     private readonly IMediator _mediator;
     private readonly IHrCoreLookupClient _hrCoreLookup;
+    private readonly ContractsDbContext _db;
 
-    public CommencementRecordsController(IMediator mediator, IHrCoreLookupClient hrCoreLookup)
+    public CommencementRecordsController(IMediator mediator, IHrCoreLookupClient hrCoreLookup, ContractsDbContext db)
     {
         _mediator = mediator;
         _hrCoreLookup = hrCoreLookup;
+        _db = db;
     }
 
     public async Task<IActionResult> Index(Guid? employeeId, DateOnly? startFrom, DateOnly? startTo, Guid? contractId)
     {
+        // QA-034 (IAM-002): branch scope. A restricted user gets 403 for an employee outside the scope and lists only
+        // employees inside it (no snapshot = outside, fail-closed); an unrestricted user is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(
+                User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
+            return employeeDenied;
+
         var items = await _mediator.Send(new GetCommencementRecordsQuery());
+        if (scope.MustFilter)
+        {
+            var inScope = (await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()).ToHashSet();
+            items = items.Where(x => inScope.Contains(x.EmployeeId)).ToList();
+        }
         if (employeeId.HasValue)
             items = items.Where(x => x.EmployeeId == employeeId.Value).ToList();
         if (contractId.HasValue)

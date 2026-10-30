@@ -10,6 +10,7 @@ using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
 using System.Security.Claims;
+using Payroll.Web.Services;
 
 namespace Payroll.Web.Controllers;
 
@@ -38,7 +39,22 @@ public class EndOfServiceController : Controller
 
     public async Task<IActionResult> Index(Guid? employeeId, EosStatus? status, DateTime? calculatedFrom, DateTime? calculatedTo)
     {
+        // QA-034 (IAM-002): branch scope. Payroll has no employee snapshots, so the employee's org unit is the one on
+        // the active pay profile (PayrollEmployeeScope). A restricted user gets 403 for an employee outside the scope
+        // and lists only employees inside it (no active profile = outside, fail-closed); unrestricted is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(scope, scopedEmployeeId, _db.EmployeePayProfiles) is { } employeeDenied)
+            return employeeDenied;
+
         var query = _db.EndOfServiceSettlements.AsNoTracking().AsQueryable();
+        if (scope.MustFilter)
+        {
+            var inScope = _db.EmployeePayProfiles.EmployeeIdsInScope(scope);
+            query = query.Where(e => inScope.Contains(e.EmployeeId));
+        }
         if (employeeId.HasValue) query = query.Where(e => e.EmployeeId == employeeId.Value);
         if (status.HasValue) query = query.Where(e => e.Status == status.Value);
         if (calculatedFrom.HasValue) query = query.Where(e => e.CalculatedAt >= calculatedFrom.Value);

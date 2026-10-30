@@ -20,8 +20,8 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P0 branch, program docs, baseline, inventory | done | `02f890b` (docs), `206c656` (baseline), `15592a8` (owner's prompt update) | 2026-10-29T23:24:33Z |
 | P1 dated obligations, clock, STR-005 closure | done | `396e73f` | 2026-10-29T23:39:20.2696362Z |
 | P2 single CI step list, Linux runner | done | `c7a675c` | 2026-10-30T00:19:43.9485782Z |
-| P3 red unit tests, test culture | done | P3 commit (`test(qa034): deterministic unit baseline …`) | 2026-10-30T00:30:35.6291998Z |
-| P4 twelve `Index(employeeId)` actions | pending | — |
+| P3 red unit tests, test culture | done | `c6086f2` | 2026-10-30T00:30:35.6291998Z |
+| P4 twelve `Index(employeeId)` actions | done | P4 commit (`fix(qa034): branch scope on the twelve …`) | 2026-10-30T00:35:23.0483667Z |
 | P5 integration test hosts | pending | — |
 | P6 NU1903, warnings as errors | pending | — |
 | P7 MinIO, format, EF, coverage | pending | — |
@@ -112,6 +112,26 @@ stays empty.
 (`BolaArchitectureTests` turns green with the P4 controller changes in the working tree; it is committed in P4).
 `TestCultureGuardTests` (Integration) 2/2.
 
+## P4 — Finished (UTC): 2026-10-30T00:35:23.0483667Z
+
+**Product (P-4):** `EmployeeOrgScopeGuard.EmployeeIdsInScope` (snapshot employees whose primary org unit is in a restricted
+scope; denied → none; throws if called for an unrestricted scope); `Payroll.Web/Services/PayrollEmployeeScope.cs`
+(`ForbidIfEmployeeOutOfScopeAsync` and `EmployeeIdsInScope` keyed on the active pay profile's `OrgUnitId`). The twelve
+`Index` actions: HR.Contracts `SeparationRecords`, `ProbationRecords`, `CommencementRecords` (now inject `ContractsDbContext`),
+`ServiceTransactions` (injects `ContractsDbContext`), `Contracts`, `HireWizard`; Payroll `PaymentHolds`, `EndOfService`,
+`AllowanceRecords`, `DeductionRecords`, `PayrollAdjustments`, `FraudAlerts`. Pattern: resolve scope → 403 if denied → 403 if
+`employeeId` is outside (fail-closed when unplaced) → filter the list to in-scope employees when `MustFilter`; unrestricted
+users unchanged. Details/exports/POSTs untouched (PLAN-52).
+
+**Tests:** `Plan034ScopedIndexTests` (SQLite, real controllers + MediatR handlers + repository): 6 cases × 12 actions = 72/72
+(own employee → rows; BR2 employee → 403; unplaced employee → 403; unfiltered → BR1 only; central → all, and filtering by a BR2
+employee still works; invalid claim → 403). Mutation: the pre-PLAN-34 `PaymentHoldsController` fails 4 of its 6 cases.
+`Plan034ScopedIndexPostgreSqlTests` (Testcontainers, migrated schemas): Contracts + PaymentHolds 2/2.
+`BolaArchitectureTests` green with no allow-list.
+
+**Recorded for PLAN-52 (not fixed here):** `LeaveBalancesController.Index` applies the list scope filter only in the `else`
+branch of `if (leaveType.HasValue)` — with a `leaveType` filter, a branch user lists every employee's balances.
+
 ## Pending owner decisions (collected; work that does not depend on them continues)
 
 | # | Finding | Why it needs a decision | Proposed |
@@ -135,6 +155,5 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-P4: full unit run already shows `BolaArchitectureTests` green; run `Plan034ScopedIndexTests` (SQLite) and
-`Plan034ScopedIndexPostgreSqlTests` (RUN_TESTCONTAINERS), commit P4 (twelve controllers, `EmployeeOrgScopeGuard.EmployeeIdsInScope`,
-`Payroll.Web/Services/PayrollEmployeeScope.cs`, the two test files). Then P5 (already drafted): run the integration suite, commit.
+P5 (drafted in the working tree): run the full integration suite (`Category!=Testcontainers`) and the Testcontainers suite on
+Windows; fix what is test-side; commit P5.

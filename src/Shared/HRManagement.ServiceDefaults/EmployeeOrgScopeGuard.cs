@@ -34,4 +34,23 @@ public static class EmployeeOrgScopeGuard
             resourceType: "Employee",
             resourceId: employeeId.ToString("D"));
     }
+
+    /// <summary>
+    /// QA-034: ids of the employees whose primary org unit is inside a restricted <paramref name="scope"/>, for list
+    /// filters (<c>Where(x =&gt; inScope.Contains(x.EmployeeId))</c>). An employee without a snapshot or without a
+    /// primary org unit is outside the scope (fail-closed); a denied scope yields no ids. Call it only when
+    /// <see cref="OrgAccessScope.MustFilter"/> is true: an unrestricted user is not filtered at all.
+    /// </summary>
+    public static IQueryable<Guid> EmployeeIdsInScope(
+        this IQueryable<EmployeeOrgUnitSnapshot> employees,
+        OrgAccessScope scope)
+    {
+        if (!scope.MustFilter)
+            throw new InvalidOperationException("EmployeeIdsInScope is for restricted scopes; do not filter unrestricted users.");
+
+        var allowed = scope.IsDenied ? Array.Empty<Guid>() : scope.AllowedOrgUnitIds.ToArray();
+        return employees.AsNoTracking()
+            .Where(e => e.PrimaryOrgUnitId.HasValue && allowed.Contains(e.PrimaryOrgUnitId.Value))
+            .Select(e => e.EmployeeId);
+    }
 }

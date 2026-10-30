@@ -9,6 +9,8 @@ using HR.Contracts.Web.ViewModels;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Integration;
 using MediatR;
+using HR.Contracts.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
@@ -16,16 +18,33 @@ public class SeparationRecordsController : Controller
 {
     private readonly IMediator _mediator;
     private readonly IHrCoreLookupClient _hrCoreLookup;
+    private readonly ContractsDbContext _db;
 
-    public SeparationRecordsController(IMediator mediator, IHrCoreLookupClient hrCoreLookup)
+    public SeparationRecordsController(IMediator mediator, IHrCoreLookupClient hrCoreLookup, ContractsDbContext db)
     {
         _mediator = mediator;
         _hrCoreLookup = hrCoreLookup;
+        _db = db;
     }
 
     public async Task<IActionResult> Index(SeparationType? separationType, Guid? employeeId, bool? eventPublished)
     {
+        // QA-034 (IAM-002): branch scope. A restricted user gets 403 for an employee outside the scope and lists only
+        // employees inside it (no snapshot = outside, fail-closed); an unrestricted user is unchanged.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
+        if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
+            return scopeDenied;
+        if (employeeId is { } scopedEmployeeId
+            && await this.ForbidIfEmployeeOutOfScopeAsync(
+                User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
+            return employeeDenied;
+
         var items = await _mediator.Send(new GetSeparationRecordsQuery());
+        if (scope.MustFilter)
+        {
+            var inScope = (await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()).ToHashSet();
+            items = items.Where(x => inScope.Contains(x.EmployeeId)).ToList();
+        }
         if (separationType.HasValue)
             items = items.Where(x => x.SeparationType == separationType.Value).ToList();
         if (employeeId.HasValue)
