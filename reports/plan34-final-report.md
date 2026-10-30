@@ -191,3 +191,55 @@ deliberately, not silently.
 
 **Also confirm:** `git log -p origin/main..main -- global.json` is empty (it is on this branch); `git status` shows only the local
 `global.json` edit; `artifacts/` stays ignored.
+
+## 10. Timing
+
+Times are UTC. `scripts/plan-timing.ps1` prints the machine's local time (UTC+3).
+
+- **Total wall-clock:** 13 h 58 min, from `Started (UTC): 2026-10-29T23:13:31Z` to the merge commit `76169dc` (2026-10-30T13:11:52.4931682Z).
+  About 7 h 54 min of that was a wait on the owner's decisions (Q-1..Q-5, asked at ~00:57, answered ~08:51); the active
+  time is therefore about 6 h.
+- **Per phase** (from the `Finished` stamps in `reports/plan34-progress.md`):
+
+| Phase | Finished (UTC) | Duration | Note |
+|-------|----------------|----------|------|
+| P0 | 23:24:33 | 11 min | |
+| P1 | 23:39:20 | 15 min | includes the owner's interrupt (prompt update) |
+| P2 | 00:19:44 | 40 min | ci-local image build and the first full Linux run |
+| P3 | 00:30:36 | 11 min | |
+| P4 | 00:35:23 | 5 min | |
+| P5 | 00:50:34 | 15 min | |
+| P6 | 08:51:37 | 8 h 01 min | includes the ~7 h 54 min owner-decision wait |
+| P7 | 08:55:16 | 4 min | most of the P7 work ran before the decision and was committed after it |
+| P8 | 11:30:48 | 2 h 36 min | full runs on Linux and Windows, base stack, AC-QA-34 |
+| P9 | 13:11:52 | 1 h 41 min | review + refuter, fixes, evidence re-run twice, docs, merge |
+
+- **Waiting on long runs** (measured in P9; P8 was similar):
+  - full Linux ci-local run: 1013 s and 984 s (P8: 820 s);
+  - Windows native build, unit, integration and Testcontainers with coverage: 834 s;
+  - base stack `up --wait`: 25 s warm (the first P9 start crashed `auth-directory-web`, §8; the retry was healthy);
+  - AC-QA-34 run: about 2 min.
+  The evidence was re-run twice in P9. The first acceptance run on `ffdd35e` showed that AC-QA-34d still expected 72 cases,
+  and fixing it moved HEAD.
+- **Resumes:** one, recorded in the progress file: the owner interrupted at 23:39 to update the prompt (timing rules), then said
+  «اكمل». The session's context was also compacted twice. Those continued straight on and were not pauses.
+- **`powershell -File scripts/plan-timing.ps1 -From 25 -To 34`** after the merge (no `pwsh` on this machine):
+
+```text
+Plan    Commits Started          FirstCommit      End              Merged Span   WallClock
+----    ------- -------          -----------      ---              ------ ----   ---------
+PLAN-25      11                  2026-10-29 20:31 2026-10-29 23:21   True 2:50            
+PLAN-26      12                  2026-10-21 13:38 2026-10-21 22:49  False 9:10            
+PLAN-27      11                  2026-10-21 22:57 2026-10-22 09:43  False 10:45           
+PLAN-28      13                  2026-10-22 10:03 2026-10-22 15:03  False 5:00            
+PLAN-29      13                  2026-10-22 15:21 2026-10-22 20:36  False 5:15            
+PLAN-30      21                  2026-10-23 00:45 2026-10-29 07:45  False 150:59          
+PLAN-31      14                  2026-10-29 10:24 2026-10-29 15:03  False 4:38            
+PLAN-32       9                  2026-10-29 14:12 2026-10-29 16:31   True 2:19            
+PLAN-33      11                  2026-10-29 17:49 2026-10-29 20:18   True 2:28            
+PLAN-34      15 2026-10-30 02:13 2026-10-30 02:24 2026-10-30 16:11   True 13:47  13:58    
+
+
+Span = first commit -> merge (or last commit if not merged). WallClock = "Started (UTC)" in the progress file -> merge.
+Note: without a merge commit, a later commit with the same plan scope (for example a live-run fix) extends that plan's End.
+```

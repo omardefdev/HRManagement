@@ -26,7 +26,7 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P6 NU1903, warnings as errors | done | `e422f92` | 2026-10-30T08:51:37.1598965Z |
 | P7 MinIO, format, EF, coverage | done | `9130e36` (whitespace), `35c2959` | 2026-10-30T08:55:16.5069583Z |
 | P8 full green run, AC-QA-34a..i | done (34g Blocked) | `a748dce`, `4115e9d` (evidence HEAD), P8 evidence commit | 2026-10-30T11:30:47.8369785Z |
-| P9 docs, review, final report, merge | in progress (merge pending) | `ffdd35e`, `1a3397c`, docs commit | — |
+| P9 docs, review, final report, merge | done | `ffdd35e`, `1a3397c`, `c0a61e9`, merge `76169dc` | 2026-10-30T13:11:52.4931682Z |
 
 ## Decisions
 
@@ -279,7 +279,7 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 - Recorded, not fixed (product, outside P-4): `LicenseValidationMiddleware.cs:16-24` parses `Deployment:LicenseExpiresUtc` with the thread culture (inert while the setting is empty); `scripts/hard001-compliance-scan.ps1:85` would become a culture-sensitive time bomb once `docs/hardening/hard001-exceptions.json` exists; `docs/ops007/component-inventory.json` lists stale EOL data.
 - `git checkout -- testdata/*/out` does not reach nested outputs (`testdata/rel002/payroll-parallel/out`, `testdata/rel003/game-day/out`); restore those paths too before each commit.
 
-## P9 — review, evidence on the final HEAD, docs
+## P9 — Finished (UTC): 2026-10-30T13:11:52.4931682Z
 
 - **Independent review** (fresh subagent: prompt, plan, `git diff main...HEAD`) → findings E-1, E-2, B-1, H-1, G-1, A-1, F-1;
   **refuter** (second subagent, committed code `e4187ed`): E-1, H-1, G-1, A-1 real; E-2 real (medium); B-1 partly (nit); F-1 refuted.
@@ -299,4 +299,4 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 
 ## Next step
 
-`--no-ff` merge into local `main`, then `scripts/plan-timing.ps1 -From 25 -To 34` into final report §10 and the P9 `Finished` stamp. No push.
+PLAN-35 (owner): repository visibility, gitleaks on `origin/main..main`, then push. Nothing was pushed by PLAN-34.
