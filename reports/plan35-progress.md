@@ -238,3 +238,4 @@ with the final report). actionlint clean, lint/parity 12/12.
 
 OWNER ACTION (P5 round 3) - Waiting for owner (UTC): 2026-10-30T18:29:02.9968344Z
 1. `git push origin release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T18:29:47.2610920Z - owner pushed 444e8c2 («تم»); run 41107410607 queued 18:29:45Z.

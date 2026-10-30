@@ -61,6 +61,16 @@
       "reviewBy": "2027-01-28",
       "status": "Open",
       "closeWhen": "The owner creates the fine-grained PAT (Dependabot alerts: read, Issues: write), stores it as DEPENDABOT_ALERTS_TOKEN and sets DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true."
+    },
+    {
+      "id": "CI-PLAYWRIGHT-UBUNTU-2404-PIN",
+      "decision": "PLAN-35 triage (run 41099010391)",
+      "relaxes": "the E2E and Acceptance jobs of ci.yml and both e2e-journeys jobs run on ubuntu-24.04 instead of ubuntu-latest (Ubuntu 26.04), because Microsoft.Playwright 1.50.1 cannot install Chromium on Ubuntu 26.04",
+      "owner": "qa",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2027-01-28",
+      "status": "Open",
+      "closeWhen": "Microsoft.Playwright is upgraded to a version that supports the current ubuntu-latest (Dependabot PR #20 offers 1.61.0) and the pins are removed."
     }
   ]
 }
