@@ -18,13 +18,17 @@ set -uo pipefail
 # (E2E run 41089826696 failed with '"/docker/build-manifest": not found').
 pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1 || { echo "::error::build manifest generation failed"; exit 1; }
 docker compose "$@" build || { echo "::error::compose build failed"; exit 1; }
-if docker compose "$@" config --services | grep -qx file-storage-web; then
+# The service list is read once: "config --services | grep -q" under pipefail reads as false when grep exits at the
+# first match and compose gets SIGPIPE (run 41130907741 skipped both preparation steps below).
+services=$(docker compose "$@" config --services) || { echo "::error::compose config failed"; exit 1; }
+has_service() { grep -qx "$1" <<<"$services"; }
+if has_service file-storage-web; then
   docker compose "$@" run --rm --no-deps --user 0:0 --entrypoint sh file-storage-web \
     -c "mkdir -p /var/hrm/file-storage && chown -R 1654:1654 /var/hrm/file-storage" \
     || { echo "::error::could not prepare the file-storage volume ownership"; exit 1; }
 fi
 
-if docker compose "$@" config --services | grep -qx postgresql; then
+if has_service postgresql; then
   docker compose "$@" up -d postgresql || { echo "::error::could not start postgresql"; exit 1; }
   ready=""
   for i in $(seq 1 90); do
