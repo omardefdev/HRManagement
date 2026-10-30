@@ -144,6 +144,19 @@ if (-not $SkipComposeUp) {
         throw "Could not prepare the candidate notification FileDrop folder."
     }
 
+    # PLAN-35: the postgresql healthcheck (pg_isready over the Unix socket) passes while the image runs its init
+    # scripts on a temporary socket-only server that then restarts; services started in that window can keep running
+    # without their migrations (HTTP 500, run 41119397846). Start PostgreSQL first and wait until it answers over TCP.
+    docker compose -p $projectName @composeArgs --profile full-stack up -d --no-build postgresql
+    if ($LASTEXITCODE -ne 0) { throw "Could not start the Acceptance PostgreSQL." }
+    $postgresReady = $false
+    for ($i = 1; $i -le 90; $i++) {
+        docker compose -p $projectName @composeArgs --profile full-stack exec -T postgresql sh -c 'pg_isready -h 127.0.0.1 -U $POSTGRES_USER -d postgres' | Out-Null
+        if ($LASTEXITCODE -eq 0) { $postgresReady = $true; break }
+        Start-Sleep -Seconds 2
+    }
+    if (-not $postgresReady) { throw "Acceptance PostgreSQL did not accept TCP connections." }
+
     Write-Host "== Starting hrm-acceptance with Seed__Profile=Acceptance =="
     $upArgs = @("up", "-d", "--wait", "--no-build")
     docker compose -p $projectName @composeArgs --profile full-stack @upArgs
