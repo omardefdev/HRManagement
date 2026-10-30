@@ -19,6 +19,9 @@ jobs:
 
       # QA-034: every build-and-test step comes from scripts/ci/steps.json (single source; same order locally via
       # scripts/ci-local.ps1). Add or change steps there; CiStepsParityTests rejects drift between the two files.
+      - name: Free runner disk space
+        run: bash scripts/ci/run-steps.sh --step "Free runner disk space"
+
       - name: PowerShell for Linux validation script tests
         run: bash scripts/ci/run-steps.sh --step "PowerShell for Linux validation script tests"
 
@@ -309,6 +312,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same, run 41083926373).
+      - name: Free runner disk space
+        run: bash scripts/ci/free-runner-disk.sh
 
       - name: Prepare CI stack environment
         run: bash scripts/prepare-ci-compose-env.sh

@@ -3,6 +3,12 @@
   "description": "Single source of the CI build-and-test steps. .github/workflows/ci.yml runs each with `bash scripts/ci/run-steps.sh --step \"<name>\"`; scripts/ci-local.ps1 runs all of them, in this order, in a Linux container. CiStepsParityTests rejects any drift. Fields: name (also the ci.yml step name), kind (guard|build|test|gate), run (bash), env, always (runs even after a failure, like if: always()).",
   "steps": [
     {
+      "name": "Free runner disk space",
+      "kind": "build",
+      "run": "bash scripts/ci/free-runner-disk.sh",
+      "comment": "PLAN-35: the GitHub runner ran out of disk building the service images (run 41083926373). No-op outside GitHub-hosted Linux runners."
+    },
+    {
       "name": "PowerShell for Linux validation script tests",
       "kind": "build",
       "run": "if command -v pwsh >/dev/null 2>&1 && ! command -v powershell >/dev/null 2>&1; then\n  $(command -v sudo || true) ln -sf \"$(command -v pwsh)\" /usr/local/bin/powershell\nfi"
