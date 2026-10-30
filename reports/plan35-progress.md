@@ -12,7 +12,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 | P1 | done | 2026-10-30T14:07:43.5005632Z |
 | P2 | done | 2026-10-30T14:55:03.9999621Z |
 | P3 | done | 2026-10-30T15:01:33.3818627Z |
-| P4 | pending | |
+| P4 | BLOCKED (owner decisions OI-1, OI-3) | |
 | P5 | pending | |
 | P6 | pending | |
 | P7 | pending | |
@@ -127,3 +127,24 @@ Open issue OI-3: SEC-001 anonymous /health/upstreams/* (product config). Options
   script among them was refused by the machine's execution policy (Restricted). Verified afterwards: live protection
   unchanged (2 reviews, signatures, linear), no git hook installed, runbook restored and rewritten with the Edit tool.
 - Finding: Windows PowerShell here refuses `powershell -File` without `-ExecutionPolicy Bypass`; owner commands use it.
+
+## BLOCKED (P4) - Waiting for owner (UTC): 2026-10-30T15:01:55.3130038Z
+
+P0-P3 are committed (2809a4e, e3ae8c3, 4f953cb). P4 needs two decisions without a safe default:
+
+- **OI-1 - existing protection on `main`.** It requires 2 reviews, code-owner and last-push approval, signed commits and
+  linear history, with enforce_admins. The 160 local commits are unsigned and contain merge commits, so neither
+  `git push origin main` (P6) nor a GitHub merge of the first PR can land.
+  Options: (a, recommended) the owner removes it just before P6
+  (`powershell -ExecutionPolicy Bypass -File scripts/scm/apply-branch-protection.ps1 -Remove`), fast-forwards `main`,
+  then applies the file in P7 - matches the plan's order; (b) apply the PLAN-35 file now (0 reviews, no signatures, no
+  linear history) and merge the first PR on GitHub with a merge commit (local `main` then pulls it).
+- **OI-3 - SEC-001 regression, product config.** `src/Gateway/HRManagement.Gateway/appsettings.json` puts
+  `"AuthorizationPolicy": "Anonymous"` on the 14 `health-*` routes (added by snapshot 544ba7a), so
+  `/health/upstreams/*` answers 200 anonymously and the required E2E check
+  (`GatewayUpstreamHealthE2ETests.Gateway_upstream_health_endpoints_deny_anonymous_access`) fails.
+  Options: (a, recommended) remove the 14 lines (the middleware then requires GatewayDashboard, loopback still allowed;
+  the dashboard probes clusters directly since 544ba7a) + a unit test pinning it; (b) quarantine the E2E case with a dated
+  obligation - this hides a real security regression (plan Stop condition).
+- Still open with defaults at P4: D-QA-15 private (default yes; note: free plan -> no protection when private -> local
+  guard), D-QA-1 (yes), D-QA-16 (no signing), P-2 (owner pushes), D-QA-2 (as stated).
