@@ -148,3 +148,7 @@ P0-P3 are committed (2809a4e, e3ae8c3, 4f953cb). P4 needs two decisions without 
   obligation - this hides a real security regression (plan Stop condition).
 - Still open with defaults at P4: D-QA-15 private (default yes; note: free plan -> no protection when private -> local
   guard), D-QA-1 (yes), D-QA-16 (no signing), P-2 (owner pushes), D-QA-2 (as stated).
+Owner action done (UTC): 2026-10-30T15:05:27.2407909Z - owner answered «Yes, both (a)»: OI-1 (a) remove the old protection before pushing main,
+apply the file in P7; OI-3 (a) fix the 14 health routes with a unit test; defaults for the rest: D-QA-15 private = yes,
+D-QA-1 yes (local guard if the free plan cannot protect a private repo), D-QA-16 no signing, P-2 no (owner pushes),
+D-QA-2 as stated.
