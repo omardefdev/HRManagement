@@ -1,7 +1,7 @@
 # PLAN-34 — خط أساس قابل للدفع: CI محلي مطابق، لا قنابل زمنية، صفر اختبارات حمراء (QA-A)
 
 **Scope:** QA — [دراسة الفجوات](../PRG_001_QUALITY_GAP_STUDY.md): G-QA-02, G-QA-03, G-QA-04, G-QA-05, G-QA-12؛ والحد الأدنى من G-IAM-04 لإخضرار `BolaArchitectureTests` (النطاق الكامل في PLAN-52)  
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented (CI not executed) — 2026-10-30  
 **Priority:** P0  
 **Depends on:** —  
 **Related cards:** QA-001، QA-002، QA-003، STR-005، STR-002، SAN-001، SUP-001، IAM-002، TEN-002، SYR-001؛ PLAN-33 (`AcceptanceGate`)، PLAN-25 §7 (قائمة «الإخفاقات المعروفة»)
@@ -301,6 +301,30 @@ dotnet test src/Tests/HRManagement.AcceptanceTests --filter AcQa34
 - AC-QA-34a..i = Pass، ومجلد `acceptance-evidence/AC-QA-34/` بالعناصر الثمانية.
 - `global.json` غير موجود في أي commit من هذه الخطة.
 - أسطر «الحالة» محدّثة في الدراسة لـ G-QA-02 وG-QA-03 وG-QA-04 وG-QA-05 وG-QA-12.
+
+## ملاحظات التنفيذ والانحرافات (2026-10-30)
+
+التفاصيل في [`reports/plan34-final-report.md`](../../reports/plan34-final-report.md) و[`reports/plan34-progress.md`](../../reports/plan34-progress.md).
+
+- **قرارات المالك أثناء التنفيذ (خارج حد P-4):** أُصلحت أربعة عيوب منتجية كشفها أول تشغيل على Linux وبثقافة ar-SY، لأن كلاً منها
+  يُبقي CI أحمر: أسماء الملفات المرفوعة تحتفظ بمسار Windows على Linux (`FileUploadHelper`)، أرقام CSV الميزانية تُحلَّل بثقافة الطلب
+  (`FileFinanceBudgetPort`)، ترحيل `INT002_IntegrationMessageReceipts` لا يكتشفه EF، رابط أيقونة بلا اسم وصولي؛ وتحذيرات المترجم
+  الخمسة لـ `-warnaserror` أُصلحت بلا تغيير سلوك، وMVC1004 مكتوم في إجراءين ومسجّل.
+- **قاعدة P-3:** Testcontainers داخل حاوية ci-local على Docker Desktop يصل إلى الحاويات الشقيقة لكن اتصالات PostgreSQL تنقطع أحياناً
+  تحت الحمل؛ فشُغّل الدليل بـ `-SkipTestcontainers` (الخطوة وبوابة التغطية «not-run» صراحة) وشُغّلت Testcontainers والتغطية على Windows
+  للـ HEAD نفسه (81/0؛ البوابة ناجحة).
+- **AC-QA-34b:** أقرب التزام هو استبعاد ObjectStorage (2026-12-14، PLAN-38) لا STR-002 (2027-01-31)، لأن الخطة نفسها تسجّله.
+- **D-QA-7:** `image: ${MINIO_IMAGE:-}` في الملف الأساسي لا `:?` (Compose يستوفي كل الخدمات أياً كان الـ profile)؛ الرسالة الصريحة في
+  طبقة `docker-compose.object-storage.yml`. و`hr-core-web` فقد `depends_on: minio` أيضاً.
+- **D-QA-13:** أرضية `Payroll.Application` 73 (المقيس 73.6%) التزاماً مؤرخاً حتى 2026-12-29.
+- **D-QA-14:** المتقلّب `Hcm029` عُرف سببه (نافذة خمول حزمة اختبار MassTransit تحت ضغط الخيوط) وأُصلح؛ لا حجر.
+- **EF:** لا ترحيل `PLAN034_SyncPendingModel`: البوابة ناجحة للسياقات الخمسة عشر؛ إخفاقات الأساس كانت أثراً لتشغيلها داخل حاوية.
+- **AC-QA-34g:** المكدّس الأساسي يقلع سليماً بلا MinIO وFile.Storage بالمزوّد `Local`، لكن جزء الرفع والفحص `Blocked`: رموز realm
+  الأساسي لا تحمل أدواراً فيُرفض `/api/files` لكل شخصية (← PLAN-41).
+- **المراجعة المستقلة والمفنِّد (P9):** أُصلح ما ثبت مع اختبار انحدار لكل إصلاح (`ffdd35e`، `1a3397c`): قوائم الفصل والتجربة
+  والمباشرة كانت تأخذ أحدث 100 سجل ثم تصفّي بالفرع (E-1)؛ أدلة القبول صارت مربوطة بـ HEAD (H-1)؛ تواريخ JSON نصّية تحت pwsh 7 (G-1)؛
+  حارس التكافؤ يرفض مفاتيح الخطوة والوظيفة الإضافية (A-1). وسُجّل E-2 لقرار المالك: نطاق Payroll يعتمد ملف الأجر **النشط** فقط،
+  فالمنتهية خدمتهم والمعيَّنون الجدد خارج كل نطاق فرع (يفشل مغلقاً). وأُعيد الدليل كله على `1a3397c`.
 
 ## Deliverables
 

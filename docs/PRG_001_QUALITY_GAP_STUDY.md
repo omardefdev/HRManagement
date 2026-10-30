@@ -120,6 +120,7 @@
   - خطوة «أفق الانتهاء» منفصلة تحذّر قبل 30 يوماً.
   - اختبار إقلاع في CI بإعدادات Staging/Production للخدمات الثلاث (→ OPS).
 - **الخطة:** [PLAN-34](acceptance-plans/PLAN-34-qa-pushable-baseline.md)
+- **الحالة:** ✅ عولجت في PLAN-34 (2026-10-30، `396e73f`، `c7a675c`) — أُغلق استثناءا المحاكاة `Closed` بالقرار `PG-EXC-2026-10-001` في `decision-log.json` دون تمديد أي تاريخ؛ سجل الالتزامات المؤرخة `docs/qa/dated-obligations.json` ومدقّقه `scripts/qa/dated-obligations-check.ps1` (إنذار 30 يوماً، فشل 7 أيام) خطوةً قبل STR/MIG وسيراً أسبوعياً `dated-obligations.yml`؛ `TimeProvider` في حارسي `ProgramGovernance` و`LegalControl`، وتحليل `yyyy-MM-dd` ثابت الثقافة في المقيّمين وسكربتات STR-005/STR-002/SUP-004. الدليل: `DatedObligationsTests`، الكناري `RuntimeGovernanceDocumentsTests` (البوابة وHR.Core والرواتب × Production/Staging اليوم؛ المصفوفة قبل الإغلاق ترمي «expired» في 2026-09-16)، AC-QA-34b/34c. إقلاع الحاويات كاملة بإعدادات Production ← PLAN-36.
 - **التحقق المطلوب:**
   - موجب: خطوة STR-005 (السابعة عشرة) تنجح بتاريخ اليوم، والخدمات الثلاث تقلع بإعدادات Staging في CI.
   - سالب: مصفوفة اختبار فيها استثناء `Declared` منتهٍ ← المدقّق يفشل بالرسالة `expired`، والإقلاع بـ`EnforceOnStartup=true` يرمي استثناءً.
@@ -163,6 +164,7 @@
   - الرواتب: أول مهمة هي التقاط سجل الفشل الحقيقي ثم الإصلاح أو التحويل → PAY.
   - تثبيت ثقافة الاختبارات (G-QA-12).
 - **الخطة:** [PLAN-34](acceptance-plans/PLAN-34-qa-pushable-baseline.md)
+- **الحالة:** ✅ عولجت في PLAN-34 (`c6086f2`، `8caddff`، `eed6128`، `35c2959`) — الوحدة 4184/0 فشل على Windows/ar-SA وعلى Linux، والتكامل 344/0 (Linux) و340/0 + Testcontainers 81/0 (Windows) لـ HEAD نفسه (`1a3397c`، بعد إصلاحات المراجعة `ffdd35e`). الإجراءات الاثنا عشر مقيّدة فعلاً (`Plan034ScopedIndexTests` 75 حالة، PostgreSQL)، و`BolaArchitectureTests` أخضر بلا قائمة؛ مضيفات التكامل تسجّل عملاء HR.Core المزيّفين (`ContractsTestServices`، `FakeHrCore*RegimeClient`) و`IntegrationHostValidationTests` يسمّي الاعتماد الناقص؛ سبب إخفاق الرواتب على PostgreSQL كان غياب `TenantIdStampInterceptor` في مضيف الاختبار. ظهرت أربعة عيوب منتجية لم تكن معروفة وأُصلحت بقرار المالك: أسماء الملفات المرفوعة على Linux، أرقام CSV بثقافة الطلب، ترحيل INT002 غير المكتشَف، اسم وصولي لرابط أيقونة. لا قائمة «إخفاقات معروفة»؛ `tests/quarantine.json` فارغ (المتقلّب `Hcm029` عُرف سببه وأُصلح). الدليل: `reports/plan34-final-report.md` §3، AC-QA-34d/e/f/h.
 - **التحقق المطلوب:**
   - موجب: `dotnet test` للوحدة والتكامل على Linux = 0 فشل، والقائمة المجمّدة (إن قُررت) هي الاستثناء الوحيد.
   - سالب: إضافة اعتماد جديد إلى معالج دون تسجيله في المضيف المشترك ← يفشل اختبار `ValidateOnBuild` برسالة صريحة.
@@ -176,6 +178,7 @@
 - **الأثر:** خطوة إلزامية حمراء. وثغرة High معروفة في سلسلة توريد الاختبارات بلا استثناء موثّق.
 - **الإصلاح المقترح:** تثبيت `SSH.NET` بإصدار مُصلَح عبر `PackageVersion` مركزي ومرجع مباشر في مشروع التكامل (أو `CentralPackageTransitivePinningEnabled`)، أو ترقية Testcontainers. ثم تفعيل `-warnaserror` في خطوة البناء، أو `TreatWarningsAsErrors` لمشاريع المنتج مع قائمة `NoWarn` موثّقة.
 - **الخطة:** [PLAN-34](acceptance-plans/PLAN-34-qa-pushable-baseline.md)
+- **الحالة:** ✅ عولجت في PLAN-34 (`e422f92`) — Testcontainers 4.16.0 (Minio 4.15.0) يجرّ SSH.NET 2026.0.0، أول إصدار مُصلَح للثغرتين؛ لا تثبيت مباشر ولا بند استثناء. `WarningsAsErrors` لـ NU1903/NU1904 في `Directory.Build.props`، وخطوة البناء في CI بـ `-warnaserror` (أُصلحت تحذيرات المترجم بلا تغيير سلوك بقرار المالك، وكُتم MVC1004 في إجراءين مع تسجيله). `dotnet list package --vulnerable --include-transitive` بلا ثغرات. الدليل: AC-QA-34i (ومسبار SSH.NET 2025.1.0 يفشل بـ NU1903).
 - **التحقق المطلوب:**
   - موجب: `dotnet list package --vulnerable --include-transitive` بلا High، و`dotnet build -warnaserror` = 0.
   - سالب: `verify-sca-fixture.sh` ما زال يثبت فشل High بلا استثناء.
@@ -191,6 +194,7 @@
 - **الأثر:** `docker compose up` يفشل عند السحب، فتسقط وظيفتا E2E والقبول وخطوة Testcontainers قبل أي اختبار (**يحتاج تحقق** على مشغّلات GitHub).
 - **الإصلاح المقترح:** قرار D-QA-7: صورة بديلة موثوقة مثبّتة بالـ digest في سجل المؤسسة أو مرآة، أو مزوّد `Local` في ملفات CI. تحديث `RealInfra.MinioImage` وفحص `check-base-image-pins.sh`.
 - **الخطة:** [PLAN-34](acceptance-plans/PLAN-34-qa-pushable-baseline.md)
+- **الحالة:** ✅ عولجت للتطوير وCI في PLAN-34 (`35c2959`) — `minio` خلف profile `object-storage` بصورة من `MINIO_IMAGE` وطبقة `docker-compose.object-storage.yml`؛ `file-storage-web` و`hr-core-web` بالمزوّد `Local` بلا `depends_on: minio`. المكدّس الأساسي `--profile full-stack up --wait` يقلع سليماً بلا MinIO (2026-10-30). Testcontainers: الصورة من `HRM_MINIO_IMAGE` و`Category=ObjectStorage` مستبعدة بالتزام مؤرخ (PLAN-38، 2026-12-14). جزء الرفع والفحص من AC-QA-34g `Blocked`: رموز realm الأساسي لا تحمل أدواراً، فيُرفض `/api/files` لكل شخصية (← PLAN-41). الإنتاج ← PLAN-36/38.
 - **التحقق المطلوب:**
   - موجب: `docker compose … --profile full-stack up --wait` ينجح في CI، و`Qa003MinioFileScanTests` تمر.
   - سالب: صورة غير مثبّتة بالـ digest ← يفشل فحص تثبيت الصور.
@@ -352,6 +356,7 @@
   - اختبارات السكربتات تمرّر `-ExecutionPolicy Bypass`.
   - إلغاء مفهوم «القائمة المعروفة» واستبداله بقائمة مجمّدة لكل منها مالك وتاريخ.
 - **الخطة:** [PLAN-34](acceptance-plans/PLAN-34-qa-pushable-baseline.md)
+- **الحالة:** ✅ عولجت في PLAN-34 (`c7a675c`، `c6086f2`) — `scripts/ci/steps.json` مصدر واحد لخطوات `build-and-test` (87 خطوة) و`CiStepsParityTests` يحرسه؛ `scripts/ci-local.ps1` يشغّلها كلها على نسخة نظيفة من HEAD في حاوية Linux (SDK 10.0.400، python3، actionlint): 85 ناجحة، 0 فاشلة، 2 «not-run» صراحة (Testcontainers وبوابة التغطية؛ شُغّلتا على Windows للـ HEAD نفسه، القاعدة P-3). ثقافة الاختبارات ar-SY بـ `[ModuleInitializer]` و`TestCultureGuardTests`؛ اختبارات السكربتات عبر `RepoScriptRunner` و`ScriptInvocationArchitectureTests`؛ SAN-001 يقرأ `global.json` المودَع. الدليل: `artifacts/ci-local/head/summary.json` (غير مودَع) ومعطياته في `acceptance-evidence/AC-QA-34`، AC-QA-34a/34h.
 - **التحقق المطلوب:**
   - موجب: التشغيل الكامل على Windows/ar-SA وعلى Linux يعطي النتيجة نفسها.
   - سالب: حذف ضبط الثقافة ← اختبار حارس يفشل.

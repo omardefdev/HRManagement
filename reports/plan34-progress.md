@@ -26,7 +26,7 @@ Prompt: `docs/acceptance-plans/execution/PLAN-34-AGENT-PROMPT.md` (copy of the s
 | P6 NU1903, warnings as errors | done | `e422f92` | 2026-10-30T08:51:37.1598965Z |
 | P7 MinIO, format, EF, coverage | done | `9130e36` (whitespace), `35c2959` | 2026-10-30T08:55:16.5069583Z |
 | P8 full green run, AC-QA-34a..i | done (34g Blocked) | `a748dce`, `4115e9d` (evidence HEAD), P8 evidence commit | 2026-10-30T11:30:47.8369785Z |
-| P9 docs, review, final report, merge | pending | — |
+| P9 docs, review, final report, merge | in progress (merge pending) | `ffdd35e`, `1a3397c`, docs commit | — |
 
 ## Decisions
 
@@ -279,7 +279,24 @@ Raw logs (git-ignored): `artifacts/plan34/{build,build-warnaserror,unit,int,tc}.
 - Recorded, not fixed (product, outside P-4): `LicenseValidationMiddleware.cs:16-24` parses `Deployment:LicenseExpiresUtc` with the thread culture (inert while the setting is empty); `scripts/hard001-compliance-scan.ps1:85` would become a culture-sensitive time bomb once `docs/hardening/hard001-exceptions.json` exists; `docs/ops007/component-inventory.json` lists stale EOL data.
 - `git checkout -- testdata/*/out` does not reach nested outputs (`testdata/rel002/payroll-parallel/out`, `testdata/rel003/game-day/out`); restore those paths too before each commit.
 
+## P9 — review, evidence on the final HEAD, docs
+
+- **Independent review** (fresh subagent: prompt, plan, `git diff main...HEAD`) → findings E-1, E-2, B-1, H-1, G-1, A-1, F-1;
+  **refuter** (second subagent, committed code `e4187ed`): E-1, H-1, G-1, A-1 real; E-2 real (medium); B-1 partly (nit); F-1 refuted.
+- **Fixed with regression tests** (`ffdd35e`): E-1 scope before the page-size cap (`Branch_scope_applies_before_the_page_size_cap`,
+  red without the fix: 3 failed, green with it); H-1 evidence bound to HEAD; G-1 `-DateKind String` (checked under pwsh 7.6.8 in the
+  ci-local image: a date-time string now fails as unparseable); A-1 step and job keys; B-1 total publish counts.
+  `1a3397c`: AC-QA-34d expects 75 SQLite cases (72 + 3).
+- **Not changed:** E-2 (Payroll scope by the active pay profile: separated / dismissed / new-hire employees out of every branch scope;
+  fail-closed is the plan's rule) → final report §8, owner decision. F-1 refuted (HR.Core never uses its own file storage).
+- **Evidence on `1a3397c`** (serial, 12:36–13:09 UTC): Linux ci-local 85 passed / 0 failed / 2 not-run (P-3), 984 s, trx unit
+  4184/0, integration 344/0; Windows Release `-warnaserror` 0 warnings, unit 4184/0, integration 340/0 (4 opt-in skips),
+  Testcontainers 81/0, coverage gate passed (90.1%; Payroll.Application 73.6%); base stack up --wait first attempt, no MinIO,
+  Local provider; AC-QA-34 a–f, h, i Pass, g Blocked (realm roles, PLAN-41). Stack down -v, `.env` restored, testdata outs restored.
+- **New finding:** an earlier base-stack start (on `ffdd35e`) crashed `auth-directory-web` (PostgreSQL refused the first
+  connection, the migration failure is swallowed in non-production, then the seeder hits a missing table; exit 139); a second
+  `up --wait` was healthy → final report §8.
+
 ## Next step
 
-P9: independent review (fresh subagent on the prompt, the plan and `git diff main...HEAD`) + refuter; fix survivors with a
-regression test; finish `reports/plan34-final-report.md`; commit docs; merge into local `main` with --no-ff; no push.
+`--no-ff` merge into local `main`, then `scripts/plan-timing.ps1 -From 25 -To 34` into final report §10 and the P9 `Finished` stamp. No push.

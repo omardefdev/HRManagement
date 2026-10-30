@@ -1,12 +1,12 @@
 {
-  "scenario": "AC-QA-34g: base compose stack (full-stack) without MinIO \u2014 file-storage on Local; clean upload \u2192 Clean, EICAR \u2192 quarantined; object-storage profile without MINIO_IMAGE fails at config",
+  "scenario": "AC-QA-34e: separation publish with the law50 fake; NoRegime \u2192 RegimeRulesNotFoundMessage, Unavailable \u2192 error, no event",
   "personaId": "n/a (repository and CI evidence)",
-  "correlationId": "qa34-34g-4df9b14edd48412fbc5b6d8628106c0f",
-  "capturedAtUtc": "2026-10-30T11:29:44.3321828Z",
+  "correlationId": "qa34-34e-56978f02195f4614bd1bcf3fb7ec55ca",
+  "capturedAtUtc": "2026-10-30T13:09:04.8150505Z",
   "environment": {
     "gateway": "http://localhost:5000",
     "keycloak": "http://localhost:8088",
     "runAcceptance": true
   },
-  "gitSha": "4115e9d11df78f79c44fc659cfa87467aafc235e"
+  "gitSha": "1a3397ccf812a73aa1fadb60433f58e197c4a983"
 }

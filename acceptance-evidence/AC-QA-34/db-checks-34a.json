@@ -1,6 +1,6 @@
 {
-  "head": "4115e9d11df78f79c44fc659cfa87467aafc235e",
-  "summaryGitSha": "4115e9d11df78f79c44fc659cfa87467aafc235e",
+  "head": "1a3397ccf812a73aa1fadb60433f58e197c4a983",
+  "summaryGitSha": "1a3397ccf812a73aa1fadb60433f58e197c4a983",
   "source": "head-clone",
   "counts": {
     "passed": 85,
@@ -10,19 +10,19 @@
     "not-recorded": 0
   },
   "knownLocalOverrides": [],
-  "totalSeconds": 744.0999999999999,
+  "totalSeconds": 813.5,
   "trx": [
     {
       "file": "TestResults/integration/integration-results.trx",
-      "total": 341,
-      "passed": 337,
+      "total": 344,
+      "passed": 340,
       "failed": 0,
       "skipped": 0
     },
     {
       "file": "TestResults/unit/unit-results.trx",
-      "total": 4183,
-      "passed": 4183,
+      "total": 4184,
+      "passed": 4184,
       "failed": 0,
       "skipped": 0
     }
