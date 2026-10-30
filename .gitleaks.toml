@@ -1,9 +1,25 @@
-# SUP-001 — default gitleaks config (extend as needed)
+# SUP-001 / PLAN-35 - gitleaks config for this repository (CI job "Gitleaks", scripts/plan035-prepush.ps1).
 title = "HRManagement gitleaks"
 
-[allowlist]
-description = "False positives / test fixtures"
-paths = [
-  '''testdata/''',
-  '''docs/completion-backlog/''',
-]
+# PLAN-35: without [extend] this file defined zero rules, so every scan passed whatever it found (the old
+# [allowlist] also skipped all of testdata/ and docs/completion-backlog/ by path alone). The default rule set is now
+# active and no path is skipped wholesale.
+[extend]
+useDefault = true
+
+# Every allowlist below matches a path AND the matched text (condition = "AND"), never a path alone.
+# Add an entry only for a value that is deliberately fake or lab-only, with the reason in "description".
+
+[[allowlists]]
+description = "QA-003 Testcontainers Keycloak test realm: client secrets of the throwaway qa003 realm (qa003-service, and the deliberately wrong-audience client). Started only inside integration tests; never deployed."
+condition = "AND"
+paths = ['''^docker/keycloak/realm-qa003-test\.json$''']
+regexTarget = "match"
+regexes = ['''secret"\s*:\s*"qa003-(service|wrong)-secret"''']
+
+[[allowlists]]
+description = "QA-003 integration-test fixture mirroring the realm above (same throwaway qa003 secrets)."
+condition = "AND"
+paths = ['''^src/Tests/HRManagement\.IntegrationTests/TestFixtures\.cs$''']
+regexTarget = "match"
+regexes = ['''Secret\s*=>\s*"qa003-(service|wrong)-secret"''']
