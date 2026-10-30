@@ -64,6 +64,12 @@
       "comment": "Warns 30 days and fails 7 days before any registered obligation (docs/qa/dated-obligations.json) is due, so the STR-005/STR-002 runtime validators and the Production startup guards never fail first."
     },
     {
+      "name": "Workflow lint (actionlint)",
+      "kind": "guard",
+      "run": "bash scripts/ci/actionlint.sh",
+      "comment": "actionlint + shellcheck on .github/workflows/*.yml from the image pinned in docs/qa/tool-pins.json (G-QA-15: a literal \\n in a run step failed e2e-journeys on every run)."
+    },
+    {
       "name": "STR-002 control runtime validate",
       "kind": "guard",
       "run": "pwsh -NoProfile -File scripts/str002-control-runtime-validate.ps1"

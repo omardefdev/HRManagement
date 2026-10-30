@@ -11,8 +11,11 @@ on:
         required: false
         default: ""
 
+# PLAN-35 (G-QA-15): scheduled runs only once the owner sets the repository variable ENABLE_SCHEDULED=true after the
+# workflow is green; workflow_dispatch always runs.
 jobs:
   journeys:
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -95,6 +98,7 @@ jobs:
   # hire → HR.Contracts appointment, on the acceptance profile (lab scale) and then with the Production recruitment values
   # (docker-compose.acceptance-prodlike.yml, PLAN-25).
   recruitment-journey:
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -146,7 +150,11 @@ jobs:
       # (docker-compose.acceptance-prodlike.yml), zero-skip.
       - name: Switch hr-core-web and hr-contracts-web to the prod-like profile
         run: |
-          docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \n            -f docker-compose.full-stack-gateway.yml -f docker-compose.acceptance.yml -f docker-compose.acceptance-prodlike.yml \n            --profile full-stack up -d --no-deps --no-build --force-recreate --wait hr-core-web hr-contracts-web
+          set -euo pipefail
+          # PLAN-35: real line continuations (the step used to carry a literal "\n" and always failed).
+          docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \
+            -f docker-compose.full-stack-gateway.yml -f docker-compose.acceptance.yml -f docker-compose.acceptance-prodlike.yml \
+            --profile full-stack up -d --no-deps --no-build --force-recreate --wait hr-core-web hr-contracts-web
 
       - name: Run requisition-to-hire journey (prod-like)
         env:

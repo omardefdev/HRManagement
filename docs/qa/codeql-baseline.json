@@ -1,0 +1,5 @@
+{
+  "card": "PLAN-35",
+  "description": "CodeQL findings accepted for now by scripts/ci/codeql-sarif-gate.ps1 (D-QA-18). The gate fails on any CodeQL result of level error or security-severity >= 7.0 that has no Open entry here, or whose entry is past reviewBy. Each entry: id, ruleId, path (SARIF artifact uri), fingerprint (optional, partialFingerprints.primaryLocationLineHash), owner, reviewBy (yyyy-MM-dd), status (Open | Fixed), reason. Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-CODEQL-BASELINE). Never add an entry without an owner and a reason.",
+  "entries": []
+}

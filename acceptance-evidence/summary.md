@@ -64,3 +64,4 @@ Generated: 2026-10-30 13:09:10 UTC
 - AC-35
 
 **Totals:** 27 Pass, 3 Deferred/Blocked, 0 Fail, 23 not run.
+- **AC-QA-34** (34g): Pass (`qa34-34g-876a2368479d45e9bfbe807831c2b400`)

@@ -8,6 +8,8 @@ on:
 
 jobs:
   stryker-payroll:
+    # PLAN-35 (G-QA-15): the schedule runs only after the owner sets ENABLE_SCHEDULED=true; dispatch always runs.
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -16,19 +18,18 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore HRManagement.slnx
+        run: dotnet restore HRManagement.slnx --locked-mode
 
+      # PLAN-35: a tool path, not "dotnet new tool-manifest --force", which wiped dotnet-ef from the repository manifest.
       - name: Install Stryker
-        run: |
-          dotnet new tool-manifest --force
-          dotnet tool install dotnet-stryker --version 4.5.1
+        run: dotnet tool install dotnet-stryker --tool-path .tools --version 4.5.1
 
       - name: Run Stryker (Payroll.Domain)
         run: |
-          dotnet tool run dotnet-stryker -f tests/stryker-payroll.json --reporter "json" --reporter "html"
+          ./.tools/dotnet-stryker -f tests/stryker-payroll.json --reporter "json" --reporter "html"
         env:
           STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
 

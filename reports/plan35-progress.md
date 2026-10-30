@@ -10,7 +10,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 |-------|--------|----------------|
 | P0 | done | 2026-10-30T14:07:43.5005632Z |
 | P1 | done | 2026-10-30T14:07:43.5005632Z |
-| P2 | pending | |
+| P2 | done | 2026-10-30T14:55:03.9999621Z |
 | P3 | pending | |
 | P4 | pending | |
 | P5 | pending | |
@@ -64,7 +64,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 
 ## Next step
 
-P2: workflows (e2e-journeys done, mutation done, advisory-to-issue + sync script done), then CodeQL gate, duplicates, schedule guards, acceptance disable, lint tests, CI realm roles.
+P3: branch protection as code (protection file, validator with exceptionRefs + -CheckLiveGitHub, Scm001BranchProtectionExceptionTests, CODEOWNERS @omardefdev, apply script, docs).
 
 ## P0/P1 results (2026-10-30T14:07:43.5005632Z)
 
@@ -77,3 +77,38 @@ P2: workflows (e2e-journeys done, mutation done, advisory-to-issue + sync script
   placeholder-looking token is skipped by gitleaks' default stopwords; the test must generate a random one.)
 - `scripts/scm/pre-push-guard.ps1` self-test: push to main with -ProtectMain -> exit 1; branch push -> gitleaks+forbidden PASS.
 - Build `dotnet build HRManagement.slnx -warnaserror`: 0 warnings, 0 errors.
+
+## P2 results (2026-10-30T14:55:03.9999621Z)
+
+- Workflows: e2e-journeys literal `\n` fixed; ENABLE_SCHEDULED guard on every scheduled job except dated-obligations;
+  codeql.yml schedule+dispatch only; gitleaks.yml and gateway-ci.yml deleted; mutation.yml global-json-file, Stryker
+  tool path, `--locked-mode`; advisory-to-issue schedule needs DEPENDABOT_ALERTS_TOKEN_CONFIGURED; ci.yml: CodeQL
+  upload behind CODE_SCANNING_UPLOAD + SARIF gate, Gitleaks on the pinned image (whole history, commit-count guard),
+  Acceptance renamed and behind ENABLE_ACCEPTANCE_JOB with a notice job, E2E via compose-up-retry + quarantine filter +
+  Keycloak readiness wait, actionlint step (steps.json + ci.yml); hardening-check restore gets `--locked-mode` (found
+  by WorkflowYamlLintTests).
+- Decision: the CodeQL gate is **PowerShell** (`scripts/ci/codeql-sarif-gate.ps1`), not Python as the plan names it:
+  this Windows machine has no Python and the unit tests must run on Windows and Linux (RepoScriptRunner).
+- Dependabot script: `GH_TOKEN=bogus` -> exit 1, "refused: Bad credentials (HTTP 401)" + permission message (AC-QA-35g negative).
+- CI realm (P-1): the realm template's own `clientScopes` list replaced Keycloak's built-in scopes; added roles
+  (realm_access.roles), profile, email, web-origins. AC-QA-34g before: Blocked, tokenRealmRoles [] (kept as
+  `acceptance-evidence/AC-QA-34/db-checks-34g-before-plan35.json`); after: **Pass**, roles [offline_access, file-storage],
+  clean upload Clean/200, EICAR Infected/409.
+- Base stack locally: cold start crashed 5 services with exit 139 (auth-directory, payroll, compliance, dev-analytics:
+  PostgreSQL refused first connection; file-storage-web: root-owned fresh volume, "Access to /var/hrm/file-storage/hr-core
+  denied"). `scripts/ci/compose-up-retry.sh` (CI path only): build, chown the file-storage volume as root (as
+  acceptance-up.ps1 does), up --wait with one retry, fail on any non-zero exited container. Verified: stack healthy.
+- Local E2E (CI filter) on the base stack: 53/57. 3 navigation timeouts = transient on this host (re-run 5/5 green);
+  1 **product defect SEC-001**: `src/Gateway/HRManagement.Gateway/appsettings.json` sets `AuthorizationPolicy: Anonymous`
+  on the 14 `health-*` routes (added by snapshot `544ba7a`), so /health/upstreams/* answers 200 anonymously;
+  `GatewayUpstreamHealthE2ETests.Gateway_upstream_health_endpoints_deny_anonymous_access` fails -> required E2E red.
+  Quarantine would hide a real security regression -> owner decision (OI-3).
+- Unit: WorkflowYamlLint 6, CodeqlSarifGate 7, CiStepsParity, DatedObligations: 32/32. Build -warnaserror 0/0.
+  ci-local (WorkingTree) steps "Workflow lint (actionlint)" + dated obligations: passed. scripts/ci/gitleaks.sh locally:
+  173 commits, no leaks.
+- Playwright Chromium installed locally (project playwright.ps1) for the local E2E run.
+- `docker compose down -v` of the local base stack was refused by the session's permission policy; the stack
+  (project hrmanagement) is still up; `.env` and the realm import were backed up to artifacts/plan35/stack/.
+
+Open issue OI-3: SEC-001 anonymous /health/upstreams/* (product config). Options: (a) remove the 14 Anonymous policies
++ a unit test pinning it (recommended); (b) quarantine the E2E case (hides a real regression; not recommended).

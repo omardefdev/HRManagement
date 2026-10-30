@@ -38,7 +38,7 @@ jobs:
           global-json-file: global.json
 
       - name: Restore test project
-        run: dotnet restore src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj
+        run: dotnet restore src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --locked-mode
 
       - name: HARD-001 unit tests
         run: dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --filter "FullyQualifiedName~Hard001HardeningTests" --no-restore

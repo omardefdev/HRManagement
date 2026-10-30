@@ -15,6 +15,8 @@ on:
 
 jobs:
   drift:
+    # PLAN-35 (G-QA-15): the schedule runs only after the owner sets ENABLE_SCHEDULED=true; dispatch always runs.
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
