@@ -16,7 +16,8 @@ on:
 jobs:
   journeys:
     if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
-    runs-on: ubuntu-latest
+    # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +105,8 @@ jobs:
   # (docker-compose.acceptance-prodlike.yml, PLAN-25).
   recruitment-journey:
     if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED == 'true'
-    runs-on: ubuntu-latest
+    # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4

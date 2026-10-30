@@ -304,7 +304,8 @@ jobs:
   e2e:
     name: E2E
     # Mandatory gate: no PR label opt-in. Playwright browsers must be installed before RUN_PLAYWRIGHT_E2E.
-    runs-on: ubuntu-latest
+    # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
+    runs-on: ubuntu-24.04
     needs: [build-and-test]
     steps:
       - uses: actions/checkout@v4
@@ -417,7 +418,8 @@ jobs:
   acceptance:
     name: Acceptance
     if: vars.ENABLE_ACCEPTANCE_JOB == 'true'
-    runs-on: ubuntu-latest
+    # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
+    runs-on: ubuntu-24.04
     needs: [build-and-test]
     steps:
       - uses: actions/checkout@v4
