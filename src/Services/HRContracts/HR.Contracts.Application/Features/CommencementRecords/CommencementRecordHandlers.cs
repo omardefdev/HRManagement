@@ -9,7 +9,9 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Contracts.Application.Features.CommencementRecords;
 
-public record GetCommencementRecordsQuery : IRequest<IReadOnlyList<CommencementRecord>>;
+/// <summary>Commencement list, newest first, at most MaxPageSize rows. <c>EmployeeIds</c> (QA-034): when set, only these
+/// employees' rows — applied before the page limit, so a branch user's list is not cut to the tenant's newest rows.</summary>
+public record GetCommencementRecordsQuery(IReadOnlyCollection<Guid>? EmployeeIds = null) : IRequest<IReadOnlyList<CommencementRecord>>;
 public record GetCommencementRecordByIdQuery(Guid Id) : IRequest<CommencementRecord?>;
 public record CreateCommencementRecordCommand(CommencementRecordDto Model) : IRequest<Guid>;
 public record UpdateCommencementRecordCommand(Guid Id, CommencementRecordDto Model) : IRequest<bool>;
@@ -17,13 +19,18 @@ public record DeleteCommencementRecordCommand(Guid Id) : IRequest<bool>;
 
 public class GetCommencementRecordsHandler(IContractsRepository repository) : IRequestHandler<GetCommencementRecordsQuery, IReadOnlyList<CommencementRecord>>
 {
-    public async Task<IReadOnlyList<CommencementRecord>> Handle(GetCommencementRecordsQuery request, CancellationToken cancellationToken) =>
-        await repository.CommencementRecords
+    public async Task<IReadOnlyList<CommencementRecord>> Handle(GetCommencementRecordsQuery request, CancellationToken cancellationToken)
+    {
+        var query = repository.CommencementRecords
             .Include(c => c.Contract)
-            .AsNoTracking()
+            .AsNoTracking();
+        if (request.EmployeeIds is { } employeeIds)
+            query = query.Where(x => employeeIds.Contains(x.EmployeeId));
+        return await query
             .OrderByDescending(x => x.StartDate)
             .Take(SearchFilterBase.MaxPageSize)
             .ToListAsync(cancellationToken);
+    }
 }
 
 public class GetCommencementRecordByIdHandler(IContractsRepository repository) : IRequestHandler<GetCommencementRecordByIdQuery, CommencementRecord?>

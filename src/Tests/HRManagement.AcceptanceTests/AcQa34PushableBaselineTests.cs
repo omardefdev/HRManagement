@@ -140,18 +140,48 @@ public class AcQa34PushableBaselineTests
 
     private static List<TrxResult> LinuxTrx(string file) => LoadTrx(Path.Combine(LinuxRun, "TestResults"), file);
 
+    /// <summary>The SHA the native Windows run was made for (artifacts/plan34/windows/head.txt), or null.</summary>
+    private static string? NativeHead()
+    {
+        var file = Path.Combine(WindowsRun, "head.txt");
+        return File.Exists(file) ? File.ReadAllText(file).Trim() : null;
+    }
+
+    /// <summary>
+    /// Review H-1: the Linux run (summary.json + its trx) and the native run must both be for the commit under test;
+    /// otherwise the scenario is Blocked, never passed on another commit's results.
+    /// </summary>
+    private static void RequireHeadEvidence(EvidenceRecorder r, bool linux = true, bool native = false)
+    {
+        var head = GitHead();
+        if (linux)
+        {
+            var sha = (string?)LoadSummary()?["gitSha"];
+            AcceptanceGate.RequireData(r, sha == head,
+                "دليل تشغيل Linux ليس لهذا الـ HEAD", $"Linux ci-local evidence is for {sha ?? "nothing"}, HEAD is {head}; rerun scripts/ci-local.ps1 -Out artifacts/ci-local/head.");
+        }
+
+        if (native)
+        {
+            var sha = NativeHead();
+            AcceptanceGate.RequireData(r, sha == head,
+                "دليل التشغيل على Windows ليس لهذا الـ HEAD", $"Native Windows evidence is for {sha ?? "nothing"}, HEAD is {head} (artifacts/plan34/windows/head.txt).");
+        }
+    }
+
     /// <summary>Testcontainers results: the Linux run's, or (rule P-3, -SkipTestcontainers) the native run of the same HEAD.</summary>
     private static (List<TrxResult> Results, string Source) TestcontainersTrx()
     {
         var linux = LinuxTrx("integration-tc-results.trx");
-        return linux.Count > 0 ? (linux, "linux ci-local") : (LoadTrx(WindowsRun, "tc.trx"), "native Windows (rule P-3)");
+        if (linux.Count > 0) return (linux, "linux ci-local");
+        return NativeHead() == GitHead() ? (LoadTrx(WindowsRun, "tc.trx"), "native Windows (rule P-3)") : ([], "none for HEAD");
     }
 
     /// <summary>The coverage gate (scripts/check-coverage.py) run on the native unit + integration + Testcontainers reports.</summary>
     private static bool NativeCoverageGreen()
     {
         var log = Path.Combine(WindowsRun, "coverage-gate.log");
-        if (!File.Exists(log)) return false;
+        if (!File.Exists(log) || NativeHead() != GitHead()) return false;
         var text = File.ReadAllText(log);
         return text.Contains("Gate line coverage:", StringComparison.Ordinal) && !text.Contains("ERROR", StringComparison.Ordinal)
                && text.Contains("EXIT=0", StringComparison.Ordinal);
@@ -160,7 +190,7 @@ public class AcQa34PushableBaselineTests
     private static bool NativeTestcontainersGreen()
     {
         var native = LoadTrx(WindowsRun, "tc.trx");
-        return native.Count > 0 && native.All(r => r.Outcome is "Passed")
+        return NativeHead() == GitHead() && native.Count > 0 && native.All(r => r.Outcome is "Passed")
                && native.Any(r => r.Name.Contains("Plan034ScopedIndexPostgreSqlTests", StringComparison.Ordinal));
     }
 
@@ -304,6 +334,7 @@ public class AcQa34PushableBaselineTests
         unit = LinuxTrx("unit-results.trx");
         integration = LinuxTrx("integration-results.trx");
         tc = TestcontainersTrx().Results;
+        RequireHeadEvidence(r);
         AcceptanceGate.RequireData(r, unit.Count > 0 && integration.Count > 0 && tc.Count > 0,
             "نتائج اختبارات تشغيل Linux غير موجودة", $"Linux trx files missing under {LinuxRun}/TestResults (run scripts/ci-local.ps1 -Out artifacts/ci-local/head).");
         return r;
@@ -407,6 +438,7 @@ public class AcQa34PushableBaselineTests
     public void Ac34_h_unit_suite_is_green_on_windows_ar_sa_and_on_linux()
     {
         var r = StartTrx("34h", "AC-QA-34h: full unit run Windows/ar-SA = Linux = 0 failures; TestCultureGuardTests guards the ar-SY culture", out var linuxUnit, out _, out _);
+        RequireHeadEvidence(r, linux: false, native: true);
         var windowsUnit = LoadTrx(WindowsRun, "unit.trx");
         AcceptanceGate.RequireData(r, windowsUnit.Count > 0,
             "نتائج اختبارات الوحدة على Windows غير موجودة", $"Windows unit trx missing under {WindowsRun} (dotnet test src/Tests/HRManagement.UnitTests --logger \"trx;LogFileName=unit.trx\" --results-directory artifacts/plan34/windows).");
@@ -609,6 +641,7 @@ public class AcQa34PushableBaselineTests
         var vulnerable = vulnOut.Split('\n').Where(l => l.Contains("has the following vulnerable packages", StringComparison.Ordinal)).Select(l => l.Trim()).ToList();
         var highOrCritical = vulnOut.Split('\n').Count(l => l.Contains(" High ", StringComparison.Ordinal) || l.Contains(" Critical ", StringComparison.Ordinal));
 
+        RequireHeadEvidence(r);
         var summary = LoadSummary();
         var buildStep = (summary?["steps"] as JsonArray ?? []).FirstOrDefault(s => (string?)s!["name"] == "Build");
         using var steps = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "scripts", "ci", "steps.json")));

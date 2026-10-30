@@ -9,6 +9,7 @@ using HR.Contracts.Infrastructure.Repositories;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Integration;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.ViewModels;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -115,6 +116,22 @@ public sealed class Plan034ScopedIndexTests
         Assert.Contains(EmployeeBr1, rows);
         Assert.DoesNotContain(EmployeeBr2, rows);
         Assert.DoesNotContain(EmployeeUnplaced, rows);
+    }
+
+    // Review E-1: the three list queries cap at MaxPageSize newest rows; the branch scope must apply before that cap,
+    // or newer out-of-scope rows push every in-scope row off the list.
+    [Theory]
+    [InlineData("Contracts/SeparationRecords")]
+    [InlineData("Contracts/ProbationRecords")]
+    [InlineData("Contracts/CommencementRecords")]
+    public async Task Branch_scope_applies_before_the_page_size_cap(string action)
+    {
+        await using var host = await ScopedIndexHost.CreateSqliteAsync();
+        await host.SeedNewerRecordsAsync(Plan034ScopedIndexTests.EmployeeBr2, SearchFilterBase.MaxPageSize + 10);
+
+        var rows = AssertRows(await host.InvokeAsync(action, BranchUser(Br1), null));
+        Assert.Contains(EmployeeBr1, rows);
+        Assert.All(rows, id => Assert.Equal(EmployeeBr1, id));
     }
 
     [Theory]
@@ -303,6 +320,36 @@ public sealed class ScopedIndexHost : IAsyncDisposable
 
         await contracts.SaveChangesAsync();
         await payroll.SaveChangesAsync();
+    }
+
+    /// <summary>Adds <paramref name="count"/> separation, probation and commencement records newer than the seed.</summary>
+    public async Task SeedNewerRecordsAsync(Guid employeeId, int count)
+    {
+        await using var scope = _provider.CreateAsyncScope();
+        var contracts = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
+        var contract = await contracts.Contracts.SingleAsync(c => c.EmployeeId == employeeId);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        for (var i = 1; i <= count; i++)
+        {
+            contracts.SeparationRecords.Add(new SeparationRecord
+            {
+                EmployeeId = employeeId,
+                Contract = contract,
+                SeparationType = SeparationType.Resignation,
+                EffectiveDate = today.AddDays(i)
+            });
+            contracts.ProbationRecords.Add(new ProbationRecord
+            {
+                EmployeeId = employeeId,
+                Contract = contract,
+                StartDate = today.AddDays(i),
+                EndDate = today.AddDays(i + 90),
+                Result = ProbationResult.Passed
+            });
+            contracts.CommencementRecords.Add(new CommencementRecord { EmployeeId = employeeId, Contract = contract, StartDate = today.AddDays(i) });
+        }
+
+        await contracts.SaveChangesAsync();
     }
 
     public async Task<IActionResult> InvokeAsync(string action, ClaimsPrincipal user, Guid? employeeId)

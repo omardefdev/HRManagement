@@ -15,6 +15,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
@@ -27,7 +31,7 @@ function Resolve-RepoPath([string]$rel) {
 function Get-Json([string]$rel) {
     $full = Resolve-RepoPath $rel
     if (-not (Test-Path $full)) { throw "missing $rel ($full)" }
-    return Get-Content -Raw -Path $full | ConvertFrom-Json
+    return Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
 }
 
 # QA-034: yyyy-MM-dd in the invariant culture, as a UTC calendar day (a Hijri thread culture or a non-UTC time zone
@@ -143,7 +147,7 @@ $prodFiles = @(
 foreach ($rel in $prodFiles) {
     $full = Resolve-RepoPath $rel
     if (-not (Test-Path $full)) { $failures += "missing $rel"; continue }
-    $cfg = Get-Content -Raw -Path $full | ConvertFrom-Json
+    $cfg = Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
     $pg = $cfg.ProgramGovernance
     if ($null -eq $pg) { $failures += "$rel missing ProgramGovernance"; continue }
     if ($pg.EnforceOnStartup -ne $true) { $failures += "$rel EnforceOnStartup must be true" }

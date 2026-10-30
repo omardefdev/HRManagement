@@ -12,6 +12,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 }
@@ -27,9 +31,9 @@ foreach ($p in @($matrixFull, $decFull, $riskFull)) {
     if (-not (Test-Path $p)) { Write-Error "missing: $p" }
 }
 
-$m = Get-Content -Raw -Path $matrixFull | ConvertFrom-Json
-$dec = Get-Content -Raw -Path $decFull | ConvertFrom-Json
-$risk = Get-Content -Raw -Path $riskFull | ConvertFrom-Json
+$m = Get-Content -Raw -Path $matrixFull | ConvertFrom-Json @jsonArgs
+$dec = Get-Content -Raw -Path $decFull | ConvertFrom-Json @jsonArgs
+$risk = Get-Content -Raw -Path $riskFull | ConvertFrom-Json @jsonArgs
 $failures = @()
 
 if ($m.card -ne "STR-005") { $failures += "card must be STR-005" }
@@ -143,7 +147,7 @@ foreach ($key in @("lawChange", "incident", "delay")) {
         $failures += "missing simulation $rel"
         continue
     }
-    $sim = Get-Content -Raw -Path $full | ConvertFrom-Json
+    $sim = Get-Content -Raw -Path $full | ConvertFrom-Json @jsonArgs
     foreach ($f in $simNeed[$key]) {
         if ($null -eq $sim.$f -or ($sim.$f -is [string] -and [string]::IsNullOrWhiteSpace($sim.$f))) {
             $failures += "simulation $key missing $f"
@@ -182,7 +186,7 @@ function Test-MultiSeatOk($seats, $required, $engAliases) {
 }
 
 if (Test-Path $engFull) {
-    $eng = Get-Content -Raw -Path $engFull | ConvertFrom-Json
+    $eng = Get-Content -Raw -Path $engFull | ConvertFrom-Json @jsonArgs
     if ($eng.expectedValidate -ne "FAIL") {
         $failures += "eng-only fixture must declare expectedValidate FAIL"
     }
@@ -193,7 +197,7 @@ if (Test-Path $engFull) {
 }
 
 if (Test-Path $multiFull) {
-    $ms = Get-Content -Raw -Path $multiFull | ConvertFrom-Json
+    $ms = Get-Content -Raw -Path $multiFull | ConvertFrom-Json @jsonArgs
     if ($ms.expectedValidate -ne "PASS") {
         $failures += "multi-seat fixture must declare expectedValidate PASS"
     }

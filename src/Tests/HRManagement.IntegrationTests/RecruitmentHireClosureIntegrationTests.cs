@@ -63,6 +63,7 @@ public class RecruitmentHireClosureIntegrationTests
             publish.Invocations
                 .Where(i => i.Method.Name == nameof(IPublishEndpoint.Publish) && i.Method.IsGenericMethod)
                 .Select(i => i.Method.GetGenericArguments()[0]));
+        Assert.Equal(3, publish.Invocations.Count); // nothing else was called on the endpoint (review B-1)
     }
 
     [Fact]

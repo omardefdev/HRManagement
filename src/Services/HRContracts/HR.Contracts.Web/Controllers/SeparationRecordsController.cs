@@ -39,12 +39,11 @@ public class SeparationRecordsController : Controller
                 User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
             return employeeDenied;
 
-        var items = await _mediator.Send(new GetSeparationRecordsQuery());
-        if (scope.MustFilter)
-        {
-            var inScope = (await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()).ToHashSet();
-            items = items.Where(x => inScope.Contains(x.EmployeeId)).ToList();
-        }
+        // The in-scope employees go into the query, so the page limit applies to the branch's own rows (review E-1).
+        var inScope = scope.MustFilter
+            ? await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()
+            : null;
+        var items = await _mediator.Send(new GetSeparationRecordsQuery(inScope));
         if (separationType.HasValue)
             items = items.Where(x => x.SeparationType == separationType.Value).ToList();
         if (employeeId.HasValue)

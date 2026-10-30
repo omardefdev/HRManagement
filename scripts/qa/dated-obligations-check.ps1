@@ -19,6 +19,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# QA-034: keep JSON dates as text so they are parsed strictly as yyyy-MM-dd (PowerShell 7 ConvertFrom-Json would
+# otherwise turn "2026-12-14T23:30:00+05:00" into a local [datetime]); Windows PowerShell 5.1 never converts dates.
+$jsonArgs = @{}
+if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $jsonArgs['DateKind'] = 'String' }
 if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 }
@@ -90,7 +94,7 @@ function Select-Items($root, [string]$selector) {
 
 $registryFull = Resolve-RepoPath $Registry
 if (-not (Test-Path $registryFull)) { throw "registry not found: $registryFull" }
-$reg = Get-Content -Raw -Encoding utf8 -Path $registryFull | ConvertFrom-Json
+$reg = Get-Content -Raw -Encoding utf8 -Path $registryFull | ConvertFrom-Json @jsonArgs
 
 $defaultWarn = 30
 $defaultFail = 7
@@ -127,7 +131,7 @@ foreach ($ob in @($reg.obligations)) {
         $errors += "${obId}: registered file not found: $file"
         continue
     }
-    $doc = Get-Content -Raw -Encoding utf8 -Path $full | ConvertFrom-Json
+    $doc = Get-Content -Raw -Encoding utf8 -Path $full | ConvertFrom-Json @jsonArgs
     $items = Select-Items $doc ([string]$ob.selector)
     if (@($items).Count -eq 0) {
         if ($ob.allowEmpty -ne $true) {

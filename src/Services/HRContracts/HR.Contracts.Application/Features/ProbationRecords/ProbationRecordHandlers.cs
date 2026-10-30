@@ -10,7 +10,9 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Contracts.Application.Features.ProbationRecords;
 
-public record GetProbationRecordsQuery : IRequest<IReadOnlyList<ProbationRecord>>;
+/// <summary>Probation list, newest first, at most MaxPageSize rows. <c>EmployeeIds</c> (QA-034): when set, only these
+/// employees' rows — applied before the page limit, so a branch user's list is not cut to the tenant's newest rows.</summary>
+public record GetProbationRecordsQuery(IReadOnlyCollection<Guid>? EmployeeIds = null) : IRequest<IReadOnlyList<ProbationRecord>>;
 public record GetProbationRecordByIdQuery(Guid Id) : IRequest<ProbationRecord?>;
 public record CreateProbationRecordCommand(ProbationRecordDto Model) : IRequest<Guid>;
 public record UpdateProbationRecordCommand(Guid Id, ProbationRecordDto Model) : IRequest<bool>;
@@ -18,14 +20,19 @@ public record DeleteProbationRecordCommand(Guid Id) : IRequest<bool>;
 
 public class GetProbationRecordsHandler(IContractsRepository repository) : IRequestHandler<GetProbationRecordsQuery, IReadOnlyList<ProbationRecord>>
 {
-    public async Task<IReadOnlyList<ProbationRecord>> Handle(GetProbationRecordsQuery request, CancellationToken cancellationToken) =>
-        await repository.ProbationRecords
+    public async Task<IReadOnlyList<ProbationRecord>> Handle(GetProbationRecordsQuery request, CancellationToken cancellationToken)
+    {
+        var query = repository.ProbationRecords
             .Include(p => p.Contract)
             .ThenInclude(c => c.ContractType)
-            .AsNoTracking()
+            .AsNoTracking();
+        if (request.EmployeeIds is { } employeeIds)
+            query = query.Where(x => employeeIds.Contains(x.EmployeeId));
+        return await query
             .OrderByDescending(x => x.StartDate)
             .Take(SearchFilterBase.MaxPageSize)
             .ToListAsync(cancellationToken);
+    }
 }
 
 public class GetProbationRecordByIdHandler(IContractsRepository repository) : IRequestHandler<GetProbationRecordByIdQuery, ProbationRecord?>

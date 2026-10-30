@@ -37,12 +37,11 @@ public class CommencementRecordsController : Controller
                 User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
             return employeeDenied;
 
-        var items = await _mediator.Send(new GetCommencementRecordsQuery());
-        if (scope.MustFilter)
-        {
-            var inScope = (await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()).ToHashSet();
-            items = items.Where(x => inScope.Contains(x.EmployeeId)).ToList();
-        }
+        // The in-scope employees go into the query, so the page limit applies to the branch's own rows (review E-1).
+        var inScope = scope.MustFilter
+            ? await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()
+            : null;
+        var items = await _mediator.Send(new GetCommencementRecordsQuery(inScope));
         if (employeeId.HasValue)
             items = items.Where(x => x.EmployeeId == employeeId.Value).ToList();
         if (contractId.HasValue)

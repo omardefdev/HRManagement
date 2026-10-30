@@ -38,12 +38,11 @@ public class ProbationRecordsController : Controller
                 User, scopedEmployeeId, _db.EmployeeOrgUnitSnapshots, _db.OrgUnitSnapshots) is { } employeeDenied)
             return employeeDenied;
 
-        var items = await _mediator.Send(new GetProbationRecordsQuery());
-        if (scope.MustFilter)
-        {
-            var inScope = (await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()).ToHashSet();
-            items = items.Where(x => inScope.Contains(x.EmployeeId)).ToList();
-        }
+        // The in-scope employees go into the query, so the page limit applies to the branch's own rows (review E-1).
+        var inScope = scope.MustFilter
+            ? await _db.EmployeeOrgUnitSnapshots.EmployeeIdsInScope(scope).ToListAsync()
+            : null;
+        var items = await _mediator.Send(new GetProbationRecordsQuery(inScope));
         if (result.HasValue)
             items = items.Where(x => x.Result == result.Value).ToList();
         if (employeeId.HasValue)

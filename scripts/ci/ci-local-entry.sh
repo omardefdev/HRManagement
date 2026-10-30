@@ -54,6 +54,11 @@ bash scripts/ci/run-steps.sh "$@" --out /work/out
 rc=$?
 
 dest="/src/$CI_LOCAL_OUT"
+# a fresh output folder, so results of an earlier run never survive into this one (only ever under artifacts/)
+case "$CI_LOCAL_OUT" in
+  artifacts/?*) [[ "$CI_LOCAL_OUT" != *..* ]] && rm -rf "${dest:?}" ;;
+  *) echo "ci-local: -Out must be a folder under artifacts/ (got '$CI_LOCAL_OUT'); not clearing it" ;;
+esac
 mkdir -p "$dest"
 cp -r /work/out/. "$dest/" 2>/dev/null
 for d in TestResults coveragereport; do

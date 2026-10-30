@@ -12,7 +12,9 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Contracts.Application.Features.SeparationRecords;
 
-public record GetSeparationRecordsQuery : IRequest<IReadOnlyList<SeparationRecord>>;
+/// <summary>Separation list, newest first, at most MaxPageSize rows. <c>EmployeeIds</c> (QA-034): when set, only these
+/// employees' rows — applied before the page limit, so a branch user's list is not cut to the tenant's newest rows.</summary>
+public record GetSeparationRecordsQuery(IReadOnlyCollection<Guid>? EmployeeIds = null) : IRequest<IReadOnlyList<SeparationRecord>>;
 public record GetSeparationRecordByIdQuery(Guid Id) : IRequest<SeparationRecord?>;
 public record CreateSeparationRecordCommand(SeparationRecordDto Model) : IRequest<Guid>;
 public record UpdateSeparationRecordCommand(Guid Id, SeparationRecordDto Model) : IRequest<bool>;
@@ -35,13 +37,18 @@ public record OverrideSeparationChecklistStepCommand(
 
 public class GetSeparationRecordsHandler(IContractsRepository repository) : IRequestHandler<GetSeparationRecordsQuery, IReadOnlyList<SeparationRecord>>
 {
-    public async Task<IReadOnlyList<SeparationRecord>> Handle(GetSeparationRecordsQuery request, CancellationToken cancellationToken) =>
-        await repository.SeparationRecords
+    public async Task<IReadOnlyList<SeparationRecord>> Handle(GetSeparationRecordsQuery request, CancellationToken cancellationToken)
+    {
+        var query = repository.SeparationRecords
             .Include(s => s.Contract)
-            .AsNoTracking()
+            .AsNoTracking();
+        if (request.EmployeeIds is { } employeeIds)
+            query = query.Where(s => employeeIds.Contains(s.EmployeeId));
+        return await query
             .OrderByDescending(s => s.EffectiveDate)
             .Take(SearchFilterBase.MaxPageSize)
             .ToListAsync(cancellationToken);
+    }
 }
 
 public class GetSeparationRecordByIdHandler(IContractsRepository repository) : IRequestHandler<GetSeparationRecordByIdQuery, SeparationRecord?>

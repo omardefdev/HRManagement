@@ -115,6 +115,50 @@ public class CiStepsParityTests
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    // Review A-1: keys such as continue-on-error, env, shell, working-directory or timeout-minutes on a ci.yml step would
+    // make the remote run differ from scripts/ci/steps.json (a red step hidden by continue-on-error, say).
+    [Fact]
+    public void Ci_build_and_test_steps_carry_no_other_keys()
+    {
+        var lines = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "workflows", "ci.yml"))
+            .Replace("\r\n", "\n").Split('\n');
+        var start = Array.FindIndex(lines, l => l == "  build-and-test:");
+        var end = Array.FindIndex(lines, start + 1, l => Regex.IsMatch(l, @"^  [A-Za-z0-9_-]+:\s*$"));
+        if (end < 0) end = lines.Length;
+
+        var problems = new List<string>();
+        var isAction = false;
+        for (var i = start; i < end; i++)
+        {
+            Match m;
+            // job-level keys: defaults, env, continue-on-error, strategy and the like would also change every step
+            if ((m = Regex.Match(lines[i], @"^    ([A-Za-z_-]+):")).Success && m.Groups[1].Value is not ("name" or "runs-on" or "steps"))
+            {
+                problems.Add($"ci.yml:{i + 1}: job key '{m.Groups[1].Value}' is not allowed on build-and-test");
+                continue;
+            }
+
+            if ((m = Regex.Match(lines[i], @"^      - ([A-Za-z_-]+):")).Success)
+            {
+                isAction = m.Groups[1].Value == "uses";
+                if (m.Groups[1].Value is not ("name" or "uses"))
+                    problems.Add($"ci.yml:{i + 1}: a step starts with '{m.Groups[1].Value}'");
+                continue;
+            }
+
+            if ((m = Regex.Match(lines[i], @"^        ([A-Za-z_-]+):")).Success)
+            {
+                var key = m.Groups[1].Value;
+                if (key == "uses") isAction = true;
+                var allowed = key is "name" or "run" or "if" || (isAction && key is "uses" or "with");
+                if (!allowed)
+                    problems.Add($"ci.yml:{i + 1}: step key '{key}' is not allowed in build-and-test (put the behaviour in scripts/ci/steps.json)");
+            }
+        }
+
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
     [Fact]
     public void Always_steps_match_if_always_in_ci()
     {

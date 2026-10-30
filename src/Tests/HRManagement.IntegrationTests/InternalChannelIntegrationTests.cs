@@ -329,6 +329,7 @@ public class InternalHireClosureIntegrationTests
             publish.Invocations
                 .Where(i => i.Method.Name == nameof(IPublishEndpoint.Publish) && i.Method.IsGenericMethod)
                 .Select(i => i.Method.GetGenericArguments()[0]));
+        Assert.Equal(2, publish.Invocations.Count); // nothing else was called on the endpoint (review B-1)
         Assert.Contains(
             publish.Invocations,
             i => i.Method.IsGenericMethod
