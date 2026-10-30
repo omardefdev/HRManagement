@@ -28,81 +28,81 @@ public class WorkflowSignatureServiceTests
             using var sig = CreateSignatureService();
             var workflowSvc = new WorkflowSignatureService(db, sig, DesignTimeTenantContext.Instance);
 
-        var definition = new WorkflowDefinition
-        {
-            Id = Guid.NewGuid(),
-            Code = "TEST-WF",
-            Name = "Test",
-            Version = 3,
-            DomainEntityType = "AssetAssignment",
-            StepsJson = JsonSerializer.Serialize(new[]
+            var definition = new WorkflowDefinition
             {
+                Id = Guid.NewGuid(),
+                Code = "TEST-WF",
+                Name = "Test",
+                Version = 3,
+                DomainEntityType = "AssetAssignment",
+                StepsJson = JsonSerializer.Serialize(new[]
+                {
                 new WorkflowStepSnapshot { Level = 1, Name = "Step1", StepType = WorkflowStepType.Approval, RoleRequired = "hr-core" },
                 new WorkflowStepSnapshot { Level = 2, Name = "Step2", StepType = WorkflowStepType.Approval, RoleRequired = "hr-management-approver" }
             }),
-            IsPublished = true
-        };
-        db.WorkflowDefinitions.Add(definition);
+                IsPublished = true
+            };
+            db.WorkflowDefinitions.Add(definition);
 
-        var instance = new WorkflowInstance
-        {
-            TenantId = tenantId,
-            DefinitionId = definition.Id,
-            DefinitionVersion = definition.Version,
-            EntityType = "AssetAssignment",
-            EntityId = Guid.NewGuid(),
-            CurrentStepLevel = 1,
-            Status = WorkflowStatus.InProgress,
-            InitiatedBy = Guid.NewGuid()
-        };
-        db.WorkflowInstances.Add(instance);
-        await db.SaveChangesAsync();
+            var instance = new WorkflowInstance
+            {
+                TenantId = tenantId,
+                DefinitionId = definition.Id,
+                DefinitionVersion = definition.Version,
+                EntityType = "AssetAssignment",
+                EntityId = Guid.NewGuid(),
+                CurrentStepLevel = 1,
+                Status = WorkflowStatus.InProgress,
+                InitiatedBy = Guid.NewGuid()
+            };
+            db.WorkflowInstances.Add(instance);
+            await db.SaveChangesAsync();
 
-        var engine = new WorkflowEngine();
-        var snapshot = new WorkflowDefinitionSnapshot
-        {
-            Id = definition.Id,
-            Code = definition.Code,
-            Name = definition.Name,
-            Version = definition.Version,
-            DomainEntityType = definition.DomainEntityType,
-            Steps = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(definition.StepsJson) ?? []
-        };
+            var engine = new WorkflowEngine();
+            var snapshot = new WorkflowDefinitionSnapshot
+            {
+                Id = definition.Id,
+                Code = definition.Code,
+                Name = definition.Name,
+                Version = definition.Version,
+                DomainEntityType = definition.DomainEntityType,
+                Steps = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(definition.StepsJson) ?? []
+            };
 
-        var state = new WorkflowInstanceState
-        {
-            Id = instance.Id,
-            CurrentStepLevel = 1,
-            Status = WorkflowStatus.InProgress,
-            StepHistory = []
-        };
+            var state = new WorkflowInstanceState
+            {
+                Id = instance.Id,
+                CurrentStepLevel = 1,
+                Status = WorkflowStatus.InProgress,
+                StepHistory = []
+            };
 
-        var actor1 = Guid.NewGuid();
-        var r1 = engine.ApproveStep(state, snapshot, actor1, "Checker1", "ok");
-        Assert.True(r1.Success);
-        Assert.NotNull(r1.HistoryEntry);
-        await workflowSvc.RecordStepActionAsync(instance, definition, r1.HistoryEntry!, "approve", actor1, "hr-core");
+            var actor1 = Guid.NewGuid();
+            var r1 = engine.ApproveStep(state, snapshot, actor1, "Checker1", "ok");
+            Assert.True(r1.Success);
+            Assert.NotNull(r1.HistoryEntry);
+            await workflowSvc.RecordStepActionAsync(instance, definition, r1.HistoryEntry!, "approve", actor1, "hr-core");
 
-        state.CurrentStepLevel = r1.NewStepLevel;
-        state.StepHistory.Add(r1.HistoryEntry!);
+            state.CurrentStepLevel = r1.NewStepLevel;
+            state.StepHistory.Add(r1.HistoryEntry!);
 
-        var actor2 = Guid.NewGuid();
-        var r2 = engine.ApproveStep(state, snapshot, actor2, "Checker2", "ok2");
-        Assert.True(r2.Success);
-        Assert.NotNull(r2.HistoryEntry);
-        await workflowSvc.RecordStepActionAsync(instance, definition, r2.HistoryEntry!, "approve", actor2, "hr-management-approver");
+            var actor2 = Guid.NewGuid();
+            var r2 = engine.ApproveStep(state, snapshot, actor2, "Checker2", "ok2");
+            Assert.True(r2.Success);
+            Assert.NotNull(r2.HistoryEntry);
+            await workflowSvc.RecordStepActionAsync(instance, definition, r2.HistoryEntry!, "approve", actor2, "hr-management-approver");
 
-        var records = await db.SignatureRecords.AsNoTracking()
-            .Where(s => s.SubjectId == instance.EntityId.ToString("D"))
-            .OrderBy(s => s.OccurredAtUtc)
-            .ToListAsync();
+            var records = await db.SignatureRecords.AsNoTracking()
+                .Where(s => s.SubjectId == instance.EntityId.ToString("D"))
+                .OrderBy(s => s.OccurredAtUtc)
+                .ToListAsync();
 
-        Assert.Equal(2, records.Count);
-        Assert.All(records, r => Assert.Equal("approve", r.Intent));
-        Assert.All(records, r => Assert.False(string.IsNullOrWhiteSpace(r.CanonicalPayloadHash)));
-        Assert.All(records, r => Assert.False(string.IsNullOrWhiteSpace(r.SignatureBase64)));
-        Assert.Contains(records, r => r.SignerSubject == actor1.ToString("D"));
-        Assert.Contains(records, r => r.SignerSubject == actor2.ToString("D"));
+            Assert.Equal(2, records.Count);
+            Assert.All(records, r => Assert.Equal("approve", r.Intent));
+            Assert.All(records, r => Assert.False(string.IsNullOrWhiteSpace(r.CanonicalPayloadHash)));
+            Assert.All(records, r => Assert.False(string.IsNullOrWhiteSpace(r.SignatureBase64)));
+            Assert.Contains(records, r => r.SignerSubject == actor1.ToString("D"));
+            Assert.Contains(records, r => r.SignerSubject == actor2.ToString("D"));
         }
         finally
         {

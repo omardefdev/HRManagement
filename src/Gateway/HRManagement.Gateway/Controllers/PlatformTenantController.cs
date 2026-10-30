@@ -1,5 +1,6 @@
 using System.Security.Claims;
-using System.Text.Json;using HRManagement.Gateway.Models;
+using System.Text.Json;
+using HRManagement.Gateway.Models;
 using HRManagement.Gateway.Services;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;

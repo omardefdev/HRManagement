@@ -217,7 +217,11 @@ public sealed class ScopedIndexHost : IAsyncDisposable
         var br2 = Plan034ScopedIndexTests.Br2;
         OrgUnitSnapshot Unit(Guid id, string code) => new()
         {
-            Id = id, TenantId = t, MaterializedPath = $"/{id:D}/", Code = code, NameAr = code
+            Id = id,
+            TenantId = t,
+            MaterializedPath = $"/{id:D}/",
+            Code = code,
+            NameAr = code
         };
         contracts.OrgUnitSnapshots.AddRange(Unit(br1, "BR1"), Unit(br2, "BR2"));
         payroll.OrgUnitSnapshots.AddRange(Unit(br1, "BR1"), Unit(br2, "BR2"));
@@ -241,16 +245,25 @@ public sealed class ScopedIndexHost : IAsyncDisposable
         {
             var contract = new Contract
             {
-                EmployeeId = id, ContractType = contractType, StartDate = today.AddYears(-1), Status = ContractStatus.Active
+                EmployeeId = id,
+                ContractType = contractType,
+                StartDate = today.AddYears(-1),
+                Status = ContractStatus.Active
             };
             contracts.Contracts.Add(contract);
             contracts.SeparationRecords.Add(new SeparationRecord
             {
-                EmployeeId = id, Contract = contract, SeparationType = SeparationType.Resignation, EffectiveDate = today
+                EmployeeId = id,
+                Contract = contract,
+                SeparationType = SeparationType.Resignation,
+                EffectiveDate = today
             });
             contracts.ProbationRecords.Add(new ProbationRecord
             {
-                EmployeeId = id, Contract = contract, StartDate = today.AddYears(-1), EndDate = today.AddMonths(-9),
+                EmployeeId = id,
+                Contract = contract,
+                StartDate = today.AddYears(-1),
+                EndDate = today.AddMonths(-9),
                 Result = ProbationResult.Passed
             });
             contracts.CommencementRecords.Add(new CommencementRecord { EmployeeId = id, Contract = contract, StartDate = today.AddYears(-1) });
@@ -260,7 +273,11 @@ public sealed class ScopedIndexHost : IAsyncDisposable
             {
                 payroll.EmployeePayProfiles.Add(new EmployeePayProfile
                 {
-                    EmployeeId = id, BaseSalary = 1000m, EffectiveFrom = DateTime.UtcNow.AddYears(-1), IsActive = true, OrgUnitId = orgUnit
+                    EmployeeId = id,
+                    BaseSalary = 1000m,
+                    EffectiveFrom = DateTime.UtcNow.AddYears(-1),
+                    IsActive = true,
+                    OrgUnitId = orgUnit
                 });
             }
             else
@@ -268,7 +285,11 @@ public sealed class ScopedIndexHost : IAsyncDisposable
                 // an inactive profile with an org unit must not place the employee
                 payroll.EmployeePayProfiles.Add(new EmployeePayProfile
                 {
-                    EmployeeId = id, BaseSalary = 1000m, EffectiveFrom = DateTime.UtcNow.AddYears(-2), IsActive = false, OrgUnitId = br1
+                    EmployeeId = id,
+                    BaseSalary = 1000m,
+                    EffectiveFrom = DateTime.UtcNow.AddYears(-2),
+                    IsActive = false,
+                    OrgUnitId = br1
                 });
             }
 

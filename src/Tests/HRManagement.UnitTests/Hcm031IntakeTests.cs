@@ -385,8 +385,12 @@ public sealed class Hcm031IntakeTests
             new RecruitmentApplication { ApplicantFullName = "قديم", AppliedPosition = "x", AppliedAt = DateTime.UtcNow, Status = RecruitmentApplicationStatus.Submitted },
             new RecruitmentApplication
             {
-                ApplicantFullName = "مسابقة", AppliedPosition = "y", AppliedAt = DateTime.UtcNow, Status = RecruitmentApplicationStatus.Submitted,
-                CompetitionId = competition.Id, NationalIdHash = new string('d', 64)
+                ApplicantFullName = "مسابقة",
+                AppliedPosition = "y",
+                AppliedAt = DateTime.UtcNow,
+                Status = RecruitmentApplicationStatus.Submitted,
+                CompetitionId = competition.Id,
+                NationalIdHash = new string('d', 64)
             });
         await db.SaveChangesAsync();
 

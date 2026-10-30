@@ -141,9 +141,20 @@ public class Hcm032AnalyticsPublicationTests
 
     private static RecruitmentRequisitionClosedMessage Message(Guid tenant, Guid requisition, int hired = 1, int? days = 30) => new()
     {
-        TenantId = tenant, RequisitionId = requisition, OrgUnitId = UnitHq, Outcome = "Closed", ClosedAt = Utc(2026, 10, 1),
-        Applicants = 12, HiredCount = hired, TimeToFillDays = days, ApplicantsPublic = 7, ApplicantsInternal = 3, ApplicantsHrEntered = 2,
-        OffersAccepted = 1, OffersDeclined = 2, SourceSystem = "HR.Core"
+        TenantId = tenant,
+        RequisitionId = requisition,
+        OrgUnitId = UnitHq,
+        Outcome = "Closed",
+        ClosedAt = Utc(2026, 10, 1),
+        Applicants = 12,
+        HiredCount = hired,
+        TimeToFillDays = days,
+        ApplicantsPublic = 7,
+        ApplicantsInternal = 3,
+        ApplicantsHrEntered = 2,
+        OffersAccepted = 1,
+        OffersDeclined = 2,
+        SourceSystem = "HR.Core"
     };
 
     [Fact]
@@ -168,8 +179,13 @@ public class Hcm032AnalyticsPublicationTests
     {
         RecruitmentRequisitionFact Fact(int hired, int? days, int pub, int internalCount, int accepted, string outcome = "Closed") => new()
         {
-            RequisitionId = Guid.NewGuid(), Outcome = outcome, HiredCount = hired, TimeToFillDays = days, ApplicantsPublic = pub,
-            ApplicantsInternal = internalCount, OffersAccepted = accepted
+            RequisitionId = Guid.NewGuid(),
+            Outcome = outcome,
+            HiredCount = hired,
+            TimeToFillDays = days,
+            ApplicantsPublic = pub,
+            ApplicantsInternal = internalCount,
+            OffersAccepted = accepted
         };
 
         var small = RecruitmentFactRules.BuildCard([Fact(1, 20, 3, 0, 1), Fact(1, 40, 4, 0, 1), Fact(0, null, 2, 6, 0, "Cancelled")]);

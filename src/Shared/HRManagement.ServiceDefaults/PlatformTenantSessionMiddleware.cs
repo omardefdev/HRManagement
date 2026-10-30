@@ -17,7 +17,7 @@ public sealed class PlatformTenantSessionMiddleware(RequestDelegate next)
         if (context.User.IsInRole(HrManagementRoles.PlatformAdmin))
         {
             var sub = context.User.FindFirstValue("sub")
-                ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier);            if (!string.IsNullOrEmpty(sub))
+                ?? context.User.FindFirstValue(ClaimTypes.NameIdentifier); if (!string.IsNullOrEmpty(sub))
             {
                 var session = sessionStore.Get(sub);
                 if (session is not null)

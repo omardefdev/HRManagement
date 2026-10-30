@@ -214,11 +214,17 @@ public class Hcm032RecruitmentAnalyticsScaleTests : IAsyncLifetime
                 db.FundedPositions.Add(position);
                 var requisition = new RecruitmentRequisition
                 {
-                    TenantId = _tenant, RequisitionNumber = $"REQ-S32-{r:0000}", FundedPositionId = position.Id, JobTitle = "محلل",
-                    Status = status, RequestedDate = requested, ApprovedDate = r % 7 == 0 ? null : approved,
+                    TenantId = _tenant,
+                    RequisitionNumber = $"REQ-S32-{r:0000}",
+                    FundedPositionId = position.Id,
+                    JobTitle = "محلل",
+                    Status = status,
+                    RequestedDate = requested,
+                    ApprovedDate = r % 7 == 0 ? null : approved,
                     PublishedAt = status is RequisitionStatus.Published or RequisitionStatus.Closed ? approved.AddDays(2) : null,
                     ClosedDate = status == RequisitionStatus.Closed ? approved.AddDays(40) : null,
-                    CancelledAt = status == RequisitionStatus.Cancelled ? approved.AddDays(20) : null, VacancyCount = 1
+                    CancelledAt = status == RequisitionStatus.Cancelled ? approved.AddDays(20) : null,
+                    VacancyCount = 1
                 };
                 db.RecruitmentRequisitions.Add(requisition);
                 requisitions.Add((requisition.Id, unit, approved));
@@ -242,8 +248,13 @@ public class Hcm032RecruitmentAnalyticsScaleTests : IAsyncLifetime
                     };
                     var app = new RecruitmentApplication
                     {
-                        TenantId = _tenant, ApplicantFullName = $"متقدم {r}-{a}", RequisitionId = requisition.Id, AppliedPosition = "محلل",
-                        IntakeChannel = (RecruitmentIntakeChannel)(a % 4), AppliedAt = applied, Status = appStatus,
+                        TenantId = _tenant,
+                        ApplicantFullName = $"متقدم {r}-{a}",
+                        RequisitionId = requisition.Id,
+                        AppliedPosition = "محلل",
+                        IntakeChannel = (RecruitmentIntakeChannel)(a % 4),
+                        AppliedAt = applied,
+                        Status = appStatus,
                         RejectedAt = appStatus == RecruitmentApplicationStatus.Rejected ? applied.AddDays(9) : null,
                         RejectionKind = appStatus == RecruitmentApplicationStatus.Rejected ? RecruitmentRejectionKind.SelectionDecision : null,
                         ScreenedAt = applied.AddDays(2)
@@ -257,10 +268,13 @@ public class Hcm032RecruitmentAnalyticsScaleTests : IAsyncLifetime
                     {
                         db.RecruitmentApplicationEvents.Add(new RecruitmentApplicationEvent
                         {
-                            TenantId = _tenant, RecruitmentApplicationId = app.Id,
+                            TenantId = _tenant,
+                            RecruitmentApplicationId = app.Id,
                             EventType = e == 0 ? RecruitmentApplicationEventTypes.Received : RecruitmentApplicationEventTypes.StatusChanged,
-                            FromStatus = e == 0 ? null : (int)path[e - 1], ToStatus = (int)path[e],
-                            OccurredAt = applied.AddDays(e * 2 + rnd.Next(0, 2)), NotificationsPlannedAt = applied
+                            FromStatus = e == 0 ? null : (int)path[e - 1],
+                            ToStatus = (int)path[e],
+                            OccurredAt = applied.AddDays(e * 2 + rnd.Next(0, 2)),
+                            NotificationsPlannedAt = applied
                         });
                         events++;
                     }
@@ -270,19 +284,30 @@ public class Hcm032RecruitmentAnalyticsScaleTests : IAsyncLifetime
                         var created = applied.AddDays(10);
                         var offerStatus = hired ? OfferStatus.Accepted : (a % 5) switch
                         {
-                            0 => OfferStatus.Declined, 1 => OfferStatus.Expired, 2 => OfferStatus.Revoked, 3 => OfferStatus.Accepted, _ => OfferStatus.Draft
+                            0 => OfferStatus.Declined,
+                            1 => OfferStatus.Expired,
+                            2 => OfferStatus.Revoked,
+                            3 => OfferStatus.Accepted,
+                            _ => OfferStatus.Draft
                         };
                         var offer = new OfferLetter
                         {
-                            TenantId = _tenant, RecruitmentApplicationId = app.Id, FundedPositionId = position.Id, OfferNumber = $"OFF-S32-{r:0000}-{a:00}",
-                            Status = offerStatus, CreatedAt = created, IssuedDate = offerStatus == OfferStatus.Draft ? null : created.AddDays(1),
+                            TenantId = _tenant,
+                            RecruitmentApplicationId = app.Id,
+                            FundedPositionId = position.Id,
+                            OfferNumber = $"OFF-S32-{r:0000}-{a:00}",
+                            Status = offerStatus,
+                            CreatedAt = created,
+                            IssuedDate = offerStatus == OfferStatus.Draft ? null : created.AddDays(1),
                             AcceptedDate = offerStatus == OfferStatus.Accepted ? created.AddDays(3) : null,
                             DeclinedAt = offerStatus == OfferStatus.Declined ? created.AddDays(4) : null,
                             DeclinedBy = offerStatus == OfferStatus.Declined ? OfferDeclinedBy.Candidate : null,
                             DeclineReasonCategory = offerStatus == OfferStatus.Declined ? (OfferDeclineReasonCategory)(r % 6) : null,
                             ExpiredAt = offerStatus == OfferStatus.Expired ? created.AddDays(15) : null,
                             RevokedAt = offerStatus == OfferStatus.Revoked ? created.AddDays(2) : null,
-                            IsMeritOverride = a == 7, OfferedSalary = 500000, ProposedStartDate = created.AddDays(30)
+                            IsMeritOverride = a == 7,
+                            OfferedSalary = 500000,
+                            ProposedStartDate = created.AddDays(30)
                         };
                         db.OfferLetters.Add(offer);
                         offers++;
@@ -305,12 +330,23 @@ public class Hcm032RecruitmentAnalyticsScaleTests : IAsyncLifetime
 
     private FundedPosition Position(Guid unit, FundedPositionStatus status, string code) => new()
     {
-        TenantId = _tenant, PositionCode = code, GradeCode = "G5", BudgetYear = 2026, Status = status, OrgUnitId = unit
+        TenantId = _tenant,
+        PositionCode = code,
+        GradeCode = "G5",
+        BudgetYear = 2026,
+        Status = status,
+        OrgUnitId = unit
     };
 
     private WorkflowDefinition Definition(Guid id, string code, string entityType, int steps) => new()
     {
-        Id = id, TenantId = _tenant, Code = code, Name = code, Version = 1, IsPublished = true, DomainEntityType = entityType,
+        Id = id,
+        TenantId = _tenant,
+        Code = code,
+        Name = code,
+        Version = 1,
+        IsPublished = true,
+        DomainEntityType = entityType,
         StepsJson = JsonSerializer.Serialize(Enumerable.Range(1, steps)
             .Select(l => new WorkflowStepSnapshot { Level = l, Name = $"الخطوة {l}", RoleRequired = "hr-core" }).ToList())
     };
@@ -322,8 +358,14 @@ public class Hcm032RecruitmentAnalyticsScaleTests : IAsyncLifetime
             .ToList();
         return new WorkflowInstance
         {
-            TenantId = _tenant, DefinitionId = definition, DefinitionVersion = 1, EntityType = entityType, EntityId = entityId,
-            StartedAt = started, Status = status, CurrentStepLevel = status == WorkflowStatus.InProgress ? steps : steps,
+            TenantId = _tenant,
+            DefinitionId = definition,
+            DefinitionVersion = 1,
+            EntityType = entityType,
+            EntityId = entityId,
+            StartedAt = started,
+            Status = status,
+            CurrentStepLevel = status == WorkflowStatus.InProgress ? steps : steps,
             CompletedAt = status == WorkflowStatus.Completed ? started.AddHours(20 * steps) : null,
             StepHistoryJson = JsonSerializer.Serialize(history)
         };

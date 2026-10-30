@@ -103,8 +103,8 @@ public static class DemoTrainingSeeder
             || await db.TrainingCourses.CountAsync(ct) >= DemoSeedIds.TrainingCourseCount)
             return;
 
-            var rng = AcceptanceSeedExecution.CreateRandom("training");
-            var now = AcceptanceSeedExecution.UtcNow;
+        var rng = AcceptanceSeedExecution.CreateRandom("training");
+        var now = AcceptanceSeedExecution.UtcNow;
         var today = DateOnly.FromDateTime(now);
 
         await SeedProvidersAsync(db, now, ct);

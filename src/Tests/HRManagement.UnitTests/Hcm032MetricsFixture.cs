@@ -78,10 +78,19 @@ internal static class Hcm032MetricsFixture
 
         var competition = new RecruitmentCompetition
         {
-            Id = Competition, Number = "COMP-H32-1", Title = "مسابقة التقرير", LegalSourceId = Syr001LegislationIds.Law50_2004,
-            Status = RecruitmentCompetitionStatus.Finalized, ApplicationClosingDate = new DateOnly(2026, 8, 1),
-            AnnouncedAt = Utc(2026, 7, 15), TieBreakOrder = "ExamScore",
-            ObjectionWindowDays = 7, ReserveValidityMonths = 6, MaxLinesPerCandidate = 1, PassMark = 50, ReconcileThreshold = 10
+            Id = Competition,
+            Number = "COMP-H32-1",
+            Title = "مسابقة التقرير",
+            LegalSourceId = Syr001LegislationIds.Law50_2004,
+            Status = RecruitmentCompetitionStatus.Finalized,
+            ApplicationClosingDate = new DateOnly(2026, 8, 1),
+            AnnouncedAt = Utc(2026, 7, 15),
+            TieBreakOrder = "ExamScore",
+            ObjectionWindowDays = 7,
+            ReserveValidityMonths = 6,
+            MaxLinesPerCandidate = 1,
+            PassMark = 50,
+            ReconcileThreshold = 10
         };
         db.RecruitmentCompetitions.Add(competition);
         db.CompetitionLines.Add(new CompetitionLine { Id = Line, CompetitionId = Competition, LineNo = 1, Title = "سطر 1", GradeCode = "G5", RequiredCount = 1 });
@@ -175,13 +184,24 @@ internal static class Hcm032MetricsFixture
         // ---- competition (R4 on its line, branch) -------------------------------------------------------------------
         db.CompetitionResultVersions.Add(new CompetitionResultVersion
         {
-            Id = ResultVersion, CompetitionId = Competition, VersionNo = 1, Status = CompetitionResultVersionStatus.Published,
-            ComputedAt = Utc(2026, 9, 15), PublishedAt = Utc(2026, 9, 16)
+            Id = ResultVersion,
+            CompetitionId = Competition,
+            VersionNo = 1,
+            Status = CompetitionResultVersionStatus.Published,
+            ComputedAt = Utc(2026, 9, 15),
+            PublishedAt = Utc(2026, 9, 16)
         });
         db.ExamSessions.Add(new ExamSession
         {
-            Id = ExamSessionId, CompetitionId = Competition, Type = ExamSessionType.Written, Title = "الاختبار الكتابي",
-            ScheduledAt = Utc(2026, 9, 1), DurationMinutes = 120, Venue = "القاعة 1", Capacity = 10, MaxScore = 100,
+            Id = ExamSessionId,
+            CompetitionId = Competition,
+            Type = ExamSessionType.Written,
+            Title = "الاختبار الكتابي",
+            ScheduledAt = Utc(2026, 9, 1),
+            DurationMinutes = 120,
+            Venue = "القاعة 1",
+            Capacity = 10,
+            MaxScore = 100,
             Status = ExamSessionStatus.MarkingClosed
         });
         var d1 = Comp(db, "D1", RecruitmentIntakeChannel.Public, 1, RecruitmentApplicationStatus.Ranked, R4,
@@ -205,8 +225,12 @@ internal static class Hcm032MetricsFixture
             [(8, 6, S.Submitted), (8, 7, S.UnderReview), (8, 10, S.Shortlisted), (9, 25, S.ReserveListed), (10, 10, S.Ranked)], ExamAttendance.Present, CompetitionResultOutcome.Passed);
         db.CompetitionReserveEntries.Add(new CompetitionReserveEntry
         {
-            CompetitionLineId = Line, RecruitmentApplicationId = d6.Id, LineRank = 2, ReserveUntil = new DateOnly(2027, 3, 25),
-            Status = CompetitionReserveEntryStatus.Recalled, RecalledRequisitionId = R4
+            CompetitionLineId = Line,
+            RecruitmentApplicationId = d6.Id,
+            LineRank = 2,
+            ReserveUntil = new DateOnly(2027, 3, 25),
+            Status = CompetitionReserveEntryStatus.Recalled,
+            RecalledRequisitionId = R4
         });
         db.CompetitionAllocations.Add(new CompetitionAllocation { CompetitionId = Competition, RecruitmentApplicationId = d6.Id, AllocatedLineId = Line, AllocatedRequisitionId = R4, FromReserve = true });
 
@@ -261,17 +285,32 @@ internal static class Hcm032MetricsFixture
     private static void Position(HRCoreDbContext db, Guid id, Guid unit, FundedPositionStatus status, DateTime created) =>
         db.FundedPositions.Add(new FundedPosition
         {
-            Id = id, PositionCode = "POS-H32-" + id.ToString("N")[^2..], GradeCode = "G5", BudgetYear = 2026, Status = status,
-            OrgUnitId = unit, CreatedAt = created
+            Id = id,
+            PositionCode = "POS-H32-" + id.ToString("N")[^2..],
+            GradeCode = "G5",
+            BudgetYear = 2026,
+            Status = status,
+            OrgUnitId = unit,
+            CreatedAt = created
         });
 
     private static void Requisition(HRCoreDbContext db, Guid id, string number, Guid position, RequisitionStatus status,
         DateTime requested, DateTime? approved, DateTime? published, DateTime? closed = null, DateTime? cancelled = null, Guid? line = null) =>
         db.RecruitmentRequisitions.Add(new RecruitmentRequisition
         {
-            Id = id, RequisitionNumber = number, FundedPositionId = position, JobTitle = "محلل " + number, Status = status,
-            RequestedDate = requested, ApprovedDate = approved, PublishedAt = published, ClosedDate = closed, CancelledAt = cancelled,
-            VacancyCount = 1, CompetitionLineId = line, CreatedAt = requested
+            Id = id,
+            RequisitionNumber = number,
+            FundedPositionId = position,
+            JobTitle = "محلل " + number,
+            Status = status,
+            RequestedDate = requested,
+            ApprovedDate = approved,
+            PublishedAt = published,
+            ClosedDate = closed,
+            CancelledAt = cancelled,
+            VacancyCount = 1,
+            CompetitionLineId = line,
+            CreatedAt = requested
         });
 
     private static Employee Employee(HRCoreDbContext db, DateTime created)
@@ -320,8 +359,13 @@ internal static class Hcm032MetricsFixture
         {
             db.ExamCandidates.Add(new ExamCandidate
             {
-                ExamSessionId = ExamSessionId, CompetitionId = Competition, ExamType = ExamSessionType.Written,
-                RecruitmentApplicationId = app.Id, ExamNumber = examNumber, SeatNumber = seat, Attendance = present
+                ExamSessionId = ExamSessionId,
+                CompetitionId = Competition,
+                ExamType = ExamSessionType.Written,
+                RecruitmentApplicationId = app.Id,
+                ExamNumber = examNumber,
+                SeatNumber = seat,
+                Attendance = present
             });
         }
         if (outcome is { } result)
@@ -336,12 +380,25 @@ internal static class Hcm032MetricsFixture
     {
         var offer = new OfferLetter
         {
-            RecruitmentApplicationId = app.Id, FundedPositionId = position, OfferNumber = "OFF-H32-" + number, Status = status,
-            CreatedAt = created, IssuedDate = issued, ExpiryDate = issued?.AddDays(14), AcceptedDate = accepted, DeclinedAt = declined,
-            DeclinedBy = declinedBy, DeclineReason = declined is null ? null : "سبب الرفض", DeclineReasonCategory = category,
-            ExpiredAt = expired, RevokedAt = revoked, IsMeritOverride = merit,
-            MeritOverrideReason = merit ? "توصية اللجنة" : null, GradeDeviationReason = gradeDeviation ? "درجة مختلفة" : null,
-            OfferedSalary = 500000, ProposedStartDate = Utc(2026, 11, 15)
+            RecruitmentApplicationId = app.Id,
+            FundedPositionId = position,
+            OfferNumber = "OFF-H32-" + number,
+            Status = status,
+            CreatedAt = created,
+            IssuedDate = issued,
+            ExpiryDate = issued?.AddDays(14),
+            AcceptedDate = accepted,
+            DeclinedAt = declined,
+            DeclinedBy = declinedBy,
+            DeclineReason = declined is null ? null : "سبب الرفض",
+            DeclineReasonCategory = category,
+            ExpiredAt = expired,
+            RevokedAt = revoked,
+            IsMeritOverride = merit,
+            MeritOverrideReason = merit ? "توصية اللجنة" : null,
+            GradeDeviationReason = gradeDeviation ? "درجة مختلفة" : null,
+            OfferedSalary = 500000,
+            ProposedStartDate = Utc(2026, 11, 15)
         };
         db.OfferLetters.Add(offer);
         return offer.Id;
@@ -360,22 +417,37 @@ internal static class Hcm032MetricsFixture
     private static void Event(HRCoreDbContext db, RecruitmentApplication app, string type, int toStatus, DateTime at, Guid? related = null, int? from = null) =>
         db.RecruitmentApplicationEvents.Add(new RecruitmentApplicationEvent
         {
-            RecruitmentApplicationId = app.Id, EventType = type, FromStatus = from, ToStatus = toStatus, OccurredAt = at,
-            RelatedEntityId = related, NotificationsPlannedAt = at
+            RecruitmentApplicationId = app.Id,
+            EventType = type,
+            FromStatus = from,
+            ToStatus = toStatus,
+            OccurredAt = at,
+            RelatedEntityId = related,
+            NotificationsPlannedAt = at
         });
 
     private static void Appeal(HRCoreDbContext db, RecruitmentApplication app, RecruitmentAppealKind kind, DateTime filed, DateTime? decided,
         RecruitmentAppealOutcome? outcome) =>
         db.RecruitmentAppeals.Add(new RecruitmentAppeal
         {
-            RecruitmentApplicationId = app.Id, Kind = kind, Reason = "سبب الاستئناف للاختبار", CreatedAt = filed,
-            Status = decided is null ? RecruitmentAppealStatus.Pending : RecruitmentAppealStatus.Decided, DecidedAt = decided, Outcome = outcome
+            RecruitmentApplicationId = app.Id,
+            Kind = kind,
+            Reason = "سبب الاستئناف للاختبار",
+            CreatedAt = filed,
+            Status = decided is null ? RecruitmentAppealStatus.Pending : RecruitmentAppealStatus.Decided,
+            DecidedAt = decided,
+            Outcome = outcome
         });
 
     private static void Definition(HRCoreDbContext db, Guid id, string code, string name, string entityType, params WorkflowStepSnapshot[] steps) =>
         db.WorkflowDefinitions.Add(new WorkflowDefinition
         {
-            Id = id, Code = code, Name = name, Version = 1, IsPublished = true, DomainEntityType = entityType,
+            Id = id,
+            Code = code,
+            Name = name,
+            Version = 1,
+            IsPublished = true,
+            DomainEntityType = entityType,
             StepsJson = JsonSerializer.Serialize(steps)
         });
 
@@ -383,11 +455,20 @@ internal static class Hcm032MetricsFixture
         int currentLevel, DateTime? completed, params (int Level, string Name, WorkflowStepStatus Status, DateTime At)[] history) =>
         db.WorkflowInstances.Add(new WorkflowInstance
         {
-            DefinitionId = definition, DefinitionVersion = 1, EntityType = entityType, EntityId = entityId, StartedAt = started,
-            Status = status, CurrentStepLevel = currentLevel, CompletedAt = completed,
+            DefinitionId = definition,
+            DefinitionVersion = 1,
+            EntityType = entityType,
+            EntityId = entityId,
+            StartedAt = started,
+            Status = status,
+            CurrentStepLevel = currentLevel,
+            CompletedAt = completed,
             StepHistoryJson = JsonSerializer.Serialize(history.Select(h => new WorkflowStepHistoryEntry
             {
-                Level = h.Level, StepName = h.Name, Status = h.Status, ActionAt = h.At
+                Level = h.Level,
+                StepName = h.Name,
+                Status = h.Status,
+                ActionAt = h.At
             }).ToList())
         });
 }

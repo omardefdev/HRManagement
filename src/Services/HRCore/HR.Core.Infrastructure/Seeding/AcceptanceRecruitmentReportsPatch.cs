@@ -109,9 +109,16 @@ public static class AcceptanceRecruitmentReportsPatch
 
         db.RecruitmentAppeals.Add(new RecruitmentAppeal
         {
-            Id = Id("appeal-3"), TenantId = tenant, RecruitmentApplicationId = a3.Id, Kind = RecruitmentAppealKind.Rejection,
-            Reason = "استئناف قرار الفرز (اختبار قبول)", Status = RecruitmentAppealStatus.Decided, Outcome = RecruitmentAppealOutcome.Dismissed,
-            DecidedAt = Utc(2026, 9, 5), FiledBy = "Candidate", CreatedAt = Utc(2026, 8, 22)
+            Id = Id("appeal-3"),
+            TenantId = tenant,
+            RecruitmentApplicationId = a3.Id,
+            Kind = RecruitmentAppealKind.Rejection,
+            Reason = "استئناف قرار الفرز (اختبار قبول)",
+            Status = RecruitmentAppealStatus.Decided,
+            Outcome = RecruitmentAppealOutcome.Dismissed,
+            DecidedAt = Utc(2026, 9, 5),
+            FiledBy = "Candidate",
+            CreatedAt = Utc(2026, 8, 22)
         });
 
         var definition = await All(db.WorkflowDefinitions)
@@ -127,9 +134,16 @@ public static class AcceptanceRecruitmentReportsPatch
         {
             db.WorkflowInstances.Add(new WorkflowInstance
             {
-                Id = AcceptanceSeedIds.RecruitmentReportsWorkflowInstanceId, TenantId = tenant, DefinitionId = definition.Id,
-                DefinitionVersion = definition.Version, EntityType = nameof(RecruitmentRequisition), EntityId = r3.Id,
-                CurrentStepLevel = 1, Status = WorkflowStatus.InProgress, StepHistoryJson = "[]", StartedAt = Utc(2026, 9, 1)
+                Id = AcceptanceSeedIds.RecruitmentReportsWorkflowInstanceId,
+                TenantId = tenant,
+                DefinitionId = definition.Id,
+                DefinitionVersion = definition.Version,
+                EntityType = nameof(RecruitmentRequisition),
+                EntityId = r3.Id,
+                CurrentStepLevel = 1,
+                Status = WorkflowStatus.InProgress,
+                StepHistoryJson = "[]",
+                StartedAt = Utc(2026, 9, 1)
             });
             r3.WorkflowInstanceId = AcceptanceSeedIds.RecruitmentReportsWorkflowInstanceId;
         }
@@ -142,8 +156,14 @@ public static class AcceptanceRecruitmentReportsPatch
     {
         var position = new FundedPosition
         {
-            Id = Id("position-" + code), TenantId = tenant, PositionCode = code, GradeCode = "G5", BudgetYear = 2026, Status = status,
-            OrgUnitId = unit, CreatedAt = Utc(2026, 7, 1)
+            Id = Id("position-" + code),
+            TenantId = tenant,
+            PositionCode = code,
+            GradeCode = "G5",
+            BudgetYear = 2026,
+            Status = status,
+            OrgUnitId = unit,
+            CreatedAt = Utc(2026, 7, 1)
         };
         db.FundedPositions.Add(position);
         return position;
@@ -154,10 +174,20 @@ public static class AcceptanceRecruitmentReportsPatch
     {
         var requisition = new RecruitmentRequisition
         {
-            Id = id, TenantId = tenant, RequisitionNumber = number, FundedPositionId = position.Id, JobTitle = "محلل بيانات (AC-HCM-32)",
-            Status = status, RequestedDate = requested, ApprovedDate = approved, PublishedAt = published, VacancyCount = 1,
+            Id = id,
+            TenantId = tenant,
+            RequisitionNumber = number,
+            FundedPositionId = position.Id,
+            JobTitle = "محلل بيانات (AC-HCM-32)",
+            Status = status,
+            RequestedDate = requested,
+            ApprovedDate = approved,
+            PublishedAt = published,
+            VacancyCount = 1,
             LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004,
-            JustificationNotes = "طلب شاغر ثابت لاختبارات قبول تقارير التوظيف (PLAN-32).", CreatedAt = requested, UpdatedAt = requested
+            JustificationNotes = "طلب شاغر ثابت لاختبارات قبول تقارير التوظيف (PLAN-32).",
+            CreatedAt = requested,
+            UpdatedAt = requested
         };
         db.RecruitmentRequisitions.Add(requisition);
         return requisition;
@@ -170,9 +200,16 @@ public static class AcceptanceRecruitmentReportsPatch
         var applied = Utc(2026, history[0].M, history[0].D);
         var app = new RecruitmentApplication
         {
-            Id = Id("application-" + n), TenantId = tenant, ApplicantFullName = $"{AcceptanceSeedIds.RecruitmentReportsApplicantPrefix} {n}",
-            NationalId = nationalId, RequisitionId = requisition.Id,
-            AppliedPosition = requisition.JobTitle, IntakeChannel = channel, AppliedAt = applied, Status = status, CreatedAt = applied,
+            Id = Id("application-" + n),
+            TenantId = tenant,
+            ApplicantFullName = $"{AcceptanceSeedIds.RecruitmentReportsApplicantPrefix} {n}",
+            NationalId = nationalId,
+            RequisitionId = requisition.Id,
+            AppliedPosition = requisition.JobTitle,
+            IntakeChannel = channel,
+            AppliedAt = applied,
+            Status = status,
+            CreatedAt = applied,
             ScreenedAt = history.Any(h => h.To == RecruitmentApplicationStatus.UnderReview) ? Utc(2026, history[1].M, history[1].D) : null,
             RankedAt = history.FirstOrDefault(h => h.To == RecruitmentApplicationStatus.Ranked) is { M: > 0 } ranked ? Utc(2026, ranked.M, ranked.D) : null
         };
@@ -188,11 +225,22 @@ public static class AcceptanceRecruitmentReportsPatch
     {
         var offer = new OfferLetter
         {
-            Id = Id("offer-" + number), TenantId = tenant, OfferNumber = number, RecruitmentApplicationId = app.Id, FundedPositionId = position.Id,
-            Status = status, CreatedAt = issued.AddDays(-1), IssuedDate = issued, ExpiryDate = issued.AddDays(14),
-            AcceptedDate = status == OfferStatus.Accepted ? outcome : null, AcceptedBy = status == OfferStatus.Accepted ? OfferAcceptedBy.Candidate : null,
-            DeclinedAt = status == OfferStatus.Declined ? outcome : null, OfferedSalary = 500000, GradeCode = "G5",
-            ProposedStartDate = Utc(2026, 10, 1), LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004
+            Id = Id("offer-" + number),
+            TenantId = tenant,
+            OfferNumber = number,
+            RecruitmentApplicationId = app.Id,
+            FundedPositionId = position.Id,
+            Status = status,
+            CreatedAt = issued.AddDays(-1),
+            IssuedDate = issued,
+            ExpiryDate = issued.AddDays(14),
+            AcceptedDate = status == OfferStatus.Accepted ? outcome : null,
+            AcceptedBy = status == OfferStatus.Accepted ? OfferAcceptedBy.Candidate : null,
+            DeclinedAt = status == OfferStatus.Declined ? outcome : null,
+            OfferedSalary = 500000,
+            GradeCode = "G5",
+            ProposedStartDate = Utc(2026, 10, 1),
+            LegalSourceId = HRManagement.SharedKernel.Legal.Syr001LegislationIds.Law50_2004
         };
         db.OfferLetters.Add(offer);
         return offer;
@@ -201,8 +249,14 @@ public static class AcceptanceRecruitmentReportsPatch
     private static void Event(HRCoreDbContext db, Guid tenant, Guid applicationId, string type, int toStatus, DateTime at, Guid? related = null, int? from = null) =>
         db.RecruitmentApplicationEvents.Add(new RecruitmentApplicationEvent
         {
-            Id = Id($"event-{applicationId:N}-{type}-{toStatus}-{at.Ticks}"), TenantId = tenant, RecruitmentApplicationId = applicationId,
-            EventType = type, FromStatus = from, ToStatus = toStatus, OccurredAt = at, RelatedEntityId = related,
+            Id = Id($"event-{applicationId:N}-{type}-{toStatus}-{at.Ticks}"),
+            TenantId = tenant,
+            RecruitmentApplicationId = applicationId,
+            EventType = type,
+            FromStatus = from,
+            ToStatus = toStatus,
+            OccurredAt = at,
+            RelatedEntityId = related,
             // Seeded history is never notified.
             NotificationsPlannedAt = at
         });

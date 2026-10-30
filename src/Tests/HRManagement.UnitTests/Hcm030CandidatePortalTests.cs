@@ -79,7 +79,10 @@ public sealed class Hcm030CandidatePortalTests
         db.PublicJobPostings.Add(posting);
         var citizen = new CitizenApplication
         {
-            PublicJobPostingId = posting.Id, ReferenceNumber = "CA-LEGACY", FullName = "قديم", NationalId = "0303030303",
+            PublicJobPostingId = posting.Id,
+            ReferenceNumber = "CA-LEGACY",
+            FullName = "قديم",
+            NationalId = "0303030303",
             Status = CitizenApplicationStatus.UnderReview
         };
         db.CitizenApplications.Add(citizen);

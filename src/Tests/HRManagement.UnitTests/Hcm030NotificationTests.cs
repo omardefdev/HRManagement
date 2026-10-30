@@ -395,7 +395,8 @@ public sealed class Hcm030NotificationTests : IDisposable
             db,
             Registry(CandidateNotificationProvider.None, maxAttempts: 5),
             Options.Create(new RecruitmentOptions()),
-            NullLogger<CandidateNotificationDispatcher>.Instance) { DisplayZone = TimeZoneInfo.Utc };
+            NullLogger<CandidateNotificationDispatcher>.Instance)
+        { DisplayZone = TimeZoneInfo.Utc };
         var now = DateTime.UtcNow;
         await dispatcher.PlanAsync(now, default);
 
@@ -558,7 +559,8 @@ public sealed class Hcm030NotificationTests : IDisposable
         // Provider=None: the OFFER_ISSUED row is planned and waits.
         var none = new CandidateNotificationDispatcher(
             db, Registry(CandidateNotificationProvider.None, maxAttempts: 5), Options.Create(new RecruitmentOptions()),
-            NullLogger<CandidateNotificationDispatcher>.Instance) { DisplayZone = TimeZoneInfo.Utc };
+            NullLogger<CandidateNotificationDispatcher>.Instance)
+        { DisplayZone = TimeZoneInfo.Utc };
         await none.PlanAsync(now, default);
         Assert.Equal(1, (await none.SendDueAsync(now, default)).WaitingForProvider);
 

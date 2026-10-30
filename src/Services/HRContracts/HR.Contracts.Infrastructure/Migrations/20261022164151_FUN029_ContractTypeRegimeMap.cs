@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using HRManagement.ServiceDefaults;
 using Microsoft.EntityFrameworkCore.Migrations;
 

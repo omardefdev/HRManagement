@@ -223,13 +223,25 @@ public static class AcceptanceCompetitionPatch
 
         var line1 = new CompetitionLine
         {
-            Id = AcceptanceSeedIds.CompetitionLine1Id, TenantId = tenant, CompetitionId = competition.Id, LineNo = 1,
-            Title = $"{jobs.A.TitleAr} — الإدارة المركزية", GradeCode = jobs.A.GradeCode, JobCatalogEntryId = jobs.A.Id, RequiredCount = 3
+            Id = AcceptanceSeedIds.CompetitionLine1Id,
+            TenantId = tenant,
+            CompetitionId = competition.Id,
+            LineNo = 1,
+            Title = $"{jobs.A.TitleAr} — الإدارة المركزية",
+            GradeCode = jobs.A.GradeCode,
+            JobCatalogEntryId = jobs.A.Id,
+            RequiredCount = 3
         };
         var line2 = new CompetitionLine
         {
-            Id = AcceptanceSeedIds.CompetitionLine2Id, TenantId = tenant, CompetitionId = competition.Id, LineNo = 2,
-            Title = $"{jobs.B.TitleAr} — الإدارة المركزية", GradeCode = jobs.B.GradeCode, JobCatalogEntryId = jobs.B.Id, RequiredCount = 2
+            Id = AcceptanceSeedIds.CompetitionLine2Id,
+            TenantId = tenant,
+            CompetitionId = competition.Id,
+            LineNo = 2,
+            Title = $"{jobs.B.TitleAr} — الإدارة المركزية",
+            GradeCode = jobs.B.GradeCode,
+            JobCatalogEntryId = jobs.B.Id,
+            RequiredCount = 2
         };
         db.CompetitionLines.AddRange(line1, line2);
         var frozenCriteria = new Dictionary<CompetitionLine, Guid>();

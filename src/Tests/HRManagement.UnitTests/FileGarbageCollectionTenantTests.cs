@@ -172,7 +172,10 @@ public class FileGarbageCollectionTenantTests : IDisposable
         var referencedA = Add(a, TenantA, FileRecordStatus.Active, uploadedAt: Old, referenceCount: 1);
         a.FileReferences.Add(new FileReferenceRecord
         {
-            FileId = referencedA, HolderKey = "hr-core:CandidateDocument:a:FileId", CreatedAt = Old, TenantId = TenantA
+            FileId = referencedA,
+            HolderKey = "hr-core:CandidateDocument:a:FileId",
+            CreatedAt = Old,
+            TenantId = TenantA
         });
         var heldA = Add(a, TenantA, FileRecordStatus.Pending, uploadedAt: Old, legalHold: true);
         await a.SaveChangesAsync();

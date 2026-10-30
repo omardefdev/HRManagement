@@ -444,8 +444,11 @@ public class Hcm032RecruitmentMetricsTests
 
         var appeals = apps.Select(a => new HR.Core.Domain.Entities.RecruitmentAppeal
         {
-            RecruitmentApplicationId = a.Id, Kind = RecruitmentAppealKind.Rejection, Reason = "استئناف للاختبار",
-            Status = RecruitmentAppealStatus.Pending, CreatedAt = DateTime.UtcNow.AddSeconds(1)
+            RecruitmentApplicationId = a.Id,
+            Kind = RecruitmentAppealKind.Rejection,
+            Reason = "استئناف للاختبار",
+            Status = RecruitmentAppealStatus.Pending,
+            CreatedAt = DateTime.UtcNow.AddSeconds(1)
         }).ToList();
         db.RecruitmentAppeals.AddRange(appeals);
         await db.SaveChangesAsync();
@@ -456,7 +459,9 @@ public class Hcm032RecruitmentMetricsTests
             appeal.Decision = "قبول الاستئناف";
             await handler.HandleAsync(new HR.Core.Domain.Entities.Workflow.WorkflowInstance
             {
-                EntityType = "RecruitmentAppeal", EntityId = appeal.Id, StepHistoryJson = "[]"
+                EntityType = "RecruitmentAppeal",
+                EntityId = appeal.Id,
+                StepHistoryJson = "[]"
             }, approved: true, reason: null);
         }
         await db.SaveChangesAsync();

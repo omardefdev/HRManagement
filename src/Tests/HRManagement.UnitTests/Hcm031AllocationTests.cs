@@ -164,8 +164,12 @@ public sealed class Hcm031AllocationTests
         var requisition = await SeedApprovedRequisitionAsync(db, "G5", status: RequisitionStatus.Published);
         var outside = new RecruitmentApplication
         {
-            ApplicantFullName = "خارج المسابقة", RequisitionId = requisition.Id, AppliedPosition = requisition.JobTitle,
-            AppliedAt = DateTime.UtcNow, Status = RecruitmentApplicationStatus.Ranked, Rank = 1
+            ApplicantFullName = "خارج المسابقة",
+            RequisitionId = requisition.Id,
+            AppliedPosition = requisition.JobTitle,
+            AppliedAt = DateTime.UtcNow,
+            Status = RecruitmentApplicationStatus.Ranked,
+            Rank = 1
         };
         db.RecruitmentApplications.Add(outside);
         await db.SaveChangesAsync();

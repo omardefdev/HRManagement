@@ -106,7 +106,7 @@ public class AcHcm30CandidateExperienceTests
         var expectedDeadline = DateTime.ParseExact(rejectedAt, "yyyy-MM-dd", CultureInfo.InvariantCulture).AddDays(AppealWindowDays);
         var shownDeadline = DateTime.ParseExact(deadline.Groups[1].Value, "yyyy/MM/dd", CultureInfo.InvariantCulture);
         Assert.InRange((shownDeadline - expectedDeadline).TotalDays, -1, 1);
-        var track =await s.Citizen("30b-track").PostAsync("30b-track", "careers/track", "careers/track",
+        var track = await s.Citizen("30b-track").PostAsync("30b-track", "careers/track", "careers/track",
             [new("referenceNumber", row.Reference), new("nationalId", citizen.NationalId)]);
         Assert.Contains(NotAcceptedLabel, track.Body);
 
