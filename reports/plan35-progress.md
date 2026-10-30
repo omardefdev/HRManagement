@@ -12,7 +12,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 | P1 | done | 2026-10-30T14:07:43.5005632Z |
 | P2 | done | 2026-10-30T14:55:03.9999621Z |
 | P3 | done | 2026-10-30T15:01:33.3818627Z |
-| P4 | BLOCKED (owner decisions OI-1, OI-3) | |
+| P4 | done (waiting for owner push) | 2026-10-30T15:32:44.9129751Z |
 | P5 | pending | |
 | P6 | pending | |
 | P7 | pending | |
@@ -64,7 +64,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 
 ## Next step
 
-P4: owner decisions (OI-1 protection on main blocks the push, OI-3 SEC-001 fix), then prepush green, first-push description, merge to main, release branch.
+P5: after the owner push: gh run list --branch release/plan-35-first-push; gh pr checks; triage failures.
 
 ## P0/P1 results (2026-10-30T14:07:43.5005632Z)
 
@@ -152,3 +152,29 @@ Owner action done (UTC): 2026-10-30T15:05:27.2407909Z - owner answered «Yes, bo
 apply the file in P7; OI-3 (a) fix the 14 health routes with a unit test; defaults for the rest: D-QA-15 private = yes,
 D-QA-1 yes (local guard if the free plan cannot protect a private repo), D-QA-16 no signing, P-2 no (owner pushes),
 D-QA-2 as stated.
+
+## P4 results (2026-10-30T15:32:44.9129751Z)
+
+- OI-3 (a): `6e907f5` removes the 14 `Anonymous` policies from the `health-*` gateway routes;
+  `GatewayRoutingConfigurationTests.Upstream_health_routes_are_not_anonymous` fails on the old config, passes now (gateway
+  routing/authorization tests 32/32). Side effect recorded for PLAN-36: `scripts/verify-staging-stack.ps1` (deploy health
+  gate, Acceptance job) calls /health/upstreams/* anonymously and now gets the login redirect (passes without real
+  health data).
+- `reports/plan35-first-push.md` (PR description) `7c540ac`; merge into local main `0f69f52` (--no-ff);
+  `release/plan-35-first-push` = main = `0f69f52`, 168 commits ahead of origin/main.
+- ci-local on `0f69f52` (`artifacts/ci-local/summary.json`): 86 passed, 0 failed, 2 not-run (Testcontainers, coverage
+  gate; they run on ubuntu-latest), 968 s. The native Windows Testcontainers run was not repeated (deviation; remote CI
+  runs both steps for real).
+- `scripts/plan035-prepush.ps1` on `0f69f52`: all PASS (gitleaks history 163 / range 160 commits, actionlint, cilocal,
+  forbidden, nonprod, signatures N). Report: artifacts/plan35/prepush/report.md (not committed).
+- Progress commits after `0f69f52` go to the feature branch only, so the pushed HEAD is exactly the checked commit.
+
+## OWNER ACTION (P4)
+
+Waiting for owner (UTC): 2026-10-30T15:32:44.9129751Z
+
+1. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/scm/apply-branch-protection.ps1 -Remove`
+   (OI-1 a; done now, while the repository is still public: a private repository on the free plan may refuse the call)
+2. `gh repo edit omardefdev/HRManagement --visibility private --accept-visibility-change-consequences` (D-QA-15)
+3. `git push -u origin release/plan-35-first-push`
+4. `gh pr create --base main --head release/plan-35-first-push --title "First push: PLAN-25..35" --body-file reports/plan35-first-push.md`
