@@ -257,3 +257,25 @@ OWNER ACTION (P6) - Waiting for owner (UTC): 2026-10-30T19:55:14.0229436Z
 2. `git merge --ff-only release/plan-35-first-push`
 3. `git push origin main`
 Owner action done (UTC): 2026-10-30T19:57:19.2627337Z - owner fast-forwarded main to 444e8c2 and pushed («تم»); main = origin/main = 444e8c2. Push runs ci 41119397846 and hardening-check 41119397886 started 19:57:11Z.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41119397846](https://github.com/omardefdev/HRManagement/actions/runs/41119397846) | 444e8c2 (main push) | ci | 19:57:11 | 21:17:49 (81 min) | failure | CI **ok** 51.4; CodeQL **ok** 32.8; Gitleaks **ok** 1.1; notice ok 0.1; E2E **fail** 29.2 (52 passed / 5 failed / 0 skipped: TRF-H1/H2/H3, LEV-H1, HIR-H1 got HTTP 500 for the authorized persona; the anonymous and 5xx cases of the same pages passed; stack healthy on attempt 2 after auth-directory-web "relation AuthUsers does not exist", compliance/dev-analytics exit 139). ~115 min |
+| [41119397886](https://github.com/omardefdev/HRManagement/actions/runs/41119397886) | 444e8c2 (main push) | hardening-check | 19:57:11 | 20:01:09 | success | 4 |
+
+Triage (P6 round 1): same SHA as the green run 41107410607, so not a code regression but a startup race. Root cause
+(reproduced locally with postgres:16-alpine and the repo init scripts): the postgresql healthcheck pg_isready over
+the Unix socket passes while the entrypoint runs the init scripts on a temporary socket-only server (checks 3-4), the
+server then shuts down (5-6) and only the final server answers over TCP (7). Services started on "healthy" in that
+window crash (exit 139) or keep running without their migrations -> HTTP 500 on the hr-contracts / hr-movements pages.
+The earlier green run started its tests 6.5 min after the realm was ready, this one 1.5 min (no Playwright cache).
+No service logs or traces were uploaded for the failed E2E job (later improvement, final report section 10).
+Fix (CI path only, P-1; the healthcheck in docker-compose.yml stays a recorded product/dev-path defect):
+- d9c09b0 scripts/ci/compose-up-retry.sh starts postgresql first and waits for pg_isready -h 127.0.0.1.
+- ea4a256 scripts/acceptance-up.ps1 does the same (recruitment-journey job, P7). PS 5.1 parse clean, ASCII.
+D-QA-2 streak reset: E2E needs two consecutive green runs again before it becomes required.
+
+OWNER ACTION (P6 round 2) - Waiting for owner (UTC): 2026-10-30T21:23:49.2267396Z
+1. `git switch main`
+2. `git merge --ff-only release/plan-35-first-push`
+3. `git push origin main release/plan-35-first-push`
