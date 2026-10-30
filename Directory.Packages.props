@@ -55,7 +55,7 @@
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
 
     <!-- App libraries -->
-    <PackageVersion Include="ClosedXML" Version="0.105.0" />
+    <PackageVersion Include="ClosedXML" Version="0.105.1" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="MediatR" Version="14.2.0" />
