@@ -350,12 +350,13 @@ public class AcQa34PushableBaselineTests
         var bola = Count(unit, "BolaArchitectureTests.");
         r.WriteScenarioSteps("""
             Linux clean-HEAD run (scripts/ci-local.ps1), trx files:
-            - Plan034ScopedIndexTests (SQLite, real controllers): 6 cases × 12 actions, including "BR2 employee → 403".
+            - Plan034ScopedIndexTests (SQLite, real controllers): 6 cases × 12 actions, including "BR2 employee → 403", plus
+              3 cases (review E-1) where 110 newer BR2 rows must not push the BR1 rows past the page-size cap.
             - Plan034ScopedIndexPostgreSqlTests (Testcontainers): ContractsController and PaymentHoldsController on PostgreSQL.
             - BolaArchitectureTests: no Index(employeeId) action without a scope guard, no allow-list.
             """);
         r.WriteScenarioDbChecks(new { sqlite, forbidden, pg, pgSource = TestcontainersTrx().Source, bola });
-        Assert.Equal((72, 72, 0), sqlite);
+        Assert.Equal((75, 75, 0), sqlite); // 6 × 12 + 3 page-size-cap cases
         Assert.Equal((12, 12, 0), forbidden);
         Assert.Equal((2, 2, 0), pg);
         Assert.True(bola.Total >= 1 && bola.Failed == 0 && bola.Passed == bola.Total, $"BolaArchitectureTests {bola}");
