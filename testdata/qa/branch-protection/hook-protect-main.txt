@@ -1,0 +1,5 @@
+#!/bin/sh
+# PLAN-35 pre-push guard (scripts/scm/install-hooks.ps1)
+ps=powershell
+command -v powershell >/dev/null 2>&1 || ps=pwsh
+exec "$ps" -NoProfile -ExecutionPolicy Bypass -File scripts/scm/pre-push-guard.ps1 -ProtectMain "$1" "$2"

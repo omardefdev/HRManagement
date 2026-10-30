@@ -33,6 +33,16 @@
       "closeWhen": "The owner chooses squash/rebase merges for PRs; restore required_linear_history."
     },
     {
+      "id": "SCM-NO-GITHUB-PROTECTION",
+      "decision": "D-QA-15 (private) + D-QA-1 fallback",
+      "relaxes": "no GitHub branch protection on main at all: the repository is private on the free plan (API 403 'Upgrade to GitHub Pro'); required checks are not enforced by GitHub. Replacement: local pre-push guard (scripts/scm/install-hooks.ps1 -ProtectMain) and merging only through green PRs",
+      "owner": "omardefdev",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2027-01-28",
+      "status": "Open",
+      "closeWhen": "The repository becomes public or the account moves to GitHub Pro; then run scripts/scm/apply-branch-protection.ps1 and close this entry."
+    },
+    {
       "id": "CI-ACCEPTANCE-DISABLED",
       "decision": "PLAN-35 section 2",
       "relaxes": "ci.yml job Acceptance runs only when the repository variable ENABLE_ACCEPTANCE_JOB is true; it is not a required check",

@@ -178,3 +178,7 @@ Waiting for owner (UTC): 2026-10-30T15:32:44.9129751Z
 2. `gh repo edit omardefdev/HRManagement --visibility private --accept-visibility-change-consequences` (D-QA-15)
 3. `git push -u origin release/plan-35-first-push`
 4. `gh pr create --base main --head release/plan-35-first-push --title "First push: PLAN-25..35" --body-file reports/plan35-first-push.md`
+Owner action done (UTC): 2026-10-30T15:47:38.3266427Z - owner replied «تم». Verified: repository PRIVATE; protection API now
+403 "Upgrade to GitHub Pro" (private on free: protection unavailable -> D-QA-1 fallback, local guard, in P7);
+origin/release/plan-35-first-push = 0f69f52; PR #24 https://github.com/omardefdev/HRManagement/pull/24 opened
+2026-10-30T15:47:18Z; runs started 15:47:21Z: ci 41083926373, hardening-check 41083926377, iac-plan 41083926367 (success, 26 s).

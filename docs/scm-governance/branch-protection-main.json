@@ -19,6 +19,11 @@
       "condition": "PLAN-41: added when the Acceptance job is enabled and green (CI-ACCEPTANCE-DISABLED)"
     }
   ],
+  "unavailableFallback": {
+    "exceptionRef": "SCM-NO-GITHUB-PROTECTION",
+    "guard": "powershell -ExecutionPolicy Bypass -File scripts/scm/install-hooks.ps1 -ProtectMain",
+    "note": "D-QA-15 made the repository private on the free plan; GitHub answers 403 'Upgrade to GitHub Pro' for branch protection. Until it is public or on Pro, the local pre-push guard refuses direct pushes to main and runs gitleaks and the forbidden-file check."
+  },
   "enforce_admins": true,
   "required_pull_request_reviews": {
     "dismiss_stale_reviews": true,
