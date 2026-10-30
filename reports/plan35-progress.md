@@ -11,7 +11,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 | P0 | done | 2026-10-30T14:07:43.5005632Z |
 | P1 | done | 2026-10-30T14:07:43.5005632Z |
 | P2 | done | 2026-10-30T14:55:03.9999621Z |
-| P3 | pending | |
+| P3 | done | 2026-10-30T15:01:33.3818627Z |
 | P4 | pending | |
 | P5 | pending | |
 | P6 | pending | |
@@ -64,7 +64,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 
 ## Next step
 
-P3: branch protection as code (protection file, validator with exceptionRefs + -CheckLiveGitHub, Scm001BranchProtectionExceptionTests, CODEOWNERS @omardefdev, apply script, docs).
+P4: owner decisions (OI-1 protection on main blocks the push, OI-3 SEC-001 fix), then prepush green, first-push description, merge to main, release branch.
 
 ## P0/P1 results (2026-10-30T14:07:43.5005632Z)
 
@@ -112,3 +112,18 @@ P3: branch protection as code (protection file, validator with exceptionRefs + -
 
 Open issue OI-3: SEC-001 anonymous /health/upstreams/* (product config). Options: (a) remove the 14 Anonymous policies
 + a unit test pinning it (recommended); (b) quarantine the E2E case (hides a real regression; not recommended).
+
+## P3 results (2026-10-30T15:01:33.3818627Z)
+
+- `docs/scm-governance/branch-protection-main.json`: contexts CI/CodeQL/Gitleaks strict; pendingRequiredChecks E2E
+  (D-QA-2) and Acceptance (PLAN-41); 0 approvals/no code-owner/no last-push (SCM-REVIEW-COUNT-0), no signatures
+  (SCM-UNSIGNED-COMMITS), no linear history (SCM-MERGE-COMMITS); enforce_admins, no force-push/deletion.
+- Validator: policy floors + exceptionRefs -> Open unexpired governance exception; hard rules; contexts = ci.yml job
+  names; CODEOWNERS only @omardefdev; -CheckLiveGitHub / -LiveProtectionFile field-by-field. Live today: 5 differences
+  (the pre-PLAN-35 protection) - expected until P7.
+- CODEOWNERS: 366 x @omard -> @omardefdev. `scripts/scm/apply-branch-protection.ps1` (-DryRun, -Remove for OI-1 (a)).
+- Tests: Scm001BranchProtectionExceptionTests 10 + Scm001GovernanceTests updated (relaxation needs exceptionRefs).
+- Incident (no effect): a bash command with backticks in double quotes ran fragments as commands; every PowerShell
+  script among them was refused by the machine's execution policy (Restricted). Verified afterwards: live protection
+  unchanged (2 reviews, signatures, linear), no git hook installed, runbook restored and rewritten with the Edit tool.
+- Finding: Windows PowerShell here refuses `powershell -File` without `-ExecutionPolicy Bypass`; owner commands use it.

@@ -28,8 +28,14 @@ public class Scm001GovernanceTests
         Assert.False(root.GetProperty("allow_force_pushes").GetBoolean());
         Assert.False(root.GetProperty("allow_deletions").GetBoolean());
         Assert.True(root.GetProperty("enforce_admins").GetBoolean());
-        Assert.True(root.GetProperty("required_signatures").GetBoolean());
-        Assert.True(root.GetProperty("required_pull_request_reviews").GetProperty("required_approving_review_count").GetInt32() >= 2);
+        // PLAN-35: a value below policy is allowed only with an exceptionRefs id (scm001-branch-protection-validate.ps1
+        // checks that id against docs/qa/governance-exceptions.json; Scm001BranchProtectionExceptionTests).
+        var refs = root.TryGetProperty("exceptionRefs", out var r)
+            ? r.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal)
+            : [];
+        Assert.True(root.GetProperty("required_signatures").GetBoolean() || refs.Contains("required_signatures"));
+        Assert.True(root.GetProperty("required_pull_request_reviews").GetProperty("required_approving_review_count").GetInt32() >= 2
+            || refs.Contains("required_pull_request_reviews.required_approving_review_count"));
 
         var contexts = root.GetProperty("required_status_checks").GetProperty("contexts")
             .EnumerateArray().Select(e => e.GetString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
