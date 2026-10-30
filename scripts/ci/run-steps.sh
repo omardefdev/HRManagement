@@ -36,6 +36,9 @@ PY="$(command -v python3 || command -v python || true)"
 if [[ -z "$PY" ]]; then echo "run-steps.sh: python3 is required" >&2; exit 2; fi
 
 mkdir -p "$OUT/logs" "$OUT/steps"
+# state of the tree under test, before any step rewrites tracked files (kept across --step invocations of one run)
+[[ "$MODE" == "all" ]] && rm -f "$OUT/start-dirty.z"
+[[ -f "$OUT/start-dirty.z" ]] || git status --porcelain -z --untracked-files=no > "$OUT/start-dirty.z" 2>/dev/null || true
 
 # name<TAB>always for every step, in order
 mapfile -t STEP_ROWS < <("$PY" - "$STEPS_FILE" <<'PY'
@@ -115,8 +118,9 @@ def dirty(cwd):
     crlf = os.environ.get("CI_SOURCE_AUTOCRLF") if cwd == os.environ.get("CI_SOURCE_DIR") else None
     args = (["-c", "core.autocrlf=" + crlf] if crlf else []) + ["status", "--porcelain", "-z", "--untracked-files=no"]
     s = git(*args, cwd=cwd)
-    if s is None:
-        return None
+    return None if s is None else parse_porcelain(s)
+
+def parse_porcelain(s):
     entries, parts, i = [], s.split("\0"), 0
     while i < len(parts):
         e = parts[i]
@@ -143,7 +147,15 @@ def overrides(cwd, dirty_list):
                 known.append("global.json (rollForward only: %s -> %s)" % (committed["sdk"].get("rollForward"), work["sdk"].get("rollForward")))
     return known
 
-tested_dirty = dirty(".") or []
+# dirtyTracked describes the tree UNDER TEST: captured before the first step (start-dirty.z). Steps rewrite tracked
+# files themselves (testdata/*/out reports, docs/qa registries); those are listed as rewrittenByRun, not as dirt.
+start_file = os.path.join(out, "start-dirty.z")
+end_dirty = dirty(".") or []
+if os.path.isfile(start_file):
+    tested_dirty = parse_porcelain(open(start_file, encoding="utf-8", errors="replace").read())
+else:
+    tested_dirty = end_dirty
+rewritten = sorted(set(end_dirty) - set(tested_dirty))
 tested_known = overrides(".", tested_dirty)
 source_dir = os.environ.get("CI_SOURCE_DIR")
 host = None
@@ -173,6 +185,8 @@ summary = {
     "gitSha": (git("rev-parse", "HEAD") or "").strip() or None,
     "dirtyTracked": [d for d in tested_dirty if not any(k.startswith(d + " ") for k in tested_known)],
     "knownLocalOverrides": tested_known,
+    "rewrittenByRunCount": len(rewritten),
+    "rewrittenByRun": rewritten,
     "host": host,
     "ok": bool(executed) and all(s["status"] == "passed" for s in executed) and not any(s.get("status") == "failed" for s in steps),
     "counts": {k: sum(1 for s in steps if s.get("status") == k) for k in ("passed", "failed", "skipped", "not-run", "not-recorded")},

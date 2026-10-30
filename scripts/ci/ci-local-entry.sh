@@ -19,12 +19,16 @@ git config --global --add safe.directory '*'
 # then enforce container-only settings (e.g. "HrGateway:InternalBaseUrl must use Docker service DNS") when the EF tools
 # build them at design time.
 unset DOTNET_RUNNING_IN_CONTAINER
-# host.docker.internal also resolves to an IPv6 address this container cannot route ("Network is unreachable",
-# connect timeouts in Testcontainers tests); use its IPv4 address for the sibling containers' published ports.
+# Testcontainers reaches the sibling containers through their published ports via host.docker.internal. Its IPv6
+# address is not routable from here ("Network is unreachable"), so the IPv4 address is used. On Docker Desktop this
+# path still goes through the desktop port proxy and PostgreSQL connections time out now and then under load (the
+# bridge gateway does not work either: Ryuk is unreachable there). Evidence runs therefore use -SkipTestcontainers
+# and run the Testcontainers suite natively on the host (PLAN-34 rule P-3); GitHub runners are not affected.
 if [[ "${TESTCONTAINERS_HOST_OVERRIDE:-}" == "host.docker.internal" ]]; then
   v4="$(getent ahostsv4 host.docker.internal | awk 'NR==1{print $1}')"
   [[ -n "$v4" ]] && export TESTCONTAINERS_HOST_OVERRIDE="$v4"
 fi
+echo "ci-local: TESTCONTAINERS_HOST_OVERRIDE=${TESTCONTAINERS_HOST_OVERRIDE:-unset}"
 rm -rf /work/repo /work/out
 git clone --quiet --no-hardlinks /src /work/repo || { echo "ci-local: git clone of /src failed"; exit 90; }
 cd /work/repo

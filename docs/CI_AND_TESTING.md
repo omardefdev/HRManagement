@@ -105,22 +105,57 @@ dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTest
   --filter "FullyQualifiedName~ContractLifecycleIntegrationTests"
 ```
 
-## مطابقة CI محلياً
+## مطابقة CI محلياً — `scripts/ci-local.ps1` (PLAN-34)
+
+خطوات وظيفة `build-and-test` لها **مصدر واحد**: [`scripts/ci/steps.json`](../scripts/ci/steps.json) (87 خطوة، بالترتيب).
+`ci.yml` يشغّل كل خطوة بـ `bash scripts/ci/run-steps.sh --step "<name>"`، و`CiStepsParityTests` يرفض أي انحراف (اسم أو ترتيب
+أو `run:` مضمّن أو استبعاد فئة بلا مالك). أي خطوة جديدة تُضاف إلى `steps.json` ثم إلى `ci.yml` بالسطر نفسه.
+
+التشغيل المحلي في حاوية Linux (الصورة `docker/ci-local/Dockerfile`: SDK `10.0.400` بالضبط، python3، docker CLI/compose/buildx،
+actionlint، `powershell`←`pwsh`):
 
 ```powershell
-dotnet format HRManagement.slnx --verify-no-changes
-dotnet build HRManagement.slnx -c Release
-Remove-Item -Recurse -Force ./TestResults -ErrorAction SilentlyContinue
-dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj -c Release --no-build --settings coverlet.runsettings --collect:"XPlat Code Coverage" --results-directory ./TestResults/unit
-dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj -c Release --no-build --filter "Category!=Testcontainers" --settings coverlet.runsettings --collect:"XPlat Code Coverage" --results-directory ./TestResults/integration
-$env:RUN_TESTCONTAINERS = "true"
-dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj -c Release --no-build --filter "Category=Testcontainers" --settings coverlet.runsettings --collect:"XPlat Code Coverage" --results-directory ./TestResults/integration-tc
-.\scripts\check-coverage.ps1 -CoverageThreshold 60
-dotnet list HRManagement.slnx package --vulnerable --include-transitive
-# أو: bash scripts/check-nuget-vulnerabilities.sh
-# bash scripts/check-base-image-pins.sh && bash scripts/check-supply-chain-exceptions.sh && bash scripts/check-license-policy.sh
-docker compose build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1                       # كل الخطوات على نسخة نظيفة من HEAD
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -ContinueOnError -Out artifacts/ci-local/run1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -Step "Restore (locked mode),Build,Unit tests"
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -Source WorkingTree   # يشمل التعديلات غير المودَعة
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTestcontainers   # الخطوة تُطبع «not-run» صراحة
 ```
+
+- **`-Source Head`** (الافتراضي): الحاوية تستنسخ HEAD المودَع وتشغّل فيه، فلا يدخل تعديل `global.json` المحلي ولا مجلدات
+  `bin/obj` الخاصة بـ Windows. `-Source WorkingTree` ينسخ فوق النسخة الملفات التي يراها git معدّلة أو جديدة ويعيد `global.json`
+  المودَع دائماً.
+- **`summary.json`** (في `-Out`): `gitSha`، `dirtyTracked`، `knownLocalOverrides` (`global.json` حين يختلف `rollForward` وحده)،
+  ولكل خطوة `status`/`exit`/`durationSec`، وعدّ trx، و`complete`. يُعدّ دليلاً فقط إذا كان `gitSha` = HEAD و`dirtyTracked` فارغة
+  وكل الخطوات `passed`.
+- **مطابقة المشغّل الافتراضي:** `DOTNET_RUNNING_IN_CONTAINER` يُلغى (المشغّل VM لا حاوية)، ومجلد المؤقتات مركّب بالمسار نفسه
+  (`TMPDIR=/tmp/hrm-ci-local`) لأن Testcontainers يركّب ملفات منه، و`TESTCONTAINERS_HOST_OVERRIDE` على عنوان IPv4 لـ
+  `host.docker.internal`.
+- لا مفهوم «إخفاقات معروفة»: أي خطوة فاشلة حمراء.
+
+## الالتزامات المؤرخة (QA-034)
+
+كل تاريخ قد يوقف CI أو خدمة في يوم معيّن مسجّل في [`docs/qa/dated-obligations.json`](qa/dated-obligations.json)
+(استثناءات STR-005/STR-002، ختم الرصد التشريعي، تراخيص/EOL الموردين، استثناءات SCA، الحجر، استبعادات CI، أرضيات التغطية المؤقتة،
+تاريخ إغلاق بذرة القبول). `scripts/qa/dated-obligations-check.ps1` يُنذر قبل 30 يوماً ويُفشل قبل 7 أيام أو عند الانتهاء أو
+عند تاريخ ليس `yyyy-MM-dd`؛ يعمل خطوةً قبل مدقّقات STR/MIG وأسبوعياً في `.github/workflows/dated-obligations.yml`.
+`DatedObligationsTests` يفشل عند ملف JSON جديد يحمل مفتاحاً مؤرخاً دون تسجيل. الالتزام لا يتغير بتمديد التاريخ، بل بحالته
+(`Closed`/`Renewed`) وبقرار مسجّل. اختبارات الوحدة لا تقرأ الساعة الحقيقية (`FixedTimeProvider`، `-AsOfDate`)، عدا الكناري
+`RuntimeGovernanceDocumentsTests`.
+
+## ثقافة الاختبارات
+
+كل مشاريع الاختبار تعمل بثقافة **ar-SY** (تقويم ميلادي، ثقافة الطلبات في الإنتاج) عبر `TestCulture.cs` (`[ModuleInitializer]`)،
+فيتطابق Windows (ar-SA) وLinux. `TestCultureGuardTests` يحمرّ إن أُزيل. الشيفرة الجديدة تحلّل وتنسّق التواريخ والأرقام الآلية
+بـ `CultureInfo.InvariantCulture`.
+
+## استبعادات وحجر
+
+- `Category=ObjectStorage` (`Qa003MinioFileScanTests`) مستبعدة من خطوة Testcontainers حتى تختار PLAN-38 صورة MinIO
+  (`HRM_MINIO_IMAGE`)؛ البند في [`tests/ci-exclusions.json`](../tests/ci-exclusions.json) بتاريخ مراجعة.
+- [`tests/quarantine.json`](../tests/quarantine.json) فارغ؛ كل بند فيه سيكون `Category=Flaky` بتاريخ مراجعة.
+- المكدّس الأساسي (`docker-compose.yml` + `docker-compose.services.yml`) يشغّل File.Storage بالمزوّد `Local`؛ MinIO عبر
+  `docker-compose.object-storage.yml` و`MINIO_IMAGE` مثبّت بالـ digest.
 
 ## CI
 
@@ -128,11 +163,12 @@ docker compose build
 
 | البوابة | إلزامية؟ | ملاحظات |
 |---------|----------|---------|
+| Dated obligations horizon | نعم | `scripts/qa/dated-obligations-check.ps1` (QA-034) |
 | Format | نعم | `dotnet format --verify-no-changes` |
-| Build | نعم | الحل بالكامل |
+| Build | نعم | الحل بالكامل، `-warnaserror`؛ NU1903/NU1904 أخطاء في `Directory.Build.props` |
 | Unit + coverage | نعم | `coverlet.runsettings` |
 | Integration (InMemory) + coverage | نعم | بدون Testcontainers |
-| Testcontainers (PG/Rabbit/Keycloak/MinIO) | نعم | `RUN_TESTCONTAINERS=true`؛ QA-003 |
+| Testcontainers (PG/Rabbit/Keycloak) | نعم | `RUN_TESTCONTAINERS=true`؛ QA-003؛ `Category!=ObjectStorage` (PLAN-38) |
 | Coverage gate | نعم | `check-coverage.py`؛ 60% على gateAssemblies + floors |
 | Security scan | نعم | `check-nuget-vulnerabilities.sh`؛ Crit/High + استثناءات `supply-chain-exceptions.json` (SUP-001) |
 | Base image pins / license / exceptions | نعم | `check-base-image-pins.sh`, `check-license-policy.sh`, `check-supply-chain-exceptions.sh` |
