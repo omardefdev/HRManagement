@@ -372,3 +372,4 @@ Recorded for later (final report section 10): the application services have no c
 OWNER ACTION (P7 round 3) - Waiting for owner (UTC): 2026-10-31T00:42:10.630604200Z
 1. `git push origin release/plan-35-first-push`
 2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
+Owner action done (UTC): 2026-10-31T00:44:41.8947273Z - on the owner's instruction (button «Yes, run them») Claude pushed release (4d1b472 -> 0ef97be) and dispatched e2e-journeys on the release ref: run 41151844485.
