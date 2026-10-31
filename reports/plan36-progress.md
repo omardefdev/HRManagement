@@ -11,8 +11,9 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 | P2 | done | 2026-10-31T13:58:09Z |
 | P3 | done | 2026-10-31T14:02:43Z |
 | P4 | done | 2026-10-31T14:13:06Z |
-| P5 | in progress | |
-| P6-P8 | not started | |
+| P5 | done | 2026-10-31T14:29:19Z |
+| P6 | in progress | |
+| P7-P8 | not started | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -73,7 +74,7 @@ answered by P7.
 
 ## Next step
 
-P5 (images overlay, build-push, bundle, deploy/rollback, host-setup, VpsDemo realm, smoke, docs draft).
+P6 (local registry, build-push, -Local deploy, AcOps36VpsBootTests, evidence).
 
 ## P0 result
 
@@ -185,3 +186,37 @@ Finished (UTC): 2026-10-31T14:13:06Z
   - Caddy: no `trusted_proxies`, so a client `X-Forwarded-For` is ignored and Caddy sends the connection address.
   - Demo mode is the separate file; `remote-deploy.sh` (P5) adds it only when `HRM_DEPLOYMENT_MODE=demo`.
 - Note for P6: Git Bash rewrites absolute container paths in `docker run` arguments; use `MSYS_NO_PATHCONV=1`.
+
+## P5 result
+
+Finished (UTC): 2026-10-31T14:29:19Z
+- `docker-compose.images.yml`: `${HRM_IMAGE_REPO:?}/<service>:${IMAGE_TAG:?}` for the 15 services;
+  `e2e-journeys.yml` and `deploy.yml` derive `HRM_IMAGE_REPO` lowercase from the repository owner.
+- New scripts: `scripts/vps/build-push-images.ps1` (build context = `git archive HEAD`, buildx bake linux/amd64 in
+  batches, per-image timed `docker push`, digest + compressed size into `artifacts/vps/images-<tag>.json`),
+  `make-deploy-bundle.ps1` (files from the committed tag via `git show`, the VpsDemo realm, RELEASE; refuses any
+  `.env`; gitleaks pinned image over the staged bundle), `deploy.ps1` (remote over ssh / `-Local` through Git Bash /
+  `-Rollback`; timings JSON), `smoke.ps1` (smoke.sh + outside port checks; IP masked to two octets).
+  `deploy/vps/remote-deploy.sh` (deploy/rollback/check-env; key names and lengths only; constant project `hrm`;
+  `--profile full-stack`; demo file when `HRM_DEPLOYMENT_MODE=demo`; waits for healthy up to 600 s; previous tag),
+  `deploy/vps/smoke.sh` (containers, OOM, TLS incl. `--allow-staging-ca` = LE staging only, redirect to SSO,
+  edge 404/403, curl sign-in with form_post handling + 13 module UIs, public listeners, nextDue warning,
+  `Deferred(PLAN-37)` list; JSON), `deploy/vps/host-setup.sh` (base / `--harden-ssh` / `--undo-harden-ssh` /
+  `--with-registry`), `deploy/vps/.env.vps.example` (Arabic comments, no secret values), `deploy/vps/.env.vps-local`
+  (lab-only, `-lab-only` suffix + `.gitleaks.toml` allow-list path AND line), `docs/OPS_VPS_SINGLE_HOST.md` (draft).
+- `deploy.yml`: deploy and rollback jobs build the bundle and run `remote-deploy.sh` over plain ssh/scp with
+  `StrictHostKeyChecking=yes` (new secret `DEPLOY_SSH_KNOWN_HOSTS`, var `APP_DOMAIN`); health gate = `smoke.sh`
+  (closes PLAN-35 defect 6: `verify-staging-stack.ps1` no longer used); `record-deployment.sh` step dropped
+  (remote-deploy.sh writes `/opt/hrm/deployments.log`). Not run (workflow_dispatch / tags only).
+- `scripts/deploy-organization.ps1`: wrapper (sets `HRM_ORGANIZATION_NAME` in the server .env line or the local
+  process env, then `deploy.ps1`); `HR_LEGAL_REGIME`/`HR_LICENSE_*` gone.
+- `prepare-keycloak-import.ps1 -Profile VpsDemo -AppDomain`: every user password `${DEMO_USERS_PASSWORD}`, gateway
+  secret and 8 service-client secrets as `${...}` placeholders, unused secret clients disabled, redirect/web origin/
+  post-logout from APP_DOMAIN, `directAccessGrantsEnabled=false`, `sslRequired=external`, brute-force protection;
+  refuses leftover dev values; output `artifacts/vps/import/`. Keycloak gets the referenced variables (vps.yml).
+- Checks: `bash -n` OK for the three `.sh`; all `.ps1` parse under PowerShell 5.1 and are ASCII; lint-compose PASS
+  both chains (the lint now keeps the example's non-secret defaults, which caught OTEL filler values); gitleaks: the
+  lab-only file passes, a real token in it is still found; `Ops036|Sec00|Hard001` 111/111.
+- Decisions: images built from `git archive HEAD` (local edits and untracked files cannot leak into an image;
+  `global.json` ignored in the dirty check because the owner's local roll-forward edit never enters the context);
+  bake + one timed push per image instead of `build --push` (P-? "time every push"); `HRM_HOME` layout per P-11.

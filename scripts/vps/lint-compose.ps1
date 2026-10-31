@@ -46,7 +46,12 @@ function New-LintEnvFile([string]$Path) {
     $example = Join-Path $RepoRoot 'deploy\vps\.env.vps.example'
     if (Test-Path $example) {
         foreach ($line in Get-Content -Path $example) {
-            if ($line -match '^\s*([A-Z][A-Z0-9_]*)\s*=') { $values[$Matches[1]] = 'lint-only-' + $Matches[1].ToLowerInvariant().Replace('_', '-') }
+            # Keep the example's own non-secret defaults (HRM_OTEL_ENABLED=false, ...); fill only the empty keys.
+            if ($line -match '^\s*([A-Z][A-Z0-9_]*)\s*=(.*)$') {
+                $value = $Matches[2].Trim()
+                if (-not $value) { $value = 'lint-only-' + $Matches[1].ToLowerInvariant().Replace('_', '-') }
+                $values[$Matches[1]] = $value
+            }
         }
     }
     $fixed = [ordered]@{

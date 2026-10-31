@@ -272,11 +272,114 @@ public class Ops036ComposeLintTests
     }
 
     [Fact]
-    public void Deploy_workflow_enables_the_full_stack_profile()
+    public void Deploy_workflow_uses_the_single_deploy_path()
     {
         var deploy = Read(".github/workflows/deploy.yml");
-        var invocations = Regex.Matches(deploy, @"docker compose \\\r?\n");
-        Assert.NotEmpty(invocations);
-        Assert.Equal(invocations.Count, Regex.Matches(deploy, @"docker compose \\\r?\n\s*--profile full-stack \\").Count);
+        Assert.DoesNotContain("docker compose", deploy);
+        Assert.Contains("bash deploy/vps/remote-deploy.sh deploy $TAG", deploy);
+        Assert.Contains("remote-deploy.sh rollback", deploy);
+        Assert.Contains("deploy/vps/smoke.sh", deploy);
+        Assert.Contains("tr '[:upper:]' '[:lower:]')/hrmanagement", deploy);
+        Assert.Contains("StrictHostKeyChecking=yes", deploy);
+        Assert.DoesNotContain("StrictHostKeyChecking=no", deploy);
+        Assert.DoesNotContain("verify-staging-stack", deploy);
+
+        var remote = Read("deploy/vps/remote-deploy.sh");
+        Assert.Contains("--profile full-stack", remote);
+        Assert.Contains("docker-compose.vps-demo.yml", remote);
+        Assert.Contains("check_env", remote);
+    }
+
+    [Fact]
+    public void Images_come_from_a_registry_variable_with_a_fixed_tag()
+    {
+        var images = Read("docker-compose.images.yml");
+        Assert.Equal(15, Regex.Matches(images, @"image: \$\{HRM_IMAGE_REPO:\?[^}]*\}/[a-z-]+:\$\{IMAGE_TAG:\?IMAGE_TAG required\}").Count);
+        Assert.DoesNotContain("GITHUB_REPOSITORY_OWNER", images);
+        Assert.DoesNotContain(":latest", images);
+
+        var build = Read("scripts/vps/build-push-images.ps1");
+        Assert.Contains("The tag latest is refused", build);
+        Assert.Contains("platforms  = @('linux/amd64')", build);
+        Assert.Contains("-AllowDirty", build);
+        // Images are built from the committed HEAD, never from the working tree.
+        Assert.Contains("@('archive', '--format=tar'", build);
+    }
+
+    [Fact]
+    public void Deploy_bundle_and_scripts_carry_no_secrets_and_stay_ascii()
+    {
+        var bundle = Read("scripts/vps/make-deploy-bundle.ps1");
+        Assert.Contains("The bundle would contain an env file", bundle);
+        Assert.Contains("gitleaks", bundle);
+        Assert.Contains("'deploy/vps/.env.vps.example'", bundle);
+        Assert.DoesNotContain("shared/.env", bundle);
+
+        foreach (var script in new[]
+                 {
+                     "scripts/vps/build-push-images.ps1", "scripts/vps/make-deploy-bundle.ps1", "scripts/vps/deploy.ps1",
+                     "scripts/vps/smoke.ps1", "scripts/vps/lint-compose.ps1", "scripts/deploy-organization.ps1",
+                     "scripts/prepare-keycloak-import.ps1"
+                 })
+        {
+            var text = Read(script);
+            Assert.All(text, c => Assert.True(c < 128, $"non-ASCII character U+{(int)c:X4} in {script}"));
+            Assert.DoesNotContain("pwsh", text);
+        }
+
+        var local = Read("deploy/vps/.env.vps-local");
+        foreach (var line in local.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => Regex.IsMatch(l, "^[A-Z_]+(PASSWORD|PASS|SECRET|KEY)=")))
+            Assert.EndsWith("-lab-only", line);
+        Assert.Contains("deploy/vps/\\.env\\.vps-local", Read(".gitleaks.toml"));
+    }
+
+    [Fact]
+    public void Env_example_lists_every_required_key_without_secret_values()
+    {
+        var example = Read("deploy/vps/.env.vps.example");
+        var keys = Regex.Matches(example, @"(?m)^([A-Z][A-Z0-9_]*)=(.*)$").Select(m => (Key: m.Groups[1].Value, Value: m.Groups[2].Value.Trim())).ToList();
+        foreach (var required in new[]
+                 {
+                     "APP_DOMAIN", "SSO_DOMAIN", "ACME_EMAIL", "ADMIN_ALLOWED_CIDRS", "HRM_IMAGE_REPO", "IMAGE_TAG",
+                     "GATEWAY_CALLER_PROOF_SECRET", "HRM_DEPLOYMENT_MODE", "COMPOSE_PROFILES", "HRM_ORGANIZATION_NAME",
+                     "DEMO_USERS_PASSWORD", "HRM_ACME_CA", "POSTGRES_PASSWORD", "KEYCLOAK_ADMIN_PASSWORD"
+                 })
+            Assert.Contains(keys, k => k.Key == required);
+        foreach (var (key, value) in keys.Where(k => Regex.IsMatch(k.Key, "(PASSWORD|PASS|SECRET|_KEY)$")))
+            Assert.True(value.Length == 0, $"{key} must have no value in the example");
+        Assert.Contains(keys, k => k.Key == "HRM_DEPLOYMENT_MODE" && k.Value == "demo");
+        Assert.Contains(keys, k => k.Key == "COMPOSE_PROFILES" && k.Value == "full-stack");
+    }
+
+    [Fact]
+    public void Host_setup_hardens_ssh_only_on_request_with_a_first_read_drop_in()
+    {
+        var setup = Read("deploy/vps/host-setup.sh");
+        Assert.Contains("/etc/ssh/sshd_config.d/00-hrm-hardening.conf", setup);
+        Assert.Contains("PermitRootLogin no", setup);
+        Assert.Contains("PasswordAuthentication no", setup);
+        Assert.Contains("KbdInteractiveAuthentication no", setup);
+        Assert.Contains("sshd -t", setup);
+        Assert.Contains("--undo-harden-ssh", setup);
+        Assert.Contains("visudo -cf", setup);
+        Assert.Contains("Automatic-Reboot \"false\"", setup);
+        Assert.Contains("vm.swappiness=10", setup);
+        // The SSH rule precedes enabling the firewall.
+        Assert.True(setup.IndexOf("ufw allow 22/tcp", StringComparison.Ordinal) < setup.IndexOf("ufw --force enable", StringComparison.Ordinal));
+        Assert.DoesNotMatch(@"ufw allow (80|5000|8080|5432|5672|15672|5341|5380)\b", setup);
+        // Base setup never touches sshd: hardening is a separate, explicit step.
+        var baseCase = Regex.Match(setup, @"(?ms)^  """"\)\r?\n(.*?);;").Groups[1].Value;
+        Assert.DoesNotContain("harden", baseCase);
+    }
+
+    [Fact]
+    public void Vps_demo_realm_profile_keeps_every_secret_a_placeholder()
+    {
+        var script = Read("scripts/prepare-keycloak-import.ps1");
+        Assert.Contains("\"VpsDemo\"", script);
+        Assert.Contains("'${DEMO_USERS_PASSWORD}'", script);
+        Assert.Contains("'${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}'", script);
+        Assert.Contains("directAccessGrantsEnabled = $false", script);
+        Assert.Contains("artifacts/vps/import", script);
     }
 }

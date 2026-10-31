@@ -23,3 +23,10 @@ condition = "AND"
 paths = ['''^src/Tests/HRManagement\.IntegrationTests/TestFixtures\.cs$''']
 regexTarget = "match"
 regexes = ['''Secret\s*=>\s*"qa003-(service|wrong)-secret"''']
+
+[[allowlists]]
+description = "PLAN-36 local single-host acceptance (deploy/vps/.env.vps-local): lab-only values for the chain on the owner's Docker Desktop with hr.hrm.test/sso.hrm.test. Every value ends in -lab-only and is never used on a server (the server generates its own .env)."
+condition = "AND"
+paths = ['''^deploy/vps/\.env\.vps-local$''']
+regexTarget = "line"
+regexes = ['''^[A-Z][A-Z0-9_]*=[a-z0-9-]+-lab-only$''']

@@ -6,10 +6,13 @@
 #>
 param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
-    [ValidateSet("Demo", "Acceptance")]
+    [ValidateSet("Demo", "Acceptance", "VpsDemo")]
     [string]$Profile = "Demo",
     [string]$DemoPassword = "HrAdmin123!",
-    [switch]$RotateAcceptanceCredentials
+    [switch]$RotateAcceptanceCredentials,
+    # VpsDemo (PLAN-36): the public application name (APP_DOMAIN) and the output directory (git-ignored).
+    [string]$AppDomain = "",
+    [string]$OutDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -105,6 +108,75 @@ function Get-AcceptanceEmployeeId($Persona) {
     $guidBytes[6] = [byte](($guidBytes[6] -band 0x0F) -bor 0x40)
     $guidBytes[8] = [byte](($guidBytes[8] -band 0x3F) -bor 0x80)
     return (New-Object System.Guid (,$guidBytes)).ToString("D")
+}
+
+# PLAN-36: the single-host demo realm. Every secret stays a Keycloak environment placeholder (${NAME}) that Keycloak
+# resolves from its own container environment at import, on the server. So no password or client secret is read from
+# or written to this machine, and the file can travel in the deploy bundle.
+if ($Profile -eq "VpsDemo") {
+    if ([string]::IsNullOrWhiteSpace($AppDomain) -or $AppDomain -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$') {
+        throw "-AppDomain must be the public application host name (APP_DOMAIN), for example hr.161-97-185-71.sslip.io."
+    }
+    if ([string]::IsNullOrWhiteSpace($OutDir)) { $OutDir = Join-Path $RepoRoot "artifacts/vps/import" }
+    New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+
+    $vpsRealm = (Get-Content (Join-Path $RepoRoot "docker/keycloak/realm-hrmanagement-dev.template.json") -Raw -Encoding UTF8) | ConvertFrom-Json
+    $vpsRealm.displayName = "HR Management (demo)"
+    # Browsers come over the TLS edge; Keycloak sees https through X-Forwarded-Proto. Private addresses (the services
+    # on the data network) stay allowed over plain HTTP.
+    $vpsRealm.sslRequired = "external"
+    # Internet-facing: temporary lockout after repeated wrong passwords (Keycloak brute-force detection).
+    $vpsRealm | Add-Member -Force -NotePropertyName bruteForceProtected -NotePropertyValue $true
+    $vpsRealm | Add-Member -Force -NotePropertyName failureFactor -NotePropertyValue 10
+    $vpsRealm | Add-Member -Force -NotePropertyName permanentLockout -NotePropertyValue $false
+
+    # One demo password for every demo user (the template's e2e passwords are public in Git).
+    foreach ($user in @($vpsRealm.users)) {
+        foreach ($credential in @($user.credentials)) {
+            if ($credential.type -eq "password") { $credential.value = '${DEMO_USERS_PASSWORD}' }
+        }
+    }
+
+    # Service clients: each secret from the server's .env (same names as docker-compose.production.yml). Clients
+    # that no service on the single host uses are disabled and carry no secret.
+    $serviceSecrets = @{
+        "svc-hr-core"         = "SVC_HR_CORE_CLIENT_SECRET"
+        "svc-payroll"         = "SVC_PAYROLL_CLIENT_SECRET"
+        "svc-hr-contracts"    = "SVC_HR_CONTRACTS_CLIENT_SECRET"
+        "svc-hr-training"     = "SVC_HR_TRAINING_CLIENT_SECRET"
+        "svc-idcard"          = "SVC_IDCARD_CLIENT_SECRET"
+        "svc-records-archive" = "SVC_RECORDS_ARCHIVE_CLIENT_SECRET"
+        "svc-admin-logistics" = "SVC_ADMIN_LOGISTICS_CLIENT_SECRET"
+        "svc-it-infra"        = "SVC_IT_INFRA_CLIENT_SECRET"
+        "directory-sync"      = "KEYCLOAK_DIRECTORY_SYNC_SECRET"
+    }
+    foreach ($client in @($vpsRealm.clients)) {
+        $id = [string]$client.clientId
+        if ($id -eq "hr-gateway-client") {
+            $client.secret = '${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}'
+            $client.redirectUris = @("https://$AppDomain/signin-oidc")
+            $client.webOrigins = @("https://$AppDomain")
+            $client.attributes.'post.logout.redirect.uris' = "https://$AppDomain/signout-callback-oidc"
+            # No password grant on an internet-facing demo: browsers use the code flow through the gateway.
+            $client.directAccessGrantsEnabled = $false
+        }
+        elseif ($serviceSecrets.ContainsKey($id)) {
+            $client.secret = '${' + $serviceSecrets[$id] + '}'
+        }
+        elseif ($null -ne $client.PSObject.Properties["secret"]) {
+            $client.enabled = $false
+            $client.PSObject.Properties.Remove("secret")
+        }
+    }
+
+    $vpsJson = $vpsRealm | ConvertTo-Json -Depth 100
+    foreach ($leftover in @("__KEYCLOAK_HR_GATEWAY_CLIENT_SECRET__", "__DEMO_HRADMIN_PASSWORD__", "__SVC_SECRET__", "dev-svc-secret-local-only", "localhost")) {
+        if ($vpsJson.Contains($leftover)) { throw "VpsDemo realm still contains '$leftover'." }
+    }
+    $vpsOut = Join-Path $OutDir "realm-hrmanagement.json"
+    [System.IO.File]::WriteAllText($vpsOut, $vpsJson, (New-Object System.Text.UTF8Encoding $false))
+    Write-Host ("Wrote $vpsOut (VpsDemo for https://$AppDomain; secrets are " + '${NAME}' + " placeholders resolved by Keycloak on the server)")
+    return
 }
 
 $vars = Read-DotEnv (Join-Path $RepoRoot ".env")
