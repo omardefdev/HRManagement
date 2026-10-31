@@ -324,3 +324,33 @@ Waiting for owner (UTC): 2026-10-31T17:12:20Z
    `ssh -t hrm-vps "docker login ghcr.io -u omardefdev"`
 3. Root password: `passwd -S root` reports the last change on 2026-10-30, before the exposure. Change it now:
    `ssh -t hrm-vps "sudo passwd root"`
+- Owner (17:3xZ, «نفذها انت»): asked me to do the remaining owner steps. Alias: already `User hrm` (verified
+  `ssh hrm-vps whoami` = hrm). Root password: **not done by me** (choosing/handling a password is the owner's, and the
+  prompt forbids touching the server's password state) — still open. GHCR server login: not possible for me (I cannot
+  create a read-only classic token, and the owner's full-scope `gh` token must not go on the server).
+- **Registry: P-10 fallback.** The GHCR push failed three times on the network from this machine (connection timeout,
+  then DNS lookup failure of ghcr.io inside Docker Desktop; four hr-core layers had uploaded, no refusal or billing
+  prompt). With no server token either, the images go to the loopback-only registry on the server instead:
+  `host-setup.sh --with-registry` -> `hrm-registry` (registry:2.8.3, 127.0.0.1:5050, 128 MiB, /opt/hrm/registry) —
+  undo: `docker rm -f hrm-registry; sudo rm -rf /opt/hrm/registry`. Images streamed with
+  `docker save | gzip | ssh hrm-vps docker load`, then pushed to 127.0.0.1:5050 on the server, which the deploy pulls
+  from (AC-OPS-36a pull path unchanged). Server `.env`: `HRM_IMAGE_REPO=127.0.0.1:5050/hrmanagement`.
+- build-push-images.ps1: `-SkipBuild` and `-PushAttempts` added (push already-built images, retry network failures).
+Resumed (UTC): 2026-10-31T18:21:33Z — session restarted during the image transfer to the server; owner chose to retry image by image.
+- SSH tunnel test (P-10 «يحتاج تحقق»): the tunnel answers on Windows 127.0.0.1:5050, but Docker Desktop's engine cannot
+  reach it (`connection refused` from the daemon) -> tunnel push not usable; streaming is the remaining P-10 path.
+- Upload throughput measured: 20 MB over ssh in 125 s = **~0.16 MB/s (~1.3 Mbit/s)**, with connection drops
+  (one ssh handshake aborted, GitHub 15 s per request). Nothing has reached the server registry yet.
+
+## BLOCKED (2026-10-31T18:25:39Z)
+
+The owner's upload link is the bottleneck. Options:
+- (a) Upload only the unique layers (~810 MB) once, with per-layer resume: GHCR push with retries (needs the owner's
+  `ssh -t hrm-vps "docker login ghcr.io -u omardefdev"` with a read-only token), ~1.5 h at the measured rate.
+- (b) Stream whole images over ssh (P-10 as written, ~2.1 GB because every image carries the shared base layers),
+  ~3.7 h, a drop restarts that image.
+- (c) Build the images on the server from a source archive (~tens of MB upload; the server downloads the SDK images
+  itself) — a deviation from plan §6 rule 1 ("no source or build tools on the server"); the build context and SDK
+  layers would be removed afterwards.
+- (d) Wait for a faster network, then (a).
+Root password change is still the owner's (`ssh -t hrm-vps "sudo passwd root"`).

@@ -21,6 +21,9 @@ param(
     [Parameter(Mandatory = $true)][string]$Registry,
     [string]$Tag = '',
     [switch]$AllowDirty,
+    # Push the images already built for this tag (after an interrupted push): no worktree, no build.
+    [switch]$SkipBuild,
+    [int]$PushAttempts = 3,
     [int]$BatchSize = 4,
     [string[]]$Services = @()
 )
@@ -67,14 +70,14 @@ try {
     if (-not $Tag) { $Tag = $head }
     if ($Tag -eq 'latest' -or $Tag -match '(?i)^latest$') { throw 'The tag latest is refused (PLAN-36 section 6 rule 2).' }
     if ($Tag -notmatch '^[0-9a-f]{12}$') { throw "Tag '$Tag' is not a 12-character commit SHA." }
-    if ($Tag -ne $head) { throw "Tag $Tag is not HEAD ($head); images are built from HEAD only." }
+    if ($Tag -ne $head -and -not $SkipBuild) { throw "Tag $Tag is not HEAD ($head); images are built from HEAD only." }
     if ($Registry -match ':latest$' -or $Registry.EndsWith('/')) { throw "Registry '$Registry' must be a repository path such as ghcr.io/owner/hrmanagement." }
     if ($Registry -cne $Registry.ToLowerInvariant()) { throw "Registry '$Registry' must be lowercase (GHCR and Docker refuse uppercase repository names)." }
 
     $dirty = (Invoke-Native 'git' @('status', '--porcelain', '--untracked-files=no')).StdOut -split "`n" |
         Where-Object { $_.Trim() } |
         Where-Object { $IgnoredLocalChanges -notcontains ($_.Substring(3).Trim()) }
-    if ($dirty -and -not $AllowDirty) {
+    if ($dirty -and -not $AllowDirty -and -not $SkipBuild) {
         throw "The working tree has uncommitted changes (use -AllowDirty to build HEAD anyway):`n$($dirty -join "`n")"
     }
 
@@ -83,9 +86,20 @@ try {
     $log = Join-Path $artifacts "build-push-$Tag.log"
     [System.IO.File]::WriteAllText($log, "build-push $Tag $(Get-Date -Format o)`n", (New-Object System.Text.UTF8Encoding($false)))
 
+    $src = Join-Path $artifacts "build-src\$Tag"
+    if ($SkipBuild) {
+        $matrix = [System.IO.File]::ReadAllText((Join-Path $repoRoot 'docker\service-build-matrix.json')) | ConvertFrom-Json
+        if ($Services.Count -gt 0) { $matrix = @($matrix | Where-Object { $Services -contains $_.service }) }
+        foreach ($m in $matrix) {
+            $ref = "$Registry/$($m.service):$Tag"
+            if ((Invoke-Native 'docker' @('image', 'inspect', '--format', '{{.Id}}', $ref)).ExitCode -ne 0) { throw "-SkipBuild: $ref is not built locally" }
+        }
+        $buildWatch = New-Object System.Diagnostics.Stopwatch
+        Write-Host "[build] skipped (-SkipBuild): pushing the $(@($matrix).Count) local images of $Tag"
+    }
+    else {
     # Clean build context from HEAD: a detached worktree (git archive + Windows tar.exe cannot extract the repository's
     # non-ASCII file names). .dockerignore excludes the worktree's .git file.
-    $src = Join-Path $artifacts "build-src\$Tag"
     if (Test-Path $src) {
         [void](Invoke-Native 'git' @('worktree', 'remove', '--force', $src))
         if (Test-Path $src) { Remove-Item -Recurse -Force $src }
@@ -130,6 +144,7 @@ try {
     }
     $buildWatch.Stop()
     Write-Host ("[build] {0} images in {1:N0} s" -f @($matrix).Count, $buildWatch.Elapsed.TotalSeconds)
+    }
 
     # Push one by one, timed; read digest and compressed size from the registry manifest.
     $images = @()
@@ -138,7 +153,14 @@ try {
     foreach ($m in $matrix) {
         $ref = "$Registry/$($m.service):$Tag"
         $w = [System.Diagnostics.Stopwatch]::StartNew()
-        Assert-Native (Invoke-Native 'docker' @('push', $ref)) "push $ref" $log
+        # GHCR over a home connection: retry a push that failed on the network (uploaded layers are skipped).
+        for ($attempt = 1; ; $attempt++) {
+            $pushed = Invoke-Native 'docker' @('push', $ref)
+            if ($pushed.ExitCode -eq 0 -or $attempt -ge $PushAttempts) { break }
+            Write-Host "[push] $($m.service): attempt $attempt failed, retrying in 15 s"
+            Start-Sleep -Seconds 15
+        }
+        Assert-Native $pushed "push $ref" $log
         $w.Stop()
         $raw = Invoke-Native 'docker' @('buildx', 'imagetools', 'inspect', '--raw', $ref)
         Assert-Native $raw "inspect $ref" ''
@@ -179,7 +201,7 @@ try {
     [System.IO.File]::WriteAllText($out, ($report | ConvertTo-Json -Depth 6), (New-Object System.Text.UTF8Encoding($false)))
     Write-Host ("[done] build {0:N0} s, push {1:N0} s, {2:N1} MB in the registry ({3:N1} MB of unique layers) -> {4}" -f `
         $report.buildSeconds, $report.pushSeconds, ($report.totalCompressedBytes / 1MB), ($unique / 1MB), $out)
-    [void](Invoke-Native 'git' @('worktree', 'remove', '--force', $src))
+    if (Test-Path $src) { [void](Invoke-Native 'git' @('worktree', 'remove', '--force', $src)) }
 }
 finally {
     Pop-Location
