@@ -4,7 +4,7 @@
   to a registry with the 12-character commit SHA as the only tag.
 
 .DESCRIPTION
-  - Build context: `git archive HEAD` extracted under artifacts/vps/build-src/<tag>, so neither uncommitted edits nor
+  - Build context: a detached `git worktree` of HEAD under artifacts/vps/build-src/<tag>, so neither uncommitted edits nor
     untracked files can reach an image. A dirty working tree is still refused (unless -AllowDirty) so that the tag
     never pretends to contain local changes; global.json is ignored in that check because the owner keeps a local
     SDK roll-forward edit there that never enters the build context.
@@ -83,14 +83,15 @@ try {
     $log = Join-Path $artifacts "build-push-$Tag.log"
     [System.IO.File]::WriteAllText($log, "build-push $Tag $(Get-Date -Format o)`n", (New-Object System.Text.UTF8Encoding($false)))
 
-    # Clean build context from HEAD.
+    # Clean build context from HEAD: a detached worktree (git archive + Windows tar.exe cannot extract the repository's
+    # non-ASCII file names). .dockerignore excludes the worktree's .git file.
     $src = Join-Path $artifacts "build-src\$Tag"
-    if (Test-Path $src) { Remove-Item -Recurse -Force $src }
-    New-Item -ItemType Directory -Force -Path $src | Out-Null
-    $tarPath = Join-Path $artifacts "build-src-$Tag.tar"
-    Assert-Native (Invoke-Native 'git' @('archive', '--format=tar', '-o', $tarPath, 'HEAD')) 'git archive' $log
-    Assert-Native (Invoke-Native 'tar.exe' @('-xf', $tarPath, '-C', $src)) 'extract build context' $log
-    Remove-Item -Force $tarPath
+    if (Test-Path $src) {
+        [void](Invoke-Native 'git' @('worktree', 'remove', '--force', $src))
+        if (Test-Path $src) { Remove-Item -Recurse -Force $src }
+    }
+    [void](Invoke-Native 'git' @('worktree', 'prune'))
+    Assert-Native (Invoke-Native 'git' @('worktree', 'add', '--detach', $src, $Tag)) 'git worktree add (clean build context)' $log
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\docker-generate-build-manifest.ps1') -RepoRoot $src | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'docker-generate-build-manifest.ps1 failed' }
 
@@ -178,7 +179,7 @@ try {
     [System.IO.File]::WriteAllText($out, ($report | ConvertTo-Json -Depth 6), (New-Object System.Text.UTF8Encoding($false)))
     Write-Host ("[done] build {0:N0} s, push {1:N0} s, {2:N1} MB in the registry ({3:N1} MB of unique layers) -> {4}" -f `
         $report.buildSeconds, $report.pushSeconds, ($report.totalCompressedBytes / 1MB), ($unique / 1MB), $out)
-    Remove-Item -Recurse -Force $src
+    [void](Invoke-Native 'git' @('worktree', 'remove', '--force', $src))
 }
 finally {
     Pop-Location

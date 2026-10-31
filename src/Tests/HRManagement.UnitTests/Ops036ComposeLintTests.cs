@@ -303,7 +303,7 @@ public class Ops036ComposeLintTests
         Assert.Contains("platforms  = @('linux/amd64')", build);
         Assert.Contains("-AllowDirty", build);
         // Images are built from the committed HEAD, never from the working tree.
-        Assert.Contains("@('archive', '--format=tar'", build);
+        Assert.Contains("@('worktree', 'add', '--detach', $src, $Tag)", build);
     }
 
     [Fact]
