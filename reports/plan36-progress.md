@@ -287,3 +287,24 @@ Skip anything already done:
 
 Server state: still unchanged (read-only probe only). Next step after the reply: verify `gh auth status` scopes, then
 P7 step 2 (host setup as root).
+Owner action done (UTC): 2026-10-31T16:34:35Z — owner replied «تم»; decisions: defaults (sslip.io names, GHCR private, no ACME email, default organization name).
+
+## P7 server changes (each with its undo; full table in docs/OPS_VPS_SINGLE_HOST.md §10)
+
+- 2026-10-31T16:34Z root password last changed **2026-10-30** per `passwd -S root` (read-only check), i.e. before the
+  exposure in chat: raised again with the owner (now `ssh -t hrm-vps sudo passwd root`).
+- 16:35Z host-setup.sh (31 s), all CHANGED, second run 0 changes:
+  - Docker Engine 29.9.2 + Compose 5.6.1 from download.docker.com (resolute) — undo: apt purge + remove docker.list/key
+  - /etc/docker/daemon.json log rotation 10m x 3 — undo: delete, restart docker
+  - /swapfile 8 GiB + fstab + vm.swappiness=10 (/etc/sysctl.d/90-hrm-swappiness.conf) — undo: swapoff, rm, delete lines
+  - ufw enabled: deny incoming; 22/tcp, 443/tcp, 443/udp (v4+v6) — undo: `ufw disable`
+  - /etc/apt/apt.conf.d/52-hrm-unattended (Automatic-Reboot false) — undo: delete
+  - timezone Europe/Berlin -> UTC — undo: `timedatectl set-timezone Europe/Berlin`
+  - user hrm (uid 1001, no password, docker group), /etc/sudoers.d/90-hrm, ~hrm/.ssh/authorized_keys (owner's key),
+    /opt/hrm{,/releases,/shared} hrm 750 — undo: `userdel -r hrm; rm /etc/sudoers.d/90-hrm; rm -rf /opt/hrm`
+- 16:36Z SSH hardening: `/etc/ssh/sshd_config.d/00-hrm-hardening.conf` written, `50-cloud-init.conf` (enabled password
+  login) moved to `/root/sshd-backup-20261031T163600Z/`; effective: permitrootlogin no, passwordauthentication no,
+  kbdinteractiveauthentication no, pubkeyauthentication yes. Checks from Windows: hrm key -> ok; root -> Permission
+  denied (publickey); hrm password-only -> Permission denied (publickey). Undo:
+  `ssh -o User=hrm hrm-vps "sudo bash /root/host-setup.sh --undo-harden-ssh"` (or VNC steps).
+  `/root/host-setup.sh` kept until the release bundle (with its own copy) is on the server.
