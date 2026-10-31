@@ -140,8 +140,8 @@
 ### 4. محدِّد المعدل لقاعة عرض خلف NAT (G-OPS-10)
 
 **المشكلة:**
-- الحد العام 120 طلباً/دقيقة مقسوماً على `RemoteIpAddress` ([gateway Program.cs:102,155-168](../../src/Gateway/HRManagement.Gateway/Program.cs)).
-- المحدِّد يعمل قبل المصادقة ([:210](../../src/Gateway/HRManagement.Gateway/Program.cs) مقابل [:240](../../src/Gateway/HRManagement.Gateway/Program.cs))، ويشمل أصول الوحدات عبر YARP: نحو 13 أصلاً في `_HrSharedLayout`، و[_HrSharedLayout.cshtml:17-25,166-199](../../src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml).
+- الحد العام 120 طلباً/دقيقة مقسوماً على `RemoteIpAddress` ([GatewayRateLimiting.cs](../../src/Gateway/HRManagement.Gateway/Services/GatewayRateLimiting.cs)، [gateway Program.cs:100,154](../../src/Gateway/HRManagement.Gateway/Program.cs)). بلا طابور منذ إصلاح العيب 15 لـ PLAN-35: الطلب الزائد يُرد بـ 429 فوراً.
+- المحدِّد يعمل قبل المصادقة ([:189](../../src/Gateway/HRManagement.Gateway/Program.cs) مقابل [:219](../../src/Gateway/HRManagement.Gateway/Program.cs))، ويشمل أصول الوحدات عبر YARP: نحو 13 أصلاً في `_HrSharedLayout`، و[_HrSharedLayout.cshtml:17-25,166-199](../../src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml).
 - مكدّس القبول رفعه إلى 2000 ليعمل ([docker-compose.acceptance.yml:215](../../docker-compose.acceptance.yml)).
 
 **التصميم:**
@@ -150,7 +150,7 @@
 |----------|--------|--------|
 | `GatewayRateLimitPartitioner` | `src/Gateway/HRManagement.Gateway/Services/GatewayRateLimitPartitioner.cs` (جديد) | مفتاح التقسيم: `user:{sub}` للمصادَق، و`ip:{RemoteIpAddress}` لغيره، و`NoLimiter` للأصول الثابتة (امتدادات `.css .js .woff .woff2 .ttf .png .svg .ico .map` تحت `/ui/*/` أو الجذر) |
 | خيارات | `RateLimiting:PermitLimitPerMinute` (المجهول، افتراضه 120 كما اليوم)، و`RateLimiting:AuthenticatedPermitLimitPerMinute` (افتراضه 600)، و`RateLimiting:ExemptStaticAssets` (افتراضه `true`) | قيم الخادم الواحد في `docker-compose.vps.yml`: 300 و600 |
-| ترتيب الخط | `src/Gateway/HRManagement.Gateway/Program.cs` | نقل `app.UseRateLimiter()` بعد `app.UseAuthentication()`، وإضافة `Retry-After` وتسجيل 429 بالتقسيم دون الهوية |
+| ترتيب الخط | `src/Gateway/HRManagement.Gateway/Program.cs` | نقل `app.UseRateLimiter()` بعد `app.UseAuthentication()`. أما `Retry-After` وتسجيل 429 بنوع التقسيم دون الهوية فموجودان منذ إصلاح العيب 15 في `GatewayRateLimiting` (النوع اليوم `ip`)؛ يمرّر المقسِّم الجديد `user` أو `ip` |
 
 **القواعد:**
 1. المحدِّد يبقى فعّالاً للمجهول، فطوفان طلبات من IP واحد يُرد بـ 429.

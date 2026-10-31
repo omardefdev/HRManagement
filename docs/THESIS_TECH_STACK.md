@@ -804,21 +804,23 @@ public interface IEmployeeCreated
 ### 6.4 Rate Limiting
 
 ```csharp
-// src/Gateway/HRManagement.Gateway/Program.cs (مقتطف)
-builder.Services.AddRateLimiter(options =>
-{
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
-        httpContext => RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 120,
-                Window = TimeSpan.FromMinutes(1)
-            }));
-});
+// src/Gateway/HRManagement.Gateway/Services/GatewayRateLimiting.cs (مقتطف مبسّط)
+options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
+    httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit, // RateLimiting:PermitLimitPerMinute، افتراضه 120، بين 30 و2000
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+options.OnRejected = (context, ct) => RejectAsync(context, "global", "ip", permitLimit, ct);
 ```
 
-**Fixed Window** يحدّ الطلبات في نافذة زمنية ثابتة (120 طلب/دقيقة/IP)، وهو مناسب للأنظمة الإدارية الداخلية.
+**Fixed Window** يحدّ الطلبات في نافذة زمنية ثابتة (120 طلب/دقيقة/IP افتراضياً)، وهو مناسب للأنظمة الإدارية الداخلية.
+
+لا طابور (`QueueLimit = 0`): الطلب الزائد يُرد فوراً بـ 429 مع `Retry-After` (طول النافذة، 60 ث) ونص صفحة الحالة القصير، ويُسجَّل تحذير واحد باسم المحدِّد ونوع التقسيم دون العنوان أو المستخدم. كان طابور من 20 طلباً يُبقي الطلب الزائد حتى النافذة التالية، حتى ~41 ث في مكدّس E2E، فيبدو النظام معلّقاً لكل من يشارك العنوان نفسه (العيب 15 في التقرير النهائي لـ PLAN-35).
 
 #### لماذا نحتاج Rate Limiting في نظام داخلي؟
 

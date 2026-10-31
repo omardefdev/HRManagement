@@ -44,10 +44,8 @@ using HRManagement.Gateway.Middleware;
 using HRManagement.Gateway.Data;
 using HRManagement.ServiceDefaults.Evidence;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase))
@@ -99,7 +97,7 @@ builder.AddArcReference();
 builder.AddGovernmentConnectors();
 builder.AddHrLocalization();
 builder.Services.AddOrganizationBranding(builder.Configuration);
-var ratePermit = Math.Clamp(builder.Configuration.GetValue("RateLimiting:PermitLimitPerMinute", 120), 30, 2000);
+var ratePermit = GatewayRateLimiting.PermitLimit(builder.Configuration);
 
 builder.Services.AddControllersWithViews(o =>
         o.Filters.Add(new AuthorizeFilter(HrManagementPolicies.GatewayDashboard)))
@@ -152,27 +150,8 @@ builder.Services.AddHostedService<GatewayAuditRetentionService>();
 builder.Services.AddSingleton<IDurableAuditSink, GatewayDurableAuditSink>();
 builder.Services.AddHttpClient("alert-sink");
 
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = ratePermit,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 20,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
-            }));
-    options.AddFixedWindowLimiter("gateway-ui", limiter =>
-    {
-        limiter.PermitLimit = ratePermit;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 20;
-        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
-});
+// Per client IP, no queue: an over-limit request gets 429 with Retry-After at once (PLAN-35 defect 15).
+builder.Services.AddRateLimiter(options => GatewayRateLimiting.Configure(options, ratePermit));
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
@@ -252,7 +231,7 @@ app.MapControllerRoute(
 app.MapHrHealthChecks();
 // The "gateway-ui" named rate limiter is registered and available for per-route application
 // via .RequireRateLimiting("gateway-ui"). The global limiter already covers all requests;
-// use the named policy for stricter per-route limits when needed in the future.
+// the named policy is one window shared by all callers (GatewayRateLimiting), on top of the per-IP one.
 app.MapReverseProxy();
 
 app.MapHrOpenTelemetryEndpoints();
