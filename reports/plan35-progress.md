@@ -373,3 +373,17 @@ OWNER ACTION (P7 round 3) - Waiting for owner (UTC): 2026-10-31T00:42:10.6306042
 1. `git push origin release/plan-35-first-push`
 2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
 Owner action done (UTC): 2026-10-31T00:44:41.8947273Z - on the owner's instruction (button «Yes, run them») Claude pushed release (4d1b472 -> 0ef97be) and dispatched e2e-journeys on the release ref: run 41151844485.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41151844485](https://github.com/omardefdev/HRManagement/actions/runs/41151844485) | 0ef97be (dispatch, release) | e2e-journeys | 00:45:02 | 01:17:30 | failure | journeys **ok** 31.0; recruitment-journey **fail** 32.4: lab "Passed: 1, skipped: 0"; the new wait got HTTP 500 from `/health/upstreams/hr-core` (inside the gateway container, loopback) for 60 x 3 s, so no prod-like results. ~63 min |
+
+Triage: the gateway's upstream health route answers 500 to a loopback caller (consistent for 3 min, after the lab
+journey had passed through the same gateway) - the gateway health proxy, not the readiness of hr-core, is the likely
+failure; recorded for later (final report section 10). Fix `eacc914` on release: wait on each recreated service's own
+`/health/ready` (anonymous, "ready" checks) inside its container; on failure print `ps` and the last 80 log lines.
+actionlint no findings, WorkflowYamlLintTests 6/6. Merged into docs/plan-35-final-report (`490bb73`).
+
+OWNER ACTION (P7 round 4) - Waiting for owner (UTC): 2026-10-31T01:21:49.391572100Z
+1. `git push origin release/plan-35-first-push`
+2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
