@@ -1,0 +1,10 @@
+# PLAN-36 acceptance: the single-host chain on the owner's machine (Docker Desktop), layered last:
+#   ... -f docker-compose.vps.yml -f docker-compose.vps-demo.yml -f docker-compose.vps-local.yml
+# Run it through scripts/vps/deploy.ps1 -Local -EnvFile deploy/vps/.env.vps-local.
+# - Caddy signs hr.hrm.test / sso.hrm.test with its own internal CA ("tls internal"); the acceptance tests trust only
+#   that exported root (AcOps36VpsBootTests) and map both names to 127.0.0.1 themselves.
+# - Images come from the local registry:2 on localhost:5001 (HRM_IMAGE_REPO in .env.vps-local), which proves the pull path.
+services:
+  edge:
+    environment:
+      CADDY_SITE_TLS: tls internal

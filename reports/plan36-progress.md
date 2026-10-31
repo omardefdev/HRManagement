@@ -10,8 +10,9 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 | P1 | done | 2026-10-31T13:51:21Z |
 | P2 | done | 2026-10-31T13:58:09Z |
 | P3 | done | 2026-10-31T14:02:43Z |
-| P4 | in progress | |
-| P5-P8 | not started | |
+| P4 | done | 2026-10-31T14:13:06Z |
+| P5 | in progress | |
+| P6-P8 | not started | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -72,7 +73,7 @@ answered by P7.
 
 ## Next step
 
-P4 (Caddy edge, Keycloak behind the edge, memory budget, demo mode, local variant, lint-compose).
+P5 (images overlay, build-push, bundle, deploy/rollback, host-setup, VpsDemo realm, smoke, docs draft).
 
 ## P0 result
 
@@ -154,3 +155,33 @@ Finished (UTC): 2026-10-31T14:02:43Z
 - Tests: build 0/0; `GatewayRateLimit*` 36/36 (new `GatewayRateLimitPartitionerTests` + defect-15 tests);
   full unit 4311/4311; gateway integration tests 2/2 (incl. `GatewayRateLimitingIntegrationTests`). The acceptance smoke
   for the gateway runs in P6 step 8 with the acceptance stack.
+
+## P4 result
+
+Finished (UTC): 2026-10-31T14:13:06Z
+- New: `docker-compose.vps.yml` (edge `caddy:2.8.4` on 443/tcp+udp at 172.28.0.10, Seq `127.0.0.1:5380`, gateway and
+  Keycloak ports closed, memory table, `DOTNET_gcServer=0`, OTEL off, `start_period: 240s`, 300/600 limits,
+  `KnownProxies=172.28.0.10`), `docker-compose.vps-demo.yml`, `docker-compose.vps-local.yml`,
+  `deploy/vps/Caddyfile`, `deploy/vps/clamav/clamd.conf`, `scripts/vps/lint-compose.ps1`,
+  `Web.Shared/Views/Shared/_DeploymentBanner.cshtml` (shown in the gateway and module headers when
+  `Deployment:Banner=demo`); gateway header now shows the organization name (AC-OPS-36k).
+- Production file: Keycloak `start --import-realm`, `KC_PROXY` removed, `KC_PROXY_HEADERS=xforwarded`,
+  `KC_HOSTNAME=${SSO_DOMAIN:?}`, `KC_HOSTNAME_STRICT_BACKCHANNEL=false`, `KC_HEALTH_ENABLED`, bootstrap admin
+  required (`KEYCLOAK_ADMIN/_PASSWORD :?`, needed for kcadm in the P-9 domain switch), `restart: unless-stopped`;
+  PostgreSQL healthcheck = PID 1 is postgres **and** `pg_isready -h 127.0.0.1` (TCP) (P-5, PLAN-35 defect 2).
+- Tests/checks: `lint-compose.ps1` PASS production (20 services) and single-host (22); negative (`IMAGE_TAG=latest`)
+  fails as expected; `caddy validate` (caddy:2.8.4) valid for the ACME and the `tls internal` variants;
+  `Ops036|Sec001|Sec004|Hard001` 81/81; full unit 4330/4330.
+- Decisions / deviations:
+  - **Memory sum 13.5 GiB, not 13.1**: the plan's table counts "nine other services" but there are ten at 384 MiB
+    (health, movements, training, idcard, records-archive, admin-logistics, it-infra, dev-analytics, compliance,
+    auth-directory). 13.5 GiB is 57 % of the measured 23.46 GiB host.
+  - Edge network: `ip_range 172.28.0.128/25` for dynamic addresses so no container can take 172.28.0.10 first.
+  - Seq joins an extra non-internal `ops` network: Docker cannot publish a port of a container that is only on
+    internal networks.
+  - ACME email: `CADDY_ACME_EMAIL_OPTION=${ACME_EMAIL:+email ${ACME_EMAIL}}` (Caddy substitutes env before
+    parsing, so an empty value removes the line; no address is invented). `ADMIN_ALLOWED_CIDRS` empty becomes
+    `192.0.2.255/32` (RFC 5737 documentation address = nobody) because `remote_ip` needs at least one range.
+  - Caddy: no `trusted_proxies`, so a client `X-Forwarded-For` is ignored and Caddy sends the connection address.
+  - Demo mode is the separate file; `remote-deploy.sh` (P5) adds it only when `HRM_DEPLOYMENT_MODE=demo`.
+- Note for P6: Git Bash rewrites absolute container paths in `docker run` arguments; use `MSYS_NO_PATHCONV=1`.

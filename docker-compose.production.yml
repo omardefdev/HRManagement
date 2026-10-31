@@ -117,6 +117,14 @@ services:
   postgresql:
     <<: *infra-hardening-mild
     ports: !override []
+    # PLAN-36 (P-5, PLAN-35 defect 2): pg_isready over the Unix socket also answers the temporary server the image runs
+    # during first-time initialization. Ready means PID 1 is the final postgres and it accepts TCP connections.
+    healthcheck:
+      test: ["CMD-SHELL", "test \"$$(cat /proc/1/comm)\" = postgres && pg_isready -h 127.0.0.1 -p 5432 -U \"$$POSTGRES_USER\" -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 60s
     networks: !override
       - data
     deploy:
@@ -169,7 +177,9 @@ services:
 
   keycloak:
     <<: *infra-hardening-mild
-    command: start
+    # PLAN-36: production mode, importing the realm file shipped in the deploy bundle on first boot only.
+    command: ["start", "--import-realm"]
+    restart: unless-stopped
     # IdP must be reachable by browsers; restrict via firewall/VPN in real deployments.
     ports: !override
       - "${KEYCLOAK_HTTP_PORT:-8080}:8080"
@@ -181,11 +191,20 @@ services:
       KC_DB_URL: jdbc:postgresql://postgresql:5432/keycloak_db
       KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-      KC_PROXY: edge
-      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost}
+      # PLAN-36 (§2): behind a TLS edge. KC_PROXY (deprecated in 24) is replaced by KC_PROXY_HEADERS; the edge sets
+      # X-Forwarded-For/Proto/Host and is the only peer that reaches Keycloak from outside the data network. Browsers
+      # use https://SSO_DOMAIN; the applications reach http://keycloak:8080 on the data network (dynamic backchannel).
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: ${SSO_DOMAIN:?SSO_DOMAIN required}
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
       KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Bootstrap admin of the master realm (first boot only); the console is reachable only from ADMIN_ALLOWED_CIDRS
+      # or through an SSH tunnel (docs/OPS_VPS_SINGLE_HOST.md).
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN required}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD required}
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 15s

@@ -1,0 +1,263 @@
+# PLAN-36: one server for demo and testing, behind a Caddy TLS edge that is the only published port (443/tcp+udp).
+# Layered after the production chain (docs/OPS_VPS_SINGLE_HOST.md, deploy/vps/remote-deploy.sh):
+#   docker compose --env-file /opt/hrm/shared/.env -f docker-compose.yml -f docker-compose.services.yml \
+#     -f docker-compose.images.yml -f docker-compose.production.yml -f docker-compose.vps.yml \
+#     [-f docker-compose.vps-demo.yml] --profile full-stack up -d
+# No observability file: Seq alone (D-OPS-6), bound to the server's loopback and opened through an SSH tunnel.
+#
+# Memory budget (§3) on a host with 23.5 GiB: applications 7.1 GiB, infrastructure 6.4 GiB, about 13.5 GiB of limits in
+# all; 8 GiB of swap is a reserve, not working memory.
+
+x-vps-app-env: &vps-app-env
+  # Workstation GC: smaller resident memory for 15 .NET processes on one host.
+  DOTNET_gcServer: "0"
+  OpenTelemetry__Enabled: ${HRM_OTEL_ENABLED:-false}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${HRM_OTEL_ENDPOINT:-}
+  Serilog__SeqUrl: http://seq:5341
+
+# Migrations run one service at a time under one advisory lock (DatabaseMigrationExtensions), so the last service of a
+# cold start can wait several minutes.
+x-vps-app-healthcheck: &vps-app-healthcheck
+  start_period: 240s
+
+services:
+  edge:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "443:443/udp"
+    networks:
+      edge:
+        ipv4_address: 172.28.0.10
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN required}
+      SSO_DOMAIN: ${SSO_DOMAIN:?SSO_DOMAIN required}
+      HRM_ACME_CA: ${HRM_ACME_CA:-https://acme-staging-v02.api.letsencrypt.org/directory}
+      CADDY_ACME_EMAIL_OPTION: ${ACME_EMAIL:+email ${ACME_EMAIL}}
+      # 192.0.2.255/32 is a documentation-only address (RFC 5737): nobody, until the owner sets real ranges.
+      ADMIN_ALLOWED_CIDRS: ${ADMIN_ALLOWED_CIDRS:-192.0.2.255/32}
+      CADDY_SITE_TLS: ${CADDY_SITE_TLS:-}
+    volumes:
+      - ./deploy/vps/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  seq:
+    image: datalust/seq:2024.3
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+    # Loopback only: ssh -N -L 5380:127.0.0.1:5380 hrm-vps, then http://localhost:5380.
+    ports:
+      - "127.0.0.1:5380:80"
+    networks:
+      - application
+      - ops
+    volumes:
+      - seq_data:/data
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  postgresql:
+    command: ["postgres", "-c", "shared_buffers=512MB", "-c", "effective_cache_size=4GB", "-c", "max_connections=200", "-c", "work_mem=8MB"]
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+
+  rabbitmq:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  clamav:
+    volumes:
+      - ./deploy/vps/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+
+  keycloak:
+    ports: !override []
+    environment:
+      # Placeholders in the VpsDemo realm file are resolved from Keycloak's own environment at import, so the demo
+      # password and the client secrets never exist outside the server (scripts/prepare-keycloak-import.ps1 -Profile VpsDemo).
+      DEMO_USERS_PASSWORD: ${DEMO_USERS_PASSWORD:?DEMO_USERS_PASSWORD required (at least 16 characters)}
+      KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required}
+      KEYCLOAK_DIRECTORY_SYNC_SECRET: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN required}
+    volumes: !override
+      - ${HRM_KEYCLOAK_IMPORT_DIR:-./deploy/vps/keycloak-import}:/opt/keycloak/data/import:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  hr-gateway:
+    ports: !override []
+    environment:
+      <<: *vps-app-env
+      # Only the edge may set X-Forwarded-*: setting KnownProxies drops the private-range defaults (ForwardedProxyTrust).
+      ForwardedHeaders__KnownProxies: 172.28.0.10
+      ForwardedHeaders__ForwardLimit: "1"
+      # D-36-2: a demo room behind one NAT. Signed-in users have their own window (GatewayRateLimitPartitioner).
+      RateLimiting__PermitLimitPerMinute: "300"
+      RateLimiting__AuthenticatedPermitLimitPerMinute: "600"
+      RateLimiting__ExemptStaticAssets: "true"
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  hr-core-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  payroll-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  hr-contracts-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+
+  file-storage-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  hr-health-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  hr-movements-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  hr-training-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  idcard-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  records-archive-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  admin-logistics-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  it-infra-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  dev-analytics-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  compliance-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  auth-directory-web:
+    environment: *vps-app-env
+    healthcheck: *vps-app-healthcheck
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+networks:
+  edge:
+    ipam:
+      config:
+        # Fixed range so the gateway can trust exactly one proxy address; dynamic addresses come from the upper half,
+        # so no other container can take the edge's 172.28.0.10.
+        - subnet: 172.28.0.0/24
+          ip_range: 172.28.0.128/25
+  # Seq's loopback port needs a non-internal network; nothing else joins it.
+  ops:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  seq_data:

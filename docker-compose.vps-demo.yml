@@ -1,0 +1,92 @@
+# PLAN-36 (D-36-1): "demo mode" for the single host, the mode the acceptance stack proved. Synthetic data only.
+# deploy/vps/remote-deploy.sh adds this file only when HRM_DEPLOYMENT_MODE=demo in the server's .env.
+# - The applications connect with the PostgreSQL superuser and run their migrations at startup, and use the RabbitMQ
+#   administrator, because the least-privilege roles (*_app, *_migrator, mq_*) belong to PLAN-38.
+# - Seed:Profile=Demo loads the synthetic demo data; the production configuration guard refuses demo mode with
+#   Seed:Profile=None (contradiction), and Deployment:Banner=demo shows "بيئة عرض — بيانات اصطناعية فقط" in the
+#   gateway and module headers.
+# Row-level security and the least-privilege roles that would make this fit for real data: PLAN-38 and wave 2 (OPS-D).
+
+x-demo-env: &demo-env
+  Deployment__Mode: demo
+  Deployment__Banner: demo
+  Seed__Profile: Demo
+  Database__RunMigrationsAtStartup: "true"
+  RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
+  RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
+
+services:
+  hr-gateway:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__GatewayAuditDb: Host=postgresql;Port=5432;Database=gateway_audit_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  hr-core-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__HRCoreDb: Host=postgresql;Port=5432;Database=hr_core_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  hr-contracts-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__ContractsDb: Host=postgresql;Port=5432;Database=hr_contracts_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  hr-health-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__HealthDb: Host=postgresql;Port=5432;Database=hr_health_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  hr-movements-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__MovementsDb: Host=postgresql;Port=5432;Database=hr_movements_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  hr-training-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__TrainingDb: Host=postgresql;Port=5432;Database=hr_training_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  payroll-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  idcard-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__IDCardDb: Host=postgresql;Port=5432;Database=idcard_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  records-archive-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__ArchiveDb: Host=postgresql;Port=5432;Database=archive_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  admin-logistics-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__AdminDb: Host=postgresql;Port=5432;Database=admin_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  it-infra-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__ITInfraDb: Host=postgresql;Port=5432;Database=it_infra_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  dev-analytics-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__AnalyticsDb: Host=postgresql;Port=5432;Database=analytics_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  compliance-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__ComplianceDb: Host=postgresql;Port=5432;Database=compliance_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  auth-directory-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__AuthDirectoryDb: Host=postgresql;Port=5432;Database=auth_directory_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
+  file-storage-web:
+    environment:
+      <<: *demo-env
+      ConnectionStrings__FileStorageDb: Host=postgresql;Port=5432;Database=file_storage_db;Username=${POSTGRES_USER:?POSTGRES_USER required};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}

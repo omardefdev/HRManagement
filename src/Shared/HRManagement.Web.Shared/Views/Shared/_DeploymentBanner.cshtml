@@ -1,0 +1,7 @@
+@* PLAN-36 (D-36-1): demo mode is marked in every header, so nobody mistakes the demo server for a real deployment. *@
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@if (string.Equals(Configuration["Deployment:Banner"], "demo", StringComparison.OrdinalIgnoreCase))
+{
+    <span class="badge text-bg-warning hr-demo-banner mx-2" role="status" data-deployment-banner="demo">بيئة عرض — بيانات اصطناعية فقط</span>
+}

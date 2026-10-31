@@ -154,6 +154,124 @@ public class Ops036ComposeLintTests
     }
 
     [Fact]
+    public void Single_host_publishes_only_the_edge_and_seq_on_loopback()
+    {
+        var vps = Read("docker-compose.vps.yml");
+        var edge = ServiceBlock(vps, "edge");
+        Assert.Matches(@"image: caddy:\d+\.\d+\.\d+", edge);
+        Assert.Contains("- \"443:443\"", edge);
+        Assert.Contains("- \"443:443/udp\"", edge);
+        Assert.Contains("ipv4_address: 172.28.0.10", edge);
+        Assert.Contains("- \"127.0.0.1:5380:80\"", ServiceBlock(vps, "seq"));
+        Assert.Contains("ports: !override []", ServiceBlock(vps, "hr-gateway"));
+        Assert.Contains("ports: !override []", ServiceBlock(vps, "keycloak"));
+        Assert.Equal(3, Regex.Matches(vps, @"^\s+- ""[^""]*:\d+(/udp)?""", RegexOptions.Multiline).Count);
+
+        var gateway = ServiceBlock(vps, "hr-gateway");
+        Assert.Contains("ForwardedHeaders__KnownProxies: 172.28.0.10", gateway);
+        Assert.Contains("ForwardedHeaders__ForwardLimit: \"1\"", gateway);
+        Assert.Contains("RateLimiting__PermitLimitPerMinute: \"300\"", gateway);
+        Assert.Contains("RateLimiting__AuthenticatedPermitLimitPerMinute: \"600\"", gateway);
+        Assert.Contains("ip_range: 172.28.0.128/25", vps);
+    }
+
+    [Theory]
+    [InlineData("hr-core-web", "1024M")]
+    [InlineData("payroll-web", "768M")]
+    [InlineData("hr-contracts-web", "640M")]
+    [InlineData("hr-gateway", "512M")]
+    [InlineData("file-storage-web", "512M")]
+    [InlineData("auth-directory-web", "384M")]
+    [InlineData("postgresql", "2048M")]
+    [InlineData("keycloak", "1024M")]
+    [InlineData("clamav", "2048M")]
+    [InlineData("rabbitmq", "512M")]
+    [InlineData("seq", "768M")]
+    [InlineData("edge", "128M")]
+    public void Single_host_memory_budget(string service, string limit)
+    {
+        Assert.Matches($@"(?ms)limits:\s*\r?\n\s*memory: {limit}", ServiceBlock(Read("docker-compose.vps.yml"), service));
+    }
+
+    [Fact]
+    public void Single_host_turns_telemetry_off_and_allows_slow_migrations()
+    {
+        var vps = Read("docker-compose.vps.yml");
+        Assert.Contains("DOTNET_gcServer: \"0\"", vps);
+        Assert.Contains("OpenTelemetry__Enabled: ${HRM_OTEL_ENABLED:-false}", vps);
+        Assert.Contains("OTEL_EXPORTER_OTLP_ENDPOINT: ${HRM_OTEL_ENDPOINT:-}", vps);
+        Assert.Contains("start_period: 240s", vps);
+        Assert.Contains("./deploy/vps/clamav/clamd.conf:/etc/clamav/clamd.conf:ro", vps);
+        Assert.Contains("ConcurrentDatabaseReload no", Read("deploy/vps/clamav/clamd.conf"));
+    }
+
+    [Fact]
+    public void Keycloak_runs_behind_the_edge_with_proxy_headers()
+    {
+        var keycloak = ServiceBlock(Read("docker-compose.production.yml"), "keycloak");
+        Assert.DoesNotContain("KC_PROXY:", keycloak);
+        Assert.Contains("KC_PROXY_HEADERS: xforwarded", keycloak);
+        Assert.Contains("KC_HOSTNAME: ${SSO_DOMAIN:?", keycloak);
+        Assert.Contains("KC_HOSTNAME_STRICT_BACKCHANNEL: \"false\"", keycloak);
+        Assert.Contains("command: [\"start\", \"--import-realm\"]", keycloak);
+        Assert.Contains("restart: unless-stopped", keycloak);
+    }
+
+    [Fact]
+    public void Postgresql_readiness_needs_the_final_server_on_tcp()
+    {
+        var postgres = ServiceBlock(Read("docker-compose.production.yml"), "postgresql");
+        Assert.Contains("cat /proc/1/comm", postgres);
+        Assert.Contains("pg_isready -h 127.0.0.1", postgres);
+    }
+
+    [Fact]
+    public void Caddyfile_uses_tls_alpn_only_and_guards_operations_paths()
+    {
+        var caddy = Read("deploy/vps/Caddyfile");
+        Assert.Contains("auto_https disable_redirects", caddy);
+        Assert.Contains("disable_http_challenge", caddy);
+        Assert.DoesNotContain("disable_tlsalpn_challenge", caddy);
+        Assert.Contains("{$HRM_ACME_CA", caddy);
+        Assert.Contains("max_size 20MB", caddy);
+        Assert.Contains("path /health* /metrics* /alive* /ready*", caddy);
+        Assert.Contains("respond @ops 404", caddy);
+        Assert.Contains("path /admin* /realms/master*", caddy);
+        Assert.Contains("respond @kcadmin 403", caddy);
+        Assert.Contains("not remote_ip {$ADMIN_ALLOWED_CIDRS}", caddy);
+        Assert.Contains("reverse_proxy hr-gateway:8080", caddy);
+        Assert.Contains("reverse_proxy keycloak:8080", caddy);
+        Assert.Contains("Strict-Transport-Security", caddy);
+        // No trusted_proxies directive: a client-supplied X-Forwarded-For is never passed on as the client address.
+        Assert.DoesNotMatch(@"(?m)^\s*trusted_proxies\b", caddy);
+    }
+
+    [Fact]
+    public void Demo_mode_and_local_variant_files_exist()
+    {
+        var demo = Read("docker-compose.vps-demo.yml");
+        Assert.Contains("Deployment__Mode: demo", demo);
+        Assert.Contains("Seed__Profile: Demo", demo);
+        Assert.Contains("Database__RunMigrationsAtStartup: \"true\"", demo);
+        Assert.Equal(15, Regex.Matches(demo, @"ConnectionStrings__\w+: Host=postgresql").Count);
+        Assert.Contains("CADDY_SITE_TLS: tls internal", Read("docker-compose.vps-local.yml"));
+        Assert.Contains("_DeploymentBanner", Read("src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml"));
+        Assert.Contains("_DeploymentBanner", Read("src/Gateway/HRManagement.Gateway/Views/Shared/_Layout.cshtml"));
+    }
+
+    [Fact]
+    public void Lint_script_is_ascii_and_covers_the_rules()
+    {
+        var lint = Read("scripts/vps/lint-compose.ps1");
+        Assert.All(lint, c => Assert.True(c < 128, $"non-ASCII character U+{(int)c:X4} in lint-compose.ps1"));
+        Assert.Contains("no memory limit", lint);
+        Assert.Contains("latest", lint);
+        Assert.Contains("no restart policy", lint);
+        Assert.Contains("MINIO_ROOT_PASSWORD", lint);
+        Assert.Contains("single host allows only edge 443 and Seq on loopback", lint);
+    }
+
+    [Fact]
     public void Deploy_workflow_enables_the_full_stack_profile()
     {
         var deploy = Read(".github/workflows/deploy.yml");
