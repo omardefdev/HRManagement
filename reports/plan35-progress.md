@@ -388,3 +388,19 @@ OWNER ACTION (P7 round 4) - Waiting for owner (UTC): 2026-10-31T01:21:49.3915721
 1. `git push origin release/plan-35-first-push`
 2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
 Owner action done (UTC): 2026-10-31T02:05:57.0384865Z - on the owner's instruction (button «Yes, run them») Claude pushed release (0ef97be -> eacc914) and dispatched e2e-journeys on the release ref: run 41158446834.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41158446834](https://github.com/omardefdev/HRManagement/actions/runs/41158446834) | eacc914 (dispatch, release) | e2e-journeys | 02:06:18 | 02:41:42 | **success** | journeys **ok** 30.9; recruitment-journey **ok** 35.4: lab "Passed: 1, skipped: 0"; "hr-core-web ready after 5 check(s)", "hr-contracts-web ready after 1 check(s)"; prod-like "Passed: 1, skipped: 0". ~66 min |
+
+Found while preparing AC-QA-35c: the owner opened PR [#26](https://github.com/omardefdev/HRManagement/pull/26) from
+release at 4d1b472 and squash-merged it at 00:15:38Z, before its checks ran; origin/main = `152506e` (tree identical to
+4d1b472).
+| [41149141375](https://github.com/omardefdev/HRManagement/actions/runs/41149141375) | 4d1b472 (PR #26) | ci | 00:15:10 | 01:29:10 | failure | CI ok 44.0; CodeQL ok 16.6; Gitleaks ok 1.9; E2E **fail** 29.9: 56/1/0, `SEP_H1_Authorized_Opens_Separation_Surface` "Timeout 30000ms exceeded" (navigation). ~92 min |
+| [41149190573](https://github.com/omardefdev/HRManagement/actions/runs/41149190573) | 152506e (push main) | ci | 00:15:41 | 01:30:04 | **success** | CI ok 45.0; CodeQL ok 32.4; Gitleaks ok 1.8; E2E ok 29.3. ~109 min |
+
+The SEP_H1 timeout is a flaky navigation timeout (the same tree passed on the push run; P2 saw the same kind locally);
+not quarantined, recorded for later. The early merge is the process gap of the D-QA-1 fallback (GitHub cannot block
+it). Local main fast-forwarded to 152506e (not pushed); merged into docs/plan-35-final-report (`a616898`, conflict in
+e2e-journeys.yml resolved with the report branch's superset).
+P7 Finished (UTC): 2026-10-31T02:41:42Z (last P7 run green)
