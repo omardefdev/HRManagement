@@ -67,7 +67,9 @@ jobs:
         env:
           RUN_PLAYWRIGHT_E2E: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
-          E2E_ARTIFACTS_DIR: "TestResults/e2e-artifacts"
+          # Absolute, as in ci.yml: the test host runs in the project's bin directory, where a relative path would stay
+          # out of the upload below (a failed browser test writes its trace and screenshot here).
+          E2E_ARTIFACTS_DIR: ${{ github.workspace }}/TestResults/e2e-artifacts
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release --no-build
