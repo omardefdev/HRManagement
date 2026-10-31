@@ -357,3 +357,18 @@ Owner action done (UTC): 2026-10-31T00:22:25.3926250Z - owner: «نفذ الخي
 the repository variable ENABLE_SCHEDULED=false (00:22:26Z) and moved the e2e-journeys schedule from nightly to weekly
 (Monday 04:00 UTC) on docs/plan-35-final-report (reaches main with the final-report PR). Docs: CI_AND_TESTING,
 GITHUB_CI_GOVERNANCE_RUNBOOK, PRG_001 G-QA-15. actionlint no findings; lint/parity/Scm001 29/29.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41147863512](https://github.com/omardefdev/HRManagement/actions/runs/41147863512) | 4d1b472 (dispatch, release) | e2e-journeys | 00:01:42 | 00:37:21 | failure | journeys **ok** 29.5; recruitment-journey **fail** 35.6: lab "Passed: 1, skipped: 0"; prod-like switch now OK (env imported); prod-like journey: "GET ui/hr-core/RecruitmentRequisitions/Create as central-a returned 502" 13 s after the recreate. ~65 min |
+
+Triage: the application services have no healthcheck, so `up --wait` reports "Healthy" as soon as the recreated
+containers run (0.5 s here); the gateway answered 502 while hr-core-web was still starting (or on a pooled connection to
+the old container). Fix `0ef97be` on release: after the switch, wait until `/health/upstreams/hr-core` and
+`/health/upstreams/hr-contracts` answer 2xx from inside the gateway container (loopback, SEC-001 rule), 60 x 3 s.
+actionlint no findings, WorkflowYamlLintTests 6/6. Merged into docs/plan-35-final-report (`29c5101`).
+Recorded for later (final report section 10): the application services have no compose healthcheck.
+
+OWNER ACTION (P7 round 3) - Waiting for owner (UTC): 2026-10-31T00:42:10.630604200Z
+1. `git push origin release/plan-35-first-push`
+2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
