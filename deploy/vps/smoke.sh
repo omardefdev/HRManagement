@@ -10,7 +10,8 @@
 # https://SSO_DOMAIN and no Location points to localhost; /health*, /metrics, /alive answer 404 and /admin,
 # /realms/master 403 through the edge; sign-in with a demo user and 200 for /ui/<slug>/ of the 13 module UIs; only
 # 22 and 443 listen on public addresses (server only); days left to nextDue in legislative-watch-stamp.json (warning
-# under 30). The demo password is read from the server's .env into a variable, sent to curl on stdin, never printed.
+# under 30); PLAN-37: the service wiring of deploy/wiring/service-wiring.json (section 8, always required). The demo
+# password is read from the server's .env into a variable, sent to curl on stdin, never printed.
 set -uo pipefail
 export MSYS_NO_PATHCONV=1
 
@@ -177,11 +178,105 @@ else
   record legislative-watch Fail "nextDue not found in the gateway's legislative-watch-stamp.json"
 fi
 
-# 8. PLAN-37 integration wiring: reported, not required here.
-if [ "$REQUIRE_WIRING" = "1" ]; then
-  for item in "hr-core Integration__PayrollBaseUrl/FileStorageBaseUrl and scopes" "Integration__HrCoreBaseUrl for Contracts, IDCard, Archive, IT" "S2S token issue per service client" "candidate document upload to File.Storage (S2S)" "per-service SVC_* secrets for every client"; do
-    record "wiring: $item" "Deferred(PLAN-37)" "not required by PLAN-36"
+# 8. PLAN-37 service wiring, mandatory (a missing or wrong item fails the run). The list comes from
+#    deploy/wiring/service-wiring.json in this release (the matrix the compose files and k8s are checked against):
+#    every URL, client id and scope inside each container; the secret set in the container and in .env (lengths only);
+#    a client_credentials token per service client with all its scopes (the token stays inside the container); one
+#    real S2S call (HR.Core -> File.Storage service upload, signed caller proof); the legal pack in the three images with
+#    the repository's SHA-256 (and the start-up line, while the log still holds it). --require-integration-wiring is
+#    accepted for compatibility; the checks always run.
+RELEASE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+MATRIX="$RELEASE_DIR/deploy/wiring/service-wiring.json"
+REGIMES="$RELEASE_DIR/docs/syr/service-regimes.json"
+cid() { docker ps -q --filter "label=com.docker.compose.project=$HRM_PROJECT" --filter "label=com.docker.compose.service=$1" | head -1; }
+env_length() { awk -v k="$1" -F= '$1==k { v=substr($0, length(k)+2) } END { gsub(/^"|"$/, "", v); print length(v) }' "$ENV_FILE"; }
+# Inside a service container: request its own token; prints "<http code> <granted scopes>" (never the token).
+token_probe() {
+  docker exec -i "$1" sh -s <<'PROBE'
+url="${ServiceIdentity__TokenEndpoint:-${Keycloak__Authority%/}/protocol/openid-connect/token}"
+set -- --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret=$ServiceIdentity__ClientSecret"
+[ -n "$ServiceIdentity__Scope" ] && set -- "$@" --data-urlencode "scope=$ServiceIdentity__Scope"
+r="$(curl -s -m 10 -w '\n%{http_code}' "$@" "$url")"
+code="$(printf '%s' "$r" | tail -n 1)"
+granted="$(printf '%s' "$r" | sed -n 's/.*"scope":"\([^"]*\)".*/\1/p' | head -n 1)"
+printf '%s %s\n' "$code" "$granted"
+PROBE
+}
+# Inside hr-core-web: one signed S2S call to File.Storage's service upload; prints the HTTP status only.
+upload_probe() {
+  docker exec -i -e PROOF="$2" -e PROOF_TS="$3" -e PROOF_PATH="$4" "$1" sh -s <<'CALL'
+url="${ServiceIdentity__TokenEndpoint:-${Keycloak__Authority%/}/protocol/openid-connect/token}"
+tok="$(curl -s -m 10 --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret=$ServiceIdentity__ClientSecret" --data-urlencode "scope=$ServiceIdentity__Scope" "$url" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
+curl -s -m 10 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $tok" -H "X-Tenant-ID: 00000000-0000-4000-8000-000000000001" \
+  -H "X-HR-Gateway-Proof: $PROOF" -H "X-HR-Gateway-Proof-Ts: $PROOF_TS" -H "X-HR-Gateway-Proof-Path: $PROOF_PATH" \
+  "${Integration__FileStorageBaseUrl%/}$PROOF_PATH"
+CALL
+}
+WIRING_PERL='local $/; open my $f, "<", $ARGV[0] or die "$!"; my $m = decode_json(<$f>);
+for my $s (@{$m->{services}}) { my $c = $s->{composeService};
+  print "$c\turl\t$_\t$s->{urls}{$_}\n" for sort keys %{$s->{urls}};
+  print "$c\tid\t$s->{clientId}\t$s->{secretEnv}\t" . join(" ", @{$s->{scopes}}) . "\n" if $s->{serviceIdentity};
+  print "$c\tpack\t$_\t-\n" for @{$s->{legalPacks}}; }'
+if [ ! -f "$MATRIX" ]; then
+  record wiring-matrix Fail "deploy/wiring/service-wiring.json is missing from the release"
+elif ! WIRING="$(perl -MJSON::PP -e "$WIRING_PERL" "$MATRIX")"; then
+  record wiring-matrix Fail "deploy/wiring/service-wiring.json could not be read (perl JSON::PP)"
+else
+  record wiring-matrix Pass "$(printf '%s\n' "$WIRING" | cut -f1 | sort -u | wc -l | tr -d ' ') services in the matrix"
+  TAB="$(printf '\t')"
+  for svc in $(printf '%s\n' "$WIRING" | cut -f1 | sort -u); do
+    c="$(cid "$svc")"
+    if [ -z "$c" ]; then record "wiring-env $svc" Fail "no running container"; continue; fi
+    bad=""
+    while IFS="$TAB" read -r s kind a b scopes; do
+      [ "$s" = "$svc" ] || continue
+      case "$kind" in
+        url)
+          v="$(docker exec "$c" printenv "$a" 2>/dev/null)"
+          [ "$v" = "$b" ] || bad="$bad $a='$v'";;
+        id)
+          v="$(docker exec "$c" printenv ServiceIdentity__ClientId 2>/dev/null)"
+          [ "$v" = "$a" ] || bad="$bad ClientId='$v'"
+          v="$(docker exec "$c" printenv ServiceIdentity__Scope 2>/dev/null)"
+          [ "$(printf '%s\n' $v | sort | tr '\n' ' ')" = "$(printf '%s\n' $scopes | sort | tr '\n' ' ')" ] || bad="$bad Scope='$v'"
+          n="$(docker exec "$c" sh -c 'printf %s "$ServiceIdentity__ClientSecret" | wc -c' 2>/dev/null | tr -d ' ')"
+          [ "${n:-0}" -ge 16 ] || bad="$bad container-secret-length=${n:-0}"
+          [ "$(env_length "$b")" -ge 16 ] || bad="$bad .env:$b-missing-or-short"
+          set -- $(token_probe "$c" < /dev/null)
+          code="${1:-none}"; [ $# -gt 0 ] && shift; granted=" $* "
+          missing=""; for want in $scopes; do case "$granted" in *" $want "*) ;; *) missing="$missing $want";; esac; done
+          if [ "$code" = "200" ] && [ -z "$missing" ]; then record "wiring-token $a" Pass "token issued with [${scopes:-no scope}]"
+          else record "wiring-token $a" Fail "token HTTP $code; missing scopes:${missing:- none}"; fi;;
+        pack)
+          want="$(sha256sum "$REGIMES" 2>/dev/null | cut -d' ' -f1)"
+          got="$(docker exec "$c" sha256sum /app/seed-packs/syr003-service-regimes-v1/regimes.json 2>/dev/null | cut -d' ' -f1)"
+          line="$(docker logs "$c" 2>&1 | grep 'LegalPack loaded' | grep -o 'sha256=[0-9a-f]*' | tail -n 1 | cut -d= -f2)"
+          if [ -z "$want" ]; then record "legal-pack $svc" Fail "docs/syr/service-regimes.json is missing from the release"
+          elif [ "$got" != "$want" ]; then record "legal-pack $svc" Fail "image pack sha256=${got:-absent}, repository $want"
+          elif [ -n "$line" ] && [ "$line" != "$want" ]; then record "legal-pack $svc" Fail "start-up line sha256=$line, repository $want"
+          else record "legal-pack $svc" Pass "sha256=$want${line:+ (start-up line matches)}"; fi;;
+      esac
+    done <<< "$WIRING"
+    if [ -z "$bad" ]; then record "wiring-env $svc" Pass "URLs, client id, scopes and secret as in the matrix"; else record "wiring-env $svc" Fail "differs from the matrix:$bad"; fi
   done
+
+  # One real S2S call: HR.Core's candidate upload relay to File.Storage (scope file-storage.service-upload, caller proof).
+  core="$(cid hr-core-web)"
+  if [ -z "$core" ] || [ "$(env_length GATEWAY_CALLER_PROOF_SECRET)" -lt 32 ]; then
+    record wiring-s2s-candidate-upload Fail "hr-core-web not running or GATEWAY_CALLER_PROOF_SECRET missing"
+  else
+    path="/api/files/service-upload/$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo 00000000-0000-4000-8000-0000000000ff)/content"
+    ts="$(date +%s)"
+    # The proof secret is read into this process's environment only; the HMAC is computed here and never printed.
+    proof="$(K="$(awk -F= '$1=="GATEWAY_CALLER_PROOF_SECRET" { v=substr($0, 29) } END { gsub(/^"|"$/, "", v); printf "%s", v }' "$ENV_FILE")" \
+      TS="$ts" P="$path" perl -MDigest::SHA=hmac_sha256_base64 -e 'my $h = hmac_sha256_base64("$ENV{TS}\nGET\n$ENV{P}", $ENV{K}); $h .= "=" while length($h) % 4; print $h')"
+    code="$(upload_probe "$core" "$proof" "$ts" "$path" < /dev/null)"
+    # 404: authenticated, authorized and through the caller-proof check; the random file does not exist.
+    case "$code" in
+      404) record wiring-s2s-candidate-upload Pass "svc-hr-core -> File.Storage service upload: 404 for an unknown file (authorized)";;
+      *) record wiring-s2s-candidate-upload Fail "svc-hr-core -> File.Storage service upload answered HTTP ${code:-none} (expected 404 for an unknown file)";;
+    esac
+  fi
 fi
 
 pass=$(grep -c '"status":"Pass"' "$RESULTS"); warn=$(grep -c '"status":"Warn"' "$RESULTS"); deferred=$(grep -c '"status":"Deferred' "$RESULTS")

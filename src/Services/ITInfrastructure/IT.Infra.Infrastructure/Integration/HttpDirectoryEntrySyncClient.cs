@@ -1,5 +1,7 @@
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 
@@ -56,5 +58,31 @@ public class HttpDirectoryEntrySyncClient(
             logger.LogWarning(ex, "Directory sync failed for EmployeeId={EmployeeId}", employeeId);
             return false;
         }
+    }
+}
+
+public static class DirectorySyncClientExtensions
+{
+    /// <summary>
+    /// PLAN-37: the Auth.Directory sync client (<c>Services:AuthDirectory:BaseUrl</c>, scope <c>directory.sync</c>),
+    /// one named registration so the wiring matrix can name it.
+    /// </summary>
+    public static IServiceCollection AddDirectorySyncClient(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddServiceIdentityClient();
+        var authDirectoryBase = configuration["Services:AuthDirectory:BaseUrl"];
+        if (!string.IsNullOrWhiteSpace(authDirectoryBase))
+        {
+            services.AddServiceAuthenticatedClient(
+                HttpDirectoryEntrySyncClient.HttpClientName,
+                new Uri(authDirectoryBase.TrimEnd('/') + "/"));
+        }
+        else
+        {
+            services.AddHttpClient(HttpDirectoryEntrySyncClient.HttpClientName);
+        }
+
+        services.AddScoped<IDirectoryEntrySyncService, HttpDirectoryEntrySyncClient>();
+        return services;
     }
 }

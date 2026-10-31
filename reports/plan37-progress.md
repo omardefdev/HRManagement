@@ -44,3 +44,31 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P2
 - status: in progress
+- Decisions:
+  - D5 (deviation from plan §2): YamlDotNet's MergingParser reports an explicit key that overrides a merged anchor as a
+    duplicate key (docker-compose.production.yml does this), so ComposeEffectiveEnvironment resolves `<<` itself with
+    YAML merge semantics. The rendered `docker compose config` (int037-wiring-check.ps1) stays the final judge.
+  - D6: the wiring is written once in docker-compose.yml (hr-core-web, hr-contracts-web, hr-gateway) and
+    docker-compose.services.yml (the rest), from the matrix; production.yml keeps ClientId + `${SVC_X:?}` secret only;
+    the acceptance file keeps only the lab secret, now in its shared anchor (so the .env SVC_* values never reach the
+    lab realm); docker-compose.full-stack-gateway.yml lost its duplicate gateway URLs.
+  - D7: ServiceIdentity__Scope is written explicitly (also "" for Health / Dev.Analytics) so appsettings defaults can
+    never widen it.
+  - D8: k8s: 14 wiring-patch.yaml (all Deployments but File.Storage); gateway URLs moved from hr-yarp-config into its
+    patch; staging-ha had no SVC_* keys at all, so all 13 were added (production-ha gained SVC_AUTH_DIRECTORY);
+    dr-secondary uses the base placeholder Secret, which gained dev-only "replace-me" SVC_* keys.
+  - D9: compose chain definitions moved to scripts/vps/compose-chains.ps1, dot-sourced by lint-compose.ps1 and
+    int037-wiring-check.ps1; the unit tests read the same file (no copy).
+  - D10: keycloak-sync-clients.sh (written now, run in P7) reads client secrets from the Keycloak container's own
+    environment (compose fills it from .env), so no secret crosses a host command line; docker-compose.vps.yml now
+    passes all 13 matrix SVC_* secrets to Keycloak.
+  - D11: smoke.sh section 8 is mandatory: wiring-env per service, wiring-token per client, one signed S2S call
+    (hr-core -> File.Storage service upload, 404 for a random id = authorized), legal-pack sha per image; smoke.ps1
+    counts any Deferred(PLAN-*) as a failure. The bundle carries the matrix and docs/syr/service-regimes.json.
+- Tests: build 0 errors; full unit suite 4388/4388; int037-wiring-check.ps1: production, single-host, prodlike, parity,
+  k8s production-ha/staging-ha/dr-secondary PASS (negative run with a URL removed: FAIL naming service and key);
+  lint-compose.ps1 PASS both chains.
+- P2 Finished (UTC): 2026-10-31T23:06:53.3991705Z
+
+## P3
+- status: in progress

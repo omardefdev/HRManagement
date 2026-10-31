@@ -80,5 +80,7 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
+    <!-- PLAN-37: test-only YAML reader for the compose / k8s wiring checks (never referenced by production projects). -->
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 </Project>

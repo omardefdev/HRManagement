@@ -5,6 +5,10 @@ x-acceptance-service: &acceptance-service
   DataProtection__KeyRingPath: /var/hrm/dpkeys
   Keycloak__AdditionalValidIssuers: http://localhost:6388/realms/hrmanagement
   GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
+  # PLAN-37: the only wiring value an acceptance file may set is this lab secret, the one sync-keycloak-dev-realm.ps1
+  # sets on every service client (never the .env SVC_* values). URLs, client ids and scopes come from the shared files
+  # (deploy/wiring/service-wiring.json), so the acceptance stacks get exactly the production wiring.
+  ServiceIdentity__ClientSecret: dev-svc-secret-local-only
 
 x-acceptance-dp-volumes: &acceptance-dp-volumes
   - acceptance_data_protection:/var/hrm/dpkeys
@@ -57,15 +61,6 @@ services:
     environment:
       <<: *acceptance-service
       HrGateway__PublicBaseUrl: http://localhost:6200
-      # HCM-027 (E2): offer salary bounds from Payroll pay grades (S2S, scope payroll.grades.read).
-      # Dev/acceptance only; without Integration__PayrollBaseUrl HR.Core treats Payroll as unavailable.
-      Integration__PayrollBaseUrl: http://payroll-web:8080
-      # Same lab-only value sync-keycloak-dev-realm.ps1 sets on every service client (not .env SVC_* values).
-      ServiceIdentity__ClientSecret: dev-svc-secret-local-only
-      # PLAN-30 (FS-030): file-storage.service-upload relays candidate documents to File.Storage (S2S).
-      ServiceIdentity__Scope: file-storage.references payroll.grades.read file-storage.service-upload
-      # PLAN-30 (HCM-030 E2): candidate documents go to File.Storage directly (caller proof signed), not via the gateway.
-      Integration__FileStorageBaseUrl: http://file-storage-web:8080
       # PLAN-30 (COM-030): candidate messages go to FileDrop files that acceptance tests read on the host
       # (artifacts/acceptance/candidate-notifications/{sha256(idempotencyKey)}.json; format in docs/COM_001_NOTIFICATIONS.md).
       Notifications__Candidate__Provider: FileDrop
@@ -94,15 +89,7 @@ services:
     container_name: !reset null
     ports: !override
       - "6220:8080"
-    environment:
-      <<: *acceptance-service
-      # PLAN-29: hire transactions need HR.Core code generation (SRV-/DEC- numbers) and the employee lookup (S2S).
-      # Without these the CandidateAccepted consumer faulted in acceptance ("BaseAddress must be set").
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
-      ServiceIdentity__ClientId: svc-hr-contracts
-      # Same lab-only value sync-keycloak-dev-realm.ps1 sets on every service client (not .env SVC_* values).
-      ServiceIdentity__ClientSecret: dev-svc-secret-local-only
-      ServiceIdentity__Scope: file-storage.references hr-core.lookup hr-core.workflow
+    environment: *acceptance-service
     volumes: *acceptance-dp-volumes
 
   hr-health-web:

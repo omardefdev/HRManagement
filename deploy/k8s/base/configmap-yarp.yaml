@@ -36,6 +36,5 @@ data:
   ReverseProxy__Clusters__auth-directory-cluster__LoadBalancingPolicy: PowerOfTwoChoices
   ReverseProxy__Clusters__file-storage-cluster__Destinations__destination1__Address: http://file-storage-web:8080
   ReverseProxy__Clusters__file-storage-cluster__LoadBalancingPolicy: PowerOfTwoChoices
-  Integration__HrCoreBaseUrl: http://hr-core-web:8080
-  Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
+  # PLAN-37: the gateway's Integration__* URLs moved to hr-gateway/wiring-patch.yaml (the wiring matrix).
   Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080

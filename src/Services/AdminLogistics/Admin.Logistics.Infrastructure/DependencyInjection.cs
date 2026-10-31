@@ -21,13 +21,18 @@ public static class DependencyInjection
         services.AddHrPolicyEnforceClient(configuration);
         services.AddHrCodeGeneration(configuration);
         services.AddHrCoreLookupClient(configuration);
+        services.AddHrCoreWorkflowClient(configuration);
+        return services;
+    }
 
+    /// <summary>PLAN-37: the HR.Core workflow-start client (<c>POST api/workflow-instances</c>, scope hr-core.workflow).</summary>
+    public static IServiceCollection AddHrCoreWorkflowClient(this IServiceCollection services, IConfiguration configuration)
+    {
         var hrCoreBase = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/');
         if (!string.IsNullOrWhiteSpace(hrCoreBase))
             services.AddServiceAuthenticatedClient(WorkflowTriggerService.HttpClientName, new Uri(hrCoreBase + "/"));
         else
             services.AddHttpClient(WorkflowTriggerService.HttpClientName);
-
         return services;
     }
 }

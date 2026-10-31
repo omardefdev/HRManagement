@@ -58,6 +58,10 @@ $BundleFiles = @(
     'deploy/vps/remote-deploy.sh',
     'deploy/vps/smoke.sh',
     'deploy/vps/.env.vps.example',
+    # PLAN-37: keycloak-sync-clients.sh and smoke.sh read the wiring matrix; smoke.sh compares the legal pack's SHA-256.
+    'deploy/vps/keycloak-sync-clients.sh',
+    'deploy/wiring/service-wiring.json',
+    'docs/syr/service-regimes.json',
     'docker/init-databases.sql',
     'docker/init-service-roles.sh',
     'scripts/backup-postgres.sh',

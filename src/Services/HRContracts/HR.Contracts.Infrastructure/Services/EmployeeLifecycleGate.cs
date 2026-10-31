@@ -18,6 +18,8 @@ public sealed class HttpEmployeeLifecycleGate(
     IConfiguration configuration,
     ILogger<HttpEmployeeLifecycleGate> logger) : IEmployeeLifecycleGate
 {
+    public const string HttpClientName = "hr-core-lifecycle";
+
     public async Task<(bool Allowed, string? Error)> AssertCanPublishSeparationAsync(Guid employeeId, CancellationToken ct)
     {
         var baseUrl = configuration["Services:HRCore:BaseUrl"]
@@ -27,7 +29,7 @@ public sealed class HttpEmployeeLifecycleGate(
 
         try
         {
-            var client = httpClientFactory.CreateClient("hr-core-lifecycle");
+            var client = httpClientFactory.CreateClient(HttpClientName);
             var url = $"{baseUrl.TrimEnd('/')}/api/internal/employees/{employeeId}/lifecycle-flags";
             using var response = await client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode)

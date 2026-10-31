@@ -28,7 +28,6 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
-      HrGateway__InternalBaseUrl: http://hr-gateway:8080
     depends_on:
       postgresql:
         condition: service_healthy
@@ -60,6 +59,12 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-hr-health
+      ServiceIdentity__ClientSecret: ${SVC_HR_HEALTH_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: ""
     depends_on:
       postgresql:
         condition: service_healthy
@@ -91,6 +96,12 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-hr-movements
+      ServiceIdentity__ClientSecret: ${SVC_HR_MOVEMENTS_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.lookup
     depends_on:
       postgresql:
         condition: service_healthy
@@ -122,7 +133,13 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      ServiceIdentity__ClientId: svc-hr-training
+      ServiceIdentity__ClientSecret: ${SVC_HR_TRAINING_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy
@@ -146,10 +163,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_PATHBASE: /ui/payroll
       ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
-      ServiceIdentity__ClientId: svc-payroll
-      ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:-dev-svc-secret-local-only}
-      ServiceIdentity__Scope: hr-core.lookup
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER}
       RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS}
@@ -158,6 +171,12 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-payroll
+      ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.lookup
     depends_on:
       postgresql:
         condition: service_healthy
@@ -189,7 +208,13 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      ServiceIdentity__ClientId: svc-idcard
+      ServiceIdentity__ClientSecret: ${SVC_IDCARD_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.workflow file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy
@@ -221,7 +246,13 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      ServiceIdentity__ClientId: svc-records-archive
+      ServiceIdentity__ClientSecret: ${SVC_RECORDS_ARCHIVE_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.workflow file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy
@@ -253,8 +284,10 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
-      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
       Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
       ServiceIdentity__ClientId: svc-admin-logistics
       ServiceIdentity__ClientSecret: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:-dev-svc-secret-local-only}
       ServiceIdentity__Scope: hr-core.lookup hr-core.workflow file-storage.references
@@ -295,6 +328,13 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Services__AuthDirectory__BaseUrl: http://auth-directory-web:8080
+      ServiceIdentity__ClientId: svc-it-infra
+      ServiceIdentity__ClientSecret: ${SVC_IT_INFRA_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.workflow directory.sync
     depends_on:
       postgresql:
         condition: service_healthy
@@ -326,6 +366,12 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-dev-analytics
+      ServiceIdentity__ClientSecret: ${SVC_DEV_ANALYTICS_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: ""
     depends_on:
       postgresql:
         condition: service_healthy
@@ -357,14 +403,16 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
-      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      ServiceIdentity__TokenEndpoint: http://keycloak:8080/realms/hrmanagement/protocol/openid-connect/token
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
       Integration__HrCoreBaseUrl: http://hr-core-web:8080
       Integration__PayrollBaseUrl: http://payroll-web:8080
       Integration__FileStorageBaseUrl: http://file-storage-web:8080
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
       ServiceIdentity__ClientId: svc-compliance
       ServiceIdentity__ClientSecret: ${SVC_COMPLIANCE_CLIENT_SECRET:-dev-svc-secret-local-only}
-      ServiceIdentity__Scope: hr-core.lookup dsar.subject.read
-      ServiceIdentity__TokenEndpoint: http://keycloak:8080/realms/hrmanagement/protocol/openid-connect/token
+      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow dsar.subject.read file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy
@@ -396,6 +444,12 @@ services:
       Keycloak__AdditionalValidIssuers: "http://localhost:8088/realms/hrmanagement"
       Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      ServiceIdentity__ClientId: svc-auth-directory
+      ServiceIdentity__ClientSecret: ${SVC_AUTH_DIRECTORY_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.lookup
     depends_on:
       postgresql:
         condition: service_healthy
@@ -440,6 +494,8 @@ services:
       FileStorage__ClamAvHost: clamav
       FileStorage__ClamAvPort: "3310"
       FileStorage__ClamAvRequired: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
     volumes:
       - file_storage_data:/var/hrm/file-storage
     depends_on:

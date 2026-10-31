@@ -128,7 +128,6 @@ services:
       Keycloak__Authority: http://keycloak:8080/realms/hrmanagement
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
       HrAuth__BehindGateway: "true"
-      HrGateway__InternalBaseUrl: http://hr-gateway:8080
       # QA-034 (D-QA-7): Local by default; docker-compose.object-storage.yml switches to Minio.
       FileStorage__Provider: ${FILE_STORAGE_PROVIDER:-Local}
       FileStorage__LocalRootPath: /tmp/hrm-file-storage
@@ -139,6 +138,14 @@ services:
       FileStorage__UseSsl: "false"
       # COM-030: Development uses the FileDrop channel; /app is root-owned in the image, so write under /tmp.
       Notifications__Candidate__FileDrop__Path: /tmp/candidate-notifications
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      Integration__PayrollBaseUrl: http://payroll-web:8080
+      Integration__FileStorageBaseUrl: http://file-storage-web:8080
+      ServiceIdentity__ClientId: svc-hr-core
+      ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: file-storage.references payroll.grades.read file-storage.service-upload
     depends_on:
       postgresql:
         condition: service_healthy
@@ -176,7 +183,13 @@ services:
       Keycloak__AdditionalValidIssuers: http://localhost:8088/realms/hrmanagement
       Keycloak__AdditionalValidAudiences: hr-gateway-client
       HrAuth__BehindGateway: "true"
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
+      ServiceIdentity__ClientId: svc-hr-contracts
+      ServiceIdentity__ClientSecret: ${SVC_HR_CONTRACTS_CLIENT_SECRET:-dev-svc-secret-local-only}
+      ServiceIdentity__Scope: hr-core.workflow hr-core.lookup file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy
@@ -211,9 +224,12 @@ services:
       ReverseProxy__Clusters__hr-core-cluster__Destinations__destination1__Address: http://hr-core-web:8080
       ReverseProxy__Clusters__hr-contracts-cluster__Destinations__destination1__Address: http://hr-contracts-web:8080
       Gateway__HealthProbe__InternalBaseUrl: http://localhost:8080
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       Gateway__EnabledModules__0: hr-core
       Gateway__EnabledModules__1: hr-contracts
+      # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
+      # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
+      Integration__HrCoreBaseUrl: http://hr-core-web:8080
+      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
     depends_on:
       keycloak:
         condition: service_started

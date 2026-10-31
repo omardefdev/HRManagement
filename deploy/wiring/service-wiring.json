@@ -106,8 +106,9 @@
   "registrationsIgnored": {
     "AddServiceIdentityClient": "the token client itself (Keycloak token endpoint, not a service)",
     "AddServiceAuthenticatedClient": "the generic builder every registration above uses",
-    "AddHrOutboundResilience": "resilience pipeline, no client",
-    "AddGatewayHealthProbeClient": "the gateway's own health probe of the modules (no identity)"
+    "AddGatewayHealthProbeClient": "the gateway's own health probe of the modules (no identity)",
+    "AddCandidateNotificationChannels": "external candidate e-mail / SMS providers, not a service of this system",
+    "AddPayrollInfrastructure": "only its configuration-less branch (unit tests) registers the HR.Core lookup client by name; with a configuration it calls AddHrCoreLookupClient, which the matrix lists"
   },
   "allowListExceptions": [
     {

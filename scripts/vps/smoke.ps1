@@ -9,7 +9,8 @@
   the server's listening sockets). Writes one JSON file for EvidenceRecorder under artifacts/vps/ and exits 1 on any
   failure.
     -AllowStagingCa              accept only a Let's Encrypt staging certificate (first server run, P-6)
-    -RequireIntegrationWiring    list the PLAN-37 wiring checks as Deferred(PLAN-37)
+    -RequireIntegrationWiring    accepted for compatibility: since PLAN-37 the wiring checks of deploy/wiring/service-wiring.json
+                                 always run and a missing item fails (a Deferred(PLAN-..) check counts as a failure)
   PowerShell 5.1:
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/smoke.ps1 [-SshHost hrm-vps] [-AllowStagingCa]
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/smoke.ps1 -Local -EnvFile deploy/vps/.env.vps-local
@@ -131,7 +132,8 @@ else {
     })
 }
 
-$fails = @($checks | Where-Object { $_.status -eq 'Fail' }).Count
+# PLAN-37: nothing may stay deferred to a plan any more; such a check fails the run.
+$fails = @($checks | Where-Object { $_.status -eq 'Fail' -or [string]$_.status -like 'Deferred(PLAN-*' }).Count
 $masked = $TargetIp
 if (-not $Local -and $TargetIp -match '^(\d+\.\d+)\.\d+\.\d+$') { $masked = "$($Matches[1]).x.x" }
 $result = [ordered]@{

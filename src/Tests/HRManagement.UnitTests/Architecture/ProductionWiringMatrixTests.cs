@@ -14,7 +14,7 @@ namespace HRManagement.UnitTests.Architecture;
 /// wiring. These checks keep the code, the server policies, the deployment files and the Keycloak scripts in step
 /// with it. A plan that adds an S2S client, call or scope updates the matrix in the same commit.
 /// </summary>
-public class ProductionWiringMatrixTests
+public partial class ProductionWiringMatrixTests
 {
     private static readonly Lazy<ServiceWiringMatrix> Matrix = new(() => ServiceWiringMatrix.Load());
 

@@ -503,38 +503,22 @@ Ensure-GatewayOidcScopes
 Write-Host "Acceptance / E2E identities:"
 Sync-AcceptanceUsers
 
+# PLAN-37: client scopes and service clients come from deploy/wiring/service-wiring.json (the wiring matrix), so this
+# realm, the compose files and k8s cannot drift apart (ProductionWiringMatrixTests).
+$wiringPath = Join-Path (Split-Path -Parent $PSScriptRoot) "deploy/wiring/service-wiring.json"
+$wiring = [System.IO.File]::ReadAllText($wiringPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+
 Write-Host "Client scopes:"
-Ensure-ClientScope -Name "hr-core.lookup" -Description "HR.Core employee lookup (S2S)" -Audience "api-hr-core" | Out-Null
-Ensure-ClientScope -Name "hr-core.workflow" -Description "HR.Core workflow + code generation (S2S)" -Audience "api-hr-core" | Out-Null
-Ensure-ClientScope -Name "file-storage.references" -Description "File.Storage reference registration (S2S)" -Audience "api-file-storage" | Out-Null
-Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-hr-core" | Out-Null
-Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-payroll" | Out-Null
-Ensure-ClientScope -Name "dsar.subject.read" -Description "Compliance DSAR subject collection (S2S)" -Audience "api-file-storage" | Out-Null
-Ensure-ClientScope -Name "payroll.grades.read" -Description "HR.Core offer salary bounds from Payroll pay grades (S2S, HCM-027)" -Audience "api-payroll" | Out-Null
-Ensure-ClientScope -Name "file-storage.service-upload" -Description "HR.Core relays candidate document uploads to File.Storage (S2S, PLAN-30)" -Audience "api-file-storage" | Out-Null
-Ensure-ClientScope -Name "directory.sync" -Description "Auth.Directory synchronization (S2S)" -Audience "api-auth-directory" | Out-Null
-Ensure-ClientScope -Name "evidence.ingest" -Description "Gateway evidence ingestion (S2S)" -Audience "hr-gateway-client" | Out-Null
+foreach ($scopeProperty in $wiring.scopes.PSObject.Properties) {
+    foreach ($audience in @($scopeProperty.Value.audiences)) {
+        Ensure-ClientScope -Name $scopeProperty.Name -Description $scopeProperty.Value.description -Audience $audience | Out-Null
+    }
+}
 
 Write-Host "Service clients:"
-Ensure-ServiceClient -ClientId "svc-hr-core" -OptionalScopes @("file-storage.references", "payroll.grades.read", "file-storage.service-upload")
-# PLAN-29: hire transactions use HR.Core code generation (hr-core.workflow) and the employee lookup.
-Ensure-ServiceClient -ClientId "svc-hr-contracts" -OptionalScopes @("file-storage.references", "hr-core.lookup", "hr-core.workflow")
-Ensure-ServiceClient -ClientId "svc-hr-health" -OptionalScopes @()
-Ensure-ServiceClient -ClientId "svc-hr-movements" -OptionalScopes @("hr-core.lookup")
-Ensure-ServiceClient -ClientId "svc-hr-training" -OptionalScopes @("file-storage.references")
-Ensure-ServiceClient -ClientId "svc-payroll" -OptionalScopes @("hr-core.lookup")
-Ensure-ServiceClient -ClientId "svc-idcard" -OptionalScopes @("file-storage.references")
-Ensure-ServiceClient -ClientId "svc-records-archive" -OptionalScopes @("file-storage.references")
-Ensure-ServiceClient -ClientId "svc-admin-logistics" -OptionalScopes @(
-    "hr-core.lookup",
-    "hr-core.workflow",
-    "file-storage.references"
-)
-Ensure-ServiceClient -ClientId "svc-it-infra" -OptionalScopes @("directory.sync")
-Ensure-ServiceClient -ClientId "svc-dev-analytics" -OptionalScopes @()
-Ensure-ServiceClient -ClientId "svc-compliance" -OptionalScopes @("hr-core.lookup", "dsar.subject.read")
-Ensure-ServiceClient -ClientId "svc-auth-directory" -OptionalScopes @()
-Ensure-ServiceClient -ClientId "svc-file-storage" -OptionalScopes @()
+foreach ($service in @($wiring.services | Where-Object { $_.serviceIdentity })) {
+    Ensure-ServiceClient -ClientId $service.clientId -OptionalScopes @($service.scopes)
+}
 
 Write-Host "Done. Verify token:"
 Write-Host "  curl -X POST http://localhost:8088/realms/$Realm/protocol/openid-connect/token \"

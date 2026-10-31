@@ -54,6 +54,21 @@ patches:
       group: apps
       version: v1
       kind: Deployment
+  # PLAN-37 (D-INT-2): per-Deployment service wiring (deploy/wiring/service-wiring.json).
+  - path: hr-gateway/wiring-patch.yaml
+  - path: hr-core-web/wiring-patch.yaml
+  - path: hr-contracts-web/wiring-patch.yaml
+  - path: hr-movements-web/wiring-patch.yaml
+  - path: payroll-web/wiring-patch.yaml
+  - path: idcard-web/wiring-patch.yaml
+  - path: records-archive-web/wiring-patch.yaml
+  - path: admin-logistics-web/wiring-patch.yaml
+  - path: it-infra-web/wiring-patch.yaml
+  - path: compliance-web/wiring-patch.yaml
+  - path: auth-directory-web/wiring-patch.yaml
+  - path: hr-health-web/wiring-patch.yaml
+  - path: hr-training-web/wiring-patch.yaml
+  - path: dev-analytics-web/wiring-patch.yaml
 images:
   - name: ghcr.io/OWNER/hrmanagement/hr-gateway
     newName: ghcr.io/OWNER/hrmanagement/hr-gateway
