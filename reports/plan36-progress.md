@@ -240,3 +240,6 @@ Finished (UTC): 2026-10-31T14:29:19Z
   cookie is larger; browsers are unaffected) -> explicit Cookie header from the jar.
 - Tag B ee8530331666: cold start after `down -v` (pull 5 s from the local registry, up 57 s, healthy +21 s), smoke
   17 pass / 0 fail.
+- Tag C b2f85bcbff12 deployed over B (pull 7 s, up 52 s, healthy +20 s), smoke green. The first local rollback failed:
+  Git Bash copies instead of symlinking, so `current` was never a link and no previous tag was kept. Fixed in
+  10a35bef (`current-tag` file on every platform; `current` symlink on Linux only). Rollback proof uses tags D and E.
