@@ -1,0 +1,34 @@
+{
+  "closedPorts": [
+    5000,
+    8080,
+    5432,
+    5672,
+    15672,
+    5341
+  ],
+  "openUnexpected": [],
+  "serverPublicListeners": "n/a (local Docker Desktop: published ports checked from this machine)",
+  "edges": [
+    {
+      "path": "https://sso.hrm.test/admin/",
+      "status": 403
+    },
+    {
+      "path": "https://sso.hrm.test/realms/master/",
+      "status": 403
+    },
+    {
+      "path": "https://hr.hrm.test/metrics",
+      "status": 404
+    },
+    {
+      "path": "https://hr.hrm.test/health/ready",
+      "status": 404
+    },
+    {
+      "path": "https://hr.hrm.test/health/live",
+      "status": 404
+    }
+  ]
+}

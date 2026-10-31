@@ -1,0 +1,12 @@
+{
+  "step": "tls-sso.hrm.test",
+  "method": "TLS",
+  "url": "sso.hrm.test",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-31T15:42:14.9766267Z",
+  "body": {
+    "Issuer": "CN=Caddy Local Authority - ECC Intermediate",
+    "notAfterUtc": "2026-11-01T03:23:23.0000000Z",
+    "Detail": "chains to Caddy\u0027s internal root"
+  }
+}

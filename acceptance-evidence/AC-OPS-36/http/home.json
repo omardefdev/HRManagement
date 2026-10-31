@@ -1,0 +1,10 @@
+{
+  "step": "home",
+  "method": "GET",
+  "url": "https://hr.hrm.test/",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-31T15:51:06.8111019Z",
+  "body": {
+    "moduleCards": 14
+  }
+}

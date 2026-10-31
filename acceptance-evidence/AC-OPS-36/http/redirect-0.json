@@ -1,0 +1,10 @@
+{
+  "step": "redirect-0",
+  "method": "GET",
+  "url": "https://hr.hrm.test/",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-10-31T15:51:05.6977230Z",
+  "body": {
+    "location": "https://sso.hrm.test/realms/hrmanagement/protocol/openid-connect/auth?client_id=hr-gateway-client\u0026request_uri=urn%3Aietf%3Aparams%3Aoauth%3Arequest_uri%3Abf52ac59-797a-4c77-a1f0-e50442644a07\u0026x-client-SKU=ID_NET10_0\u0026x-client-ver=8.19.2.0"
+  }
+}

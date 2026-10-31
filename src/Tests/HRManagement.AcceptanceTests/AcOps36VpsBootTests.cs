@@ -80,6 +80,31 @@ public class AcOps36VpsBootTests
         return recorder;
     }
 
+    // All scenarios share one evidence folder: the contract files keep the last scenario, so each scenario also keeps
+    // its own copy (<key>-after.json, <key>-db-checks.json, <key>-before.json).
+    private static readonly JsonSerializerOptions EvidenceJson = new() { WriteIndented = true };
+
+    private static void Keep(EvidenceRecorder recorder, string kind, object value) =>
+        File.WriteAllText(Path.Combine(recorder.Folder, $"{recorder.ScenarioKey}-{kind}.json"), JsonSerializer.Serialize(value, EvidenceJson));
+
+    private static void After(EvidenceRecorder recorder, object value)
+    {
+        recorder.WriteAfter(value);
+        Keep(recorder, "after", value);
+    }
+
+    private static void Db(EvidenceRecorder recorder, object value)
+    {
+        recorder.WriteDbChecks(value);
+        Keep(recorder, "db-checks", value);
+    }
+
+    private static void Before(EvidenceRecorder recorder, object value)
+    {
+        recorder.WriteBefore(value);
+        Keep(recorder, "before", value);
+    }
+
     // ---------------------------------------------------------------- shell
 
     private static string Bash =>
@@ -219,6 +244,8 @@ public class AcOps36VpsBootTests
         {
             AllowAutoRedirect = followRedirects,
             MaxAutomaticRedirections = 10,
+            // Bounded concurrency: a burst of hundreds of parallel TLS handshakes can be reset by a local port proxy.
+            MaxConnectionsPerServer = 8,
             UseCookies = cookies is not null,
             CookieContainer = cookies ?? new CookieContainer(),
             ConnectCallback = async (context, ct) =>
@@ -312,7 +339,7 @@ public class AcOps36VpsBootTests
         var (_, ps) = Sh($"for id in $(docker ps -aq --filter label=com.docker.compose.project={Project}); do " +
                          "docker inspect -f '{{index .Config.Labels \"com.docker.compose.service\"}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.State.ExitCode}}' $id; done");
         var rows = ps.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim().Split('|')).Where(p => p.Length == 5).ToList();
-        recorder.WriteAfter(rows.Select(r => new { service = r[0], image = r[1], state = r[2], health = r[3], exit = r[4] }));
+        After(recorder, rows.Select(r => new { service = r[0], image = r[1], state = r[2], health = r[3], exit = r[4] }));
 
         foreach (var app in Applications)
         {
@@ -334,9 +361,11 @@ public class AcOps36VpsBootTests
         Assert.DoesNotContain(rows, r => r[0] is "otel-collector" or "prometheus" or "grafana" or "tempo");
 
         // Boot time: the deploy record written by scripts/vps/deploy.ps1 (healthy_seconds from remote-deploy.sh).
-        var records = Directory.GetFiles(Path.Combine(AcceptanceHarness.RepoRoot, "artifacts", "vps"), $"deploy-{(Remote ? SshHost : "local")}-deploy-*.json");
-        AcceptanceGate.RequireData(recorder, records.Length > 0, "لا سجل نشر", "No deploy record under artifacts/vps (run scripts/vps/deploy.ps1).");
-        using var record = JsonDocument.Parse(File.ReadAllText(records.OrderByDescending(File.GetLastWriteTimeUtc).First()));
+        // The deploy record of the running tag (its first deploy; a rollback writes deploy-<target>-rollback-<tag>.json).
+        var recordPath = Path.Combine(AcceptanceHarness.RepoRoot, "artifacts", "vps", $"deploy-{(Remote ? SshHost : "local")}-deploy-{tag}.json");
+        AcceptanceGate.RequireData(recorder, File.Exists(recordPath), "لا سجل نشر", $"No deploy record {Path.GetFileName(recordPath)} under artifacts/vps (run scripts/vps/deploy.ps1).");
+        recorder.RecordTiming("deployRecord", Path.GetFileName(recordPath));
+        using var record = JsonDocument.Parse(File.ReadAllText(recordPath));
         // up -d already waits for the health-gated dependencies, so the boot time is up + the final wait.
         var timings = record.RootElement.GetProperty("timings");
         var healthy = timings.GetProperty("up_seconds").GetInt32() + timings.GetProperty("healthy_seconds").GetInt32();
@@ -360,7 +389,7 @@ public class AcOps36VpsBootTests
         watch.Stop();
         Assert.NotEqual(0, latestCode);
         Assert.Contains("not a 12-character commit SHA", latest, StringComparison.Ordinal);
-        recorder.WriteDbChecks(new
+        Db(recorder, new
         {
             withoutRegistry = new { exitCode = noRepoCode, message = "HRM_IMAGE_REPO required" },
             latestTag = new { exitCode = latestCode, refusedInSeconds = Math.Round(watch.Elapsed.TotalSeconds, 1) }
@@ -411,7 +440,7 @@ public class AcOps36VpsBootTests
                 Assert.Equal(AppDomain, response.RequestMessage!.RequestUri!.Host, ignoreCase: true);
             }
 
-            recorder.WriteAfter(statuses);
+            After(recorder, statuses);
             Assert.All(statuses, s => Assert.True(s.Value == 200, $"/ui/{s.Key}/ answered {s.Value}"));
         }
 
@@ -464,7 +493,7 @@ public class AcOps36VpsBootTests
             Assert.True(status == expected, $"{path} answered {status}, expected {expected}");
         }
 
-        recorder.WriteAfter(new { closedPorts = ClosedPorts, openUnexpected = open, serverPublicListeners = listeners, edges });
+        After(recorder, new { closedPorts = ClosedPorts, openUnexpected = open, serverPublicListeners = listeners, edges });
         recorder.WriteResult("Pass", "443 valid for both names; 5000/8080/5432/5672/15672/5341 closed; /admin and /realms/master 403; /metrics and /health 404");
     }
 
@@ -513,7 +542,7 @@ public class AcOps36VpsBootTests
 
         var genuineIp = AuditIp(genuine);
         var forgedIp = AuditIp(forged);
-        recorder.WriteDbChecks(new
+        Db(recorder, new
         {
             table = "gateway_audit_entries",
             caddyRemoteIp = Mask(caddyIp),
@@ -629,7 +658,7 @@ public class AcOps36VpsBootTests
         var shortSecret = Sh(Compose("run --rm --no-deps -T -e GatewayCallerProof__Secret=0123456789 hr-gateway"), 420_000);
         var placeholderLine = placeholder.Output.Split('\n').FirstOrDefault(l => l.Contains("will not start", StringComparison.Ordinal)) ?? "";
         var shortLine = shortSecret.Output.Split('\n').FirstOrDefault(l => l.Contains("will not start", StringComparison.Ordinal)) ?? "";
-        recorder.WriteDbChecks(new
+        Db(recorder, new
         {
             placeholderAllowedHosts = new { exitCode = placeholder.ExitCode, message = placeholderLine.Trim() },
             shortCallerProofSecret = new { exitCode = shortSecret.ExitCode, message = shortLine.Trim() }
@@ -652,7 +681,7 @@ public class AcOps36VpsBootTests
         var (client, _) = await SignInAsync("hradmin", DemoPassword());
         using (client)
             Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"https://{AppDomain}/ui/hr-core/")).StatusCode);
-        recorder.WriteAfter(new { liveHrCore = "healthy", liveGateway = "healthy", uiHrCore = 200 });
+        After(recorder, new { liveHrCore = "healthy", liveGateway = "healthy", uiHrCore = 200 });
         recorder.WriteResult("Pass", "one-off containers with a placeholder AllowedHosts and a short secret exited naming the key (no value); live services unchanged and healthy");
     }
 
@@ -679,7 +708,7 @@ public class AcOps36VpsBootTests
         // A container on the application network (the gateway's own, which has curl) calls hr-core-web without the proof.
         var gateway = ContainerOf("hr-gateway");
         var direct = Sh($"docker exec {gateway} curl -s -o /dev/null -w '%{{http_code}}' http://hr-core-web:8080/").Output.Trim();
-        recorder.WriteAfter(new { directCallWithoutProof = direct });
+        After(recorder, new { directCallWithoutProof = direct });
         Assert.Equal("403", direct);
         recorder.WriteResult("Pass", $"/api/files upload 201 through the edge and the gateway; direct hr-core-web call without proof {direct}");
     }
@@ -729,7 +758,7 @@ public class AcOps36VpsBootTests
 
         var oomKilled = oom.Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(l => l.Trim().EndsWith("|true", StringComparison.Ordinal)).ToList();
         var hostMiB = hostBytes / 1048576.0;
-        recorder.WriteAfter(new { hostMemoryMiB = Math.Round(hostMiB), totalUsedMiB = Math.Round(totalMiB), percentOfHost = Math.Round(100 * totalMiB / hostMiB, 1), containers = rows, oomKilled });
+        After(recorder, new { hostMemoryMiB = Math.Round(hostMiB), totalUsedMiB = Math.Round(totalMiB), percentOfHost = Math.Round(100 * totalMiB / hostMiB, 1), containers = rows, oomKilled });
         recorder.FlushTiming();
         Assert.Empty(oomKilled);
         Assert.True(totalMiB < 0.75 * hostMiB, $"total {totalMiB:0} MiB is not under 75 % of {hostMiB:0} MiB");
@@ -774,7 +803,7 @@ public class AcOps36VpsBootTests
             seen[application] = count;
         }
 
-        recorder.WriteAfter(new { seqApi = "http://127.0.0.1:5380/api/events (loopback)", eventsPerApplication = seen });
+        After(recorder, new { seqApi = "http://127.0.0.1:5380/api/events (loopback)", eventsPerApplication = seen });
         Assert.All(seen, s => Assert.True(s.Value > 0, $"Seq has no event from {s.Key}"));
 
         var containers = Sh($"docker ps --format '{{{{.Names}}}}' --filter label=com.docker.compose.project={Project}").Output;
@@ -787,7 +816,7 @@ public class AcOps36VpsBootTests
             otlpErrors[service] = int.TryParse(count.Trim(), out var n) ? n : -1;
         }
 
-        recorder.WriteDbChecks(new { otlpLogLines = otlpErrors });
+        Db(recorder, new { otlpLogLines = otlpErrors });
         Assert.All(otlpErrors, e => Assert.True(e.Value == 0, $"{e.Key} logged {e.Value} OTLP line(s)"));
         recorder.WriteResult("Pass", "Seq has events from all 15 applications; no otel-collector/prometheus container; no OTLP lines in any log");
         await Task.CompletedTask;
@@ -799,10 +828,10 @@ public class AcOps36VpsBootTests
     public async Task AC_OPS_36j_Redeploy_keeps_the_session_and_rollback_restores_the_previous_tag()
     {
         var recorder = Start("36j", "AC-OPS-36j redeploy with a new tag and force-recreate of the gateway keep the session and data; rollback restores the previous tag");
-        var log = Sh($"cat {HrmHome}/deployments.log").Output;
+        var log = Sh($"cat {Q(HrmHome + "/deployments.log")}").Output;
         var deploys = Regex.Matches(log, @"\|tag=(?<t>[0-9a-f]{12})\|action=deploy\|result=healthy").Select(m => m.Groups["t"].Value).ToList();
         var rollbacks = Regex.Matches(log, @"\|tag=(?<t>[0-9a-f]{12})\|action=rollback").Select(m => m.Groups["t"].Value).ToList();
-        recorder.WriteBefore(new { deployments = log.Split('\n', StringSplitOptions.RemoveEmptyEntries) });
+        Before(recorder, new { deployments = log.Split('\n', StringSplitOptions.RemoveEmptyEntries) });
         AcceptanceGate.RequireData(recorder, deploys.Distinct().Count() >= 2 && rollbacks.Count >= 1,
             "لم يجرِ نشر بوسمين وتراجع", "deployments.log needs two deployed tags and a rollback (scripts/vps/deploy.ps1, then -Rollback).");
         var smokes = Directory.GetFiles(Path.Combine(AcceptanceHarness.RepoRoot, "artifacts", "vps"), $"smoke-{(Remote ? SshHost : "local")}-*.json")
@@ -836,7 +865,7 @@ public class AcOps36VpsBootTests
             Assert.DoesNotContain("kc-form-login", html, StringComparison.Ordinal);
         }
 
-        recorder.WriteAfter(new { distinctDeployedTags = deploys.Distinct().ToList(), rollbacks, current = Path.GetFileName(ReleaseDir()), latestSmoke = Path.GetFileName(smokes[0]) });
+        After(recorder, new { distinctDeployedTags = deploys.Distinct().ToList(), rollbacks, current = Path.GetFileName(ReleaseDir()), latestSmoke = Path.GetFileName(smokes[0]) });
         recorder.WriteResult("Pass", "two tags deployed, rollback to the previous tag with a green smoke; session valid after the gateway was recreated");
     }
 
@@ -855,7 +884,7 @@ public class AcOps36VpsBootTests
             // HR.Core: an internal page (shared layout) and its root, the public careers portal (public layout).
             var module = WebUtility.HtmlDecode(await client.GetStringAsync($"https://{AppDomain}/ui/hr-core/Employees"));
             var portal = WebUtility.HtmlDecode(await client.GetStringAsync($"https://{AppDomain}/ui/hr-core/"));
-            recorder.WriteAfter(new
+            After(recorder, new
             {
                 organization,
                 gatewayHeaderHasName = home.Contains(organization, StringComparison.Ordinal),
@@ -888,7 +917,7 @@ public class AcOps36VpsBootTests
                 }
             }
 
-            recorder.WriteDbChecks(new { expiredLicense = "2020-01-01T00:00:00Z", ui, healthLive = live });
+            Db(recorder, new { expiredLicense = "2020-01-01T00:00:00Z", ui, healthLive = live });
             Assert.Equal("200", live);
             Assert.Equal("402", ui);
         }

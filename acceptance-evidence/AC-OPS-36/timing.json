@@ -1,0 +1,9 @@
+{
+  "target": "local",
+  "appDomain": "hr.hrm.test",
+  "authenticatedRequests": 450,
+  "authenticated429": 0,
+  "anonymousSent": 296,
+  "anonymousBeforeFirst429": 295,
+  "retryAfter": "60"
+}

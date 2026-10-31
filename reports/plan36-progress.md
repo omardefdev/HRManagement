@@ -12,8 +12,9 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 | P3 | done | 2026-10-31T14:02:43Z |
 | P4 | done | 2026-10-31T14:13:06Z |
 | P5 | done | 2026-10-31T14:29:19Z |
-| P6 | in progress | |
-| P7-P8 | not started | |
+| P6 | done | 2026-10-31T16:15:45Z |
+| P7 | waiting for owner | |
+| P8 | not started | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -74,7 +75,7 @@ answered by P7.
 
 ## Next step
 
-P6 (local registry, build-push, -Local deploy, AcOps36VpsBootTests, evidence).
+P7 step 1: owner actions (see OWNER ACTION below), then host setup.
 
 ## P0 result
 
@@ -243,3 +244,29 @@ Finished (UTC): 2026-10-31T14:29:19Z
 - Tag C b2f85bcbff12 deployed over B (pull 7 s, up 52 s, healthy +20 s), smoke green. The first local rollback failed:
   Git Bash copies instead of symlinking, so `current` was never a link and no previous tag was kept. Fixed in
   10a35bef (`current-tag` file on every platform; `current` symlink on Linux only). Rollback proof uses tags D and E.
+- Final local sequence: `down -v`, cold deploy D 10a35befc8c9 (pull 5 s, up 58 s, healthy +20 s = **78 s** to all
+  healthy), deploy E 205f37dfe1c1 over it (up 45 s, +21 s), `-Rollback` to D (up 27 s, +21 s); smoke 17 pass / 0 fail
+  after each step. deployments.log: deploy D, deploy E (previous D), deploy D + rollback from E.
+- Build/push to the local registry (per tag): fbb5c2ab9d3f build 329 s / push 30 s; ee8530331666 224 s / 29 s;
+  b2f85bcbff12 241 s / 28 s; 10a35befc8c9 30 s (cache) / 24 s; 205f37dfe1c1 236 s / 27 s. 15 images = 2,113.8 MB
+  compressed (810.0 MB unique layers); largest hr-core-web 193 MB, payroll-web 190 MB, others 125-135 MB.
+- **AC-OPS-36a..k = 11/11 Pass locally in one run** (`acceptance-evidence/AC-OPS-36/`, per-scenario copies
+  `<key>-after.json`/`<key>-db-checks.json`). Test fixes on the way: Windows cannot hold an empty process variable (36a
+  negative now uses a second `--env-file` that empties `HRM_IMAGE_REPO`), local home path quoting (36j), bounded
+  client concurrency (36e: 8 connections; an unbounded burst of TLS handshakes was reset once by Docker Desktop's port
+  proxy), HR.Core internal page + careers portal both checked for the banner (36k).
+- Memory (AC-OPS-36h, local, after a 10-minute tour): 4,826 MiB used of 15,851 MiB (30.4 %), no OOMKilled; clamav
+  953/2048, keycloak 574/1024, seq 427/768, hr-core 286/1024, rabbitmq 215/512, payroll 194/768, contracts 171/640,
+  gateway 171/512, the 384 MiB modules 137-168, postgresql 149/2048, file-storage 142/512, edge 24/128.
+- Step 7: local single-host stack stopped with `down` (23 volumes kept until P8).
+- Step 8 (acceptance stack unaffected): images rebuilt from HEAD with compose (974 s), `acceptance-up.ps1 -NoBuild
+  -SkipLiveVerification` ready; AC-01, AC-02, AC-03, AC-04, AC-31 = 5/5 Pass through the acceptance gateway (guard off
+  in Acceptance, limiter after authentication). AC-28/AC-30 could not start: they shell out to `pwsh`, which this
+  machine does not have (tooling, not a regression). Their evidence files were restored (not part of this plan). The
+  acceptance stack is stopped again (containers kept).
+
+## P6 result
+
+Finished (UTC): 2026-10-31T16:15:45Z
+- AC-OPS-36a..k 11/11 Pass locally (evidence `acceptance-evidence/AC-OPS-36/`); boot 78 s; memory 30.4 % of host.
+- Test runs: `artifacts/plan36/p6-acops36-final2.log` (11/11), `p6-acceptance-smoke.log` (5/5).
