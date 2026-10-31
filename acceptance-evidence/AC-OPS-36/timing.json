@@ -3,7 +3,8 @@
   "appDomain": "hr.hrm.test",
   "authenticatedRequests": 450,
   "authenticated429": 0,
-  "anonymousSent": 296,
-  "anonymousBeforeFirst429": 295,
+  "anonymousSent": 400,
+  "anonymousNotRejected": 295,
+  "anonymousBurstSeconds": 0.4,
   "retryAfter": "60"
 }

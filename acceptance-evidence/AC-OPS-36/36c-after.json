@@ -7,8 +7,10 @@
     15672,
     5341
   ],
-  "openUnexpected": [],
+  "clientPathIntercepts": false,
+  "clientSeesOpen": [],
   "serverPublicListeners": "n/a (local Docker Desktop: published ports checked from this machine)",
+  "firewall": "n/a",
   "edges": [
     {
       "path": "https://sso.hrm.test/admin/",

@@ -3,6 +3,6 @@
   "method": "POST",
   "url": "https://hr.161-97-185-71.sslip.io/api/files",
   "statusCode": 201,
-  "capturedAtUtc": "2026-10-31T19:41:54.9272794Z",
-  "body": "{\u0022fileId\u0022:\u0022e64dc88e-ac85-44f6-ac15-ee3e32599cb8\u0022,\u0022originalName\u0022:\u0022ops36g.pdf\u0022,\u0022size\u0022:45,\u0022mimeType\u0022:\u0022application/pdf\u0022}"
+  "capturedAtUtc": "2026-10-31T20:56:22.3966262Z",
+  "body": "{\u0022fileId\u0022:\u0022a51a1bd8-ec57-49b9-b16e-53ce25cf19b7\u0022,\u0022originalName\u0022:\u0022ops36g.pdf\u0022,\u0022size\u0022:45,\u0022mimeType\u0022:\u0022application/pdf\u0022}"
 }

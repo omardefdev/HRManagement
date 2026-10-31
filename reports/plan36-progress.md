@@ -409,3 +409,9 @@ Finished (UTC): 2026-10-31T19:56:37Z
   Caddy strips a client `X-Forwarded-Prefix`; (6, low) smoke.sh passes the session cookie through a 0600 header file.
   Documented, not changed: (7, low) IPv6 clients would share one address if an AAAA record were published (none today).
 - Unit 4337/4337 after the fixes; lint PASS both chains; Caddyfile valid (both variants).
+- Final tag **00926107a37b** (review fixes): server build 540 s (upload 418 s), deploy (up 47 s, +12 s), old release +
+  rollback back to it; local build 150 s, deploy, old release + rollback (local pull skipped on the rollback because
+  Docker Hub DNS failed on the owner's network; all images present). **AC-OPS-36 11/11 on the server (one run, 1,416 s)
+  and 11/11 locally (one run)** on the final code; server memory 4,516 / 24,027 MiB (18.8 %), local 4,447 / 15,851 MiB
+  (28.1 %); server 36e: 300 of 400 in 28.3 s, Retry-After 60.
+- Final report: reports/plan36-final-report.md; PR description: reports/plan36-pr.md.

@@ -1,15 +1,20 @@
 {
-  "hr-core": 200,
-  "hr-contracts": 200,
-  "hr-health": 200,
-  "hr-movements": 200,
-  "hr-training": 200,
-  "payroll": 200,
-  "idcard": 200,
-  "records-archive": 200,
-  "admin-logistics": 200,
-  "it-infra": 200,
-  "dev-analytics": 200,
-  "compliance": 200,
-  "auth-directory": 200
+  "seqApi": "http://127.0.0.1:5380/api/events (loopback)",
+  "eventsPerApplication": {
+    "HRManagement.Gateway": 1,
+    "HR.Core.Web": 1,
+    "HR.Contracts.Web": 1,
+    "HR.Health.Web": 1,
+    "HR.Movements.Web": 1,
+    "HR.Training.Web": 1,
+    "Payroll.Web": 1,
+    "IDCard.Web": 1,
+    "Records.Archive.Web": 1,
+    "Admin.Logistics.Web": 1,
+    "IT.Infra.Web": 1,
+    "Dev.Analytics.Web": 1,
+    "Compliance.Web": 1,
+    "Auth.Directory.Web": 1,
+    "File.Storage.Web": 1
+  }
 }

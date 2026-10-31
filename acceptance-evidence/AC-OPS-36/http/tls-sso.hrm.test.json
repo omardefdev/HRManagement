@@ -3,7 +3,7 @@
   "method": "TLS",
   "url": "sso.hrm.test",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-31T15:42:14.9766267Z",
+  "capturedAtUtc": "2026-10-31T21:00:39.1352012Z",
   "body": {
     "Issuer": "CN=Caddy Local Authority - ECC Intermediate",
     "notAfterUtc": "2026-11-01T03:23:23.0000000Z",

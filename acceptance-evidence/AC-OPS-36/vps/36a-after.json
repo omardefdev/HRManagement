@@ -1,105 +1,105 @@
 [
   {
     "service": "admin-logistics-web",
-    "image": "127.0.0.1:5050/hrmanagement/admin-logistics-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/admin-logistics-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "hr-gateway",
-    "image": "127.0.0.1:5050/hrmanagement/hr-gateway:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/hr-gateway:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "hr-core-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-core-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/hr-core-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "hr-contracts-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-contracts-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/hr-contracts-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "file-storage-web",
-    "image": "127.0.0.1:5050/hrmanagement/file-storage-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/file-storage-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "payroll-web",
-    "image": "127.0.0.1:5050/hrmanagement/payroll-web:1a62e06f28c9",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "idcard-web",
-    "image": "127.0.0.1:5050/hrmanagement/idcard-web:1a62e06f28c9",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "compliance-web",
-    "image": "127.0.0.1:5050/hrmanagement/compliance-web:1a62e06f28c9",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "hr-movements-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-movements-web:1a62e06f28c9",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "hr-training-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-training-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/payroll-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "dev-analytics-web",
-    "image": "127.0.0.1:5050/hrmanagement/dev-analytics-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/dev-analytics-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
-    "service": "it-infra-web",
-    "image": "127.0.0.1:5050/hrmanagement/it-infra-web:1a62e06f28c9",
+    "service": "idcard-web",
+    "image": "127.0.0.1:5050/hrmanagement/idcard-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
-    "service": "hr-health-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-health-web:1a62e06f28c9",
+    "service": "hr-training-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-training-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "auth-directory-web",
-    "image": "127.0.0.1:5050/hrmanagement/auth-directory-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/auth-directory-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "compliance-web",
+    "image": "127.0.0.1:5050/hrmanagement/compliance-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-health-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-health-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-movements-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-movements-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "records-archive-web",
-    "image": "127.0.0.1:5050/hrmanagement/records-archive-web:1a62e06f28c9",
+    "image": "127.0.0.1:5050/hrmanagement/records-archive-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "it-infra-web",
+    "image": "127.0.0.1:5050/hrmanagement/it-infra-web:00926107a37b",
     "state": "running",
     "health": "healthy",
     "exit": "0"

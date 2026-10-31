@@ -1,11 +1,13 @@
 {
   "distinctDeployedTags": [
     "10a35befc8c9",
-    "205f37dfe1c1"
+    "205f37dfe1c1",
+    "00926107a37b"
   ],
   "rollbacks": [
-    "10a35befc8c9"
+    "10a35befc8c9",
+    "00926107a37b"
   ],
-  "current": "10a35befc8c9",
-  "latestSmoke": "smoke-local-20261031T152837Z.json"
+  "current": "00926107a37b",
+  "latestSmoke": "smoke-local-20261031T204532Z.json"
 }
