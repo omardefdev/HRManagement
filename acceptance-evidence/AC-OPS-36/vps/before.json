@@ -1,0 +1,8 @@
+{
+  "deployments": [
+    "2026-10-31T18:58:45Z|tag=1a62e06f28c9|action=deploy|result=healthy|previous=none",
+    "2026-10-31T19:21:48Z|tag=68f2276ffc7e|action=deploy|result=healthy|previous=1a62e06f28c9",
+    "2026-10-31T19:23:34Z|tag=1a62e06f28c9|action=deploy|result=healthy|previous=68f2276ffc7e",
+    "2026-10-31T19:23:34Z|tag=1a62e06f28c9|action=rollback|from=68f2276ffc7e"
+  ]
+}

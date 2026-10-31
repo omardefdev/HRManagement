@@ -1,0 +1,11 @@
+{
+  "distinctDeployedTags": [
+    "1a62e06f28c9",
+    "68f2276ffc7e"
+  ],
+  "rollbacks": [
+    "1a62e06f28c9"
+  ],
+  "current": "1a62e06f28c9",
+  "latestSmoke": "smoke-hrm-vps-20261031T192610Z.json"
+}

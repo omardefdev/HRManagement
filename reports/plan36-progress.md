@@ -13,8 +13,8 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 | P4 | done | 2026-10-31T14:13:06Z |
 | P5 | done | 2026-10-31T14:29:19Z |
 | P6 | done | 2026-10-31T16:15:45Z |
-| P7 | waiting for owner | |
-| P8 | not started | |
+| P7 | done | 2026-10-31T19:56:37Z |
+| P8 | in progress | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -371,3 +371,29 @@ Owner action done (UTC): 2026-10-31T18:31:00Z — owner chose option (c): build 
 - 19:02Z HRM_ACME_CA -> production, edge recreated: "certificate obtained successfully" for both names; smoke without
   `-AllowStagingCa`: **publicly trusted** (C=US, O=Let's Encrypt, CN=YE1 / YE2, notAfter 2027-01-29), 17 pass, 0 fail,
   1 warn (client port view), 5 Deferred(PLAN-37). Windows trust store also accepts the certificate.
+- Second tag 68f2276ffc7e built on the server (upload 383 s, build 545 s, push 9 s) and deployed over 1a62e06f28c9
+  (pull 2 s, up 81 s, healthy +12 s), smoke 17/0/1. (First attempt passed a mistyped tag and stopped at the bundle
+  step before touching the server.) **Rollback** to 1a62e06f28c9: up 46 s, healthy +12 s, smoke 17/0/1;
+  deployments.log shows deploy, deploy, deploy + rollback; `current` -> releases/1a62e06f28c9.
+- **Reboot survival** (19:24Z `sudo systemctl reboot`): ssh back after 28 s, **all containers healthy 68 s after the
+  reboot command** with no manual step; smoke after reboot 17 pass / 0 fail.
+- `/root/host-setup.sh` removed (the release bundle carries `deploy/vps/host-setup.sh`; undo of the hardening:
+  `sudo bash /opt/hrm/current/deploy/vps/host-setup.sh --undo-harden-ssh`).
+- **AC-OPS-36a..k on the real server = 11/11 Pass** (`acceptance-evidence/AC-OPS-36/vps/`, owner IP masked to
+  87.249.x.x): full run 9/11 (19:28-19:48Z); 36b and 36e then fixed for the client path and passed on rerun:
+  - 36b: the TCP probe of port 80 is meaningless when the client path answers every port (control port 23456
+    connects); the test then requires no HTTP response/no session on plain HTTP and no :80 socket on the server.
+  - 36e: 400 asset requests as HEAD (same limiter path, no bodies through a ~1.3 Mbit/s link) and the anonymous burst
+    8-way parallel so it fits one window: **300 of 400 passed in 40.8 s, 100 got 429 with Retry-After 60**; two
+    signed-in users behind one address: no 429.
+- Server memory (36h, after a 10-minute tour): **5,193 MiB of 24,027 MiB (21.6 %)**, no OOMKilled; clamav 960/2048,
+  **keycloak 901/1024 (88 %)** — watch item, hr-core 317/1024, seq 283/768, payroll 216/768, rabbitmq 192/512.
+- Open owner item: root password still dated 2026-10-30 (`ssh -t hrm-vps "sudo passwd root"`); disable VNC in the
+  Contabo panel when not needed.
+
+## P7 result
+
+Finished (UTC): 2026-10-31T19:56:37Z
+- Server live at https://hr.161-97-185-71.sslip.io/ with Let's Encrypt production certificates; 22 and 443 only;
+  hrm user, key-only SSH, no root login; ufw; swap; survives a reboot (healthy 68 s after reboot); redeploy and
+  rollback proven; AC-OPS-36 11/11 on the server.

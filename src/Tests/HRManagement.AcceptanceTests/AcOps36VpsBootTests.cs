@@ -444,10 +444,45 @@ public class AcOps36VpsBootTests
             Assert.All(statuses, s => Assert.True(s.Value == 200, $"/ui/{s.Key}/ answered {s.Value}"));
         }
 
-        // Negative: plain HTTP gives no session (port 80 is not published at all).
+        // Negative: plain HTTP gives no session (port 80 is not published at all). When the client's path answers every
+        // TCP port itself (the never-used control port 23456 connects), a TCP probe proves nothing: then plain HTTP must
+        // still return no response and no session, and the server must have no socket on port 80.
+        var clientPathIntercepts = TcpOpen(TargetIp, 23456);
         var http80 = TcpOpen(TargetIp, 80);
-        recorder.RecordTiming("port80Open", http80);
-        Assert.False(http80, "port 80 must not be reachable");
+        recorder.RecordTiming("port80TcpConnects", http80);
+        recorder.RecordTiming("clientPathIntercepts", clientPathIntercepts);
+        if (!clientPathIntercepts)
+            Assert.False(http80, "port 80 must not be reachable");
+        else
+        {
+            string plain;
+            try
+            {
+                using var direct = new HttpClient(new SocketsHttpHandler
+                {
+                    UseCookies = false,
+                    ConnectCallback = async (_, ct) =>
+                    {
+                        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                        await socket.ConnectAsync(IPAddress.Parse(TargetIp), 80, ct);
+                        return new NetworkStream(socket, ownsSocket: true);
+                    }
+                }) { Timeout = TimeSpan.FromSeconds(15) };
+                using var response = await direct.GetAsync($"http://{AppDomain}/");
+                plain = $"HTTP {(int)response.StatusCode}, Set-Cookie: {response.Headers.Contains("Set-Cookie")}";
+                Assert.False(response.Headers.Contains("Set-Cookie"), "plain HTTP returned a cookie");
+                Assert.False(response.IsSuccessStatusCode, $"plain HTTP answered {(int)response.StatusCode}");
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+            {
+                plain = $"no HTTP response ({ex.GetType().Name})";
+            }
+
+            var port80Socket = Sh("ss -Htln | awk '{print $4}' | grep -cE ':80$' || true").Output.Trim();
+            recorder.RecordTiming("plainHttp", plain);
+            recorder.RecordTiming("serverSocketsOnPort80", port80Socket);
+            Assert.Equal("0", port80Socket);
+        }
         recorder.FlushTiming();
         recorder.WriteResult("Pass", $"redirect to https://{SsoDomain} without localhost; signed in; 14 module cards; 13 module UIs 200; no plain HTTP");
     }
@@ -585,7 +620,8 @@ public class AcOps36VpsBootTests
             {
                 var tasks = new List<Task<HttpStatusCode>>();
                 for (var i = 0; i < 200; i++)
-                    tasks.Add(Status(client, $"https://{AppDomain}{asset}?n={i}"));
+                    // HEAD: same limiter path as GET (both exempt as assets), without 400 bodies through a slow link.
+                    tasks.Add(Status(client, $"https://{AppDomain}{asset}?n={i}", HttpMethod.Head));
                 for (var i = 0; i < 25; i++)
                     tasks.Add(Status(client, $"https://{AppDomain}/ui/{UiModules[i % UiModules.Length]}/"));
                 var results = await Task.WhenAll(tasks);
@@ -598,24 +634,27 @@ public class AcOps36VpsBootTests
         Assert.Equal(0, rejected);
 
         // Anonymous: one address, one window of 300 per minute.
-        var (succeeded, retryAfter, sent) = await AnonymousBurstAsync();
+        var (succeeded, retryAfter, sent, seconds) = await AnonymousBurstAsync();
         if (succeeded > 300)
-            (succeeded, retryAfter, sent) = await AnonymousBurstAsync(); // the window turned over during the burst
+            (succeeded, retryAfter, sent, seconds) = await AnonymousBurstAsync(); // the window turned over during the burst
         recorder.RecordTiming("anonymousSent", sent);
-        recorder.RecordTiming("anonymousBeforeFirst429", succeeded);
+        recorder.RecordTiming("anonymousNotRejected", succeeded);
+        recorder.RecordTiming("anonymousBurstSeconds", Math.Round(seconds, 1));
         recorder.RecordTiming("retryAfter", retryAfter ?? "missing");
-        Assert.True(succeeded <= 300, $"{succeeded} anonymous requests passed before a 429");
-        Assert.True(sent < 400 || succeeded < 400, "no 429 within 400 anonymous requests");
+        Assert.True(seconds < 60, $"the anonymous burst took {seconds:0} s, longer than the one-minute window");
+        Assert.True(succeeded <= 300, $"{succeeded} of 400 anonymous requests passed (limit 300 per minute)");
+        Assert.True(succeeded < 400, "no 429 within 400 anonymous requests");
         Assert.False(string.IsNullOrEmpty(retryAfter), "429 without Retry-After");
 
         await WaitForAnonymousWindowAsync();
         recorder.FlushTiming();
-        recorder.WriteResult("Pass", $"two signed-in users: 400 assets + 50 pages, no 429; anonymous: first 429 after {succeeded} with Retry-After {retryAfter}");
+        recorder.WriteResult("Pass", $"two signed-in users: 400 assets + 50 pages, no 429; anonymous: {succeeded} of 400 passed in {seconds:0} s, the rest 429 with Retry-After {retryAfter}");
     }
 
-    private static async Task<HttpStatusCode> Status(HttpClient client, string url)
+    private static async Task<HttpStatusCode> Status(HttpClient client, string url, HttpMethod? method = null)
     {
-        using var response = await client.GetAsync(url);
+        using var request = new HttpRequestMessage(method ?? HttpMethod.Get, url);
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         return response.StatusCode;
     }
 
@@ -632,19 +671,23 @@ public class AcOps36VpsBootTests
         }
     }
 
-    private static async Task<(int Succeeded, string? RetryAfter, int Sent)> AnonymousBurstAsync()
+    /// <summary>
+    /// 400 anonymous requests from one address, 8 at a time so that the burst fits in one one-minute window even on a
+    /// slow link (a sequential burst took over a minute to the server and spanned two windows). Returns the number that
+    /// were not rejected, the Retry-After of a 429, and the burst's duration.
+    /// </summary>
+    private static async Task<(int Succeeded, string? RetryAfter, int Sent, double Seconds)> AnonymousBurstAsync()
     {
         using var client = NewClient();
-        var succeeded = 0;
-        for (var i = 0; i < 400; i++)
+        var watch = Stopwatch.StartNew();
+        var responses = await Task.WhenAll(Enumerable.Range(0, 400).Select(async i =>
         {
             using var response = await client.GetAsync($"https://{AppDomain}/?burst={i}");
-            if (response.StatusCode == HttpStatusCode.TooManyRequests)
-                return (succeeded, response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0"), i + 1);
-            succeeded++;
-        }
-
-        return (succeeded, null, 400);
+            return (response.StatusCode, RetryAfter: response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0"));
+        }));
+        watch.Stop();
+        var rejected = responses.Where(r => r.StatusCode == HttpStatusCode.TooManyRequests).ToList();
+        return (400 - rejected.Count, rejected.Select(r => r.RetryAfter).FirstOrDefault(r => r is not null), 400, watch.Elapsed.TotalSeconds);
     }
 
     /// <summary>Leaves the anonymous window usable for the other scenarios (tests in a class run one after another).</summary>

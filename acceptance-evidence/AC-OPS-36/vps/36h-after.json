@@ -1,0 +1,134 @@
+{
+  "hostMemoryMiB": 24027,
+  "totalUsedMiB": 5193,
+  "percentOfHost": 21.6,
+  "containers": [
+    {
+      "container": "hrm-admin-logistics-web",
+      "usedMiB": 193.2,
+      "limitMiB": 384,
+      "percent": 50.3
+    },
+    {
+      "container": "hrm-hr-gateway",
+      "usedMiB": 170.7,
+      "limitMiB": 512,
+      "percent": 33.3
+    },
+    {
+      "container": "hrm-hr-core-web",
+      "usedMiB": 317.3,
+      "limitMiB": 1024,
+      "percent": 31
+    },
+    {
+      "container": "hrm-hr-contracts-web",
+      "usedMiB": 178.8,
+      "limitMiB": 640,
+      "percent": 27.9
+    },
+    {
+      "container": "hrm-file-storage-web",
+      "usedMiB": 128.4,
+      "limitMiB": 512,
+      "percent": 25.1
+    },
+    {
+      "container": "hrm-payroll-web",
+      "usedMiB": 216.4,
+      "limitMiB": 768,
+      "percent": 28.2
+    },
+    {
+      "container": "hrm-idcard-web",
+      "usedMiB": 157,
+      "limitMiB": 384,
+      "percent": 40.9
+    },
+    {
+      "container": "hrm-compliance-web",
+      "usedMiB": 154.6,
+      "limitMiB": 384,
+      "percent": 40.3
+    },
+    {
+      "container": "hrm-hr-movements-web",
+      "usedMiB": 156.6,
+      "limitMiB": 384,
+      "percent": 40.8
+    },
+    {
+      "container": "hrm-hr-training-web",
+      "usedMiB": 177.3,
+      "limitMiB": 384,
+      "percent": 46.2
+    },
+    {
+      "container": "hrm-dev-analytics-web",
+      "usedMiB": 149.7,
+      "limitMiB": 384,
+      "percent": 39
+    },
+    {
+      "container": "hrm-it-infra-web",
+      "usedMiB": 161.2,
+      "limitMiB": 384,
+      "percent": 42
+    },
+    {
+      "container": "hrm-hr-health-web",
+      "usedMiB": 156.1,
+      "limitMiB": 384,
+      "percent": 40.7
+    },
+    {
+      "container": "hrm-auth-directory-web",
+      "usedMiB": 166.7,
+      "limitMiB": 384,
+      "percent": 43.4
+    },
+    {
+      "container": "hrm-records-archive-web",
+      "usedMiB": 151,
+      "limitMiB": 384,
+      "percent": 39.3
+    },
+    {
+      "container": "hrm-keycloak",
+      "usedMiB": 901.1,
+      "limitMiB": 1024,
+      "percent": 88
+    },
+    {
+      "container": "hrm-postgresql",
+      "usedMiB": 172.1,
+      "limitMiB": 2048,
+      "percent": 8.4
+    },
+    {
+      "container": "hrm-edge-1",
+      "usedMiB": 50.1,
+      "limitMiB": 128,
+      "percent": 39.2
+    },
+    {
+      "container": "hrm-clamav",
+      "usedMiB": 960,
+      "limitMiB": 2048,
+      "percent": 46.9
+    },
+    {
+      "container": "hrm-rabbitmq",
+      "usedMiB": 191.5,
+      "limitMiB": 512,
+      "percent": 37.4
+    },
+    {
+      "container": "hrm-seq-1",
+      "usedMiB": 282.8,
+      "limitMiB": 768,
+      "percent": 36.8
+    }
+  ],
+  "oomKilled": []
+}

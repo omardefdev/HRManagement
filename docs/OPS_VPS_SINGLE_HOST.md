@@ -51,7 +51,8 @@ ssh hrm-vps "bash /root/host-setup.sh"
    - `ssh -o BatchMode=yes -o User=hrm hrm-vps "echo ok"` ← `ok`
    - `ssh -o BatchMode=yes -o User=root hrm-vps "echo ok"` ← مرفوض
    - `ssh -o BatchMode=yes -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive -o User=hrm hrm-vps "echo ok"` ← `Permission denied (publickey).`
-4. إن فشل أي فحص: `ssh -o User=hrm hrm-vps "sudo bash /root/host-setup.sh --undo-harden-ssh"`.
+4. إن فشل أي فحص: `ssh -o User=hrm hrm-vps "sudo bash /root/host-setup.sh --undo-harden-ssh"` (وبعد أول نشر:
+   `sudo bash /opt/hrm/current/deploy/vps/host-setup.sh --undo-harden-ssh`).
 5. حوّل الاسم المستعار إلى `hrm` في `%USERPROFILE%\.ssh\config` (سطر `User hrm` في كتلة `hrm-vps`)، ثم
    `ssh hrm-vps whoami` ← `hrm`. ثم احذف نسخة الإعداد: `ssh hrm-vps "sudo rm -f /root/host-setup.sh"`.
 
@@ -90,7 +91,24 @@ ufw allow 22/tcp
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/build-push-images.ps1 -Registry ghcr.io/<owner>/hrmanagement
 ```
 
-الناتج: `artifacts/vps/images-<tag>.json` (الـ digest والحجم وزمن الدفع لكل صورة).
+الناتج: `artifacts/vps/images-<tag>.json` (الـ digest والحجم وزمن الدفع لكل صورة). وبعد دفع انقطع:
+`build-push-images.ps1 -Registry ... -Tag <sha12> -SkipBuild` يدفع الصور المبنية دون إعادة البناء، مع إعادة المحاولة.
+
+### البناء على الخادم (ما استُخدم في PLAN-36)
+
+اتصال المالك يرفع بنحو 0.16 MB/s فقط، والصور نحو 810 MB من الطبقات الفريدة، وفشل الدفع إلى GHCR على الشبكة. لذلك قرر
+المالك (انحراف موثق عن §6 القاعدة 1) أن يبني الخادم الصور من أرشيف المصدر (~30 MB) للوسم الملتزم:
+
+```bash
+ssh hrm-vps "sudo bash /opt/hrm/current/deploy/vps/host-setup.sh --with-registry"   # مرة واحدة: سجل 127.0.0.1:5050
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/build-on-host.ps1   # أرشيف HEAD -> بناء -> دفع -> تنظيف
+```
+
+`deploy/vps/build-on-host.sh` يفك الأرشيف، ويولّد طبقة الاستعادة، ويبني الصور الـ15 على دفعات، ويدفعها إلى
+`127.0.0.1:5050/hrmanagement`، ثم يحذف المصدر وذاكرة البناء وصورة SDK. النشر يبقى سحباً من سجل
+(`HRM_IMAGE_REPO=127.0.0.1:5050/hrmanagement` في `.env`). الأزمنة: رفع ~380 s، بناء ~530 s، دفع ~10 s.
+
+نفق SSH إلى السجل (`ssh -N -L 5050:...`) لا يصل إليه محرك Docker Desktop (connection refused)، فلا يصلح للدفع من Windows.
 
 ## 5. توليد `.env` على الخادم
 
@@ -135,6 +153,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/deploy.ps1 -Roll
 
 الاختبار الذاتي وحده: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/smoke.ps1 [-AllowStagingCa]`.
 `-AllowStagingCa` يقبل شهادة staging من Let's Encrypt **فقط**، لأول تشغيل.
+
+فحص المنافذ من جهاز المالك قد يكون غير حاسم: إن كان في طريق الاتصال VPN أو وكيل ينهي TCP بنفسه فكل منفذ يبدو مفتوحاً.
+لذلك يجرّب `smoke.ps1` أولاً منفذاً لا يستمع عليه شيء أبداً (23456)؛ فإن «اتصل» صار الفحص الخارجي تحذيراً (Warn)، والحكم
+لفحص الخادم نفسه: `ss` لا يُظهر غير 22 و443 على العناوين العامة، و`ufw` يرفض الباقي (التقاط tcpdump على الخادم أكد أن
+الطلب يصل ولا يُرد عليه).
 
 الاسم المؤسسي: `scripts/deploy-organization.ps1 -OrganizationName "<الاسم>"` يضبط `HRM_ORGANIZATION_NAME` على الخادم ثم
 ينشر. الإطار القانوني يُفعَّل من الرواتب ← الأطر القانونية.
@@ -189,13 +212,17 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | المنطقة الزمنية UTC | `timedatectl set-timezone Europe/Berlin` (القيمة الأصلية) |
 | المستخدم `hrm` و`/etc/sudoers.d/90-hrm` | `userdel -r hrm && rm /etc/sudoers.d/90-hrm` |
 | `/opt/hrm` | `rm -rf /opt/hrm` (يحذف `.env` والإصدارات) |
-| تشديد SSH (`00-hrm-hardening.conf`) | `bash host-setup.sh --undo-harden-ssh` (أو خطوات VNC أعلاه) |
+| تشديد SSH (`00-hrm-hardening.conf`، ونقل `50-cloud-init.conf` إلى `/root/sshd-backup-<ts>/`) | `sudo bash /opt/hrm/current/deploy/vps/host-setup.sh --undo-harden-ssh` (أو خطوات VNC أعلاه) |
+| السجل الحلقي `hrm-registry` (127.0.0.1:5050، `/opt/hrm/registry`) | `docker rm -f hrm-registry && sudo rm -rf /opt/hrm/registry` |
+| `/opt/hrm/build` (تقارير البناء على الخادم) | `rm -rf /opt/hrm/build` |
+| `tcpdump` (لتشخيص فحص المنافذ) | `sudo apt-get purge tcpdump` |
 | مشروع compose `hrm` | `docker compose -p hrm ... down` (والـ volumes بـ `-v`) |
 | `docker login ghcr.io` على الخادم | `docker logout ghcr.io` (يحذف `~hrm/.docker/config.json`) |
 
 ## 11. التسليم للمالك
 
-- الرابط: `https://<APP_DOMAIN>/`
+- الرابط: `https://hr.161-97-185-71.sslip.io/` (Keycloak: `https://sso.161-97-185-71.sslip.io/`)، بشهادة Let's
+  Encrypt حقيقية (production، تُجدَّد تلقائياً داخل Caddy).
 - كلمة مرور المستخدمين التجريبيين يقرؤها **المالك وحده**:
   `ssh hrm-vps "grep ^DEMO_USERS_PASSWORD= /opt/hrm/shared/.env"`
   المستخدمون: `hradmin` (مدير الموارد البشرية) ومستخدمو `e2e-*` في realm العرض، كلهم بهذه الكلمة.

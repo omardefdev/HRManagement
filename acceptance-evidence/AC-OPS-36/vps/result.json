@@ -1,0 +1,74 @@
+{
+  "scenarios": {
+    "36c": {
+      "status": "Pass",
+      "reason": "443 valid for both names; 5000/8080/5432/5672/15672/5341 closed; /admin and /realms/master 403; /metrics and /health 404",
+      "correlationId": "ops36-36c-b558e1246df14684a1851fa033b73fd8",
+      "recordedAtUtc": "2026-10-31T19:27:02.7923713Z"
+    },
+    "36h": {
+      "status": "Pass",
+      "reason": "21 containers, 5193 MiB of 24027 MiB (21\u066B6 %), none over its limit, no OOMKilled",
+      "correlationId": "ops36-36h-0531973c1c784b2893cb0743b75e5689",
+      "recordedAtUtc": "2026-10-31T19:35:06.0655037Z"
+    },
+    "36k": {
+      "status": "Pass",
+      "reason": "organization name and demo banner in the gateway and HR.Core headers; expired license: UI 402, /health/live 200; live gateway unchanged",
+      "correlationId": "ops36-36k-597dc69b787d4e56a0aa554495ba5fe8",
+      "recordedAtUtc": "2026-10-31T19:35:58.0926397Z"
+    },
+    "36d": {
+      "status": "Pass",
+      "reason": "audit ClientIp equals Caddy\u0027s remote_ip (compared unmasked in memory); forged X-Forwarded-For ignored",
+      "correlationId": "ops36-36d-055e8583d06246a1a36e61bad958cb3e",
+      "recordedAtUtc": "2026-10-31T19:36:40.8036769Z"
+    },
+    "36f": {
+      "status": "Pass",
+      "reason": "one-off containers with a placeholder AllowedHosts and a short secret exited naming the key (no value); live services unchanged and healthy",
+      "correlationId": "ops36-36f-c182d899a03e4ebfbd5108b96bb1d4f4",
+      "recordedAtUtc": "2026-10-31T19:38:01.7799422Z"
+    },
+    "36a": {
+      "status": "Pass",
+      "reason": "22 containers from 127.0.0.1:5050/hrmanagement:1a62e06f28c9, healthy after 125 s; no registry / latest refused",
+      "correlationId": "ops36-36a-12b5701613e549e6b18d1fb02e9bcd48",
+      "recordedAtUtc": "2026-10-31T19:38:45.2907660Z"
+    },
+    "36j": {
+      "status": "Pass",
+      "reason": "two tags deployed, rollback to the previous tag with a green smoke; session valid after the gateway was recreated",
+      "correlationId": "ops36-36j-cfcd518f550146ad89d4fa39792894cc",
+      "recordedAtUtc": "2026-10-31T19:39:32.0488589Z"
+    },
+    "36b": {
+      "status": "Pass",
+      "reason": "redirect to https://sso.161-97-185-71.sslip.io without localhost; signed in; 14 module cards; 13 module UIs 200; no plain HTTP",
+      "correlationId": "ops36-36b-e0c48464a14b4f338650c2b5974797d1",
+      "recordedAtUtc": "2026-10-31T19:48:13.5590021Z"
+    },
+    "36e": {
+      "status": "Pass",
+      "reason": "two signed-in users: 400 assets \u002B 50 pages, no 429; anonymous: 300 of 400 passed in 41 s, the rest 429 with Retry-After 60",
+      "correlationId": "ops36-36e-ffe611b3313d4359857b9397e6903bfe",
+      "recordedAtUtc": "2026-10-31T19:55:56.3391253Z"
+    },
+    "36g": {
+      "status": "Pass",
+      "reason": "/api/files upload 201 through the edge and the gateway; direct hr-core-web call without proof 403",
+      "correlationId": "ops36-36g-11614bb5fbd2456689df3e455104cc4c",
+      "recordedAtUtc": "2026-10-31T19:42:08.6363350Z"
+    },
+    "36i": {
+      "status": "Pass",
+      "reason": "Seq has events from all 15 applications; no otel-collector/prometheus container; no OTLP lines in any log",
+      "correlationId": "ops36-36i-1e1d0818219f422dadf2ce82f7f1b49b",
+      "recordedAtUtc": "2026-10-31T19:46:01.5429381Z"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "ops36-36e-ffe611b3313d4359857b9397e6903bfe",
+  "recordedAtUtc": "2026-10-31T19:55:56.3391253Z"
+}

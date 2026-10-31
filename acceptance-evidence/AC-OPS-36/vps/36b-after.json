@@ -1,0 +1,15 @@
+{
+  "hr-core": 200,
+  "hr-contracts": 200,
+  "hr-health": 200,
+  "hr-movements": 200,
+  "hr-training": 200,
+  "payroll": 200,
+  "idcard": 200,
+  "records-archive": 200,
+  "admin-logistics": 200,
+  "it-infra": 200,
+  "dev-analytics": 200,
+  "compliance": 200,
+  "auth-directory": 200
+}
