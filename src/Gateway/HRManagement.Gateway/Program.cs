@@ -54,6 +54,14 @@ if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINE
 }
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
+builder.Services.Configure<ProductionConfigurationGuardOptions>(options =>
+{
+    // PLAN-36: the gateway signs in browsers, so its public authority and client secret are critical too.
+    options.CriticalKeys.Add("Keycloak:PublicAuthority");
+    options.CriticalKeys.Add("Keycloak:ClientSecret");
+    options.RequiredKeys.Add("Keycloak:PublicAuthority");
+    options.RequiredKeys.Add("Keycloak:ClientSecret");
+});
 // Must precede authentication: cookie and OIDC correlation state is encrypted with this key ring.
 builder.AddHrDataProtection("HRManagement.Gateway");
 builder.AddHrOpenTelemetry();

@@ -8,8 +8,9 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 |-------|--------|----------------|
 | P0 | done | 2026-10-31T13:41:37Z |
 | P1 | done | 2026-10-31T13:51:21Z |
-| P2 | in progress | |
-| P3-P8 | not started | |
+| P2 | done | 2026-10-31T13:58:09Z |
+| P3 | in progress | |
+| P4-P8 | not started | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -70,7 +71,7 @@ answered by P7.
 
 ## Next step
 
-P2 (production configuration guard, license middleware, organization name).
+P3 (gateway rate limiter partitioned by user).
 
 ## P0 result
 
@@ -113,3 +114,25 @@ Finished (UTC): 2026-10-31T13:51:21Z
   (the identity of all earlier commits), nothing written to git config.
 - Open: module `appsettings.Production.json` files set `Serilog:FilePath logs/...` under root-owned `/app` (non-root
   user cannot write) — check in P6 whether it breaks start or only drops the file sink.
+
+## P2 result
+
+Finished (UTC): 2026-10-31T13:58:09Z
+- New `ProductionConfigurationGuard` (+`ProductionConfigurationGuardOptions`), an `IHostedService` registered in
+  `AddHrProductionNetworking` (all 15 services). Critical keys `AllowedHosts`, `GatewayCallerProof:Secret`,
+  `Keycloak:Authority`, `Organization:Name`; the gateway adds `Keycloak:PublicAuthority` and
+  `Keycloak:ClientSecret` (required too). Rules: placeholder markers, required-but-empty, caller-proof secret < 32,
+  public authority on localhost (Production only), empty `Gateway:EnabledModules` entry, mojibake in
+  `Organization:Name/ShortName`, demo mode (`Deployment:Mode=demo`) with `Seed:Profile` None, and for File.Storage
+  only (`ObjectStorageCredentialsRequired`) MinIO keys when the provider is Minio. Messages Arabic + English, key only.
+  Non-critical placeholders: one Warning per key.
+- Decision: **Production cannot switch the guard off** (`Deployment:EnforceConfigGuard=false` is ignored there); the
+  switch only turns it on in Development/Acceptance. Reason: a bypass switch in Production would defeat the guard.
+- Decision: the demo-mode key is `Deployment:Mode` (env `Deployment__Mode`), set by `docker-compose.vps-demo.yml` (P4).
+- `LicenseValidationMiddleware`: exempts `/health`, `/alive`, `/ready`, `/metrics` (segment match), parses the
+  expiry with `InvariantCulture` + `AdjustToUniversal | AssumeUniversal`; the "employee cap" summary is gone.
+- Gateway `appsettings.json`: `Organization:Name`/`ShortName` fixed (were double-encoded mojibake).
+- Compose: HR.Core no longer mounts `file_storage_data` (deviation from §1: HR.Core never registers the file storage
+  service, only File.Storage does, so the mount would only widen access to the file bytes).
+- Tests: build 0/0; `Ops036|LicenseValidation|ProductionConfigurationGuard` 62/62 (ar-SA/ar-SY/en-US/fr-FR expiry
+  parsing; placeholder fails in Production, passes in Development/Acceptance); full unit suite 4285/4285.

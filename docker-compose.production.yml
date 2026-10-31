@@ -359,7 +359,9 @@ services:
       Recruitment__Portal__OtpHmacKey: ${HR_CORE_OTP_HMAC_KEY:?HR_CORE_OTP_HMAC_KEY required}
       Keycloak__AdditionalValidAudiences: api-hr-core;hr-gateway-client
       Organization__Name: ${HRM_ORGANIZATION_NAME:-شعبة التنظيم والموارد البشرية}
-      # PLAN-36 (D-36-3): Local provider on a named volume; MinIO only with --profile minio and HRM_FILE_PROVIDER=Minio.
+      # PLAN-36 (D-36-3): HR.Core never registers the file storage service (File.Storage owns the bytes and HR.Core
+      # reaches it with its service identity), so it gets no file volume; the provider is set only so that the dev
+      # value from docker-compose.yml does not linger.
       FileStorage__Provider: ${HRM_FILE_PROVIDER:-Local}
       FileStorage__LocalRootPath: /var/hrm/files
       # SEC-004 / IAM-004: clear dev MinIO defaults — hr-core uses service identity, not direct MinIO.
@@ -368,7 +370,6 @@ services:
     volumes:
       - dp_hr_core:/var/hrm/dpkeys
       - hr_core_integration_outbox:/app/integration-outbox
-      - file_storage_data:/var/hrm/files
     healthcheck: *app-healthcheck
     depends_on:
       volume-init:
