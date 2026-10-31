@@ -39,6 +39,17 @@ for ext_path in extensions:
         if not user.get("email"):
             user["email"] = f"{username}@acceptance.local"
         user.setdefault("emailVerified", True)
+        # Keycloak 24's user profile requires a first and last name: without them the first login stops on
+        # "Update Account Information" (VERIFY_PROFILE) and never returns to the gateway.
+        if not user.get("firstName"):
+            user["firstName"] = "Acceptance"
+        if not user.get("lastName"):
+            user["lastName"] = username
+        # The gateway asks for offline_access and an imported user gets no default roles: without the role the
+        # code exchange fails ("Offline tokens not allowed for the user or client").
+        roles = user.get("realmRoles") or []
+        if "offline_access" not in roles:
+            user["realmRoles"] = [*roles, "offline_access"]
         main.setdefault("users", []).append(deepcopy(user))
         seen.add(username)
 

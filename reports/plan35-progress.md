@@ -420,3 +420,69 @@ OWNER ACTION (P8) - Waiting for owner (UTC): 2026-10-31T03:00:11.241843700Z
 2. `gh pr create --base main --head docs/plan-35-final-report --title "PLAN-35: remote CI green, protection, gap status lines, final report" --body-file reports/plan35-final-report.md`
 3. after CI, CodeQL, Gitleaks and E2E are green on the PR: `gh pr merge --merge`
 Owner action done (UTC): 2026-10-31T05:50:34.1914527Z (owner: "Yes, run them" - Claude pushes, opens the PR and merges after green checks)
+
+## P8 closing PR and post-merge
+
+| Run | SHA | Workflow | Start (UTC) | End (UTC) | Result | Notes |
+|---|---|---|---|---|---|---|
+| [41174221552](https://github.com/omardefdev/HRManagement/actions/runs/41174221552) | 5015308 (PR #27) | ci | 05:51:14 | 07:00:57 | **success** | CI, CodeQL, Gitleaks, E2E all green. ~70 min |
+| [41179057892](https://github.com/omardefdev/HRManagement/actions/runs/41179057892) | dfd37b8 (push main) | ci | 07:03:21 | 08:25:23 | failure | CI ok; CodeQL ok; Gitleaks ok; E2E **fail** 56/1/0: `SEP_F1_Anonymous_Is_Challenged` "Request timed out after 30000ms" on anonymous GET /ui/hr-contracts/SeparationWizard. ~82 min |
+
+PR #27 (https://github.com/omardefdev/HRManagement/pull/27) merged by Claude with `gh pr merge --merge` at 07:03:18Z after
+the four required checks were green; main = origin/main = `dfd37b8`; local main fast-forwarded.
+PR #27 changed no product code. This is the second 30 s timeout on /ui/hr-contracts/SeparationWizard (SEP_H1 on
+run 41149141375, SEP_F1 here); each time the same tree passed on the other run. It repeats on one surface, so it is
+not treated as random noise, and it was not quarantined. Compose logs are not uploaded by the E2E job, so the cause
+(hr-contracts-web latency or a hang behind the gateway) is not known.
+
+BLOCKED (UTC): 2026-10-31T08:28:23.3342385Z
+main's latest push run is red on a required check (E2E). Owner decision needed:
+(a) rerun only the failed E2E job (`gh run rerun 41179057892 --failed`, ~35 Actions minutes) to confirm flakiness, then
+    investigate the SeparationWizard latency as a follow-up;
+(b) quarantine SEP_F1 and SEP_H1 in tests/e2e/quarantine.json with an issue and expiry, through a PR;
+(c) investigate locally first (stack up, time /ui/hr-contracts/SeparationWizard cold and warm) before any rerun.
+Owner action done (UTC): 2026-10-31T08:42:46.2607869Z - owner answered «Rerun failed job»: option (a). Claude ran `gh run rerun 41179057892 --failed` (E2E job only; CI, CodeQL and Gitleaks keep their green results).
+Rerun result: [41179057892 attempt 2](https://github.com/omardefdev/HRManagement/actions/runs/41179057892/attempts/2) E2E
+08:42:53-09:12:33 **success**, 57/0/0 (SeparationJourneyE2ETests included); CI, CodeQL and Gitleaks kept their attempt 1
+results. main's latest push run (dfd37b8) is green; the BLOCKED above is closed by option (a).
+SeparationWizard timeout: 2 of the last 5 E2E runs (41149141375 SEP_H1, 41179057892 attempt 1 SEP_F1); every other run
+of the same trees passed. Classified flaky, not quarantined. Open follow-up: find the cause (hr-contracts-web latency or a
+hang behind the gateway) with the stack logs, which the E2E job does not upload today.
+Actions minutes for the closing PR, the post-merge run and the rerun: 105 + 111 + 30 = 246 (job times rounded up per
+job; only the ci workflow ran on 5015308 and dfd37b8). Plan total about 1,460 of the 2,000 monthly minutes.
+These post-merge notes are local only (docs/plan-35-post-merge, merged into local main); not pushed.
+P8 Finished (UTC): 2026-10-31T09:15:12.5613682Z
+
+## Follow-up: SeparationWizard timeout
+
+Recorded (UTC): 2026-10-31T09:32:51.2496380Z - owner answered «Yes, investigate» (after the rerun, 09:15Z): reproduce locally, time the page
+cold and warm, upload the stack logs of a failed E2E job, and open a PR that also carries the post-merge notes.
+
+- CI evidence (trx of runs 41149141375, 41174221552, 41179057892 attempts 1 and 2; timelines in artifacts/plan35/trx,
+  not committed): every run has one 25-32 s stall starting 32-36 s after the first test and ending 61-64 s after it;
+  both failures are the request queued when the second minute's budget ran out by ~80 s (SEP_H1 PR #26, SEP_F1 main).
+  SEP_F2 and HIR_F2 take ~61 s in every run: LoginAsync's 60 s post-login wait times out for the outsider persona
+  (separate, final report defect 16).
+- Local timings (acceptance stack, gateway :6200): the anonymous GET /ui/hr-contracts/SeparationWizard is answered by
+  the gateway itself (302 to Keycloak; hr-contracts-web logs nothing): 1.51 s on the first challenge after 37 h idle,
+  0.11 s first after a gateway restart, 8-19 ms warm. hr-contracts-web restart: listening after 2 s, first
+  /health/ready 85 ms, then 4-9 ms. Cold start is not the cause.
+- Reproduction: hr-gateway recreated with RateLimiting__PermitLimitPerMinute=120 (the CI E2E value: compose sets
+  nothing, the code default is 120 per IP, queue 20): of 130 sequential anonymous requests, #120 took 41.1 s and the
+  rest under 0.1 s. Hosting log "Request finished ... 41144.4397ms"; the gateway's "Gateway routed ... in N ms" line
+  said at most 66 ms (it runs after the limiter). Gateway restored to the acceptance value 2000 (checked with
+  docker inspect).
+- Fix: docker-compose.ci-e2e.yml (gateway limit 2000, the acceptance stack's value; product default unchanged) on the
+  E2E job's compose commands; a failed E2E job uploads e2e-stack-logs (ps + compose logs, 7 days). Docs:
+  CI_AND_TESTING E2E row; final report defects 9, 11, 12 updated, 15 (limiter queues instead of 429) and 16 added.
+
+Owner action done (UTC): 2026-10-31T10:45:04.8802435Z - owner answered «ضمّه إلى PR #28»: add the outsider-login fix `ace1283b` (from the
+session started for final report defect 16) to PR #28, cancel run 41189365454, and merge after the new run is green
+with no rate-limit stall in the E2E timeline and fast SEP_F2/HIR_F2.
+- Review of ace1283b: the realm extension and the merge script change only the CI import (prepare-ci-compose-env.sh is
+  the merge's only caller). Rendered in throwaway copies of the tree in hrm-ci-local:dev (Python 3.12, PowerShell
+  7.6), before and after the commit: of 13 users only e2e-outsider-b differs (first and last name, offline_access).
+  LoginAsync, EnsureRoleForbiddenAsync and the SEP_F2/HIR_F2 assertions match GatewayPathAuthorizationMiddleware (the
+  403 body is written in every environment) and HIRE_RBAC_MATRIX (Step3Approve HrManagement.Approve, Step4Complete
+  HrContracts.Approve). Build -warnaserror 0/0 on ace1283b. Actions minutes before the new run: 1,596 billed in
+  October (GitHub billing usage API; 832 on 2026-10-30, 722 on 2026-10-31).
