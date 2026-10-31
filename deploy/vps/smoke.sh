@@ -46,6 +46,8 @@ SSO="$(env_value SSO_DOMAIN)"
 [ -n "$APP" ] && [ -n "$SSO" ] || { echo "APP_DOMAIN/SSO_DOMAIN missing in $ENV_FILE" >&2; exit 2; }
 
 WORK="$(mktemp -d)"
+# Git Bash (local variant): curl is the Windows binary and MSYS_NO_PATHCONV keeps /tmp paths untranslated.
+command -v cygpath >/dev/null 2>&1 && WORK="$(cygpath -m "$WORK")"
 trap 'rm -rf "$WORK"' EXIT
 RESULTS="$WORK/results"
 : > "$RESULTS"
@@ -60,7 +62,10 @@ record() {  # id status detail
 }
 
 CURL_TLS=()
-[ -n "$CACERT" ] && CURL_TLS=(--cacert "$CACERT")
+# Windows curl (Schannel, local variant only) also checks revocation, which Caddy's internal CA cannot answer; the chain
+# and the name are still verified.
+curl -V 2>/dev/null | grep -qi schannel && CURL_TLS=(--ssl-no-revoke)
+[ -n "$CACERT" ] && CURL_TLS+=(--cacert "$CACERT")
 [ "$ALLOW_STAGING" = "1" ] && CURL_TLS=(-k)
 curl_edge() {
   curl -sS --max-time 20 --resolve "$APP:443:$TARGET_IP" --resolve "$SSO:443:$TARGET_IP" "${CURL_TLS[@]}" "$@"
@@ -90,7 +95,7 @@ for host in "$APP" "$SSO"; do
       *) record "tls-$host" Fail "--allow-staging-ca accepts only a Let's Encrypt staging certificate; got: ${issuer:-no certificate}";;
     esac
   else
-    verify="$(curl -sS --max-time 20 --resolve "$host:443:$TARGET_IP" ${CACERT:+--cacert "$CACERT"} -o /dev/null -w '%{ssl_verify_result}' "https://$host/" 2>&1)"
+    verify="$(curl -sS --max-time 20 --resolve "$host:443:$TARGET_IP" "${CURL_TLS[@]}" -o /dev/null -w '%{ssl_verify_result}' "https://$host/" 2>&1)"
     if [ "$verify" = "0" ]; then record "tls-$host" Pass "trusted certificate: $issuer"; else record "tls-$host" Fail "certificate not trusted (verify=$verify): $issuer"; fi
   fi
 done
@@ -125,16 +130,20 @@ if [ "$LOGIN" = "1" ]; then
     env_value DEMO_USERS_PASSWORD | curl_edge -c "$jar" -b "$jar" -o "$page" --data-urlencode "username=$DEMO_USER" --data-urlencode "password@-" "$action" || true
     # The gateway uses response_mode=form_post: Keycloak answers with a self-submitting form to /signin-oidc.
     if grep -q "signin-oidc" "$page"; then
-      post_to="$(grep -o '<form[^>]*action="[^"]*"' "$page" | head -1 | sed -e 's/.*action="//' -e 's/"$//' -e 's/&amp;/\&/g')"
+      # Keycloak writes this page in upper case on one line (<FORM ... ACTION=...><INPUT TYPE="HIDDEN" NAME=... VALUE=...>).
+      post_to="$(grep -io '<form[^>]*action="[^"]*"' "$page" | head -1 | sed -E -e 's/.*[aA][cC][tT][iI][oO][nN]="//' -e 's/"$//' -e 's/&amp;/\&/g')"
       args=()
-      while read -r name value; do args+=(--data-urlencode "$name=$value"); done < <(grep -o '<input type="hidden" name="[^"]*" value="[^"]*"' "$page" | sed -e 's/.*name="\([^"]*\)" value="\([^"]*\)"/\1 \2/' -e 's/&amp;/\&/g')
+      while read -r name value; do args+=(--data-urlencode "$name=$value"); done < <(grep -io '<input type="hidden" name="[^"]*" value="[^"]*"' "$page" | sed -E -e 's/.*[nN][aA][mM][eE]="([^"]*)" [vV][aA][lL][uU][eE]="([^"]*)"/\1 \2/' -e 's/&amp;/\&/g')
       curl_edge -c "$jar" -b "$jar" -L -o "$page" "${args[@]}" "$post_to" || true
     fi
-    code="$(curl_edge -c "$jar" -b "$jar" -o "$page" -w '%{http_code}' "https://$APP/")"
+    # curl caps its own Cookie header at about 8 KB and silently drops the rest; the gateway's chunked session cookie
+    # (tokens saved in the ticket) is larger, so send the jar's cookies for APP_DOMAIN as an explicit header.
+    session="$(awk -F'\t' -v h="$APP" '($1 == h || $1 == "#HttpOnly_" h) && NF >= 7 { printf "%s=%s; ", $6, $7 }' "$jar")"
+    code="$(curl_edge -H "Cookie: $session" -o "$page" -w '%{http_code}' "https://$APP/")"
     if [ "$code" = "200" ]; then record login Pass "signed in as $DEMO_USER; home 200"; else record login Fail "home after sign-in answered $code"; fi
     ok=0; failed=""
     for m in $MODULES; do
-      c="$(curl_edge -c "$jar" -b "$jar" -o /dev/null -w '%{http_code}' "https://$APP/ui/$m/")"
+      c="$(curl_edge -H "Cookie: $session" -o /dev/null -w '%{http_code}' "https://$APP/ui/$m/")"
       if [ "$c" = "200" ]; then ok=$((ok + 1)); else failed="$failed $m=$c"; fi
     done
     if [ -z "$failed" ]; then record module-uis Pass "$ok/13 module UIs answered 200"; else record module-uis Fail "$ok/13 answered 200;$failed"; fi

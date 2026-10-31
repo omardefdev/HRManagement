@@ -220,3 +220,13 @@ Finished (UTC): 2026-10-31T14:29:19Z
 - Decisions: images built from `git archive HEAD` (local edits and untracked files cannot leak into an image;
   `global.json` ignored in the dirty check because the owner's local roll-forward edit never enters the context);
   bake + one timed push per image instead of `build --push` (P-? "time every push"); `HRM_HOME` layout per P-11.
+
+## P6 notes (in progress)
+
+- Local acceptance stack `hrm-acceptance` (19 containers, left running by PLAN-35) **stopped, not removed**, to free
+  Docker Desktop memory (2026-10-31T14:30Z); its volumes are kept. Restart for step 8:
+  `docker start $(docker ps -aq --filter label=com.docker.compose.project=hrm-acceptance)`.
+- Local registry: `docker run -d -p 5001:5000 --name hrm-registry --restart unless-stopped registry:2`.
+- First build attempt failed in 3 s: `git archive` + Windows `tar.exe` cannot extract the repository's non-ASCII file
+  names; fixed in fbb5c2ab (build context = detached `git worktree` of HEAD, removed after the build).
+- `AcOps36VpsBootTests` written (11 scenarios a..k, local/server targets, one-off `docker compose run` negatives).

@@ -196,6 +196,8 @@ services:
       # use https://SSO_DOMAIN; the applications reach http://keycloak:8080 on the data network (dynamic backchannel).
       KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME: ${SSO_DOMAIN:?SSO_DOMAIN required}
+      # docker-compose.yml sets the dev port 8088; -1 (the default) means the standard HTTPS port of the edge.
+      KC_HOSTNAME_PORT: "-1"
       KC_HOSTNAME_STRICT: "true"
       KC_HOSTNAME_STRICT_HTTPS: "true"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
@@ -309,6 +311,10 @@ services:
       Keycloak__PublicAuthority: https://${SSO_DOMAIN:?SSO_DOMAIN required}/realms/hrmanagement
       Keycloak__AdditionalValidIssuers: https://${SSO_DOMAIN:?SSO_DOMAIN required}/realms/hrmanagement
       HrAuth__BehindGateway: "false"
+      # appsettings.json lists the dev Keycloak origin; an empty array in the Production file cannot clear it.
+      Security__CspConnectSrcExtra__0: https://${SSO_DOMAIN:?SSO_DOMAIN required}
+      # appsettings.Production.json carries a YOUR_PORTAL_HOST placeholder origin (a guard warning); the portal is the gateway.
+      Cors__AllowedOrigins__0: https://${APP_DOMAIN:?APP_DOMAIN required}
       AllowedHosts: ${APP_DOMAIN:?APP_DOMAIN required};localhost
       Organization__Name: ${HRM_ORGANIZATION_NAME:-شعبة التنظيم والموارد البشرية}
       Gateway__EnabledModules__0: hr-core

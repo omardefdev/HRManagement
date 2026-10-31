@@ -12,8 +12,10 @@ Operational guide for startup, deployment, migrations, rollback, backup/restore,
 |---------|---------|
 | Development infra + hr-core | `docker compose up -d` |
 | Full module stack | `docker compose -f docker-compose.yml -f docker-compose.services.yml up -d` |
-| Production (single-host) | `docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.production.yml up -d` |
-| Production + observability | `docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.observability.yml -f docker-compose.production.yml up -d` (production **last** — SEC-001) |
+| Production chain (PLAN-36: valid without observability) | `docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.images.yml -f docker-compose.production.yml --profile full-stack up -d` (`HRM_IMAGE_REPO`, `IMAGE_TAG`, `APP_DOMAIN`, `SSO_DOMAIN`, `GATEWAY_CALLER_PROOF_SECRET` required) |
+| Production + observability | add `-f docker-compose.observability.yml -f docker-compose.observability.production.yml` after the production file (SEC-001 port closures) |
+| **Single host behind a TLS edge (demo/test, PLAN-36)** | `scripts/vps/deploy.ps1 -Tag <sha12>` — Caddy on 443 only, Seq on loopback, demo mode: [OPS_VPS_SINGLE_HOST.md](./OPS_VPS_SINGLE_HOST.md) |
+| Compose lint (both chains) | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/lint-compose.ps1` |
 | Strip fixed `container_name` (HA policy check) | Add `-f docker-compose.ha-forbidden.yml` — Compose remains non-HA; production HA = k8s |
 | Daily backup sidecar | Add `--profile backup` to production compose |
 | **Production HA (multi-AZ) apps** | Kubernetes: `deploy/k8s/overlays/production-ha` — [OPS_HA_TOPOLOGY.md](./OPS_HA_TOPOLOGY.md) |
