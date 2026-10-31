@@ -110,12 +110,26 @@ $open443 = Test-TcpPort $TargetIp 443
 $checks.Add([pscustomobject]@{ id = 'external-443-open'; status = $(if ($open443) { 'Pass' } else { 'Fail' }); detail = "443 reachable: $open443" })
 $closedPorts = @(80, 5000, 8080, 5432, 5672, 15672, 5341)
 if (-not $Local) { $closedPorts += 5380 }
+# Control: nothing ever listens on 23456. If it "connects", something on this client's path (a VPN or proxy that
+# terminates TCP itself) answers every port, so the client cannot judge closed ports; smoke.sh's listening-sockets check
+# on the server is then the evidence.
+$controlPort = 23456
+$intercepted = Test-TcpPort $TargetIp $controlPort 2000
 $openUnexpected = @($closedPorts | Where-Object { Test-TcpPort $TargetIp $_ 2000 })
-$checks.Add([pscustomobject]@{
-    id = 'external-ports-closed'
-    status = $(if ($openUnexpected.Count -eq 0) { 'Pass' } else { 'Fail' })
-    detail = $(if ($openUnexpected.Count -eq 0) { "closed: $($closedPorts -join ', ')" } else { "open: $($openUnexpected -join ', ')" })
-})
+if ($intercepted) {
+    $checks.Add([pscustomobject]@{
+        id = 'external-ports-closed'
+        status = 'Warn'
+        detail = "inconclusive from this client: the never-used control port $controlPort also connects (the client path terminates TCP); see listening-ports on the server"
+    })
+}
+else {
+    $checks.Add([pscustomobject]@{
+        id = 'external-ports-closed'
+        status = $(if ($openUnexpected.Count -eq 0) { 'Pass' } else { 'Fail' })
+        detail = $(if ($openUnexpected.Count -eq 0) { "closed: $($closedPorts -join ', ')" } else { "open: $($openUnexpected -join ', ')" })
+    })
+}
 
 $fails = @($checks | Where-Object { $_.status -eq 'Fail' }).Count
 $masked = $TargetIp

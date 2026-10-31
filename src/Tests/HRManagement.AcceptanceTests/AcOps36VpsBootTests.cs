@@ -470,15 +470,28 @@ public class AcOps36VpsBootTests
         }
 
         Assert.True(TcpOpen(TargetIp, 443));
+        // Control port nothing listens on: if it "connects", the client's path (a VPN or proxy that terminates TCP)
+        // answers every port and the client view is inconclusive; the server-side checks below decide.
+        var clientPathIntercepts = TcpOpen(TargetIp, 23456);
         var open = ClosedPorts.Where(p => TcpOpen(TargetIp, p)).ToList();
-        Assert.Empty(open);
+        if (!clientPathIntercepts)
+            Assert.Empty(open);
 
         string listeners = "n/a (local Docker Desktop: published ports checked from this machine)";
+        string firewall = "n/a";
         if (Remote)
         {
-            // An ISP can block outbound ports, so confirm on the server which sockets listen on public addresses.
+            // An ISP or VPN can block or answer outbound ports, so confirm on the server which sockets listen on public
+            // addresses and that the firewall drops everything else.
             listeners = Sh("ss -Htln | awk '{print $4}' | grep -vE '^(127\\.|\\[::1\\]|::1)' | sed -E 's/.*:([0-9]+)$/\\1/' | sort -un | tr '\\n' ' '").Output.Trim();
             Assert.Equal("22 443", listeners);
+            firewall = Sh("sudo -n ufw status | grep -E '^(Status|[0-9])' | tr -s ' ' | tr '\\n' ';'").Output.Trim();
+            Assert.Contains("Status: active", firewall, StringComparison.Ordinal);
+            Assert.DoesNotMatch(@"(^|;)(80|5000|8080|5432|5672|15672|5341|5380)(/tcp)? ALLOW", firewall);
+        }
+        else
+        {
+            Assert.False(clientPathIntercepts, "the local control port 23456 connected");
         }
 
         var edges = new List<object>();
@@ -493,7 +506,7 @@ public class AcOps36VpsBootTests
             Assert.True(status == expected, $"{path} answered {status}, expected {expected}");
         }
 
-        After(recorder, new { closedPorts = ClosedPorts, openUnexpected = open, serverPublicListeners = listeners, edges });
+        After(recorder, new { closedPorts = ClosedPorts, clientPathIntercepts, clientSeesOpen = open, serverPublicListeners = listeners, firewall, edges });
         recorder.WriteResult("Pass", "443 valid for both names; 5000/8080/5432/5672/15672/5341 closed; /admin and /realms/master 403; /metrics and /health 404");
     }
 

@@ -355,3 +355,19 @@ The owner's upload link is the bottleneck. Options:
 - (d) Wait for a faster network, then (a).
 Root password change is still the owner's (`ssh -t hrm-vps "sudo passwd root"`).
 Owner action done (UTC): 2026-10-31T18:31:00Z — owner chose option (c): build the images on the server from a source archive (deviation from §6 rule 1, recorded).
+- Server build (owner decision c): source archive 29.5 MB uploaded in 372-384 s; first run stopped on buildx's
+  `fs.read` entitlement (context outside the working directory) -> `--allow=fs.read=<src>`, archive kept until success
+  (1a62e06f). Second run: **build 520 s** on the server (8 vCPU), push to 127.0.0.1:5050 10 s, then source, build
+  cache and SDK image removed (build cache 0 B; images 2.85 GB).
+- **First server deploy** 1a62e06f28c9 (18:56-18:59Z): env check 36 keys; pull 16 s; up 113 s; healthy +12 s
+  (**125 s** to all healthy). Smoke with `-AllowStagingCa`: Let's Encrypt **staging** certificates for both names via
+  TLS-ALPN on 443 (issuer "(STAGING) ..."), redirect to SSO, edge 404/403, sign-in, 13/13 module UIs, public listeners
+  "22 443", nextDue in 91 days.
+- External port check from the owner's machine reported every port open. Diagnosis: a never-used control port (23456)
+  also "connects"; tcpdump on the server shows the SYN from the owner's egress (87.249.x.x) arriving and **no reply**
+  (ufw INPUT DROP): the client's path (VPN/proxy terminating TCP) answers every port itself. smoke.ps1 and AC-OPS-36c
+  now probe the control port; when it connects the client view is a Warn/inconclusive and the server-side evidence
+  (`ss`: only 22 and 443 public; ufw active, no other ALLOW) decides.
+- 19:02Z HRM_ACME_CA -> production, edge recreated: "certificate obtained successfully" for both names; smoke without
+  `-AllowStagingCa`: **publicly trusted** (C=US, O=Let's Encrypt, CN=YE1 / YE2, notAfter 2027-01-29), 17 pass, 0 fail,
+  1 warn (client port view), 5 Deferred(PLAN-37). Windows trust store also accepts the certificate.
