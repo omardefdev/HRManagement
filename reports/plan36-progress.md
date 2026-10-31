@@ -354,3 +354,4 @@ The owner's upload link is the bottleneck. Options:
   layers would be removed afterwards.
 - (d) Wait for a faster network, then (a).
 Root password change is still the owner's (`ssh -t hrm-vps "sudo passwd root"`).
+Owner action done (UTC): 2026-10-31T18:31:00Z — owner chose option (c): build the images on the server from a source archive (deviation from §6 rule 1, recorded).
