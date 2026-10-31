@@ -16,6 +16,7 @@ param(
     [string]$Workflow = ".github/workflows/ci.yml",
     [string]$AsOfDate = "",
     [string]$LiveProtectionFile = "",
+    [string]$HookFile = "",
     [string]$Repo = "omardefdev/HRManagement",
     [string]$Owner = "omardefdev"
 )
@@ -114,7 +115,8 @@ if (Test-Path $bp) {
     }
 
     $contexts = @($j.required_status_checks.contexts)
-    foreach ($c in @("CI", "CodeQL", "Gitleaks")) {
+    # D-QA-2: E2E is required since PLAN-35 P7 (two consecutive green runs on main).
+    foreach ($c in @("CI", "CodeQL", "Gitleaks", "E2E")) {
         if ($contexts -notcontains $c) { $failures.Add("missing required check $c") }
     }
     $named = @($contexts) + @($j.pendingRequiredChecks | Where-Object { $_ } | ForEach-Object { $_.context })
@@ -144,8 +146,12 @@ if (Test-Path $owners) {
 
 if (($CheckLiveGitHub -or $LiveProtectionFile) -and $null -ne $j) {
     $live = $null
+    # GitHub answers 403 "Upgrade to GitHub Pro or make this repository public" for a private repository on the free plan.
+    $unavailablePattern = 'Upgrade to GitHub Pro'
+    $unavailable = $false
     if ($LiveProtectionFile) {
         $live = Get-Content -Raw (Resolve-RepoPath $LiveProtectionFile) | ConvertFrom-Json @jsonArgs
+        if ("$($live.message)" -match $unavailablePattern) { $unavailable = $true; $live = $null }
     }
     elseif ($null -eq (Get-Command gh -ErrorAction SilentlyContinue)) {
         $failures.Add("gh CLI required for -CheckLiveGitHub")
@@ -155,8 +161,36 @@ if (($CheckLiveGitHub -or $LiveProtectionFile) -and $null -ne $j) {
         $raw = (& gh api "repos/$Repo/branches/main/protection" 2>&1 | ForEach-Object { "$_" }) -join "`n"
         $code = $LASTEXITCODE
         $ErrorActionPreference = "Stop"
-        if ($code -ne 0) { $failures.Add("live branch protection not readable/enabled: $raw") }
+        if ($code -ne 0 -and $raw -match $unavailablePattern) { $unavailable = $true }
+        elseif ($code -ne 0) { $failures.Add("live branch protection not readable/enabled: $raw") }
         else { $live = $raw | ConvertFrom-Json @jsonArgs }
+    }
+
+    # D-QA-1 fallback: no GitHub protection is possible, so the file must name an open exception and the local
+    # pre-push guard (scripts/scm/install-hooks.ps1 -ProtectMain) must be installed in this clone.
+    if ($unavailable) {
+        $fb = $j.unavailableFallback
+        if ($null -eq $fb) { $failures.Add("live branch protection unavailable on this plan and $Protection declares no unavailableFallback") }
+        elseif (-not $open.ContainsKey("$($fb.exceptionRef)")) {
+            $failures.Add("live branch protection unavailable; unavailableFallback.exceptionRef '$($fb.exceptionRef)' is not an Open, unexpired entry of $Exceptions")
+        }
+        else {
+            $hook = $HookFile
+            if (-not $hook) {
+                $hooksDir = (& git -C $RepoRoot rev-parse --git-path hooks 2>$null)
+                if ($hooksDir -and -not [IO.Path]::IsPathRooted($hooksDir)) { $hooksDir = Join-Path $RepoRoot $hooksDir }
+                $hook = Join-Path "$hooksDir" "pre-push"
+            }
+            else { $hook = Resolve-RepoPath $hook }
+            $hookText = ""
+            if (Test-Path $hook) { $hookText = Get-Content -Raw $hook }
+            if ($hookText -notmatch 'PLAN-35 pre-push guard' -or $hookText -notmatch '-ProtectMain') {
+                $failures.Add("live branch protection unavailable and the local guard is not installed at $hook (run: powershell -ExecutionPolicy Bypass -File scripts/scm/install-hooks.ps1 -ProtectMain)")
+            }
+            else {
+                Write-Host "SCM-001 live protection unavailable (private repository on the free plan); local guard installed: $hook (exception $($fb.exceptionRef))"
+            }
+        }
     }
 
     if ($null -ne $live) {

@@ -1,0 +1,46 @@
+{
+  "card": "SCM-001",
+  "description": "Branch protection of main as code (PLAN-35, D-QA-1/2/16). scripts/scm/apply-branch-protection.ps1 applies it; scripts/scm001-branch-protection-validate.ps1 checks it against the SCM-001 policy floors (any weaker value needs an exceptionRefs id of an Open, unexpired entry in docs/qa/governance-exceptions.json) and, with -CheckLiveGitHub, against the live settings. Each required context is the name of a job in .github/workflows/ci.yml.",
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "CI",
+      "CodeQL",
+      "Gitleaks"
+    ]
+  },
+  "pendingRequiredChecks": [
+    {
+      "context": "Acceptance",
+      "condition": "PLAN-41: added when the Acceptance job is enabled and green (CI-ACCEPTANCE-DISABLED)"
+    }
+  ],
+  "unavailableFallback": {
+    "exceptionRef": "SCM-NO-GITHUB-PROTECTION",
+    "guard": "powershell -ExecutionPolicy Bypass -File scripts/scm/install-hooks.ps1 -ProtectMain",
+    "note": "D-QA-15 made the repository private on the free plan; GitHub answers 403 'Upgrade to GitHub Pro' for branch protection. Until it is public or on Pro, the local pre-push guard refuses direct pushes to main and runs gitleaks and the forbidden-file check."
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false,
+    "required_approving_review_count": 0,
+    "require_last_push_approval": false
+  },
+  "restrictions": null,
+  "required_linear_history": false,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "block_creations": false,
+  "required_conversation_resolution": true,
+  "lock_branch": false,
+  "allow_fork_syncing": false,
+  "required_signatures": false,
+  "exceptionRefs": {
+    "required_pull_request_reviews.required_approving_review_count": "SCM-REVIEW-COUNT-0",
+    "required_pull_request_reviews.require_code_owner_reviews": "SCM-REVIEW-COUNT-0",
+    "required_pull_request_reviews.require_last_push_approval": "SCM-REVIEW-COUNT-0",
+    "required_signatures": "SCM-UNSIGNED-COMMITS",
+    "required_linear_history": "SCM-MERGE-COMMITS"
+  }
+}

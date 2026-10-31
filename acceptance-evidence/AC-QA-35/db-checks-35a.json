@@ -1,0 +1,29 @@
+{
+  "head": "897d16bed3b0c921b0dd8730a931d2cd0682cbbc",
+  "fast": {
+    "exit": 0,
+    "lines": [
+      "[PASS] gitleaks",
+      "history: no leaks (198 commits scanned.)",
+      "range: no leaks (27 commits scanned.)",
+      "[PASS] actionlint",
+      "[PASS] forbidden",
+      "[PASS] nonprod",
+      "[PASS] signatures"
+    ]
+  },
+  "cilocal": {
+    "summarySha": "0f69f524b358155844f9530ac9781ce4c25b479a",
+    "exit": 0,
+    "summaryIsAncestor": true
+  },
+  "secret": {
+    "exit": 1,
+    "namesFile": true,
+    "rule": true
+  },
+  "globalJson": {
+    "exit": 1,
+    "namesFile": true
+  }
+}

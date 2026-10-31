@@ -33,6 +33,16 @@
       "closeWhen": "The owner chooses squash/rebase merges for PRs; restore required_linear_history."
     },
     {
+      "id": "SCM-NO-GITHUB-PROTECTION",
+      "decision": "D-QA-15 (private) + D-QA-1 fallback",
+      "relaxes": "no GitHub branch protection on main at all: the repository is private on the free plan (API 403 'Upgrade to GitHub Pro'); required checks are not enforced by GitHub. Replacement: local pre-push guard (scripts/scm/install-hooks.ps1 -ProtectMain) and merging only through green PRs",
+      "owner": "omardefdev",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2027-01-28",
+      "status": "Open",
+      "closeWhen": "The repository becomes public or the account moves to GitHub Pro; then run scripts/scm/apply-branch-protection.ps1 and close this entry."
+    },
+    {
       "id": "CI-ACCEPTANCE-DISABLED",
       "decision": "PLAN-35 section 2",
       "relaxes": "ci.yml job Acceptance runs only when the repository variable ENABLE_ACCEPTANCE_JOB is true; it is not a required check",
@@ -51,6 +61,16 @@
       "reviewBy": "2027-01-28",
       "status": "Open",
       "closeWhen": "The owner creates the fine-grained PAT (Dependabot alerts: read, Issues: write), stores it as DEPENDABOT_ALERTS_TOKEN and sets DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true."
+    },
+    {
+      "id": "CI-PLAYWRIGHT-UBUNTU-2404-PIN",
+      "decision": "PLAN-35 triage (run 41099010391)",
+      "relaxes": "the E2E and Acceptance jobs of ci.yml and both e2e-journeys jobs run on ubuntu-24.04 instead of ubuntu-latest (Ubuntu 26.04), because Microsoft.Playwright 1.50.1 cannot install Chromium on Ubuntu 26.04",
+      "owner": "qa",
+      "recordedOn": "2026-10-30",
+      "reviewBy": "2027-01-28",
+      "status": "Open",
+      "closeWhen": "Microsoft.Playwright is upgraded to a version that supports the current ubuntu-latest (Dependabot PR #20 offers 1.61.0) and the pins are removed."
     }
   ]
 }

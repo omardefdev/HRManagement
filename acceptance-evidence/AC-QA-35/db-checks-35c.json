@@ -1,0 +1,32 @@
+{
+  "remoteMain": "152506efe8df51c6d6d3d9897b6d0729bd2f2724",
+  "localMain": "152506efe8df51c6d6d3d9897b6d0729bd2f2724",
+  "run": "https://github.com/omardefdev/HRManagement/actions/runs/41149190573",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Gitleaks",
+      "conclusion": "success"
+    },
+    {
+      "name": "CI",
+      "conclusion": "success"
+    },
+    {
+      "name": "Acceptance disabled notice",
+      "conclusion": "success"
+    },
+    {
+      "name": "CodeQL",
+      "conclusion": "success"
+    },
+    {
+      "name": "E2E",
+      "conclusion": "success"
+    },
+    {
+      "name": "Acceptance",
+      "conclusion": "skipped"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-QA-35c: the push run of ci.yml on main at the SHA of origin/main is green for every enabled job; remote main = local main",
+  "personaId": "n/a (repository scripts and GitHub)",
+  "correlationId": "qa35-35c-2f2dc78a220a40b1a85cf59898538189",
+  "capturedAtUtc": "2026-10-31T02:59:28.0002931Z",
+  "environment": {
+    "gateway": "http://localhost:5000",
+    "keycloak": "http://localhost:8088",
+    "runAcceptance": true
+  },
+  "gitSha": "897d16bed3b0c921b0dd8730a931d2cd0682cbbc"
+}

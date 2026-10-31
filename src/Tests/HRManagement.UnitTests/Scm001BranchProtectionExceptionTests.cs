@@ -65,6 +65,7 @@ public class Scm001BranchProtectionExceptionTests
 
     [Theory]
     [InlineData("missing-gitleaks.json", "missing required check Gitleaks")]
+    [InlineData("missing-e2e.json", "missing required check E2E")]
     [InlineData("wrong-context-name.json", "required check 'CodeQL (SUP-001-C)' is not a job name")]
     public void Required_checks_are_the_ci_job_names(string fixture, string expected)
     {
@@ -88,6 +89,34 @@ public class Scm001BranchProtectionExceptionTests
         Assert.Equal(1, exit);
         Assert.Contains("live required_signatures is 'True', file says 'False'", output, StringComparison.Ordinal);
         Assert.Contains("live required_pull_request_reviews.required_approving_review_count is '2', file says '0'", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Unavailable_protection_passes_only_with_the_local_guard_installed()
+    {
+        // D-QA-1 fallback: private repository on the free plan (GitHub answers 403 "Upgrade to GitHub Pro").
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/hook-protect-main.txt");
+        Assert.True(exit == 0, output);
+        Assert.Contains("local guard installed", output, StringComparison.Ordinal);
+        Assert.Contains("SCM-NO-GITHUB-PROTECTION", output, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("hook-scan-only.txt")]
+    [InlineData("missing-hook.txt")]
+    public void Unavailable_protection_without_the_main_guard_fails(string hook)
+    {
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/{hook}");
+        Assert.Equal(1, exit);
+        Assert.Contains("the local guard is not installed", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Unavailable_protection_without_an_open_exception_fails()
+    {
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/hook-protect-main.txt -Exceptions {Fixtures}/exceptions-expired.json");
+        Assert.Equal(1, exit);
+        Assert.Contains("unavailableFallback.exceptionRef 'SCM-NO-GITHUB-PROTECTION' is not an Open, unexpired entry", output, StringComparison.Ordinal);
     }
 
     [Fact]

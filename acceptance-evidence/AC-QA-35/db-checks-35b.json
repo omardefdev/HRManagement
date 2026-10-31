@@ -1,0 +1,102 @@
+{
+  "pr": "https://github.com/omardefdev/HRManagement/pull/24",
+  "state": "MERGED",
+  "head": "444e8c2920dd5b6776b2d2bb69d25b1ecb3c0c42",
+  "checks": [
+    {
+      "Name": "CI",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410607/job/124240781712"
+    },
+    {
+      "Name": "CI",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397846/job/124281932133"
+    },
+    {
+      "Name": "HARD-001 compliance scan",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410591/job/124240781067"
+    },
+    {
+      "Name": "HARD-001 compliance scan",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397886/job/124281932147"
+    },
+    {
+      "Name": "terraform (staging)",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410610/job/124240782103"
+    },
+    {
+      "Name": "terraform (production)",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410610/job/124240781850"
+    },
+    {
+      "Name": "terraform (dr-secondary)",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410610/job/124240782066"
+    },
+    {
+      "Name": "Acceptance disabled notice",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410607/job/124240781950"
+    },
+    {
+      "Name": "Acceptance disabled notice",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397846/job/124281931873"
+    },
+    {
+      "Name": "conftest",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410610/job/124240781787"
+    },
+    {
+      "Name": "CodeQL",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410607/job/124240781928"
+    },
+    {
+      "Name": "CodeQL",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397846/job/124281932217"
+    },
+    {
+      "Name": "kustomize-dry",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410610/job/124240781510"
+    },
+    {
+      "Name": "Gitleaks",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410607/job/124240781843"
+    },
+    {
+      "Name": "Gitleaks",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397846/job/124281932282"
+    },
+    {
+      "Name": "E2E",
+      "Conclusion": "FAILURE",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397846/job/124305024297"
+    },
+    {
+      "Name": "E2E",
+      "Conclusion": "SUCCESS",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410607/job/124264751273"
+    },
+    {
+      "Name": "Acceptance",
+      "Conclusion": "SKIPPED",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41107410607/job/124264753428"
+    },
+    {
+      "Name": "Acceptance",
+      "Conclusion": "SKIPPED",
+      "Url": "https://github.com/omardefdev/HRManagement/actions/runs/41119397846/job/124305026884"
+    }
+  ]
+}

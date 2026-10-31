@@ -181,9 +181,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 | No LEGAL_TBD in payroll release path | نعم | `check-no-legal-tbd.py` (GOV-002) |
 | Master data DQ thresholds (offline fixture) | نعم | `gov003-data-quality-report.py` + `testdata/gov003` (GOV-003) |
 | Docker compose build | نعم | تحقق بناء الصور |
-| E2E (وظيفة `E2E`) | نعم (فحص مطلوب بعد تشغيلين أخضرين، D-QA-2) | المكدّس الأساسي عبر `scripts/ci/compose-up-retry.sh` (ملكية وحدة File.Storage وإعادة محاولة واحدة للإقلاع البارد، PLAN-35)؛ المعزول في [`tests/e2e/quarantine.json`](../tests/e2e/quarantine.json) يُطبع في ملخص الوظيفة |
+| E2E (وظيفة `E2E`) | نعم (فحص مطلوب منذ PLAN-35 P7: أخضر مرتين متتاليتين على `main`، التشغيلان 41130907741 و41140221205، D-QA-2) | المكدّس الأساسي عبر `scripts/ci/compose-up-retry.sh` (ملكية وحدة File.Storage، ثم PostgreSQL أولاً وانتظار قبوله اتصال TCP لأن `pg_isready` عبر المقبس ينجح أثناء سكربتات التهيئة، وإعادة محاولة واحدة للإقلاع البارد، PLAN-35)؛ المعزول في [`tests/e2e/quarantine.json`](../tests/e2e/quarantine.json) يُطبع في ملخص الوظيفة |
 | Acceptance | معطّلة حتى PLAN-41 | تعمل فقط حين `vars.ENABLE_ACCEPTANCE_JOB == 'true'`؛ وظيفة «Acceptance disabled notice» تطبع ذلك؛ الالتزام `CI-ACCEPTANCE-DISABLED` في [`docs/qa/governance-exceptions.json`](qa/governance-exceptions.json) |
-| E2E Journeys (QA-004) | nightly / pre-release | `.github/workflows/e2e-journeys.yml`؛ صور الإصدار عند `IMAGE_TAG`؛ المجدول لا يعمل إلا مع `ENABLE_SCHEDULED=true` |
+| E2E Journeys (QA-004) | weekly (Monday 04:00 UTC) / pre-release | `.github/workflows/e2e-journeys.yml`؛ صور الإصدار عند `IMAGE_TAG`؛ المجدول لا يعمل إلا مع `ENABLE_SCHEDULED=true` (أُعيد إلى `false` في 2026-10-31 بعد حساب دقائق Actions للمستودع الخاص؛ يعيده المالك عند الحاجة)؛ خطوة التبديل إلى الملف الشبيه بالإنتاج تستورد بيئة القبول بـ `scripts/acceptance-local-env.ps1` (PLAN-35) |
 | E2E axe a11y (UX-002) | مع `RUN_PLAYWRIGHT_E2E=true` | `A11yAxeE2ETests` + `testdata/e2e/axe.min.js` |
 | CodeQL | نعم (وظيفة `CodeQL` في `ci.yml`) | التحليل ثم `scripts/ci/codeql-sarif-gate.ps1`: يفشل على نتيجة `error` أو `security-severity` ≥ 7.0 خارج [`docs/qa/codeql-baseline.json`](qa/codeql-baseline.json) أو ببند منتهٍ؛ الرفع إلى code scanning فقط مع `vars.CODE_SCANNING_UPLOAD == 'true'` (D-QA-18)؛ `codeql.yml` أسبوعي ويدوي فقط |
 | Gitleaks | نعم (وظيفة `Gitleaks` في `ci.yml`) | `scripts/ci/gitleaks.sh`: صورة gitleaks مثبّتة على التاريخ كاملاً بـ `.gitleaks.toml` (القواعد الافتراضية + استثناءات ضيقة بمسار ونص)؛ يفشل أيضاً إن فحص commits أقل من HEAD (PLAN-35) |
@@ -194,6 +194,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 
 - حُذف `gateway-ci.yml` (كان يكرر الوحدة والتكامل، ويستعيد مشروعين ثم ينسّق الحل كله، و`e2e-gateway` بلا `--profile full-stack`) و`gitleaks.yml` (مكرر لوظيفة `Gitleaks`). `ci.yml` يغطي مساراتهما.
 - المجدولات (`e2e-journeys`، `mutation`، `advisory-to-issue`، `codeql` الأسبوعي، `iac-drift`) لا تعمل بالجدول إلا حين `vars.ENABLE_SCHEDULED == 'true'`؛ يضبطه المالك بعد الاخضرار. `dated-obligations.yml` يعمل أسبوعياً دائماً. `advisory-to-issue` يحتاج أيضاً السر `DEPENDABOT_ALERTS_TOKEN` والمتغير `DEPENDABOT_ALERTS_TOKEN_CONFIGURED=true` (الالتزام `SUP001-DEPENDABOT-ALERTS-TOKEN`)، وسكربته يفشل صراحة عند رفض الطلب.
+- حماية `main`: المستودع خاص على الخطة المجانية فيرفض GitHub الحماية (403)؛ البديل (D-QA-1) حارس pre-push محلي يرفض الدفع المباشر إلى `main` (`install-hooks.ps1 -ProtectMain`، الاستثناء `SCM-NO-GITHUB-PROTECTION`)، وكل تغيير يصل إلى `main` عبر PR. الفحوص المطلوبة في [`docs/scm-governance/branch-protection-main.json`](scm-governance/branch-protection-main.json): `CI` و`CodeQL` و`Gitleaks` و`E2E`.
 - فحص ما قبل الدفع: `powershell -File scripts/plan035-prepush.ps1` (gitleaks على التاريخ كاملاً والمدى، actionlint، ملخص ci-local، الملفات الممنوعة، GOV-001-D، التوقيع)، وخطاف اختياري `powershell -File scripts/scm/install-hooks.ps1`.
 
 قائمة تحقق يدوية للواجهة: [UI_CHECKLIST.md](UI_CHECKLIST.md).

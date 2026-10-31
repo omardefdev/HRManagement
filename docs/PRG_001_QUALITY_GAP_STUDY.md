@@ -4,7 +4,8 @@
 **النطاق:** سير عمل GitHub Actions (`.github/workflows/*`) وحماية الفرع، صحة البناء (`Directory.Build.props`، `Directory.Packages.props`، تحذير NU1903، حدود التغطية)، الاختبارات الحمراء المعروفة على `main` وأسبابها، تغطية القبول المنصّي AC-01..AC-37 (PLAN-00..13) والأدلة في `acceptance-evidence/`، رحلات Playwright الـ47، وادعاءات التوثيق (حزم UAT، بطاقات `04-P3`، `05-TRACEABILITY`، `FUN_00x_VERIFICATION`).  
 **المنهج:** قراءة ثابتة للشيفرة والاختبارات وملفات سير العمل والتقارير والأدلة عند `f9eab1a`، ومقارنتها بما تدّعيه الوثائق. أُعيد تطبيق منطق بعض الاختبارات ساكناً (مثل تعبير `BolaArchitectureTests` وقائمة الشخصيات) لمعرفة نتيجتها المتوقعة.  
 **حدود الدراسة:** لم يُبنَ المشروع ولم تُشغَّل الاختبارات ولا سير العمل (لا يوجد .NET SDK). النسخة بلا مجلد `.git`، فلا يمكن فحص الـ commits ولا الإعدادات الحية لـ GitHub (حماية الفرع، الأسرار). أسماء الاختبارات الفاشلة مأخوذة من تقارير PLAN-25..33، والسجلات الخام (`artifacts/plan25/*.log`) غير مودعة. البنود الموسومة **«يحتاج تحقق»** استنتاجات تحتاج تشغيلاً لتأكيدها.  
-**الوثائق المقارَنة:** [CI_AND_TESTING.md](CI_AND_TESTING.md) · [GITHUB_CI_GOVERNANCE_RUNBOOK.md](GITHUB_CI_GOVERNANCE_RUNBOOK.md) · [SCM_001_BRANCH_PROTECTION.md](SCM_001_BRANCH_PROTECTION.md) · [acceptance-plans/README.md](acceptance-plans/README.md) · [VERIFICATION-COMPLETION.md](acceptance-plans/execution/VERIFICATION-COMPLETION.md) · [04-P3](completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md) · [05-TRACEABILITY](completion-backlog/05-TRACEABILITY.md) · [QA_E2E_VERIFICATION.md](QA_E2E_VERIFICATION.md) · [QA_COVERAGE_VERIFICATION.md](QA_COVERAGE_VERIFICATION.md) · [FUN_001..006_VERIFICATION](FUN_001_VERIFICATION.md) · [plan25-final-report](../reports/plan25-final-report.md) · [plan33-acceptance-inventory](../reports/plan33-acceptance-inventory.md) · [acceptance-evidence/summary.md](../acceptance-evidence/summary.md)
+**الوثائق المقارَنة:** [CI_AND_TESTING.md](CI_AND_TESTING.md) · [GITHUB_CI_GOVERNANCE_RUNBOOK.md](GITHUB_CI_GOVERNANCE_RUNBOOK.md) · [SCM_001_BRANCH_PROTECTION.md](SCM_001_BRANCH_PROTECTION.md) · [acceptance-plans/README.md](acceptance-plans/README.md) · [VERIFICATION-COMPLETION.md](acceptance-plans/execution/VERIFICATION-COMPLETION.md) · [04-P3](completion-backlog/04-P3-QUALITY-GOVERNANCE-FUNCTIONS.md) · [05-TRACEABILITY](completion-backlog/05-TRACEABILITY.md) · [QA_E2E_VERIFICATION.md](QA_E2E_VERIFICATION.md) · [QA_COVERAGE_VERIFICATION.md](QA_COVERAGE_VERIFICATION.md) · [FUN_001..006_VERIFICATION](FUN_001_VERIFICATION.md) · [plan25-final-report](../reports/plan25-final-report.md) · [plan33-acceptance-inventory](../reports/plan33-acceptance-inventory.md) · [acceptance-evidence/summary.md](../acceptance-evidence/summary.md)  
+**CI البعيد (PLAN-35، 2026-10-30):** أول تشغيل أخضر كامل على `444e8c2` (PR [#24](https://github.com/omardefdev/HRManagement/pull/24)، [التشغيل 41107410607](https://github.com/omardefdev/HRManagement/actions/runs/41107410607))؛ و`main` = `origin/main` أخضر لـ `CI` و`CodeQL` و`Gitleaks` و`E2E` على `052b506` ([التشغيل 41140221205](https://github.com/omardefdev/HRManagement/actions/runs/41140221205)).  
 
 ---
 
@@ -97,6 +98,7 @@
   - تشغيل محلي مكافئ لـ CI على Linux قبل الدفع: حاوية تطوير بثقافة `en`/Invariant وpwsh وDocker، وسكربت ينفّذ خطوات `ci.yml` بالترتيب.
   - تصحيح CODEOWNERS واختيار مجموعة الفحوص المطلوبة (D-QA-2).
 - **الخطة:** [PLAN-35](acceptance-plans/PLAN-35-qa-push-remote-ci.md)، و[PLAN-34](acceptance-plans/PLAN-34-qa-pushable-baseline.md) (جزئياً: CI محلي مطابق وأخضر قبل الدفع)
+- **الحالة:** ✅ عولجت في PLAN-35 (`2809a4e`، `4f953cb`، `c8ef2b1`، `6e907f5`) — فحص ما قبل الدفع على التاريخ كله (`scripts/plan035-prepush.ps1`: gitleaks مثبّت بقواعد فعلية، actionlint، ملخص ci-local، الملفات الممنوعة، GOV-001-D) أخضر على `0f69f52`؛ أول دفع عبر PR [#24](https://github.com/omardefdev/HRManagement/pull/24) ثم `main` = `origin/main`، و`CI` و`CodeQL` و`Gitleaks` و`E2E` خضراء على `main` (التشغيلان 41130907741 و41140221205). الحماية ملفاً في `docs/scm-governance/branch-protection-main.json` (0 مراجعات، بلا توقيع ولا تاريخ خطي، باستثناءات مؤرخة)؛ CODEOWNERS = `@omardefdev`. المستودع خاص على الخطة المجانية فيرد GitHub على الحماية بـ 403، فالبديل (D-QA-1) حارس pre-push محلي يرفض الدفع المباشر إلى `main` (`SCM-NO-GITHUB-PROTECTION`). السالب: PR [#25](https://github.com/omardefdev/HRManagement/pull/25) بفحص أحمر مقصود ← `CI` = FAILURE وأُغلق بلا دمج؛ لكن GitHub لا يمنع دمجه (`MERGEABLE`) ما دامت الحماية غير متاحة — يبقى المنع إجرائياً حتى يصبح المستودع عاماً أو على Pro. الدليل: AC-QA-35a..d.
 - **التحقق المطلوب:**
   - موجب: PR من `stabilize/ci` تظهر فيه الفحوص المطلوبة كلها خضراء، ويُدمج وفق القاعدة المعتمدة؛ ورابط التشغيل في التقرير.
   - سالب: دفع مباشر إلى `main` مرفوض، ومحاولة دمج مع فحص أحمر مرفوضة.
@@ -239,6 +241,7 @@
 - **الأثر:** الدليل الآلي الوحيد على قيم الإنتاج (`IsLabScale=false`، `Shadow`) لا يُعاد إنتاجه بعيداً. والوظيفة الليلية حمراء دائماً، فتُطبّع الفشل.
 - **الإصلاح المقترح:** تحويل الخطوة إلى `run: |` متعدد الأسطر مع `\` حقيقي، وفحص YAML بـ`actionlint` في CI (لم يكن مثبتاً في PLAN-33 K5).
 - **الخطة:** [PLAN-35](acceptance-plans/PLAN-35-qa-push-remote-ci.md)
+- **الحالة:** ✅ عولجت في PLAN-35 (`e3ae8c3`، `4d1b472`، `0ef97be`، `eacc914`) — الـ `\n` الحرفي أُزيل وصار actionlint (مع shellcheck) خطوة في `ci.yml` و`WorkflowYamlLintTests` يرفض الشكل نفسه. بعد إصلاحه ظهرت في خطوة الملف الشبيه بالإنتاج ثلاثة عيوب متتالية أُصلحت: بيئة القبول غير مستوردة (`ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET`)، و502 لأن `up --wait` لا ينتظر جاهزية الخدمات (بلا healthcheck)، فصارت الخطوة تنتظر `/health/ready` لكل خدمة. [التشغيل اليدوي 41158446834](https://github.com/omardefdev/HRManagement/actions/runs/41158446834) أخضر: `recruitment-journey` طبع `Passed: 1, skipped: 0` للملفين؛ وهو على فرع الإصدار لأن الإصلاحات تصل إلى `main` مع PR التقرير. صار `e2e-journeys` أسبوعياً بقرار المالك (دقائق Actions). الدليل: AC-QA-35e.
 - **التحقق المطلوب:**
   - موجب: `gh workflow run e2e-journeys.yml` ← وظيفة `recruitment-journey` تطبع `Passed: 1, skipped: 0` مرتين.
   - سالب: `actionlint` يرفض ملف سير عمل فيه خطأ مماثل.
@@ -339,6 +342,7 @@
   - سكربت Dependabot يفشل عند 403.
   - إصلاح `gateway-ci` و`mutation`.
 - **الخطة:** [PLAN-35](acceptance-plans/PLAN-35-qa-push-remote-ci.md)
+- **الحالة:** ✅ عولجت في PLAN-35 (`e3ae8c3`، `5d0b9b6`) — وظيفة `CodeQL` في `ci.yml` تحلّل ثم تمرّ على `scripts/ci/codeql-sarif-gate.ps1`: تفشل على نتيجة `error` أو `security-severity` ≥ 7.0 خارج [`docs/qa/codeql-baseline.json`](qa/codeql-baseline.json) أو ببند منتهٍ أو غير مفتوح (`CodeqlSarifGateTests`). كشف أول تشغيل حقيقي 108 تنبيهات قائمة سُجّلت بنداً بنداً (القاعدة + المسار + بصمة الموقع) بمالك ومراجعة حتى 2027-01-28 (`QA-CODEQL-BASELINE`) — معالجتها دَين أمني لخطة لاحقة. gitleaks صار بالقواعد الافتراضية (الملف القديم بلا قواعد كان ينجح دائماً) واستثناءين ضيقين بمسار ونص؛ حُذف `gitleaks.yml` و`gateway-ci.yml` المكرران؛ سكربت Dependabot يفشل برسالة صريحة عند الرفض. الدليل: AC-QA-35f وAC-QA-35g.
 - **التحقق المطلوب:**
   - موجب: تنبيه CodeQL جديد عالي الشدة في PR ← الفحص أحمر.
   - سالب: سكربت Dependabot بلا صلاحية ← خطوة حمراء برسالة صريحة.
@@ -415,6 +419,7 @@
   - `AcceptanceCoverageTests.Evidence_recorder_supports_eight_file_contract` تحصيل حاصل ([plan33-acceptance-inventory.md](../reports/plan33-acceptance-inventory.md)).
 - **الإصلاح المقترح:** تعطيل المجدولات حتى يخضرّ QA-B، ثم إعادتها مع تنبيه فشل. إضافة `--locked-mode` لكل استعادة.
 - **الخطة:** [PLAN-35](acceptance-plans/PLAN-35-qa-push-remote-ci.md)
+- **الحالة:** ⏳ جزئياً في PLAN-35 (`e3ae8c3`) — كل وظيفة مجدولة (عدا `dated-obligations`) لا تعمل بالجدول إلا حين `vars.ENABLE_SCHEDULED == 'true'`، وضُبط بعد الاخضرار في 2026-10-30 ثم أُعيد إلى `false` في 2026-10-31 بقرار المالك: المستودع خاص على الخطة المجانية (2,000 دقيقة Actions شهرياً) وتشغيل `e2e-journeys` الليلي وحده نحو 60 دقيقة، فصار أسبوعياً (الاثنين 04:00 UTC)؛ `codeql.yml` أسبوعي ويدوي فقط؛ `dated-obligations` أخضر يدوياً على `main` (التشغيل 41140248696). لم يتحقق «ثلاث ليالٍ متتالية خضراء»: يصير ثلاثة تشغيلات أسبوعية خضراء متتالية بعد أن يعيد المالك `ENABLE_SCHEDULED` (PLAN-36).
 - **التحقق المطلوب:** ثلاث ليالٍ متتالية خضراء.
 
 ### 4.5 جدول تغطية القبول المنصّي AC-01..AC-37

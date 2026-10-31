@@ -12,7 +12,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 | P1 | done | 2026-10-30T14:07:43.5005632Z |
 | P2 | done | 2026-10-30T14:55:03.9999621Z |
 | P3 | done | 2026-10-30T15:01:33.3818627Z |
-| P4 | BLOCKED (owner decisions OI-1, OI-3) | |
+| P4 | done (waiting for owner push) | 2026-10-30T15:32:44.9129751Z |
 | P5 | pending | |
 | P6 | pending | |
 | P7 | pending | |
@@ -64,7 +64,7 @@ Branch: `feature/plan-35-qa-push-remote-ci` (from `main` = `c2b0d3f`).
 
 ## Next step
 
-P4: owner decisions (OI-1 protection on main blocks the push, OI-3 SEC-001 fix), then prepush green, first-push description, merge to main, release branch.
+P5: after the owner push: gh run list --branch release/plan-35-first-push; gh pr checks; triage failures.
 
 ## P0/P1 results (2026-10-30T14:07:43.5005632Z)
 
@@ -152,3 +152,271 @@ Owner action done (UTC): 2026-10-30T15:05:27.2407909Z - owner answered «Yes, bo
 apply the file in P7; OI-3 (a) fix the 14 health routes with a unit test; defaults for the rest: D-QA-15 private = yes,
 D-QA-1 yes (local guard if the free plan cannot protect a private repo), D-QA-16 no signing, P-2 no (owner pushes),
 D-QA-2 as stated.
+
+## P4 results (2026-10-30T15:32:44.9129751Z)
+
+- OI-3 (a): `6e907f5` removes the 14 `Anonymous` policies from the `health-*` gateway routes;
+  `GatewayRoutingConfigurationTests.Upstream_health_routes_are_not_anonymous` fails on the old config, passes now (gateway
+  routing/authorization tests 32/32). Side effect recorded for PLAN-36: `scripts/verify-staging-stack.ps1` (deploy health
+  gate, Acceptance job) calls /health/upstreams/* anonymously and now gets the login redirect (passes without real
+  health data).
+- `reports/plan35-first-push.md` (PR description) `7c540ac`; merge into local main `0f69f52` (--no-ff);
+  `release/plan-35-first-push` = main = `0f69f52`, 168 commits ahead of origin/main.
+- ci-local on `0f69f52` (`artifacts/ci-local/summary.json`): 86 passed, 0 failed, 2 not-run (Testcontainers, coverage
+  gate; they run on ubuntu-latest), 968 s. The native Windows Testcontainers run was not repeated (deviation; remote CI
+  runs both steps for real).
+- `scripts/plan035-prepush.ps1` on `0f69f52`: all PASS (gitleaks history 163 / range 160 commits, actionlint, cilocal,
+  forbidden, nonprod, signatures N). Report: artifacts/plan35/prepush/report.md (not committed).
+- Progress commits after `0f69f52` go to the feature branch only, so the pushed HEAD is exactly the checked commit.
+
+## OWNER ACTION (P4)
+
+Waiting for owner (UTC): 2026-10-30T15:32:44.9129751Z
+
+1. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/scm/apply-branch-protection.ps1 -Remove`
+   (OI-1 a; done now, while the repository is still public: a private repository on the free plan may refuse the call)
+2. `gh repo edit omardefdev/HRManagement --visibility private --accept-visibility-change-consequences` (D-QA-15)
+3. `git push -u origin release/plan-35-first-push`
+4. `gh pr create --base main --head release/plan-35-first-push --title "First push: PLAN-25..35" --body-file reports/plan35-first-push.md`
+Owner action done (UTC): 2026-10-30T15:47:38.3266427Z - owner replied «تم». Verified: repository PRIVATE; protection API now
+403 "Upgrade to GitHub Pro" (private on free: protection unavailable -> D-QA-1 fallback, local guard, in P7);
+origin/release/plan-35-first-push = 0f69f52; PR #24 https://github.com/omardefdev/HRManagement/pull/24 opened
+2026-10-30T15:47:18Z; runs started 15:47:21Z: ci 41083926373, hardening-check 41083926377, iac-plan 41083926367 (success, 26 s).
+
+## P5 - remote CI triage on PR #24
+
+PR: https://github.com/omardefdev/HRManagement/pull/24. Pushes go through the owner (P-2 = no). Minutes = per-job
+durations rounded up (the billing API reports 0 ms for these runs so far).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41083926373](https://github.com/omardefdev/HRManagement/actions/runs/41083926373) | 0f69f52 | ci | 15:47:21 | 16:18:20 (31 min) | failure | CI fail 28 (No space left on device in "Verify Docker builds"); CodeQL fail 31 (SARIF gate: 112 results / 108 alerts, all pre-existing); Gitleaks ok 2; notice ok 1; E2E/Acceptance skipped. ~62 min |
+| [41083926377](https://github.com/omardefdev/HRManagement/actions/runs/41083926377) | 0f69f52 | hardening-check | 15:47:21 | 15:51:34 | success | 5 |
+| [41083926367](https://github.com/omardefdev/HRManagement/actions/runs/41083926367) | 0f69f52 | iac-plan | 15:47:21 | 15:47:47 | success | 5 jobs, ~1 each |
+
+Fixes on release/plan-35-first-push (one commit per failure):
+- `5d0b9b6` CodeQL: 108 pre-existing alerts baselined one by one (rule + path + primaryLocationLineHash), owner security
+  (log-forging: platform), reviewBy 2027-01-28 (QA-CODEQL-BASELINE). 83 missing-token-validation (8.8), 16 log-forging
+  (6.1), 3 cleartext storage (7.5), 3 exposure of sensitive info (6.5), 2 path injection (7.5), 1 cookie Secure (5.0).
+  Plan §2 rule 2 (existing alert only with a baseline entry, owner, date). Verified locally: gate OK with the baseline on
+  the run's SARIF, FAILED without it. Recorded as a security backlog for a later plan (final report §10).
+- `dada03e` CI: `scripts/ci/free-runner-disk.sh` (first step of steps.json/ci.yml and of the E2E job), GitHub-hosted
+  Linux only. Parity/lint/gate tests 32/32, actionlint clean.
+- Notices from the run (later plans): Node 20 actions forced to Node 24; CodeQL Action v3 deprecated December 2026;
+  ubuntu-latest moves to Ubuntu 26.
+- On the feature branch (reaches main with the final-report PR): `c8ef2b1` D-QA-1 fallback (protection API 403 on the
+  private free repo -> exception SCM-NO-GITHUB-PROTECTION + local guard check in the validator).
+
+OWNER ACTION (P5 round 1) - Waiting for owner (UTC): 2026-10-30T16:25:11.3370154Z
+1. `git push origin release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T16:26:01.2359583Z - owner pushed dada03e («تم»).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41089826696](https://github.com/omardefdev/HRManagement/actions/runs/41089826696) | dada03e | ci | 16:25:57 | 17:24:28 (58.5 min) | failure | CI **ok** 52 (all steps incl. Testcontainers + coverage gate on ubuntu); CodeQL **ok** 18 (gate with the baseline); Gitleaks **ok** 2; notice ok 1; E2E **fail** 7 ("Start stack": '"/docker/build-manifest": not found'); Acceptance skipped. ~80 min |
+| [41089826889](https://github.com/omardefdev/HRManagement/actions/runs/41089826889) | dada03e | hardening-check | 16:25:57 | 16:28:14 | success | 3 |
+| [41089826879](https://github.com/omardefdev/HRManagement/actions/runs/41089826879) | dada03e | iac-plan | 16:25:57 | 16:26:25 | success | ~5 |
+
+Round 2 fix (`97020fac` on release): the E2E job never generated the gitignored BLD-002
+build manifest that docker/DotnetService.Dockerfile copies (locally it existed from earlier runs). compose-up-retry.sh
+and acceptance-up.ps1 generate it first (as dev-profile-up.ps1 does); the journeys job uses compose-up-retry.sh; both
+journeys jobs free runner disk. actionlint clean, lint/parity tests 12/12.
+
+OWNER ACTION (P5 round 2) - Waiting for owner (UTC): 2026-10-30T17:26:38.8507310Z
+1. `git push origin release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T17:27:47.5851324Z - owner pushed 97020fa («تم»).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41099010391](https://github.com/omardefdev/HRManagement/actions/runs/41099010391) | 97020fa | ci | 17:27:38 | 18:25:54 (58 min) | failure | CI **ok** 31; CodeQL **ok** 32; Gitleaks **ok** 2; notice ok 1; E2E **fail** 28: stack healthy on attempt 2 (cold-start retry: auth-directory-web, dev-analytics-web exit 139 on attempt 1), then "Install Playwright browsers": ubuntu-latest is Ubuntu 26.04 and Playwright 1.50.1 "does not support chromium on ubuntu26.04-x64". ~94 min |
+
+(The first watcher stopped on a GitHub API 502; the run itself was unaffected.) Free-disk step: 15 GB -> 37 GB free.
+
+Round 3 fix (`444e8c29` on release): the E2E and Acceptance jobs of ci.yml and both e2e-journeys jobs run on ubuntu-24.04.
+Later plan: upgrade Microsoft.Playwright (Dependabot PR #20 offers 1.61.0) and drop the pin (dated obligation added
+with the final report). actionlint clean, lint/parity 12/12.
+
+OWNER ACTION (P5 round 3) - Waiting for owner (UTC): 2026-10-30T18:29:02.9968344Z
+1. `git push origin release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T18:29:47.2610920Z - owner pushed 444e8c2 («تم»); run 41107410607 queued 18:29:45Z.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41107410607](https://github.com/omardefdev/HRManagement/actions/runs/41107410607) | 444e8c2 | ci | 18:29:45 | 19:52:33 (83 min) | **success** | CI **ok** 50.4; CodeQL **ok** 31.3; Gitleaks **ok** 1.8; notice ok 0.1; E2E **ok** 32.3 (57 passed / 0 failed / 0 skipped; stack healthy on attempt 2 - cold-start retry, P-1); Acceptance skipped (disabled, CI-ACCEPTANCE-DISABLED). ~116 min |
+| [41107410591](https://github.com/omardefdev/HRManagement/actions/runs/41107410591) | 444e8c2 | hardening-check | 18:29:45 | 18:33:13 | success | 3.5 |
+| [41107410610](https://github.com/omardefdev/HRManagement/actions/runs/41107410610) | 444e8c2 | iac-plan | 18:29:45 | 18:30:12 | success | 0.5 |
+
+PR #24 mergeStateStatus CLEAN. First green E2E (D-QA-2: E2E becomes a required check after two consecutive green runs;
+the push run on main at the same SHA is the second candidate). main (0f69f52) and origin/main (9cb3705) are both
+ancestors of 444e8c2: fast-forward possible.
+
+P5 Finished (UTC): 2026-10-30T19:55:14.0034262Z
+
+OWNER ACTION (P6) - Waiting for owner (UTC): 2026-10-30T19:55:14.0229436Z
+1. `git switch main`
+2. `git merge --ff-only release/plan-35-first-push`
+3. `git push origin main`
+Owner action done (UTC): 2026-10-30T19:57:19.2627337Z - owner fast-forwarded main to 444e8c2 and pushed («تم»); main = origin/main = 444e8c2. Push runs ci 41119397846 and hardening-check 41119397886 started 19:57:11Z.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41119397846](https://github.com/omardefdev/HRManagement/actions/runs/41119397846) | 444e8c2 (main push) | ci | 19:57:11 | 21:17:49 (81 min) | failure | CI **ok** 51.4; CodeQL **ok** 32.8; Gitleaks **ok** 1.1; notice ok 0.1; E2E **fail** 29.2 (52 passed / 5 failed / 0 skipped: TRF-H1/H2/H3, LEV-H1, HIR-H1 got HTTP 500 for the authorized persona; the anonymous and 5xx cases of the same pages passed; stack healthy on attempt 2 after auth-directory-web "relation AuthUsers does not exist", compliance/dev-analytics exit 139). ~115 min |
+| [41119397886](https://github.com/omardefdev/HRManagement/actions/runs/41119397886) | 444e8c2 (main push) | hardening-check | 19:57:11 | 20:01:09 | success | 4 |
+
+Triage (P6 round 1): same SHA as the green run 41107410607, so not a code regression but a startup race. Root cause
+(reproduced locally with postgres:16-alpine and the repo init scripts): the postgresql healthcheck pg_isready over
+the Unix socket passes while the entrypoint runs the init scripts on a temporary socket-only server (checks 3-4), the
+server then shuts down (5-6) and only the final server answers over TCP (7). Services started on "healthy" in that
+window crash (exit 139) or keep running without their migrations -> HTTP 500 on the hr-contracts / hr-movements pages.
+The earlier green run started its tests 6.5 min after the realm was ready, this one 1.5 min (no Playwright cache).
+No service logs or traces were uploaded for the failed E2E job (later improvement, final report section 10).
+Fix (CI path only, P-1; the healthcheck in docker-compose.yml stays a recorded product/dev-path defect):
+- d9c09b0 scripts/ci/compose-up-retry.sh starts postgresql first and waits for pg_isready -h 127.0.0.1.
+- ea4a256 scripts/acceptance-up.ps1 does the same (recruitment-journey job, P7). PS 5.1 parse clean, ASCII.
+D-QA-2 streak reset: E2E needs two consecutive green runs again before it becomes required.
+
+OWNER ACTION (P6 round 2) - Waiting for owner (UTC): 2026-10-30T21:23:49.2267396Z
+1. `git switch main`
+2. `git merge --ff-only release/plan-35-first-push`
+3. `git push origin main release/plan-35-first-push`
+Owner action done (UTC): 2026-10-30T21:25:20.7280563Z - owner fast-forwarded main to ea4a256 and pushed main + release («تم»); main = origin/main = release = ea4a256. Push run ci 41130907741 started 21:25:12Z.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41130907741](https://github.com/omardefdev/HRManagement/actions/runs/41130907741) | ea4a256 (main push) | ci | 21:25:12 | 22:38:54 (74 min) | **success** | CI **ok** 50.1; CodeQL **ok** 33.3; Gitleaks **ok** 1.7; notice ok 0.1; E2E **ok** 23.5 (57 passed / 0 failed / 0 skipped; stack healthy on attempt 1); Acceptance skipped. ~109 min |
+
+Finding on the green run: the log shows neither the file-storage volume preparation nor the new PostgreSQL TCP wait
+(the volumes were created by the final `up`). `config --services | grep -qx` under `set -o pipefail` reads as
+false when grep exits at the first match and compose gets SIGPIPE (local demo: rc=141). The green E2E therefore did not
+exercise the round-1 fix. Fix `052b506` on release: the service list is read once and tested with a here-string; a
+failing `config --services` fails the step. bash -n clean, helper checked locally (postgresql/file-storage-web yes,
+unknown no).
+
+P6 result: main = origin/main = ea4a256 and its push run is green (CI, CodeQL, Gitleaks, E2E).
+P6 Finished (UTC): 2026-10-30T22:43:45.8391300Z
+
+D-QA-2: E2E green on main once (41130907741). The push of 052b506 below is the second candidate; E2E is promoted to a
+required check (pendingRequiredChecks) only if that run is green too.
+
+P7 preparation: local branch `plan35-negative-check` (`5bff180`, from 052b506) adds one deliberately failing unit
+test (Plan35NegativeCheckTests; verified locally: Failed 1). The guard is installed after the main push (it refuses
+pushes to main).
+
+OWNER ACTION (P7) - Waiting for owner (UTC): 2026-10-30T22:43:45.8619130Z
+1. `git switch main`
+2. `git merge --ff-only release/plan-35-first-push`
+3. `git push origin main release/plan-35-first-push`
+4. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/scm/install-hooks.ps1 -ProtectMain`
+5. `gh variable set ENABLE_SCHEDULED --body true`
+6. `gh workflow run e2e-journeys.yml --ref main`
+7. `gh workflow run dated-obligations.yml --ref main`
+8. `git push origin plan35-negative-check`
+9. `gh pr create --base main --head plan35-negative-check --title "PLAN-35 negative check (do not merge)" --body "Deliberately failing unit test: proves the CI check turns red on a PR. Closed unmerged."`
+10. `git switch feature/plan-35-qa-push-remote-ci`
+Owner action done (UTC): 2026-10-30T22:46:30.3057635Z - the owner told Claude to run the P7 commands («نفذها انت»); one-off exception to "never push to main yourself" / P-2, on that explicit instruction. Results:
+- 1-3: main fast-forwarded ea4a256 -> 052b506; pushed main + release (main = origin/main = release = 052b506). Push run ci 41140221205 (22:45:38Z).
+- 4: .git/hooks/pre-push installed (ProtectMain=True). Self-test: the guard REFUSES a push to refs/heads/main (exit 1).
+- 5: repository variable ENABLE_SCHEDULED=true.
+- 6: e2e-journeys dispatched on main: run 41140244680.
+- 7: dated-obligations dispatched on main: run [41140248696](https://github.com/omardefdev/HRManagement/actions/runs/41140248696) **success**.
+- 8: plan35-negative-check pushed through the guard (gitleaks + forbidden scans).
+- 9: negative PR https://github.com/omardefdev/HRManagement/pull/25 opened.
+- `scm001-branch-protection-validate.ps1 -CheckLiveGitHub`: OK (live protection unavailable, local guard installed, exception SCM-NO-GITHUB-PROTECTION).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41140221205](https://github.com/omardefdev/HRManagement/actions/runs/41140221205) | 052b506 (main push) | ci | 22:45:38 | 23:52:10 (67 min) | **success** | CI **ok** 44.9; CodeQL **ok** 18.9; Gitleaks **ok** 1.8; notice ok 0.2; E2E **ok** 21.6 (57/0/0; "PostgreSQL accepts TCP connections after 5 check(s)", stack healthy on attempt 1); Acceptance skipped. ~87 min |
+| [41140244680](https://github.com/omardefdev/HRManagement/actions/runs/41140244680) | 052b506 (dispatch) | e2e-journeys | 22:45:52 | 23:21:35 | failure | journeys **ok** 25.9; recruitment-journey **fail** 35.6: lab journey "Passed: 1, skipped: 0", then "Switch ... prod-like profile": 'required variable ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET is missing a value' -> no prod-like results. ~62 min |
+| [41140318433](https://github.com/omardefdev/HRManagement/actions/runs/41140318433) | 5bff180 (PR #25) | ci | 22:46:34 | 23:18:00 | failure (expected) | CI **fail** 18.2 (Unit tests: Failed 1 / Passed 4208, only Plan35NegativeCheckTests); CodeQL ok 31.4; Gitleaks ok 1.7; notice ok 0.1; E2E + Acceptance skipped. ~51 min |
+| [41140248696](https://github.com/omardefdev/HRManagement/actions/runs/41140248696) | 052b506 (dispatch) | dated-obligations | 22:45:54 | 22:46:12 | success | <1 |
+
+Negative check (AC-QA-35): PR [#25](https://github.com/omardefdev/HRManagement/pull/25) showed CI=FAILURE, mergeStateStatus
+UNSTABLE, mergeable MERGEABLE (no GitHub protection on the private free repo - SCM-NO-GITHUB-PROTECTION; the local
+guard covers direct pushes only, so a red PR is blocked by process, not by GitHub). Closed unmerged with a comment;
+the remote branch plan35-negative-check is kept as evidence (deletion left to the owner).
+
+D-QA-2: E2E green twice in a row on main (41130907741, 41140221205) -> E2E moved from pendingRequiredChecks to
+required_status_checks.contexts in docs/scm-governance/branch-protection-main.json (fixture live-match.json and the
+runbook table follow). Scm001/lint/parity tests 29/29; validator -CheckLiveGitHub OK.
+
+Recruitment-journey fix `4d1b472` on release: the prod-like switch runs in pwsh and imports the acceptance
+environment with scripts/acceptance-local-env.ps1 (the only `:?` variable of the acceptance compose files).
+actionlint no findings, lint/parity 12/12. Under P-5 it reaches main with the final-report PR (P8); it is verified
+first by dispatching e2e-journeys on the release ref.
+
+OWNER ACTION (P7 round 2) - Waiting for owner (UTC): 2026-10-31T00:00:29.5293305Z
+1. `git push origin release/plan-35-first-push`
+2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
+Owner action done (UTC): 2026-10-31T00:01:21.3448219Z - on the owner's instruction («نفذها انت») Claude pushed release (052b506 -> 4d1b472) through the guard and dispatched e2e-journeys on the release ref: run 41147863512.
+
+## Owner decision: Actions minutes (2026-10-31)
+
+Finding: the repository is private on the free plan (2,000 Actions minutes per month). PLAN-35 used ~810 minutes so far;
+with ENABLE_SCHEDULED=true the nightly e2e-journeys run alone (~60 min) would use ~1,800 minutes per month.
+Owner action done (UTC): 2026-10-31T00:22:25.3926250Z - owner: «نفذ الخياران المقترحان» (apply both options). Claude set
+the repository variable ENABLE_SCHEDULED=false (00:22:26Z) and moved the e2e-journeys schedule from nightly to weekly
+(Monday 04:00 UTC) on docs/plan-35-final-report (reaches main with the final-report PR). Docs: CI_AND_TESTING,
+GITHUB_CI_GOVERNANCE_RUNBOOK, PRG_001 G-QA-15. actionlint no findings; lint/parity/Scm001 29/29.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41147863512](https://github.com/omardefdev/HRManagement/actions/runs/41147863512) | 4d1b472 (dispatch, release) | e2e-journeys | 00:01:42 | 00:37:21 | failure | journeys **ok** 29.5; recruitment-journey **fail** 35.6: lab "Passed: 1, skipped: 0"; prod-like switch now OK (env imported); prod-like journey: "GET ui/hr-core/RecruitmentRequisitions/Create as central-a returned 502" 13 s after the recreate. ~65 min |
+
+Triage: the application services have no healthcheck, so `up --wait` reports "Healthy" as soon as the recreated
+containers run (0.5 s here); the gateway answered 502 while hr-core-web was still starting (or on a pooled connection to
+the old container). Fix `0ef97be` on release: after the switch, wait until `/health/upstreams/hr-core` and
+`/health/upstreams/hr-contracts` answer 2xx from inside the gateway container (loopback, SEC-001 rule), 60 x 3 s.
+actionlint no findings, WorkflowYamlLintTests 6/6. Merged into docs/plan-35-final-report (`29c5101`).
+Recorded for later (final report section 10): the application services have no compose healthcheck.
+
+OWNER ACTION (P7 round 3) - Waiting for owner (UTC): 2026-10-31T00:42:10.630604200Z
+1. `git push origin release/plan-35-first-push`
+2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
+Owner action done (UTC): 2026-10-31T00:44:41.8947273Z - on the owner's instruction (button «Yes, run them») Claude pushed release (4d1b472 -> 0ef97be) and dispatched e2e-journeys on the release ref: run 41151844485.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41151844485](https://github.com/omardefdev/HRManagement/actions/runs/41151844485) | 0ef97be (dispatch, release) | e2e-journeys | 00:45:02 | 01:17:30 | failure | journeys **ok** 31.0; recruitment-journey **fail** 32.4: lab "Passed: 1, skipped: 0"; the new wait got HTTP 500 from `/health/upstreams/hr-core` (inside the gateway container, loopback) for 60 x 3 s, so no prod-like results. ~63 min |
+
+Triage: the gateway's upstream health route answers 500 to a loopback caller (consistent for 3 min, after the lab
+journey had passed through the same gateway) - the gateway health proxy, not the readiness of hr-core, is the likely
+failure; recorded for later (final report section 10). Fix `eacc914` on release: wait on each recreated service's own
+`/health/ready` (anonymous, "ready" checks) inside its container; on failure print `ps` and the last 80 log lines.
+actionlint no findings, WorkflowYamlLintTests 6/6. Merged into docs/plan-35-final-report (`490bb73`).
+
+OWNER ACTION (P7 round 4) - Waiting for owner (UTC): 2026-10-31T01:21:49.391572100Z
+1. `git push origin release/plan-35-first-push`
+2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
+Owner action done (UTC): 2026-10-31T02:05:57.0384865Z - on the owner's instruction (button «Yes, run them») Claude pushed release (0ef97be -> eacc914) and dispatched e2e-journeys on the release ref: run 41158446834.
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41158446834](https://github.com/omardefdev/HRManagement/actions/runs/41158446834) | eacc914 (dispatch, release) | e2e-journeys | 02:06:18 | 02:41:42 | **success** | journeys **ok** 30.9; recruitment-journey **ok** 35.4: lab "Passed: 1, skipped: 0"; "hr-core-web ready after 5 check(s)", "hr-contracts-web ready after 1 check(s)"; prod-like "Passed: 1, skipped: 0". ~66 min |
+
+Found while preparing AC-QA-35c: the owner opened PR [#26](https://github.com/omardefdev/HRManagement/pull/26) from
+release at 4d1b472 and squash-merged it at 00:15:38Z, before its checks ran; origin/main = `152506e` (tree identical to
+4d1b472).
+| [41149141375](https://github.com/omardefdev/HRManagement/actions/runs/41149141375) | 4d1b472 (PR #26) | ci | 00:15:10 | 01:29:10 | failure | CI ok 44.0; CodeQL ok 16.6; Gitleaks ok 1.9; E2E **fail** 29.9: 56/1/0, `SEP_H1_Authorized_Opens_Separation_Surface` "Timeout 30000ms exceeded" (navigation). ~92 min |
+| [41149190573](https://github.com/omardefdev/HRManagement/actions/runs/41149190573) | 152506e (push main) | ci | 00:15:41 | 01:30:04 | **success** | CI ok 45.0; CodeQL ok 32.4; Gitleaks ok 1.8; E2E ok 29.3. ~109 min |
+
+The SEP_H1 timeout is a flaky navigation timeout (the same tree passed on the push run; P2 saw the same kind locally);
+not quarantined, recorded for later. The early merge is the process gap of the D-QA-1 fallback (GitHub cannot block
+it). Local main fast-forwarded to 152506e (not pushed); merged into docs/plan-35-final-report (`a616898`, conflict in
+e2e-journeys.yml resolved with the report branch's superset).
+P7 Finished (UTC): 2026-10-31T02:41:42Z (last P7 run green)
+
+## P8 results
+
+- Independent review (one subagent): no high finding (no refuter); 2 medium + 3 low fixed in `897d16b` (final report
+  section 9). Build -warnaserror 0/0; Scm001/lint/parity/CodeQL gate/dated obligations/gateway routing 57/57; validator
+  -CheckLiveGitHub OK; dated obligations PASS.
+- AC-QA-35a..g: 7/7 Pass on `897d16b` (RUN_ACCEPTANCE=true, ACCEPTANCE_REQUIRE_ALL=true, ACQA35_NEGATIVE_PR=25,
+  ACQA35_JOURNEYS_BRANCH=release/plan-35-first-push); evidence acceptance-evidence/AC-QA-35/ + summary.md.
+- Docs: PRG_001 header + G-QA-01/07/11/15 status lines; plan Status + «ملاحظات التنفيذ والانحرافات»; CI_AND_TESTING;
+  runbook. Final report reports/plan35-final-report.md.
+
+OWNER ACTION (P8) - Waiting for owner (UTC): 2026-10-31T03:00:11.241843700Z
+1. `git push -u origin docs/plan-35-final-report`
+2. `gh pr create --base main --head docs/plan-35-final-report --title "PLAN-35: remote CI green, protection, gap status lines, final report" --body-file reports/plan35-final-report.md`
+3. after CI, CodeQL, Gitleaks and E2E are green on the PR: `gh pr merge --merge`
+Owner action done (UTC): 2026-10-31T05:50:34.1914527Z (owner: "Yes, run them" - Claude pushes, opens the PR and merges after green checks)

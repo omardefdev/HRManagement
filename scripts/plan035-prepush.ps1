@@ -105,14 +105,19 @@ if ($selected -contains "gitleaks") {
     else {
         $configArgs = @()
         if (Test-Path (Join-Path $RepoRoot ".gitleaks.toml")) { $configArgs = @("--config", "/repo/.gitleaks.toml") }
+        # As scripts/ci/gitleaks.sh: safe.directory for the bind mount, and a scan that covered fewer commits than git
+        # counts fails (a git error inside the container, e.g. "dubious ownership", must not pass as "no leaks").
+        $historyCount = [int](@(Invoke-Git @("rev-list", "--count", "--no-merges", $headSha))[0])
+        $rangeCount = [int](@(Invoke-Git @("rev-list", "--count", "--no-merges", $range))[0])
         $scans = @(
-            @{ name = "history"; extra = @("--log-opts=$headSha") },
-            @{ name = "range"; extra = @("--log-opts=$range") }
+            @{ name = "history"; extra = @("--log-opts=$headSha"); expected = $historyCount },
+            @{ name = "range"; extra = @("--log-opts=$range"); expected = $rangeCount }
         )
         foreach ($scan in $scans) {
             $report = "gitleaks-$($scan.name).json"
             $log = Join-Path $Out "gitleaks-$($scan.name).log"
-            $dockerArgs = @("run", "--rm", "-v", "${RepoRoot}:/repo", "-v", "${Out}:/out", $gitleaksRef,
+            $dockerArgs = @("run", "--rm", "-e", "GIT_CONFIG_COUNT=1", "-e", "GIT_CONFIG_KEY_0=safe.directory", "-e", "GIT_CONFIG_VALUE_0=*",
+                "-v", "${RepoRoot}:/repo", "-v", "${Out}:/out", $gitleaksRef,
                 "detect", "--source", "/repo", "--redact", "--no-banner", "--no-color", "--exit-code", "1",
                 "--report-format", "json", "--report-path", "/out/$report") + $configArgs + $scan.extra
             $reportPath = Join-Path $Out $report
@@ -128,8 +133,17 @@ if ($selected -contains "gitleaks") {
             }
             $scanned = (Select-String -Path $log -Pattern "commits scanned" | Select-Object -First 1)
             $scannedText = ""
-            if ($scanned) { $scannedText = ($scanned.Line -replace '^.*INF\s*', '').Trim() }
-            if ($code -eq 0 -and $findings.Count -eq 0) {
+            $scannedCount = 0
+            if ($scanned) {
+                $scannedText = ($scanned.Line -replace '^.*INF\s*', '').Trim()
+                $m = [regex]::Match($scanned.Line, '(\d+) commits scanned')
+                if ($m.Success) { $scannedCount = [int]$m.Groups[1].Value }
+            }
+            if ($code -eq 0 -and $findings.Count -eq 0 -and $scannedCount -lt $scan.expected) {
+                $ok = $false
+                $details += "$($scan.name): gitleaks scanned $scannedCount commit(s), git counts $($scan.expected) (log $log)"
+            }
+            elseif ($code -eq 0 -and $findings.Count -eq 0) {
                 $details += "$($scan.name): no leaks ($scannedText)"
             }
             elseif ($code -eq 1 -and $findings.Count -gt 0) {

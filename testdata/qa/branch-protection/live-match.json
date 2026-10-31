@@ -4,7 +4,8 @@
     "contexts": [
       "CI",
       "CodeQL",
-      "Gitleaks"
+      "Gitleaks",
+      "E2E"
     ]
   },
   "enforce_admins": {
