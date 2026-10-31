@@ -230,3 +230,13 @@ Finished (UTC): 2026-10-31T14:29:19Z
 - First build attempt failed in 3 s: `git archive` + Windows `tar.exe` cannot extract the repository's non-ASCII file
   names; fixed in fbb5c2ab (build context = detached `git worktree` of HEAD, removed after the build).
 - `AcOps36VpsBootTests` written (11 scenarios a..k, local/server targets, one-off `docker compose run` negatives).
+- First local boot (tag fbb5c2ab9d3f, 2026-10-31T14:39Z): every container healthy at once (pull 103 s, up 57 s, healthy
+  +21 s). Smoke found real defects, fixed in ee853033: Keycloak redirect carried the dev port (`KC_HOSTNAME_PORT=8088`
+  inherited from docker-compose.yml -> `-1`); gateway CSP `connect-src` kept `http://localhost:8088` and CORS kept
+  `YOUR_PORTAL_HOST` (appsettings arrays cannot be cleared by an empty Production array -> index 0 overridden); no demo
+  banner on HR.Core's root, which is the public careers portal (`_PublicLayout`). Smoke-script defects: Schannel
+  revocation check on the internal CA (`--ssl-no-revoke` only for Schannel curl), Windows curl and `/tmp` paths,
+  Keycloak's upper-case form_post page, and curl's ~8 KB cap on its own Cookie header (the gateway's chunked session
+  cookie is larger; browsers are unaffected) -> explicit Cookie header from the jar.
+- Tag B ee8530331666: cold start after `down -v` (pull 5 s from the local registry, up 57 s, healthy +21 s), smoke
+  17 pass / 0 fail.

@@ -48,6 +48,8 @@ SSO="$(env_value SSO_DOMAIN)"
 WORK="$(mktemp -d)"
 # Git Bash (local variant): curl is the Windows binary and MSYS_NO_PATHCONV keeps /tmp paths untranslated.
 command -v cygpath >/dev/null 2>&1 && WORK="$(cygpath -m "$WORK")"
+DEVNULL=/dev/null
+command -v cygpath >/dev/null 2>&1 && DEVNULL=NUL
 trap 'rm -rf "$WORK"' EXIT
 RESULTS="$WORK/results"
 : > "$RESULTS"
@@ -95,17 +97,17 @@ for host in "$APP" "$SSO"; do
       *) record "tls-$host" Fail "--allow-staging-ca accepts only a Let's Encrypt staging certificate; got: ${issuer:-no certificate}";;
     esac
   else
-    verify="$(curl -sS --max-time 20 --resolve "$host:443:$TARGET_IP" "${CURL_TLS[@]}" -o /dev/null -w '%{ssl_verify_result}' "https://$host/" 2>&1)"
+    verify="$(curl -sS --max-time 20 --resolve "$host:443:$TARGET_IP" "${CURL_TLS[@]}" -o "$DEVNULL" -w '%{ssl_verify_result}' "https://$host/" 2>&1)"
     if [ "$verify" = "0" ]; then record "tls-$host" Pass "trusted certificate: $issuer"; else record "tls-$host" Fail "certificate not trusted (verify=$verify): $issuer"; fi
   fi
 done
 
 # 3. Redirect to the identity provider, never to localhost.
-loc="$(curl_edge -o /dev/null -w '%{redirect_url}' "https://$APP/")"
+loc="$(curl_edge -o "$DEVNULL" -w '%{redirect_url}' "https://$APP/")"
 chain="$loc"; hops=0
 while [ -n "$loc" ] && [ "$hops" -lt 6 ] && [[ "$loc" != https://$SSO/* ]]; do
   case "$loc" in /*) loc="https://$APP$loc";; esac
-  loc="$(curl_edge -o /dev/null -w '%{redirect_url}' "$loc")"; chain="$chain $loc"; hops=$((hops + 1))
+  loc="$(curl_edge -o "$DEVNULL" -w '%{redirect_url}' "$loc")"; chain="$chain $loc"; hops=$((hops + 1))
 done
 if [[ "$chain" == *localhost* ]]; then record redirect-to-sso Fail "a Location points to localhost"
 elif [[ "$loc" == https://$SSO/realms/hrmanagement/* ]]; then record redirect-to-sso Pass "/ -> https://$SSO/realms/hrmanagement/... ($((hops + 1)) hop(s))"
@@ -114,7 +116,7 @@ else record redirect-to-sso Fail "no redirect to https://$SSO (last: ${loc:-none
 # 4. Operations paths closed at the edge.
 for spec in "$APP/health/ready:404" "$APP/health/live:404" "$APP/metrics:404" "$APP/alive:404" "$SSO/admin/:403" "$SSO/realms/master/:403" "$SSO/health/ready:404"; do
   url="https://${spec%:*}"; want="${spec##*:}"
-  got="$(curl_edge -o /dev/null -w '%{http_code}' "$url")"
+  got="$(curl_edge -o "$DEVNULL" -w '%{http_code}' "$url")"
   if [ "$got" = "$want" ]; then record "edge-${spec%:*}" Pass "$got"; else record "edge-${spec%:*}" Fail "expected $want, got $got"; fi
 done
 
@@ -143,7 +145,7 @@ if [ "$LOGIN" = "1" ]; then
     if [ "$code" = "200" ]; then record login Pass "signed in as $DEMO_USER; home 200"; else record login Fail "home after sign-in answered $code"; fi
     ok=0; failed=""
     for m in $MODULES; do
-      c="$(curl_edge -H "Cookie: $session" -o /dev/null -w '%{http_code}' "https://$APP/ui/$m/")"
+      c="$(curl_edge -H "Cookie: $session" -o "$DEVNULL" -w '%{http_code}' "https://$APP/ui/$m/")"
       if [ "$c" = "200" ]; then ok=$((ok + 1)); else failed="$failed $m=$c"; fi
     done
     if [ -z "$failed" ]; then record module-uis Pass "$ok/13 module UIs answered 200"; else record module-uis Fail "$ok/13 answered 200;$failed"; fi
