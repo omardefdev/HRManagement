@@ -8,7 +8,10 @@
 - PostgreSQL 16، RabbitMQ، Keycloak، Docker
 
 ## خطوات التنفيذ
-1. تشغيل `scripts/deploy-organization.ps1 -OrganizationName "..." -LegalRegime LAW_50_2004`
+0. تهيئة الخادم الواحد وتشديده ونشره: [OPS_VPS_SINGLE_HOST.md](OPS_VPS_SINGLE_HOST.md) (PLAN-36: Caddy على 443 وحده،
+   صور من سجل بوسم `<sha12>`، ووضع العرض ببيانات اصطناعية فقط إلى أن تكتمل PLAN-38 والموجة 2).
+1. تشغيل `scripts/deploy-organization.ps1 -OrganizationName "..."` (غلاف لـ `scripts/vps/deploy.ps1`؛ يضبط
+   `HRM_ORGANIZATION_NAME`). الإطار القانوني لم يعد معامل نشر: يُفعَّل من الرواتب ← الأطر القانونية (الخطوة 3).
 2. استيراد الهيكل والموظفين عبر **استيراد البيانات**
 3. تفعيل الإطار القانوني المناسب في الرواتب
 4. تدريب 3 أيام: HR، الرواتب، مديرو الفروع

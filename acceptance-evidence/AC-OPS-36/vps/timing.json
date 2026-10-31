@@ -1,0 +1,10 @@
+{
+  "target": "server",
+  "appDomain": "hr.161-97-185-71.sslip.io",
+  "authenticatedRequests": 450,
+  "authenticated429": 0,
+  "anonymousSent": 400,
+  "anonymousNotRejected": 300,
+  "anonymousBurstSeconds": 28.3,
+  "retryAfter": "60"
+}

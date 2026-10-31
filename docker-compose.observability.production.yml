@@ -1,0 +1,74 @@
+# PLAN-36 (G-OPS-01): production overrides for the full observability stack, moved out of
+# docker-compose.production.yml so the production chain is valid without docker-compose.observability.yml.
+# Use only together with docker-compose.observability.yml, after docker-compose.production.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.images.yml \
+#     -f docker-compose.production.yml -f docker-compose.observability.yml \
+#     -f docker-compose.observability.production.yml --profile full-stack up -d
+# No public host ports (Grafana bound to loopback only).
+
+services:
+  seq:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  tempo:
+    ports: !override []
+    networks: !override
+      - observability
+
+  otel-collector:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  prometheus:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  alertmanager:
+    ports: !override []
+    networks: !override
+      - observability
+
+  alert-sink:
+    ports: !override []
+    networks: !override
+      - observability
+
+  blackbox-exporter:
+    ports: !override []
+    networks: !override
+      - observability
+      - application
+
+  grafana:
+    ports: !override
+      - "127.0.0.1:${GRAFANA_HTTP_PORT:-3000}:3000"
+    networks: !override
+      - observability
+    environment:
+      # SEC-004: no default admin/admin in production (overrides docker-compose.observability.yml).
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER required}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required}
+
+  rabbitmq-exporter:
+    ports: !override []
+    networks: !override
+      - observability
+      - data
+
+  postgres-exporter:
+    ports: !override []
+    networks: !override
+      - observability
+      - data
+
+networks:
+  observability:
+    driver: bridge
+    internal: true

@@ -27,6 +27,10 @@ public static class ProductionHostExtensions
         builder.Services.Configure<HostOptions>(options =>
             options.ShutdownTimeout = TimeSpan.FromSeconds(shutdownSeconds));
 
+        // PLAN-36: refuse placeholder values in Production (opt-in elsewhere); registered early so it starts first.
+        builder.Services.AddOptions<ProductionConfigurationGuardOptions>();
+        builder.Services.AddHostedService<ProductionConfigurationGuard>();
+
         var useForwarded = builder.Configuration.GetValue("UseForwardedHeaders", false);
         if (useForwarded)
         {

@@ -1,0 +1,19 @@
+{
+  "otlpLogLines": {
+    "hr-gateway": 0,
+    "hr-core-web": 0,
+    "hr-contracts-web": 0,
+    "hr-health-web": 0,
+    "hr-movements-web": 0,
+    "hr-training-web": 0,
+    "payroll-web": 0,
+    "idcard-web": 0,
+    "records-archive-web": 0,
+    "admin-logistics-web": 0,
+    "it-infra-web": 0,
+    "dev-analytics-web": 0,
+    "compliance-web": 0,
+    "auth-directory-web": 0,
+    "file-storage-web": 0
+  }
+}

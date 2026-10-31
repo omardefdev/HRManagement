@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-OPS-36i Seq receives logs from all 15 services over the loopback port; no OTLP collector, no OTLP errors",
+  "personaId": "demo users on the server (password read into memory only)",
+  "correlationId": "ops36-36i-bf807136a133453491c76ee413103eed",
+  "capturedAtUtc": "2026-10-31T20:56:37.4007239Z",
+  "environment": {
+    "gateway": "http://localhost:5000",
+    "keycloak": "http://localhost:8088",
+    "runAcceptance": true
+  },
+  "gitSha": "00926107a37b2de96cd9ddbfd95872f7fee4e093"
+}

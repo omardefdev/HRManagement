@@ -35,9 +35,12 @@ jobs:
       - name: Start stack (release images when IMAGE_TAG set)
         env:
           IMAGE_TAG: ${{ github.event.inputs.image_tag }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
+          # PLAN-36: docker-compose.images.yml takes the registry path; GHCR repository names are lowercase.
+          HRM_IMAGE_REPO="ghcr.io/$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/hrmanagement"
+          export HRM_IMAGE_REPO
           bash scripts/prepare-ci-compose-env.sh
           # PLAN-33: the application services carry profiles: ["full-stack"]; without the profile only infrastructure starts.
           if [ -n "${IMAGE_TAG}" ]; then

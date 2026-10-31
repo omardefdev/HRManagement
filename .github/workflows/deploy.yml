@@ -330,126 +330,62 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash scripts/verify-image-signatures.sh
 
-      - name: Deploy via SSH
-        id: ssh-deploy
-        uses: appleboy/ssh-action@v1.0.3
-        # DEP-001: never hide SSH failures
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            export IMAGE_TAG="${{ steps.tag.outputs.tag }}"
-            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
-            echo "Deploying IMAGE_TAG=$IMAGE_TAG owner=$GITHUB_REPOSITORY_OWNER"
-            # --profile backup is required: postgres-backup and minio-backup sit behind that
-            # profile, so deploying without it silently ran production with no scheduled backups.
-            docker compose \
-              --profile backup \
-              -f docker-compose.yml \
-              -f docker-compose.services.yml \
-              -f docker-compose.observability.yml \
-              -f docker-compose.images.yml \
-              -f docker-compose.production.yml \
-              pull
-            docker compose \
-              --profile backup \
-              -f docker-compose.yml \
-              -f docker-compose.services.yml \
-              -f docker-compose.observability.yml \
-              -f docker-compose.images.yml \
-              -f docker-compose.production.yml \
-              up -d --remove-orphans
-            # Wait for containers to become healthy before health gate
-            sleep 30
+      # PLAN-36: one deploy path. The runner builds the deploy bundle (compose files, deploy/vps/*, the VpsDemo realm
+      # with placeholders only) and the host runs deploy/vps/remote-deploy.sh, as scripts/vps/deploy.ps1 does from the
+      # owner's machine. The host keeps its own /opt/hrm/shared/.env; nothing secret is copied.
+      # Repository configuration: vars.APP_DOMAIN, secrets.DEPLOY_SSH_HOST/USER/KEY and secrets.DEPLOY_SSH_KNOWN_HOSTS
+      # (the host's public key line; host keys are verified, never skipped).
+      - name: Build deploy bundle
+        shell: pwsh
+        env:
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+        run: |
+          ./scripts/prepare-keycloak-import.ps1 -Profile VpsDemo -AppDomain $env:APP_DOMAIN
+          ./scripts/vps/make-deploy-bundle.ps1 -Tag "${{ steps.tag.outputs.tag }}"
 
-      - name: Post-deploy health gate
+      - name: Deploy via SSH (remote-deploy.sh)
+        id: ssh-deploy
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          SSH="ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes $SSH_USER@$SSH_HOST"
+          HRM_IMAGE_REPO="ghcr.io/$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/hrmanagement"
+          scp -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "artifacts/vps/hrm-deploy-$TAG.tar.gz" "$SSH_USER@$SSH_HOST:/opt/hrm/releases/"
+          $SSH "set -e; cd /opt/hrm/releases; rm -rf $TAG hrm-deploy-$TAG; tar -xzf hrm-deploy-$TAG.tar.gz; mv hrm-deploy-$TAG $TAG; rm -f hrm-deploy-$TAG.tar.gz"
+          $SSH "cd /opt/hrm/releases/$TAG && HRM_IMAGE_REPO=$HRM_IMAGE_REPO bash deploy/vps/remote-deploy.sh deploy $TAG"
+
+      - name: Post-deploy health gate (smoke.sh)
         id: health-gate
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            GATEWAY_PORT="${GATEWAY_HTTP_PORT:-5000}"
-            if command -v pwsh >/dev/null 2>&1; then
-              pwsh -File scripts/verify-staging-stack.ps1 -GatewayBaseUrl "http://localhost:${GATEWAY_PORT}"
-            else
-              # Fallback when PowerShell is not installed on the host
-              fail=0
-              curl -sf "http://localhost:${GATEWAY_PORT}/health/live" || fail=1
-              for slug in hr-core hr-contracts hr-health hr-movements hr-training payroll idcard records-archive admin-logistics it-infra dev-analytics compliance auth-directory; do
-                code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${GATEWAY_PORT}/health/upstreams/${slug}" || echo 000)
-                echo "upstream ${slug} -> ${code}"
-                if [ "$code" -ge 500 ] 2>/dev/null || [ "$code" = "000" ]; then
-                  fail=1
-                fi
-              done
-              if [ "$fail" -ne 0 ]; then
-                echo "Health gate failed"
-                exit 1
-              fi
-              echo "Health gate passed (curl fallback)"
-            fi
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          set -euo pipefail
+          # PLAN-35 defect 6: the old gate called /health/upstreams/* anonymously and passed on the login redirect.
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "bash /opt/hrm/current/deploy/vps/smoke.sh" > smoke.json
+          cat smoke.json
 
       - name: Rollback on health-gate failure
-        if: failure() && steps.health-gate.outcome == 'failure'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            LOG="${{ secrets.DEPLOY_PATH }}/deployments.log"
-            PREV=""
-            if [ -f "$LOG" ]; then
-              PREV=$(awk -F'|' '{for(i=1;i<=NF;i++) if($i ~ /^tag=/) {t=substr($i,5)}} END{print t}' "$LOG")
-            fi
-            if [ -z "${PREV}" ]; then
-              echo "No previous tag recorded in deployments.log — cannot auto-rollback. Manual intervention required."
-              exit 1
-            fi
-            export IMAGE_TAG="$PREV"
-            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
-            echo "Rolling back to IMAGE_TAG=$IMAGE_TAG"
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.services.yml \
-              -f docker-compose.observability.yml \
-              -f docker-compose.images.yml \
-              -f docker-compose.production.yml \
-              pull
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.services.yml \
-              -f docker-compose.observability.yml \
-              -f docker-compose.images.yml \
-              -f docker-compose.production.yml \
-              up -d --remove-orphans
-            echo "Rollback to $IMAGE_TAG completed"
-
-      - name: Write deployment record
-        if: success()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            export IMAGE_TAG="${{ steps.tag.outputs.tag }}"
-            export GITHUB_SHA="${{ github.sha }}"
-            export DEPLOY_ENV="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'production' }}"
-            export GITHUB_ACTOR="${{ github.actor }}"
-            export DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            bash scripts/record-deployment.sh
+        # Also when remote-deploy.sh itself reports the release unhealthy: it records failed-tag and rollback returns to
+        # the last healthy release.
+        if: failure() && (steps.ssh-deploy.outcome == 'failure' || steps.health-gate.outcome == 'failure')
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "bash /opt/hrm/current/deploy/vps/remote-deploy.sh rollback"
 
       - name: Post-deploy summary
         if: always()
@@ -496,78 +432,31 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash scripts/verify-image-signatures.sh
 
-      - name: Rollback via SSH
+      - name: Rollback via SSH (remote-deploy.sh)
         id: ssh-rollback
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            export IMAGE_TAG="${{ github.event.inputs.rollback_tag }}"
-            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
-            echo "Rollback IMAGE_TAG=$IMAGE_TAG"
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.services.yml \
-              -f docker-compose.observability.yml \
-              -f docker-compose.images.yml \
-              -f docker-compose.production.yml \
-              pull
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.services.yml \
-              -f docker-compose.observability.yml \
-              -f docker-compose.images.yml \
-              -f docker-compose.production.yml \
-              up -d --remove-orphans
-            sleep 30
+        env:
+          TAG: ${{ github.event.inputs.rollback_tag }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          HRM_IMAGE_REPO="ghcr.io/$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/hrmanagement"
+          # The release directory of the tag is still on the host (remote-deploy.sh keeps every release).
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "cd /opt/hrm/releases/$TAG && HRM_IMAGE_REPO=$HRM_IMAGE_REPO bash deploy/vps/remote-deploy.sh deploy $TAG"
 
-      - name: Post-rollback health gate
+      - name: Post-rollback health gate (smoke.sh)
         id: health-gate
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            GATEWAY_PORT="${GATEWAY_HTTP_PORT:-5000}"
-            if command -v pwsh >/dev/null 2>&1; then
-              pwsh -File scripts/verify-staging-stack.ps1 -GatewayBaseUrl "http://localhost:${GATEWAY_PORT}"
-            else
-              fail=0
-              curl -sf "http://localhost:${GATEWAY_PORT}/health/live" || fail=1
-              for slug in hr-core hr-contracts hr-health hr-movements hr-training payroll idcard records-archive admin-logistics it-infra dev-analytics compliance auth-directory; do
-                code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${GATEWAY_PORT}/health/upstreams/${slug}" || echo 000)
-                echo "upstream ${slug} -> ${code}"
-                if [ "$code" -ge 500 ] 2>/dev/null || [ "$code" = "000" ]; then
-                  fail=1
-                fi
-              done
-              if [ "$fail" -ne 0 ]; then
-                echo "Health gate failed after rollback"
-                exit 1
-              fi
-              echo "Health gate passed (curl fallback)"
-            fi
-
-      - name: Write rollback deployment record
-        if: success()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_SSH_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-            export IMAGE_TAG="${{ github.event.inputs.rollback_tag }}"
-            export GITHUB_SHA="${{ github.sha }}"
-            export DEPLOY_ENV="${{ github.event.inputs.environment }}-rollback"
-            export GITHUB_ACTOR="${{ github.actor }}"
-            export DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            bash scripts/record-deployment.sh
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "bash /opt/hrm/current/deploy/vps/smoke.sh"

@@ -1,0 +1,82 @@
+# PLAN-36 (§2): the only listener the single host exposes to the internet (443/tcp and 443/udp).
+#
+# Environment (set by docker-compose.vps.yml from the server's .env):
+#   APP_DOMAIN, SSO_DOMAIN       public names (DNS A records, or <name>.<ip-with-dashes>.sslip.io)
+#   HRM_ACME_CA                  ACME directory: Let's Encrypt staging until the first smoke run is green, then production
+#   CADDY_ACME_EMAIL_OPTION      "email <address>" when ACME_EMAIL is set, empty otherwise (no address is ever invented)
+#   ADMIN_ALLOWED_CIDRS          addresses allowed to /health*, /metrics* and the Keycloak console; compose substitutes a
+#                                documentation-only range (192.0.2.255/32, nobody) when it is empty
+#   CADDY_SITE_TLS               empty on the server (ACME); "tls internal" on the local variant (docker-compose.vps-local.yml)
+#
+# Port 80 is never published: certificates come from the TLS-ALPN challenge on 443 only, the HTTP challenge is disabled
+# and there is no HTTP-to-HTTPS redirect server. Environment placeholders are substituted before parsing, so an empty
+# variable removes its whole line.
+#
+# Client addresses: without trusted_proxies Caddy ignores a client-supplied X-Forwarded-For and sends the connection's
+# own address upstream; the gateway trusts only this container (ForwardedHeaders:KnownProxies=172.28.0.10).
+{
+	auto_https disable_redirects
+	cert_issuer acme {$HRM_ACME_CA:https://acme-v02.api.letsencrypt.org/directory} {
+		disable_http_challenge
+		{$CADDY_ACME_EMAIL_OPTION}
+	}
+}
+
+(edge_common) {
+	request_body {
+		max_size 20MB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?X-Frame-Options "SAMEORIGIN"
+		-Server
+		-X-Powered-By
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$APP_DOMAIN} {
+	{$CADDY_SITE_TLS}
+	import edge_common
+
+	# Health, readiness and metrics stay internal; the self-test reaches them with docker compose exec.
+	@ops {
+		path /health* /metrics* /alive* /ready*
+		not remote_ip {$ADMIN_ALLOWED_CIDRS}
+	}
+	respond @ops 404
+
+	# The gateway trusts this edge for X-Forwarded-*; Caddy sets For/Proto/Host itself, and a client's Prefix must not
+	# pass (it would become the request's PathBase).
+	reverse_proxy hr-gateway:8080 {
+		header_up -X-Forwarded-Prefix
+	}
+}
+
+{$SSO_DOMAIN} {
+	{$CADDY_SITE_TLS}
+	import edge_common
+
+	# The Keycloak administration console and the master realm: only from ADMIN_ALLOWED_CIDRS (default: nobody; use
+	# the SSH tunnel in docs/OPS_VPS_SINGLE_HOST.md).
+	@kcadmin {
+		path /admin* /realms/master*
+		not remote_ip {$ADMIN_ALLOWED_CIDRS}
+	}
+	respond @kcadmin 403
+
+	@ops {
+		path /health* /metrics*
+		not remote_ip {$ADMIN_ALLOWED_CIDRS}
+	}
+	respond @ops 404
+
+	reverse_proxy keycloak:8080 {
+		header_up -X-Forwarded-Prefix
+	}
+}
