@@ -29,7 +29,6 @@ trap cleanup EXIT
 
 t0=$(date +%s)
 tar -xzf "$ARCHIVE" -C "$SRC"
-rm -f "$ARCHIVE"
 
 # The restore layer of docker/DotnetService.Dockerfile (what scripts/docker-generate-build-manifest.ps1 does on Windows).
 (cd "$SRC" && find . \( -path '*/bin/*' -o -path '*/obj/*' -o -path '*/node_modules/*' -o -path '*/TestResults/*' \) -prune -o \
@@ -57,7 +56,8 @@ PY
 
 for bake in $(ls "$ROOT"/bake-"$TAG"-*.json | sort -V); do
   echo "[build] $(basename "$bake")"
-  docker buildx bake --progress=plain -f "$bake" --load > "$ROOT/build-$TAG.log" 2>&1 || { tail -30 "$ROOT/build-$TAG.log"; exit 1; }
+  # The context is not under the working directory, so bake needs the explicit read entitlement.
+  docker buildx bake --progress=plain --allow=fs.read="$SRC" -f "$bake" --load > "$ROOT/build-$TAG.log" 2>&1 || { tail -30 "$ROOT/build-$TAG.log"; exit 1; }
 done
 t1=$(date +%s); echo "timing build_seconds=$((t1 - t0))"
 
@@ -79,4 +79,5 @@ t2=$(date +%s); echo "timing push_seconds=$((t2 - t1))"
 docker builder prune -af > /dev/null
 docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | awk '$1 ~ /dotnet\/sdk/ {print $2}' | xargs -r docker rmi -f > /dev/null
 echo "cleanup: source, build cache and SDK image removed ($(docker system df --format '{{.Type}} {{.Size}}' | tr '\n' ';'))"
+rm -f "$ARCHIVE"   # kept until here so that a failed build needs no new upload
 echo "report: $REPORT"
