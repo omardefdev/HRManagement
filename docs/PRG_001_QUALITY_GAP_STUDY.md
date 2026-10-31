@@ -241,6 +241,7 @@
 - **الأثر:** الدليل الآلي الوحيد على قيم الإنتاج (`IsLabScale=false`، `Shadow`) لا يُعاد إنتاجه بعيداً. والوظيفة الليلية حمراء دائماً، فتُطبّع الفشل.
 - **الإصلاح المقترح:** تحويل الخطوة إلى `run: |` متعدد الأسطر مع `\` حقيقي، وفحص YAML بـ`actionlint` في CI (لم يكن مثبتاً في PLAN-33 K5).
 - **الخطة:** [PLAN-35](acceptance-plans/PLAN-35-qa-push-remote-ci.md)
+- **الحالة:** ✅ عولجت في PLAN-35 (`e3ae8c3`، `4d1b472`، `0ef97be`، `eacc914`) — الـ `\n` الحرفي أُزيل وصار actionlint (مع shellcheck) خطوة في `ci.yml` و`WorkflowYamlLintTests` يرفض الشكل نفسه. بعد إصلاحه ظهرت في خطوة الملف الشبيه بالإنتاج ثلاثة عيوب متتالية أُصلحت: بيئة القبول غير مستوردة (`ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET`)، و502 لأن `up --wait` لا ينتظر جاهزية الخدمات (بلا healthcheck)، فصارت الخطوة تنتظر `/health/ready` لكل خدمة. [التشغيل اليدوي 41158446834](https://github.com/omardefdev/HRManagement/actions/runs/41158446834) أخضر: `recruitment-journey` طبع `Passed: 1, skipped: 0` للملفين؛ وهو على فرع الإصدار لأن الإصلاحات تصل إلى `main` مع PR التقرير. صار `e2e-journeys` أسبوعياً بقرار المالك (دقائق Actions). الدليل: AC-QA-35e.
 - **التحقق المطلوب:**
   - موجب: `gh workflow run e2e-journeys.yml` ← وظيفة `recruitment-journey` تطبع `Passed: 1, skipped: 0` مرتين.
   - سالب: `actionlint` يرفض ملف سير عمل فيه خطأ مماثل.

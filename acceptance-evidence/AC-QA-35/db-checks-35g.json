@@ -1,0 +1,8 @@
+{
+  "run": "https://github.com/omardefdev/HRManagement/actions/runs/41140248696",
+  "headSha": "052b5064417d1904f0479869e3f2eb6f58588d32",
+  "dependabot": {
+    "exit": 1,
+    "output": "::error::Dependabot alerts request for omardefdev/HRManagement was refused: gh: Bad credentials (HTTP 401) \n::error::The token needs \u0027Dependabot alerts: read\u0027 on omardefdev/HRManagement. Set the secret DEPENDABOT_ALERTS_TOKEN (fine-grained PAT); GITHUB_TOKEN cannot read alerts."
+  }
+}

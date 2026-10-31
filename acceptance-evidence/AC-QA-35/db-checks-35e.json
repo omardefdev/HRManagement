@@ -1,0 +1,14 @@
+{
+  "lint": {
+    "exit": 1,
+    "sc1012": true
+  },
+  "branch": "release/plan-35-first-push",
+  "run": "https://github.com/omardefdev/HRManagement/actions/runs/41158446834",
+  "headSha": "eacc914a39689451ea5b8ae9baeabb1b97b673f5",
+  "logExit": 0,
+  "passedLines": [
+    "recruitment-journey\tFail on skipped recruitment journey\t2026-10-31T02:40:41.9950458Z Passed: 1, skipped: 0",
+    "recruitment-journey\tFail on skipped prod-like journey\t2026-10-31T02:41:27.9729896Z Passed: 1, skipped: 0"
+  ]
+}

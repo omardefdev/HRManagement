@@ -404,3 +404,18 @@ not quarantined, recorded for later. The early merge is the process gap of the D
 it). Local main fast-forwarded to 152506e (not pushed); merged into docs/plan-35-final-report (`a616898`, conflict in
 e2e-journeys.yml resolved with the report branch's superset).
 P7 Finished (UTC): 2026-10-31T02:41:42Z (last P7 run green)
+
+## P8 results
+
+- Independent review (one subagent): no high finding (no refuter); 2 medium + 3 low fixed in `897d16b` (final report
+  section 9). Build -warnaserror 0/0; Scm001/lint/parity/CodeQL gate/dated obligations/gateway routing 57/57; validator
+  -CheckLiveGitHub OK; dated obligations PASS.
+- AC-QA-35a..g: 7/7 Pass on `897d16b` (RUN_ACCEPTANCE=true, ACCEPTANCE_REQUIRE_ALL=true, ACQA35_NEGATIVE_PR=25,
+  ACQA35_JOURNEYS_BRANCH=release/plan-35-first-push); evidence acceptance-evidence/AC-QA-35/ + summary.md.
+- Docs: PRG_001 header + G-QA-01/07/11/15 status lines; plan Status + «ملاحظات التنفيذ والانحرافات»; CI_AND_TESTING;
+  runbook. Final report reports/plan35-final-report.md.
+
+OWNER ACTION (P8) - Waiting for owner (UTC): 2026-10-31T03:00:11.241843700Z
+1. `git push -u origin docs/plan-35-final-report`
+2. `gh pr create --base main --head docs/plan-35-final-report --title "PLAN-35: remote CI green, protection, gap status lines, final report" --body-file reports/plan35-final-report.md`
+3. after CI, CodeQL, Gitleaks and E2E are green on the PR: `gh pr merge --merge`

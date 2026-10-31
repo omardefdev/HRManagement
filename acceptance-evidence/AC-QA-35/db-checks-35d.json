@@ -1,0 +1,42 @@
+{
+  "live": {
+    "exit": 0,
+    "output": "SCM-001 live protection unavailable (private repository on the free plan); local guard installed: D:\\my projects\\HRManagement\\.git\\hooks\\pre-push (exception SCM-NO-GITHUB-PROTECTION)\nSCM-001 OK: governance artifacts present; protection file within policy or under open dated exceptions."
+  },
+  "guard": {
+    "exit": 1,
+    "refused": true
+  },
+  "negativePr": {
+    "url": "https://github.com/omardefdev/HRManagement/pull/25",
+    "state": "CLOSED",
+    "head": "plan35-negative-check",
+    "mergeStateStatus": "UNSTABLE",
+    "checks": [
+      {
+        "Name": "CI",
+        "Conclusion": "FAILURE"
+      },
+      {
+        "Name": "Acceptance disabled notice",
+        "Conclusion": "SUCCESS"
+      },
+      {
+        "Name": "CodeQL",
+        "Conclusion": "SUCCESS"
+      },
+      {
+        "Name": "Gitleaks",
+        "Conclusion": "SUCCESS"
+      },
+      {
+        "Name": "E2E",
+        "Conclusion": "SKIPPED"
+      },
+      {
+        "Name": "Acceptance",
+        "Conclusion": "SKIPPED"
+      }
+    ]
+  }
+}

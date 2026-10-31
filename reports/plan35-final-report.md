@@ -16,8 +16,8 @@ Repository `omardefdev/HRManagement` (private since D-QA-15). All times UTC.
 | P4 | Owner decisions OI-1 (a), OI-3 (a). SEC-001 fix: the 14 `health-*` gateway routes no longer anonymous (`6e907f5`, unit test). Pre-push check green on `0f69f52`. Owner removed the old protection, made the repository private, pushed `release/plan-35-first-push`, opened PR [#24](https://github.com/omardefdev/HRManagement/pull/24). |
 | P5 | Four remote rounds on PR #24 (disk space, CodeQL baseline of 108 pre-existing alerts, BLD-002 build manifest, Playwright on Ubuntu 26.04); round 4 fully green on `444e8c2`. |
 | P6 | `main` fast-forwarded and pushed (PR #24 merged by the push). Push run red once (PostgreSQL init-window race → HTTP 500), then green on `ea4a256`; a pipefail bug that had skipped the fix was found on the green log and fixed (`052b506`). |
-| P7 | GitHub cannot protect a private repository on the free plan (403) → D-QA-1 fallback: local guard with `-ProtectMain` + exception `SCM-NO-GITHUB-PROTECTION`; validator `-CheckLiveGitHub` OK. E2E green twice in a row on `main` → required check. Negative PR [#25](https://github.com/omardefdev/HRManagement/pull/25) red and closed. `e2e-journeys` fixed in three rounds (TBD-P7). Schedules switched off again and `e2e-journeys` made weekly (Actions minutes, owner decision). |
-| P8 | AC-QA-35a..g (TBD-AC), docs (PRG_001 header and status lines, plan status and notes, CI_AND_TESTING, runbook), independent review (TBD-REVIEW), this report, final PR (TBD-PR). |
+| P7 | GitHub cannot protect a private repository on the free plan (403) → D-QA-1 fallback: local guard with `-ProtectMain` + exception `SCM-NO-GITHUB-PROTECTION`; validator `-CheckLiveGitHub` OK. E2E green twice in a row on `main` → required check. Negative PR [#25](https://github.com/omardefdev/HRManagement/pull/25) red and closed. `e2e-journeys` fixed in four rounds (environment import, readiness wait; manual run 41158446834 green for both profiles on the release branch). The owner squash-merged PR #26 (release at `4d1b472`) into `main` = `152506e` before its checks ran; its push run was green, its PR run had one flaky E2E timeout. Schedules switched off again and `e2e-journeys` made weekly (Actions minutes, owner decision). |
+| P8 | AC-QA-35a..g **7/7 Pass** on `897d16b` (`acceptance-evidence/AC-QA-35/`; 35e against the release-branch run, §9), docs (PRG_001 header and status lines, plan status and notes, CI_AND_TESTING, runbook), independent review (no high findings; two medium and three low fixed in `897d16b`, §9), this report, final PR from `docs/plan-35-final-report`. |
 
 ## 2. Commits
 
@@ -49,8 +49,9 @@ Release branch `release/plan-35-first-push` (one commit per remote failure):
 | `052b506` | 41130907741 | read the compose service list once (pipefail + `grep -q` skipped the preparation) |
 | `4d1b472` | 41140244680 | recruitment-journey prod-like switch imports the acceptance environment |
 | `0ef97be` | 41147863512 | prod-like switch waits until the gateway reaches the recreated upstreams |
+| `eacc914` | 41151844485 | prod-like switch waits on each service's own `/health/ready` instead (the gateway health route answered 500) |
 
-Report branch `docs/plan-35-final-report`: `df776ec` (weekly `e2e-journeys`, schedules off), the docs and evidence
+Report branch `docs/plan-35-final-report`: `df776ec` (weekly `e2e-journeys`, schedules off), `897d16b` (review fixes), the docs and evidence
 commits, and the final commit `docs(qa035): remote CI green, protection applied, gap status lines, final report`.
 
 ## 3. Owner decisions and when they came
@@ -63,7 +64,8 @@ commits, and the final commit `docs(qa035): remote CI green, protection applied,
 | 2026-10-30 16:26 · 17:27 · 18:29 | P5 fix pushes (`dada03e`, `97020fa`, `444e8c2`). |
 | 2026-10-30 19:57 · 21:25 | P6 pushes of `main` (`444e8c2`, `ea4a256`). |
 | 2026-10-30 22:46 | «نفذها انت»: the owner told Claude to run the P7 commands itself, including the push of `main` (`052b506`). A one-off exception to "never push to `main` yourself" and P-2, on the owner's explicit instruction; recorded in the progress file. |
-| 2026-10-31 00:01 · 00:44 | «Yes, run them»: Claude pushed the release branch and dispatched `e2e-journeys` (rounds 2 and 3). |
+| 2026-10-31 00:01 · 00:44 · 02:05 | «Yes, run them»: Claude pushed the release branch and dispatched `e2e-journeys` (rounds 2, 3 and 4). |
+| 2026-10-31 00:15 | The owner opened PR #26 (release at `4d1b472`) and squash-merged it at once: `main` = `152506e`, the same tree. Not requested by the plan; recorded, and the report branch merged `main` back. |
 | 2026-10-31 00:22 | «نفذ الخياران المقترحان»: `ENABLE_SCHEDULED=false` and `e2e-journeys` weekly instead of nightly (Actions minutes, §10). |
 
 ## 4. gitleaks results (redacted) and their handling
@@ -105,9 +107,11 @@ Minutes are per-job durations from the API (the billing endpoint returns nothing
 | [41140244680](https://github.com/omardefdev/HRManagement/actions/runs/41140244680) | `052b506` | e2e-journeys (dispatch) | 22:45 | 23:21 | failure | journeys 25.9; recruitment fail 35.6 (prod-like env) — ~62 |
 | [41140318433](https://github.com/omardefdev/HRManagement/actions/runs/41140318433) | `5bff180` | ci (PR #25, negative) | 22:46 | 23:18 | failure (expected) | CI fail 18.2 (only `Plan35NegativeCheckTests`); CodeQL 31.4; Gitleaks 1.7 — ~51 |
 | [41147863512](https://github.com/omardefdev/HRManagement/actions/runs/41147863512) | `4d1b472` | e2e-journeys (dispatch, release) | 10-31 00:01 | 00:37 | failure | journeys 29.5; recruitment fail 35.6 (prod-like 502) — ~65 |
-| TBD-RUN-R3 | | | | | | |
-| TBD-PR-RUN | | | | | | |
-| TBD-POST-MERGE | | | | | | |
+| [41149141375](https://github.com/omardefdev/HRManagement/actions/runs/41149141375) | `4d1b472` | ci (PR #26) | 00:15 | 01:29 | failure | CI 44.0; CodeQL 16.6; Gitleaks 1.9; E2E fail 29.9 (56/1/0: `SEP_H1` navigation timeout 30 s, flaky) — ~92 |
+| [41149190573](https://github.com/omardefdev/HRManagement/actions/runs/41149190573) | `152506e` | ci (push `main`, PR #26 squash) | 00:15 | 01:30 | **success** | CI 45.0; CodeQL 32.4; Gitleaks 1.8; E2E 29.3 — ~109 |
+| [41151844485](https://github.com/omardefdev/HRManagement/actions/runs/41151844485) | `0ef97be` | e2e-journeys (dispatch, release) | 00:45 | 01:17 | failure | journeys 31.0; recruitment fail 32.4 (gateway health route 500) — ~63 |
+| [41158446834](https://github.com/omardefdev/HRManagement/actions/runs/41158446834) | `eacc914` | e2e-journeys (dispatch, release) | 02:06 | 02:41 | **success** | journeys 30.9; recruitment 35.4 (lab and prod-like "Passed: 1, skipped: 0") — ~66 |
+| (final-report PR and post-merge push run) | | | | | | after this report; links in the closing reply |
 
 ## 6. Quarantines with owners and dates
 
@@ -172,7 +176,7 @@ Repository variables: `ENABLE_SCHEDULED=false` (was `true` from 22:46 to 00:22, 
   prompt's "never push to `main` yourself" and P-2. Recorded with the owner's words in the progress file.
 - **AC-QA-35e on the release branch.** The `e2e-journeys` fixes reach `main` only with this PR (P-5), so the manual run
   that passes both profiles is a dispatch on `release/plan-35-first-push`; the test takes `ACQA35_JOURNEYS_BRANCH` and
-  records it. TBD-35E-NOTE
+  records it. Run 41158446834 (`eacc914`): "Passed: 1, skipped: 0" for the lab and the prod-like profile.
 - **Schedules off again, `e2e-journeys` weekly** (owner decision, 2026-10-31): Actions minutes of the private
   repository. G-QA-15's "three green nights in a row" is not reached; it becomes three green weekly runs once the owner
   sets `ENABLE_SCHEDULED=true` again.
@@ -181,6 +185,20 @@ Repository variables: `ENABLE_SCHEDULED=false` (was `true` from 22:46 to 00:22, 
 - **Playwright pinned to `ubuntu-24.04`** instead of upgrading Playwright inside this plan (dated obligation).
 - **ci-local before the push** ran Testcontainers and the coverage gate as `not-run` (Docker Desktop proxy, as in
   PLAN-34); the native Windows re-run of those two steps was not repeated. Remote CI ran both for real, green.
+- **Independent review (P8)** — one fresh subagent over the prompt, the plan and `git diff c2b0d3f..`: no high finding,
+  so no refuter. Fixed in `897d16b`, with tests where the machine allows:
+  - (medium) the pre-push gitleaks scans could pass without scanning (no `safe.directory`, no commit-count check, unlike
+    `scripts/ci/gitleaks.sh`) — both added; verified 197/197 history and 26/26 range commits. A failing case (git
+    "dubious ownership" inside the container) cannot be produced on Docker Desktop for Windows.
+  - (medium) nothing required `E2E` to stay in the protection file — the validator and `Scm001GovernanceTests` now
+    require it; fixture `missing-e2e.json` must fail.
+  - (low) the guard let `git push --delete main` through, and called `powershell` even on a pwsh-only machine with the
+    failure masked — the main check now comes first; the scan runs in the guard's own shell and a scan that did not run
+    fails. Self-tests: delete-main refused, branch push scanned and allowed.
+  - (low) the quarantine filter used a substring match (`FullyQualifiedName!~`) — now the exact name
+    (`FullyQualifiedName!=`) and a non-qualified entry fails the step (checked in the ci-local image: full name → filter,
+    `Login` → exit 1, empty list → empty).
+  - No allow-list wider than needed, no secret in reports, required-check names match `ci.yml`.
 - **E2E promoted on the second green push run** even though the first of the two (`ea4a256`) had skipped the PostgreSQL
   wait by the pipefail bug. Both runs were green for every E2E case; the second ran the fixed preparation.
 
@@ -198,15 +216,55 @@ Repository variables: `ENABLE_SCHEDULED=false` (was `true` from 22:46 to 00:22, 
 | 8 | Node 20 actions forced to Node 24; CodeQL Action v3 deprecated in December 2026 | workflows | QA |
 | 9 | The failed E2E job uploads neither service logs nor Playwright traces (run 41119397846 was diagnosed from code and a local reproduction) | `ci.yml` E2E job | QA |
 | 10 | GitHub protection unavailable on the private free repository; a red PR is mergeable on GitHub | §7 | owner (public or Pro) |
-| 11 | Actions minutes: ~TBD-MIN minutes in this plan alone; the free private quota is 2,000 per month | §11 | owner |
+| 12 | Flaky E2E navigation timeout (`SEP_H1_Authorized_Opens_Separation_Surface`, 30 s) on the required E2E check (PR #26 run); same kind as the three local timeouts of P2 | `src/Tests/HRManagement.E2E` | QA |
+| 13 | The gateway's `/health/upstreams/*` routes answer 500 to a loopback caller (run 41151844485), so the internal probe they were kept for does not work | gateway | platform |
+| 14 | Without GitHub protection a PR can be merged before its checks run (PR #26 was squash-merged seconds after it was opened) | process, §7 | owner |
+| 11 | Actions minutes: ~1,210 minutes in this plan before the final PR (~1,430 with it and the post-merge run); the free private quota is 2,000 per month | §11 | owner |
 
 ## 11. Timing
 
-TBD-TIMING
+Times are UTC. `scripts/plan-timing.ps1` prints the machine's local time (UTC+3). Figures are to the opening of the
+final-report PR; the PR run and the post-merge run come after this report and are given in the closing reply.
+
+- **Total wall-clock** to 2026-10-31T02:55Z: **13 h 17 min**, from `Started (UTC): 2026-10-30T13:38:10Z`.
+- **Owner-wait time** (every `Waiting for owner` → `Owner action done` pair in the progress file): **1 h 30 min** in 12
+  waits. The longest: the decisions at the start (15 min), the P4 push commands (15 min), the P7 round 4 go-ahead
+  (44 min). The Actions-minutes question (00:16 → 00:22) was asked in chat and not stamped.
+- **Waiting on remote CI** (from a push or dispatch to the end of the run it waited for): **about 9 h 13 min** over ten
+  rounds (31, 58, 58, 83, 80, 73, 66, 36, 33 and 35 min). Triage, the acceptance tests, the docs and this report were
+  worked on during several of these waits.
+- **Active time** (wall-clock − owner waits − CI waits not used for other work): about **2 h 35 min** of pure active
+  work; the CI waits during which other work went on add about 1 h, so roughly 3 h 30 min of active work in total.
+- **Per phase** (`Finished` stamps): P0+P1 14:07 (29 min), P2 14:55 (48 min), P3 15:01 (6 min), P4 15:32 (31 min, incl.
+  the 4-min decision wait), P5 19:55 (4 h 23 min, four CI rounds), P6 22:43 (2 h 48 min, two push runs), P7 02:41
+  (3 h 58 min, push run, negative PR, four `e2e-journeys` rounds), P8 from 02:41 (review, evidence, report; started
+  earlier in the CI waits).
+- **Actions minutes** (per-job durations, rounded): about **1,210 minutes** for the 25 runs in §5, before the final PR.
+  The private repository's free quota is 2,000 per month; a full `ci.yml` run costs 90–115 minutes, an `e2e-journeys`
+  run about 65.
+- **Resumes:** none recorded; the session's context was compacted twice and continued straight on.
+- **`powershell -File scripts/plan-timing.ps1 -From 25 -To 35`** (before the final merge; PLAN-35's merge is the
+  squash of PR #26, hence `Merged True`):
+
+```text
+Plan    Commits Started          FirstCommit      End              Merged Span   WallClock
+----    ------- -------          -----------      ---              ------ ----   ---------
+PLAN-25      11                  2026-10-29 20:31 2026-10-29 23:21   True 2:50
+PLAN-26      12                  2026-10-21 13:38 2026-10-21 22:49  False 9:10
+PLAN-27      11                  2026-10-21 22:57 2026-10-22 09:43  False 10:45
+PLAN-28      13                  2026-10-22 10:03 2026-10-22 15:03  False 5:00
+PLAN-29      13                  2026-10-22 15:21 2026-10-22 20:36  False 5:15
+PLAN-30      21                  2026-10-23 00:45 2026-10-29 07:45  False 150:59
+PLAN-31      14                  2026-10-29 10:24 2026-10-29 15:03  False 4:38
+PLAN-32       9                  2026-10-29 14:12 2026-10-29 16:31   True 2:19
+PLAN-33      11                  2026-10-29 17:49 2026-10-29 20:18   True 2:28
+PLAN-34      17 2026-10-30 02:13 2026-10-30 02:24 2026-10-30 16:11   True 13:47  13:58
+PLAN-35      42 2026-10-30 16:38 2026-10-30 17:07 2026-10-31 04:21   True 11:13  11:43
+```
 
 ## 12. Readiness note for PLAN-36
 
-- `main` = `origin/main`; required checks `CI`, `CodeQL`, `Gitleaks`, `E2E` are green on `main` (TBD-MAIN-SHA).
+- `main` = `origin/main`; required checks `CI`, `CodeQL`, `Gitleaks`, `E2E` are green on `main` (`152506e`, push run [41149190573](https://github.com/omardefdev/HRManagement/actions/runs/41149190573); this PR moves `main` again).
 - Every change reaches `main` through a PR; the local guard refuses a direct push from this clone. Before relying on
   GitHub to block a red PR, decide on public or Pro (§7).
 - Schedules are off (`ENABLE_SCHEDULED=false`). Turn them on only with a minutes budget: weekly `e2e-journeys` (~65
