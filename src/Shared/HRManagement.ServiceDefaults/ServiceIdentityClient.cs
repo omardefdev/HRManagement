@@ -28,11 +28,13 @@ public sealed class ClientCredentialsTokenProvider(
 
     public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
-        var clientId = configuration["ServiceIdentity:ClientId"]
+        var clientId = NonBlank(configuration["ServiceIdentity:ClientId"])
             ?? throw new InvalidOperationException("ServiceIdentity:ClientId is required for service-to-service calls.");
-        var clientSecret = configuration["ServiceIdentity:ClientSecret"]
-            ?? Environment.GetEnvironmentVariable("ServiceIdentity__ClientSecret")
-            ?? throw new InvalidOperationException("ServiceIdentity:ClientSecret is required.");
+        // PLAN-37: a blank value (the "" placeholder in appsettings.json) counts as missing, so the environment variable
+        // is still consulted; rejecting placeholder secrets such as USE_ENV_OR_SECRET_MANAGER is PLAN-42.
+        var clientSecret = ResolveClientSecret(configuration)
+            ?? throw new InvalidOperationException(
+                "ServiceIdentity:ClientSecret is required (blank counts as missing; set ServiceIdentity__ClientSecret).");
         var scope = configuration["ServiceIdentity:Scope"];
 
         var cacheKey = $"{clientId}|{scope}";
@@ -70,6 +72,16 @@ public sealed class ClientCredentialsTokenProvider(
 
     /// <summary>Clears cached tokens (used by rotation tests).</summary>
     public static void ClearCache() => Cache.Clear();
+
+    /// <summary>
+    /// The configured client secret: <c>ServiceIdentity:ClientSecret</c> unless blank, then the
+    /// <c>ServiceIdentity__ClientSecret</c> environment variable unless blank; null when neither is set.
+    /// </summary>
+    public static string? ResolveClientSecret(IConfiguration configuration) =>
+        NonBlank(configuration["ServiceIdentity:ClientSecret"])
+        ?? NonBlank(Environment.GetEnvironmentVariable("ServiceIdentity__ClientSecret"));
+
+    private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     private static List<KeyValuePair<string, string>> BuildForm(string clientId, string clientSecret, string? scope)
     {

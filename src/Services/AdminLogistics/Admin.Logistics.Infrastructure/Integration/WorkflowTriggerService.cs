@@ -1,20 +1,27 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Admin.Logistics.Domain.Enums;
-using Admin.Logistics.Infrastructure.Abstractions;
+using HRManagement.ServiceDefaults;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Admin.Logistics.Infrastructure.Integration;
 
+/// <summary>
+/// Starts HR.Core approval workflows for asset custody (<c>POST /api/workflow-instances</c>, scope hr-core.workflow).
+/// PLAN-37: the client always has the HR.Core base address (AddHrCoreWorkflowClient refuses to start without it), and
+/// every call carries the gateway caller proof, which the route requires outside Development. The full custody
+/// approval loop is PLAN-45/46.
+/// </summary>
 public sealed class WorkflowTriggerService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
     ILogger<WorkflowTriggerService> logger)
 {
     public const string HttpClientName = "HrCoreWorkflow";
+    public const string WorkflowInstancesPath = "/api/workflow-instances";
 
-    public async Task<Guid?> StartAssetAssignmentWorkflowAsync(
+    public Task<Guid?> StartAssetAssignmentWorkflowAsync(
         Guid assignmentId,
         Guid assetId,
         Guid employeeId,
@@ -23,13 +30,6 @@ public sealed class WorkflowTriggerService(
         decimal? value,
         CancellationToken ct = default)
     {
-        var client = httpClientFactory.CreateClient(HttpClientName);
-        if (client.BaseAddress is null && string.IsNullOrWhiteSpace(configuration["Integration:HrCoreBaseUrl"]))
-        {
-            logger.LogWarning("HrCore workflow base URL not configured; skipping workflow start");
-            return null;
-        }
-
         var context = JsonSerializer.Serialize(new
         {
             assetId,
@@ -46,32 +46,10 @@ public sealed class WorkflowTriggerService(
             ContextJson = context
         };
 
-        try
-        {
-            var path = client.BaseAddress is not null
-                ? "api/workflow-instances"
-                : $"{configuration["Integration:HrCoreBaseUrl"]!.TrimEnd('/')}/api/workflow-instances";
-
-            using var response = await client.PostAsJsonAsync(path, payload, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Workflow start failed: {Status}", response.StatusCode);
-                return null;
-            }
-
-            var doc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            if (doc.TryGetProperty("id", out var idProp) && Guid.TryParse(idProp.GetString(), out var instanceId))
-                return instanceId;
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Workflow start exception for assignment {AssignmentId}", assignmentId);
-        }
-
-        return null;
+        return StartAsync(payload, "Workflow", "assignment", assignmentId, ct);
     }
 
-    public async Task<Guid?> StartAssetLossWorkflowAsync(
+    public Task<Guid?> StartAssetLossWorkflowAsync(
         Guid lossReportId,
         Guid assetId,
         string tagNumber,
@@ -80,13 +58,6 @@ public sealed class WorkflowTriggerService(
         AssetLossReason reason,
         CancellationToken ct = default)
     {
-        var client = httpClientFactory.CreateClient(HttpClientName);
-        if (client.BaseAddress is null && string.IsNullOrWhiteSpace(configuration["Integration:HrCoreBaseUrl"]))
-        {
-            logger.LogWarning("HrCore workflow base URL not configured; skipping loss workflow start");
-            return null;
-        }
-
         var context = JsonSerializer.Serialize(new
         {
             assetId,
@@ -104,16 +75,24 @@ public sealed class WorkflowTriggerService(
             ContextJson = context
         };
 
+        return StartAsync(payload, "Loss workflow", "report", lossReportId, ct);
+    }
+
+    private async Task<Guid?> StartAsync(object payload, string label, string entityLabel, Guid entityId, CancellationToken ct)
+    {
         try
         {
-            var path = client.BaseAddress is not null
-                ? "api/workflow-instances"
-                : $"{configuration["Integration:HrCoreBaseUrl"]!.TrimEnd('/')}/api/workflow-instances";
+            var client = httpClientFactory.CreateClient(HttpClientName);
+            using var request = new HttpRequestMessage(HttpMethod.Post, WorkflowInstancesPath.TrimStart('/'))
+            {
+                Content = JsonContent.Create(payload)
+            };
+            GatewayCallerProof.Sign(request, configuration, WorkflowInstancesPath);
 
-            using var response = await client.PostAsJsonAsync(path, payload, ct);
+            using var response = await client.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogWarning("Loss workflow start failed: {Status}", response.StatusCode);
+                logger.LogWarning("{Label} start failed: {Status}", label, response.StatusCode);
                 return null;
             }
 
@@ -123,7 +102,7 @@ public sealed class WorkflowTriggerService(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Loss workflow start exception for report {ReportId}", lossReportId);
+            logger.LogWarning(ex, "{Label} start exception for {EntityLabel} {EntityId}", label, entityLabel, entityId);
         }
 
         return null;

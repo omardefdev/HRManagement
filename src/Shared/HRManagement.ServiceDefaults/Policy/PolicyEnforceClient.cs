@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using HRManagement.ServiceDefaults.Integration;
 using HRManagement.SharedKernel.Policy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Memory;
@@ -182,13 +183,9 @@ public static class PolicyEnforceClientExtensions
         services.AddMemoryCache();
         services.AddSingleton<IPolicySnapshotStore, PolicySnapshotStore>();
         services.AddScoped<IPolicyEnforceClient, PolicyEnforceClient>();
-        var hrCoreBase = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/')
-            ?? configuration["Services:HRCore:BaseUrl"]?.TrimEnd('/')
-            ?? configuration["HrCore:BaseUrl"]?.TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(hrCoreBase))
-            services.AddServiceAuthenticatedClient(PolicyEnforceClient.HttpClientName, new Uri(hrCoreBase + "/"));
-        else
-            services.AddHttpClient(PolicyEnforceClient.HttpClientName);
+        // PLAN-37: the HR.Core URL is required (start-up error naming Integration:HrCoreBaseUrl outside Development).
+        services.AddServiceEndpointWarnings();
+        services.AddServiceAuthenticatedClient(PolicyEnforceClient.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration));
         return services;
     }
 

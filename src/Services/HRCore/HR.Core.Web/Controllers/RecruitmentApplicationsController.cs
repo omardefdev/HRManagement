@@ -612,8 +612,10 @@ public class RecruitmentApplicationsController(
         }
 
         TempData["Success"] = $"تم إنشاء ملف {app.ApplicantFullName} وفتح معالج استكمال التعيين.";
-        var gateway = configuration["HrGateway:PublicBaseUrl"] ?? "http://localhost:5000";
-        return Redirect($"{gateway.TrimEnd('/')}/ui/hr-contracts/HireWizard/Continue?employeeId={employee.Id}");
+        // PLAN-37: no localhost fallback. Behind the gateway a root-relative path stays on the public origin; the
+        // absolute HrGateway:PublicBaseUrl is used only where it is configured (Development, the acceptance stacks).
+        var gateway = configuration["HrGateway:PublicBaseUrl"]?.Trim().TrimEnd('/') ?? "";
+        return Redirect($"{gateway}/ui/hr-contracts/HireWizard/Continue?employeeId={employee.Id}");
     }
 
     /// <summary>

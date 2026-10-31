@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using HRManagement.ServiceDefaults.Integration;
 using HRManagement.SharedKernel.CodeGeneration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,13 +77,9 @@ public static class CodeGenerationClientExtensions
     public static IServiceCollection AddHrCodeGeneration(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ICodeGenerationClient, CodeGenerationClient>();
-        var hrCoreBase = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/')
-            ?? configuration["Services:HRCore:BaseUrl"]?.TrimEnd('/')
-            ?? configuration["HrCore:BaseUrl"]?.TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(hrCoreBase))
-            services.AddServiceAuthenticatedClient(CodeGenerationClient.HttpClientName, new Uri(hrCoreBase + "/"));
-        else
-            services.AddHttpClient(CodeGenerationClient.HttpClientName);
+        // PLAN-37: the HR.Core URL is required (start-up error naming Integration:HrCoreBaseUrl outside Development).
+        services.AddServiceEndpointWarnings();
+        services.AddServiceAuthenticatedClient(CodeGenerationClient.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration));
         return services;
     }
 }

@@ -28,11 +28,9 @@ public static class DependencyInjection
     /// <summary>PLAN-37: the HR.Core workflow-start client (<c>POST api/workflow-instances</c>, scope hr-core.workflow).</summary>
     public static IServiceCollection AddHrCoreWorkflowClient(this IServiceCollection services, IConfiguration configuration)
     {
-        var hrCoreBase = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(hrCoreBase))
-            services.AddServiceAuthenticatedClient(WorkflowTriggerService.HttpClientName, new Uri(hrCoreBase + "/"));
-        else
-            services.AddHttpClient(WorkflowTriggerService.HttpClientName);
+        // PLAN-37: required URL (start-up error naming Integration:HrCoreBaseUrl outside Development).
+        services.AddServiceEndpointWarnings();
+        services.AddServiceAuthenticatedClient(WorkflowTriggerService.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration));
         return services;
     }
 }

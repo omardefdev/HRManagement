@@ -72,3 +72,25 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P3
 - status: in progress
+- Decisions:
+  - D12: one helper for every called service: ServiceEndpoint.Require (generic) + HrCoreEndpoint (Integration:HrCoreBaseUrl,
+    deprecated Services:HRCore:BaseUrl / HrCore:BaseUrl with one start-up warning via a hosted service; a disagreeing
+    old key is an error). Missing outside Development = start-up error naming the key; Development outside a container
+    = local default; localhost in a container = "Docker service DNS" error. Applied to every registration of the plan's
+    list plus (same rule, DoD "no S2S client without a URL") the gateway (two localhost fallbacks), IT.Infra's directory
+    sync (silent success removed), and Compliance's DSAR collector. Name-only AddHttpClient branches removed.
+  - D13: PayrollGradeLookup / CandidateDocumentUpload keep their explicit "unavailable" implementations (PLAN-30 design;
+    they register no client without a URL); the matrix and the wiring check guarantee their URLs in every chain.
+  - D14: HR.Contracts' lifecycle gate: registered from the approved key (old keys warn); without any configuration (unit
+    tests) still pass-through; its HTTP client has the base address but no service token (authentication = PLAN-42).
+  - D15: WorkflowTriggerService signs GatewayCallerProof for /api/workflow-instances in both starts (one shared method).
+  - D16: found in passing: HR.Core's hire hand-off redirected browsers to the appsettings default http://localhost:5000
+    in Production (HrGateway:PublicBaseUrl unset there). Now a root-relative redirect unless the key is set; the default
+    moved to appsettings.Development.json. IT.Infra's dev Auth.Directory port fixed (5140 is File.Storage; 5130).
+- Tests: build 0 errors; unit 4413/4413 (new: HrCoreEndpointTests, ServiceIdentitySecretTests,
+  Int037LifecycleGateRegistrationTests, Int037WorkflowTriggerProofTests, no-localhost-fallback and deprecated-key checks);
+  integration 369 passed / 60 skipped / 0 failed (214 s).
+- P3 Finished (UTC): 2026-10-31T23:25:13.7027026Z
+
+## P4
+- status: in progress

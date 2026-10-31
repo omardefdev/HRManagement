@@ -14,12 +14,8 @@ public partial class ProductionWiringMatrixTests
     private static readonly Regex RegistrationMethod = new(@"public static [\w<>\.\?]+ (\w+)\(\s*this IServiceCollection", RegexOptions.CultureInvariant);
     private static readonly Regex UrlKeyLiteral = new(@"""(Integration:\w+|Services:\w+:BaseUrl|HrCore:BaseUrl|HrGateway:InternalBaseUrl)""", RegexOptions.CultureInvariant);
 
-    // D-INT-3: the deprecated HR.Core keys are accepted as aliases of Integration:HrCoreBaseUrl.
-    private static readonly Dictionary<string, string> LegacyKeys = new(StringComparer.Ordinal)
-    {
-        ["Services:HRCore:BaseUrl"] = "Integration__HrCoreBaseUrl",
-        ["HrCore:BaseUrl"] = "Integration__HrCoreBaseUrl"
-    };
+    // D-INT-3: the deprecated HR.Core keys are read only by HrCoreEndpoint (with a warning), never by a service.
+    private static readonly HashSet<string> LegacyKeys = new(StringComparer.Ordinal) { "Services:HRCore:BaseUrl", "HrCore:BaseUrl" };
 
     private static IEnumerable<string> SourceFiles(string relativeDirectory) =>
         Directory.EnumerateFiles(Path.Combine(RepoPaths.Root, relativeDirectory), "*.cs", SearchOption.AllDirectories)
@@ -91,7 +87,12 @@ public partial class ProductionWiringMatrixTests
                     }
 
                     foreach (Match m in UrlKeyLiteral.Matches(text))
-                        keys.Add(LegacyKeys.TryGetValue(m.Groups[1].Value, out var alias) ? alias : ServiceWiringMatrix.ToEnvironmentKey(m.Groups[1].Value));
+                    {
+                        if (LegacyKeys.Contains(m.Groups[1].Value))
+                            problems.Add($"{Relative(file)}: reads the deprecated {m.Groups[1].Value}; use HrCoreEndpoint (Integration:HrCoreBaseUrl)");
+                        else
+                            keys.Add(ServiceWiringMatrix.ToEnvironmentKey(m.Groups[1].Value));
+                    }
                 }
             }
 
@@ -111,6 +112,19 @@ public partial class ProductionWiringMatrixTests
         }
 
         Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    /// <summary>§4 / DoD: no production code path falls back to a localhost service URL (only the Development defaults).</summary>
+    [Fact]
+    public void No_production_code_falls_back_to_a_localhost_service_url()
+    {
+        var fallback = new Regex(@"\?\?\s*""http://(localhost|127\.0\.0\.1):\d+", RegexOptions.CultureInvariant);
+        var offenders = SourceFiles("src")
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}Tests{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => fallback.IsMatch(System.IO.File.ReadAllText(f)))
+            .Select(Relative)
+            .ToList();
+        Assert.True(offenders.Count == 0, "localhost fallback in: " + string.Join(", ", offenders));
     }
 
     public static TheoryData<string> ProductionChains() => new() { "production", "single-host" };

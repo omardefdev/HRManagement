@@ -5,6 +5,7 @@ using HR.Contracts.Infrastructure.Messaging;
 using HR.Contracts.Infrastructure.Repositories;
 using HR.Contracts.Infrastructure.Services;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 using HRManagement.ServiceDefaults.Policy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,22 +40,24 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// PLAN-37: the legal-hold / lifecycle gate against HR.Core (<c>GET /api/internal/employees/{id}/lifecycle-flags</c>).
-    /// Authentication and fail-closed behaviour are PLAN-42; this registration only chooses the implementation.
+    /// PLAN-37: the legal-hold / lifecycle gate against HR.Core (<c>GET /api/internal/employees/{id}/lifecycle-flags</c>),
+    /// registered from the approved key <c>Integration:HrCoreBaseUrl</c> (the old <c>Services:HRCore:BaseUrl</c> /
+    /// <c>HrCore:BaseUrl</c> still work with a start-up warning, D-INT-3). A missing URL is a start-up error outside
+    /// Development. Authentication and fail-closed behaviour are PLAN-42; this plan changes only the key and the wiring.
+    /// Without a configuration at all (unit tests of the infrastructure) the pass-through gate is used.
     /// </summary>
     public static IServiceCollection AddEmployeeLifecycleGate(this IServiceCollection services, IConfiguration? configuration)
     {
-        var hrCoreBase = configuration?["Services:HRCore:BaseUrl"] ?? configuration?["HrCore:BaseUrl"];
-        if (!string.IsNullOrWhiteSpace(hrCoreBase))
-        {
-            services.AddHttpClient(HttpEmployeeLifecycleGate.HttpClientName);
-            services.AddScoped<IEmployeeLifecycleGate, HttpEmployeeLifecycleGate>();
-        }
-        else
+        if (configuration is null)
         {
             services.AddSingleton<IEmployeeLifecycleGate, PassThroughEmployeeLifecycleGate>();
+            return services;
         }
 
+        var hrCore = HrCoreEndpoint.RequireBaseUri(configuration);
+        services.AddServiceEndpointWarnings();
+        services.AddHttpClient(HttpEmployeeLifecycleGate.HttpClientName, client => client.BaseAddress = hrCore);
+        services.AddScoped<IEmployeeLifecycleGate, HttpEmployeeLifecycleGate>();
         return services;
     }
 }
