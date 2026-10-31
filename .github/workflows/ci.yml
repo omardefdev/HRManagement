@@ -322,8 +322,10 @@ jobs:
         run: bash scripts/prepare-ci-compose-env.sh
 
       # PLAN-35 (P-1): volume ownership for file-storage-web and one cold-start retry, CI path only.
+      # docker-compose.ci-e2e.yml: the gateway's per-IP rate limit at 2000/min, because every E2E request comes from this
+      # runner's IP (at the default 120 a queued request waited past the 30 s Playwright timeout).
       - name: Start stack
-        run: bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml --profile full-stack
+        run: bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack
 
       - name: Wait for gateway health
         run: |
@@ -393,9 +395,27 @@ jobs:
           path: TestResults/e2e/**
           if-no-files-found: warn
 
+      # A failed run keeps the service logs: the hosting log's "Request finished ... ms" includes the time a request
+      # waited in the gateway's rate limiter queue, which the test output cannot show.
+      - name: Collect stack logs
+        if: failure()
+        run: |
+          mkdir -p artifacts/e2e-stack
+          docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack ps -a > artifacts/e2e-stack/ps.txt 2>&1 || true
+          docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack logs --no-color --timestamps > artifacts/e2e-stack/compose.log 2>&1 || true
+
+      - name: Upload stack logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-stack-logs
+          path: artifacts/e2e-stack/
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Tear down stack
         if: always()
-        run: docker compose -f docker-compose.yml -f docker-compose.services.yml --profile full-stack down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack down -v
 
   # PLAN-35 (section 2): the acceptance job cannot pass before PLAN-41. It runs only when the repository variable
   # ENABLE_ACCEPTANCE_JOB is true (dated obligation CI-ACCEPTANCE-DISABLED in docs/qa/governance-exceptions.json);

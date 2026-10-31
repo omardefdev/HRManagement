@@ -452,3 +452,26 @@ Actions minutes for the closing PR, the post-merge run and the rerun: 105 + 111 
 job; only the ci workflow ran on 5015308 and dfd37b8). Plan total about 1,460 of the 2,000 monthly minutes.
 These post-merge notes are local only (docs/plan-35-post-merge, merged into local main); not pushed.
 P8 Finished (UTC): 2026-10-31T09:15:12.5613682Z
+
+## Follow-up: SeparationWizard timeout
+
+Recorded (UTC): 2026-10-31T09:32:51.2496380Z - owner answered «Yes, investigate» (after the rerun, 09:15Z): reproduce locally, time the page
+cold and warm, upload the stack logs of a failed E2E job, and open a PR that also carries the post-merge notes.
+
+- CI evidence (trx of runs 41149141375, 41174221552, 41179057892 attempts 1 and 2; timelines in artifacts/plan35/trx,
+  not committed): every run has one 25-32 s stall starting 32-36 s after the first test and ending 61-64 s after it;
+  both failures are the request queued when the second minute's budget ran out by ~80 s (SEP_H1 PR #26, SEP_F1 main).
+  SEP_F2 and HIR_F2 take ~61 s in every run: LoginAsync's 60 s post-login wait times out for the outsider persona
+  (separate, final report defect 16).
+- Local timings (acceptance stack, gateway :6200): the anonymous GET /ui/hr-contracts/SeparationWizard is answered by
+  the gateway itself (302 to Keycloak; hr-contracts-web logs nothing): 1.51 s on the first challenge after 37 h idle,
+  0.11 s first after a gateway restart, 8-19 ms warm. hr-contracts-web restart: listening after 2 s, first
+  /health/ready 85 ms, then 4-9 ms. Cold start is not the cause.
+- Reproduction: hr-gateway recreated with RateLimiting__PermitLimitPerMinute=120 (the CI E2E value: compose sets
+  nothing, the code default is 120 per IP, queue 20): of 130 sequential anonymous requests, #120 took 41.1 s and the
+  rest under 0.1 s. Hosting log "Request finished ... 41144.4397ms"; the gateway's "Gateway routed ... in N ms" line
+  said at most 66 ms (it runs after the limiter). Gateway restored to the acceptance value 2000 (checked with
+  docker inspect).
+- Fix: docker-compose.ci-e2e.yml (gateway limit 2000, the acceptance stack's value; product default unchanged) on the
+  E2E job's compose commands; a failed E2E job uploads e2e-stack-logs (ps + compose logs, 7 days). Docs:
+  CI_AND_TESTING E2E row; final report defects 9, 11, 12 updated, 15 (limiter queues instead of 429) and 16 added.
