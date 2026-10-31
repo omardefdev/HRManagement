@@ -33,13 +33,14 @@ foreach ($line in $lines) {
     $parts = $line.Trim() -split '\s+'
     if ($parts.Count -lt 4) { continue }
     $localRef = $parts[0]; $localSha = $parts[1]; $remoteRef = $parts[2]; $remoteSha = $parts[3]
-    if ($localSha -eq $zero) { Write-Host "pre-push guard: deleting $remoteRef - nothing to scan"; continue }
-
+    # The main check comes first: deleting main is refused too (allow_deletions: false).
     if ($ProtectMain -and $remoteRef -eq "refs/heads/main") {
         Write-Host "pre-push guard: REFUSED direct push to main (D-QA-1 local guard). Open a PR from a branch instead."
         $failed = $true
         continue
     }
+
+    if ($localSha -eq $zero) { Write-Host "pre-push guard: deleting $remoteRef - nothing to scan"; continue }
 
     $base = $remoteSha
     if ($base -eq $zero) { $base = $DefaultBase }
@@ -50,8 +51,15 @@ foreach ($line in $lines) {
 
     Write-Host "pre-push guard: $localRef -> $RemoteName $remoteRef ($base..$localSha)"
     $out = Join-Path $repo "artifacts/plan35/pre-push-guard"
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo "scripts/plan035-prepush.ps1") `
-        -Base $base -Head $localSha -Only "gitleaks,forbidden" -Out $out -Branch ($remoteRef -replace '^refs/heads/', '')
+    # The same PowerShell that runs this guard (powershell.exe or pwsh, see install-hooks.ps1); a scan that did not run
+    # fails the push.
+    $shell = (Get-Process -Id $PID).Path
+    $global:LASTEXITCODE = 1
+    try {
+        & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo "scripts/plan035-prepush.ps1") `
+            -Base $base -Head $localSha -Only "gitleaks,forbidden" -Out $out -Branch ($remoteRef -replace '^refs/heads/', '')
+    }
+    catch { Write-Host "pre-push guard: the scan could not run: $_" }
     if ($LASTEXITCODE -ne 0) { $failed = $true }
 }
 

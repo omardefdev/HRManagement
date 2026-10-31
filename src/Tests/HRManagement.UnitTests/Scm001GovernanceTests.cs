@@ -42,6 +42,7 @@ public class Scm001GovernanceTests
         Assert.Contains("CI", contexts);
         Assert.Contains("CodeQL", contexts);
         Assert.Contains("Gitleaks", contexts);
+        Assert.Contains("E2E", contexts);
     }
 
     [Fact]

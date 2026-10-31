@@ -65,6 +65,7 @@ public class Scm001BranchProtectionExceptionTests
 
     [Theory]
     [InlineData("missing-gitleaks.json", "missing required check Gitleaks")]
+    [InlineData("missing-e2e.json", "missing required check E2E")]
     [InlineData("wrong-context-name.json", "required check 'CodeQL (SUP-001-C)' is not a job name")]
     public void Required_checks_are_the_ci_job_names(string fixture, string expected)
     {

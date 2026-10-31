@@ -115,7 +115,8 @@ if (Test-Path $bp) {
     }
 
     $contexts = @($j.required_status_checks.contexts)
-    foreach ($c in @("CI", "CodeQL", "Gitleaks")) {
+    # D-QA-2: E2E is required since PLAN-35 P7 (two consecutive green runs on main).
+    foreach ($c in @("CI", "CodeQL", "Gitleaks", "E2E")) {
         if ($contexts -notcontains $c) { $failures.Add("missing required check $c") }
     }
     $named = @($contexts) + @($j.pendingRequiredChecks | Where-Object { $_ } | ForEach-Object { $_.context })

@@ -1,5 +1,5 @@
 {
   "card": "PLAN-35",
-  "description": "E2E cases quarantined from the required E2E job (PLAN-35 triage rule 3: a shallow case failing for a product reason; the fix belongs to QA-H). Each entry: test (fully qualified name or unique substring), reason, owner, quarantinedOn, reviewBy (yyyy-MM-dd), status (Quarantined | Released). scripts/ci/e2e-quarantine-filter.sh turns Quarantined entries into a test filter and prints them in the job summary. Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-E2E-QUARANTINE). Never quarantine a real regression.",
+  "description": "E2E cases quarantined from the required E2E job (PLAN-35 triage rule 3: a shallow case failing for a product reason; the fix belongs to QA-H). Each entry: test (the exact fully qualified name HRManagement.E2E.<Class>.<Method>; the filter uses FullyQualifiedName!=), reason, owner, quarantinedOn, reviewBy (yyyy-MM-dd), status (Quarantined | Released). scripts/ci/e2e-quarantine-filter.sh turns Quarantined entries into a test filter and prints them in the job summary. Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-E2E-QUARANTINE). Never quarantine a real regression.",
   "entries": []
 }
