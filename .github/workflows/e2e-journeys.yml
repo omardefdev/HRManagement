@@ -39,7 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           # PLAN-36: docker-compose.images.yml takes the registry path; GHCR repository names are lowercase.
-          export HRM_IMAGE_REPO="ghcr.io/$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/hrmanagement"
+          HRM_IMAGE_REPO="ghcr.io/$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/hrmanagement"
+          export HRM_IMAGE_REPO
           bash scripts/prepare-ci-compose-env.sh
           # PLAN-33: the application services carry profiles: ["full-stack"]; without the profile only infrastructure starts.
           if [ -n "${IMAGE_TAG}" ]; then
