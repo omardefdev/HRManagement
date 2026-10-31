@@ -73,7 +73,8 @@ if ($RequireIntegrationWiring) { $smokeFlags += '--require-integration-wiring' }
 if ($Local) {
     if (-not $EnvFile) { throw '-Local needs -EnvFile.' }
     $localHome = Join-Path $artifacts 'local-home'
-    $current = Get-ChildItem (Join-Path $localHome 'releases') -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $currentTag = (Get-Content (Join-Path $localHome 'current-tag') -ErrorAction Stop | Select-Object -First 1).Trim()
+    $current = Get-Item (Join-Path $localHome "releases\$currentTag")
     $edge = (Invoke-Captured 'docker' @('ps', '-q', '--filter', 'label=com.docker.compose.project=hrm-vps-local', '--filter', 'label=com.docker.compose.service=edge')).StdOut.Trim()
     if (-not $edge) { throw 'local edge container not found (project hrm-vps-local)' }
     $rootCa = Join-Path $artifacts 'local-caddy-root.crt'

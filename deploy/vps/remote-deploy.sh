@@ -7,7 +7,7 @@
 #   bash remote-deploy.sh check-env        only the .env pre-check (key names and lengths, never values)
 #
 # Environment:
-#   HRM_HOME                 default /opt/hrm (releases/, shared/.env, current, previous-tag, deployments.log)
+#   HRM_HOME                 default /opt/hrm (releases/, shared/.env, current-tag, current -> releases/<tag>, previous-tag, deployments.log)
 #   HRM_PROJECT              compose project name, default hrm (constant, so the volumes survive releases)
 #   HRM_EXTRA_COMPOSE_FILES  extra compose files, space separated (the local variant adds docker-compose.vps-local.yml)
 #   HRM_HEALTH_TIMEOUT       seconds to wait for every container to be healthy, default 600
@@ -130,7 +130,7 @@ deploy() {
   fi
 
   local previous=""
-  if [ -L "$HRM_HOME/current" ]; then previous="$(basename "$(readlink "$HRM_HOME/current")")"; fi
+  if [ -f "$HRM_HOME/current-tag" ]; then previous="$(tr -d '[:space:]' < "$HRM_HOME/current-tag")"; fi
 
   t0="$(date +%s)"
   dc up -d --remove-orphans
@@ -145,7 +145,9 @@ deploy() {
   if [ -n "$previous" ] && [ "$previous" != "$tag" ]; then
     printf '%s\n' "$previous" > "$HRM_HOME/previous-tag"
   fi
-  ln -sfn "$release" "$HRM_HOME/current"
+  printf '%s\n' "$tag" > "$HRM_HOME/current-tag"
+  # The current symlink is a convenience on Linux; Git Bash would copy the directory instead (local variant).
+  case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) ;; *) ln -sfn "$release" "$HRM_HOME/current";; esac
   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$tag|action=deploy|result=healthy|previous=${previous:-none}" >> "$HRM_HOME/deployments.log"
   log "deployed $tag (previous: ${previous:-none})"
 }
@@ -155,7 +157,7 @@ rollback() {
   local prev current=""
   prev="$(tr -d '[:space:]' < "$HRM_HOME/previous-tag")"
   [ -d "$HRM_HOME/releases/$prev" ] || die "previous release $prev is not on the server"
-  if [ -L "$HRM_HOME/current" ]; then current="$(basename "$(readlink "$HRM_HOME/current")")"; fi
+  if [ -f "$HRM_HOME/current-tag" ]; then current="$(tr -d '[:space:]' < "$HRM_HOME/current-tag")"; fi
   log "rolling back from ${current:-none} to $prev"
   deploy "$prev"
   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$prev|action=rollback|from=${current:-none}" >> "$HRM_HOME/deployments.log"

@@ -187,7 +187,7 @@ if ($probe.ExitCode -ne 0 -or $probe.StdOut.Trim() -ne 'env-present') {
 if ($Rollback) {
     $run = Ssh "bash $RemoteHome/current/deploy/vps/remote-deploy.sh rollback" -Stream
     if ($run.ExitCode -ne 0) { throw "rollback failed (exit $($run.ExitCode))" }
-    $Tag = (Ssh "basename `$(readlink $RemoteHome/current)").StdOut.Trim()
+    $Tag = (Ssh "cat $RemoteHome/current-tag").StdOut.Trim()
     Save-Record $SshHost 'rollback' $Tag (Get-Timings $run.Lines) $watch.Elapsed.TotalSeconds
 }
 else {

@@ -126,10 +126,10 @@ public class AcOps36VpsBootTests
 
     private static string ReleaseDir()
     {
-        if (Remote)
-            return Sh($"readlink -f {HrmHome}/current").Output.Trim();
-        var releases = new DirectoryInfo(Path.Combine(LocalHome, "releases"));
-        return releases.GetDirectories().OrderByDescending(d => d.LastWriteTimeUtc).First().FullName.Replace('\\', '/');
+        // remote-deploy.sh records the running release in current-tag (the current symlink exists on Linux only).
+        var tag = Sh($"cat {Q(HrmHome + "/current-tag")}").Output.Trim();
+        Assert.Matches("^[0-9a-f]{12}$", tag);
+        return $"{HrmHome}/releases/{tag}";
     }
 
     /// <summary>The compose invocation of remote-deploy.sh, run in the release directory.</summary>
