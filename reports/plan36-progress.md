@@ -270,3 +270,20 @@ Finished (UTC): 2026-10-31T14:29:19Z
 Finished (UTC): 2026-10-31T16:15:45Z
 - AC-OPS-36a..k 11/11 Pass locally (evidence `acceptance-evidence/AC-OPS-36/`); boot 78 s; memory 30.4 % of host.
 - Test runs: `artifacts/plan36/p6-acops36-final2.log` (11/11), `p6-acceptance-smoke.log` (5/5).
+
+## OWNER ACTION (P7 step 1)
+
+Waiting for owner (UTC): 2026-10-31T16:16:01Z
+
+Skip anything already done:
+1. Decisions still open from P0 (defaults apply if unanswered): domain (else `hr.161-97-185-71.sslip.io` /
+   `sso.161-97-185-71.sslip.io`; with a domain: A records `app` and `auth` -> 161.97.185.71, DNS only), GHCR private
+   (default yes), ACME_EMAIL (default empty), organization name (default «شعبة التنظيم والموارد البشرية»).
+2. `gh auth refresh -h github.com -s write:packages,read:packages`
+3. Create a **classic** token with only `read:packages` for the server (GitHub -> Settings -> Developer settings ->
+   Personal access tokens -> Tokens (classic)); keep it for the later `docker login` on the server; never paste it in chat.
+4. If not done: `ssh -t hrm-vps passwd` (change the root password in your own terminal).
+5. Confirm VNC will be disabled in the Contabo panel once it is no longer needed.
+
+Server state: still unchanged (read-only probe only). Next step after the reply: verify `gh auth status` scopes, then
+P7 step 2 (host setup as root).
