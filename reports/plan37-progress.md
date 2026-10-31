@@ -26,3 +26,21 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P1
 - status: in progress
+- Decisions:
+  - D1 (deviation): svc-auth-directory is NOT added to Service.HrCoreLookup: its only call (/api/lookup/employees/by-ids)
+    is under HrManagementPolicies.HrCoreLookup (scope only). §1 rule 3 "no client the matrix does not justify" wins.
+  - D2: allow-list entries without a call stay (removal = PLAN-42) and are listed in allowListExceptions; the reverse
+    check (Allow_listed_policies_admit_only_matrix_callers) fails on any other unjustified entry.
+  - D3: matrix carries an endpoints catalog (target, path, controller, serverPolicies, scope); calls[] reference it.
+    Scope catalog with audiences drives the Keycloak scripts.
+  - D4: inline registrations become named extensions in P3 (AddHrCoreWorkflowClient, AddDirectorySyncClient,
+    AddEmployeeLifecycleGate) so the code->matrix check can name them.
+- Files: deploy/wiring/service-wiring.json, TestSupport/Wiring/ServiceWiringMatrix.cs,
+  UnitTests/Architecture/ProductionWiringMatrixTests.cs, scripts/int037-render-wiring-doc.ps1,
+  docs/SERVICE_WIRING_MATRIX.md, docs/SERVICE_TRUST_INVENTORY.md (pointer), ServiceAuthorizationExtensions.cs
+  (svc-compliance in FileStorageReferences), HR.Core.Web/Program.cs (2 unused registrations removed).
+- Tests: build 0 errors; unit filter ProductionWiringMatrix|Architecture|CodeGeneration|HrGatewayConfiguration|... 137/137.
+- P1 Finished (UTC): 2026-10-31T22:42:54.3111178Z
+
+## P2
+- status: in progress

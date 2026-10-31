@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 1,
+  "about": "PLAN-37: the single source of truth for service-to-service wiring. ProductionWiringMatrixTests checks it against the code, the server policies, the compose chains, k8s and the Keycloak scripts. A plan that adds an S2S client, call or scope, changes a server policy for a called endpoint, or removes a registration updates this file in the same commit. Rendered to docs/SERVICE_WIRING_MATRIX.md by scripts/int037-render-wiring-doc.ps1.",
+  "scopes": {
+    "hr-core.lookup": { "description": "HR.Core employee lookup (S2S)", "audiences": ["api-hr-core"] },
+    "hr-core.workflow": { "description": "HR.Core workflow + code generation (S2S)", "audiences": ["api-hr-core"] },
+    "file-storage.references": { "description": "File.Storage reference registration (S2S)", "audiences": ["api-file-storage"] },
+    "dsar.subject.read": { "description": "Compliance DSAR subject collection (S2S)", "audiences": ["api-hr-core", "api-payroll", "api-file-storage"] },
+    "payroll.grades.read": { "description": "HR.Core offer salary bounds from Payroll pay grades (S2S, HCM-027)", "audiences": ["api-payroll"] },
+    "file-storage.service-upload": { "description": "HR.Core relays candidate document uploads to File.Storage (S2S, PLAN-30)", "audiences": ["api-file-storage"] },
+    "directory.sync": { "description": "Auth.Directory synchronization (S2S)", "audiences": ["api-auth-directory"] },
+    "evidence.ingest": { "description": "Gateway evidence ingestion (S2S)", "audiences": ["hr-gateway-client"], "note": "CI evidence publishing; no service client requests it" }
+  },
+  "endpoints": {
+    "hr-core.codes.generate": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/internal/codes/generate",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/CodeGenerationController.cs",
+      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreWrite"], "scope": "hr-core.workflow"
+    },
+    "hr-core.policies.enforce": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/internal/policies/enforce",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/PoliciesController.cs",
+      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreBranchOperation"], "scope": "hr-core.workflow"
+    },
+    "hr-core.lookup.by-ids": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/lookup/employees/by-ids",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/LookupApiController.cs",
+      "serverPolicies": ["HrManagementPolicies.HrCoreLookup"], "scope": "hr-core.lookup"
+    },
+    "hr-core.service-regime.active-regimes": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/active-regimes",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
+      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+    },
+    "hr-core.service-regime.payroll-blockers": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/payroll-blockers",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
+      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+    },
+    "hr-core.employees.lifecycle-flags": {
+      "target": "hr-core-web", "method": "GET", "path": "/api/internal/employees/{employeeId}/lifecycle-flags",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/EmployeeLifecycleInternalController.cs",
+      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+    },
+    "hr-core.workflow-instances.start": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/workflow-instances",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowInstancesController.cs",
+      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreWrite"], "scope": "hr-core.workflow"
+    },
+    "hr-core.dsar.subject": {
+      "target": "hr-core-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/DsarInternalController.cs",
+      "serverPolicies": ["ServicePolicies.DsarSubjectRead"], "scope": "dsar.subject.read"
+    },
+    "hr-core.dsar.candidate-anonymize": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/internal/dsar-subjects/candidates/{applicationId}/anonymize",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/DsarInternalController.cs",
+      "serverPolicies": ["ServicePolicies.DsarSubjectRead"], "scope": "dsar.subject.read"
+    },
+    "payroll.dsar.subject": {
+      "target": "payroll-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}",
+      "controller": "src/Services/Payroll/Payroll.Web/Controllers/DsarInternalController.cs",
+      "serverPolicies": ["ServicePolicies.DsarSubjectRead"], "scope": "dsar.subject.read"
+    },
+    "payroll.pay-grades": {
+      "target": "payroll-web", "method": "GET", "path": "/api/internal/pay-grades/{gradeCode}",
+      "controller": "src/Services/Payroll/Payroll.Web/Controllers/PayGradeLookupInternalController.cs",
+      "serverPolicies": ["ServicePolicies.PayrollGradeLookup"], "scope": "payroll.grades.read"
+    },
+    "file-storage.references": {
+      "target": "file-storage-web", "via": "hr-gateway", "method": "POST", "path": "/api/files/{fileId}/references",
+      "controller": "src/Services/FileStorage/File.Storage.Web/Controllers/FilesApiController.cs",
+      "serverPolicies": ["HrManagementPolicies.ModuleFileStorage", "ServicePolicies.FileStorageReferences"], "scope": "file-storage.references"
+    },
+    "file-storage.service-upload": {
+      "target": "file-storage-web", "method": "POST", "path": "/api/files/service-upload",
+      "controller": "src/Services/FileStorage/File.Storage.Web/Controllers/FilesServiceUploadController.cs",
+      "serverPolicies": ["ServicePolicies.FileStorageServiceUpload"], "scope": "file-storage.service-upload"
+    },
+    "file-storage.dsar.files": {
+      "target": "file-storage-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}/files",
+      "controller": "src/Services/FileStorage/File.Storage.Web/Controllers/DsarInternalController.cs",
+      "serverPolicies": ["ServicePolicies.DsarSubjectRead"], "scope": "dsar.subject.read"
+    },
+    "auth-directory.sync-employee": {
+      "target": "auth-directory-web", "method": "POST", "path": "/api/internal/directory/sync-employee",
+      "controller": "src/Services/AuthDirectory/Auth.Directory.Web/Controllers/DirectoryInternalSyncController.cs",
+      "serverPolicies": ["ServicePolicies.DirectorySync"], "scope": "directory.sync"
+    }
+  },
+  "registrations": {
+    "AddHrCodeGeneration": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/CodeGeneration/CodeGenerationClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrPolicyEnforceClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Policy/PolicyEnforceClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrCoreLookupClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreLookupClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrCoreActiveRegimeClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreActiveRegimeClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrCoreServiceRegimeClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreServiceRegimeClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrDsarDeletion": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Privacy/DsarDeletionOrchestrator.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrFileReferenceClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/FileReferenceClient.cs", "urlKeys": ["HrGateway__InternalBaseUrl"] },
+    "AddPayrollGradeLookup": { "definedIn": "src/Services/HRCore/HR.Core.Infrastructure/Integration/PayrollGradeLookup.cs", "urlKeys": ["Integration__PayrollBaseUrl"] },
+    "AddCandidateDocumentUploadClient": { "definedIn": "src/Services/HRCore/HR.Core.Web/Services/CandidateDocumentUploadClient.cs", "urlKeys": ["Integration__FileStorageBaseUrl"] },
+    "AddComplianceDsarCollector": { "definedIn": "src/Services/Compliance/Compliance.Infrastructure/Privacy/HttpDsarSubjectSources.cs", "urlKeys": ["Integration__HrCoreBaseUrl", "Integration__PayrollBaseUrl", "Integration__FileStorageBaseUrl"] },
+    "AddHrCoreWorkflowClient": { "definedIn": "src/Services/AdminLogistics/Admin.Logistics.Infrastructure/DependencyInjection.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddDirectorySyncClient": { "definedIn": "src/Services/ITInfrastructure/IT.Infra.Infrastructure/Integration/HttpDirectoryEntrySyncClient.cs", "urlKeys": ["Services__AuthDirectory__BaseUrl"] },
+    "AddEmployeeLifecycleGate": { "definedIn": "src/Services/HRContracts/HR.Contracts.Infrastructure/DependencyInjection.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] }
+  },
+  "registrationsIgnored": {
+    "AddServiceIdentityClient": "the token client itself (Keycloak token endpoint, not a service)",
+    "AddServiceAuthenticatedClient": "the generic builder every registration above uses",
+    "AddHrOutboundResilience": "resilience pipeline, no client",
+    "AddGatewayHealthProbeClient": "the gateway's own health probe of the modules (no identity)"
+  },
+  "allowListExceptions": [
+    {
+      "policy": "ServicePolicies.HrCoreLookupS2S",
+      "clients": ["hr-gateway-client", "svc-admin-logistics", "svc-compliance"],
+      "reason": "Allowed before PLAN-37 without a call to the lifecycle or service-regime endpoints (their lookups use /api/lookup under HrManagementPolicies.HrCoreLookup). Not widened here; removing them is PLAN-42 (least privilege)."
+    },
+    {
+      "policy": "ServicePolicies.DirectorySync",
+      "clients": ["svc-hr-core", "svc-auth-directory"],
+      "reason": "Allowed before PLAN-37 without a directory-sync call. Not widened here; removing them is PLAN-42."
+    }
+  ],
+  "legalPacks": {
+    "syr003-service-regimes-v1": { "source": "docs/syr/service-regimes.json", "publishPath": "seed-packs/syr003-service-regimes-v1/regimes.json" }
+  },
+  "services": [
+    {
+      "name": "hr-gateway",
+      "composeService": "hr-gateway",
+      "k8sDeployment": "hr-gateway",
+      "projects": ["src/Gateway/HRManagement.Gateway"],
+      "serviceIdentity": false,
+      "clientId": "hr-gateway-client",
+      "secretEnv": "KEYCLOAK_HR_GATEWAY_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "Integration__AuthDirectoryBaseUrl": "http://auth-directory-web:8080"
+      },
+      "scopes": [],
+      "registrations": [],
+      "calls": [],
+      "note": "OIDC client of the browser sign-in; its HR.Core and Auth.Directory calls (journey rebuild, dashboard stats) carry the user's token, not a service token.",
+      "legalPacks": []
+    },
+    {
+      "name": "hr-core",
+      "composeService": "hr-core-web",
+      "k8sDeployment": "hr-core-web",
+      "projects": ["src/Services/HRCore/HR.Core.Web", "src/Services/HRCore/HR.Core.Infrastructure", "src/Services/HRCore/HR.Core.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-hr-core",
+      "secretEnv": "SVC_HR_CORE_CLIENT_SECRET",
+      "urls": {
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080",
+        "Integration__PayrollBaseUrl": "http://payroll-web:8080",
+        "Integration__FileStorageBaseUrl": "http://file-storage-web:8080"
+      },
+      "scopes": ["file-storage.references", "payroll.grades.read", "file-storage.service-upload"],
+      "registrations": ["AddHrFileReferenceClient", "AddPayrollGradeLookup", "AddCandidateDocumentUploadClient"],
+      "calls": [
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" },
+        { "client": "AddPayrollGradeLookup", "endpoint": "payroll.pay-grades", "scope": "payroll.grades.read" },
+        { "client": "AddCandidateDocumentUploadClient", "endpoint": "file-storage.service-upload", "scope": "file-storage.service-upload" }
+      ],
+      "legalPacks": ["syr003-service-regimes-v1"]
+    },
+    {
+      "name": "hr-contracts",
+      "composeService": "hr-contracts-web",
+      "k8sDeployment": "hr-contracts-web",
+      "projects": ["src/Services/HRContracts/HR.Contracts.Web", "src/Services/HRContracts/HR.Contracts.Infrastructure", "src/Services/HRContracts/HR.Contracts.Application", "src/Services/HRContracts/HR.Contracts.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-hr-contracts",
+      "secretEnv": "SVC_HR_CONTRACTS_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
+      },
+      "scopes": ["hr-core.workflow", "hr-core.lookup", "file-storage.references"],
+      "registrations": ["AddHrCodeGeneration", "AddHrFileReferenceClient", "AddHrCoreLookupClient", "AddHrCoreActiveRegimeClient", "AddHrPolicyEnforceClient", "AddEmployeeLifecycleGate"],
+      "calls": [
+        { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
+        { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
+        { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
+        { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" },
+        { "client": "AddEmployeeLifecycleGate", "endpoint": "hr-core.employees.lifecycle-flags", "scope": "hr-core.lookup", "authenticated": false, "owner": "PLAN-42", "note": "legal-hold gate: no service token yet (fails open on 401); authentication and fail-closed are PLAN-42" },
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
+      ],
+      "legalPacks": ["syr003-service-regimes-v1"]
+    },
+    {
+      "name": "hr-movements",
+      "composeService": "hr-movements-web",
+      "k8sDeployment": "hr-movements-web",
+      "projects": ["src/Services/HRMovements/HR.Movements.Web", "src/Services/HRMovements/HR.Movements.Infrastructure", "src/Services/HRMovements/HR.Movements.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-hr-movements",
+      "secretEnv": "SVC_HR_MOVEMENTS_CLIENT_SECRET",
+      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "scopes": ["hr-core.lookup"],
+      "registrations": ["AddHrPolicyEnforceClient", "AddHrCoreActiveRegimeClient"],
+      "calls": [
+        { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" }
+      ],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no hr-core.workflow (D-INT-4); removal is PLAN-49" },
+      "legalPacks": ["syr003-service-regimes-v1"]
+    },
+    {
+      "name": "payroll",
+      "composeService": "payroll-web",
+      "k8sDeployment": "payroll-web",
+      "projects": ["src/Services/Payroll/Payroll.Web", "src/Services/Payroll/Payroll.Infrastructure", "src/Services/Payroll/Payroll.Application", "src/Services/Payroll/Payroll.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-payroll",
+      "secretEnv": "SVC_PAYROLL_CLIENT_SECRET",
+      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "scopes": ["hr-core.lookup"],
+      "registrations": ["AddHrPolicyEnforceClient", "AddHrCoreLookupClient", "AddHrCoreServiceRegimeClient"],
+      "calls": [
+        { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
+        { "client": "AddHrCoreServiceRegimeClient", "endpoint": "hr-core.service-regime.payroll-blockers", "scope": "hr-core.lookup" }
+      ],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no hr-core.workflow (D-INT-4); removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "idcard",
+      "composeService": "idcard-web",
+      "k8sDeployment": "idcard-web",
+      "projects": ["src/Services/IDCard/IDCard.Web", "src/Services/IDCard/IDCard.Infrastructure", "src/Services/IDCard/IDCard.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-idcard",
+      "secretEnv": "SVC_IDCARD_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
+      },
+      "scopes": ["hr-core.workflow", "file-storage.references"],
+      "registrations": ["AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrFileReferenceClient"],
+      "calls": [
+        { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
+        { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
+      ],
+      "legalPacks": []
+    },
+    {
+      "name": "records-archive",
+      "composeService": "records-archive-web",
+      "k8sDeployment": "records-archive-web",
+      "projects": ["src/Services/RecordsArchive/Records.Archive.Web", "src/Services/RecordsArchive/Records.Archive.Infrastructure", "src/Services/RecordsArchive/Records.Archive.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-records-archive",
+      "secretEnv": "SVC_RECORDS_ARCHIVE_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
+      },
+      "scopes": ["hr-core.workflow", "file-storage.references"],
+      "registrations": ["AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrFileReferenceClient"],
+      "calls": [
+        { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
+      ],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: no scope is granted for it (D-INT-4); removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "admin-logistics",
+      "composeService": "admin-logistics-web",
+      "k8sDeployment": "admin-logistics-web",
+      "projects": ["src/Services/AdminLogistics/Admin.Logistics.Web", "src/Services/AdminLogistics/Admin.Logistics.Infrastructure", "src/Services/AdminLogistics/Admin.Logistics.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-admin-logistics",
+      "secretEnv": "SVC_ADMIN_LOGISTICS_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
+      },
+      "scopes": ["hr-core.lookup", "hr-core.workflow", "file-storage.references"],
+      "registrations": ["AddHrFileReferenceClient", "AddHrCodeGeneration", "AddHrPolicyEnforceClient", "AddHrCoreLookupClient", "AddHrCoreWorkflowClient"],
+      "calls": [
+        { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
+        { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
+        { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
+        { "client": "AddHrCoreWorkflowClient", "endpoint": "hr-core.workflow-instances.start", "scope": "hr-core.workflow" },
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
+      ],
+      "legalPacks": []
+    },
+    {
+      "name": "it-infra",
+      "composeService": "it-infra-web",
+      "k8sDeployment": "it-infra-web",
+      "projects": ["src/Services/ITInfrastructure/IT.Infra.Web", "src/Services/ITInfrastructure/IT.Infra.Infrastructure", "src/Services/ITInfrastructure/IT.Infrastructure.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-it-infra",
+      "secretEnv": "SVC_IT_INFRA_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "Services__AuthDirectory__BaseUrl": "http://auth-directory-web:8080"
+      },
+      "scopes": ["hr-core.workflow", "directory.sync"],
+      "registrations": ["AddDirectorySyncClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration"],
+      "calls": [
+        { "client": "AddDirectorySyncClient", "endpoint": "auth-directory.sync-employee", "scope": "directory.sync" },
+        { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" }
+      ],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected (D-INT-4); hr-core.workflow is granted for code generation, not for it; removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "compliance",
+      "composeService": "compliance-web",
+      "k8sDeployment": "compliance-web",
+      "projects": ["src/Services/Compliance/Compliance.Web", "src/Services/Compliance/Compliance.Infrastructure", "src/Services/Compliance/Compliance.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-compliance",
+      "secretEnv": "SVC_COMPLIANCE_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "Integration__PayrollBaseUrl": "http://payroll-web:8080",
+        "Integration__FileStorageBaseUrl": "http://file-storage-web:8080",
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
+      },
+      "scopes": ["hr-core.lookup", "hr-core.workflow", "dsar.subject.read", "file-storage.references"],
+      "registrations": ["AddHrDsarDeletion", "AddComplianceDsarCollector", "AddHrFileReferenceClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrCoreLookupClient"],
+      "calls": [
+        { "client": "AddComplianceDsarCollector", "endpoint": "hr-core.dsar.subject", "scope": "dsar.subject.read" },
+        { "client": "AddComplianceDsarCollector", "endpoint": "payroll.dsar.subject", "scope": "dsar.subject.read" },
+        { "client": "AddComplianceDsarCollector", "endpoint": "file-storage.dsar.files", "scope": "dsar.subject.read" },
+        { "client": "AddHrDsarDeletion", "endpoint": "hr-core.dsar.candidate-anonymize", "scope": "dsar.subject.read" },
+        { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
+        { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
+      ],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected (D-INT-4); hr-core.workflow is granted for code generation, not for it; removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "auth-directory",
+      "composeService": "auth-directory-web",
+      "k8sDeployment": "auth-directory-web",
+      "projects": ["src/Services/AuthDirectory/Auth.Directory.Web", "src/Services/AuthDirectory/Auth.Directory.Infrastructure", "src/Services/AuthDirectory/Auth.Directory.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-auth-directory",
+      "secretEnv": "SVC_AUTH_DIRECTORY_CLIENT_SECRET",
+      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "scopes": ["hr-core.lookup"],
+      "registrations": ["AddHrCoreLookupClient"],
+      "calls": [
+        { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" }
+      ],
+      "legalPacks": []
+    },
+    {
+      "name": "hr-health",
+      "composeService": "hr-health-web",
+      "k8sDeployment": "hr-health-web",
+      "projects": ["src/Services/HRHealth/HR.Health.Web", "src/Services/HRHealth/HR.Health.Infrastructure", "src/Services/HRHealth/HR.Health.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-hr-health",
+      "secretEnv": "SVC_HR_HEALTH_CLIENT_SECRET",
+      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "scopes": [],
+      "registrations": ["AddHrPolicyEnforceClient"],
+      "calls": [],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no scope (D-INT-4); removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "hr-training",
+      "composeService": "hr-training-web",
+      "k8sDeployment": "hr-training-web",
+      "projects": ["src/Services/HRTraining/HR.Training.Web", "src/Services/HRTraining/HR.Training.Infrastructure", "src/Services/HRTraining/HR.Training.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-hr-training",
+      "secretEnv": "SVC_HR_TRAINING_CLIENT_SECRET",
+      "urls": {
+        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
+        "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
+      },
+      "scopes": ["file-storage.references"],
+      "registrations": ["AddHrPolicyEnforceClient", "AddHrFileReferenceClient"],
+      "calls": [
+        { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
+      ],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no hr-core.workflow (D-INT-4); removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "dev-analytics",
+      "composeService": "dev-analytics-web",
+      "k8sDeployment": "dev-analytics-web",
+      "projects": ["src/Services/DevAnalytics/Dev.Analytics.Web", "src/Services/DevAnalytics/Dev.Analytics.Infrastructure", "src/Services/DevAnalytics/Dev.Analytics.Application", "src/Services/DevAnalytics/Dev.Analytics.Domain"],
+      "serviceIdentity": true,
+      "clientId": "svc-dev-analytics",
+      "secretEnv": "SVC_DEV_ANALYTICS_CLIENT_SECRET",
+      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "scopes": [],
+      "registrations": ["AddHrPolicyEnforceClient"],
+      "calls": [],
+      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no scope (D-INT-4); removal is PLAN-49" },
+      "legalPacks": []
+    },
+    {
+      "name": "file-storage",
+      "composeService": "file-storage-web",
+      "k8sDeployment": "file-storage-web",
+      "projects": ["src/Services/FileStorage/File.Storage.Web", "src/Services/FileStorage/File.Storage.Infrastructure", "src/Services/FileStorage/File.Storage.Domain"],
+      "serviceIdentity": false,
+      "clientId": null,
+      "secretEnv": null,
+      "urls": {},
+      "scopes": [],
+      "registrations": [],
+      "calls": [],
+      "note": "Called only; makes no service-to-service call.",
+      "legalPacks": []
+    }
+  ]
+}

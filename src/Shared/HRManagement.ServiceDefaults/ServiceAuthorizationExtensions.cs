@@ -90,7 +90,9 @@ public static class ServiceAuthorizationExtensions
                     ServiceClientIds.HrTraining,
                     ServiceClientIds.IdCard,
                     ServiceClientIds.RecordsArchive,
-                    ServiceClientIds.AdminLogistics)));
+                    ServiceClientIds.AdminLogistics,
+                    // PLAN-37: complaint and legal-case attachments (ComplaintsController, ComplianceExtendedControllers).
+                    ServiceClientIds.Compliance)));
 
             options.AddPolicy(ServicePolicies.DsarSubjectRead, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)

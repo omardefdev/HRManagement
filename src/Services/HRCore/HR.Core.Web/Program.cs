@@ -274,8 +274,7 @@ builder.Services.AddHrOrgStructure();
 builder.Services.AddHrLegislationRegister();
 builder.Services.AddHrServiceRegimes();
 builder.Services.AddHrCodeGenerationEngine();
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
-builder.Services.AddHrCodeGeneration(builder.Configuration);
+// PLAN-37: HR.Core uses its in-process policy orchestrator and code generator; it registers no HTTP client to itself.
 builder.Services.AddOrganizationBranding(builder.Configuration);
 builder.Services.AddHrServiceHealthChecks<HRCoreDbContext>(builder.Configuration);
 

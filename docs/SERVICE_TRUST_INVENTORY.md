@@ -5,25 +5,13 @@ Secrets are never stored in this file — only environment variable names.
 
 ## Keycloak confidential clients (service accounts)
 
-| Workload | ClientId | Env secret | Intended scopes |
-|----------|----------|------------|-----------------|
-| HR.Core | `svc-hr-core` | `ServiceIdentity__ClientSecret` (hr-core) | `file-storage.references`, `payroll.grades.read`, `file-storage.service-upload` |
-| HR.Contracts | `svc-hr-contracts` | (hr-contracts) | `file-storage.references` |
-| HR.Health | `svc-hr-health` | (hr-health) | — |
-| HR.Movements | `svc-hr-movements` | (hr-movements) | `hr-core.lookup` |
-| HR.Training | `svc-hr-training` | (hr-training) | `file-storage.references` |
-| Payroll | `svc-payroll` | (payroll) | `hr-core.lookup` |
-| IDCard | `svc-idcard` | (idcard) | `file-storage.references` |
-| Records.Archive | `svc-records-archive` | (archive) | `file-storage.references` |
-| Admin.Logistics | `svc-admin-logistics` | (admin) | `hr-core.lookup`, `hr-core.workflow`, `file-storage.references` |
-| IT.Infra | `svc-it-infra` | (it-infra) | `directory.sync` |
-| Dev.Analytics | `svc-dev-analytics` | (analytics) | — |
-| Compliance | `svc-compliance` | (compliance) | — |
-| Auth.Directory | `svc-auth-directory` | (auth-directory) | — |
-| File.Storage | `svc-file-storage` | (file-storage) | — |
-| Gateway (users) | `hr-gateway-client` | `Keycloak__ClientSecret` | interactive OIDC |
+**Moved (PLAN-37):** the client, secret variable, URL, scope and call of every service now live in
+[`deploy/wiring/service-wiring.json`](../deploy/wiring/service-wiring.json), rendered as
+[SERVICE_WIRING_MATRIX.md](SERVICE_WIRING_MATRIX.md). `ProductionWiringMatrixTests` keeps compose, k8s, Keycloak and
+the server allow-lists in step with it. Edit the JSON, not a table here.
 
-Gateway remains the only interactive OIDC client. Service clients use `client_credentials` only.
+Gateway remains the only interactive OIDC client (`hr-gateway-client`, secret `KEYCLOAK_HR_GATEWAY_CLIENT_SECRET`).
+Service clients use `client_credentials` only.
 
 ## API resource audiences
 
@@ -81,9 +69,8 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
 - **Tenant:** service tokens carry no `tenant_id`; the caller sends `X-Tenant-ID` (400 when missing).
 - **Keycloak:** client scope `file-storage.service-upload` with audience `api-file-storage`, optional scope of `svc-hr-core`
   (`scripts/sync-keycloak-dev-realm.ps1`; not in the realm JSON, like `payroll.grades.read`). HR.Core requests it through
-  `ServiceIdentity:Scope` (appsettings.json, acceptance/local compose). Run the sync **before** HR.Core requests the scope:
-  Keycloak refuses a token for an unlinked scope (`invalid_scope`), which breaks every HR.Core S2S call. Production
-  (`docker-compose.production.yml`) does not request it yet.
+  `ServiceIdentity__Scope` from the wiring matrix (shared compose files and k8s, PLAN-37). Run the sync **before** HR.Core
+  requests the scope: Keycloak refuses a token for an unlinked scope (`invalid_scope`), which breaks every HR.Core S2S call.
 - **Gateway caller proof:** the route is not exempt, so outside Development the direct call must be signed with
   `GatewayCallerProof.Sign` (as `HrCoreLookupClient` does).
 
