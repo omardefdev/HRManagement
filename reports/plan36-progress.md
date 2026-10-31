@@ -415,3 +415,26 @@ Finished (UTC): 2026-10-31T19:56:37Z
   and 11/11 locally (one run)** on the final code; server memory 4,516 / 24,027 MiB (18.8 %), local 4,447 / 15,851 MiB
   (28.1 %); server 36e: 300 of 400 in 28.3 s, Retry-After 60.
 - Final report: reports/plan36-final-report.md; PR description: reports/plan36-pr.md.
+- Local CI on release/plan-36 (08b9efd989fb): first run 88/89 (actionlint SC2155 in e2e-journeys.yml -> fixed 5cdb0e21; then
+  formatting in AcOps36VpsBootTests -> fixed 3af5a022; then one transient Testcontainers connection timeout in
+  CodeGenerationConcurrencyTests), final run **89/89 passed** (1,242 s). Pre-push: **PRE-PUSH OK** (gitleaks history 234
+  commits + range 28, actionlint, cilocal, forbidden, nonprod, signatures).
+
+## OWNER ACTION (P8 merge)
+
+Waiting for owner (UTC): 2026-10-31T22:08:10Z
+
+1. `git push -u origin release/plan-36`
+2. `gh pr create --base main --head release/plan-36 --title "PLAN-36: production profile on a single host" --body-file reports/plan36-pr.md`
+3. After the checks are green: `gh pr merge --merge`
+(Note: plan035-prepush.ps1 prints PLAN-35's old PR title/body; use the commands above.) This progress note and the PR
+link are committed with the next plan's first commit (no second PR).
+Owner action done (UTC): 2026-10-31T22:14:13Z — owner pushed release/plan-36 and opened the PR.
+- PR https://github.com/omardefdev/HRManagement/pull/30 **merged 2026-10-31T22:13:47Z** (merge 7d602f9c) while CI,
+  CodeQL and Gitleaks were still pending (no branch protection on the free private repository; PLAN-35 defect 14
+  again). `HARD-001 compliance scan` failed on the PR and on main (run 41247230190): a **false negative** — the scan
+  matched the literal `[*app-resources, *app-hardening]` and P1 added `*app-runtime` to the merge line; the hardening
+  anchor is still merged into every app. Not caught locally because `hardening-check.yml` is not part of
+  `scripts/ci/steps.json`. Fix on `fix/hard001-anchor-scan`: the scan now requires `*app-hardening` in each service's
+  own merge line with any other anchors allowed (positive and negative checked locally). Post-merge `ci` run
+  41247230175 was in progress at the time of this note.

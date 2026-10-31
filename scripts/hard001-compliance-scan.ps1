@@ -43,11 +43,10 @@ if (Test-Path $composePath) {
     if ($compose -notmatch "no-new-privileges") { $failures.Add("compose missing no-new-privileges") }
     if ($compose -notmatch "cap_drop") { $failures.Add("compose missing cap_drop") }
     if ($compose -notmatch "x-infra-hardening-mild") { $failures.Add("compose missing x-infra-hardening-mild for data plane") }
-    if ($compose -notmatch "hr-gateway:[\s\S]*?\[\*app-resources, \*app-hardening\]") {
-        $failures.Add("hr-gateway must merge app-hardening anchor")
-    }
-    foreach ($svc in @("hr-core-web", "payroll-web", "file-storage-web")) {
-        if ($compose -notmatch "${svc}:[\s\S]*?\[\*app-resources, \*app-hardening\]") {
+    # The service's own merge line (directly under the service key) must include *app-hardening; other anchors may be
+    # merged too (PLAN-36 added *app-runtime for the restart policy).
+    foreach ($svc in @("hr-gateway", "hr-core-web", "payroll-web", "file-storage-web")) {
+        if ($compose -notmatch "(?m)^  ${svc}:\s*\r?\n\s+<<: \[[^\]]*\*app-hardening[^\]]*\]") {
             $failures.Add("$svc must merge app-hardening anchor")
         }
     }
