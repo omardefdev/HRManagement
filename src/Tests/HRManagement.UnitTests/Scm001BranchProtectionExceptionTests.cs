@@ -91,6 +91,34 @@ public class Scm001BranchProtectionExceptionTests
     }
 
     [Fact]
+    public void Unavailable_protection_passes_only_with_the_local_guard_installed()
+    {
+        // D-QA-1 fallback: private repository on the free plan (GitHub answers 403 "Upgrade to GitHub Pro").
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/hook-protect-main.txt");
+        Assert.True(exit == 0, output);
+        Assert.Contains("local guard installed", output, StringComparison.Ordinal);
+        Assert.Contains("SCM-NO-GITHUB-PROTECTION", output, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("hook-scan-only.txt")]
+    [InlineData("missing-hook.txt")]
+    public void Unavailable_protection_without_the_main_guard_fails(string hook)
+    {
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/{hook}");
+        Assert.Equal(1, exit);
+        Assert.Contains("the local guard is not installed", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Unavailable_protection_without_an_open_exception_fails()
+    {
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/hook-protect-main.txt -Exceptions {Fixtures}/exceptions-expired.json");
+        Assert.Equal(1, exit);
+        Assert.Contains("unavailableFallback.exceptionRef 'SCM-NO-GITHUB-PROTECTION' is not an Open, unexpired entry", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Codeowners_names_only_the_repository_owner()
     {
         var text = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "CODEOWNERS"));
