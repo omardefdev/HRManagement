@@ -3,8 +3,12 @@ using Microsoft.Playwright;
 namespace HRManagement.E2E;
 
 /// <summary>UX-002 — axe-core serious/critical gate on critical pages.</summary>
+[Collection("Playwright")]
 public sealed class A11yAxeE2ETests
 {
+    private readonly PlaywrightFixture _fx;
+    public A11yAxeE2ETests(PlaywrightFixture fx) => _fx = fx;
+
     private static string AxeScriptPath()
     {
         var candidates = new[]
@@ -55,53 +59,51 @@ public sealed class A11yAxeE2ETests
     public async Task Gateway_home_has_skip_link_and_no_serious_axe_findings()
     {
         E2eEnv.RequireEnabled();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-        await using var api = await playwright.APIRequest.NewContextAsync();
-        await E2eEnv.EnsureGatewayReachableAsync(api);
-
-        var page = await browser.NewPageAsync();
-        var user = Environment.GetEnvironmentVariable("E2E_KEYCLOAK_USER") ?? "hradmin";
-        var password = Environment.GetEnvironmentVariable("E2E_KEYCLOAK_PASSWORD") ?? "HrAdmin123!";
-        await page.GotoAsync($"{E2eEnv.BaseUrl}/", new()
+        await _fx.RunTracedAsync(nameof(Gateway_home_has_skip_link_and_no_serious_axe_findings), async (context, page) =>
         {
-            WaitUntil = WaitUntilState.DOMContentLoaded,
-            Timeout = 30_000
+            await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
+
+            var user = Environment.GetEnvironmentVariable("E2E_KEYCLOAK_USER") ?? "hradmin";
+            var password = Environment.GetEnvironmentVariable("E2E_KEYCLOAK_PASSWORD") ?? "HrAdmin123!";
+            await page.GotoAsync($"{E2eEnv.BaseUrl}/", new()
+            {
+                WaitUntil = WaitUntilState.DOMContentLoaded,
+                Timeout = 30_000
+            });
+            if (E2eEnv.IsKeycloakLoginUrl(page.Url))
+            {
+                await page.FillAsync("input[name='username']", user);
+                await page.FillAsync("input[name='password']", password);
+                await page.ClickAsync("input[type='submit'], button[type='submit']");
+                await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
+            }
+
+            Assert.True(E2eEnv.IsGatewayUrl(page.Url), $"Expected gateway home after login, got {page.Url}");
+
+            Assert.True(await page.Locator("a.hr-skip-link").CountAsync() > 0, "Missing skip link on Gateway layout");
+            await AssertNoSeriousOrCriticalAsync(page, "Gateway home");
         });
-        if (E2eEnv.IsKeycloakLoginUrl(page.Url))
-        {
-            await page.FillAsync("input[name='username']", user);
-            await page.FillAsync("input[name='password']", password);
-            await page.ClickAsync("input[type='submit'], button[type='submit']");
-            await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
-        }
-
-        Assert.True(E2eEnv.IsGatewayUrl(page.Url), $"Expected gateway home after login, got {page.Url}");
-
-        Assert.True(await page.Locator("a.hr-skip-link").CountAsync() > 0, "Missing skip link on Gateway layout");
-        await AssertNoSeriousOrCriticalAsync(page, "Gateway home");
     }
 
     [SkippableFact]
     public async Task Ui_module_pages_have_no_serious_axe_findings_when_reachable()
     {
         E2eEnv.RequireEnabled();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-        await using var api = await playwright.APIRequest.NewContextAsync();
-        await E2eEnv.EnsureGatewayReachableAsync(api);
-
-        var page = await browser.NewPageAsync();
-        foreach (var path in new[] { "/ui/hr-core/Employees", "/ui/payroll/CompensationTypes" })
+        await _fx.RunTracedAsync(nameof(Ui_module_pages_have_no_serious_axe_findings_when_reachable), async (context, page) =>
         {
-            var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{path}", new()
+            await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
+
+            foreach (var path in new[] { "/ui/hr-core/Employees", "/ui/payroll/CompensationTypes" })
             {
-                WaitUntil = WaitUntilState.DOMContentLoaded,
-                Timeout = 30_000
-            });
-            Assert.NotNull(response);
-            E2eHttp.EnsureNotServerError(response!, path);
-            await AssertNoSeriousOrCriticalAsync(page, path);
-        }
+                var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{path}", new()
+                {
+                    WaitUntil = WaitUntilState.DOMContentLoaded,
+                    Timeout = 30_000
+                });
+                Assert.NotNull(response);
+                E2eHttp.EnsureNotServerError(response!, path);
+                await AssertNoSeriousOrCriticalAsync(page, path);
+            }
+        });
     }
 }

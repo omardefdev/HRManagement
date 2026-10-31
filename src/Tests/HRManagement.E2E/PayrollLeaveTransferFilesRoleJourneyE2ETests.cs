@@ -178,23 +178,15 @@ public class PayrollLeaveTransferFilesRoleJourneyE2ETests
         E2eSeed.LoadManifest();
         var persona = E2eSeed.RequirePersona(personaId);
         var password = E2eSeed.ResolvePassword(persona);
-        await using var context = await _fx.NewContextWithTracingAsync(testName);
-        var failed = true;
-        try
+        await _fx.RunTracedAsync(testName, async (context, page) =>
         {
-            var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, persona.Username, password);
             var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{path}",
                 new() { WaitUntil = WaitUntilState.DOMContentLoaded });
             Assert.NotNull(response);
             E2eHttp.EnsureNotServerError(response!, testName);
-            failed = false;
-        }
-        finally
-        {
-            await _fx.StopTracingOnFailureAsync(context, testName, failed);
-        }
+        });
     }
 }
 
