@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 
 namespace HRManagement.E2E;
@@ -59,28 +60,81 @@ public sealed class PlaywrightFixture : IAsyncLifetime
         await page.ScreenshotAsync(new() { Path = path, FullPage = true });
     }
 
+    /// <summary>From submitting the Keycloak form to a gateway page; CI personas take 2-7 s. Known stops fail at once.</summary>
+    private static readonly TimeSpan LoginTimeout = TimeSpan.FromSeconds(30);
+
+    private static readonly Regex RequiredActionUrl = new(
+        @"/login-actions/required-action\?(?:[^#]*&)?execution=([^&#]+)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Signs in through Keycloak and returns on a gateway page. Fails at once, naming the step, when Keycloak refuses the
+    /// credentials, stops on a required action (a user imported without first and last name gets VERIFY_PROFILE, "Update
+    /// Account Information") or the gateway's OIDC callback fails (a user without the offline_access role: "Offline tokens
+    /// not allowed" in the gateway log). PLAN-35 defect 16: the old 60 s wait for the gateway timed out on such a stop, was
+    /// swallowed, and the test went on anonymous.
+    /// </summary>
     public async Task LoginAsync(IPage page, string username, string password)
     {
         await page.GotoAsync(E2eEnv.BaseUrl, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        if (!E2eEnv.IsKeycloakLoginUrl(page.Url))
-            return;
+        if (E2eEnv.IsGatewayPageUrl(page.Url))
+            return; // this context is already signed in
+        Assert.True(E2eEnv.IsKeycloakLoginUrl(page.Url), $"Login for {username}: expected the Keycloak login page, got {page.Url}");
 
-        await page.FillAsync("input[name='username']", username);
-        await page.FillAsync("input[name='password']", password);
-        await page.ClickAsync("input[type='submit'], button[type='submit']");
+        // A good callback redirects to the gateway; a failed one answers 4xx/5xx (Development) or, through the error
+        // page's challenge, redirects back to Keycloak (other environments).
+        string? callbackFailure = null;
+        void OnResponse(object? sender, IResponse response)
+        {
+            if (!E2eEnv.IsGatewayOidcCallbackUrl(response.Url))
+                return;
+            var location = response.Headers.GetValueOrDefault("location") ?? "";
+            if (response.Status >= 400 || E2eEnv.IsKeycloakLoginUrl(location))
+                callbackFailure = location.Length > 0 ? $"HTTP {response.Status} -> {location}" : $"HTTP {response.Status}";
+        }
+
+        page.Response += OnResponse;
         try
         {
-            await page.WaitForURLAsync(
-                u => E2eEnv.IsGatewayUrl(u) || !E2eEnv.IsKeycloakLoginUrl(u),
-                new() { Timeout = 60_000 });
+            await page.FillAsync("input[name='username']", username);
+            await page.FillAsync("input[name='password']", password);
+            await page.ClickAsync("input[type='submit'], button[type='submit']");
+
+            var deadline = DateTime.UtcNow + LoginTimeout;
+            while (!E2eEnv.IsGatewayPageUrl(page.Url))
+            {
+                if (callbackFailure is not null)
+                    Assert.Fail($"Login for {username}: the gateway's OIDC callback failed ({callbackFailure}); the gateway log has the cause.");
+                if (RequiredActionUrl.Match(page.Url) is { Success: true } requiredAction)
+                    Assert.Fail(
+                        $"Login for {username} stopped on Keycloak required action {requiredAction.Groups[1].Value} " +
+                        $"(\"{await KeycloakTextAsync(page, "#kc-page-title")}\"): the realm import leaves the user incomplete.");
+                if (await KeycloakTextAsync(page, "#input-error, #kc-error-message, .alert-error .kc-feedback-text") is { Length: > 0 } error)
+                    Assert.Fail($"Login for {username} refused by Keycloak: {error} (url={page.Url})");
+                if (DateTime.UtcNow >= deadline)
+                    Assert.Fail($"Login for {username} did not reach the gateway within {LoginTimeout.TotalSeconds:0} s; url={page.Url}");
+                await Task.Delay(100);
+            }
         }
-        catch (TimeoutException)
+        finally
         {
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
+            page.Response -= OnResponse;
         }
-        Assert.False(
-            page.Url.Contains("error", StringComparison.OrdinalIgnoreCase),
-            $"Login appears to have failed for user {username}; url={page.Url}");
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+    }
+
+    /// <summary>Text of the first element matching the selector on the current page, or null (also while it navigates).</summary>
+    private static async Task<string?> KeycloakTextAsync(IPage page, string selector)
+    {
+        try
+        {
+            var element = page.Locator(selector).First;
+            return await element.CountAsync() > 0 ? (await element.InnerTextAsync(new() { Timeout = 1_000 })).Trim() : null;
+        }
+        catch (PlaywrightException)
+        {
+            return null;
+        }
     }
 
     private static string Sanitize(string name) =>

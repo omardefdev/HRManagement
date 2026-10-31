@@ -42,20 +42,23 @@ public class HireJourneyE2ETests
             var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, outsider.Username, password);
-            var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{HirePath}",
+
+            // HIRE_RBAC_MATRIX: hr-core, the outsider's only role, may view and execute the wizard, so it opens; approving
+            // the hire (Step3Approve: hr-management-approver) and completing it (Step4Complete: hr-contracts) are refused
+            // by the gateway before HR.Contracts sees the request.
+            var wizard = await page.GotoAsync($"{E2eEnv.BaseUrl}{HirePath}",
                 new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-            Assert.NotNull(response);
-            E2eHttp.EnsureNotServerError(response!, "HIR-F2");
-            // Cross-tenant / wrong role: challenge, forbid, or redirect away from wizard success.
-            Assert.True(
-                response!.Status is 401 or 403 or 302
-                || page.Url.Contains("AccessDenied", StringComparison.OrdinalIgnoreCase)
-                || page.Url.Contains("Account", StringComparison.OrdinalIgnoreCase)
-                || !page.Url.Contains("HireWizard", StringComparison.OrdinalIgnoreCase)
-                || await page.Locator("text=غير مصرح").CountAsync() > 0
-                || await page.Locator("text=Access Denied").CountAsync() > 0
-                || response.Status == 200, // page may render shell; deep auth is server-side on actions
-                "HIR-F2: outsider must not silently complete hire");
+            Assert.NotNull(wizard);
+            E2eHttp.EnsureNotServerError(wizard!, "HIR-F2 HireWizard");
+            Assert.True(wizard!.Status == 200, $"HIR-F2: hr-core opens the hire wizard (HrContracts.HireView), got {wizard.Status} at {page.Url}");
+
+            foreach (var action in new[] { "Step3Approve", "Step4Complete" })
+            {
+                var response = await context.APIRequest.PostAsync(
+                    $"{E2eEnv.BaseUrl}{HirePath}/{action}?transactionId={Guid.NewGuid()}",
+                    new() { MaxRedirects = 0 });
+                await E2eHttp.EnsureRoleForbiddenAsync(response, $"HIR-F2 {action}");
+            }
             failed = false;
         }
         finally
@@ -147,9 +150,10 @@ public class SeparationJourneyE2ETests
             var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, outsider.Username, password);
+            // Signed in with hr-core only; Module.HrContracts admits hr-admin, hr-contracts and hr-management-approver.
             var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{SepPath}");
             Assert.NotNull(response);
-            E2eHttp.EnsureNotServerError(response!, "SEP-F2");
+            await E2eHttp.EnsureRoleForbiddenAsync(response!, "SEP-F2");
             failed = false;
         }
         finally

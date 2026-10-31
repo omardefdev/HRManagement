@@ -46,8 +46,11 @@
     {
       "username": "e2e-outsider-b",
       "enabled": true,
+      "emailVerified": true,
+      "firstName": "E2E",
+      "lastName": "OutsiderB",
       "credentials": [{ "type": "password", "value": "e2e-OutsiderB-1!", "temporary": false }],
-      "realmRoles": ["hr-core"],
+      "realmRoles": ["hr-core", "offline_access"],
       "attributes": { "tenant_id": ["a0000002-0000-4000-8000-000000000001"] }
     },
     {

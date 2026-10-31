@@ -23,6 +23,27 @@ public static class E2eEnv
         url.Contains(":5000", StringComparison.OrdinalIgnoreCase)
         || url.Contains(":5200", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>A page on the GATEWAY_BASE_URL origin other than the OIDC callback (IsKeycloakLoginUrl matches /signin-oidc too).</summary>
+    public static bool IsGatewayPageUrl(string url) =>
+        TryGetGatewayPath(url, out var path) && !path.StartsWith(OidcCallbackPath, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The gateway's OIDC callback, where Keycloak posts the authorization code back.</summary>
+    public static bool IsGatewayOidcCallbackUrl(string url) =>
+        TryGetGatewayPath(url, out var path) && path.StartsWith(OidcCallbackPath, StringComparison.OrdinalIgnoreCase);
+
+    private const string OidcCallbackPath = "/signin-oidc";
+
+    private static bool TryGetGatewayPath(string url, out string path)
+    {
+        path = "";
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || !Uri.TryCreate(BaseUrl, UriKind.Absolute, out var gateway)
+            || Uri.Compare(uri, gateway, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) != 0)
+            return false;
+        path = uri.AbsolutePath;
+        return true;
+    }
+
     public static string ArtifactsDir
     {
         get
@@ -95,6 +116,24 @@ public static class E2eHttp
         Assert.True(
             response.Status is 401 or 403 or 302,
             $"{context}: expected 401/403/302 for unauthenticated/unauthorized, got {response.Status}");
+    }
+
+    /// <summary>
+    /// A signed-in user without the path's role: the gateway answers 403 "missing role for this module" itself. A challenge
+    /// (302/401) means the session is gone, and its other 403s (tenant claim, module entitlement) refuse for another reason.
+    /// </summary>
+    public static async Task EnsureRoleForbiddenAsync(IResponse response, string context) =>
+        EnsureRoleForbidden(response.Status, await response.TextAsync(), context);
+
+    public static async Task EnsureRoleForbiddenAsync(IAPIResponse response, string context) =>
+        EnsureRoleForbidden(response.Status, await response.TextAsync(), context);
+
+    private static void EnsureRoleForbidden(int status, string body, string context)
+    {
+        EnsureNotServerError(status, context);
+        Assert.True(
+            status == 403 && body.Contains("missing role for this module", StringComparison.Ordinal),
+            $"{context}: expected the gateway's 403 \"missing role for this module\" for a signed-in user without the role, got {status}: {body[..Math.Min(body.Length, 200)]}");
     }
 }
 
