@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.SharedKernel.CodeGeneration;
 using Microsoft.EntityFrameworkCore;
@@ -7,18 +8,42 @@ using Records.Archive.Infrastructure.Data;
 
 namespace Records.Archive.Infrastructure.Consumers;
 
+/// <summary>PLAN-37 (§5): counts archive events that could not get a reference number (they are retried, not dropped).</summary>
+public static class ArchiveReferenceMetrics
+{
+    public const string MeterName = "HRManagement.RecordsArchive";
+    public const string FailuresCounterName = "archive_reference_failures_total";
+
+    private static readonly Meter Meter = new(MeterName);
+
+    public static readonly Counter<long> Failures = Meter.CreateCounter<long>(
+        FailuresCounterName,
+        unit: "{event}",
+        description: "Archive events whose reference number HR.Core could not issue; the message is retried, then dead-lettered.");
+}
+
 internal static class ArchiveReferenceFactory
 {
-    public static async Task<string?> CreateReferenceAsync(
+    /// <summary>
+    /// PLAN-37 (§5, G-COD-06): the archive reference is required. When HR.Core cannot issue it the call throws
+    /// <see cref="CodeGenerationUnavailableException"/>, so the consumer retries and then moves the message to
+    /// <c>_error</c>; it never acknowledges a message without an <see cref="ArchiveItem"/>.
+    /// </summary>
+    public static async Task<string> CreateReferenceAsync<TEvent>(
         ICodeGenerationClient codeClient,
         string entityPrefix,
         CancellationToken ct)
     {
-        var (ok, code, _) = await CodeGenerationGateway.GenerateOrErrorAsync(
-            codeClient,
-            CodeGenerationRequests.ArchiveReference(entityPrefix),
-            ct);
-        return ok ? code : null;
+        try
+        {
+            var result = await codeClient.GenerateRequiredAsync(CodeGenerationRequests.ArchiveReference(entityPrefix), ct);
+            return result.Code;
+        }
+        catch (CodeGenerationUnavailableException)
+        {
+            ArchiveReferenceMetrics.Failures.Add(1, new KeyValuePair<string, object?>("event_type", typeof(TEvent).Name));
+            throw;
+        }
     }
 
     public static async Task<bool> ExistsByTitleAsync(

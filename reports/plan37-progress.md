@@ -94,3 +94,17 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P4
 - status: in progress
+- Decisions:
+  - D17: CodeGenerationUnavailableException derives from Exception (not in the bus ignore list). ICodeGenerationClient
+    gains GenerateRequiredAsync as a default interface method (fakes keep compiling); CodeGenerationClient implements it
+    with the HTTP status. ArchiveReferenceFactory.CreateReferenceAsync<TEvent> uses it, counts
+    archive_reference_failures_total{event_type} (meter HRManagement.RecordsArchive, exported) and rethrows; the seven
+    "reference is null -> return" sites are gone. The bus retry policy is now one public method
+    (MassTransitExtensions.ConfigureMessageRetry) that the test harness uses as well.
+- Tests: unit 4428/4428 (Int037ArchiveConsumerTests: 7 consumers x {throw, no row, counter} and {one row on redelivery});
+  integration Int037ArchiveRetryIntegrationTests: 1 + 2 retries, Fault<ILeaveApproved>, 0 rows; replay twice after
+  recovery = exactly 1 row.
+- P4 Finished (UTC): 2026-10-31T23:28:58.4771730Z
+
+## P5
+- status: in progress

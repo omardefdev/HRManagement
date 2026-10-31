@@ -124,35 +124,42 @@ public static class MassTransitExtensions
         IRabbitMqBusFactoryConfigurator cfg,
         IConfiguration configuration)
     {
+        if (configuration.GetValue("MassTransit:RetryCount", 3) <= 0)
+            return;
+
+        cfg.UseMessageRetry(r => ConfigureMessageRetry(r, configuration));
+    }
+
+    /// <summary>
+    /// The message retry policy of every service bus (also used by the MassTransit test harness, PLAN-37): transient
+    /// faults are retried, permanent business/validation faults go straight to <c>*_error</c>.
+    /// </summary>
+    public static void ConfigureMessageRetry(IRetryConfigurator r, IConfiguration configuration)
+    {
         var retryCount = configuration.GetValue("MassTransit:RetryCount", 3);
         var retryIntervalSeconds = Math.Max(1, configuration.GetValue("MassTransit:RetryIntervalSeconds", 5));
-        if (retryCount <= 0)
-            return;
 
         // NFR-002: prefer exponential intervals with jitter (MassTransit Exponential uses randomized delays).
         // Set MassTransit:RetryUseJitter=false to restore fixed Interval for lab A/B.
         var useJitter = configuration.GetValue("MassTransit:RetryUseJitter", true);
 
-        cfg.UseMessageRetry(r =>
+        if (useJitter)
         {
-            if (useJitter)
-            {
-                var min = TimeSpan.FromMilliseconds(retryIntervalSeconds * 500d);
-                var max = TimeSpan.FromSeconds(retryIntervalSeconds * Math.Max(4, retryCount));
-                var delta = TimeSpan.FromSeconds(retryIntervalSeconds);
-                r.Exponential(retryCount, min, max, delta);
-            }
-            else
-            {
-                r.Interval(retryCount, TimeSpan.FromSeconds(retryIntervalSeconds));
-            }
+            var min = TimeSpan.FromMilliseconds(retryIntervalSeconds * 500d);
+            var max = TimeSpan.FromSeconds(retryIntervalSeconds * Math.Max(4, retryCount));
+            var delta = TimeSpan.FromSeconds(retryIntervalSeconds);
+            r.Exponential(retryCount, min, max, delta);
+        }
+        else
+        {
+            r.Interval(retryCount, TimeSpan.FromSeconds(retryIntervalSeconds));
+        }
 
-            // Permanent business/validation faults → *_error. Transient → retry.
-            r.Ignore<InvalidOperationException>();
-            r.Ignore<ArgumentException>();
-            r.Ignore<ArgumentNullException>();
-            r.Ignore<UnauthorizedAccessException>();
-        });
+        // Permanent business/validation faults → *_error. Transient → retry.
+        r.Ignore<InvalidOperationException>();
+        r.Ignore<ArgumentException>();
+        r.Ignore<ArgumentNullException>();
+        r.Ignore<UnauthorizedAccessException>();
     }
 
     private static void ApplyOutboundCorrelation(PublishContext context)

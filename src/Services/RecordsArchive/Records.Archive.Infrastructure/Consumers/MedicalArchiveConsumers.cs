@@ -22,8 +22,7 @@ public class MedicalRecommendationIssuedArchiveConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDREC", context.CancellationToken);
-        if (reference is null) return;
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalRecommendationIssued>(codeClient, "MEDREC", context.CancellationToken);
 
         logger.LogInformation(
             "Records.Archive: MedicalRecommendationIssued EmployeeId={EmployeeId} Ref={Reference}",
@@ -51,8 +50,7 @@ public class MedicalDecisionIssuedArchiveConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDDEC", context.CancellationToken);
-        if (reference is null) return;
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalDecisionIssued>(codeClient, "MEDDEC", context.CancellationToken);
 
         logger.LogInformation(
             "Records.Archive: MedicalDecisionIssued EmployeeId={EmployeeId} Ref={Reference}",

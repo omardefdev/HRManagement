@@ -101,6 +101,9 @@ public class LeaveAdvanceConsumersTests
         var codeClient = new Mock<ICodeGenerationClient>();
         codeClient.Setup(c => c.GenerateAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CodeGenerationResult { Code = "ARC-LEAVE-2026-00001" });
+        // PLAN-37: archive consumers use the required form (it throws instead of returning null).
+        codeClient.Setup(c => c.GenerateRequiredAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CodeGenerationResult { Code = "ARC-LEAVE-2026-00001" });
         var consumer = new ArchiveLeaveApprovedConsumer(db, codeClient.Object);
 
         var message = Mock.Of<ILeaveApproved>(m =>
