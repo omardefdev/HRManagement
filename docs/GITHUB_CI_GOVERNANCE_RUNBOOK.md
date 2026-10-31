@@ -12,7 +12,7 @@ below replaces it there.
 | `CI` | build-and-test (the 88 steps of `scripts/ci/steps.json`) | `ci.yml` | yes |
 | `CodeQL` | codeql + SARIF gate (`scripts/ci/codeql-sarif-gate.ps1`) | `ci.yml` | yes |
 | `Gitleaks` | gitleaks over the whole history (`scripts/ci/gitleaks.sh`) | `ci.yml` | yes |
-| `E2E` | e2e | `ci.yml` | after two consecutive green runs (D-QA-2; `pendingRequiredChecks` in the protection file) |
+| `E2E` | e2e | `ci.yml` | yes since PLAN-35 P7 (D-QA-2: green twice in a row on main, runs 41130907741 and 41140221205) |
 | `Acceptance` | acceptance | `ci.yml` | no: disabled until PLAN-41 (`ENABLE_ACCEPTANCE_JOB`, obligation `CI-ACCEPTANCE-DISABLED`) |
 
 The protection is code: [`docs/scm-governance/branch-protection-main.json`](scm-governance/branch-protection-main.json).

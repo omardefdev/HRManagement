@@ -6,14 +6,11 @@
     "contexts": [
       "CI",
       "CodeQL",
-      "Gitleaks"
+      "Gitleaks",
+      "E2E"
     ]
   },
   "pendingRequiredChecks": [
-    {
-      "context": "E2E",
-      "condition": "D-QA-2: added to contexts after two consecutive green runs of the E2E job"
-    },
     {
       "context": "Acceptance",
       "condition": "PLAN-41: added when the Acceptance job is enabled and green (CI-ACCEPTANCE-DISABLED)"

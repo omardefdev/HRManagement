@@ -322,3 +322,28 @@ Owner action done (UTC): 2026-10-30T22:46:30.3057635Z - the owner told Claude to
 - 8: plan35-negative-check pushed through the guard (gitleaks + forbidden scans).
 - 9: negative PR https://github.com/omardefdev/HRManagement/pull/25 opened.
 - `scm001-branch-protection-validate.ps1 -CheckLiveGitHub`: OK (live protection unavailable, local guard installed, exception SCM-NO-GITHUB-PROTECTION).
+
+| Run | Head | Workflow | Start (UTC) | End (UTC) | Result | Jobs (minutes) |
+|-----|------|----------|-------------|-----------|--------|----------------|
+| [41140221205](https://github.com/omardefdev/HRManagement/actions/runs/41140221205) | 052b506 (main push) | ci | 22:45:38 | 23:52:10 (67 min) | **success** | CI **ok** 44.9; CodeQL **ok** 18.9; Gitleaks **ok** 1.8; notice ok 0.2; E2E **ok** 21.6 (57/0/0; "PostgreSQL accepts TCP connections after 5 check(s)", stack healthy on attempt 1); Acceptance skipped. ~87 min |
+| [41140244680](https://github.com/omardefdev/HRManagement/actions/runs/41140244680) | 052b506 (dispatch) | e2e-journeys | 22:45:52 | 23:21:35 | failure | journeys **ok** 25.9; recruitment-journey **fail** 35.6: lab journey "Passed: 1, skipped: 0", then "Switch ... prod-like profile": 'required variable ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET is missing a value' -> no prod-like results. ~62 min |
+| [41140318433](https://github.com/omardefdev/HRManagement/actions/runs/41140318433) | 5bff180 (PR #25) | ci | 22:46:34 | 23:18:00 | failure (expected) | CI **fail** 18.2 (Unit tests: Failed 1 / Passed 4208, only Plan35NegativeCheckTests); CodeQL ok 31.4; Gitleaks ok 1.7; notice ok 0.1; E2E + Acceptance skipped. ~51 min |
+| [41140248696](https://github.com/omardefdev/HRManagement/actions/runs/41140248696) | 052b506 (dispatch) | dated-obligations | 22:45:54 | 22:46:12 | success | <1 |
+
+Negative check (AC-QA-35): PR [#25](https://github.com/omardefdev/HRManagement/pull/25) showed CI=FAILURE, mergeStateStatus
+UNSTABLE, mergeable MERGEABLE (no GitHub protection on the private free repo - SCM-NO-GITHUB-PROTECTION; the local
+guard covers direct pushes only, so a red PR is blocked by process, not by GitHub). Closed unmerged with a comment;
+the remote branch plan35-negative-check is kept as evidence (deletion left to the owner).
+
+D-QA-2: E2E green twice in a row on main (41130907741, 41140221205) -> E2E moved from pendingRequiredChecks to
+required_status_checks.contexts in docs/scm-governance/branch-protection-main.json (fixture live-match.json and the
+runbook table follow). Scm001/lint/parity tests 29/29; validator -CheckLiveGitHub OK.
+
+Recruitment-journey fix `4d1b472` on release: the prod-like switch runs in pwsh and imports the acceptance
+environment with scripts/acceptance-local-env.ps1 (the only `:?` variable of the acceptance compose files).
+actionlint no findings, lint/parity 12/12. Under P-5 it reaches main with the final-report PR (P8); it is verified
+first by dispatching e2e-journeys on the release ref.
+
+OWNER ACTION (P7 round 2) - Waiting for owner (UTC): 2026-10-31T00:00:29.5293305Z
+1. `git push origin release/plan-35-first-push`
+2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
