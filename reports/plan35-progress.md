@@ -419,3 +419,4 @@ OWNER ACTION (P8) - Waiting for owner (UTC): 2026-10-31T03:00:11.241843700Z
 1. `git push -u origin docs/plan-35-final-report`
 2. `gh pr create --base main --head docs/plan-35-final-report --title "PLAN-35: remote CI green, protection, gap status lines, final report" --body-file reports/plan35-final-report.md`
 3. after CI, CodeQL, Gitleaks and E2E are green on the PR: `gh pr merge --merge`
+Owner action done (UTC): 2026-10-31T05:50:34.1914527Z (owner: "Yes, run them" - Claude pushes, opens the PR and merges after green checks)
