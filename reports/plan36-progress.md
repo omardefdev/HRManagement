@@ -308,3 +308,19 @@ Owner action done (UTC): 2026-10-31T16:34:35Z — owner replied «تم»; decisi
   denied (publickey); hrm password-only -> Permission denied (publickey). Undo:
   `ssh -o User=hrm hrm-vps "sudo bash /root/host-setup.sh --undo-harden-ssh"` (or VNC steps).
   `/root/host-setup.sh` kept until the release bundle (with its own copy) is on the server.
+- 16:38Z server `.env` generated on the server (`/opt/hrm/shared/.env`, 600, hrm, 36 keys; secrets by
+  `openssl rand`, never printed; checked by key names only). Undo: `rm /opt/hrm/shared/.env`.
+- DNS: `hr.161-97-185-71.sslip.io` and `sso.161-97-185-71.sslip.io` -> 161.97.185.71 (1.1.1.1).
+- 16:37Z GHCR build+push started for de4ffab786c0 (batch 1 took ~14 min: the acceptance rebuild had evicted the cache).
+
+## OWNER ACTION (P7 steps 3.5 and 4.3)
+
+Waiting for owner (UTC): 2026-10-31T17:12:20Z
+
+1. Switch the SSH alias to `hrm` (root login is now refused), in your own PowerShell:
+   `(Get-Content "$env:USERPROFILE\.ssh\config") -replace '^(\s*User\s+)root\s*$','${1}hrm' | Set-Content -Encoding ascii "$env:USERPROFILE\.ssh\config"`
+   (only if the file holds just the hrm-vps block; otherwise edit its User line by hand). Then `ssh hrm-vps whoami` = hrm.
+2. Log the server in to GHCR with the read-only classic token (paste it at the prompt in your terminal):
+   `ssh -t hrm-vps "docker login ghcr.io -u omardefdev"`
+3. Root password: `passwd -S root` reports the last change on 2026-10-30, before the exposure. Change it now:
+   `ssh -t hrm-vps "sudo passwd root"`
