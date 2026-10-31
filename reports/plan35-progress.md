@@ -442,3 +442,13 @@ main's latest push run is red on a required check (E2E). Owner decision needed:
 (b) quarantine SEP_F1 and SEP_H1 in tests/e2e/quarantine.json with an issue and expiry, through a PR;
 (c) investigate locally first (stack up, time /ui/hr-contracts/SeparationWizard cold and warm) before any rerun.
 Owner action done (UTC): 2026-10-31T08:42:46.2607869Z - owner answered «Rerun failed job»: option (a). Claude ran `gh run rerun 41179057892 --failed` (E2E job only; CI, CodeQL and Gitleaks keep their green results).
+Rerun result: [41179057892 attempt 2](https://github.com/omardefdev/HRManagement/actions/runs/41179057892/attempts/2) E2E
+08:42:53-09:12:33 **success**, 57/0/0 (SeparationJourneyE2ETests included); CI, CodeQL and Gitleaks kept their attempt 1
+results. main's latest push run (dfd37b8) is green; the BLOCKED above is closed by option (a).
+SeparationWizard timeout: 2 of the last 5 E2E runs (41149141375 SEP_H1, 41179057892 attempt 1 SEP_F1); every other run
+of the same trees passed. Classified flaky, not quarantined. Open follow-up: find the cause (hr-contracts-web latency or a
+hang behind the gateway) with the stack logs, which the E2E job does not upload today.
+Actions minutes for the closing PR, the post-merge run and the rerun: 105 + 111 + 30 = 246 (job times rounded up per
+job; only the ci workflow ran on 5015308 and dfd37b8). Plan total about 1,460 of the 2,000 monthly minutes.
+These post-merge notes are local only (docs/plan-35-post-merge, merged into local main); not pushed.
+P8 Finished (UTC): 2026-10-31T09:15:12.5613682Z
