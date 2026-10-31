@@ -387,3 +387,4 @@ actionlint no findings, WorkflowYamlLintTests 6/6. Merged into docs/plan-35-fina
 OWNER ACTION (P7 round 4) - Waiting for owner (UTC): 2026-10-31T01:21:49.391572100Z
 1. `git push origin release/plan-35-first-push`
 2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
+Owner action done (UTC): 2026-10-31T02:05:57.0384865Z - on the owner's instruction (button «Yes, run them») Claude pushed release (0ef97be -> eacc914) and dispatched e2e-journeys on the release ref: run 41158446834.
