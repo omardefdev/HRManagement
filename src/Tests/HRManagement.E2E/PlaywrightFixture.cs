@@ -53,11 +53,46 @@ public sealed class PlaywrightFixture : IAsyncLifetime
         });
     }
 
+    /// <summary>
+    /// Playwright's own timeout did not end a screenshot of a page whose main thread was stuck (locally it waited over
+    /// 3 minutes); the trace stop and the context close that follow return at once.
+    /// </summary>
+    private static readonly TimeSpan ScreenshotTimeout = TimeSpan.FromSeconds(15);
+
     public async Task ScreenshotOnFailureAsync(IPage page, string testName, bool failed)
     {
         if (!failed) return;
         var path = Path.Combine(E2eEnv.ArtifactsDir, $"{Sanitize(testName)}.png");
-        await page.ScreenshotAsync(new() { Path = path, FullPage = true });
+        try
+        {
+            await page.ScreenshotAsync(new() { Path = path, FullPage = true }).WaitAsync(ScreenshotTimeout);
+        }
+        catch (Exception ex) when (ex is PlaywrightException or TimeoutException)
+        {
+            // A crashed, closed or stuck page has no screenshot; the trace is still saved and the test's own failure reported.
+        }
+    }
+
+    /// <summary>
+    /// Runs a browser test on a new traced context and page. A failing test leaves {testName}.png (full page) and
+    /// {testName}.zip (the Playwright trace, opened with playwright.ps1 show-trace) in E2eEnv.ArtifactsDir, which the E2E
+    /// job of ci.yml uploads as e2e-traces; a passing test leaves nothing (PLAN-35 defect 9).
+    /// </summary>
+    public async Task RunTracedAsync(string testName, Func<IBrowserContext, IPage, Task> test)
+    {
+        await using var context = await NewContextWithTracingAsync(testName);
+        var page = await context.NewPageAsync();
+        var failed = true;
+        try
+        {
+            await test(context, page);
+            failed = false;
+        }
+        finally
+        {
+            await ScreenshotOnFailureAsync(page, testName, failed);
+            await StopTracingOnFailureAsync(context, testName, failed);
+        }
     }
 
     /// <summary>From submitting the Keycloak form to a gateway page; CI personas take 2-7 s. Known stops fail at once.</summary>

@@ -2,8 +2,12 @@ using Microsoft.Playwright;
 
 namespace HRManagement.E2E;
 
+[Collection("Playwright")]
 public class GatewayAuthE2ETests
 {
+    private readonly PlaywrightFixture _fx;
+    public GatewayAuthE2ETests(PlaywrightFixture fx) => _fx = fx;
+
     private static bool ShouldRun =>
         string.Equals(Environment.GetEnvironmentVariable("RUN_PLAYWRIGHT_E2E"), "true", StringComparison.OrdinalIgnoreCase);
 
@@ -15,15 +19,16 @@ public class GatewayAuthE2ETests
     {
         Skip.IfNot(ShouldRun, "Set RUN_PLAYWRIGHT_E2E=true to run E2E tests.");
 
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-        var page = await browser.NewPageAsync();
-        await page.GotoAsync(BaseUrl, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        // GatewayE2ETests has a test of the same name; the class name keeps their trace files apart.
+        await _fx.RunTracedAsync($"{nameof(GatewayAuthE2ETests)}.{nameof(Gateway_login_redirect_smoke)}", async (_, page) =>
+        {
+            await page.GotoAsync(BaseUrl, new() { WaitUntil = WaitUntilState.DOMContentLoaded });
 
-        var finalUrl = page.Url;
-        Assert.True(
-            E2eEnv.IsGatewayUrl(finalUrl) || E2eEnv.IsKeycloakLoginUrl(finalUrl),
-            $"Expected gateway or Keycloak redirect, got {finalUrl}");
+            var finalUrl = page.Url;
+            Assert.True(
+                E2eEnv.IsGatewayUrl(finalUrl) || E2eEnv.IsKeycloakLoginUrl(finalUrl),
+                $"Expected gateway or Keycloak redirect, got {finalUrl}");
+        });
     }
 
     [SkippableFact]
@@ -39,24 +44,23 @@ public class GatewayAuthE2ETests
             return;
         }
 
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-        var page = await browser.NewPageAsync();
-
-        await page.GotoAsync(BaseUrl);
-        if (E2eEnv.IsKeycloakLoginUrl(page.Url))
+        await _fx.RunTracedAsync(nameof(Sso_across_ui_paths_after_login), async (_, page) =>
         {
-            await page.FillAsync("input[name='username']", user);
-            await page.FillAsync("input[name='password']", password);
-            await page.ClickAsync("input[type='submit'], button[type='submit']");
-            await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
-        }
+            await page.GotoAsync(BaseUrl);
+            if (E2eEnv.IsKeycloakLoginUrl(page.Url))
+            {
+                await page.FillAsync("input[name='username']", user);
+                await page.FillAsync("input[name='password']", password);
+                await page.ClickAsync("input[type='submit'], button[type='submit']");
+                await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
+            }
 
-        await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/hr-core/");
-        Assert.False(E2eEnv.IsKeycloakLoginUrl(page.Url), page.Url);
+            await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/hr-core/");
+            Assert.False(E2eEnv.IsKeycloakLoginUrl(page.Url), page.Url);
 
-        await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/payroll/");
-        Assert.False(E2eEnv.IsKeycloakLoginUrl(page.Url), page.Url);
+            await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/payroll/");
+            Assert.False(E2eEnv.IsKeycloakLoginUrl(page.Url), page.Url);
+        });
     }
 
     [SkippableFact]
@@ -72,23 +76,22 @@ public class GatewayAuthE2ETests
             return;
         }
 
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-        var page = await browser.NewPageAsync();
-
-        await page.GotoAsync(BaseUrl);
-        if (E2eEnv.IsKeycloakLoginUrl(page.Url))
+        await _fx.RunTracedAsync(nameof(Logout_clears_session), async (_, page) =>
         {
-            await page.FillAsync("input[name='username']", user);
-            await page.FillAsync("input[name='password']", password);
-            await page.ClickAsync("input[type='submit'], button[type='submit']");
-            await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
-        }
+            await page.GotoAsync(BaseUrl);
+            if (E2eEnv.IsKeycloakLoginUrl(page.Url))
+            {
+                await page.FillAsync("input[name='username']", user);
+                await page.FillAsync("input[name='password']", password);
+                await page.ClickAsync("input[type='submit'], button[type='submit']");
+                await page.WaitForURLAsync(u => E2eEnv.IsGatewayUrl(u), new() { Timeout = 30_000 });
+            }
 
-        await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/Account/Logout");
-        await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/hr-core/");
-        Assert.True(
-            E2eEnv.IsKeycloakLoginUrl(page.Url),
-            $"Expected logout redirect to Keycloak, got {page.Url}");
+            await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/Account/Logout");
+            await page.GotoAsync($"{BaseUrl.TrimEnd('/')}/ui/hr-core/");
+            Assert.True(
+                E2eEnv.IsKeycloakLoginUrl(page.Url),
+                $"Expected logout redirect to Keycloak, got {page.Url}");
+        });
     }
 }

@@ -35,11 +35,8 @@ public class HireJourneyE2ETests
         var outsider = E2eSeed.RequirePersona("outsider-tenant-b");
         var password = E2eSeed.ResolvePassword(outsider);
 
-        await using var context = await _fx.NewContextWithTracingAsync(nameof(HIR_F2_Outsider_Cannot_Open_Hire_As_Authorized));
-        var failed = true;
-        try
+        await _fx.RunTracedAsync(nameof(HIR_F2_Outsider_Cannot_Open_Hire_As_Authorized), async (context, page) =>
         {
-            var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, outsider.Username, password);
 
@@ -59,12 +56,7 @@ public class HireJourneyE2ETests
                     new() { MaxRedirects = 0 });
                 await E2eHttp.EnsureRoleForbiddenAsync(response, $"HIR-F2 {action}");
             }
-            failed = false;
-        }
-        finally
-        {
-            await _fx.StopTracingOnFailureAsync(context, nameof(HIR_F2_Outsider_Cannot_Open_Hire_As_Authorized), failed);
-        }
+        });
     }
 
     [Trait("Category", "Journey")]
@@ -89,11 +81,8 @@ public class HireJourneyE2ETests
         var maker = E2eSeed.RequirePersona("maker-contracts");
         var password = E2eSeed.ResolvePassword(maker);
 
-        await using var context = await _fx.NewContextWithTracingAsync(nameof(HIR_H1_Authorized_Maker_Reaches_Hire_Surface));
-        var failed = true;
-        try
+        await _fx.RunTracedAsync(nameof(HIR_H1_Authorized_Maker_Reaches_Hire_Surface), async (context, page) =>
         {
-            var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, maker.Username, password);
             var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{HirePath}",
@@ -104,13 +93,7 @@ public class HireJourneyE2ETests
             // FUN-001 deep assert: hire surface reachable; saga/checklist closure owned by integration + UAT pack.
             Assert.Contains("hr-contracts", page.Url, StringComparison.OrdinalIgnoreCase);
             Assert.True(response!.Ok || response.Status is >= 200 and < 500);
-            failed = false;
-            await _fx.ScreenshotOnFailureAsync(page, nameof(HIR_H1_Authorized_Maker_Reaches_Hire_Surface), failed: false);
-        }
-        finally
-        {
-            await _fx.StopTracingOnFailureAsync(context, nameof(HIR_H1_Authorized_Maker_Reaches_Hire_Surface), failed);
-        }
+        });
     }
 }
 
@@ -143,23 +126,15 @@ public class SeparationJourneyE2ETests
         E2eEnv.RequireEnabled();
         var outsider = E2eSeed.RequirePersona("outsider-tenant-b");
         var password = E2eSeed.ResolvePassword(outsider);
-        await using var context = await _fx.NewContextWithTracingAsync(nameof(SEP_F2_Unauthorized_Persona_Denied_Or_Challenged));
-        var failed = true;
-        try
+        await _fx.RunTracedAsync(nameof(SEP_F2_Unauthorized_Persona_Denied_Or_Challenged), async (context, page) =>
         {
-            var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, outsider.Username, password);
             // Signed in with hr-core only; Module.HrContracts admits hr-admin, hr-contracts and hr-management-approver.
             var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{SepPath}");
             Assert.NotNull(response);
             await E2eHttp.EnsureRoleForbiddenAsync(response!, "SEP-F2");
-            failed = false;
-        }
-        finally
-        {
-            await _fx.StopTracingOnFailureAsync(context, nameof(SEP_F2_Unauthorized_Persona_Denied_Or_Challenged), failed);
-        }
+        });
     }
 
     [Trait("Category", "Journey")]
@@ -182,11 +157,8 @@ public class SeparationJourneyE2ETests
         E2eEnv.RequireEnabled();
         var maker = E2eSeed.RequirePersona("maker-contracts");
         var password = E2eSeed.ResolvePassword(maker);
-        await using var context = await _fx.NewContextWithTracingAsync(nameof(SEP_H1_Authorized_Opens_Separation_Surface));
-        var failed = true;
-        try
+        await _fx.RunTracedAsync(nameof(SEP_H1_Authorized_Opens_Separation_Surface), async (context, page) =>
         {
-            var page = await context.NewPageAsync();
             await E2eEnv.EnsureGatewayReachableAsync(context.APIRequest);
             await _fx.LoginAsync(page, maker.Username, password);
             var response = await page.GotoAsync($"{E2eEnv.BaseUrl}{SepPath}");
@@ -195,11 +167,6 @@ public class SeparationJourneyE2ETests
             // FUN-002 deep assert: separation surface reachable; saga/checklist closure owned by integration + UAT pack.
             Assert.Contains("hr-contracts", page.Url, StringComparison.OrdinalIgnoreCase);
             Assert.True(response!.Ok || response.Status is >= 200 and < 500);
-            failed = false;
-        }
-        finally
-        {
-            await _fx.StopTracingOnFailureAsync(context, nameof(SEP_H1_Authorized_Opens_Separation_Surface), failed);
-        }
+        });
     }
 }

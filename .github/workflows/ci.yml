@@ -366,6 +366,9 @@ jobs:
           GATEWAY_BASE_URL: "http://localhost:5000"
           E2E_KEYCLOAK_USER: "hradmin"
           E2E_KEYCLOAK_PASSWORD: "HrAdmin123!"
+          # A failed browser test writes its Playwright trace and screenshot here (Upload Playwright traces). Absolute,
+          # because the test host runs in the project's bin directory and a relative path would stay there.
+          E2E_ARTIFACTS_DIR: ${{ github.workspace }}/artifacts/e2e-traces
           QUARANTINE_FILTER: ${{ steps.quarantine.outputs.filter }}
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
@@ -410,6 +413,17 @@ jobs:
         with:
           name: e2e-stack-logs
           path: artifacts/e2e-stack/
+          retention-days: 7
+          if-no-files-found: warn
+
+      # PlaywrightFixture.RunTracedAsync: each failed browser test leaves <test>.zip (its trace, opened with
+      # playwright.ps1 show-trace) and <test>.png (full-page screenshot) under artifacts/e2e-traces/<yyyyMMdd>/.
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces
+          path: artifacts/e2e-traces/
           retention-days: 7
           if-no-files-found: warn
 

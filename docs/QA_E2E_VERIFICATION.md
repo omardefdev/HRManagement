@@ -36,7 +36,7 @@ docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-co
 | Fail عند غياب المكدس مع العلم | `EnsureGatewayReachableAsync` |
 | 503/5xx ≠ نجاح | `E2eHttp.EnsureNotServerError` |
 | Seed إصداري 1.0.0 | `testdata/e2e/manifest.json` + `E2eSeedPackTests` |
-| Traces/screenshots | `PlaywrightFixture` → `TestResults/e2e-artifacts` |
+| Traces/screenshots | `PlaywrightFixture.RunTracedAsync` → `E2E_ARTIFACTS_DIR` (مسار مطلق): `artifacts/e2e-traces` في وظيفة `E2E` من `ci.yml` (الأثر `e2e-traces` عند الفشل)، و`TestResults/e2e-artifacts` في `e2e-journeys.yml` (ضمن `e2e-journey-artifacts`)؛ بلا المتغير تبقى تحت مجلد `bin` لمشروع الاختبار |
 | Nightly/pre-release | `e2e-journeys.yml` |
 | UAT | مرجع FUN-001..؛ ليس توقيع هذه البطاقة |
 
