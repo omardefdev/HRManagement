@@ -175,16 +175,21 @@ jobs:
           docker compose -p hrm-acceptance @composeArgs --profile full-stack up -d --no-deps --no-build --force-recreate --wait hr-core-web hr-contracts-web
           if ($LASTEXITCODE -ne 0) { throw "prod-like switch failed with exit code $LASTEXITCODE" }
           # The app services have no healthcheck, so --wait returns once the containers run; the first journey request got
-          # 502 from the gateway (run 41147863512). Wait until the gateway reaches both new upstreams (its loopback-only
-          # /health/upstreams/* routes, called from inside the gateway container).
-          foreach ($upstream in @("hr-core", "hr-contracts")) {
+          # 502 from the gateway (run 41147863512). Wait until each recreated service answers its own /health/ready
+          # (anonymous, the "ready" checks), called inside its container. The gateway's /health/upstreams/* answered 500
+          # for a loopback caller throughout (run 41151844485), so it is not used as the readiness signal.
+          foreach ($service in @("hr-core-web", "hr-contracts-web")) {
             $ready = $false
             for ($i = 1; $i -le 60; $i++) {
-              docker compose -p hrm-acceptance @composeArgs exec -T hr-gateway curl -fsS -o /dev/null "http://localhost:8080/health/upstreams/$upstream"
-              if ($LASTEXITCODE -eq 0) { $ready = $true; Write-Host "gateway reaches $upstream after $i check(s)"; break }
+              docker compose -p hrm-acceptance @composeArgs exec -T $service curl -fsS -o /dev/null "http://localhost:8080/health/ready"
+              if ($LASTEXITCODE -eq 0) { $ready = $true; Write-Host "$service ready after $i check(s)"; break }
               Start-Sleep -Seconds 3
             }
-            if (-not $ready) { throw "gateway does not reach $upstream after the prod-like switch" }
+            if (-not $ready) {
+              docker compose -p hrm-acceptance @composeArgs ps -a $service
+              docker compose -p hrm-acceptance @composeArgs logs $service --tail 80
+              throw "$service is not ready after the prod-like switch"
+            }
           }
 
       - name: Run requisition-to-hire journey (prod-like)
