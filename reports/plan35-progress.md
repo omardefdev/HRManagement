@@ -347,3 +347,4 @@ first by dispatching e2e-journeys on the release ref.
 OWNER ACTION (P7 round 2) - Waiting for owner (UTC): 2026-10-31T00:00:29.5293305Z
 1. `git push origin release/plan-35-first-push`
 2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
+Owner action done (UTC): 2026-10-31T00:01:21.3448219Z - on the owner's instruction («نفذها انت») Claude pushed release (052b506 -> 4d1b472) through the guard and dispatched e2e-journeys on the release ref: run 41147863512.
