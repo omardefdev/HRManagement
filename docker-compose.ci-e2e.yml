@@ -1,8 +1,10 @@
 # Overlay for the E2E job of .github/workflows/ci.yml only (follow-up to PLAN-35).
-# The runner sends every browser and API request of the suite from one client IP, so the gateway's per-IP limit (code
-# default 120 per minute, queue 20) held requests until the next one-minute window: up to ~41 s, past Playwright's 30 s
-# timeout (SEP_F1 in run 41179057892, SEP_H1 in run 41149141375). 2000 is the clamp maximum and the acceptance stack's
-# value (docker-compose.acceptance.yml); the product default stays 120.
+# The runner sends every browser and API request of the suite from one client IP, so the suite does not fit the
+# gateway's per-IP limit (code default 120 per minute). With the old queue of 20 the limiter held requests until the
+# next one-minute window: up to ~41 s, past Playwright's 30 s timeout (SEP_F1 in run 41179057892, SEP_H1 in run
+# 41149141375). Since the fix for final report defect 15 it answers 429 at once instead, which fails the test just the
+# same. 2000 is the clamp maximum and the acceptance stack's value (docker-compose.acceptance.yml); the product default
+# stays 120.
 services:
   hr-gateway:
     environment:

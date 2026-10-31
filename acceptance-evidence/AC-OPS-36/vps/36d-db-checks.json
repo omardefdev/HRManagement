@@ -1,0 +1,7 @@
+{
+  "table": "gateway_audit_entries",
+  "caddyRemoteIp": "87.249.x.x",
+  "genuineAuditIp": "87.249.x.x",
+  "forgedRequestAuditIp": "87.249.x.x",
+  "forgedHeader": "X-Forwarded-For: 1.2.3.4"
+}

@@ -52,8 +52,20 @@ Operational checklist for `HRManagement.Gateway` as the single system entry poin
 - Keep rate limiting enabled at gateway edge.
 - Keep HSTS and security headers enabled in production.
 
+## Rate Limiting
+
+- One fixed one-minute window per client IP: `RateLimiting:PermitLimitPerMinute` (default 120, clamped to 30-2000;
+  the acceptance and CI E2E stacks use 2000). Code: `Services/GatewayRateLimiting.cs`.
+- The client IP is `RemoteIpAddress`. With `UseForwardedHeaders` on, it comes from `X-Forwarded-For` only when the peer
+  is in `ForwardedHeaders:KnownProxies` / `KnownNetworks` (default: loopback and private ranges). If clients on a private
+  range can reach the gateway directly, list the edge proxy explicitly, or they can choose their own window.
+- Over the limit the gateway answers `429` at once (no queue) with `Retry-After: 60` and a short Arabic text, and logs
+  one warning: `Gateway rate limit: /path answered 429 by the global limiter (ip partition, 120 per minute), retry after
+  60 s`. The address and the user are not logged.
+- Many 429s from one office usually mean many users behind one NAT address (PLAN-36 §4 splits signed-in users by user).
+
 ## Rollout Strategy
 
 1. Pilot users with `hr-core` enabled only (`Gateway:EnabledModules`).
 2. Gradually enable additional modules by slug.
-3. Monitor 401/403/502/503 and latency before widening rollout.
+3. Monitor 401/403/429/502/503 and latency before widening rollout.

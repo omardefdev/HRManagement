@@ -1,7 +1,7 @@
 # PLAN-36 — إقلاع ملف الإنتاج على خادم واحد لعرض واختبار (OPS-A)
 
 **Scope:** OPS — [دراسة الفجوات](../PRG_002_OPERATIONS_GAP_STUDY.md): G-OPS-01، G-OPS-10 (TLS والتعرض والذاكرة ومحدِّد المعدل والترويسات الممررة)، G-OPS-15  
-**Status:** Proposed — 2026-10-30  
+**Status:** Done — 2026-10-31 (AC-OPS-36a..k Pass محلياً وعلى الخادم الحقيقي؛ انظر «ملاحظات التنفيذ والانحرافات» و[التقرير](../../reports/plan36-final-report.md))  
 **Priority:** P0  
 **Depends on:** PLAN-34 (خط أساس قابل للدفع)  
 **Related cards:** DEP-001، SEC-001، IAM-001 (جانب الحافة)، OPS-001، REL-001 (completion-backlog 01/03/04)
@@ -140,8 +140,8 @@
 ### 4. محدِّد المعدل لقاعة عرض خلف NAT (G-OPS-10)
 
 **المشكلة:**
-- الحد العام 120 طلباً/دقيقة مقسوماً على `RemoteIpAddress` ([gateway Program.cs:102,155-168](../../src/Gateway/HRManagement.Gateway/Program.cs)).
-- المحدِّد يعمل قبل المصادقة ([:210](../../src/Gateway/HRManagement.Gateway/Program.cs) مقابل [:240](../../src/Gateway/HRManagement.Gateway/Program.cs))، ويشمل أصول الوحدات عبر YARP: نحو 13 أصلاً في `_HrSharedLayout`، و[_HrSharedLayout.cshtml:17-25,166-199](../../src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml).
+- الحد العام 120 طلباً/دقيقة مقسوماً على `RemoteIpAddress` ([GatewayRateLimiting.cs](../../src/Gateway/HRManagement.Gateway/Services/GatewayRateLimiting.cs)، [gateway Program.cs:100,154](../../src/Gateway/HRManagement.Gateway/Program.cs)). بلا طابور منذ إصلاح العيب 15 لـ PLAN-35: الطلب الزائد يُرد بـ 429 فوراً.
+- المحدِّد يعمل قبل المصادقة ([:189](../../src/Gateway/HRManagement.Gateway/Program.cs) مقابل [:219](../../src/Gateway/HRManagement.Gateway/Program.cs))، ويشمل أصول الوحدات عبر YARP: نحو 13 أصلاً في `_HrSharedLayout`، و[_HrSharedLayout.cshtml:17-25,166-199](../../src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml).
 - مكدّس القبول رفعه إلى 2000 ليعمل ([docker-compose.acceptance.yml:215](../../docker-compose.acceptance.yml)).
 
 **التصميم:**
@@ -150,7 +150,7 @@
 |----------|--------|--------|
 | `GatewayRateLimitPartitioner` | `src/Gateway/HRManagement.Gateway/Services/GatewayRateLimitPartitioner.cs` (جديد) | مفتاح التقسيم: `user:{sub}` للمصادَق، و`ip:{RemoteIpAddress}` لغيره، و`NoLimiter` للأصول الثابتة (امتدادات `.css .js .woff .woff2 .ttf .png .svg .ico .map` تحت `/ui/*/` أو الجذر) |
 | خيارات | `RateLimiting:PermitLimitPerMinute` (المجهول، افتراضه 120 كما اليوم)، و`RateLimiting:AuthenticatedPermitLimitPerMinute` (افتراضه 600)، و`RateLimiting:ExemptStaticAssets` (افتراضه `true`) | قيم الخادم الواحد في `docker-compose.vps.yml`: 300 و600 |
-| ترتيب الخط | `src/Gateway/HRManagement.Gateway/Program.cs` | نقل `app.UseRateLimiter()` بعد `app.UseAuthentication()`، وإضافة `Retry-After` وتسجيل 429 بالتقسيم دون الهوية |
+| ترتيب الخط | `src/Gateway/HRManagement.Gateway/Program.cs` | نقل `app.UseRateLimiter()` بعد `app.UseAuthentication()`. أما `Retry-After` وتسجيل 429 بنوع التقسيم دون الهوية فموجودان منذ إصلاح العيب 15 في `GatewayRateLimiting` (النوع اليوم `ip`)؛ يمرّر المقسِّم الجديد `user` أو `ip` |
 
 **القواعد:**
 1. المحدِّد يبقى فعّالاً للمجهول، فطوفان طلبات من IP واحد يُرد بـ 429.
@@ -316,3 +316,21 @@ dotnet test src/Tests/HRManagement.AcceptanceTests --filter "FullyQualifiedName~
 - الحارس والترخيص والهوية: 1
 - السجل والحزمة والنشر والمضيف: 1.5
 - القبول والأدلة والوثائق: 1.5
+
+## ملاحظات التنفيذ والانحرافات (2026-10-31)
+
+| الموضوع | الخطة | التنفيذ والسبب |
+|---------|-------|----------------|
+| المزوّد والخادم | Hostinger KVM 4 (4 vCPU، 16 GB) | **Contabo**: 8 vCPU (AMD EPYC)، **23.46 GiB**، 152 GB حرة، **Ubuntu 26.04.1** (لا 24.04)؛ جدول الذاكرة طُبّق كما هو |
+| مجموع سقوف الذاكرة | ≈ 13.1 GiB («تسع خدمات» بـ 384 MiB) | **13.5 GiB**: الخدمات الصغيرة عشر لا تسع. الاستخدام الفعلي 21.6 % من الخادم (5.2 GiB) بعد جولة 10 دقائق |
+| السجل | GHCR خاص | فشل الدفع إلى GHCR على الشبكة ثلاث مرات (مهلة ثم DNS) واتصال المالك يرفع بنحو 0.16 MB/s؛ استُخدم **السجل الحلقي على الخادم** (P-10، `127.0.0.1:5050`)، و**بنى الخادم الصور** من أرشيف المصدر (~30 MB) بقرار المالك: انحراف عن §6 القاعدة 1، ويُحذف المصدر وذاكرة البناء وصورة SDK بعد كل بناء (`deploy/vps/build-on-host.sh`). النشر يبقى سحباً من سجل |
+| الأسماء | نطاق المالك | لا نطاق: `hr.161-97-185-71.sslip.io` و`sso.161-97-185-71.sslip.io` |
+| الشهادات | Let's Encrypt عبر TLS-ALPN | staging أولاً ثم **production** (YE1/YE2، حتى 2027-01-29)؛ المنفذ 80 مغلق وتحدي HTTP معطل |
+| المستخدم وSSH | — | المستخدم `hrm` بلا كلمة مرور، SSH بالمفتاح فقط، `PermitRootLogin no` عبر `00-hrm-hardening.conf`، و`ufw` على 22 و443 |
+| مفاتيح MinIO وصورتها | `:?` | `${VAR:-}`: compose يقيّم الخدمات غير المفعّلة أيضاً، فـ `:?` يفرض أسراراً غير مستخدمة. الحماية: لا قيمة افتراضية، و`lint-compose.ps1`، والحارس يرفض File.Storage على Minio بمفاتيح فارغة |
+| volumes التطبيقات | — | حاوية `volume-init` لمرة واحدة تمنح ملكية volumes للمستخدم 1654 (عيب PLAN-35 رقم 5) |
+| HR.Core وvolume الملفات | ربط `file_storage_data` | لا ربط: HR.Core لا يسجّل خدمة التخزين؛ File.Storage وحده يملك الملفات |
+| Keycloak | `KC_PROXY_HEADERS` | يعمل في 24.0؛ وأُضيف `KC_HOSTNAME_PORT=-1` (الملف الأساسي يضبط 8088 فحمل التحويل `:8088`) والمدير الأولي إلزامي |
+| حارس الإعداد | يعمل بالمفتاح خارج Production | لا يمكن تعطيله في Production (`EnforceConfigGuard=false` يُتجاهل هناك) |
+| فحص المنافذ من الخارج | `Test-NetConnection` | طريق المالك (VPN/وكيل) يجيب كل منفذ؛ أُضيف منفذ تحكم (23456)، والحكم عند الاعتراض لفحص الخادم (`ss`، `ufw`، tcpdump) |
+| AC-OPS-36e على الخادم | 400 أصل في دقيقة | طلبات الأصول بـ HEAD (المسار نفسه في المحدِّد دون أجسام عبر رابط بطيء)، والدفعة المجهولة بتوازٍ 8 كي تقع في نافذة واحدة |

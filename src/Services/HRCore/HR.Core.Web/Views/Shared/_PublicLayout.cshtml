@@ -135,6 +135,7 @@
             <a class="navbar-brand text-decoration-none" asp-controller="PublicCareers" asp-action="Index">
                 <i class="fas fa-landmark ms-2" aria-hidden="true"></i> بوابة التوظيف الحكومية
             </a>
+            @await Html.PartialAsync("_DeploymentBanner")
             <div class="d-flex gap-2">
                 <a class="nav-link-pub" asp-controller="PublicCareers" asp-action="Index"><i class="fas fa-briefcase ms-1" aria-hidden="true"></i> الوظائف</a>
                 <a class="nav-link-pub" asp-controller="PublicCareers" asp-action="Track"><i class="fas fa-search ms-1" aria-hidden="true"></i> تتبّع طلب</a>

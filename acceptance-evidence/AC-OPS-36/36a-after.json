@@ -1,0 +1,156 @@
+[
+  {
+    "service": "admin-logistics-web",
+    "image": "localhost:5001/hrmanagement/admin-logistics-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-gateway",
+    "image": "localhost:5001/hrmanagement/hr-gateway:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-core-web",
+    "image": "localhost:5001/hrmanagement/hr-core-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-contracts-web",
+    "image": "localhost:5001/hrmanagement/hr-contracts-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "file-storage-web",
+    "image": "localhost:5001/hrmanagement/file-storage-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "payroll-web",
+    "image": "localhost:5001/hrmanagement/payroll-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "records-archive-web",
+    "image": "localhost:5001/hrmanagement/records-archive-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-movements-web",
+    "image": "localhost:5001/hrmanagement/hr-movements-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "compliance-web",
+    "image": "localhost:5001/hrmanagement/compliance-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "auth-directory-web",
+    "image": "localhost:5001/hrmanagement/auth-directory-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "idcard-web",
+    "image": "localhost:5001/hrmanagement/idcard-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "dev-analytics-web",
+    "image": "localhost:5001/hrmanagement/dev-analytics-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-health-web",
+    "image": "localhost:5001/hrmanagement/hr-health-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "it-infra-web",
+    "image": "localhost:5001/hrmanagement/it-infra-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-training-web",
+    "image": "localhost:5001/hrmanagement/hr-training-web:00926107a37b",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "keycloak",
+    "image": "quay.io/keycloak/keycloak:24.0",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "postgresql",
+    "image": "postgres:16-alpine",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "edge",
+    "image": "caddy:2.8.4",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "clamav",
+    "image": "clamav/clamav:1.4",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "rabbitmq",
+    "image": "rabbitmq:3.13-management-alpine",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "seq",
+    "image": "datalust/seq:2024.3",
+    "state": "running",
+    "health": "none",
+    "exit": "0"
+  },
+  {
+    "service": "volume-init",
+    "image": "alpine:3.20.3",
+    "state": "exited",
+    "health": "none",
+    "exit": "0"
+  }
+]

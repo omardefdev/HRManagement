@@ -35,9 +35,12 @@ jobs:
       - name: Start stack (release images when IMAGE_TAG set)
         env:
           IMAGE_TAG: ${{ github.event.inputs.image_tag }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
+          # PLAN-36: docker-compose.images.yml takes the registry path; GHCR repository names are lowercase.
+          HRM_IMAGE_REPO="ghcr.io/$(printf '%s' "$REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/hrmanagement"
+          export HRM_IMAGE_REPO
           bash scripts/prepare-ci-compose-env.sh
           # PLAN-33: the application services carry profiles: ["full-stack"]; without the profile only infrastructure starts.
           if [ -n "${IMAGE_TAG}" ]; then
@@ -67,7 +70,9 @@ jobs:
         env:
           RUN_PLAYWRIGHT_E2E: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
-          E2E_ARTIFACTS_DIR: "TestResults/e2e-artifacts"
+          # Absolute, as in ci.yml: the test host runs in the project's bin directory, where a relative path would stay
+          # out of the upload below (a failed browser test writes its trace and screenshot here).
+          E2E_ARTIFACTS_DIR: ${{ github.workspace }}/TestResults/e2e-artifacts
         run: >
           dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj
           --configuration Release --no-build

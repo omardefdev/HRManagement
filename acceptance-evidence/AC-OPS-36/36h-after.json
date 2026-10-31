@@ -1,0 +1,134 @@
+{
+  "hostMemoryMiB": 15851,
+  "totalUsedMiB": 4447,
+  "percentOfHost": 28.1,
+  "containers": [
+    {
+      "container": "hrm-vps-local-admin-logistics-web-1",
+      "usedMiB": 149.1,
+      "limitMiB": 384,
+      "percent": 38.8
+    },
+    {
+      "container": "hrm-vps-local-hr-gateway-1",
+      "usedMiB": 147.2,
+      "limitMiB": 512,
+      "percent": 28.7
+    },
+    {
+      "container": "hrm-vps-local-hr-core-web-1",
+      "usedMiB": 256.8,
+      "limitMiB": 1024,
+      "percent": 25.1
+    },
+    {
+      "container": "hrm-vps-local-hr-contracts-web-1",
+      "usedMiB": 155,
+      "limitMiB": 640,
+      "percent": 24.2
+    },
+    {
+      "container": "hrm-vps-local-file-storage-web-1",
+      "usedMiB": 125.2,
+      "limitMiB": 512,
+      "percent": 24.5
+    },
+    {
+      "container": "hrm-vps-local-payroll-web-1",
+      "usedMiB": 181.8,
+      "limitMiB": 768,
+      "percent": 23.7
+    },
+    {
+      "container": "hrm-vps-local-records-archive-web-1",
+      "usedMiB": 119.9,
+      "limitMiB": 384,
+      "percent": 31.2
+    },
+    {
+      "container": "hrm-vps-local-hr-movements-web-1",
+      "usedMiB": 145.6,
+      "limitMiB": 384,
+      "percent": 37.9
+    },
+    {
+      "container": "hrm-vps-local-compliance-web-1",
+      "usedMiB": 128.8,
+      "limitMiB": 384,
+      "percent": 33.5
+    },
+    {
+      "container": "hrm-vps-local-auth-directory-web-1",
+      "usedMiB": 121.2,
+      "limitMiB": 384,
+      "percent": 31.6
+    },
+    {
+      "container": "hrm-vps-local-idcard-web-1",
+      "usedMiB": 132.8,
+      "limitMiB": 384,
+      "percent": 34.6
+    },
+    {
+      "container": "hrm-vps-local-dev-analytics-web-1",
+      "usedMiB": 129.9,
+      "limitMiB": 384,
+      "percent": 33.8
+    },
+    {
+      "container": "hrm-vps-local-hr-health-web-1",
+      "usedMiB": 136.5,
+      "limitMiB": 384,
+      "percent": 35.5
+    },
+    {
+      "container": "hrm-vps-local-it-infra-web-1",
+      "usedMiB": 138.4,
+      "limitMiB": 384,
+      "percent": 36
+    },
+    {
+      "container": "hrm-vps-local-hr-training-web-1",
+      "usedMiB": 141.5,
+      "limitMiB": 384,
+      "percent": 36.8
+    },
+    {
+      "container": "hrm-vps-local-keycloak-1",
+      "usedMiB": 560.4,
+      "limitMiB": 1024,
+      "percent": 54.7
+    },
+    {
+      "container": "hrm-vps-local-postgresql-1",
+      "usedMiB": 136.8,
+      "limitMiB": 2048,
+      "percent": 6.7
+    },
+    {
+      "container": "hrm-vps-local-edge-1",
+      "usedMiB": 13.1,
+      "limitMiB": 128,
+      "percent": 10.2
+    },
+    {
+      "container": "hrm-vps-local-clamav-1",
+      "usedMiB": 946.9,
+      "limitMiB": 2048,
+      "percent": 46.2
+    },
+    {
+      "container": "hrm-vps-local-rabbitmq-1",
+      "usedMiB": 230.2,
+      "limitMiB": 512,
+      "percent": 45
+    },
+    {
+      "container": "hrm-vps-local-seq-1",
+      "usedMiB": 350.2,
+      "limitMiB": 768,
+      "percent": 45.6
+    }
+  ],
+  "oomKilled": []
+}

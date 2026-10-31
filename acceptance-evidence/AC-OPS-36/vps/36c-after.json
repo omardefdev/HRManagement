@@ -1,0 +1,43 @@
+{
+  "closedPorts": [
+    5000,
+    8080,
+    5432,
+    5672,
+    15672,
+    5341
+  ],
+  "clientPathIntercepts": true,
+  "clientSeesOpen": [
+    5000,
+    8080,
+    5432,
+    5672,
+    15672,
+    5341
+  ],
+  "serverPublicListeners": "22 443",
+  "firewall": "Status: active;22/tcp ALLOW Anywhere ;443/tcp ALLOW Anywhere ;443/udp ALLOW Anywhere ;22/tcp (v6) ALLOW Anywhere (v6) ;443/tcp (v6) ALLOW Anywhere (v6) ;443/udp (v6) ALLOW Anywhere (v6) ;",
+  "edges": [
+    {
+      "path": "https://sso.161-97-185-71.sslip.io/admin/",
+      "status": 403
+    },
+    {
+      "path": "https://sso.161-97-185-71.sslip.io/realms/master/",
+      "status": 403
+    },
+    {
+      "path": "https://hr.161-97-185-71.sslip.io/metrics",
+      "status": 404
+    },
+    {
+      "path": "https://hr.161-97-185-71.sslip.io/health/ready",
+      "status": 404
+    },
+    {
+      "path": "https://hr.161-97-185-71.sslip.io/health/live",
+      "status": 404
+    }
+  ]
+}

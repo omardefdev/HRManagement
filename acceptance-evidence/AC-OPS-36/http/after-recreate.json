@@ -1,0 +1,7 @@
+{
+  "step": "after-recreate",
+  "method": "GET",
+  "url": "https://hr.hrm.test/ui/hr-core/",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-10-31T21:01:46.6734069Z"
+}

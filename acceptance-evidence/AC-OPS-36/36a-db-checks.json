@@ -1,0 +1,10 @@
+{
+  "withoutRegistry": {
+    "exitCode": 1,
+    "message": "HRM_IMAGE_REPO required"
+  },
+  "latestTag": {
+    "exitCode": 1,
+    "refusedInSeconds": 0.1
+  }
+}

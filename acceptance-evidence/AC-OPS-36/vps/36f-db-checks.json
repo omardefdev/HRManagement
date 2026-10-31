@@ -1,0 +1,10 @@
+{
+  "placeholderAllowedHosts": {
+    "exitCode": 139,
+    "message": "System.InvalidOperationException: \u0625\u0639\u062F\u0627\u062F \u0627\u0644\u0625\u0646\u062A\u0627\u062C \u063A\u064A\u0631 \u0635\u0627\u0644\u062D\u060C \u0644\u0646 \u062A\u0628\u062F\u0623 \u0627\u0644\u062E\u062F\u0645\u0629. Production configuration is invalid, the service will not start: AllowedHosts: \u064A\u062D\u0645\u0644 \u0642\u064A\u0645\u0629 \u0648\u0647\u0645\u064A\u0629 / holds a placeholder value"
+  },
+  "shortCallerProofSecret": {
+    "exitCode": 139,
+    "message": "System.InvalidOperationException: \u0625\u0639\u062F\u0627\u062F \u0627\u0644\u0625\u0646\u062A\u0627\u062C \u063A\u064A\u0631 \u0635\u0627\u0644\u062D\u060C \u0644\u0646 \u062A\u0628\u062F\u0623 \u0627\u0644\u062E\u062F\u0645\u0629. Production configuration is invalid, the service will not start: GatewayCallerProof:Secret: \u0623\u0642\u0635\u0631 \u0645\u0646 32 \u062D\u0631\u0641\u0627\u064B / is shorter than 32 characters"
+  }
+}

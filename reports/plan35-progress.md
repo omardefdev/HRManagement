@@ -486,3 +486,51 @@ with no rate-limit stall in the E2E timeline and fast SEP_F2/HIR_F2.
   403 body is written in every environment) and HIRE_RBAC_MATRIX (Step3Approve HrManagement.Approve, Step4Complete
   HrContracts.Approve). Build -warnaserror 0/0 on ace1283b. Actions minutes before the new run: 1,596 billed in
   October (GitHub billing usage API; 832 on 2026-10-30, 722 on 2026-10-31).
+
+## Follow-up: PR #28 merge and post-merge
+
+Recorded (UTC): 2026-10-31T13:16:14.8722177Z
+
+| Run | SHA | Workflow | Start (UTC) | End (UTC) | Result | Notes |
+|---|---|---|---|---|---|---|
+| [41189365454](https://github.com/omardefdev/HRManagement/actions/runs/41189365454) | be97266 (PR #28) | ci | 09:36:09 | 10:46:10 | cancelled | Cancelled by Claude on the owner's answer «ضمّه إلى PR #28», so that the next run also tests ace1283b. CI, CodeQL, Gitleaks green; E2E cancelled while the stack was starting (no test ran). 91 min |
+| [41194070545](https://github.com/omardefdev/HRManagement/actions/runs/41194070545) | a02f6c3 (PR #28) | ci | 10:45:54 | 12:03:17 | **success** | CI, CodeQL, Gitleaks, E2E all green; E2E 57/0/0. 112 min |
+| [41199597707](https://github.com/omardefdev/HRManagement/actions/runs/41199597707) | 7855f0a (push main) | ci | 12:06:01 | 13:13:12 | **success** | CI, CodeQL, Gitleaks, E2E all green; E2E 57/0/0. 107 min |
+
+- E2E timelines (trx in artifacts/plan35/trx/pr28-41194070545 and main-41199597707, not committed): the PR run's 57
+  tests took 80 s and the post-merge run's 67 s, against 218-256 s in the four runs examined before PR #28. No test
+  took 10 s or more, so the 25-32 s rate-limit stall 32-36 s after the first test is gone. SEP_F2 1.4 s and 1.1 s,
+  HIR_F2 2.3 s and 1.7 s (61-70 s before); SEP_F1 1.0 s and SEP_H1 1.3 s on main. Both fixes of PR #28 (final report
+  defects 12 and 16) hold in CI.
+- PR #28 (https://github.com/omardefdev/HRManagement/pull/28) merged by Claude with `gh pr merge 28 --merge
+  --match-head-commit a02f6c3` at 12:05:58Z after the four required checks were green; merge commit `7855f0a`; local
+  main fast-forwarded. main's latest push run (7855f0a) is green. A first background watch of 41199597707 stopped on a
+  transient api.github.com connection error; the run was not affected and a second watch saw it finish.
+- Actions minutes (job times rounded up per job): 91 + 112 + 107 = 310 for the three runs above. The billing usage API
+  at 13:14:45Z matches the job times of all runs created that day (a rerun counted by its rerun job only): 959 minutes
+  on 2026-10-31, 1,833 in October, so 167 of the 2,000 monthly minutes are left, enough for one full ci run (105-112
+  min) but not for a PR run and its post-merge run. The 1,596 read at 10:45Z already counted 73 of the cancelled run's
+  91 minutes (all but its E2E job).
+
+## Follow-up: defects 9 and 15 (local main only)
+
+Recorded (UTC): 2026-10-31T13:16:14.8722177Z
+
+Two sessions started from the proposals in this session's reply of about 12:20Z fixed the last open defects of the
+final report on their own branches, cut from 7855f0a:
+- Defect 15: `c1c38f30` (session "Gateway rate limiter: 429 at once, not a queue", branch
+  claude/nervous-williams-ec6093). The gateway answers an over-limit request 429 at once with `Retry-After`
+  (`QueueLimit = 0`, the per-IP partition kept) and logs one warning per rejection that names the partition kind, not
+  the address or the user (`GatewayRateLimiting`); `gateway-ui` stays one window shared by all callers. Docs and
+  PLAN-36 section 4 updated. That session fast-forwarded local main to it at 12:53:44Z and ran the unit suite and the
+  gateway integration test on main.
+- Defect 9: `cb618e66` and `190937bb` (session "Upload Playwright failure traces from CI E2E", branch
+  claude/dreamy-bassi-65739c). Every browser test runs through `PlaywrightFixture.RunTracedAsync`; a failed ci.yml E2E
+  job uploads `e2e-traces` (7 days); e2e-journeys.yml now writes its traces to an absolute `E2E_ARTIFACTS_DIR` too.
+Owner answer (about 12:57Z): «نعم، ادمجهما». Claude merged claude/dreamy-bassi-65739c into local main as `b70b22ac`;
+the only conflict was the E2E row of docs/CI_AND_TESTING.md, which both branches edit, resolved by keeping both
+clauses. On b70b22ac: build -warnaserror 0 warnings 0 errors; unit tests 4223/0/0; GatewayRateLimiting integration test
+1/0/0; the testdata/*/out files the test runs rewrote (136) restored file by file.
+Not run in CI (no CodeQL or E2E on these commits) and not pushed: local main is 4 commits ahead of origin/main before
+this note.
+These notes are local only (branch docs/pr28-post-merge, merged into local main); not pushed.

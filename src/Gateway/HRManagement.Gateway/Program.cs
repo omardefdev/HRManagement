@@ -44,10 +44,8 @@ using HRManagement.Gateway.Middleware;
 using HRManagement.Gateway.Data;
 using HRManagement.ServiceDefaults.Evidence;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase))
@@ -56,6 +54,14 @@ if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINE
 }
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
+builder.Services.Configure<ProductionConfigurationGuardOptions>(options =>
+{
+    // PLAN-36: the gateway signs in browsers, so its public authority and client secret are critical too.
+    options.CriticalKeys.Add("Keycloak:PublicAuthority");
+    options.CriticalKeys.Add("Keycloak:ClientSecret");
+    options.RequiredKeys.Add("Keycloak:PublicAuthority");
+    options.RequiredKeys.Add("Keycloak:ClientSecret");
+});
 // Must precede authentication: cookie and OIDC correlation state is encrypted with this key ring.
 builder.AddHrDataProtection("HRManagement.Gateway");
 builder.AddHrOpenTelemetry();
@@ -99,7 +105,7 @@ builder.AddArcReference();
 builder.AddGovernmentConnectors();
 builder.AddHrLocalization();
 builder.Services.AddOrganizationBranding(builder.Configuration);
-var ratePermit = Math.Clamp(builder.Configuration.GetValue("RateLimiting:PermitLimitPerMinute", 120), 30, 2000);
+var rateLimits = GatewayRateLimiting.Settings(builder.Configuration);
 
 builder.Services.AddControllersWithViews(o =>
         o.Filters.Add(new AuthorizeFilter(HrManagementPolicies.GatewayDashboard)))
@@ -152,27 +158,9 @@ builder.Services.AddHostedService<GatewayAuditRetentionService>();
 builder.Services.AddSingleton<IDurableAuditSink, GatewayDurableAuditSink>();
 builder.Services.AddHttpClient("alert-sink");
 
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = ratePermit,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 20,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
-            }));
-    options.AddFixedWindowLimiter("gateway-ui", limiter =>
-    {
-        limiter.PermitLimit = ratePermit;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 20;
-        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
-});
+// Per user when signed in, per client IP otherwise, static assets exempt (PLAN-36); no queue: an over-limit request
+// gets 429 with Retry-After at once (PLAN-35 defect 15).
+builder.Services.AddRateLimiter(options => GatewayRateLimiting.Configure(options, rateLimits));
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
@@ -207,7 +195,6 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
-app.UseRateLimiter();
 app.Use(async (context, next) =>
 {
     var metrics = context.RequestServices.GetRequiredService<GatewayRequestMetricsStore>();
@@ -238,6 +225,9 @@ app.UseCookiePolicy(new CookiePolicyOptions
     HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always
 });
 app.UseAuthentication();
+// After authentication (PLAN-36): signed-in users are partitioned by their subject from the validated session, so a
+// demo room behind one NAT does not share one window. Anonymous callers stay limited per IP.
+app.UseRateLimiter();
 app.UsePlatformTenantSession();
 app.UseHrTenantId();
 app.UseGatewayAccessTokenRefresh();
@@ -252,7 +242,7 @@ app.MapControllerRoute(
 app.MapHrHealthChecks();
 // The "gateway-ui" named rate limiter is registered and available for per-route application
 // via .RequireRateLimiting("gateway-ui"). The global limiter already covers all requests;
-// use the named policy for stricter per-route limits when needed in the future.
+// the named policy is one window shared by all callers (GatewayRateLimiting), on top of the per-user/per-IP one.
 app.MapReverseProxy();
 
 app.MapHrOpenTelemetryEndpoints();

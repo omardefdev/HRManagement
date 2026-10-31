@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Playwright;
 
@@ -51,7 +52,7 @@ public static class E2eEnv
             var dir = Path.Combine(
                 Environment.GetEnvironmentVariable("E2E_ARTIFACTS_DIR")
                 ?? Path.Combine("TestResults", "e2e-artifacts"),
-                DateTime.UtcNow.ToString("yyyyMMdd"));
+                DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
             Directory.CreateDirectory(dir);
             return dir;
         }

@@ -1,0 +1,50 @@
+# PLAN-36 acceptance: the single-host chain on the owner's machine (Docker Desktop), layered last:
+#   ... -f docker-compose.vps.yml -f docker-compose.vps-demo.yml -f docker-compose.vps-local.yml
+# Run it through scripts/vps/deploy.ps1 -Local -EnvFile deploy/vps/.env.vps-local.
+# - Caddy signs hr.hrm.test / sso.hrm.test with its own internal CA ("tls internal"); the acceptance tests trust only
+#   that exported root (AcOps36VpsBootTests) and map both names to 127.0.0.1 themselves.
+# - Images come from the local registry:2 on localhost:5001 (HRM_IMAGE_REPO in .env.vps-local), which proves the pull path.
+services:
+  edge:
+    environment:
+      CADDY_SITE_TLS: tls internal
+# The base files pin container names (hrm-postgresql, hrm-hr-core-web, ...); reset them so the local single-host run
+# (project hrm-vps-local) never collides with a dev stack on the same machine.
+  postgresql:
+    container_name: !reset null
+  rabbitmq:
+    container_name: !reset null
+  clamav:
+    container_name: !reset null
+  keycloak:
+    container_name: !reset null
+  hr-gateway:
+    container_name: !reset null
+  hr-core-web:
+    container_name: !reset null
+  hr-contracts-web:
+    container_name: !reset null
+  hr-health-web:
+    container_name: !reset null
+  hr-movements-web:
+    container_name: !reset null
+  hr-training-web:
+    container_name: !reset null
+  payroll-web:
+    container_name: !reset null
+  idcard-web:
+    container_name: !reset null
+  records-archive-web:
+    container_name: !reset null
+  admin-logistics-web:
+    container_name: !reset null
+  it-infra-web:
+    container_name: !reset null
+  dev-analytics-web:
+    container_name: !reset null
+  compliance-web:
+    container_name: !reset null
+  auth-directory-web:
+    container_name: !reset null
+  file-storage-web:
+    container_name: !reset null

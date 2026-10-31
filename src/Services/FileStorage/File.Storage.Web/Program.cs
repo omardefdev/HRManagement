@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
+// PLAN-36: MinIO is an optional compose profile, so its keys are checked here instead of by compose.
+builder.Services.Configure<ProductionConfigurationGuardOptions>(options => options.ObjectStorageCredentialsRequired = true);
 builder.AddHrDataProtection("File.Storage.Web");
 builder.AddHrOpenTelemetry();
 

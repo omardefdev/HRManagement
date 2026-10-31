@@ -1,0 +1,10 @@
+{
+  "step": "redirect-0",
+  "method": "GET",
+  "url": "https://hr.161-97-185-71.sslip.io/",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-10-31T20:52:20.7341666Z",
+  "body": {
+    "location": "https://sso.161-97-185-71.sslip.io/realms/hrmanagement/protocol/openid-connect/auth?client_id=hr-gateway-client\u0026request_uri=urn%3Aietf%3Aparams%3Aoauth%3Arequest_uri%3A8f731a53-a83b-42ec-ba5b-411521e846a4\u0026x-client-SKU=ID_NET10_0\u0026x-client-ver=8.19.2.0"
+  }
+}

@@ -151,6 +151,21 @@ docker exec -it hrm-keycloak /opt/keycloak/bin/kc.sh import \
 
 **Mapper موصى به:** في العميل (Clients) → **Client scopes** / **Mappers**، أضف mapper لـ **realm roles** داخل **access token** بحيث يظهر claim `realm_access` (الافتراضي في Keycloak غالباً كافٍ). التطبيق يقرأ الأدوار من **access token** بعد تسجيل الدخول.
 
+## Keycloak خلف الحافة (PLAN-36)
+
+على الخادم الواحد يقف Keycloak خلف Caddy ([OPS_VPS_SINGLE_HOST.md](OPS_VPS_SINGLE_HOST.md)):
+
+- `KC_PROXY_HEADERS=xforwarded` بدل `KC_PROXY=edge` المهجور في 24؛ Caddy وحده يصل إليه من خارج شبكة `data`، ولا يمرّر
+  `X-Forwarded-For` الذي يرسله العميل.
+- `KC_HOSTNAME=${SSO_DOMAIN}` و`KC_HOSTNAME_STRICT_HTTPS=true`، و`KC_HOSTNAME_PORT=-1` (الملف الأساسي يضبط 8088
+  للتطوير؛ بدونه حمل التحويل `:8088`)، و`KC_HOSTNAME_STRICT_BACKCHANNEL=false` لأن الخدمات تصل إلى
+  `http://keycloak:8080` على الشبكة الداخلية. لذلك `Keycloak:RequireHttpsMetadata=false` للخدمات (السلطة داخلية)،
+  و`Keycloak:AdditionalValidIssuers=https://${SSO_DOMAIN}/realms/hrmanagement`.
+- `/admin*` و`/realms/master*` يردّان 403 من الإنترنت إلا من `ADMIN_ALLOWED_CIDRS`؛ والبديل نفق SSH.
+- realm العرض (`prepare-keycloak-import.ps1 -Profile VpsDemo -AppDomain ...`) يحمل الأسرار عناصر نائبة `${NAME}`
+  يحلّها Keycloak من بيئته عند الاستيراد الأول، فلا تخرج كلمة مرور العرض ولا أسرار العملاء من الخادم.
+- الحاوية تستورد الـ realm في أول إقلاع فقط؛ تغيير الاسم لاحقاً: [OPS_VPS_SINGLE_HOST.md §8](OPS_VPS_SINGLE_HOST.md).
+
 ## إعدادات الكوكي والإنتاج
 
 - `HrAuth:CookieSameSite` — القيمة الافتراضية `Lax`؛ غيّر عند الحاجة (مثلاً `None` يتطلب `Secure`).
