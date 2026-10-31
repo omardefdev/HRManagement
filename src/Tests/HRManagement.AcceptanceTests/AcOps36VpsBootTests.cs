@@ -467,7 +467,8 @@ public class AcOps36VpsBootTests
                         await socket.ConnectAsync(IPAddress.Parse(TargetIp), 80, ct);
                         return new NetworkStream(socket, ownsSocket: true);
                     }
-                }) { Timeout = TimeSpan.FromSeconds(15) };
+                })
+                { Timeout = TimeSpan.FromSeconds(15) };
                 using var response = await direct.GetAsync($"http://{AppDomain}/");
                 plain = $"HTTP {(int)response.StatusCode}, Set-Cookie: {response.Headers.Contains("Set-Cookie")}";
                 Assert.False(response.Headers.Contains("Set-Cookie"), "plain HTTP returned a cookie");
@@ -844,11 +845,21 @@ public class AcOps36VpsBootTests
         var recorder = Start("36i", "AC-OPS-36i Seq receives logs from all 15 services over the loopback port; no OTLP collector, no OTLP errors");
         var expected = new Dictionary<string, string>
         {
-            ["HRManagement.Gateway"] = "hr-gateway", ["HR.Core.Web"] = "hr-core-web", ["HR.Contracts.Web"] = "hr-contracts-web",
-            ["HR.Health.Web"] = "hr-health-web", ["HR.Movements.Web"] = "hr-movements-web", ["HR.Training.Web"] = "hr-training-web",
-            ["Payroll.Web"] = "payroll-web", ["IDCard.Web"] = "idcard-web", ["Records.Archive.Web"] = "records-archive-web",
-            ["Admin.Logistics.Web"] = "admin-logistics-web", ["IT.Infra.Web"] = "it-infra-web", ["Dev.Analytics.Web"] = "dev-analytics-web",
-            ["Compliance.Web"] = "compliance-web", ["Auth.Directory.Web"] = "auth-directory-web", ["File.Storage.Web"] = "file-storage-web"
+            ["HRManagement.Gateway"] = "hr-gateway",
+            ["HR.Core.Web"] = "hr-core-web",
+            ["HR.Contracts.Web"] = "hr-contracts-web",
+            ["HR.Health.Web"] = "hr-health-web",
+            ["HR.Movements.Web"] = "hr-movements-web",
+            ["HR.Training.Web"] = "hr-training-web",
+            ["Payroll.Web"] = "payroll-web",
+            ["IDCard.Web"] = "idcard-web",
+            ["Records.Archive.Web"] = "records-archive-web",
+            ["Admin.Logistics.Web"] = "admin-logistics-web",
+            ["IT.Infra.Web"] = "it-infra-web",
+            ["Dev.Analytics.Web"] = "dev-analytics-web",
+            ["Compliance.Web"] = "compliance-web",
+            ["Auth.Directory.Web"] = "auth-directory-web",
+            ["File.Storage.Web"] = "file-storage-web"
         };
         var seen = new Dictionary<string, int>();
         foreach (var application in expected.Keys)
