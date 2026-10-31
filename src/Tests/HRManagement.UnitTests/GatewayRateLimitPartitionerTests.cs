@@ -64,20 +64,34 @@ public sealed class GatewayRateLimitPartitionerTests
     [InlineData("/ui/payroll/lib/bootstrap/dist/js/bootstrap.bundle.min.js")]
     [InlineData("/ui/hr-core/fonts/Cairo.woff2")]
     [InlineData("/ui/idcard/images/logo.PNG")]
-    [InlineData("/css/site.css")]
-    [InlineData("/favicon.ico")]
-    [InlineData("/js/site.js.map")]
-    public async Task Static_assets_are_exempt(string path)
+    [InlineData("/ui/hr-core/js/site.js.map")]
+    public async Task Static_assets_are_exempt_for_signed_in_users(string path)
     {
         using var gateway = new LimitedGateway(new GatewayRateLimitSettings(30, 30, ExemptStaticAssets: true));
 
         for (var i = 0; i < 100; i++)
-            Assert.Equal(StatusCodes.Status200OK, await gateway.SendAsync(RoomNat, path));
+            Assert.Equal(StatusCodes.Status200OK, await gateway.SendAsync(RoomNat, path, subject: "user-a"));
 
         Assert.Empty(gateway.Warnings);
     }
 
+    [Fact]
+    public async Task Anonymous_asset_paths_count_against_the_ip_window()
+    {
+        // Review finding (PLAN-36): an anonymous asset-looking path still triggers the OIDC challenge (a pushed
+        // authorization request to Keycloak), so it must not escape the per-IP window.
+        using var gateway = new LimitedGateway(new GatewayRateLimitSettings(30, 30, ExemptStaticAssets: true));
+        for (var i = 0; i < 30; i++)
+            Assert.Equal(StatusCodes.Status200OK, await gateway.SendAsync(RoomNat, $"/ui/hr-core/anything-{i}.css"));
+
+        Assert.Equal(StatusCodes.Status429TooManyRequests, await gateway.SendAsync(RoomNat, "/ui/hr-core/anything.css"));
+        Assert.Contains("(ip partition, 30 per minute)", Assert.Single(gateway.Warnings), StringComparison.Ordinal);
+    }
+
     [Theory]
+    [InlineData("/css/site.css")]
+    [InlineData("/favicon.ico")]
+    [InlineData("/Home/Index/x.js")]
     [InlineData("/api/x.css")]
     [InlineData("/api/files/report.js")]
     [InlineData("/careers/css/site.css")]
@@ -98,10 +112,11 @@ public sealed class GatewayRateLimitPartitionerTests
     public async Task Lookalike_api_path_counts_against_the_window()
     {
         using var gateway = new LimitedGateway(new GatewayRateLimitSettings(30, 30, ExemptStaticAssets: true));
+        // Even for a signed-in user, an API path ending in an asset extension counts against the user's window.
         for (var i = 0; i < 30; i++)
-            await gateway.SendAsync(RoomNat, "/api/x.css");
+            await gateway.SendAsync(RoomNat, "/api/x.css", subject: "user-a");
 
-        Assert.Equal(StatusCodes.Status429TooManyRequests, await gateway.SendAsync(RoomNat, "/api/x.css"));
+        Assert.Equal(StatusCodes.Status429TooManyRequests, await gateway.SendAsync(RoomNat, "/api/x.css", subject: "user-a"));
     }
 
     [Fact]
@@ -116,8 +131,12 @@ public sealed class GatewayRateLimitPartitionerTests
         get.Request.Method = HttpMethods.Head;
         get.Request.Path = "/ui/hr-core/css/site.css";
         get.Connection.RemoteIpAddress = IPAddress.Parse(RoomNat);
+        get.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "user-a")], "Cookies"));
         Assert.Equal(GatewayRateLimitPartitionKind.Exempt, GatewayRateLimitPartitioner.Resolve(get, exemptStaticAssets: true).Kind);
-        Assert.Equal(GatewayRateLimitPartitionKind.Ip, GatewayRateLimitPartitioner.Resolve(get, exemptStaticAssets: false).Kind);
+        Assert.Equal(GatewayRateLimitPartitionKind.User, GatewayRateLimitPartitioner.Resolve(get, exemptStaticAssets: false).Kind);
+
+        get.User = new ClaimsPrincipal(new ClaimsIdentity());
+        Assert.Equal(GatewayRateLimitPartitionKind.Ip, GatewayRateLimitPartitioner.Resolve(get, exemptStaticAssets: true).Kind);
     }
 
     [Fact]

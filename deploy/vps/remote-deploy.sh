@@ -138,10 +138,13 @@ deploy() {
 
   if ! wait_healthy; then
     dc ps -a || true
+    # current-tag still names the last healthy release; rollback returns there (not to previous-tag).
+    printf '%s\n' "$tag" > "$HRM_HOME/failed-tag"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$tag|action=deploy|result=unhealthy" >> "$HRM_HOME/deployments.log"
-    die "release $tag did not become healthy (rollback: bash remote-deploy.sh rollback)"
+    die "release $tag did not become healthy (rollback to ${previous:-nothing}: bash remote-deploy.sh rollback)"
   fi
 
+  rm -f "$HRM_HOME/failed-tag"
   if [ -n "$previous" ] && [ "$previous" != "$tag" ]; then
     printf '%s\n' "$previous" > "$HRM_HOME/previous-tag"
   fi
@@ -153,11 +156,17 @@ deploy() {
 }
 
 rollback() {
-  [ -f "$HRM_HOME/previous-tag" ] || die "no previous tag recorded in $HRM_HOME/previous-tag"
   local prev current=""
-  prev="$(tr -d '[:space:]' < "$HRM_HOME/previous-tag")"
-  [ -d "$HRM_HOME/releases/$prev" ] || die "previous release $prev is not on the server"
   if [ -f "$HRM_HOME/current-tag" ]; then current="$(tr -d '[:space:]' < "$HRM_HOME/current-tag")"; fi
+  if [ -f "$HRM_HOME/failed-tag" ] && [ -n "$current" ]; then
+    # The last deploy failed and left its containers running: go back to the last healthy release.
+    prev="$current"
+    current="$(tr -d '[:space:]' < "$HRM_HOME/failed-tag")"
+  else
+    [ -f "$HRM_HOME/previous-tag" ] || die "no previous tag recorded in $HRM_HOME/previous-tag"
+    prev="$(tr -d '[:space:]' < "$HRM_HOME/previous-tag")"
+  fi
+  [ -d "$HRM_HOME/releases/$prev" ] || die "release $prev is not on the server"
   log "rolling back from ${current:-none} to $prev"
   deploy "$prev"
   echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$prev|action=rollback|from=${current:-none}" >> "$HRM_HOME/deployments.log"

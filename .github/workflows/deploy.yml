@@ -376,7 +376,9 @@ jobs:
           cat smoke.json
 
       - name: Rollback on health-gate failure
-        if: failure() && steps.ssh-deploy.outcome == 'success' && steps.health-gate.outcome == 'failure'
+        # Also when remote-deploy.sh itself reports the release unhealthy: it records failed-tag and rollback returns to
+        # the last healthy release.
+        if: failure() && (steps.ssh-deploy.outcome == 'failure' || steps.health-gate.outcome == 'failure')
         env:
           SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
           SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}

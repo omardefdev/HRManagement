@@ -397,3 +397,15 @@ Finished (UTC): 2026-10-31T19:56:37Z
 - Server live at https://hr.161-97-185-71.sslip.io/ with Let's Encrypt production certificates; 22 and 443 only;
   hrm user, key-only SSH, no root login; ufw; swap; survives a reboot (healthy 68 s after reboot); redeploy and
   rollback proven; AC-OPS-36 11/11 on the server.
+
+## P8 notes
+
+- Independent review (one fresh subagent): no high findings; fixed: (1, medium) anonymous asset-looking paths were
+  exempt from the per-IP window and each triggered a PAR call to Keycloak -> the exemption now applies to signed-in
+  users only and only under `/ui/{module}/`; (2, medium) rollback after a failed deploy went to previous-tag and CI never
+  rolled back a failed deploy -> `failed-tag`, rollback returns to the last healthy release, CI rollback also on a
+  failed deploy step; (3, medium) `--harden-ssh` now refuses without a non-empty hrm authorized_keys and a pubkey-capable
+  sshd for hrm, and a repeated run keeps the original backup pointer; (4, low) ufw SSH rule from sshd's port; (5, low)
+  Caddy strips a client `X-Forwarded-Prefix`; (6, low) smoke.sh passes the session cookie through a 0600 header file.
+  Documented, not changed: (7, low) IPv6 clients would share one address if an AAAA record were published (none today).
+- Unit 4337/4337 after the fixes; lint PASS both chains; Caddyfile valid (both variants).

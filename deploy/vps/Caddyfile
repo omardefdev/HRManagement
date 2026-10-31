@@ -51,7 +51,11 @@
 	}
 	respond @ops 404
 
-	reverse_proxy hr-gateway:8080
+	# The gateway trusts this edge for X-Forwarded-*; Caddy sets For/Proto/Host itself, and a client's Prefix must not
+	# pass (it would become the request's PathBase).
+	reverse_proxy hr-gateway:8080 {
+		header_up -X-Forwarded-Prefix
+	}
 }
 
 {$SSO_DOMAIN} {
@@ -72,5 +76,7 @@
 	}
 	respond @ops 404
 
-	reverse_proxy keycloak:8080
+	reverse_proxy keycloak:8080 {
+		header_up -X-Forwarded-Prefix
+	}
 }

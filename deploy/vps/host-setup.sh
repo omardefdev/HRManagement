@@ -85,8 +85,10 @@ firewall() {
   before="$(ufw status verbose 2>/dev/null || true)"
   ufw default deny incoming >/dev/null
   ufw default allow outgoing >/dev/null
-  # SSH first, so enabling can never cut the current session.
-  ufw allow 22/tcp >/dev/null
+  # SSH first, so enabling can never cut the current session (sshd's real port; 22 on a stock image).
+  local ssh_port
+  ssh_port="$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}')"
+  ufw allow "${ssh_port:-22}/tcp" >/dev/null
   ufw allow 443/tcp >/dev/null
   ufw allow 443/udp >/dev/null
   ufw --force enable >/dev/null
@@ -144,6 +146,13 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes'
   local backup="/root/sshd-backup-$STAMP" moved=0 f
+  # Never lock everyone out: root login and passwords go away, so hrm must already be able to sign in with a key.
+  if [ ! -s /home/hrm/.ssh/authorized_keys ]; then
+    say "refusing: /home/hrm/.ssh/authorized_keys is missing or empty (run the base setup with a root key first)"; exit 1
+  fi
+  if ! sshd -T -C user=hrm,host=localhost,addr=127.0.0.1 | grep -qi '^pubkeyauthentication yes'; then
+    say "refusing: sshd would not accept a public key for hrm"; exit 1
+  fi
   mkdir -p "$backup"
   cp -a /etc/ssh/sshd_config "$backup/"
   cp -a /etc/ssh/sshd_config.d "$backup/" 2>/dev/null || true
@@ -162,7 +171,8 @@ PubkeyAuthentication yes'
     exit 1
   fi
   systemctl reload ssh
-  echo "$backup" > /root/sshd-backup-latest
+  # A repeated run moves nothing; keep pointing at the backup that holds the original drop-ins.
+  if [ "$moved" -gt 0 ] || [ ! -f /root/sshd-backup-latest ]; then echo "$backup" > /root/sshd-backup-latest; fi
   say "backup: $backup (undo: bash host-setup.sh --undo-harden-ssh)"
   say "effective: $(sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication) ' | tr '\n' ' ')"
 }

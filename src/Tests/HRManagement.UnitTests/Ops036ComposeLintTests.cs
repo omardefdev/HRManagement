@@ -365,7 +365,8 @@ public class Ops036ComposeLintTests
         Assert.Contains("Automatic-Reboot \"false\"", setup);
         Assert.Contains("vm.swappiness=10", setup);
         // The SSH rule precedes enabling the firewall.
-        Assert.True(setup.IndexOf("ufw allow 22/tcp", StringComparison.Ordinal) < setup.IndexOf("ufw --force enable", StringComparison.Ordinal));
+        Assert.True(setup.IndexOf("ufw allow \"${ssh_port:-22}/tcp\"", StringComparison.Ordinal) is > 0 and var sshRule && sshRule < setup.IndexOf("ufw --force enable", StringComparison.Ordinal));
+        Assert.Contains("refusing: /home/hrm/.ssh/authorized_keys is missing or empty", setup);
         Assert.DoesNotMatch(@"ufw allow (80|5000|8080|5432|5672|15672|5341|5380)\b", setup);
         // Base setup never touches sshd: hardening is a separate, explicit step.
         var baseCase = Regex.Match(setup, @"(?ms)^  """"\)\r?\n(.*?);;").Groups[1].Value;

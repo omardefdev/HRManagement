@@ -140,12 +140,14 @@ if [ "$LOGIN" = "1" ]; then
     fi
     # curl caps its own Cookie header at about 8 KB and silently drops the rest; the gateway's chunked session cookie
     # (tokens saved in the ticket) is larger, so send the jar's cookies for APP_DOMAIN as an explicit header.
-    session="$(awk -F'\t' -v h="$APP" '($1 == h || $1 == "#HttpOnly_" h) && NF >= 7 { printf "%s=%s; ", $6, $7 }' "$jar")"
-    code="$(curl_edge -H "Cookie: $session" -o "$page" -w '%{http_code}' "https://$APP/")"
+    # The header goes through a 0600 file (curl -H @file), never the command line, which other local users can read.
+    session_header="$WORK/session-header"
+    ( umask 077; awk -F'	' -v h="$APP" '($1 == h || $1 == "#HttpOnly_" h) && NF >= 7 { printf "%s=%s; ", $6, $7 }' "$jar" | sed 's/^/Cookie: /' > "$session_header" )
+    code="$(curl_edge -H "@$session_header" -o "$page" -w '%{http_code}' "https://$APP/")"
     if [ "$code" = "200" ]; then record login Pass "signed in as $DEMO_USER; home 200"; else record login Fail "home after sign-in answered $code"; fi
     ok=0; failed=""
     for m in $MODULES; do
-      c="$(curl_edge -H "Cookie: $session" -o "$DEVNULL" -w '%{http_code}' "https://$APP/ui/$m/")"
+      c="$(curl_edge -H "@$session_header" -o "$DEVNULL" -w '%{http_code}' "https://$APP/ui/$m/")"
       if [ "$c" = "200" ]; then ok=$((ok + 1)); else failed="$failed $m=$c"; fi
     done
     if [ -z "$failed" ]; then record module-uis Pass "$ok/13 module UIs answered 200"; else record module-uis Fail "$ok/13 answered 200;$failed"; fi
