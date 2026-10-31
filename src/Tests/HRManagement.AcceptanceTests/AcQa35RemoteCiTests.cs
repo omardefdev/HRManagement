@@ -24,6 +24,10 @@ public class AcQa35RemoteCiTests
     /// <summary>The negative-check PR of AC-QA-35d (branch plan35-negative-check, closed).</summary>
     private static string? NegativePr => Environment.GetEnvironmentVariable("ACQA35_NEGATIVE_PR");
 
+    /// <summary>Branch of the workflow_dispatch run of e2e-journeys.yml checked by AC-QA-35e. Default main; a branch that
+    /// reaches main through the final-report PR (P-5) is allowed and recorded in the evidence.</summary>
+    private static string JourneysBranch => Environment.GetEnvironmentVariable("ACQA35_JOURNEYS_BRANCH") ?? "main";
+
     private static readonly string[] RequiredChecks = ["CI", "CodeQL", "Gitleaks", "E2E"];
 
     private static EvidenceRecorder Start(string key, string scenario)
@@ -320,10 +324,10 @@ public class AcQa35RemoteCiTests
         var (lintExit, lintOut) = Run("docker", $"run --rm -v \"{trialRoot}:/repo\" -w /repo {actionlint} -no-color -oneline .github/workflows/trial.yml");
 
         RequireGh(r);
-        using var runs = GhJson($"run list -R {Repo} --workflow e2e-journeys.yml --branch main --event workflow_dispatch --limit 5 --json databaseId,headSha,conclusion,url");
+        using var runs = GhJson($"run list -R {Repo} --workflow e2e-journeys.yml --branch {JourneysBranch} --event workflow_dispatch --limit 5 --json databaseId,headSha,conclusion,url");
         var run = runs?.RootElement.EnumerateArray().FirstOrDefault(x => x.GetProperty("conclusion").GetString() == "success") ?? default;
-        AcceptanceGate.RequireData(r, run.ValueKind == JsonValueKind.Object, "لا تشغيل يدوي ناجح لـ e2e-journeys على main",
-            "no successful workflow_dispatch run of e2e-journeys.yml on main");
+        AcceptanceGate.RequireData(r, run.ValueKind == JsonValueKind.Object, "لا تشغيل يدوي ناجح لـ e2e-journeys على الفرع المطلوب",
+            $"no successful workflow_dispatch run of e2e-journeys.yml on {JourneysBranch}");
         var id = run.GetProperty("databaseId").GetInt64();
         var (logExit, log) = Run("gh", $"run view {id} -R {Repo} --log", 300_000);
         var passedLines = log.Split('\n').Where(l => l.Contains("recruitment-journey", StringComparison.Ordinal) && l.Contains("Passed: 1, skipped: 0", StringComparison.Ordinal)).ToList();
@@ -337,6 +341,7 @@ public class AcQa35RemoteCiTests
         r.WriteScenarioDbChecks(new
         {
             lint = new { exit = lintExit, sc1012 = lintOut.Contains("SC1012", StringComparison.Ordinal) },
+            branch = JourneysBranch,
             run = run.GetProperty("url").GetString(),
             headSha = run.GetProperty("headSha").GetString(),
             logExit,
