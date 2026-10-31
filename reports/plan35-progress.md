@@ -441,3 +441,4 @@ main's latest push run is red on a required check (E2E). Owner decision needed:
     investigate the SeparationWizard latency as a follow-up;
 (b) quarantine SEP_F1 and SEP_H1 in tests/e2e/quarantine.json with an issue and expiry, through a PR;
 (c) investigate locally first (stack up, time /ui/hr-contracts/SeparationWizard cold and warm) before any rerun.
+Owner action done (UTC): 2026-10-31T08:42:46.2607869Z - owner answered «Rerun failed job»: option (a). Claude ran `gh run rerun 41179057892 --failed` (E2E job only; CI, CodeQL and Gitleaks keep their green results).
