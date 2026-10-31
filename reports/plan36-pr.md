@@ -20,6 +20,6 @@ Report: [reports/plan36-final-report.md](plan36-final-report.md) · evidence: `a
 - Memory limits add up to 13.5 GiB, not 13.1, because there are ten small services rather than nine.
 - External port checks use a control port, because the owner's path answers every TCP port; closed ports are proven on the server side.
 
-**Local CI on the release head:** see the result added below before the PR was opened.
+**Local CI on the release head (08b9efd989fb):** `scripts/ci-local.ps1` 89/89 steps passed (a first run had one transient Testcontainers connection timeout in an unrelated concurrency test; the rerun passed); `scripts/plan035-prepush.ps1`: gitleaks (234 commits history, 28 in range), actionlint, cilocal, forbidden, nonprod, signatures all PASS.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
