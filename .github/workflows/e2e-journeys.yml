@@ -160,12 +160,18 @@ jobs:
       # PLAN-25 (decision 10, G-02 closed): the same journey with the Production recruitment values
       # (docker-compose.acceptance-prodlike.yml), zero-skip.
       - name: Switch hr-core-web and hr-contracts-web to the prod-like profile
+        shell: pwsh
         run: |
-          set -euo pipefail
-          # PLAN-35: real line continuations (the step used to carry a literal "\n" and always failed).
-          docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \
-            -f docker-compose.full-stack-gateway.yml -f docker-compose.acceptance.yml -f docker-compose.acceptance-prodlike.yml \
-            --profile full-stack up -d --no-deps --no-build --force-recreate --wait hr-core-web hr-contracts-web
+          # PLAN-35: the acceptance compose files need the variables acceptance-up.ps1 imports in its own step
+          # (ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET, run 41140244680); load them the same way.
+          $ErrorActionPreference = "Stop"
+          . ./scripts/acceptance-local-env.ps1
+          Import-AcceptanceLocalEnvironment -RepoRoot (Get-Location).Path
+          $files = @("docker-compose.yml", "docker-compose.services.yml", "docker-compose.dev-profiles.yml",
+            "docker-compose.full-stack-gateway.yml", "docker-compose.acceptance.yml", "docker-compose.acceptance-prodlike.yml")
+          $composeArgs = $files | ForEach-Object { "-f", $_ }
+          docker compose -p hrm-acceptance @composeArgs --profile full-stack up -d --no-deps --no-build --force-recreate --wait hr-core-web hr-contracts-web
+          if ($LASTEXITCODE -ne 0) { throw "prod-like switch failed with exit code $LASTEXITCODE" }
 
       - name: Run requisition-to-hire journey (prod-like)
         env:
