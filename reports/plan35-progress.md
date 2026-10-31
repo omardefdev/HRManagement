@@ -348,3 +348,12 @@ OWNER ACTION (P7 round 2) - Waiting for owner (UTC): 2026-10-31T00:00:29.5293305
 1. `git push origin release/plan-35-first-push`
 2. `gh workflow run e2e-journeys.yml --ref release/plan-35-first-push`
 Owner action done (UTC): 2026-10-31T00:01:21.3448219Z - on the owner's instruction («نفذها انت») Claude pushed release (052b506 -> 4d1b472) through the guard and dispatched e2e-journeys on the release ref: run 41147863512.
+
+## Owner decision: Actions minutes (2026-10-31)
+
+Finding: the repository is private on the free plan (2,000 Actions minutes per month). PLAN-35 used ~810 minutes so far;
+with ENABLE_SCHEDULED=true the nightly e2e-journeys run alone (~60 min) would use ~1,800 minutes per month.
+Owner action done (UTC): 2026-10-31T00:22:25.3926250Z - owner: «نفذ الخياران المقترحان» (apply both options). Claude set
+the repository variable ENABLE_SCHEDULED=false (00:22:26Z) and moved the e2e-journeys schedule from nightly to weekly
+(Monday 04:00 UTC) on docs/plan-35-final-report (reaches main with the final-report PR). Docs: CI_AND_TESTING,
+GITHUB_CI_GOVERNANCE_RUNBOOK, PRG_001 G-QA-15. actionlint no findings; lint/parity/Scm001 29/29.

@@ -1,9 +1,11 @@
-# QA-004: Journey E2E against release images (nightly + manual pre-release).
+# QA-004: Journey E2E against release images (weekly + manual pre-release).
 name: E2E Journeys (QA-004)
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    # PLAN-35: weekly, not nightly - a nightly run (~60 Actions minutes) would use most of the 2,000 free minutes of the
+    # private repository (D-QA-15) on its own.
+    - cron: "0 4 * * 1"
   workflow_dispatch:
     inputs:
       image_tag:

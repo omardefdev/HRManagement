@@ -9,7 +9,7 @@ below replaces it there.
 
 | Check name | Job | Workflow | Required |
 |------------|-----|----------|----------|
-| `CI` | build-and-test (the 88 steps of `scripts/ci/steps.json`) | `ci.yml` | yes |
+| `CI` | build-and-test (the 89 steps of `scripts/ci/steps.json`) | `ci.yml` | yes |
 | `CodeQL` | codeql + SARIF gate (`scripts/ci/codeql-sarif-gate.ps1`) | `ci.yml` | yes |
 | `Gitleaks` | gitleaks over the whole history (`scripts/ci/gitleaks.sh`) | `ci.yml` | yes |
 | `E2E` | e2e | `ci.yml` | yes since PLAN-35 P7 (D-QA-2: green twice in a row on main, runs 41130907741 and 41140221205) |
@@ -39,7 +39,7 @@ Before any push: `powershell -ExecutionPolicy Bypass -File scripts/plan035-prepu
 
 | Variable | Effect | Set when |
 |----------|--------|----------|
-| `ENABLE_SCHEDULED` | `true` lets the scheduled runs of e2e-journeys, mutation, codeql (weekly), iac-drift and advisory-to-issue run | after `main` is green |
+| `ENABLE_SCHEDULED` | `true` lets the scheduled runs of e2e-journeys, mutation, codeql (weekly), iac-drift and advisory-to-issue run | after `main` is green. Set back to `false` on 2026-10-31: the repository is private on the free plan (2,000 Actions minutes per month) and a nightly e2e-journeys run alone costs ~60 minutes; e2e-journeys is now weekly (Monday 04:00 UTC). Re-enable when the minutes allow |
 | `ENABLE_ACCEPTANCE_JOB` | `true` runs the `Acceptance` job | PLAN-41 |
 | `CODE_SCANNING_UPLOAD` | `true` uploads the CodeQL SARIF to code scanning (public repo, or private with Code Security) | optional |
 | `DEPENDABOT_ALERTS_TOKEN_CONFIGURED` | `true` lets advisory-to-issue run on its schedule | with the secret below |
