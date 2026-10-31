@@ -33,12 +33,19 @@ public class Sec004SecretRotationTests
     public void Production_compose_uses_fail_closed_for_critical_secrets()
     {
         var prod = Read("docker-compose.production.yml");
-        Assert.Contains("MINIO_ROOT_USER:?MINIO_ROOT_USER required", prod);
-        Assert.Contains("MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD required", prod);
-        Assert.Contains("GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required", prod);
+        Assert.Contains("GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required", Read("docker-compose.observability.production.yml"));
         Assert.Contains("RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required", prod);
         Assert.Contains("KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required", prod);
-        Assert.Contains("MINIO_FILESTORAGE_ACCESS_KEY:?MINIO_FILESTORAGE_ACCESS_KEY required", prod);
+        Assert.Contains("GATEWAY_CALLER_PROOF_SECRET:?GATEWAY_CALLER_PROOF_SECRET required", prod);
+
+        // PLAN-36 (D-36-3): MinIO is optional (profile minio). Compose interpolates inactive services, so its
+        // credentials cannot be ":?" without forcing unused secrets on every Local-provider host. They stay
+        // fail-closed by other means: no default value in compose, lint-compose.ps1 refuses the minio profile with
+        // empty credentials, and the production configuration guard refuses File.Storage on Minio with empty keys.
+        Assert.Contains("MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}", prod);
+        Assert.Contains("MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}", prod);
+        Assert.Contains("FileStorage__AccessKey: ${MINIO_FILESTORAGE_ACCESS_KEY:-}", prod);
+        Assert.Contains("FileStorage__SecretKey: ${MINIO_FILESTORAGE_SECRET_KEY:-}", prod);
     }
 
     [Fact]

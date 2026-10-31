@@ -11,7 +11,13 @@ public class Sec001PortScanTests
         "hr-training-web", "payroll-web", "idcard-web", "records-archive-web",
         "admin-logistics-web", "it-infra-web", "dev-analytics-web", "compliance-web",
         "auth-directory-web", "file-storage-web",
-        "postgresql", "rabbitmq", "minio",
+        "postgresql", "rabbitmq", "minio"
+    ];
+
+    // PLAN-36: the observability overrides moved to docker-compose.observability.production.yml so the production
+    // chain is valid without the observability stack.
+    private static readonly string[] ObservabilityServices =
+    [
         "seq", "tempo", "otel-collector", "prometheus", "alertmanager",
         "alert-sink", "blackbox-exporter", "rabbitmq-exporter", "postgres-exporter"
     ];
@@ -46,6 +52,15 @@ public class Sec001PortScanTests
                 RegexOptions.CultureInvariant);
             Assert.True(pattern.IsMatch(prod), $"production override missing ports: !override [] for {svc}");
         }
+
+        var observability = Read("docker-compose.observability.production.yml");
+        foreach (var svc in ObservabilityServices)
+        {
+            var pattern = new Regex(
+                $@"(?ms)^\s{{2}}{Regex.Escape(svc)}:\s*.*?ports:\s*!override\s*\[\s*\]",
+                RegexOptions.CultureInvariant);
+            Assert.True(pattern.IsMatch(observability), $"observability production override missing ports: !override [] for {svc}");
+        }
     }
 
     [Fact]
@@ -54,16 +69,17 @@ public class Sec001PortScanTests
         var prod = Read("docker-compose.production.yml");
         Assert.Contains("application:", prod);
         Assert.Contains("data:", prod);
-        Assert.Contains("observability:", prod);
         Assert.Matches(@"(?ms)application:\s*\r?\n\s*driver:\s*bridge\s*\r?\n\s*internal:\s*true", prod);
         Assert.Matches(@"(?ms)data:\s*\r?\n\s*driver:\s*bridge\s*\r?\n\s*internal:\s*true", prod);
-        Assert.Matches(@"(?ms)observability:\s*\r?\n\s*driver:\s*bridge\s*\r?\n\s*internal:\s*true", prod);
+        Assert.Matches(
+            @"(?ms)observability:\s*\r?\n\s*driver:\s*bridge\s*\r?\n\s*internal:\s*true",
+            Read("docker-compose.observability.production.yml"));
     }
 
     [Fact]
     public void Grafana_is_loopback_only_in_production()
     {
-        var prod = Read("docker-compose.production.yml");
+        var prod = Read("docker-compose.observability.production.yml");
         Assert.Matches(@"(?ms)grafana:\s*.*?127\.0\.0\.1:\$\{GRAFANA_HTTP_PORT", prod);
     }
 

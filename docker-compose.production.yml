@@ -1,5 +1,8 @@
-# Production overrides — MUST be last so port/network closures win over observability:
-#   docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.observability.yml -f docker-compose.production.yml up -d
+# Production overrides. Valid on its own (PLAN-36): the applications sit behind the full-stack profile.
+#   docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.images.yml \
+#     -f docker-compose.production.yml --profile full-stack up -d
+# Full observability stack: append -f docker-compose.observability.yml -f docker-compose.observability.production.yml.
+# Single host behind the Caddy edge: docker-compose.vps.yml (docs/OPS_VPS_SINGLE_HOST.md).
 #
 # SEC-001: only Gateway (and optionally Keycloak for IdP redirects) publish host ports.
 # All other listeners stay on isolated Docker networks. See docs/NETWORK_MATRIX.md.
@@ -8,8 +11,19 @@ x-app-production-env: &app-production-env
   ASPNETCORE_ENVIRONMENT: Production
   Database__RunMigrationsAtStartup: "false"
   Serilog__SeqUrl: http://seq:5341
-  OpenTelemetry__Enabled: "true"
-  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  OpenTelemetry__Enabled: ${HRM_OTEL_ENABLED:-true}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${HRM_OTEL_ENDPOINT:-http://otel-collector:4317}
+  # PLAN-36: the authority is the internal http://keycloak:8080 on the data network, so its metadata is plain HTTP;
+  # tokens are issued for the public https://SSO_DOMAIN issuer behind the edge.
+  Keycloak__RequireHttpsMetadata: "false"
+  Keycloak__AdditionalValidIssuers: https://${SSO_DOMAIN:?SSO_DOMAIN required}/realms/hrmanagement
+  # Module listeners are internal only and every request must carry the gateway caller proof (SEC-001); the
+  # gateway sets its own AllowedHosts to the public name.
+  AllowedHosts: "*"
+  GatewayCallerProof__Secret: ${GATEWAY_CALLER_PROOF_SECRET:?GATEWAY_CALLER_PROOF_SECRET required (at least 32 characters)}
+  # PLAN-36: Data Protection key rings on named volumes (mount only; guard and encryption are PLAN-39).
+  DataProtection__KeyRingPath: /var/hrm/dpkeys
+  Deployment__RequireLicenseKey: ${HRM_REQUIRE_LICENSE:-false}
 
 x-app-messaging-env: &app-messaging-env
   RabbitMQ__Host: rabbitmq
@@ -30,6 +44,11 @@ x-app-healthcheck: &app-healthcheck
   timeout: 5s
   retries: 5
   start_period: 60s
+
+# PLAN-36 (P-5): survive a cold start and a host reboot. Docker restarts these containers itself after a reboot,
+# without compose ordering, so a service that starts before PostgreSQL is ready exits and is restarted.
+x-app-runtime: &app-runtime
+  restart: unless-stopped
 
 x-app-resources: &app-resources
   deploy:
@@ -54,6 +73,47 @@ x-infra-hardening-mild: &infra-hardening-mild
     - no-new-privileges:true
 
 services:
+  # PLAN-36 (P-5, PLAN-35 defect 5): a new named volume is created root-owned, but the application images run as the
+  # non-root user 1654. This one-shot container gives every application volume to that user before any application
+  # starts (idempotent; it exits 0 and is not restarted).
+  volume-init:
+    image: alpine:3.20.3
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    command: ["sh", "-c", "chown -R 1654:1654 /v && echo volume-init: application volumes owned by 1654"]
+    volumes:
+      - gateway_dataprotection_keys:/v/gateway-dpkeys
+      - file_storage_data:/v/files
+      - hr_core_integration_outbox:/v/hr-core-outbox
+      - payroll_integration_outbox:/v/payroll-outbox
+      - dp_hr_core:/v/dp_hr_core
+      - dp_hr_contracts:/v/dp_hr_contracts
+      - dp_hr_health:/v/dp_hr_health
+      - dp_hr_movements:/v/dp_hr_movements
+      - dp_hr_training:/v/dp_hr_training
+      - dp_payroll:/v/dp_payroll
+      - dp_idcard:/v/dp_idcard
+      - dp_records_archive:/v/dp_records_archive
+      - dp_admin_logistics:/v/dp_admin_logistics
+      - dp_it_infra:/v/dp_it_infra
+      - dp_dev_analytics:/v/dp_dev_analytics
+      - dp_compliance:/v/dp_compliance
+      - dp_auth_directory:/v/dp_auth_directory
+      - dp_file_storage:/v/dp_file_storage
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+
   postgresql:
     <<: *infra-hardening-mild
     ports: !override []
@@ -85,14 +145,21 @@ services:
         limits:
           memory: 2G
 
+  # PLAN-36 (D-36-3): optional. The pinned image is no longer pullable, so the owner supplies a vetted, digest-pinned
+  # MINIO_IMAGE and enables --profile minio. Compose interpolates inactive services too, so neither the image nor the
+  # root credentials can be ":?" here; scripts/vps/lint-compose.ps1 fails when the minio profile is enabled with an
+  # empty MINIO_IMAGE, MINIO_ROOT_USER or MINIO_ROOT_PASSWORD.
   minio:
     <<: *infra-hardening-mild
+    profiles: !override ["minio"]
+    image: ${MINIO_IMAGE:-}
+    restart: unless-stopped
     ports: !override []
     networks: !override
       - data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER required}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD required}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
     volumes:
       - minio_data:/data
     deploy:
@@ -169,9 +236,10 @@ services:
         done
     restart: unless-stopped
 
+  # PLAN-36: backs up MinIO only when MinIO runs (profile minio); --profile backup alone covers PostgreSQL.
   minio-backup:
     image: minio/mc:RELEASE.2025-04-16T18-13-26Z
-    profiles: ["backup"]
+    profiles: ["minio"]
     networks: !override
       - data
     depends_on:
@@ -201,7 +269,7 @@ services:
     restart: unless-stopped
 
   hr-gateway:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override
       - "${GATEWAY_HTTP_PORT:-5000}:8080"
     networks: !override
@@ -217,6 +285,28 @@ services:
       Keycloak__ClientId: hr-gateway-client
       Keycloak__ClientSecret: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required}
       Keycloak__RequireHttpsMetadata: ${KEYCLOAK_REQUIRE_HTTPS_METADATA:-false}
+      # PLAN-36 (G-OPS-01): explicit public settings instead of the dev values inherited from docker-compose.yml
+      # (the loopback dev authority and two modules).
+      Keycloak__PublicAuthority: https://${SSO_DOMAIN:?SSO_DOMAIN required}/realms/hrmanagement
+      Keycloak__AdditionalValidIssuers: https://${SSO_DOMAIN:?SSO_DOMAIN required}/realms/hrmanagement
+      HrAuth__BehindGateway: "false"
+      AllowedHosts: ${APP_DOMAIN:?APP_DOMAIN required};localhost
+      Organization__Name: ${HRM_ORGANIZATION_NAME:-شعبة التنظيم والموارد البشرية}
+      Gateway__EnabledModules__0: hr-core
+      Gateway__EnabledModules__1: hr-contracts
+      Gateway__EnabledModules__2: hr-health
+      Gateway__EnabledModules__3: hr-movements
+      Gateway__EnabledModules__4: hr-training
+      Gateway__EnabledModules__5: payroll
+      Gateway__EnabledModules__6: idcard
+      Gateway__EnabledModules__7: records-archive
+      Gateway__EnabledModules__8: admin-logistics
+      Gateway__EnabledModules__9: it-infra
+      Gateway__EnabledModules__10: dev-analytics
+      Gateway__EnabledModules__11: compliance
+      Gateway__EnabledModules__12: auth-directory
+      Gateway__EnabledModules__13: file-storage
+      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
       UseForwardedHeaders: "true"
       # Shared key ring: without it each gateway replica encrypts OIDC state with its own keys and
       # interactive login breaks whenever the callback lands on a different replica.
@@ -239,11 +329,19 @@ services:
       - gateway_dataprotection_keys:/var/hrm/dataprotection-keys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
       hr-core-web:
         condition: service_healthy
 
   hr-core-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -260,24 +358,30 @@ services:
       # HCM-030 (PLAN-30 H): /careers/my one-time-code HMAC key (>= 32 chars); hr-core refuses to start without it.
       Recruitment__Portal__OtpHmacKey: ${HR_CORE_OTP_HMAC_KEY:?HR_CORE_OTP_HMAC_KEY required}
       Keycloak__AdditionalValidAudiences: api-hr-core;hr-gateway-client
+      Organization__Name: ${HRM_ORGANIZATION_NAME:-شعبة التنظيم والموارد البشرية}
+      # PLAN-36 (D-36-3): Local provider on a named volume; MinIO only with --profile minio and HRM_FILE_PROVIDER=Minio.
+      FileStorage__Provider: ${HRM_FILE_PROVIDER:-Local}
+      FileStorage__LocalRootPath: /var/hrm/files
       # SEC-004 / IAM-004: clear dev MinIO defaults — hr-core uses service identity, not direct MinIO.
       FileStorage__AccessKey: ""
       FileStorage__SecretKey: ""
     volumes:
+      - dp_hr_core:/var/hrm/dpkeys
       - hr_core_integration_outbox:/app/integration-outbox
+      - file_storage_data:/var/hrm/files
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
       keycloak:
         condition: service_started
-      minio:
-        condition: service_started
 
   hr-contracts-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -290,15 +394,19 @@ services:
       ServiceIdentity__ClientId: svc-hr-contracts
       ServiceIdentity__ClientSecret: ${SVC_HR_CONTRACTS_CLIENT_SECRET:?SVC_HR_CONTRACTS_CLIENT_SECRET required}
       ServiceIdentity__Scope: file-storage.references
+    volumes:
+      - dp_hr_contracts:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   hr-health-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -310,15 +418,19 @@ services:
       RabbitMQ__Password: ${RABBITMQ_HR_HEALTH_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-hr-health
       ServiceIdentity__ClientSecret: ${SVC_HR_HEALTH_CLIENT_SECRET:?SVC_HR_HEALTH_CLIENT_SECRET required}
+    volumes:
+      - dp_hr_health:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   hr-movements-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -331,15 +443,19 @@ services:
       ServiceIdentity__ClientId: svc-hr-movements
       ServiceIdentity__ClientSecret: ${SVC_HR_MOVEMENTS_CLIENT_SECRET:?SVC_HR_MOVEMENTS_CLIENT_SECRET required}
       ServiceIdentity__Scope: hr-core.lookup
+    volumes:
+      - dp_hr_movements:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   hr-training-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -352,15 +468,19 @@ services:
       ServiceIdentity__ClientId: svc-hr-training
       ServiceIdentity__ClientSecret: ${SVC_HR_TRAINING_CLIENT_SECRET:?SVC_HR_TRAINING_CLIENT_SECRET required}
       ServiceIdentity__Scope: file-storage.references
+    volumes:
+      - dp_hr_training:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   payroll-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -375,16 +495,19 @@ services:
       ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:?SVC_PAYROLL_CLIENT_SECRET required}
       ServiceIdentity__Scope: hr-core.lookup
     volumes:
+      - dp_payroll:/var/hrm/dpkeys
       - payroll_integration_outbox:/app/integration-outbox
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   idcard-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -397,15 +520,19 @@ services:
       ServiceIdentity__ClientId: svc-idcard
       ServiceIdentity__ClientSecret: ${SVC_IDCARD_CLIENT_SECRET:?SVC_IDCARD_CLIENT_SECRET required}
       ServiceIdentity__Scope: file-storage.references
+    volumes:
+      - dp_idcard:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   records-archive-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -418,15 +545,19 @@ services:
       ServiceIdentity__ClientId: svc-records-archive
       ServiceIdentity__ClientSecret: ${SVC_RECORDS_ARCHIVE_CLIENT_SECRET:?SVC_RECORDS_ARCHIVE_CLIENT_SECRET required}
       ServiceIdentity__Scope: file-storage.references
+    volumes:
+      - dp_records_archive:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   admin-logistics-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -441,15 +572,19 @@ services:
       ServiceIdentity__Scope: hr-core.lookup hr-core.workflow file-storage.references
       Integration__HrCoreBaseUrl: http://hr-core-web:8080
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
+    volumes:
+      - dp_admin_logistics:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   it-infra-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -463,15 +598,19 @@ services:
       ServiceIdentity__ClientId: svc-it-infra
       ServiceIdentity__ClientSecret: ${SVC_IT_INFRA_CLIENT_SECRET:?SVC_IT_INFRA_CLIENT_SECRET required}
       ServiceIdentity__Scope: directory.sync
+    volumes:
+      - dp_it_infra:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   dev-analytics-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -483,15 +622,19 @@ services:
       RabbitMQ__Password: ${RABBITMQ_DEV_ANALYTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-dev-analytics
       ServiceIdentity__ClientSecret: ${SVC_DEV_ANALYTICS_CLIENT_SECRET:?SVC_DEV_ANALYTICS_CLIENT_SECRET required}
+    volumes:
+      - dp_dev_analytics:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   compliance-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -503,15 +646,19 @@ services:
       RabbitMQ__Password: ${RABBITMQ_COMPLIANCE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-compliance
       ServiceIdentity__ClientSecret: ${SVC_COMPLIANCE_CLIENT_SECRET:?SVC_COMPLIANCE_CLIENT_SECRET required}
+    volumes:
+      - dp_compliance:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   auth-directory-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -524,15 +671,19 @@ services:
       Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
       ServiceIdentity__ApiAudience: api-auth-directory
       Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
+    volumes:
+      - dp_auth_directory:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   file-storage-web:
-    <<: [*app-resources, *app-hardening]
+    <<: [*app-resources, *app-hardening, *app-runtime]
     ports: !override []
     networks: !override
       - application
@@ -544,90 +695,35 @@ services:
       RabbitMQ__Password: ${RABBITMQ_FILE_STORAGE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ApiAudience: api-file-storage
       Keycloak__AdditionalValidAudiences: api-file-storage;hr-gateway-client
+      # PLAN-36 (D-36-3): Local provider on the file_storage_data volume by default. HRM_FILE_PROVIDER=Minio needs
+      # --profile minio, a vetted MINIO_IMAGE and the MinIO app credentials below; the production configuration
+      # guard refuses to start File.Storage on Minio with empty or placeholder keys. Compose cannot require them with
+      # ":?" because it interpolates inactive services too.
+      FileStorage__Provider: ${HRM_FILE_PROVIDER:-Local}
+      FileStorage__LocalRootPath: /var/hrm/files
       # IAM-004: MinIO app credentials for File.Storage only (not root)
-      FileStorage__Provider: Minio
       FileStorage__Endpoint: minio:9000
-      FileStorage__AccessKey: ${MINIO_FILESTORAGE_ACCESS_KEY:?MINIO_FILESTORAGE_ACCESS_KEY required}
-      FileStorage__SecretKey: ${MINIO_FILESTORAGE_SECRET_KEY:?MINIO_FILESTORAGE_SECRET_KEY required}
+      FileStorage__AccessKey: ${MINIO_FILESTORAGE_ACCESS_KEY:-}
+      FileStorage__SecretKey: ${MINIO_FILESTORAGE_SECRET_KEY:-}
       FileStorage__UseSsl: "false"
       # Anti-virus is mandatory in production: an unreachable daemon must yield ScanError, never
       # a clean verdict. Uploads stay quarantined until a real scan succeeds.
       FileStorage__ClamAvHost: ${CLAMAV_HOST:-clamav}
       FileStorage__ClamAvPort: "${CLAMAV_PORT:-3310}"
       FileStorage__ClamAvRequired: "true"
+    volumes:
+      - dp_file_storage:/var/hrm/dpkeys
+      - file_storage_data:/var/hrm/files
     healthcheck: *app-healthcheck
     depends_on:
+      volume-init:
+        condition: service_completed_successfully
       clamav:
         condition: service_healthy
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      minio:
-        condition: service_started
-
-  # Observability — no public host ports (Grafana bound to loopback only).
-  # Requires docker-compose.observability.yml in the same compose invocation.
-  seq:
-    ports: !override []
-    networks: !override
-      - observability
-      - application
-
-  tempo:
-    ports: !override []
-    networks: !override
-      - observability
-
-  otel-collector:
-    ports: !override []
-    networks: !override
-      - observability
-      - application
-
-  prometheus:
-    ports: !override []
-    networks: !override
-      - observability
-      - application
-
-  alertmanager:
-    ports: !override []
-    networks: !override
-      - observability
-
-  alert-sink:
-    ports: !override []
-    networks: !override
-      - observability
-
-  blackbox-exporter:
-    ports: !override []
-    networks: !override
-      - observability
-      - application
-
-  grafana:
-    ports: !override
-      - "127.0.0.1:${GRAFANA_HTTP_PORT:-3000}:3000"
-    networks: !override
-      - observability
-    environment:
-      # SEC-004: no default admin/admin in production (overrides docker-compose.observability.yml).
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER required}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required}
-
-  rabbitmq-exporter:
-    ports: !override []
-    networks: !override
-      - observability
-      - data
-
-  postgres-exporter:
-    ports: !override []
-    networks: !override
-      - observability
-      - data
 
 networks:
   edge:
@@ -651,3 +747,19 @@ volumes:
   minio_data:
   hr_core_integration_outbox:
   payroll_integration_outbox:
+  file_storage_data:
+  # PLAN-36: one Data Protection key ring per module (mount only; PLAN-39 adds the guard and encryption).
+  dp_hr_core:
+  dp_hr_contracts:
+  dp_hr_health:
+  dp_hr_movements:
+  dp_hr_training:
+  dp_payroll:
+  dp_idcard:
+  dp_records_archive:
+  dp_admin_logistics:
+  dp_it_infra:
+  dp_dev_analytics:
+  dp_compliance:
+  dp_auth_directory:
+  dp_file_storage:

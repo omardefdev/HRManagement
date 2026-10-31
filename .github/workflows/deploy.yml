@@ -344,23 +344,27 @@ jobs:
             export IMAGE_TAG="${{ steps.tag.outputs.tag }}"
             export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
             echo "Deploying IMAGE_TAG=$IMAGE_TAG owner=$GITHUB_REPOSITORY_OWNER"
-            # --profile backup is required: postgres-backup and minio-backup sit behind that
+            # --profile full-stack starts the applications (PLAN-36). --profile backup is required: postgres-backup sits behind that
             # profile, so deploying without it silently ran production with no scheduled backups.
             docker compose \
+              --profile full-stack \
               --profile backup \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.observability.yml \
               -f docker-compose.images.yml \
               -f docker-compose.production.yml \
+              -f docker-compose.observability.production.yml \
               pull
             docker compose \
+              --profile full-stack \
               --profile backup \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.observability.yml \
               -f docker-compose.images.yml \
               -f docker-compose.production.yml \
+              -f docker-compose.observability.production.yml \
               up -d --remove-orphans
             # Wait for containers to become healthy before health gate
             sleep 30
@@ -419,18 +423,22 @@ jobs:
             export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
             echo "Rolling back to IMAGE_TAG=$IMAGE_TAG"
             docker compose \
+              --profile full-stack \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.observability.yml \
               -f docker-compose.images.yml \
               -f docker-compose.production.yml \
+              -f docker-compose.observability.production.yml \
               pull
             docker compose \
+              --profile full-stack \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.observability.yml \
               -f docker-compose.images.yml \
               -f docker-compose.production.yml \
+              -f docker-compose.observability.production.yml \
               up -d --remove-orphans
             echo "Rollback to $IMAGE_TAG completed"
 
@@ -510,18 +518,22 @@ jobs:
             export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
             echo "Rollback IMAGE_TAG=$IMAGE_TAG"
             docker compose \
+              --profile full-stack \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.observability.yml \
               -f docker-compose.images.yml \
               -f docker-compose.production.yml \
+              -f docker-compose.observability.production.yml \
               pull
             docker compose \
+              --profile full-stack \
               -f docker-compose.yml \
               -f docker-compose.services.yml \
               -f docker-compose.observability.yml \
               -f docker-compose.images.yml \
               -f docker-compose.production.yml \
+              -f docker-compose.observability.production.yml \
               up -d --remove-orphans
             sleep 30
 

@@ -7,8 +7,9 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P0 | done | 2026-10-31T13:41:37Z |
-| P1 | in progress | |
-| P2-P8 | not started | |
+| P1 | done | 2026-10-31T13:51:21Z |
+| P2 | in progress | |
+| P3-P8 | not started | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -69,7 +70,7 @@ answered by P7.
 
 ## Next step
 
-P1 (production compose chain).
+P2 (production configuration guard, license middleware, organization name).
 
 ## P0 result
 
@@ -80,3 +81,35 @@ Finished (UTC): 2026-10-31T13:41:37Z
   in the repository root is never read into a dump.
 - Finding: the production chain sets no `GatewayCallerProof__Secret`; every Production image carries the
   `USE_ENV_OR_SECRET_MANAGER` placeholder for it (and for `AllowedHosts`).
+
+## P1 result
+
+Finished (UTC): 2026-10-31T13:51:21Z
+- Production chain (`yml + services + images + production`, `--profile full-stack`) renders **without** the
+  observability file; with `observability.yml + observability.production.yml` too; `--profile minio` without
+  `MINIO_IMAGE` fails as intended.
+- Files: `docker-compose.production.yml`, new `docker-compose.observability.production.yml`, new
+  `File.Storage.Web/appsettings.Production.json`, `.github/workflows/deploy.yml` (`--profile full-stack` + the
+  observability production file in all 6 invocations), tests `Ops036ComposeLintTests` (new), `Sec001PortScanTests`,
+  `Sec004SecretRotationTests` (updated for the moved block and the MinIO change).
+- Tests: build 0/0; `Ops036|Sec001|Sec004|Hard001` 33/33; full unit suite 4236/4236 (66 s).
+- Decisions:
+  - **volume-init** one-shot (`alpine:3.20.3`, root, `network_mode: none`, caps CHOWN/DAC_OVERRIDE/FOWNER) chowns
+    every application volume to 1654 before any app starts (PLAN-35 defect 5; outbox volumes were root-owned too).
+    `restart: "no"` is the one exception to P-5 (a one-shot); apps depend on it with
+    `service_completed_successfully`.
+  - `x-app-runtime` (`restart: unless-stopped`) merged into all 15 apps in the production file (P-5 applied to
+    the production chain, not only the single-host file). Gateway now waits for PostgreSQL, RabbitMQ and Keycloak healthy.
+  - **MinIO credentials are `${VAR:-}` instead of `:?`** (deviation): compose interpolates inactive services, so
+    `:?` would force four unused secrets on every Local-provider host (verified with a throwaway compose file). Kept
+    fail-closed by: no default value, lint-compose rule (P4), and the guard refusing File.Storage on Minio with empty or
+    placeholder keys (P2). Same reason for `image: ${MINIO_IMAGE:-}` (the plan said `:?`).
+  - `minio-backup` moved from profile `backup` to `minio` (it depends on MinIO).
+  - OTEL in production: `${HRM_OTEL_ENABLED:-true}` / `${HRM_OTEL_ENDPOINT:-http://otel-collector:4317}` (the
+    single-host file turns it off).
+  - Gateway keeps its own Data Protection volume `gateway_dataprotection_keys` (explicit path wins over the anchor);
+    the 14 modules get `dp_<module>` at `/var/hrm/dpkeys`.
+- Git identity: no `~/.gitconfig` on this machine; commits use `-c user.name=omardefdev -c user.email=omar@defdev.sy`
+  (the identity of all earlier commits), nothing written to git config.
+- Open: module `appsettings.Production.json` files set `Serilog:FilePath logs/...` under root-owned `/app` (non-root
+  user cannot write) — check in P6 whether it breaks start or only drops the file sink.
