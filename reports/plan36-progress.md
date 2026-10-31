@@ -9,8 +9,9 @@ Started (UTC): 2026-10-31T13:32:59.0005780Z
 | P0 | done | 2026-10-31T13:41:37Z |
 | P1 | done | 2026-10-31T13:51:21Z |
 | P2 | done | 2026-10-31T13:58:09Z |
-| P3 | in progress | |
-| P4-P8 | not started | |
+| P3 | done | 2026-10-31T14:02:43Z |
+| P4 | in progress | |
+| P5-P8 | not started | |
 
 ## P0 — preconditions (checked 2026-10-31T13:33Z)
 
@@ -71,7 +72,7 @@ answered by P7.
 
 ## Next step
 
-P3 (gateway rate limiter partitioned by user).
+P4 (Caddy edge, Keycloak behind the edge, memory budget, demo mode, local variant, lint-compose).
 
 ## P0 result
 
@@ -136,3 +137,20 @@ Finished (UTC): 2026-10-31T13:58:09Z
   service, only File.Storage does, so the mount would only widen access to the file bytes).
 - Tests: build 0/0; `Ops036|LicenseValidation|ProductionConfigurationGuard` 62/62 (ar-SA/ar-SY/en-US/fr-FR expiry
   parsing; placeholder fails in Production, passes in Development/Acceptance); full unit suite 4285/4285.
+
+## P3 result
+
+Finished (UTC): 2026-10-31T14:02:43Z
+- New `GatewayRateLimitPartitioner`: `user:{sub}` (sub or NameIdentifier of an authenticated principal),
+  `ip:{RemoteIpAddress}` otherwise, no limiter for GET/HEAD static assets (`.css .js .woff .woff2 .ttf .png .svg .ico
+  .map`) under `/ui/{module}/...` or the gateway root; never under `/api`, `/careers`, `/health`, `/metrics`.
+- `GatewayRateLimiting`: `GatewayRateLimitSettings` (anonymous `RateLimiting:PermitLimitPerMinute` default 120,
+  `RateLimiting:AuthenticatedPermitLimitPerMinute` default 600, `RateLimiting:ExemptStaticAssets` default true), both
+  clamped 30..2000; 429 log names the partition kind (`user`/`ip`) and its limit, never the identity.
+  `gateway-ui` policy unchanged (shared window at the anonymous limit).
+- Gateway `Program.cs`: `UseRateLimiter()` moved right after `UseAuthentication()`.
+- Note: OIDC callbacks (`/signin-oidc`) are now handled by the authentication middleware before the limiter; an invalid
+  callback is rejected cheaply, recorded for the review.
+- Tests: build 0/0; `GatewayRateLimit*` 36/36 (new `GatewayRateLimitPartitionerTests` + defect-15 tests);
+  full unit 4311/4311; gateway integration tests 2/2 (incl. `GatewayRateLimitingIntegrationTests`). The acceptance smoke
+  for the gateway runs in P6 step 8 with the acceptance stack.

@@ -126,8 +126,8 @@ public sealed class GatewayRateLimitingTests
     {
         var gateway = Path.Combine(ResolveRepoRoot(), "src", "Gateway", "HRManagement.Gateway");
         var program = System.IO.File.ReadAllText(Path.Combine(gateway, "Program.cs"));
-        Assert.Contains("GatewayRateLimiting.PermitLimit(builder.Configuration)", program, StringComparison.Ordinal);
-        Assert.Contains("GatewayRateLimiting.Configure(options, ratePermit)", program, StringComparison.Ordinal);
+        Assert.Contains("GatewayRateLimiting.Settings(builder.Configuration)", program, StringComparison.Ordinal);
+        Assert.Contains("GatewayRateLimiting.Configure(options, rateLimits)", program, StringComparison.Ordinal);
         Assert.DoesNotContain("QueueLimit", program, StringComparison.Ordinal);
 
         var statusPage = System.IO.File.ReadAllText(Path.Combine(gateway, "Views", "Home", "Status.cshtml"));
