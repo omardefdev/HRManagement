@@ -475,3 +475,14 @@ cold and warm, upload the stack logs of a failed E2E job, and open a PR that als
 - Fix: docker-compose.ci-e2e.yml (gateway limit 2000, the acceptance stack's value; product default unchanged) on the
   E2E job's compose commands; a failed E2E job uploads e2e-stack-logs (ps + compose logs, 7 days). Docs:
   CI_AND_TESTING E2E row; final report defects 9, 11, 12 updated, 15 (limiter queues instead of 429) and 16 added.
+
+Owner action done (UTC): 2026-10-31T10:45:04.8802435Z - owner answered «ضمّه إلى PR #28»: add the outsider-login fix `ace1283b` (from the
+session started for final report defect 16) to PR #28, cancel run 41189365454, and merge after the new run is green
+with no rate-limit stall in the E2E timeline and fast SEP_F2/HIR_F2.
+- Review of ace1283b: the realm extension and the merge script change only the CI import (prepare-ci-compose-env.sh is
+  the merge's only caller). Rendered in throwaway copies of the tree in hrm-ci-local:dev (Python 3.12, PowerShell
+  7.6), before and after the commit: of 13 users only e2e-outsider-b differs (first and last name, offline_access).
+  LoginAsync, EnsureRoleForbiddenAsync and the SEP_F2/HIR_F2 assertions match GatewayPathAuthorizationMiddleware (the
+  403 body is written in every environment) and HIRE_RBAC_MATRIX (Step3Approve HrManagement.Approve, Step4Complete
+  HrContracts.Approve). Build -warnaserror 0/0 on ace1283b. Actions minutes before the new run: 1,596 billed in
+  October (GitHub billing usage API; 832 on 2026-10-30, 722 on 2026-10-31).
