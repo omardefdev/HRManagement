@@ -108,3 +108,22 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P5
 - status: in progress
+- Precondition 3 confirmed: main ci push run 41247555134 finished success (CI, E2E, CodeQL, Gitleaks).
+- Decisions:
+  - D18: the pack ships as one Content item of HRManagement.SharedKernel (output + publish); HR.Core.Infrastructure's
+    copy removed. ServiceRegimePack is the only loader (configured LegalPacks:ServiceRegimesPath, then the shipped copy,
+    then docs/syr only in Development); ServiceRegimeJsonPackPaths and the four duplicated search lists are gone.
+    AddServiceRegimePackCheck(configuration, environment) applies the options at registration, adds the "ready" check
+    and the start-up line "LegalPack loaded pack=... source=... sha256=... regimes=N separationRules=N movementTypes=N
+    promotionRules=N article159Patterns=N"; a configured path that does not exist stops the host at start.
+  - D19: required families: regimes, separation_rules, movement_types, promotion_rules, article_159_patterns (repository
+    counts 4/4/4/4/1, so P-9 needs no stop). Repository sha256 = ad766ef68b651cbc9d718548cc66c5b394bcc7a18b12ee73ed23b932c60677da.
+  - D20: scripts/syr001-validate.ps1 now checks the shared kernel's Content item (it checked HR.Core's csproj).
+- Tests: unit 4439/4439 (ServiceRegimePackTests: three sources, missing configured path, fingerprint, counts, empty
+  pack and missing pack Unhealthy; matrix check "every ServiceRegime*Rules reader lists the pack and registers the
+  check"); integration Int037PublishOutputTests: real dotnet publish of HR.Contracts.Web and HR.Movements.Web has
+  seed-packs/syr003-service-regimes-v1/regimes.json with the repository SHA-256.
+- P5 Finished (UTC): 2026-10-31T23:37:29.2873197Z
+
+## P6
+- status: in progress

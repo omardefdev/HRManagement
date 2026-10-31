@@ -200,10 +200,12 @@ if (-not $syr006Migration) {
     $failures += "missing SYR006_ServiceRegimeAndBenefits migration"
 }
 
-if (Test-Path $csproj) {
-    $proj = Get-Content -Raw -Path $csproj
-    if ($proj -notmatch "syr003-service-regimes-v1\\regimes\.json") {
-        $failures += "csproj must link docs/syr/service-regimes.json to seed-packs/syr003-service-regimes-v1/regimes.json"
+# PLAN-37: the SYR-003 pack ships from the shared kernel (every reading service gets it in its output and publish).
+$kernelCsproj = Resolve-RepoPath "src/Shared/HRManagement.SharedKernel/HRManagement.SharedKernel.csproj"
+if (Test-Path $kernelCsproj) {
+    $proj = Get-Content -Raw -Path $kernelCsproj
+    if ($proj -notmatch "syr003-service-regimes-v1\\regimes\.json" -or $proj -notmatch 'CopyToPublishDirectory="PreserveNewest"') {
+        $failures += "HRManagement.SharedKernel.csproj must ship docs/syr/service-regimes.json as seed-packs/syr003-service-regimes-v1/regimes.json (output and publish)"
     }
 }
 

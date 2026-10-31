@@ -83,11 +83,11 @@ public static class ServiceRegimeArticle159Rules
 
     private static IReadOnlyList<Article159Pattern> LoadPatterns()
     {
-        var path = ServiceRegimeJsonPackPaths.FindFirstExisting();
-        if (path is null)
+        // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
+        var json = ServiceRegimePack.CurrentJson;
+        if (json is null)
             return [];
 
-        var json = File.ReadAllText(path);
         var pack = JsonSerializer.Deserialize<Article159Pack>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true

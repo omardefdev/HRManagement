@@ -127,6 +127,29 @@ public partial class ProductionWiringMatrixTests
         Assert.True(offenders.Count == 0, "localhost fallback in: " + string.Join(", ", offenders));
     }
 
+    /// <summary>§6: every service whose code reads ServiceRegime*Rules lists the pack and registers its readiness check.</summary>
+    [Fact]
+    public void Every_service_that_reads_the_legal_pack_ships_and_checks_it()
+    {
+        var reader = new Regex(@"\bServiceRegime(Separation|Movement|Promotion|Article159|Transition)Rules\.|\bServiceRegimeSeeder\b", RegexOptions.CultureInvariant);
+        var problems = new List<string>();
+        foreach (var service in Matrix.Value.Services)
+        {
+            var files = service.Projects.SelectMany(SourceFiles).ToList();
+            var reads = files.Any(f => reader.IsMatch(System.IO.File.ReadAllText(f)));
+            var registers = files.Any(f => System.IO.File.ReadAllText(f).Contains(".AddServiceRegimePackCheck(", StringComparison.Ordinal));
+            var lists = service.LegalPacks.Contains("syr003-service-regimes-v1");
+            if (reads && !lists) problems.Add($"{service.ComposeService}: reads ServiceRegime*Rules but legalPacks does not list syr003-service-regimes-v1");
+            if (lists && !registers) problems.Add($"{service.ComposeService}: lists the pack but does not call AddServiceRegimePackCheck");
+            if (lists && !reads) problems.Add($"{service.ComposeService}: lists the pack but reads no ServiceRegime*Rules");
+        }
+
+        var kernel = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "src", "Shared", "HRManagement.SharedKernel", "HRManagement.SharedKernel.csproj"));
+        Assert.Contains(@"Link=""seed-packs\syr003-service-regimes-v1\regimes.json""", kernel);
+        Assert.Contains(@"CopyToPublishDirectory=""PreserveNewest""", kernel);
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
     public static TheoryData<string> ProductionChains() => new() { "production", "single-host" };
 
     /// <summary>§2 rule 3: both production compose chains set the matrix wiring and the mandatory secret.</summary>

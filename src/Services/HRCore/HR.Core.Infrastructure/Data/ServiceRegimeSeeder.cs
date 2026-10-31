@@ -131,32 +131,11 @@ public static class ServiceRegimeSeeder
 
     private static RegimePack LoadPack()
     {
-        foreach (var path in ResolvePackPaths())
-        {
-            if (!File.Exists(path))
-                continue;
-
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<RegimePack>(json, JsonOptions)
-                   ?? throw new InvalidOperationException($"Invalid SYR-003 service regimes pack JSON: {path}");
-        }
-
-        throw new FileNotFoundException("SYR-003 service regimes pack not found (seed-packs/syr003-service-regimes-v1/regimes.json)");
+        // PLAN-37: one source for the pack (ServiceRegimePack).
+        var pack = ServiceRegimePack.Current
+            ?? throw new FileNotFoundException($"SYR-003 service regimes pack not found ({ServiceRegimePack.ContentRelativePath})");
+        return JsonSerializer.Deserialize<RegimePack>(pack.Json, JsonOptions)
+               ?? throw new InvalidOperationException($"Invalid SYR-003 service regimes pack JSON: {pack.FilePath}");
     }
 
-    private static IEnumerable<string> ResolvePackPaths()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "seed-packs", "syr003-service-regimes-v1", "regimes.json");
-
-        var dir = AppContext.BaseDirectory;
-        for (var i = 0; i < 8; i++)
-        {
-            yield return Path.Combine(dir, "seed-packs", "syr003-service-regimes-v1", "regimes.json");
-            yield return Path.Combine(dir, "docs", "syr", "service-regimes.json");
-            var parent = Directory.GetParent(dir);
-            if (parent is null)
-                break;
-            dir = parent.FullName;
-        }
-    }
 }

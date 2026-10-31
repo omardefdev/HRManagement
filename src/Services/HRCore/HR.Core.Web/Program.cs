@@ -277,6 +277,8 @@ builder.Services.AddHrCodeGenerationEngine();
 // PLAN-37: HR.Core uses its in-process policy orchestrator and code generator; it registers no HTTP client to itself.
 builder.Services.AddOrganizationBranding(builder.Configuration);
 builder.Services.AddHrServiceHealthChecks<HRCoreDbContext>(builder.Configuration);
+// PLAN-37 (§6): the SYR-003 legal pack: readiness fails without it, one start-up fingerprint line.
+builder.Services.AddServiceRegimePackCheck(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);

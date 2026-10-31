@@ -90,11 +90,11 @@ public static class ServiceRegimeSeparationRules
 
     private static IReadOnlyDictionary<string, SeparationRule> LoadRules()
     {
-        var path = ServiceRegimeJsonPackPaths.FindFirstExisting();
-        if (path is null)
+        // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
+        var json = ServiceRegimePack.CurrentJson;
+        if (json is null)
             return new Dictionary<string, SeparationRule>(StringComparer.OrdinalIgnoreCase);
 
-        var json = File.ReadAllText(path);
         var pack = JsonSerializer.Deserialize<SeparationPack>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true

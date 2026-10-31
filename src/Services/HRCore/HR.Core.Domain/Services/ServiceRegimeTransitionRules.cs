@@ -1,4 +1,5 @@
 using System.Text.Json;
+using HRManagement.SharedKernel.Legal;
 using System.Text.Json.Serialization;
 
 namespace HR.Core.Domain.Services;
@@ -56,12 +57,10 @@ public static class ServiceRegimeTransitionRules
 
     private static IReadOnlyList<(string From, string To, string Condition)> LoadAllowedTransitions()
     {
-        foreach (var path in ResolvePackPaths())
+        // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
+        var json = ServiceRegimePack.Current?.Json;
+        if (json is not null)
         {
-            if (!File.Exists(path))
-                continue;
-
-            var json = File.ReadAllText(path);
             var pack = JsonSerializer.Deserialize<TransitionPack>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -75,19 +74,4 @@ public static class ServiceRegimeTransitionRules
         return [];
     }
 
-    private static IEnumerable<string> ResolvePackPaths()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "seed-packs", "syr003-service-regimes-v1", "regimes.json");
-
-        var dir = AppContext.BaseDirectory;
-        for (var i = 0; i < 8; i++)
-        {
-            yield return Path.Combine(dir, "seed-packs", "syr003-service-regimes-v1", "regimes.json");
-            yield return Path.Combine(dir, "docs", "syr", "service-regimes.json");
-            var parent = Directory.GetParent(dir);
-            if (parent is null)
-                break;
-            dir = parent.FullName;
-        }
-    }
 }
