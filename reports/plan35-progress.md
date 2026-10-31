@@ -420,3 +420,24 @@ OWNER ACTION (P8) - Waiting for owner (UTC): 2026-10-31T03:00:11.241843700Z
 2. `gh pr create --base main --head docs/plan-35-final-report --title "PLAN-35: remote CI green, protection, gap status lines, final report" --body-file reports/plan35-final-report.md`
 3. after CI, CodeQL, Gitleaks and E2E are green on the PR: `gh pr merge --merge`
 Owner action done (UTC): 2026-10-31T05:50:34.1914527Z (owner: "Yes, run them" - Claude pushes, opens the PR and merges after green checks)
+
+## P8 closing PR and post-merge
+
+| Run | SHA | Workflow | Start (UTC) | End (UTC) | Result | Notes |
+|---|---|---|---|---|---|---|
+| [41174221552](https://github.com/omardefdev/HRManagement/actions/runs/41174221552) | 5015308 (PR #27) | ci | 05:51:14 | 07:00:57 | **success** | CI, CodeQL, Gitleaks, E2E all green. ~70 min |
+| [41179057892](https://github.com/omardefdev/HRManagement/actions/runs/41179057892) | dfd37b8 (push main) | ci | 07:03:21 | 08:25:23 | failure | CI ok; CodeQL ok; Gitleaks ok; E2E **fail** 56/1/0: `SEP_F1_Anonymous_Is_Challenged` "Request timed out after 30000ms" on anonymous GET /ui/hr-contracts/SeparationWizard. ~82 min |
+
+PR #27 (https://github.com/omardefdev/HRManagement/pull/27) merged by Claude with `gh pr merge --merge` at 07:03:18Z after
+the four required checks were green; main = origin/main = `dfd37b8`; local main fast-forwarded.
+PR #27 changed no product code. This is the second 30 s timeout on /ui/hr-contracts/SeparationWizard (SEP_H1 on
+run 41149141375, SEP_F1 here); each time the same tree passed on the other run. It repeats on one surface, so it is
+not treated as random noise, and it was not quarantined. Compose logs are not uploaded by the E2E job, so the cause
+(hr-contracts-web latency or a hang behind the gateway) is not known.
+
+BLOCKED (UTC): 2026-10-31T08:28:23.3342385Z
+main's latest push run is red on a required check (E2E). Owner decision needed:
+(a) rerun only the failed E2E job (`gh run rerun 41179057892 --failed`, ~35 Actions minutes) to confirm flakiness, then
+    investigate the SeparationWizard latency as a follow-up;
+(b) quarantine SEP_F1 and SEP_H1 in tests/e2e/quarantine.json with an issue and expiry, through a PR;
+(c) investigate locally first (stack up, time /ui/hr-contracts/SeparationWizard cold and warm) before any rerun.
