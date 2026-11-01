@@ -23,9 +23,9 @@ public class MedicalRecommendationIssuedArchiveConsumer(
 
         var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalRecommendationIssued>(codeClient, "MEDREC", context.CancellationToken);
 
-        logger.LogInformation(
-            "Records.Archive: MedicalRecommendationIssued EmployeeId={EmployeeId} Ref={Reference}",
-            m.EmployeeId, reference);
+        // No employee id next to a medical event in the logs (CodeQL cs/exposure-of-sensitive-information): the archive
+        // reference identifies the item.
+        logger.LogInformation("Records.Archive: MedicalRecommendationIssued archived Ref={Reference}", reference);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HR.Health/Recommendations", retentionYears: 15));
@@ -50,9 +50,7 @@ public class MedicalDecisionIssuedArchiveConsumer(
 
         var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalDecisionIssued>(codeClient, "MEDDEC", context.CancellationToken);
 
-        logger.LogInformation(
-            "Records.Archive: MedicalDecisionIssued EmployeeId={EmployeeId} Ref={Reference}",
-            m.EmployeeId, reference);
+        logger.LogInformation("Records.Archive: MedicalDecisionIssued archived Ref={Reference}", reference);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HR.Health/CommitteeReports", retentionYears: 15));
