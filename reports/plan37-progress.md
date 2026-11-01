@@ -161,3 +161,43 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P7
 - status: in progress
+- Server changes (with undo):
+  1. 2026-11-01T01:05:38Z `/opt/hrm/shared/.env`: appended SVC_AUTH_DIRECTORY_CLIENT_SECRET (openssl rand -hex 24 on the
+     server, never printed); backup `/opt/hrm/shared/.env.bak-plan37-<ts>` (600). Undo: restore the backup, or
+     `sed -i '/^SVC_AUTH_DIRECTORY_CLIENT_SECRET=/d' /opt/hrm/shared/.env`, then redeploy. Now 13 SVC_* keys.
+  2. Dry run of keycloak-sync-clients.sh --check from /tmp/int037 (read-only; kcadm login config inside the Keycloak
+     container only). Found a SIGPIPE bug (head under pipefail), fixed in de5737d3. /tmp/int037 removed.
+  3. First build-on-host (7f3ae42e4b6f) stopped by me after the fix: the remote build died after 8 of 15 images
+     (local copies tagged 7f3ae42e4b6f remain in the server's image store, nothing pushed); its source archive and
+     build dir were removed. Undo: `docker image rm $(docker images -q '127.0.0.1:5050/hrmanagement/*:7f3ae42e4b6f')`.
+  4. build-on-host for de5737d30659 (the deployed tag): see timing below.
+     build-on-host de5737d30659: 287 s (upload 18 s, build + push; server cache cleaned afterwards).
+  5. Deploy de5737d30659 2026-11-01T01:36:14Z..01:38:36Z (142 s): containers healthy (pull 1 s, up 43 s, healthy 12 s),
+     then keycloak-sync-clients.sh failed on the first client secret it had to set (kcadm "update -f --merge" ->
+     unknown_error). Rolled back with deploy.ps1 -Rollback 01:39:07Z..01:40:27Z (80 s, old smoke 17/0). Partial realm
+     changes from that run stayed (new scopes, svc-hr-movements); they are additive and the next run completed them.
+     Service interruption: two container recreations (~55 s each) between 01:37 and 01:40.
+  6. Fix 9d457dab: secrets set with kcadm "-s secret=" (expanded inside the container). The images built for
+     de5737d30659 were tagged 9d457dab36d7 on the server registry (the only change is that deploy script; no rebuild).
+     Undo:  / registry tag delete of :9d457dab36d7 and :de5737d30659.
+  7. Deploy 9d457dab36d7 2026-11-01T01:41:32Z..01:45:01Z (209 s): pull 2 s, up 45 s, healthy 12 s, keycloak sync 116 s
+     (changes=22: 6 scopes created with their audience mappers, clients svc-hr-movements, svc-compliance, svc-hr-health,
+     svc-dev-analytics created, svc-auth-directory enabled, optional scopes linked to every client, 5 secrets set);
+     smoke 49 pass / 0 fail / 1 warn (external port probe inconclusive from this client: the VPN answers every port) /
+     0 deferred. Second sync run: changes=0; --check exit 0. Undo of the realm changes: Keycloak console (section 7 of
+     OPS_VPS_SINGLE_HOST), or keep them (additive); deploy.ps1 -Rollback returns to 00926107a37b.
+- Decisions:
+  - D25: docs/syr/*.json are LF in every checkout (.gitattributes): on Windows core.autocrlf=true gave the legal pack
+    sha256 ad766ef6 locally vs afc1cee0 (the committed blob) on the server. The committed blob is the reference.
+  - D26: AcOps36VpsBootTests re-run on the server without 36j: 36j checks the sequence "deploy two tags, then roll back"
+    and expects the current release to be the last rollback target; after the PLAN-37 redeploy that is by design not
+    the state. Its guarantee (rollback restores the previous tag with a green smoke) was exercised for real in step 5.
+- Server proof (VPS_SSH_HOST=hrm-vps): AcInt37VpsServerTests 3/3 (mandatory smoke: wiring-env 14, wiring-token 13,
+  legal-pack 3, S2S candidate upload; LegalPack line sha256=afc1cee0... in hr-core-web, hr-contracts-web,
+  hr-movements-web = repository file; realm: every matrix client enabled, sync idempotent). 37a/37c NotRun(server): the
+  VpsDemo realm has no acceptance personas. AcOps36VpsBootTests 36a-i, 36k: 10/10 Pass (286 s).
+- P7 Finished (UTC): 2026-11-01T02:01:01.3301183Z
+
+## P8
+- status: in progress (files written earlier: scripts/ci/dedupe-push-run.sh, ci.yml dedupe job, HARD-001 step in
+  steps.json + ci.yml, DedupePushRunScriptTests, CiStepsParityTests exact-gate allowance; actionlint: no findings)
