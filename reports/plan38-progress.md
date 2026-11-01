@@ -336,3 +336,17 @@ Resumed (UTC): 2026-11-01T22:28:00Z — owner: no password strictness until deve
   approved by hradmin (balance +3, transaction Completed), cancelled (balance back), the first run's leave cancelled
   through the UI too; ID card ID-2026-0000001 issued by hradmin. The demo password was read on the server into
   memory only and is not in the evidence (checked). Evidence acceptance-evidence/AC-OPS-38/vps/38-vps-p6-*.json.
+
+Owner action done (UTC): 2026-11-01T23:10:47Z — PR merged by the owner (omardefdev); recorded by the PLAN-39 session.
+- PR: https://github.com/omardefdev/HRManagement/pull/33 (`release/plan-38`, head f76db4e1ba04), merge commit
+  e31d8bb06e3b; main = origin/main = e31d8bb0 after `git pull --ff-only` (checked 2026-11-01T23:13Z).
+- PR checks (all on the PR head; repository is public, billable minutes 0 for every job):
+  - `ci` run 41357381184, wall 40.4 min: Dedupe post-merge run success (7 s), Gitleaks success (55 s),
+    Acceptance disabled notice success, CI success (22.9 min), CodeQL success (16.1 min), E2E success (17.2 min),
+    Acceptance skipped (RUN_ACCEPTANCE off).
+  - `hardening-check` run 41357380998, wall 2.6 min: HARD-001 compliance scan success.
+- Post-merge on main (e31d8bb0): `ci` run 41360824124, wall 57 s, success — **the dedupe guard skipped the heavy jobs**
+  (CI, CodeQL, E2E, Acceptance skipped; Gitleaks and the dedupe job ran). `hardening-check` run 41360824103 ran again
+  (it has no dedupe guard; result recorded in reports/plan39-progress.md).
+- Commit 6287e41a (P6 through the server UI, outside PR #33) is merged into PLAN-39's branch with this note, as the
+  owner chose on 2026-11-02. reports/plan38-pr.md (the PR text) is committed with it.
