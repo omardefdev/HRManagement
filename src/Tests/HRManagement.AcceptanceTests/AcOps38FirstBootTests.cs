@@ -363,8 +363,14 @@ public class AcOps38FirstBootTests
         }
         var (restoredExit, _) = await RoleSqlAsync("payroll_app", old, "payroll_db", "SELECT 1");
         Assert.Equal(0, restoredExit);
-        r.WriteScenarioDbChecks(new { pgClassBefore = before, pgClassAfter = after, secondRunMigrationsApplied = 0,
-            rotation = "new password accepted, old refused (28P01)", restored });
+        r.WriteScenarioDbChecks(new
+        {
+            pgClassBefore = before,
+            pgClassAfter = after,
+            secondRunMigrationsApplied = 0,
+            rotation = "new password accepted, old refused (28P01)",
+            restored
+        });
         r.WriteResult("Pass");
     }
 
@@ -399,8 +405,11 @@ public class AcOps38FirstBootTests
 
         r.WriteScenarioDbChecks(new
         {
-            publishedBy = "mq_payroll", consumedBy = "dev-analytics-web-payroll-processed (mq_dev_analytics)",
-            hrCoreAppDdl = "refused (42501)", hrCoreAppToPayrollDb = "refused (42501)", mqPayrollDeclareHrCoreQueue = "ACCESS_REFUSED (403)",
+            publishedBy = "mq_payroll",
+            consumedBy = "dev-analytics-web-payroll-processed (mq_dev_analytics)",
+            hrCoreAppDdl = "refused (42501)",
+            hrCoreAppToPayrollDb = "refused (42501)",
+            mqPayrollDeclareHrCoreQueue = "ACCESS_REFUSED (403)",
         });
         r.WriteResult("Pass");
     }
@@ -476,8 +485,12 @@ public class AcOps38FirstBootTests
         Assert.DoesNotMatch("(?i)x-delayed-message.*(error|unknown exchange type)|unknown exchange type 'x-delayed-message'", brokerLog);
         var (_, contractsLog) = await RunAsync("docker", null, "logs", await ContainerAsync("hr-contracts-web"));
         Assert.DoesNotContain("x-delayed-message", contractsLog, StringComparison.OrdinalIgnoreCase);
-        r.WriteScenarioDbChecks(new { plugin = "rabbitmq_delayed_message_exchange 3.13.0 enabled", delayedErrors = 0,
-            scheduledMessageTest = "Ops038RabbitLeastPrivilegeTests.A_message_scheduled_ten_seconds_ahead_through_the_delayed_exchange_arrives_after_the_delay" });
+        r.WriteScenarioDbChecks(new
+        {
+            plugin = "rabbitmq_delayed_message_exchange 3.13.0 enabled",
+            delayedErrors = 0,
+            scheduledMessageTest = "Ops038RabbitLeastPrivilegeTests.A_message_scheduled_ten_seconds_ahead_through_the_delayed_exchange_arrives_after_the_delay"
+        });
         r.WriteResult("Pass");
     }
 
@@ -618,7 +631,8 @@ public class AcOps38FirstBootTests
         Assert.Equal("1", await AdminSqlAsync("hr_core_db", $"SELECT count(*) FROM \"WorkflowDefinitions\" WHERE \"Code\"='{code}'"));
         r.WriteScenarioDbChecks(new
         {
-            seedPackApplied = true, defaultContractType = contractType,
+            seedPackApplied = true,
+            defaultContractType = contractType,
             negative = "INSERT on WorkflowDefinitions revoked: HR.Core stopped with national-mandatory / SQLSTATE 42501",
             restored = "grant restored, definition re-seeded, HR.Core ready",
         });

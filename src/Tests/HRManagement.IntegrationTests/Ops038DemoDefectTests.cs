@@ -119,13 +119,22 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
 
         var leave = new LeaveRequest
         {
-            EmployeeId = employee, LeaveType = LeaveType.Annual, StartDate = start, EndDate = start.AddDays(2),
-            DurationDays = 3, Status = ApprovalStatus.Pending, ServiceTransactionId = leaveTx.Id,
+            EmployeeId = employee,
+            LeaveType = LeaveType.Annual,
+            StartDate = start,
+            EndDate = start.AddDays(2),
+            DurationDays = 3,
+            Status = ApprovalStatus.Pending,
+            ServiceTransactionId = leaveTx.Id,
         };
         var balance = new LeaveBalance { EmployeeId = employee, LeaveType = LeaveType.Annual, Year = start.Year, TotalEntitlement = 30, Used = 0 };
         var advance = new AdvanceRequest
         {
-            EmployeeId = employee, Amount = 1000m, Reason = "PLAN-38 P6", Status = ApprovalStatus.Pending, ServiceTransactionId = advanceTx.Id,
+            EmployeeId = employee,
+            Amount = 1000m,
+            Reason = "PLAN-38 P6",
+            Status = ApprovalStatus.Pending,
+            ServiceTransactionId = advanceTx.Id,
         };
         db.LeaveRequests.Add(leave);
         db.LeaveBalances.Add(balance);
