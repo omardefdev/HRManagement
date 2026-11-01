@@ -64,6 +64,9 @@ public class Ops038RabbitPermissionMatrixTests
     private static bool Admits(MqUser user, string name) =>
         Regex.IsMatch(name, user.Configure, RegexOptions.CultureInvariant);
 
+    private static bool Reads(MqUser user, string name) =>
+        Regex.IsMatch(name, user.ReadPermission, RegexOptions.CultureInvariant);
+
     [Fact]
     public void Every_service_with_a_bus_has_exactly_one_user_and_no_other_user_exists()
     {
@@ -79,7 +82,7 @@ public class Ops038RabbitPermissionMatrixTests
         Assert.All(users, u => Assert.Matches("^RABBITMQ_[A-Z_]+_PASS$", u.PasswordEnv));
         Assert.DoesNotContain(users, u => u.User == "mq_gateway");
         Assert.All(users, u => Assert.Equal(".*", u.Write));
-        Assert.All(users, u => Assert.Equal(".*", u.ReadPermission));
+        Assert.All(users, u => Assert.Equal(u.Configure, u.ReadPermission)); // review F2
     }
 
     [Fact]
@@ -127,6 +130,28 @@ public class Ops038RabbitPermissionMatrixTests
 
             Assert.False(Admits(u, "amq.direct"));
             Assert.False(Admits(u, "unrelated-queue"));
+        }
+    }
+
+    [Fact]
+    public void Read_is_held_to_the_same_names_as_configure_so_no_user_can_drain_another_services_queue()
+    {
+        // Review F2: basic.consume, basic.get and queue.purge need only read on the queue. With read = .*, mq_payroll
+        // could drain hr-core-web queues. read now equals configure: own queues and exchanges, and the shared exchanges a
+        // service binds from (which it also declares). write stays .* (publish and send), as the plan decided.
+        var users = Users();
+        foreach (var u in users)
+        {
+            Assert.Equal(u.Configure, u.ReadPermission);
+            Assert.Equal(".*", u.Write);
+            Assert.True(Reads(u, $"{u.EndpointPrefix}-employee-created"), u.User);
+            Assert.True(Reads(u, "HRManagement.MessageContracts.Events:IEmployeeCreated"), u.User);
+            foreach (var other in users.Where(o => o.Service != u.Service))
+            {
+                Assert.False(Reads(u, $"{other.EndpointPrefix}-employee-created"), $"{u.User} must not read {other.EndpointPrefix} queues");
+                Assert.False(Reads(u, $"{other.EndpointPrefix}-separation-saga-state_delay"), u.User);
+            }
+            Assert.False(Reads(u, "amq.rabbitmq.trace"));
         }
     }
 

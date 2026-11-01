@@ -76,6 +76,18 @@ check_env() {
     die "HRM_DB_POSTURE=demo (administrator connections) exists only with HRM_DEPLOYMENT_MODE=demo"
   fi
   case "$(env_value HRM_MQ_POSTURE)" in ""|least-privilege|admin) ;; *) die "HRM_MQ_POSTURE must be least-privilege or admin";; esac
+  # PLAN-38 (section 5, review F6): the pool knobs of the compose files. lint-compose.ps1 checks the defaults; a value in
+  # .env changes the total, so the same rule runs here: 14 pools of HRM_PG_POOL_MAX (the gateway and 13 modules), HR.Core
+  # HRM_PG_POOL_MAX_HR_CORE, Keycloak 20 and a reserve of 5 stay below 90 % of max_connections.
+  local pool hc_pool max_conn total
+  pool="$(env_value HRM_PG_POOL_MAX)"; pool="${pool:-10}"
+  hc_pool="$(env_value HRM_PG_POOL_MAX_HR_CORE)"; hc_pool="${hc_pool:-20}"
+  case "$pool:$hc_pool" in *[!0-9:]*|:*|*:) die "HRM_PG_POOL_MAX and HRM_PG_POOL_MAX_HR_CORE must be whole numbers";; esac
+  max_conn="$(grep -ho 'max_connections=[0-9]*' "$(dirname "$example")/../../docker-compose.vps.yml" 2>/dev/null | head -1 | cut -d= -f2)"
+  max_conn="${max_conn:-250}"
+  total=$(( 14 * pool + hc_pool + 20 + 5 ))
+  [ $(( total * 10 )) -lt $(( max_conn * 9 )) ] \
+    || die "connection pools: $total of max_connections $max_conn (90 % or more); lower HRM_PG_POOL_MAX or HRM_PG_POOL_MAX_HR_CORE"
   log "env check: all $(grep -cE '^[A-Z][A-Z0-9_]*=' "$example") keys of .env.vps.example present (values not shown)"
 }
 

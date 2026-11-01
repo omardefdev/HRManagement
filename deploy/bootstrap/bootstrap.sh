@@ -163,7 +163,8 @@ if [ -f "$MQ_USERS" ]; then
     user="$(jq -r ".users[$i].user" "$MQ_USERS")"
     pass_var="$(jq -r ".users[$i].passwordEnv" "$MQ_USERS")"
     body=/tmp/mq-body.json
-    jq -n --arg p "$(secret "$pass_var")" '{password:$p, tags:""}' > "$body"
+    # The password reaches jq on stdin (printf is a builtin), never as an argument: /proc/<pid>/cmdline stays clean.
+    secret "$pass_var" | jq -Rs '{password: ., tags: ""}' > "$body"
     mq_call PUT "/users/$user" "$body" || { rm -f "$body"; die "could not create or update RabbitMQ user $user"; }
     rm -f "$body"
     jq -c ".users[$i].permissions | {configure, write, read}" "$MQ_USERS" > "$body"

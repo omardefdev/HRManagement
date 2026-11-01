@@ -168,6 +168,48 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
+    public async Task Leave_approval_refuses_a_request_edited_after_it_was_read_and_debits_nothing()
+    {
+        Xunit.Skip.IfNot(RealInfra.IsEnabled, Skip);
+        var (cs, leaveId, _, balanceId) = await SeedAsync();
+
+        await using var approverDb = Contracts(cs);
+        var gate = new TaskCompletionSource();
+        var approval = new ApproveLeaveRequestHandler(new GatedRepository(new ContractsRepository(approverDb), gate.Task), Mock.Of<IEventPublisher>())
+            .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None);
+
+        // The approver validated a 3-day leave; an edit to 20 days commits before its claim (review finding F1).
+        await using (var editorDb = Contracts(cs))
+        {
+            var edited = await editorDb.LeaveRequests.Where(l => l.Id == leaveId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(l => l.DurationDays, 20)
+                    .SetProperty(l => l.EndDate, l => l.StartDate.AddDays(19)));
+            Assert.Equal(1, edited);
+        }
+
+        gate.SetResult();
+        var result = await approval;
+        Assert.False(result.Success);
+        Assert.Equal(ApproveLeaveRequestHandler.LeaveRequestChangedError, result.Error);
+
+        await using var verify = Contracts(cs);
+        var leave = await verify.LeaveRequests.AsNoTracking().SingleAsync(l => l.Id == leaveId);
+        Assert.Equal(ApprovalStatus.Pending, leave.Status);
+        Assert.Null(leave.ApprovedBy);
+        Assert.Equal(20, leave.DurationDays);
+        Assert.Equal(0, await verify.LeaveBalances.Where(b => b.Id == balanceId).Select(b => b.Used).SingleAsync());
+
+        // Read again, the edited request is validated and approved as edited.
+        await using var againDb = Contracts(cs);
+        var again = await new ApproveLeaveRequestHandler(new ContractsRepository(againDb), Mock.Of<IEventPublisher>())
+            .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None);
+        Assert.True(again.Success, again.Error);
+        Assert.Equal(20, await verify.LeaveBalances.Where(b => b.Id == balanceId).Select(b => b.Used).SingleAsync());
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
     public async Task Leave_cancellation_after_approval_succeeds_on_postgresql()
     {
         Xunit.Skip.IfNot(RealInfra.IsEnabled, Skip);

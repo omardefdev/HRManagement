@@ -223,6 +223,13 @@ public sealed class Ops038RabbitLeastPrivilegeTests : IClassFixture<Ops038Rabbit
         await using var own = await connection.CreateChannelAsync();
         var ok = await own.QueueDeclareAsync($"payroll-web-ops038-{Guid.NewGuid():N}", durable: false, exclusive: false, autoDelete: true);
         Assert.StartsWith("payroll-web-", ok.QueueName, StringComparison.Ordinal);
+
+        // Review F2: mq_payroll may not read (get, consume or purge) the HR.Core consumer queue the bus above declared.
+        await using var reader = await connection.CreateChannelAsync();
+        var readRefused = await Assert.ThrowsAsync<OperationInterruptedException>(() =>
+            reader.BasicGetAsync("hr-core-web-ops038-payroll-processed-probe", autoAck: false));
+        Assert.Equal(403, readRefused.ShutdownReason!.ReplyCode);
+        Assert.Contains("ACCESS_REFUSED", readRefused.ShutdownReason.ReplyText, StringComparison.Ordinal);
     }
 
     [Trait("Category", "Testcontainers")]

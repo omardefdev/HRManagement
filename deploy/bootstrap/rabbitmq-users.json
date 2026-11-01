@@ -1,5 +1,5 @@
 {
-  "comment": "PLAN-38 (section 2): least-privilege RabbitMQ users, one per service with a bus, derived from the live inventory reports/plan38-rabbit-topology.json (and MassTransit 8.5.10 naming). No secrets: passwordEnv names the .env variable. hrm-bootstrap step 6 creates the users and sets their passwords and permissions on every deploy. configure = the service's endpoint prefix (ResolveEndpointPrefix: the .Web assembly name, kebab-case, plus '-'), the shared message-type exchanges, MassTransit's fault exchanges, and the bus temporary queue of MassTransit (machine_process_bus_id, no hyphen, so it can never match another service's prefixed name). write/read = .* (publishing to and binding from shared exchanges). The gateway has no bus and no user.",
+  "comment": "PLAN-38 (section 2): least-privilege RabbitMQ users, one per service with a bus, derived from the live inventory reports/plan38-rabbit-topology.json (and MassTransit 8.5.10 naming). No secrets: passwordEnv names the .env variable. hrm-bootstrap step 6 creates the users and sets their passwords and permissions on every deploy. configure = the service's endpoint prefix (ResolveEndpointPrefix: the .Web assembly name, kebab-case, plus '-'), the shared message-type exchanges, MassTransit's fault exchanges, and the bus temporary queue of MassTransit (machine_process_bus_id, no hyphen, so it can never match a prefixed name). read = the same expression as configure (review F2: consuming, getting or purging is limited to the service's own queues, and binding to the shared exchanges it declares). write = .* (publishing to shared exchanges and sending to another service's endpoint stay open; the boundary between services is held by configure and read). Residual: the bus temporary-queue pattern matches every service's temporary queue (no request client is in use). The gateway has no bus and no user.",
   "vhost": "/",
   "users": [
     {
@@ -7,98 +7,98 @@
       "endpointPrefix": "hr-core-web",
       "user": "mq_hr_core",
       "passwordEnv": "RABBITMQ_HR_CORE_PASS",
-      "permissions": { "configure": "^(hr-core-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(hr-core-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(hr-core-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "hr-contracts-web",
       "endpointPrefix": "hr-contracts-web",
       "user": "mq_hr_contracts",
       "passwordEnv": "RABBITMQ_HR_CONTRACTS_PASS",
-      "permissions": { "configure": "^(hr-contracts-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|HR\\.Contracts\\.Infrastructure\\.Sagas:.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(hr-contracts-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|HR\\.Contracts\\.Infrastructure\\.Sagas:.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(hr-contracts-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|HR\\.Contracts\\.Infrastructure\\.Sagas:.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "hr-health-web",
       "endpointPrefix": "hr-health-web",
       "user": "mq_hr_health",
       "passwordEnv": "RABBITMQ_HR_HEALTH_PASS",
-      "permissions": { "configure": "^(hr-health-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(hr-health-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(hr-health-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "hr-movements-web",
       "endpointPrefix": "hr-movements-web",
       "user": "mq_hr_movements",
       "passwordEnv": "RABBITMQ_HR_MOVEMENTS_PASS",
-      "permissions": { "configure": "^(hr-movements-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(hr-movements-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(hr-movements-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "hr-training-web",
       "endpointPrefix": "hr-training-web",
       "user": "mq_hr_training",
       "passwordEnv": "RABBITMQ_HR_TRAINING_PASS",
-      "permissions": { "configure": "^(hr-training-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(hr-training-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(hr-training-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "payroll-web",
       "endpointPrefix": "payroll-web",
       "user": "mq_payroll",
       "passwordEnv": "RABBITMQ_PAYROLL_PASS",
-      "permissions": { "configure": "^(payroll-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(payroll-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(payroll-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "idcard-web",
       "endpointPrefix": "idcard-web",
       "user": "mq_idcard",
       "passwordEnv": "RABBITMQ_IDCARD_PASS",
-      "permissions": { "configure": "^(idcard-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(idcard-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(idcard-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "records-archive-web",
       "endpointPrefix": "records-archive-web",
       "user": "mq_records_archive",
       "passwordEnv": "RABBITMQ_RECORDS_ARCHIVE_PASS",
-      "permissions": { "configure": "^(records-archive-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(records-archive-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(records-archive-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "admin-logistics-web",
       "endpointPrefix": "admin-logistics-web",
       "user": "mq_admin_logistics",
       "passwordEnv": "RABBITMQ_ADMIN_LOGISTICS_PASS",
-      "permissions": { "configure": "^(admin-logistics-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(admin-logistics-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(admin-logistics-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "it-infra-web",
       "endpointPrefix": "it-infra-web",
       "user": "mq_it_infra",
       "passwordEnv": "RABBITMQ_IT_INFRA_PASS",
-      "permissions": { "configure": "^(it-infra-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(it-infra-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(it-infra-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "dev-analytics-web",
       "endpointPrefix": "dev-analytics-web",
       "user": "mq_dev_analytics",
       "passwordEnv": "RABBITMQ_DEV_ANALYTICS_PASS",
-      "permissions": { "configure": "^(dev-analytics-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(dev-analytics-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(dev-analytics-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "compliance-web",
       "endpointPrefix": "compliance-web",
       "user": "mq_compliance",
       "passwordEnv": "RABBITMQ_COMPLIANCE_PASS",
-      "permissions": { "configure": "^(compliance-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(compliance-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(compliance-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "auth-directory-web",
       "endpointPrefix": "auth-directory-web",
       "user": "mq_auth_directory",
       "passwordEnv": "RABBITMQ_AUTH_DIRECTORY_PASS",
-      "permissions": { "configure": "^(auth-directory-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(auth-directory-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(auth-directory-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     },
     {
       "service": "file-storage-web",
       "endpointPrefix": "file-storage-web",
       "user": "mq_file_storage",
       "passwordEnv": "RABBITMQ_FILE_STORAGE_PASS",
-      "permissions": { "configure": "^(file-storage-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": ".*" }
+      "permissions": { "configure": "^(file-storage-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$", "write": ".*", "read": "^(file-storage-web-.*|HRManagement\\.MessageContracts\\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$" }
     }
   ]
 }

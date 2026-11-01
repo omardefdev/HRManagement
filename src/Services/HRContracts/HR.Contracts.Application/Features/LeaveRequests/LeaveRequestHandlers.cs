@@ -232,6 +232,8 @@ public class CancelLeaveRequestHandler(IContractsRepository repository, IEventPu
 
 public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventPublisher eventPublisher) : IRequestHandler<ApproveLeaveRequestCommand, (bool Success, string? Error)>
 {
+    public const string LeaveRequestChangedError = "تغيّر طلب الإجازة منذ قراءته؛ أعد فتحه ثم اعتمده.";
+
     public async Task<(bool Success, string? Error)> Handle(ApproveLeaveRequestCommand request, CancellationToken cancellationToken)
     {
         var entity = await repository.GetLeaveRequestAsync(request.Id, cancellationToken);
@@ -267,9 +269,18 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
         var balanceError = LeaveAndAdvanceRules.ValidateLeaveBalance(balance, entity.DurationDays);
         if (balanceError is not null) return (false, balanceError);
 
-        // DATA-001: claim Pending→Approved atomically before debiting balance.
+        // DATA-001: claim Pending→Approved atomically before debiting balance. The claim also matches the values validated
+        // above: an edit committed since the read (another employee, type, dates or duration) leaves it unclaimed instead
+        // of approving and debiting content nobody validated (the re-read below would otherwise take the edit in).
+        var employeeId = entity.EmployeeId;
+        var leaveType = entity.LeaveType;
+        var startDate = entity.StartDate;
+        var endDate = entity.EndDate;
+        var durationDays = entity.DurationDays;
         var claimed = await repository.LeaveRequests
-            .Where(x => x.Id == entity.Id && x.Status == HRManagement.SharedKernel.Enums.ApprovalStatus.Pending)
+            .Where(x => x.Id == entity.Id && x.Status == HRManagement.SharedKernel.Enums.ApprovalStatus.Pending
+                && x.EmployeeId == employeeId && x.LeaveType == leaveType && x.StartDate == startDate
+                && x.EndDate == endDate && x.DurationDays == durationDays)
             .ExecuteUpdateAsync(
                 s => s
                     .SetProperty(x => x.Status, HRManagement.SharedKernel.Enums.ApprovalStatus.Approved)
@@ -277,7 +288,11 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
                     .SetProperty(x => x.UpdatedAt, _ => DateTime.UtcNow),
                 cancellationToken);
         if (claimed == 0)
-            return (false, "الطلب ليس قيد الانتظار");
+        {
+            var stillPending = await repository.LeaveRequests.AsNoTracking()
+                .AnyAsync(x => x.Id == entity.Id && x.Status == HRManagement.SharedKernel.Enums.ApprovalStatus.Pending, cancellationToken);
+            return (false, stillPending ? LeaveRequestChangedError : "الطلب ليس قيد الانتظار");
+        }
 
         // PLAN-38 (PLAN-37 defect 1): the claim changed the row, and with it PostgreSQL's xmin concurrency token. Setting
         // the properties on the tracked entity made the later SaveChanges update it against the old xmin (0 rows,
