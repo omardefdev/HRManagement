@@ -17,6 +17,21 @@ public class CiStepsParityTests
 
     private sealed record WorkflowStep(string? Name, string? Uses, string? Run, string? If);
 
+    // PLAN-37 (P-7): build-and-test waits for the dedupe job and runs unless it proved a tested identical tree.
+    private const string DedupeNeeds = "    needs: [dedupe]";
+    private const string DedupeIf = "    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}";
+
+    [Fact]
+    public void Build_and_test_is_gated_only_by_the_fail_open_dedupe_guard()
+    {
+        var text = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "workflows", "ci.yml")).Replace("\r\n", "\n");
+        Assert.Contains("  build-and-test:\n    name: CI\n    runs-on: ubuntu-latest\n" + DedupeNeeds + "\n" + DedupeIf + "\n", text);
+        Assert.Contains("  codeql:\n    name: CodeQL\n    runs-on: ubuntu-latest\n" + DedupeNeeds + "\n" + DedupeIf + "\n", text);
+        Assert.Contains("run: bash scripts/ci/dedupe-push-run.sh", text);
+        // The cheap secret scan always runs.
+        Assert.DoesNotMatch(@"(?s)  gitleaks:\n(?:    .*\n)*?    needs: \[dedupe\]", text);
+    }
+
     private static IReadOnlyList<WorkflowStep> BuildAndTestSteps()
     {
         var lines = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "workflows", "ci.yml"))
@@ -131,10 +146,12 @@ public class CiStepsParityTests
         for (var i = start; i < end; i++)
         {
             Match m;
-            // job-level keys: defaults, env, continue-on-error, strategy and the like would also change every step
+            // job-level keys: defaults, env, continue-on-error, strategy and the like would also change every step.
+            // PLAN-37: the only other keys are the post-merge dedupe guard, exactly as written (it fails open).
             if ((m = Regex.Match(lines[i], @"^    ([A-Za-z_-]+):")).Success && m.Groups[1].Value is not ("name" or "runs-on" or "steps"))
             {
-                problems.Add($"ci.yml:{i + 1}: job key '{m.Groups[1].Value}' is not allowed on build-and-test");
+                if (!(lines[i] == DedupeNeeds || lines[i] == DedupeIf))
+                    problems.Add($"ci.yml:{i + 1}: job key '{m.Groups[1].Value}' is not allowed on build-and-test");
                 continue;
             }
 

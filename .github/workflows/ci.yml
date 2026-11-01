@@ -7,9 +7,39 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # PLAN-37 (P-7): after a merge, the push run on main skips the heavy jobs only when the pull request already tested
+  # this exact tree in a successful run (scripts/ci/dedupe-push-run.sh). It fails open: anything else runs everything.
+  dedupe:
+    name: Dedupe post-merge run
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decide whether this push run repeats a tested pull request
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_FILE: ci.yml
+          TREE_FILE: artifacts/ci/tested-tree.txt
+        run: bash scripts/ci/dedupe-push-run.sh
+      - name: Upload the tested tree (pull requests)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tested-tree
+          path: artifacts/ci/tested-tree.txt
+          retention-days: 14
+
   build-and-test:
     name: CI
     runs-on: ubuntu-latest
+    needs: [dedupe]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,6 +90,9 @@ jobs:
 
       - name: Workflow lint (actionlint)
         run: bash scripts/ci/run-steps.sh --step "Workflow lint (actionlint)"
+
+      - name: HARD-001 hardening compliance scan
+        run: bash scripts/ci/run-steps.sh --step "HARD-001 hardening compliance scan"
 
       - name: STR-002 control runtime validate
         run: bash scripts/ci/run-steps.sh --step "STR-002 control runtime validate"
@@ -546,6 +579,8 @@ jobs:
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
+    needs: [dedupe]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
     permissions:
       security-events: write
       contents: read

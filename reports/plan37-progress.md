@@ -179,7 +179,7 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
      Service interruption: two container recreations (~55 s each) between 01:37 and 01:40.
   6. Fix 9d457dab: secrets set with kcadm "-s secret=" (expanded inside the container). The images built for
      de5737d30659 were tagged 9d457dab36d7 on the server registry (the only change is that deploy script; no rebuild).
-     Undo:  / registry tag delete of :9d457dab36d7 and :de5737d30659.
+     Undo: docker image rm of the :9d457dab36d7 and :de5737d30659 tags on the server (and their registry tags).
   7. Deploy 9d457dab36d7 2026-11-01T01:41:32Z..01:45:01Z (209 s): pull 2 s, up 45 s, healthy 12 s, keycloak sync 116 s
      (changes=22: 6 scopes created with their audience mappers, clients svc-hr-movements, svc-compliance, svc-hr-health,
      svc-dev-analytics created, svc-auth-directory enabled, optional scopes linked to every client, 5 secrets set);
@@ -201,3 +201,19 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 ## P8
 - status: in progress (files written earlier: scripts/ci/dedupe-push-run.sh, ci.yml dedupe job, HARD-001 step in
   steps.json + ci.yml, DedupePushRunScriptTests, CiStepsParityTests exact-gate allowance; actionlint: no findings)
+- Workflows that run on push to main: ci.yml (all pushes: CI build-and-test ~53 min, E2E ~21 min, CodeQL ~23 min,
+  Gitleaks ~2 min, acceptance notice), hardening-check.yml and iac-plan.yml (path-filtered, cheap: kept), deploy.yml
+  (workflow_dispatch only). The guard applies to CI build-and-test (and E2E / Acceptance through needs) and CodeQL.
+- Expected saving per merge whose PR run already passed on the identical tree: CI 53 + E2E 21 + CodeQL 23 = ~97 billable
+  minutes (job durations of push run 41247555134); the new dedupe job costs ~1 minute on every run.
+- Fail-open rules: no merged PR, a different tree, a latest PR run that is not a success, a missing artifact or any API
+  error -> skip=false; a failed dedupe job also runs everything (!cancelled()).
+- CiStepsParityTests now allows exactly two job keys on build-and-test: needs: [dedupe] and the fail-open if
+  (compared as exact strings; any other key still fails).
+- Tests: DedupePushRunScriptTests 9 cases (equal tree -> skip, different -> run, API error -> run, no PR -> run, latest PR
+  run failure / in progress / missing -> run, missing artifact -> run, pull_request records the tree); actionlint no
+  findings; HARD-001 scan (PS 5.1 here) exit shown above.
+- P8 Finished (UTC): 2026-11-01T02:03:19.3372986Z
+
+## P9
+- status: in progress
