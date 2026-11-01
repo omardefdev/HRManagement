@@ -8,6 +8,8 @@
     production   docker-compose.yml + services + images + production
     single-host  production + docker-compose.vps.yml + docker-compose.vps-demo.yml
   Rules:
+    - PLAN-38: every connection string sets Maximum Pool Size, Keycloak sets KC_DB_POOL_MAX_SIZE, and the total plus a
+      reserve stays below 90 % of max_connections (-SelfTest checks the rule itself without docker);
     - every service has an image, no build context, and no image tagged latest (or untagged);
     - no development value in any service environment: localhost:8088, ASPNETCORE_ENVIRONMENT=Development, YOUR_,
       USE_ENV, dev-svc-secret-local-only;
@@ -26,7 +28,8 @@
 param(
     [string]$RepoRoot = '',
     [string[]]$Profiles = @('full-stack'),
-    [string]$OutDir = ''
+    [string]$OutDir = '',
+    [switch]$SelfTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,6 +52,62 @@ function Get-Prop($obj, [string]$name) {
     $p = $obj.PSObject.Properties[$name]
     if ($null -eq $p) { return $null }
     return $p.Value
+}
+
+# PLAN-38 (section 5): bounded connection pools. Every connection string sets Maximum Pool Size, Keycloak sets
+# KC_DB_POOL_MAX_SIZE, and the configured total plus a reserve (hrm-bootstrap, the backup, the administrator) stays below
+# 90 % of PostgreSQL's max_connections (default 100 when the chain does not set it).
+$PoolReserve = 5
+function Get-PoolViolations($Config) {
+    $violations = New-Object System.Collections.Generic.List[string]
+    $max = 100
+    $pg = $Config.services.PSObject.Properties['postgresql']
+    if ($pg) {
+        foreach ($arg in @(Get-Prop $pg.Value 'command')) { if ("$arg" -match '^max_connections=(\d+)$') { $max = [int]$Matches[1] } }
+    }
+    $total = $PoolReserve
+    foreach ($s in $Config.services.PSObject.Properties) {
+        $e = Get-Prop $s.Value 'environment'
+        if (-not $e) { continue }
+        foreach ($p in $e.PSObject.Properties) {
+            if ($p.Name -like 'ConnectionStrings__*') {
+                if ("$($p.Value)" -match 'Maximum Pool Size=(\d+)') { $total += [int]$Matches[1] }
+                else { $violations.Add("$($s.Name): $($p.Name) has no Maximum Pool Size (Npgsql opens up to 100)"); $total += 100 }
+            }
+        }
+        if ($s.Name -eq 'keycloak') {
+            $kc = [string](Get-Prop $e 'KC_DB_POOL_MAX_SIZE')
+            if ($kc -match '^\d+$') { $total += [int]$kc }
+            else { $violations.Add('keycloak: KC_DB_POOL_MAX_SIZE is not set (Keycloak opens up to 100)'); $total += 100 }
+        }
+    }
+    if ($total * 10 -ge $max * 9) { $violations.Add("connection pools: $total of max_connections $max (90 % or more)") }
+    return ,$violations
+}
+
+# Self-test of the pool rule (no docker): a bounded chain passes; an oversized pool, a pool without a maximum and an
+# unset Keycloak pool each fail. Run by Ops038 unit tests: lint-compose.ps1 -SelfTest
+function Invoke-PoolSelfTest {
+    function New-Config([string]$pool, [string]$kc, [string]$max) {
+        $json = '{"services":{"postgresql":{"command":["postgres","-c","max_connections=' + $max + '"]},' +
+            '"payroll-web":{"environment":{"ConnectionStrings__PayrollDb":"Host=postgresql;Database=payroll_db' + $pool + '"}},' +
+            '"keycloak":{"environment":{' + $kc + '}}}}'
+        return ($json | ConvertFrom-Json)
+    }
+    $cases = @(
+        @{ Name = 'bounded'; Config = (New-Config ';Maximum Pool Size=10' '"KC_DB_POOL_MAX_SIZE":"20"' '250'); Fail = $false },
+        @{ Name = 'over 90 percent'; Config = (New-Config ';Maximum Pool Size=200' '"KC_DB_POOL_MAX_SIZE":"20"' '250'); Fail = $true },
+        @{ Name = 'no maximum'; Config = (New-Config '' '"KC_DB_POOL_MAX_SIZE":"20"' '250'); Fail = $true },
+        @{ Name = 'keycloak unbounded'; Config = (New-Config ';Maximum Pool Size=10' '"KC_DB":"postgres"' '250'); Fail = $true }
+    )
+    $ok = $true
+    foreach ($c in $cases) {
+        $v = Get-PoolViolations $c.Config
+        $failed = $v.Count -gt 0
+        if ($failed -ne $c.Fail) { $ok = $false; Write-Host "[SELFTEST FAIL] $($c.Name): violations=$($v.Count)" }
+        else { Write-Host "[SELFTEST PASS] $($c.Name): $(if ($failed) { $v -join '; ' } else { 'no violation' })" }
+    }
+    if ($ok) { exit 0 } else { exit 1 }
 }
 
 function Test-Chain([string]$Name, $Config, [bool]$SingleHost) {
@@ -117,6 +176,8 @@ function Test-Chain([string]$Name, $Config, [bool]$SingleHost) {
         }
     }
 
+    foreach ($pv in (Get-PoolViolations $Config)) { $violations.Add($pv) }
+
     if ($SingleHost) {
         foreach ($forbiddenService in @('otel-collector', 'prometheus', 'tempo', 'grafana')) {
             if ($Config.services.PSObject.Properties[$forbiddenService]) { $violations.Add("$forbiddenService must not run on the single host") }
@@ -132,6 +193,8 @@ function Test-Chain([string]$Name, $Config, [bool]$SingleHost) {
 
     return ,$violations
 }
+
+if ($SelfTest) { Invoke-PoolSelfTest }
 
 $envFile = Join-Path $OutDir 'lint.env'
 New-LintEnvFile -Path $envFile

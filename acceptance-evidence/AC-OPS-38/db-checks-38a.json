@@ -1,0 +1,141 @@
+{
+  "databases": 16,
+  "applications": [
+    {
+      "Service": "hr-gateway",
+      "Database": "gateway_audit_db",
+      "history": 7,
+      "owners": "gateway_audit_migrator",
+      "connectedAs": "",
+      "healthy": true
+    },
+    {
+      "Service": "hr-core-web",
+      "Database": "hr_core_db",
+      "history": 81,
+      "owners": "hr_core_migrator",
+      "connectedAs": "hr_core_app",
+      "healthy": true
+    },
+    {
+      "Service": "hr-contracts-web",
+      "Database": "hr_contracts_db",
+      "history": 27,
+      "owners": "hr_contracts_migrator",
+      "connectedAs": "hr_contracts_app",
+      "healthy": true
+    },
+    {
+      "Service": "hr-health-web",
+      "Database": "hr_health_db",
+      "history": 11,
+      "owners": "hr_health_migrator",
+      "connectedAs": "hr_health_app",
+      "healthy": true
+    },
+    {
+      "Service": "hr-movements-web",
+      "Database": "hr_movements_db",
+      "history": 17,
+      "owners": "hr_movements_migrator",
+      "connectedAs": "hr_movements_app",
+      "healthy": true
+    },
+    {
+      "Service": "hr-training-web",
+      "Database": "hr_training_db",
+      "history": 10,
+      "owners": "hr_training_migrator",
+      "connectedAs": "hr_training_app",
+      "healthy": true
+    },
+    {
+      "Service": "payroll-web",
+      "Database": "payroll_db",
+      "history": 28,
+      "owners": "payroll_migrator",
+      "connectedAs": "payroll_app",
+      "healthy": true
+    },
+    {
+      "Service": "idcard-web",
+      "Database": "idcard_db",
+      "history": 10,
+      "owners": "idcard_migrator",
+      "connectedAs": "idcard_app",
+      "healthy": true
+    },
+    {
+      "Service": "records-archive-web",
+      "Database": "archive_db",
+      "history": 9,
+      "owners": "archive_migrator",
+      "connectedAs": "",
+      "healthy": true
+    },
+    {
+      "Service": "admin-logistics-web",
+      "Database": "admin_db",
+      "history": 15,
+      "owners": "admin_migrator",
+      "connectedAs": "",
+      "healthy": true
+    },
+    {
+      "Service": "it-infra-web",
+      "Database": "it_infra_db",
+      "history": 9,
+      "owners": "it_infra_migrator",
+      "connectedAs": "",
+      "healthy": true
+    },
+    {
+      "Service": "dev-analytics-web",
+      "Database": "analytics_db",
+      "history": 8,
+      "owners": "analytics_migrator",
+      "connectedAs": "analytics_app",
+      "healthy": true
+    },
+    {
+      "Service": "compliance-web",
+      "Database": "compliance_db",
+      "history": 13,
+      "owners": "compliance_migrator",
+      "connectedAs": "compliance_app",
+      "healthy": true
+    },
+    {
+      "Service": "auth-directory-web",
+      "Database": "auth_directory_db",
+      "history": 7,
+      "owners": "auth_directory_migrator",
+      "connectedAs": "",
+      "healthy": true
+    },
+    {
+      "Service": "file-storage-web",
+      "Database": "file_storage_db",
+      "history": 12,
+      "owners": "file_storage_migrator",
+      "connectedAs": "file_storage_app",
+      "healthy": true
+    }
+  ],
+  "brokerUsers": [
+    "mq_admin_logistics",
+    "mq_auth_directory",
+    "mq_compliance",
+    "mq_dev_analytics",
+    "mq_file_storage",
+    "mq_hr_contracts",
+    "mq_hr_core",
+    "mq_hr_health",
+    "mq_hr_movements",
+    "mq_hr_training",
+    "mq_idcard",
+    "mq_it_infra",
+    "mq_payroll",
+    "mq_records_archive"
+  ]
+}

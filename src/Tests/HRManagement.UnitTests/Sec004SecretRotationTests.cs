@@ -78,6 +78,34 @@ public class Sec004SecretRotationTests
         Assert.Contains("zero-downtime", doc, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// PLAN-38: what the earlier text checks missed. A secret in the production file never falls back to another
+    /// variable (the shared POSTGRES_APP_PASSWORD / RABBITMQ_SERVICE_PASSWORD or the administrator's), every connection
+    /// string and broker password is required, and the backup container uses hrm_backup with its own password.
+    /// </summary>
+    [Fact]
+    public void Production_secrets_never_fall_back_to_a_shared_or_administrator_value()
+    {
+        var prod = Read("docker-compose.production.yml");
+        // MinIO (profile minio, D-38-7) keeps its optional fallbacks until a MinIO image is vetted.
+        Assert.DoesNotMatch(@"\$\{(?!MINIO_)[A-Z_]*(PASSWORD|_PASS|SECRET)[A-Z_]*:-\$\{", prod);
+        Assert.DoesNotContain("POSTGRES_APP_PASSWORD", prod);
+        Assert.DoesNotContain("RABBITMQ_SERVICE_PASSWORD", prod);
+        foreach (Match m in Regex.Matches(prod, @"ConnectionStrings__\w+: (?<cs>.+)"))
+            Assert.Matches(@"Password=\$\{POSTGRES_[A-Z_]+_APP_PASSWORD:\?", m.Groups["cs"].Value);
+        foreach (Match m in Regex.Matches(prod, @"RabbitMQ__Password: (?<pw>.+)"))
+            Assert.Matches(@"^\$\{RABBITMQ_[A-Z_]+_PASS:\?", m.Groups["pw"].Value);
+
+        Assert.Contains("BACKUP_PGUSER: hrm_backup", prod);
+        Assert.Contains("BACKUP_PGPASSWORD: ${POSTGRES_BACKUP_PASSWORD:?POSTGRES_BACKUP_PASSWORD required}", prod);
+        var backup = Read("scripts/backup-postgres.sh");
+        Assert.DoesNotMatch(@"PGPASSWORD=.*POSTGRES_PASSWORD", backup);
+        Assert.DoesNotMatch(@"PGUSER=.*POSTGRES_USER", backup);
+
+        // HR.Core's one-time-code key is a critical guard key (PLAN-38).
+        Assert.Contains("options.CriticalKeys.Add(\"Recruitment:Portal:OtpHmacKey\")", Read("src/Services/HRCore/HR.Core.Web/Program.cs"));
+    }
+
     [Fact]
     public void Service_identity_secrets_fail_closed_in_production()
     {

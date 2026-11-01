@@ -9,11 +9,14 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # IAM-004: used by init-service-roles.sh (fallback for all *_app roles)
+      # IAM-004 / PLAN-38: development fallback for every *_app / *_migrator role (init-service-roles.sh); the production
+      # chain passes one password per role (docker-compose.production.yml, D-38-3).
       POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
     volumes:
-      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+      # PLAN-38: first initialisation runs the same idempotent SQL as the hrm-bootstrap init container.
+      - ./deploy/bootstrap/ensure-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
       - ./docker/init-service-roles.sh:/docker-entrypoint-initdb.d/02-init-service-roles.sh
+      - ./deploy/bootstrap:/opt/hrm-bootstrap:ro
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d postgres"]
@@ -23,15 +26,24 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # PLAN-38 (§2): RabbitMQ 3.13 with the delayed-message plugin (docker/rabbitmq/Dockerfile, D-38-4), built locally
+  # here; the image chain (docker-compose.images.yml) pulls hr-rabbitmq from the registry. A fixed host and node name
+  # and a named volume keep durable messages and quorum queues across a recreate of the container.
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    build:
+      context: ./docker/rabbitmq
+    image: hr-rabbitmq:local
     container_name: hrm-rabbitmq
+    hostname: rabbitmq
     ports:
       - "5673:5672"
       - "15673:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -239,6 +251,7 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
   minio_data:
   file_storage_data:
   clamav_data:

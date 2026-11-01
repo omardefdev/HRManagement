@@ -37,7 +37,8 @@ acquire_lock() {
 
   echo "Acquiring migration advisory lock (${LOCK_KEY}) ..."
   # Hold the session-scoped advisory lock in a background psql until EXIT.
-  psql "${LOCK_CONN}" -v ON_ERROR_STOP=1 -q <<SQL &
+  split_conn "${LOCK_CONN}"
+  PGPASSWORD="${CONN_PW}" psql "${CONN_INFO}" -v ON_ERROR_STOP=1 -q <<SQL &
 SELECT pg_advisory_lock(${LOCK_KEY});
 SELECT pg_sleep(86400);
 SQL
@@ -73,6 +74,33 @@ declare -a MIGRATIONS=(
   "file-storage|src/Services/FileStorage/File.Storage.Infrastructure|src/Services/FileStorage/File.Storage.Web|ConnectionStrings__FileStorageDb"
 )
 
+# PLAN-38 (review F4): no password on a command line. split_conn takes an Npgsql connection string ("Host=..;Password=..")
+# and sets CONN_NO_PW (the same string without Password), CONN_INFO (libpq keywords for psql) and CONN_PW. Callers pass
+# CONN_PW as PGPASSWORD, which both Npgsql (the bundles) and libpq read from the environment. Generated passwords carry
+# no ';' (a quoted Npgsql value with ';' is not supported here).
+split_conn() {
+  CONN_NO_PW=""; CONN_INFO=""; CONN_PW=""
+  local part key val
+  local -a parts
+  IFS=';' read -ra parts <<< "$1"
+  for part in "${parts[@]}"; do
+    [ -n "${part//[[:space:]]/}" ] || continue
+    key="${part%%=*}"; key="${key//[[:space:]]/}"; key="${key,,}"
+    val="${part#*=}"
+    case "${key}" in
+      password|pwd) CONN_PW="${val}"; continue;;
+      host|server) CONN_INFO+=" host=${val}";;
+      port) CONN_INFO+=" port=${val}";;
+      database|db) CONN_INFO+=" dbname=${val}";;
+      username|userid|user) CONN_INFO+=" user=${val}";;
+      sslmode) val="${val//[[:space:]]/}"; val="${val,,}"; [ "${val}" = verifyfull ] && val=verify-full; [ "${val}" = verifyca ] && val=verify-ca
+               CONN_INFO+=" sslmode=${val}";;
+    esac
+    CONN_NO_PW+="${part};"
+  done
+  CONN_INFO="${CONN_INFO# }"
+}
+
 acquire_lock
 
 HARDEN_SQL="${ROOT}/scripts/sql/ten002c-harden-tenant-rls.sql"
@@ -93,7 +121,8 @@ harden_tenant_rls() {
   fi
 
   echo "Hardening tenant RLS for ${name} ..."
-  if ! psql "${conn}" -v ON_ERROR_STOP=1 -q -f "${HARDEN_SQL}"; then
+  split_conn "${conn}"
+  if ! PGPASSWORD="${CONN_PW}" psql "${CONN_INFO}" -v ON_ERROR_STOP=1 -q -f "${HARDEN_SQL}"; then
     echo "ERROR: tenant RLS hardening failed for ${name}"
     exit 1
   fi
@@ -113,7 +142,8 @@ for entry in "${MIGRATIONS[@]}"; do
     conn_val="${migrate_conn}"
     echo "Migrating ${name} via efbundle ..."
     if [ -n "${conn_val}" ]; then
-      if ! "${exe}" --connection "${conn_val}"; then
+      split_conn "${conn_val}"
+      if ! PGPASSWORD="${CONN_PW}" "${exe}" --connection "${CONN_NO_PW}"; then
         echo "ERROR: Bundle migration failed for ${name}"
         exit 1
       fi
@@ -125,8 +155,9 @@ for entry in "${MIGRATIONS[@]}"; do
     fi
   else
     echo "Migrating ${project} via dotnet ef (no bundle at ${bundle}) ..."
-    if ! dotnet ef database update --project "${project}" --startup-project "${startup}" --configuration Release \
-         ${migrate_conn:+--connection "${migrate_conn}"}; then
+    split_conn "${migrate_conn}"
+    if ! PGPASSWORD="${CONN_PW}" dotnet ef database update --project "${project}" --startup-project "${startup}" --configuration Release \
+         ${CONN_NO_PW:+--connection "${CONN_NO_PW}"}; then
       echo "ERROR: Migration failed for ${project}"
       exit 1
     fi

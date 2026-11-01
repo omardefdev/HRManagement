@@ -49,6 +49,8 @@ $env:POSTGRES_APP_PASSWORD = $PostgresAppPassword
 $env:POSTGRES_ALLOW_APP_DDL = "false"
 $env:PGHOST = $PostgresHost
 $env:PGPORT = "$PostgresPort"
+# PLAN-38: the wrapper runs deploy/bootstrap/ensure-databases.sql and ensure-roles.sql from the repository.
+$env:HRM_BOOTSTRAP_SQL_DIR = Join-Path $root "deploy/bootstrap"
 
 bash $initScript
 if ($LASTEXITCODE -ne 0) { throw "init-service-roles.sh failed with exit code $LASTEXITCODE" }

@@ -16,6 +16,8 @@ tmp/
 # Secrets and local env
 .env
 .env.local
+# PLAN-38: generated lab env file of the least-privilege acceptance stack (scripts/vps/init-secrets.ps1)
+.env.leastpriv
 .acceptance/
 *.pfx
 *.pem

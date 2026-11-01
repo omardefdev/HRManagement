@@ -55,6 +55,12 @@ using HRManagement.Integration.FileAdapters;
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
+// PLAN-38: the candidate-portal one-time-code key is critical too (the guard names it before anything else starts).
+builder.Services.Configure<ProductionConfigurationGuardOptions>(options =>
+{
+    options.CriticalKeys.Add("Recruitment:Portal:OtpHmacKey");
+    options.RequiredKeys.Add("Recruitment:Portal:OtpHmacKey");
+});
 builder.AddHrOpenTelemetry();
 builder.AddHrDataProtection("HR.Core");
 builder.Services.AddHrPiiFieldEncryption();
@@ -285,38 +291,38 @@ app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<HRCoreDbContext>();
 var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
-try
+// PLAN-38 (D-38-6): the national seed is mandatory (a failure stops a Production start; Seed:AllowMandatoryFailure is the
+// emergency switch); demo and acceptance data are optional (warning, except in the Acceptance profile).
+var seeds = new SeedRunner("HR.Core", seedProfile, app.Environment, app.Configuration, app.Logger);
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
     try
     {
         var coreDb = scope.ServiceProvider.GetRequiredService<HRCoreDbContext>();
-        await HR.Core.Infrastructure.Seeding.NationalSeedOrchestrator.ApplyMandatoryAsync(coreDb, scope.ServiceProvider);
+        await seeds.RunMandatoryAsync("national-mandatory", () =>
+            HR.Core.Infrastructure.Seeding.NationalSeedOrchestrator.ApplyMandatoryAsync(coreDb, scope.ServiceProvider));
         if (seedProfile == SeedProfile.Demo)
         {
-            try
-            {
-                await HR.Core.Infrastructure.Seeding.DemoSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider);
-            }
-            catch (Exception demoEx)
-            {
-                app.Logger.LogWarning(demoEx, "HR.Core demo seed skipped.");
-            }
+            await seeds.RunOptionalAsync("demo", () =>
+                HR.Core.Infrastructure.Seeding.DemoSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider));
         }
         if (seedProfile == SeedProfile.Acceptance)
-            await HR.Core.Infrastructure.Seeding.AcceptanceSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider);
-        await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.OrgUnitPathService>().RecomputeAllAsync();
-        await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllOrgUnitsAsync();
+        {
+            await seeds.RunOptionalAsync("acceptance", () =>
+                HR.Core.Infrastructure.Seeding.AcceptanceSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider));
+        }
+        // Derived data (org-unit paths) and the org-unit publication, not seeds: a failure is a warning as before.
+        await seeds.RunOptionalAsync("org-unit-paths", async () =>
+        {
+            await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.OrgUnitPathService>().RecomputeAllAsync();
+            await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllOrgUnitsAsync();
+        });
     }
     finally
     {
         TenantIdFlow.Set(null);
     }
-}
-catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
-{
-    app.Logger.LogWarning(ex, "HR.Core seed skipped.");
 }
 
 if (!app.Environment.IsDevelopment())

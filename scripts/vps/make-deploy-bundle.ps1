@@ -52,17 +52,26 @@ $BundleFiles = @(
     'docker-compose.vps.yml',
     'docker-compose.vps-demo.yml',
     'docker-compose.vps-local.yml',
+    # PLAN-38 (D-38-2): added by remote-deploy.sh only when HRM_MQ_POSTURE=admin.
+    'docker-compose.posture-mq-admin.yml',
     'deploy/vps/Caddyfile',
     'deploy/vps/clamav/clamd.conf',
     'deploy/vps/host-setup.sh',
     'deploy/vps/remote-deploy.sh',
     'deploy/vps/smoke.sh',
     'deploy/vps/.env.vps.example',
+    # PLAN-38: fills only the missing keys of the server's .env (names printed, never values).
+    'deploy/vps/init-secrets.sh',
     # PLAN-37: keycloak-sync-clients.sh and smoke.sh read the wiring matrix; smoke.sh compares the legal pack's SHA-256.
     'deploy/vps/keycloak-sync-clients.sh',
     'deploy/wiring/service-wiring.json',
     'docs/syr/service-regimes.json',
-    'docker/init-databases.sql',
+    # PLAN-38: the postgres container's first-init scripts are the bootstrap's own idempotent SQL.
+    'deploy/bootstrap/ensure-databases.sql',
+    'deploy/bootstrap/ensure-roles.sql',
+    'deploy/bootstrap/postgres-roles.conf',
+    # PLAN-38: init-secrets.sh reads the broker users' password variables from the matrix.
+    'deploy/bootstrap/rabbitmq-users.json',
     'docker/init-service-roles.sh',
     'scripts/backup-postgres.sh',
     'scripts/lib/backup-catalog.sh'

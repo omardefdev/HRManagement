@@ -125,6 +125,8 @@ public sealed class ProductionConfigurationGuard(
                 $"is shorter than {ProductionConfigurationGuardOptions.MinimumCallerProofSecretLength} characters");
         }
 
+        EvaluateCredentials(configuration, environment, Fail);
+
         var publicAuthority = configuration["Keycloak:PublicAuthority"];
         if (environment.IsProduction()
             && !string.IsNullOrWhiteSpace(publicAuthority)
@@ -187,5 +189,110 @@ public sealed class ProductionConfigurationGuard(
             .ToList();
 
         return new ProductionConfigurationReport(failures, warnings);
+    }
+
+    /// <summary>
+    /// PLAN-38 (section 3): the credentials a service connects with. Every configured connection string, the broker user
+    /// and password (when the service has a <c>RabbitMQ</c> section), and the service-identity secret (when a client id
+    /// is set) must be present and real; the authority must not point to localhost in Production; and the two postures
+    /// of the single host (D-38-1, D-38-2) are enforced: <c>Deployment:MqPosture=least-privilege</c> refuses any broker
+    /// user but a <c>mq_*</c> service user, <c>Deployment:DbPosture=least-privilege</c> refuses any database user but a
+    /// <c>*_app</c> role, and <c>Deployment:DbPosture=demo</c> exists only in demo mode. No value is ever reported.
+    /// </summary>
+    private static void EvaluateCredentials(
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        Action<string, string, string> fail)
+    {
+        void RequireReal(string key)
+        {
+            var value = configuration[key];
+            if (string.IsNullOrWhiteSpace(value))
+                fail(key, "غير مضبوط", "is not set");
+            else if (IsPlaceholder(value))
+                fail(key, "يحمل قيمة وهمية", "holds a placeholder value");
+        }
+
+        var connectionStrings = configuration.GetSection("ConnectionStrings").GetChildren().ToList();
+        foreach (var connectionString in connectionStrings)
+            RequireReal(connectionString.Path);
+
+        var rabbit = configuration.GetSection("RabbitMQ");
+        if (rabbit.Exists())
+        {
+            RequireReal("RabbitMQ:Username");
+            RequireReal("RabbitMQ:Password");
+        }
+
+        if (!string.IsNullOrWhiteSpace(configuration["ServiceIdentity:ClientId"]))
+            RequireReal("ServiceIdentity:ClientSecret");
+
+        var authority = configuration["Keycloak:Authority"];
+        if (environment.IsProduction()
+            && !string.IsNullOrWhiteSpace(authority)
+            && (authority.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+                || authority.Contains("127.0.0.1", StringComparison.Ordinal)))
+        {
+            fail("Keycloak:Authority", "يشير إلى localhost في الإنتاج", "points to localhost in Production");
+        }
+
+        var mqPosture = configuration[ProductionConfigurationGuardOptions.MqPostureKey];
+        if (!string.IsNullOrWhiteSpace(mqPosture))
+        {
+            if (!ProductionConfigurationGuardOptions.MqPostures.Contains(mqPosture, StringComparer.OrdinalIgnoreCase))
+            {
+                fail(ProductionConfigurationGuardOptions.MqPostureKey, "قيمة غير معروفة", "has an unsupported value");
+            }
+            else if (string.Equals(mqPosture, "least-privilege", StringComparison.OrdinalIgnoreCase)
+                     && configuration["RabbitMQ:Username"] is { Length: > 0 } user
+                     && !IsPlaceholder(user)
+                     && !user.StartsWith("mq_", StringComparison.Ordinal))
+            {
+                fail(
+                    "RabbitMQ:Username",
+                    "ليس مستخدم خدمة mq_* والوضع least-privilege (الحساب الإداري مرفوض)",
+                    "is not a mq_* service user while Deployment:MqPosture=least-privilege (the administrator is refused)");
+            }
+        }
+
+        var dbPosture = configuration[ProductionConfigurationGuardOptions.DbPostureKey];
+        if (!string.IsNullOrWhiteSpace(dbPosture))
+        {
+            if (!ProductionConfigurationGuardOptions.DbPostures.Contains(dbPosture, StringComparer.OrdinalIgnoreCase))
+            {
+                fail(ProductionConfigurationGuardOptions.DbPostureKey, "قيمة غير معروفة", "has an unsupported value");
+            }
+            else if (string.Equals(dbPosture, "demo", StringComparison.OrdinalIgnoreCase)
+                     && !string.Equals(configuration[ProductionConfigurationGuardOptions.DeploymentModeKey], "demo", StringComparison.OrdinalIgnoreCase))
+            {
+                fail(ProductionConfigurationGuardOptions.DbPostureKey, "demo خارج وضع العرض", "is demo outside demo mode (Deployment:Mode=demo)");
+            }
+            else if (string.Equals(dbPosture, "least-privilege", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var connectionString in connectionStrings)
+                {
+                    if (string.IsNullOrWhiteSpace(connectionString.Value) || IsPlaceholder(connectionString.Value))
+                        continue;
+                    string? user;
+                    try
+                    {
+                        user = new Npgsql.NpgsqlConnectionStringBuilder(connectionString.Value).Username;
+                    }
+                    catch (ArgumentException)
+                    {
+                        fail(connectionString.Path, "صيغته غير صالحة", "is not a valid connection string");
+                        continue;
+                    }
+
+                    if (user is null || !user.EndsWith("_app", StringComparison.Ordinal))
+                    {
+                        fail(
+                            connectionString.Path,
+                            "لا يتصل بدور *_app والوضع least-privilege",
+                            "does not connect as a *_app role while Deployment:DbPosture=least-privilege");
+                    }
+                }
+            }
+        }
     }
 }

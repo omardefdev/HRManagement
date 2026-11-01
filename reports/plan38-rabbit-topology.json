@@ -1,0 +1,2815 @@
+﻿{
+    "source":  "live acceptance stack (project hrm-acceptance, administrator user), after the AC-HCM-33 journey (RecruitmentToHireJourneyE2ETests)",
+    "rabbitmqImage":  "rabbitmq:3.13-management-alpine (no delayed-message plugin yet)",
+    "massTransit":  "8.5.10",
+    "counts":  {
+                   "exchanges":  200,
+                   "queues":  122,
+                   "unclassified":  0
+               },
+    "notSeenLiveButGeneratedByCode":  [
+                                          "\u003csaga queue\u003e_delay (x-delayed-message, x-delayed-type=fanout): hr-contracts-web-separation-saga-state_delay, hr-contracts-web-hire-case-saga-state_delay, hr-movements-web-transfer-saga-state_delay, hr-movements-web-secondment-saga-state_delay (declared on the first Schedule; needs the plugin)",
+                                          "\u003cqueue\u003e_error / \u003cqueue\u003e_skipped (exchange + queue) on the first fault or skip, under the same prefix",
+                                          "MassTransit:Fault--\u003cNamespace\u003e:\u003cType\u003e-- for any faulted message type, including HR.Contracts.Infrastructure.Sagas:* and HR.Movements.Infrastructure.Sagas:* timeout messages",
+                                          "{MachineName}_{ProcessName}_bus_{NewId} temporary bus queue (not observed: no request client in use)"
+                                      ],
+    "perService":  {
+                       "admin-logistics-web":  {
+                                                   "queues":  10,
+                                                   "exchanges":  10,
+                                                   "consumesMessageTypes":  10
+                                               },
+                       "auth-directory-web":  {
+                                                  "queues":  9,
+                                                  "exchanges":  9,
+                                                  "consumesMessageTypes":  9
+                                              },
+                       "compliance-web":  {
+                                              "queues":  2,
+                                              "exchanges":  2,
+                                              "consumesMessageTypes":  2
+                                          },
+                       "dev-analytics-web":  {
+                                                 "queues":  7,
+                                                 "exchanges":  7,
+                                                 "consumesMessageTypes":  7
+                                             },
+                       "file-storage-web":  {
+                                                "queues":  0,
+                                                "exchanges":  0,
+                                                "consumesMessageTypes":  0
+                                            },
+                       "hr-contracts-web":  {
+                                                "queues":  24,
+                                                "exchanges":  25,
+                                                "consumesMessageTypes":  29
+                                            },
+                       "hr-core-web":  {
+                                           "queues":  16,
+                                           "exchanges":  16,
+                                           "consumesMessageTypes":  18
+                                       },
+                       "hr-health-web":  {
+                                             "queues":  4,
+                                             "exchanges":  4,
+                                             "consumesMessageTypes":  4
+                                         },
+                       "hr-movements-web":  {
+                                                "queues":  8,
+                                                "exchanges":  8,
+                                                "consumesMessageTypes":  16
+                                            },
+                       "hr-training-web":  {
+                                               "queues":  3,
+                                               "exchanges":  3,
+                                               "consumesMessageTypes":  3
+                                           },
+                       "idcard-web":  {
+                                          "queues":  5,
+                                          "exchanges":  5,
+                                          "consumesMessageTypes":  5
+                                      },
+                       "it-infra-web":  {
+                                            "queues":  4,
+                                            "exchanges":  4,
+                                            "consumesMessageTypes":  4
+                                        },
+                       "payroll-web":  {
+                                           "queues":  19,
+                                           "exchanges":  19,
+                                           "consumesMessageTypes":  19
+                                       },
+                       "records-archive-web":  {
+                                                   "queues":  11,
+                                                   "exchanges":  11,
+                                                   "consumesMessageTypes":  10
+                                               }
+                   },
+    "exchanges":  [
+                      {
+                          "name":  "hr-contracts-web-transaction-archived",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-leave-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-separation-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-separation-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "idcard-web-policy-published",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "idcard-web",
+                          "boundTo":  [
+                                          "idcard-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-advance-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-medical-decision-issued",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ITransferPartyCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-transfer-saga-state",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IExecuteSeparationParty",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web",
+                                          "auth-directory-web",
+                                          "hr-contracts-web",
+                                          "hr-core-web",
+                                          "hr-health-web",
+                                          "idcard-web",
+                                          "it-infra-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ICancelSecondmentSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-secondment-party",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-transaction-registered-in-diwan",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAssetLossApproved",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAdvanceRequested",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-separation-party-completed-checklist",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "compliance-web-medical-recommendation-issued",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "compliance-web",
+                          "boundTo":  [
+                                          "compliance-web"
+                                      ]
+                      },
+                      {
+                          "name":  "it-infra-web-hire-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "it-infra-web",
+                          "boundTo":  [
+                                          "it-infra-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IInternalPlacementCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "it-infra-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "it-infra-web",
+                          "boundTo":  [
+                                          "it-infra-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-disciplinary-action-taken",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-training-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IRecruitmentRequisitionClosed",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ICardIssued",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "dev-analytics-web",
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-export-job-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-hire-case-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "MassTransit:Fault--HRManagement.MessageContracts.Commands:IStartHireSaga--",
+                          "type":  "fanout",
+                          "kind":  "masstransit-fault",
+                          "owner":  "shared",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ICandidateAccepted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-resignation-submitted",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-health-web-separation-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-health-web",
+                          "boundTo":  [
+                                          "hr-health-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-training-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-separation-saga-finalized",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-employee-offer-accepted",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "amq.direct",
+                          "type":  "direct",
+                          "kind":  "broker-builtin",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "MassTransit:Fault--HRManagement.MessageContracts.Events:ILeaveApproved--",
+                          "type":  "fanout",
+                          "kind":  "masstransit-fault",
+                          "owner":  "shared",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-medical-recommendation-issued",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ITransferExecuted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web",
+                                          "auth-directory-web",
+                                          "hr-contracts-web",
+                                          "hr-core-web",
+                                          "hr-movements-web",
+                                          "hr-training-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-separation-saga-state",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IDelegationExecuted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "idcard-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "idcard-web",
+                          "boundTo":  [
+                                          "idcard-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-transfer-party",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IResumeHireSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-org-unit-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAssetAssignmentApproved",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-separation-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IContractActivated",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IHirePartyCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-leave-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IResumeTransferSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-org-unit-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ICancelSeparationSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IExportJobRequested",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "compliance-web",
+                                          "dev-analytics-web",
+                                          "hr-contracts-web",
+                                          "hr-core-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-hire-party",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ISecondmentPartyCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-training-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-training-web",
+                          "boundTo":  [
+                                          "hr-training-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IStartTransferSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-transfer-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "compliance-web-export-job-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "compliance-web",
+                          "boundTo":  [
+                                          "compliance-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-complaint-resolved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-medical-decision-issued",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-candidate-accepted",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-loan-assignment-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "amq.topic",
+                          "type":  "topic",
+                          "kind":  "broker-builtin",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-secondment-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-hire-case-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HR.Contracts.Infrastructure.Sagas:ISeparationSagaFinalized",
+                          "type":  "fanout",
+                          "kind":  "message-type-service-local",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IExecuteTransferParty",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web",
+                                          "auth-directory-web",
+                                          "hr-core-web",
+                                          "hr-movements-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IPromotionExecuted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IResumeSeparationSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IStartSecondmentSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-training-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-training-web",
+                          "boundTo":  [
+                                          "hr-training-web"
+                                      ]
+                      },
+                      {
+                          "name":  "amq.headers",
+                          "type":  "headers",
+                          "kind":  "broker-builtin",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IEmployeeOfferAccepted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IMedicalRecommendationIssued",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "compliance-web",
+                                          "hr-core-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ILeaveCancelled",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-mission-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IComplaintResolved",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "dev-analytics-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-export-job-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-contracts-separation-party",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IHirePartyFaulted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ISeparationPartyCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-medical-recommendation-issued",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-health-web-hire-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-health-web",
+                          "boundTo":  [
+                                          "hr-health-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IOrgUnitChanged",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web",
+                                          "hr-contracts-web",
+                                          "hr-health-web",
+                                          "hr-movements-web",
+                                          "hr-training-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "amq.fanout",
+                          "type":  "fanout",
+                          "kind":  "broker-builtin",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IResignationSubmitted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-hire-case-completed-diwan",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ILeaveApproved",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-hire-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-leave-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IJobChangeRequested",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ISecondmentPartyFaulted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IStartSeparationSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-medical-recommendation-issued-archive",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-leave-cancelled",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-contract-activated",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IProcessInterventionRequested",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web",
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-leave-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-advance-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "it-infra-web-separation-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "it-infra-web",
+                          "boundTo":  [
+                                          "it-infra-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-asset-assignment-rejected",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-card-issued-analytics",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IStartHireSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-hire-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ILeaveRequested",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-medical-decision-issued-archive",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-export-job-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IExecuteSecondmentParty",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "auth-directory-web",
+                                          "hr-movements-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IEmployeeStatusChanged",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-training-web-org-unit-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-training-web",
+                          "boundTo":  [
+                                          "hr-training-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IHireCaseCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web",
+                                          "hr-core-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IMissionApproved",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-org-unit-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ITrainingCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-secondment-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ITransactionArchived",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-recruitment-requisition-closed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-asset-loss-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "idcard-web-separation-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "idcard-web",
+                          "boundTo":  [
+                                          "idcard-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-leave-cancelled",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-asset-loss-rejected",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IResumeSecondmentSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-internal-placement-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "amq.rabbitmq.trace",
+                          "type":  "topic",
+                          "kind":  "broker-builtin",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-reference-data-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-process-intervention-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ISecondmentExecuted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "auth-directory-web",
+                                          "hr-core-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IPayrollProcessed",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-secondment-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-health-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-health-web",
+                          "boundTo":  [
+                                          "hr-health-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-export-job-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IReferenceDataChanged",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ILegalJudgmentIssued",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ILoanAssignmentExecuted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-hire-case-saga-state",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-export-job-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-movements-web-secondment-saga-state",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-movements-web",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IDisciplinaryActionTaken",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "amq.match",
+                          "type":  "headers",
+                          "kind":  "broker-builtin",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-leave-approved_error",
+                          "type":  "fanout",
+                          "kind":  "error",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-delegation-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:IExecuteHireParty",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "auth-directory-web",
+                                          "hr-core-web",
+                                          "hr-health-web",
+                                          "idcard-web",
+                                          "it-infra-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAssetAssignmentRejected",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAttendancePeriodClosed",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ITransactionRegisteredInDiwan",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "idcard-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "idcard-web",
+                          "boundTo":  [
+                                          "idcard-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-probation-evaluation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "it-infra-web-separation-completed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "it-infra-web",
+                          "boundTo":  [
+                                          "it-infra-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-employee-created",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ICancelHireSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-job-change-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-health-web-org-unit-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-health-web",
+                          "boundTo":  [
+                                          "hr-health-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-asset-assignment-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IMedicalDecisionIssued",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web",
+                                          "hr-core-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-transfer-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-transfer-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ISeparationPartyFaulted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-card-issued-hire-checklist",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IProbationEvaluationCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "MassTransit:Fault",
+                          "type":  "fanout",
+                          "kind":  "masstransit-fault",
+                          "owner":  "shared",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ICancelTransferSaga",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-separation-party",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAdvanceApproved",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-core-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "payroll-web-attendance-period-closed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "payroll-web",
+                          "boundTo":  [
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-advance-approved",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "idcard-web-hire-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "idcard-web",
+                          "boundTo":  [
+                                          "idcard-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-process-party-ack-consumers",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-legal-judgment-issued",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IAssetLossRejected",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "dev-analytics-web-payroll-processed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "dev-analytics-web",
+                          "boundTo":  [
+                                          "dev-analytics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-process-intervention-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Commands:ITransferPartyFaulted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "hr-movements-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-hire-case-saga-state_error",
+                          "type":  "fanout",
+                          "kind":  "error",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "records-archive-web-complaint-resolved-archive",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "records-archive-web",
+                          "boundTo":  [
+                                          "records-archive-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-employee-status-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-secondment-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "",
+                          "type":  "direct",
+                          "kind":  "default",
+                          "owner":  "broker",
+                          "boundTo":  [
+
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-transfer-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IEmployeeCreated",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web",
+                                          "auth-directory-web",
+                                          "dev-analytics-web",
+                                          "hr-contracts-web",
+                                          "hr-health-web",
+                                          "hr-training-web",
+                                          "idcard-web",
+                                          "it-infra-web",
+                                          "payroll-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-core-web-promotion-executed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-core-web",
+                          "boundTo":  [
+                                          "hr-core-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:IPolicyPublished",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "idcard-web"
+                                      ]
+                      },
+                      {
+                          "name":  "hr-contracts-web-advance-requested",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "hr-contracts-web",
+                          "boundTo":  [
+                                          "hr-contracts-web"
+                                      ]
+                      },
+                      {
+                          "name":  "auth-directory-web-secondment-party-ack",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "auth-directory-web",
+                          "boundTo":  [
+                                          "auth-directory-web"
+                                      ]
+                      },
+                      {
+                          "name":  "admin-logistics-web-org-unit-changed",
+                          "type":  "fanout",
+                          "kind":  "endpoint",
+                          "owner":  "admin-logistics-web",
+                          "boundTo":  [
+                                          "admin-logistics-web"
+                                      ]
+                      },
+                      {
+                          "name":  "HRManagement.MessageContracts.Events:ISeparationCompleted",
+                          "type":  "fanout",
+                          "kind":  "message-type",
+                          "owner":  "shared",
+                          "boundTo":  [
+                                          "admin-logistics-web",
+                                          "auth-directory-web",
+                                          "dev-analytics-web",
+                                          "hr-core-web",
+                                          "idcard-web",
+                                          "it-infra-web",
+                                          "payroll-web",
+                                          "records-archive-web"
+                                      ]
+                      }
+                  ],
+    "queues":  [
+                   {
+                       "name":  "hr-core-web-leave-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-health-web-org-unit-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-health-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-export-job-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-legal-judgment-issued",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-org-unit-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "compliance-web-export-job-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "compliance-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-health-web-hire-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-health-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-advance-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-medical-recommendation-issued",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-hire-case-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-advance-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-probation-evaluation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-promotion-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-hire-party",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-leave-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-hire-case-completed-diwan",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-training-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-transaction-archived",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-transfer-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-complaint-resolved-archive",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-employee-offer-accepted",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "idcard-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "idcard-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-medical-recommendation-issued-archive",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-complaint-resolved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "it-infra-web-separation-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "it-infra-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-secondment-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-asset-assignment-rejected",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-separation-party-completed-checklist",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-secondment-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-health-web-separation-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-health-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-hire-case-saga-state",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-hire-case-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-separation-saga-state",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-org-unit-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-disciplinary-action-taken",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-export-job-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-transfer-saga-state",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-internal-placement-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-separation-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-medical-decision-issued-archive",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-attendance-period-closed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-delegation-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "idcard-web-policy-published",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "idcard-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-hire-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-secondment-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-training-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-process-party-ack-consumers",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-training-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-training-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-leave-cancelled",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-medical-recommendation-issued",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-export-job-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-leave-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-hire-case-saga-state_error",
+                       "type":  "quorum",
+                       "kind":  "error",
+                       "owner":  "hr-contracts-web",
+                       "messages":  1
+                   },
+                   {
+                       "name":  "admin-logistics-web-asset-assignment-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-process-intervention-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-candidate-accepted",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-separation-saga-finalized",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-separation-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-org-unit-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-separation-party",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-contract-activated",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-hire-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-employee-status-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-advance-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-medical-decision-issued",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "it-infra-web-hire-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "it-infra-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-training-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-training-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-leave-cancelled",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-advance-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-card-issued-analytics",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-reference-data-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-transaction-registered-in-diwan",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "it-infra-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "it-infra-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-training-web-org-unit-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-training-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-recruitment-requisition-closed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-medical-decision-issued",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-separation-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "idcard-web-separation-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "idcard-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "dev-analytics-web-payroll-processed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "dev-analytics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-asset-loss-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-transfer-party",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-job-change-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-leave-approved_error",
+                       "type":  "quorum",
+                       "kind":  "error",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "compliance-web-medical-recommendation-issued",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "compliance-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-transfer-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-asset-loss-rejected",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "records-archive-web-leave-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "records-archive-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-org-unit-changed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-contracts-separation-party",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-export-job-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-transfer-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-mission-approved",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-card-issued-hire-checklist",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-loan-assignment-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-secondment-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-process-intervention-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "auth-directory-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "auth-directory-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "idcard-web-hire-party-ack",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "idcard-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-transfer-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "idcard-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "idcard-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-movements-web-secondment-saga-state",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-movements-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-secondment-executed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "admin-logistics-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "admin-logistics-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-contracts-web-resignation-submitted",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-contracts-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-health-web-employee-created",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-health-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "hr-core-web-export-job-requested",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "hr-core-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "payroll-web-secondment-party",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "payroll-web",
+                       "messages":  0
+                   },
+                   {
+                       "name":  "it-infra-web-separation-completed",
+                       "type":  "quorum",
+                       "kind":  "endpoint",
+                       "owner":  "it-infra-web",
+                       "messages":  0
+                   }
+               ]
+}

@@ -1,0 +1,7 @@
+﻿{
+    "attempted":  "hr_core_app -\u003e payroll_db",
+    "expected":  "connection denied",
+    "actualExitCode":  2,
+    "output":  "docker.exe : psql: error: connection to server at \"127.0.0.1\", port 5432 failed: FATAL:  permission denied for \r\ndatabase \"payroll_db\"\r\nAt D:\\my projects\\HRManagement\\scripts\\acceptance-verify-db-isolation.ps1:71 char:19\r\n+ ... iveOutput = \u0026 docker exec $container sh -lc \u0027PGPASSWORD=\"$POSTGRES_AP ...\r\n+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (psql: error: co...se \"payroll_db\":String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\nDETAIL:  User does not have CONNECT privilege.",
+    "capturedAtUtc":  "2026-11-01T16:06:02.5661515Z"
+}

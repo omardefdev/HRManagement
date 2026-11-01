@@ -1,12 +1,12 @@
 {
-  "scenario": "Demo server: LegalPack loaded ... sha256 in hr-core-web, hr-contracts-web, hr-movements-web",
+  "scenario": "Demo server: mandatory wiring smoke (URLs, identities, tokens, S2S call, legal pack)",
   "personaId": "no persona: smoke, logs and Keycloak over ssh (no secret read)",
-  "correlationId": "int37-vps-37e-05aa809997234c629e727a28d82f2b5e",
-  "capturedAtUtc": "2026-11-01T01:51:10.1385793Z",
+  "correlationId": "int37-vps-smoke-c2f1b95226194fe49b926cc0a058e5a7",
+  "capturedAtUtc": "2026-11-01T18:34:11.4197166Z",
   "environment": {
-    "gateway": "http://localhost:6200",
-    "keycloak": "http://localhost:6388",
+    "gateway": "http://localhost:5000",
+    "keycloak": "http://localhost:8088",
     "runAcceptance": true
   },
-  "gitSha": "9d457dab36d7c8090114482b25a241f27e2d34b9"
+  "gitSha": "7bd85bc3ac9dd1cc6654b6084a1771ae6870117c"
 }

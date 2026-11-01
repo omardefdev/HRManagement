@@ -4,7 +4,7 @@
   "authenticatedRequests": 450,
   "authenticated429": 0,
   "anonymousSent": 400,
-  "anonymousNotRejected": 300,
-  "anonymousBurstSeconds": 6.8,
+  "anonymousNotRejected": 297,
+  "anonymousBurstSeconds": 17.9,
   "retryAfter": "60"
 }

@@ -12,6 +12,7 @@
     3. runs deploy/vps/remote-deploy.sh check-env (key names and lengths only), then deploy <tag> (pull, up, wait for
        healthy), then the self-test (scripts/vps/smoke.ps1);
     4. remote-deploy.sh keeps the previous tag; -Rollback redeploys it and runs the self-test.
+  -PrepareOnly (PLAN-38): steps 1-2 only, so deploy/vps/init-secrets.sh can add new .env keys from the release first.
   -Local -EnvFile deploy/vps/.env.vps-local: the same remote-deploy.sh through Git Bash on this machine, with
   HRM_HOME=artifacts/vps/local-home, project hrm-vps-local and docker-compose.vps-local.yml (Caddy "tls internal").
   The server's .env is never copied, read or printed by this script; the local env file is lab-only.
@@ -30,6 +31,9 @@ param(
     [switch]$Rollback,
     [switch]$SkipSmoke,
     [switch]$AllowStagingCa,
+    # PLAN-38: copy and extract the release only (no env check, no deploy), e.g. to run deploy/vps/init-secrets.sh
+    # from /opt/hrm/releases/<tag> before the first deploy that needs new keys.
+    [switch]$PrepareOnly,
     [string]$RemoteHome = '/opt/hrm'
 )
 
@@ -203,6 +207,13 @@ else {
     if ($scp.ExitCode -ne 0) { throw "scp failed: $($scp.StdErr)" }
     $scpWatch.Stop()
     $name = Split-Path -Leaf $bundle
+    if ($PrepareOnly) {
+        $prep = Ssh ("set -e; cd $RemoteHome/releases; rm -rf $Tag hrm-deploy-$Tag; tar -xzf $name; mv hrm-deploy-$Tag $Tag; rm -f $name")
+        if ($prep.ExitCode -ne 0) { throw "extract failed: $($prep.StdErr.Trim())" }
+        Write-Host "[prepare] release $Tag extracted to $RemoteHome/releases/$Tag (not deployed). Next, on the server:"
+        Write-Host "          cd $RemoteHome/releases/$Tag && bash deploy/vps/init-secrets.sh"
+        exit 0
+    }
     $extract = Ssh ("set -e; cd $RemoteHome/releases; rm -rf $Tag hrm-deploy-$Tag; tar -xzf $name; mv hrm-deploy-$Tag $Tag; rm -f $name; " +
         "bash $Tag/deploy/vps/remote-deploy.sh check-env $RemoteHome/releases/$Tag/deploy/vps/.env.vps.example")
     Write-Host $extract.StdOut.Trim()

@@ -1,6 +1,6 @@
 {
   "card": "QA-034",
-  "description": "Test categories excluded from the CI step list (scripts/ci/steps.json). Each entry: category, reason, owner (plan), excludedOn, reviewBy (yyyy-MM-dd), status (Excluded | Lifted). Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-CI-EXCLUSIONS); CiStepsParityTests rejects a Category!= filter without an entry here.",
+  "description": "Test categories excluded from the CI step list (scripts/ci/steps.json). Each entry: category, reason, owner (plan), excludedOn, reviewBy (yyyy-MM-dd), status (Excluded | Lifted | Renewed). Every entry is a dated obligation (docs/qa/dated-obligations.json, QA-CI-EXCLUSIONS); CiStepsParityTests rejects a Category!= filter without an Excluded entry here. A renewal never moves a date: the old entry becomes Renewed (with its decision) and a new entry starts.",
   "exclusions": [
     {
       "category": "ObjectStorage",
@@ -11,7 +11,20 @@
       "owner": "PLAN-38",
       "excludedOn": "2026-10-30",
       "reviewBy": "2026-12-14",
-      "status": "Excluded"
+      "status": "Renewed",
+      "decisionRef": "docs/str-governance/decision-log.json#PG-OPS38-OBJECTSTORAGE-CI"
+    },
+    {
+      "category": "ObjectStorage",
+      "tests": [
+        "HRManagement.IntegrationTests.Qa003MinioFileScanTests"
+      ],
+      "reason": "PLAN-38 (D-38-7): still no vetted, digest-pinned MinIO image (MINIO_IMAGE / HRM_MINIO_IMAGE); File.Storage runs on the Local provider and MinIO stays behind the minio profile. Renewed by decision PG-OPS38-OBJECTSTORAGE-CI.",
+      "owner": "wave 2 (OPS-E, object storage)",
+      "excludedOn": "2026-11-01",
+      "reviewBy": "2027-01-31",
+      "status": "Excluded",
+      "decisionRef": "docs/str-governance/decision-log.json#PG-OPS38-OBJECTSTORAGE-CI"
     }
   ]
 }

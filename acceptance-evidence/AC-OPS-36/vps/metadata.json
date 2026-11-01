@@ -1,12 +1,12 @@
 {
-  "scenario": "AC-OPS-36i Seq receives logs from all 15 services over the loopback port; no OTLP collector, no OTLP errors",
+  "scenario": "AC-OPS-36e two users behind one IP: 400 assets \u002B 50 pages without 429; 400 anonymous: 429 after 300 with Retry-After",
   "personaId": "demo users on the server (password read into memory only)",
-  "correlationId": "ops36-36i-c64a7145a8eb49c899bfad58e15b4671",
-  "capturedAtUtc": "2026-11-01T01:58:03.6093810Z",
+  "correlationId": "ops36-36e-3f81204c6bd04bc5a1fa9d63fcebf2ff",
+  "capturedAtUtc": "2026-11-01T21:53:42.1104832Z",
   "environment": {
-    "gateway": "http://localhost:6200",
-    "keycloak": "http://localhost:6388",
+    "gateway": "http://localhost:5000",
+    "keycloak": "http://localhost:8088",
     "runAcceptance": true
   },
-  "gitSha": "9d457dab36d7c8090114482b25a241f27e2d34b9"
+  "gitSha": "041d88b623ace332751fd90c5e85fee544e3da36"
 }

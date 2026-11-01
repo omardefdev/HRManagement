@@ -14,6 +14,16 @@ public sealed class ProductionConfigurationGuardOptions
 
     public const int MinimumCallerProofSecretLength = 32;
 
+    /// <summary>PLAN-38 (D-38-2): broker posture of the deployment, <c>least-privilege</c> or <c>admin</c>.</summary>
+    public const string MqPostureKey = "Deployment:MqPosture";
+
+    /// <summary>PLAN-38 (D-38-1): database posture of the deployment, <c>least-privilege</c> or <c>demo</c>.</summary>
+    public const string DbPostureKey = "Deployment:DbPosture";
+
+    public static readonly string[] MqPostures = ["least-privilege", "admin"];
+
+    public static readonly string[] DbPostures = ["least-privilege", "demo"];
+
     /// <summary>
     /// Keys whose placeholder value fails the start. Every service checks these; the gateway adds its own
     /// (<c>Keycloak:PublicAuthority</c>, <c>Keycloak:ClientSecret</c>).

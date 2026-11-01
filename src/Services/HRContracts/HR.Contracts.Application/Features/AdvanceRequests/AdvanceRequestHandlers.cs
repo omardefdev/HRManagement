@@ -164,7 +164,9 @@ public class ApproveAdvanceRequestHandler(IContractsRepository repository, IEven
         if (transaction is null)
             return (false, "لم يُعثر على معاملة الخدمة المرتبطة بطلب السلفة.");
 
+        var historyBefore = transaction.StateHistory.Count;
         ServiceTransactionWorkflowHelper.AdvanceToCompleted(transaction, request.ApproverId, "اعتماد طلب سلفة");
+        await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         await eventPublisher.PublishAdvanceApprovedAsync(
             transaction.Id,
@@ -197,10 +199,12 @@ public class RejectAdvanceRequestHandler(IContractsRepository repository) : IReq
             var transaction = await repository.GetServiceTransactionAsync(entity.ServiceTransactionId.Value, cancellationToken);
             if (transaction is not null)
             {
+                var historyBefore = transaction.StateHistory.Count;
                 if (transaction.State == ServiceTransactionState.PendingApproval)
                     ServiceTransactionWorkflowHelper.AdvanceToRejected(transaction, request.ApproverId, "رفض طلب سلفة");
                 else
                     ServiceTransactionWorkflowHelper.AdvanceToCancelled(transaction, request.ApproverId, "رفض طلب سلفة");
+                await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
             }
         }
 

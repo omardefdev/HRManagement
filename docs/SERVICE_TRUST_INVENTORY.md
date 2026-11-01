@@ -102,7 +102,7 @@ Env pattern: `POSTGRES_HR_CORE_APP_PASSWORD`, etc. See `docker/init-service-role
 
 | Service | Username | Configure/write/read |
 |---------|----------|----------------------|
-| Each service | `mq_<service>` (e.g. `mq_payroll`) | Own `^<service>.*` / MassTransit topology for that host |
+| Each service | `mq_<service>` (e.g. `mq_payroll`) | configure = read = own endpoint prefix + shared message-type, fault and bus names; write `.*` (PLAN-38, `deploy/bootstrap/rabbitmq-users.json`) |
 
 Shared `RABBITMQ_DEFAULT_USER` is **admin-only** (bootstrap). Application services must use `RabbitMQ__Username` / `RabbitMQ__Password` per service.
 

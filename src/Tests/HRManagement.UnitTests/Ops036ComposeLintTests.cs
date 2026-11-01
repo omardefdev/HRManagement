@@ -252,7 +252,8 @@ public class Ops036ComposeLintTests
         var demo = Read("docker-compose.vps-demo.yml");
         Assert.Contains("Deployment__Mode: demo", demo);
         Assert.Contains("Seed__Profile: Demo", demo);
-        Assert.Contains("Database__RunMigrationsAtStartup: \"true\"", demo);
+        // PLAN-38: hrm-bootstrap migrates as <svc>_migrator in both postures; the demo file keeps only the administrator connections.
+        Assert.DoesNotContain("RunMigrationsAtStartup", demo);
         Assert.Equal(15, Regex.Matches(demo, @"ConnectionStrings__\w+: Host=postgresql").Count);
         Assert.Contains("CADDY_SITE_TLS: tls internal", Read("docker-compose.vps-local.yml"));
         Assert.Contains("_DeploymentBanner", Read("src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml"));
@@ -294,7 +295,8 @@ public class Ops036ComposeLintTests
     public void Images_come_from_a_registry_variable_with_a_fixed_tag()
     {
         var images = Read("docker-compose.images.yml");
-        Assert.Equal(15, Regex.Matches(images, @"image: \$\{HRM_IMAGE_REPO:\?[^}]*\}/[a-z-]+:\$\{IMAGE_TAG:\?IMAGE_TAG required\}").Count);
+        // 15 services + the PLAN-38 broker image (hr-rabbitmq).
+        Assert.Equal(16, Regex.Matches(images, @"image: \$\{HRM_IMAGE_REPO:\?[^}]*\}/[a-z-]+:\$\{IMAGE_TAG:\?IMAGE_TAG required\}").Count);
         Assert.DoesNotContain("GITHUB_REPOSITORY_OWNER", images);
         Assert.DoesNotContain(":latest", images);
 

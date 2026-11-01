@@ -14,7 +14,7 @@ $$;
 -- Grant connect on all application databases (adjust list if inventory grows).
 -- Example (run once as superuser):
 --   GRANT CONNECT ON DATABASE hr_core_db TO hrm_backup;
--- Repeat for each DB in init-databases.sql, or use a DO block with dblink.
+-- Repeat for each DB in deploy/bootstrap/ensure-databases.sql (hrm-bootstrap does this: deploy/bootstrap/ensure-backup-role.sql).
 
 -- Per-database (connect to each DB then):
 GRANT USAGE ON SCHEMA public TO hrm_backup;

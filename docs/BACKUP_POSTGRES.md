@@ -11,7 +11,7 @@
 BACKUP_PGUSER=hrm_backup BACKUP_PGPASSWORD=... ./scripts/backup-postgres.sh ./backups/postgres
 ```
 
-الجرد = **16** قاعدة تطابق `docker/init-databases.sql` بما فيها **`file_storage_db`**. يُكتب `checksums.sha256` ويُحدَّث `backup-catalog.jsonl`.
+الجرد = **16** قاعدة تطابق `deploy/bootstrap/ensure-databases.sql` بما فيها **`file_storage_db`**. يُكتب `checksums.sha256` ويُحدَّث `backup-catalog.jsonl`.
 
 ### قواعد الخدمات (أسماء افتراضية)
 

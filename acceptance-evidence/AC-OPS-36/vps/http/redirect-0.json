@@ -3,8 +3,8 @@
   "method": "GET",
   "url": "https://hr.161-97-185-71.sslip.io/",
   "statusCode": 302,
-  "capturedAtUtc": "2026-11-01T01:56:08.4037561Z",
+  "capturedAtUtc": "2026-11-01T18:21:40.8899462Z",
   "body": {
-    "location": "https://sso.161-97-185-71.sslip.io/realms/hrmanagement/protocol/openid-connect/auth?client_id=hr-gateway-client\u0026request_uri=urn%3Aietf%3Aparams%3Aoauth%3Arequest_uri%3A95a84cd6-ddf2-49f4-aab7-2a3dd9229857\u0026x-client-SKU=ID_NET10_0\u0026x-client-ver=8.19.2.0"
+    "location": "https://sso.161-97-185-71.sslip.io/realms/hrmanagement/protocol/openid-connect/auth?client_id=hr-gateway-client\u0026request_uri=urn%3Aietf%3Aparams%3Aoauth%3Arequest_uri%3Aebda405c-0a7d-4be0-a868-c783c35f8e78\u0026x-client-SKU=ID_NET10_0\u0026x-client-ver=8.19.2.0"
   }
 }

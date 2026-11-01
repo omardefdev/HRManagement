@@ -47,24 +47,25 @@ app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<TrainingDbContext>();
 var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
-try
+// PLAN-38 (D-38-6): HR.Training has no reference seed; the e-learning sample catalogue and the demo data are optional
+// (warning, except in the Acceptance profile).
+var seeds = new SeedRunner("HR.Training", seedProfile, app.Environment, app.Configuration, app.Logger);
+if (seedProfile != SeedProfile.None)
 {
-    if (seedProfile != SeedProfile.None)
+    using var scope = app.Services.CreateScope();
+    var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
+    if (seedProfile == SeedProfile.Acceptance)
     {
-        using var scope = app.Services.CreateScope();
-        var trainingDb = scope.ServiceProvider.GetRequiredService<TrainingDbContext>();
-        if (seedProfile == SeedProfile.Acceptance)
-            await AcceptanceTrainingSeeder.SeedAsync(trainingDb);
-        else
+        await seeds.RunOptionalAsync("acceptance", () => AcceptanceTrainingSeeder.SeedAsync(trainingDb));
+    }
+    else
+    {
+        await seeds.RunOptionalAsync("demo", async () =>
         {
             await ELearningSeeder.SeedAsync(trainingDb);
             await DemoTrainingSeeder.SeedAsync(trainingDb);
-        }
+        });
     }
-}
-catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
-{
-    app.Logger.LogWarning(ex, "HR.Training e-learning seed skipped.");
 }
 
 if (!app.Environment.IsDevelopment())
