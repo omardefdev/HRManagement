@@ -1,4 +1,5 @@
 {
+  "_deprecated": "PLAN-39: retired. The realm is rendered from docker/keycloak/realm-manifest.json plus deploy/wiring/service-wiring.json by scripts/keycloak/render-realm.ps1 (profiles Production, Demo, Acceptance) and reconciled by deploy/keycloak/reconcile.sh. Kept only as the REL-001 lab reference (docs/rel-staging/parity-matrix.json); never import it.",
   "realm": "hrmanagement",
   "enabled": true,
   "displayName": "HRManagement (sanitized service clients — IAM-004)",

@@ -289,7 +289,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash scripts/verify-image-signatures.sh
 
-      # PLAN-36: one deploy path. The runner builds the deploy bundle (compose files, deploy/vps/*, the VpsDemo realm
+      # PLAN-36: one deploy path. The runner builds the deploy bundle (compose files, deploy/vps/*, the Demo realm
       # with placeholders only) and the host runs deploy/vps/remote-deploy.sh, as scripts/vps/deploy.ps1 does from the
       # owner's machine. The host keeps its own /opt/hrm/shared/.env; nothing secret is copied.
       # Repository configuration: vars.APP_DOMAIN, secrets.DEPLOY_SSH_HOST/USER/KEY and secrets.DEPLOY_SSH_KNOWN_HOSTS
@@ -299,7 +299,7 @@ jobs:
         env:
           APP_DOMAIN: ${{ vars.APP_DOMAIN }}
         run: |
-          ./scripts/prepare-keycloak-import.ps1 -Profile VpsDemo -AppDomain $env:APP_DOMAIN
+          ./scripts/prepare-keycloak-import.ps1 -Profile Demo -AppDomain $env:APP_DOMAIN
           ./scripts/vps/make-deploy-bundle.ps1 -Tag "${{ steps.tag.outputs.tag }}"
 
       - name: Deploy via SSH (remote-deploy.sh)

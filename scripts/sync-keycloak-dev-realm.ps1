@@ -167,6 +167,8 @@ function Ensure-ServiceClient {
   "publicClient": false,
   "secret": "$SvcSecret",
   "standardFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "implicitFlowEnabled": false,
   "serviceAccountsEnabled": true,
   "protocol": "openid-connect",
   "fullScopeAllowed": false
@@ -186,6 +188,8 @@ function Ensure-ServiceClient {
                 "-s", "enabled=true",
                 "-s", "publicClient=false",
                 "-s", "standardFlowEnabled=false",
+                "-s", "directAccessGrantsEnabled=false",
+                "-s", "implicitFlowEnabled=false",
                 "-s", "serviceAccountsEnabled=true",
                 "-s", "fullScopeAllowed=false") | Out-Null
         }
@@ -381,29 +385,8 @@ function Ensure-GatewayClientUrls {
 function Ensure-AcceptanceUserProfile {
     $profile = (Invoke-Kcadm @("get", "users/profile", "-r", $Realm)) | ConvertFrom-Json
     $changed = $false
-    $definitions = @(
-        [pscustomobject][ordered]@{
-            name = "tenant_id"
-            displayName = "Tenant ID"
-            validations = [ordered]@{ length = [ordered]@{ max = 36 } }
-            permissions = [ordered]@{ view = @("admin", "user"); edit = @("admin") }
-            multivalued = $false
-        },
-        [pscustomobject][ordered]@{
-            name = "scope_org_unit_id"
-            displayName = "Organization scope ID"
-            validations = [ordered]@{ length = [ordered]@{ max = 36 } }
-            permissions = [ordered]@{ view = @("admin", "user"); edit = @("admin") }
-            multivalued = $false
-        },
-        [pscustomobject][ordered]@{
-            name = "acceptance_fixture"
-            displayName = "Acceptance fixture"
-            validations = [ordered]@{ length = [ordered]@{ max = 64 } }
-            permissions = [ordered]@{ view = @("admin"); edit = @("admin") }
-            multivalued = $false
-        }
-    )
+    # PLAN-39: the managed attributes (admin edit only) come from the realm manifest, as in the rendered realms.
+    $definitions = @($script:RealmManifest.userProfile.attributes)
 
     foreach ($definition in $definitions) {
         if (-not ($profile.attributes | Where-Object { $_.name -eq $definition.name })) {
@@ -495,6 +478,16 @@ function Sync-AcceptanceUsers {
             }
         }
     }
+}
+
+# PLAN-39: realm roles from docker/keycloak/realm-manifest.json (the same source as the rendered realms).
+$script:RealmManifest = [System.IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) "docker/keycloak/realm-manifest.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+Write-Host "Realm roles (manifest):"
+$existingRoles = @(ConvertFrom-KeycloakJsonArray (Invoke-Kcadm @("get", "roles", "-r", $Realm, "--fields", "name")) | ForEach-Object { $_.name })
+foreach ($role in @($script:RealmManifest.roles)) {
+    if ($existingRoles -contains $role.name) { continue }
+    Write-Host "  + role $($role.name)"
+    Invoke-Kcadm @("create", "roles", "-r", $Realm, "-s", "name=$($role.name)", "-s", "description=$($role.description)") | Out-Null
 }
 
 Ensure-GatewayClientUrls
