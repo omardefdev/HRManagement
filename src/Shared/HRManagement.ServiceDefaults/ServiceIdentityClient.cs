@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace HRManagement.ServiceDefaults;
@@ -142,6 +144,8 @@ public static class ServiceIdentityServiceCollectionExtensions
         services.AddHttpClient("ServiceToken", client => client.Timeout = TimeSpan.FromSeconds(10))
             .AddHrOutboundResilience(timeoutSeconds: 10);
         services.AddSingleton<IServiceTokenProvider, ClientCredentialsTokenProvider>();
+        // PLAN-37: a deployed service with S2S clients and no client id or secret stops at start-up, not on its first call.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ServiceIdentityStartupCheck>());
         services.AddTransient<ServiceAuthHandler>();
         return services;
     }
@@ -220,5 +224,32 @@ public sealed class ForwardTenantHandler(Microsoft.AspNetCore.Http.IHttpContextA
         }
 
         return base.SendAsync(request, cancellationToken);
+    }
+}
+
+/// <summary>
+/// PLAN-37 (§4): in a container outside <c>Development</c> (every deployment), a service that registered S2S clients
+/// refuses to start without <c>ServiceIdentity:ClientId</c> and a non-blank secret, naming the keys (never a value).
+/// </summary>
+public sealed class ServiceIdentityStartupCheck(IConfiguration configuration, IHostEnvironment environment) : IHostedService
+{
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (environment.IsDevelopment() || !HrGatewayConfigurationExtensions.IsRunningInContainer())
+            return Task.CompletedTask;
+
+        Validate(configuration);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public static void Validate(IConfiguration configuration)
+    {
+        if (string.IsNullOrWhiteSpace(configuration["ServiceIdentity:ClientId"]))
+            throw new InvalidOperationException("ServiceIdentity:ClientId is required: this service calls other services (deploy/wiring/service-wiring.json).");
+        if (ClientCredentialsTokenProvider.ResolveClientSecret(configuration) is null)
+            throw new InvalidOperationException(
+                "ServiceIdentity:ClientSecret is required: this service calls other services (blank counts as missing; set ServiceIdentity__ClientSecret from its secretEnv).");
     }
 }

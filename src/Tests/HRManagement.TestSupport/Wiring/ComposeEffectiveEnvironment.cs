@@ -50,7 +50,9 @@ public static class ComposeEffectiveEnvironment
                 var service = ((YamlScalarNode)serviceKey).Value!;
                 if (serviceNode is not YamlMappingNode serviceMap)
                     continue;
-                if (!serviceMap.Children.TryGetValue(new YamlScalarNode("environment"), out var envNode))
+                // A service-level merge key (<<: *anchor) can bring the environment block (YAML merge is shallow: an explicit
+                // environment replaces the merged one).
+                if (!TryGetMerged(serviceMap, "environment", out var envNode))
                     continue;
 
                 if (!result.TryGetValue(service, out var env))
@@ -60,8 +62,15 @@ public static class ComposeEffectiveEnvironment
                 if (tag is "!reset" or "!override")
                     env.Clear();
 
+                // A value-less entry (KEY: with no value, or "- KEY") passes the variable through from the host in compose:
+                // nothing is set by the file, so it is treated as unset here.
                 foreach (var (key, value) in Entries(envNode))
-                    env[key] = value;
+                {
+                    if (value is null)
+                        env.Remove(key);
+                    else
+                        env[key] = value;
+                }
             }
         }
 
@@ -71,7 +80,7 @@ public static class ComposeEffectiveEnvironment
             StringComparer.Ordinal);
     }
 
-    private static IEnumerable<(string Key, string Value)> Entries(YamlNode node)
+    private static IEnumerable<(string Key, string? Value)> Entries(YamlNode node)
     {
         switch (node)
         {
@@ -85,18 +94,18 @@ public static class ComposeEffectiveEnvironment
                 {
                     var text = item.Value ?? "";
                     var eq = text.IndexOf('=');
-                    yield return eq < 0 ? (text, "") : (text[..eq], text[(eq + 1)..]);
+                    yield return eq < 0 ? (text, null) : (text[..eq], text[(eq + 1)..]);
                 }
 
                 break;
         }
     }
 
-    private static IEnumerable<(string Key, string Value)> MergedMapping(YamlMappingNode map)
+    private static IEnumerable<(string Key, string? Value)> MergedMapping(YamlMappingNode map)
     {
-        var merged = new Dictionary<string, string>(StringComparer.Ordinal);
+        var merged = new Dictionary<string, string?>(StringComparer.Ordinal);
         var order = new List<string>();
-        void Put(string key, string value, bool overwrite)
+        void Put(string key, string? value, bool overwrite)
         {
             if (merged.ContainsKey(key) && !overwrite)
                 return;
@@ -119,9 +128,33 @@ public static class ComposeEffectiveEnvironment
         {
             var key = ((YamlScalarNode)k).Value!;
             if (key != "<<")
-                Put(key, v is YamlScalarNode s ? s.Value ?? "" : "", overwrite: true);
+                Put(key, v is YamlScalarNode s ? (IsNull(s) ? null : s.Value ?? "") : "", overwrite: true);
         }
 
         return order.Select(k => (k, merged[k]));
+    }
+
+    // A plain empty scalar or ~ / null is a YAML null (KEY: with no value); a quoted "" is an explicit empty string.
+    private static bool IsNull(YamlScalarNode s) =>
+        (s.Style is ScalarStyle.Plain or ScalarStyle.Any) && (string.IsNullOrEmpty(s.Value) || s.Value is "~" or "null" or "Null" or "NULL");
+
+    private static bool TryGetMerged(YamlMappingNode map, string key, out YamlNode node)
+    {
+        if (map.Children.TryGetValue(new YamlScalarNode(key), out node!))
+            return true;
+        if (map.Children.TryGetValue(new YamlScalarNode("<<"), out var mergeNode))
+        {
+            IEnumerable<YamlMappingNode> sources = mergeNode is YamlSequenceNode seq
+                ? seq.Children.OfType<YamlMappingNode>()
+                : mergeNode is YamlMappingNode single ? [single] : [];
+            foreach (var source in sources)
+            {
+                if (TryGetMerged(source, key, out node))
+                    return true;
+            }
+        }
+
+        node = null!;
+        return false;
     }
 }

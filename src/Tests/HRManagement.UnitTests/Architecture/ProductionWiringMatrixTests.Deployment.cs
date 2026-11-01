@@ -119,12 +119,32 @@ public partial class ProductionWiringMatrixTests
     public void No_production_code_falls_back_to_a_localhost_service_url()
     {
         var fallback = new Regex(@"\?\?\s*""http://(localhost|127\.0\.0\.1):\d+", RegexOptions.CultureInvariant);
+        // Razor views read configuration too (a link built from a fallback points the browser at localhost).
         var offenders = SourceFiles("src")
+            .Concat(Directory.EnumerateFiles(Path.Combine(RepoPaths.Root, "src"), "*.cshtml", SearchOption.AllDirectories))
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}Tests{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(f => fallback.IsMatch(System.IO.File.ReadAllText(f)))
             .Select(Relative)
             .ToList();
         Assert.True(offenders.Count == 0, "localhost fallback in: " + string.Join(", ", offenders));
+    }
+
+    /// <summary>
+    /// §4 / D-INT-5: a localhost service URL lives only in appsettings.Development.json; in the base or a Production /
+    /// Staging file it would be accepted outside a container and hide a missing deployment value.
+    /// </summary>
+    [Fact]
+    public void No_non_development_appsettings_sets_a_localhost_service_url()
+    {
+        var localUrl = new Regex(@"""\w*BaseUrl""\s*:\s*""http://(localhost|127\.0\.0\.1)", RegexOptions.CultureInvariant);
+        var offenders = Directory.EnumerateFiles(Path.Combine(RepoPaths.Root, "src", "Services"), "appsettings*.json", SearchOption.AllDirectories)
+            .Where(f => !Path.GetFileName(f).Equals("appsettings.Development.json", StringComparison.OrdinalIgnoreCase))
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => localUrl.IsMatch(System.IO.File.ReadAllText(f)))
+            .Select(Relative)
+            .ToList();
+        Assert.True(offenders.Count == 0, "localhost service URL outside appsettings.Development.json: " + string.Join(", ", offenders));
     }
 
     /// <summary>§6: every service whose code reads ServiceRegime*Rules lists the pack and registers its readiness check.</summary>
@@ -209,6 +229,48 @@ public partial class ProductionWiringMatrixTests
 
         Assert.Contains("production: hr-contracts-web lacks Integration__HrCoreBaseUrl (expected http://hr-core-web:8080)", errors);
         Assert.DoesNotContain(errors, e => !e.Contains("hr-contracts-web", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// §2: the fast reader follows compose where it matters for a key-present check: a value-less entry passes the host
+    /// variable through (nothing set), and a service-level merge key can bring the environment block.
+    /// </summary>
+    [Fact]
+    public void Compose_reader_treats_value_less_entries_as_unset_and_resolves_service_merges()
+    {
+        var environment = ComposeEffectiveEnvironment.FromTexts(
+        [
+            ("base.yml", """
+                x-env: &with-env
+                  environment:
+                    FROM_ANCHOR: anchored
+                services:
+                  a:
+                    environment:
+                      KEEP: "1"
+                      EMPTY: ""
+                      DROPPED: "1"
+                  b:
+                    <<: *with-env
+                  c:
+                    environment:
+                      - LISTED=x
+                      - PASS_THROUGH
+                """),
+            ("override.yml", """
+                services:
+                  a:
+                    environment:
+                      DROPPED:
+                """)
+        ]);
+
+        Assert.Equal("1", environment["a"]["KEEP"]);
+        Assert.Equal("", environment["a"]["EMPTY"]);
+        Assert.False(environment["a"].ContainsKey("DROPPED"));
+        Assert.Equal("anchored", environment["b"]["FROM_ANCHOR"]);
+        Assert.Equal("x", environment["c"]["LISTED"]);
+        Assert.False(environment["c"].ContainsKey("PASS_THROUGH"));
     }
 
     /// <summary>§2 rule 5: the Keycloak scripts take clients and scopes from the matrix.</summary>

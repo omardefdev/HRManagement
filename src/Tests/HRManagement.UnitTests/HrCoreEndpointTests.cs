@@ -124,6 +124,18 @@ public class HrCoreEndpointTests
     }
 
     [Fact]
+    public void Optional_endpoint_is_null_when_absent_and_validated_when_set()
+    {
+        using var _ = new EnvironmentVariableScope(("DOTNET_RUNNING_IN_CONTAINER", "true"));
+        Assert.Null(ServiceEndpoint.Optional(Config(("Integration:PayrollBaseUrl", " ")), "Integration:PayrollBaseUrl", Production));
+        Assert.Equal("http://payroll-web:8080",
+            ServiceEndpoint.Optional(Config(("Integration:PayrollBaseUrl", "http://payroll-web:8080/")), "Integration:PayrollBaseUrl", Production));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            ServiceEndpoint.Optional(Config(("Integration:PayrollBaseUrl", "http://localhost:5040")), "Integration:PayrollBaseUrl", Production));
+        Assert.Contains("Docker service DNS", ex.Message);
+    }
+
+    [Fact]
     public void Relative_url_is_refused()
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -240,6 +252,29 @@ public class ServiceIdentitySecretTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => tokenProvider.GetAccessTokenAsync());
         Assert.Contains("ServiceIdentity:ClientSecret is required", ex.Message);
+    }
+
+    [Fact]
+    public async Task Deployed_service_without_a_secret_stops_at_start_up()
+    {
+        using var _ = new EnvironmentVariableScope(("ServiceIdentity__ClientSecret", null), ("DOTNET_RUNNING_IN_CONTAINER", "true"));
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ServiceIdentity:ClientId"] = "svc-hr-contracts",
+            ["ServiceIdentity:ClientSecret"] = ""
+        }).Build();
+        var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration)
+            .AddSingleton<IHostEnvironment>(new FakeHostEnvironment(Environments.Production));
+        services.AddLogging().AddServiceIdentityClient();
+        services.AddServiceIdentityClient();
+        using var provider = services.BuildServiceProvider();
+        var check = Assert.Single(provider.GetServices<IHostedService>().OfType<ServiceIdentityStartupCheck>());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => check.StartAsync(CancellationToken.None));
+        Assert.Contains("ServiceIdentity:ClientSecret is required", ex.Message);
+
+        // Development (a developer machine or a test host) keeps the lazy check of the token request.
+        await new ServiceIdentityStartupCheck(configuration, new FakeHostEnvironment(Environments.Development)).StartAsync(CancellationToken.None);
     }
 }
 

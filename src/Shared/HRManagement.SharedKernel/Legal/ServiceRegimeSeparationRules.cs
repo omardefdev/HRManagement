@@ -88,10 +88,12 @@ public static class ServiceRegimeSeparationRules
             _ => separationTypeName.ToLowerInvariant()
         };
 
-    private static IReadOnlyDictionary<string, SeparationRule> LoadRules()
+    private static IReadOnlyDictionary<string, SeparationRule> LoadRules() => Parse(ServiceRegimePack.CurrentJson);
+
+    /// <summary>PLAN-37: the separation rules this reader can use from <paramref name="json"/> (the readiness check counts these).</summary>
+    internal static IReadOnlyDictionary<string, SeparationRule> Parse(string? json)
     {
         // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
-        var json = ServiceRegimePack.CurrentJson;
         if (json is null)
             return new Dictionary<string, SeparationRule>(StringComparer.OrdinalIgnoreCase);
 

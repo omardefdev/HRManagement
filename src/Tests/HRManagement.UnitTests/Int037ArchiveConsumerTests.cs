@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.TestSupport.CodeGeneration;
@@ -64,6 +65,24 @@ public class Int037ArchiveConsumerTests
         Assert.False(string.IsNullOrWhiteSpace(item.ReferenceNumber));
     }
 
+    [Theory]
+    [InlineData(typeof(MedicalRecommendationIssuedArchiveConsumer), typeof(IMedicalRecommendationIssued))]
+    [InlineData(typeof(MedicalDecisionIssuedArchiveConsumer), typeof(IMedicalDecisionIssued))]
+    public async Task Newer_schema_version_is_dead_lettered_not_acknowledged(Type consumerType, Type messageType)
+    {
+        var codes = new FakeCodeGenerationClient();
+        using var provider = BuildServices(codes);
+        var db = provider.GetRequiredService<ArchiveDbContext>();
+        var message = CreateMessage(messageType, ("SchemaVersion", 99));
+
+        var ex = await Assert.ThrowsAsync<UnsupportedEventSchemaException>(() => Consume(provider, consumerType, messageType, message));
+
+        // InvalidOperationException is on the bus ignore list: no retries, straight to _error.
+        Assert.IsAssignableFrom<InvalidOperationException>(ex);
+        Assert.Equal(0, await db.ArchiveItems.CountAsync());
+        Assert.Empty(codes.Requests);
+    }
+
     [Fact]
     public void Unavailable_exception_is_retried_not_ignored_by_the_bus_policy()
     {
@@ -81,7 +100,7 @@ public class Int037ArchiveConsumerTests
         return services.BuildServiceProvider();
     }
 
-    private static object CreateMessage(Type messageType)
+    private static object CreateMessage(Type messageType, params (string Name, object Value)[] overrides)
     {
         var mock = (Mock)Activator.CreateInstance(typeof(Mock<>).MakeGenericType(messageType))!;
         mock.DefaultValueProvider = DefaultValueProvider.Mock;
@@ -92,6 +111,9 @@ public class Int037ArchiveConsumerTests
             else if (property.PropertyType == typeof(string))
                 SetupProperty(mock, messageType, property.Name, property.Name + "-value");
         }
+
+        foreach (var (name, value) in overrides)
+            SetupProperty(mock, messageType, name, value);
 
         return mock.Object;
     }

@@ -6,8 +6,9 @@
 #                                               stack is healthy); --check changes nothing and exits 1 when a change is due
 #
 # For every client scope of the matrix: the scope exists with one audience mapper per audience. For every service
-# client: the client exists (confidential, service account, no browser flow), its optional scopes of the matrix catalog
-# are exactly the matrix scopes, and its secret equals the value of its secretEnv variable. All kcadm calls run inside
+# client: the client exists (confidential, service account, no browser flow), its optional scopes other than Keycloak's
+# built-in ones are exactly the matrix scopes, it has no non-built-in default scope, and its secret equals the value
+# of its secretEnv variable. All kcadm calls run inside
 # the Keycloak container, and the admin password and the client secrets are read there from the container's own
 # environment (filled by compose from /opt/hrm/shared/.env), so no secret is passed on a command line on the host or
 # printed. Output: client and scope ids with the action taken, and "changes=N"; a second run prints changes=0.
@@ -39,13 +40,16 @@ change() {  # description command...
   shift; "$@" > /dev/null; log "${DESCRIPTION:-done}"
 }
 
-docker exec "$KC" sh -c '"$0" config credentials --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN" --password "$KEYCLOAK_ADMIN_PASSWORD"' "$KCADM" > /dev/null 2>&1 \
+# The admin password reaches kcadm's prompt on stdin inside the container (printf is a shell builtin), never on a
+# command line ("-i": without an attached stdin kcadm can wait for a console that never comes).
+docker exec -i "$KC" sh -c 'printf "%s\n" "$KEYCLOAK_ADMIN_PASSWORD" | "$0" config credentials --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN"' "$KCADM" < /dev/null > /dev/null 2>&1 \
   || die "kcadm login failed (KEYCLOAK_ADMIN / KEYCLOAK_ADMIN_PASSWORD in the keycloak container)"
 
 PLAN="$(perl -MJSON::PP -e 'local $/; open my $f, "<", $ARGV[0] or die "$!"; my $m = decode_json(<$f>);
   for my $n (sort keys %{$m->{scopes}}) { my $s = $m->{scopes}{$n}; print "scope\t$n\t" . join(" ", @{$s->{audiences}}) . "\t$s->{description}\n"; }
   for my $s (@{$m->{services}}) { next unless $s->{serviceIdentity}; print "client\t$s->{clientId}\t$s->{secretEnv}\t" . join(" ", @{$s->{scopes}}) . "\n"; }' "$MATRIX")"
-CATALOG=" $(printf '%s\n' "$PLAN" | awk -F'\t' '$1=="scope"{printf "%s ", $2}')"
+# Keycloak built-in client scopes (no service permission); every other scope on a service client is managed here.
+BUILTIN=" acr address basic email microprofile-jwt offline_access organization phone profile role_list roles saml_organization web-origins "
 
 scope_id() { kc get client-scopes -r "$REALM" --fields id,name --format csv --noquotes | awk -F, -v n="$1" '$2==n && !found {print $1; found=1}'; }
 
@@ -97,17 +101,27 @@ JSON
     DESCRIPTION="client $client: optional scope $scope linked" change "link $scope to $client" \
       kc update "clients/$cid/optional-client-scopes/${sid:-missing}" -r "$REALM"
   done
+  # Any other optional scope is unlinked, also one that has left the matrix catalog (a scope granted without a call);
+  # Keycloak's built-in scopes carry no service permission and are left alone.
   for scope in $current; do
-    case "$CATALOG" in *" $scope "*) ;; *) continue;; esac       # only scopes of the matrix catalog are managed here
+    case "$BUILTIN" in *" $scope "*) continue;; esac
     case " $scopes " in *" $scope "*) continue;; esac
     sid="$(scope_id "$scope")"
     DESCRIPTION="client $client: optional scope $scope removed (not in the matrix)" change "unlink $scope from $client" \
       kc delete "clients/$cid/optional-client-scopes/$sid" -r "$REALM"
   done
+  # A default scope is in every token of the client, requested or not: only built-in ones are allowed.
+  defaults=" $(kc get "clients/$cid/default-client-scopes" -r "$REALM" --fields name --format csv --noquotes | tr '\n' ' ') "
+  for scope in $defaults; do
+    case "$BUILTIN" in *" $scope "*) continue;; esac
+    sid="$(scope_id "$scope")"
+    DESCRIPTION="client $client: default scope $scope removed (service scopes are optional, per the matrix)" change "unlink default $scope from $client" \
+      kc delete "clients/$cid/default-client-scopes/$sid" -r "$REALM"
+  done
 
-  # The secret is compared and set inside the container, from its own environment variable; nothing is printed. (kcadm
-  # "update -f <file> --merge" answers unknown_error for a client secret on Keycloak 24, so "-s secret=" is used; the
-  # value is expanded only inside the container.)
+  # The secret is compared and set inside the container, from its own environment variable; nothing is printed. It is
+  # written by the shell builtin printf to a private temporary file read by "kcadm update -f" (a plain PUT of {"secret"};
+  # "--merge" answers unknown_error on Keycloak 24), so it is never on a process command line.
   state="$(docker exec "$KC" sh -c 'v="$(printenv "$2")"; [ -n "$v" ] || { echo missing; exit 0; }
     cur="$("$0" get "clients/$1/client-secret" -r "$3" --fields value --format csv --noquotes)"
     [ "$cur" = "$v" ] && echo unchanged || echo differs' "$KCADM" "$cid" "$secret_env" "$REALM")"
@@ -116,7 +130,7 @@ JSON
     unchanged) log "client $client: unchanged";;
     *)
       DESCRIPTION="client $client: secret set from $secret_env" change "set the secret of $client from $secret_env" \
-        docker exec "$KC" sh -c 'v="$(printenv "$2")"; "$0" update "clients/$1" -r "$3" -s "secret=$v"' "$KCADM" "$cid" "$secret_env" "$REALM";;
+        docker exec "$KC" sh -c 'f="$(mktemp)"; v="$(printenv "$2")"; printf "{\"secret\":\"%s\"}" "$v" > "$f"; "$0" update "clients/$1" -r "$3" -f "$f"; rc=$?; rm -f "$f"; exit $rc' "$KCADM" "$cid" "$secret_env" "$REALM";;
   esac
 done <<< "$PLAN"
 

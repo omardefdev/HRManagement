@@ -89,10 +89,12 @@ public static class ServiceRegimeMovementRules
         return null;
     }
 
-    private static IReadOnlyDictionary<string, MovementTypeRule> LoadMovementTypes()
+    private static IReadOnlyDictionary<string, MovementTypeRule> LoadMovementTypes() => Parse(ServiceRegimePack.CurrentJson);
+
+    /// <summary>PLAN-37: the movement types this reader can use from <paramref name="json"/> (the readiness check counts these).</summary>
+    internal static IReadOnlyDictionary<string, MovementTypeRule> Parse(string? json)
     {
         // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
-        var json = ServiceRegimePack.CurrentJson;
         if (json is not null)
         {
             var pack = JsonSerializer.Deserialize<MovementPack>(json, new JsonSerializerOptions

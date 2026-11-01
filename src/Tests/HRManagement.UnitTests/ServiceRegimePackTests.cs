@@ -109,6 +109,22 @@ public sealed class ServiceRegimePackTests : IDisposable
     }
 
     [Fact]
+    public async Task Readiness_fails_on_entries_the_readers_cannot_use()
+    {
+        // Non-empty arrays whose entries have no key (or a renamed one): the readers load nothing from them.
+        var unusable = Path.Combine(_root, "unusable.json");
+        await System.IO.File.WriteAllTextAsync(unusable,
+            """{"regimes":[{"id":"law50"}],"separation_rules":[{"regime_id":"law50"}],"movement_types":[{}],"promotion_rules":[{"name":"x"}],"article_159_patterns":[{"trigger":"t"}]}""");
+        var pack = ServiceRegimePack.Load(unusable, false, AppContext.BaseDirectory);
+
+        Assert.NotNull(pack);
+        Assert.Equal(new ServiceRegimePackCounts(1, 0, 0, 0, 0), pack!.Counts);
+        var result = await new ServiceRegimePackHealthCheck(() => pack).CheckHealthAsync(new HealthCheckContext());
+        Assert.Equal(HealthStatus.Unhealthy, result.Status);
+        Assert.Contains("separation_rules, movement_types, promotion_rules, article_159_patterns", result.Description);
+    }
+
+    [Fact]
     public async Task Readiness_fails_when_the_configured_path_is_missing()
     {
         var missing = Path.Combine(_root, "nonexistent.json");

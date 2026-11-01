@@ -15,8 +15,7 @@ public class MedicalRecommendationIssuedArchiveConsumer(
     public async Task Consume(ConsumeContext<IMedicalRecommendationIssued> context)
     {
         var m = context.Message;
-        if (!EventSchemaVersion.Supports(m.SchemaVersion, supportedMax: 2, logger, nameof(IMedicalRecommendationIssued)))
-            return;
+        EventSchemaVersion.Require(m.SchemaVersion, supportedMax: 2, nameof(IMedicalRecommendationIssued));
 
         var title = $"ملف طبي — توصية {m.RecommendationType} للموظف {m.EmployeeId}: {m.Details} [{m.RecommendationId:N}]";
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
@@ -42,8 +41,7 @@ public class MedicalDecisionIssuedArchiveConsumer(
     public async Task Consume(ConsumeContext<IMedicalDecisionIssued> context)
     {
         var m = context.Message;
-        if (!EventSchemaVersion.Supports(m.SchemaVersion, supportedMax: 1, logger, nameof(IMedicalDecisionIssued)))
-            return;
+        EventSchemaVersion.Require(m.SchemaVersion, supportedMax: 1, nameof(IMedicalDecisionIssued));
 
         var refKey = m.CorrelationId ?? m.MedicalRef;
         var title = $"ملف طبي — قرار لجنة {m.MedicalRef} للموظف {m.EmployeeId}: {m.Notes} [{refKey}]";

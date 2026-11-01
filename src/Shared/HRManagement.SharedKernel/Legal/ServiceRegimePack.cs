@@ -126,12 +126,17 @@ public sealed class ServiceRegimePack
         try
         {
             using var doc = JsonDocument.Parse(json);
-            int Count(string name) =>
-                doc.RootElement.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.Array ? p.GetArrayLength() : 0;
+            var regimes = doc.RootElement.TryGetProperty("regimes", out var p) && p.ValueKind == JsonValueKind.Array ? p.GetArrayLength() : 0;
+            // The rule counts are what each reader actually loads (a renamed property or an empty entry counts as nothing),
+            // so readiness cannot pass on a pack every movement, promotion or separation would then be refused against.
             return new ServiceRegimePackCounts(
-                Count("regimes"), Count("separation_rules"), Count("movement_types"), Count("promotion_rules"), Count("article_159_patterns"));
+                regimes,
+                ServiceRegimeSeparationRules.Parse(json).Count,
+                ServiceRegimeMovementRules.Parse(json).Count,
+                ServiceRegimePromotionRules.Parse(json).Count,
+                ServiceRegimeArticle159Rules.Parse(json).Count);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or ArgumentException or InvalidOperationException)
         {
             return new ServiceRegimePackCounts(0, 0, 0, 0, 0);
         }

@@ -74,7 +74,7 @@ function ConvertTo-ArgumentString([string[]]$Arguments) {
 }
 
 # Runs a native command; stdout and stderr are returned as UTF-8 text (no PowerShell error records).
-function Invoke-Native([string]$FilePath, [string[]]$Arguments, [hashtable]$Environment = @{}) {
+function Invoke-Native([string]$FilePath, [string[]]$Arguments, [hashtable]$Environment = @{}, [string[]]$RemoveEnvironment = @()) {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $FilePath
     $psi.Arguments = ConvertTo-ArgumentString $Arguments
@@ -83,6 +83,7 @@ function Invoke-Native([string]$FilePath, [string[]]$Arguments, [hashtable]$Envi
     $psi.RedirectStandardError = $true
     $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
     $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
+    foreach ($k in $RemoveEnvironment) { if ($psi.EnvironmentVariables.ContainsKey($k)) { $psi.EnvironmentVariables.Remove($k) } }
     foreach ($k in $Environment.Keys) { $psi.EnvironmentVariables[$k] = [string]$Environment[$k] }
     $proc = [System.Diagnostics.Process]::Start($psi)
     $stderrTask = $proc.StandardError.ReadToEndAsync()
@@ -96,7 +97,11 @@ function Invoke-ComposeConfig([string]$Name, [string[]]$Files, [string]$EnvFile,
     foreach ($f in $Files) { $cliArgs += @('-f', (Join-Path $RepoRoot $f)) }
     foreach ($p in $ChainProfiles) { $cliArgs += @('--profile', $p) }
     $cliArgs += @('config', '--format', 'json')
-    $run = Invoke-Native -FilePath 'docker' -Arguments $cliArgs
+    # compose prefers the shell environment over --env-file: a real exported secret would otherwise be rendered into
+    # artifacts/. The child process gets neither the env-file keys nor any secret-looking variable of this shell.
+    $clear = @(Get-Content -LiteralPath $EnvFile | ForEach-Object { ($_ -split '=', 2)[0] } | Where-Object { $_ })
+    $clear += @(Get-ChildItem Env: | Where-Object { $_.Name -match '(SECRET|PASSWORD|TOKEN|_KEY)' } | ForEach-Object { $_.Name })
+    $run = Invoke-Native -FilePath 'docker' -Arguments $cliArgs -RemoveEnvironment $clear
     [System.IO.File]::WriteAllText((Join-Path $OutDir "$Name.json"), $run.StdOut, (New-Object System.Text.UTF8Encoding($false)))
     if ($run.ExitCode -ne 0) {
         $err = ($run.StdErr -split "`n" | Where-Object { $_ -and $_ -notmatch 'level=warning' }) -join ' '

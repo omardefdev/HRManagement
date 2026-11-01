@@ -190,11 +190,14 @@ MATRIX="$RELEASE_DIR/deploy/wiring/service-wiring.json"
 REGIMES="$RELEASE_DIR/docs/syr/service-regimes.json"
 cid() { docker ps -q --filter "label=com.docker.compose.project=$HRM_PROJECT" --filter "label=com.docker.compose.service=$1" | head -1; }
 env_length() { awk -v k="$1" -F= '$1==k { v=substr($0, length(k)+2) } END { gsub(/^"|"$/, "", v); print length(v) }' "$ENV_FILE"; }
-# Inside a service container: request its own token; prints "<http code> <granted scopes>" (never the token).
+# Inside a service container: request its own token; prints "<http code> <granted scopes>" (never the token). The
+# secret goes to curl through a private temporary file (printf is a shell builtin), never on a process command line.
 token_probe() {
   docker exec -i "$1" sh -s <<'PROBE'
 url="${ServiceIdentity__TokenEndpoint:-${Keycloak__Authority%/}/protocol/openid-connect/token}"
-set -- --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret=$ServiceIdentity__ClientSecret"
+s="$(mktemp)"; trap 'rm -f "$s"' EXIT
+printf '%s' "$ServiceIdentity__ClientSecret" > "$s"
+set -- --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret@$s"
 [ -n "$ServiceIdentity__Scope" ] && set -- "$@" --data-urlencode "scope=$ServiceIdentity__Scope"
 r="$(curl -s -m 10 -w '\n%{http_code}' "$@" "$url")"
 code="$(printf '%s' "$r" | tail -n 1)"
@@ -202,15 +205,21 @@ granted="$(printf '%s' "$r" | sed -n 's/.*"scope":"\([^"]*\)".*/\1/p' | head -n 
 printf '%s %s\n' "$code" "$granted"
 PROBE
 }
-# Inside hr-core-web: one signed S2S call to File.Storage's service upload; prints the HTTP status only.
+# Inside hr-core-web: one signed S2S call to File.Storage's service upload; prints the HTTP status only. The proof
+# reaches the container on stdin (not "docker exec -e"), and the secret, token and proof reach curl through private
+# temporary files, so none of them is on a process command line on the host.
 upload_probe() {
-  docker exec -i -e PROOF="$2" -e PROOF_TS="$3" -e PROOF_PATH="$4" "$1" sh -s <<'CALL'
+  { printf "PROOF='%s'\nPROOF_TS='%s'\nPROOF_PATH='%s'\n" "$2" "$3" "$4"; cat <<'CALL'
 url="${ServiceIdentity__TokenEndpoint:-${Keycloak__Authority%/}/protocol/openid-connect/token}"
-tok="$(curl -s -m 10 --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret=$ServiceIdentity__ClientSecret" --data-urlencode "scope=$ServiceIdentity__Scope" "$url" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
-curl -s -m 10 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $tok" -H "X-Tenant-ID: 00000000-0000-4000-8000-000000000001" \
-  -H "X-HR-Gateway-Proof: $PROOF" -H "X-HR-Gateway-Proof-Ts: $PROOF_TS" -H "X-HR-Gateway-Proof-Path: $PROOF_PATH" \
+s="$(mktemp)"; h="$(mktemp)"; trap 'rm -f "$s" "$h"' EXIT
+printf '%s' "$ServiceIdentity__ClientSecret" > "$s"
+tok="$(curl -s -m 10 --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret@$s" --data-urlencode "scope=$ServiceIdentity__Scope" "$url" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
+printf 'Authorization: Bearer %s\nX-HR-Gateway-Proof: %s\n' "$tok" "$PROOF" > "$h"
+curl -s -m 10 -o /dev/null -w '%{http_code}' -H "@$h" -H "X-Tenant-ID: 00000000-0000-4000-8000-000000000001" \
+  -H "X-HR-Gateway-Proof-Ts: $PROOF_TS" -H "X-HR-Gateway-Proof-Path: $PROOF_PATH" \
   "${Integration__FileStorageBaseUrl%/}$PROOF_PATH"
 CALL
+  } | docker exec -i "$1" sh -s
 }
 WIRING_PERL='local $/; open my $f, "<", $ARGV[0] or die "$!"; my $m = decode_json(<$f>);
 for my $s (@{$m->{services}}) { my $c = $s->{composeService};

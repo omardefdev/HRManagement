@@ -217,7 +217,10 @@ else {
                 foreach ($p in (Compare-Wiring $label $service $actual)) { $problems.Add($p) }
                 if ($service.serviceIdentity) {
                     $want = "secretKeyRef:hr-app-secrets/$($service.secretEnv)"
-                    if ($actual['ServiceIdentity__ClientSecret'] -ne $want) { $problems.Add("$label ServiceIdentity__ClientSecret is '$($actual['ServiceIdentity__ClientSecret'])', expected $want") }
+                    $got = $actual['ServiceIdentity__ClientSecret']
+                    # Only the source kind is reported: a literal value could be a real secret.
+                    $kind = if ($null -eq $got) { 'absent' } elseif ([string]$got -like 'secretKeyRef:*') { $got } else { 'a literal value' }
+                    if ($got -ne $want) { $problems.Add("$label ServiceIdentity__ClientSecret is $kind, expected $want") }
                     if (-not $parsed.SecretKeys.Contains([string]$service.secretEnv)) { $problems.Add("$label`: hr-app-secrets has no key $($service.secretEnv)") }
                 }
             }

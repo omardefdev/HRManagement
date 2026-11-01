@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -104,7 +105,7 @@ public static class PayrollGradeLookupExtensions
 {
     public static IServiceCollection AddPayrollGradeLookup(this IServiceCollection services, IConfiguration configuration)
     {
-        var payrollBase = configuration["Integration:PayrollBaseUrl"]?.TrimEnd('/');
+        var payrollBase = ServiceEndpoint.Optional(configuration, "Integration:PayrollBaseUrl");
         if (string.IsNullOrWhiteSpace(payrollBase))
         {
             services.AddScoped<IPayrollGradeLookup, UnavailablePayrollGradeLookup>();

@@ -72,6 +72,14 @@ public static class ServiceEndpoint
         return value.TrimEnd('/');
     }
 
+    /// <summary>
+    /// An endpoint whose absence is a supported mode (the caller then registers its "unavailable" stub): null when
+    /// <paramref name="key"/> is empty; a set value is validated as by <see cref="Require"/> (absolute http(s), no
+    /// <c>localhost</c> in a container).
+    /// </summary>
+    public static string? Optional(IConfiguration configuration, string key, IHostEnvironment? environment = null) =>
+        Read(configuration, key) is null ? null : Require(configuration, key, environment: environment);
+
     /// <summary>The deprecation warnings collected while the services were registered; logged once at start-up.</summary>
     public static IReadOnlyCollection<string> DeprecationWarnings => PendingWarnings.Values.ToArray();
 
