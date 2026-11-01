@@ -1,0 +1,20 @@
+{
+  "queue": "dev-analytics-web-payroll-processed",
+  "survivedRecreate": true,
+  "consumedAfterwards": true,
+  "reconnectedUsers": [
+    "mq_admin_logistics",
+    "mq_auth_directory",
+    "mq_compliance",
+    "mq_dev_analytics",
+    "mq_hr_contracts",
+    "mq_hr_core",
+    "mq_hr_health",
+    "mq_hr_movements",
+    "mq_hr_training",
+    "mq_idcard",
+    "mq_it_infra",
+    "mq_payroll",
+    "mq_records_archive"
+  ]
+}

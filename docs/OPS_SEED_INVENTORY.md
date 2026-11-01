@@ -10,7 +10,7 @@ that seeds reference data goes through `SeedRunner` (`src/Shared/HRManagement.Se
 
 | Kind | Call | A failure in Production | Development | Acceptance profile |
 |---|---|---|---|---|
-| **Mandatory** (national and reference data the service cannot work without) | `RunMandatoryAsync(name, …)` | **the service does not start** (`MandatorySeedFailedException`, Critical log); emergency switch `Seed:AllowMandatoryFailure=true`: Critical log + `seed_mandatory_failures_total`, the start goes on | warning | the original exception fails the start |
+| **Mandatory** (national and reference data the service cannot work without) | `RunMandatoryAsync(name, …)` | **the service does not start** (also in the `Acceptance` environment of the prod-like and least-privilege stacks) (`MandatorySeedFailedException`, Critical log); emergency switch `Seed:AllowMandatoryFailure=true`: Critical log + `seed_mandatory_failures_total`, the start goes on | warning | the original exception fails the start |
 | **Optional** (demo and acceptance data, derived data) | `RunOptionalAsync(name, …)` | warning | warning | fails the start |
 
 Messages name the seed and the service, and the cause only as an exception type and SQL state (for example

@@ -95,6 +95,16 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public async Task The_acceptance_environment_without_the_acceptance_profile_stops_like_production()
+    {
+        // The least-privilege stack: ASPNETCORE_ENVIRONMENT=Acceptance with Seed:Profile=None (AC-OPS-38h).
+        var (runner, _) = Runner("Acceptance", SeedProfile.None);
+        var ex = await Assert.ThrowsAsync<MandatorySeedFailedException>(() =>
+            runner.RunMandatoryAsync("national-mandatory", () => throw Failure()));
+        Assert.DoesNotContain(RowValue, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_failed_optional_seed_is_a_warning_even_in_production()
     {
         var (runner, logger) = Runner("Production", SeedProfile.Demo);

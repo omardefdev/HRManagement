@@ -23,7 +23,7 @@ public sealed class MandatorySeedFailedException(string service, string seed, st
 /// <item><see cref="RunMandatoryAsync"/>: national and reference data the service cannot work without. A failure stops the
 /// start in Production (and in the Acceptance profile, as before); <c>Seed:AllowMandatoryFailure=true</c> is the emergency
 /// switch: the failure is logged as Critical and counted (<c>seed_mandatory_failures_total</c>) and the start goes on.
-/// Development logs a warning.</item>
+/// The Acceptance environment (prod-like lab) applies the same rule; Development logs a warning.</item>
 /// <item><see cref="RunOptionalAsync"/>: demo and acceptance data. A failure is a warning, except in the Acceptance
 /// profile where it still fails the start.</item>
 /// </list>
@@ -67,7 +67,8 @@ public sealed class SeedRunner
 
             var cause = Describe(ex);
 
-            if (_environment.IsProduction())
+            // The Acceptance environment is the production-like lab (the prod-like and least-privilege stacks): same rule.
+            if (_environment.IsProduction() || _environment.IsEnvironment("Acceptance"))
             {
                 MandatoryFailures.Add(1, new KeyValuePair<string, object?>("service", _service), new KeyValuePair<string, object?>("seed", seed));
                 if (_configuration.GetValue(AllowMandatoryFailureKey, false))

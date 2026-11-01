@@ -1,0 +1,6 @@
+{
+  "seedPackApplied": true,
+  "defaultContractType": "1",
+  "negative": "INSERT on WorkflowDefinitions revoked: HR.Core stopped with national-mandatory / SQLSTATE 42501",
+  "restored": "grant restored, definition re-seeded, HR.Core ready"
+}

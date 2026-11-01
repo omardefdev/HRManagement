@@ -1,0 +1,10 @@
+{
+  "step": "verify-roles-log",
+  "method": "SCRIPT",
+  "url": "verify-postgres-service-roles.sh",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T16:06:02.5938247Z",
+  "body": {
+    "log": "AC-20 PostgreSQL service-role isolation\r\nCompose project: hrm-leastpriv\r\nChecked role/database pairs: 225\r\nViolations: 0\r\nAll cross-DB CONNECT checks passed\r\n\r\n"
+  }
+}

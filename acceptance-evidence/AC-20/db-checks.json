@@ -1,0 +1,4 @@
+{
+  "exitCode": 0,
+  "output": "AC-20 PostgreSQL service-role isolation\r\nCompose project: hrm-leastpriv\r\nChecked role/database pairs: 225\r\nViolations: 0\r\nAll cross-DB CONNECT checks passed\r\n\nEvidence: D:\\my projects\\HRManagement\\acceptance-evidence\\AC-20\n"
+}

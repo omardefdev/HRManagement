@@ -1,0 +1,5 @@
+{
+  "initSecrets": "empty env filled, names printed only, compose config OK",
+  "guardMissingProof": "refused",
+  "guardPlaceholderConnection": "refused, key named, value not printed"
+}

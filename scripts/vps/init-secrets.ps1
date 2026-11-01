@@ -52,8 +52,9 @@ function Read-EnvValues([string]$Path) {
 }
 
 $envPath = Resolve-RepoPath $EnvFile
-$examplePath = Resolve-RepoPath $Example
-if (-not (Test-Path -LiteralPath $examplePath)) { throw "Example file not found: $examplePath" }
+# -Example '' (a lab file without an example of its own): the compose files and the matrices define the keys.
+$examplePath = if ($Example) { Resolve-RepoPath $Example } else { '' }
+if ($examplePath -and -not (Test-Path -LiteralPath $examplePath)) { throw "Example file not found: $examplePath" }
 
 # A target inside the git work tree must be git-ignored.
 $envDir = Split-Path -Parent $envPath
@@ -84,12 +85,12 @@ foreach ($kv in ($Set | ForEach-Object { $_ -split ',(?=[A-Z][A-Z0-9_]*=)' })) {
 
 # ---- required key names ------------------------------------------------------------------------------------------
 $keys = New-Object 'System.Collections.Generic.SortedSet[string]' ([System.StringComparer]::Ordinal)
-foreach ($f in $ComposeFile) {
+foreach ($f in ($ComposeFile | ForEach-Object { $_ -split ',' } | Where-Object { $_ })) {
     $p = Resolve-RepoPath $f
     if (-not (Test-Path -LiteralPath $p)) { throw "Compose file not found: $p" }
     foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($p), '\$\{([A-Z_][A-Z0-9_]*):\?')) { [void]$keys.Add($m.Groups[1].Value) }
 }
-$exampleValues = Read-EnvValues $examplePath
+$exampleValues = if ($examplePath) { Read-EnvValues $examplePath } else { @{} }
 foreach ($k in $exampleValues.Keys) { [void]$keys.Add($k) }
 $roles = Join-Path $repoRoot 'deploy\bootstrap\postgres-roles.conf'
 foreach ($line in [System.IO.File]::ReadAllLines($roles)) {
