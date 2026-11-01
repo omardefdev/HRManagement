@@ -78,6 +78,22 @@ token صادر لعميل/audience غير مسموح يُرفض.
 
 `Authorization: Bearer <service_token>` يُحقن عبر `ServiceAuthHandler`؛ لا تعتمد مسارات S2S على توكن المستخدم بعد الآن.
 
+### العملاء والنطاقات من مصفوفة التوصيل (PLAN-37)
+
+مصدرها الوحيد [`deploy/wiring/service-wiring.json`](../deploy/wiring/service-wiring.json) (جدولها المقروء:
+[SERVICE_WIRING_MATRIX.md](SERVICE_WIRING_MATRIX.md)). منها تُقرأ:
+
+- `scripts/sync-keycloak-dev-realm.ps1`: كل نطاق (`scopes` مع مُعيّن audience لكل جمهور) وكل عميل خدمة بنطاقاته
+  الاختيارية. شغّله بعد أي تغيير في المصفوفة على realm التطوير والقبول (`acceptance-up.ps1` يشغّله)، **قبل** أن تطلب
+  الخدمات النطاق الجديد: Keycloak يرفض توكن نطاق غير مربوط (`invalid_scope`).
+- `scripts/prepare-keycloak-import.ps1 -Profile VpsDemo`: realm الخادم الواحد عند أول استيراد، كل عميل بسرّه
+  `${SVC_X_CLIENT_SECRET}`.
+- `deploy/vps/keycloak-sync-clients.sh`: على الخادم بعد كل نشر، بلا حذف realm ولا إعادة استيراد (OPS_VPS_SINGLE_HOST §5أ).
+
+`ServiceIdentity__Scope` يُكتب صراحةً لكل خدمة في `docker-compose.yml` / `docker-compose.services.yml` وفي
+`deploy/k8s/base/<svc>/wiring-patch.yaml` (فارغ لمن لا نطاق له)، ولا يأتي من `appsettings.json`. السر الفارغ في
+`appsettings.json` لا يحجب `ServiceIdentity__ClientSecret` من البيئة بعد الآن.
+
 ## أسرار الإنتاج (OPS-005)
 
 لا تُلتزم قيم حقيقية في git. المسارات:

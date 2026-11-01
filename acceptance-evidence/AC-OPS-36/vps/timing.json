@@ -5,6 +5,6 @@
   "authenticated429": 0,
   "anonymousSent": 400,
   "anonymousNotRejected": 300,
-  "anonymousBurstSeconds": 28.3,
+  "anonymousBurstSeconds": 6.8,
   "retryAfter": "60"
 }

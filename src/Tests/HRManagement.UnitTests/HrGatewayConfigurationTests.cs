@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace HRManagement.UnitTests;
 
+[Collection(ProcessEnvironmentCollection.Name)]
 public class HrGatewayConfigurationTests
 {
     [Fact]

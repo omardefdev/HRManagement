@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -155,9 +156,11 @@ public static class ComplianceDsarCollectorExtensions
 {
     public static IServiceCollection AddComplianceDsarCollector(this IServiceCollection services, IConfiguration configuration)
     {
-        RegisterClient(services, configuration, HttpHrCoreDsarSource.ClientName, "Integration:HrCoreBaseUrl");
-        RegisterClient(services, configuration, HttpPayrollDsarSource.ClientName, "Integration:PayrollBaseUrl");
-        RegisterClient(services, configuration, HttpFileStorageDsarSource.ClientName, "Integration:FileStorageBaseUrl");
+        // PLAN-37: every source needs its URL (start-up error naming the key outside Development).
+        services.AddServiceEndpointWarnings();
+        services.AddServiceAuthenticatedClient(HttpHrCoreDsarSource.ClientName, HrCoreEndpoint.RequireBaseUri(configuration));
+        RegisterClient(services, configuration, HttpPayrollDsarSource.ClientName, "Integration:PayrollBaseUrl", "http://localhost:5060");
+        RegisterClient(services, configuration, HttpFileStorageDsarSource.ClientName, "Integration:FileStorageBaseUrl", "http://localhost:5140");
 
         services.AddScoped<IDsarSubjectSource, HttpHrCoreDsarSource>();
         services.AddScoped<IDsarSubjectSource, HttpPayrollDsarSource>();
@@ -167,12 +170,6 @@ public static class ComplianceDsarCollectorExtensions
         return services;
     }
 
-    private static void RegisterClient(IServiceCollection services, IConfiguration configuration, string name, string configKey)
-    {
-        var baseUrl = configuration[configKey]?.TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(baseUrl))
-            services.AddServiceAuthenticatedClient(name, new Uri(baseUrl + "/"));
-        else
-            services.AddHttpClient(name);
-    }
+    private static void RegisterClient(IServiceCollection services, IConfiguration configuration, string name, string configKey, string developmentDefault) =>
+        services.AddServiceAuthenticatedClient(name, new Uri(ServiceEndpoint.Require(configuration, configKey, developmentDefault) + "/"));
 }

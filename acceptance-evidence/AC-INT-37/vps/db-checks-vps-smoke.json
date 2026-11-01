@@ -1,0 +1,174 @@
+{
+  "summary": {
+    "pass": 49,
+    "fail": 0,
+    "warn": 1,
+    "deferred": 0
+  },
+  "wiring": [
+    {
+      "Id": "wiring-matrix",
+      "Status": "Pass",
+      "Detail": "14 services in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-admin-logistics",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.lookup hr-core.workflow file-storage.references]"
+    },
+    {
+      "Id": "wiring-env admin-logistics-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-auth-directory",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.lookup]"
+    },
+    {
+      "Id": "wiring-env auth-directory-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-compliance",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.lookup hr-core.workflow dsar.subject.read file-storage.references]"
+    },
+    {
+      "Id": "wiring-env compliance-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-dev-analytics",
+      "Status": "Pass",
+      "Detail": "token issued with [no scope]"
+    },
+    {
+      "Id": "wiring-env dev-analytics-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-hr-contracts",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.workflow hr-core.lookup file-storage.references]"
+    },
+    {
+      "Id": "legal-pack hr-contracts-web",
+      "Status": "Pass",
+      "Detail": "sha256=afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd (start-up line matches)"
+    },
+    {
+      "Id": "wiring-env hr-contracts-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-hr-core",
+      "Status": "Pass",
+      "Detail": "token issued with [file-storage.references payroll.grades.read file-storage.service-upload]"
+    },
+    {
+      "Id": "legal-pack hr-core-web",
+      "Status": "Pass",
+      "Detail": "sha256=afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd (start-up line matches)"
+    },
+    {
+      "Id": "wiring-env hr-core-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-env hr-gateway",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-hr-health",
+      "Status": "Pass",
+      "Detail": "token issued with [no scope]"
+    },
+    {
+      "Id": "wiring-env hr-health-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-hr-movements",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.lookup]"
+    },
+    {
+      "Id": "legal-pack hr-movements-web",
+      "Status": "Pass",
+      "Detail": "sha256=afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd (start-up line matches)"
+    },
+    {
+      "Id": "wiring-env hr-movements-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-hr-training",
+      "Status": "Pass",
+      "Detail": "token issued with [file-storage.references]"
+    },
+    {
+      "Id": "wiring-env hr-training-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-idcard",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.workflow file-storage.references]"
+    },
+    {
+      "Id": "wiring-env idcard-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-it-infra",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.workflow directory.sync]"
+    },
+    {
+      "Id": "wiring-env it-infra-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-payroll",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.lookup]"
+    },
+    {
+      "Id": "wiring-env payroll-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-token svc-records-archive",
+      "Status": "Pass",
+      "Detail": "token issued with [hr-core.workflow file-storage.references]"
+    },
+    {
+      "Id": "wiring-env records-archive-web",
+      "Status": "Pass",
+      "Detail": "URLs, client id, scopes and secret as in the matrix"
+    },
+    {
+      "Id": "wiring-s2s-candidate-upload",
+      "Status": "Pass",
+      "Detail": "svc-hr-core -\u003E File.Storage service upload: 404 for an unknown file (authorized)"
+    }
+  ],
+  "notRun": [
+    "37a (server): acceptance persona a-contracts-maker absent in the VpsDemo realm",
+    "37c (server): acceptance personas a-idcard / a-it / a-compliance / a-logistics-maker absent"
+  ]
+}

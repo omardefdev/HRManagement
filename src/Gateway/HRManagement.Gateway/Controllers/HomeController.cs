@@ -19,6 +19,7 @@ public class HomeController(
     IHttpClientFactory httpClientFactory,
     IAuthorizationService authorizationService,
     IConfiguration configuration,
+    GatewayIntegrationEndpoints endpoints,
     ILogger<HomeController> logger) : Controller
 {
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
@@ -32,8 +33,8 @@ public class HomeController(
             cancellationToken);
         var list = modules.Select(m => statuses[m.Slug]).ToList();
 
-        var authDirectoryBase = configuration["Integration:AuthDirectoryBaseUrl"] ?? "http://localhost:5130";
-        var hrCoreBase = configuration["Integration:HrCoreBaseUrl"] ?? "http://localhost:5010";
+        var authDirectoryBase = endpoints.AuthDirectoryBaseUrl;
+        var hrCoreBase = endpoints.HrCoreBaseUrl;
         var activeUsersCount = await FetchStatAsync(
             $"{authDirectoryBase}/api/stats/active-users", "count", cancellationToken);
         var pendingApprovalsCount = await FetchStatAsync(

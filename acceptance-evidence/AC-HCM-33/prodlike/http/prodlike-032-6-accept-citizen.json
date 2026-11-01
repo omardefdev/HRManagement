@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "/careers/my/offer/accept",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:11:13.2382923Z",
+  "capturedAtUtc": "2026-11-01T00:54:43.6148530Z",
   "body": {
     "fields": [
       "Acknowledge=true",
-      "FullName=\u0645\u0631\u0634\u062D \u0631\u062D\u0644\u0629 \u0627\u0644\u062A\u0648\u0638\u064A\u0641 8ae88f2d"
+      "FullName=\u0645\u0631\u0634\u062D \u0631\u062D\u0644\u0629 \u0627\u0644\u062A\u0648\u0638\u064A\u0641 15cd79f3"
     ],
     "files": null,
     "postStatus": 302,

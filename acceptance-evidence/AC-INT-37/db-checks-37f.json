@@ -1,0 +1,11 @@
+{
+  "empty": {
+    "exit": 139,
+    "message": "Unhandled exception. System.InvalidOperationException: Integration:HrCoreBaseUrl is required (the base URL of the called service, e.g. http://hr-core-web:8080); it is set by the deployment from deploy/wiring/service-wiring.json.\n   at HRManagement.ServiceDefau"
+  },
+  "localhost": {
+    "exit": 139,
+    "message": "exception. System.InvalidOperationException: Integration:HrCoreBaseUrl must use Docker service DNS (e.g. http://hr-core-web:8080) when running in a container. Current value: http://localhost:5010\n   at HRManagement.ServiceDefaults.Integration.ServiceEndpoint.R"
+  },
+  "liveReady": 200
+}

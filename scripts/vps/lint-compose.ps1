@@ -40,87 +40,9 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $EdgeAddress = '172.28.0.10'
 $Forbidden = @('localhost:8088', 'YOUR_', 'USE_ENV', 'dev-svc-secret-local-only')
 
-# Lint-only values for every variable the chains require; names come from deploy/vps/.env.vps.example when present.
-function New-LintEnvFile([string]$Path) {
-    $values = [ordered]@{}
-    $example = Join-Path $RepoRoot 'deploy\vps\.env.vps.example'
-    if (Test-Path $example) {
-        foreach ($line in Get-Content -Path $example) {
-            # Keep the example's own non-secret defaults (HRM_OTEL_ENABLED=false, ...); fill only the empty keys.
-            if ($line -match '^\s*([A-Z][A-Z0-9_]*)\s*=(.*)$') {
-                $value = $Matches[2].Trim()
-                if (-not $value) { $value = 'lint-only-' + $Matches[1].ToLowerInvariant().Replace('_', '-') }
-                $values[$Matches[1]] = $value
-            }
-        }
-    }
-    $fixed = [ordered]@{
-        APP_DOMAIN                       = 'hr.lint.test'
-        SSO_DOMAIN                       = 'sso.lint.test'
-        HRM_IMAGE_REPO                   = 'registry.lint.test/hrmanagement'
-        GITHUB_REPOSITORY_OWNER          = 'lintowner'
-        IMAGE_TAG                        = '0123456789ab'
-        GATEWAY_CALLER_PROOF_SECRET      = 'lint-only-caller-proof-secret-0123456789abcdef'
-        DEMO_USERS_PASSWORD              = 'lint-only-demo-password-0123'
-        HRM_DEPLOYMENT_MODE              = 'demo'
-        COMPOSE_PROFILES                 = 'full-stack'
-        HRM_ACME_CA                      = 'https://acme-staging-v02.api.letsencrypt.org/directory'
-        ACME_EMAIL                       = ''
-        ADMIN_ALLOWED_CIDRS              = ''
-        HRM_ORGANIZATION_NAME            = 'lint organization'
-        POSTGRES_USER                    = 'lint_admin'
-        RABBITMQ_DEFAULT_USER            = 'lint_admin'
-        KEYCLOAK_ADMIN                   = 'lint_admin'
-    }
-    foreach ($k in $fixed.Keys) { $values[$k] = $fixed[$k] }
-    foreach ($k in @('POSTGRES_PASSWORD', 'RABBITMQ_DEFAULT_PASS', 'KEYCLOAK_ADMIN_PASSWORD', 'KEYCLOAK_HR_GATEWAY_CLIENT_SECRET',
-            'KEYCLOAK_DIRECTORY_SYNC_SECRET', 'HR_CORE_OTP_HMAC_KEY')) {
-        if (-not $values.Contains($k)) { $values[$k] = 'lint-only-' + $k.ToLowerInvariant().Replace('_', '-') }
-    }
-    foreach ($svc in @('ADMIN_LOGISTICS', 'COMPLIANCE', 'DEV_ANALYTICS', 'HR_CONTRACTS', 'HR_CORE', 'HR_HEALTH', 'HR_MOVEMENTS',
-            'HR_TRAINING', 'IDCARD', 'IT_INFRA', 'PAYROLL', 'RECORDS_ARCHIVE')) {
-        $k = "SVC_${svc}_CLIENT_SECRET"
-        if (-not $values.Contains($k)) { $values[$k] = 'lint-only-' + $k.ToLowerInvariant().Replace('_', '-') }
-    }
-    $lines = foreach ($k in $values.Keys) { "$k=$($values[$k])" }
-    [System.IO.File]::WriteAllLines($Path, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false)))
-}
+# Chain definitions, the lint-only .env and the compose helpers (shared with scripts/int037-wiring-check.ps1).
+. (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'compose-chains.ps1')
 
-function ConvertTo-ArgumentString([string[]]$Arguments) {
-    ($Arguments | ForEach-Object { if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }) -join ' '
-}
-
-# Runs a native command; stdout and stderr are returned as UTF-8 text (no PowerShell error records).
-function Invoke-Native([string]$FilePath, [string[]]$Arguments, [hashtable]$Environment = @{}) {
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $FilePath
-    $psi.Arguments = ConvertTo-ArgumentString $Arguments
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
-    $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
-    foreach ($k in $Environment.Keys) { $psi.EnvironmentVariables[$k] = [string]$Environment[$k] }
-    $proc = [System.Diagnostics.Process]::Start($psi)
-    $stderrTask = $proc.StandardError.ReadToEndAsync()
-    $stdout = $proc.StandardOutput.ReadToEnd()
-    $proc.WaitForExit()
-    return @{ ExitCode = $proc.ExitCode; StdOut = $stdout; StdErr = $stderrTask.Result }
-}
-
-function Invoke-ComposeConfig([string]$Name, [string[]]$Files, [string]$EnvFile, [string[]]$ChainProfiles) {
-    $cliArgs = @('compose', '--env-file', $EnvFile, '--project-directory', $RepoRoot)
-    foreach ($f in $Files) { $cliArgs += @('-f', (Join-Path $RepoRoot $f)) }
-    foreach ($p in $ChainProfiles) { $cliArgs += @('--profile', $p) }
-    $cliArgs += @('config', '--format', 'json')
-    $run = Invoke-Native -FilePath 'docker' -Arguments $cliArgs
-    [System.IO.File]::WriteAllText((Join-Path $OutDir "$Name.json"), $run.StdOut, (New-Object System.Text.UTF8Encoding($false)))
-    if ($run.ExitCode -ne 0) {
-        $err = ($run.StdErr -split "`n" | Where-Object { $_ -and $_ -notmatch 'level=warning' }) -join ' '
-        return @{ Ok = $false; Error = "docker compose config failed: $err" }
-    }
-    return @{ Ok = $true; Config = ($run.StdOut | ConvertFrom-Json) }
-}
 
 function Get-Prop($obj, [string]$name) {
     if ($null -eq $obj) { return $null }
@@ -214,11 +136,7 @@ function Test-Chain([string]$Name, $Config, [bool]$SingleHost) {
 $envFile = Join-Path $OutDir 'lint.env'
 New-LintEnvFile -Path $envFile
 
-$production = @('docker-compose.yml', 'docker-compose.services.yml', 'docker-compose.images.yml', 'docker-compose.production.yml')
-$chains = @(
-    @{ Name = 'production'; Files = $production; SingleHost = $false },
-    @{ Name = 'single-host'; Files = $production + @('docker-compose.vps.yml', 'docker-compose.vps-demo.yml'); SingleHost = $true }
-)
+$chains = Get-HrmProductionChains
 
 $failed = $false
 foreach ($chain in $chains) {

@@ -1,7 +1,7 @@
 # PLAN-37 — توصيل الخدمات بإعدادات الإنتاج وشحن حزمة أنظمة الخدمة (INT)
 
 **Scope:** INT — [دراسة الترميز والهيكل](../COD_ORG_GAP_STUDY.md): G-COD-01، G-COD-06 · [دراسة الصلاحيات](../IAM_001_SCOPE_GAP_STUDY.md): G-IAM-03 · [دراسة السياسات](../POL_001_GAP_STUDY.md): G-POL-01 · [دراسة الحركات](../FUN_003_MOVEMENTS_GAP_STUDY.md): G-MOV-02 (شحن الحزمة) · [دراسة الفصل](../FUN_002_SEPARATION_GAP_STUDY.md): جزء الشحن والتوصيل من G-SEP-02  
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented — 2026-11-01 (التقرير: `reports/plan37-final-report.md`)  
 **Priority:** P0  
 **Depends on:** PLAN-36 (إقلاع الإنتاج على خادم واحد)  
 **Related cards:** COD-001، IAM-004 (هوية الخدمات)، SYR-003 (`service-regimes.json`)، OPS-005، PLAN-25/29/33 (توصيل القبول الذي لم يُنقل إلى الإنتاج)، AC-30 (رفض S2S)
@@ -320,3 +320,16 @@ dotnet test src/Tests/HRManagement.AcceptanceTests --filter "FullyQualifiedName~
 - شحن الحزمة والفحص والبصمة: 1.5.
 - الملف الشبيه والقبول والأدلة: 1.5.
 - الوثائق: 0.5.
+
+## ملاحظات التنفيذ والانحرافات
+
+نُفّذت الخطة في جلسة واحدة (المراحل P0–P9 من `docs/acceptance-plans/execution/PLAN-37-AGENT-PROMPT.md`)؛ التفاصيل والأزمنة في `reports/plan37-final-report.md`.
+
+- **§1 القاعدة 3:** لم يُضَف `svc-auth-directory` إلى `Service.HrCoreLookup`. استدعاؤه الوحيد (`/api/lookup/employees/by-ids`) تحت سياسة `HrManagementPolicies.HrCoreLookup` التي تكتفي بالنطاق، فلا استدعاء يبرر إضافته إلى القائمة. ومداخل القوائم الموجودة بلا استدعاء (`hr-gateway-client`، `svc-admin-logistics`، `svc-compliance` في `Service.HrCoreLookup`، و`svc-hr-core`، `svc-auth-directory` في `Service.DirectorySync`) بقيت ودُوّنت في `allowListExceptions`، وإزالتها ← PLAN-42.
+- **المصفوفة:** فيها فهرس `endpoints` (الهدف والمسار والمتحكم والسياسات والنطاق) تشير إليه `calls[]`، وفهرس `scopes` بالجماهير الذي تقرؤه سكربتات Keycloak. والتسجيلات المضمّنة صارت دوال مسمّاة (`AddHrCoreWorkflowClient`، `AddDirectorySyncClient`، `AddEmployeeLifecycleGate`).
+- **§2:** `MergingParser` في YamlDotNet يرفض مفتاحاً صريحاً يتجاوز مرساة مدموجة (يعدّه مكرراً)، فيحلّ `ComposeEffectiveEnvironment` المفتاح `<<` بنفسه بدلالات YAML. وتعريفات سلاسل compose انتقلت إلى `scripts/vps/compose-chains.ps1` يقرؤها `lint-compose.ps1` و`int037-wiring-check.ps1` والاختبارات.
+- **§3:** `staging-ha` لم يكن فيه أي مفتاح `SVC_*` فأُضيفت كلها، و`dr-secondary` يستعمل السر المؤقت في `base` فأُضيفت إليه قيم `replace-me`. وعناوين البوابة انتقلت من `hr-yarp-config` إلى `hr-gateway/wiring-patch.yaml`. و`ServiceIdentity__Scope` يُكتب صراحةً (فارغاً لمن لا نطاق له).
+- **§4:** القاعدة نفسها (`ServiceEndpoint.Require`) طُبّقت أيضاً على البوابة (عنوانان بقيمة `localhost` افتراضية)، وعلى مزامنة دليل IT.Infra (كانت تنجح دون نداء)، وعلى جامع DSAR في Compliance. و`PayrollGradeLookup`/`CandidateDocumentUpload` أبقيا تنفيذهما «غير المتاح» الصريح. ووُجد في الطريق تحويل متصفح في HR.Core إلى `http://localhost:5000` في الإنتاج فأصبح مساراً نسبياً.
+- **§6:** الملفات `docs/syr/*.json` صارت LF في كل نسخة عمل (`.gitattributes`): على Windows كانت البصمة المحلية تختلف عن البصمة على الخادم بسبب CRLF. والمرجع هو الكائن الملتزم.
+- **القبول:** 37g السالب يجيب 401 (لا جمهور `api-hr-core` في توكن بلا نطاق) لا 403. و37c يصدر البطاقة عبر `Renew` لأن `IssuedCards/Create` لا يجتاز التحقق من النموذج أبداً (عيب سابق). و37d ينشر `ILeaveApproved` كما ينشره HR.Contracts لأن اعتماد الإجازة من الواجهة يفشل على PostgreSQL بـ `DbUpdateConcurrencyException` (عيب سابق). كلاهما في عيوب التقرير.
+- **الخادم الواحد:** realm الخادم لم يُحذف؛ `deploy/vps/keycloak-sync-clients.sh` يزامنه مع المصفوفة بعد كل نشر (أسرار العملاء من بيئة حاوية Keycloak). وفشل أول نشر عند تعيين سر عميل (`kcadm update -f --merge`) فرُجع عنه، ثم أُصلح (`-s secret=`) وأُعيد النشر. والاختبار الذاتي بفحوص التوصيل الإلزامية أخضر (49/0).

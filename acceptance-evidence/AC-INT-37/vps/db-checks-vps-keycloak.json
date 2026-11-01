@@ -1,0 +1,18 @@
+{
+  "check": "[keycloak-sync] changes=0",
+  "clients": [
+    "svc-hr-core",
+    "svc-hr-contracts",
+    "svc-hr-movements",
+    "svc-payroll",
+    "svc-idcard",
+    "svc-records-archive",
+    "svc-admin-logistics",
+    "svc-it-infra",
+    "svc-compliance",
+    "svc-auth-directory",
+    "svc-hr-health",
+    "svc-hr-training",
+    "svc-dev-analytics"
+  ]
+}

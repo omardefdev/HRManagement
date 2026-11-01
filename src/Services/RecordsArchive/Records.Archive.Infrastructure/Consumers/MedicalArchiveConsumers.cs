@@ -15,15 +15,13 @@ public class MedicalRecommendationIssuedArchiveConsumer(
     public async Task Consume(ConsumeContext<IMedicalRecommendationIssued> context)
     {
         var m = context.Message;
-        if (!EventSchemaVersion.Supports(m.SchemaVersion, supportedMax: 2, logger, nameof(IMedicalRecommendationIssued)))
-            return;
+        EventSchemaVersion.Require(m.SchemaVersion, supportedMax: 2, nameof(IMedicalRecommendationIssued));
 
         var title = $"ملف طبي — توصية {m.RecommendationType} للموظف {m.EmployeeId}: {m.Details} [{m.RecommendationId:N}]";
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDREC", context.CancellationToken);
-        if (reference is null) return;
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalRecommendationIssued>(codeClient, "MEDREC", context.CancellationToken);
 
         logger.LogInformation(
             "Records.Archive: MedicalRecommendationIssued EmployeeId={EmployeeId} Ref={Reference}",
@@ -43,16 +41,14 @@ public class MedicalDecisionIssuedArchiveConsumer(
     public async Task Consume(ConsumeContext<IMedicalDecisionIssued> context)
     {
         var m = context.Message;
-        if (!EventSchemaVersion.Supports(m.SchemaVersion, supportedMax: 1, logger, nameof(IMedicalDecisionIssued)))
-            return;
+        EventSchemaVersion.Require(m.SchemaVersion, supportedMax: 1, nameof(IMedicalDecisionIssued));
 
         var refKey = m.CorrelationId ?? m.MedicalRef;
         var title = $"ملف طبي — قرار لجنة {m.MedicalRef} للموظف {m.EmployeeId}: {m.Notes} [{refKey}]";
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDDEC", context.CancellationToken);
-        if (reference is null) return;
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalDecisionIssued>(codeClient, "MEDDEC", context.CancellationToken);
 
         logger.LogInformation(
             "Records.Archive: MedicalDecisionIssued EmployeeId={EmployeeId} Ref={Reference}",

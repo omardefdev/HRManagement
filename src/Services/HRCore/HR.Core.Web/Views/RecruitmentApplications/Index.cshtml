@@ -6,7 +6,7 @@
 
 @{
     ViewData["Title"] = "التوظيف والاستقطاب";
-    var gateway = (Configuration["HrGateway:PublicBaseUrl"] ?? "http://localhost:5000").TrimEnd('/');
+    var gateway = Configuration["HrGateway:PublicBaseUrl"]?.Trim().TrimEnd('/') ?? "";
     var canWrite = User.IsInRole(HrManagementRoles.Admin) || User.IsInRole(HrManagementRoles.HrCore);
     var legacyHire = ViewBag.LegacyHireWithoutOffer as bool? ?? false;
 }

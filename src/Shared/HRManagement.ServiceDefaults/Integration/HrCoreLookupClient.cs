@@ -58,15 +58,11 @@ public sealed class HrCoreLookupClient(IHttpClientFactory httpClientFactory, ICo
         return items;
     }
 
-    private string ResolvePath(HttpClient client, string relativePath)
-    {
-        if (client.BaseAddress is not null)
-            return relativePath;
-
-        var baseUrl = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/')
-            ?? "http://localhost:5010";
-        return $"{baseUrl}/{relativePath}";
-    }
+    // PLAN-37: no localhost fallback; the client is registered with its base address (Integration:HrCoreBaseUrl).
+    private static string ResolvePath(HttpClient client, string relativePath) =>
+        client.BaseAddress is not null
+            ? relativePath
+            : throw new InvalidOperationException($"{HttpClientName} has no base address; register it with {nameof(HrCoreEndpoint)} ({HrCoreEndpoint.Key}).");
 
     private sealed record LookupByIdsRequest(IReadOnlyList<Guid> Ids);
 
@@ -77,11 +73,9 @@ public static class HrCoreLookupClientExtensions
 {
     public static IServiceCollection AddHrCoreLookupClient(this IServiceCollection services, IConfiguration configuration)
     {
-        var hrCoreBase = configuration["Integration:HrCoreBaseUrl"]?.TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(hrCoreBase))
-            services.AddServiceAuthenticatedClient(HrCoreLookupClient.HttpClientName, new Uri(hrCoreBase + "/"));
-        else
-            services.AddHttpClient(HrCoreLookupClient.HttpClientName);
+        // PLAN-37: the HR.Core URL is required (start-up error naming Integration:HrCoreBaseUrl outside Development).
+        services.AddServiceEndpointWarnings();
+        services.AddServiceAuthenticatedClient(HrCoreLookupClient.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration));
 
         services.AddScoped<IHrCoreLookupClient, HrCoreLookupClient>();
         return services;

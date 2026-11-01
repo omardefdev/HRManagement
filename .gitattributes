@@ -17,3 +17,7 @@
 *.zip binary
 *.nupkg binary
 *.jar binary
+
+# PLAN-37: legal packs are fingerprinted (SHA-256 in the start-up line, readiness and smoke); every checkout must have the
+# committed bytes, so no CRLF conversion on Windows.
+docs/syr/*.json text eol=lf

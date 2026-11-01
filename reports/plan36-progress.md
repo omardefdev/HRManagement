@@ -438,3 +438,12 @@ Owner action done (UTC): 2026-10-31T22:14:13Z — owner pushed release/plan-36 a
   `scripts/ci/steps.json`. Fix on `fix/hard001-anchor-scan`: the scan now requires `*app-hardening` in each service's
   own merge line with any other anchors allowed (positive and negative checked locally). Post-merge `ci` run
   41247230175 was in progress at the time of this note.
+Waiting for owner (UTC): 2026-10-31T22:15:51Z — push fix/hard001-anchor-scan and open its PR.
+Owner action done (UTC): 2026-10-31T22:18:13Z — owner pushed fix/hard001-anchor-scan and opened its PR.
+- Fix PR https://github.com/omardefdev/HRManagement/pull/31 merged 2026-10-31T22:18:02Z (merge 19f7172b), again before
+  CI/CodeQL/HARD-001 finished (only Gitleaks had passed). Runs on main at 22:18Z: `ci` 41247230175 (#30) and
+  41247555134 (#31) in progress, `hardening-check` 41247555069 in progress. Local `main` fast-forwarded to 19f7172b.
+- Open owner items: root password (dated 2026-10-30), disable VNC, consider branch protection (public repo or Pro) so a
+  PR cannot be merged before its checks.
+- Owner approved cancelling the superseded #30 `ci` run 41247230175 (cancelled, saves ~1 h of Actions minutes).
+  `hardening-check` 41247555069 on main (#31): **success**. `ci` 41247555134 (#31) still running at this note.

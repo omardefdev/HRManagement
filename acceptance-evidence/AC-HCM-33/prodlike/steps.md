@@ -20,14 +20,14 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 
 ## Executed
 
-- 20:10:59 1 requisition
-  - after submit: PendingApproval|14172386-5899-40b6-b9b0-5646c26295e0
-- 20:11:01 2 approval and publication
-- 20:11:02 3 public application
-- 20:11:04 4 selection
+- 00:54:30 1 requisition
+  - after submit: PendingApproval|c214b3dd-6391-4cd6-8c55-70be66c41ff6
+- 00:54:32 2 approval and publication
+- 00:54:33 3 public application
+- 00:54:35 4 selection
   - test-only SQL: interview slot moved one hour into the past (as AC-HCM-26)
-- 20:11:09 5 offer
-- 20:11:12 6 candidate acceptance
-- 20:11:13 7 hire
-- 20:11:14 8 contracts and correlation
-- 20:11:16 done
+- 00:54:39 5 offer
+- 00:54:42 6 candidate acceptance
+- 00:54:43 7 hire
+- 00:54:44 8 contracts and correlation
+- 00:54:46 done

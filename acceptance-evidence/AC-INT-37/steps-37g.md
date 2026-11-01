@@ -1,0 +1,2 @@
+1. client_credentials token for svc-hr-contracts with its matrix scopes; POST /api/internal/codes/generate (X-Tenant-ID) = 200 and one CodeIssuances row.
+2. Token for svc-hr-health (no hr-core.workflow, hence no api-hr-core audience): refused (401) and the CodeIssuances count is unchanged.

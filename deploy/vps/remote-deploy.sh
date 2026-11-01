@@ -144,6 +144,18 @@ deploy() {
     die "release $tag did not become healthy (rollback to ${previous:-nothing}: bash remote-deploy.sh rollback)"
   fi
 
+  # PLAN-37: keep the realm's service clients, scopes and secrets in step with deploy/wiring/service-wiring.json
+  # (idempotent; never drops or re-imports the realm). Older releases have no such script.
+  if [ -f "$release/deploy/vps/keycloak-sync-clients.sh" ]; then
+    t0="$(date +%s)"
+    if ! HRM_PROJECT="$HRM_PROJECT" bash "$release/deploy/vps/keycloak-sync-clients.sh"; then
+      printf '%s\n' "$tag" > "$HRM_HOME/failed-tag"
+      echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$tag|action=deploy|result=keycloak-sync-failed" >> "$HRM_HOME/deployments.log"
+      die "Keycloak client sync failed for $tag (rollback to ${previous:-nothing}: bash remote-deploy.sh rollback)"
+    fi
+    t1="$(date +%s)"; echo "timing keycloak_sync_seconds=$((t1 - t0))"
+  fi
+
   rm -f "$HRM_HOME/failed-tag"
   if [ -n "$previous" ] && [ "$previous" != "$tag" ]; then
     printf '%s\n' "$previous" > "$HRM_HOME/previous-tag"

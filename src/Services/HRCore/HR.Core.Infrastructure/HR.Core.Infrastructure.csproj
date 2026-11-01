@@ -13,7 +13,7 @@
   <ItemGroup>
     <Content Include="..\..\..\..\seed-packs\**\*.json" Link="seed-packs\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\..\docs\syr\legislation-register.json" Link="seed-packs\syr001-legislation-v1\register.json" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\..\..\docs\syr\service-regimes.json" Link="seed-packs\syr003-service-regimes-v1\regimes.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- PLAN-37: syr003-service-regimes-v1 comes from HRManagement.SharedKernel (one Content item for every service). -->
   </ItemGroup>
 
   <ItemGroup>

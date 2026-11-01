@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace HRManagement.ServiceDefaults;
@@ -28,11 +30,13 @@ public sealed class ClientCredentialsTokenProvider(
 
     public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
-        var clientId = configuration["ServiceIdentity:ClientId"]
+        var clientId = NonBlank(configuration["ServiceIdentity:ClientId"])
             ?? throw new InvalidOperationException("ServiceIdentity:ClientId is required for service-to-service calls.");
-        var clientSecret = configuration["ServiceIdentity:ClientSecret"]
-            ?? Environment.GetEnvironmentVariable("ServiceIdentity__ClientSecret")
-            ?? throw new InvalidOperationException("ServiceIdentity:ClientSecret is required.");
+        // PLAN-37: a blank value (the "" placeholder in appsettings.json) counts as missing, so the environment variable
+        // is still consulted; rejecting placeholder secrets such as USE_ENV_OR_SECRET_MANAGER is PLAN-42.
+        var clientSecret = ResolveClientSecret(configuration)
+            ?? throw new InvalidOperationException(
+                "ServiceIdentity:ClientSecret is required (blank counts as missing; set ServiceIdentity__ClientSecret).");
         var scope = configuration["ServiceIdentity:Scope"];
 
         var cacheKey = $"{clientId}|{scope}";
@@ -70,6 +74,16 @@ public sealed class ClientCredentialsTokenProvider(
 
     /// <summary>Clears cached tokens (used by rotation tests).</summary>
     public static void ClearCache() => Cache.Clear();
+
+    /// <summary>
+    /// The configured client secret: <c>ServiceIdentity:ClientSecret</c> unless blank, then the
+    /// <c>ServiceIdentity__ClientSecret</c> environment variable unless blank; null when neither is set.
+    /// </summary>
+    public static string? ResolveClientSecret(IConfiguration configuration) =>
+        NonBlank(configuration["ServiceIdentity:ClientSecret"])
+        ?? NonBlank(Environment.GetEnvironmentVariable("ServiceIdentity__ClientSecret"));
+
+    private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     private static List<KeyValuePair<string, string>> BuildForm(string clientId, string clientSecret, string? scope)
     {
@@ -130,6 +144,8 @@ public static class ServiceIdentityServiceCollectionExtensions
         services.AddHttpClient("ServiceToken", client => client.Timeout = TimeSpan.FromSeconds(10))
             .AddHrOutboundResilience(timeoutSeconds: 10);
         services.AddSingleton<IServiceTokenProvider, ClientCredentialsTokenProvider>();
+        // PLAN-37: a deployed service with S2S clients and no client id or secret stops at start-up, not on its first call.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ServiceIdentityStartupCheck>());
         services.AddTransient<ServiceAuthHandler>();
         return services;
     }
@@ -208,5 +224,32 @@ public sealed class ForwardTenantHandler(Microsoft.AspNetCore.Http.IHttpContextA
         }
 
         return base.SendAsync(request, cancellationToken);
+    }
+}
+
+/// <summary>
+/// PLAN-37 (§4): in a container outside <c>Development</c> (every deployment), a service that registered S2S clients
+/// refuses to start without <c>ServiceIdentity:ClientId</c> and a non-blank secret, naming the keys (never a value).
+/// </summary>
+public sealed class ServiceIdentityStartupCheck(IConfiguration configuration, IHostEnvironment environment) : IHostedService
+{
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (environment.IsDevelopment() || !HrGatewayConfigurationExtensions.IsRunningInContainer())
+            return Task.CompletedTask;
+
+        Validate(configuration);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public static void Validate(IConfiguration configuration)
+    {
+        if (string.IsNullOrWhiteSpace(configuration["ServiceIdentity:ClientId"]))
+            throw new InvalidOperationException("ServiceIdentity:ClientId is required: this service calls other services (deploy/wiring/service-wiring.json).");
+        if (ClientCredentialsTokenProvider.ResolveClientSecret(configuration) is null)
+            throw new InvalidOperationException(
+                "ServiceIdentity:ClientSecret is required: this service calls other services (blank counts as missing; set ServiceIdentity__ClientSecret from its secretEnv).");
     }
 }

@@ -1,0 +1,20 @@
+{
+  "step": "37d-37d-2-a-contracts-maker",
+  "method": "POST",
+  "url": "/ui/hr-contracts/LeaveRequests/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:55:19.7695099Z",
+  "body": {
+    "fields": [
+      "EmployeeId=02a0b568-56e1-3e4f-af3e-e220cd235312",
+      "LeaveType=Annual",
+      "StartDate=2026-11-19",
+      "EndDate=2026-11-20",
+      "DurationDays=2",
+      "Notes=AC-INT-37d-2"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-contracts/LeaveRequests",
+    "final": "/ui/hr-contracts/LeaveRequests"
+  }
+}

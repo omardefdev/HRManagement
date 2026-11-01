@@ -1,0 +1,20 @@
+{
+  "step": "37e-transfer-a-movements",
+  "method": "POST",
+  "url": "/ui/hr-movements/TransferRequests/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:54:59.8068836Z",
+  "body": {
+    "fields": [
+      "EmployeeId=f50f83e7-654f-47e9-bf99-7d2a402ab2ff",
+      "FromOrgUnitId=0732e07f-0d5f-7742-8b64-ea7e38521e17",
+      "ToOrgUnitId=459da137-60bd-1e44-a3f8-2f1908481ad1",
+      "RequestDate=2026-11-01",
+      "EffectiveDate=2026-12-31",
+      "Reason=AC-INT-37e"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-movements",
+    "final": "/ui/hr-movements"
+  }
+}

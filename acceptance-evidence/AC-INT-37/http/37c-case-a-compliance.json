@@ -1,0 +1,19 @@
+{
+  "step": "37c-case-a-compliance",
+  "method": "POST",
+  "url": "/ui/compliance/LegalCases/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:54:53.3709447Z",
+  "body": {
+    "fields": [
+      "CaseNumber=PENDING",
+      "Subject=AC-INT-37c",
+      "Parties=AC-INT-37",
+      "Status=Open",
+      "CourtDetails=-"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/compliance/LegalCases",
+    "final": "/ui/compliance/LegalCases"
+  }
+}

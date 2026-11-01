@@ -76,6 +76,12 @@
       "comment": "actionlint + shellcheck on .github/workflows/*.yml from the image pinned in docs/qa/tool-pins.json (G-QA-15: a literal \\n in a run step failed e2e-journeys on every run)."
     },
     {
+      "name": "HARD-001 hardening compliance scan",
+      "kind": "guard",
+      "run": "pwsh -NoProfile -File scripts/hard001-compliance-scan.ps1",
+      "comment": "PLAN-37 (P8): the scan of .github/workflows/hardening-check.yml, also in CI and local CI, so a hardening regression (PR #30) fails before the push."
+    },
+    {
       "name": "STR-002 control runtime validate",
       "kind": "guard",
       "run": "pwsh -NoProfile -File scripts/str002-control-runtime-validate.ps1"

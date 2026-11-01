@@ -1,6 +1,5 @@
 using System.Text.Json;
 using HR.Contracts.Application.Abstractions;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace HR.Contracts.Infrastructure.Services;
@@ -12,23 +11,22 @@ public sealed class PassThroughEmployeeLifecycleGate : IEmployeeLifecycleGate
         Task.FromResult<(bool, string?)>((true, null));
 }
 
-/// <summary>FUN-002-B: query HR.Core legal-hold flag when Services:HRCore:BaseUrl is configured.</summary>
+/// <summary>
+/// FUN-002-B: query HR.Core's legal-hold flag. PLAN-37: the client carries the HR.Core base address from
+/// <c>Integration:HrCoreBaseUrl</c> (AddEmployeeLifecycleGate); its authentication and fail-closed behaviour are PLAN-42.
+/// </summary>
 public sealed class HttpEmployeeLifecycleGate(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
     ILogger<HttpEmployeeLifecycleGate> logger) : IEmployeeLifecycleGate
 {
+    public const string HttpClientName = "hr-core-lifecycle";
+
     public async Task<(bool Allowed, string? Error)> AssertCanPublishSeparationAsync(Guid employeeId, CancellationToken ct)
     {
-        var baseUrl = configuration["Services:HRCore:BaseUrl"]
-                      ?? configuration["HrCore:BaseUrl"];
-        if (string.IsNullOrWhiteSpace(baseUrl))
-            return (true, null);
-
         try
         {
-            var client = httpClientFactory.CreateClient("hr-core-lifecycle");
-            var url = $"{baseUrl.TrimEnd('/')}/api/internal/employees/{employeeId}/lifecycle-flags";
+            var client = httpClientFactory.CreateClient(HttpClientName);
+            var url = $"api/internal/employees/{employeeId}/lifecycle-flags";
             using var response = await client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode)
             {

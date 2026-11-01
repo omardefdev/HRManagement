@@ -1,0 +1,6 @@
+{
+  "stage": "before",
+  "explicitDomainSnapshot": false,
+  "correlationId": "int37-vps-keycloak-5c0eb5174acc4805b6acb29ff3805186",
+  "note": "No explicit pre-action domain snapshot was captured; see HTTP and DB evidence."
+}
