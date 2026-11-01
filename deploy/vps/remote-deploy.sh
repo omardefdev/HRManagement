@@ -75,12 +75,15 @@ check_env() {
   if [ "$(env_value HRM_DEPLOYMENT_MODE)" != "demo" ] && [ "$db_posture" = "demo" ]; then
     die "HRM_DB_POSTURE=demo (administrator connections) exists only with HRM_DEPLOYMENT_MODE=demo"
   fi
+  case "$(env_value HRM_MQ_POSTURE)" in ""|least-privilege|admin) ;; *) die "HRM_MQ_POSTURE must be least-privilege or admin";; esac
   log "env check: all $(grep -cE '^[A-Z][A-Z0-9_]*=' "$example") keys of .env.vps.example present (values not shown)"
 }
 
 compose_files() {
   local files="-f docker-compose.yml -f docker-compose.services.yml -f docker-compose.images.yml -f docker-compose.production.yml -f docker-compose.vps.yml"
   if [ "$(env_value HRM_DEPLOYMENT_MODE)" = "demo" ]; then files="$files -f docker-compose.vps-demo.yml"; fi
+  # PLAN-38 (D-38-2): the broker administrator for the applications only on request (least-privilege is the default).
+  if [ "$(env_value HRM_MQ_POSTURE)" = "admin" ]; then files="$files -f docker-compose.posture-mq-admin.yml"; fi
   local extra
   for extra in ${HRM_EXTRA_COMPOSE_FILES:-}; do files="$files -f $extra"; done
   printf '%s' "$files"

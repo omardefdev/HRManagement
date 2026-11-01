@@ -295,7 +295,8 @@ public class Ops036ComposeLintTests
     public void Images_come_from_a_registry_variable_with_a_fixed_tag()
     {
         var images = Read("docker-compose.images.yml");
-        Assert.Equal(15, Regex.Matches(images, @"image: \$\{HRM_IMAGE_REPO:\?[^}]*\}/[a-z-]+:\$\{IMAGE_TAG:\?IMAGE_TAG required\}").Count);
+        // 15 services + the PLAN-38 broker image (hr-rabbitmq).
+        Assert.Equal(16, Regex.Matches(images, @"image: \$\{HRM_IMAGE_REPO:\?[^}]*\}/[a-z-]+:\$\{IMAGE_TAG:\?IMAGE_TAG required\}").Count);
         Assert.DoesNotContain("GITHUB_REPOSITORY_OWNER", images);
         Assert.DoesNotContain(":latest", images);
 

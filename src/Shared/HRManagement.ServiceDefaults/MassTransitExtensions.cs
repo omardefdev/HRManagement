@@ -101,8 +101,16 @@ public static class MassTransitExtensions
         var applicationName = string.IsNullOrWhiteSpace(configured)
             ? Assembly.GetEntryAssembly()?.GetName().Name ?? "hrmanagement"
             : configured;
-        return Regex.Replace(applicationName.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+        return EndpointPrefixFor(applicationName);
     }
+
+    /// <summary>
+    /// The receive-endpoint prefix of an application (its entry assembly name, e.g. <c>HR.Core.Web</c> gives
+    /// <c>hr-core-web</c>). PLAN-38: the per-service RabbitMQ <c>configure</c> permission is built from it
+    /// (deploy/bootstrap/rabbitmq-users.json, Ops038RabbitPermissionMatrixTests).
+    /// </summary>
+    public static string EndpointPrefixFor(string applicationName) =>
+        Regex.Replace(applicationName.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
 
     public static void AddConsumersFromAssembly(
         this IBusRegistrationConfigurator configurator,

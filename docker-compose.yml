@@ -26,15 +26,24 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # PLAN-38 (§2): RabbitMQ 3.13 with the delayed-message plugin (docker/rabbitmq/Dockerfile, D-38-4), built locally
+  # here; the image chain (docker-compose.images.yml) pulls hr-rabbitmq from the registry. A fixed host and node name
+  # and a named volume keep durable messages and quorum queues across a recreate of the container.
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    build:
+      context: ./docker/rabbitmq
+    image: hr-rabbitmq:local
     container_name: hrm-rabbitmq
+    hostname: rabbitmq
     ports:
       - "5673:5672"
       - "15673:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -242,6 +251,7 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
   minio_data:
   file_storage_data:
   clamav_data:

@@ -52,6 +52,8 @@ $BundleFiles = @(
     'docker-compose.vps.yml',
     'docker-compose.vps-demo.yml',
     'docker-compose.vps-local.yml',
+    # PLAN-38 (D-38-2): added by remote-deploy.sh only when HRM_MQ_POSTURE=admin.
+    'docker-compose.posture-mq-admin.yml',
     'deploy/vps/Caddyfile',
     'deploy/vps/clamav/clamd.conf',
     'deploy/vps/host-setup.sh',
@@ -66,6 +68,8 @@ $BundleFiles = @(
     'deploy/bootstrap/ensure-databases.sql',
     'deploy/bootstrap/ensure-roles.sql',
     'deploy/bootstrap/postgres-roles.conf',
+    # PLAN-38: init-secrets.sh reads the broker users' password variables from the matrix.
+    'deploy/bootstrap/rabbitmq-users.json',
     'docker/init-service-roles.sh',
     'scripts/backup-postgres.sh',
     'scripts/lib/backup-catalog.sh'

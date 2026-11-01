@@ -52,6 +52,17 @@ for n, i in enumerate(range(0, len(matrix), batch), start=1):
             "labels": {"org.opencontainers.image.revision": tag, "org.opencontainers.image.source": "hrmanagement"}}
     json.dump({"group": {"default": {"targets": list(targets)}}, "target": targets},
               open(os.path.join(root, f"bake-{tag}-{n}.json"), "w"), indent=2)
+# PLAN-38: the data-plane initialiser (15 self-contained EF bundles + bootstrap) and the broker with the delayed-message
+# plugin, as the last batch (the bundles build after the services, so their NuGet packages are already in the cache).
+extra = {
+    "hr-migrate": {"context": src, "dockerfile": "docker/Migrator.Dockerfile"},
+    "hr-rabbitmq": {"context": os.path.join(src, "docker", "rabbitmq"), "dockerfile": "Dockerfile"},
+}
+targets = {name: {**spec, "platforms": ["linux/amd64"], "tags": [f"{registry}/{name}:{tag}"],
+                  "labels": {"org.opencontainers.image.revision": tag, "org.opencontainers.image.source": "hrmanagement"}}
+           for name, spec in extra.items()}
+json.dump({"group": {"default": {"targets": list(targets)}}, "target": targets},
+          open(os.path.join(root, f"bake-{tag}-99.json"), "w"), indent=2)
 PY
 
 for bake in $(ls "$ROOT"/bake-"$TAG"-*.json | sort -V); do
@@ -62,6 +73,7 @@ done
 t1=$(date +%s); echo "timing build_seconds=$((t1 - t0))"
 
 services=$(python3 -c "import json,sys; print(' '.join(m['service'] for m in json.load(open(sys.argv[1]))))" "$SRC/docker/service-build-matrix.json")
+services="$services hr-migrate hr-rabbitmq"   # PLAN-38
 echo "[" > "$REPORT"; first=1
 for s in $services; do
   ref="$REGISTRY/$s:$TAG"

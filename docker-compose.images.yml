@@ -70,3 +70,8 @@ services:
   file-storage-web:
     image: ${HRM_IMAGE_REPO:?HRM_IMAGE_REPO required (e.g. ghcr.io/<owner>/hrmanagement)}/file-storage-web:${IMAGE_TAG:?IMAGE_TAG required}
     build: !reset null
+
+  # PLAN-38 (D-38-4): the broker with the delayed-message plugin, built and pushed with the service images.
+  rabbitmq:
+    image: ${HRM_IMAGE_REPO:?HRM_IMAGE_REPO required (e.g. ghcr.io/<owner>/hrmanagement)}/hr-rabbitmq:${IMAGE_TAG:?IMAGE_TAG required}
+    build: !reset null

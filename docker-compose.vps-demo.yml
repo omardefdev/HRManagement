@@ -4,6 +4,8 @@
 #   until wave 2 (OPS-D) closes the effects of enforced row-level security. The schema is no longer created by the
 #   applications: hrm-bootstrap migrates every database as <svc>_migrator before any application starts, so every table
 #   is owned by its migrator and moving to the *_app roles later needs no ownership change.
+# - PLAN-38 (D-38-2): the broker is least-privilege by default: every service keeps its own mq_* user from the production
+#   file. HRM_MQ_POSTURE=admin adds docker-compose.posture-mq-admin.yml (the administrator), as a way back only.
 # - Seed:Profile=Demo loads the synthetic demo data; the production configuration guard refuses demo mode with
 #   Seed:Profile=None (contradiction), and Deployment:Banner=demo shows "بيئة عرض — بيانات اصطناعية فقط" in the
 #   gateway and module headers.
@@ -13,8 +15,6 @@ x-demo-env: &demo-env
   Deployment__Mode: demo
   Deployment__Banner: demo
   Seed__Profile: Demo
-  RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
-  RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
 
 services:
   hr-gateway:

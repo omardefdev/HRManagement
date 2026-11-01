@@ -68,3 +68,34 @@ Finished (UTC): 2026-11-01T10:45:00Z
   no generated secret in the logs). Unit regression filters 155/155; lint-compose both chains PASS; build 0/0.
 
 Finished (UTC): 2026-11-01T11:52:13Z
+
+## P2 — done
+
+- `docker/rabbitmq/Dockerfile` (hr-rabbitmq): base pinned by digest, plugin 3.13.0 downloaded and checked against the
+  SHA-256 recorded in P1 notes (`sha256sum -c`), enabled offline. Local build 8 s.
+- docker-compose.yml `rabbitmq`: built from docker/rabbitmq (`hr-rabbitmq:local`), `hostname: rabbitmq`,
+  `RABBITMQ_NODENAME=rabbit@rabbitmq`, volume `rabbitmq_data:/var/lib/rabbitmq`; images overlay pulls
+  `${HRM_IMAGE_REPO}/hr-rabbitmq:${IMAGE_TAG}`.
+- `deploy/bootstrap/rabbitmq-users.json`: 14 users (the gateway has no bus), configure =
+  `^(<prefix>-.*|HRManagement\.MessageContracts\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$`
+  (+ `HR\.Contracts\.Infrastructure\.Sagas:.*` for HR.Contracts); write/read `.*`. Decision: the bus pattern is
+  `[^-]+_bus_[^-]+` instead of `.*_bus_.*` (MassTransit's `host_process_bus_id` never has a hyphen; every service
+  prefix has one, so the pattern can never admit another service's queue). The delayed exchange is `<queue>_delay`
+  under the prefix (no extra pattern needed). Bootstrap step 6 creates the users (already in P1's script).
+- `scripts/init-rabbitmq-service-users.sh` and `docker/rabbitmq/definitions-service-users.json` removed (wired nowhere,
+  and their expressions refused every `HRManagement.MessageContracts.*` declare).
+- Postures: production file without admin defaults (`Deployment__MqPosture: least-privilege`, one `RABBITMQ_<SVC>_PASS:?`
+  per service, no `mq_gateway`); vps-demo drops the broker override; `docker-compose.posture-mq-admin.yml` (14 services,
+  `Deployment__MqPosture: admin`) added by remote-deploy only with `HRM_MQ_POSTURE=admin`.
+- build-on-host.sh (bake batch 99) and build-push-images.ps1 build hr-migrate and hr-rabbitmq; deploy bundle carries the
+  posture file and rabbitmq-users.json.
+- Finding: MassTransit's `ScheduleSend` to a short `queue:<name>` address declares a classic queue and loops on
+  PRECONDITION_FAILED against the quorum receive queue; the sagas schedule to their own input address (works, tested).
+  No production code uses the short form.
+- Tests: `Ops038RabbitPermissionMatrixTests` 5/5 (14 bus services = 14 users, own/shared names admitted, every other
+  prefix refused, all 200+122 live names admitted for their owner, production chain users/passwords);
+  `Ops038RabbitLeastPrivilegeTests` 2/2 on the image built from the Dockerfile (mq_payroll publish consumed by mq_hr_core,
+  `hr-core-web-x` declare by mq_payroll = 403 ACCESS_REFUSED, own prefix allowed, saga-style schedule 10 s arrives
+  after >= 9 s). Unit 138/138 (Ops036, Ops038, wiring, BLD); lint both chains PASS; build 0/0.
+
+Finished (UTC): 2026-11-01T11:59:12Z

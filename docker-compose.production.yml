@@ -29,10 +29,10 @@ x-app-messaging-env: &app-messaging-env
   RabbitMQ__Host: rabbitmq
   RabbitMQ__Port: 5672
   RabbitMQ__VirtualHost: /
-  # IAM-004: override RabbitMQ__Username/Password per service (do not use DEFAULT admin in apps).
-  # SEC-004: fail-closed — no default RabbitMQ credentials in production.
-  RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
-  RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
+  # IAM-004 / PLAN-38: every service sets its own mq_* user and RABBITMQ_<SVC>_PASS (deploy/bootstrap/rabbitmq-users.json);
+  # there is no default broker account here. The guard refuses the administrator in the least-privilege posture (D-38-2);
+  # docker-compose.posture-mq-admin.yml (HRM_MQ_POSTURE=admin) is the only way back to the administrator.
+  Deployment__MqPosture: least-privilege
   Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/hrmanagement}
   HrAuth__BehindGateway: "true"
   HealthChecks__IncludeRabbitMq: "true"
@@ -85,6 +85,23 @@ x-db-role-passwords: &db-role-passwords
   POSTGRES_FILE_STORAGE_MIGRATOR_PASSWORD: ${POSTGRES_FILE_STORAGE_MIGRATOR_PASSWORD:?POSTGRES_FILE_STORAGE_MIGRATOR_PASSWORD required}
   POSTGRES_BACKUP_PASSWORD: ${POSTGRES_BACKUP_PASSWORD:?POSTGRES_BACKUP_PASSWORD required}
 
+# PLAN-38 (§2): the broker passwords of the mq_* users (deploy/bootstrap/rabbitmq-users.json); hrm-bootstrap sets them
+# through the management API on every deploy, so rotating one in .env and deploying is enough.
+x-mq-user-passwords: &mq-user-passwords
+  RABBITMQ_HR_CORE_PASS: ${RABBITMQ_HR_CORE_PASS:?RABBITMQ_HR_CORE_PASS required}
+  RABBITMQ_HR_CONTRACTS_PASS: ${RABBITMQ_HR_CONTRACTS_PASS:?RABBITMQ_HR_CONTRACTS_PASS required}
+  RABBITMQ_HR_HEALTH_PASS: ${RABBITMQ_HR_HEALTH_PASS:?RABBITMQ_HR_HEALTH_PASS required}
+  RABBITMQ_HR_MOVEMENTS_PASS: ${RABBITMQ_HR_MOVEMENTS_PASS:?RABBITMQ_HR_MOVEMENTS_PASS required}
+  RABBITMQ_HR_TRAINING_PASS: ${RABBITMQ_HR_TRAINING_PASS:?RABBITMQ_HR_TRAINING_PASS required}
+  RABBITMQ_PAYROLL_PASS: ${RABBITMQ_PAYROLL_PASS:?RABBITMQ_PAYROLL_PASS required}
+  RABBITMQ_IDCARD_PASS: ${RABBITMQ_IDCARD_PASS:?RABBITMQ_IDCARD_PASS required}
+  RABBITMQ_RECORDS_ARCHIVE_PASS: ${RABBITMQ_RECORDS_ARCHIVE_PASS:?RABBITMQ_RECORDS_ARCHIVE_PASS required}
+  RABBITMQ_ADMIN_LOGISTICS_PASS: ${RABBITMQ_ADMIN_LOGISTICS_PASS:?RABBITMQ_ADMIN_LOGISTICS_PASS required}
+  RABBITMQ_IT_INFRA_PASS: ${RABBITMQ_IT_INFRA_PASS:?RABBITMQ_IT_INFRA_PASS required}
+  RABBITMQ_DEV_ANALYTICS_PASS: ${RABBITMQ_DEV_ANALYTICS_PASS:?RABBITMQ_DEV_ANALYTICS_PASS required}
+  RABBITMQ_COMPLIANCE_PASS: ${RABBITMQ_COMPLIANCE_PASS:?RABBITMQ_COMPLIANCE_PASS required}
+  RABBITMQ_AUTH_DIRECTORY_PASS: ${RABBITMQ_AUTH_DIRECTORY_PASS:?RABBITMQ_AUTH_DIRECTORY_PASS required}
+  RABBITMQ_FILE_STORAGE_PASS: ${RABBITMQ_FILE_STORAGE_PASS:?RABBITMQ_FILE_STORAGE_PASS required}
 x-app-resources: &app-resources
   deploy:
     resources:
@@ -171,11 +188,14 @@ services:
     networks:
       - data
     environment:
-      <<: *db-role-passwords
+      <<: [*db-role-passwords, *mq-user-passwords]
       PGHOST: postgresql
       PGPORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
+      HRM_RABBITMQ_API: http://rabbitmq:15672/api
     volumes:
       - bootstrap_results:/var/hrm/bootstrap
     depends_on:
@@ -378,8 +398,6 @@ services:
     environment:
       <<: *app-production-env
       ConnectionStrings__GatewayAuditDb: Host=postgresql;Port=5432;Database=gateway_audit_db;Username=gateway_audit_app;Password=${POSTGRES_GATEWAY_AUDIT_APP_PASSWORD:?POSTGRES_GATEWAY_AUDIT_APP_PASSWORD required}
-      RabbitMQ__Username: mq_gateway
-      RabbitMQ__Password: ${RABBITMQ_GATEWAY_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/hrmanagement}
       Keycloak__ClientId: hr-gateway-client
       Keycloak__ClientSecret: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required}
@@ -454,7 +472,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__HRCoreDb: Host=postgresql;Port=5432;Database=hr_core_db;Username=hr_core_app;Password=${POSTGRES_HR_CORE_APP_PASSWORD:?POSTGRES_HR_CORE_APP_PASSWORD required}
       RabbitMQ__Username: mq_hr_core
-      RabbitMQ__Password: ${RABBITMQ_HR_CORE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_HR_CORE_PASS:?RABBITMQ_HR_CORE_PASS required}
       ServiceIdentity__ApiAudience: api-hr-core
       # HCM-030 (PLAN-30 H): /careers/my one-time-code HMAC key (>= 32 chars); hr-core refuses to start without it.
       Recruitment__Portal__OtpHmacKey: ${HR_CORE_OTP_HMAC_KEY:?HR_CORE_OTP_HMAC_KEY required}
@@ -496,7 +514,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__ContractsDb: Host=postgresql;Port=5432;Database=hr_contracts_db;Username=hr_contracts_app;Password=${POSTGRES_HR_CONTRACTS_APP_PASSWORD:?POSTGRES_HR_CONTRACTS_APP_PASSWORD required}
       RabbitMQ__Username: mq_hr_contracts
-      RabbitMQ__Password: ${RABBITMQ_HR_CONTRACTS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_HR_CONTRACTS_PASS:?RABBITMQ_HR_CONTRACTS_PASS required}
       ServiceIdentity__ClientId: svc-hr-contracts
       ServiceIdentity__ClientSecret: ${SVC_HR_CONTRACTS_CLIENT_SECRET:?SVC_HR_CONTRACTS_CLIENT_SECRET required}
     volumes:
@@ -522,7 +540,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__HealthDb: Host=postgresql;Port=5432;Database=hr_health_db;Username=hr_health_app;Password=${POSTGRES_HR_HEALTH_APP_PASSWORD:?POSTGRES_HR_HEALTH_APP_PASSWORD required}
       RabbitMQ__Username: mq_hr_health
-      RabbitMQ__Password: ${RABBITMQ_HR_HEALTH_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_HR_HEALTH_PASS:?RABBITMQ_HR_HEALTH_PASS required}
       ServiceIdentity__ClientId: svc-hr-health
       ServiceIdentity__ClientSecret: ${SVC_HR_HEALTH_CLIENT_SECRET:?SVC_HR_HEALTH_CLIENT_SECRET required}
     volumes:
@@ -548,7 +566,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__MovementsDb: Host=postgresql;Port=5432;Database=hr_movements_db;Username=hr_movements_app;Password=${POSTGRES_HR_MOVEMENTS_APP_PASSWORD:?POSTGRES_HR_MOVEMENTS_APP_PASSWORD required}
       RabbitMQ__Username: mq_hr_movements
-      RabbitMQ__Password: ${RABBITMQ_HR_MOVEMENTS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_HR_MOVEMENTS_PASS:?RABBITMQ_HR_MOVEMENTS_PASS required}
       ServiceIdentity__ClientId: svc-hr-movements
       ServiceIdentity__ClientSecret: ${SVC_HR_MOVEMENTS_CLIENT_SECRET:?SVC_HR_MOVEMENTS_CLIENT_SECRET required}
     volumes:
@@ -574,7 +592,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__TrainingDb: Host=postgresql;Port=5432;Database=hr_training_db;Username=hr_training_app;Password=${POSTGRES_HR_TRAINING_APP_PASSWORD:?POSTGRES_HR_TRAINING_APP_PASSWORD required}
       RabbitMQ__Username: mq_hr_training
-      RabbitMQ__Password: ${RABBITMQ_HR_TRAINING_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_HR_TRAINING_PASS:?RABBITMQ_HR_TRAINING_PASS required}
       ServiceIdentity__ClientId: svc-hr-training
       ServiceIdentity__ClientSecret: ${SVC_HR_TRAINING_CLIENT_SECRET:?SVC_HR_TRAINING_CLIENT_SECRET required}
     volumes:
@@ -600,7 +618,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=payroll_app;Password=${POSTGRES_PAYROLL_APP_PASSWORD:?POSTGRES_PAYROLL_APP_PASSWORD required}
       RabbitMQ__Username: mq_payroll
-      RabbitMQ__Password: ${RABBITMQ_PAYROLL_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_PAYROLL_PASS:?RABBITMQ_PAYROLL_PASS required}
       ServiceIdentity__ClientId: svc-payroll
       ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:?SVC_PAYROLL_CLIENT_SECRET required}
     volumes:
@@ -627,7 +645,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__IDCardDb: Host=postgresql;Port=5432;Database=idcard_db;Username=idcard_app;Password=${POSTGRES_IDCARD_APP_PASSWORD:?POSTGRES_IDCARD_APP_PASSWORD required}
       RabbitMQ__Username: mq_idcard
-      RabbitMQ__Password: ${RABBITMQ_IDCARD_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_IDCARD_PASS:?RABBITMQ_IDCARD_PASS required}
       ServiceIdentity__ClientId: svc-idcard
       ServiceIdentity__ClientSecret: ${SVC_IDCARD_CLIENT_SECRET:?SVC_IDCARD_CLIENT_SECRET required}
     volumes:
@@ -653,7 +671,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__ArchiveDb: Host=postgresql;Port=5432;Database=archive_db;Username=archive_app;Password=${POSTGRES_ARCHIVE_APP_PASSWORD:?POSTGRES_ARCHIVE_APP_PASSWORD required}
       RabbitMQ__Username: mq_records_archive
-      RabbitMQ__Password: ${RABBITMQ_RECORDS_ARCHIVE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_RECORDS_ARCHIVE_PASS:?RABBITMQ_RECORDS_ARCHIVE_PASS required}
       ServiceIdentity__ClientId: svc-records-archive
       ServiceIdentity__ClientSecret: ${SVC_RECORDS_ARCHIVE_CLIENT_SECRET:?SVC_RECORDS_ARCHIVE_CLIENT_SECRET required}
     volumes:
@@ -679,7 +697,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__AdminDb: Host=postgresql;Port=5432;Database=admin_db;Username=admin_app;Password=${POSTGRES_ADMIN_APP_PASSWORD:?POSTGRES_ADMIN_APP_PASSWORD required}
       RabbitMQ__Username: mq_admin_logistics
-      RabbitMQ__Password: ${RABBITMQ_ADMIN_LOGISTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_ADMIN_LOGISTICS_PASS:?RABBITMQ_ADMIN_LOGISTICS_PASS required}
       ServiceIdentity__ClientId: svc-admin-logistics
       ServiceIdentity__ClientSecret: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:?SVC_ADMIN_LOGISTICS_CLIENT_SECRET required}
     volumes:
@@ -705,7 +723,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__ITInfraDb: Host=postgresql;Port=5432;Database=it_infra_db;Username=it_infra_app;Password=${POSTGRES_IT_INFRA_APP_PASSWORD:?POSTGRES_IT_INFRA_APP_PASSWORD required}
       RabbitMQ__Username: mq_it_infra
-      RabbitMQ__Password: ${RABBITMQ_IT_INFRA_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_IT_INFRA_PASS:?RABBITMQ_IT_INFRA_PASS required}
       ServiceIdentity__ClientId: svc-it-infra
       ServiceIdentity__ClientSecret: ${SVC_IT_INFRA_CLIENT_SECRET:?SVC_IT_INFRA_CLIENT_SECRET required}
     volumes:
@@ -731,7 +749,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__AnalyticsDb: Host=postgresql;Port=5432;Database=analytics_db;Username=analytics_app;Password=${POSTGRES_ANALYTICS_APP_PASSWORD:?POSTGRES_ANALYTICS_APP_PASSWORD required}
       RabbitMQ__Username: mq_dev_analytics
-      RabbitMQ__Password: ${RABBITMQ_DEV_ANALYTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_DEV_ANALYTICS_PASS:?RABBITMQ_DEV_ANALYTICS_PASS required}
       ServiceIdentity__ClientId: svc-dev-analytics
       ServiceIdentity__ClientSecret: ${SVC_DEV_ANALYTICS_CLIENT_SECRET:?SVC_DEV_ANALYTICS_CLIENT_SECRET required}
     volumes:
@@ -757,7 +775,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__ComplianceDb: Host=postgresql;Port=5432;Database=compliance_db;Username=compliance_app;Password=${POSTGRES_COMPLIANCE_APP_PASSWORD:?POSTGRES_COMPLIANCE_APP_PASSWORD required}
       RabbitMQ__Username: mq_compliance
-      RabbitMQ__Password: ${RABBITMQ_COMPLIANCE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_COMPLIANCE_PASS:?RABBITMQ_COMPLIANCE_PASS required}
       ServiceIdentity__ClientId: svc-compliance
       ServiceIdentity__ClientSecret: ${SVC_COMPLIANCE_CLIENT_SECRET:?SVC_COMPLIANCE_CLIENT_SECRET required}
     volumes:
@@ -783,7 +801,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__AuthDirectoryDb: Host=postgresql;Port=5432;Database=auth_directory_db;Username=auth_directory_app;Password=${POSTGRES_AUTH_DIRECTORY_APP_PASSWORD:?POSTGRES_AUTH_DIRECTORY_APP_PASSWORD required}
       RabbitMQ__Username: mq_auth_directory
-      RabbitMQ__Password: ${RABBITMQ_AUTH_DIRECTORY_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_AUTH_DIRECTORY_PASS:?RABBITMQ_AUTH_DIRECTORY_PASS required}
       Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
       ServiceIdentity__ApiAudience: api-auth-directory
       Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
@@ -812,7 +830,7 @@ services:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__FileStorageDb: Host=postgresql;Port=5432;Database=file_storage_db;Username=file_storage_app;Password=${POSTGRES_FILE_STORAGE_APP_PASSWORD:?POSTGRES_FILE_STORAGE_APP_PASSWORD required}
       RabbitMQ__Username: mq_file_storage
-      RabbitMQ__Password: ${RABBITMQ_FILE_STORAGE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
+      RabbitMQ__Password: ${RABBITMQ_FILE_STORAGE_PASS:?RABBITMQ_FILE_STORAGE_PASS required}
       ServiceIdentity__ApiAudience: api-file-storage
       Keycloak__AdditionalValidAudiences: api-file-storage;hr-gateway-client
       # PLAN-36 (D-36-3): Local provider on the file_storage_data volume by default. HRM_FILE_PROVIDER=Minio needs
