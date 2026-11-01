@@ -20,8 +20,15 @@ public class AcInt37VpsServerTests
 
     private static EvidenceRecorder Start(string key, string scenario)
     {
-        var recorder = new EvidenceRecorder("vps", $"int37-{key}-{Guid.NewGuid():N}", Path.Combine(Root, "acceptance-evidence", "AC-INT-37")) { ScenarioKey = key };
+        AcceptanceGate.RequireEnabled();
+        // Without a server the scenario is Blocked (not required): its evidence goes to a temporary folder, so a local run
+        // never overwrites the committed server evidence.
+        var root = SshHost is null
+            ? Path.Combine(Path.GetTempPath(), "int037-vps-evidence")
+            : Path.Combine(Root, "acceptance-evidence", "AC-INT-37");
+        var recorder = new EvidenceRecorder("vps", $"int37-{key}-{Guid.NewGuid():N}", root) { ScenarioKey = key };
         recorder.WriteMetadata(scenario, "no persona: smoke, logs and Keycloak over ssh (no secret read)");
+        AcceptanceGate.RequireData(recorder, SshHost is not null, "لم يُحدَّد الخادم (VPS_SSH_HOST)", "VPS_SSH_HOST is not set (server proof only).");
         return recorder;
     }
 
@@ -40,7 +47,6 @@ public class AcInt37VpsServerTests
     [SkippableFact]
     public void Server_smoke_with_mandatory_wiring_is_green()
     {
-        Skip.If(SshHost is null, "VPS_SSH_HOST is not set (server proof only).");
         var recorder = Start("vps-smoke", "Demo server: mandatory wiring smoke (URLs, identities, tokens, S2S call, legal pack)");
         var outFile = Path.Combine(Root, "artifacts", "vps", $"smoke-int037-{DateTime.UtcNow:yyyyMMddTHHmmssZ}.json");
         var (exit, output) = Run(OperatingSystem.IsWindows() ? "powershell" : "pwsh",
@@ -75,7 +81,6 @@ public class AcInt37VpsServerTests
     [SkippableFact]
     public void Server_services_log_the_repository_legal_pack_fingerprint()
     {
-        Skip.If(SshHost is null, "VPS_SSH_HOST is not set (server proof only).");
         var recorder = Start("vps-37e", "Demo server: LegalPack loaded ... sha256 in hr-core-web, hr-contracts-web, hr-movements-web");
         // The committed blob is the reference (.gitattributes keeps docs/syr/*.json LF in every checkout).
         var sha = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(Root, "docs", "syr", "service-regimes.json")))).ToLowerInvariant();
@@ -98,7 +103,6 @@ public class AcInt37VpsServerTests
     [SkippableFact]
     public void Server_realm_has_every_matrix_client_and_the_sync_is_idempotent()
     {
-        Skip.If(SshHost is null, "VPS_SSH_HOST is not set (server proof only).");
         var recorder = Start("vps-keycloak", "Demo server: realm in step with deploy/wiring/service-wiring.json, sync idempotent");
         var (checkExit, check) = Ssh("cd /opt/hrm/current && bash deploy/vps/keycloak-sync-clients.sh --check | tail -1");
         Assert.True(checkExit == 0 && check.Contains("changes=0", StringComparison.Ordinal), check);
