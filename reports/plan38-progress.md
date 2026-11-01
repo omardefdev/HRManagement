@@ -130,3 +130,24 @@ Finished (UTC): 2026-11-01T11:59:12Z
   int037-wiring-check PASS (production, single-host, prodlike, parity, 3 k8s overlays); build 0/0.
 
 Finished (UTC): 2026-11-01T12:09:51Z
+
+## P4 — done
+
+- `SeedRunner` (ServiceDefaults/Seeding): `RunMandatoryAsync` stops a Production start (`MandatorySeedFailedException`
+  naming service and seed, cause = exception type + SQLSTATE, no message, no inner exception), emergency switch
+  `Seed:AllowMandatoryFailure=true` = Critical + `seed_mandatory_failures_total`; Development warns; the Acceptance
+  profile rethrows the original. `RunOptionalAsync` warns (Acceptance rethrows).
+- Applied: HR.Core national seed mandatory (demo, acceptance, org-unit paths optional); HR.Contracts `ContractsDataSeeder`
+  mandatory in every profile but Acceptance (left the `None` condition), demo optional; HR.Training both optional.
+  Payroll legal framework stays Demo-only → PLAN-54 (recorded in docs/OPS_SEED_INVENTORY.md). The other services seed
+  demo/acceptance data only and keep their pattern (documented).
+- Pools: `Maximum Pool Size=${HRM_PG_POOL_MAX:-10}` on the 15 connection strings (HR.Core `${HRM_PG_POOL_MAX_HR_CORE:-20}`)
+  in the production file and the demo file; `KC_DB_POOL_MAX_SIZE: "20"`. **Decision/deviation:** `max_connections`
+  200 -> 250 (vps.yml) and 250 in the production file's postgresql (was the default 100): the plan's numbers give 180 + a
+  reserve of 5 = 185, which is >= 90 % of 200; with 250 it is 74 %. lint-compose.ps1 adds the pool rule (every
+  connection string bounded, Keycloak bounded, total + reserve < 90 % of max_connections) and `-SelfTest` (bounded
+  passes; over 90 %, no maximum, unbounded Keycloak fail).
+- docs/OPS_SEED_INVENTORY.md written.
+- Tests: SeedRunnerTests 8/8 (incl. lint self-test negatives); filters 109/109; lint both chains PASS; build 0/0.
+
+Finished (UTC): 2026-11-01T12:15:12Z

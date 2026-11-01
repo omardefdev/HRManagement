@@ -91,32 +91,30 @@ app.UseHrProductionMiddleware(app.Configuration);
 
 await app.Services.TryMigrateAsync<ContractsDbContext>();
 var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
-try
+// PLAN-38 (D-38-6): the DEFAULT contract type (ContractsDataSeeder, reference data that ContractTypeResolver falls back to)
+// is mandatory in every profile but Acceptance, whose seeder creates one per agency; demo data stays optional.
+var seeds = new SeedRunner("HR.Contracts", seedProfile, app.Environment, app.Configuration, app.Logger);
+using (var scope = app.Services.CreateScope())
 {
-    if (seedProfile != SeedProfile.None)
+    HRManagement.ServiceDefaults.TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
+    try
     {
-        using var scope = app.Services.CreateScope();
-        HRManagement.ServiceDefaults.TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);
-        try
+        var contractsDb = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
+        if (seedProfile == SeedProfile.Acceptance)
         {
-            var contractsDb = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
-            if (seedProfile == SeedProfile.Acceptance)
-                await AcceptanceContractsSeeder.SeedAsync(contractsDb);
-            else
-            {
-                await ContractsDataSeeder.SeedAsync(contractsDb);
-                await DemoContractsSeeder.SeedAsync(contractsDb);
-            }
+            await seeds.RunOptionalAsync("acceptance", () => AcceptanceContractsSeeder.SeedAsync(contractsDb));
         }
-        finally
+        else
         {
-            HRManagement.ServiceDefaults.TenantIdFlow.Set(null);
+            await seeds.RunMandatoryAsync("default-contract-type", () => ContractsDataSeeder.SeedAsync(contractsDb));
+            if (seedProfile == SeedProfile.Demo)
+                await seeds.RunOptionalAsync("demo", () => DemoContractsSeeder.SeedAsync(contractsDb));
         }
     }
-}
-catch (Exception ex) when (seedProfile != SeedProfile.Acceptance)
-{
-    app.Logger.LogWarning(ex, "HR.Contracts seed skipped.");
+    finally
+    {
+        HRManagement.ServiceDefaults.TenantIdFlow.Set(null);
+    }
 }
 
 if (!app.Environment.IsDevelopment())

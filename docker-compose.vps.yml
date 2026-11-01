@@ -80,7 +80,7 @@ services:
           memory: 768M
 
   postgresql:
-    command: ["postgres", "-c", "shared_buffers=512MB", "-c", "effective_cache_size=4GB", "-c", "max_connections=200", "-c", "work_mem=8MB"]
+    command: ["postgres", "-c", "shared_buffers=512MB", "-c", "effective_cache_size=4GB", "-c", "max_connections=250", "-c", "work_mem=8MB"]
     deploy:
       resources:
         limits:
