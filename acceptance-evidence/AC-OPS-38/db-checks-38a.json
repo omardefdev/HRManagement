@@ -127,6 +127,7 @@
     "mq_auth_directory",
     "mq_compliance",
     "mq_dev_analytics",
+    "mq_file_storage",
     "mq_hr_contracts",
     "mq_hr_core",
     "mq_hr_health",

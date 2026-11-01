@@ -105,6 +105,30 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      acceptance-volume-init:
+        condition: service_completed_successfully
+
+  # The acceptance volumes are shared by several images; a new named volume takes its owner from whichever container
+  # mounts it first, so from empty volumes File.Storage could find /var/hrm/file-storage and its key ring owned by root
+  # (UnauthorizedAccessException, PLAN-38 P8 re-run). As volume-init in the production file, this one-shot container
+  # gives them to the applications' user 1654 before hrm-bootstrap, which every application waits for.
+  acceptance-volume-init:
+    image: alpine:3.20.3
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    command: ["sh", "-c", "chown -R 1654:1654 /v && echo acceptance-volume-init: acceptance volumes owned by 1654"]
+    volumes:
+      - acceptance_data_protection:/v/dpkeys
+      - acceptance_file_storage:/v/files
 
   hr-gateway:
     environment:

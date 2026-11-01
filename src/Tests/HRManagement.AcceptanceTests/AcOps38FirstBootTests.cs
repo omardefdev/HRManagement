@@ -506,7 +506,16 @@ public class AcOps38FirstBootTests
         async Task<SortedSet<string>> BrokerUsersAsync() => new(
             (await RabbitCtlAsync("list_connections", "user")).Split('\n').Select(l => l.Trim()).Where(l => l.StartsWith("mq_", StringComparison.Ordinal)),
             StringComparer.Ordinal);
-        var usersBefore = await BrokerUsersAsync();
+        // The users holding consumers: their buses reconnect by themselves. A publish-only bus (File.Storage) connects on
+        // its first publish and again on the next one after a broker restart, so it is not expected back on its own.
+        async Task<SortedSet<string>> ConsumingUsersAsync() => new(
+            (await RabbitCtlAsync("list_channels", "user", "consumer_count")).Split('\n')
+                .Select(l => l.Trim().Split('\t', ' ', StringSplitOptions.RemoveEmptyEntries))
+                .Where(p => p.Length == 2 && p[0].StartsWith("mq_", StringComparison.Ordinal) && int.TryParse(p[1], out var n) && n > 0)
+                .Select(p => p[0]),
+            StringComparer.Ordinal);
+        var usersBefore = await ConsumingUsersAsync();
+        Assert.True(usersBefore.Count >= 10, $"only {usersBefore.Count} consuming mq_* users before the recreate");
 
         Assert.Equal(0, (await ComposeAsync("stop", "dev-analytics-web")).ExitCode);
         try
@@ -528,8 +537,8 @@ public class AcOps38FirstBootTests
 
         Assert.True(await WaitUntilAsync(TimeSpan.FromMinutes(3), async () => (await QueueAsync(queue)).Ready == 0),
             "the message was not consumed after the consumer came back");
-        // Every service that was connected reconnects to the recreated broker with its mq_* user (File.Storage has no
-        // consumer, so it holds no standing connection).
+        // Every user that held consumers reconnects to the recreated broker with its mq_* user (publish-only buses
+        // reconnect on their next publish).
         var usersAfter = new SortedSet<string>(StringComparer.Ordinal);
         Assert.True(await WaitUntilAsync(TimeSpan.FromMinutes(2), async () => (usersAfter = await BrokerUsersAsync()).IsSupersetOf(usersBefore)),
             $"not reconnected: {string.Join(',', usersBefore.Except(usersAfter))}");
