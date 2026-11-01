@@ -24,6 +24,9 @@ x-app-production-env: &app-production-env
   # PLAN-36: Data Protection key rings on named volumes (mount only; guard and encryption are PLAN-39).
   DataProtection__KeyRingPath: /var/hrm/dpkeys
   Deployment__RequireLicenseKey: ${HRM_REQUIRE_LICENSE:-false}
+  # PLAN-38 (D-38-1): the applications of this file connect as their *_app roles; the guard refuses anything else. The
+  # single-host demo file (docker-compose.vps-demo.yml) switches to the administrator and to Deployment__DbPosture=demo.
+  Deployment__DbPosture: least-privilege
 
 x-app-messaging-env: &app-messaging-env
   RabbitMQ__Host: rabbitmq
@@ -326,11 +329,10 @@ services:
       postgresql:
         condition: service_healthy
     environment:
-      # Prefer hrm_backup (OPS-003); fall back to POSTGRES_* for bootstrap
-      POSTGRES_USER: ${POSTGRES_BACKUP_USER:-${POSTGRES_USER}}
-      POSTGRES_PASSWORD: ${POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD}}
-      BACKUP_PGUSER: ${POSTGRES_BACKUP_USER:-hrm_backup}
-      BACKUP_PGPASSWORD: ${POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD}}
+      # PLAN-38 (§3): the read-only hrm_backup role (created by hrm-bootstrap, ensure-backup-role.sql) with its own
+      # password; never the administrator. Scheduling, restore drills and off-site copies: wave 2 (OPS-E).
+      BACKUP_PGUSER: hrm_backup
+      BACKUP_PGPASSWORD: ${POSTGRES_BACKUP_PASSWORD:?POSTGRES_BACKUP_PASSWORD required}
       PGHOST: postgresql
       PGPORT: "5432"
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}

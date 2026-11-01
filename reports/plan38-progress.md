@@ -99,3 +99,34 @@ Finished (UTC): 2026-11-01T11:52:13Z
   after >= 9 s). Unit 138/138 (Ops036, Ops038, wiring, BLD); lint both chains PASS; build 0/0.
 
 Finished (UTC): 2026-11-01T11:59:12Z
+
+## P3 — done
+
+- `deploy/vps/init-secrets.sh` (server) and `scripts/vps/init-secrets.ps1` (lab, PS 5.1, ASCII): required keys =
+  `${VAR:?}` of the single-host chain + .env.vps.example + the role and broker matrices; missing/empty secrets generated
+  (32 random bytes, base64url: `openssl rand` / `RandomNumberGenerator`), non-secrets from the example's default or
+  `--set`/`-Set` (refused for secret names), allowed-empty keys added empty; never overwrites; names only; mode 600;
+  refuses a target inside the git tree unless ignored. Tried on scratch files: 66 secrets + 10 defaults + 3 `--set`,
+  second run byte-identical, `--check` 0, `--set POSTGRES_PASSWORD` refused, a tracked target refused; the PS version
+  gives the same 82 keys. `.env.leastpriv` added to .gitignore. The deploy bundle carries init-secrets.sh.
+- Examples: `.env.example` + the 6 the plan named (4 SVC_*, GRAFANA_*) and GATEWAY_CALLER_PROOF_SECRET, APP_DOMAIN,
+  SSO_DOMAIN, DEMO_USERS_PASSWORD, HRM_IMAGE_REPO, IMAGE_TAG; both examples have the 30 role passwords, POSTGRES_BACKUP_PASSWORD,
+  14 RABBITMQ_<SVC>_PASS and the two posture keys (`HRM_MQ_POSTURE=least-privilege`, `HRM_DB_POSTURE=demo`).
+- Placeholders removed from the 14 appsettings.Production.json files that had them (gateway + 13 modules; File.Storage had
+  none): GatewayCallerProof:Secret (Enforce stays), gateway Keycloak:ClientSecret, ConnectionStrings:GatewayAuditDb,
+  Cors YOUR_PORTAL_HOST, and (beyond the prompt's list, for the DoD "no placeholder") the YOUR_* AllowedHosts and the
+  YOUR_/keycloak.example.com Authority (compose sets both; a localhost authority is now refused in Production).
+  FileStorage:SecretKey USE_ENV_OR_USER_SECRETS -> "" in 5 base appsettings.json (PLAN-36 defect 3).
+- Guard: every ConnectionStrings:* real and present; RabbitMQ:Username/Password when the service has a RabbitMQ section;
+  ServiceIdentity:ClientSecret when a ClientId is set; Keycloak:Authority not localhost in Production;
+  Deployment:MqPosture=least-privilege refuses a non-mq_* broker user; Deployment:DbPosture=least-privilege refuses a
+  non-*_app database user, =demo only with Deployment:Mode=demo; HR.Core adds Recruitment:Portal:OtpHmacKey. The
+  production file sets Deployment__DbPosture=least-privilege and Deployment__MqPosture=least-privilege; vps-demo sets
+  Deployment__DbPosture=demo; the admin posture file sets Deployment__MqPosture=admin.
+- postgres-backup: BACKUP_PGUSER=hrm_backup, BACKUP_PGPASSWORD=${POSTGRES_BACKUP_PASSWORD:?}; backup-postgres.sh has no
+  administrator fallback.
+- Tests: Ops038EnvParityTests 7, Ops038ProductionConfigurationGuardTests 15 (incl. AC-OPS-38g negatives in unit form),
+  Sec004 + "no shared or administrator fallback"; filters 156/156; full unit suite 4484/4484; lint both chains PASS;
+  int037-wiring-check PASS (production, single-host, prodlike, parity, 3 k8s overlays); build 0/0.
+
+Finished (UTC): 2026-11-01T12:09:51Z

@@ -60,6 +60,8 @@ $BundleFiles = @(
     'deploy/vps/remote-deploy.sh',
     'deploy/vps/smoke.sh',
     'deploy/vps/.env.vps.example',
+    # PLAN-38: fills only the missing keys of the server's .env (names printed, never values).
+    'deploy/vps/init-secrets.sh',
     # PLAN-37: keycloak-sync-clients.sh and smoke.sh read the wiring matrix; smoke.sh compares the legal pack's SHA-256.
     'deploy/vps/keycloak-sync-clients.sh',
     'deploy/wiring/service-wiring.json',

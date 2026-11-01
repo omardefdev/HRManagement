@@ -3,7 +3,7 @@
 # Inventory must match deploy/bootstrap/ensure-databases.sql (includes file_storage_db).
 # Prefer role hrm_backup (see scripts/sql/create-hrm-backup-role.sql).
 # Usage: ./scripts/backup-postgres.sh [output_dir]
-# Env: POSTGRES_USER/POSTGRES_PASSWORD or PGUSER/PGPASSWORD; BACKUP_CATALOG_PATH; BACKUP_RETENTION_DAYS
+# Env: BACKUP_PGUSER (default hrm_backup) / BACKUP_PGPASSWORD (or POSTGRES_BACKUP_PASSWORD); BACKUP_CATALOG_PATH; BACKUP_RETENTION_DAYS
 
 set -euo pipefail
 
@@ -19,12 +19,13 @@ export BACKUP_RETENTION_DAYS="${RETENTION_DAYS}"
 
 PGHOST="${PGHOST:-localhost}"
 PGPORT="${PGPORT:-5433}"
-# Prefer dedicated backup role when set
-PGUSER="${BACKUP_PGUSER:-${POSTGRES_BACKUP_USER:-${POSTGRES_USER:-hrm_backup}}}"
-export PGPASSWORD="${BACKUP_PGPASSWORD:-${POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD:-${PGPASSWORD:-}}}}"
+# PLAN-38: the read-only hrm_backup role with its own password (deploy/bootstrap/ensure-backup-role.sql); there is no
+# fallback to the administrator account (POSTGRES_USER / POSTGRES_PASSWORD).
+PGUSER="${BACKUP_PGUSER:-${POSTGRES_BACKUP_USER:-hrm_backup}}"
+export PGPASSWORD="${BACKUP_PGPASSWORD:-${POSTGRES_BACKUP_PASSWORD:-}}"
 
 if [[ -z "${PGPASSWORD}" ]]; then
-  echo "ERROR: Set BACKUP_PGPASSWORD / POSTGRES_BACKUP_PASSWORD / POSTGRES_PASSWORD or PGPASSWORD." >&2
+  echo "ERROR: Set BACKUP_PGPASSWORD or POSTGRES_BACKUP_PASSWORD (the hrm_backup role password)." >&2
   exit 1
 fi
 

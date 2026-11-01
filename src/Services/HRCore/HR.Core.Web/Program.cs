@@ -55,6 +55,12 @@ using HRManagement.Integration.FileAdapters;
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
 builder.AddHrProductionNetworking();
+// PLAN-38: the candidate-portal one-time-code key is critical too (the guard names it before anything else starts).
+builder.Services.Configure<ProductionConfigurationGuardOptions>(options =>
+{
+    options.CriticalKeys.Add("Recruitment:Portal:OtpHmacKey");
+    options.RequiredKeys.Add("Recruitment:Portal:OtpHmacKey");
+});
 builder.AddHrOpenTelemetry();
 builder.AddHrDataProtection("HR.Core");
 builder.Services.AddHrPiiFieldEncryption();
