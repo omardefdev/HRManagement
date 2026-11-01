@@ -1,0 +1,10 @@
+{
+  "step": "37g-generate-svc-hr-contracts",
+  "method": "POST",
+  "url": "/api/internal/codes/generate",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:55:05.9171662Z",
+  "body": {
+    "code": "-2026-00036"
+  }
+}

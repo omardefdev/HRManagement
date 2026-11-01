@@ -1,0 +1,2 @@
+1. RecruitmentToHireJourneyProdLikeE2ETests ran on the prod-like stack (no wiring from an acceptance file).
+2. Its Appointment transaction has a number with a CodeIssuances row; IssueAppointmentDecision issues a decision number with its row.

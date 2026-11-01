@@ -1,0 +1,19 @@
+{
+  "step": "37c-device-a-it",
+  "method": "POST",
+  "url": "/ui/it-infra/UserDevices/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:54:52.7027059Z",
+  "body": {
+    "fields": [
+      "AssignedTo=a0000001-0000-4000-8000-000000000201",
+      "DeviceType=Laptop",
+      "SerialNumber=INT37-c23c0faf0c6a48",
+      "AssetTag=PENDING",
+      "Status=InUse"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/it-infra",
+    "final": "/ui/it-infra"
+  }
+}

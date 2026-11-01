@@ -1,4 +1,4 @@
-﻿# Acceptance evidence summary (AC-01..AC-37)
+# Acceptance evidence summary (AC-01..AC-37)
 
 Generated: 2026-10-30 13:09:10 UTC
 
@@ -72,3 +72,11 @@ Generated: 2026-10-30 13:09:10 UTC
 - **AC-QA-35** (35a): Pass (`qa35-35a-d1f80bceec5d413983b99e3224297909`)
 - **AC-QA-35** (35g): Pass (`qa35-35g-c4fe1746f68d428b8810815f564a7640`)
 - **AC-QA-35** (35c): Pass (`qa35-35c-2f2dc78a220a40b1a85cf59898538189`)
+- **AC-INT-37** (37a): Pass (`cdb012ec-1a0c-4a99-9b88-0abd81a7638d`)
+- **AC-INT-37** (37b): Pass (`82e24a54-bbbf-4483-b23c-19705d99682d`)
+- **AC-INT-37** (37c): Pass (`d2d5ea4e-b5c5-43b9-992a-d89ede1ee300`)
+- **AC-INT-37** (37d): Pass (`d0c90be1-e21c-4931-9be1-1178a211827f`)
+- **AC-INT-37** (37e): Pass (`ca63e08a-e277-4ba9-ac71-a091611ddb0b`)
+- **AC-INT-37** (37f): Pass (`65da8ed7-b522-46ed-9a54-916ecbbad518`)
+- **AC-INT-37** (37g): Pass (`bd85a3c4-d0d6-4b17-82c6-661b9a8ff0be`)
+- **AC-INT-37** (37h): Pass (`3a53bbef-1850-4e22-9b94-17454a8be559`)

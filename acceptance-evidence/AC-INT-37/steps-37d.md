@@ -1,0 +1,3 @@
+1. Leave created (UI) and its approval event ILeaveApproved published as HR.Contracts does: an ArchiveItem with an HR.Core ArchiveReference appears within 60 s.
+2. hr-core-web stopped; a second leave approved: no ArchiveItem, the message is retried and lands in the archive consumer's _error queue.
+3. hr-core-web started and healthy; the _error messages are moved back to the consumer queue (replay): exactly one ArchiveItem.

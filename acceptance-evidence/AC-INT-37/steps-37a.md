@@ -1,0 +1,2 @@
+1. a-contracts-maker: leave request, advance request, separation (SeparationWizard/Step1, Resignation).
+2. Every new ServiceTransaction has a ReferenceNumber and one hr_core_db.CodeIssuances row of kind ServiceTransaction.

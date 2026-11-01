@@ -127,3 +127,37 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P6
 - status: in progress
+- Server/local state: the PLAN-36 local rehearsal stack (project hrm-vps-local, 21 containers) was stopped to free the
+  Docker VM (16.6 GB) for the acceptance stack. Undo: `docker start $(docker ps -aq --filter label=com.docker.compose.project=hrm-vps-local)`.
+- acceptance-up.ps1 without -NoBuild fails under PS 5.1 (missing hrm-local-dotnet-* base images; known pitfall), so the
+  images are built with `docker compose ... build` directly (prod-like file list), then `acceptance-up.ps1 -ProdLike
+  -NoBuild -SkipLiveVerification`. First build: 642 s, 14 images ok, hr-gateway NETSDK1064 (layer cache kept the restore
+  step while the shared NuGet cache mount had lost a package) -> rebuilt hr-gateway with --no-cache.
+- Image build: the BuildKit cache (~41-43 GB) is above Docker Desktop's GC limit, so GC pruned the shared NuGet cache
+  mount between restore and publish (NETSDK1064, a different service per run, also with --no-cache in a parallel build).
+  Fixed by building the outdated services one at a time (four with --no-cache). Build attempts: 642 s, 97 s (gateway),
+  308 s, 435 s, 641 s, 277 s, 365 s; ~46 min of build time lost to this. Recorded in memory.
+- Prod-like stack start (acceptance-up.ps1 -ProdLike -NoBuild -SkipLiveVerification): 199 s (220 s first start).
+  The pack is in /app/seed-packs/syr003-service-regimes-v1 of hr-core-web, hr-contracts-web, hr-movements-web with
+  sha256 ad766ef6...; all three log "LegalPack loaded ... source=Content sha256=ad766ef6... regimes=4 separationRules=4
+  movementTypes=4 promotionRules=4 article159Patterns=1".
+- Acceptance (RUN_ACCEPTANCE=true, ACCEPTANCE_REQUIRE_ALL=true), final run 2026-11-01T00:54:27Z..00:57:12Z:
+  RecruitmentToHireJourneyProdLikeE2ETests Pass (19 s); AC-INT-37a..h 8/8 Pass (146 s).
+- Decisions / deviations found while running:
+  - D21: 37g negative answers 401, not 403: svc-hr-health's token has no matrix scope, hence no api-hr-core audience,
+    and HR.Core refuses it at authentication. The test accepts 401 or 403 and checks CodeIssuances is unchanged.
+  - D22: 37c issues the card through IssuedCards/Renew: IssuedCards/Create binds the IssuedCard entity, whose required
+    CardDesign navigation always fails model validation (pre-existing IDCard defect, reported).
+  - D23: 37d publishes ILeaveApproved for a leave created through the UI, as HR.Contracts' EventPublisher does: the UI
+    approval fails on PostgreSQL (ApproveLeaveRequestHandler: ExecuteUpdate claim, then SaveChanges of the tracked
+    entity against the old xmin -> DbUpdateConcurrencyException, HTTP 500). Pre-existing HR.Contracts defect, reported;
+    fixing it is outside PLAN-37.
+  - D24: form facts: promotion needs ToGrade > FromGrade (numbers); device status InUse; the legacy asset form must not
+    post "Model" (MVC1004 binding clash, already recorded for the logistics plan); 37a picks an employee without leave or
+    separation so it repeats.
+- Lab (non-prod-like) stack with the shared wiring: AC-01, 02, 03, 04, 31 = 5/5 Pass (the filter also caught AC-HCM-31a/b,
+  Blocked by seed state from earlier runs, unrelated; their evidence was not committed).
+- P6 Finished (UTC): 2026-11-01T01:05:05.3920518Z
+
+## P7
+- status: in progress

@@ -1,0 +1,4 @@
+{
+  "passed": "[PASS] production\n[PASS] single-host\n[PASS] prodlike\n[PASS] prodlike-parity\n[PASS] k8s production-ha\n[PASS] k8s staging-ha\n[PASS] k8s dr-secondary\nReport: D:\\my projects\\HRManagement\\artifacts\\int037\\wiring-report.json\n",
+  "negative": " the k8s files directly\n[FAIL] production\n       - production: hr-contracts-web lacks Integration__HrCoreBaseUrl (expected http://hr-core-web:8080)\n[FAIL] single-host\n       - single-host: hr-contracts-web lacks Integration__HrCoreBaseUrl (expected http://hr-c"
+}

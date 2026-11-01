@@ -1,0 +1,15 @@
+{
+  "step": "37c-card-a-idcard",
+  "method": "POST",
+  "url": "/ui/idcard/IssuedCards/Renew/10cdbe2e-cdb5-be4d-90f4-62210e22ab2c",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:54:52.0320691Z",
+  "body": {
+    "fields": [
+      "id=10cdbe2e-cdb5-be4d-90f4-62210e22ab2c"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/idcard/IssuedCards/Details/7d58a3e4-e5ba-43e9-94dc-a1d306a430d7",
+    "final": "/ui/idcard/IssuedCards/Details/7d58a3e4-e5ba-43e9-94dc-a1d306a430d7"
+  }
+}

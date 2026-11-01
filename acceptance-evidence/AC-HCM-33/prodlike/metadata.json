@@ -1,11 +1,11 @@
 {
   "scenario": "AC-HCM-33 requisition-to-hire journey, production-like settings (G-02 probe)",
-  "correlationId": "a14379a9-76bd-4400-9ce6-d7bf454874a8",
-  "capturedAtUtc": "2026-10-29T20:10:58.9319339Z",
+  "correlationId": "da99702e-bc5f-4466-ba63-e4ce2a8aee41",
+  "capturedAtUtc": "2026-11-01T00:54:29.6655607Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "composeProject": "hrm-acceptance"
   },
-  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
+  "gitSha": "8a3d7f86687f76c5982b650a4d295ad127421257"
 }
