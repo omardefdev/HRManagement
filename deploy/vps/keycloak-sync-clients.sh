@@ -105,7 +105,9 @@ JSON
       kc delete "clients/$cid/optional-client-scopes/$sid" -r "$REALM"
   done
 
-  # The secret is compared and set inside the container, from its own environment variable; nothing is printed.
+  # The secret is compared and set inside the container, from its own environment variable; nothing is printed. (kcadm
+  # "update -f <file> --merge" answers unknown_error for a client secret on Keycloak 24, so "-s secret=" is used; the
+  # value is expanded only inside the container.)
   state="$(docker exec "$KC" sh -c 'v="$(printenv "$2")"; [ -n "$v" ] || { echo missing; exit 0; }
     cur="$("$0" get "clients/$1/client-secret" -r "$3" --fields value --format csv --noquotes)"
     [ "$cur" = "$v" ] && echo unchanged || echo differs' "$KCADM" "$cid" "$secret_env" "$REALM")"
@@ -114,8 +116,7 @@ JSON
     unchanged) log "client $client: unchanged";;
     *)
       DESCRIPTION="client $client: secret set from $secret_env" change "set the secret of $client from $secret_env" \
-        docker exec "$KC" sh -c 'f=$(mktemp); v="$(printenv "$2")"; printf "{\"secret\":\"%s\"}" "$v" > "$f"
-          "$0" update "clients/$1" -r "$3" -f "$f" --merge; rc=$?; rm -f "$f"; exit $rc' "$KCADM" "$cid" "$secret_env" "$REALM";;
+        docker exec "$KC" sh -c 'v="$(printenv "$2")"; "$0" update "clients/$1" -r "$3" -s "secret=$v"' "$KCADM" "$cid" "$secret_env" "$REALM";;
   esac
 done <<< "$PLAN"
 
