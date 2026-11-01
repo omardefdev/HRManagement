@@ -27,7 +27,7 @@ log() { printf '[keycloak-sync] %s\n' "$*"; }
 die() { printf '[keycloak-sync] ERROR: %s\n' "$*" >&2; exit 1; }
 
 [ -f "$MATRIX" ] || die "deploy/wiring/service-wiring.json not found in $RELEASE_DIR"
-KC="$(docker ps -q --filter "label=com.docker.compose.project=$HRM_PROJECT" --filter "label=com.docker.compose.service=keycloak" | head -1)"
+KC="$(docker ps -q --filter "label=com.docker.compose.project=$HRM_PROJECT" --filter "label=com.docker.compose.service=keycloak" | awk 'NR==1')"
 [ -n "$KC" ] || die "keycloak container of project $HRM_PROJECT is not running"
 
 kc() { docker exec "$KC" "$KCADM" "$@"; }
@@ -47,7 +47,7 @@ PLAN="$(perl -MJSON::PP -e 'local $/; open my $f, "<", $ARGV[0] or die "$!"; my 
   for my $s (@{$m->{services}}) { next unless $s->{serviceIdentity}; print "client\t$s->{clientId}\t$s->{secretEnv}\t" . join(" ", @{$s->{scopes}}) . "\n"; }' "$MATRIX")"
 CATALOG=" $(printf '%s\n' "$PLAN" | awk -F'\t' '$1=="scope"{printf "%s ", $2}')"
 
-scope_id() { kc get client-scopes -r "$REALM" --fields id,name --format csv --noquotes | awk -F, -v n="$1" '$2==n {print $1; exit}'; }
+scope_id() { kc get client-scopes -r "$REALM" --fields id,name --format csv --noquotes | awk -F, -v n="$1" '$2==n && !found {print $1; found=1}'; }
 
 # 1. Client scopes and their audience mappers.
 while IFS="$(printf '\t')" read -r kind name audiences description; do
@@ -75,12 +75,12 @@ done <<< "$PLAN"
 # 2. Service clients: existence and flags, optional scopes, secret.
 while IFS="$(printf '\t')" read -r kind client secret_env scopes; do
   [ "$kind" = "client" ] || continue
-  cid="$(kc get clients -r "$REALM" -q "clientId=$client" --fields id --format csv --noquotes | head -1)"
+  cid="$(kc get clients -r "$REALM" -q "clientId=$client" --fields id --format csv --noquotes | awk 'NR==1')"
   if [ -z "$cid" ]; then
     DESCRIPTION="client $client: created" change "create client $client" kc_file create clients -r "$REALM" <<JSON
 {"clientId":"$client","enabled":true,"publicClient":false,"standardFlowEnabled":false,"directAccessGrantsEnabled":false,"serviceAccountsEnabled":true,"protocol":"openid-connect","fullScopeAllowed":false}
 JSON
-    cid="$(kc get clients -r "$REALM" -q "clientId=$client" --fields id --format csv --noquotes | head -1)"
+    cid="$(kc get clients -r "$REALM" -q "clientId=$client" --fields id --format csv --noquotes | awk 'NR==1')"
     [ -n "$cid" ] || { log "client $client: (check mode) not created yet"; continue; }
   fi
 
