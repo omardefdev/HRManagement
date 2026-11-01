@@ -200,3 +200,29 @@ Resumed (UTC): 2026-11-01T15:35:44Z — the previous session ended during the P5
 ## P5 — done
 
 Finished (UTC): 2026-11-01T16:12:50Z
+
+## P6 — done
+
+- Leave approval on PostgreSQL had **two** causes, both shown by the new PostgreSQL test:
+  1. the `xmin` one PLAN-37 diagnosed: after the `ExecuteUpdate` claim the handler set Status/ApprovedBy on the tracked
+     entity and saved it against the old `xmin`. Fix: `IContractsRepository.ReloadAsync` re-reads the entity after the
+     claim (and after a revert). The leave **cancel** handler had the same pattern and is fixed the same way.
+  2. `ServiceTransaction.MoveTo` appends a `ServiceTransactionStateHistory` row whose Guid key the entity sets itself;
+     EF took it for an existing row reached through the navigation (`ServiceTransactionStateHistory/Modified`, UPDATE of
+     0 rows). Fix inside the handlers: `TrackNewHistoryAsync` registers the appended rows as new (leave approve, cancel,
+     reject; advance approve, reject). The model-level fix (`ValueGeneratedNever` on the key + a snapshot-only migration)
+     is beyond the handler (the prompt's stop rule) → recorded for a later plan, with the other `MoveTo` call sites
+     (HireWizardController, ServiceTransactionsController, InboundEventCommands, SeparationRecordHandlers,
+     SagaSupportConsumers) as **likely affected, not verified**.
+- Advance approval has no separate claim; with fix 2 it succeeds; a racing second approval gets the `xmin`
+  DbUpdateConcurrencyException, which ConcurrencyConflictMiddleware answers with 409 (no second installment plan).
+- IDCard: `IssuedCardFormModel` (no navigation, `Guid?` + [Required] for employee and design, serial shown only — it is
+  generated, COD-001) for Create and Edit (Edit bound the same entity and could not succeed either); unknown design →
+  field error instead of a foreign-key 500. Views updated.
+- Tests: `Ops038DemoDefectTests` 5/5 (Testcontainers PostgreSQL): leave approve + racing loser "not pending" with one
+  debit; leave cancel after approval; advance approve + racing loser conflict, one installment plan; IDCard create with
+  MVC's own validator (the entity fails on CardDesign, the form model passes, card saved with a generated serial);
+  negatives (no employee, unknown design → view, nothing saved). OutboxAtomicity 5/5. Unit 4493/4493. Build 0/0.
+  IntegrationTests now references IDCard.Web (lock file updated).
+
+Finished (UTC): 2026-11-01T16:29:36Z

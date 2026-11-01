@@ -188,6 +188,8 @@ public class OutboxAtomicityIntegrationTests
             SaveCount++;
             return _inner.SaveChangesAsync(ct);
         }
+
+        public Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class => _inner.ReloadAsync(entity, ct);
     }
 
     private sealed class RecordingContractsPublisher(CountingContractsRepository repo) : IEventPublisher

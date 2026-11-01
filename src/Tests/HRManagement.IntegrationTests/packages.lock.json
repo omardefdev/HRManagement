@@ -1370,6 +1370,20 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
+      "idcard.web": {
+        "type": "Project",
+        "dependencies": {
+          "HRManagement.FileStorage": "[1.0.0, )",
+          "HRManagement.MessageContracts": "[1.0.0, )",
+          "HRManagement.ServiceDefaults": "[1.0.0, )",
+          "HRManagement.SharedKernel": "[1.0.0, )",
+          "HRManagement.Web.Shared": "[1.0.0, )",
+          "IDCard.Domain": "[1.0.0, )",
+          "IDCard.Infrastructure": "[1.0.0, )",
+          "MassTransit": "[8.5.10, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
+        }
+      },
       "it.infra.infrastructure": {
         "type": "Project",
         "dependencies": {

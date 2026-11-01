@@ -178,8 +178,8 @@ public class CancelLeaveRequestHandler(IContractsRepository repository, IEventPu
         if (claimed == 0)
             return (false, "الطلب ليس معتمداً أو تم إلغاؤه بالفعل.");
 
-        entity.Status = HRManagement.SharedKernel.Enums.ApprovalStatus.Cancelled;
-        entity.ApprovedBy = request.CancelledBy;
+        // PLAN-38: same as the approval — the claim changed xmin; re-read the entity instead of saving it against the old one.
+        await repository.ReloadAsync(entity, cancellationToken);
 
         await CreditBalanceBackAsync(repository, balance, entity.DurationDays, cancellationToken);
 
@@ -187,7 +187,11 @@ public class CancelLeaveRequestHandler(IContractsRepository repository, IEventPu
         {
             var transaction = await repository.GetServiceTransactionAsync(entity.ServiceTransactionId.Value, cancellationToken);
             if (transaction is not null)
+            {
+                var historyBefore = transaction.StateHistory.Count;
                 ServiceTransactionWorkflowHelper.AdvanceToCancelled(transaction, request.CancelledBy, "إلغاء طلب إجازة معتمد");
+                await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
+            }
         }
 
         await repository.SaveChangesAsync(cancellationToken);
@@ -275,8 +279,11 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
         if (claimed == 0)
             return (false, "الطلب ليس قيد الانتظار");
 
-        entity.Status = HRManagement.SharedKernel.Enums.ApprovalStatus.Approved;
-        entity.ApprovedBy = request.ApproverId;
+        // PLAN-38 (PLAN-37 defect 1): the claim changed the row, and with it PostgreSQL's xmin concurrency token. Setting
+        // the properties on the tracked entity made the later SaveChanges update it against the old xmin (0 rows,
+        // DbUpdateConcurrencyException, HTTP 500 on every approval). Re-read it instead: it is Approved, unmodified and
+        // carries the current token, so SaveChanges writes only the service transaction.
+        await repository.ReloadAsync(entity, cancellationToken);
 
         if (balance is not null)
         {
@@ -313,7 +320,9 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
             return (false, "لم يُعثر على معاملة الخدمة المرتبطة بطلب الإجازة.");
         }
 
+        var historyBefore = transaction.StateHistory.Count;
         ServiceTransactionWorkflowHelper.AdvanceToCompleted(transaction, request.ApproverId, "اعتماد طلب إجازة");
+        await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         await eventPublisher.PublishLeaveApprovedAsync(
             transaction.Id,
@@ -345,8 +354,8 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
                     .SetProperty(x => x.UpdatedAt, _ => DateTime.UtcNow),
                 cancellationToken);
 
-        entity.Status = HRManagement.SharedKernel.Enums.ApprovalStatus.Pending;
-        entity.ApprovedBy = null;
+        // Same reason as after the claim: re-read rather than modify the tracked entity.
+        await repository.ReloadAsync(entity, cancellationToken);
     }
 
     private static async Task CreditBalanceBackAsync(
@@ -383,10 +392,12 @@ public class RejectLeaveRequestHandler(IContractsRepository repository) : IReque
             var transaction = await repository.GetServiceTransactionAsync(entity.ServiceTransactionId.Value, cancellationToken);
             if (transaction is not null)
             {
+                var historyBefore = transaction.StateHistory.Count;
                 if (transaction.State == ServiceTransactionState.PendingApproval)
                     ServiceTransactionWorkflowHelper.AdvanceToRejected(transaction, request.ApproverId, "رفض طلب إجازة");
                 else
                     ServiceTransactionWorkflowHelper.AdvanceToCancelled(transaction, request.ApproverId, "رفض طلب إجازة");
+                await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
             }
         }
 

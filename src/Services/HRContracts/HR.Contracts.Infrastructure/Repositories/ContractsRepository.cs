@@ -52,4 +52,6 @@ public class ContractsRepository(ContractsDbContext db) : IContractsRepository
     public void Remove<T>(T entity) where T : class => db.Set<T>().Remove(entity);
 
     public Task<int> SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
+
+    public Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class => db.Entry(entity).ReloadAsync(ct);
 }

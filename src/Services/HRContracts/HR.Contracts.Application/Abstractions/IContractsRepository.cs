@@ -29,5 +29,10 @@ public interface IContractsRepository
     Task<Contract?> GetContractAsync(Guid id, CancellationToken ct);
     Task AddAsync<T>(T entity, CancellationToken ct) where T : class;
     void Remove<T>(T entity) where T : class;
+    /// <summary>
+    /// Re-reads a tracked entity from the database (values and the PostgreSQL xmin concurrency token) and discards its
+    /// local changes. Needed after a set-based ExecuteUpdate on the same row (PLAN-38 P6).
+    /// </summary>
+    Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class;
     Task<int> SaveChangesAsync(CancellationToken ct);
 }
