@@ -9,11 +9,14 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # IAM-004: used by init-service-roles.sh (fallback for all *_app roles)
+      # IAM-004 / PLAN-38: development fallback for every *_app / *_migrator role (init-service-roles.sh); the production
+      # chain passes one password per role (docker-compose.production.yml, D-38-3).
       POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
     volumes:
-      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+      # PLAN-38: first initialisation runs the same idempotent SQL as the hrm-bootstrap init container.
+      - ./deploy/bootstrap/ensure-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
       - ./docker/init-service-roles.sh:/docker-entrypoint-initdb.d/02-init-service-roles.sh
+      - ./deploy/bootstrap:/opt/hrm-bootstrap:ro
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d postgres"]

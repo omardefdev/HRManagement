@@ -23,3 +23,48 @@ Finished (UTC): 2026-11-01T10:45:00Z
   unused and is removed rather than given a password).
 - Broker `configure` per service: `^(<prefix>-.*|HRManagement\.MessageContracts\.(Events|Commands):.*|MassTransit:Fault.*|.*_bus_.*)$`
   (+ `HR\.Contracts\.Infrastructure\.Sagas:.*` for HR.Contracts), to be proven on Testcontainers with the new image (P2).
+
+## P1 — in progress (notes)
+
+- P-4 plugin: URL `https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v3.13.0/rabbitmq_delayed_message_exchange-3.13.0.ez`,
+  downloaded once 2026-11-01T11:12Z (45 228 bytes), **SHA-256 `3479180df03fa830fd59ccf638a60eee8f0e8261524a8616685522d7b8d9a9ee`**
+  (computed with `sha256sum` on that download). Base `rabbitmq:3.13-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281`
+  (RabbitMQ 3.13.7, image created 2025-12-02).
+- Bundles: the plan's host-builder risk is real — an efbundle without a factory ran HR.Health's Program and stopped on
+  `Integration:HrCoreBaseUrl is required`. Fixed with an `IDesignTimeDbContextFactory` for the 12 contexts that had none
+  (3 existed). Self-contained linux-x64 bundle: 157 MB (framework-dependent 57 MB); kept self-contained as the prompt says.
+- `dotnet ef migrations bundle` does not restore: the script now restores each startup project for the RID first.
+- Bundles get no password on the command line: `--connection` without Password, Npgsql reads `PGPASSWORD` (P-1).
+- `hrm-bootstrap` image is set only in the production file (`${HRM_IMAGE_REPO:-hrmanagement}/hr-migrate:${IMAGE_TAG:-local}`,
+  no build section): the image overlay comes before the production file in the chain, so a value there would be overridden.
+- Backup role: `GRANT pg_read_all_data` (all tables/sequences/schemas of every database, present and future) instead of
+  per-database `SELECT` + default privileges per migrator; also covers `keycloak_db` (administrator-owned tables).
+- DB posture switch (D-38-1): `HRM_DB_POSTURE` (default `demo`). In demo mode the vps-demo file keeps the administrator
+  connections; `least-privilege` with demo mode is refused by remote-deploy (OPS-D), and is proven on the
+  `hrm-leastpriv` acceptance stack.
+
+## P1 — done
+
+- `hr-migrate` (docker/Migrator.Dockerfile + .dockerignore): SDK stage runs `build-ef-bundles.sh --self-contained -r linux-x64`
+  (15 bundles, 2.3 GB), runtime `runtime-deps:10.0` (Ubuntu 24.04) + postgresql-client 16.15, curl, jq; image 3.77 GB.
+  Bootstrap at /app/bootstrap, bundles at /app/efbundles, run-migrations.sh + sql at /app/scripts (k8s Job layout).
+  The bundle stage copies `--exclude=deploy --exclude=scripts`, so editing the bootstrap rebuilds only the last layers.
+- Image builds (local, one at a time, P-3): 255 s (failed: `dotnet ef` does not restore), 1356 s (first full, cold
+  NuGet cache), 359 s (after the COPY change, warm cache).
+- `deploy/bootstrap/`: bootstrap.sh (steps 0-8), ensure-databases.sql, ensure-roles.sql, ensure-backup-role.sql,
+  postgres-roles.conf. `docker/init-service-roles.sh` is a wrapper over the same SQL (dev path);
+  `docker/init-databases.sql` removed (the postgres container mounts ensure-databases.sql as 01-init).
+- Compose: `hrm-bootstrap` in docker-compose.production.yml (one-shot, read-only, cap_drop ALL, user 1654, data network,
+  result volume `bootstrap_results`); the 15 applications wait for `service_completed_successfully`; one password per
+  role (`x-db-role-passwords`, `:?` without fallback) passed to postgresql and hrm-bootstrap; connection strings
+  `Password=${POSTGRES_<X>_APP_PASSWORD:?}`; vps-demo no longer sets RunMigrationsAtStartup.
+- remote-deploy.sh: accepts the exited-0 hrm-bootstrap, prints its log/result and `timing bootstrap_seconds`, fails
+  cleanly (failed-tag) when `up` fails on the bootstrap, refuses HRM_DB_POSTURE=least-privilege in demo mode.
+- deploy.yml: the runner `migrate` job and the `run_migrations` input removed; hr-migrate and hr-rabbitmq added to the
+  build matrix (`matrix.context`).
+- Tests: `Ops038BootstrapIdempotencyTests` 6/6 (Testcontainers): SQL path (first run, second run 0 applied + pg_class
+  and role counts unchanged, rotation + old password 28P01, hr_core_app DDL 42501 + cross-db 42501, hrm_backup reads /
+  write 42501) and the real image twice on empty PostgreSQL + RabbitMQ (47 s; second run 0 applied in 15 databases,
+  no generated secret in the logs). Unit regression filters 155/155; lint-compose both chains PASS; build 0/0.
+
+Finished (UTC): 2026-11-01T11:52:13Z

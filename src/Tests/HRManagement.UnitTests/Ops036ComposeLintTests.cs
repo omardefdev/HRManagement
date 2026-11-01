@@ -252,7 +252,8 @@ public class Ops036ComposeLintTests
         var demo = Read("docker-compose.vps-demo.yml");
         Assert.Contains("Deployment__Mode: demo", demo);
         Assert.Contains("Seed__Profile: Demo", demo);
-        Assert.Contains("Database__RunMigrationsAtStartup: \"true\"", demo);
+        // PLAN-38: hrm-bootstrap migrates as <svc>_migrator in both postures; the demo file keeps only the administrator connections.
+        Assert.DoesNotContain("RunMigrationsAtStartup", demo);
         Assert.Equal(15, Regex.Matches(demo, @"ConnectionStrings__\w+: Host=postgresql").Count);
         Assert.Contains("CADDY_SITE_TLS: tls internal", Read("docker-compose.vps-local.yml"));
         Assert.Contains("_DeploymentBanner", Read("src/Shared/HRManagement.Web.Shared/Views/Shared/_HrSharedLayout.cshtml"));

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Logical backup of all HRManagement PostgreSQL databases (OPS-003).
-# Inventory must match docker/init-databases.sql (includes file_storage_db).
+# Inventory must match deploy/bootstrap/ensure-databases.sql (includes file_storage_db).
 # Prefer role hrm_backup (see scripts/sql/create-hrm-backup-role.sql).
 # Usage: ./scripts/backup-postgres.sh [output_dir]
 # Env: POSTGRES_USER/POSTGRES_PASSWORD or PGUSER/PGPASSWORD; BACKUP_CATALOG_PATH; BACKUP_RETENTION_DAYS
@@ -28,7 +28,7 @@ if [[ -z "${PGPASSWORD}" ]]; then
   exit 1
 fi
 
-# Full inventory — keep in sync with docker/init-databases.sql
+# Full inventory — keep in sync with deploy/bootstrap/ensure-databases.sql
 DATABASES=(
   keycloak_db
   gateway_audit_db

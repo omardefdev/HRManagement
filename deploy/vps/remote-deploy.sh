@@ -62,6 +62,19 @@ check_env() {
     [ "$len" -ge 32 ] || die "$key must be at least 32 characters"
   done
   case "$(env_value IMAGE_TAG)" in latest|*:latest) die "IMAGE_TAG=latest is refused";; esac
+  # PLAN-38 (D-38-1): the database posture. demo = the applications use the PostgreSQL administrator (vps-demo file);
+  # least-privilege = the *_app roles of the production file. Demo mode with least-privilege needs wave 2 (OPS-D:
+  # enforced row level security under the demo seeds), so it is refused here; the posture is proven on the
+  # hrm-leastpriv acceptance stack (docker-compose.acceptance-leastpriv.yml).
+  local db_posture
+  db_posture="$(env_value HRM_DB_POSTURE)"
+  case "${db_posture:-demo}" in demo|least-privilege) ;; *) die "HRM_DB_POSTURE must be demo or least-privilege";; esac
+  if [ "$(env_value HRM_DEPLOYMENT_MODE)" = "demo" ] && [ "$db_posture" = "least-privilege" ]; then
+    die "HRM_DB_POSTURE=least-privilege is not available in demo mode before wave 2 (OPS-D)"
+  fi
+  if [ "$(env_value HRM_DEPLOYMENT_MODE)" != "demo" ] && [ "$db_posture" = "demo" ]; then
+    die "HRM_DB_POSTURE=demo (administrator connections) exists only with HRM_DEPLOYMENT_MODE=demo"
+  fi
   log "env check: all $(grep -cE '^[A-Z][A-Z0-9_]*=' "$example") keys of .env.vps.example present (values not shown)"
 }
 
@@ -78,6 +91,22 @@ dc() {
   docker compose -p "$HRM_PROJECT" --env-file "$ENV_FILE" --profile full-stack $(compose_files) "$@"
 }
 
+# PLAN-38: hrm-bootstrap (databases, roles, migrations as <svc>_migrator, broker users) ran before any application
+# started; its log carries step lines and the result JSON, never a secret. Prints them and its duration.
+bootstrap_report() {
+  local id state
+  id="$(dc ps -a -q hrm-bootstrap 2>/dev/null | head -1)"
+  [ -n "$id" ] || { log "hrm-bootstrap: no container (release without the init container)"; return 0; }
+  state="$(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' "$id")"
+  log "hrm-bootstrap: $state"
+  docker logs "$id" 2>&1 | tail -n 60 | sed 's/^/[hrm-bootstrap] /'
+  local s f
+  s="$(date -d "$(docker inspect -f '{{.State.StartedAt}}' "$id")" +%s 2>/dev/null || echo 0)"
+  f="$(date -d "$(docker inspect -f '{{.State.FinishedAt}}' "$id")" +%s 2>/dev/null || echo 0)"
+  [ "$s" -gt 0 ] && [ "$f" -ge "$s" ] && echo "timing bootstrap_seconds=$((f - s))"
+  return 0
+}
+
 # Waits until every container of the project is running and healthy (or has no healthcheck), and one-shot containers
 # exited 0. Prints the unhealthy ones on timeout.
 wait_healthy() {
@@ -92,7 +121,8 @@ wait_healthy() {
       set -- $line
       case "$2:$3" in
         running:healthy|running:none) ;;
-        exited:none) [ "$4" = "0" ] && [ "$5" = "volume-init" ] || bad="$bad $5($2/$3/exit $4)";;
+        # One-shot containers: volume-init and (PLAN-38) hrm-bootstrap must have exited 0.
+        exited:none) [ "$4" = "0" ] && { [ "$5" = "volume-init" ] || [ "$5" = "hrm-bootstrap" ]; } || bad="$bad $5($2/$3/exit $4)";;
         *) bad="$bad $5($2/$3)";;
       esac
     done
@@ -133,8 +163,17 @@ deploy() {
   if [ -f "$HRM_HOME/current-tag" ]; then previous="$(tr -d '[:space:]' < "$HRM_HOME/current-tag")"; fi
 
   t0="$(date +%s)"
-  dc up -d --remove-orphans
+  # PLAN-38: `up` waits for hrm-bootstrap (service_completed_successfully); if it fails, no application is started and
+  # `up` itself fails. current-tag still names the last healthy release.
+  if ! dc up -d --remove-orphans; then
+    bootstrap_report
+    dc ps -a || true
+    printf '%s\n' "$tag" > "$HRM_HOME/failed-tag"
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$tag|action=deploy|result=up-failed" >> "$HRM_HOME/deployments.log"
+    die "release $tag: compose up failed (hrm-bootstrap or a container did not start; rollback to ${previous:-nothing}: bash remote-deploy.sh rollback)"
+  fi
   t1="$(date +%s)"; echo "timing up_seconds=$((t1 - t0))"
+  bootstrap_report
 
   if ! wait_healthy; then
     dc ps -a || true

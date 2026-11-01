@@ -19,11 +19,6 @@ on:
         options:
           - staging
           - production
-      run_migrations:
-        description: Apply EF migrations before deploy (ignored for rollback)
-        required: true
-        default: true
-        type: boolean
       rollback_tag:
         description: Image tag to rollback to (required when action=rollback)
         required: false
@@ -155,6 +150,23 @@ jobs:
             assembly_name: File.Storage.Web.dll
             needs_krb5: "true"
             gateway_audit_dir: "false"
+          # PLAN-38: the data-plane initialiser (hrm-bootstrap: databases, roles, migrations, broker users) and the
+          # broker with the delayed-message plugin. The service build args are ignored by these Dockerfiles.
+          - service: hr-migrate
+            dockerfile: docker/Migrator.Dockerfile
+            image: hr-migrate
+            project_csproj: ""
+            assembly_name: ""
+            needs_krb5: "false"
+            gateway_audit_dir: "false"
+          - service: hr-rabbitmq
+            dockerfile: docker/rabbitmq/Dockerfile
+            context: docker/rabbitmq
+            image: hr-rabbitmq
+            project_csproj: ""
+            assembly_name: ""
+            needs_krb5: "false"
+            gateway_audit_dir: "false"
     steps:
       - uses: actions/checkout@v4
 
@@ -173,7 +185,7 @@ jobs:
       - id: build
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context || '.' }}
           file: ${{ matrix.dockerfile }}
           push: true
           build-args: |
@@ -237,69 +249,16 @@ jobs:
           path: digests/${{ matrix.image }}.txt
           retention-days: 90
 
-  # ── Migrations (before deploy; locked; includes FileStorage) ────────────────
-  migrate:
-    needs: build-and-push
-    # Run on workflow_dispatch when requested, OR automatically on tag push (v*)
-    if: >-
-      always()
-      && needs.build-and-push.result == 'success'
-      && (
-        (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.event.inputs.run_migrations == 'true')
-        || github.event_name == 'push'
-      )
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - name: Restore local tools (dotnet-ef)
-        run: dotnet tool restore
-
-      - name: Restore (locked mode)
-        run: dotnet restore HRManagement.slnx --locked-mode
-
-      - name: Build EF migration bundles
-        run: bash scripts/build-ef-bundles.sh
-
-      - name: Upload EF bundles
-        uses: actions/upload-artifact@v4
-        with:
-          name: efbundles
-          path: artifacts/efbundles/
-          retention-days: 30
-
-      - name: Apply migrations
-        env:
-          ConnectionStrings__GatewayAuditDb: ${{ secrets.GATEWAY_AUDIT_DB }}
-          ConnectionStrings__HRCoreDb: ${{ secrets.HR_CORE_DB }}
-          ConnectionStrings__ContractsDb: ${{ secrets.HR_CONTRACTS_DB }}
-          ConnectionStrings__PayrollDb: ${{ secrets.PAYROLL_DB }}
-          ConnectionStrings__HealthDb: ${{ secrets.HR_HEALTH_DB }}
-          ConnectionStrings__MovementsDb: ${{ secrets.HR_MOVEMENTS_DB }}
-          ConnectionStrings__TrainingDb: ${{ secrets.HR_TRAINING_DB }}
-          ConnectionStrings__IDCardDb: ${{ secrets.IDCARD_DB }}
-          ConnectionStrings__ArchiveDb: ${{ secrets.ARCHIVE_DB }}
-          ConnectionStrings__AdminDb: ${{ secrets.ADMIN_DB }}
-          ConnectionStrings__ITInfraDb: ${{ secrets.IT_INFRA_DB }}
-          ConnectionStrings__AnalyticsDb: ${{ secrets.ANALYTICS_DB }}
-          ConnectionStrings__ComplianceDb: ${{ secrets.COMPLIANCE_DB }}
-          ConnectionStrings__AuthDirectoryDb: ${{ secrets.AUTH_DIRECTORY_DB }}
-          ConnectionStrings__FileStorageDb: ${{ secrets.FILE_STORAGE_DB }}
-          MIGRATION_LOCK_CONNECTION: ${{ secrets.GATEWAY_AUDIT_DB }}
-          EFBUNDLE_DIR: ${{ github.workspace }}/artifacts/efbundles
-        run: bash scripts/run-migrations.sh
+  # PLAN-38: no migration job on the runner (it cannot reach the closed PostgreSQL). The release's hrm-bootstrap
+  # init container (hr-migrate) migrates on the host as <svc>_migrator before any application starts; the k8s Job
+  # (deploy/k8s/base/migrate-job.yaml) uses the same image with scripts/run-migrations.sh.
 
   # ── Deploy (new release) ────────────────────────────────────────────────────
   deploy:
-    needs: [build-and-push, migrate]
+    needs: [build-and-push]
     if: >-
       always()
       && needs.build-and-push.result == 'success'
-      && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
       && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy'))
     runs-on: ubuntu-latest
     permissions:

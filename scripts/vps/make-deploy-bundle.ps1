@@ -62,7 +62,10 @@ $BundleFiles = @(
     'deploy/vps/keycloak-sync-clients.sh',
     'deploy/wiring/service-wiring.json',
     'docs/syr/service-regimes.json',
-    'docker/init-databases.sql',
+    # PLAN-38: the postgres container's first-init scripts are the bootstrap's own idempotent SQL.
+    'deploy/bootstrap/ensure-databases.sql',
+    'deploy/bootstrap/ensure-roles.sql',
+    'deploy/bootstrap/postgres-roles.conf',
     'docker/init-service-roles.sh',
     'scripts/backup-postgres.sh',
     'scripts/lib/backup-catalog.sh'
