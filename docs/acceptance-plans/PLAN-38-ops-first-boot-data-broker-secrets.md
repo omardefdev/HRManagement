@@ -1,7 +1,7 @@
 # PLAN-38 — الإقلاع الأول للبيانات والوسيط والأسرار (OPS-B)
 
 **Scope:** OPS — [دراسة الفجوات](../PRG_002_OPERATIONS_GAP_STUDY.md): G-OPS-02، G-OPS-13، والجزء الخاص بالوسيط وقاعدة البيانات من G-OPS-10 (اسم عقدة RabbitMQ وvolume له، مجمعات الاتصال)  
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented — 2026-11-01 (التقرير: `reports/plan38-final-report.md`)  
 **Priority:** P0  
 **Depends on:** PLAN-36 (ملف الخادم الواحد، وحارس الإعداد، وحزمة النشر)، PLAN-37 (الملف الشبيه بالإنتاج الذي يُبنى فوقه ملف القبول بأقل صلاحية، §6)  
 **Related cards:** DB-001، SEC-004، IAM-004، OPS-002 (جزء الوسيط)، INT-003 (مهل الـ sagas)، PLAN-09 (AC-20)
@@ -260,3 +260,20 @@ dotnet test src/Tests/HRManagement.AcceptanceTests --filter "FullyQualifiedName~
 - البذور: 0.5
 - المجمعات: 0.5
 - الاختبارات والقبول والوثائق: 1.5
+
+## ملاحظات التنفيذ والانحرافات
+
+نُفّذت الخطة في جلسة واحدة (المراحل P0–P8 من `docs/acceptance-plans/execution/PLAN-38-AGENT-PROMPT.md`)؛ التفاصيل والأزمنة في `reports/plan38-final-report.md`.
+
+- **D-38-5:** بقي ملف الأسرار في `/opt/hrm/shared/.env` (600، مالكه `hrm`) كما وضعته PLAN-36، لا `/opt/hrm/.env` لمالك root؛ `deploy.ps1` و`remote-deploy.sh` يقرآنه من هناك.
+- **§1 (P-5):** `hrm-bootstrap` يرحّل دائماً بدور `<svc>_migrator` ثم يطبّق TEN-002C، في وضعي قاعدة البيانات كليهما؛ الوضع يغيّر اتصال التطبيقات فقط. والحزم لا تأخذ كلمة مرور في سطر الأوامر (Npgsql يقرأ `PGPASSWORD`)، ولكل سياق `IDesignTimeDbContextFactory` كي لا تشغّل الحزمة `Program` الخدمة.
+- **§1 دور النسخ:** `hrm_backup` يأخذ `pg_read_all_data` مع `BYPASSRLS` بدل `SELECT` لكل قاعدة مع صلاحيات افتراضية لكل migrator: يغطي الجداول المقبلة و`keycloak_db` (جداول يملكها المدير).
+- **§2 المصفوفة:** نمط ناقل MassTransit `[^-]+_bus_[^-]+` بدل `.*_bus_.*` (المعرّف لا يحوي `-` أبداً، فلا يطابق طابور خدمة أخرى)، وصلاحية `HR\.Contracts\.Infrastructure\.Sagas:.*` لـ HR.Contracts وحده. ولا مستخدم للبوابة (لا تتصل بالوسيط).
+- **§3 القيم الوهمية:** أُزيلت أيضاً، فوق القائمة، قيم `YOUR_*` في `AllowedHosts` وCORS و`keycloak.example.com`، وصار `FileStorage:SecretKey` فارغاً في 5 ملفات `appsettings.json` أساسية (عيب PLAN-36 رقم 3).
+- **§4 البذور:** `SeedRunner` يعامل بيئة `Acceptance` كـ Production للبذور الإلزامية (الخطة: «السلوك الحالي في Acceptance»)، وإلا اكتفى مكدّس `hrm-leastpriv` بالتحذير. والإطار القانوني للرواتب يبقى بذرة عرض → PLAN-54.
+- **§5 المجمّعات:** `max_connections` = 250 لا 200: أرقام الخطة (180 + احتياط 5) تبلغ 92.5 % من 200، فوق حد 90 % الذي تفرضه قاعدة `lint-compose.ps1`.
+- **§7 عيبا PLAN-37:** لاعتماد الإجازة سببان لا سبب واحد: `xmin` بعد المطالبة (أُصلح بإعادة القراءة، ومعه إلغاء الإجازة بالنمط نفسه)، وصف `ServiceTransactionStateHistory` الجديد الذي يأخذ مفتاحه من الكيان فيعدّه EF موجوداً (أُصلح في المعالجات بـ `TrackNewHistoryAsync`). الإصلاح على مستوى النموذج (`ValueGeneratedNever` مع ترحيل) خارج حدود المعالج، فسُجّل لخطة لاحقة مع مواضع `MoveTo` الأخرى (معالج التعيين، و`ServiceTransactionsController`، و`InboundEventCommands`، و`SeparationRecordHandlers`، و`SagaSupportConsumers`) بوصفها **محتملة غير مثبتة**. وبطاقة الهوية: نموذج `IssuedCardFormModel` لـ Create و**Edit** معاً (كان Edit يربط الكيان نفسه).
+- **القبول:** AC-OPS-36 لم يُعَد محلياً بل على الخادم (P7)؛ محلياً غطّت السلسلةَ `lint-compose.ps1` و`Ops036ComposeLintTests`. والبحث عن قيم سرية في السجلات يقتصر على القيم بطول 16 فأكثر (كلمة `postgres` ليست سراً).
+- **الخادم:** فشل أول بناء لـ `hr-migrate` على الخادم (SDK 10.0.400: مولّد Razor مع خادم المترجم المشترك يفسد البناء التالي في سلسلة الـ15). الإصلاح: بناء كل مشروع بـ `--disable-build-servers` ثم الحزمة بـ `--no-build` (15/15 على الخادم). وفحص `containers-healthy` في `smoke.sh` صار يقبل `hrm-bootstrap` المنتهي بـ 0.
+- **مؤجل:** مستخدم MinIO (D-38-7) واستثناء فئة ObjectStorage في CI (`PG-OPS38-OBJECTSTORAGE-CI`، مراجعة 2027-01-31)؛ ووضع `least-privilege` لقاعدة البيانات على الخادم بعد OPS-D.
+- **المراجعة المستقلة (P8):** 0 عالية، 2 متوسطة، 4 منخفضة، وأُصلحت خمس باختبارات: مطالبة اعتماد الإجازة تطابق أيضاً القيم التي تحقق منها المعالج (تعديل بعد القراءة يُرفض ولا يُخصم شيء)؛ و`read` لمستخدمي الوسيط = تعبير `configure` (لا يستهلك مستخدم طوابير خدمة أخرى ولا يفرغها، و`write` يبقى `.*` كما قررت الخطة)؛ وكلمة مرور الوسيط تصل `jq` عبر stdin؛ ومسار k8s `scripts/run-migrations.sh` يمرر كلمات المرور عبر `PGPASSWORD` لا في سطر الأوامر؛ و`remote-deploy.sh` يطبّق قاعدة 90 % على أحجام المجمّعات من `.env`. والسادسة (غياب مفتاح الوضع في الحارس، وتوقيت الحارس بعد الترحيلات) سُجّلت لخطة لاحقة لأنها تغيّر أهداف نشر أخرى (k8s).

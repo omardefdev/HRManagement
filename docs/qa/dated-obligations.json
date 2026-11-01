@@ -159,7 +159,7 @@
       "idField": "category",
       "dateField": "reviewBy",
       "statusField": "status",
-      "closedStatuses": ["Lifted"],
+      "closedStatuses": ["Lifted", "Renewed"],
       "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "unit:CiStepsParityTests (every Category!= filter in scripts/ci/steps.json has an entry)"],
       "owner": "qa",
       "note": "A test category excluded from CI must have an owner plan and a review date."

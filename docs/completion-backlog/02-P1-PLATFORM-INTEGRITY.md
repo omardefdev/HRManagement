@@ -69,7 +69,7 @@
   - `docs/SERVICE_TRUST_INVENTORY.md`, `docs/SERVICE_SECRET_ROTATION.md`, `docker/keycloak/realm-hr-services.json`
   - `ServiceTokenProvider` / `ServiceAuthHandler` + سياسات `Service.*`
   - تأمين Directory sync / Lookup S2S / File references
-  - `docker/init-service-roles.sh`, `scripts/init-rabbitmq-service-users.sh`, `scripts/init-minio-filestorage-user.sh`
+  - `docker/init-service-roles.sh`, `deploy/bootstrap/bootstrap.sh` (PLAN-38; replaced `scripts/init-rabbitmq-service-users.sh`), `scripts/init-minio-filestorage-user.sh`
   - إزالة MinIO root من `x-app-messaging-env`؛ مفاتيح File.Storage فقط على `file-storage-web`
   - `ServiceToServiceNegativeMatrixTests` + `scripts/verify-postgres-service-roles.sh`
 

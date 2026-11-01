@@ -65,7 +65,7 @@ FQDN مثال: `hr-postgres-pooler-rw.hrmanagement-data.svc.cluster.local`.
 | ممنوع في مسار التطبيقات (إنتاج HA) | البديل |
 |---|---|
 | دور `postgres` / مالك العنقود للتطبيقات | أدوار لكل خدمة (`hr_core_app`, …) عبر Secret |
-| `guest` على RabbitMQ | مستخدمو `mq_*` من `scripts/init-rabbitmq-service-users.sh` |
+| `guest` على RabbitMQ | مستخدمو `mq_*` من `hrm-bootstrap` (الخطوة 6، مصفوفة `deploy/bootstrap/rabbitmq-users.json`، PLAN-38) |
 | `minioadmin` / root في FileStorage | `MINIO_FILESTORAGE_*` من `scripts/init-minio-filestorage-user.sh` |
 | سر Keycloak admin في pods التطبيق | عملاء OIDC فقط؛ admin عبر قناة مقيّدة |
 

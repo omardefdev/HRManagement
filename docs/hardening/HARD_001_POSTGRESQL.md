@@ -13,7 +13,7 @@ All PostgreSQL instances backing HR Management (`hr_*_db`, `keycloak_db`, `gatew
 | Version | PostgreSQL 16.x LTS track | `postgres:16-alpine`, CNPG `postgresql:16` |
 | Network | No public listener | `docker-compose.production.yml` — `ports: []`; K8s ClusterIP only |
 | Authentication | SCRAM-SHA-256 | `password_encryption = scram-sha-256` in init / CNPG spec |
-| Least privilege | Per-service DB roles | `scripts/init-databases.sql` — `*_app` roles, no SUPERUSER for apps |
+| Least privilege | Per-service DB roles | `deploy/bootstrap/ensure-roles.sql` + `postgres-roles.conf` (`hrm-bootstrap`, PLAN-38) — `*_app`/`*_migrator` roles, no SUPERUSER for apps |
 | TLS | Encrypt client connections in prod | `ssl = on` via CNPG / reverse-proxy TLS termination |
 | Logging | DDL + auth failures | `log_statement = ddl`, `log_connections = on`, `log_disconnections = on` |
 | Extensions | Allow-list only | Document approved extensions; block `plpythonu`, untrusted languages |
