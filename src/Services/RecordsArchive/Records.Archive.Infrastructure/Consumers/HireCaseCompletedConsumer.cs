@@ -20,12 +20,7 @@ public class HireCaseCompletedConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "HIRE", context.CancellationToken);
-        if (reference is null)
-        {
-            logger.LogWarning("Archive reference generation failed for HireCaseCompleted {TransactionId}", m.ServiceTransactionId);
-            return;
-        }
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "HIRE", nameof(IHireCaseCompleted), context.CancellationToken);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HR.Contracts/Appointments"));

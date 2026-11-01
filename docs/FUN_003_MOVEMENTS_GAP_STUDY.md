@@ -81,6 +81,7 @@
 - **التحقق المطلوب:** AC-MOV-Aa: `a-movements` ينشئ نقلاً، و`a-management-approver` يفتح التفاصيل ويعتمد عبر البوابة (Approved). سالب: `a-management-approver` لا ينشئ ولا ينفّذ (403)؛ `a-movements` لا يعتمد (403).
 
 #### G-MOV-02 — حزمة أنظمة الخدمة لا تُشحن مع HR.Movements
+- **الحالة:** ✅ عولجت في [PLAN-37](acceptance-plans/PLAN-37-int-production-wiring-legal-pack.md) — `seed-packs/syr003-service-regimes-v1/regimes.json` في صورة HR.Movements (`Int037PublishOutputTests`)، وفحص الجاهزية وسطر البصمة؛ إنشاء النقل والترفيع ينجح على الملف الشبيه بالإنتاج (AC-INT-37e). وصول المعتمد (G-MOV-01) ← PLAN-50.
 - **الدليل:**
   - `ServiceRegimeMovementRules` يقرأ `movement_types` من `seed-packs/syr003-service-regimes-v1/regimes.json` بجوار التطبيق، ثم يصعد المجلدات بحثاً عن `docs/syr/service-regimes.json` ([ServiceRegimeMovementRules.cs:92-136](../src/Shared/HRManagement.SharedKernel/Legal/ServiceRegimeMovementRules.cs)). وقواعد الترفيع تبحث في المسارات نفسها ([ServiceRegimePromotionRules.cs:80](../src/Shared/HRManagement.SharedKernel/Legal/ServiceRegimePromotionRules.cs)).
   - الملف يُنسخ إلى مخرجات HR.Core فقط ([HR.Core.Infrastructure.csproj:16](../src/Services/HRCore/HR.Core.Infrastructure/HR.Core.Infrastructure.csproj)). مشاريع HR.Movements الثلاثة لا تنسخه ([HR.Movements.Web.csproj](../src/Services/HRMovements/HR.Movements.Web/HR.Movements.Web.csproj)).

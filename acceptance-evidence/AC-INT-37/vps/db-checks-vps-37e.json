@@ -1,0 +1,8 @@
+{
+  "sha256": "afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd",
+  "lines": {
+    "hr-core-web": "LegalPack loaded pack=syr003-service-regimes-v1 source=Content sha256=afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd regimes=4 separationRules=4 movementTypes=4 promotionRules=4 article159Patterns=1",
+    "hr-contracts-web": "LegalPack loaded pack=syr003-service-regimes-v1 source=Content sha256=afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd regimes=4 separationRules=4 movementTypes=4 promotionRules=4 article159Patterns=1",
+    "hr-movements-web": "LegalPack loaded pack=syr003-service-regimes-v1 source=Content sha256=afc1cee06e0d77f1a8bc8cfcbb6a19608b5dfa2429c8c2a25c54b6692cc0e8dd regimes=4 separationRules=4 movementTypes=4 promotionRules=4 article159Patterns=1"
+  }
+}

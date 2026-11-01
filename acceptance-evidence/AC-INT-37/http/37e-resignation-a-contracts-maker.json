@@ -1,0 +1,18 @@
+{
+  "step": "37e-resignation-a-contracts-maker",
+  "method": "POST",
+  "url": "/ui/hr-contracts/SeparationWizard/Step1",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:54:59.0291779Z",
+  "body": {
+    "fields": [
+      "EmployeeId=f50f83e7-654f-47e9-bf99-7d2a402ab2ff",
+      "SeparationType=Resignation",
+      "EffectiveDate=2026-12-31",
+      "Reason=AC-INT-37e"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-contracts/SeparationWizard/Step2/9aafb1ab-8c8f-4c5a-8c81-4c3df190591c",
+    "final": "/ui/hr-contracts/SeparationWizard/Step2/9aafb1ab-8c8f-4c5a-8c81-4c3df190591c"
+  }
+}

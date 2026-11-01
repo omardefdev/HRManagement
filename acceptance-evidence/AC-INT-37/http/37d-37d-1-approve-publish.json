@@ -1,0 +1,11 @@
+{
+  "step": "37d-37d-1-approve-publish",
+  "method": "AMQP",
+  "url": "ILeaveApproved",
+  "statusCode": 0,
+  "capturedAtUtc": "2026-11-01T00:55:19.0370194Z",
+  "body": {
+    "leaveId": "13d93c27-a0da-4093-a318-1ce8d0242afb",
+    "employee": "02a0b568-56e1-3e4f-af3e-e220cd235312"
+  }
+}

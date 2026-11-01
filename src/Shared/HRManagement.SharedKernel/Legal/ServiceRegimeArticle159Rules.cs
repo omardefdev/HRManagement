@@ -81,19 +81,22 @@ public static class ServiceRegimeArticle159Rules
         || string.Equals(regimeId, "special_banking", StringComparison.OrdinalIgnoreCase)
         || string.Equals(regimeId, "special_judiciary", StringComparison.OrdinalIgnoreCase);
 
-    private static IReadOnlyList<Article159Pattern> LoadPatterns()
+    private static IReadOnlyList<Article159Pattern> LoadPatterns() => Parse(ServiceRegimePack.CurrentJson);
+
+    /// <summary>PLAN-37: the patterns this reader can use from <paramref name="json"/> (the readiness check counts these).</summary>
+    internal static IReadOnlyList<Article159Pattern> Parse(string? json)
     {
-        var path = ServiceRegimeJsonPackPaths.FindFirstExisting();
-        if (path is null)
+        // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
+        if (json is null)
             return [];
 
-        var json = File.ReadAllText(path);
         var pack = JsonSerializer.Deserialize<Article159Pack>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         });
 
         return pack?.Patterns
+                   .Where(p => !string.IsNullOrWhiteSpace(p.Pattern))
                    .Select(p => new Article159Pattern(p.Pattern, p.Trigger, p.RequiresLegalDecision))
                    .ToList()
                ?? [];

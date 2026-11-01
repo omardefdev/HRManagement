@@ -30,3 +30,10 @@ condition = "AND"
 paths = ['''^deploy/vps/\.env\.vps-local$''']
 regexTarget = "line"
 regexes = ['''^[A-Z][A-Z0-9_]*=[a-z0-9-]+-lab-only$''']
+
+[[allowlists]]
+description = "PLAN-37 progress checkpoint: the demo server's public ED25519 SSH host key fingerprint (SHA256:qWIf...), recorded to prove the host key was checked. A host key fingerprint is public by design (ssh prints it to anyone who connects); it is not a credential."
+condition = "AND"
+paths = ['''^reports/plan37-progress\.md$''']
+regexTarget = "match"
+regexes = ['''key SHA256:qWIfQls882KM/nQ99yV/WFU2Wk08t6DIb8o\+pUMGsto''']

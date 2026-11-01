@@ -1,0 +1,21 @@
+{
+  "step": "37e-promotion-a-movements",
+  "method": "POST",
+  "url": "/ui/hr-movements/PromotionRequests/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:55:00.2018805Z",
+  "body": {
+    "fields": [
+      "EmployeeId=f50f83e7-654f-47e9-bf99-7d2a402ab2ff",
+      "FromGrade=4",
+      "ToGrade=5",
+      "FromStep=1",
+      "ToStep=1",
+      "TransitionDecisionRef=INT37-DEC-1",
+      "EffectiveDate=2026-12-31"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/hr-movements/PromotionRequests",
+    "final": "/ui/hr-movements/PromotionRequests"
+  }
+}

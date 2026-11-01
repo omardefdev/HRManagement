@@ -2,11 +2,16 @@
 # RecruitmentToHireJourneyProdLikeE2ETests journey (Category=JourneyProdLike, in the CI journey filter since PLAN-25) and
 # the AC-HCM-25 acceptance scenarios.
 #
-# Layer it LAST on the acceptance set and recreate only the two services it changes:
-#   docker compose -p hrm-acceptance -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.dev-profiles.yml \
-#     -f docker-compose.full-stack-gateway.yml -f docker-compose.acceptance.yml -f docker-compose.acceptance-prodlike.yml \
-#     --profile full-stack up -d --no-deps --no-build --force-recreate hr-core-web hr-contracts-web
-# Recreate them without this file to return to the lab profile.
+# PLAN-37: the service wiring (URLs, client ids, scopes) is NOT here and NOT in docker-compose.acceptance.yml: both
+# acceptance stacks take it from the shared docker-compose.yml / docker-compose.services.yml, the same lines the production
+# chain uses (deploy/wiring/service-wiring.json; ProductionWiringMatrixTests checks the parity). So this stack fails
+# where production fails; it no longer inherits acceptance-only fixes.
+#
+# Start it with the whole stack (every service is created with this file):
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/acceptance-up.ps1 -ProdLike [-SkipLiveVerification]
+# which runs docker compose -p hrm-acceptance with docker-compose.yml, services, dev-profiles, full-stack-gateway,
+# acceptance and this file, --profile full-stack up -d. Run acceptance-up.ps1 without -ProdLike to return to the lab
+# profile.
 #
 # ASPNETCORE_ENVIRONMENT stays "Acceptance" so the acceptance personas, the Acceptance seed profile (no Demo seed), the
 # local Keycloak, FileDrop OTP delivery and the caller-proof secret keep working. Because appsettings.Production.json is

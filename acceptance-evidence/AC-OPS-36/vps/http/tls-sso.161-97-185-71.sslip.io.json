@@ -3,7 +3,7 @@
   "method": "TLS",
   "url": "sso.161-97-185-71.sslip.io",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-31T20:37:03.6864239Z",
+  "capturedAtUtc": "2026-11-01T01:54:23.2823800Z",
   "body": {
     "Issuer": "CN=YE2, O=Let\u0027s Encrypt, C=US",
     "notAfterUtc": "2027-01-29T18:03:12.0000000Z",

@@ -10,6 +10,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- PLAN-37: compose and kustomize wiring readers (ComposeEffectiveEnvironment, KustomizeEffectiveEnvironment). -->
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Shared\HRManagement.SharedKernel\HRManagement.SharedKernel.csproj" />
   </ItemGroup>

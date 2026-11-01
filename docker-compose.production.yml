@@ -331,7 +331,6 @@ services:
       Gateway__EnabledModules__11: compliance
       Gateway__EnabledModules__12: auth-directory
       Gateway__EnabledModules__13: file-storage
-      Integration__AuthDirectoryBaseUrl: http://auth-directory-web:8080
       UseForwardedHeaders: "true"
       # Shared key ring: without it each gateway replica encrypts OIDC state with its own keys and
       # interactive login breaks whenever the callback lands on a different replica.
@@ -376,9 +375,6 @@ services:
       ConnectionStrings__HRCoreDb: Host=postgresql;Port=5432;Database=hr_core_db;Username=hr_core_app;Password=${POSTGRES_HR_CORE_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
       RabbitMQ__Username: mq_hr_core
       RabbitMQ__Password: ${RABBITMQ_HR_CORE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
-      ServiceIdentity__ClientId: svc-hr-core
-      ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:?SVC_HR_CORE_CLIENT_SECRET required}
-      ServiceIdentity__Scope: file-storage.references
       ServiceIdentity__ApiAudience: api-hr-core
       # HCM-030 (PLAN-30 H): /careers/my one-time-code HMAC key (>= 32 chars); hr-core refuses to start without it.
       Recruitment__Portal__OtpHmacKey: ${HR_CORE_OTP_HMAC_KEY:?HR_CORE_OTP_HMAC_KEY required}
@@ -392,6 +388,8 @@ services:
       # SEC-004 / IAM-004: clear dev MinIO defaults — hr-core uses service identity, not direct MinIO.
       FileStorage__AccessKey: ""
       FileStorage__SecretKey: ""
+      ServiceIdentity__ClientId: svc-hr-core
+      ServiceIdentity__ClientSecret: ${SVC_HR_CORE_CLIENT_SECRET:?SVC_HR_CORE_CLIENT_SECRET required}
     volumes:
       - dp_hr_core:/var/hrm/dpkeys
       - hr_core_integration_outbox:/app/integration-outbox
@@ -419,7 +417,6 @@ services:
       RabbitMQ__Password: ${RABBITMQ_HR_CONTRACTS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-hr-contracts
       ServiceIdentity__ClientSecret: ${SVC_HR_CONTRACTS_CLIENT_SECRET:?SVC_HR_CONTRACTS_CLIENT_SECRET required}
-      ServiceIdentity__Scope: file-storage.references
     volumes:
       - dp_hr_contracts:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -468,7 +465,6 @@ services:
       RabbitMQ__Password: ${RABBITMQ_HR_MOVEMENTS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-hr-movements
       ServiceIdentity__ClientSecret: ${SVC_HR_MOVEMENTS_CLIENT_SECRET:?SVC_HR_MOVEMENTS_CLIENT_SECRET required}
-      ServiceIdentity__Scope: hr-core.lookup
     volumes:
       - dp_hr_movements:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -493,7 +489,6 @@ services:
       RabbitMQ__Password: ${RABBITMQ_HR_TRAINING_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-hr-training
       ServiceIdentity__ClientSecret: ${SVC_HR_TRAINING_CLIENT_SECRET:?SVC_HR_TRAINING_CLIENT_SECRET required}
-      ServiceIdentity__Scope: file-storage.references
     volumes:
       - dp_hr_training:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -514,12 +509,10 @@ services:
     environment:
       <<: [*app-production-env, *app-messaging-env]
       ConnectionStrings__PayrollDb: Host=postgresql;Port=5432;Database=payroll_db;Username=payroll_app;Password=${POSTGRES_PAYROLL_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       RabbitMQ__Username: mq_payroll
       RabbitMQ__Password: ${RABBITMQ_PAYROLL_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-payroll
       ServiceIdentity__ClientSecret: ${SVC_PAYROLL_CLIENT_SECRET:?SVC_PAYROLL_CLIENT_SECRET required}
-      ServiceIdentity__Scope: hr-core.lookup
     volumes:
       - dp_payroll:/var/hrm/dpkeys
       - payroll_integration_outbox:/app/integration-outbox
@@ -545,7 +538,6 @@ services:
       RabbitMQ__Password: ${RABBITMQ_IDCARD_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-idcard
       ServiceIdentity__ClientSecret: ${SVC_IDCARD_CLIENT_SECRET:?SVC_IDCARD_CLIENT_SECRET required}
-      ServiceIdentity__Scope: file-storage.references
     volumes:
       - dp_idcard:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -570,7 +562,6 @@ services:
       RabbitMQ__Password: ${RABBITMQ_RECORDS_ARCHIVE_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-records-archive
       ServiceIdentity__ClientSecret: ${SVC_RECORDS_ARCHIVE_CLIENT_SECRET:?SVC_RECORDS_ARCHIVE_CLIENT_SECRET required}
-      ServiceIdentity__Scope: file-storage.references
     volumes:
       - dp_records_archive:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -595,9 +586,6 @@ services:
       RabbitMQ__Password: ${RABBITMQ_ADMIN_LOGISTICS_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
       ServiceIdentity__ClientId: svc-admin-logistics
       ServiceIdentity__ClientSecret: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:?SVC_ADMIN_LOGISTICS_CLIENT_SECRET required}
-      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow file-storage.references
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
-      HrGateway__InternalBaseUrl: http://hr-gateway:8080
     volumes:
       - dp_admin_logistics:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -620,10 +608,8 @@ services:
       ConnectionStrings__ITInfraDb: Host=postgresql;Port=5432;Database=it_infra_db;Username=it_infra_app;Password=${POSTGRES_IT_INFRA_APP_PASSWORD:-${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}}
       RabbitMQ__Username: mq_it_infra
       RabbitMQ__Password: ${RABBITMQ_IT_INFRA_PASS:-${RABBITMQ_SERVICE_PASSWORD:-${RABBITMQ_DEFAULT_PASS}}}
-      Services__AuthDirectory__BaseUrl: http://auth-directory-web:8080
       ServiceIdentity__ClientId: svc-it-infra
       ServiceIdentity__ClientSecret: ${SVC_IT_INFRA_CLIENT_SECRET:?SVC_IT_INFRA_CLIENT_SECRET required}
-      ServiceIdentity__Scope: directory.sync
     volumes:
       - dp_it_infra:/var/hrm/dpkeys
     healthcheck: *app-healthcheck
@@ -697,6 +683,8 @@ services:
       Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
       ServiceIdentity__ApiAudience: api-auth-directory
       Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
+      ServiceIdentity__ClientId: svc-auth-directory
+      ServiceIdentity__ClientSecret: ${SVC_AUTH_DIRECTORY_CLIENT_SECRET:?SVC_AUTH_DIRECTORY_CLIENT_SECRET required}
     volumes:
       - dp_auth_directory:/var/hrm/dpkeys
     healthcheck: *app-healthcheck

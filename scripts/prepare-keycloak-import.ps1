@@ -137,18 +137,63 @@ if ($Profile -eq "VpsDemo") {
         }
     }
 
-    # Service clients: each secret from the server's .env (same names as docker-compose.production.yml). Clients
-    # that no service on the single host uses are disabled and carry no secret.
-    $serviceSecrets = @{
-        "svc-hr-core"         = "SVC_HR_CORE_CLIENT_SECRET"
-        "svc-payroll"         = "SVC_PAYROLL_CLIENT_SECRET"
-        "svc-hr-contracts"    = "SVC_HR_CONTRACTS_CLIENT_SECRET"
-        "svc-hr-training"     = "SVC_HR_TRAINING_CLIENT_SECRET"
-        "svc-idcard"          = "SVC_IDCARD_CLIENT_SECRET"
-        "svc-records-archive" = "SVC_RECORDS_ARCHIVE_CLIENT_SECRET"
-        "svc-admin-logistics" = "SVC_ADMIN_LOGISTICS_CLIENT_SECRET"
-        "svc-it-infra"        = "SVC_IT_INFRA_CLIENT_SECRET"
-        "directory-sync"      = "KEYCLOAK_DIRECTORY_SYNC_SECRET"
+    # PLAN-37: every client scope and service client of the wiring matrix (deploy/wiring/service-wiring.json), with the
+    # matrix scopes as optional scopes, so a fresh server gets the same realm that keycloak-sync-clients.sh keeps in step.
+    $wiring = [System.IO.File]::ReadAllText((Join-Path $RepoRoot "deploy/wiring/service-wiring.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+    foreach ($scopeProperty in $wiring.scopes.PSObject.Properties) {
+        $existingScope = @($vpsRealm.clientScopes | Where-Object { $_.name -eq $scopeProperty.Name }) | Select-Object -First 1
+        if ($null -eq $existingScope) {
+            $existingScope = [pscustomobject]@{
+                name            = $scopeProperty.Name
+                description     = $scopeProperty.Value.description
+                protocol        = "openid-connect"
+                attributes      = [pscustomobject]@{ "include.in.token.scope" = "true"; "display.on.consent.screen" = "false" }
+                protocolMappers = @()
+            }
+            $vpsRealm.clientScopes = @($vpsRealm.clientScopes) + $existingScope
+        }
+        if ($null -eq $existingScope.PSObject.Properties["protocolMappers"]) {
+            $existingScope | Add-Member -NotePropertyName protocolMappers -NotePropertyValue @()
+        }
+        foreach ($audience in @($scopeProperty.Value.audiences)) {
+            if (-not (@($existingScope.protocolMappers) | Where-Object { $_.name -eq "audience-$audience" })) {
+                $existingScope.protocolMappers = @($existingScope.protocolMappers) + [pscustomobject]@{
+                    name            = "audience-$audience"
+                    protocol        = "openid-connect"
+                    protocolMapper  = "oidc-audience-mapper"
+                    consentRequired = $false
+                    config          = [pscustomobject]@{
+                        "included.client.audience"  = $audience
+                        "id.token.claim"            = "false"
+                        "access.token.claim"        = "true"
+                        "introspection.token.claim" = "true"
+                    }
+                }
+            }
+        }
+    }
+
+    # Service clients: each secret from the server's .env (the matrix secretEnv, as in docker-compose.production.yml).
+    # Clients that no matrix service uses are disabled and carry no secret.
+    $serviceSecrets = @{ "directory-sync" = "KEYCLOAK_DIRECTORY_SYNC_SECRET" }
+    foreach ($service in @($wiring.services | Where-Object { $_.serviceIdentity })) {
+        $serviceSecrets[[string]$service.clientId] = [string]$service.secretEnv
+        $existingClient = @($vpsRealm.clients | Where-Object { $_.clientId -eq $service.clientId }) | Select-Object -First 1
+        if ($null -eq $existingClient) {
+            $existingClient = [pscustomobject]@{
+                clientId               = $service.clientId
+                enabled                = $true
+                publicClient           = $false
+                secret                 = ""
+                standardFlowEnabled    = $false
+                serviceAccountsEnabled = $true
+                protocol               = "openid-connect"
+                fullScopeAllowed       = $false
+            }
+            $vpsRealm.clients = @($vpsRealm.clients) + $existingClient
+        }
+        $existingClient.enabled = $true
+        $existingClient | Add-Member -Force -NotePropertyName optionalClientScopes -NotePropertyValue @($service.scopes | ForEach-Object { [string]$_ })
     }
     foreach ($client in @($vpsRealm.clients)) {
         $id = [string]$client.clientId

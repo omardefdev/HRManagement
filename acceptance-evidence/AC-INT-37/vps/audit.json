@@ -1,0 +1,6 @@
+{
+  "correlationId": "int37-vps-keycloak-5c0eb5174acc4805b6acb29ff3805186",
+  "explicitAuditQuery": false,
+  "httpObservationCount": 0,
+  "note": "No separate audit-store query was required or captured for this scenario."
+}

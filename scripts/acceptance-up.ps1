@@ -9,6 +9,8 @@ param(
     [switch]$SkipLiveVerification,
     [switch]$RequireCleanBaseline,
     [switch]$UseLocalBaseImages,
+    # PLAN-37: layer docker-compose.acceptance-prodlike.yml on every service (the stack that fails where production fails).
+    [switch]$ProdLike,
     [string]$GatewayBaseUrl = $(if ($env:GATEWAY_BASE_URL) { $env:GATEWAY_BASE_URL } else { "http://localhost:6200" })
 )
 
@@ -42,6 +44,10 @@ $composeFiles = @(
     "docker-compose.full-stack-gateway.yml",
     "docker-compose.acceptance.yml"
 )
+if ($ProdLike) {
+    $composeFiles += "docker-compose.acceptance-prodlike.yml"
+    Write-Host "== Prod-like profile: docker-compose.acceptance-prodlike.yml on every service =="
+}
 $composeArgs = $composeFiles | ForEach-Object { "-f", $_ }
 
 Write-Host "== Validating isolated Compose configuration =="

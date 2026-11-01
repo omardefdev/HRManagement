@@ -1,0 +1,24 @@
+# PLAN-37 (D-INT-2): service wiring from deploy/wiring/service-wiring.json. Generated values; ProductionWiringMatrixTests
+# and scripts/int037-wiring-check.ps1 compare them with the matrix. The secret comes from hr-app-secrets (one shared
+# ExternalSecret; a secret per service is PLAN-42).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payroll-web
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          env:
+            - name: Integration__HrCoreBaseUrl
+              value: http://hr-core-web:8080
+            - name: ServiceIdentity__ClientId
+              value: svc-payroll
+            - name: ServiceIdentity__Scope
+              value: hr-core.lookup
+            - name: ServiceIdentity__ClientSecret
+              valueFrom:
+                secretKeyRef:
+                  name: hr-app-secrets
+                  key: SVC_PAYROLL_CLIENT_SECRET

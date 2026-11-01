@@ -1,0 +1,14 @@
+{
+  "positive": {
+    "leave": "13d93c27-a0da-4093-a318-1ce8d0242afb",
+    "reference": "LEAVE-2026-00005"
+  },
+  "negative": {
+    "leave": "e94c33ba-2eca-4bd2-83eb-cc49848fdf77",
+    "errorQueue": "records-archive-web-leave-approved_error",
+    "deadLettered": 1,
+    "replayed": 1,
+    "reference": "LEAVE-2026-00006",
+    "rows": 1
+  }
+}

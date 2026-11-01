@@ -1,0 +1,12 @@
+{
+  "scenario": "Recruitment-to-hire journey on the prod-like stack: appointment and decision numbers",
+  "personaId": "a-contracts-maker",
+  "correlationId": "82e24a54-bbbf-4483-b23c-19705d99682d",
+  "capturedAtUtc": "2026-11-01T00:57:10.4842613Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "8a3d7f86687f76c5982b650a4d295ad127421257"
+}

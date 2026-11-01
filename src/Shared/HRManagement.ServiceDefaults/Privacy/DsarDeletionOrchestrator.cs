@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,6 @@ public interface IDsarDeletionOrchestrator
 /// </summary>
 public sealed class DsarDeletionOrchestrator(
     IHttpClientFactory? httpClientFactory,
-    IConfiguration? configuration,
     ILogger<DsarDeletionOrchestrator>? logger) : IDsarDeletionOrchestrator
 {
     public async Task<DsarDeletionResult> ExecuteAsync(Guid employeeId, CancellationToken cancellationToken = default)
@@ -63,9 +63,10 @@ public sealed class DsarDeletionOrchestrator(
         }
 
         var services = new List<string> { "HR.Core.CandidateAnonymize", "Compliance.DsarLedger" };
-        var baseUrl = configuration?["Integration:HrCoreBaseUrl"]?.TrimEnd('/');
 
-        if (httpClientFactory is not null && !string.IsNullOrWhiteSpace(baseUrl))
+        // PLAN-37: AddHrDsarDeletion always registers the client with the HR.Core base address, so a registered
+        // orchestrator never reports success without the anonymize call.
+        if (httpClientFactory is not null)
         {
             try
             {
@@ -112,22 +113,16 @@ public static class DsarDeletionServiceCollectionExtensions
 {
     public static IServiceCollection AddHrDsarDeletion(this IServiceCollection services, IConfiguration? configuration = null)
     {
-        var baseUrl = configuration?["Integration:HrCoreBaseUrl"]?.TrimEnd('/');
-        if (!string.IsNullOrWhiteSpace(baseUrl))
-        {
-            services.AddServiceAuthenticatedClient(
-                HttpHrCoreCandidateDsarDeletionClient.ClientName,
-                new Uri(baseUrl + "/"));
-        }
-        else
-        {
-            services.AddHttpClient(HttpHrCoreCandidateDsarDeletionClient.ClientName);
-        }
+        ArgumentNullException.ThrowIfNull(configuration);
+        // PLAN-37: the HR.Core URL is required (start-up error naming Integration:HrCoreBaseUrl outside Development).
+        services.AddServiceEndpointWarnings();
+        services.AddServiceAuthenticatedClient(
+            HttpHrCoreCandidateDsarDeletionClient.ClientName,
+            HrCoreEndpoint.RequireBaseUri(configuration));
 
         services.AddSingleton<IDsarDeletionOrchestrator>(sp =>
             new DsarDeletionOrchestrator(
                 sp.GetService<IHttpClientFactory>(),
-                sp.GetService<IConfiguration>(),
                 sp.GetService<ILogger<DsarDeletionOrchestrator>>()));
         return services;
     }

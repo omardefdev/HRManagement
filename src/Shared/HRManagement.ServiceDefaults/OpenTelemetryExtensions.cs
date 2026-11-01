@@ -54,6 +54,8 @@ public static class OpenTelemetryExtensions
                         MigCutover.MigCutoverMetrics.MeterName,
                         NationalScope.NationalScopeMetrics.MeterName,
                         "hrm.payroll.run",
+                        // PLAN-37: archive_reference_failures_total (Records.Archive.Infrastructure ArchiveReferenceMetrics).
+                        "HRManagement.RecordsArchive",
                         "MassTransit")
                     .AddPrometheusExporter();
 

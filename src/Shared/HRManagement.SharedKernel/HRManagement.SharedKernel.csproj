@@ -1,3 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- PLAN-37 (D-INT-1): the SYR-003 service-regimes legal pack ships with every project that references the shared
+         kernel (HR.Core, HR.Contracts, HR.Movements, ...), in the build and the publish output; ServiceRegimePack reads it. -->
+    <Content Include="..\..\..\docs\syr\service-regimes.json" Link="seed-packs\syr003-service-regimes-v1\regimes.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

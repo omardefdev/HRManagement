@@ -1,0 +1,11 @@
+{
+  "positive": {
+    "status": 200,
+    "code": "-2026-00036",
+    "issuancesBefore": 35
+  },
+  "negative": {
+    "status": 401,
+    "issuancesUnchanged": 36
+  }
+}

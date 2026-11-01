@@ -100,6 +100,20 @@ Persisted in `hr_core_db` and wired to SYR-001 + HCM hire:
 | `IServiceRegimeProvider` | read provider for UI and validation |
 | Seed | `ServiceRegimeSeeder` + `BenefitPlanSeeder` after legislation register |
 
+## Shipping and fingerprint (PLAN-37)
+
+- **One copy for every reader.** `docs/syr/service-regimes.json` is a `Content` item of
+  `HRManagement.SharedKernel.csproj` (`seed-packs/syr003-service-regimes-v1/regimes.json`, output and publish), so
+  HR.Core, HR.Contracts and HR.Movements all ship it; the images copy the publish folder.
+- **One loader.** `ServiceRegimePack` (SharedKernel/Legal): `LegalPacks:ServiceRegimesPath` when set (must exist, never
+  silently replaced), then the shipped copy, then `docs/syr` in Development only. Every `ServiceRegime*Rules` reader,
+  the transition rules and `ServiceRegimeSeeder` go through it.
+- **Readiness and fingerprint.** `AddServiceRegimePackCheck` (in the three services): the `ready` check
+  `legal-pack-syr003-service-regimes-v1` is Unhealthy when the pack is missing, unreadable or has an empty rule family
+  (regimes, separation, movement types, promotion, Article 159); the start-up line
+  `LegalPack loaded pack=syr003-service-regimes-v1 source=<Path|Content|Repository> sha256=<hex> ...`. The SHA-256 of
+  the repository file is the reference (`ServiceRegimePackTests`, `Int037PublishOutputTests`, the single-host smoke).
+
 ## Validation
 
 - `scripts/syr003-validate.ps1`

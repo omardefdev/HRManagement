@@ -5,6 +5,7 @@ using System.Text.Json;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HRManagement.FileStorage;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Integration;
 
 namespace HR.Core.Web.Services;
 
@@ -309,7 +310,7 @@ public static class CandidateDocumentUploadClientExtensions
 {
     public static IServiceCollection AddCandidateDocumentUploadClient(this IServiceCollection services, IConfiguration configuration)
     {
-        var fileStorageBase = configuration["Integration:FileStorageBaseUrl"]?.TrimEnd('/');
+        var fileStorageBase = ServiceEndpoint.Optional(configuration, "Integration:FileStorageBaseUrl");
         if (string.IsNullOrWhiteSpace(fileStorageBase))
         {
             services.AddScoped<ICandidateDocumentUploadClient, UnavailableCandidateDocumentUploadClient>();

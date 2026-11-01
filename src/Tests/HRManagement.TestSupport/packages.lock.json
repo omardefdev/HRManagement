@@ -12,6 +12,12 @@
           "SQLitePCLRaw.provider.e_sqlite3": "2.1.12"
         }
       },
+      "YamlDotNet": {
+        "type": "Direct",
+        "requested": "[16.3.0, )",
+        "resolved": "16.3.0",
+        "contentHash": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA=="
+      },
       "Asp.Versioning.Abstractions": {
         "type": "Transitive",
         "resolved": "8.1.0",

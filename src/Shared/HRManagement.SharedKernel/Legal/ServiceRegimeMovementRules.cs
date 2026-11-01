@@ -89,14 +89,14 @@ public static class ServiceRegimeMovementRules
         return null;
     }
 
-    private static IReadOnlyDictionary<string, MovementTypeRule> LoadMovementTypes()
-    {
-        foreach (var path in ResolvePackPaths())
-        {
-            if (!File.Exists(path))
-                continue;
+    private static IReadOnlyDictionary<string, MovementTypeRule> LoadMovementTypes() => Parse(ServiceRegimePack.CurrentJson);
 
-            var json = File.ReadAllText(path);
+    /// <summary>PLAN-37: the movement types this reader can use from <paramref name="json"/> (the readiness check counts these).</summary>
+    internal static IReadOnlyDictionary<string, MovementTypeRule> Parse(string? json)
+    {
+        // PLAN-37: one source for the pack (ServiceRegimePack); an absent pack fails readiness, it is not silent.
+        if (json is not null)
+        {
             var pack = JsonSerializer.Deserialize<MovementPack>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -119,19 +119,4 @@ public static class ServiceRegimeMovementRules
         return new Dictionary<string, MovementTypeRule>(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static IEnumerable<string> ResolvePackPaths()
-    {
-        yield return Path.Combine(AppContext.BaseDirectory, "seed-packs", "syr003-service-regimes-v1", "regimes.json");
-
-        var dir = AppContext.BaseDirectory;
-        for (var i = 0; i < 8; i++)
-        {
-            yield return Path.Combine(dir, "seed-packs", "syr003-service-regimes-v1", "regimes.json");
-            yield return Path.Combine(dir, "docs", "syr", "service-regimes.json");
-            var parent = Directory.GetParent(dir);
-            if (parent is null)
-                break;
-            dir = parent.FullName;
-        }
-    }
 }

@@ -15,19 +15,17 @@ public class MedicalRecommendationIssuedArchiveConsumer(
     public async Task Consume(ConsumeContext<IMedicalRecommendationIssued> context)
     {
         var m = context.Message;
-        if (!EventSchemaVersion.Supports(m.SchemaVersion, supportedMax: 2, logger, nameof(IMedicalRecommendationIssued)))
-            return;
+        EventSchemaVersion.Require(m.SchemaVersion, supportedMax: 2, nameof(IMedicalRecommendationIssued));
 
         var title = $"ملف طبي — توصية {m.RecommendationType} للموظف {m.EmployeeId}: {m.Details} [{m.RecommendationId:N}]";
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDREC", context.CancellationToken);
-        if (reference is null) return;
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDREC", nameof(IMedicalRecommendationIssued), context.CancellationToken);
 
-        logger.LogInformation(
-            "Records.Archive: MedicalRecommendationIssued EmployeeId={EmployeeId} Ref={Reference}",
-            m.EmployeeId, reference);
+        // No employee id next to a medical event in the logs (CodeQL cs/exposure-of-sensitive-information): the archive
+        // reference identifies the item.
+        logger.LogInformation("Records.Archive: MedicalRecommendationIssued archived Ref={Reference}", reference);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HR.Health/Recommendations", retentionYears: 15));
@@ -43,20 +41,16 @@ public class MedicalDecisionIssuedArchiveConsumer(
     public async Task Consume(ConsumeContext<IMedicalDecisionIssued> context)
     {
         var m = context.Message;
-        if (!EventSchemaVersion.Supports(m.SchemaVersion, supportedMax: 1, logger, nameof(IMedicalDecisionIssued)))
-            return;
+        EventSchemaVersion.Require(m.SchemaVersion, supportedMax: 1, nameof(IMedicalDecisionIssued));
 
         var refKey = m.CorrelationId ?? m.MedicalRef;
         var title = $"ملف طبي — قرار لجنة {m.MedicalRef} للموظف {m.EmployeeId}: {m.Notes} [{refKey}]";
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDDEC", context.CancellationToken);
-        if (reference is null) return;
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDDEC", nameof(IMedicalDecisionIssued), context.CancellationToken);
 
-        logger.LogInformation(
-            "Records.Archive: MedicalDecisionIssued EmployeeId={EmployeeId} Ref={Reference}",
-            m.EmployeeId, reference);
+        logger.LogInformation("Records.Archive: MedicalDecisionIssued archived Ref={Reference}", reference);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HR.Health/CommitteeReports", retentionYears: 15));

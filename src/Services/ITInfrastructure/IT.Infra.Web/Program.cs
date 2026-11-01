@@ -6,6 +6,7 @@ using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
 using IT.Infra.Infrastructure.Consumers;
 using IT.Infra.Infrastructure.Data;
+using IT.Infra.Infrastructure.Integration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
@@ -33,20 +34,7 @@ builder.Services.AddDbContext<ITInfraDbContext>((sp, options) =>
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
-builder.Services.AddServiceIdentityClient();
-var authDirectoryBase = builder.Configuration["Services:AuthDirectory:BaseUrl"];
-if (!string.IsNullOrWhiteSpace(authDirectoryBase))
-{
-    builder.Services.AddServiceAuthenticatedClient(
-        IT.Infra.Infrastructure.Integration.HttpDirectoryEntrySyncClient.HttpClientName,
-        new Uri(authDirectoryBase.TrimEnd('/') + "/"));
-}
-else
-{
-    builder.Services.AddHttpClient(IT.Infra.Infrastructure.Integration.HttpDirectoryEntrySyncClient.HttpClientName);
-}
-
-builder.Services.AddScoped<HRManagement.SharedKernel.Interfaces.IDirectoryEntrySyncService, IT.Infra.Infrastructure.Integration.HttpDirectoryEntrySyncClient>();
+builder.Services.AddDirectorySyncClient(builder.Configuration);
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ITInfraDbContext>());
 builder.Services.AddHrPolicyEnforceClient(builder.Configuration);

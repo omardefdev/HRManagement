@@ -1,0 +1,21 @@
+{
+  "step": "37c-asset-a-logistics-maker",
+  "method": "POST",
+  "url": "/ui/admin-logistics/Assets/CreateLegacy",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-01T00:54:54.0484584Z",
+  "body": {
+    "fields": [
+      "Name=AC-INT-37c laptop",
+      "Category=IT",
+      "Brand=Lab",
+      "PurchaseDate=2026-10-02",
+      "Value=500",
+      "Status=InStorage",
+      "LegacyEntryReason=PLAN-37 acceptance: legacy asset entered to prove the HR.Core asset tag"
+    ],
+    "postStatus": 302,
+    "redirect": "/ui/admin-logistics/Assets/Details/edc4890c-f4f5-446b-8471-3365f09bc7d7",
+    "final": "/ui/admin-logistics/Assets/Details/edc4890c-f4f5-446b-8471-3365f09bc7d7"
+  }
+}

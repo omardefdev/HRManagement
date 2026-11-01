@@ -121,10 +121,12 @@ builder.Services.AddSingleton<IGatewayJourneyCatalog, GatewayJourneyCatalog>();
 builder.Services.AddScoped<IGatewayHealthProbeService, GatewayHealthProbeService>();
 builder.Services.AddScoped<IGatewayAuditQueryService, GatewayAuditQueryService>();
 builder.Services.AddScoped<IJourneyRebuildService, JourneyRebuildService>();
-builder.Services.AddHttpClient("hr-core-journey", (sp, client) =>
+// PLAN-37: required URLs (start-up error naming the key outside Development; no localhost fallback in a container).
+var gatewayEndpoints = GatewayIntegrationEndpoints.Resolve(builder.Configuration, builder.Environment);
+builder.Services.AddSingleton(gatewayEndpoints);
+builder.Services.AddHttpClient("hr-core-journey", client =>
 {
-    var baseUrl = sp.GetRequiredService<IConfiguration>()["Integration:HrCoreBaseUrl"] ?? "http://localhost:5010";
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.BaseAddress = new Uri(gatewayEndpoints.HrCoreBaseUrl + "/");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 builder.Services.AddSingleton<GatewayRequestMetricsStore>();
