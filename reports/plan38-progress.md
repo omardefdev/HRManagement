@@ -226,3 +226,19 @@ Finished (UTC): 2026-11-01T16:12:50Z
   IntegrationTests now references IDCard.Web (lock file updated).
 
 Finished (UTC): 2026-11-01T16:29:36Z
+
+## P7 — in progress (server changes as made, with undo)
+
+| Change | Undo |
+|---|---|
+| Release 2deed1621200 copied/extracted to /opt/hrm/releases/2deed1621200 (`deploy.ps1 -PrepareOnly`), not deployed yet | `rm -rf /opt/hrm/releases/2deed1621200` |
+| `/opt/hrm/shared/.env`: 45 generated keys (30 role passwords, POSTGRES_BACKUP_PASSWORD, 14 RABBITMQ_<SVC>_PASS) + HRM_DB_POSTURE=demo, HRM_MQ_POSTURE=least-privilege (init-secrets.sh; 84 keys, mode 600). Copy before: `/opt/hrm/shared/.env.bak-plan38-20261101T163137Z` (600) | `cp -p /opt/hrm/shared/.env.bak-plan38-20261101T163137Z /opt/hrm/shared/.env` |
+- Server build 1 (tag 2deed1621200, build-on-host): upload 287 s; the ssh session was reset after 1562 s and the hr-migrate
+  bake had failed at the hr-contracts bundle ("Build failed"); the 16 other images were built. Rerun detached (nohup):
+  same failure. Root cause found by reproducing on the server (SDK 10.0.400 container, archive of the tag, `--verbose`):
+  with the shared Roslyn compiler server alive across the 15 consecutive builds, the Razor source generator produced
+  corrupted documents for the next web project (CS0101/CS8802 on HR.Contracts.Web, CS1056 on HRManagement.Web.Shared;
+  non-deterministic). Local image builds passed because the owner's local global.json lets SDK 10.0.403 roll forward.
+  A plain build without the RID failed too, so the RID was not the cause. Fix: build-ef-bundles.sh builds each startup
+  project with `dotnet build --disable-build-servers`, then `dotnet ef migrations bundle --no-build`. Verified on the
+  server: 15/15 bundles (repro6). Repro directories removed.

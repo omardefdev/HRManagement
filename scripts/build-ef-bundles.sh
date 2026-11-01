@@ -62,11 +62,20 @@ for entry in "${BUNDLES[@]}"; do
   # `dotnet ef` builds without restoring; a fresh checkout (the hr-migrate image build) has no assets file yet, and a
   # runtime-specific bundle needs the runtime-specific assets.
   dotnet restore "${startup}" ${RID:+--runtime "${RID}"}
+  # Build each startup project with the build servers disabled, then bundle it with --no-build. With the shared Roslyn
+  # compiler server kept alive across the 15 consecutive builds, SDK 10.0.400's Razor source generator produced
+  # corrupted documents for whichever web project came next (CS0101 / CS8802 / CS1056 on HR.Contracts.Web or
+  # HRManagement.Web.Shared views, PLAN-38 P7); every service image builds once in a fresh container and never hit it.
+  if ! dotnet build "${startup}" --configuration Release --no-restore --disable-build-servers ${RID:+--runtime "${RID}"}; then
+    echo "ERROR: Failed to build ${startup}"
+    exit 1
+  fi
   if ! dotnet ef migrations bundle \
       --project "${project}" \
       --startup-project "${startup}" \
       --configuration Release \
       --output "${out}" \
+      --no-build \
       --force ${bundle_args[@]+"${bundle_args[@]}"}; then
     echo "ERROR: Failed to build efbundle for ${name}"
     exit 1
