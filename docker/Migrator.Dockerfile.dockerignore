@@ -1,0 +1,64 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/node_modules
+**/.idea
+**/TestResults
+**/*.user
+**/*.suo
+**/.dockerignore
+.nuget/
+tmp/
+artifacts/
+
+# Secrets and credentials — must never enter image layers (SEC-004)
+.env
+.env.*
+.env.local
+*.pfx
+*.pem
+*.key
+*.secret
+secrets/
+credentials/
+
+# Local data and backups
+backups/
+postgres_data/
+logs/
+*.log
+
+# PLAN-38: context of docker/Migrator.Dockerfile (hr-migrate): the same as .dockerignore (the bundles build the same
+# projects and their runtime content), plus the bootstrap and migration scripts.
+# NOTE: docs/*.json matrices are runtime content (copied by ServiceDefaults) — do not exclude docs/.
+tests/
+src/Tests/
+terraform/
+perf/
+chaos/
+testdata/**
+!testdata/acceptance/
+!testdata/acceptance/personas.json
+!testdata/str004/
+!testdata/str004/agencies/
+!testdata/str004/agencies/*.json
+agent-transcripts/
+.cursor/
+**/*.trx
+**/coveragereport/
+*.md
+!README.md
+docs/**/*.md
+docs/output/
+docs/thesis_diagrams/
+docker/**
+scripts/**
+!scripts/build-ef-bundles.sh
+!scripts/run-migrations.sh
+!scripts/sql/
+!scripts/sql/**
+deploy/**
+!deploy/bootstrap/
+!deploy/bootstrap/**

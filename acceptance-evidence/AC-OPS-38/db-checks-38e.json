@@ -1,0 +1,5 @@
+{
+  "plugin": "rabbitmq_delayed_message_exchange 3.13.0 enabled",
+  "delayedErrors": 0,
+  "scheduledMessageTest": "Ops038RabbitLeastPrivilegeTests.A_message_scheduled_ten_seconds_ahead_through_the_delayed_exchange_arrives_after_the_delay"
+}

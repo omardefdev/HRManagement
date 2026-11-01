@@ -150,7 +150,7 @@ flowchart TB
 
 
 
-**مصدر الأرقام:** `[docker/init-databases.sql](../docker/init-databases.sql)`، `[README.md](../README.md)`، `[docs/database/README.md](./database/README.md)`.
+**مصدر الأرقام:** `[deploy/bootstrap/ensure-databases.sql](../deploy/bootstrap/ensure-databases.sql)` (كان `docker/init-databases.sql` حتى PLAN-38)، `[README.md](../README.md)`، `[docs/database/README.md](./database/README.md)`.
 
 ### 2.3 جدول مقارنة سريع
 
@@ -581,7 +581,7 @@ flowchart TB
 | 14  | `file_storage_db`   | File.Storage     | 5140   |
 
 
-**المصدر:** `[docker/init-databases.sql](../docker/init-databases.sql)`
+**المصدر:** `[deploy/bootstrap/ensure-databases.sql](../deploy/bootstrap/ensure-databases.sql)` (كان `docker/init-databases.sql` حتى PLAN-38)
 
 ---
 

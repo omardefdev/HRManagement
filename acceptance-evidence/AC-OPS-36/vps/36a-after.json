@@ -1,126 +1,119 @@
 [
   {
-    "service": "hr-gateway",
-    "image": "127.0.0.1:5050/hrmanagement/hr-gateway:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
     "service": "admin-logistics-web",
-    "image": "127.0.0.1:5050/hrmanagement/admin-logistics-web:9d457dab36d7",
+    "image": "127.0.0.1:5050/hrmanagement/admin-logistics-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
-    "service": "hr-core-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-core-web:9d457dab36d7",
+    "service": "hr-gateway",
+    "image": "127.0.0.1:5050/hrmanagement/hr-gateway:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "hr-contracts-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-contracts-web:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "file-storage-web",
-    "image": "127.0.0.1:5050/hrmanagement/file-storage-web:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "payroll-web",
-    "image": "127.0.0.1:5050/hrmanagement/payroll-web:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "hr-health-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-health-web:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "idcard-web",
-    "image": "127.0.0.1:5050/hrmanagement/idcard-web:9d457dab36d7",
+    "image": "127.0.0.1:5050/hrmanagement/hr-contracts-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "records-archive-web",
-    "image": "127.0.0.1:5050/hrmanagement/records-archive-web:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "dev-analytics-web",
-    "image": "127.0.0.1:5050/hrmanagement/dev-analytics-web:9d457dab36d7",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "hr-movements-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-movements-web:9d457dab36d7",
+    "image": "127.0.0.1:5050/hrmanagement/records-archive-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "compliance-web",
-    "image": "127.0.0.1:5050/hrmanagement/compliance-web:9d457dab36d7",
+    "image": "127.0.0.1:5050/hrmanagement/compliance-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
-    "service": "hr-training-web",
-    "image": "127.0.0.1:5050/hrmanagement/hr-training-web:9d457dab36d7",
+    "service": "hr-health-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-health-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "dev-analytics-web",
+    "image": "127.0.0.1:5050/hrmanagement/dev-analytics-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-movements-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-movements-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "auth-directory-web",
-    "image": "127.0.0.1:5050/hrmanagement/auth-directory-web:9d457dab36d7",
+    "image": "127.0.0.1:5050/hrmanagement/auth-directory-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
     "service": "it-infra-web",
-    "image": "127.0.0.1:5050/hrmanagement/it-infra-web:9d457dab36d7",
+    "image": "127.0.0.1:5050/hrmanagement/it-infra-web:7bd85bc3ac9d",
     "state": "running",
     "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "file-storage-web",
+    "image": "127.0.0.1:5050/hrmanagement/file-storage-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "payroll-web",
+    "image": "127.0.0.1:5050/hrmanagement/payroll-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-training-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-training-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "idcard-web",
+    "image": "127.0.0.1:5050/hrmanagement/idcard-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hr-core-web",
+    "image": "127.0.0.1:5050/hrmanagement/hr-core-web:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "hrm-bootstrap",
+    "image": "127.0.0.1:5050/hrmanagement/hr-migrate:7bd85bc3ac9d",
+    "state": "exited",
+    "health": "none",
     "exit": "0"
   },
   {
     "service": "keycloak",
     "image": "quay.io/keycloak/keycloak:24.0",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "postgresql",
-    "image": "postgres:16-alpine",
-    "state": "running",
-    "health": "healthy",
-    "exit": "0"
-  },
-  {
-    "service": "edge",
-    "image": "caddy:2.8.4",
     "state": "running",
     "health": "healthy",
     "exit": "0"
@@ -133,17 +126,31 @@
     "exit": "0"
   },
   {
-    "service": "rabbitmq",
-    "image": "rabbitmq:3.13-management-alpine",
+    "service": "seq",
+    "image": "datalust/seq:2024.3",
+    "state": "running",
+    "health": "none",
+    "exit": "0"
+  },
+  {
+    "service": "edge",
+    "image": "caddy:2.8.4",
     "state": "running",
     "health": "healthy",
     "exit": "0"
   },
   {
-    "service": "seq",
-    "image": "datalust/seq:2024.3",
+    "service": "postgresql",
+    "image": "postgres:16-alpine",
     "state": "running",
-    "health": "none",
+    "health": "healthy",
+    "exit": "0"
+  },
+  {
+    "service": "rabbitmq",
+    "image": "127.0.0.1:5050/hrmanagement/hr-rabbitmq:7bd85bc3ac9d",
+    "state": "running",
+    "health": "healthy",
     "exit": "0"
   },
   {

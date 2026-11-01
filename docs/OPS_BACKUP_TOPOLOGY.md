@@ -64,4 +64,4 @@ IT.Infra `BackupJobs` يزامن الحالة من الكتالوج عند `Run`
 
 ## جرد قواعد PostgreSQL (مصادر الحقيقة)
 
-يطابق [`docker/init-databases.sql`](../docker/init-databases.sql) — **16** قاعدة بما فيها `file_storage_db`.
+يطابق [`deploy/bootstrap/ensure-databases.sql`](../deploy/bootstrap/ensure-databases.sql) — **16** قاعدة بما فيها `file_storage_db`.

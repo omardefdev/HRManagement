@@ -27,7 +27,7 @@
 
 ## تدوير RabbitMQ
 
-1. `rabbitmqctl change_password mq_payroll '...'` أو أعد تشغيل `scripts/init-rabbitmq-service-users.sh` بعد تحديث env.
+1. `rabbitmqctl change_password mq_payroll '...'` أو (منذ PLAN-38) عدّل `RABBITMQ_PAYROLL_PASS` في `.env` وأعد النشر: `hrm-bootstrap` يضبط كلمة المرور ثم تُعاد الخدمة بها.
 2. أعد نشر الخدمة المعنية فقط.
 
 ## تدوير MinIO لـ File.Storage

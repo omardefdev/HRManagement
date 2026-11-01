@@ -1,4 +1,4 @@
-@model IssuedCard
+@model IssuedCardFormModel
 @{ ViewData["Title"] = "تعديل البطاقة"; var designs = (SelectList)ViewBag.Designs; }
 <div class="card">
     <form asp-action="Edit" method="post">
@@ -6,9 +6,9 @@
         <input type="hidden" asp-for="Id" />
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
-            <div class="mb-3"><label asp-for="CardDesignId" class="form-label"></label><select asp-for="CardDesignId" asp-items="designs" class="form-control"></select></div>
-            <div class="mb-3"><label asp-for="SerialNumber" class="form-label"></label><input asp-for="SerialNumber" class="form-control" /></div>
+            <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="CardDesignId" class="form-label"></label><select asp-for="CardDesignId" asp-items="designs" class="form-control"></select><span asp-validation-for="CardDesignId" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="SerialNumber" class="form-label"></label><input asp-for="SerialNumber" class="form-control" readonly disabled /></div>
             <div class="mb-3"><label asp-for="ExpiresAt" class="form-label"></label><input asp-for="ExpiresAt" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<CardStatus>()"></select></div>
         </div>

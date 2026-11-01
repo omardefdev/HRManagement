@@ -138,7 +138,7 @@ cut -d= -f1 "$f" | grep -E '^[A-Z]'     # تحقّق بأسماء المفاتي
 
 `deploy.ps1` و`remote-deploy.sh check-env` يرفضان النشر إن غاب مفتاح من `.env.vps.example`، أو فرغت قيمة سر، أو قصر
 `DEMO_USERS_PASSWORD` عن 16 حرفاً أو `GATEWAY_CALLER_PROOF_SECRET`/`HR_CORE_OTP_HMAC_KEY` عن 32 — دون طباعة أي قيمة.
-ولا تُكتب هذه الخطوة في مولّد ملتزم؛ المولّد الملتزم ← PLAN-38.
+منذ PLAN-38 يحلّ المولّد الملتزم `deploy/vps/init-secrets.sh` محل هذه الخطوة اليدوية (§12.2)؛ تبقى هنا للتاريخ.
 
 **إضافة مفتاح لخادم قائم (PLAN-37):** كل مفتاح `SVC_*` في `deploy/wiring/service-wiring.json` (حقل `secretEnv`) مطلوب. لإضافة
 الناقص فقط، على الخادم ودون طباعة:
@@ -251,6 +251,10 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | `docker login ghcr.io` على الخادم | `docker logout ghcr.io` (يحذف `~hrm/.docker/config.json`) |
 | PLAN-37: `SVC_AUTH_DIRECTORY_CLIENT_SECRET` في `/opt/hrm/shared/.env` | حذف السطر (`sed -i '/^SVC_AUTH_DIRECTORY_CLIENT_SECRET=/d'`) ثم إعادة النشر |
 | PLAN-37: عملاء ونطاقات Keycloak من المصفوفة (`keycloak-sync-clients.sh`) | لوحة Keycloak (§7): حذف العملاء/النطاقات المضافة؛ أو إرجاع الإصدار السابق (لا يحذف ما أُضيف) |
+| PLAN-38: 45 سراً ومفتاحا الوضعين أُضيفت إلى `/opt/hrm/shared/.env` (`init-secrets.sh`، 84 مفتاحاً) | استعادة `/opt/hrm/shared/.env.bak-plan38-20261101T163137Z` (600) ثم إعادة النشر |
+| PLAN-38: إعادة البناء من volumes فارغة (حُذفت `hrm_postgres_data` و`hrm_file_storage_data` و`hrm_gateway_dataprotection_keys` و14 `hrm_dp_*` وvolume RabbitMQ المجهول) | §12.5: الاستعادة من `/opt/hrm/backups/pre-plan38-20261101T175541Z` |
+| PLAN-38: volume جديد `hrm_rabbitmq_data` وvolume النتائج `hrm_bootstrap_results` | `docker volume rm` بعد `down` |
+| PLAN-38: `/opt/hrm/backups/` (700) | حذف المجلد بعد التأكد من عدم الحاجة إلى النسخة |
 
 ## 11. التسليم للمالك
 
@@ -261,3 +265,77 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
   المستخدمون: `hradmin` (مدير الموارد البشرية) ومستخدمو `e2e-*` في realm العرض، كلهم بهذه الكلمة.
 - Seq ولوحة Keycloak: §7. النشر والتراجع: §6.
 - **عطّل VNC في لوحة Contabo** حين لا تحتاجه.
+
+
+## 12. الإقلاع الأول والأسرار والوضعان (PLAN-38)
+
+### 12.1 ما يفعله `hrm-bootstrap` عند كل نشر
+
+حاوية لمرة واحدة (صورة `hr-migrate`، [deploy/bootstrap/bootstrap.sh](../deploy/bootstrap/bootstrap.sh)) تعمل عند كل
+`docker compose up` قبل أي تطبيق (`depends_on: condition: service_completed_successfully`)، وكل خطوة قابلة للإعادة:
+القواعد الـ16، وأدوار `<svc>_app`/`<svc>_migrator` بكلمة مستقلة لكل منها (تُضبط في كل تشغيل)، والترحيلات بدور
+`<svc>_migrator` ثم TEN-002C، ودور النسخ `hrm_backup` (قراءة فقط)، ومستخدمو RabbitMQ `mq_*`. التشغيل الثاني يطبع
+`0 migrations applied` لكل قاعدة. أي فشل يوقف النشر ولا يبدأ أي تطبيق. `remote-deploy.sh` يطبع سجلها وملف النتيجة
+(أسماء وأعداد، بلا أسرار) و`timing bootstrap_seconds`.
+
+### 12.2 المفاتيح الجديدة في `.env` (init-secrets)
+
+لا يُولَّد سر يدوياً. من مجلد إصدار على الخادم:
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/deploy.ps1 -Tag <sha12> -PrepareOnly   # من جهاز المالك
+ssh hrm-vps "cd /opt/hrm/releases/<sha12> && bash deploy/vps/init-secrets.sh"                         # المفاتيح الناقصة فقط
+```
+
+يضيف كل مفتاح ناقص من `${VAR:?}` في السلسلة و`.env.vps.example` ومصفوفتي الأدوار والوسيط: الأسرار بـ `openssl rand`
+(32 بايت base64url)، وغير الأسرار من القيمة الافتراضية في المثال، و`APP_DOMAIN` وأمثاله تُعطى بـ `--set KEY=VALUE` (مرفوض
+لأسماء الأسرار). لا يكتب فوق قيمة، ويطبع الأسماء فقط، ويبقي الملف 600.
+
+### 12.3 التدوير
+
+تعديل السطر في `/opt/hrm/shared/.env` (أو حذفه ثم `init-secrets.sh` لتوليد قيمة جديدة) ثم `deploy.ps1 -Tag <الوسم الحالي>`.
+`hrm-bootstrap` يضع كلمات مرور أدوار PostgreSQL ومستخدمي RabbitMQ، و`keycloak-sync-clients.sh` أسرار عملاء `SVC_*`، ثم
+تُعاد التطبيقات بالقيمة الجديدة؛ القيمة القديمة تُرفض فوراً (AC-OPS-38b).
+
+### 12.4 الوضعان
+
+| المفتاح | القيم | الأثر |
+|--------|-------|-------|
+| `HRM_MQ_POSTURE` (D-38-2) | `least-privilege` (الافتراضي) / `admin` | `admin` يضيف `docker-compose.posture-mq-admin.yml` (الحساب الإداري للتطبيقات، للرجوع فقط) |
+| `HRM_DB_POSTURE` (D-38-1) | `demo` (الافتراضي مع `HRM_DEPLOYMENT_MODE=demo`) / `least-privilege` | `least-privilege` مع وضع العرض مرفوض حتى الموجة 2 (OPS-D)؛ مثبت على مكدّس `hrm-leastpriv` |
+
+حارس الإنتاج يرفض مستخدم وسيط غير `mq_*` مع `Deployment:MqPosture=least-privilege`، ومستخدم قاعدة غير `*_app` مع
+`Deployment:DbPosture=least-privilege`.
+
+### 12.5 إعادة بناء خادم العرض من volumes فارغة (S-1، 2026-11-01)
+
+ما جرى بالترتيب، وكل خطوة متحقَّق منها قبل التالية:
+
+1. `init-secrets.sh` على `.env` القائم: أُضيف 45 سراً ومفتاحا الوضعين (لم تُمسّ قيمة قائمة؛ نسخة الملف قبلها:
+   `/opt/hrm/shared/.env.bak-plan38-20261101T163137Z`).
+2. بناء الوسم `7bd85bc3ac9d` على الخادم (17 صورة، منها `hr-migrate` و`hr-rabbitmq`) ودفعه إلى السجل الحلقي.
+3. الوسيط فارغ (0 رسالة في 120 طابوراً) ثم نسخة كاملة متحقَّق منها في
+   `/opt/hrm/backups/pre-plan38-20261101T175541Z` (700، الملفات 600): `pg_dumpall.sql` (16 قاعدة كلها حاضرة) وأرشيف
+   tar غير فارغ لكل volume حُذف ولـ Seq، و`SHA256SUMS`.
+4. `down` ثم حذف volumes البيانات (الجدول في §10)، مع إبقاء Caddy (الشهادات) وSeq وClamAV وصندوقي الإرسال.
+5. `deploy.ps1 -Tag 7bd85bc3ac9d`: `hrm-bootstrap` أنهى في 48 ث (264 ترحيلاً بأدوار `*_migrator`، و14 مستخدم `mq_*`)،
+   وكل الحاويات سليمة بعد 12 ث من `up`، ومزامنة Keycloak 98 ث. التوقف 5 د 53 ث (17:56:40Z–18:02:33Z، من `down` إلى سطر `healthy` في `deployments.log`).
+6. الفحص: smoke 48/0، والوسيط لا يرى إلا اتصالات `mq_*` (14)، وملحق الرسائل المؤجلة `3.13.0` مفعّل، والعقدة
+   `rabbit@rabbitmq` على `hrm_rabbitmq_data`. الدليل: `acceptance-evidence/AC-OPS-38/vps/`.
+
+**الاستعادة من النسخة** (إن لزم الرجوع إلى بيانات ما قبل إعادة البناء):
+
+```bash
+cd /opt/hrm/current && B=/opt/hrm/backups/pre-plan38-20261101T175541Z
+(cd "$B" && sha256sum -c SHA256SUMS)
+docker compose -p hrm <ملفات السلسلة كما في current> down
+docker volume rm hrm_postgres_data hrm_file_storage_data hrm_gateway_dataprotection_keys $(docker volume ls -q | grep '^hrm_dp_')
+docker compose -p hrm <ملفات السلسلة> up -d postgresql      # قاعدة فارغة يهيئها 01-init
+docker exec -i "$(docker ps -qf label=com.docker.compose.service=postgresql)" sh -c 'psql -U "$POSTGRES_USER" -d postgres' < "$B/pg_dumpall.sql"
+for v in file_storage_data gateway_dataprotection_keys $(ls "$B" | sed -n 's/^\(dp_.*\)\.tar\.gz$/\1/p'); do
+  docker run --rm -i -v "hrm_$v:/v" alpine:3.20.3 tar -C /v -xzf - < "$B/$v.tar.gz"
+done
+```
+
+ثم `deploy.ps1 -Tag <الوسم>`: `hrm-bootstrap` يجد القواعد والترحيلات قائمة فيضبط كلمات مرور الأدوار فقط. أخطاء
+`already exists` من `pg_dumpall` على الأدوار والقواعد التي أنشأها 01-init متوقعة.

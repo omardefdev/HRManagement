@@ -64,6 +64,19 @@
       "decidedAt": "2026-10-30",
       "closesExceptionIds": ["EX-STR005-SIM-LAW-INTERIM", "EX-STR005-SIM-INCIDENT-WINDOW"],
       "notes": "PLAN-34 / D-QA-3: both STR-005 simulation-seed exceptions are Closed, not renewed (no date extended). EX-STR005-SIM-INCIDENT-WINDOW expired 2026-09-15 and stopped Production/Staging startup of Gateway, HR.Core and Payroll (EnforceOnStartup); EX-STR005-SIM-LAW-INTERIM expired at the end of 2026-10-30. The simulation scenarios stay in testdata/str005/scenarios. A real exception later needs its own decision and an image rebuild (the matrix ships in the build output) or ProgramGovernance:MatrixPath pointing at a mounted file."
+    },
+    {
+      "decisionId": "PG-OPS38-OBJECTSTORAGE-CI",
+      "type": "ExceptionGrant",
+      "ownerRole": "operations",
+      "reviewerRole": "qa",
+      "board": "Architecture",
+      "adrRef": "docs/acceptance-plans/PLAN-38-ops-first-boot-data-broker-secrets.md",
+      "status": "Approved",
+      "evidenceRef": "reports/plan38-final-report.md",
+      "decidedAt": "2026-11-01",
+      "renewsObligation": "QA-CI-EXCLUSIONS/ObjectStorage (excludedOn 2026-10-30, reviewBy 2026-12-14)",
+      "notes": "PLAN-38 / D-38-7 (owner accepted 2026-10-31): no vetted, digest-pinned MinIO image is set (MINIO_IMAGE / HRM_MINIO_IMAGE), so the ObjectStorage test category stays out of CI. The PLAN-34 exclusion is marked Renewed (its date is not moved) and a new exclusion entry starts 2026-11-01 with its own review date and the next owner (wave 2, OPS-E object storage). File.Storage runs on the Local provider; hrm-bootstrap provisions the MinIO user only with the minio profile and refuses to run with it until a MinIO client and image are vetted."
     }
   ]
 }

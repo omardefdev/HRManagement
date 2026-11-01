@@ -81,7 +81,8 @@ for id in $(docker ps -aq --filter "label=com.docker.compose.project=$HRM_PROJEC
   [ "$5" = "true" ] && oom="$oom $1"
   case "$2:$3" in
     running:healthy|running:none) ;;
-    exited:none) { [ "$1" = "volume-init" ] && [ "$4" = "0" ]; } || bad="$bad $1($2/exit $4)";;
+    # One-shot containers: volume-init and (PLAN-38) hrm-bootstrap must have exited 0.
+    exited:none) { { [ "$1" = "volume-init" ] || [ "$1" = "hrm-bootstrap" ]; } && [ "$4" = "0" ]; } || bad="$bad $1($2/exit $4)";;
     *) bad="$bad $1($2/$3)";;
   esac
 done

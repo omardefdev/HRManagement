@@ -142,6 +142,21 @@ try {
         Write-Host "[build] batch $n/$($batches.Count): $((@($targets.Keys)) -join ', ')"
         Assert-Native (Invoke-Native 'docker' @('buildx', 'bake', '--progress=plain', '-f', $bakeFile, '--load')) "buildx bake batch $n" $log
     }
+    # PLAN-38: the data-plane initialiser and the broker with the delayed-message plugin (their own Dockerfiles), last.
+    $extraTargets = [ordered]@{}
+    foreach ($x in @(@{ s = 'hr-migrate'; c = $src; d = 'docker/Migrator.Dockerfile' }, @{ s = 'hr-rabbitmq'; c = (Join-Path $src 'docker\rabbitmq'); d = 'Dockerfile' })) {
+        if ($Services.Count -gt 0 -and $Services -notcontains $x.s) { continue }
+        $extraTargets[$x.s] = [ordered]@{ context = $x.c.Replace('\', '/'); dockerfile = $x.d; platforms = @('linux/amd64'); tags = @("$Registry/$($x.s):$Tag")
+            labels = [ordered]@{ 'org.opencontainers.image.revision' = $Tag; 'org.opencontainers.image.source' = 'hrmanagement' } }
+    }
+    if ($extraTargets.Count -gt 0) {
+        $bake = [ordered]@{ group = [ordered]@{ default = [ordered]@{ targets = @($extraTargets.Keys) } }; target = $extraTargets }
+        $bakeFile = Join-Path $artifacts "bake-$Tag-extra.json"
+        [System.IO.File]::WriteAllText($bakeFile, ($bake | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding($false)))
+        Write-Host "[build] extra: $((@($extraTargets.Keys)) -join ', ')"
+        Assert-Native (Invoke-Native 'docker' @('buildx', 'bake', '--progress=plain', '-f', $bakeFile, '--load')) 'buildx bake extra' $log
+        $matrix = @($matrix) + @($extraTargets.Keys | ForEach-Object { [pscustomobject]@{ service = $_ } })
+    }
     $buildWatch.Stop()
     Write-Host ("[build] {0} images in {1:N0} s" -f @($matrix).Count, $buildWatch.Elapsed.TotalSeconds)
     }

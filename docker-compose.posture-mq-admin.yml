@@ -1,0 +1,52 @@
+# PLAN-38 (D-38-2): the way BACK to the RabbitMQ administrator for the applications, never the default. The single host
+# runs the least-privilege mq_* users of docker-compose.production.yml; deploy/vps/remote-deploy.sh adds this file only
+# when the server's .env says HRM_MQ_POSTURE=admin (for example while diagnosing a permission refusal). The production
+# configuration guard accepts the administrator only together with Deployment:MqPosture=admin.
+
+x-mq-admin-env: &mq-admin-env
+  Deployment__MqPosture: admin
+  RabbitMQ__Username: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
+  RabbitMQ__Password: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
+
+services:
+  hr-core-web:
+    environment: *mq-admin-env
+
+  hr-contracts-web:
+    environment: *mq-admin-env
+
+  hr-health-web:
+    environment: *mq-admin-env
+
+  hr-movements-web:
+    environment: *mq-admin-env
+
+  hr-training-web:
+    environment: *mq-admin-env
+
+  payroll-web:
+    environment: *mq-admin-env
+
+  idcard-web:
+    environment: *mq-admin-env
+
+  records-archive-web:
+    environment: *mq-admin-env
+
+  admin-logistics-web:
+    environment: *mq-admin-env
+
+  it-infra-web:
+    environment: *mq-admin-env
+
+  dev-analytics-web:
+    environment: *mq-admin-env
+
+  compliance-web:
+    environment: *mq-admin-env
+
+  auth-directory-web:
+    environment: *mq-admin-env
+
+  file-storage-web:
+    environment: *mq-admin-env

@@ -6,6 +6,7 @@ using IDCard.Domain.Entities;
 using IDCard.Domain.Enums;
 using IDCard.Domain.Services;
 using IDCard.Infrastructure.Data;
+using IDCard.Web.Models;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.CodeGeneration;
@@ -56,26 +57,18 @@ public class IssuedCardsController : Controller
 
     public async Task<IActionResult> Create()
     {
-        var designs = await _db.CardDesigns.AsNoTracking().OrderBy(d => d.Name).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync();
-        ViewBag.Designs = new SelectList(designs, "Id", "Name");
-        return View(new IssuedCard
-        {
-            IssuedAt = DateTime.UtcNow,
-            Status = CardStatus.Active,
-            RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours
-        });
+        await LoadDesignsAsync(null);
+        return View(new IssuedCardFormModel());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(IssuedCard model)
+    public async Task<IActionResult> Create(IssuedCardFormModel model)
     {
-        var designs = await _db.CardDesigns.AsNoTracking().OrderBy(d => d.Name).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync();
-        ViewBag.Designs = new SelectList(designs, "Id", "Name", model.CardDesignId);
-
+        await LoadDesignsAsync(model.CardDesignId);
+        if (model.CardDesignId is { } designId && !await _db.CardDesigns.AnyAsync(d => d.Id == designId))
+            ModelState.AddModelError(nameof(model.CardDesignId), "التصميم غير موجود");
         if (!ModelState.IsValid) return View(model);
-        if (model.RevokeSlaHours <= 0)
-            model.RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours;
 
         var (ok, serial, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
             _codeClient, CodeGenerationRequests.IdCardSerial());
@@ -85,16 +78,25 @@ public class IssuedCardsController : Controller
             return View(model);
         }
 
-        model.SerialNumber = serial!;
-        _db.IssuedCards.Add(model);
+        var card = new IssuedCard
+        {
+            EmployeeId = model.EmployeeId!.Value,
+            CardDesignId = model.CardDesignId!.Value,
+            IssuedAt = model.IssuedAt,
+            ExpiresAt = model.ExpiresAt,
+            Status = model.Status,
+            SerialNumber = serial!,
+            RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours,
+        };
+        _db.IssuedCards.Add(card);
         await _db.SaveChangesAsync();
 
         await _publish.Publish<ICardIssued>(new
         {
-            EmployeeId = model.EmployeeId,
-            IssuedCardId = model.Id,
-            SerialNumber = model.SerialNumber,
-            IssuedAt = model.IssuedAt,
+            EmployeeId = card.EmployeeId,
+            IssuedCardId = card.Id,
+            SerialNumber = card.SerialNumber,
+            IssuedAt = card.IssuedAt,
             CorrelationId = CorrelationIdFlow.Get()
         });
         await _db.SaveChangesAsync();
@@ -107,30 +109,39 @@ public class IssuedCardsController : Controller
     {
         var card = await _db.IssuedCards.FindAsync(id);
         if (card is null) return NotFound();
-        ViewBag.Designs = new SelectList(await _db.CardDesigns.AsNoTracking().OrderBy(d => d.Name).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Name");
-        return View(card);
+        await LoadDesignsAsync(card.CardDesignId);
+        return View(IssuedCardFormModel.From(card));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, IssuedCard model)
+    public async Task<IActionResult> Edit(Guid id, IssuedCardFormModel model)
     {
         if (id != model.Id) return NotFound();
-        if (!ModelState.IsValid)
-        {
-            ViewBag.Designs = new SelectList(await _db.CardDesigns.AsNoTracking().OrderBy(d => d.Name).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Name");
-            return View(model);
-        }
+        if (model.CardDesignId is { } designId && !await _db.CardDesigns.AnyAsync(d => d.Id == designId))
+            ModelState.AddModelError(nameof(model.CardDesignId), "التصميم غير موجود");
         var card = await _db.IssuedCards.FindAsync(id);
         if (card is null) return NotFound();
+        if (!ModelState.IsValid)
+        {
+            await LoadDesignsAsync(model.CardDesignId);
+            model.SerialNumber = card.SerialNumber;
+            return View(model);
+        }
 
-        card.EmployeeId = model.EmployeeId;
-        card.CardDesignId = model.CardDesignId;
+        card.EmployeeId = model.EmployeeId!.Value;
+        card.CardDesignId = model.CardDesignId!.Value;
         card.ExpiresAt = model.ExpiresAt;
         // SerialNumber immutable (COD-001)
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث البطاقة";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private async Task LoadDesignsAsync(Guid? selected)
+    {
+        var designs = await _db.CardDesigns.AsNoTracking().OrderBy(d => d.Name).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync();
+        ViewBag.Designs = new SelectList(designs, "Id", "Name", selected);
     }
 
     [HttpPost]

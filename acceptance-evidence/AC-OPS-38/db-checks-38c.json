@@ -1,0 +1,7 @@
+{
+  "publishedBy": "mq_payroll",
+  "consumedBy": "dev-analytics-web-payroll-processed (mq_dev_analytics)",
+  "hrCoreAppDdl": "refused (42501)",
+  "hrCoreAppToPayrollDb": "refused (42501)",
+  "mqPayrollDeclareHrCoreQueue": "ACCESS_REFUSED (403)"
+}

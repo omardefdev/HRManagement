@@ -100,7 +100,8 @@ public static class AcceptanceMessagingHelper
         var root = AcceptanceHarness.RepoRoot;
         var scriptPath = Path.Combine(root, "scripts", scriptName);
         var argList = string.Join(' ', args.Select(a => $"-{a.Key} \"{a.Value}\""));
-        var psi = new ProcessStartInfo("pwsh", $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" {argList}")
+        // PLAN-38 (P-2): PowerShell 7 when installed, else Windows PowerShell 5.1 (the scripts run under both).
+        var psi = new ProcessStartInfo(PowerShellExecutable, $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" {argList}")
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -113,6 +114,17 @@ public static class AcceptanceMessagingHelper
         await p.WaitForExitAsync();
         return (p.ExitCode, output + err);
     }
+
+    private static readonly Lazy<string> PowerShell = new(() =>
+    {
+        var exe = OperatingSystem.IsWindows() ? "pwsh.exe" : "pwsh";
+        var onPath = (Environment.GetEnvironmentVariable("PATH") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Any(dir => File.Exists(Path.Combine(dir, exe)));
+        return onPath ? "pwsh" : "powershell";
+    });
+
+    private static string PowerShellExecutable => PowerShell.Value;
 
     public static async Task<string> ResolveAcceptanceContainerAsync(string service)
     {

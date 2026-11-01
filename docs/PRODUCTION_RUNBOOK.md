@@ -31,7 +31,7 @@ Copy [`.env.example`](../.env.example) to `.env` and fill all secrets before pro
 1. **Secrets** — inject via `.env` or secret manager (`POSTGRES_PASSWORD`, `KEYCLOAK_HR_GATEWAY_CLIENT_SECRET`, etc.). Never rely on committed `appsettings.json` passwords.
 2. **Infrastructure** — start PostgreSQL and RabbitMQ; wait until healthy (`pg_isready`, RabbitMQ ping).
 3. **Keycloak** — verify realm `hrmanagement` and clients per [KEYCLOAK_AND_SECRETS.md](./KEYCLOAK_AND_SECRETS.md). Production uses `command: start` (not `start-dev`).
-4. **Migrations (production)** — run `bash scripts/run-migrations.sh` **before** restarting app containers. Startup migrations are disabled via `Database__RunMigrationsAtStartup=false`.
+4. **Migrations (production)** — PLAN-38: the one-shot `hrm-bootstrap` container (image `hr-migrate`) runs on every `docker compose up` before any application (`depends_on: condition: service_completed_successfully`): databases, per-service roles and passwords, migrations as `<svc>_migrator`, TEN-002C, `hrm_backup`, RabbitMQ `mq_*` users. Startup migrations stay disabled (`Database__RunMigrationsAtStartup=false`). The k8s Job runs the same image with `scripts/run-migrations.sh`.
 5. **Module services** — start all module containers; gate on `GET /health/ready` → HTTP 200.
 6. **Gateway** — start last; verify `/health/ready`, `/Home/UpstreamHealth`, and OIDC login.
 7. **Module rollout** — enable modules incrementally with `Gateway__EnabledModules__N` (pilot with `hr-core` first).
@@ -60,7 +60,7 @@ Copy [`.env.example`](../.env.example) to `.env` and fill all secrets before pro
 
 1. Tag release (`v*`) or trigger `deploy` workflow with `action=deploy`.
 2. **Backup** affected databases (`bash scripts/backup-postgres.sh`).
-3. **Migrate** changed services (`bash scripts/run-migrations.sh` or CI migrate job — runs on tag push and when `run_migrations=true`).
+3. **Migrate** — automatic: `hrm-bootstrap` (PLAN-38) migrates on the host during `up`; the GitHub runner `migrate` job was removed (it could not reach the closed PostgreSQL).
 4. **Pull** GHCR images on target host using `IMAGE_TAG` + `docker-compose.images.yml`.
 5. **Rolling update** via `docker compose ... up -d --remove-orphans`.
 6. **Health gate** — CI runs `scripts/verify-staging-stack.ps1` (failure triggers auto-rollback).
@@ -103,8 +103,18 @@ Production overlay configures:
 See [DATABASE_MIGRATION_POLICY.md](./DATABASE_MIGRATION_POLICY.md).
 
 - **Development:** `Database:RunMigrationsAtStartup` defaults to `true`.
-- **Production:** set `Database:RunMigrationsAtStartup: false` in `appsettings.Production.json` and env.
-- **Apply manually or via CI:**
+- **Production (PLAN-38):** `Database:RunMigrationsAtStartup=false`; the `hrm-bootstrap` init container
+  ([deploy/bootstrap/bootstrap.sh](../deploy/bootstrap/bootstrap.sh), image `hr-migrate` from
+  [docker/Migrator.Dockerfile](../docker/Migrator.Dockerfile)) applies every migration on every deploy, idempotently:
+  1. wait for PostgreSQL; 2. `ensure-databases.sql` (16 databases, no CONNECT for PUBLIC); 3. `ensure-roles.sql`
+     (`<svc>_app` / `<svc>_migrator`, passwords set on every run: rotation = change `.env` + deploy); 4. each
+     self-contained EF bundle as `<svc>_migrator` (no password on the command line: Npgsql reads `PGPASSWORD`), then
+     TEN-002C as the table owner; 5. `hrm_backup`; 6. RabbitMQ `mq_*` users; 7. MinIO (only with the minio profile);
+     8. a result file without secrets (`bootstrap_results` volume, also printed by `remote-deploy.sh`).
+  A second run prints `0 migrations applied` for every database. Any failure exits non-zero and no application starts.
+- Every table belongs to its `<svc>_migrator`; the applications connect as `<svc>_app` (least-privilege posture) or, on
+  the single-host demo, as the administrator (D-38-1, until wave 2 / OPS-D).
+- **Manual (development or k8s):**
 
 ```bash
 dotnet ef database update \
@@ -168,7 +178,10 @@ bash scripts/backup-minio.sh
 docker compose ... --profile backup up -d postgres-backup minio-backup
 ```
 
-Backs up **all 16 databases** listed in `docker/init-databases.sql` (including `file_storage_db`). Retention: `BACKUP_RETENTION_DAYS` (default 30 / warm tier). See [OPS_BACKUP_TOPOLOGY.md](./OPS_BACKUP_TOPOLOGY.md).
+PLAN-38: `postgres-backup` connects as the read-only `hrm_backup` role (`pg_read_all_data` + `BYPASSRLS`, created by
+`hrm-bootstrap`) with `POSTGRES_BACKUP_PASSWORD`, never the administrator. Scheduling and restore drills: wave 2 (OPS-E).
+
+Backs up **all 16 databases** listed in `deploy/bootstrap/ensure-databases.sql` (including `file_storage_db`). Retention: `BACKUP_RETENTION_DAYS` (default 30 / warm tier). See [OPS_BACKUP_TOPOLOGY.md](./OPS_BACKUP_TOPOLOGY.md).
 
 ### Manual
 

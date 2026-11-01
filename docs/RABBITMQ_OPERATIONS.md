@@ -81,3 +81,27 @@ HR.Contracts، HR.Core، Payroll، Movements، Health، IDCard، Compliance، Tr
 ## واجهات الإدارة
 
 استخدم واجهة إدارة RabbitMQ (أو Prometheus + exporter) حسب بيئة التشغيل لديك. راقب طوابير `_error` بعد تفعيل Retry.
+
+## الصورة والمستخدمون بأقل صلاحية (PLAN-38)
+
+- **الصورة `hr-rabbitmq`** ([docker/rabbitmq/Dockerfile](../docker/rabbitmq/Dockerfile)): `rabbitmq:3.13-management-alpine` مثبتة
+  بالـ digest، مع إضافة `rabbitmq_delayed_message_exchange` 3.13.0 (SHA-256 مثبت في الـ Dockerfile ويُتحقق منه عند البناء)،
+  مفعّلة دون اتصال. تحتاجها `UseDelayedMessageScheduler` لمهل الـ sagas: كل `Schedule(...)` يعلن تبادلاً
+  `<طابور الـ saga>_delay` من نوع `x-delayed-message`. تُبنى محلياً في التطوير والقبول، وعلى الخادم مع بقية الصور
+  (`build-on-host`)، ويسحبها ملف الصور `${HRM_IMAGE_REPO}/hr-rabbitmq:${IMAGE_TAG}`.
+- **عقدة ثابتة**: `hostname: rabbitmq` و`RABBITMQ_NODENAME=rabbit@rabbitmq` وvolume مسمّى `rabbitmq_data`، فلا تضيع
+  رسالة دائمة ولا طابور quorum عند `docker compose up -d --force-recreate rabbitmq` (AC-OPS-38f).
+- **المستخدمون** ([deploy/bootstrap/rabbitmq-users.json](../deploy/bootstrap/rabbitmq-users.json)، بلا أسرار): مستخدم
+  `mq_*` لكل خدمة لها ناقل (14؛ البوابة بلا ناقل). صلاحية `configure` مشتقة من جرد حي
+  ([reports/plan38-rabbit-topology.json](../reports/plan38-rabbit-topology.json)):
+  `^(<prefix>-.*|HRManagement\.MessageContracts\.(Events|Commands):.*|MassTransit:Fault.*|[^-]+_bus_[^-]+)$`
+  (و`HR\.Contracts\.Infrastructure\.Sagas:.*` لـ HR.Contracts). البادئة = اسم مشروع `.Web` بأحرف صغيرة وشرطات
+  (`MassTransitExtensions.EndpointPrefixFor`). `read` = تعبير `configure` نفسه (لا يستهلك مستخدم طوابير خدمة أخرى ولا يفرغها)، و`write` = `.*` (النشر والإرسال). لا يستطيع مستخدم إعلان طابور خدمة أخرى ولا قراءته
+  (`ACCESS_REFUSED`، AC-OPS-38c). ينشئهم `hrm-bootstrap` (الخطوة 6) عبر واجهة الإدارة الداخلية ويضع كلمات مرورهم عند كل نشر.
+- **الوضعان (D-38-2)**: `HRM_MQ_POSTURE=least-privilege` افتراضياً (حارس الإنتاج يرفض أي مستخدم غير `mq_*`)؛
+  `HRM_MQ_POSTURE=admin` يضيف `docker-compose.posture-mq-admin.yml` للرجوع إلى الحساب الإداري فقط.
+- **فحص**: `docker exec <rabbitmq> rabbitmqctl list_connections user` يجب أن يظهر `mq_*` فقط؛
+  `rabbitmq-plugins list -e rabbitmq_delayed_message_exchange` يظهرها `[E*]`.
+- **ملاحظة**: `ScheduleSend` إلى عنوان مختصر `queue:<name>` يعلن طابوراً classic فيتعارض مع طابور الاستقبال quorum
+  (`PRECONDITION_FAILED`) ويعيد المحاولة بلا نهاية؛ الـ sagas تجدول إلى عنوان إدخالها هي، وهذا مختبر
+  (`Ops038RabbitLeastPrivilegeTests`). لا تستخدم العنوان المختصر للجدولة.

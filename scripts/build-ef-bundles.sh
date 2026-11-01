@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # DB-001-C: Build EF Core migration bundles for all 15 DbContexts into artifacts/efbundles/.
+#
+#   bash scripts/build-ef-bundles.sh [--self-contained] [-r <rid>]
+#
+# PLAN-38: --self-contained -r linux-x64 is what docker/Migrator.Dockerfile uses (the hr-migrate image runs the bundles
+# on runtime-deps, without a .NET runtime). Every context has an IDesignTimeDbContextFactory, so a bundle needs only
+# --connection at run time (it never runs the service's Program).
 
 set -euo pipefail
 
@@ -7,6 +13,24 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
 OUT_DIR="${EFBUNDLE_DIR:-${ROOT}/artifacts/efbundles}"
+SELF_CONTAINED=0
+RID=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --self-contained) SELF_CONTAINED=1; shift;;
+    -r|--runtime) RID="${2:?-r needs a runtime identifier}"; shift 2;;
+    *) echo "unknown option: $1 (usage: build-ef-bundles.sh [--self-contained] [-r <rid>])" >&2; exit 2;;
+  esac
+done
+if [ "${SELF_CONTAINED}" = "1" ] && [ -z "${RID}" ]; then
+  echo "--self-contained needs -r <rid>" >&2
+  exit 2
+fi
+
+bundle_args=()
+[ -n "${RID}" ] && bundle_args+=(--runtime "${RID}")
+[ "${SELF_CONTAINED}" = "1" ] && bundle_args+=(--self-contained)
+
 mkdir -p "${OUT_DIR}"
 
 dotnet tool restore >/dev/null
@@ -33,14 +57,26 @@ declare -a BUNDLES=(
 for entry in "${BUNDLES[@]}"; do
   IFS='|' read -r name project startup <<< "${entry}"
   out="${OUT_DIR}/${name}"
-  echo "Building efbundle ${name} -> ${out} ..."
+  echo "Building efbundle ${name} -> ${out} ${bundle_args[*]:-} ..."
   rm -f "${out}" "${out}.exe"
+  # `dotnet ef` builds without restoring; a fresh checkout (the hr-migrate image build) has no assets file yet, and a
+  # runtime-specific bundle needs the runtime-specific assets.
+  dotnet restore "${startup}" ${RID:+--runtime "${RID}"}
+  # Build each startup project with the build servers disabled, then bundle it with --no-build. With the shared Roslyn
+  # compiler server kept alive across the 15 consecutive builds, SDK 10.0.400's Razor source generator produced
+  # corrupted documents for whichever web project came next (CS0101 / CS8802 / CS1056 on HR.Contracts.Web or
+  # HRManagement.Web.Shared views, PLAN-38 P7); every service image builds once in a fresh container and never hit it.
+  if ! dotnet build "${startup}" --configuration Release --no-restore --disable-build-servers ${RID:+--runtime "${RID}"}; then
+    echo "ERROR: Failed to build ${startup}"
+    exit 1
+  fi
   if ! dotnet ef migrations bundle \
       --project "${project}" \
       --startup-project "${startup}" \
       --configuration Release \
       --output "${out}" \
-      --force; then
+      --no-build \
+      --force ${bundle_args[@]+"${bundle_args[@]}"}; then
     echo "ERROR: Failed to build efbundle for ${name}"
     exit 1
   fi

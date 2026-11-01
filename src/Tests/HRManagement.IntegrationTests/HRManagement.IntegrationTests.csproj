@@ -40,6 +40,7 @@
     <ProjectReference Include="..\..\Services\RecordsArchive\Records.Archive.Infrastructure\Records.Archive.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Infrastructure\Auth.Directory.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\IDCard\IDCard.Infrastructure\IDCard.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Services\IDCard\IDCard.Web\IDCard.Web.csproj" />
     <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Web\File.Storage.Web.csproj" />
     <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Infrastructure\File.Storage.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Infrastructure\HR.Movements.Infrastructure.csproj" />
