@@ -242,3 +242,59 @@ Finished (UTC): 2026-11-01T16:29:36Z
   A plain build without the RID failed too, so the RID was not the cause. Fix: build-ef-bundles.sh builds each startup
   project with `dotnet build --disable-build-servers`, then `dotnet ef migrations bundle --no-build`. Verified on the
   server: 15/15 bundles (repro6). Repro directories removed.
+| Server build 2 (tag 7bd85bc3ac9d): 17 images in 127.0.0.1:5050/hrmanagement (hr-migrate 3.76 GB, digest sha256:86f0f4cd…); upload 465 s, build 640 s, push 15 s, total 1147 s | registry tag delete + `docker image rm` |
+| Broker before the rebuild (P-8, 2026-11-01T17:54:50Z): 120 queues, 0 messages | — |
+| Backup `/opt/hrm/backups/pre-plan38-20261101T175541Z` (700/600, hrm): pg_dumpall.sql 25.2 MB (17 CREATE DATABASE incl. the 16, 457 COPY), tars of file_storage_data (21 entries), gateway_dataprotection_keys, 14 dp_*, seq_data (84 MB), SHA256SUMS; verified (47 s) | `rm -rf` the directory once no longer needed |
+
+Downtime starts (UTC): 2026-11-01T17:56:40Z
+
+| Change (after the downtime start) | Undo |
+|---|---|
+| Project `hrm` down (4 s); volumes removed: hrm_postgres_data, hrm_file_storage_data, hrm_gateway_dataprotection_keys, 14 hrm_dp_*, the anonymous RabbitMQ volume (kept: caddy_data, caddy_config, seq_data, clamav_data, both outboxes) | restore from the backup (docs/OPS_VPS_SINGLE_HOST.md §12.5) |
+| Deploy 7bd85bc3ac9d (`deploy.ps1 -Tag`): 342 s; pull 2 s, `up` 139 s, hrm-bootstrap 48 s (exit 0, 264 migrations as *_migrator, 30 roles, hrm_backup, 14 mq_* users), healthy 12 s after `up`, Keycloak sync 98 s; current-tag 7bd85bc3ac9d, previous-tag 9d457dab36d7. New volumes hrm_rabbitmq_data, hrm_bootstrap_results | `deploy.ps1 -Rollback` (the previous tag has no hrm-bootstrap; with empty volumes it needs the backup restored first) |
+| `smoke.sh` of release 7bd85bc3ac9d replaced by the fixed one (accepts the exited-0 hrm-bootstrap); original kept as `smoke.sh.orig-plan38` | `mv smoke.sh.orig-plan38 smoke.sh` in `/opt/hrm/releases/7bd85bc3ac9d/deploy/vps` |
+
+Downtime ends (UTC): 2026-11-01T18:02:33Z (5 min 53 s: from `down` to the `healthy` line of deployments.log)
+
+- After the deploy: smoke 48 pass / 1 fail (`containers-healthy`: the exited one-shot hrm-bootstrap, which smoke.sh did not
+  know); fixed in deploy/vps/smoke.sh, 48/0 with the fixed script. Broker: 14 connections, all `mq_*`; plugin
+  `rabbitmq_delayed_message_exchange 3.13.0` enabled; node `rabbit@rabbitmq` on `hrm_rabbitmq_data`; image
+  hr-rabbitmq:7bd85bc3ac9d. DB posture demo: the applications connect as the administrator (as decided, D-38-1); the
+  30 roles and hrm_backup exist. Evidence: acceptance-evidence/AC-OPS-38/vps/broker-and-bootstrap.txt.
+- PLAN-36/37 server tests (36j excepted, it redeploys): first run 10/13. AcInt37 smoke and AC-OPS-36a failed on the same
+  one-shot container (36a had its own list: `volume-init` only) -> both fixed, re-run Pass. AC-OPS-36e timed out twice
+  (HttpClient 60 s on `/ui/<module>/` GETs among 225 concurrent requests from this machine): on the server every one of
+  the 472 `/ui/` requests that reached the gateway in that window finished in at most 65 ms, no warning or error in any
+  container, no pool or connection error since the deploy; at the same time a local `docker pull` crawled at a few KB/s.
+  The timeouts are on the owner's network path, not on the server (see the 36e retry below).
+- P6 fixes on the server through the UI: NotRun(server). Signing in as a demo user needs DEMO_USERS_PASSWORD, which only
+  the owner reads (it never enters the agent's context). Covered by Ops038DemoDefectTests on PostgreSQL (6/6); suggested
+  owner check: approve a pending leave and create an ID card on the demo.
+
+Finished (UTC): 2026-11-01T18:51:27Z
+
+## P8 — in progress (notes)
+
+- Docs: OPS_VPS_SINGLE_HOST §12 (first boot, init-secrets, rotation, postures, the rebuild and the restore from the
+  backup) and change rows; stale references to docker/init-databases.sql and init-rabbitmq-service-users.sh fixed in 9
+  docs; gap status lines G-OPS-02, G-OPS-13 (Keycloak's database user stays the administrator until PLAN-39) and G-OPS-10;
+  plan Status and «ملاحظات التنفيذ والانحرافات».
+- Independent review (one fresh subagent): 0 high, 2 medium, 4 low. Fixed with tests:
+  - F1 (medium) leave approval re-read could adopt an edit committed after validation: the claim now also matches the
+    validated employee, type, dates and duration; a changed request answers "changed since read" and stays Pending, no
+    debit. New PostgreSQL test (fails without the fix, passes with it).
+  - F2 (medium) broker read was `.*` (consume/get/purge of any queue): read = the configure expression; write stays `.*`
+    (plan decision). Unit test + live test (mq_payroll basic.get on an hr-core-web queue = 403); publish/consume and the
+    delayed schedule still pass with the narrowed read. Residual: the bus temporary-queue pattern matches every
+    service's temporary queue (no request client in use).
+  - F3 (low) a broker password was a jq argument in bootstrap.sh: now on stdin.
+  - F4 (low) scripts/run-migrations.sh (k8s Job, shipped in hr-migrate) passed full connection strings: split_conn moves
+    the password to PGPASSWORD for the bundles, dotnet ef and psql (which also now get libpq keywords instead of an
+    Npgsql string). Unit tests.
+  - F6 (low) pool knobs unchecked at deploy: remote-deploy.sh check_env applies the 90 % rule to HRM_PG_POOL_MAX /
+    HRM_PG_POOL_MAX_HR_CORE; documented (commented) in both examples. Unit tests.
+  - F5 (low) posture checks are skipped when Deployment:*Posture is absent, and the guard runs after migrations and
+    seeds: recorded for a later plan (a default for Production changes deployment targets outside PLAN-38).
+- Local test image for the review fixes: the P5 hr-migrate:local with the runtime stage's script layers re-applied (the
+  SDK base image pull crawled at a few KB/s); the server image is rebuilt from the Dockerfile at the next server build.
+- Tests: unit Ops038 37/37; integration Ops038 14/14 (Testcontainers).

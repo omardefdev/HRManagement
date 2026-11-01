@@ -1,0 +1,103 @@
+== rabbitmqctl list_connections user
+      1 mq_admin_logistics
+      1 mq_auth_directory
+      1 mq_compliance
+      1 mq_dev_analytics
+      1 mq_file_storage
+      1 mq_hr_contracts
+      1 mq_hr_core
+      1 mq_hr_health
+      1 mq_hr_movements
+      1 mq_hr_training
+      1 mq_idcard
+      1 mq_it_infra
+      1 mq_payroll
+      1 mq_records_archive
+      1 user
+== rabbitmq-plugins list -e
+[E*] rabbitmq_delayed_message_exchange 3.13.0
+[E*] rabbitmq_management               3.13.7
+== node
+rabbit@rabbitmq
+image=127.0.0.1:5050/hrmanagement/hr-rabbitmq:7bd85bc3ac9d hostname=rabbitmq mounts=hrm_rabbitmq_data:/var/lib/rabbitmq 
+== bootstrap
+exit=0 started=2026-11-01T17:58:35.782144397Z finished=2026-11-01T17:59:23.290096067Z
+[bootstrap] step 0: all role and broker passwords present (values not shown)
+[bootstrap] step 1: PostgreSQL postgresql:5432 reachable
+[bootstrap] step 2: 16 databases present
+[bootstrap] step 3: 30 roles ensured (30 passwords set)
+[bootstrap] step 4: gateway migrated by gateway_audit_migrator: 7 migrations applied (7 in history); TEN-002C verified
+[bootstrap] step 4: hr-core migrated by hr_core_migrator: 81 migrations applied (81 in history); TEN-002C verified
+[bootstrap] step 4: hr-contracts migrated by hr_contracts_migrator: 27 migrations applied (27 in history); TEN-002C verified
+[bootstrap] step 4: payroll migrated by payroll_migrator: 28 migrations applied (28 in history); TEN-002C verified
+[bootstrap] step 4: hr-health migrated by hr_health_migrator: 11 migrations applied (11 in history); TEN-002C verified
+[bootstrap] step 4: hr-movements migrated by hr_movements_migrator: 17 migrations applied (17 in history); TEN-002C verified
+[bootstrap] step 4: hr-training migrated by hr_training_migrator: 10 migrations applied (10 in history); TEN-002C verified
+[bootstrap] step 4: idcard migrated by idcard_migrator: 10 migrations applied (10 in history); TEN-002C verified
+[bootstrap] step 4: records-archive migrated by archive_migrator: 9 migrations applied (9 in history); TEN-002C verified
+[bootstrap] step 4: admin-logistics migrated by admin_migrator: 15 migrations applied (15 in history); TEN-002C verified
+[bootstrap] step 4: it-infra migrated by it_infra_migrator: 9 migrations applied (9 in history); TEN-002C verified
+[bootstrap] step 4: dev-analytics migrated by analytics_migrator: 8 migrations applied (8 in history); TEN-002C verified
+[bootstrap] step 4: compliance migrated by compliance_migrator: 13 migrations applied (13 in history); TEN-002C verified
+[bootstrap] step 4: auth-directory migrated by auth_directory_migrator: 7 migrations applied (7 in history); TEN-002C verified
+[bootstrap] step 4: file-storage migrated by file_storage_migrator: 12 migrations applied (12 in history); TEN-002C verified
+[bootstrap] step 4: 264 migrations applied in total
+[bootstrap] step 5: hrm_backup ensured (read-only, BYPASSRLS, CONNECT on the 16 databases)
+[bootstrap] step 6: 14 RabbitMQ service users ensured on vhost / (passwords set, permissions from rabbitmq-users.json)
+[bootstrap] step 7: skipped (minio profile not enabled)
+[bootstrap] step 8: result /var/hrm/bootstrap/result-20261101T175923Z.json
+[bootstrap] done in 48 s
+== tag
+7bd85bc3ac9d
+== pg_stat_activity users per db
+client connections per user/database:
+hrm_admin admin_db 1
+hrm_admin analytics_db 1
+hrm_admin archive_db 1
+hrm_admin auth_directory_db 1
+hrm_admin compliance_db 1
+hrm_admin file_storage_db 1
+hrm_admin gateway_audit_db 2
+hrm_admin hr_contracts_db 1
+hrm_admin hr_core_db 2
+hrm_admin hr_health_db 2
+hrm_admin hr_movements_db 1
+hrm_admin hr_training_db 1
+hrm_admin idcard_db 1
+hrm_admin it_infra_db 1
+hrm_admin keycloak_db 2
+hrm_admin payroll_db 1
+hrm_admin postgres 1
+roles (login, bypassrls):
+admin_app t f
+admin_migrator t f
+analytics_app t f
+analytics_migrator t f
+archive_app t f
+archive_migrator t f
+auth_directory_app t f
+auth_directory_migrator t f
+compliance_app t f
+compliance_migrator t f
+file_storage_app t f
+file_storage_migrator t f
+gateway_audit_app t f
+gateway_audit_migrator t f
+hr_contracts_app t f
+hr_contracts_migrator t f
+hr_core_app t f
+hr_core_migrator t f
+hr_health_app t f
+hr_health_migrator t f
+hr_movements_app t f
+hr_movements_migrator t f
+hr_training_app t f
+hr_training_migrator t f
+hrm_backup t t
+idcard_app t f
+idcard_migrator t f
+it_infra_app t f
+it_infra_migrator t f
+payroll_app t f
+payroll_migrator t f
+note: DB posture on the demo is 'demo' (HRM_DB_POSTURE), so the services connect as the administrator; the *_app/*_migrator roles exist and migrations ran as *_migrator (step 4). The least-privilege DB posture is proven by AC-OPS-38b/c on the acceptance stack.

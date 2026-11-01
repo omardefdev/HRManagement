@@ -1,3 +1,6 @@
 - **vps** (vps-keycloak): Pass (`int37-vps-keycloak-5c0eb5174acc4805b6acb29ff3805186`)
 - **vps** (vps-smoke): Pass (`int37-vps-smoke-92f203e50d5a4a2b92280d3f1cba4912`)
 - **vps** (vps-37e): Pass (`int37-vps-37e-05aa809997234c629e727a28d82f2b5e`)
+- **vps** (vps-keycloak): Pass (`int37-vps-keycloak-78d2dc3eb8c345d590fac75cf85a2d20`)
+- **vps** (vps-37e): Pass (`int37-vps-37e-4b7dde0a62094851b5f907c9d31f813a`)
+- **vps** (vps-smoke): Pass (`int37-vps-smoke-c2f1b95226194fe49b926cc0a058e5a7`)
