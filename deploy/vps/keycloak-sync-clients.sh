@@ -41,8 +41,11 @@ change() {  # description command...
 }
 
 # The admin password reaches kcadm's prompt on stdin inside the container (printf is a shell builtin), never on a
-# command line ("-i": without an attached stdin kcadm can wait for a console that never comes).
-docker exec -i "$KC" sh -c 'printf "%s\n" "$KEYCLOAK_ADMIN_PASSWORD" | "$0" config credentials --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN"' "$KCADM" < /dev/null > /dev/null 2>&1 \
+# command line. The pipe stays open a moment after the password: when EOF follows it at once, Keycloak 24's prompt
+# sometimes never returns (seen on the server: 2 of 5 logins hung, 0 of 8 with the delay); bounded, three attempts.
+docker exec -i "$KC" sh -c 'for attempt in 1 2 3; do
+    { printf "%s\n" "$KEYCLOAK_ADMIN_PASSWORD"; sleep 2; } | timeout 60 "$0" config credentials --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN" && exit 0
+  done; exit 1' "$KCADM" < /dev/null > /dev/null 2>&1 \
   || die "kcadm login failed (KEYCLOAK_ADMIN / KEYCLOAK_ADMIN_PASSWORD in the keycloak container)"
 
 PLAN="$(perl -MJSON::PP -e 'local $/; open my $f, "<", $ARGV[0] or die "$!"; my $m = decode_json(<$f>);
