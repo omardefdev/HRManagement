@@ -92,6 +92,8 @@ public sealed class Ops038ReviewFindingsTests : IDisposable
             env.Add(extra);
         var envFile = Path.Combine(_dir, ".env");
         System.IO.File.WriteAllText(envFile, string.Join('\n', env) + "\n");
+        if (!OperatingSystem.IsWindows())
+            System.IO.File.SetUnixFileMode(envFile, UnixFileMode.UserRead | UnixFileMode.UserWrite); // check_env wants 600
 
         var (code, output) = Bash(
             "log() { echo \"$*\"; }; die() { echo \"DIE: $*\"; exit 1; }\n" +
