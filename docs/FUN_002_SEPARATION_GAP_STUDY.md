@@ -101,6 +101,7 @@
 - **التحقق المطلوب:** موجب: سجل استقالة ← إكمال كل بند يملكه HR بدليل من الواجهة ← `Step2Confirm` ينجح. سالب: بند بلا دليل يُرفض. ومستخدم لا يملك دور مالك البند يُرفض في الخادم.
 
 #### G-SEP-02 — النشر يفشل في بيئة الإنتاج، وأربعة أنواع إنهاء مسدودة قانونياً
+- **الحالة:** ⚠️ عولج جزء الشحن والتوصيل في [PLAN-37](acceptance-plans/PLAN-37-int-production-wiring-legal-pack.md) — الحزمة في صورة HR.Contracts وعنوان HR.Core في إعدادات الإنتاج، وبوابة الحجز القانوني تُسجَّل من المفتاح المعتمد (مصادقتها ← PLAN-42)؛ إنشاء فصل استقالة لموظف law50 ينجح على الملف الشبيه بالإنتاج (AC-INT-37e). كتالوج أنواع الإنهاء لكل نظام (الجزء القانوني) ← PLAN-61.
 - **الدليل:**
   - النشر يستدعي `SeparationRegimeValidationService` (`:163-178`)، الذي يستدعي `ServiceRegimeSeparationRules.ValidateSeparationType`. وهذه تعيد `RegimeRulesNotFoundMessage` إذا لم تُحمَّل الحزمة ([ServiceRegimeSeparationRules.cs:62-75](../src/Shared/HRManagement.SharedKernel/Legal/ServiceRegimeSeparationRules.cs)، و`LoadRules` `:91-95` يعيد قاموساً فارغاً).
   - مواضع البحث عن الحزمة ([ServiceRegimeJsonPackPaths.cs:6-20](../src/Shared/HRManagement.SharedKernel/Legal/ServiceRegimeJsonPackPaths.cs)): `seed-packs/syr003-service-regimes-v1/regimes.json` بجوار التجميع، أو `docs/syr/service-regimes.json` صعوداً في الشجرة.

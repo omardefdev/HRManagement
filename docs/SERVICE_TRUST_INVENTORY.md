@@ -15,6 +15,8 @@ Service clients use `client_credentials` only.
 
 ## API resource audiences
 
+The callers of each audience follow from the scopes in [SERVICE_WIRING_MATRIX.md](SERVICE_WIRING_MATRIX.md) (PLAN-37); the table below is the historical IAM-004 view.
+
 | Resource API | Audience | Valid callers |
 |--------------|----------|---------------|
 | Auth.Directory internal sync | `api-auth-directory` | `svc-it-infra`, `svc-hr-core` |

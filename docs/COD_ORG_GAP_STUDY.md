@@ -80,6 +80,7 @@
 ### 4.1 عوائق P0
 
 #### G-COD-01 — الخدمات الأخرى لا تحصل على أرقام بإعدادات الإنتاج
+- **الحالة:** ✅ عولجت في [PLAN-37](acceptance-plans/PLAN-37-int-production-wiring-legal-pack.md) — كل خدمة تأخذ عنوان HR.Core وهويتها ونطاقاتها (`hr-core.workflow` لمن يولّد أرقاماً) وسرّها من `deploy/wiring/service-wiring.json` في compose الإنتاج وk8s والمكدّس الشبيه بالإنتاج، و`ProductionWiringMatrixTests` و`int037-wiring-check.ps1` يحكمان. غياب العنوان يوقف الإقلاع برسالة تسمّي المفتاح. AC-INT-37a/b/c/g ناجحة على الملف الشبيه بالإنتاج، وعلى الخادم الواحد توكن كل عميل بنطاقاته في الاختبار الذاتي الإلزامي. البادئات (G-COD-02) ← PLAN-48.
 - **الدليل:**
   - العميل يقرأ `Integration:HrCoreBaseUrl` (أو `Services:HRCore:BaseUrl` أو `HrCore:BaseUrl`). إن غاب المفتاح يسجّل `HttpClient` بلا عنوان أساس، دون أي تحذير عند الإقلاع ([CodeGenerationClient.cs:79-85](../src/Shared/HRManagement.ServiceDefaults/CodeGeneration/CodeGenerationClient.cs)). فيفشل الطلب، ويُلتقط الاستثناء، ويعيد العميل `null` ([:40-56](../src/Shared/HRManagement.ServiceDefaults/CodeGeneration/CodeGenerationClient.cs)). والنتيجة رسالة «تعذّر توليد الرمز — خدمة الترميز غير متاحة» ([:62-71](../src/Shared/HRManagement.ServiceDefaults/CodeGeneration/CodeGenerationClient.cs)).
   - مكدّس الإنتاج الموثّق في رأس [docker-compose.production.yml:1-2](../docker-compose.production.yml) (`docker-compose.yml` + `services` + `observability` + `production`) لا يضبط المفتاح لـ `hr-contracts-web` و`idcard-web` و`records-archive-web` و`it-infra-web` ([docker-compose.production.yml:279-298, 386-426, 451-470](../docker-compose.production.yml)). المفتاح موجود لـ payroll وadmin-logistics وcompliance فقط ([docker-compose.services.yml:149, 257, 361](../docker-compose.services.yml)). وفي k8s لا يحويه `hr-app-config` أصلاً ([configmap-app.yaml:7-29](../deploy/k8s/base/configmap-app.yaml))، بل يوجد في إعداد البوابة وحدها ([configmap-yarp.yaml:39](../deploy/k8s/base/configmap-yarp.yaml)).
@@ -193,6 +194,7 @@
   - (سالب) مستخدم `hr-core` يطلب `generate` مباشرة فيحصل على 403.
 
 #### G-COD-06 — مستهلكات الأرشيف تُسقط الرسالة بصمت إن تعذّر الرقم
+- **الحالة:** ✅ عولجت في [PLAN-37](acceptance-plans/PLAN-37-int-production-wiring-legal-pack.md) — `GenerateRequiredAsync` يرمي `CodeGenerationUnavailableException` (عابر، خارج قائمة التجاهل)، فتعيد MassTransit المحاولة ثم تنقل الرسالة إلى `_error`، ولا تؤكد المستهلكات السبعة رسالة بلا `ArchiveItem`. عدّاد `archive_reference_failures_total`. AC-INT-37d: إيقاف HR.Core ← `_error`، ثم إعادة التشغيل ← صف واحد بالضبط.
 - **الدليل:**
   - `ArchiveReferenceFactory` يعيد `null` عند الفشل ([ArchiveReferenceFactory.cs:17-21](../src/Services/RecordsArchive/Records.Archive.Infrastructure/Consumers/ArchiveReferenceFactory.cs)).
   - سبعة مستهلكات تفعل `if (reference is null) return;`، فتؤكد الرسالة دون أرشفة:

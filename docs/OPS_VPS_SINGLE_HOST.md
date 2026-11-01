@@ -124,7 +124,8 @@ for k in POSTGRES_PASSWORD RABBITMQ_DEFAULT_PASS KEYCLOAK_ADMIN_PASSWORD KEYCLOA
          KEYCLOAK_DIRECTORY_SYNC_SECRET HR_CORE_OTP_HMAC_KEY GATEWAY_CALLER_PROOF_SECRET \
          SVC_HR_CORE_CLIENT_SECRET SVC_HR_CONTRACTS_CLIENT_SECRET SVC_HR_HEALTH_CLIENT_SECRET SVC_HR_MOVEMENTS_CLIENT_SECRET \
          SVC_HR_TRAINING_CLIENT_SECRET SVC_PAYROLL_CLIENT_SECRET SVC_IDCARD_CLIENT_SECRET SVC_RECORDS_ARCHIVE_CLIENT_SECRET \
-         SVC_ADMIN_LOGISTICS_CLIENT_SECRET SVC_IT_INFRA_CLIENT_SECRET SVC_DEV_ANALYTICS_CLIENT_SECRET SVC_COMPLIANCE_CLIENT_SECRET; do
+         SVC_ADMIN_LOGISTICS_CLIENT_SECRET SVC_IT_INFRA_CLIENT_SECRET SVC_DEV_ANALYTICS_CLIENT_SECRET SVC_COMPLIANCE_CLIENT_SECRET \
+         SVC_AUTH_DIRECTORY_CLIENT_SECRET; do
   setkey "$k" "$(openssl rand -hex 24)"
 done
 setkey DEMO_USERS_PASSWORD "$(openssl rand -hex 12)"
@@ -139,6 +140,30 @@ cut -d= -f1 "$f" | grep -E '^[A-Z]'     # تحقّق بأسماء المفاتي
 `DEMO_USERS_PASSWORD` عن 16 حرفاً أو `GATEWAY_CALLER_PROOF_SECRET`/`HR_CORE_OTP_HMAC_KEY` عن 32 — دون طباعة أي قيمة.
 ولا تُكتب هذه الخطوة في مولّد ملتزم؛ المولّد الملتزم ← PLAN-38.
 
+**إضافة مفتاح لخادم قائم (PLAN-37):** كل مفتاح `SVC_*` في `deploy/wiring/service-wiring.json` (حقل `secretEnv`) مطلوب. لإضافة
+الناقص فقط، على الخادم ودون طباعة:
+
+```bash
+f=/opt/hrm/shared/.env
+for k in SVC_AUTH_DIRECTORY_CLIENT_SECRET; do
+  grep -q "^$k=" "$f" || printf '%s=%s\n' "$k" "$(openssl rand -hex 24)" >> "$f"
+done
+chmod 600 "$f"; cut -d= -f1 "$f" | grep -E '^SVC_'
+```
+
+## 5أ. عملاء الخدمات في Keycloak (PLAN-37)
+
+realm الخادم لا يُحذف ولا يُعاد استيراده (المستخدمون التجريبيون والبيانات يعتمدون عليه). `deploy/vps/keycloak-sync-clients.sh`
+يجعله مطابقاً للمصفوفة **بلا أثر جانبي عند التكرار**: كل نطاق بمُعيّن audience لكل جمهور، وكل عميل خدمة (سرّي، حساب خدمة، بلا
+تدفق متصفح) بنطاقاته الاختيارية كما في المصفوفة بالضبط، وسرّه من متغير `secretEnv` في بيئة حاوية Keycloak (يملؤها compose من
+`.env`). كل أوامر `kcadm.sh` تجري داخل الحاوية، فلا يمر سر في سطر أوامر على المضيف ولا يُطبع؛ المخرجات أسماء العملاء والإجراء
+و`changes=N`.
+
+- `remote-deploy.sh deploy` يشغّله بعد أن تصبح الحاويات سليمة؛ فشله يُفشل النشر (`failed-tag` ثم `-Rollback`).
+- يدوياً: `ssh hrm-vps "cd /opt/hrm/current && bash deploy/vps/keycloak-sync-clients.sh [--check]"` (`--check` لا يغيّر شيئاً
+  ويخرج بـ 1 إن كان تغيير مستحقاً).
+- realm خادم جديد يأخذ العملاء نفسها عند أول استيراد (`prepare-keycloak-import.ps1 -Profile VpsDemo` يقرأ المصفوفة).
+
 ## 6. النشر والتراجع
 
 ```bash
@@ -152,6 +177,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/deploy.ps1 -Roll
 `artifacts/vps/deploy-<host>-<action>-<tag>.json`.
 
 الاختبار الذاتي وحده: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/smoke.ps1 [-AllowStagingCa]`.
+منذ PLAN-37 فحوص التوصيل **إلزامية** (`deploy/vps/smoke.sh` §8، من `deploy/wiring/service-wiring.json` في حزمة الإصدار):
+عناوين كل خدمة وعميلها ونطاقاتها داخل الحاوية، وطول السر في الحاوية و`.env`، وتوكن لكل عميل بكل نطاقاته (يبقى داخل
+الحاوية)، ونداء S2S حقيقي (HR.Core ← File.Storage service-upload بإثبات موقّع: 404 لملف غير موجود = مصرَّح)، وبصمة SHA-256
+لحزمة `syr003-service-regimes-v1` في الصور الثلاث مقارنةً بـ `docs/syr/service-regimes.json` في الحزمة. أي نقص يُفشل الاختبار،
+و`Deferred(PLAN-*)` يُعدّ فشلاً.
 `-AllowStagingCa` يقبل شهادة staging من Let's Encrypt **فقط**، لأول تشغيل.
 
 فحص المنافذ من جهاز المالك قد يكون غير حاسم: إن كان في طريق الاتصال VPN أو وكيل ينهي TCP بنفسه فكل منفذ يبدو مفتوحاً.
@@ -218,6 +248,8 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | `tcpdump` (لتشخيص فحص المنافذ) | `sudo apt-get purge tcpdump` |
 | مشروع compose `hrm` | `docker compose -p hrm ... down` (والـ volumes بـ `-v`) |
 | `docker login ghcr.io` على الخادم | `docker logout ghcr.io` (يحذف `~hrm/.docker/config.json`) |
+| PLAN-37: `SVC_AUTH_DIRECTORY_CLIENT_SECRET` في `/opt/hrm/shared/.env` | حذف السطر (`sed -i '/^SVC_AUTH_DIRECTORY_CLIENT_SECRET=/d'`) ثم إعادة النشر |
+| PLAN-37: عملاء ونطاقات Keycloak من المصفوفة (`keycloak-sync-clients.sh`) | لوحة Keycloak (§7): حذف العملاء/النطاقات المضافة؛ أو إرجاع الإصدار السابق (لا يحذف ما أُضيف) |
 
 ## 11. التسليم للمالك
 

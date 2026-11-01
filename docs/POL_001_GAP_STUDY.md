@@ -120,6 +120,7 @@
 ### 4.1 عوائق P0
 
 #### G-POL-01 — حزمة قواعد أنظمة الخدمة لا تُشحن مع HR.Contracts وHR.Movements: كل فصل وترفيع ونقل مرفوض في الحاويات (يحتاج تحقق)
+- **الحالة:** ✅ عولجت في [PLAN-37](acceptance-plans/PLAN-37-int-production-wiring-legal-pack.md) — الحزمة `Content` في `HRManagement.SharedKernel.csproj` فتُشحن مع كل خدمة تقرؤها؛ قارئ واحد `ServiceRegimePack`، وفحص جاهزية يفشل إن غابت الحزمة أو فرغت، وسطر إقلاع ببصمة SHA-256. AC-INT-37e: البصمة في الصور الثلاث مطابقة للمستودع، والفصل والنقل والترفيع تُقبل، ومسار خارجي مفقود يوقف الخدمة. وعلى الخادم الواحد البصمة مطابقة.
 - **الدليل:**
   - تُحمَّل قواعد الفصل والترفيع والحركات والمادة 159 في SharedKernel من ملف واحد. يُبحث عنه في `AppContext.BaseDirectory/seed-packs/...` ثم في المجلدات الأب حتى `docs/syr/service-regimes.json` ([ServiceRegimeJsonPackPaths.cs:8-14](../src/Shared/HRManagement.SharedKernel/Legal/ServiceRegimeJsonPackPaths.cs)).
   - المشروع الوحيد الذي ينسخ الملف إلى مخرجاته هو HR.Core ([HR.Core.Infrastructure.csproj:16](../src/Services/HRCore/HR.Core.Infrastructure/HR.Core.Infrastructure.csproj)). HR.Contracts وHR.Movements لا يشيران إليه، ولا يتضمنه `ServiceDefaults` ولا `SharedKernel`.
