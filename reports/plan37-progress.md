@@ -217,3 +217,8 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
 
 ## P9
 - status: in progress
+- Resumed (UTC): 2026-11-01T02:34:41.1023770Z (context compaction while waiting for the independent review; no committed phase redone)
+- Review: one independent reviewer (read-only, 19f7172b..a683af2d), 0 high, 2 medium, 7 low; all nine fixed with tests in 69ecbaa6 (no refuter: no high finding).
+  Server, without a redeploy: the new keycloak-sync-clients.sh --check from a temp copy -> changes=0 (no retired or default custom scope on any client); the new smoke.sh -> 46 pass / 0 fail (--no-login), all 13 tokens and the S2S call Pass. The temp copy was removed.
+  Unit 4456/4456. Rendered wiring check PASS on all chains and overlays.
+- next: ci-local.ps1 on HEAD, plan035-prepush.ps1, final report, release/plan-37, PR file, owner action.

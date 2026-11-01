@@ -120,8 +120,8 @@ public static class ComposeEffectiveEnvironment
                 ? seq.Children.OfType<YamlMappingNode>()
                 : mergeNode is YamlMappingNode single ? [single] : [];
             foreach (var source in sources)
-            foreach (var (k, v) in MergedMapping(source))
-                Put(k, v, overwrite: false);
+                foreach (var (k, v) in MergedMapping(source))
+                    Put(k, v, overwrite: false);
         }
 
         foreach (var (k, v) in map.Children)

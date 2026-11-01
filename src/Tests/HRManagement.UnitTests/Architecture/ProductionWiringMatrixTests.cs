@@ -54,8 +54,8 @@ public partial class ProductionWiringMatrixTests
     {
         var data = new TheoryData<string, string, string>();
         foreach (var service in Matrix.Value.Services)
-        foreach (var call in service.Calls)
-            data.Add(service.ComposeService, call.Endpoint, call.Client);
+            foreach (var call in service.Calls)
+                data.Add(service.ComposeService, call.Endpoint, call.Client);
         return data;
     }
 

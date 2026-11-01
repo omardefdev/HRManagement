@@ -208,8 +208,8 @@ public partial class ProductionWiringMatrixTests
         {
             var only = ComposeEffectiveEnvironment.Load(RepoPaths.Root, [file]);
             foreach (var (service, environment) in only)
-            foreach (var key in environment.Keys.Where(k => WiringChecks.WiringKey().IsMatch(k)))
-                errors.Add($"{file}: {service} sets {key}; acceptance files may set only the lab {WiringChecks.SecretKey}");
+                foreach (var key in environment.Keys.Where(k => WiringChecks.WiringKey().IsMatch(k)))
+                    errors.Add($"{file}: {service} sets {key}; acceptance files may set only the lab {WiringChecks.SecretKey}");
         }
 
         Assert.True(errors.Count == 0, string.Join("\n", errors));
