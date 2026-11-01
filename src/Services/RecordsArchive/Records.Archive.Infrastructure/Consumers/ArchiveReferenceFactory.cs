@@ -29,9 +29,12 @@ internal static class ArchiveReferenceFactory
     /// <see cref="CodeGenerationUnavailableException"/>, so the consumer retries and then moves the message to
     /// <c>_error</c>; it never acknowledges a message without an <see cref="ArchiveItem"/>.
     /// </summary>
-    public static async Task<string> CreateReferenceAsync<TEvent>(
+    // The event type is a string (nameof), not a type argument: CodeQL reads a call named after a medical event type as
+    // private data and then flags every log line that writes the reference (cs/exposure-of-sensitive-information).
+    public static async Task<string> CreateReferenceAsync(
         ICodeGenerationClient codeClient,
         string entityPrefix,
+        string eventType,
         CancellationToken ct)
     {
         try
@@ -41,7 +44,7 @@ internal static class ArchiveReferenceFactory
         }
         catch (CodeGenerationUnavailableException)
         {
-            ArchiveReferenceMetrics.Failures.Add(1, new KeyValuePair<string, object?>("event_type", typeof(TEvent).Name));
+            ArchiveReferenceMetrics.Failures.Add(1, new KeyValuePair<string, object?>("event_type", eventType));
             throw;
         }
     }

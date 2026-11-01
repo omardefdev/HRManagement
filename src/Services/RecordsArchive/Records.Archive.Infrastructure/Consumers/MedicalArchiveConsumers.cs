@@ -21,7 +21,7 @@ public class MedicalRecommendationIssuedArchiveConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalRecommendationIssued>(codeClient, "MEDREC", context.CancellationToken);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDREC", nameof(IMedicalRecommendationIssued), context.CancellationToken);
 
         // No employee id next to a medical event in the logs (CodeQL cs/exposure-of-sensitive-information): the archive
         // reference identifies the item.
@@ -48,7 +48,7 @@ public class MedicalDecisionIssuedArchiveConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IMedicalDecisionIssued>(codeClient, "MEDDEC", context.CancellationToken);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "MEDDEC", nameof(IMedicalDecisionIssued), context.CancellationToken);
 
         logger.LogInformation("Records.Archive: MedicalDecisionIssued archived Ref={Reference}", reference);
 

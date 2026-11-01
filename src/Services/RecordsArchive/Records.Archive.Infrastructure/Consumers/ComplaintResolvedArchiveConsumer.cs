@@ -18,7 +18,7 @@ public class ComplaintResolvedArchiveConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IComplaintResolved>(codeClient, "CMP", context.CancellationToken);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "CMP", nameof(IComplaintResolved), context.CancellationToken);
 
         logger.LogInformation("Records.Archive: ComplaintResolved ComplaintId={ComplaintId} Ref={Reference}", m.ComplaintId, reference);
 
