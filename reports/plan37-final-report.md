@@ -172,7 +172,9 @@ restart it the same way with `project=hrm-acceptance`.
   a failed dedupe job). Gitleaks and the cheap path-filtered workflows always run.
 - Expected saving per merge: CI 53 + E2E 21 + CodeQL 23 ≈ **97 billable minutes** (job durations of push run
   41247555134); the dedupe job costs ~1 minute per run.
-- Post-merge run: recorded in plan37-progress.md once the owner has merged (the PR description says what to check).
+- PR [#32](https://github.com/omardefdev/HRManagement/pull/32): three CI rounds. Two CodeQL failures (cs/exposure-of-sensitive-information on the medical archive logs; the reference factory's medical type argument read as private data) were fixed in `443c6f04` and `a2130040`; the third round was green (CI 26m48s, E2E 14m24s, CodeQL 12m19s). Merged 2026-11-01T10:11:41Z (`d1642d41`).
+- **Post-merge run 41296399636:** `dedupe` printed `skip=true` (PR #32 tested the same tree); CI, E2E, CodeQL and Acceptance were skipped; 57 s, about 3 billable minutes, so **about 97 minutes saved** on this merge.
+- PLAN-37 used about 167 billable minutes in total (PR ci 17 + 63 + 58, hardening-check 8, iac-plan 15, post-merge 6).
 
 ## 10. Deferred items
 

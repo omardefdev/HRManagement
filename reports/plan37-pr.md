@@ -19,6 +19,12 @@ Report: [reports/plan37-final-report.md](plan37-final-report.md) · evidence: `a
 - The demo server runs `9d457dab36d7`. The review fixes to `keycloak-sync-clients.sh` and `smoke.sh` were verified on the server from a temporary copy (`changes=0`; smoke 46 pass / 0 fail), and they ship with the next deploy.
 - Defects found and left to later plans: HR.Contracts leave approval fails on PostgreSQL, and IDCard `IssuedCards/Create` can never succeed (report §11).
 
+**Local CI on the release head (8d24700a0aa3):**
+- `scripts/plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden, nonprod and signatures all PASS (22 commits in range).
+- `scripts/ci-local.ps1 -SkipTestcontainers`: 88/88 passed, with Testcontainers and the coverage gate reported as not-run (the pre-push script allows this; both run in this PR's CI).
+- Three full runs on this head failed only in Testcontainers PostgreSQL concurrency tests, with connection timeouts on Docker Desktop.
+- A full run on the previous release head f4692d911d55 passed 90/90. That head had the same code; only `.gitleaks.toml` and the progress file have changed since.
+
 **After the merge:** the `ci` push run on `main` should show the `dedupe` job with `skip=true`, and build-and-test and CodeQL as skipped.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
