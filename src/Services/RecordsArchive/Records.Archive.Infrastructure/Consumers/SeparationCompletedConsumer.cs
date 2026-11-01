@@ -23,7 +23,7 @@ public class SeparationCompletedConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<ISeparationCompleted>(codeClient, "SEP", context.CancellationToken);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "SEP", nameof(ISeparationCompleted), context.CancellationToken);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(title, reference, "HRContracts/Separations"));
         await db.SaveChangesAsync(context.CancellationToken);

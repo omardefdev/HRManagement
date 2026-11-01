@@ -17,7 +17,7 @@ public class LeaveApprovedConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<ILeaveApproved>(codeClient, "LEAVE", context.CancellationToken);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "LEAVE", nameof(ILeaveApproved), context.CancellationToken);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HRContracts/LeaveApprovals"));
@@ -47,7 +47,7 @@ public class AdvanceApprovedConsumer(
         if (await ArchiveReferenceFactory.ExistsByTitleAsync(db, title, context.CancellationToken))
             return;
 
-        var reference = await ArchiveReferenceFactory.CreateReferenceAsync<IAdvanceApproved>(codeClient, "ADV", context.CancellationToken);
+        var reference = await ArchiveReferenceFactory.CreateReferenceAsync(codeClient, "ADV", nameof(IAdvanceApproved), context.CancellationToken);
 
         db.ArchiveItems.Add(ArchiveReferenceFactory.CreateItem(
             title, reference, "HRContracts/AdvanceApprovals"));
