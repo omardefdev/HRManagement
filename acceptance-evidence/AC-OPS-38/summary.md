@@ -1,0 +1,1 @@
+- **vps** (38-vps-p6): Pass — leave afb2541e-27c5-44b0-877f-658d90e54a3e: approved by hradmin (balance +3, transaction Completed) and cancelled (balance back to 12); ID card ID-2026-0000001 issued (`ops38-38-vps-p6-f5ebd8d8c5174c7fa1e45e0617630c11`)

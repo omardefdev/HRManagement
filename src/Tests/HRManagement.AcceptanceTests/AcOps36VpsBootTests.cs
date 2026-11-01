@@ -27,7 +27,7 @@ namespace HRManagement.AcceptanceTests;
 /// the live service is still healthy.
 /// </summary>
 [RequiredAcceptance]
-public class AcOps36VpsBootTests
+public partial class AcOps36VpsBootTests
 {
     private const string Ac = "AC-OPS-36";
     private const string DemoBanner = "بيئة عرض — بيانات اصطناعية فقط";
@@ -277,11 +277,11 @@ public class AcOps36VpsBootTests
     private static readonly Regex HiddenInput = new(@"<input[^>]*type=""hidden""[^>]*name=""(?<n>[^""]+)""[^>]*value=""(?<v>[^""]*)""", RegexOptions.IgnoreCase);
 
     /// <summary>Code flow through the edge: the gateway's challenge, Keycloak's login form, the form_post back.</summary>
-    private static async Task<(HttpClient Client, CookieContainer Cookies)> SignInAsync(string user, string password)
+    private static async Task<(HttpClient Client, CookieContainer Cookies)> SignInAsync(string user, string password, string startPath = "/ui/hr-core/")
     {
         var cookies = new CookieContainer();
         var client = NewClient(cookies, followRedirects: true);
-        var login = await client.GetAsync($"https://{AppDomain}/ui/hr-core/");
+        var login = await client.GetAsync($"https://{AppDomain}{startPath}");
         var html = await login.Content.ReadAsStringAsync();
         Assert.Equal(SsoDomain, login.RequestMessage!.RequestUri!.Host, ignoreCase: true);
         var action = WebUtility.HtmlDecode(FormAction.Match(html).Groups["a"].Value);
