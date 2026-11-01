@@ -222,3 +222,5 @@ Started (UTC): 2026-10-31T22:24:14.9258001Z
   Server, without a redeploy: the new keycloak-sync-clients.sh --check from a temp copy -> changes=0 (no retired or default custom scope on any client); the new smoke.sh -> 46 pass / 0 fail (--no-login), all 13 tokens and the S2S call Pass. The temp copy was removed.
   Unit 4456/4456. Rendered wiring check PASS on all chains and overlays.
 - next: ci-local.ps1 on HEAD, plan035-prepush.ps1, final report, release/plan-37, PR file, owner action.
+- Local CI on ecf66cde: unit 4456/4456 and MassTransit integration 344/4 skipped passed; 7 Testcontainers tests timed out connecting to PostgreSQL (Docker VM busy with the 19-container hrm-acceptance stack). Stopped hrm-acceptance (not removed). bc858c58: keycloak-sync admin login fix (stdin EOF race), server --check twice changes=0 (~90 s); stale kcadm processes of the hung runs killed inside the keycloak container (no other change).
+- Final report and PR description written; next: release/plan-37 (--no-ff from main), ci-local.ps1 and plan035-prepush.ps1 on its head, owner action.
