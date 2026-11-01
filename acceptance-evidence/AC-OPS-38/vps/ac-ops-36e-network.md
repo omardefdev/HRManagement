@@ -9,6 +9,7 @@ burst) ran four times from the owner's machine against tag `7bd85bc3ac9d` on 202
 | 2 | Fail: same |
 | 3 | Blocked: the test's gate `ssh hrm-vps docker ps` failed (the stack was up: 21 containers healthy) |
 | 4 | Fail: same timeout |
+| 5 (2026-11-01T21:5xZ, single requests back to 0.6–1.3 s) | **Pass**: two signed-in users 400 assets + 50 pages, no 429; anonymous 297 of 400 passed in 18 s, the rest 429 with Retry-After 60 |
 
 Server side, for the same windows (gateway request log):
 
@@ -21,5 +22,6 @@ anonymous): 225 responses in 504 ms (slowest 0.48 s); a second round at once was
 rule (151 x 429), as designed.
 
 At the same time a single request from the owner's machine took 1.2–8.3 s and a local `docker pull` ran at a few KB/s.
-Conclusion: the edge and the gateway answer the burst; the timeouts are on the owner's network path. The previous server
+Conclusion: the edge and the gateway answer the burst; the timeouts were on the owner's network path, and attempt 5, once the link
+recovered, passed. The previous server
 run of 36e (2026-11-01T01:57Z, PLAN-37) passed (anonymous 300 of 400 in 7 s).

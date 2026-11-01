@@ -20,3 +20,4 @@
 - **vps** (36i): Pass — Seq has events from all 15 applications; no otel-collector/prometheus container; no OTLP lines in any log (`ops36-36i-d48aee4323c2401da0f40957bbd85e3c`)
 - **vps** (36a): Pass — 23 containers from 127.0.0.1:5050/hrmanagement:7bd85bc3ac9d, healthy after 151 s; no registry / latest refused (`ops36-36a-11931b6501af4b9090bb822d7f6e261e`)
 - **vps** (36e): Blocked — The single-host chain (project hrm) is not running: deploy it with scripts/vps/deploy.ps1. — الخادم الواحد غير منشور (`ops36-36e-992ce4a1d5844f46a52f569ca9640d7d`)
+- **vps** (36e): Pass — two signed-in users: 400 assets + 50 pages, no 429; anonymous: 297 of 400 passed in 18 s, the rest 429 with Retry-After 60 (`ops36-36e-3f81204c6bd04bc5a1fa9d63fcebf2ff`)

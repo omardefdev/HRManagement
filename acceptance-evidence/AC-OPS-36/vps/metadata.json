@@ -1,12 +1,12 @@
 {
   "scenario": "AC-OPS-36e two users behind one IP: 400 assets \u002B 50 pages without 429; 400 anonymous: 429 after 300 with Retry-After",
   "personaId": "demo users on the server (password read into memory only)",
-  "correlationId": "ops36-36e-ba0836cc535e4599bc7a01a0057302ce",
-  "capturedAtUtc": "2026-11-01T18:54:23.6234705Z",
+  "correlationId": "ops36-36e-3f81204c6bd04bc5a1fa9d63fcebf2ff",
+  "capturedAtUtc": "2026-11-01T21:53:42.1104832Z",
   "environment": {
     "gateway": "http://localhost:5000",
     "keycloak": "http://localhost:8088",
     "runAcceptance": true
   },
-  "gitSha": "7bd85bc3ac9dd1cc6654b6084a1771ae6870117c"
+  "gitSha": "041d88b623ace332751fd90c5e85fee544e3da36"
 }

@@ -298,3 +298,17 @@ Finished (UTC): 2026-11-01T18:51:27Z
 - Local test image for the review fixes: the P5 hr-migrate:local with the runtime stage's script layers re-applied (the
   SDK base image pull crawled at a few KB/s); the server image is rebuilt from the Dockerfile at the next server build.
 - Tests: unit Ops038 37/37; integration Ops038 14/14 (Testcontainers).
+- Local CI (`scripts/ci-local.ps1`, full, Linux container): run 1 on b7ae3fe7 failed `Check formatting` (whitespace in
+  AcOps38FirstBootTests and Ops038DemoDefectTests; fixed with `dotnet format`, 4abac3bb); run 2 failed 6 unit cases of
+  the new pool-check test (its scratch .env was 644; check_env enforces 600 on Linux; fixed, f07f7c96); **run 3 on
+  f07f7c96: 90/90 passed, 4736 s** (Testcontainers and coverage gate included).
+- AC-OPS-38 re-run with the review fixes on a fresh `hrm-leastpriv` (hr-migrate:local with the new bootstrap and broker
+  matrix): first re-run 7/8 (38a: File.Storage UnauthorizedAccessException on /var/hrm/file-storage and its key ring —
+  the shared acceptance volumes were root-owned: a new named volume takes its owner from the first container that
+  mounts it). Fix: `acceptance-volume-init` one-shot before hrm-bootstrap (as volume-init in the production file).
+  Second re-run 7/8 (38f: `mq_file_storage` not reconnected within 2 min after the broker recreate — File.Storage only
+  publishes, its bus connects on the first publish and again on the next one). Fix: 38f requires reconnection of the
+  users that held consumers. **Third re-run: AC-OPS-38a..h 8/8 Pass** (`up --wait` 46 s, bootstrap 29 s, tests 218 s);
+  evidence re-written, no value of .env.leastpriv in it (scanned); project and volumes removed.
+- AC-OPS-36e on the server, fifth attempt after the owner's link recovered (single requests 0.6-1.3 s): **Pass**
+  (anonymous 297 of 400 in 18 s, the rest 429 with Retry-After 60). All PLAN-36/37 server checks green (36j not run).

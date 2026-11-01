@@ -49,10 +49,10 @@
       "recordedAtUtc": "2026-11-01T18:22:32.3531443Z"
     },
     "36e": {
-      "status": "Fail",
-      "reason": "Started but did not record a result (the test failed or was aborted before WriteResult).",
-      "correlationId": "ops36-36e-ba0836cc535e4599bc7a01a0057302ce",
-      "recordedAtUtc": "2026-11-01T18:54:23.6277373Z"
+      "status": "Pass",
+      "reason": "two signed-in users: 400 assets \u002B 50 pages, no 429; anonymous: 297 of 400 passed in 18 s, the rest 429 with Retry-After 60",
+      "correlationId": "ops36-36e-3f81204c6bd04bc5a1fa9d63fcebf2ff",
+      "recordedAtUtc": "2026-11-01T21:54:52.1488026Z"
     },
     "36g": {
       "status": "Pass",
@@ -67,8 +67,8 @@
       "recordedAtUtc": "2026-11-01T18:31:32.9489352Z"
     }
   },
-  "status": "Fail",
-  "reason": "36e: Fail \u2014 Started but did not record a result (the test failed or was aborted before WriteResult).",
-  "correlationId": "ops36-36e-ba0836cc535e4599bc7a01a0057302ce",
-  "recordedAtUtc": "2026-11-01T18:54:23.6277373Z"
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "ops36-36e-3f81204c6bd04bc5a1fa9d63fcebf2ff",
+  "recordedAtUtc": "2026-11-01T21:54:52.1488026Z"
 }
