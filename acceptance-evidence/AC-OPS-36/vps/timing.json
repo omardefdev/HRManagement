@@ -1,10 +1,8 @@
 {
   "target": "server",
   "appDomain": "hr.161-97-185-71.sslip.io",
-  "authenticatedRequests": 450,
-  "authenticated429": 0,
-  "anonymousSent": 400,
-  "anonymousNotRejected": 297,
-  "anonymousBurstSeconds": 17.9,
-  "retryAfter": "60"
+  "deployRecord": "deploy-hrm-vps-deploy-817304f5bd88.json",
+  "upSeconds": 107,
+  "bootToHealthySeconds": 119,
+  "pullSeconds": 5
 }

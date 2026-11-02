@@ -203,6 +203,8 @@
   - (موجب) خادم نظيف يصبح realm فيه جاهزاً دون تدخل، ويحصل `svc-compliance` على توكن بجمهور `api-hr-core`، ويحمل توكن المستخدم `tenant_id`.
   - (سالب) توكن `svc-payroll` لا يُقبل على `api-file-storage`. وطلب `/admin` من IP غير مسموح يُرفض.
 
+- **الحالة (2026-11-02، PLAN-39):** ✅ مغلقة للمسار الأحادي: الـ realm كشيفرة من مصدرين لا يتكرران (`docker/keycloak/realm-manifest.json` بلا أسرار + مصفوفة التوصيل)، يولّده `scripts/keycloak/render-realm.ps1` لملفات التعريف Production وDemo وAcceptance (نواب `${NAME}` للأسرار في Production وDemo)، ويُستورد تلقائياً على خادم جديد (`--import-realm` من volume `keycloak_import`)، وتطابقه الخدمة لمرة واحدة `keycloak-reconcile` في كل نشر (العملاء والنطاقات والأسرار والعناوين وحقول الأمان، لا المستخدمين أبداً؛ التشغيل الثاني «0 changes»). `sslRequired=external`، والتخمين بعد 5 محاولات وقفل 15 دقيقة، وسياسة `length(12) and notUsername and passwordHistory(3)`، ولا password grant للبوابة في Production وDemo، ومدير bootstrap واحد بـ `UPDATE_PASSWORD`. Keycloak بدوره الخاص `keycloak` (مالك `keycloak_db`، لا يتصل بغيرها)؛ نُقلت ملكية `keycloak_db` على خادم العرض في مكانه بعد نسخة متحقَّق منها ([OPS_VPS_SINGLE_HOST §13](OPS_VPS_SINGLE_HOST.md)). AC-OPS-39a..e = Pass. المتبقي: تشديد التحقق من الجمهور وإثبات البوابة (PLAN-42)، وتزويد الحسابات (PLAN-62، OPS-G)، وضم realm إلى النسخ المجدولة (OPS-E).
+
 #### G-OPS-04 — مفاتيح Data Protection غير مستمرة: الرقم الوطني يصبح غير قابل للقراءة
 - **الدليل:**
   - `EmployeePiiProtectionInterceptor` يشفّر `Employee.NationalId` قبل الحفظ ([EmployeePiiProtectionInterceptor.cs:41-42](../src/Services/HRCore/HR.Core.Infrastructure/Data/EmployeePiiProtectionInterceptor.cs)).
@@ -226,6 +228,8 @@
 - **التحقق المطلوب:**
   - (موجب) إنشاء موظف، ثم `docker compose up -d --force-recreate hr-core-web`، فيُعرض الرقم الوطني. واستعادة النسخة على خادم ثانٍ تعرض الرقم نفسه.
   - (سالب) حذف volume الحلقة يمنع الإقلاع برسالة صريحة، ولا يولّد حلقة جديدة بصمت.
+
+- **الحالة (2026-11-02، PLAN-39):** ✅ مغلقة للمسار الأحادي: كل خدمة في Production تحفظ حلقتها في volume مسمّى، و`DataProtectionStartupGuard` يوقفها قبل لمس قاعدتها إن غاب المسار أو تعذّرت الكتابة أو اسم التطبيق؛ و`EmployeePiiKeyRingCanary` يوقف HR.Core قبل الترحيلات والبذور إن لم تُفك الحلقة رقماً وطنياً مخزناً (ولا يولّد حلقة جديدة فوق بيانات محمية)، ومفتاح الطوارئ `DataProtection:AllowKeyRingReset=true` يسجّل `Critical` وعدّاداً. حماية الحلقة بشهادة اختيارية (`make-dp-cert.sh`، معطلة على خادم العرض، D-39-3)، وتصدير مشفر للحلقات (`export-dp-keys.sh`). الكاشف مرّ على 500 رقم وطني محمي في خادم العرض بعد النقل وبعد `--force-recreate` لكل الخدمات. AC-OPS-39f..h = Pass. المتبقي: ضم الحلقات والشهادة إلى النسخ المجدولة واختبار الاستعادة (OPS-E)، وتخزين مشترك للحلقات في k8s (خارج المسار الأحادي).
 
 #### G-OPS-05 — الوضع الإنتاجي لقاعدة البيانات (أدوار التطبيق + RLS مفروض) لم يُشغَّل قط
 - **الدليل:**

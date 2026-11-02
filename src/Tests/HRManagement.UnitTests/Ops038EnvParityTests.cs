@@ -21,6 +21,8 @@ public class Ops038EnvParityTests
     [
         "APP_DOMAIN", "SSO_DOMAIN", "HRM_IMAGE_REPO", "IMAGE_TAG", "POSTGRES_USER", "RABBITMQ_DEFAULT_USER",
         "KEYCLOAK_ADMIN", "GRAFANA_ADMIN_USER",
+        // PLAN-39 (D-39-5): the bootstrap administrator's user name (its password is generated).
+        "HRM_BOOTSTRAP_ADMIN_USER",
     ];
 
     private static readonly Regex SecretName = new("(PASSWORD|_PASS|SECRET|_KEY|TOKEN)$", RegexOptions.CultureInvariant);

@@ -1,0 +1,11 @@
+{
+  "persona": "br1-mgr",
+  "claims": [
+    "tenant_id",
+    "employee_id",
+    "scope_org_unit_id"
+  ],
+  "accountReadStatus": 403,
+  "accountUpdateStatus": 403,
+  "tenantUnchanged": true
+}

@@ -34,8 +34,13 @@ public sealed class ProductionConfigurationGuard(
     IConfiguration configuration,
     IHostEnvironment environment,
     IOptions<ProductionConfigurationGuardOptions> options,
-    ILogger<ProductionConfigurationGuard> logger) : IHostedService
+    ILogger<ProductionConfigurationGuard> logger) : IHostedService, IHrStartupCheck
 {
+    public string Name => "production-configuration";
+
+    /// <summary>PLAN-39 (P-3): runs from the early start-up hook, before migrations and seeds (HrStartupChecks).</summary>
+    public Task RunAsync(CancellationToken cancellationToken) => StartAsync(cancellationToken);
+
     // UTF-8 Arabic (or any non-Latin text) decoded as Latin-1 / Windows-1252: a lead byte shown as Ã, Ø or Ù followed
     // by a continuation byte (0x80-0xBF) or the Windows-1252 glyph of one.
     private static readonly Regex Mojibake = new(
@@ -226,6 +231,10 @@ public sealed class ProductionConfigurationGuard(
 
         if (!string.IsNullOrWhiteSpace(configuration["ServiceIdentity:ClientId"]))
             RequireReal("ServiceIdentity:ClientSecret");
+
+        // PLAN-39 (section 3): the directory-sync client secret matters only when Auth.Directory provisions users.
+        if (configuration.GetValue("Keycloak:DirectorySync:Enabled", false))
+            RequireReal("Keycloak:DirectorySync:AdminClientSecret");
 
         var authority = configuration["Keycloak:Authority"];
         if (environment.IsProduction()

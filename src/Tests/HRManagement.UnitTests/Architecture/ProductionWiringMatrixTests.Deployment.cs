@@ -346,22 +346,68 @@ public partial class ProductionWiringMatrixTests
     }
 
     /// <summary>
-    /// P-4: on the single host Keycloak resolves the realm placeholders and keycloak-sync-clients.sh sets each client's
-    /// secret from Keycloak's own environment, so it must receive every matrix secret.
+    /// P-4 (PLAN-39 P-2): on the single host Keycloak resolves the realm placeholders, and the keycloak-reconcile
+    /// one-shot (deploy/keycloak/reconcile.sh, which replaced keycloak-sync-clients.sh) sets each client's secret from
+    /// its own environment, so both must receive every matrix secret.
+    /// </summary>
+    [Theory]
+    [InlineData("production")]
+    [InlineData("single-host")]
+    public void Keycloak_and_its_reconcile_receive_every_service_secret(string chain)
+    {
+        var environment = ComposeEffectiveEnvironment.Load(RepoPaths.Root, WiringChecks.ComposeChains(RepoPaths.Root)[chain]);
+        foreach (var name in new[] { "keycloak", "keycloak-reconcile" })
+            foreach (var service in Matrix.Value.Services.Where(s => s.ServiceIdentity))
+            {
+                Assert.True(environment[name].TryGetValue(service.SecretEnv!, out var value), $"{chain}: {name} lacks {service.SecretEnv}");
+                Assert.StartsWith("${" + service.SecretEnv + ":?", value);
+            }
+
+        var reconcile = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "deploy", "keycloak", "reconcile.sh"));
+        Assert.Contains("reconcile-plan.tsv", reconcile);
+        Assert.DoesNotMatch(@"\bkc (create|update|delete) (users|groups)|role-mappings|add-roles", reconcile);
+        Assert.False(System.IO.File.Exists(Path.Combine(RepoPaths.Root, "deploy", "vps", "keycloak-sync-clients.sh")));
+        var deploy = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "deploy", "vps", "remote-deploy.sh"));
+        Assert.Contains("keycloak-reconcile", deploy);
+        Assert.Contains("fill_keycloak_import", deploy);
+    }
+
+    /// <summary>
+    /// PLAN-39 review F1/F3: every deploy (a rollback included) refills the import volume from the release it deploys and
+    /// keeps that release's copy, so a release never reconciles with another release's plan; and the realm profile of
+    /// the release must match HRM_DEPLOYMENT_MODE.
     /// </summary>
     [Fact]
-    public void Single_host_keycloak_receives_every_service_secret()
+    public void Every_deploy_refills_the_keycloak_import_from_its_own_release_and_checks_the_profile()
     {
-        var keycloak = ComposeEffectiveEnvironment.Load(RepoPaths.Root, WiringChecks.ComposeChains(RepoPaths.Root)["single-host"])["keycloak"];
-        foreach (var service in Matrix.Value.Services.Where(s => s.ServiceIdentity))
-        {
-            Assert.True(keycloak.TryGetValue(service.SecretEnv!, out var value), $"keycloak lacks {service.SecretEnv}");
-            Assert.StartsWith("${" + service.SecretEnv + ":?", value);
-        }
+        var deploy = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "deploy", "vps", "remote-deploy.sh")).Replace("\r\n", "\n");
+        var start = deploy.IndexOf("fill_keycloak_import() {", StringComparison.Ordinal);
+        var body = deploy[start..deploy.IndexOf("\n}\n", start, StringComparison.Ordinal)];
+        Assert.DoesNotContain("rm -rf \"$src\"", body);
+        Assert.DoesNotContain("volume $volume kept", body);
+        Assert.Contains("extract the release again", body);
+        Assert.Contains("HRM_DEPLOYMENT_MODE", body);
+        Assert.Contains("profile", body);
+        // The rollback path goes through deploy(), which fills the volume before `up`.
+        Assert.Matches(@"fill_keycloak_import ""\$release""\s*\n\s*\n\s*t0=", deploy);
+        var workflow = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "workflows", "deploy.yml"));
+        Assert.DoesNotContain("prepare-keycloak-import.ps1 -Profile Demo ", workflow);
+        Assert.Contains("HRM_DEPLOYMENT_MODE", workflow);
+    }
 
-        var sync = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "deploy", "vps", "keycloak-sync-clients.sh"));
-        Assert.Contains("deploy/wiring/service-wiring.json", sync);
-        Assert.Contains("keycloak-sync-clients.sh", System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "deploy", "vps", "remote-deploy.sh")));
+    /// <summary>PLAN-39 (P-2): every application waits for the reconcile, so none starts with a secret Keycloak does not know.</summary>
+    [Fact]
+    public void Every_production_application_waits_for_the_keycloak_reconcile()
+    {
+        var compose = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "docker-compose.production.yml")).Replace("\r\n", "\n");
+        foreach (var service in Matrix.Value.Services)
+        {
+            var start = compose.IndexOf("\n  " + service.ComposeService + ":\n", StringComparison.Ordinal);
+            Assert.True(start >= 0, $"{service.ComposeService} not in docker-compose.production.yml");
+            var next = Regex.Match(compose[(start + 3)..], @"\n  [a-z][a-z0-9-]*:\n");
+            var block = next.Success ? compose.Substring(start, next.Index + 3) : compose[start..];
+            Assert.Matches(@"keycloak-reconcile:\n\s+condition: service_completed_successfully", block);
+        }
     }
 
     /// <summary>The server .env template lists every secret the production chain now requires (names only).</summary>

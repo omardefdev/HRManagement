@@ -1,0 +1,9 @@
+{
+  "employeeId": "002261f6-5a98-c147-a5a0-c0b7df507794",
+  "shownBefore": true,
+  "sameAfter": true,
+  "sessionKept": true,
+  "recreateSeconds": 109,
+  "canary": "Key-ring canary of HR.Core: a protected national ID decrypts with the key ring at /var/hrm/dpkeys",
+  "reconcile": "reconcile: 0 changes (7 s)"
+}

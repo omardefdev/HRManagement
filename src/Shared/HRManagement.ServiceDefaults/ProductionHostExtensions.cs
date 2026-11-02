@@ -27,9 +27,10 @@ public static class ProductionHostExtensions
         builder.Services.Configure<HostOptions>(options =>
             options.ShutdownTimeout = TimeSpan.FromSeconds(shutdownSeconds));
 
-        // PLAN-36: refuse placeholder values in Production (opt-in elsewhere); registered early so it starts first.
+        // PLAN-36: refuse placeholder values in Production (opt-in elsewhere). PLAN-39 (P-3, PLAN-38 review F5): a start-up
+        // check, so it runs before the migrations and seeds connect (HrStartupChecks); registered first, so it runs first.
         builder.Services.AddOptions<ProductionConfigurationGuardOptions>();
-        builder.Services.AddHostedService<ProductionConfigurationGuard>();
+        builder.Services.AddHrStartupCheck<ProductionConfigurationGuard>();
 
         var useForwarded = builder.Configuration.GetValue("UseForwardedHeaders", false);
         if (useForwarded)

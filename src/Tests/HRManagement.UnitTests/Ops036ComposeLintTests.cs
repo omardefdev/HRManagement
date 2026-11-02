@@ -321,7 +321,7 @@ public class Ops036ComposeLintTests
                  {
                      "scripts/vps/build-push-images.ps1", "scripts/vps/make-deploy-bundle.ps1", "scripts/vps/deploy.ps1",
                      "scripts/vps/smoke.ps1", "scripts/vps/lint-compose.ps1", "scripts/deploy-organization.ps1",
-                     "scripts/prepare-keycloak-import.ps1"
+                     "scripts/prepare-keycloak-import.ps1", "scripts/keycloak/render-realm.ps1", "scripts/keycloak/acceptance-personas.ps1"
                  })
         {
             var text = Read(script);
@@ -375,14 +375,16 @@ public class Ops036ComposeLintTests
         Assert.DoesNotContain("harden", baseCase);
     }
 
+    /// <summary>PLAN-39: the demo realm (VpsDemo, now Demo) is rendered by render-realm.ps1, placeholders only (Ops039RenderRealmTests).</summary>
     [Fact]
     public void Vps_demo_realm_profile_keeps_every_secret_a_placeholder()
     {
         var script = Read("scripts/prepare-keycloak-import.ps1");
         Assert.Contains("\"VpsDemo\"", script);
-        Assert.Contains("'${DEMO_USERS_PASSWORD}'", script);
-        Assert.Contains("'${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}'", script);
-        Assert.Contains("directAccessGrantsEnabled = $false", script);
+        Assert.Contains("scripts/keycloak/render-realm.ps1", script);
         Assert.Contains("artifacts/vps/import", script);
+        var renderer = Read("scripts/keycloak/render-realm.ps1");
+        Assert.Contains("Placeholder \"DEMO_USERS_PASSWORD\"", renderer);
+        Assert.Contains("Placeholder $gatewaySecretEnv", renderer);
     }
 }

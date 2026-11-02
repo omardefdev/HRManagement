@@ -112,6 +112,7 @@ Then the final documentation commit (this report, the progress file, the PR text
 | Server: smoke | 48 pass / 0 fail (fixed `smoke.sh`) |
 | Server: AC-OPS-36 (36j not run) | a..i and k Pass (36e on the fifth attempt, after the owner's link recovered; §7) |
 | Server: AcInt37 | 3/3 Pass |
+| Server: P6 through the UI (leave approve + cancel, ID card create) | Pass (§8) |
 | `lint-compose.ps1` | both chains PASS; pool self-test PASS |
 | Local CI (`scripts/ci-local.ps1`, full, Linux container, clean clone of HEAD) | 90/90 passed on `f07f7c96` (4736 s, incl. Testcontainers and the coverage gate). Two earlier runs found two defects of this phase, fixed: whitespace in two test files (`dotnet format`), and the pool-check test's scratch `.env` without mode 600 (the check enforces it on Linux) |
 | Pre-push (`scripts/plan035-prepush.ps1`) and local CI on the release head | run on `release/plan-38` after this report is committed; results in `reports/plan38-pr.md` and the progress file |
@@ -185,9 +186,13 @@ with Retry-After 60). Details: `acceptance-evidence/AC-OPS-38/vps/ac-ops-36e-net
   claim now also matches the validated employee, type, start, end and duration; a changed request answers
   "changed since read" and stays Pending with no debit.
 - Tests: `Ops038DemoDefectTests` 6/6 on PostgreSQL (Testcontainers); the F1 test fails with the fix taken out.
-- On the server: NotRun(server). The UI check needs a demo sign-in, and `DEMO_USERS_PASSWORD` is read by the owner
-  only (it never enters the agent's context). Suggested owner check on the demo: approve a pending leave, create an ID
-  card. Note the deployed tag `7bd85bc3ac9d` carries the P6 fixes but not F1 (next deploy).
+- On the server (tag `7bd85bc3ac9d`, 2026-11-01T22:40Z, after the owner deferred the password strictness to the end of
+  development): **Pass** through the real UI (`AcOps36VpsBootTests.AC_OPS_38_vps_leave_approval_and_id_card_creation_work_on_the_demo_server`).
+  A leave filed by `e2e-maker-contracts` was approved by `hradmin` (balance +3, service transaction Completed) and
+  cancelled again (balance back to its value before); `hradmin` issued ID card `ID-2026-0000001` with a generated
+  serial. Evidence: `acceptance-evidence/AC-OPS-38/vps/38-vps-p6-*.json`. A first run approved its leave but stopped on
+  a wrong page check; the second run cancelled that leave through the UI as well. The deployed tag carries the P6 fixes
+  but not F1 (next deploy).
 
 ## 9. Deferred items
 
@@ -195,6 +200,8 @@ with Retry-After 60). Details: `acceptance-evidence/AC-OPS-38/vps/ac-ops-36e-net
 - DB posture `least-privilege` on the single host (OPS-D, enforced RLS).
 - Secrets on the server in a plain 600 file; a secret store is wave 2.
 - Payroll legal framework stays a Demo seed → PLAN-54.
+- Secret-handling strictness for the demo and test values (the rule that secrets never enter the agent's context):
+  deferred by the owner on 2026-11-02 to the end of development; secrets still never go into the repository or evidence.
 
 ## 10. Defects for later plans
 

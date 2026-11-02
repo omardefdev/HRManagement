@@ -1,0 +1,22 @@
+{
+  "leave": {
+    "id": "4237c096-286f-4dc7-9e3a-ba3e5f17c8f7",
+    "employeeId": "002261f6-5a98-c147-a5a0-c0b7df507794",
+    "durationDays": 3,
+    "approvedBy": "hradmin",
+    "approvedStatus": "Approved",
+    "transaction": "Completed",
+    "balanceUsedBefore": 9,
+    "balanceUsedAfterApproval": 12,
+    "cancelledStatus": "Cancelled",
+    "balanceUsedAfterCancel": 9
+  },
+  "idCard": {
+    "id": "08fdb223-e307-44ec-a88a-33d9d877f8ae",
+    "serialNumber": "ID-2026-0000002",
+    "status": "0",
+    "design": "13b89b2b-d884-864c-ac4e-d4f58f31362d",
+    "cardsBefore": 1,
+    "cardsAfter": 2
+  }
+}

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
@@ -27,7 +28,7 @@ namespace HRManagement.AcceptanceTests;
 /// the live service is still healthy.
 /// </summary>
 [RequiredAcceptance]
-public class AcOps36VpsBootTests
+public partial class AcOps36VpsBootTests
 {
     private const string Ac = "AC-OPS-36";
     private const string DemoBanner = "بيئة عرض — بيانات اصطناعية فقط";
@@ -277,11 +278,11 @@ public class AcOps36VpsBootTests
     private static readonly Regex HiddenInput = new(@"<input[^>]*type=""hidden""[^>]*name=""(?<n>[^""]+)""[^>]*value=""(?<v>[^""]*)""", RegexOptions.IgnoreCase);
 
     /// <summary>Code flow through the edge: the gateway's challenge, Keycloak's login form, the form_post back.</summary>
-    private static async Task<(HttpClient Client, CookieContainer Cookies)> SignInAsync(string user, string password)
+    private static async Task<(HttpClient Client, CookieContainer Cookies)> SignInAsync(string user, string password, string startPath = "/ui/hr-core/")
     {
         var cookies = new CookieContainer();
         var client = NewClient(cookies, followRedirects: true);
-        var login = await client.GetAsync($"https://{AppDomain}/ui/hr-core/");
+        var login = await client.GetAsync($"https://{AppDomain}{startPath}");
         var html = await login.Content.ReadAsStringAsync();
         Assert.Equal(SsoDomain, login.RequestMessage!.RequestUri!.Host, ignoreCase: true);
         var action = WebUtility.HtmlDecode(FormAction.Match(html).Groups["a"].Value);
@@ -352,8 +353,9 @@ public class AcOps36VpsBootTests
             Assert.Contains(rows, r => r[0] == infra);
         foreach (var r in rows)
         {
-            // One-shot containers: volume-init and (PLAN-38) hrm-bootstrap, which every application waits for.
-            if (r[0] is "volume-init" or "hrm-bootstrap")
+            // One-shot containers: volume-init, (PLAN-38) hrm-bootstrap and (PLAN-39) keycloak-reconcile, which every
+            // application waits for.
+            if (r[0] is "volume-init" or "hrm-bootstrap" or "keycloak-reconcile")
                 Assert.True(r[2] == "exited" && r[4] == "0", $"{r[0]} did not exit 0");
             else
                 Assert.True(r[2] == "running" && r[3] is "healthy" or "none", $"{r[0]} is {r[2]}/{r[3]}");
@@ -643,14 +645,15 @@ public class AcOps36VpsBootTests
         recorder.RecordTiming("anonymousNotRejected", succeeded);
         recorder.RecordTiming("anonymousBurstSeconds", Math.Round(seconds, 1));
         recorder.RecordTiming("retryAfter", retryAfter ?? "missing");
-        Assert.True(seconds < 60, $"the anonymous burst took {seconds:0} s, longer than the one-minute window");
+        Assert.True(seconds < 60, string.Create(CultureInfo.InvariantCulture, $"the anonymous burst took {seconds:0} s, longer than the one-minute window"));
         Assert.True(succeeded <= 300, $"{succeeded} of 400 anonymous requests passed (limit 300 per minute)");
         Assert.True(succeeded < 400, "no 429 within 400 anonymous requests");
         Assert.False(string.IsNullOrEmpty(retryAfter), "429 without Retry-After");
 
         await WaitForAnonymousWindowAsync();
         recorder.FlushTiming();
-        recorder.WriteResult("Pass", $"two signed-in users: 400 assets + 50 pages, no 429; anonymous: {succeeded} of 400 passed in {seconds:0} s, the rest 429 with Retry-After {retryAfter}");
+        // PLAN-39 (P6): numbers in the evidence with the invariant culture (the machine culture ar-SA printed 22٫9 %).
+        recorder.WriteResult("Pass", string.Create(CultureInfo.InvariantCulture, $"two signed-in users: 400 assets + 50 pages, no 429; anonymous: {succeeded} of 400 passed in {seconds:0} s, the rest 429 with Retry-After {retryAfter}"));
     }
 
     private static async Task<HttpStatusCode> Status(HttpClient client, string url, HttpMethod? method = null)
@@ -685,7 +688,7 @@ public class AcOps36VpsBootTests
         var responses = await Task.WhenAll(Enumerable.Range(0, 400).Select(async i =>
         {
             using var response = await client.GetAsync($"https://{AppDomain}/?burst={i}");
-            return (response.StatusCode, RetryAfter: response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0"));
+            return (response.StatusCode, RetryAfter: response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0", CultureInfo.InvariantCulture));
         }));
         watch.Stop();
         var rejected = responses.Where(r => r.StatusCode == HttpStatusCode.TooManyRequests).ToList();
@@ -811,7 +814,7 @@ public class AcOps36VpsBootTests
             var limit = ToMiB(usage[1]);
             totalMiB += used;
             rows.Add(new { container = parts[0], usedMiB = Math.Round(used, 1), limitMiB = Math.Round(limit, 1), percent = Math.Round(100 * used / limit, 1) });
-            Assert.True(used < limit, $"{parts[0]} uses {used:0} MiB of {limit:0} MiB");
+            Assert.True(used < limit, string.Create(CultureInfo.InvariantCulture, $"{parts[0]} uses {used:0} MiB of {limit:0} MiB"));
         }
 
         var oomKilled = oom.Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(l => l.Trim().EndsWith("|true", StringComparison.Ordinal)).ToList();
@@ -819,8 +822,8 @@ public class AcOps36VpsBootTests
         After(recorder, new { hostMemoryMiB = Math.Round(hostMiB), totalUsedMiB = Math.Round(totalMiB), percentOfHost = Math.Round(100 * totalMiB / hostMiB, 1), containers = rows, oomKilled });
         recorder.FlushTiming();
         Assert.Empty(oomKilled);
-        Assert.True(totalMiB < 0.75 * hostMiB, $"total {totalMiB:0} MiB is not under 75 % of {hostMiB:0} MiB");
-        recorder.WriteResult("Pass", $"{rows.Count} containers, {totalMiB:0} MiB of {hostMiB:0} MiB ({100 * totalMiB / hostMiB:0.0} %), none over its limit, no OOMKilled");
+        Assert.True(totalMiB < 0.75 * hostMiB, string.Create(CultureInfo.InvariantCulture, $"total {totalMiB:0} MiB is not under 75 % of {hostMiB:0} MiB"));
+        recorder.WriteResult("Pass", string.Create(CultureInfo.InvariantCulture, $"{rows.Count} containers, {totalMiB:0} MiB of {hostMiB:0} MiB ({100 * totalMiB / hostMiB:0.0} %), none over its limit, no OOMKilled"));
     }
 
     private static double ToMiB(string text)

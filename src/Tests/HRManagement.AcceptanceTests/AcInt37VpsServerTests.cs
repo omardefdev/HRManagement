@@ -44,6 +44,10 @@ public class AcInt37VpsServerTests
 
     private static (int Exit, string Output) Ssh(string command) => Run("ssh", $"-o BatchMode=yes {SshHost} \"{command.Replace("\"", "\\\"")}\"");
 
+    /// <summary>PLAN-39: a multi-line bash script on the server, base64 on the command line so no quoting is lost.</summary>
+    private static (int Exit, string Output) SshScript(string script) =>
+        Ssh($"echo {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(script.Replace("\r\n", "\n")))} | base64 -d | bash");
+
     [SkippableFact]
     public void Server_smoke_with_mandatory_wiring_is_green()
     {
@@ -103,12 +107,20 @@ public class AcInt37VpsServerTests
     [SkippableFact]
     public void Server_realm_has_every_matrix_client_and_the_sync_is_idempotent()
     {
-        var recorder = Start("vps-keycloak", "Demo server: realm in step with deploy/wiring/service-wiring.json, sync idempotent");
-        var (checkExit, check) = Ssh("cd /opt/hrm/current && bash deploy/vps/keycloak-sync-clients.sh --check | tail -1");
-        Assert.True(checkExit == 0 && check.Contains("changes=0", StringComparison.Ordinal), check);
+        var recorder = Start("vps-keycloak", "Demo server: realm in step with deploy/wiring/service-wiring.json, reconcile idempotent");
+        // PLAN-39 (P-2): the deployed release's keycloak-reconcile one-shot, run once more, has nothing left to change.
+        var (checkExit, check) = SshScript("""
+            rc=$(docker ps -aq --filter label=com.docker.compose.project=hrm --filter label=com.docker.compose.service=keycloak-reconcile | head -1)
+            [ -n "$rc" ] || { echo "no keycloak-reconcile container"; exit 1; }
+            docker start -a "$rc" 2>&1 | tail -1
+            """);
+        Assert.True(checkExit == 0 && check.Contains("reconcile: 0 changes", StringComparison.Ordinal), check);
 
-        var (exit, clients) = Ssh("kc=$(docker ps -q --filter label=com.docker.compose.project=hrm --filter label=com.docker.compose.service=keycloak); " +
-            "docker exec $kc /opt/keycloak/bin/kcadm.sh get clients -r hrmanagement --fields clientId,enabled --format csv --noquotes");
+        // kcadm inside the keycloak container; the admin password reaches its prompt on stdin there (never a command line).
+        var (exit, clients) = SshScript("""
+            kc=$(docker ps -q --filter label=com.docker.compose.project=hrm --filter label=com.docker.compose.service=keycloak)
+            docker exec -i "$kc" sh -c '{ printf "%s\n" "$KEYCLOAK_ADMIN_PASSWORD"; sleep 2; } | timeout 60 /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN" > /dev/null 2>&1 && /opt/keycloak/bin/kcadm.sh get clients -r hrmanagement --fields clientId,enabled --format csv --noquotes' < /dev/null
+            """);
         Assert.True(exit == 0, clients);
         using var matrix = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "deploy", "wiring", "service-wiring.json")));
         var expected = matrix.RootElement.GetProperty("services").EnumerateArray()
@@ -122,7 +134,7 @@ public class AcInt37VpsServerTests
             .ToHashSet(StringComparer.Ordinal);
         Assert.All(expected, c => Assert.True(enabled.Contains(c), $"client {c} missing or disabled in the server realm"));
 
-        recorder.WriteScenarioSteps("1. keycloak-sync-clients.sh --check on the server: changes=0 (a second run changes nothing).\n" +
+        recorder.WriteScenarioSteps("1. keycloak-reconcile run again on the server (docker start -a): reconcile: 0 changes.\n" +
             "2. kcadm get clients: every matrix service client exists and is enabled.");
         recorder.WriteScenarioDbChecks(new { check = check.Trim(), clients = expected });
         recorder.WriteResult("Pass");

@@ -27,6 +27,8 @@
 services:
   hr-core-web:
     environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
       NationalScope__IsLabScale: "false"
       NationalScope__HardEnforceCeilings: "true"
       PolicyEngine__Core.Recruitment: "Shadow"
@@ -38,4 +40,133 @@ services:
 
   hr-contracts-web:
     environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
       Contracts__AllowDefaultContractTypeFallback: "false"
+
+  hr-gateway:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  hr-movements-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  payroll-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  idcard-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  records-archive-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  admin-logistics-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  it-infra-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  compliance-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  auth-directory-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  hr-health-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  hr-training-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  dev-analytics-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  file-storage-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  # PLAN-39 (P-2, P-4): the same reconcile as the production chain, on the realm rendered from the manifest with the
+  # Acceptance profile (scripts/prepare-keycloak-import.ps1 -Profile Acceptance writes realm-hrmanagement.json and
+  # reconcile-plan.tsv to docker/keycloak/import). Lab secrets: the shared lab service secret that
+  # docker-compose.acceptance.yml gives every service, and the gateway secret of the local .env. AC-OPS-39d rotates
+  # SVC_PAYROLL_CLIENT_SECRET with docker compose run -e ... keycloak-reconcile.
+  keycloak-reconcile:
+    image: quay.io/keycloak/keycloak:24.0
+    entrypoint: ["bash", "/opt/hrm/reconcile/reconcile.sh"]
+    restart: "no"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      HRM_KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}
+      KEYCLOAK_DIRECTORY_SYNC_SECRET: dev-svc-secret-local-only
+      SVC_ADMIN_LOGISTICS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_AUTH_DIRECTORY_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_COMPLIANCE_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_DEV_ANALYTICS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_CONTRACTS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_CORE_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_HEALTH_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_MOVEMENTS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_TRAINING_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_IDCARD_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_IT_INFRA_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_PAYROLL_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_RECORDS_ARCHIVE_CLIENT_SECRET: dev-svc-secret-local-only
+    volumes:
+      - ./docker/keycloak/import:/opt/keycloak/data/import:ro
+      - ./deploy/keycloak:/opt/hrm/reconcile:ro
+    depends_on:
+      keycloak:
+        condition: service_started
+
+  # PLAN-39 (section 3, P-4, AC-OPS-39e): Keycloak on its own database role on this stack too, made by the same SQL as
+  # hrm-bootstrap step 3 (deploy/bootstrap/ensure-keycloak-role.sql). Lab password (ACCEPTANCE_KEYCLOAK_DB_PASSWORD, lab
+  # default). keycloak_db must be empty or already Keycloak's: a keycloak_db the administrator filled before PLAN-39 stops
+  # this one-shot ("run the ownership transfer"); on the lab stack drop and recreate keycloak_db (a new Keycloak volume).
+  keycloak-db-role:
+    image: postgres:16-alpine
+    restart: "no"
+    # The administrator password reaches psql through PGPASSWORD (an assignment: no quoting needed), never argv.
+    entrypoint: ["sh", "-c", "PGPASSWORD=$$POSTGRES_PASSWORD psql -X -q -v ON_ERROR_STOP=1 -h postgresql -U $$POSTGRES_USER -d postgres -v transfer=false -f /opt/hrm-bootstrap/ensure-keycloak-role.sql"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      HRM_KEYCLOAK_PASSWORD: ${ACCEPTANCE_KEYCLOAK_DB_PASSWORD:-acceptance-keycloak-db-lab-only}
+    volumes:
+      - ./deploy/bootstrap:/opt/hrm-bootstrap:ro
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  keycloak:
+    environment:
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${ACCEPTANCE_KEYCLOAK_DB_PASSWORD:-acceptance-keycloak-db-lab-only}
+    depends_on:
+      keycloak-db-role:
+        condition: service_completed_successfully

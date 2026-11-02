@@ -293,7 +293,8 @@ public class Ops036ProductionConfigurationGuardTests
 
         var source = System.IO.File.ReadAllText(Path.Combine(
             root!.FullName, "src", "Shared", "HRManagement.ServiceDefaults", "ProductionHostExtensions.cs"));
-        Assert.Contains("AddHostedService<ProductionConfigurationGuard>()", source);
+        // PLAN-39 (P-3): a start-up check run before migrations and seeds (HrStartupChecks), no longer a plain hosted service.
+        Assert.Contains("AddHrStartupCheck<ProductionConfigurationGuard>()", source);
 
         var programs = Directory.GetFiles(Path.Combine(root!.FullName, "src"), "Program.cs", SearchOption.AllDirectories)
             .Where(p => !p.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
