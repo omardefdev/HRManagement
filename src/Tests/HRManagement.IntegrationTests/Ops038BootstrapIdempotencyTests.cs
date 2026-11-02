@@ -51,6 +51,7 @@ public sealed class Ops038BootstrapFixture : IAsyncLifetime
             _passwords[$"{r.PasswordPrefix}_MIGRATOR_PASSWORD"] = NewPassword();
         }
         _passwords["POSTGRES_BACKUP_PASSWORD"] = NewPassword();
+        _passwords["POSTGRES_KEYCLOAK_PASSWORD"] = NewPassword();
 
         _pg = new PostgreSqlBuilder(RealInfra.PostgresImage)
             .WithResourceMapping(new DirectoryInfo(Path.Combine(RepoRoot, "deploy", "bootstrap")), BootstrapDir)
@@ -91,6 +92,10 @@ public sealed class Ops038BootstrapFixture : IAsyncLifetime
                 o => new PayrollDbContext(o)),
         };
 
+        // PLAN-39: step 3 of bootstrap.sh also ensures the keycloak role (owner of keycloak_db, no CONNECT elsewhere).
+        await PsqlAsync("postgres", $"-v transfer=false -f {BootstrapDir}/ensure-keycloak-role.sql",
+            ("HRM_KEYCLOAK_PASSWORD", Password("POSTGRES_KEYCLOAK_PASSWORD")));
+
         await PsqlAsync("postgres", $"-f {BootstrapDir}/ensure-backup-role.sql",
             ("HRM_BACKUP_PASSWORD", Password("POSTGRES_BACKUP_PASSWORD")));
 
@@ -129,6 +134,14 @@ public sealed class Ops038BootstrapFixture : IAsyncLifetime
             ["sh", "-c", $"{env} psql -X -q -v ON_ERROR_STOP=1 -U {user} -d {database} {arguments}"]);
         if (result.ExitCode != 0)
             throw new InvalidOperationException($"psql {arguments} as {user} on {database} failed: {result.Stderr}");
+    }
+
+    /// <summary>psql as the administrator, returning the exit code and output instead of throwing (PLAN-39 refusals).</summary>
+    public async Task<(long ExitCode, string Output)> PsqlResultAsync(string database, string arguments, params (string Name, string Value)[] environment)
+    {
+        var env = string.Join(' ', environment.Select(e => $"{e.Name}='{e.Value}'"));
+        var result = await Pg.ExecAsync(["sh", "-c", $"{env} psql -X -q -v ON_ERROR_STOP=1 -U postgres -d {database} {arguments}"]);
+        return (result.ExitCode ?? -1, result.Stdout + result.Stderr);
     }
 
     public string Connection(string database, string user, string password) =>

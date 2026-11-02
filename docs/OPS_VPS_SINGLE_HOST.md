@@ -151,19 +151,21 @@ done
 chmod 600 "$f"; cut -d= -f1 "$f" | grep -E '^SVC_'
 ```
 
-## 5أ. عملاء الخدمات في Keycloak (PLAN-37)
+## 5أ. عملاء الخدمات في Keycloak (PLAN-37، ثم PLAN-39)
 
-realm الخادم لا يُحذف ولا يُعاد استيراده (المستخدمون التجريبيون والبيانات يعتمدون عليه). `deploy/vps/keycloak-sync-clients.sh`
-يجعله مطابقاً للمصفوفة **بلا أثر جانبي عند التكرار**: كل نطاق بمُعيّن audience لكل جمهور، وكل عميل خدمة (سرّي، حساب خدمة، بلا
-تدفق متصفح) بنطاقاته الاختيارية كما في المصفوفة بالضبط (يُفك أي نطاق غير مدمج في Keycloak ليس في المصفوفة، ولو خرج من
-كتالوجها، وأي نطاق افتراضي غير مدمج)، وسرّه من متغير `secretEnv` في بيئة حاوية Keycloak (يملؤها compose من `.env`). كل أوامر
-`kcadm.sh` تجري داخل الحاوية، وكلمة مرور المدير والأسرار تصل إليها عبر stdin أو ملف مؤقت خاص (لا في سطر أوامر أي عملية، فلا
-تظهر في `ps` على المضيف) ولا تُطبع؛ المخرجات أسماء العملاء والإجراء و`changes=N`. وكذلك فحوص التوكن والاستدعاء في `smoke.sh`.
+realm الخادم لا يُحذف ولا يُعاد استيراده (المستخدمون التجريبيون والبيانات يعتمدون عليه). منذ PLAN-39 تجعله الخدمة لمرة واحدة
+`keycloak-reconcile` ([deploy/keycloak/reconcile.sh](../deploy/keycloak/reconcile.sh)، من صورة Keycloak نفسها) مطابقاً للـ realm
+المولَّد من القائمة والمصفوفة في **كل نشر**، بعد أن يصبح `keycloak` سليماً وقبل أي تطبيق (كل التطبيقات تنتظرها:
+`service_completed_successfully`). تقرأ `reconcile-plan.tsv` الذي يكتبه `render-realm.ps1` بجانب الـ realm (أسماء وأعلام
+وعناوين وأسماء متغيرات الأسرار، بلا قيمة)، وتطابق: حقول الأمان المسماة، والنطاقات الثمانية بمُعيّنات الجمهور بالضبط، وكل
+عميل (عملاء `svc-*` والبوابة و`directory-sync`): وجوده وأعلامه ونطاقاته الاختيارية وعناوين البوابة وسرّه من متغيره. **لا تمس
+المستخدمين ولا ربط الأدوار ولا تحذف عميلاً.** كلمة مرور المدير والأسرار من بيئة الحاوية، وتصل إلى kcadm عبر stdin أو ملف 600،
+ولا تُطبع؛ المخرجات أسماء والإجراء و`reconcile: N changes`، والتشغيل الثاني `reconcile: 0 changes`.
 
-- `remote-deploy.sh deploy` يشغّله بعد أن تصبح الحاويات سليمة؛ فشله يُفشل النشر (`failed-tag` ثم `-Rollback`).
-- يدوياً: `ssh hrm-vps "cd /opt/hrm/current && bash deploy/vps/keycloak-sync-clients.sh [--check]"` (`--check` لا يغيّر شيئاً
-  ويخرج بـ 1 إن كان تغيير مستحقاً).
-- realm خادم جديد يأخذ العملاء نفسها عند أول استيراد (`prepare-keycloak-import.ps1 -Profile VpsDemo` يقرأ المصفوفة).
+- فشلها يمنع بدء التطبيقات فيفشل `up` والنشر (`failed-tag` ثم `-Rollback`). `remote-deploy.sh` يطبع سجلها و`timing keycloak_reconcile_seconds`.
+- يدوياً (تشغيل ثانٍ): `ssh hrm-vps "docker start -a $(docker ps -aq -f label=com.docker.compose.project=hrm -f label=com.docker.compose.service=keycloak-reconcile)"`.
+- التدوير: تعديل `SVC_X_CLIENT_SECRET` في `.env` ثم `deploy.ps1 -Tag <الوسم الحالي>` (القديم يُرفض `unauthorized_client`).
+- `keycloak-sync-clients.sh` (PLAN-37) حُذف؛ لا يشغّله `remote-deploy.sh` إلا لإصدار أقدم من PLAN-39 عند `-Rollback` إليه.
 
 ## 6. النشر والتراجع
 
@@ -255,6 +257,12 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-38: إعادة البناء من volumes فارغة (حُذفت `hrm_postgres_data` و`hrm_file_storage_data` و`hrm_gateway_dataprotection_keys` و14 `hrm_dp_*` وvolume RabbitMQ المجهول) | §12.5: الاستعادة من `/opt/hrm/backups/pre-plan38-20261101T175541Z` |
 | PLAN-38: volume جديد `hrm_rabbitmq_data` وvolume النتائج `hrm_bootstrap_results` | `docker volume rm` بعد `down` |
 | PLAN-38: `/opt/hrm/backups/` (700) | حذف المجلد بعد التأكد من عدم الحاجة إلى النسخة |
+| PLAN-39: 3 مفاتيح في `/opt/hrm/shared/.env` (`POSTGRES_KEYCLOAK_PASSWORD`، `HRM_BOOTSTRAP_ADMIN_PASSWORD`، `HRM_BOOTSTRAP_ADMIN_USER`؛ 87 مفتاحاً) | استعادة `/opt/hrm/shared/.env.bak-plan39-20261102T014535Z` (600) ثم إعادة النشر |
+| PLAN-39: الدور `keycloak` في PostgreSQL، ونقل ملكية كل كائنات `keycloak_db` (285 علاقة) والقاعدة نفسها إليه | الإصدار السابق يتصل بالحساب الإداري فيعمل دون نقل عكسي؛ للرجوع الكامل: §12.5 بنسخة `/opt/hrm/backups/pre-plan39-20261102T014546Z` ثم `-Rollback` |
+| PLAN-39: إعدادات الأمان في realm `hrmanagement` (سياسة كلمات المرور، التخمين 5/900 ث) و`fullScopeAllowed=false` لثمانية عملاء `svc-*` (`keycloak-reconcile`) | لوحة Keycloak (§7)، أو `-Rollback` (لا يعيد الحقول) |
+| PLAN-39: volume `hrm_keycloak_import` (realm مولّد بنواب `${NAME}` وخطة المطابقة، بلا أسرار) | `docker volume rm hrm_keycloak_import` بعد `down` |
+| PLAN-39: الإصدار `817304f5bd88` (current-tag؛ previous-tag `7bd85bc3ac9d`) وصوره في السجل الحلقي | `deploy.ps1 -Rollback` |
+| PLAN-39: `/opt/hrm/backups/pre-plan39-20261102T014546Z` (700، الملفات 600) | حذف المجلد بعد التأكد من عدم الحاجة إلى النسخة |
 
 ## 11. التسليم للمالك
 
@@ -339,3 +347,82 @@ done
 
 ثم `deploy.ps1 -Tag <الوسم>`: `hrm-bootstrap` يجد القواعد والترحيلات قائمة فيضبط كلمات مرور الأدوار فقط. أخطاء
 `already exists` من `pg_dumpall` على الأدوار والقواعد التي أنشأها 01-init متوقعة.
+
+## 13. Keycloak بدور قاعدة خاص، والـ realm كشيفرة، وحلقات المفاتيح (PLAN-39)
+
+### 13.1 دور `keycloak` على خادم جديد
+
+`hrm-bootstrap` (الخطوة 3، [ensure-keycloak-role.sql](../deploy/bootstrap/ensure-keycloak-role.sql)) ينشئ الدور `keycloak`
+(`LOGIN`، بلا أي صلاحية إدارية ولا `BYPASSRLS`)، ويضع كلمة مروره من `POSTGRES_KEYCLOAK_PASSWORD` في كل تشغيل، ويمنحه
+`CONNECT` على `keycloak_db` وحدها، ويجعله مالكها إن كانت فارغة. و`keycloak` ينتظر `hrm-bootstrap` ثم يتصل بـ
+`KC_DB_USERNAME: keycloak`، فينشئ جداوله بنفسه. قاعدة الصيانة `postgres` تبقى بمنحة PostgreSQL الافتراضية لـ PUBLIC كما
+لكل أدوار PLAN-38.
+
+### 13.2 خادم قائم: نقل ملكية `keycloak_db` (مرة واحدة، بعد نسخة متحقَّق منها)
+
+قبل PLAN-39 كان Keycloak يتصل بالحساب الإداري، فكل جداول `keycloak_db` ملكه. بدون النقل يتوقف `hrm-bootstrap` برسالة
+«run the ownership transfer» ولا يبدأ Keycloak على جداول لا يملكها. الترتيب إلزامي:
+
+```bash
+cd /opt/hrm/releases/<sha12>                                   # الإصدار الجديد مستخرَج (deploy.ps1 -PrepareOnly)
+bash deploy/vps/init-secrets.sh                                # يضيف POSTGRES_KEYCLOAK_PASSWORD وغيره (الأسماء فقط)
+# 1. نسخة متحقَّق منها أولاً (pg_dumpall + حلقات المفاتيح، 700/600، SHA256SUMS؛ §12.5)
+# 2. إيقاف Keycloak وكل ما يعتمد عليه (التطبيقات والحافة)، فلا جلسة على keycloak_db
+docker compose -p hrm <ملفات السلسلة> stop hr-gateway <الوحدات الـ14> keycloak
+# 3. النقل: hrm-bootstrap من الإصدار الجديد مع المفتاح، مرة واحدة
+docker compose -p hrm <ملفات السلسلة> run --rm -e HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true hrm-bootstrap
+# 4. النشر المعتاد
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/deploy.ps1 -Tag <sha12>     # من جهاز المالك
+```
+
+[transfer-keycloak-ownership.sql](../deploy/bootstrap/transfer-keycloak-ownership.sql) يعمل داخل `keycloak_db` وحدها،
+كائناً كائناً (`ALTER … OWNER TO keycloak` للجداول والتسلسلات والعروض والدوال والأنواع والمخططات، ثم
+`ALTER DATABASE keycloak_db OWNER TO keycloak`)، ولا يستعمل `REASSIGN OWNED` (يرفضه PostgreSQL للمستخدم الإداري الأول، ويتجاوز
+القاعدة). يرفض العمل ما دامت جلسة أخرى متصلة بـ `keycloak_db`، ولا يمس الحساب الإداري ولا أي قاعدة أخرى، والتشغيل الثاني
+لا يغيّر شيئاً. يطبع عدد الكائنات لكل مالك بعد النقل.
+
+**التراجع:** الإصدار السابق يتصل بالحساب الإداري (superuser) فيقرأ جداول `keycloak` دون نقل عكسي؛ وإن لزم الرجوع الكامل
+فالنسخة (§12.5) ثم `deploy.ps1 -Rollback`.
+
+### 13.3 الـ realm: استيراد أول ومطابقة في كل نشر
+
+- `deploy.ps1` يقرأ `APP_DOMAIN` و`HRM_DEPLOYMENT_MODE` من `.env` الخادم (اسم ووضع، لا سر) ويولّد الـ realm بملف التعريف
+  `Demo` (وضع العرض) أو `Production`: `scripts/prepare-keycloak-import.ps1` ← `scripts/keycloak/render-realm.ps1`. الحزمة تحمل
+  `realm-hrmanagement.json` و`reconcile-plan.tsv`، بنواب `${NAME}` فقط.
+- `remote-deploy.sh` يملأ بهما قبل كل `up` (والتراجع منه) volume `hrm_keycloak_import` من الإصدار الذي ينشره، ويبقي نسخة الإصدار (نواب وأسماء فقط)، فلا يطابق إصدار بخطة إصدار آخر؛ ويرفض ملف تعريف لا يوافق `HRM_DEPLOYMENT_MODE` (Demo في وضع العرض، Production خارجه). Keycloak
+  يستوردهما بـ `--import-realm` على خادم جديد فقط، و`keycloak-reconcile` يطابق realm قائماً (§5أ).
+- ملف Production: مدير bootstrap واحد `HRM_BOOTSTRAP_ADMIN_USER` بكلمة مؤقتة `HRM_BOOTSTRAP_ADMIN_PASSWORD` (يولّدها
+  `init-secrets.sh`) ويُطلب منه تغييرها عند أول دخول؛ لا مستخدمين آخرين.
+
+### 13.4 حلقات مفاتيح Data Protection
+
+- كل خدمة في Production تحفظ حلقتها في volume مسمّى (`hrm_dp_<svc>`، والبوابة `hrm_gateway_dataprotection_keys`).
+  `DataProtectionStartupGuard` يوقف أي خدمة في Production (أو مع `DataProtection__RequirePersistentKeyRing=true`) قبل أن تلمس
+  قاعدتها إن كان `DataProtection__KeyRingPath` فارغاً أو غير قابل للكتابة أو اسم التطبيق غير مضبوط، أو كان المسار على نظام ملفات
+  الحاوية نفسه لا على volume (يضيع عند إعادة الإنشاء؛ `DataProtection__AllowUnmountedKeyRing=true` لتثبيت على مضيف بلا حاويات). **k8s:** لا تخزين مشترك
+  للحلقات في المسار الأحادي؛ الحارس يوقف أي pod بلا مسار مستمر، وهذا مقصود.
+- `EmployeePiiKeyRingCanary` في HR.Core: قبل الترحيلات والبذور يقرأ رقماً وطنياً محمياً واحداً (`LIMIT 1`، لكل جهة إن لزم بسبب
+  RLS) ويفكه بالحلقة. إن لم يُفك، أو كانت الحلقة فارغة فوق بيانات محمية، يخرج HR.Core برسالة «حلقة مفاتيح حماية البيانات لا
+  تطابق البيانات المخزنة…» تسمّي المسار، ولا يولّد حلقة جديدة. **الطوارئ فقط:** `DataProtection__AllowKeyRingReset=true` في
+  ملف compose مؤقت: يُقلع مع سطر `Critical` وعدّاد `dataprotection_key_ring_reset_total`، والأرقام المحمية تبقى غير مقروءة. الحل
+  الصحيح استعادة الحلقة من النسخة (`dp_hr_core.tar.gz`).
+- **الشهادة (اختيارية، معطلة على خادم العرض، D-39-3؛ موصى بها للتجربة):** `bash deploy/vps/make-dp-cert.sh` يكتب
+  `/opt/hrm/secrets/dp-cert.pfx` (RSA 3072، 10 سنوات، 600) ويضيف `DATAPROTECTION_CERTIFICATE_PASSWORD` إلى `.env`. التفعيل بملف
+  compose إضافي: ربط الملف للقراءة في كل تطبيق و`DataProtection__CertificatePath` و`DataProtection__CertificatePassword`. المفاتيح
+  القديمة غير المشفرة تبقى مقروءة؛ التدوير بشهادة جديدة ونقل القديمة إلى `DataProtection__PreviousCertificatePaths`. ضياع الشهادة
+  يعني ضياع كل الحلقات: احفظ نسخة منها ومن كلمتها **خارج الخادم**.
+- **تصدير المفاتيح للنسخ:** `read -rs DP_EXPORT_PASSPHRASE; export DP_EXPORT_PASSPHRASE; bash deploy/vps/export-dp-keys.sh --out <مسار يختاره المالك>`
+  ينتج أرشيفاً مشفراً (AES-256، PBKDF2) لكل volumes الحلقات (والشهادة إن وُجدت) مع `SHA-256`. ضمه إلى النسخ المجدولة ← الموجة 2 (OPS-E).
+
+### 13.5 نقل خادم العرض في مكانه (S-1، 2026-11-02)
+
+1. بناء `817304f5bd88` على الخادم (1187 ث)، `deploy.ps1 -PrepareOnly`، `init-secrets.sh` (3 مفاتيح؛ نسخة `.env` قبلها
+   `/opt/hrm/shared/.env.bak-plan39-20261102T014535Z`).
+2. نسخة متحقَّق منها `/opt/hrm/backups/pre-plan39-20261102T014546Z` (700/600): `pg_dumpall.sql` (16 قاعدة حاضرة)، و15 أرشيف
+   حلقة كل منها بمفتاح، و`env.backup`، و`SHA256SUMS` (7 ث).
+3. إيقاف البوابة والوحدات الـ14 وKeycloak (01:46:13Z)، ثم `run --rm --no-deps -e HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true hrm-bootstrap`
+   من الإصدار الجديد (34 ث): قبل النقل `hrm_admin` يملك 92 جدولاً و193 فهرساً والقاعدة؛ بعده `keycloak=285` والقاعدة لـ `keycloak`.
+4. `deploy.ps1 -Tag 817304f5bd88` (160 ث: pull 5، `up` 107، bootstrap 33، reconcile 16 بـ 9 تغييرات، healthy 12). الكاشف مرّ
+   على البيانات القائمة (500 رقم وطني محمي). التوقف 3 د 10 ث (01:46:13Z → 01:49:23Z). smoke 49/0.
+
+**الاستعادة إن لزم:** §12.5 بالنسخة أعلاه ثم `deploy.ps1 -Rollback` (إلى `7bd85bc3ac9d`).

@@ -24,6 +24,8 @@ tmp/
 
 # Generated Keycloak import (secrets substituted from .env)
 docker/keycloak/import/*.json
+# PLAN-39: the reconcile plan render-realm.ps1 writes next to the realm (names only, but generated).
+docker/keycloak/import/*.tsv
 !docker/keycloak/import/.gitkeep
 
 # Logs and local data

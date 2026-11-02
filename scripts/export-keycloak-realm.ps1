@@ -40,5 +40,5 @@ if (-not $found) {
 docker cp "${Container}:${found}" $Output
 Write-Host "Exported to $Output"
 Write-Host "IMPORTANT (IAM-004): scrub client secrets before committing."
-Write-Host "Prefer the sanitized template docker/keycloak/realm-hr-services.json (placeholders only)."
+Write-Host "The realm source is docker/keycloak/realm-manifest.json plus deploy/wiring/service-wiring.json (scripts/keycloak/render-realm.ps1, PLAN-39)."
 Write-Host "See docs/SERVICE_TRUST_INVENTORY.md and docs/KEYCLOAK_AND_SECRETS.md."

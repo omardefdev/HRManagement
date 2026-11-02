@@ -1,0 +1,3 @@
+1. Keycloak started on a new keycloak_db (as the keycloak role) imported the realm rendered with the Acceptance profile.
+2. Admin API: security fields, every matrix client + gateway + directory-sync, the 8 scopes, 61 personas.
+3. Production profile rendered from the same sources: no gateway password grant, sslRequired external, one bootstrap admin with UPDATE_PASSWORD (imported and exercised in Ops039KeycloakRealmImportTests: password grant -> unauthorized_client, update-password form at first login).

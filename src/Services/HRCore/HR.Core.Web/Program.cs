@@ -64,6 +64,8 @@ builder.Services.Configure<ProductionConfigurationGuardOptions>(options =>
 builder.AddHrOpenTelemetry();
 builder.AddHrDataProtection("HR.Core");
 builder.Services.AddHrPiiFieldEncryption();
+// PLAN-39 (D-39-4, P-3): refuses to start when the key ring cannot read the stored national IDs (before migrations and seeds).
+builder.Services.AddHrStartupCheck<HR.Core.Infrastructure.Data.EmployeePiiKeyRingCanary>();
 builder.AddNationalScope();
 builder.AddLegalControl();
 builder.AddModuleCatalog();

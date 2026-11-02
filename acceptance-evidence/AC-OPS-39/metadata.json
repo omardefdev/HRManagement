@@ -1,0 +1,12 @@
+{
+  "scenario": "IDCard.Web with RequirePersistentKeyRing and no DataProtection__KeyRingPath exits with the guard message",
+  "personaId": "platform-operator (lab)",
+  "correlationId": "d3545c20-dcff-4673-bc9b-dc5f81fc989b",
+  "capturedAtUtc": "2026-11-02T02:37:00.8090905Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "a9f97a000a1a77414d6fc027ffefdeec3a5496a7"
+}

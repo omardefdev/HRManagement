@@ -105,6 +105,25 @@ x-mq-user-passwords: &mq-user-passwords
   RABBITMQ_COMPLIANCE_PASS: ${RABBITMQ_COMPLIANCE_PASS:?RABBITMQ_COMPLIANCE_PASS required}
   RABBITMQ_AUTH_DIRECTORY_PASS: ${RABBITMQ_AUTH_DIRECTORY_PASS:?RABBITMQ_AUTH_DIRECTORY_PASS required}
   RABBITMQ_FILE_STORAGE_PASS: ${RABBITMQ_FILE_STORAGE_PASS:?RABBITMQ_FILE_STORAGE_PASS required}
+# PLAN-39 (P-1, P-2): the secrets of the realm clients. Keycloak resolves the ${NAME} placeholders of the rendered realm
+# from them at its first import, and keycloak-reconcile sets each client secret from them on every deploy. The
+# directory-sync secret is optional: Auth.Directory requires it only with Keycloak:DirectorySync:Enabled=true.
+x-keycloak-client-secrets: &keycloak-client-secrets
+  KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required}
+  KEYCLOAK_DIRECTORY_SYNC_SECRET: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:-}
+  SVC_ADMIN_LOGISTICS_CLIENT_SECRET: ${SVC_ADMIN_LOGISTICS_CLIENT_SECRET:?SVC_ADMIN_LOGISTICS_CLIENT_SECRET required}
+  SVC_AUTH_DIRECTORY_CLIENT_SECRET: ${SVC_AUTH_DIRECTORY_CLIENT_SECRET:?SVC_AUTH_DIRECTORY_CLIENT_SECRET required}
+  SVC_COMPLIANCE_CLIENT_SECRET: ${SVC_COMPLIANCE_CLIENT_SECRET:?SVC_COMPLIANCE_CLIENT_SECRET required}
+  SVC_DEV_ANALYTICS_CLIENT_SECRET: ${SVC_DEV_ANALYTICS_CLIENT_SECRET:?SVC_DEV_ANALYTICS_CLIENT_SECRET required}
+  SVC_HR_CONTRACTS_CLIENT_SECRET: ${SVC_HR_CONTRACTS_CLIENT_SECRET:?SVC_HR_CONTRACTS_CLIENT_SECRET required}
+  SVC_HR_CORE_CLIENT_SECRET: ${SVC_HR_CORE_CLIENT_SECRET:?SVC_HR_CORE_CLIENT_SECRET required}
+  SVC_HR_HEALTH_CLIENT_SECRET: ${SVC_HR_HEALTH_CLIENT_SECRET:?SVC_HR_HEALTH_CLIENT_SECRET required}
+  SVC_HR_MOVEMENTS_CLIENT_SECRET: ${SVC_HR_MOVEMENTS_CLIENT_SECRET:?SVC_HR_MOVEMENTS_CLIENT_SECRET required}
+  SVC_HR_TRAINING_CLIENT_SECRET: ${SVC_HR_TRAINING_CLIENT_SECRET:?SVC_HR_TRAINING_CLIENT_SECRET required}
+  SVC_IDCARD_CLIENT_SECRET: ${SVC_IDCARD_CLIENT_SECRET:?SVC_IDCARD_CLIENT_SECRET required}
+  SVC_IT_INFRA_CLIENT_SECRET: ${SVC_IT_INFRA_CLIENT_SECRET:?SVC_IT_INFRA_CLIENT_SECRET required}
+  SVC_PAYROLL_CLIENT_SECRET: ${SVC_PAYROLL_CLIENT_SECRET:?SVC_PAYROLL_CLIENT_SECRET required}
+  SVC_RECORDS_ARCHIVE_CLIENT_SECRET: ${SVC_RECORDS_ARCHIVE_CLIENT_SECRET:?SVC_RECORDS_ARCHIVE_CLIENT_SECRET required}
 x-app-resources: &app-resources
   deploy:
     resources:
@@ -196,6 +215,11 @@ services:
       PGPORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      # PLAN-39 (section 3): step 3 ensures the keycloak role. The ownership transfer of an existing keycloak_db runs only
+      # on request: docker compose run --rm -e HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true hrm-bootstrap (Keycloak stopped,
+      # after a verified backup; docs/OPS_VPS_SINGLE_HOST.md section 13).
+      HRM_KEYCLOAK_DB_USER: keycloak
+      POSTGRES_KEYCLOAK_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:?POSTGRES_KEYCLOAK_PASSWORD required}
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
       HRM_RABBITMQ_API: http://rabbitmq:15672/api
@@ -293,8 +317,10 @@ services:
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgresql:5432/keycloak_db
-      KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      # PLAN-39 (section 3): its own role (made by hrm-bootstrap step 3, owner of keycloak_db, no CONNECT elsewhere), not
+      # the PostgreSQL administrator.
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:?POSTGRES_KEYCLOAK_PASSWORD required}
       # PLAN-38 (section 5): bounded pool (Keycloak opens up to 100 by default); counted by lint-compose.ps1.
       KC_DB_POOL_MAX_SIZE: "20"
       # PLAN-36 (§2): behind a TLS edge. KC_PROXY (deprecated in 24) is replaced by KC_PROXY_HEADERS; the edge sets
@@ -313,6 +339,18 @@ services:
       # or through an SSH tunnel (docs/OPS_VPS_SINGLE_HOST.md).
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN required}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD required}
+      # PLAN-39 (D-39-5): the Production profile's one bootstrap administrator (UPDATE_PASSWORD at first login); the
+      # realm file names both as ${NAME} placeholders. The Demo profile ignores them.
+      HRM_BOOTSTRAP_ADMIN_USER: ${HRM_BOOTSTRAP_ADMIN_USER:?HRM_BOOTSTRAP_ADMIN_USER required}
+      HRM_BOOTSTRAP_ADMIN_PASSWORD: ${HRM_BOOTSTRAP_ADMIN_PASSWORD:?HRM_BOOTSTRAP_ADMIN_PASSWORD required}
+      <<: *keycloak-client-secrets
+    # PLAN-39 (section 2): the rendered realm (and its reconcile plan) in a named volume that remote-deploy.sh fills
+    # before every up; --import-realm imports it only when the realm does not exist yet (a new server).
+    volumes:
+      - keycloak_import:/opt/keycloak/data/import:ro
+    depends_on:
+      hrm-bootstrap:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 15s
@@ -323,6 +361,39 @@ services:
       resources:
         limits:
           memory: 768M
+
+  # PLAN-39 (D-39-2, P-2): keeps the realm in step with the rendered realm on every deploy (clients, scopes, secrets,
+  # redirect URIs, the named security fields; never users or role mappings), from the Keycloak image itself (kcadm).
+  # The applications wait for it, so none starts with a client secret Keycloak does not know. It replaces PLAN-37's
+  # deploy/vps/keycloak-sync-clients.sh. A second run prints "reconcile: 0 changes".
+  keycloak-reconcile:
+    image: quay.io/keycloak/keycloak:24.0
+    entrypoint: ["bash", "/opt/hrm/reconcile/reconcile.sh"]
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - data
+    environment:
+      <<: *keycloak-client-secrets
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN required}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD required}
+      HRM_KEYCLOAK_URL: http://keycloak:8080
+    volumes:
+      - keycloak_import:/opt/keycloak/data/import:ro
+      - ./deploy/keycloak:/opt/hrm/reconcile:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   postgres-backup:
     image: postgres:16-alpine
@@ -460,6 +531,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -504,6 +577,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -532,6 +607,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -557,6 +634,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       postgresql:
         condition: service_healthy
@@ -584,6 +663,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -609,6 +690,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       postgresql:
         condition: service_healthy
@@ -637,6 +720,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -662,6 +747,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       postgresql:
         condition: service_healthy
@@ -689,6 +776,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -714,6 +803,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       postgresql:
         condition: service_healthy
@@ -741,6 +832,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -766,6 +859,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       postgresql:
         condition: service_healthy
@@ -793,6 +888,8 @@ services:
         condition: service_completed_successfully
       hrm-bootstrap:
         condition: service_completed_successfully
+      keycloak-reconcile:
+        condition: service_completed_successfully
       postgresql:
         condition: service_healthy
       rabbitmq:
@@ -809,7 +906,8 @@ services:
       ConnectionStrings__AuthDirectoryDb: Host=postgresql;Port=5432;Database=auth_directory_db;Username=auth_directory_app;Password=${POSTGRES_AUTH_DIRECTORY_APP_PASSWORD:?POSTGRES_AUTH_DIRECTORY_APP_PASSWORD required};Maximum Pool Size=${HRM_PG_POOL_MAX:-10}
       RabbitMQ__Username: mq_auth_directory
       RabbitMQ__Password: ${RABBITMQ_AUTH_DIRECTORY_PASS:?RABBITMQ_AUTH_DIRECTORY_PASS required}
-      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
+      # PLAN-39 (section 3): optional; the configuration guard requires it only with Keycloak:DirectorySync:Enabled=true.
+      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:-}
       ServiceIdentity__ApiAudience: api-auth-directory
       Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
       ServiceIdentity__ClientId: svc-auth-directory
@@ -821,6 +919,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       postgresql:
         condition: service_healthy
@@ -864,6 +964,8 @@ services:
       volume-init:
         condition: service_completed_successfully
       hrm-bootstrap:
+        condition: service_completed_successfully
+      keycloak-reconcile:
         condition: service_completed_successfully
       clamav:
         condition: service_healthy
@@ -912,3 +1014,5 @@ volumes:
   dp_file_storage:
   # PLAN-38: hrm-bootstrap result files (names and counts, no secret).
   bootstrap_results:
+  # PLAN-39: the rendered realm file and its reconcile plan (placeholders and names only; filled by remote-deploy.sh).
+  keycloak_import:

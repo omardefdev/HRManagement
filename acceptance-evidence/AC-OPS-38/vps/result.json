@@ -1,0 +1,14 @@
+{
+  "scenarios": {
+    "38-vps-p6": {
+      "status": "Pass",
+      "reason": "leave 4237c096-286f-4dc7-9e3a-ba3e5f17c8f7: approved by hradmin (balance \u002B3, transaction Completed) and cancelled (balance back to 9); ID card ID-2026-0000002 issued",
+      "correlationId": "ops38-38-vps-p6-01227e1b15bd4a9fbf4f6c6ecdc3f168",
+      "recordedAtUtc": "2026-11-02T02:02:00.2535954Z"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "ops38-38-vps-p6-01227e1b15bd4a9fbf4f6c6ecdc3f168",
+  "recordedAtUtc": "2026-11-02T02:02:00.2535954Z"
+}

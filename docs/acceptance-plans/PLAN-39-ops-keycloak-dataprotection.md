@@ -1,7 +1,7 @@
 # PLAN-39 — Keycloak الإنتاجي كشيفرة ومفاتيح Data Protection المستمرة (OPS-C)
 
 **Scope:** OPS — [دراسة الفجوات](../PRG_002_OPERATIONS_GAP_STUDY.md): G-OPS-03، G-OPS-04  
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented with deviations — 2026-11-02 (realm as code, Keycloak on its own role, guarded key rings; demo server moved in place; see «ملاحظات التنفيذ والانحرافات»)  
 **Priority:** P0  
 **Depends on:** PLAN-36 (الحافة وCaddy وvolumes حلقات المفاتيح)، PLAN-37 (`deploy/wiring/service-wiring.json` مصدر عملاء الخدمات ونطاقاتها، والملف الشبيه بالإنتاج)، PLAN-38 (حاوية التهيئة لإنشاء دور Keycloak في PostgreSQL، و`init-secrets`)  
 **Related cards:** IAM-001، SEC-004، PRV-001 (تشفير البيانات الشخصية)، IAM-004 (عملاء S2S في Keycloak)
@@ -206,3 +206,42 @@ dotnet test src/Tests/HRManagement.AcceptanceTests --filter "FullyQualifiedName~
 - دور Keycloak والإعدادات: 0.5
 - الحارس والكاشف والشهادة: 1.5
 - الاختبارات والقبول والوثائق: 1.5–2
+
+## ملاحظات التنفيذ والانحرافات
+
+نُفذت في 2026-11-02 (`feature/plan-39-ops-keycloak-dataprotection`، التقرير `reports/plan39-final-report.md`). القرارات D-39-1..6
+كما في الجدول، وS-1 (نقل خادم العرض في مكانه بعد نسخة متحقَّق منها). الانحرافات عن نص الخطة:
+
+1. **P-1 — لا سر في أي ملف مولّد:** `render-realm.ps1` لا يدمج الأسرار من `.env` وقت التوليد؛ يكتب نواب `${NAME}` لكل سر
+   (أسرار العملاء، `DEMO_USERS_PASSWORD`، كلمة مدير bootstrap المؤقتة) يحلّها Keycloak من بيئته عند الاستيراد، وتضع المطابقة
+   الأسرار من `.env` في كل نشر. ملف Acceptance وحده يبقى بأسرار المختبر.
+2. **P-2 — مطابقة واحدة:** `deploy/keycloak/reconcile.sh` (الخدمة `keycloak-reconcile` من صورة Keycloak) حلّت محل
+   `keycloak-sync-clients.sh` (حُذف). لأن الصورة بلا أداة JSON، يكتب المولّد بجانب الـ realm خطة مسطحة `reconcile-plan.tsv`
+   (أسماء وأعلام وعناوين وأسماء متغيرات، بلا قيمة) تقرؤها المطابقة. التطبيقات الخمس عشرة كلها تنتظرها.
+3. **P-3 — الحراس قبل القاعدة:** `DataProtectionStartupGuard` و`EmployeePiiKeyRingCanary` و`ProductionConfigurationGuard` فحوص
+   `IHrStartupCheck` تعمل من رأس `TryMigrateAsync` (قبل ترحيلات كل خدمة وبذورها، وحتى مع `RunMigrationsAtStartup=false`)، لا
+   خدمات مستضافة. جزء «الافتراضي Production للوضع الغائب» من ملاحظة F5 في PLAN-38 ترك لـ OPS-D.
+4. **P-4 — مكان 39a و39e:** على المكدّس الشبيه بالإنتاج (ملف Acceptance، قاعدة Keycloak جديدة)، وتأكيدات ملف Production
+   (`sslRequired`، التخمين، السياسة، رفض password grant، `UPDATE_PASSWORD`) في `Ops039KeycloakRealmImportTests` (Testcontainers
+   Keycloak 24 + PostgreSQL باستيراد ملف Production)؛ و39e على المكدّس وعلى الخادم، لا على سلسلة الخادم الواحد محلياً.
+5. **جمهور النطاقات** بقي في المصفوفة (`scopes.<name>.audiences`، PLAN-37) ولم يُكرر في القائمة؛ اختبار التكافؤ يتحقق أن لكل
+   نطاق جمهوراً وأن كل `ServiceIdentity__ApiAudience` هدف لنطاق. `svc-file-storage` خارج الـ realm المولّد (ليس في المصفوفة)،
+   والمطابقة تتركه على الخادم كما هو.
+6. **ملف التعريف المحلي:** `prepare-keycloak-import.ps1` يبقي realm المطور باسم `Local` (الافتراضي القديم «Demo»، لأن CI
+   و`dev-profile-up.ps1` يستدعيانه بلا ملف تعريف)، و`Demo` صار خادم العرض، و`VpsDemo` اسماً بديلاً له.
+7. **دور `keycloak`** في ملف SQL مستقل `ensure-keycloak-role.sql` ضمن الخطوة 3 (لا داخل `ensure-roles.sql` المخصص لزوج
+   `_app/_migrator`)، ويعمل حيث `HRM_KEYCLOAK_DB_USER=keycloak` (سلسلة الإنتاج والملف الشبيه بالإنتاج). نقل الملكية
+   `transfer-keycloak-ownership.sql` بالمفتاح `HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true` (`docker compose run --rm -e ... hrm-bootstrap`).
+   قاعدة الصيانة `postgres` تبقى بمنحة PUBLIC الافتراضية كما لكل أدوار PLAN-38.
+8. **volume الاستيراد:** `remote-deploy.sh` يملأ `keycloak_import` من الإصدار الذي ينشره في كل نشر وتراجع، ويبقي نسخة الإصدار
+   (ملاحظة المراجعة F1: حذفها كان سيجعل التراجع يطابق بخطة إصدار آخر)، ويرفض ملف تعريف لا يوافق `HRM_DEPLOYMENT_MODE` (F3)؛
+   الإصدارات الأقدم من PLAN-39 (هدف `-Rollback`) تُترك بربطها القديم وبنص `keycloak-sync-clients.sh`.
+9. **39c:** واجهة الحساب تجيب 403 للمستخدم (المستخدمون المستوردون بلا دور منصة الحساب)، و`tenant_id` لا يتغير؛ وهي فوق ذلك
+   سمة مُدارة لا يعدّلها إلا المدير.
+10. **39g:** مكدّس القبول يشارك volume حلقة واحدة بين الخدمات، فمثّل فقدان `dp_hr_core` حلقة فارغة مؤقتة لحاوية HR.Core لمرة
+    واحدة على نسخة من `hr_core_db`؛ لا تمس بيانات المكدّس ولا حلقته.
+11. **فهرس `NationalId`:** لا فهرس عليه؛ `LIMIT 1` يتوقف عند أول صف محمي (كل الصفوف محمية عملياً)، فلم يُضف ترحيل.
+
+النتائج: AC-OPS-39a..h = Pass (المكدّس الشبيه بالإنتاج)، وعلى الخادم 39e و39f = Pass، وAcHcm25 8/8 (شبيه بالإنتاج) وAcHcm30
+8/8 (ملف المختبر)، وفحوص الخادم لـ PLAN-36..38 خضراء (36j لم يُشغّل). التوقف على الخادم 3 د 10 ث، والنسخة
+`/opt/hrm/backups/pre-plan39-20261102T014546Z`.

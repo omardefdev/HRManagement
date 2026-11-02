@@ -1,0 +1,3 @@
+1. pg_stat_activity on keycloak_db: the only client user is keycloak; every relation and the database belong to keycloak.
+2. Negative: psql as keycloak (its own password, read on the server) to hr_core_db -> permission denied for database.
+3. kcadm: sslRequired external, brute force (5 failures, 900 s), password policy; gateway without password grant; no svc-* client with a browser or password flow.

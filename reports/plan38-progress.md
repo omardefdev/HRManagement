@@ -312,3 +312,41 @@ Finished (UTC): 2026-11-01T18:51:27Z
   evidence re-written, no value of .env.leastpriv in it (scanned); project and volumes removed.
 - AC-OPS-36e on the server, fifth attempt after the owner's link recovered (single requests 0.6-1.3 s): **Pass**
   (anonymous 297 of 400 in 18 s, the rest 429 with Retry-After 60). All PLAN-36/37 server checks green (36j not run).
+- Release: `release/plan-38` from `main` (`ecca3657`, one local commit ahead of origin/main: the PLAN-37 merge note)
+  with `--no-ff` merge of the feature branch: head `f76db4e1ba04`. Local CI on that head: **90/90, 1057 s**;
+  `plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden, nonprod, signatures all PASS (18 commits).
+  PR text: reports/plan38-pr.md.
+
+OWNER ACTION (run in order; step 4 only if step 3 exits 0):
+1. `git push -u origin release/plan-38`
+2. `gh pr create --base main --head release/plan-38 --title "PLAN-38: first boot of data, broker and secrets" --body-file reports/plan38-pr.md`
+3. `gh pr checks <n> --watch --fail-fast`
+4. `gh pr merge <n> --merge`
+Then: `git checkout main && git pull --ff-only` so that main = origin/main; the PR link and the post-merge run go
+here with the next plan's first commit.
+P6 on the server: done by the agent (below), no owner check needed.
+
+Waiting for owner (UTC): 2026-11-01T22:26:32Z
+
+Resumed (UTC): 2026-11-01T22:28:00Z — owner: no password strictness until development is finished (deferred to the end).
+- P6 on the server through the UI: new scenario `AC_OPS_38_vps_leave_approval_and_id_card_creation_work_on_the_demo_server`
+  (AcOps36VpsBootTests is now partial; SignInAsync takes a start page, a contracts-only user may not open /ui/hr-core/).
+  First run: the leave was approved on the server (Approved, ApprovedBy hradmin) but the test checked the flash message
+  on the page it landed on; the check now reads the database only. Second run **Pass**: leave by e2e-maker-contracts,
+  approved by hradmin (balance +3, transaction Completed), cancelled (balance back), the first run's leave cancelled
+  through the UI too; ID card ID-2026-0000001 issued by hradmin. The demo password was read on the server into
+  memory only and is not in the evidence (checked). Evidence acceptance-evidence/AC-OPS-38/vps/38-vps-p6-*.json.
+
+Owner action done (UTC): 2026-11-01T23:10:47Z — PR merged by the owner (omardefdev); recorded by the PLAN-39 session.
+- PR: https://github.com/omardefdev/HRManagement/pull/33 (`release/plan-38`, head f76db4e1ba04), merge commit
+  e31d8bb06e3b; main = origin/main = e31d8bb0 after `git pull --ff-only` (checked 2026-11-01T23:13Z).
+- PR checks (all on the PR head; repository is public, billable minutes 0 for every job):
+  - `ci` run 41357381184, wall 40.4 min: Dedupe post-merge run success (7 s), Gitleaks success (55 s),
+    Acceptance disabled notice success, CI success (22.9 min), CodeQL success (16.1 min), E2E success (17.2 min),
+    Acceptance skipped (RUN_ACCEPTANCE off).
+  - `hardening-check` run 41357380998, wall 2.6 min: HARD-001 compliance scan success.
+- Post-merge on main (e31d8bb0): `ci` run 41360824124, wall 57 s, success — **the dedupe guard skipped the heavy jobs**
+  (CI, CodeQL, E2E, Acceptance skipped; Gitleaks and the dedupe job ran). `hardening-check` run 41360824103 ran again
+  (it has no dedupe guard; result recorded in reports/plan39-progress.md).
+- Commit 6287e41a (P6 through the server UI, outside PR #33) is merged into PLAN-39's branch with this note, as the
+  owner chose on 2026-11-02. reports/plan38-pr.md (the PR text) is committed with it.

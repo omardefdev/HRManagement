@@ -5,8 +5,9 @@
 
 .DESCRIPTION
   Remote (default):
-    1. reads APP_DOMAIN from the server's /opt/hrm/shared/.env (a host name, not a secret) and renders the VpsDemo
-       realm for it (scripts/prepare-keycloak-import.ps1 -Profile VpsDemo; placeholders only);
+    1. reads APP_DOMAIN and HRM_DEPLOYMENT_MODE from the server's /opt/hrm/shared/.env (a host name and a word, not
+       secrets) and renders the realm for them (PLAN-39: scripts/prepare-keycloak-import.ps1 -Profile Demo in demo mode,
+       else -Profile Production; ${NAME} placeholders only);
     2. builds the bundle (scripts/vps/make-deploy-bundle.ps1), copies it with scp and extracts it to
        /opt/hrm/releases/<tag>;
     3. runs deploy/vps/remote-deploy.sh check-env (key names and lengths only), then deploy <tag> (pull, up, wait for
@@ -162,8 +163,9 @@ if ($Local) {
     }
     else {
         $appDomain = Read-EnvKey $EnvFile 'APP_DOMAIN'
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\prepare-keycloak-import.ps1') -Profile VpsDemo -AppDomain $appDomain
-        if ($LASTEXITCODE -ne 0) { throw 'prepare-keycloak-import.ps1 -Profile VpsDemo failed' }
+        $realmProfile = if ((Read-EnvKey $EnvFile 'HRM_DEPLOYMENT_MODE') -eq 'demo') { 'Demo' } else { 'Production' }
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\prepare-keycloak-import.ps1') -Profile $realmProfile -AppDomain $appDomain
+        if ($LASTEXITCODE -ne 0) { throw "prepare-keycloak-import.ps1 -Profile $realmProfile failed" }
         $bundle = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'make-deploy-bundle.ps1') -Tag $Tag | Select-Object -Last 1
         if ($LASTEXITCODE -ne 0) { throw 'make-deploy-bundle.ps1 failed' }
         $release = Join-Path $localHome "releases\$Tag"
@@ -197,8 +199,11 @@ if ($Rollback) {
 else {
     $appDomain = (Ssh "grep -E '^APP_DOMAIN=' $RemoteHome/shared/.env | tail -1 | cut -d= -f2-").StdOut.Trim().Trim('"')
     if ($appDomain -notmatch '^[a-z0-9.-]+$') { throw "APP_DOMAIN on the server is empty or invalid." }
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\prepare-keycloak-import.ps1') -Profile VpsDemo -AppDomain $appDomain
-    if ($LASTEXITCODE -ne 0) { throw 'prepare-keycloak-import.ps1 -Profile VpsDemo failed' }
+    # PLAN-39: the realm profile follows the deployment mode (a word, not a secret): Demo users or one bootstrap admin.
+    $mode = (Ssh "grep -E '^HRM_DEPLOYMENT_MODE=' $RemoteHome/shared/.env | tail -1 | cut -d= -f2-").StdOut.Trim().Trim('"')
+    $realmProfile = if ($mode -eq 'demo') { 'Demo' } else { 'Production' }
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\prepare-keycloak-import.ps1') -Profile $realmProfile -AppDomain $appDomain
+    if ($LASTEXITCODE -ne 0) { throw "prepare-keycloak-import.ps1 -Profile $realmProfile failed" }
     $bundle = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'make-deploy-bundle.ps1') -Tag $Tag | Select-Object -Last 1
     if ($LASTEXITCODE -ne 0) { throw 'make-deploy-bundle.ps1 failed' }
 

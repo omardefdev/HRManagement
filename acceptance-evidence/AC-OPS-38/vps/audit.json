@@ -1,0 +1,6 @@
+{
+  "correlationId": "ops38-38-vps-p6-f5ebd8d8c5174c7fa1e45e0617630c11",
+  "explicitAuditQuery": false,
+  "httpObservationCount": 0,
+  "note": "No separate audit-store query was required or captured for this scenario."
+}

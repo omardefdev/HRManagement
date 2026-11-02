@@ -17,7 +17,8 @@ public sealed class PiiFieldEncryptionService(
     IDataProtectionProvider provider,
     ILogger<PiiFieldEncryptionService> logger) : IPiiFieldEncryptionService
 {
-    private const string Purpose = "HRManagement.PiiField.v1";
+    /// <summary>The protector purpose of every protected PII column (PLAN-39: the key-ring canary reads with it too).</summary>
+    public const string Purpose = "HRManagement.PiiField.v1";
     private readonly IDataProtector _protector = provider.CreateProtector(Purpose);
 
     public string Protect(string plaintext)

@@ -1,0 +1,880 @@
+{
+  "schemaVersion": "realm-manifest-v1",
+  "about": [
+    "PLAN-39 (D-39-1): the realm hrmanagement as code, without secrets. Service clients (svc-*), their scopes, the",
+    "scope audiences and the secret variable of each client are NOT here: they come from deploy/wiring/service-wiring.json",
+    "(PLAN-37). scripts/keycloak/render-realm.ps1 merges the two per profile (Production, Demo, Acceptance) into",
+    "artifacts/keycloak/<profile>/realm-hrmanagement.json; deploy/keycloak/reconcile.sh keeps an existing realm in step",
+    "on every deploy (clients, scopes, secrets, redirect URIs, the security fields below; never users or role mappings).",
+    "Profiles differ only in users, redirect URIs and the listed acceptanceExceptions (Ops039RenderRealmTests)."
+  ],
+  "realm": {
+    "realm": "hrmanagement",
+    "enabled": true,
+    "displayName": "HR Management",
+    "registrationAllowed": false,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false
+  },
+  "security": {
+    "about": "D-39-6, the same in every profile (also Demo, P-5). reconcile.sh applies these named fields to an existing realm.",
+    "sslRequired": "external",
+    "bruteForceProtected": true,
+    "permanentLockout": false,
+    "failureFactor": 5,
+    "waitIncrementSeconds": 900,
+    "maxFailureWaitSeconds": 900,
+    "minimumQuickLoginWaitSeconds": 60,
+    "quickLoginCheckMilliSeconds": 1000,
+    "maxDeltaTimeSeconds": 43200,
+    "passwordPolicy": "length(12) and notUsername and passwordHistory(3)"
+  },
+  "roles": [
+    {
+      "name": "hr-admin",
+      "description": "Full access to all HR modules"
+    },
+    {
+      "name": "hr-core",
+      "description": "HR.Core"
+    },
+    {
+      "name": "hr-contracts",
+      "description": "HR.Contracts"
+    },
+    {
+      "name": "hr-health",
+      "description": "HR.Health"
+    },
+    {
+      "name": "hr-movements",
+      "description": "HR.Movements"
+    },
+    {
+      "name": "hr-training",
+      "description": "HR.Training"
+    },
+    {
+      "name": "payroll",
+      "description": "Payroll"
+    },
+    {
+      "name": "payroll-processor",
+      "description": "Process payroll runs"
+    },
+    {
+      "name": "payroll-approver",
+      "description": "Approve payroll runs"
+    },
+    {
+      "name": "idcard",
+      "description": "IDCard"
+    },
+    {
+      "name": "records-archive",
+      "description": "Records.Archive"
+    },
+    {
+      "name": "admin-logistics",
+      "description": "Admin.Logistics"
+    },
+    {
+      "name": "it-infra",
+      "description": "IT.Infra"
+    },
+    {
+      "name": "dev-analytics",
+      "description": "Dev.Analytics"
+    },
+    {
+      "name": "compliance",
+      "description": "Compliance"
+    },
+    {
+      "name": "auth-directory",
+      "description": "Auth.Directory"
+    },
+    {
+      "name": "file-storage",
+      "description": "File.Storage"
+    },
+    {
+      "name": "platform-admin",
+      "description": "Platform operator"
+    },
+    {
+      "name": "branch-manager",
+      "description": "Branch scope manager"
+    },
+    {
+      "name": "hr-employee",
+      "description": "Employee self-service"
+    },
+    {
+      "name": "hr-management-approver",
+      "description": "Management approval workflows"
+    },
+    {
+      "name": "auditor",
+      "description": "Read-only audit and evidence review"
+    },
+    {
+      "name": "hr-core-supervisory",
+      "description": "Role hr-core-supervisory"
+    },
+    {
+      "name": "hr-core-executive",
+      "description": "Role hr-core-executive"
+    },
+    {
+      "name": "hr-health-clinical",
+      "description": "Role hr-health-clinical"
+    },
+    {
+      "name": "payroll-poster",
+      "description": "Role payroll-poster"
+    },
+    {
+      "name": "payroll-reverser",
+      "description": "Role payroll-reverser"
+    },
+    {
+      "name": "hr-exam-marker",
+      "description": "Role hr-exam-marker"
+    }
+  ],
+  "defaultDefaultClientScopes": [],
+  "defaultOptionalClientScopes": [
+    "offline_access"
+  ],
+  "builtinClientScopes": [
+    {
+      "name": "roles",
+      "description": "PLAN-35: Keycloak built-in scope (a realm import with its own clientScopes drops the built-ins): realm and client roles in the access token",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "client roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "resource_access.${client_id}.roles",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience resolve",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-resolve-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "description": "PLAN-35: Keycloak built-in scope: user profile claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "username",
+            "claim.name": "preferred_username"
+          }
+        },
+        {
+          "name": "full name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "given name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "firstName",
+            "claim.name": "given_name"
+          }
+        },
+        {
+          "name": "family name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "lastName",
+            "claim.name": "family_name"
+          }
+        }
+      ]
+    },
+    {
+      "name": "email",
+      "description": "PLAN-35: Keycloak built-in scope: email claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "user.attribute": "email",
+            "claim.name": "email"
+          }
+        },
+        {
+          "name": "email verified",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "emailVerified",
+            "claim.name": "email_verified",
+            "jsonType.label": "boolean",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "web-origins",
+      "description": "PLAN-35: Keycloak built-in scope: allowed web origins",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "allowed web origins",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-allowed-origins-mapper",
+          "consentRequired": false,
+          "config": {
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "offline_access",
+      "description": "OpenID Connect built-in scope: offline_access",
+      "protocol": "openid-connect",
+      "attributes": {
+        "consent.screen.text": "${offlineAccessScopeConsentText}",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "openid",
+      "description": "OpenID Connect scope for openid",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      }
+    }
+  ],
+  "serviceClientDefaults": {
+    "about": "Every svc-* client of the matrix: a confidential service account with no browser or password flow (plan section 1 rule 3); its optional scopes are exactly the matrix scopes.",
+    "enabled": true,
+    "publicClient": false,
+    "standardFlowEnabled": false,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": true,
+    "protocol": "openid-connect",
+    "fullScopeAllowed": false,
+    "defaultClientScopes": []
+  },
+  "gatewayClient": {
+    "clientId": "hr-gateway-client",
+    "name": "HR Gateway",
+    "enabled": true,
+    "publicClient": false,
+    "standardFlowEnabled": true,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": false,
+    "protocol": "openid-connect",
+    "fullScopeAllowed": true,
+    "defaultClientScopes": [
+      "openid",
+      "profile",
+      "email",
+      "roles"
+    ],
+    "optionalClientScopes": [
+      "offline_access"
+    ],
+    "protocolMappers": [
+      {
+        "name": "audience-gateway",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "consentRequired": false,
+        "config": {
+          "included.client.audience": "hr-gateway-client",
+          "id.token.claim": "false",
+          "access.token.claim": "true",
+          "introspection.token.claim": "true"
+        }
+      },
+      {
+        "name": "audience-account",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-audience-mapper",
+        "consentRequired": false,
+        "config": {
+          "included.client.audience": "account",
+          "id.token.claim": "false",
+          "access.token.claim": "true",
+          "introspection.token.claim": "true"
+        }
+      },
+      {
+        "name": "tenant_id",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-attribute-mapper",
+        "consentRequired": false,
+        "config": {
+          "user.attribute": "tenant_id",
+          "claim.name": "tenant_id",
+          "jsonType.label": "String",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "userinfo.token.claim": "true"
+        }
+      },
+      {
+        "name": "scope_org_unit_id",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-attribute-mapper",
+        "consentRequired": false,
+        "config": {
+          "user.attribute": "scope_org_unit_id",
+          "claim.name": "scope_org_unit_id",
+          "jsonType.label": "String",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "userinfo.token.claim": "true"
+        }
+      },
+      {
+        "name": "employee_id",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-attribute-mapper",
+        "consentRequired": false,
+        "config": {
+          "user.attribute": "employee_id",
+          "claim.name": "employee_id",
+          "jsonType.label": "String",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "userinfo.token.claim": "true"
+        }
+      }
+    ],
+    "implicitFlowEnabled": false,
+    "secretEnv": "KEYCLOAK_HR_GATEWAY_CLIENT_SECRET"
+  },
+  "directorySyncClient": {
+    "clientId": "directory-sync",
+    "enabled": true,
+    "publicClient": false,
+    "standardFlowEnabled": false,
+    "serviceAccountsEnabled": true,
+    "protocol": "openid-connect",
+    "description": "Keycloak Admin API provisioning (manage-users)",
+    "directAccessGrantsEnabled": false,
+    "implicitFlowEnabled": false,
+    "secretEnv": "KEYCLOAK_DIRECTORY_SYNC_SECRET"
+  },
+  "userProfile": {
+    "about": "Keycloak 24 declarative user profile: the four built-in attributes, then the claims the services read (admin edit only, so a user cannot change them in the account console).",
+    "builtinAttributes": [
+      {
+        "name": "username",
+        "displayName": "${username}",
+        "validations": {
+          "length": {
+            "min": 3,
+            "max": 255
+          },
+          "username-prohibited-characters": {},
+          "up-username-not-idn-homograph": {}
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "email",
+        "displayName": "${email}",
+        "validations": {
+          "email": {},
+          "length": {
+            "max": 255
+          }
+        },
+        "required": {
+          "roles": [
+            "user"
+          ]
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "firstName",
+        "displayName": "${firstName}",
+        "validations": {
+          "length": {
+            "max": 255
+          },
+          "person-name-prohibited-characters": {}
+        },
+        "required": {
+          "roles": [
+            "user"
+          ]
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "lastName",
+        "displayName": "${lastName}",
+        "validations": {
+          "length": {
+            "max": 255
+          },
+          "person-name-prohibited-characters": {}
+        },
+        "required": {
+          "roles": [
+            "user"
+          ]
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin",
+            "user"
+          ]
+        },
+        "multivalued": false
+      }
+    ],
+    "attributes": [
+      {
+        "name": "tenant_id",
+        "displayName": "Tenant ID",
+        "validations": {
+          "length": {
+            "max": 36
+          }
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "scope_org_unit_id",
+        "displayName": "Organization scope ID",
+        "validations": {
+          "length": {
+            "max": 36
+          }
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "acceptance_fixture",
+        "displayName": "Acceptance fixture",
+        "validations": {
+          "length": {
+            "max": 64
+          }
+        },
+        "permissions": {
+          "view": [
+            "admin"
+          ],
+          "edit": [
+            "admin"
+          ]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "employee_id",
+        "displayName": "Employee ID",
+        "validations": {
+          "length": {
+            "max": 36
+          }
+        },
+        "permissions": {
+          "view": [
+            "admin",
+            "user"
+          ],
+          "edit": [
+            "admin"
+          ]
+        },
+        "multivalued": false
+      }
+    ],
+    "groups": [
+      {
+        "name": "user-metadata",
+        "displayHeader": "User metadata",
+        "displayDescription": "Attributes, which refer to user metadata"
+      }
+    ]
+  },
+  "profiles": {
+    "Production": {
+      "about": "D-39-5: one bootstrap administrator, password change at first login. Redirect URIs on APP_DOMAIN.",
+      "appUrls": "https://{APP_DOMAIN}",
+      "users": "bootstrapAdmin"
+    },
+    "Demo": {
+      "about": "The demo server: the demo users, password placeholder DEMO_USERS_PASSWORD resolved by Keycloak at import. Redirect URIs on APP_DOMAIN.",
+      "appUrls": "https://{APP_DOMAIN}",
+      "users": "demoUsers"
+    },
+    "Acceptance": {
+      "about": "The acceptance stacks: every persona of testdata/acceptance/personas.json (lab passwords, .acceptance/credentials.json).",
+      "appUrls": [
+        "http://localhost:5000",
+        "http://localhost:5200",
+        "http://localhost:6200"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "users": "personas",
+      "acceptanceExceptions": {
+        "about": "The acceptance harness signs personas in with the password grant (AcceptanceHarness); the stacks run with lab secrets (the gateway secret of the local .env, the shared lab service secret of docker-compose.acceptance.yml, generated persona passwords).",
+        "gatewayDirectAccessGrantsEnabled": true,
+        "labSecrets": true
+      }
+    }
+  },
+  "bootstrapAdmin": {
+    "usernameEnv": "HRM_BOOTSTRAP_ADMIN_USER",
+    "passwordEnv": "HRM_BOOTSTRAP_ADMIN_PASSWORD",
+    "email": null,
+    "firstName": "Bootstrap",
+    "lastName": "Administrator",
+    "realmRoles": [
+      "hr-admin",
+      "offline_access"
+    ],
+    "attributes": {
+      "tenant_id": [
+        "00000000-0000-4000-8000-000000000001"
+      ]
+    },
+    "requiredActions": [
+      "UPDATE_PASSWORD"
+    ]
+  },
+  "demoUsers": [
+    {
+      "username": "hradmin",
+      "email": "hradmin@hrm.local",
+      "firstName": "HR",
+      "lastName": "Admin",
+      "realmRoles": [
+        "hr-admin",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-maker-contracts",
+      "email": "e2e-maker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "MakerContracts",
+      "realmRoles": [
+        "hr-contracts",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-checker-mgmt",
+      "email": "e2e-checker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "CheckerMgmt",
+      "realmRoles": [
+        "hr-management-approver",
+        "hr-core",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-payroll-processor",
+      "email": "e2e-payroll-proc@hrm.local",
+      "firstName": "E2E",
+      "lastName": "PayrollProcessor",
+      "realmRoles": [
+        "payroll-processor",
+        "payroll",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-payroll-approver",
+      "email": "e2e-payroll-appr@hrm.local",
+      "firstName": "E2E",
+      "lastName": "PayrollApprover",
+      "realmRoles": [
+        "payroll-approver",
+        "payroll",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-movements-ops",
+      "email": "e2e-movements@hrm.local",
+      "firstName": "E2E",
+      "lastName": "MovementsOps",
+      "realmRoles": [
+        "hr-movements",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-file-ops",
+      "email": "e2e-file@hrm.local",
+      "firstName": "E2E",
+      "lastName": "FileOps",
+      "realmRoles": [
+        "file-storage",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-auth-directory",
+      "email": "e2e-auth@hrm.local",
+      "firstName": "E2E",
+      "lastName": "AuthDirectory",
+      "realmRoles": [
+        "auth-directory",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-hr-admin",
+      "email": "e2e-hradmin@hrm.local",
+      "firstName": "E2E",
+      "lastName": "HrAdmin",
+      "realmRoles": [
+        "hr-admin",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-training-ops",
+      "email": "e2e-training@hrm.local",
+      "firstName": "E2E",
+      "lastName": "TrainingOps",
+      "realmRoles": [
+        "hr-training",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-compliance",
+      "email": "e2e-compliance@hrm.local",
+      "firstName": "E2E",
+      "lastName": "Compliance",
+      "realmRoles": [
+        "compliance",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-health-ops",
+      "email": "e2e-health@hrm.local",
+      "firstName": "E2E",
+      "lastName": "HealthOps",
+      "realmRoles": [
+        "hr-health",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    }
+  ]
+}
