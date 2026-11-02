@@ -124,27 +124,34 @@ bootstrap_report() {
 
 # PLAN-39 (section 2): the rendered realm and its reconcile plan (placeholders and names only, from the bundle's
 # deploy/vps/keycloak-import) go into the named volume keycloak_import, which keycloak (--import-realm, first boot
-# only) and keycloak-reconcile read; the stale files in the volume are replaced and the temporary copy in the release
-# directory is removed. A release whose copy is already gone (a redeploy of the same tag) keeps the volume as it is.
+# only) and keycloak-reconcile read. The volume is refilled from the release being deployed on EVERY deploy, a rollback
+# included, so a release never reconciles with another release's plan (review F1); the release keeps its own copy
+# (placeholders and names only). The plan names its realm profile, which must match HRM_DEPLOYMENT_MODE (review F3:
+# a Demo realm, with its demo users, is refused outside demo mode and the Production one inside it).
 fill_keycloak_import() {
   local release="$1" src="$1/deploy/vps/keycloak-import" volume="${HRM_PROJECT}_keycloak_import"
   if [ ! -f "$release/deploy/keycloak/reconcile.sh" ]; then
     log "keycloak import: release from before PLAN-39 (its compose bind-mounts $src), volume not used"
     return 0
   fi
-  if [ ! -d "$src" ]; then
-    log "keycloak import: no copy in the release (already moved), volume $volume kept"
-    return 0
-  fi
   [ -f "$src/realm-hrmanagement.json" ] && [ -f "$src/reconcile-plan.tsv" ] \
-    || die "keycloak import: $src lacks realm-hrmanagement.json or reconcile-plan.tsv (render it with scripts/keycloak/render-realm.ps1)"
+    || die "keycloak import: $src lacks realm-hrmanagement.json or reconcile-plan.tsv (extract the release again: deploy.ps1 -Tag <tag> -PrepareOnly)"
+  local profile wanted
+  profile="$(grep -E $'^profile\t' "$src/reconcile-plan.tsv" | cut -f2 | head -1)"
+  if [ "$(env_value HRM_DEPLOYMENT_MODE)" = "demo" ]; then wanted=Demo; else wanted=Production; fi
+  if [ -z "$profile" ]; then
+    # 817304f5bd88, the first PLAN-39 release, rendered its plan before the profile line existed.
+    log "keycloak import: the plan names no profile (rendered before review F3); not compared with HRM_DEPLOYMENT_MODE"
+  elif [ "$profile" != "$wanted" ]; then
+    die "keycloak import: the release's realm was rendered for profile '$profile', HRM_DEPLOYMENT_MODE needs $wanted (render it with -Profile $wanted)"
+  fi
   docker volume create "$volume" > /dev/null
   # tar on stdin: works the same from Git Bash on Windows (-Local), where host paths do not bind-mount reliably.
   tar -C "$src" -cf - realm-hrmanagement.json reconcile-plan.tsv \
     | docker run --rm -i --network none -v "$volume:/import" alpine:3.20.3 \
         sh -c 'rm -f /import/*; tar -C /import -xf -; chmod 644 /import/*; ls /import | tr "\n" " "' \
     | sed 's/^/[remote-deploy] keycloak import volume: /'; echo
-  rm -rf "$src"
+  log "keycloak import: profile $profile from release $(basename "$release")"
 }
 
 # PLAN-39: keycloak-reconcile ran after keycloak was healthy and before any application; its log carries client and

@@ -263,6 +263,8 @@ $tab = "`t"
 $plan = New-Object System.Collections.Generic.List[string]
 $plan.Add("# PLAN-39 reconcile plan, profile $Profile, rendered by scripts/keycloak/render-realm.ps1 (no secret values)")
 $plan.Add("realm${tab}" + [string]$realm["realm"])
+# Read by remote-deploy.sh: the profile must match HRM_DEPLOYMENT_MODE on the server (review F3). Reconcile ignores it.
+$plan.Add("profile${tab}$Profile")
 foreach ($field in $manifest.security.PSObject.Properties) {
     if ($field.Name -eq "about") { continue }
     $value = if ($field.Value -is [bool]) { ([string]$field.Value).ToLowerInvariant() } else { [string]$field.Value }

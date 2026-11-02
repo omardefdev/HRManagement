@@ -121,6 +121,19 @@ public sealed class Ops039PiiKeyRingCanaryTests : IAsyncLifetime
         }
     }
 
+    /// <summary>Review F5: protected data of a tenant beyond the first 500 (by id) is still found under row level security.</summary>
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Protected_data_of_a_late_tenant_is_found_under_row_level_security()
+    {
+        Xunit.Skip.IfNot(RealInfra.IsEnabled, Skip);
+        // 600 tenants whose ids sort before the one holding the protected national ID.
+        await ExecAsync(Admin(), "INSERT INTO \"Tenants\" SELECT ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid FROM generate_series(1, 600) n");
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Canary(RingB, App(), new CapturingLogger()).RunAsync(CancellationToken.None));
+        Assert.Contains("does not decrypt", error.Message);
+        await Canary(RingA, App(), new CapturingLogger()).RunAsync(CancellationToken.None);
+    }
+
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
     public async Task An_empty_ring_over_protected_data_is_refused_without_creating_a_key()

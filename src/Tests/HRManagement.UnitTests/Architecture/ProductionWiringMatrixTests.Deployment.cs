@@ -372,6 +372,29 @@ public partial class ProductionWiringMatrixTests
         Assert.Contains("fill_keycloak_import", deploy);
     }
 
+    /// <summary>
+    /// PLAN-39 review F1/F3: every deploy (a rollback included) refills the import volume from the release it deploys and
+    /// keeps that release's copy, so a release never reconciles with another release's plan; and the realm profile of
+    /// the release must match HRM_DEPLOYMENT_MODE.
+    /// </summary>
+    [Fact]
+    public void Every_deploy_refills_the_keycloak_import_from_its_own_release_and_checks_the_profile()
+    {
+        var deploy = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "deploy", "vps", "remote-deploy.sh")).Replace("\r\n", "\n");
+        var start = deploy.IndexOf("fill_keycloak_import() {", StringComparison.Ordinal);
+        var body = deploy[start..deploy.IndexOf("\n}\n", start, StringComparison.Ordinal)];
+        Assert.DoesNotContain("rm -rf \"$src\"", body);
+        Assert.DoesNotContain("volume $volume kept", body);
+        Assert.Contains("extract the release again", body);
+        Assert.Contains("HRM_DEPLOYMENT_MODE", body);
+        Assert.Contains("profile", body);
+        // The rollback path goes through deploy(), which fills the volume before `up`.
+        Assert.Matches(@"fill_keycloak_import ""\$release""\s*\n\s*\n\s*t0=", deploy);
+        var workflow = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "workflows", "deploy.yml"));
+        Assert.DoesNotContain("prepare-keycloak-import.ps1 -Profile Demo ", workflow);
+        Assert.Contains("HRM_DEPLOYMENT_MODE", workflow);
+    }
+
     /// <summary>PLAN-39 (P-2): every application waits for the reconcile, so none starts with a secret Keycloak does not know.</summary>
     [Fact]
     public void Every_production_application_waits_for_the_keycloak_reconcile()

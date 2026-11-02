@@ -49,6 +49,29 @@ public class Ops039RenderRealmTests
             Assert.False(text.Contains(marker, StringComparison.Ordinal), $"Acceptance: the value of {key} is in the rendered realm");
     }
 
+    /// <summary>Review F3: the reconcile plan names its profile (remote-deploy.sh compares it with HRM_DEPLOYMENT_MODE) and holds no value.</summary>
+    [Theory]
+    [MemberData(nameof(ServerProfiles))]
+    public void The_reconcile_plan_names_its_profile_and_holds_no_secret(string profile)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "ops039-plan-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var (exitCode, stdout, stderr) = HRManagement.TestSupport.RepoScriptRunner.RunScript(
+                Path.Combine(HRManagement.TestSupport.RepoPaths.Root, "scripts", "keycloak", "render-realm.ps1"),
+                $"-Profile {profile} -AppDomain {Ops039RealmRenders.AppDomain} -OutFile \"{Path.Combine(dir, "realm-hrmanagement.json")}\"");
+            Assert.True(exitCode == 0, stdout + stderr);
+            var plan = System.IO.File.ReadAllLines(Path.Combine(dir, "reconcile-plan.tsv"));
+            Assert.Contains($"profile\t{profile}", plan);
+            Assert.DoesNotContain(plan, l => l.Contains("dev-svc-secret-local-only", StringComparison.Ordinal) || l.Contains("ops039-marker", StringComparison.Ordinal));
+            Assert.Contains(plan, l => l.StartsWith("client\tsvc-payroll\tservice\tSVC_PAYROLL_CLIENT_SECRET\t", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+    }
+
     [Fact]
     public void Profiles_differ_only_in_users_redirect_uris_and_the_acceptance_exceptions()
     {

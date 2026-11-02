@@ -30,10 +30,42 @@ public sealed class DataProtectionStartupGuardTests : IDisposable
 
     private string Dir(string name) => Path.Combine(_root, name);
 
+    /// <summary>The key-ring directory sits on a volume (the default lookup reads /proc/self/mountinfo, where a temp dir is on "/").</summary>
+    private static string? OnVolume(string path) => "/var/hrm/dpkeys";
+
+    [Fact]
+    public void A_key_ring_on_the_container_root_file_system_is_refused_unless_explicitly_allowed()
+    {
+        // Review F2: writable is not enough: without its volume the ring lives in the container layer and a recreate loses it.
+        var registration = new HrDataProtectionRegistration("IDCard.Web", Dir("ring"), null);
+        var failure = Assert.Single(DataProtectionStartupGuard.Evaluate(registration, "IDCard.Web", mountPointOf: _ => "/"));
+        Assert.Contains("not on a volume", failure);
+        Assert.Contains("IDCard.Web", failure);
+        Assert.Empty(DataProtectionStartupGuard.Evaluate(registration, "IDCard.Web", allowUnmountedKeyRing: true, mountPointOf: _ => "/"));
+        Assert.Empty(DataProtectionStartupGuard.Evaluate(registration, "IDCard.Web", mountPointOf: _ => null));   // mount table unknown (not Linux)
+        Assert.Empty(DataProtectionStartupGuard.Evaluate(registration, "IDCard.Web", mountPointOf: OnVolume));
+    }
+
+    [Theory]
+    [InlineData("/var/hrm/dpkeys", "/var/hrm/dpkeys")]
+    [InlineData("/var/hrm/dpkeys/sub", "/var/hrm/dpkeys")]
+    [InlineData("/var/hrm/dataprotection-keys", "/var/hrm/dataprotection-keys")]
+    [InlineData("/var/hrm/other", "/")]
+    [InlineData("/var/hrm/dpkeys-old", "/")]
+    [InlineData("/key ring", "/key ring")]
+    public void The_mount_point_of_a_path_comes_from_mountinfo(string path, string expected)
+    {
+        const string mountInfo = "25 1 0:23 / / rw,relatime - overlay overlay rw\n" +
+                                 "30 25 8:1 /var/lib/docker/volumes/hrm_dp_hr_core/_data /var/hrm/dpkeys rw,relatime - ext4 /dev/sda1 rw\n" +
+                                 "31 25 8:1 /x /var/hrm/dataprotection-keys rw - ext4 /dev/sda1 rw\n" +
+                                 @"32 25 8:1 /y /key\040ring rw - ext4 /dev/sda1 rw" + "\n";
+        Assert.Equal(expected, DataProtectionStartupGuard.MountPointOf(mountInfo, path));
+    }
+
     [Fact]
     public void A_persistent_writable_key_ring_with_its_application_name_passes()
     {
-        var failures = DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration("HR.Core", Dir("ring"), null), "HR.Core");
+        var failures = DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration("HR.Core", Dir("ring"), null), "HR.Core", mountPointOf: OnVolume);
         Assert.Empty(failures);
         Assert.Empty(Directory.GetFiles(Dir("ring")));   // the probe file is removed again
     }
@@ -53,7 +85,7 @@ public sealed class DataProtectionStartupGuardTests : IDisposable
     {
         var blocker = Path.Combine(_root, "not-a-directory");
         System.IO.File.WriteAllText(blocker, "a file where the directory should be");
-        var failure = Assert.Single(DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration("HR.Core", blocker, null), "HR.Core"));
+        var failure = Assert.Single(DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration("HR.Core", blocker, null), "HR.Core", mountPointOf: OnVolume));
         Assert.Contains(blocker, failure);
         Assert.Contains("not writable", failure);
     }
@@ -63,7 +95,7 @@ public sealed class DataProtectionStartupGuardTests : IDisposable
     [InlineData("HR.Core", "HRManagement.Gateway")]
     public void A_missing_or_different_application_name_is_refused(string registered, string discriminator)
     {
-        var failures = DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration(registered, Dir("ring"), null), discriminator);
+        var failures = DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration(registered, Dir("ring"), null), discriminator, mountPointOf: OnVolume);
         Assert.Contains(failures, f => f.Contains("SetApplicationName"));
     }
 
@@ -71,7 +103,7 @@ public sealed class DataProtectionStartupGuardTests : IDisposable
     public void A_configured_certificate_that_does_not_exist_is_refused()
     {
         var missing = Path.Combine(_root, "missing.pfx");
-        var failure = Assert.Single(DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration("HR.Core", Dir("ring"), missing), "HR.Core"));
+        var failure = Assert.Single(DataProtectionStartupGuard.Evaluate(new HrDataProtectionRegistration("HR.Core", Dir("ring"), missing), "HR.Core", mountPointOf: OnVolume));
         Assert.Contains(missing, failure);
     }
 

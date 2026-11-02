@@ -37,7 +37,6 @@ public sealed class EmployeePiiKeyRingCanary(
     ILogger<EmployeePiiKeyRingCanary> logger) : IHrStartupCheck
 {
     public const string ConnectionStringName = "HRCoreDb";
-    private const int MaxTenantsProbed = 500;
     private const string ProtectedSampleSql =
         "SELECT \"NationalId\" FROM \"Employees\" WHERE \"NationalId\" LIKE 'CfDJ8%' LIMIT 1";
 
@@ -130,7 +129,9 @@ public sealed class EmployeePiiKeyRingCanary(
         if (sample is null)
         {
             var tenants = new List<string>();
-            await using (var list = new NpgsqlCommand($"SELECT \"Id\"::text FROM \"Tenants\" ORDER BY \"Id\" LIMIT {MaxTenantsProbed}", connection))
+            // Every tenant (review F5: a cap could miss protected rows of a later tenant); each probe uses the
+            // (TenantId, ...) index and the loop stops at the first protected value.
+            await using (var list = new NpgsqlCommand("SELECT \"Id\"::text FROM \"Tenants\" ORDER BY \"Id\"", connection))
             await using (var reader = await list.ExecuteReaderAsync(cancellationToken))
             {
                 while (await reader.ReadAsync(cancellationToken))
