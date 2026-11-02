@@ -12,7 +12,7 @@ Started (UTC): 2026-11-01T23:11:21.1975013Z
 | P3 | done | 2026-11-02T00:16Z |
 | P4 | done | 2026-11-02T00:29Z |
 | P5 | done | 2026-11-02T01:24Z |
-| P6 | pending | |
+| P6 | done | 2026-11-02T01:24Z |
 | P7 | pending | |
 | P8 | pending | |
 
@@ -266,3 +266,17 @@ Finished (UTC): 2026-11-02T01:24:00Z
 - Stack left stopped (containers kept, volumes kept).
 
 Next step: P6 — AcOps36VpsBootTests evidence numbers with the invariant culture.
+
+### P6 — carry-over hygiene
+
+Finished (UTC): 2026-11-02T01:24:35Z
+
+- AcOps36VpsBootTests: every number written to the evidence (36e result text, Retry-After, 36g memory result) and the
+  assertion messages format with CultureInfo.InvariantCulture (PLAN-38 defect: `22٫9 %` on ar-SA). Runs on the server
+  in P7. Nothing else carried over.
+- Build 0/0.
+- Note on the P5 stamp: written as 01:24:00Z about a minute before that time (the P5 commit 3713f354 carries the real
+  time, 01:23Z); stamps are taken from `date -u` at the moment of writing from here on.
+
+Next step: P7 — server: build-on-host once on the final code, init-secrets, verified backup, stop Keycloak and dependents,
+ownership transfer, deploy, checks (AC-OPS-39 vps evidence, AcOps36, AcInt37, smoke).

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
@@ -643,14 +644,15 @@ public partial class AcOps36VpsBootTests
         recorder.RecordTiming("anonymousNotRejected", succeeded);
         recorder.RecordTiming("anonymousBurstSeconds", Math.Round(seconds, 1));
         recorder.RecordTiming("retryAfter", retryAfter ?? "missing");
-        Assert.True(seconds < 60, $"the anonymous burst took {seconds:0} s, longer than the one-minute window");
+        Assert.True(seconds < 60, string.Create(CultureInfo.InvariantCulture, $"the anonymous burst took {seconds:0} s, longer than the one-minute window"));
         Assert.True(succeeded <= 300, $"{succeeded} of 400 anonymous requests passed (limit 300 per minute)");
         Assert.True(succeeded < 400, "no 429 within 400 anonymous requests");
         Assert.False(string.IsNullOrEmpty(retryAfter), "429 without Retry-After");
 
         await WaitForAnonymousWindowAsync();
         recorder.FlushTiming();
-        recorder.WriteResult("Pass", $"two signed-in users: 400 assets + 50 pages, no 429; anonymous: {succeeded} of 400 passed in {seconds:0} s, the rest 429 with Retry-After {retryAfter}");
+        // PLAN-39 (P6): numbers in the evidence with the invariant culture (the machine culture ar-SA printed 22٫9 %).
+        recorder.WriteResult("Pass", string.Create(CultureInfo.InvariantCulture, $"two signed-in users: 400 assets + 50 pages, no 429; anonymous: {succeeded} of 400 passed in {seconds:0} s, the rest 429 with Retry-After {retryAfter}"));
     }
 
     private static async Task<HttpStatusCode> Status(HttpClient client, string url, HttpMethod? method = null)
@@ -685,7 +687,7 @@ public partial class AcOps36VpsBootTests
         var responses = await Task.WhenAll(Enumerable.Range(0, 400).Select(async i =>
         {
             using var response = await client.GetAsync($"https://{AppDomain}/?burst={i}");
-            return (response.StatusCode, RetryAfter: response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0"));
+            return (response.StatusCode, RetryAfter: response.Headers.RetryAfter?.Delta?.TotalSeconds.ToString("0", CultureInfo.InvariantCulture));
         }));
         watch.Stop();
         var rejected = responses.Where(r => r.StatusCode == HttpStatusCode.TooManyRequests).ToList();
@@ -811,7 +813,7 @@ public partial class AcOps36VpsBootTests
             var limit = ToMiB(usage[1]);
             totalMiB += used;
             rows.Add(new { container = parts[0], usedMiB = Math.Round(used, 1), limitMiB = Math.Round(limit, 1), percent = Math.Round(100 * used / limit, 1) });
-            Assert.True(used < limit, $"{parts[0]} uses {used:0} MiB of {limit:0} MiB");
+            Assert.True(used < limit, string.Create(CultureInfo.InvariantCulture, $"{parts[0]} uses {used:0} MiB of {limit:0} MiB"));
         }
 
         var oomKilled = oom.Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(l => l.Trim().EndsWith("|true", StringComparison.Ordinal)).ToList();
@@ -819,8 +821,8 @@ public partial class AcOps36VpsBootTests
         After(recorder, new { hostMemoryMiB = Math.Round(hostMiB), totalUsedMiB = Math.Round(totalMiB), percentOfHost = Math.Round(100 * totalMiB / hostMiB, 1), containers = rows, oomKilled });
         recorder.FlushTiming();
         Assert.Empty(oomKilled);
-        Assert.True(totalMiB < 0.75 * hostMiB, $"total {totalMiB:0} MiB is not under 75 % of {hostMiB:0} MiB");
-        recorder.WriteResult("Pass", $"{rows.Count} containers, {totalMiB:0} MiB of {hostMiB:0} MiB ({100 * totalMiB / hostMiB:0.0} %), none over its limit, no OOMKilled");
+        Assert.True(totalMiB < 0.75 * hostMiB, string.Create(CultureInfo.InvariantCulture, $"total {totalMiB:0} MiB is not under 75 % of {hostMiB:0} MiB"));
+        recorder.WriteResult("Pass", string.Create(CultureInfo.InvariantCulture, $"{rows.Count} containers, {totalMiB:0} MiB of {hostMiB:0} MiB ({100 * totalMiB / hostMiB:0.0} %), none over its limit, no OOMKilled"));
     }
 
     private static double ToMiB(string text)
