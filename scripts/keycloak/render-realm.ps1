@@ -253,5 +253,47 @@ if ([string]::IsNullOrWhiteSpace($OutFile)) {
 $outDir = Split-Path $OutFile -Parent
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
 [System.IO.File]::WriteAllText($OutFile, $json, $utf8NoBom)
+
+# ---- reconcile plan (P-2) -----------------------------------------------------------------------------------------
+# deploy/keycloak/reconcile.sh runs in the Keycloak image (no JSON tool there), so the same realm is also written as a
+# flat, tab-separated plan next to the realm file: names, flags, URLs and the NAMES of the secret variables, never a
+# secret value. Keycloak imports only *.json from its import directory and ignores this file. "-" marks an empty list.
+function Join-List($Items) { $list = @($Items | ForEach-Object { [string]$_ } | Where-Object { $_ -ne "" }); if ($list.Count -eq 0) { return "-" } return ($list -join " ") }
+$tab = "`t"
+$plan = New-Object System.Collections.Generic.List[string]
+$plan.Add("# PLAN-39 reconcile plan, profile $Profile, rendered by scripts/keycloak/render-realm.ps1 (no secret values)")
+$plan.Add("realm${tab}" + [string]$realm["realm"])
+foreach ($field in $manifest.security.PSObject.Properties) {
+    if ($field.Name -eq "about") { continue }
+    $value = if ($field.Value -is [bool]) { ([string]$field.Value).ToLowerInvariant() } else { [string]$field.Value }
+    $plan.Add("security${tab}$($field.Name)${tab}$value")
+}
+foreach ($scopeProperty in @($wiring.scopes.PSObject.Properties | Sort-Object Name)) {
+    $plan.Add("scope${tab}$($scopeProperty.Name)${tab}$(Join-List $scopeProperty.Value.audiences)${tab}$([string]$scopeProperty.Value.description)")
+}
+$flagNames = @("enabled", "publicClient", "standardFlowEnabled", "implicitFlowEnabled", "directAccessGrantsEnabled", "serviceAccountsEnabled", "fullScopeAllowed")
+foreach ($client in $clients) {
+    $id = [string]$client["clientId"]
+    $kind = switch ($id) { "hr-gateway-client" { "gateway" } "directory-sync" { "directory-sync" } default { "service" } }
+    $secretEnv = switch ($kind) {
+        "gateway" { $gatewaySecretEnv }
+        "directory-sync" { $directorySyncEnv }
+        default { [string](@($wiring.services | Where-Object { $_.clientId -eq $id })[0].secretEnv) }
+    }
+    $optional = if ($client.Contains("optionalClientScopes")) { $client["optionalClientScopes"] } else { @() }
+    $default = if ($client.Contains("defaultClientScopes")) { $client["defaultClientScopes"] } else { @() }
+    $plan.Add("client${tab}$id${tab}$kind${tab}$secretEnv${tab}$(Join-List $optional)${tab}$(Join-List $default)")
+    $flags = @($flagNames | Where-Object { $client.Contains($_) } | ForEach-Object { "$_=" + ([string]$client[$_]).ToLowerInvariant() })
+    $plan.Add("flags${tab}$id${tab}$(Join-List $flags)")
+    if ($kind -eq "gateway") {
+        $plan.Add("urls${tab}$id${tab}$(Join-List $client['redirectUris'])${tab}$(Join-List $client['webOrigins'])${tab}$([string]$client['attributes']['post.logout.redirect.uris'])")
+    }
+}
+$planText = ($plan -join "`n") + "`n"
+foreach ($forbidden in @($labServiceSecret) + @($envValues.Values | Where-Object { $_ -and $_ -ne $AppDomain -and $_ -ne $envValues["HRM_BOOTSTRAP_ADMIN_USER"] })) {
+    if ($planText.Contains([string]$forbidden)) { throw "The reconcile plan would contain a secret value." }
+}
+[System.IO.File]::WriteAllText((Join-Path $outDir "reconcile-plan.tsv"), $planText, $utf8NoBom)
+
 $secretNote = if ($labSecrets) { "lab secrets" } else { 'secrets are ${NAME} placeholders resolved by Keycloak' }
-Write-Host ("Rendered profile {0}: {1} clients, {2} client scopes, {3} users -> {4} ({5})" -f $Profile, $clients.Count, $scopes.Count, $users.Count, $OutFile, $secretNote)
+Write-Host ("Rendered profile {0}: {1} clients, {2} client scopes, {3} users -> {4} ({5}); reconcile plan reconcile-plan.tsv" -f $Profile, $clients.Count, $scopes.Count, $users.Count, $OutFile, $secretNote)

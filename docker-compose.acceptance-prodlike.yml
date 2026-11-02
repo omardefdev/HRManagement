@@ -39,3 +39,38 @@ services:
   hr-contracts-web:
     environment:
       Contracts__AllowDefaultContractTypeFallback: "false"
+
+  # PLAN-39 (P-2, P-4): the same reconcile as the production chain, on the realm rendered from the manifest with the
+  # Acceptance profile (scripts/prepare-keycloak-import.ps1 -Profile Acceptance writes realm-hrmanagement.json and
+  # reconcile-plan.tsv to docker/keycloak/import). Lab secrets: the shared lab service secret that
+  # docker-compose.acceptance.yml gives every service, and the gateway secret of the local .env. AC-OPS-39d rotates
+  # SVC_PAYROLL_CLIENT_SECRET with docker compose run -e ... keycloak-reconcile.
+  keycloak-reconcile:
+    image: quay.io/keycloak/keycloak:24.0
+    entrypoint: ["bash", "/opt/hrm/reconcile/reconcile.sh"]
+    restart: "no"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      HRM_KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ${KEYCLOAK_HR_GATEWAY_CLIENT_SECRET}
+      KEYCLOAK_DIRECTORY_SYNC_SECRET: dev-svc-secret-local-only
+      SVC_ADMIN_LOGISTICS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_AUTH_DIRECTORY_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_COMPLIANCE_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_DEV_ANALYTICS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_CONTRACTS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_CORE_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_HEALTH_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_MOVEMENTS_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_HR_TRAINING_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_IDCARD_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_IT_INFRA_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_PAYROLL_CLIENT_SECRET: dev-svc-secret-local-only
+      SVC_RECORDS_ARCHIVE_CLIENT_SECRET: dev-svc-secret-local-only
+    volumes:
+      - ./docker/keycloak/import:/opt/keycloak/data/import:ro
+      - ./deploy/keycloak:/opt/hrm/reconcile:ro
+    depends_on:
+      keycloak:
+        condition: service_started

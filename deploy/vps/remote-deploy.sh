@@ -122,6 +122,45 @@ bootstrap_report() {
   return 0
 }
 
+# PLAN-39 (section 2): the rendered realm and its reconcile plan (placeholders and names only, from the bundle's
+# deploy/vps/keycloak-import) go into the named volume keycloak_import, which keycloak (--import-realm, first boot
+# only) and keycloak-reconcile read; the stale files in the volume are replaced and the temporary copy in the release
+# directory is removed. A release whose copy is already gone (a redeploy of the same tag) keeps the volume as it is.
+fill_keycloak_import() {
+  local release="$1" src="$1/deploy/vps/keycloak-import" volume="${HRM_PROJECT}_keycloak_import"
+  if [ ! -f "$release/deploy/keycloak/reconcile.sh" ]; then
+    log "keycloak import: release from before PLAN-39 (its compose bind-mounts $src), volume not used"
+    return 0
+  fi
+  if [ ! -d "$src" ]; then
+    log "keycloak import: no copy in the release (already moved), volume $volume kept"
+    return 0
+  fi
+  [ -f "$src/realm-hrmanagement.json" ] && [ -f "$src/reconcile-plan.tsv" ] \
+    || die "keycloak import: $src lacks realm-hrmanagement.json or reconcile-plan.tsv (render it with scripts/keycloak/render-realm.ps1)"
+  docker volume create "$volume" > /dev/null
+  # tar on stdin: works the same from Git Bash on Windows (-Local), where host paths do not bind-mount reliably.
+  tar -C "$src" -cf - realm-hrmanagement.json reconcile-plan.tsv \
+    | docker run --rm -i --network none -v "$volume:/import" alpine:3.20.3 \
+        sh -c 'rm -f /import/*; tar -C /import -xf -; chmod 644 /import/*; ls /import | tr "\n" " "' \
+    | sed 's/^/[remote-deploy] keycloak import volume: /'; echo
+  rm -rf "$src"
+}
+
+# PLAN-39: keycloak-reconcile ran after keycloak was healthy and before any application; its log carries client and
+# scope names with the action and "reconcile: N changes", never a secret. Prints it and its duration.
+reconcile_report() {
+  local id s f
+  id="$(dc ps -a -q keycloak-reconcile 2>/dev/null | head -1)"
+  [ -n "$id" ] || { log "keycloak-reconcile: no container"; return 0; }
+  log "keycloak-reconcile: $(docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}}' "$id")"
+  docker logs "$id" 2>&1 | tail -n 80
+  s="$(date -d "$(docker inspect -f '{{.State.StartedAt}}' "$id")" +%s 2>/dev/null || echo 0)"
+  f="$(date -d "$(docker inspect -f '{{.State.FinishedAt}}' "$id")" +%s 2>/dev/null || echo 0)"
+  [ "$s" -gt 0 ] && [ "$f" -ge "$s" ] && echo "timing keycloak_reconcile_seconds=$((f - s))"
+  return 0
+}
+
 # Waits until every container of the project is running and healthy (or has no healthcheck), and one-shot containers
 # exited 0. Prints the unhealthy ones on timeout.
 wait_healthy() {
@@ -136,8 +175,8 @@ wait_healthy() {
       set -- $line
       case "$2:$3" in
         running:healthy|running:none) ;;
-        # One-shot containers: volume-init and (PLAN-38) hrm-bootstrap must have exited 0.
-        exited:none) [ "$4" = "0" ] && { [ "$5" = "volume-init" ] || [ "$5" = "hrm-bootstrap" ]; } || bad="$bad $5($2/$3/exit $4)";;
+        # One-shot containers: volume-init, (PLAN-38) hrm-bootstrap and (PLAN-39) keycloak-reconcile must have exited 0.
+        exited:none) [ "$4" = "0" ] && { [ "$5" = "volume-init" ] || [ "$5" = "hrm-bootstrap" ] || [ "$5" = "keycloak-reconcile" ]; } || bad="$bad $5($2/$3/exit $4)";;
         *) bad="$bad $5($2/$3)";;
       esac
     done
@@ -177,11 +216,15 @@ deploy() {
   local previous=""
   if [ -f "$HRM_HOME/current-tag" ]; then previous="$(tr -d '[:space:]' < "$HRM_HOME/current-tag")"; fi
 
+  fill_keycloak_import "$release"
+
   t0="$(date +%s)"
   # PLAN-38: `up` waits for hrm-bootstrap (service_completed_successfully); if it fails, no application is started and
-  # `up` itself fails. current-tag still names the last healthy release.
+  # `up` itself fails. PLAN-39: the same for keycloak-reconcile, so no application starts with a client secret Keycloak
+  # does not know (plan section 2, rule 3). current-tag still names the last healthy release.
   if ! dc up -d --remove-orphans; then
     bootstrap_report
+    reconcile_report
     dc ps -a || true
     printf '%s\n' "$tag" > "$HRM_HOME/failed-tag"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)|tag=$tag|action=deploy|result=up-failed" >> "$HRM_HOME/deployments.log"
@@ -189,6 +232,7 @@ deploy() {
   fi
   t1="$(date +%s)"; echo "timing up_seconds=$((t1 - t0))"
   bootstrap_report
+  reconcile_report
 
   if ! wait_healthy; then
     dc ps -a || true
@@ -198,9 +242,9 @@ deploy() {
     die "release $tag did not become healthy (rollback to ${previous:-nothing}: bash remote-deploy.sh rollback)"
   fi
 
-  # PLAN-37: keep the realm's service clients, scopes and secrets in step with deploy/wiring/service-wiring.json
-  # (idempotent; never drops or re-imports the realm). Older releases have no such script.
-  if [ -f "$release/deploy/vps/keycloak-sync-clients.sh" ]; then
+  # PLAN-39: the realm is reconciled by the keycloak-reconcile one-shot inside `up` (above). Only a release from before
+  # PLAN-39 (a rollback target) still carries PLAN-37's host-side sync script, and only then it runs here.
+  if [ ! -f "$release/deploy/keycloak/reconcile.sh" ] && [ -f "$release/deploy/vps/keycloak-sync-clients.sh" ]; then
     t0="$(date +%s)"
     if ! HRM_PROJECT="$HRM_PROJECT" bash "$release/deploy/vps/keycloak-sync-clients.sh"; then
       printf '%s\n' "$tag" > "$HRM_HOME/failed-tag"
