@@ -1,20 +1,28 @@
 # Keycloak والأسرار
 
-## ابدأ من هنا (ترتيب عملي)
+## ابدأ من هنا: الـ realm كشيفرة (PLAN-39)
 
-المستندات أدناه تفصّل؛ هذا هو **ما تفعله أولاً** حتى يعمل تسجيل الدخول:
+لا يُنشأ realm ولا عميل ولا نطاق يدوياً في لوحة الإدارة. الـ realm `hrmanagement` يُبنى من مصدرين لا يتكرران (D-39-1):
 
-1. **شغّل Keycloak** (مثلاً `docker compose up -d` من جذر المشروع) وتأكد أنه يفتح على `http://localhost:8080`.
-2. **ادخل لوحة الإدارة** (مثلاً المستخدم/كلمة المرور من `.env`: `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD`).
-3. **أنشئ Realm واحداً** اسمه يطابق **بالضبط** الجزء الأخير من `Keycloak:Authority` في `appsettings` لديك. في الشيفرة الحالية الافتراضي هو **`hrmanagement`** → الرابط يصبح `http://localhost:8080/realms/hrmanagement`.
-4. **أنشئ عميل OpenID Connect للبوابة** (`hr-gateway-client`):
-   - Redirect: `http://localhost:5000/signin-oidc` (تطوير) أو `https://PORTAL/signin-oidc` (إنتاج)
-   - Post-logout: `http://localhost:5000/signout-callback-oidc`
-   - الخدمات خلف البوابة (`HrAuth:BehindGateway=true`) تستخدم JwtBearer فقط — لا OIDC تفاعلي في الإنتاج.
-   - **اختياري للتطوير:** عميل `hr-web` مع redirect لكل منفذ عند `HrAuth:BehindGateway=false` في Development فقط.
-5. **فعّل Client authentication** للبوابة، ضع السر في `Keycloak__ClientSecret` (متغير بيئة).
-6. **أنشئ مستخدماً** في Realm → Users، عيّن له كلمة مرور، ثم في **Role mapping** أضف دور **`hr-admin`** (أو الأدوار الأخرى من الجدول أدناه) حتى يمرّ التطبيق من فحوص الصلاحيات.
-7. **شغّل البوابة ثم الخدمات** وجرب فتح `http://localhost:5000` وتسجيل الدخول.
+| المصدر | ما فيه |
+|--------|--------|
+| [`docker/keycloak/realm-manifest.json`](../docker/keycloak/realm-manifest.json) | الأدوار، عميل البوابة ومُعيّنات المطالبات الثلاث (`tenant_id`، `employee_id`، `scope_org_unit_id`)، `directory-sync`، النطاقات المدمجة، ملف المستخدم (السمات الثلاث للمدير وحده)، إعدادات الأمان (D-39-6)، ومستخدمو كل ملف تعريف. بلا أي سر |
+| [`deploy/wiring/service-wiring.json`](../deploy/wiring/service-wiring.json) | عملاء `svc-*` ونطاقاتهم وجمهور كل نطاق واسم متغير السر (PLAN-37) |
+
+1. **التوليد:** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/keycloak/render-realm.ps1 -Profile Production|Demo|Acceptance [-EnvFile .env] [-AppDomain <host>]`
+   يكتب `artifacts/keycloak/<profile>/realm-hrmanagement.json` و`reconcile-plan.tsv` (خارج git).
+   - **Production:** مدير bootstrap واحد (`HRM_BOOTSTRAP_ADMIN_USER`، كلمة مرور مؤقتة، `UPDATE_PASSWORD` عند أول دخول، D-39-5).
+   - **Demo:** المستخدمون التجريبيون بـ `DEMO_USERS_PASSWORD`.
+   - **Acceptance:** كل شخصيات `testdata/acceptance/personas.json` بأسرار المختبر، مع password grant للبوابة (أداة القبول).
+   في Production وDemo كل سر نائب `${NAME}` يحلّه Keycloak من بيئته عند الاستيراد؛ المولّد لا يقرأ سراً.
+   الملفات الثلاثة لا تختلف إلا في المستخدمين وعناوين التحويل واستثناءات القبول (`Ops039RenderRealmTests`).
+2. **الاستيراد الأول:** `keycloak` يعمل بـ `start --import-realm` من volume `keycloak_import` الذي يملؤه `remote-deploy.sh`
+   (realm جديد فقط؛ لا يكتب فوق realm قائم).
+3. **المطابقة في كل نشر:** الخدمة لمرة واحدة `keycloak-reconcile` ([deploy/keycloak/reconcile.sh](../deploy/keycloak/reconcile.sh))
+   بعد أن يصبح Keycloak سليماً وقبل أي تطبيق: العملاء وأعلامهم، النطاقات وجمهورها، الأسرار من `.env`، عناوين التحويل،
+   وحقول الأمان المسماة. **لا تمس المستخدمين ولا ربط الأدوار أبداً.** التشغيل الثاني يطبع `reconcile: 0 changes`.
+4. **محلياً:** `scripts/prepare-keycloak-import.ps1` غلاف: `-Profile Local` (الافتراضي، قالب التطوير
+   `realm-hrmanagement-dev.template.json` ثم `scripts/sync-keycloak-dev-realm.ps1`)، و`-Profile Acceptance` لمكدّس القبول.
 
 **تجاهل في البداية:** قسم «تزامن Auth.Directory» أدناه — اختياري وليس شرطاً للدخول العادي.
 
@@ -86,9 +94,10 @@ token صادر لعميل/audience غير مسموح يُرفض.
 - `scripts/sync-keycloak-dev-realm.ps1`: كل نطاق (`scopes` مع مُعيّن audience لكل جمهور) وكل عميل خدمة بنطاقاته
   الاختيارية. شغّله بعد أي تغيير في المصفوفة على realm التطوير والقبول (`acceptance-up.ps1` يشغّله)، **قبل** أن تطلب
   الخدمات النطاق الجديد: Keycloak يرفض توكن نطاق غير مربوط (`invalid_scope`).
-- `scripts/prepare-keycloak-import.ps1 -Profile VpsDemo`: realm الخادم الواحد عند أول استيراد، كل عميل بسرّه
-  `${SVC_X_CLIENT_SECRET}`.
-- `deploy/vps/keycloak-sync-clients.sh`: على الخادم بعد كل نشر، بلا حذف realm ولا إعادة استيراد (OPS_VPS_SINGLE_HOST §5أ).
+- `scripts/keycloak/render-realm.ps1` (PLAN-39؛ `prepare-keycloak-import.ps1 -Profile Demo|VpsDemo|Production` غلافه):
+  realm الخادم عند أول استيراد، كل عميل بسرّه `${SVC_X_CLIENT_SECRET}`.
+- `deploy/keycloak/reconcile.sh` (الخدمة `keycloak-reconcile`، PLAN-39): في كل نشر، بلا حذف realm ولا إعادة استيراد؛
+  حلّ محل `deploy/vps/keycloak-sync-clients.sh` (PLAN-37، حُذف).
 
 `ServiceIdentity__Scope` يُكتب صراحةً لكل خدمة في `docker-compose.yml` / `docker-compose.services.yml` وفي
 `deploy/k8s/base/<svc>/wiring-patch.yaml` (فارغ لمن لا نطاق له)، ولا يأتي من `appsettings.json`. السر الفارغ في

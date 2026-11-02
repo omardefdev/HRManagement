@@ -15,7 +15,7 @@
     "evidence.ingest"
   ],
   "gatewayPasswordGrantInAcceptance": true,
-  "importLogLineInCurrentContainer": false,
+  "importLogLineInCurrentContainer": true,
   "productionProfile": {
     "gatewayPasswordGrant": false,
     "bootstrapAdminRequiredAction": "UPDATE_PASSWORD"

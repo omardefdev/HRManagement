@@ -323,3 +323,27 @@ Server changes as made (each with its undo; also docs/OPS_VPS_SINGLE_HOST.md sec
 
 Next step: P8 — docs (done in part: KEYCLOAK_AND_SECRETS, IAM_001, OPS 5a/10/13, gap status lines), plan notes,
 independent review, local CI + pre-push, final report, release branch, OWNER ACTION.
+
+### P8 — docs, review, final report, merge through a PR
+
+- Docs: KEYCLOAK_AND_SECRETS.md («ابدأ من هنا» replaced by the manifest, renderer and reconcile; PLAN-37 subsection),
+  OPS_VPS_SINGLE_HOST.md (5أ reconcile, §10 server changes, §13.1–13.5 role, transfer, import/reconcile, key rings,
+  certificate, export, the in-place move), IAM_001_JWT_KEYCLOAK.md (production realm settings), PRG_002 status lines
+  G-OPS-03 and G-OPS-04, the plan's Status and «ملاحظات التنفيذ والانحرافات».
+- Review (one fresh subagent, read-only): 1 high (F1 rollback reconciles with another release's plan), 2 medium (F2 key
+  ring not on a volume, F3 workflow always Demo), 3 low (F4 unresolved directory-sync secret, F5 500-tenant cap, F6
+  postgres PUBLIC CONNECT). F1 confirmed directly in the code (no refuter spent). F1–F5 fixed with tests (6512c459), F6
+  recorded. Server: the realm copy of release 817304f5bd88 restored from hrm_keycloak_import into
+  /opt/hrm/releases/817304f5bd88/deploy/vps/keycloak-import (undo: rm -rf that folder) so a later rollback to it refills
+  the volume from its own plan.
+- After the fixes: unit filters 233/233; Testcontainers Ops039 16/16 (125 s); 15 images rebuilt (530 s); prod-like stack on
+  a fresh keycloak_db (`up --wait` 17 s, all ready 25 s, guard + canary pass); AC-OPS-39a..h 8/8 again (77 s); evidence
+  rescanned (37 files, 85 secret values, 0 hits); summary lines updated; stack stopped.
+- Local CI run 1 on 71d45cb6: 954 s, 89/90 passed — only "Check formatting" (whitespace in two AC-OPS-39 test files);
+  fixed with dotnet format whitespace (a9f97a00); unit 4557/4557, integration 348/348, Testcontainers 109/109, coverage
+  gate passed.
+- Report: reports/plan39-final-report.md; PR text reports/plan39-pr.md.
+- Stamp before the docs commit: 2026-11-02T02:38:40Z
+
+Next step: commit docs + report; release/plan-39 from main (--no-ff); local CI + plan035-prepush on the release head;
+OWNER ACTION (push, PR, checks, merge).

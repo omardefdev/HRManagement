@@ -75,14 +75,28 @@ Valid issuers include:
 
 ### Keycloak Realm
 
+PLAN-39: the realm is code. `scripts/keycloak/render-realm.ps1` renders it from `docker/keycloak/realm-manifest.json`
+and `deploy/wiring/service-wiring.json` for the Production, Demo and Acceptance profiles; `keycloak` imports it on first
+boot (`--import-realm`) and the `keycloak-reconcile` one-shot (`deploy/keycloak/reconcile.sh`) keeps clients, scopes,
+secrets, redirect URIs and the security fields in step on every deploy (never users or role mappings). Production
+settings, the same in Production and Demo (asserted by `Ops039RenderRealmTests`, `Ops039KeycloakRealmImportTests`):
+
+- [x] `sslRequired=external` (browsers over the TLS edge; private addresses of the data network over HTTP)
+- [x] Brute force protection: 5 failures, 15-minute wait (900 s, maximum 900 s), no permanent lockout (D-39-6)
+- [x] Password policy `length(12) and notUsername and passwordHistory(3)` (D-39-6)
+- [x] Gateway client: confidential, code flow only, **no password grant** (`directAccessGrantsEnabled=false`; the
+  Acceptance profile alone keeps it for the acceptance harness), redirect URIs on `APP_DOMAIN` only
+- [x] Service clients (`svc-*`): confidential service accounts, no standard/implicit/password flow, optional scopes
+  exactly the matrix's, one audience mapper per `api-*` audience, one secret per client from `.env`
+- [x] User claims `tenant_id`, `employee_id`, `scope_org_unit_id` are managed user-profile attributes, editable by an
+  administrator only
+- [x] Production profile: one bootstrap administrator (`HRM_BOOTSTRAP_ADMIN_USER`) with `UPDATE_PASSWORD` (D-39-5)
+- [x] Keycloak connects to `keycloak_db` with its own role `keycloak` (owner of `keycloak_db`, no CONNECT elsewhere)
 - [ ] Realm `hrmanagement` exists with correct signing algorithm (RS256)
-- [ ] Gateway client: confidential, standard flow enabled, valid redirect URIs for production
-- [ ] Service clients: bearer-only or service-account, correct audience mappers
 - [ ] Realm roles match `HrManagementRoles` constants
 - [ ] Token lifespan ≤ 5 minutes for access tokens
 - [ ] Refresh token rotation enabled
-- [ ] Brute force protection enabled
-- [ ] Admin console not exposed to public network
+- [x] Admin console not exposed to public network (PLAN-36 edge)
 
 ### TLS
 
