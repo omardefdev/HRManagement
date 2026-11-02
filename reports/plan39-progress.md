@@ -11,7 +11,7 @@ Started (UTC): 2026-11-01T23:11:21.1975013Z
 | P2 | done | 2026-11-02T00:07Z |
 | P3 | done | 2026-11-02T00:16Z |
 | P4 | done | 2026-11-02T00:29Z |
-| P5 | pending | |
+| P5 | done | 2026-11-02T01:24Z |
 | P6 | pending | |
 | P7 | pending | |
 | P8 | pending | |
@@ -223,3 +223,46 @@ Finished (UTC): 2026-11-02T00:29:30Z
 
 Next step: P5 — prod-like acceptance: keycloak DB role one-shot for the prod-like stack (39e), AcOps39 tests, image
 builds (one at a time, prune BuildKit first), fresh keycloak_db, render Acceptance, up --wait, run AcOps39 + AcHcm25/30.
+
+### P5 — acceptance on the prod-like stack
+
+Finished (UTC): 2026-11-02T01:24:00Z
+
+- Images: 15 service images built one at a time (P-6): 525 s total (30-48 s each, warm cache, no NETSDK1064). The
+  BuildKit cache (72 GB "reclaimable") could not be pruned on this Docker Desktop: `docker builder prune`/`buildx
+  prune` with `--keep-storage`, `--max-used-space`, `--filter until=48h`, `-a`, on both builders reported 0 B; recorded,
+  builds were unaffected.
+- Prod-like file additions: one-shot `keycloak-db-role` (postgres:16-alpine running deploy/bootstrap/ensure-keycloak-role.sql,
+  transfer off) and keycloak `KC_DB_USERNAME: keycloak` (lab password `ACCEPTANCE_KEYCLOAK_DB_PASSWORD`, lab default) so
+  39e runs here too (P-4).
+- Stack (plan's command, `up -d --wait`, P-6): Acceptance realm rendered (1 s), keycloak_db dropped and recreated (new
+  Keycloak "volume": Keycloak stores in keycloak_db), `up -d --wait` 18 s, last application listening 20 s after `up`,
+  all 15 `/health/ready` 200. keycloak-db-role exit 0 in 0.2 s; Keycloak imported the realm as `keycloak`;
+  keycloak-reconcile on the new import: `reconcile: 0 changes` (32 s while the stack was starting). HR.Core canary on
+  the existing acceptance data: "a protected national ID decrypts with the key ring at /var/hrm/dpkeys".
+- Unit/Testcontainers filters (PS 5.1 forms): `dotnet test UnitTests --filter "FullyQualifiedName~Ops039|FullyQualifiedName~DataProtection"`
+  green (part of 4557/4557); Testcontainers Ops039: 6 (realm import) + 2 (keycloak role) + 6 (canary) = 14/14.
+- **AC-OPS-39a..h: 8/8 Pass** with RUN_ACCEPTANCE=true, ACCEPTANCE_REQUIRE_ALL=true (71 s; 39f's full
+  `up -d --force-recreate` inside). First run 7/8: 39f's browser sign-in restarted at Keycloak because .NET's
+  CookieContainer sends Keycloak's Version=1 cookies back in RFC 2965 form over http; the test now uses a small manual
+  cookie jar (test-only fix). Evidence acceptance-evidence/AC-OPS-39/ (24 files): scanned against 85 secret values of
+  .env, the persona passwords, the caller-proof secret and the lab defaults → 0 hits; no CfDJ8 value, no connection
+  string. Notes: 39c's account REST API answers 403 to the user (imported users have no account-console role) and
+  tenant_id stays unchanged (also a managed attribute, admin edit only); 39g plays the lost dp_hr_core volume with an
+  empty scratch ring on a clone of hr_core_db (the acceptance stack shares one key-ring volume between services).
+- Regression: on the prod-like stack AcHcm25 8/8 + AcHcm30 6/8 (283 s): 30i needs Recruitment:Retention:Apply=true,
+  which the prod-like file sets to false since PLAN-25 (by design, not this plan), 30j's fixtures were consumed by an
+  earlier run. After `down --volumes` (project-scoped lab data only) a fresh **lab-profile** stack: AcHcm30 **8/8**
+  (240 s). Regression evidence in artifacts/plan39/evidence-regression (not committed).
+- Finding for its owning plan (QA / PLAN-41): a fresh plain acceptance stack (without the least-privilege file) has
+  root-owned `acceptance_data_protection` and `acceptance_file_storage` volumes; HR.Core cannot persist a key
+  ("An error occurred while reading the key ring", not enforced on the lab profile) and its seed then crashes (exit
+  139), File.Storage too. PLAN-38 added `acceptance-volume-init` only to the least-privilege file. Worked around for
+  this run with a one-time chown 1654 of the two lab volumes; not fixed here (P6: nothing else carried over). The
+  prod-like stack enforces the guard, so there the start would stop with the guard's message instead of seeding.
+- Summary: acceptance-evidence/summary.md regenerated (scripts/acceptance-evidence-summarize.ps1) with the earlier
+  scenario log kept and the 8 AC-OPS-39 lines added (the script drops the appended log and writes a BOM under PS 5.1;
+  both corrected).
+- Stack left stopped (containers kept, volumes kept).
+
+Next step: P6 — AcOps36VpsBootTests evidence numbers with the invariant culture.

@@ -1,0 +1,23 @@
+{
+  "sslRequired": "external",
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "passwordPolicy": "length(12) and notUsername and passwordHistory(3)",
+  "clients": 15,
+  "scopes": [
+    "hr-core.lookup",
+    "hr-core.workflow",
+    "file-storage.references",
+    "dsar.subject.read",
+    "payroll.grades.read",
+    "file-storage.service-upload",
+    "directory.sync",
+    "evidence.ingest"
+  ],
+  "gatewayPasswordGrantInAcceptance": true,
+  "importLogLineInCurrentContainer": false,
+  "productionProfile": {
+    "gatewayPasswordGrant": false,
+    "bootstrapAdminRequiredAction": "UPDATE_PASSWORD"
+  }
+}

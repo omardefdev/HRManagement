@@ -1,6 +1,6 @@
 # Acceptance evidence summary (AC-01..AC-37)
 
-Generated: 2026-10-30 13:09:10 UTC
+Generated: 2026-11-02 01:21:33 UTC
 
 | AC | Status | Contract | Missing |
 |----|--------|----------|---------|
@@ -12,6 +12,7 @@ Generated: 2026-10-30 13:09:10 UTC
 | AC-11 | Pass | complete | - |
 | AC-12 | Blocked (Payroll run could not be submitted for review, so the approver-post SoD check cannot run. — تعذّر إرسال مسيّر الرواتب للمراجعة، فلا يمكن تنفيذ فحص فصل المهام لمنع المعتمد من الترحيل) | complete | - |
 | AC-16 | NoResult | incomplete | metadata.json, steps.md, before.json, after.json, audit.json, timing.json, result.json |
+| AC-20 | Pass | complete | - |
 | AC-30 | NoResult | incomplete | metadata.json, steps.md, after.json, audit.json, db-checks.json, timing.json, result.json |
 | AC-32 | Pass | complete | - |
 | AC-33 | Pass | complete | - |
@@ -35,7 +36,12 @@ Generated: 2026-10-30 13:09:10 UTC
 | AC-HCM-31 | Pass | complete | - |
 | AC-HCM-32 | Pass | complete | - |
 | AC-HCM-33 | Pass | complete | - |
-| AC-QA-34 | Blocked (34g: Blocked — The base (CI) realm issues access tokens without realm roles (no 'roles' client scope), so /api/files returns 403 'missing role for this module' for every persona; the upload/scan half of 34g cannot run on this stack (realm finding for PLAN-41). — رمز الوصول في realm الأساسي بلا أدوار، فلا يمر طلب الرفع) | complete | - |
+| AC-INT-37 | Pass | complete | - |
+| AC-OPS-36 | Pass | complete | - |
+| AC-OPS-38 | Pass | complete | - |
+| AC-OPS-39 | Pass | complete | - |
+| AC-QA-34 | Pass | complete | - |
+| AC-QA-35 | Pass | complete | - |
 | AC-WF-23 | Pass | complete | - |
 
 ## Not yet executed
@@ -50,7 +56,6 @@ Generated: 2026-10-30 13:09:10 UTC
 - AC-17
 - AC-18
 - AC-19
-- AC-20
 - AC-21
 - AC-22
 - AC-23
@@ -63,7 +68,7 @@ Generated: 2026-10-30 13:09:10 UTC
 - AC-31
 - AC-35
 
-**Totals:** 27 Pass, 3 Deferred/Blocked, 0 Fail, 23 not run.
+**Totals:** 34 Pass, 2 Deferred/Blocked, 0 Fail, 22 not run.
 - **AC-QA-34** (34g): Pass (`qa34-34g-876a2368479d45e9bfbe807831c2b400`)
 - **AC-QA-35** (35e): Pass (`qa35-35e-d6ec6afdf99b478d9c98026853a04115`)
 - **AC-QA-35** (35b): Pass (`qa35-35b-735b5cf11d4f4663a559be192df65098`)
@@ -111,3 +116,11 @@ Generated: 2026-10-30 13:09:10 UTC
 - **AC-OPS-38** (38h): Pass (`82cb2be1-a4dc-4d85-bc0f-95ed5e140a5b`)
 - **AC-OPS-38** (38f): Pass (`60dd2f13-b429-41a4-8099-0edf1d5a1a74`)
 - **AC-OPS-38** (38d): Pass (`eba96a35-f692-48a8-b618-eb5a437a599f`)
+- **AC-OPS-39** (39a): Pass (`ef5aefcb-f4f9-4d4e-a75e-19f070470803`)
+- **AC-OPS-39** (39b): Pass (`81e11d3a-6a98-4ba4-b25e-7167ac5f0481`)
+- **AC-OPS-39** (39c): Pass (`fb9fc4d1-16ea-48fd-8b16-8f52dcee9f16`)
+- **AC-OPS-39** (39d): Pass (`31698ecd-4577-4f31-ac8d-6d9b1ed88e33`)
+- **AC-OPS-39** (39e): Pass (`d8943392-9423-42d9-bd7a-d03bc307c848`)
+- **AC-OPS-39** (39f): Pass (`71382d47-3f6d-40f8-a8cd-99542245c8de`)
+- **AC-OPS-39** (39g): Pass (`de236d4c-320f-48d9-ae18-4963c3aa08ce`)
+- **AC-OPS-39** (39h): Pass (`66ab694a-faa0-41df-99d1-0bd96dcb6b2f`)

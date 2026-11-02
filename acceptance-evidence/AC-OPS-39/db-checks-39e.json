@@ -1,0 +1,6 @@
+{
+  "keycloakDbUsers": "keycloak",
+  "owner": "keycloak",
+  "foreignOwnedTables": 0,
+  "hrCoreDbAsKeycloak": "permission denied for database"
+}

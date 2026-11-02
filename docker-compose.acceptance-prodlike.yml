@@ -143,3 +143,30 @@ services:
     depends_on:
       keycloak:
         condition: service_started
+
+  # PLAN-39 (section 3, P-4, AC-OPS-39e): Keycloak on its own database role on this stack too, made by the same SQL as
+  # hrm-bootstrap step 3 (deploy/bootstrap/ensure-keycloak-role.sql). Lab password (ACCEPTANCE_KEYCLOAK_DB_PASSWORD, lab
+  # default). keycloak_db must be empty or already Keycloak's: a keycloak_db the administrator filled before PLAN-39 stops
+  # this one-shot ("run the ownership transfer"); on the lab stack drop and recreate keycloak_db (a new Keycloak volume).
+  keycloak-db-role:
+    image: postgres:16-alpine
+    restart: "no"
+    # The administrator password reaches psql through PGPASSWORD (an assignment: no quoting needed), never argv.
+    entrypoint: ["sh", "-c", "PGPASSWORD=$$POSTGRES_PASSWORD psql -X -q -v ON_ERROR_STOP=1 -h postgresql -U $$POSTGRES_USER -d postgres -v transfer=false -f /opt/hrm-bootstrap/ensure-keycloak-role.sql"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      HRM_KEYCLOAK_PASSWORD: ${ACCEPTANCE_KEYCLOAK_DB_PASSWORD:-acceptance-keycloak-db-lab-only}
+    volumes:
+      - ./deploy/bootstrap:/opt/hrm-bootstrap:ro
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  keycloak:
+    environment:
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${ACCEPTANCE_KEYCLOAK_DB_PASSWORD:-acceptance-keycloak-db-lab-only}
+    depends_on:
+      keycloak-db-role:
+        condition: service_completed_successfully

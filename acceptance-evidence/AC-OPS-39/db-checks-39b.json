@@ -1,0 +1,138 @@
+{
+  "tokens": [
+    {
+      "clientId": "svc-hr-core",
+      "scopes": [
+        "file-storage.references",
+        "payroll.grades.read",
+        "file-storage.service-upload"
+      ],
+      "aud": [
+        "api-file-storage",
+        "api-payroll"
+      ]
+    },
+    {
+      "clientId": "svc-hr-contracts",
+      "scopes": [
+        "hr-core.workflow",
+        "hr-core.lookup",
+        "file-storage.references"
+      ],
+      "aud": [
+        "api-file-storage",
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-hr-movements",
+      "scopes": [
+        "hr-core.lookup"
+      ],
+      "aud": [
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-payroll",
+      "scopes": [
+        "hr-core.lookup"
+      ],
+      "aud": [
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-idcard",
+      "scopes": [
+        "hr-core.workflow",
+        "file-storage.references"
+      ],
+      "aud": [
+        "api-file-storage",
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-records-archive",
+      "scopes": [
+        "hr-core.workflow",
+        "file-storage.references"
+      ],
+      "aud": [
+        "api-file-storage",
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-admin-logistics",
+      "scopes": [
+        "hr-core.lookup",
+        "hr-core.workflow",
+        "file-storage.references"
+      ],
+      "aud": [
+        "api-file-storage",
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-it-infra",
+      "scopes": [
+        "hr-core.workflow",
+        "directory.sync"
+      ],
+      "aud": [
+        "api-auth-directory",
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-compliance",
+      "scopes": [
+        "hr-core.lookup",
+        "hr-core.workflow",
+        "dsar.subject.read",
+        "file-storage.references"
+      ],
+      "aud": [
+        "api-file-storage",
+        "api-hr-core",
+        "api-payroll"
+      ]
+    },
+    {
+      "clientId": "svc-auth-directory",
+      "scopes": [
+        "hr-core.lookup"
+      ],
+      "aud": [
+        "api-hr-core"
+      ]
+    },
+    {
+      "clientId": "svc-hr-health",
+      "scopes": [],
+      "aud": []
+    },
+    {
+      "clientId": "svc-hr-training",
+      "scopes": [
+        "file-storage.references"
+      ],
+      "aud": [
+        "api-file-storage"
+      ]
+    },
+    {
+      "clientId": "svc-dev-analytics",
+      "scopes": [],
+      "aud": []
+    }
+  ],
+  "negative": {
+    "client": "svc-payroll",
+    "scope": "dsar.subject.read",
+    "error": "invalid_scope"
+  }
+}

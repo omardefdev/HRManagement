@@ -1,0 +1,2 @@
+1. One-off idcard-web (Acceptance, DataProtection__RequirePersistentKeyRing=true) with an empty DataProtection__KeyRingPath.
+2. It exits non-zero with the Data Protection guard message naming the service and the key; the stack's idcard-web stays ready.
