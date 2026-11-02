@@ -120,8 +120,13 @@ public partial class AcOps36VpsBootTests
                                     "3. The same browser session opens the same employee: no new sign-in (gateway key ring kept), the same ID shown (HR.Core key ring kept); HR.Core's canary line after the recreate.");
         recorder.WriteScenarioDbChecks(new
         {
-            employeeId = employee, shownBefore = true, sameAfter = true, sessionKept = true, recreateSeconds,
-            canary = Regex.Replace(canary, @"^\S+\s+\S+\s+", ""), reconcile = Regex.Replace(reconcile, @"^\S+\s+", ""),
+            employeeId = employee,
+            shownBefore = true,
+            sameAfter = true,
+            sessionKept = true,
+            recreateSeconds,
+            canary = Regex.Replace(canary, @"^\S+\s+\S+\s+", ""),
+            reconcile = Regex.Replace(reconcile, @"^\S+\s+", ""),
         });
         recorder.WriteResult("Pass");
     }

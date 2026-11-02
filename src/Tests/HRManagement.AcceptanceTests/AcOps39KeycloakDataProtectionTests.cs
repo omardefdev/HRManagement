@@ -149,8 +149,10 @@ public class AcOps39KeycloakDataProtectionTests
         using var response = await http.PostAsync($"{KeycloakUrl}/realms/master/protocol/openid-connect/token", new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = "password", ["client_id"] = "admin-cli",
-                ["username"] = env["KEYCLOAK_ADMIN"], ["password"] = env["KEYCLOAK_ADMIN_PASSWORD"],
+                ["grant_type"] = "password",
+                ["client_id"] = "admin-cli",
+                ["username"] = env["KEYCLOAK_ADMIN"],
+                ["password"] = env["KEYCLOAK_ADMIN_PASSWORD"],
             }));
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.IsSuccessStatusCode, "Keycloak admin token: " + (int)response.StatusCode);
@@ -273,7 +275,9 @@ public class AcOps39KeycloakDataProtectionTests
         Assert.Contains("login-actions/authenticate", action, StringComparison.Ordinal);
         var posted = await client.PostAsync(action, new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["username"] = persona.Username, ["password"] = AcceptanceHarness.ResolvePassword(persona), ["credentialId"] = "",
+            ["username"] = persona.Username,
+            ["password"] = AcceptanceHarness.ResolvePassword(persona),
+            ["credentialId"] = "",
         }));
         var body = await posted.Content.ReadAsStringAsync();
         if (body.Contains("signin-oidc", StringComparison.Ordinal))
@@ -377,8 +381,14 @@ public class AcOps39KeycloakDataProtectionTests
                              "(imported and exercised in Ops039KeycloakRealmImportTests: password grant -> unauthorized_client, update-password form at first login).");
         r.WriteScenarioDbChecks(new
         {
-            sslRequired = "external", bruteForceProtected = true, failureFactor = 5, passwordPolicy = "length(12) and notUsername and passwordHistory(3)",
-            clients = serviceClients.Count + 2, scopes = matrixScopes, gatewayPasswordGrantInAcceptance = true, importLogLineInCurrentContainer = imported,
+            sslRequired = "external",
+            bruteForceProtected = true,
+            failureFactor = 5,
+            passwordPolicy = "length(12) and notUsername and passwordHistory(3)",
+            clients = serviceClients.Count + 2,
+            scopes = matrixScopes,
+            gatewayPasswordGrantInAcceptance = true,
+            importLogLineInCurrentContainer = imported,
             productionProfile = new { gatewayPasswordGrant = false, bootstrapAdminRequiredAction = "UPDATE_PASSWORD" },
         });
         r.WriteResult("Pass");
@@ -517,7 +527,10 @@ public class AcOps39KeycloakDataProtectionTests
                              "3. Second run with the same value -> reconcile: 0 changes.\n4. Restore: reconcile with the stack's value; the lab secret works again; payroll-web ready.");
         r.WriteScenarioDbChecks(new
         {
-            rotate = LastLines(rotateOutput, 3), oldSecretStatus = oldStatus, secondRun = LastLines(againOutput, 1), restore = LastLines(restoreOutput, 2),
+            rotate = LastLines(rotateOutput, 3),
+            oldSecretStatus = oldStatus,
+            secondRun = LastLines(againOutput, 1),
+            restore = LastLines(restoreOutput, 2),
         });
         r.WriteResult("Pass");
     }
