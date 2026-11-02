@@ -14,7 +14,7 @@ Started (UTC): 2026-11-01T23:11:21.1975013Z
 | P5 | done | 2026-11-02T01:24Z |
 | P6 | done | 2026-11-02T01:24Z |
 | P7 | done | 2026-11-02T02:06Z |
-| P8 | pending | |
+| P8 | done (OWNER ACTION open) | 2026-11-02T03:04Z |
 
 ## Log
 
@@ -347,3 +347,30 @@ independent review, local CI + pre-push, final report, release branch, OWNER ACT
 
 Next step: commit docs + report; release/plan-39 from main (--no-ff); local CI + plan035-prepush on the release head;
 OWNER ACTION (push, PR, checks, merge).
+- Release: `release/plan-39` from main (e31d8bb0 = origin/main) with `--no-ff` merge of the feature branch: head
+  `a72c3c7e16be`. Local CI on that head: **90/90, 1015 s** (unit 4567, integration 348, Testcontainers 111);
+  `plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden, nonprod, signatures all PASS (16 commits, 496 s).
+  PR text: reports/plan39-pr.md. (This note and the PR text's check line stay uncommitted on the release branch, so the
+  checked head is the one the PR carries; they ride with the next plan's first commit, as PLAN-38's did.)
+
+OWNER ACTION (run in order; step 4 only if step 3 exits 0):
+1. `git push -u origin release/plan-39`
+2. `gh pr create --base main --head release/plan-39 --title "PLAN-39: Keycloak realm as code and persistent Data Protection keys" --body-file reports/plan39-pr.md`
+3. `gh pr checks <n> --watch --fail-fast`
+4. `gh pr merge <n> --merge`
+Then: `git switch main && git pull --ff-only` so that main = origin/main; the PR link and the post-merge run (and whether
+the dedupe guard skipped the heavy jobs) go here with the next plan's first commit.
+
+Waiting for owner (UTC): 2026-11-02T03:04:59Z
+
+Owner instruction (UTC): 2026-11-02T04:31:00Z — «نفذها انت»: the agent runs the OWNER ACTION commands itself (merge only with green checks).
+
+Merged by agent on owner instruction (UTC): 2026-11-02T08:02:07Z
+- PR: https://github.com/omardefdev/HRManagement/pull/34 (opened by the agent at 04:31:33Z from `release/plan-39`
+  a72c3c7e). Checks on the PR head: CI pass (35m27s), CodeQL pass (11m17s), E2E pass (18m24s), Gitleaks pass (58s),
+  HARD-001 compliance scan pass (2m18s), Dedupe post-merge run pass, Acceptance disabled notice pass, Acceptance
+  skipping (disabled by repository setting). `gh pr checks 34 --watch --fail-fast` exited 0, then `gh pr merge 34 --merge`.
+- Merge commit: `7e23094f732bc5a2ce227235a8e72c7e78a0db8c` (main = origin/main after `git pull --ff-only`).
+- Post-merge run on main: `ci` 41410147253 success in 58 s — the dedupe guard **skipped** CI, CodeQL, E2E and
+  Acceptance (only Dedupe, Gitleaks and the notice ran); `hardening-check` 41410147323 success in 2 m 30 s.
+- This note rides with PLAN-40's first commit (no second PR).

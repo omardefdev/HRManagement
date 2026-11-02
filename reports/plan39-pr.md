@@ -27,4 +27,8 @@ PLAN-36..38 server checks green.
 
 Report: `reports/plan39-final-report.md`.
 
+**Local checks on the release head `a72c3c7e16be`:** `scripts/ci-local.ps1` 90/90 steps, 1015 s (unit 4567, integration 348,
+Testcontainers 111, coverage gate passed); `scripts/plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden,
+nonprod, signatures all PASS (16 commits).
+
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
