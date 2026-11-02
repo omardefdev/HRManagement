@@ -10,7 +10,7 @@ Started (UTC): 2026-11-01T23:11:21.1975013Z
 | P1 | done | 2026-11-01T23:41Z |
 | P2 | done | 2026-11-02T00:07Z |
 | P3 | done | 2026-11-02T00:16Z |
-| P4 | pending | |
+| P4 | done | 2026-11-02T00:29Z |
 | P5 | pending | |
 | P6 | pending | |
 | P7 | pending | |
@@ -184,3 +184,42 @@ Finished (UTC): 2026-11-02T00:16:30Z
 
 Next step: P4 — DataProtectionStartupGuard, certificate protection, EmployeePiiKeyRingCanary, early start-up hook in
 TryMigrateAsync (configuration guard moved there), prod-like RequirePersistentKeyRing, make-dp-cert.sh/export-dp-keys.sh.
+
+### P4 — Data Protection: guard, canary, optional certificate
+
+Finished (UTC): 2026-11-02T00:29:30Z
+
+- Early hook (P-3): `HrStartupChecks` (`IHrStartupCheck`, run once per host in registration order) called at the very
+  top of `TryMigrateAsync` — before its `RunMigrationsAtStartup=false` early return and outside its try (a refusal is
+  never downgraded to a warning) — which all 15 hosts call before migrations and seeds; a hosted fallback runs them for
+  a host that never calls it. `ProductionConfigurationGuard` is now such a check (registered first in
+  `AddHrProductionNetworking`; PLAN-38 review F5 ordering part). The "Production default for an absent posture" part of
+  F5 is left to OPS-D (recorded).
+- `DataProtectionStartupGuard` (registered by `AddHrDataProtection`): in Production or with
+  `DataProtection:RequirePersistentKeyRing=true`, refuses an empty `KeyRingPath`, a path it cannot write (probe file
+  written and removed), a missing/different application name, a configured certificate file that does not exist.
+  Messages name the service and the path.
+- Certificate protection (D-39-3, off on the demo server): `DataProtection:CertificatePath` (+ `CertificatePassword` from
+  the environment) → `ProtectKeysWithCertificate`, `UnprotectKeysWithAnyCertificate(current + PreviousCertificatePaths)`;
+  legacy unencrypted keys stay readable. `deploy/vps/make-dp-cert.sh` (RSA 3072, 10 years, PFX 600, password generated
+  into .env, never overwrites; verified in a container: the PFX loads in .NET and encrypts the key ring) and
+  `deploy/vps/export-dp-keys.sh` (encrypted tar of every dp volume + certificate, AES-256-CBC/PBKDF2 600000, passphrase
+  from the environment, SHA-256 beside it; verified on two test volumes, wrong passphrase refused). Neither enabled on
+  the server.
+- `EmployeePiiKeyRingCanary` (HR.Core.Infrastructure, registered in HR.Core's Program): raw SQL `LIMIT 1` for one
+  `CfDJ8…` NationalId, first without a tenant, then per tenant of `Tenants` with `app.current_tenant` local to a
+  transaction (D-P0-2: a least-privilege role sees nothing otherwise); protected data + no `key-*.xml` → refused without
+  calling Unprotect (no key created); unprotect failure → refused; missing `Employees` when migrations ran before start →
+  refused (not "no data"). Enforced in Production / RequirePersistentKeyRing; `AllowKeyRingReset=true` → Critical + counter
+  `dataprotection_key_ring_reset_total` (meter HRManagement.DataProtection). Never prints a value or a key. Index: none on
+  NationalId; LIMIT 1 stops at the first protected row (D-P0-2).
+- Prod-like file: `DataProtection__RequirePersistentKeyRing: "true"` on all 15 services.
+- Tests: `DataProtectionStartupGuardTests` (11 incl. certificate protection, rotation, legacy keys, enforcement matrix)
+  and `HrStartupChecksOrderingTests` (5: checks before the first DbContext, refusal before any migration also outside
+  Production, also with migrations skipped, once for two contexts, every Program.cs runs the hook before its first
+  seed, HR.Core registers the canary) — 28/28 with the related filters; `Ops039PiiKeyRingCanaryTests` (Testcontainers
+  PostgreSQL with tenant RLS and a NOBYPASSRLS role) 6/6 in 23 s; full unit suite **4557/4557** (64 s); build 0/0.
+- Deviation: the canary is an `IHrStartupCheck`, not an `IHostedService` (P-3).
+
+Next step: P5 — prod-like acceptance: keycloak DB role one-shot for the prod-like stack (39e), AcOps39 tests, image
+builds (one at a time, prune BuildKit first), fresh keycloak_db, render Acceptance, up --wait, run AcOps39 + AcHcm25/30.

@@ -27,6 +27,8 @@
 services:
   hr-core-web:
     environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
       NationalScope__IsLabScale: "false"
       NationalScope__HardEnforceCeilings: "true"
       PolicyEngine__Core.Recruitment: "Shadow"
@@ -38,7 +40,74 @@ services:
 
   hr-contracts-web:
     environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
       Contracts__AllowDefaultContractTypeFallback: "false"
+
+  hr-gateway:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  hr-movements-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  payroll-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  idcard-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  records-archive-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  admin-logistics-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  it-infra-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  compliance-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  auth-directory-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  hr-health-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  hr-training-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  dev-analytics-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
+
+  file-storage-web:
+    environment:
+      # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
+      DataProtection__RequirePersistentKeyRing: "true"
 
   # PLAN-39 (P-2, P-4): the same reconcile as the production chain, on the realm rendered from the manifest with the
   # Acceptance profile (scripts/prepare-keycloak-import.ps1 -Profile Acceptance writes realm-hrmanagement.json and

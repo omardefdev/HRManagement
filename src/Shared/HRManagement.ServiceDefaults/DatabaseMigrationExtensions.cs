@@ -23,6 +23,11 @@ public static class DatabaseMigrationExtensions
     public static async Task TryMigrateAsync<TContext>(this IServiceProvider services, CancellationToken cancellationToken = default)
         where TContext : DbContext
     {
+        // PLAN-39 (P-3): the configuration guard, the Data Protection guard and (HR.Core) the key-ring canary run before
+        // anything here or in the seeds that follow connects to the database, and outside the try below (a refusal is
+        // never downgraded to a warning).
+        await HrStartupChecks.RunOnceAsync(services, cancellationToken);
+
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("Database");
         var configuration = services.GetRequiredService<IConfiguration>();
         var environment = services.GetService<IHostEnvironment>();
