@@ -74,5 +74,14 @@ if ($notRun.Count -gt 0) {
 [void]$lines.Add("**Totals:** $pass Pass, $deferred Deferred/Blocked, $fail Fail, $($notRun.Count) not run.")
 
 $summaryPath = Join-Path $evidencePath "summary.md"
-$lines -join [Environment]::NewLine | Set-Content -Path $summaryPath -Encoding UTF8
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+# PLAN-40 (P-5): keep the scenario log that EvidenceRecorder appends ("- **AC-..** ...: Pass (`id`)") after the totals,
+# and write UTF-8 without a BOM (Set-Content -Encoding UTF8 adds one under PowerShell 5.1).
+if (Test-Path $summaryPath) {
+    $log = @([System.IO.File]::ReadAllLines($summaryPath, $utf8NoBom) | Where-Object { $_ -match '^- \*\*AC-' })
+    foreach ($entry in $log) { [void]$lines.Add($entry) }
+}
+
+[System.IO.File]::WriteAllText($summaryPath, (($lines -join "`n") + "`n"), $utf8NoBom)
 Write-Host "Evidence summary written to: $summaryPath"

@@ -13,6 +13,12 @@ x-acceptance-service: &acceptance-service
 x-acceptance-dp-volumes: &acceptance-dp-volumes
   - acceptance_data_protection:/var/hrm/dpkeys
 
+# PLAN-40 (P-5, PLAN-39 defect): every application waits for acceptance-volume-init, so a fresh plain stack starts with
+# its key-ring and file-storage volumes owned by the applications' user (1654) and no manual step.
+x-after-volume-init: &after-volume-init
+  acceptance-volume-init:
+    condition: service_completed_successfully
+
 services:
   postgresql:
     container_name: !reset null
@@ -29,6 +35,29 @@ services:
     ports: !override
       - "6573:5672"
       - "15683:15672"
+
+  # The acceptance volumes are shared by several images; a new named volume takes its owner from whichever container
+  # mounts it first, so from empty volumes HR.Core and File.Storage could find /var/hrm/dpkeys and /var/hrm/file-storage
+  # owned by root (PLAN-38 P8 re-run; PLAN-39 defect: HR.Core seed exit 139). As volume-init in the production file, this
+  # one-shot container gives them to the applications' user 1654 before any application starts (PLAN-40 P-5; moved here
+  # from docker-compose.acceptance-leastpriv.yml, which extends this file).
+  acceptance-volume-init:
+    image: alpine:3.20.3
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    command: ["sh", "-c", "chown -R 1654:1654 /v && echo acceptance-volume-init: acceptance volumes owned by 1654"]
+    volumes:
+      - acceptance_data_protection:/v/dpkeys
+      - acceptance_file_storage:/v/files
 
   # PLAN-33 (decision 6): the pinned MinIO image can no longer be pulled (PLAN-30-EXECUTION), so the acceptance stack
   # runs File.Storage on its Local provider (volume acceptance_file_storage) and MinIO only on explicit request.
@@ -84,6 +113,7 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      <<: *after-volume-init
 
   hr-contracts-web:
     container_name: !reset null
@@ -91,6 +121,7 @@ services:
       - "6220:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   hr-health-web:
     container_name: !reset null
@@ -98,6 +129,7 @@ services:
       - "6230:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   hr-movements-web:
     container_name: !reset null
@@ -105,6 +137,7 @@ services:
       - "6240:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   hr-training-web:
     container_name: !reset null
@@ -112,6 +145,7 @@ services:
       - "6250:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   payroll-web:
     container_name: !reset null
@@ -119,6 +153,7 @@ services:
       - "6260:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   idcard-web:
     container_name: !reset null
@@ -126,6 +161,7 @@ services:
       - "6270:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   records-archive-web:
     container_name: !reset null
@@ -133,6 +169,7 @@ services:
       - "6280:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   admin-logistics-web:
     container_name: !reset null
@@ -140,6 +177,7 @@ services:
       - "6290:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   it-infra-web:
     container_name: !reset null
@@ -147,6 +185,7 @@ services:
       - "6300:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   dev-analytics-web:
     container_name: !reset null
@@ -154,6 +193,7 @@ services:
       - "6310:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   compliance-web:
     container_name: !reset null
@@ -161,6 +201,7 @@ services:
       - "6320:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   auth-directory-web:
     container_name: !reset null
@@ -168,6 +209,7 @@ services:
       - "6330:8080"
     environment: *acceptance-service
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
   file-storage-web:
     container_name: !reset null
@@ -188,6 +230,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      <<: *after-volume-init
 
   hr-gateway:
     container_name: !reset null
@@ -201,6 +244,7 @@ services:
       GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
       RateLimiting__PermitLimitPerMinute: "2000"
     volumes: *acceptance-dp-volumes
+    depends_on: *after-volume-init
 
 volumes:
   acceptance_data_protection:
