@@ -353,8 +353,9 @@ public partial class AcOps36VpsBootTests
             Assert.Contains(rows, r => r[0] == infra);
         foreach (var r in rows)
         {
-            // One-shot containers: volume-init and (PLAN-38) hrm-bootstrap, which every application waits for.
-            if (r[0] is "volume-init" or "hrm-bootstrap")
+            // One-shot containers: volume-init, (PLAN-38) hrm-bootstrap and (PLAN-39) keycloak-reconcile, which every
+            // application waits for.
+            if (r[0] is "volume-init" or "hrm-bootstrap" or "keycloak-reconcile")
                 Assert.True(r[2] == "exited" && r[4] == "0", $"{r[0]} did not exit 0");
             else
                 Assert.True(r[2] == "running" && r[3] is "healthy" or "none", $"{r[0]} is {r[2]}/{r[3]}");

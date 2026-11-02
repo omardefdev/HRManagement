@@ -1,0 +1,9 @@
+{
+  "keycloakDbUsers": "keycloak",
+  "owners": [
+    "keycloak=285"
+  ],
+  "realm": "external,true,5,900,900,false,length(12) and notUsername and passwordHistory(3)",
+  "gatewayDirectAccessGrantsAndStandardFlow": "false,true",
+  "serviceClients": 14
+}

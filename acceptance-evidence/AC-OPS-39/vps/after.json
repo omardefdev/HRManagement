@@ -1,0 +1,8 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "ops39-vps-39e-eb9f6d94cef94514b3ca082c0d859c25",
+  "httpObservationCount": 0,
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

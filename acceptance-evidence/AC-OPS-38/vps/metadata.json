@@ -1,12 +1,12 @@
 {
   "scenario": "PLAN-38 P6 on the demo server: a leave filed by e2e-maker-contracts is approved by hradmin (balance debited once, transaction completed) and cancelled again; hradmin issues an ID card",
   "personaId": "demo users on the server (password read into memory only)",
-  "correlationId": "ops38-38-vps-p6-f5ebd8d8c5174c7fa1e45e0617630c11",
-  "capturedAtUtc": "2026-11-01T22:39:18.3135323Z",
+  "correlationId": "ops38-38-vps-p6-01227e1b15bd4a9fbf4f6c6ecdc3f168",
+  "capturedAtUtc": "2026-11-02T02:01:25.4976227Z",
   "environment": {
     "gateway": "http://localhost:5000",
     "keycloak": "http://localhost:8088",
     "runAcceptance": true
   },
-  "gitSha": "e531ed8bce1e05dbf26b51014c60cc6adb17b39b"
+  "gitSha": "817304f5bd88d22a25bb56af1fe6c2ea4b603ff0"
 }

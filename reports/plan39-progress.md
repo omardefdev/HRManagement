@@ -13,7 +13,7 @@ Started (UTC): 2026-11-01T23:11:21.1975013Z
 | P4 | done | 2026-11-02T00:29Z |
 | P5 | done | 2026-11-02T01:24Z |
 | P6 | done | 2026-11-02T01:24Z |
-| P7 | pending | |
+| P7 | done | 2026-11-02T02:06Z |
 | P8 | pending | |
 
 ## Log
@@ -280,3 +280,46 @@ Finished (UTC): 2026-11-02T01:24:35Z
 
 Next step: P7 — server: build-on-host once on the final code, init-secrets, verified backup, stop Keycloak and dependents,
 ownership transfer, deploy, checks (AC-OPS-39 vps evidence, AcOps36, AcInt37, smoke).
+
+### P7 — demo server moved in place (S-1)
+
+Finished (UTC): 2026-11-02T02:06:55Z
+
+Server changes as made (each with its undo; also docs/OPS_VPS_SINGLE_HOST.md section 10 and 13.5):
+1. Server build of `817304f5bd88` (P-8, once): 17 images in the loopback registry, 1187 s (upload 16 s, push 12 s); build
+   cache and SDK image removed by the script. Undo: registry tag delete.
+2. `deploy.ps1 -Tag 817304f5bd88 -PrepareOnly` (9 s): release extracted to /opt/hrm/releases/817304f5bd88 with the Demo realm
+   (15 clients, 14 scopes, 12 users, placeholders) and reconcile-plan.tsv. Undo: rm -rf the release.
+3. `.env` copy /opt/hrm/shared/.env.bak-plan39-20261102T014535Z (600), then `init-secrets.sh`: generated
+   HRM_BOOTSTRAP_ADMIN_PASSWORD, POSTGRES_KEYCLOAK_PASSWORD; default HRM_BOOTSTRAP_ADMIN_USER=hrm-agency-admin; 87 keys,
+   600; `check-env` of the new release OK. Undo: restore the copy.
+4. **Backup** /opt/hrm/backups/pre-plan39-20261102T014546Z (700, files 600), 7 s: pg_dumpall.sql 24.9 MB (all 16
+   databases present, 17 CREATE DATABASE lines), 15 key-ring tars each holding a key, env.backup, SHA256SUMS → **verified**.
+   Undo: remove the folder when no longer needed.
+5. Stop gateway + 14 modules + keycloak at 01:46:13Z (16 containers); no session left on keycloak_db; ownership transfer
+   `run --rm --no-deps -e HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true hrm-bootstrap` of the new release, 34 s: owners before
+   `hrm_admin` (92 tables, 193 indexes, the database), after `keycloak=285` relations and the database owned by keycloak;
+   0 migrations applied, keycloakRole=keycloak in the result file. Undo: none needed for a rollback (the old release
+   connects as the superuser); full return = restore the backup (section 12.5) + -Rollback.
+6. `deploy.ps1 -Tag 817304f5bd88`: 160 s (pull 5, up 107, bootstrap 33, keycloak-reconcile 16 s with 9 changes:
+   the realm security fields, fullScopeAllowed=false on 8 svc-* clients made from the old template; gateway default scope
+   "openid" absent on the server realm → skipped, harmless), all healthy 12 s after up; deployments.log healthy at
+   01:49:23Z. **Downtime 3 min 10 s** (01:46:13Z → 01:49:23Z). HR.Core canary: "a protected national ID decrypts with the
+   key ring" on the existing 500 protected IDs. hrm_keycloak_import holds the two files (root dir, files 644); the
+   release's temporary copy removed. current-tag 817304f5bd88, previous-tag 7bd85bc3ac9d. Undo: -Rollback.
+7. Checks (evidence acceptance-evidence/AC-OPS-39/vps/): AC_OPS_39_vps_e Pass (pg_stat_activity: keycloak only;
+   keycloak_db and all relations owned by keycloak; keycloak → hr_core_db "permission denied for database"; realm
+   `external,true,5,900,900,false,length(12) and notUsername and passwordHistory(3)`; gateway `false,true`; every svc-*
+   no standard/password/implicit flow). AcInt37VpsServerTests 3/3 (smoke -RequireIntegrationWiring, legal pack, reconcile
+   run again → `reconcile: 0 changes`). Deploy smoke 49 pass / 0 fail / 1 warn (the known port-probe warning: the VPN
+   answers every port). AcOps36VpsBootTests (36j excepted) 10/11 at first: 36a only, because its one-shot list lacked
+   keycloak-reconcile (test updated like smoke.sh; rerun **Pass**) — so 36a..i, 36k and the PLAN-38 UI check all Pass;
+   **36e passed on the first attempt**. AC_OPS_39_vps_f Pass: hradmin's session shows an employee's protected national ID,
+   `up -d --force-recreate` of every service (109 s; a second short downtime, required by the check), the same session
+   (no new sign-in) shows the same ID; canary line after the recreate; the recreate's reconcile: `0 changes (7 s)`.
+   The demo user signs in through the browser form (smoke login, 36b, 39f). Server evidence scanned on the server
+   against 68 secret values of its .env: 0 hits; no CfDJ8 value, no connection string, no national ID.
+8. End state: 21 containers running (all healthy or without a health check), tag 817304f5bd88.
+
+Next step: P8 — docs (done in part: KEYCLOAK_AND_SECRETS, IAM_001, OPS 5a/10/13, gap status lines), plan notes,
+independent review, local CI + pre-push, final report, release branch, OWNER ACTION.
