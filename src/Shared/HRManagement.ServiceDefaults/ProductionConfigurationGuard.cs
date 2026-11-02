@@ -227,6 +227,10 @@ public sealed class ProductionConfigurationGuard(
         if (!string.IsNullOrWhiteSpace(configuration["ServiceIdentity:ClientId"]))
             RequireReal("ServiceIdentity:ClientSecret");
 
+        // PLAN-39 (section 3): the directory-sync client secret matters only when Auth.Directory provisions users.
+        if (configuration.GetValue("Keycloak:DirectorySync:Enabled", false))
+            RequireReal("Keycloak:DirectorySync:AdminClientSecret");
+
         var authority = configuration["Keycloak:Authority"];
         if (environment.IsProduction()
             && !string.IsNullOrWhiteSpace(authority)

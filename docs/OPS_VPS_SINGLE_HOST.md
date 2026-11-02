@@ -339,3 +339,39 @@ done
 
 ثم `deploy.ps1 -Tag <الوسم>`: `hrm-bootstrap` يجد القواعد والترحيلات قائمة فيضبط كلمات مرور الأدوار فقط. أخطاء
 `already exists` من `pg_dumpall` على الأدوار والقواعد التي أنشأها 01-init متوقعة.
+
+## 13. Keycloak بدور قاعدة خاص، والـ realm كشيفرة، وحلقات المفاتيح (PLAN-39)
+
+### 13.1 دور `keycloak` على خادم جديد
+
+`hrm-bootstrap` (الخطوة 3، [ensure-keycloak-role.sql](../deploy/bootstrap/ensure-keycloak-role.sql)) ينشئ الدور `keycloak`
+(`LOGIN`، بلا أي صلاحية إدارية ولا `BYPASSRLS`)، ويضع كلمة مروره من `POSTGRES_KEYCLOAK_PASSWORD` في كل تشغيل، ويمنحه
+`CONNECT` على `keycloak_db` وحدها، ويجعله مالكها إن كانت فارغة. و`keycloak` ينتظر `hrm-bootstrap` ثم يتصل بـ
+`KC_DB_USERNAME: keycloak`، فينشئ جداوله بنفسه. قاعدة الصيانة `postgres` تبقى بمنحة PostgreSQL الافتراضية لـ PUBLIC كما
+لكل أدوار PLAN-38.
+
+### 13.2 خادم قائم: نقل ملكية `keycloak_db` (مرة واحدة، بعد نسخة متحقَّق منها)
+
+قبل PLAN-39 كان Keycloak يتصل بالحساب الإداري، فكل جداول `keycloak_db` ملكه. بدون النقل يتوقف `hrm-bootstrap` برسالة
+«run the ownership transfer» ولا يبدأ Keycloak على جداول لا يملكها. الترتيب إلزامي:
+
+```bash
+cd /opt/hrm/releases/<sha12>                                   # الإصدار الجديد مستخرَج (deploy.ps1 -PrepareOnly)
+bash deploy/vps/init-secrets.sh                                # يضيف POSTGRES_KEYCLOAK_PASSWORD وغيره (الأسماء فقط)
+# 1. نسخة متحقَّق منها أولاً (pg_dumpall + حلقات المفاتيح، 700/600، SHA256SUMS؛ §12.5)
+# 2. إيقاف Keycloak وكل ما يعتمد عليه (التطبيقات والحافة)، فلا جلسة على keycloak_db
+docker compose -p hrm <ملفات السلسلة> stop hr-gateway <الوحدات الـ14> keycloak
+# 3. النقل: hrm-bootstrap من الإصدار الجديد مع المفتاح، مرة واحدة
+docker compose -p hrm <ملفات السلسلة> run --rm -e HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true hrm-bootstrap
+# 4. النشر المعتاد
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/vps/deploy.ps1 -Tag <sha12>     # من جهاز المالك
+```
+
+[transfer-keycloak-ownership.sql](../deploy/bootstrap/transfer-keycloak-ownership.sql) يعمل داخل `keycloak_db` وحدها،
+كائناً كائناً (`ALTER … OWNER TO keycloak` للجداول والتسلسلات والعروض والدوال والأنواع والمخططات، ثم
+`ALTER DATABASE keycloak_db OWNER TO keycloak`)، ولا يستعمل `REASSIGN OWNED` (يرفضه PostgreSQL للمستخدم الإداري الأول، ويتجاوز
+القاعدة). يرفض العمل ما دامت جلسة أخرى متصلة بـ `keycloak_db`، ولا يمس الحساب الإداري ولا أي قاعدة أخرى، والتشغيل الثاني
+لا يغيّر شيئاً. يطبع عدد الكائنات لكل مالك بعد النقل.
+
+**التراجع:** الإصدار السابق يتصل بالحساب الإداري (superuser) فيقرأ جداول `keycloak` دون نقل عكسي؛ وإن لزم الرجوع الكامل
+فالنسخة (§12.5) ثم `deploy.ps1 -Rollback`.

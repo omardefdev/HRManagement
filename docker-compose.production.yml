@@ -215,6 +215,11 @@ services:
       PGPORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      # PLAN-39 (section 3): step 3 ensures the keycloak role. The ownership transfer of an existing keycloak_db runs only
+      # on request: docker compose run --rm -e HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true hrm-bootstrap (Keycloak stopped,
+      # after a verified backup; docs/OPS_VPS_SINGLE_HOST.md section 13).
+      HRM_KEYCLOAK_DB_USER: keycloak
+      POSTGRES_KEYCLOAK_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:?POSTGRES_KEYCLOAK_PASSWORD required}
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER required}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required}
       HRM_RABBITMQ_API: http://rabbitmq:15672/api
@@ -312,8 +317,10 @@ services:
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgresql:5432/keycloak_db
-      KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      # PLAN-39 (section 3): its own role (made by hrm-bootstrap step 3, owner of keycloak_db, no CONNECT elsewhere), not
+      # the PostgreSQL administrator.
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${POSTGRES_KEYCLOAK_PASSWORD:?POSTGRES_KEYCLOAK_PASSWORD required}
       # PLAN-38 (section 5): bounded pool (Keycloak opens up to 100 by default); counted by lint-compose.ps1.
       KC_DB_POOL_MAX_SIZE: "20"
       # PLAN-36 (§2): behind a TLS edge. KC_PROXY (deprecated in 24) is replaced by KC_PROXY_HEADERS; the edge sets
@@ -899,7 +906,8 @@ services:
       ConnectionStrings__AuthDirectoryDb: Host=postgresql;Port=5432;Database=auth_directory_db;Username=auth_directory_app;Password=${POSTGRES_AUTH_DIRECTORY_APP_PASSWORD:?POSTGRES_AUTH_DIRECTORY_APP_PASSWORD required};Maximum Pool Size=${HRM_PG_POOL_MAX:-10}
       RabbitMQ__Username: mq_auth_directory
       RabbitMQ__Password: ${RABBITMQ_AUTH_DIRECTORY_PASS:?RABBITMQ_AUTH_DIRECTORY_PASS required}
-      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:?KEYCLOAK_DIRECTORY_SYNC_SECRET required}
+      # PLAN-39 (section 3): optional; the configuration guard requires it only with Keycloak:DirectorySync:Enabled=true.
+      Keycloak__DirectorySync__AdminClientSecret: ${KEYCLOAK_DIRECTORY_SYNC_SECRET:-}
       ServiceIdentity__ApiAudience: api-auth-directory
       Keycloak__AdditionalValidAudiences: api-auth-directory;hr-gateway-client
       ServiceIdentity__ClientId: svc-auth-directory

@@ -3,7 +3,8 @@
 # image hr-migrate). Every step is idempotent, so a second run changes nothing but the passwords it sets again:
 #   1. wait for PostgreSQL
 #   2. ensure-databases.sql      the 16 databases, no CONNECT for PUBLIC
-#   3. ensure-roles.sql          <svc>_app and <svc>_migrator per database, passwords set on every run
+#   3. ensure-roles.sql          <svc>_app and <svc>_migrator per database, passwords set on every run;
+#      ensure-keycloak-role.sql  (PLAN-39) the keycloak role, owner of keycloak_db (+ transfer-keycloak-ownership.sql on request)
 #   4. migrations                each EF bundle as <svc>_migrator (both postures), then TEN-002C as the table owner
 #   5. ensure-backup-role.sql    hrm_backup (read-only, BYPASSRLS for pg_dump)
 #   6. RabbitMQ users            mq_* from rabbitmq-users.json through the management API, passwords set on every run
@@ -60,6 +61,8 @@ while IFS='|' read -r bundle base db prefix; do
   need "${prefix}_APP_PASSWORD"; need "${prefix}_MIGRATOR_PASSWORD"
 done < "$ROLES_CONF"
 need POSTGRES_BACKUP_PASSWORD
+# PLAN-39: the keycloak role only where Keycloak connects with it (the production chain sets HRM_KEYCLOAK_DB_USER).
+if [ "${HRM_KEYCLOAK_DB_USER:-}" = "keycloak" ]; then need POSTGRES_KEYCLOAK_PASSWORD; fi
 if [ -f "$MQ_USERS" ]; then
   need RABBITMQ_DEFAULT_USER; need RABBITMQ_DEFAULT_PASS
   for v in $(jq -r '.users[].passwordEnv' "$MQ_USERS"); do need "$v"; done
@@ -93,6 +96,22 @@ while IFS='|' read -r bundle base db prefix; do
   roles=$((roles + 2))
 done < "$ROLES_CONF"
 log "step 3: $roles roles ensured (${roles} passwords set)"
+# PLAN-39 (section 3): Keycloak's own role (LOGIN, owner of keycloak_db, no CONNECT elsewhere). On an existing server
+# whose keycloak_db the administrator owns, the documented ownership transfer runs only with the switch
+# HRM_KEYCLOAK_TRANSFER_OWNERSHIP=true (docker compose run -e ..., after a verified backup, with Keycloak stopped); without
+# it this step stops the deploy rather than start Keycloak on tables it cannot read.
+KEYCLOAK_ROLE="skipped"
+if [ "${HRM_KEYCLOAK_DB_USER:-}" = "keycloak" ]; then
+  STEP="3-keycloak-role"
+  transfer=false
+  if [ "${HRM_KEYCLOAK_TRANSFER_OWNERSHIP:-false}" = "true" ]; then transfer=true; log "step 3: keycloak_db ownership transfer requested"; fi
+  HRM_KEYCLOAK_PASSWORD="$(secret POSTGRES_KEYCLOAK_PASSWORD)" admin_psql -d postgres -v transfer="$transfer" -f "$HERE/ensure-keycloak-role.sql"
+  KEYCLOAK_ROLE="keycloak"
+  log "step 3: keycloak role ensured (owner of keycloak_db, password set, no CONNECT on other databases)"
+else
+  log "step 3: keycloak role skipped (HRM_KEYCLOAK_DB_USER is not keycloak: this stack's Keycloak uses the administrator)"
+fi
+STEP="3-roles"
 
 # ---- 4. migrations as <svc>_migrator ----------------------------------------------------------------------------------
 STEP="4-migrations"
@@ -193,7 +212,8 @@ mkdir -p "$RESULT_DIR"
 result="$RESULT_DIR/result-$(date -u +%Y%m%dT%H%M%SZ).json"
 jq -n --arg s "$STARTED" --arg f "$FINISHED" --argjson d "$(( $(date +%s) - T0 ))" \
   --argjson svc "$SERVICES_JSON" --argjson mq "$MQ_JSON" --arg minio "$MINIO_RESULT" --argjson total "$applied_total" \
-  '{status:"ok", startedUtc:$s, finishedUtc:$f, durationSeconds:$d, databases:16, migrationsAppliedTotal:$total,
+  --arg kc "$KEYCLOAK_ROLE" \
+  '{status:"ok", startedUtc:$s, finishedUtc:$f, durationSeconds:$d, databases:16, migrationsAppliedTotal:$total, keycloakRole:$kc,
     services:$svc, backupRole:"hrm_backup", rabbitmqUsers:$mq, minio:$minio}' > "$result"
 log "step 8: result $result"
 cat "$result"
