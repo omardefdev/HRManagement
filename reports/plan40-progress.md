@@ -37,3 +37,20 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P1
 - status: in progress
+- Resumed (UTC): 2026-11-03T23:12:20Z — reason: the session was interrupted by the user mid-P1 (2026-11-02) and the owner said «اكمل». Uncommitted P1 work is intact in the tree.
+- Shared: Messaging/OutboxUnitOfWork, StagesOutboxMessagesAttribute, DeterministicMessageId (namespace 6f1c9a52-40e8-4b1d-9a3e-2d7c0b5e4a10).
+- Fixed: IPromotionExecuted, IDelegationExecuted (MovementExecutedEvents, publish before the single save, id from the request);
+  asset outcomes (WorkflowAssetOutcomes, id from the workflow instance); PublishAllOrgUnitsAsync saves, returns the count;
+  the two org-unit stagers marked; IAgencyOnboarded before its save; IPolicyPublished inside PublishDraftAsync (covers the UI path), removed from the controller.
+- DEVIATION (ApproveAsync/RejectAsync): NOT wrapped in OutboxUnitOfWork. The asset outcome is staged before the single save
+  (D-40-2's default). Reason: handlers that run after completion open transactions unconditionally (EstablishmentChangeApplier:191,
+  CompetitionResultsService:139/278, CompetitionAllocationService:29, RecruitmentSelectionService:173) and some roll back and return
+  a result; joining them to an outer transaction would change their rollback semantics. Only asset types publish here, so the
+  event is atomic with the instance; the handler chain publishes through its own single saves as before.
+- Tests: Msg040ClassAPublishOrderTests (OutboxOrderProbe: ordered publish/save log), DeterministicMessageIdTests (RFC vector);
+  with Hcm025/AgencyProvisioning/PolicyOrchestrator/OutboxPublishArchitecture 163/163; integration Hcm025+SoDRequisition 15/15 (Testcontainers, 147 s).
+- UnitTests now references HR.Movements.Web (lock file refreshed; the other 7 modified lock files are line endings only).
+- P1 Finished (UTC): 2026-11-03T23:17:58Z
+
+## P2
+- status: in progress

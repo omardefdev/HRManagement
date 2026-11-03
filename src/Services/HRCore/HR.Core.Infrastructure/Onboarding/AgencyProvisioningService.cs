@@ -164,8 +164,8 @@ public sealed class AgencyProvisioningService
                 RollbackRef = manifest.RollbackRef,
                 AppliedAt = DateTime.UtcNow
             });
-            await _db.SaveChangesAsync(ct);
 
+            // PLAN-40 (class A): published before the save that records the application, so both commit together.
             await _publish.Publish<IAgencyOnboarded>(new
             {
                 TenantId = tenantId,
@@ -176,6 +176,7 @@ public sealed class AgencyProvisioningService
                 OnboardedAt = DateTime.UtcNow,
                 CorrelationId = (string?)null
             }, ct);
+            await _db.SaveChangesAsync(ct);
         }
 
         _logger.LogInformation("ONB-001 manifest {PackId} applied for agency {AgencyId} dryRun={DryRun}",

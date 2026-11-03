@@ -1,5 +1,8 @@
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Infrastructure.Data;
+using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults.Messaging;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Policy;
@@ -17,7 +20,9 @@ public interface IPolicyVersionPublisher
 
 public sealed class PolicyVersionPublisher(
     HRCoreDbContext db,
-    IPolicyPublishedSnapshotCache snapshotCache) : IPolicyVersionPublisher
+    IPolicyPublishedSnapshotCache snapshotCache,
+    // PLAN-40: optional so manual constructions (tests) keep compiling; DI always supplies it.
+    IPublishEndpoint? publish = null) : IPolicyVersionPublisher
 {
     public async Task<PolicyTemplateVersion> PublishDraftAsync(
         PolicyTemplateVersion version,
@@ -54,6 +59,18 @@ public sealed class PolicyVersionPublisher(
             PublishedAt = DateTime.UtcNow,
             TenantId = version.TenantId
         });
+
+        // PLAN-40 (class A): staged before the save, so the publication and IPolicyPublished commit together on every
+        // path (the API and the UI; the UI path published nothing before). PLAN-47 extends the payload and the cache.
+        if (publish is not null)
+        {
+            await publish.Publish(new PolicyPublished
+            {
+                Domain = version.PolicyTemplate.Domain,
+                VersionId = version.Id,
+                PublishedAt = DateTime.UtcNow
+            }, p => p.MessageId = DeterministicMessageId.For<IPolicyPublished>(version.Id), ct);
+        }
 
         await db.SaveChangesAsync(ct);
         snapshotCache.InvalidateDomain(version.PolicyTemplate.Domain);

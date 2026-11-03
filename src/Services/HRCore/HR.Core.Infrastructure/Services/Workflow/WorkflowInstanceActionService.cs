@@ -8,6 +8,7 @@ using HR.Core.Infrastructure.Services.Recruitment.Competitions;
 using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Workflow;
@@ -112,7 +113,11 @@ public sealed class WorkflowInstanceActionService(
         }
 
         if (result.NewStatus == WorkflowStatus.Completed)
+        {
             instance.CompletedAt = DateTime.UtcNow;
+            // PLAN-40 (class A): the asset outcome is staged before the single save, so it commits with the instance.
+            await StageAssetOutcomeAsync(instance, approved: true);
+        }
 
         await context.SaveChangesAsync(ct);
 
@@ -161,11 +166,26 @@ public sealed class WorkflowInstanceActionService(
         }
 
         instance.CompletedAt = DateTime.UtcNow;
+        await StageAssetOutcomeAsync(instance, approved: false, reason: comments);
         await context.SaveChangesAsync(ct);
 
         await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: ct);
 
         return new WorkflowActionResult(true, null, instance);
+    }
+
+    /// <summary>
+    /// PLAN-40 (class A, D-40-2/D-40-3): the custody outcomes (Admin.Logistics consumes them) are published through the
+    /// bus outbox before the caller's single save, with a message id derived from the workflow instance, so a replay
+    /// (MessagingRepairController) is deduplicated by the consumer's inbox. Other entity types publish nothing here.
+    /// </summary>
+    [StagesOutboxMessages]
+    private async Task StageAssetOutcomeAsync(WorkflowInstance instance, bool approved, string? reason = null)
+    {
+        if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase))
+            await WorkflowAssetOutcomes.PublishAssignmentOutcomeAsync(publish, instance, approved, reason);
+        else if (string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
+            await WorkflowAssetOutcomes.PublishLossOutcomeAsync(publish, instance, approved, reason);
     }
 
     private async Task PublishWorkflowOutcomeAsync(
@@ -174,17 +194,10 @@ public sealed class WorkflowInstanceActionService(
         string? reason = null,
         CancellationToken ct = default)
     {
-        if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase))
-        {
-            await PublishAssetAssignmentOutcomeAsync(instance, approved, reason);
+        // The custody outcomes were staged with the instance's save (StageAssetOutcomeAsync).
+        if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
             return;
-        }
-
-        if (string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
-        {
-            await PublishAssetLossOutcomeAsync(instance, approved, reason);
-            return;
-        }
 
         if (string.Equals(instance.EntityType, "RecruitmentRequisition", StringComparison.OrdinalIgnoreCase))
             await requisitionHandler.HandleAsync(instance, approved, reason, ct);
@@ -203,102 +216,6 @@ public sealed class WorkflowInstanceActionService(
 
         if (competitionHandler is not null)
             await competitionHandler.HandleAsync(instance, approved, reason, ct);
-    }
-
-    private async Task PublishAssetAssignmentOutcomeAsync(WorkflowInstance instance, bool approved, string? reason = null)
-    {
-        if (!string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase))
-            return;
-
-        if (approved)
-        {
-            var ctx = ParseAssignmentContext(instance.ContextJson);
-            await publish.Publish<IAssetAssignmentApproved>(new
-            {
-                AssignmentId = instance.EntityId,
-                AssetId = ctx.AssetId,
-                EmployeeId = ctx.EmployeeId,
-                OccurredAt = DateTime.UtcNow,
-                SourceSystem = "hr-core",
-                SchemaVersion = 1
-            });
-        }
-        else
-        {
-            await publish.Publish<IAssetAssignmentRejected>(new
-            {
-                AssignmentId = instance.EntityId,
-                AssetId = ParseAssignmentContext(instance.ContextJson).AssetId,
-                Reason = reason,
-                OccurredAt = DateTime.UtcNow,
-                SourceSystem = "hr-core",
-                SchemaVersion = 1
-            });
-        }
-    }
-
-    private async Task PublishAssetLossOutcomeAsync(WorkflowInstance instance, bool approved, string? reason = null)
-    {
-        var ctx = ParseLossContext(instance.ContextJson);
-        if (approved)
-        {
-            await publish.Publish<IAssetLossApproved>(new
-            {
-                LossReportId = instance.EntityId,
-                AssetId = ctx.AssetId,
-                OccurredAt = DateTime.UtcNow,
-                SourceSystem = "hr-core",
-                SchemaVersion = 1
-            });
-        }
-        else
-        {
-            await publish.Publish<IAssetLossRejected>(new
-            {
-                LossReportId = instance.EntityId,
-                AssetId = ctx.AssetId,
-                Reason = reason,
-                OccurredAt = DateTime.UtcNow,
-                SourceSystem = "hr-core",
-                SchemaVersion = 1
-            });
-        }
-    }
-
-    private static (Guid AssetId, Guid LossReportId) ParseLossContext(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return (Guid.Empty, Guid.Empty);
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var assetId = root.TryGetProperty("assetId", out var a) && Guid.TryParse(a.GetString(), out var ag) ? ag : Guid.Empty;
-            var lossReportId = root.TryGetProperty("lossReportId", out var l) && Guid.TryParse(l.GetString(), out var lg) ? lg : Guid.Empty;
-            return (assetId, lossReportId);
-        }
-        catch
-        {
-            return (Guid.Empty, Guid.Empty);
-        }
-    }
-
-    private static (Guid AssetId, Guid EmployeeId) ParseAssignmentContext(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return (Guid.Empty, Guid.Empty);
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var assetId = root.TryGetProperty("assetId", out var a) && Guid.TryParse(a.GetString(), out var ag) ? ag : Guid.Empty;
-            var employeeId = root.TryGetProperty("employeeId", out var e) && Guid.TryParse(e.GetString(), out var eg) ? eg : Guid.Empty;
-            return (assetId, employeeId);
-        }
-        catch
-        {
-            return (Guid.Empty, Guid.Empty);
-        }
     }
 
     private Task<WorkflowDefinition?> ResolvePinnedDefinitionAsync(WorkflowInstance instance, CancellationToken ct) =>
