@@ -138,7 +138,8 @@ public class OrgUnitPathService(HRCoreDbContext db)
         if (!depthOk)
             return (false, depthError, Array.Empty<OrgUnit>());
 
-        var useTx = db.Database.IsRelational();
+        // PLAN-40: joins a caller's transaction (OutboxUnitOfWork), so the move and its IOrgUnitChanged commit together.
+        var useTx = db.Database.IsRelational() && db.Database.CurrentTransaction is null;
         await using var tx = useTx ? await db.Database.BeginTransactionAsync(ct) : null;
 
         var unit = await db.OrgUnits.FirstOrDefaultAsync(o => o.Id == unitId, ct);

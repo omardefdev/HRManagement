@@ -734,19 +734,6 @@
           "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
         }
       },
-      "hr.movements.web": {
-        "type": "Project",
-        "dependencies": {
-          "HR.Movements.Domain": "[1.0.0, )",
-          "HR.Movements.Infrastructure": "[1.0.0, )",
-          "HRManagement.MessageContracts": "[1.0.0, )",
-          "HRManagement.ServiceDefaults": "[1.0.0, )",
-          "HRManagement.SharedKernel": "[1.0.0, )",
-          "HRManagement.Web.Shared": "[1.0.0, )",
-          "MassTransit": "[8.5.10, )",
-          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.12, )"
-        }
-      },
       "hr.training.domain": {
         "type": "Project",
         "dependencies": {

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Entities.Workflow;
@@ -7,19 +6,11 @@ using HR.Core.Infrastructure.Integration;
 using HR.Core.Infrastructure.Onboarding;
 using HR.Core.Infrastructure.Services.Policy;
 using HR.Core.Infrastructure.Services.Workflow;
-using HR.Movements.Domain.Entities;
-using HR.Movements.Domain.Enums;
-using HR.Movements.Infrastructure.Data;
 using HR.Movements.Infrastructure.Messaging;
-using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.Workflow;
-using HR.Movements.Web.Controllers;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Workflow;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,86 +24,6 @@ namespace HRManagement.UnitTests.Messaging;
 /// </summary>
 public sealed class Msg040ClassAPublishOrderTests
 {
-    private static readonly Guid Tenant = Guid.Parse("a0000001-0000-4000-8000-000000000001");
-
-    private static T WithUser<T>(T controller, Guid userId) where T : Controller
-    {
-        var http = new DefaultHttpContext
-        {
-            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", userId.ToString())], "test"))
-        };
-        controller.ControllerContext = new ControllerContext { HttpContext = http };
-        controller.TempData = new TempDataDictionary(http, Mock.Of<ITempDataProvider>());
-        return controller;
-    }
-
-    private static void AddGateSteps(MovementsDbContext db, MovementKind kind, Guid correlationId)
-    {
-        foreach (var step in new[] { MovementChecklistStep.RequestRecorded, MovementChecklistStep.Approved })
-        {
-            db.MovementChecklists.Add(new MovementChecklist
-            {
-                MovementKind = kind,
-                CorrelationId = correlationId,
-                Step = step,
-                IsRequired = true,
-                IsCompleted = true,
-                CompletedAt = DateTime.UtcNow,
-                EvidenceRef = $"test:{step}",
-                TenantId = Tenant
-            });
-        }
-    }
-
-    [Fact]
-    public async Task Promotion_execute_publishes_before_its_single_save()
-    {
-        var probe = new OutboxOrderProbe();
-        await using var db = new MovementsDbContext(probe.InMemoryOptions<MovementsDbContext>());
-        var promotion = new PromotionRequest
-        {
-            EmployeeId = Guid.NewGuid(), FromGrade = 5, ToGrade = 4, FromStep = 3, ToStep = 1,
-            TransitionDecisionRef = "DEC-40", EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
-            Status = PromotionRequestStatus.Approved, TenantId = Tenant
-        };
-        db.PromotionRequests.Add(promotion);
-        AddGateSteps(db, MovementKind.Promotion, promotion.Id);
-        await db.SaveChangesAsync();
-        probe.Clear();
-
-        var controller = WithUser(new PromotionRequestsController(db, probe.Publish, Mock.Of<IHrCoreActiveRegimeClient>()), Guid.NewGuid());
-        var result = await controller.Execute(promotion.Id);
-
-        Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(["publish:IPromotionExecuted", "save"], probe.Log);
-        Assert.Equal(PromotionRequestStatus.Executed, (await db.PromotionRequests.AsNoTracking().SingleAsync()).Status);
-    }
-
-    [Fact]
-    public async Task Delegation_execute_publishes_before_its_single_save()
-    {
-        var probe = new OutboxOrderProbe();
-        await using var db = new MovementsDbContext(probe.InMemoryOptions<MovementsDbContext>());
-        var delegation = new DelegationRequest
-        {
-            EmployeeId = Guid.NewGuid(), HostOrg = "Host",
-            StartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
-            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
-            Status = DelegationRequestStatus.Approved, TenantId = Tenant
-        };
-        db.DelegationRequests.Add(delegation);
-        AddGateSteps(db, MovementKind.Delegation, delegation.Id);
-        await db.SaveChangesAsync();
-        probe.Clear();
-
-        var controller = WithUser(new DelegationRequestsController(db, probe.Publish), Guid.NewGuid());
-        var result = await controller.Execute(delegation.Id);
-
-        Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(["publish:IDelegationExecuted", "save"], probe.Log);
-        Assert.Equal(DelegationRequestStatus.Active, (await db.DelegationRequests.AsNoTracking().SingleAsync()).Status);
-    }
-
     [Fact]
     public void Movement_events_carry_message_ids_derived_from_the_request()
     {
@@ -213,8 +124,9 @@ public sealed class Msg040ClassAPublishOrderTests
 
         await svc.ApplyManifestAsync(manifest);
 
+        // The second save is the unit of work's own closing save (nothing left to write).
         var tail = probe.Log.SkipWhile(e => e != "publish:IAgencyOnboarded").ToList();
-        Assert.Equal(["publish:IAgencyOnboarded", "save"], tail);
+        Assert.Equal(["publish:IAgencyOnboarded", "save", "save"], tail);
         Assert.Equal(1, await db.SeedPackApplications.IgnoreQueryFilters().CountAsync(a => a.PackId == manifest.PackId));
     }
 

@@ -57,9 +57,9 @@ public class EmployeeLifecycleController(
         foreach (var h in history)
             db.EmploymentStatusHistories.Add(h);
 
-        await db.SaveChangesAsync(ct);
         await integration.PublishStatusChangedIfNeededAsync(
             employee, oldStatus, EmploymentStatus.Anonymized, "AnonymizeEmployee", ct);
+        await db.SaveChangesAsync(ct);
 
         return Ok(new { employee.Id, employee.CurrentStatus, employee.FullName });
     }
@@ -94,9 +94,9 @@ public class EmployeeLifecycleController(
             }
         }
 
-        await db.SaveChangesAsync(ct);
         await integration.PublishStatusChangedIfNeededAsync(
             source, oldStatus, EmploymentStatus.Merged, $"MergedInto={target.Id}", ct);
+        await db.SaveChangesAsync(ct);
 
         return Ok(new
         {
@@ -123,9 +123,9 @@ public class EmployeeLifecycleController(
         foreach (var h in history)
             db.EmploymentStatusHistories.Add(h);
 
-        await db.SaveChangesAsync(ct);
         await integration.PublishStatusChangedIfNeededAsync(
             source, oldStatus, EmploymentStatus.Active, "UnmergeEmployee", ct);
+        await db.SaveChangesAsync(ct);
 
         return Ok(new { source.Id, source.CurrentStatus, source.MergedIntoEmployeeId });
     }

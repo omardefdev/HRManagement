@@ -39,7 +39,6 @@
     <ProjectReference Include="..\..\Services\RecordsArchive\Records.Archive.Infrastructure\Records.Archive.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Domain\HR.Movements.Domain.csproj" />
     <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Infrastructure\HR.Movements.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Web\HR.Movements.Web.csproj" />
     <ProjectReference Include="..\..\Services\HRTraining\HR.Training.Domain\HR.Training.Domain.csproj" />
     <ProjectReference Include="..\..\Services\HRTraining\HR.Training.Infrastructure\HR.Training.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Services\HRHealth\HR.Health.Domain\HR.Health.Domain.csproj" />

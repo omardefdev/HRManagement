@@ -1,4 +1,5 @@
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Payroll.Application.Abstractions;
 
@@ -6,6 +7,7 @@ namespace Payroll.Infrastructure.Integration;
 
 public class PayrollEventPublisher(IPublishEndpoint publish) : IPayrollEventPublisher
 {
+    [StagesOutboxMessages]
     public Task PublishPayrollProcessedAsync(
         Guid payrollRunId,
         DateTime periodStart,

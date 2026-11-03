@@ -171,7 +171,6 @@ public class TrainingEnrollmentsController : Controller
         if (certStep is not null && !certStep.IsCompleted)
             TrainingChecklistDefaults.Mark(certStep, null, e.CertificateNo!);
 
-        await _db.SaveChangesAsync();
 
         await _publish.Publish<ITrainingCompleted>(new
         {

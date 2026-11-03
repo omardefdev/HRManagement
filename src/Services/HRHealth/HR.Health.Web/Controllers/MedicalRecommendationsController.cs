@@ -59,8 +59,6 @@ public class MedicalRecommendationsController : Controller
 
         model.IssuedBy = ServerAssignedIdentity.ResolveActorName(User);
         _db.MedicalRecommendations.Add(model);
-        await _db.SaveChangesAsync();
-        SensitiveDataAudit.Log(HttpContext, "HR.Health", "MedicalRecommendationCreated", $"EmployeeId={model.EmployeeId}");
 
         var issuedAt = model.IssuedAt ?? DateTime.UtcNow;
         await _publish.Publish<IMedicalRecommendationIssued>(new
@@ -75,6 +73,7 @@ public class MedicalRecommendationsController : Controller
             SourceSystem = "HR.Health"
         });
         await _db.SaveChangesAsync();
+        SensitiveDataAudit.Log(HttpContext, "HR.Health", "MedicalRecommendationCreated", $"EmployeeId={model.EmployeeId}");
 
         TempData["Success"] = "تم حفظ التوصية ونشر الحدث";
         return RedirectToAction(nameof(Index));

@@ -1,7 +1,10 @@
+using HRManagement.ServiceDefaults.Messaging;
+
 namespace Payroll.Application.Abstractions;
 
 public interface IPayrollEventPublisher
 {
+    [StagesOutboxMessages]
     Task PublishPayrollProcessedAsync(
         Guid payrollRunId,
         DateTime periodStart,

@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Contracts.Application.Abstractions;
 
 using HR.Contracts.Domain.Entities;
@@ -24,6 +25,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishContractActivatedAsync(Contract contract, CancellationToken ct) =>
 
         publishEndpoint.Publish<IContractActivated>(new
@@ -54,6 +56,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishCommencementRecordedAsync(Guid transactionId, Guid employeeId, DateOnly startDate, string? correlationId, CancellationToken ct) =>
 
         publishEndpoint.Publish<ICommencementRecorded>(new
@@ -76,6 +79,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishConfirmationApprovedAsync(Guid transactionId, Guid employeeId, Guid contractId, string result, string? correlationId, CancellationToken ct) =>
 
         publishEndpoint.Publish<IConfirmationApproved>(new
@@ -100,6 +104,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishLeaveApprovedAsync(Guid transactionId, Guid leaveRequestId, Guid employeeId, Guid approvedBy, string? correlationId, CancellationToken ct, string? leaveType = null, DateOnly? startDate = null, DateOnly? endDate = null, int durationDays = 0) =>
 
         publishEndpoint.Publish<ILeaveApproved>(new
@@ -132,6 +137,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishLeaveCancelledAsync(
         Guid transactionId,
         Guid leaveRequestId,
@@ -160,6 +166,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishAdvanceApprovedAsync(Guid transactionId, Guid advanceRequestId, Guid employeeId, decimal amount, Guid approvedBy, string? correlationId, CancellationToken ct, decimal monthlyInstallment = 0, int numberOfInstallments = 0) =>
 
         publishEndpoint.Publish<IAdvanceApproved>(new
@@ -190,6 +197,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishJobUpdateAppliedAsync(Guid transactionId, Guid decisionId, Guid employeeId, string decisionNumber, string subject, string? correlationId, CancellationToken ct) =>
 
         publishEndpoint.Publish<IJobUpdateApplied>(new
@@ -216,6 +224,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishTransactionArchivedAsync(Guid transactionId, Guid employeeId, string archiveRef, string? correlationId, CancellationToken ct) =>
 
         publishEndpoint.Publish<ITransactionArchived>(new
@@ -238,6 +247,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
 
 
+    [StagesOutboxMessages]
     public Task PublishSeparationCompletedAsync(Guid employeeId, string separationType, DateOnly effectiveDate, CancellationToken ct, Guid? contractId = null, Guid? separationRecordId = null) =>
 
         publishEndpoint.Publish<ISeparationCompleted>(new
@@ -262,6 +272,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
 
         }, ct);
 
+    [StagesOutboxMessages]
     public Task PublishSeparationStepCompletedAsync(
         Guid separationRecordId,
         Guid employeeId,
@@ -279,6 +290,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
             CorrelationId = CurrentCorrelationId
         }, ct);
 
+    [StagesOutboxMessages]
     public Task PublishHireCaseCompletedAsync(
         Guid employeeId,
         Guid serviceTransactionId,
@@ -296,6 +308,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
             RecruitmentApplicationId = recruitmentApplicationId
         }, ct);
 
+    [StagesOutboxMessages]
     public Task StartSeparationSagaAsync(
         Guid separationRecordId,
         Guid employeeId,
@@ -320,6 +333,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
             PayrollRegimeCode = payrollRegimeCode
         }, ct);
 
+    [StagesOutboxMessages]
     public Task CancelSeparationSagaAsync(
         Guid separationRecordId,
         string reason,
@@ -332,6 +346,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
             TenantId = TenantIdFlow.Get()
         }, ct);
 
+    [StagesOutboxMessages]
     public Task StartHireSagaAsync(
         Guid serviceTransactionId,
         Guid employeeId,
@@ -349,6 +364,7 @@ public class MassTransitEventPublisher(IPublishEndpoint publishEndpoint, IExecut
         }, ct);
 
     /// <summary>FUN-029: intervention outside the saga (consumed by ProcessInterventionRequestedConsumer).</summary>
+    [StagesOutboxMessages]
     public Task PublishProcessInterventionRequestedAsync(
         string sagaType,
         Guid correlationId,

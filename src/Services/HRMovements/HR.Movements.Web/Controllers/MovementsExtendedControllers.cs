@@ -432,7 +432,6 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
         if (executedStep is not null && !executedStep.IsCompleted)
             MovementWorkflowRules.MarkStep(executedStep, by, $"secondment:{s.Id}:executed");
-        await db.SaveChangesAsync();
 
         await publish.Publish<IStartSecondmentSaga>(new
         {
@@ -780,7 +779,6 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
         if (executedStep is not null && !executedStep.IsCompleted)
             MovementWorkflowRules.MarkStep(executedStep, by, $"loan:{s.Id}:executed");
-        await db.SaveChangesAsync();
 
         await publish.Publish<ILoanAssignmentExecuted>(new
         {

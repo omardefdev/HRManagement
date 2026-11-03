@@ -4,6 +4,7 @@ using HR.Core.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Enums;
 using MassTransit;
@@ -14,8 +15,6 @@ public class EmployeeIntegrationService(HRCoreDbContext db, IPublishEndpoint pub
 {
     public async Task<Employee> CreateEmployeeWithEventAsync(Employee employee, CancellationToken cancellationToken = default)
     {
-        await db.SaveChangesAsync(cancellationToken);
-
         db.EmploymentStatusHistories.Add(new EmploymentStatusHistory
         {
             EmployeeId = employee.Id,
@@ -24,7 +23,9 @@ public class EmployeeIntegrationService(HRCoreDbContext db, IPublishEndpoint pub
             Reason = "تعيين أولي للموظف"
         });
 
-        if (!await db.EmploymentRecords.AnyAsync(e => e.EmployeeId == employee.Id, cancellationToken))
+        // PLAN-40 (class B): nothing is saved yet, so a record the caller just added is only in the change tracker.
+        if (!db.EmploymentRecords.Local.Any(e => e.EmployeeId == employee.Id)
+            && !await db.EmploymentRecords.AnyAsync(e => e.EmployeeId == employee.Id, cancellationToken))
         {
             db.EmploymentRecords.Add(new EmploymentRecord
             {
@@ -53,6 +54,8 @@ public class EmployeeIntegrationService(HRCoreDbContext db, IPublishEndpoint pub
         return employee;
     }
 
+    /// <summary>Stages <c>IEmployeeStatusChanged</c>; the caller's single save writes it with the status change (PLAN-40).</summary>
+    [StagesOutboxMessages]
     public async Task PublishStatusChangedIfNeededAsync(
         Employee employee,
         EmploymentStatus oldStatus,
@@ -71,7 +74,5 @@ public class EmployeeIntegrationService(HRCoreDbContext db, IPublishEndpoint pub
             Reason = reason,
             ChangedAt = DateTime.UtcNow
         }, cancellationToken);
-
-        await db.SaveChangesAsync(cancellationToken);
     }
 }

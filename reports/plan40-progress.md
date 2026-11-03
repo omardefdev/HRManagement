@@ -54,3 +54,16 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P2
 - status: in progress
+- All class B sites changed: SingleSave (Compliance x3, Health x2, Training x2, IDCard x2, Payroll post, export jobs in HR.Core/Contracts/Payroll/Compliance, Secondment.Activate, Loan.Execute,
+  Advance, Probation, AdministrativeDecision, Separation publish/step, ActivateContract, CreateEmployee, status change callers) and OutboxUnitOfWork (Transfer.Execute, org unit create/edit/move in both controllers,
+  ApplyManifest after the shared national seed, Leave approve/cancel, PublishHireCase, CreateCommencement). Archive/Analytics export jobs wait for their outboxes in P3.
+- IContractsRepository.ExecuteAtomicAsync wraps OutboxUnitOfWork (the Application layer has no DbContext). OrgUnitPathService.MoveSubtreeAsync joins an ambient transaction.
+  Disciplinary action: the File.Storage reference call moved after the commit (no HTTP between state and event).
+- Tests: OutboxAtomicity payroll/leave tests now assert no save before the publish; Msg040OutboxUnitOfWorkIntegrationTests (failure on the last save: neither state nor message; ambient join) 4/4;
+  Msg040MovementsPublishOrderTests 2/2 (moved from UnitTests: referencing HR.Movements.Web there made MassAssignmentArchitectureTests see its entity-binding controllers; UnitTests csproj and lock back to the original).
+  Unit 4580/4580. Integration 458 pass, 4 fail, 4 skip: 3 Qa003Minio (MinIO image, CI-excluded, Category=ObjectStorage) + RabbitDown Chaos (baseline failure).
+- docs/EVENT_PUBLISHER_INVENTORY.md rewritten (pattern column, every event, Save-Publish-Save removed).
+- P2 Finished (UTC): 2026-11-03T23:41:26Z
+
+## P3
+- status: in progress
