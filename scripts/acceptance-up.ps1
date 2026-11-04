@@ -220,6 +220,9 @@ if (-not $SkipLiveVerification) {
 
         if ($PSVersionTable.PSVersion.Major -ge 7) {
             & "$PSScriptRoot/acceptance-verify.ps1" @verificationParameters
+            if ($LASTEXITCODE -ne 0) {
+                throw "Acceptance verification failed with exit code $LASTEXITCODE"
+            }
         }
         else {
             $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue

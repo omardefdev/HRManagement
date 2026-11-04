@@ -276,6 +276,12 @@ function Get-AcceptanceRows {
 }
 
 # Separate totals: a Pass whose test does not prove its claim is never counted as proven.
+function Format-AcceptanceTotalsLine {
+    param([Parameter(Mandatory)]$Totals)
+    return ("**Totals:** {0} ACs: {1} proven, {2} passed but not proving, {3} stale, {4} incomplete, {5} not run, {6} fail, {7} blocked." -f `
+        $Totals.total, $Totals.proven, $Totals.passedNotProving, $Totals.stale, $Totals.incomplete, $Totals.notRun, $Totals.fail, $Totals.blocked)
+}
+
 function Get-AcceptanceTotals {
     param([object[]]$Rows)
     $rows = @($Rows)

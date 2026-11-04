@@ -420,11 +420,11 @@ public class AcHcm25ProductionApprovalTests
     private static async Task<string> RunRepairAsync(RecruitmentSession s, bool apply)
     {
         var script = Path.Combine(AcceptanceHarness.RepoRoot, "scripts", "hcm025-repair-stuck-approvals.ps1");
-        var outDir = Path.Combine(AcceptanceHarness.RepoRoot, "acceptance-evidence", Ac, "repair");
+        var outDir = Path.Combine(AcceptanceHarness.EvidenceRoot, Ac, "repair");
         List<string> args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-OutDir", outDir];
         if (apply)
             args.Add("-Apply");
-        var (exit, output) = await RunAsync("powershell", [.. args]);
+        var (exit, output) = await RunAsync(OperatingSystem.IsWindows() ? "powershell" : "pwsh", [.. args]);
         Assert.True(exit == 0, $"hcm025-repair-stuck-approvals.ps1 failed ({exit}): {output}");
         return output;
     }

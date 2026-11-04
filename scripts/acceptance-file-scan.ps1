@@ -54,9 +54,9 @@ function Get-Token {
 function Invoke-FileApi([string]$Method, [string]$Path, [object]$Body = $null, [hashtable]$ExtraHeaders = @{}) {
     $headers = @{ Authorization = "Bearer $token" } + $ExtraHeaders
     if ($Body -ne $null) {
-        return Invoke-WebRequest -Method $Method -Uri "$BaseUrl$Path" -Headers $headers -ContentType "application/json" -Body ($Body | ConvertTo-Json)
+        return Invoke-WebRequest -UseBasicParsing -Method $Method -Uri "$BaseUrl$Path" -Headers $headers -ContentType "application/json" -Body ($Body | ConvertTo-Json)
     }
-    return Invoke-WebRequest -Method $Method -Uri "$BaseUrl$Path" -Headers $headers
+    return Invoke-WebRequest -UseBasicParsing -Method $Method -Uri "$BaseUrl$Path" -Headers $headers
 }
 
 function Upload-Bytes([byte[]]$Bytes, [string]$Name, [string]$ContentType) {

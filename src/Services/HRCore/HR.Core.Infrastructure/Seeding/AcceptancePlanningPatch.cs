@@ -51,12 +51,6 @@ public static class AcceptancePlanningPatch
             for (var i = 0; i < Math.Min(SampleCostCenters.Length, br1Positions.Count); i++)
                 br1Positions[i].CostCenter = SampleCostCenters[i];
 
-            var fundedCount = br1Positions.Count;
-            var frozenCount = br1Positions.Count(p => p.Status == FundedPositionStatus.Frozen);
-            var plannedCount = fundedCount + 2;
-
-            await EnsureWorkforcePlanAsync(db, fiscalYear, fundedCount, frozenCount, plannedCount, logger, ct);
-
             if (!await db.FinanceBudgetImportBatches
                     .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
                     .AnyAsync(b => b.Id == AcceptanceSeedIds.Br1FinanceBudgetBatchId, ct))
@@ -93,6 +87,45 @@ public static class AcceptancePlanningPatch
                     batch.Lines.Count);
             }
 
+            await db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            TenantIdFlow.Set(TenantDefaults.DefaultTenantId);
+        }
+    }
+
+    /// <summary>
+    /// PLAN-41: the last seed step. The target is funded + 2 over the final BR1 subtree, so it runs after every patch that adds
+    /// positions; the cost centers and the finance batch stay in <see cref="ApplyAsync"/>, on the first positions by code.
+    /// </summary>
+    public static async Task SyncPlanTargetAsync(HRCoreDbContext db, ILogger? logger = null, CancellationToken ct = default)
+    {
+        TenantIdFlow.Set(AcceptanceSeedIds.AgencyAId);
+        try
+        {
+            var br1Path = await db.OrgUnits.AsNoTracking()
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .Where(o => o.Id == AcceptanceSeedIds.Br1OrgUnitId)
+                .Select(o => o.MaterializedPath)
+                .FirstOrDefaultAsync(ct);
+            if (string.IsNullOrEmpty(br1Path))
+                return;
+
+            var fiscalYear = AcceptanceSeedCatalog.ReferenceDate.Year;
+            var statuses = await db.FundedPositions.AsNoTracking()
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .Where(p => p.TenantId == AcceptanceSeedIds.AgencyAId
+                    && p.BudgetYear == fiscalYear
+                    && p.OrgUnit != null
+                    && p.OrgUnit.MaterializedPath.StartsWith(br1Path))
+                .Select(p => p.Status)
+                .ToListAsync(ct);
+            if (statuses.Count == 0)
+                return;
+
+            await EnsureWorkforcePlanAsync(
+                db, fiscalYear, statuses.Count, statuses.Count(s => s == FundedPositionStatus.Frozen), statuses.Count + 2, logger, ct);
             await db.SaveChangesAsync(ct);
         }
         finally

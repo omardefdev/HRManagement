@@ -67,7 +67,7 @@
     "AC-OPS-36": { "ownerPlan": "PLAN-36", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the single-host boot on the chain or the demo server; not part of the Acceptance job (SSH)." },
     "AC-OPS-38": { "ownerPlan": "PLAN-38", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the first boot from empty volumes with least privilege." },
     "AC-OPS-39": { "ownerPlan": "PLAN-39", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the realm as code and the key ring guards." },
-    "AC-QA-34": { "ownerPlan": "PLAN-34", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the pushable baseline from the results of the same commit." },
+    "AC-QA-34": { "ownerPlan": "PLAN-34", "provesClaim": false, "legacyContractOnly": false, "reason": "Asserts the pushable baseline from the results of the same commit, but 34h (the unit suite on Windows ar-SA) is excluded in CI, so the Windows half of the claim is not run." },
     "AC-QA-35": { "ownerPlan": "PLAN-35", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the remote checks from GitHub\u0027s own records." },
     "AC-QA-41": { "ownerPlan": "PLAN-41", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the evidence of the run itself: profile, image sources, source, validator." },
     "AC-WF-23": { "ownerPlan": "PLAN-23", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the work inbox actions on seeded items." },

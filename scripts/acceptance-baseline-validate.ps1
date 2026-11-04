@@ -74,6 +74,13 @@ else {
         if ([int]$value -ne [int]$expected[$key]) { [void]$failures.Add("Total '$key' is $value in summary.json; the evidence gives $($expected[$key]).") }
     }
 
+    # summary.md is what people read.
+    $markdownPath = Join-Path $evidencePath "summary.md"
+    $totalsLine = Format-AcceptanceTotalsLine -Totals $expected
+    if (-not (Test-Path -LiteralPath $markdownPath) -or -not [System.IO.File]::ReadAllText($markdownPath).Contains($totalsLine)) {
+        [void]$failures.Add("summary.md does not carry the totals of the evidence: $totalsLine")
+    }
+
     if ($Committed) {
         if ([string]$summary.source -ne "ci") { [void]$failures.Add("The committed summary has source '$($summary.source)'; only a CI run may produce it (D-QA-20).") }
         $runId = [string]$summary.ciRunId
@@ -86,8 +93,13 @@ else {
                 $origin = & git -C $RepoRoot remote get-url origin
                 if ($origin -match 'github\.com[:/](.+?)(\.git)?$') { $Repository = $Matches[1] }
             }
-            $found = & gh api "repos/$Repository/actions/runs/$runId" --jq '.repository.full_name' 2>$null
-            if ($LASTEXITCODE -ne 0 -or [string]$found -ne $Repository) { [void]$failures.Add("Run $runId does not belong to $Repository.") }
+            $found = @(& gh api "repos/$Repository/actions/runs/$runId" --jq '.repository.full_name, .conclusion, .event' 2>$null)
+            if ($LASTEXITCODE -ne 0 -or $found.Count -lt 3 -or [string]$found[0] -ne $Repository) { [void]$failures.Add("Run $runId does not belong to $Repository.") }
+            else {
+                # P-3: the evidence of record comes from a green run of a pull request or a push, never from a narrowed dispatch.
+                if ([string]$found[1] -ne "success") { [void]$failures.Add("Run $runId concluded '$($found[1])'; the evidence of record comes from a green run.") }
+                if ([string]$found[2] -notin @("pull_request", "push")) { [void]$failures.Add("Run $runId is a '$($found[2])' run; the evidence of record comes from a pull request or a push.") }
+            }
         }
         if ([string]$summary.codeTree -ne $CodeTree) {
             [void]$failures.Add("The committed summary is for code tree $(Get-AcceptanceShort ([string]$summary.codeTree)), the code under test is $(Get-AcceptanceShort $CodeTree).")

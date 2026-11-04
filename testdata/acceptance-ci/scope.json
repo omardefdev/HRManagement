@@ -1,0 +1,11 @@
+{
+  "card": "PLAN-41",
+  "description": "Fixture of AcceptanceCiScopeTests: the shape of tests/acceptance/ci-scope.json for the guard.",
+  "order": [ { "part": "lab", "group": "main", "stack": "lab" } ],
+  "lab": [
+    { "class": "RequiredPassingTests", "required": true, "group": "main" },
+    { "class": "OptionalFailingTests", "required": false, "group": "main" }
+  ],
+  "prodLike": [],
+  "excluded": [ { "class": "RequiredPassingTests.Left_out", "reason": "fixture", "ownerPlan": "PLAN-41" } ]
+}

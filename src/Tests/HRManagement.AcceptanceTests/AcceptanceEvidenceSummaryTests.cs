@@ -178,6 +178,29 @@ public class AcceptanceEvidenceSummaryTests : IClassFixture<EvidenceFixture>
     }
 
     [Fact]
+    public void Validator_refuses_a_markdown_that_says_other_totals_than_the_evidence()
+    {
+        var root = EvidenceFixture.NewRoot();
+        try
+        {
+            EvidenceFixture.WriteOwnership(root);
+            EvidenceFixture.WriteFolder(root, "AC-T-WEAK");
+            EvidenceFixture.Summarize(root);
+
+            var path = Path.Combine(root, "summary.md");
+            File.WriteAllText(path, File.ReadAllText(path).Replace("0 proven", "1 proven", StringComparison.Ordinal));
+
+            var (exitCode, output) = EvidenceFixture.Validate(root);
+            Assert.Equal(1, exitCode);
+            Assert.Contains("summary.md does not carry the totals", output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            EvidenceFixture.Remove(root);
+        }
+    }
+
+    [Fact]
     public void Validator_refuses_a_total_that_counts_a_weak_pass_as_proven()
     {
         var root = EvidenceFixture.NewRoot();

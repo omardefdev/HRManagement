@@ -20,6 +20,8 @@ public static class AcceptanceSeedOrchestrator
         await AcceptanceCompetitionPatch.ApplyAsync(db, logger, ct);
         await AcceptanceRecruitmentReportsPatch.ApplyAsync(db, logger, ct);
         await AcceptanceRecruitmentStatesPatch.ApplyAsync(db, logger, ct);
+        // PLAN-41: last, because the patches above add BR1 positions; the plan target is funded + 2 over the final subtree.
+        await AcceptancePlanningPatch.SyncPlanTargetAsync(db, logger, ct);
         await new OrgUnitVersionService(db, serviceProvider.GetRequiredService<IFundedPositionVersionService>())
             .BackfillMissingVersionsAsync(ct);
         var asOf = serviceProvider.GetRequiredService<EstablishmentAsOfService>();

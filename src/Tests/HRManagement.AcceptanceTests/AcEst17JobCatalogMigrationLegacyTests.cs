@@ -48,6 +48,9 @@ public class AcEst17JobCatalogMigrationLegacyTests
         recorder.CaptureHttp("submit-migration-change", "POST", $"/{submitUrl}", (int)submitResponse.StatusCode, JsonSerializer.Deserialize<object>(submitBody));
         Assert.True(submitResponse.IsSuccessStatusCode, submitBody);
 
+        // PLAN-25: a change applies only after both approvals.
+        await EstablishmentChangeFlow.ApproveBothStepsAsync(changeRequestId, correlationId, recorder);
+
         var lookupUrl = "api/hr-core/api/lookup/job-catalog?q=LEG-001&page=1&pageSize=5";
         var lookupResponse = await http.GetAsync(lookupUrl);
         var lookupBody = await lookupResponse.Content.ReadAsStringAsync();

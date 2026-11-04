@@ -72,3 +72,30 @@ plan wants it; build-on-host was not changed.
 
 Finished (UTC): 2026-11-04T09:50:09Z (P3)
 
+
+## P4
+
+Resumed (UTC): 2026-11-04T10:54:51Z (first local job run ended; no reason other than waiting for it)
+
+One job script for CI and the owner (scripts/ci/acceptance-job.ps1), tests/acceptance/ci-scope.json (lab 62, prodLike 7, excluded 10, each with owner and review date,
+registered in docs/qa/dated-obligations.json), the guard (scripts/ci/acceptance-guard.ps1) and the artifact scan (scripts/ci/acceptance-artifact-scan.ps1).
+AC-EST classes go through EstablishmentChangeFlow (PLAN-25 approval rule), seeds fixed where the AC-EST triage showed a test or seed issue, not a product defect.
+
+Local proof, five runs of the job (durations are the job's own):
+- Run 1 (PS 5.1): 3875 s, stopped at leastpriv: a second compose build hit NETSDK1064 after 1077 s. Fix: leastpriv reuses the tested images by tag. Also two PS 5.1 defects of the job itself: an empty -Classes
+  argument and a Generic.List inside an ordered hash. PII scan: double quotes stripped by 5.1, now on stdin. File scan: -UseBasicParsing.
+- Partial runs: up --wait refused keycloak-reconcile exiting first (race on any slow host): the gateway now waits for it, as production does. AC-OPS-39g depended on an earlier restart: the test restarts HR.Core itself when the canary line is absent.
+- Run 2: 3297 s, 40f timed out on one 15 s /metrics scrape (now 60 s), and hrm-bootstrap failed with "tuple concurrently updated" against keycloak-db-role: it now waits for that one-shot.
+- Run 3: failed because the machine slept 12:55-14:28Z and the kcadm session expired (Windows log, Kernel-Power 42). Not a code result. keep-awake requested from then on.
+- Run 4 (pwsh 7.6 from a tool folder in the session scratchpad, the same path as CI, with -RequireCleanBaseline): 4759 s, EXIT 0, acceptance-job: PASS, 67 classes in 11 trx files, acceptance-verify Pass on both stacks.
+  Stack lab 385 s (no build), lab-main 730 s, journey 18 s, AcHcm26 148 s, AcHcm27 293 s, stack prodlike 363 s, journey 22 s, main 39 s, AcInt37 158 s, AcMsg40 100 s, AcOps39 103 s, final 59 s, PII 2 s, stack leastpriv 546 s, leastpriv tests 1779 s.
+  The last figure is inflated: the machine slept again at 15:33Z during 38f (a closed lid is outside keep-awake); the same tests took 193 s before.
+- AC-QA-41a local negative (ACCEPTANCE_SIMULATE_MISSING=AcHcm26AssessmentInterviewTests.Ac26_i_intake_close_job_closes_expired_posting): 433 s, exit 1, the scenario named by the guard. Guard negatives by fixtures in AcceptanceCiScopeTests.
+Image build, when needed: 11-15 min here, one image at a time.
+
+Not required and red locally (shown only): Ac08, Ac21, Ac23, Ac24, Ac25, Ac12 (NotExecuted). Their owners are in ac-ownership.json. Ac13, Ac19, Ac26, Ac28, Ac30 went green once the scripts ran under pwsh or -UseBasicParsing.
+git status acceptance-evidence: clean after every local run.
+
+Tests: unit governance and compose subset 299/299; static acceptance 73/73; dotnet build HRManagement.slnx -warnaserror 0 errors, 0 warnings (46 s).
+
+Finished (UTC): 2026-11-04T16:08:24Z (P4)

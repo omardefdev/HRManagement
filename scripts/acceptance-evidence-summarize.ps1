@@ -52,8 +52,7 @@ foreach ($row in $rows) {
         (Format-Cell $row.images), $row.recorded, $run, (Format-Cell $freshness), $proves, (Format-Cell $owner)))
 }
 [void]$lines.Add("")
-[void]$lines.Add(("**Totals:** {0} ACs: {1} proven, {2} passed but not proving, {3} stale, {4} incomplete, {5} not run, {6} fail, {7} blocked." -f `
-    $totals.total, $totals.proven, $totals.passedNotProving, $totals.stale, $totals.incomplete, $totals.notRun, $totals.fail, $totals.blocked))
+[void]$lines.Add((Format-AcceptanceTotalsLine -Totals $totals))
 
 $open = @($rows | Where-Object { $_.status -in @("Fail", "Blocked") -and $_.reason })
 if ($open.Count -gt 0) {

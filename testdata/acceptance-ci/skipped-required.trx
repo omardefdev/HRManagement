@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="00000000-0000-0000-0000-000000000003" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results>
+    <UnitTestResult testId="00000000-0000-0000-0000-00000000000d" testName="HRManagement.AcceptanceTests.RequiredPassingTests.It_was_skipped" outcome="NotExecuted" duration="00:00:00.0100000" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="It_was_skipped" id="00000000-0000-0000-0000-00000000000d"><TestMethod className="HRManagement.AcceptanceTests.RequiredPassingTests" name="It_was_skipped" /></UnitTest>
+  </TestDefinitions>
+</TestRun>

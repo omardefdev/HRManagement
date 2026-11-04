@@ -686,10 +686,20 @@ public class AcOps39KeycloakDataProtectionTests
             await AdminSqlAsync("postgres", $"DROP DATABASE IF EXISTS {clone} WITH (FORCE)");
         }
 
-        // The stack itself is untouched: the real HR.Core is ready and its own canary passed at its last start.
+        // The stack itself is untouched: the real HR.Core is ready and its own canary passes. The line appears only at a start
+        // with protected data, and a fresh stack started before its seeds wrote any: one restart makes this test independent
+        // of what ran before it (PLAN-41).
         Assert.True(await HealthyAsync("6210"));
+        const string CanaryLine = "Key-ring canary of HR.Core: a protected national ID decrypts with the key ring";
         var (_, realLogs) = await RunAsync("docker", null, null, "logs", await ContainerAsync("hr-core-web"));
-        var canaryOk = realLogs.Contains("Key-ring canary of HR.Core: a protected national ID decrypts with the key ring", StringComparison.Ordinal);
+        if (!realLogs.Contains(CanaryLine, StringComparison.Ordinal))
+        {
+            var (restartExit, restartOut) = await ComposeAsync(TimeSpan.FromMinutes(3), "restart", "hr-core-web");
+            Assert.True(restartExit == 0, restartOut);
+            Assert.True(await WaitUntilAsync(TimeSpan.FromMinutes(3), () => HealthyAsync("6210")), "hr-core-web not ready after the restart");
+            (_, realLogs) = await RunAsync("docker", null, null, "logs", await ContainerAsync("hr-core-web"));
+        }
+        var canaryOk = realLogs.Contains(CanaryLine, StringComparison.Ordinal);
         Assert.True(canaryOk, "the stack's HR.Core canary line is missing");
         r.WriteScenarioSteps("1. hr_core_db cloned (protected national IDs) and an empty scratch key ring.\n" +
                              "2. Negative: a one-off hr-core-web on the clone with the empty ring exits with the canary message; the ring stays empty.\n" +

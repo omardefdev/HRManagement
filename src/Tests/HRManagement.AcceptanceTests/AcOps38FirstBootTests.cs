@@ -559,7 +559,7 @@ public class AcOps38FirstBootTests
         var env = Path.Combine(dir, "server.env");
         try
         {
-            var (initExit, initOut) = await RunAsync("powershell", null, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            var (initExit, initOut) = await RunAsync(OperatingSystem.IsWindows() ? "powershell" : "pwsh", null, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                 Path.Combine(Root, "scripts", "vps", "init-secrets.ps1"), "-EnvFile", env,
                 "-Set", "APP_DOMAIN=hr.ops038.test,SSO_DOMAIN=sso.ops038.test,HRM_IMAGE_REPO=registry.ops038.test/hrmanagement");
             Assert.True(initExit == 0, initOut);

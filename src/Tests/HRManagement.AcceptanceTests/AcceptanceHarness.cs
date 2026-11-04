@@ -30,6 +30,10 @@ public static class AcceptanceHarness
 {
     public static string RepoRoot => E2eSeed.RepoRoot;
 
+    /// <summary>Where this run writes evidence; the job points it away from the committed folder (PLAN-41, P-12a).</summary>
+    public static string EvidenceRoot =>
+        Environment.GetEnvironmentVariable("ACCEPTANCE_EVIDENCE_DIR") ?? Path.Combine(RepoRoot, "acceptance-evidence");
+
     public static IReadOnlyList<E2ePersona> LoadPersonas()
     {
         var path = ResolveDataPath(Path.Combine("testdata", "acceptance", "personas.json"));
