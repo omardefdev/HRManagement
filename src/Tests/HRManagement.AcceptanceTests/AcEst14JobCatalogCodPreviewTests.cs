@@ -1,3 +1,4 @@
+using HRManagement.SharedKernel.CodeGeneration;
 using System.Net.Http.Json;
 using System.Text.Json;
 using HRManagement.ServiceDefaults;
@@ -19,7 +20,7 @@ public class AcEst14JobCatalogCodPreviewTests
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, correlationId);
         var payload = new
         {
-            entityKind = "JobCatalogEntry",
+            entityKind = CodeEntityKind.JobCatalogEntry,
             preview = true,
             facts = new Dictionary<string, string>
             {

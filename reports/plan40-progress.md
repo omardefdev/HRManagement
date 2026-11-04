@@ -132,7 +132,7 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 - P7 Finished (UTC): 2026-11-04T03:26:46Z
 
 ## P8
-- status: in progress
+- status: done
 - Local CI run 1 on the release head: stopped at the formatting check (whitespace in the new tests, BOM in generated migrations); fixed by e5c70c90. Run 2 on e5c70c90: ok=True, 90 passed, 0 failed, 0 skipped, 0 not-run, 1031 s (unit 4624, integration 352, Testcontainers 129, all 0 failed).
 - plan035-prepush on e5c70c90: actionlint, cilocal, forbidden, nonprod, signatures PASS; gitleaks FAIL: generic-api-key on this file line 9 (commit 491c7b5d) = the server's public ED25519 host key fingerprint in abbreviated form, not a secret (same false positive as PLAN-37, d4e53b08). D-QA-17 (rewrite and rotate) covers real secrets, and a rewrite would change the SHAs recorded as evidence, including the tag on the server, so history was left alone.
   Fix: one .gitleaks.toml entry, this path AND that exact abbreviated string. .gitleaks.toml's own comment limits entries to fake or lab-only values; this public value is neither, it follows the PLAN-37 entry. For the owner's review in the PR.
@@ -144,4 +144,12 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 - CodeQL on PR 35 run 1 (head 29db9399): 4 new cs/web/missing-token-validation findings on the replay POSTs, real, baseline not touched. Fixed in 3d0b2df8: antiforgery token on each POST, token endpoint behind the same policy, script through a web session.
   Found by testing through the gateway: the script's -CookieHeader mode never worked (Windows PowerShell 5.1 drops a Cookie entry in -Headers) and the cookie path is /ui/<service> while replay goes through /api/<service>. AC-MSG-40a..h 8/8 on the fix; 40g proves the 400 with bearer and session, and the script in both modes.
 - Server: build of 3d0b2df84f82 06:07:38Z, 21 min. Deploy attempt 1 failed 06:09:20Z (keycloak-reconcile after the PostgreSQL recreate, second time in this plan); same command OK 06:11:55Z; applications down about 4 min. 22 containers, smoke 50/0/1 warn. AC_MSG_40_vps 3/3; replay dry run 0/0/0 and 30 org units, nothing applied. PLAN-38 tour not repeated on this tag.
-  One run was interrupted by the owner mid-way; its unconfirmed report was deleted and the checks repeated in full.
+  One run was interrupted by the owner mid-way; its unconfirmed report was deleted and the checks repeated in full.- Local CI on 1e19ca11: ok=True, 90 passed, 0 failed, 0 skipped, 0 not-run, 1038 s (unit 4624, integration 356, Testcontainers 129). plan035-prepush: all six PASS, 21 commits in the range. Pushed 1e19ca11 (normal push of the release branch).
+- Merged by agent on owner instruction (UTC): 2026-11-04T08:44:28Z
+  PR: https://github.com/omardefdev/HRManagement/pull/35, merge commit e5071b4237479e6464e7a1bcc89e1c4187f09e75, main = origin/main = e5071b42.
+  Run 1 (head 29db9399): CodeQL FAILED (4 findings, fixed above); CI, E2E, Gitleaks, notice, dedupe passed; Acceptance skipped.
+  Run 2 (head 1e19ca11): CI pass 24m29s, CodeQL pass 16m46s, E2E pass 18m40s, Gitleaks pass 39s, Dedupe post-merge run pass 8s, Acceptance disabled notice pass 4s, Acceptance skipped as designed.
+  P-7 deviation: `gh pr checks --watch` was not run, because the desktop app forbids polling CI from the session. The owner asked for each read; the merge followed a read with `gh pr checks` exit 0, every check complete, merge state CLEAN, head = the checked head. Two earlier reads had pending checks, and nothing was merged on them.
+  Post-merge push run 41801829202 (ci): success. The dedupe guard skipped the heavy jobs: CI, E2E, CodeQL and Acceptance skipped; Gitleaks, notice and dedupe ran.
+  Server after the merge: 3d0b2df84f82, 22 containers, none unhealthy; home page answers 302 to sign-in. /health answers 404 from outside by design (admin CIDR).
+- P8 Finished (UTC): 2026-11-04T08:45:30Z

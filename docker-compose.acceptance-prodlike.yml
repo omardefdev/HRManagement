@@ -48,6 +48,11 @@ services:
     environment:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
+    # PLAN-41: "up --wait" refuses a one-shot container that exits first unless a service waits for it. It finished before
+    # the applications were ready on the least-privilege stack, and can on any slow host; production waits for it too.
+    depends_on:
+      keycloak-reconcile:
+        condition: service_completed_successfully
 
   hr-movements-web:
     environment:

@@ -11,10 +11,15 @@ param(
     [switch]$UseLocalBaseImages,
     # PLAN-37: layer docker-compose.acceptance-prodlike.yml on every service (the stack that fails where production fails).
     [switch]$ProdLike,
+    # PLAN-41: a thin name for the same switch, used by scripts/ci/acceptance-job.ps1.
+    [ValidateSet("", "Lab", "ProdLike")][string]$Profile = "",
+    # PLAN-41: the commit the images are labelled with; the default is HEAD. A changed tracked file adds -dirty.
+    [string]$SourceSha = "",
     [string]$GatewayBaseUrl = $(if ($env:GATEWAY_BASE_URL) { $env:GATEWAY_BASE_URL } else { "http://localhost:6200" })
 )
 
 $ErrorActionPreference = "Stop"
+if ($Profile -eq "ProdLike") { $ProdLike = $true }
 # PLAN-33: Windows PowerShell 5.1 prefixes text piped to native commands with a UTF-8 BOM, which kcadm rejects
 # ("Not a valid JSON document - Unexpected character (code 65279)") in sync-keycloak-dev-realm.ps1 (PLAN-30 guide).
 if ($PSVersionTable.PSVersion.Major -lt 6) {
@@ -60,6 +65,13 @@ if (-not $SkipComposeUp) {
         # PLAN-35: docker/DotnetService.Dockerfile copies docker/build-manifest/ (gitignored, BLD-002); a clean checkout
         # (CI runner) has none, so generate it as dev-profile-up.ps1 does.
         & "$PSScriptRoot/docker-generate-build-manifest.ps1" -RepoRoot $root
+
+        # PLAN-41: every service image carries the commit it was built from (org.opencontainers.image.revision).
+        if ([string]::IsNullOrWhiteSpace($SourceSha)) { $SourceSha = (git rev-parse HEAD).Trim() }
+        git diff --quiet HEAD --
+        $env:SOURCE_SHA = if ($LASTEXITCODE -eq 0) { $SourceSha } else { "$SourceSha-dirty" }
+        Write-Host "== Image source revision: $env:SOURCE_SHA =="
+
         $buildArgs = @("build")
         $mcrDnsAvailable = $false
         try {
@@ -102,9 +114,21 @@ if (-not $SkipComposeUp) {
             Write-Host "Using the verified local .NET base layers for this Acceptance build."
         }
 
-        docker compose -p $projectName @composeArgs --profile full-stack @buildArgs
-        if ($LASTEXITCODE -ne 0) {
-            throw "Acceptance image build failed with exit code $LASTEXITCODE"
+        # PLAN-41 (P-1): Docker Desktop builds one image at a time (concurrent builds lost NuGet cache entries, PLAN-37);
+        # the Linux runner builds them together.
+        if ($env:OS -eq "Windows_NT") {
+            $config = docker compose -p $projectName @composeArgs --profile full-stack config --format json | ConvertFrom-Json
+            $buildable = @($config.services.PSObject.Properties | Where-Object { $null -ne $_.Value.build } | ForEach-Object { $_.Name })
+            foreach ($service in $buildable) {
+                docker compose -p $projectName @composeArgs --profile full-stack @buildArgs $service
+                if ($LASTEXITCODE -ne 0) { throw "Acceptance image build of $service failed with exit code $LASTEXITCODE" }
+            }
+        }
+        else {
+            docker compose -p $projectName @composeArgs --profile full-stack @buildArgs
+            if ($LASTEXITCODE -ne 0) {
+                throw "Acceptance image build failed with exit code $LASTEXITCODE"
+            }
         }
     }
 
@@ -196,6 +220,9 @@ if (-not $SkipLiveVerification) {
 
         if ($PSVersionTable.PSVersion.Major -ge 7) {
             & "$PSScriptRoot/acceptance-verify.ps1" @verificationParameters
+            if ($LASTEXITCODE -ne 0) {
+                throw "Acceptance verification failed with exit code $LASTEXITCODE"
+            }
         }
         else {
             $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue

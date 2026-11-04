@@ -122,6 +122,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/HRCore/HR.Core.Web/HR.Core.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HR.Core.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -176,6 +177,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HR.Contracts.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -218,6 +220,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Gateway/HRManagement.Gateway/HRManagement.Gateway.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HRManagement.Gateway.dll
         NEEDS_KRB5: "false"
         GATEWAY_AUDIT_DIR: "true"

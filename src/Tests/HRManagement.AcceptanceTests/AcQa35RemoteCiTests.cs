@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 
 namespace HRManagement.AcceptanceTests;
@@ -225,10 +226,16 @@ public class AcQa35RemoteCiTests
         RequireGh(r);
         Run("git", "fetch -q origin main");
         var remoteMain = Git("rev-parse origin/main");
-        var localMain = Git("rev-parse main");
-        using var runs = GhJson($"run list -R {Repo} --workflow ci.yml --branch main --event push --limit 5 --json databaseId,headSha,conclusion,url,createdAt,updatedAt");
+        // PLAN-41: a CI checkout has no local main, and on a push the run at origin/main is the one in progress, so the job
+        // reads the newest finished push run instead.
+        var inCi = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+        var thisRun = Environment.GetEnvironmentVariable("GITHUB_RUN_ID");
+        var localMain = inCi ? remoteMain : Git("rev-parse main");
+        using var runs = GhJson($"run list -R {Repo} --workflow ci.yml --branch main --event push --limit 5 --json databaseId,headSha,status,conclusion,url,createdAt,updatedAt");
         AcceptanceGate.RequireData(r, runs is not null, "تعذرت قراءة التشغيلات", "gh run list failed");
-        var run = runs!.RootElement.EnumerateArray().FirstOrDefault(x => x.GetProperty("headSha").GetString() == remoteMain);
+        var run = runs!.RootElement.EnumerateArray().FirstOrDefault(x => inCi
+            ? x.GetProperty("status").GetString() == "completed" && x.GetProperty("databaseId").GetInt64().ToString(CultureInfo.InvariantCulture) != thisRun
+            : x.GetProperty("headSha").GetString() == remoteMain);
         AcceptanceGate.RequireData(r, run.ValueKind == JsonValueKind.Object, "لا تشغيل push على main بهذا الـ SHA", $"no ci.yml push run on main for {remoteMain}");
         var id = run.GetProperty("databaseId").GetInt64();
         using var jobs = GhJson($"run view {id} -R {Repo} --json jobs");
@@ -236,20 +243,22 @@ public class AcQa35RemoteCiTests
             .Select(j => new { name = j.GetProperty("name").GetString(), conclusion = j.GetProperty("conclusion").GetString() })
             .ToList();
         r.WriteScenarioSteps("""
-            1. git fetch origin main; origin/main must equal local main.
-            2. gh run list --workflow ci.yml --branch main --event push: the run whose headSha is origin/main.
-            3. Every job of that run concluded success, except the Acceptance job, skipped while ENABLE_ACCEPTANCE_JOB is unset
-               (obligation CI-ACCEPTANCE-DISABLED).
+            1. git fetch origin main; origin/main must equal local main (a CI checkout has no local main).
+            2. gh run list --workflow ci.yml --branch main --event push: the run whose headSha is origin/main; inside the job,
+               the newest finished push run.
+            3. Every job of that run concluded success, or was skipped because the dedupe guard proved the pull request had
+               tested the same tree (PLAN-37).
             """);
         r.WriteScenarioDbChecks(new { remoteMain, localMain, run = run.GetProperty("url").GetString(), conclusion = run.GetProperty("conclusion").GetString(), jobs = jobList });
         Assert.Equal(localMain, remoteMain);
         Assert.Equal("success", run.GetProperty("conclusion").GetString());
+        // The dedupe guard skips the heavy jobs together: a skipped job alongside one that ran is not its doing.
+        var dedupeRan = jobList.Any(j => j.name == "Dedupe post-merge run" && j.conclusion == "success");
+        var heavyJobs = jobList.Where(j => j.name is "CI" or "CodeQL" or "Acceptance" or "E2E").ToList();
+        var dedupeSkipped = dedupeRan && heavyJobs.Count > 0 && heavyJobs.All(j => j.conclusion == "skipped");
         foreach (var j in jobList)
         {
-            if (j.name == "Acceptance")
-                Assert.Equal("skipped", j.conclusion);
-            else
-                Assert.True(j.conclusion == "success", $"job {j.name}: {j.conclusion}");
+            Assert.True(j.conclusion == "success" || (j.conclusion == "skipped" && dedupeSkipped), $"job {j.name}: {j.conclusion}");
         }
 
         foreach (var name in RequiredChecks)
@@ -264,7 +273,10 @@ public class AcQa35RemoteCiTests
     {
         var r = Start("35d", "AC-QA-35d: scm001-branch-protection-validate.ps1 -CheckLiveGitHub passes (live protection = file, or the D-QA-1 local guard where GitHub cannot protect); a direct push to main is refused; the negative-check PR is red and closed");
         RequireGh(r);
-        var (liveExit, liveOut) = RunScript("scripts/scm001-branch-protection-validate.ps1", "-CheckLiveGitHub");
+        // PLAN-41: the job's token has no administration permission and may not read the protection API (no secret is added
+        // for it), so inside CI the file is validated; the owner's machine and the merge step of a plan check the live side.
+        var liveReadable = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true";
+        var (liveExit, liveOut) = RunScript("scripts/scm001-branch-protection-validate.ps1", liveReadable ? "-CheckLiveGitHub" : "");
         var head = Git("rev-parse HEAD");
         var (guardExit, guardOut) = RunScript("scripts/scm/pre-push-guard.ps1",
             $"origin x -ProtectMain -SelfTestRefs \"refs/heads/main {head} refs/heads/main {Git("rev-parse origin/main")}\"");

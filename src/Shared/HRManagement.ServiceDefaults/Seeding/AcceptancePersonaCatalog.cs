@@ -88,6 +88,23 @@ public static class AcceptancePersonaCatalog
     private static readonly Lazy<IReadOnlyList<AcceptancePersona>> LazyPersonas = new(LoadAndValidate);
     private static readonly Lazy<string> LazyReleaseDigest = new(ComputeReleaseDigest);
 
+    /// <summary>
+    /// The approved distribution of regular personas by tenant code (PLAN-25 added central-a2). A plan that adds a persona
+    /// changes this table and testdata/acceptance/personas.json together; every count in the tests derives from them.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, int> ApprovedRegularPersonas = new Dictionary<string, int>(StringComparer.Ordinal)
+    {
+        [TenantDefaults.DefaultCode] = 2,
+        ["AGENCY-A"] = 43,
+        ["AGENCY-B"] = 8,
+        ["AGENCY-C"] = 4
+    };
+
+    /// <summary>The negative fixtures: disabled, missing-tenant, quarantined, invalid-scope.</summary>
+    public const int ApprovedNegativePersonas = 4;
+
+    public static int ApprovedPersonaCount => ApprovedRegularPersonas.Values.Sum() + ApprovedNegativePersonas;
+
     public static IReadOnlyList<AcceptancePersona> Personas => LazyPersonas.Value;
     public static string ReleaseDigest => LazyReleaseDigest.Value;
 
@@ -106,8 +123,8 @@ public static class AcceptancePersonaCatalog
 
         if (!string.Equals(source.SchemaVersion, AcceptanceSeedCatalog.PackId, StringComparison.Ordinal))
             throw new InvalidOperationException($"Expected persona schema '{AcceptanceSeedCatalog.PackId}', found '{source.SchemaVersion}'.");
-        if (source.Personas.Count != 61)
-            throw new InvalidOperationException($"Acceptance v2 requires exactly 61 personas; found {source.Personas.Count}.");
+        if (source.Personas.Count != ApprovedPersonaCount)
+            throw new InvalidOperationException($"Acceptance v2 requires exactly {ApprovedPersonaCount} personas; found {source.Personas.Count}.");
         EnsureUnique(source.Personas.Select(p => p.Id), "persona id");
         EnsureUnique(source.Personas.Select(p => p.Username), "username");
         EnsureUnique(source.Personas.Select(p => p.PasswordEnv), "password environment key");
@@ -218,13 +235,11 @@ public static class AcceptancePersonaCatalog
     {
         var regular = personas.Where(p => p.Fixture is null).ToArray();
         var fixtures = personas.Where(p => p.Fixture is not null).ToArray();
-        if (fixtures.Length != 4)
-            throw new InvalidOperationException("Acceptance v2 requires exactly four negative personas.");
-        if (regular.Count(p => p.Definition.TenantCode == TenantDefaults.DefaultCode) != 2
-            || regular.Count(p => p.Definition.TenantCode == "AGENCY-A") != 43
-            || regular.Count(p => p.Definition.TenantCode == "AGENCY-B") != 8
-            || regular.Count(p => p.Definition.TenantCode == "AGENCY-C") != 4)
-            throw new InvalidOperationException("Acceptance persona distribution does not match the approved 2/43/8/4 plan (PLAN-25 added central-a2).");
+        if (fixtures.Length != ApprovedNegativePersonas)
+            throw new InvalidOperationException($"Acceptance v2 requires exactly {ApprovedNegativePersonas} negative personas.");
+        if (ApprovedRegularPersonas.Any(entry => regular.Count(p => p.Definition.TenantCode == entry.Key) != entry.Value))
+            throw new InvalidOperationException(
+                $"Acceptance persona distribution does not match the approved plan ({string.Join("/", ApprovedRegularPersonas.Values)}).");
     }
 
     private static void EnsureUnique(IEnumerable<string> values, string label)

@@ -1,15 +1,16 @@
 using System.Text.Json;
+using HRManagement.ServiceDefaults.Seeding;
 
 namespace HRManagement.AcceptanceTests;
 
 public class AcceptanceIdentityPopulationTests
 {
     [SkippableFact]
-    public async Task All_55_personas_have_the_expected_login_and_claim_outcome()
+    public async Task Every_persona_has_the_expected_login_and_claim_outcome()
     {
         AcceptanceEnv.RequireEnabled();
         var personas = AcceptanceHarness.LoadPersonas();
-        Assert.Equal(60, personas.Count);
+        Assert.Equal(AcceptancePersonaCatalog.ApprovedPersonaCount, personas.Count);
 
         var successful = 0;
         var expectedDenials = 0;
@@ -68,9 +69,10 @@ public class AcceptanceIdentityPopulationTests
             }
         }
 
-        Assert.Equal(56, successful);
-        Assert.Equal(2, expectedDenials);
+        // PLAN-41: derived from the file: every enabled persona logs in, every disabled one is refused.
         Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
+        Assert.Equal(personas.Count(p => p.Enabled), successful);
+        Assert.Equal(personas.Count(p => !p.Enabled), expectedDenials);
     }
 
     private static IReadOnlySet<string> ReadRealmRoles(string? realmAccess)

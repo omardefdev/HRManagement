@@ -35,7 +35,7 @@ public class AcEst18ReferenceCatalogAdminTests
             nameEn = createPayload.nameEn
         });
         var createBody = await createResponse.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("create-gr16", "POST", $"/{createUrl}", (int)createResponse.StatusCode, JsonSerializer.Deserialize<object>(createBody));
+        recorder.CaptureHttp("create-gr16", "POST", $"/{createUrl}", (int)createResponse.StatusCode, createBody);
         Assert.True(createResponse.IsSuccessStatusCode || createResponse.StatusCode == HttpStatusCode.Conflict, createBody);
 
         var lookupUrl = "api/hr-core/api/lookup/reference-data?kind=Grade&q=GR-16&page=1&pageSize=20";
@@ -45,7 +45,7 @@ public class AcEst18ReferenceCatalogAdminTests
         Assert.True(lookupResponse.IsSuccessStatusCode, lookupBody);
         using var doc = JsonDocument.Parse(lookupBody);
         Assert.True(doc.RootElement.GetProperty("items").EnumerateArray()
-            .Any(i => i.GetProperty("value").GetString() == "GR-16"), lookupBody);
+            .Any(i => i.GetProperty("code").GetString() == "GR-16"), lookupBody);
 
         recorder.WriteResult("Pass");
     }
@@ -69,7 +69,7 @@ public class AcEst18ReferenceCatalogAdminTests
             nameEn = "Human Resources"
         });
         var createBody = await createResponse.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("create-jc-hr", "POST", $"/{createUrl}", (int)createResponse.StatusCode, JsonSerializer.Deserialize<object>(createBody));
+        recorder.CaptureHttp("create-jc-hr", "POST", $"/{createUrl}", (int)createResponse.StatusCode, createBody);
         Assert.True(createResponse.IsSuccessStatusCode || createResponse.StatusCode == HttpStatusCode.Conflict, createBody);
 
         var lookupUrl = "api/hr-core/api/lookup/reference-data?kind=JobClassification&q=JC-HR&page=1&pageSize=20";
@@ -79,7 +79,7 @@ public class AcEst18ReferenceCatalogAdminTests
         Assert.True(lookupResponse.IsSuccessStatusCode, lookupBody);
         using var doc = JsonDocument.Parse(lookupBody);
         Assert.True(doc.RootElement.GetProperty("items").EnumerateArray()
-            .Any(i => i.GetProperty("value").GetString() == "JC-HR"), lookupBody);
+            .Any(i => i.GetProperty("code").GetString() == "JC-HR"), lookupBody);
 
         recorder.WriteResult("Pass");
     }

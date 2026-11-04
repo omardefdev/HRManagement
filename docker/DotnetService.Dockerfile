@@ -49,5 +49,9 @@ ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
 COPY --from=build /app/publish .
+# PLAN-41: the commit the image was built from, read by the acceptance evidence (metadata.json imageRevisions). Last, so a
+# new commit with the same output reuses every layer above. The default stays "unknown" for builds that do not pass it.
+ARG SOURCE_SHA=unknown
+LABEL org.opencontainers.image.revision=$SOURCE_SHA
 USER $APP_UID
 ENTRYPOINT ["sh", "-c", "exec dotnet \"$APP_DLL\""]

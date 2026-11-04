@@ -182,13 +182,31 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 | Master data DQ thresholds (offline fixture) | نعم | `gov003-data-quality-report.py` + `testdata/gov003` (GOV-003) |
 | Docker compose build | نعم | تحقق بناء الصور |
 | E2E (وظيفة `E2E`) | نعم (فحص مطلوب منذ PLAN-35 P7: أخضر مرتين متتاليتين على `main`، التشغيلان 41130907741 و41140221205، D-QA-2) | المكدّس الأساسي عبر `scripts/ci/compose-up-retry.sh` (ملكية وحدة File.Storage، ثم PostgreSQL أولاً وانتظار قبوله اتصال TCP لأن `pg_isready` عبر المقبس ينجح أثناء سكربتات التهيئة، وإعادة محاولة واحدة للإقلاع البارد، PLAN-35)؛ يرفع `docker-compose.ci-e2e.yml` حدّ معدل البوابة لكل عنوان IP إلى 2000 في الدقيقة لأن كل طلبات E2E تأتي من عنوان المشغّل الواحد (عند الافتراضي 120 انتظر الطلب الزائد في طابور المحدِّد حتى النافذة التالية، حتى ~41 ث، فتجاوز مهلة Playwright البالغة 30 ث؛ ومنذ إصلاح العيب 15 لا طابور، فيُرد الطلب الزائد بـ 429 فوراً ويفشل الاختبار كذلك)؛ وعند الفشل ترفع الوظيفة سجلات الخدمات باسم `e2e-stack-logs` وآثار Playwright باسم `e2e-traces` (7 أيام لكلٍّ منهما): كل اختبار يفتح صفحة متصفح يعمل عبر `PlaywrightFixture.RunTracedAsync`، فإذا فشل ترك trace (`<test>.zip`، يُفتح بـ `playwright.ps1 show-trace`) ولقطة شاشة للصفحة كاملة (`<test>.png`) في `E2E_ARTIFACTS_DIR`، وهو مسار مطلق تحت مساحة العمل لأن الاختبارات تعمل في مجلد `bin` للمشروع فيبقى المسار النسبي خارج الرفع؛ المعزول في [`tests/e2e/quarantine.json`](../tests/e2e/quarantine.json) يُطبع في ملخص الوظيفة |
-| Acceptance | معطّلة حتى PLAN-41 | تعمل فقط حين `vars.ENABLE_ACCEPTANCE_JOB == 'true'`؛ وظيفة «Acceptance disabled notice» تطبع ذلك؛ الالتزام `CI-ACCEPTANCE-DISABLED` في [`docs/qa/governance-exceptions.json`](qa/governance-exceptions.json) |
+| Acceptance | نعم (فحص مطلوب منذ PLAN-41، D-QA-2) | `scripts/ci/acceptance-job.ps1` على كل PR إلى `main` وكل دفع إليه، بالتوازي مع `CI`: الملف المختبري ثم الشبيه بالإنتاج تحت `ACCEPTANCE_REQUIRE_ALL=true`. انظر «وظيفة القبول» أدناه |
 | E2E Journeys (QA-004) | weekly (Monday 04:00 UTC) / pre-release | `.github/workflows/e2e-journeys.yml`؛ صور الإصدار عند `IMAGE_TAG`؛ المجدول لا يعمل إلا مع `ENABLE_SCHEDULED=true` (أُعيد إلى `false` في 2026-10-31 بعد حساب دقائق Actions للمستودع الخاص؛ يعيده المالك عند الحاجة)؛ خطوة التبديل إلى الملف الشبيه بالإنتاج تستورد بيئة القبول بـ `scripts/acceptance-local-env.ps1` (PLAN-35) |
 | E2E axe a11y (UX-002) | مع `RUN_PLAYWRIGHT_E2E=true` | `A11yAxeE2ETests` + `testdata/e2e/axe.min.js` |
 | CodeQL | نعم (وظيفة `CodeQL` في `ci.yml`) | التحليل ثم `scripts/ci/codeql-sarif-gate.ps1`: يفشل على نتيجة `error` أو `security-severity` ≥ 7.0 خارج [`docs/qa/codeql-baseline.json`](qa/codeql-baseline.json) أو ببند منتهٍ؛ الرفع إلى code scanning فقط مع `vars.CODE_SCANNING_UPLOAD == 'true'` (D-QA-18)؛ `codeql.yml` أسبوعي ويدوي فقط |
 | Gitleaks | نعم (وظيفة `Gitleaks` في `ci.yml`) | `scripts/ci/gitleaks.sh`: صورة gitleaks مثبّتة على التاريخ كاملاً بـ `.gitleaks.toml` (القواعد الافتراضية + استثناءات ضيقة بمسار ونص)؛ يفشل أيضاً إن فحص commits أقل من HEAD (PLAN-35) |
 | Deploy SBOM + Cosign verify | مسار الإصدار | `deploy.yml`؛ انظر [SUP_001_VERIFICATION.md](./SUP_001_VERIFICATION.md) |
 | CSP / security headers | نعم (runtime) | `UseHrSecurityHeaders`؛ انظر [UX_001_VERIFICATION.md](./UX_001_VERIFICATION.md) |
+
+### وظيفة القبول (PLAN-41)
+
+- **ما تشغّله:** [`tests/acceptance/ci-scope.json`](../tests/acceptance/ci-scope.json). كل صنف من `HRManagement.AcceptanceTests` مرة واحدة: في `lab[]` أو `prodLike[]` (`class`، `required`، `group`) أو `excluded[]` (`reason`، `ownerPlan`، `reviewBy`، ومسجّل في `docs/qa/dated-obligations.json`). و`order[]` يحدد المراحل والمكدّس الذي تحتاجه كل منها.
+- **الصنف الجديد:** يُضاف إلى `ci-scope.json` في الالتزام نفسه، وإلا سقطت الوظيفة («ran and is not in the scope file»). ولا يُستبعد إلا لبيئة لا يوفرها CI، ولا يُستبعد لأنه أحمر.
+- **الترتيب:** الأصناف التي توقف الحاويات أو تعيد إنشاءها في المجموعة `isolated`: كل صنف وحده في `dotnet test` خاص به (P-7). وبين الملفين يُعاد المكدّس من مجلدات فارغة لأن بذور القبول تُستهلك.
+- **الحارس:** `scripts/ci/acceptance-guard.ps1` يسقط الوظيفة إن كان في صنف مطلوب نتيجة غير `Passed`، أو سيناريو `Fail`/`Blocked` في مجلده، أو لم يعمل أصلاً، أو ظهر في trx صنف غير مدرج، أو قال trx إن التشغيل أُجهض، أو تعذرت قراءة `result.json`. والأصناف غير المطلوبة تظهر في ملخص الوظيفة فقط.
+- **السلبي اليدوي:** `gh workflow run ci.yml --ref main -f simulate_missing=<Class.Method>` يحجب سيناريو مطلوباً، فتحمر الوظيفة وتسمّيه. و`-f classes=<A,B>` يعيد تشغيل أصناف بعينها، للتشخيص فقط: خارج `main` تنتهي الوظيفة حمراء وإن نجحت أصنافها، حتى لا تقف فحصاً أخضر لالتزام فرع. واسم صنف خارج النطاق خطأ.
+- **محلياً (المالك):** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/acceptance-job.ps1 -Profile Both`، ويكتب كله في `artifacts/acceptance/run/`، ولا يمس `acceptance-evidence/` المودَع. والمرحلة `meta` (AC-QA-34/35) في CI فقط لأنها تقرأ نتائج وظيفة `CI` للالتزام نفسه. وPowerShell 5.1 لا يكفي لبعض سكربتات AC-01..37 (`??`، وتمرير علامات الاقتباس إلى `docker exec`)، وهي غير مطلوبة.
+- **الأثر:** `acceptance-evidence` (ما كتبه التشغيل، والمجلدات التي لم يُعد كتابتها كما هي مودَعة، و`TestResults/`، و`summary.md`، و`job-timing.json`). ويفحصه `scripts/ci/acceptance-artifact-scan.ps1` قبل الرفع: لا كلمة مرور مولّدة ولا سر ولا JWT ولا ملف ذاكرة، وإلا لا يُرفع.
+
+**عقد الأدلة (P-4، D-QA-20، D-QA-21):**
+
+- دليل أي خطة هو أثر تشغيل PR الخاص بها، ورابطه في تقريرها النهائي.
+- التشغيل المحلي مسوّدة (`source: local`) ولا يودَع أبداً.
+- الخطة التي تحدّث الأدلة المودَعة تنسخها من أثر CI كاملة، وعند تغيّر `acceptance-evidence/**` تشغّل خطوة `Committed acceptance evidence` المدقّق بوضع `-Committed`: الملخص من CI، والتشغيل أخضر من PR أو دفع في هذا المستودع، والشيفرة هي نفسها.
+- الحداثة بشجرة الشيفرة لا بالالتزام (`codeTree`: كل المسارات عدا `acceptance-evidence/` و`reports/` و`docs/`)، فإيداع الدليل نفسه لا يجعله قديماً. والدليل `Stale` إن اختلفت الشجرة، أو بُنيت صورة من مصدر آخر أو من شجرة معدّلة، أو مضى عليه أكثر من 30 يوماً.
+- حالات `summary.md` بترتيبها: `NotRun`، `Incomplete`، `Stale`، `Fail`/`Blocked`، `Pass`. و`Pass` مع `provesClaim: false` في [`tests/acceptance/ac-ownership.json`](../tests/acceptance/ac-ownership.json) يُعدّ «ناجحاً لا يثبت»، لا مثبتاً.
 
 ### سير العمل المحذوفة والمجدولة (PLAN-35)
 

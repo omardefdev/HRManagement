@@ -107,6 +107,9 @@ services:
         condition: service_healthy
       acceptance-volume-init:
         condition: service_completed_successfully
+      # PLAN-41: both touch the catalog ("tuple concurrently updated" stopped step 2 of the bootstrap): one at a time.
+      keycloak-db-role:
+        condition: service_completed_successfully
 
   # acceptance-volume-init (chown of the acceptance key-ring and file-storage volumes to 1654) is defined in
   # docker-compose.acceptance.yml, which this file extends (PLAN-40 P-5); hrm-bootstrap above still waits for it.

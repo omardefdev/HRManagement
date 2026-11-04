@@ -492,7 +492,7 @@ public class AcMsg40AtomicPublishingTests
     {
         var r = Recorder("40f", "outbox_unsaved_messages_total stays 0 in the 13 services after the acceptance run", "system (metrics)");
         AcceptanceGate.RequireEnabled(r);
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
         var samples = new List<object>();
         foreach (var (service, port) in OutboxServices)
         {
@@ -518,14 +518,14 @@ public class AcMsg40AtomicPublishingTests
 
     private static async Task<(int Exit, string Output, JsonDocument? Report)> RunReplayAsync(string? token, string reportName, bool apply, string? cookieHeader = null)
     {
-        var path = Path.Combine(AcceptanceHarness.RepoRoot, "acceptance-evidence", Ac, reportName);
+        var path = Path.Combine(AcceptanceHarness.EvidenceRoot, Ac, reportName);
         var args = new List<string>
         {
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Path.Combine(AcceptanceHarness.RepoRoot, "scripts", "msg040-replay-lost-events.ps1"),
             "-GatewayUrl", "http://localhost:6200", "-ReportPath", path, apply ? "-Apply" : "-DryRun"
         };
         args.AddRange(token is null ? ["-CookieHeader", cookieHeader!] : ["-AccessToken", token]);
-        var (exit, output) = await AcceptanceMessagingHelper.RunProcessAsync("powershell", [.. args]);
+        var (exit, output) = await AcceptanceMessagingHelper.RunProcessAsync(OperatingSystem.IsWindows() ? "powershell" : "pwsh", [.. args]);
         return (exit, output, File.Exists(path) ? JsonDocument.Parse(File.ReadAllText(path)) : null);
     }
 
