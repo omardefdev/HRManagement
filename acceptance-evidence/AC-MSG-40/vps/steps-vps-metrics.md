@@ -1,0 +1,1 @@
+Inside each container: curl /metrics. rabbitmqctl list_queues: no _error queue grew beyond the before-picture (3 old messages).

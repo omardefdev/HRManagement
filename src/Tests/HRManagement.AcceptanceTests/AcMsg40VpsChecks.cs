@@ -111,7 +111,7 @@ public partial class AcOps36VpsBootTests
                          ("hr-core", "replay/asset-outcomes"), ("hr-core", "resync/org-units"),
                      })
             {
-                var response = await client.PostAsync($"/api/{service}/api/admin/messaging/{path}?dryRun=true", new StringContent("{}", System.Text.Encoding.UTF8, "application/json"));
+                var response = await client.PostAsync($"https://{AppDomain}/api/{service}/api/admin/messaging/{path}?dryRun=true", new StringContent("{}", System.Text.Encoding.UTF8, "application/json"));
                 var body = await response.Content.ReadAsStringAsync();
                 Assert.True(response.StatusCode == HttpStatusCode.OK, $"{path}: {(int)response.StatusCode} {body[..Math.Min(body.Length, 300)]}");
                 var result = JsonNode.Parse(body)!;

@@ -1,0 +1,8 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "msg40-vps-tables-d588b9a0fbf2467ba1364b7fd14dfdd6",
+  "httpObservationCount": 0,
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}
