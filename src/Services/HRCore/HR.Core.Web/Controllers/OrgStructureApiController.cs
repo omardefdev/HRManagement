@@ -3,6 +3,7 @@ using HR.Core.Infrastructure;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.OrgStructure;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -59,27 +60,46 @@ public class OrgStructureApiController(
 
         if (parentChanged && beforeParent != orgUnit.ParentId)
         {
-            await db.SaveChangesAsync(ct);
-            var (ok, error, affected) = await pathService.MoveSubtreeAsync(orgUnit.Id, orgUnit.ParentId);
-            if (!ok) return BadRequest(new { error });
+            // PLAN-40 (class B): one transaction for the fields, the subtree move, the events and the version.
+            string? error = null;
+            try
+            {
+                await OutboxUnitOfWork.ExecuteAsync(db, async token =>
+                {
+                    await db.SaveChangesAsync(token);
+                    var (moved, moveError, affected) = await pathService.MoveSubtreeAsync(orgUnit.Id, orgUnit.ParentId, token);
+                    if (!moved)
+                        throw new OrgUnitMoveRefusedException(moveError);
+
+                    await integration.PublishManyOrgUnitsChangedAsync(affected, token);
+                    await db.SaveChangesAsync(token);
+                    await db.Entry(orgUnit).ReloadAsync(token);
+                    await versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, effectiveFrom, cancellationToken: token);
+                }, ct);
+            }
+            catch (OrgUnitMoveRefusedException refused)
+            {
+                // Rolled back: the fields saved before the move are gone too, so nothing changed without an event.
+                error = refused.Message;
+                db.ChangeTracker.Clear();
+            }
+
+            if (error is not null) return BadRequest(new { error });
             hierarchyCache.InvalidateTenant(orgUnit.TenantId);
-            await integration.PublishManyOrgUnitsChangedAsync(affected);
-            await db.SaveChangesAsync(ct);
-            await db.Entry(orgUnit).ReloadAsync(ct);
-            await versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, effectiveFrom, cancellationToken: ct);
         }
         else
         {
-            await db.SaveChangesAsync(ct);
-            hierarchyCache.InvalidateTenant(orgUnit.TenantId);
-            await integration.PublishOrgUnitChangedAsync(orgUnit);
-            await db.SaveChangesAsync(ct);
-
-            if (beforeName != orgUnit.NameAr || beforeHead != orgUnit.HeadEmployeeId || request.NameEn is not null)
+            var renamed = beforeName != orgUnit.NameAr || beforeHead != orgUnit.HeadEmployeeId || request.NameEn is not null;
+            await OutboxUnitOfWork.ExecuteAsync(db, async token =>
             {
-                await versionService.AppendVersionAsync(
-                    orgUnit, OrgOperationType.Rename, effectiveFrom, cancellationToken: ct);
-            }
+                await integration.PublishOrgUnitChangedAsync(orgUnit, ct: token);
+                if (renamed)
+                {
+                    await versionService.AppendVersionAsync(
+                        orgUnit, OrgOperationType.Rename, effectiveFrom, cancellationToken: token);
+                }
+            }, ct);
+            hierarchyCache.InvalidateTenant(orgUnit.TenantId);
         }
 
         return Ok(orgUnit);

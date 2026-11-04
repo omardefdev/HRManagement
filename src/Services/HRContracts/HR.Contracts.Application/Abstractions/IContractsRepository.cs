@@ -35,4 +35,10 @@ public interface IContractsRepository
     /// </summary>
     Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class;
     Task<int> SaveChangesAsync(CancellationToken ct);
+
+    /// <summary>
+    /// PLAN-40 (D-40-2): runs <paramref name="body"/> in one transaction (<c>OutboxUnitOfWork</c>) and saves once more at the
+    /// end, for handlers that need <c>ExecuteUpdate</c> or call helpers that save inside.
+    /// </summary>
+    Task<T> ExecuteAtomicAsync<T>(Func<CancellationToken, Task<T>> body, CancellationToken ct);
 }

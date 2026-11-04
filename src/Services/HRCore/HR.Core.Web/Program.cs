@@ -1,5 +1,6 @@
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Privacy;
 using HRManagement.ServiceDefaults.Localization;
@@ -259,6 +260,7 @@ builder.Services.AddSingleton<HR.Core.Web.Services.CandidatePortalSession>();
 // HCM-030 (PLAN-30 I): /careers/my page and candidate actions (session tenant as the ambient tenant).
 builder.Services.AddScoped<HR.Core.Web.Services.CandidatePortalService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Workflow.HrCoreMessagingRepair>();
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<HR.Core.Infrastructure.ExportJobs.IHRCoreExportJobService, HR.Core.Infrastructure.ExportJobs.HRCoreExportJobService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Onboarding.AgencyOrgStructureProvisioner>();
@@ -267,7 +269,7 @@ builder.Services.AddScoped<HRManagement.ServiceDefaults.Tenancy.ITenantQuarantin
 builder.Services.AddScoped<HRManagement.ServiceDefaults.Tenancy.TenantQuarantineGuard>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<HRCoreDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<HRCoreDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(TrainingCompletedConsumer).Assembly);
 builder.Services.AddHrCoreExternalIntegrations(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
@@ -318,7 +320,8 @@ using (var scope = app.Services.CreateScope())
         await seeds.RunOptionalAsync("org-unit-paths", async () =>
         {
             await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.OrgUnitPathService>().RecomputeAllAsync();
-            await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllOrgUnitsAsync();
+            await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllTenantsOrgUnitsAsync();
+            await OutboxScope.EnsureFlushedAsync(scope.ServiceProvider.GetRequiredService<HRCoreDbContext>());
         });
     }
     finally
@@ -336,6 +339,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UsePublicCareersRateLimiting();
 app.UseHrLocalization();
 app.UseHrCorrelationId();

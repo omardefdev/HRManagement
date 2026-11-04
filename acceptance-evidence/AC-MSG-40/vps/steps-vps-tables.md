@@ -1,0 +1,1 @@
+psql on the server: the tables of MSG040_AddMassTransitOutbox, applied by hrm-bootstrap as *_migrator; rabbitmqctl list_connections: only mq_* users.

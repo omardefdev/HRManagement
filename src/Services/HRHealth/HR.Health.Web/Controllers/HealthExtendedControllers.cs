@@ -78,8 +78,6 @@ public class MedicalCommitteeReportsController : Controller
             _db.HealthStatusEntries.Add(statusEntry);
         }
 
-        await _db.SaveChangesAsync();
-
         if (MedicalDecisionWorkflow.ShouldPublishDecision(model.Recommendation))
         {
             await _publish.Publish<IMedicalDecisionIssued>(new
@@ -91,8 +89,9 @@ public class MedicalCommitteeReportsController : Controller
                 SourceSystem = "HR.Health",
                 CorrelationId = model.Id.ToString()
             });
-            await _db.SaveChangesAsync();
         }
+
+        await _db.SaveChangesAsync();
 
         TempData["Success"] = "تم تسجيل تقرير اللجنة";
         return RedirectToAction(nameof(Index));

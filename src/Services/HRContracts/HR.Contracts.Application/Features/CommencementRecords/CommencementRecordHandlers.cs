@@ -41,7 +41,11 @@ public class GetCommencementRecordByIdHandler(IContractsRepository repository) :
 
 public class CreateCommencementRecordHandler(IContractsRepository repository, IEventPublisher eventPublisher) : IRequestHandler<CreateCommencementRecordCommand, Guid>
 {
-    public async Task<Guid> Handle(CreateCommencementRecordCommand request, CancellationToken cancellationToken)
+    // PLAN-40 (class B): the HireCaseSupport helpers save inside, so the record, the checklist and the event share one transaction.
+    public Task<Guid> Handle(CreateCommencementRecordCommand request, CancellationToken cancellationToken) =>
+        repository.ExecuteAtomicAsync(token => CreateAsync(request, token), cancellationToken);
+
+    private async Task<Guid> CreateAsync(CreateCommencementRecordCommand request, CancellationToken cancellationToken)
     {
         var vm = request.Model;
         var entity = new CommencementRecord
@@ -53,7 +57,6 @@ public class CreateCommencementRecordHandler(IContractsRepository repository, IE
             NotificationDate = vm.NotificationDate
         };
         await repository.AddAsync(entity, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
 
         await HireCaseSupport.MarkContractClassifiedAsync(repository, vm.EmployeeId, "إثبات مباشرة", cancellationToken);
 

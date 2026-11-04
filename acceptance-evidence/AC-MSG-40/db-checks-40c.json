@@ -1,0 +1,11 @@
+{
+  "apiVersion": "4c6f7896-8611-4987-8be6-1646b8efb7d1",
+  "apiReceipts": 1,
+  "uiVersion": "d1f18bfe-9c4f-4c1c-aeed-cdf5a2859ced",
+  "uiReceipts": 1,
+  "refusedVersion": "66e4c20e-32ea-44ea-824d-f7f7c06f5e76",
+  "refusedStatus": 400,
+  "refusedReceipts": 0,
+  "sequenceBefore": 118,
+  "sequenceAfter": 118
+}

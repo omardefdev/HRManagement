@@ -7,6 +7,7 @@ using HR.Core.Infrastructure;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Core.Infrastructure.Services.OrgStructure;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.SharedKernel.CodeGeneration;
@@ -184,12 +185,15 @@ public class OrgUnitsController : Controller
         };
 
         _context.OrgUnits.Add(orgUnit);
-        await _context.SaveChangesAsync();
-        await _pathService.AssignPathOnCreateAsync(orgUnit);
+        // PLAN-40 (class B): the helpers save inside, so the unit, its path, its version and IOrgUnitChanged share one transaction.
+        await OutboxUnitOfWork.ExecuteAsync(_context, async ct =>
+        {
+            await _context.SaveChangesAsync(ct);
+            await _pathService.AssignPathOnCreateAsync(orgUnit, ct);
+            await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Create, DateTime.UtcNow, cancellationToken: ct);
+            await _integration.PublishOrgUnitChangedAsync(orgUnit, ct: ct);
+        });
         _hierarchyCache.InvalidateTenant(orgUnit.TenantId);
-        await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Create, DateTime.UtcNow);
-        await _integration.PublishOrgUnitChangedAsync(orgUnit);
-        await _context.SaveChangesAsync();
 
         TempData["Success"] = $"تم إضافة الوحدة التنظيمية {orgUnit.NameAr} بنجاح";
         return RedirectToAction(nameof(Details), new { id = orgUnit.Id });
@@ -254,9 +258,31 @@ public class OrgUnitsController : Controller
         if (parentChanged)
         {
             // Persist non-parent fields first, then atomic move (sets ParentId + paths)
-            await _context.SaveChangesAsync();
-            var (ok, error, affected) = await _pathService.MoveSubtreeAsync(orgUnit.Id, vm.ParentId);
-            if (!ok)
+            // PLAN-40 (class B): one transaction for the fields, the subtree move, the events and the version.
+            string? error = null;
+            try
+            {
+                await OutboxUnitOfWork.ExecuteAsync(_context, async ct =>
+                {
+                    await _context.SaveChangesAsync(ct);
+                    var (moved, moveError, affected) = await _pathService.MoveSubtreeAsync(orgUnit.Id, vm.ParentId, ct);
+                    if (!moved)
+                        throw new OrgUnitMoveRefusedException(moveError);
+
+                    await _integration.PublishManyOrgUnitsChangedAsync(affected, ct);
+                    await _context.SaveChangesAsync(ct);
+                    await _context.Entry(orgUnit).ReloadAsync(ct);
+                    await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, DateTime.UtcNow, cancellationToken: ct);
+                });
+            }
+            catch (OrgUnitMoveRefusedException refused)
+            {
+                // Rolled back: the fields saved before the move are gone too, so nothing changed without an event.
+                error = refused.Message;
+                _context.ChangeTracker.Clear();
+            }
+
+            if (error is not null)
             {
                 ModelState.AddModelError(nameof(vm.ParentId), error ?? "فشل نقل الوحدة");
                 await PopulateSelectListsAsync(vm);
@@ -264,20 +290,17 @@ public class OrgUnitsController : Controller
             }
 
             _hierarchyCache.InvalidateTenant(orgUnit.TenantId);
-            await _integration.PublishManyOrgUnitsChangedAsync(affected);
-            await _context.SaveChangesAsync();
-            await _context.Entry(orgUnit).ReloadAsync();
-            await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, DateTime.UtcNow);
         }
         else
         {
-            await _context.SaveChangesAsync();
+            var renamed = beforeName != orgUnit.NameAr || beforeHead != orgUnit.HeadEmployeeId;
+            await OutboxUnitOfWork.ExecuteAsync(_context, async ct =>
+            {
+                await _integration.PublishOrgUnitChangedAsync(orgUnit, ct: ct);
+                if (renamed)
+                    await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Rename, DateTime.UtcNow, cancellationToken: ct);
+            });
             _hierarchyCache.InvalidateTenant(orgUnit.TenantId);
-            await _integration.PublishOrgUnitChangedAsync(orgUnit);
-            await _context.SaveChangesAsync();
-
-            if (beforeName != orgUnit.NameAr || beforeHead != orgUnit.HeadEmployeeId)
-                await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Rename, DateTime.UtcNow);
         }
 
         TempData["Success"] = $"تم تحديث الوحدة التنظيمية {orgUnit.NameAr} بنجاح";

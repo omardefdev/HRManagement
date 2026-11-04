@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Integration;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
@@ -22,6 +23,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTenantContext();
 builder.Services.AddHrFileUrlProvider(builder.Configuration);
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddScoped<HR.Movements.Infrastructure.Messaging.MovementsMessagingRepair>();
 builder.Services.AddSignalR();
 
 var movementsConn = builder.Configuration.GetConnectionString("MovementsDb");
@@ -61,7 +63,7 @@ builder.Services.AddServiceMassTransit(
                 r.UsePostgres();
             });
     },
-    configureOutbox: x => x.AddPostgresOutbox<MovementsDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<MovementsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(HR.Movements.Infrastructure.Consumers.TransferExecutedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
@@ -102,6 +104,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

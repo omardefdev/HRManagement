@@ -116,7 +116,7 @@ elif [[ "$loc" == https://$SSO/realms/hrmanagement/* ]]; then record redirect-to
 else record redirect-to-sso Fail "no redirect to https://$SSO (last: ${loc:-none})"; fi
 
 # 4. Operations paths closed at the edge.
-for spec in "$APP/health/ready:404" "$APP/health/live:404" "$APP/metrics:404" "$APP/alive:404" "$SSO/admin/:403" "$SSO/realms/master/:403" "$SSO/health/ready:404"; do
+for spec in "$APP/health/ready:404" "$APP/health/live:404" "$APP/metrics:404" "$APP/careers/metrics:404" "$APP/alive:404" "$SSO/admin/:403" "$SSO/realms/master/:403" "$SSO/health/ready:404"; do
   url="https://${spec%:*}"; want="${spec##*:}"
   got="$(curl_edge -o "$DEVNULL" -w '%{http_code}' "$url")"
   if [ "$got" = "$want" ]; then record "edge-${spec%:*}" Pass "$got"; else record "edge-${spec%:*}" Fail "expected $want, got $got"; fi

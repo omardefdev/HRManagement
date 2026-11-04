@@ -149,7 +149,8 @@ public partial class AcOps36VpsBootTests
             Assert.Equal("Approved", approved[0]);
             Assert.Equal(approverId, approved[1]);
             Assert.Equal(usedBefore + duration, int.Parse(approved[2], CultureInfo.InvariantCulture));
-            Assert.Equal("Completed", approved[3]);
+            // PLAN-40: Records.Archive now answers and the transaction goes on to Archived (its consumer failed before).
+            Assert.Contains(approved[3], new[] { "Completed", "Archived" });
 
             // 3. Cancel it again (the cancel handler had the same defect): the balance comes back.
             token = await TokenAsync(approver, "/ui/hr-contracts/LeaveRequests");

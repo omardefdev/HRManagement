@@ -919,7 +919,6 @@ namespace HR.Contracts.Infrastructure.Migrations
             modelBuilder.Entity("HR.Contracts.Domain.Entities.ServiceTransactionStateHistory", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ChangedBy")
@@ -1473,9 +1472,13 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Delivered");
 
                     b.ToTable("InboxState");
                 });

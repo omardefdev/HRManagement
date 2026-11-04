@@ -28,6 +28,7 @@ public class ITInfraDbContext : TenantAwareDbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ConfigureIntegrationMessageReceipts();
+        modelBuilder.ConfigureMassTransitOutbox();
         modelBuilder.Entity<ServerDevice>(e =>
         {
             e.HasIndex(x => x.Hostname).IsUnique();

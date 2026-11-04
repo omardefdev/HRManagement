@@ -1,6 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Privacy;
@@ -48,7 +49,7 @@ builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Compliance.Infrastructure.ExportJobs.IComplianceExportJobService, Compliance.Infrastructure.ExportJobs.ComplianceExportJobService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<ComplianceDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<ComplianceDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(MedicalRecommendationIssuedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
@@ -87,6 +88,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

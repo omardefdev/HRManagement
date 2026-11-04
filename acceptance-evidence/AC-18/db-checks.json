@@ -1,0 +1,4 @@
+{
+  "employeeId": "776ed233-a873-419b-b175-2aed8d6fa3cc",
+  "scriptOutput": "{\u0022queue\u0022:\u0022auth-directory-web-employee-created\u0022,\u0022employeeId\u0022:\u0022776ed233-a873-419b-b175-2aed8d6fa3cc\u0022,\u0022tenantId\u0022:\u0022a0000001-0000-4000-8000-000000000001\u0022,\u0022queueDepthBefore\u0022:0,\u0022queueDepthWhileStopped\u0022:1,\u0022queueDepthAfterRestart\u0022:0,\u0022authUserCount\u0022:1,\u0022ok\u0022:true,\u0022capturedAtUtc\u0022:\u00222026-11-04T02:41:25.2427070Z\u0022}\r\n"
+}

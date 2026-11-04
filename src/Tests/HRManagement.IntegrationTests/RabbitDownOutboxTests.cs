@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;
 using MassTransit;
@@ -5,18 +7,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Payroll.Infrastructure.Data;
+using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
+using Testcontainers.RabbitMq;
 
 namespace HRManagement.IntegrationTests;
 
 /// <summary>PLAN-05 AC-17: outbox survives Rabbit broker stop then drains once.</summary>
-[Collection("PgRabbit")]
 public class RabbitDownOutboxTests
 {
     private static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private readonly PgRabbitFixture _fixture;
-
-    public RabbitDownOutboxTests(PgRabbitFixture fixture) => _fixture = fixture;
 
     public static bool ChaosEnabled =>
         string.Equals(Environment.GetEnvironmentVariable("RUN_CHAOS"), "true", StringComparison.OrdinalIgnoreCase)
@@ -27,6 +27,16 @@ public class RabbitDownOutboxTests
     public async Task RabbitDown_OutboxDrains_Once_After_Broker_Restart()
     {
         Skip.IfNot(ChaosEnabled, "Set RUN_CHAOS=true or RUN_TESTCONTAINERS=true");
+
+        // A broker of its own on a fixed host port: restarting a container gives it a new random port otherwise, and the
+        // bus (which keeps the old one) could never reconnect, and the shared fixture would be left with a stale port.
+        var brokerPort = FreeTcpPort();
+        await using var rabbit = new RabbitMqBuilder(RealInfra.RabbitImage)
+            .WithUsername(RabbitMqFixture.Username)
+            .WithPassword(RabbitMqFixture.Password)
+            .WithPortBinding(brokerPort, RabbitMqBuilder.RabbitMqPort)
+            .Build();
+        await rabbit.StartAsync();
 
         await using var postgres = new PostgreSqlBuilder(RealInfra.PostgresImage).Build();
         await postgres.StartAsync();
@@ -41,8 +51,8 @@ public class RabbitDownOutboxTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["RabbitMQ:Host"] = _fixture.Rabbit.Hostname,
-            ["RabbitMQ:Port"] = _fixture.Rabbit.Port.ToString(),
+            ["RabbitMQ:Host"] = rabbit.Hostname,
+            ["RabbitMQ:Port"] = brokerPort.ToString(),
             ["RabbitMQ:VirtualHost"] = "/",
             ["RabbitMQ:Username"] = RabbitMqFixture.Username,
             ["RabbitMQ:Password"] = RabbitMqFixture.Password,
@@ -66,7 +76,7 @@ public class RabbitDownOutboxTests
         var bus = provider.GetRequiredService<IBusControl>();
         await bus.StartAsync();
 
-        await _fixture.Rabbit.Container.StopAsync();
+        await rabbit.StopAsync();
 
         await using (var scope = provider.CreateAsyncScope())
         {
@@ -95,9 +105,14 @@ public class RabbitDownOutboxTests
         }
         Assert.True(outboxDuring >= 1, "Expected outbox rows while Rabbit is down");
 
-        await _fixture.Rabbit.Container.StartAsync();
+        await rabbit.StartAsync();
         await Task.Delay(TimeSpan.FromSeconds(3));
         await bus.StartAsync();
+
+        // The bus outbox is drained by a hosted service, which nothing starts in this host-less test.
+        var delivery = provider.GetServices<IHostedService>()
+            .Single(h => h.GetType().Name.StartsWith("BusOutboxDeliveryService", StringComparison.Ordinal));
+        await delivery.StartAsync(CancellationToken.None);
 
         var drained = false;
         for (var i = 0; i < 30; i++)
@@ -117,7 +132,17 @@ public class RabbitDownOutboxTests
         }
 
         Assert.True(drained, "Outbox did not drain after Rabbit restart");
+        await delivery.StopAsync(CancellationToken.None);
         await bus.StopAsync();
+    }
+
+    private static int FreeTcpPort()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
     }
 
     public sealed record RabbitDownProbeEvent(Guid Id);

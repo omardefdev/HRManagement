@@ -1,6 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.CodeGeneration;
@@ -41,6 +42,7 @@ builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Records.Archive.Infrastructure.ExportJobs.IArchiveExportJobService, Records.Archive.Infrastructure.ExportJobs.ArchiveExportJobService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<ArchiveDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(SeparationCompletedConsumer).Assembly);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
@@ -78,6 +80,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

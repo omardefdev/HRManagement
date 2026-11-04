@@ -76,6 +76,10 @@ public static class HrManagementAuthorizationExtensions
                 || (ServiceCallerPrincipal.IsServiceAccount(c.User)
                     && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
 
+            options.AddPolicy(HrManagementPolicies.MessagingRepair, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.PlatformAdmin)));
+
             options.AddPolicy(HrManagementPolicies.HrCoreDelete, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)));
 

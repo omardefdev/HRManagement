@@ -181,7 +181,6 @@ public class PublishSeparationHandler(
 
             entity.SourceLegalRegimeId = sourceRegime;
             entity.PayrollRegimeCode = payrollCode;
-            await repository.SaveChangesAsync(cancellationToken);
         }
 
         var remainingLeaveDays = await SeparationRecordSupport.ComputeAnnualLeaveRemainingAsync(
@@ -257,7 +256,6 @@ public class CompleteSeparationChecklistStepHandler(IContractsRepository reposit
         step.EvidenceRef = string.IsNullOrWhiteSpace(request.EvidenceRef) ? request.Notes?.Trim() : request.EvidenceRef?.Trim();
         step.SourceSystem = string.IsNullOrWhiteSpace(request.SourceSystem) ? "HRContracts" : request.SourceSystem.Trim();
         step.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
-        await repository.SaveChangesAsync(cancellationToken);
 
         await eventPublisher.PublishSeparationStepCompletedAsync(
             record.Id,

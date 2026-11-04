@@ -34,7 +34,6 @@ public class ActivateContractHandler(IContractsRepository repository, IEventPubl
             return (false, string.Join(" | ", errors));
 
         contract.Status = ContractStatus.Active;
-        await repository.SaveChangesAsync(cancellationToken);
 
         await eventPublisher.PublishContractActivatedAsync(contract, cancellationToken);
         await HireCaseSupport.MarkPayrollLinkedAsync(repository, contract.EmployeeId, cancellationToken);

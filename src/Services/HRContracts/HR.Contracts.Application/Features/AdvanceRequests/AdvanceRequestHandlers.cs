@@ -167,7 +167,6 @@ public class ApproveAdvanceRequestHandler(IContractsRepository repository, IEven
         var historyBefore = transaction.StateHistory.Count;
         ServiceTransactionWorkflowHelper.AdvanceToCompleted(transaction, request.ApproverId, "اعتماد طلب سلفة");
         await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
         await eventPublisher.PublishAdvanceApprovedAsync(
             transaction.Id,
             entity.Id,

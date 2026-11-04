@@ -1,0 +1,10 @@
+{
+  "step": "execute",
+  "method": "POST",
+  "url": "/ui/hr-movements/PromotionRequests/Execute/f205bf28-7457-4815-a7f0-7d6ad4b583bd",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-11-04T02:43:17.7113107Z",
+  "body": {
+    "location": "/ui/hr-movements/PromotionRequests/Details/f205bf28-7457-4815-a7f0-7d6ad4b583bd"
+  }
+}

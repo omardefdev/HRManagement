@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services.RecruitmentKpi;
@@ -42,6 +43,7 @@ public sealed class RecruitmentRequisitionClosedMessage : IRecruitmentRequisitio
 /// </summary>
 public static class RecruitmentRequisitionClosedEvent
 {
+    [StagesOutboxMessages]
     public static async Task StageAsync(HRCoreDbContext db, IPublishEndpoint? publish, RecruitmentRequisition requisition, CancellationToken ct)
     {
         if (publish is null)

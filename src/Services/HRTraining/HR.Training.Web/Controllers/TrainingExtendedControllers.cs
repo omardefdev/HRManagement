@@ -403,7 +403,6 @@ public class MissionFilesController(TrainingDbContext db, IPublishEndpoint publi
         if (m == null) return NotFound();
         if (m.Status != MissionStatus.Proposed) { TempData["Error"] = "البعثة ليست مقترحة"; return RedirectToAction(nameof(Details), new { id }); }
         m.Status = MissionStatus.Approved;
-        await db.SaveChangesAsync();
 
         await publish.Publish<IMissionApproved>(new
         {

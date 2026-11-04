@@ -347,6 +347,7 @@
 - **التحقق المطلوب:**
   - (موجب) ترفيع، ثم درجة الموظف في HR.Core تتغير خلال 30 ثانية. وإيقاف RabbitMQ أثناء الترحيل، ثم إعادته، فيصل `IPayrollProcessed` مرة واحدة (AC-17). وAC-15/16/18 Pass.
   - (سالب) قتل العملية بين الحفظين لا يترك حالة بلا حدث. ورسالة مكررة لا تضاعف الأثر في Training.
+- **الحالة (2026-11-04، PLAN-40):** ✅ الجزء المغطى مغلق: كل `Publish` يُكتب في `OutboxMessage` في المعاملة التي تلتزم الحالة (10 مواقع A و39 موقع B، [plan40-publisher-inventory.md](../reports/plan40-publisher-inventory.md))، و13 خدمة على outbox المستهلك (56 موقع C)، وإيصالات Training، والإقرارات تُنشر مرة واحدة. حارس ثابت (`OutboxPublishOrderingArchitectureTests`) وحارس تشغيل (`outbox_unsaved_messages_total`)، و`scripts/msg040-replay-lost-events.ps1` لما فُقد (تجريبي افتراضياً). AC-MSG-40a..h وAC-16/17/18 = Pass حية، ومُنع تجاهل الفشل العابر المغلَّف بـ `InvalidOperationException`. المتبقي: سياسة إعادة المحاولة كاملة وأداة `_error` والمصالحة (الموجة 2، OPS-F وOPS-H).
 
 #### G-OPS-09 — المصالحة لا تكشف الفقد بين الخدمات، والعزل غير مثبت حياً
 - **الدليل:**

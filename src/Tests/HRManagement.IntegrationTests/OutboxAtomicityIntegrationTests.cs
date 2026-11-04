@@ -190,6 +190,13 @@ public class OutboxAtomicityIntegrationTests
         }
 
         public Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class => _inner.ReloadAsync(entity, ct);
+
+        public async Task<T> ExecuteAtomicAsync<T>(Func<CancellationToken, Task<T>> body, CancellationToken ct)
+        {
+            var result = await _inner.ExecuteAtomicAsync(body, ct);
+            SaveCount++; // the unit of work saves once at the end
+            return result;
+        }
     }
 
     private sealed class RecordingContractsPublisher(CountingContractsRepository repo) : IEventPublisher
@@ -280,7 +287,7 @@ public class OutboxAtomicityIntegrationTests
     }
 
     [Fact]
-    public async Task PostPayrollRun_PublishesThenSavesAgain_ForOutboxFlush()
+    public async Task PostPayrollRun_PublishesBeforeItsSingleSave()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -347,14 +354,14 @@ public class OutboxAtomicityIntegrationTests
 
         Assert.True(success, error);
         Assert.Equal(1, publisher.PublishCount);
-        Assert.True(publisher.SaveCountAtPublish > savesBeforeHandler,
-            "state must be saved before publish stages the outbox message");
+        Assert.True(publisher.SaveCountAtPublish == savesBeforeHandler,
+            "PLAN-40: no save may commit the state before publish stages the outbox message");
         Assert.True(repo.SaveCount > publisher.SaveCountAtPublish,
-            "a second SaveChanges must flush the outbox message after publish");
+            "one SaveChanges after publish writes the state and the outbox message together");
     }
 
     [Fact]
-    public async Task ApproveLeave_PublishesThenSavesAgain_ForOutboxFlush()
+    public async Task ApproveLeave_PublishesBeforeItsSingleSave_InOneTransaction()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -396,9 +403,10 @@ public class OutboxAtomicityIntegrationTests
 
         Assert.True(success, error);
         Assert.Equal(1, publisher.LeaveApprovedCount);
-        Assert.True(publisher.SaveCountAtLeavePublish > savesBefore);
+        Assert.True(publisher.SaveCountAtLeavePublish == savesBefore,
+            "PLAN-40: no save may commit the approval before publish stages the outbox message");
         Assert.True(repo.SaveCount > publisher.SaveCountAtLeavePublish,
-            "a second SaveChanges must flush the outbox message after leave publish");
+            "one SaveChanges after publish writes the state and the outbox message together");
     }
 
     [Fact]

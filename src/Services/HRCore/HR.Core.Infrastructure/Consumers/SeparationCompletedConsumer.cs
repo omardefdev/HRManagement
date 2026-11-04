@@ -70,12 +70,7 @@ public class SeparationCompletedConsumer : IConsumer<ISeparationCompleted>
         {
             foreach (var h in history)
                 _db.EmploymentStatusHistories.Add(h);
-        }
 
-        await _db.SaveChangesAsync(context.CancellationToken);
-
-        if (ok)
-        {
             await _integration.PublishStatusChangedIfNeededAsync(
                 employee,
                 oldStatus,
@@ -83,6 +78,8 @@ public class SeparationCompletedConsumer : IConsumer<ISeparationCompleted>
                 note,
                 context.CancellationToken);
         }
+
+        await _db.SaveChangesAsync(context.CancellationToken);
     }
 
     internal static async Task AppendApprovedCvNoteAsync(HRCoreDbContext db, Guid employeeId, string note, CancellationToken ct)

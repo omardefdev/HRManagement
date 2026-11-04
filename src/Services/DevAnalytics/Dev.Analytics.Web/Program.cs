@@ -1,6 +1,7 @@
 using Dev.Analytics.Infrastructure.Consumers;
 using Dev.Analytics.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
@@ -41,6 +42,7 @@ builder.Services.AddSingleton<Dev.Analytics.Application.Services.IReadModelRecon
 builder.Services.AddScoped<Dev.Analytics.Application.Services.ReadModelReconciliationService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<AnalyticsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(PayrollProcessedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
@@ -79,6 +81,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

@@ -1,0 +1,5 @@
+{
+  "rabbitRestarted": true,
+  "outboxDrained": true,
+  "messageDelivered": true
+}

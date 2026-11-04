@@ -1,0 +1,11 @@
+{
+  "promotionId": "f205bf28-7457-4815-a7f0-7d6ad4b583bd",
+  "messageId": "ba6c4340-6f85-5b26-89e4-d3d7229c5959",
+  "executeStatus": 302,
+  "promotionStatus": 2,
+  "outboxRowsWritten": 1,
+  "receipts": 1,
+  "consumerReceiptsBefore": 0,
+  "consumerReceiptsAfter": 1,
+  "employmentNotes": 1
+}

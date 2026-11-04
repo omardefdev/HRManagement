@@ -60,7 +60,11 @@ public record PublishHireCaseCommand(Guid ServiceTransactionId) : IRequest<(bool
 public class PublishHireCaseHandler(IContractsRepository repository, IEventPublisher eventPublisher)
     : IRequestHandler<PublishHireCaseCommand, (bool Success, string? Error)>
 {
-    public async Task<(bool Success, string? Error)> Handle(PublishHireCaseCommand request, CancellationToken cancellationToken)
+    // PLAN-40 (class B): the state moves by ExecuteUpdate, so it and the saga start commit in one explicit transaction.
+    public Task<(bool Success, string? Error)> Handle(PublishHireCaseCommand request, CancellationToken cancellationToken) =>
+        repository.ExecuteAtomicAsync(token => PublishAsync(request, token), cancellationToken);
+
+    private async Task<(bool Success, string? Error)> PublishAsync(PublishHireCaseCommand request, CancellationToken cancellationToken)
     {
         var transaction = await repository.ServiceTransactions
             .FirstOrDefaultAsync(x => x.Id == request.ServiceTransactionId, cancellationToken);

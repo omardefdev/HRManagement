@@ -1,6 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.CodeGeneration;
@@ -41,7 +42,7 @@ builder.Services.AddHrPolicyPublishedConsumer();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     configureConsumers: x => x.AddConsumer<HRManagement.ServiceDefaults.Policy.PolicyPublishedConsumer>(),
-    configureOutbox: x => x.AddPostgresOutbox<IDCardDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<IDCardDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
@@ -80,6 +81,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

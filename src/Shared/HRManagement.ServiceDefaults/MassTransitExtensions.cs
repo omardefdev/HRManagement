@@ -1,6 +1,8 @@
+using System.Data;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +14,8 @@ namespace HRManagement.ServiceDefaults;
 
 public static class MassTransitExtensions
 {
+    public const int DefaultConcurrentMessageLimit = 8;
+
     public static IServiceCollection AddServiceMassTransit(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -76,6 +80,10 @@ public static class MassTransitExtensions
 
                 ConfigureRetryPolicy(cfg, configuration);
 
+                // PLAN-40: with the consumer outbox every message in flight holds a transaction, so one busy endpoint stays below the
+                // connection pool of the service (Maximum Pool Size=10, PLAN-38). The limit is per endpoint, not per service.
+                cfg.ConcurrentMessageLimit = configuration.GetValue("MassTransit:ConcurrentMessageLimit", DefaultConcurrentMessageLimit);
+
                 cfg.UseDelayedMessageScheduler();
                 cfg.UseConsumeFilter(typeof(CorrelationIdConsumeFilter<>), context);
                 cfg.UseConsumeFilter(typeof(TenantIdConsumeFilter<>), context);
@@ -117,14 +125,37 @@ public static class MassTransitExtensions
         Assembly assembly) =>
         configurator.AddConsumers(assembly);
 
-    public static void AddPostgresOutbox<TDbContext>(this IBusRegistrationConfigurator configurator)
+    /// <summary>
+    /// The EF bus outbox of a service (web and background scopes). With <paramref name="consumerOutbox"/> every receive
+    /// endpoint also runs MassTransit's consumer outbox, sagas included (PLAN-40, D-40-1): what a consumer or saga publishes
+    /// is stored in the transaction that commits its work and sent after the commit, and the inbox receipt moves inside
+    /// that transaction (<see cref="InboxReceiptConsumeFilter{TDbContext,TMessage}"/>).
+    /// </summary>
+    public static void AddPostgresOutbox<TDbContext>(this IBusRegistrationConfigurator configurator, bool consumerOutbox = false)
         where TDbContext : DbContext
     {
         configurator.AddEntityFrameworkOutbox<TDbContext>(o =>
         {
             o.QueryDelay = TimeSpan.FromSeconds(1);
+            // PLAN-40: the isolation consumers ran at under the inbox transaction. The default RepeatableRead turns two saga
+            // acknowledgements meeting on one row into serialization failures; the row locks serialize what matters.
+            o.IsolationLevel = IsolationLevel.ReadCommitted;
             o.UsePostgres();
             o.UseBusOutbox();
+        });
+
+        if (!consumerOutbox)
+            return;
+
+        configurator.AddSingleton(new ConsumerOutboxRegistration(typeof(TDbContext)));
+        configurator.AddConfigureEndpointsCallback((context, _, cfg) =>
+        {
+            cfg.UseEntityFrameworkOutbox<TDbContext>(context);
+
+            // Connected after the outbox, so the receipt filter runs inside it (pipe specifications apply in order).
+            var receipts = new InboxReceiptConfigurationObserver<TDbContext>();
+            cfg.ConnectConsumerConfigurationObserver(receipts);
+            cfg.ConnectSagaConfigurationObserver(receipts);
         });
     }
 
@@ -164,7 +195,9 @@ public static class MassTransitExtensions
         }
 
         // Permanent business/validation faults → *_error. Transient → retry.
-        r.Ignore<InvalidOperationException>();
+        // PLAN-40: EF wraps a transient database failure in InvalidOperationException; that one stays retryable, or a party
+        // acknowledgement that rethrows it (D-40-6) would reach *_error with no fault for the saga.
+        r.Ignore<InvalidOperationException>(ex => !MessagingFaults.IsTransient(ex));
         r.Ignore<ArgumentException>();
         r.Ignore<ArgumentNullException>();
         r.Ignore<UnauthorizedAccessException>();

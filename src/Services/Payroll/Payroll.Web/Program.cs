@@ -4,6 +4,7 @@ using Payroll.Infrastructure.Consumers;
 using Payroll.Infrastructure.Data;
 using Payroll.Infrastructure;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.Documents.QuestPdf;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
@@ -117,7 +118,7 @@ builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddPayrollInfrastructure(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<PayrollDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<PayrollDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(ContractActivatedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
@@ -159,6 +160,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

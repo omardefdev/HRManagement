@@ -59,7 +59,6 @@ public sealed class AnalyticsExportJobService(
         };
 
         db.ExportJobs.Add(job);
-        await db.SaveChangesAsync(ct);
         await publish.Publish<IExportJobRequested>(new
         {
             JobId = job.Id,

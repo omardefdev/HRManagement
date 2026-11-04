@@ -22,6 +22,7 @@ public static class ErrorQueueReplay
                 "رفض إعادة التشغيل عبر المستأجرين — رأس المستأجر غير مطابق (INT-002).");
     }
 
+    [Messaging.StagesOutboxMessages]
     public static async Task ReplayAsync<T>(
         IPublishEndpoint publishEndpoint,
         T message,

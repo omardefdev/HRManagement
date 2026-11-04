@@ -88,6 +88,7 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
         public Task AddAsync<T>(T entity, CancellationToken ct) where T : class => inner.AddAsync(entity, ct);
         public void Remove<T>(T entity) where T : class => inner.Remove(entity);
         public Task<int> SaveChangesAsync(CancellationToken ct) => inner.SaveChangesAsync(ct);
+        public Task<T> ExecuteAtomicAsync<T>(Func<CancellationToken, Task<T>> body, CancellationToken ct) => inner.ExecuteAtomicAsync(body, ct);
         public Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class => inner.ReloadAsync(entity, ct);
     }
 
