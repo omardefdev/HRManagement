@@ -2,6 +2,7 @@ using System.Security.Claims;
 using HR.Movements.Infrastructure.Messaging;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,11 +17,17 @@ namespace HR.Movements.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.MessagingRepair)]
 public class MessagingRepairController(MovementsMessagingRepair repair) : ControllerBase
 {
+    [HttpGet("antiforgery")]
+    public MessagingRepairAntiforgery Antiforgery([FromServices] IAntiforgery antiforgery) =>
+        MessagingRepairAntiforgery.Issue(antiforgery, HttpContext);
+
     [HttpPost("replay/promotions")]
+    [ValidateAntiForgeryToken]
     public Task<MessagingRepairResult> ReplayPromotions([FromQuery] bool dryRun = true, CancellationToken ct = default) =>
         repair.ReplayPromotionsAsync(dryRun, Actor(), ct);
 
     [HttpPost("replay/delegations")]
+    [ValidateAntiForgeryToken]
     public Task<MessagingRepairResult> ReplayDelegations([FromQuery] bool dryRun = true, CancellationToken ct = default) =>
         repair.ReplayDelegationsAsync(dryRun, Actor(), ct);
 

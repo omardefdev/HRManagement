@@ -36,7 +36,16 @@ if ([string]::IsNullOrWhiteSpace($ReportPath)) {
 
 $headers = @{}
 if (-not [string]::IsNullOrWhiteSpace($AccessToken)) { $headers['Authorization'] = "Bearer $AccessToken" }
-if (-not [string]::IsNullOrWhiteSpace($CookieHeader)) { $headers['Cookie'] = $CookieHeader }
+
+# Cookies go through a session: Windows PowerShell 5.1 drops a Cookie entry in -Headers without a word.
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+if (-not [string]::IsNullOrWhiteSpace($CookieHeader)) {
+    $gatewayUri = [Uri]$GatewayUrl
+    foreach ($part in ($CookieHeader -split ';\s*' | Where-Object { $_ })) {
+        $pair = $part -split '=', 2
+        $session.Cookies.Add($gatewayUri, (New-Object Net.Cookie($pair[0].Trim(), $pair[1], '/')))
+    }
+}
 
 $targets = @(
     @{ Service = 'hr-movements'; Path = 'replay/promotions'; Replayable = $true },
@@ -45,13 +54,31 @@ $targets = @(
     @{ Service = 'hr-core'; Path = 'resync/org-units'; Replayable = $false }
 )
 
+# Every replay POST needs an antiforgery token, issued per service behind the same policy. The token is sent only as a
+# header: it never reaches the report. The service scopes its cookie to its UI path (/ui/<service>) and replay goes through
+# /api/<service>, so the session keeps a copy at /; the gateway forwards it to the service.
+function Get-RepairHeaders([string]$Service) {
+    $tokenUrl = '{0}/api/{1}/api/admin/messaging/antiforgery' -f $GatewayUrl.TrimEnd('/'), $Service
+    $issued = Invoke-WebRequest -UseBasicParsing -Method Get -Uri $tokenUrl -Headers $headers -WebSession $session
+    $antiforgery = $issued.Content | ConvertFrom-Json
+    $cookie = [regex]::Match(($issued.Headers['Set-Cookie'] -join ','), '(\.AspNetCore\.Antiforgery\.[^=;,\s]+)=([^;,\s]+)')
+    if ($cookie.Success) {
+        $session.Cookies.Add([Uri]$GatewayUrl, (New-Object Net.Cookie($cookie.Groups[1].Value, $cookie.Groups[2].Value, '/')))
+    }
+    $postHeaders = $headers.Clone()
+    $postHeaders[[string]$antiforgery.headerName] = [string]$antiforgery.requestToken
+    $postHeaders
+}
+
 $results = @()
 $lost = 0
 $failure = $null
+$serviceHeaders = @{}
 try {
     foreach ($target in $targets) {
+        if (-not $serviceHeaders.ContainsKey($target.Service)) { $serviceHeaders[$target.Service] = Get-RepairHeaders $target.Service }
         $url = '{0}/api/{1}/api/admin/messaging/{2}?dryRun={3}' -f $GatewayUrl.TrimEnd('/'), $target.Service, $target.Path, $dryRunValue
-        $response = Invoke-RestMethod -Method Post -Uri $url -Headers $headers -ContentType 'application/json' -Body '{}'
+        $response = Invoke-RestMethod -Method Post -Uri $url -Headers $serviceHeaders[$target.Service] -WebSession $session -ContentType 'application/json' -Body '{}'
         $count = [int]$response.count
         if ($target.Replayable) { $lost += $count }
         $results += [pscustomobject]@{

@@ -1,16 +1,18 @@
 {
-    "generatedAtUtc":  "2026-11-04T02:43:35.3366550Z",
+    "generatedAtUtc":  "2026-11-04T05:44:45.2672985Z",
     "gateway":  "http://localhost:6200",
     "dryRun":  true,
-    "lostEvents":  2,
+    "lostEvents":  6,
     "failure":  null,
     "results":  [
                     {
                         "kind":  "promotions",
                         "dryRun":  true,
-                        "count":  1,
+                        "count":  3,
                         "ids":  [
-                                    "b23255bf-d7fd-434c-a94f-f97716b44c8d"
+                                    "a337d0b4-ac17-48a0-adb8-3b1cb65099f4",
+                                    "cc17c0d3-d9db-47c2-9228-94ad4a2cb607",
+                                    "f4489c2b-b354-41ee-b869-d1564e7433a4"
                                 ]
                     },
                     {
@@ -24,9 +26,11 @@
                     {
                         "kind":  "asset-outcomes",
                         "dryRun":  true,
-                        "count":  1,
+                        "count":  3,
                         "ids":  [
-                                    "c303d271-c9cd-45cf-aa8e-b67fa2275d8b"
+                                    "26358b8a-e9ae-4fba-ac1d-671c4f385c3d",
+                                    "5dca9813-2834-4288-a4fa-69dd25914fd8",
+                                    "c4d17bc0-5b57-4f28-b7ce-1bfd19e0e0ce"
                                 ]
                     },
                     {

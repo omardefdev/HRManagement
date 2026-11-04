@@ -1,9 +1,9 @@
 {
-  "leaveId": "ce761577-d12f-4d2d-927b-ca2ee1ef96b4",
+  "leaveId": "f66bac28-da04-4704-b939-cb89d447a117",
   "statusDuring": "Approved",
   "outboxDuring": 1,
-  "receiptsBefore": 0,
-  "receiptsAfter": 1,
-  "receiptsFinal": 1,
+  "receiptsBefore": 2,
+  "receiptsAfter": 3,
+  "receiptsFinal": 3,
   "outboxAfter": 0
 }

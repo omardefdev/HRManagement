@@ -215,11 +215,14 @@ public class AcOps39KeycloakDataProtectionTests
     /// manual redirects. .NET's CookieContainer sends Keycloak's Version=1 cookies back in RFC 2965 form, which Keycloak
     /// does not read over plain http, so the login would restart.
     /// </summary>
-    private sealed class LabBrowser : DelegatingHandler
+    internal sealed class LabBrowser : DelegatingHandler
     {
         private readonly Dictionary<string, string> _jar = new(StringComparer.Ordinal);
 
         public LabBrowser() : base(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = false }) { }
+
+        /// <summary>The gateway's cookies, as a person would copy them for a session-authenticated script.</summary>
+        public string GatewayCookies => string.Join("; ", _jar.Where(kv => kv.Key.StartsWith(".AspNetCore.", StringComparison.Ordinal)).Select(kv => $"{kv.Key}={kv.Value}"));
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -266,9 +269,9 @@ public class AcOps39KeycloakDataProtectionTests
     }
 
     /// <summary>The browser sign-in through the gateway (code flow), as a person would: no password grant.</summary>
-    private static async Task<(HttpClient Client, string Page)> BrowserSignInAsync(E2ePersona persona, string startPath)
+    internal static async Task<(HttpClient Client, string Page)> BrowserSignInAsync(E2ePersona persona, string startPath, LabBrowser? browser = null)
     {
-        var client = new HttpClient(new LabBrowser()) { Timeout = TimeSpan.FromSeconds(90) };
+        var client = new HttpClient(browser ?? new LabBrowser()) { Timeout = TimeSpan.FromSeconds(90) };
         var login = await client.GetAsync(Gateway + startPath);
         var html = await login.Content.ReadAsStringAsync();
         var action = WebUtility.HtmlDecode(FormAction.Match(html).Groups["a"].Value);

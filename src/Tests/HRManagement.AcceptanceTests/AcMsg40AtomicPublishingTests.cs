@@ -516,14 +516,15 @@ public class AcMsg40AtomicPublishingTests
 
     // ------------------------------------------------------------------------------------------------ 40g
 
-    private static async Task<(int Exit, string Output, JsonDocument? Report)> RunReplayAsync(string token, string reportName, bool apply)
+    private static async Task<(int Exit, string Output, JsonDocument? Report)> RunReplayAsync(string? token, string reportName, bool apply, string? cookieHeader = null)
     {
         var path = Path.Combine(AcceptanceHarness.RepoRoot, "acceptance-evidence", Ac, reportName);
         var args = new List<string>
         {
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Path.Combine(AcceptanceHarness.RepoRoot, "scripts", "msg040-replay-lost-events.ps1"),
-            "-GatewayUrl", "http://localhost:6200", "-AccessToken", token, "-ReportPath", path, apply ? "-Apply" : "-DryRun"
+            "-GatewayUrl", "http://localhost:6200", "-ReportPath", path, apply ? "-Apply" : "-DryRun"
         };
+        args.AddRange(token is null ? ["-CookieHeader", cookieHeader!] : ["-AccessToken", token]);
         var (exit, output) = await AcceptanceMessagingHelper.RunProcessAsync("powershell", [.. args]);
         return (exit, output, File.Exists(path) ? JsonDocument.Parse(File.ReadAllText(path)) : null);
     }
@@ -551,7 +552,25 @@ public class AcMsg40AtomicPublishingTests
             """);
         var (assignment, asset, instance) = await InjectAssignmentAsync(employeeId, "Completed", 2);
 
-        var token = await AcceptanceHarness.FetchPasswordGrantTokenAsync(AcceptanceHarness.RequirePersona("a-directory-checker"));
+        var persona = AcceptanceHarness.RequirePersona("a-directory-checker");
+        var token = await AcceptanceHarness.FetchPasswordGrantTokenAsync(persona);
+
+        // Negative first: a real apply without an antiforgery token is refused, with a bearer token and with a signed-in
+        // session (what a forged cross-site POST would carry); the dry run below still lists the rows.
+        const string applyUrl = "http://localhost:6200/api/hr-movements/api/admin/messaging/replay/promotions?dryRun=false";
+        var labBrowser = new AcOps39KeycloakDataProtectionTests.LabBrowser();
+        var (signedIn, _) = await AcOps39KeycloakDataProtectionTests.BrowserSignInAsync(persona, "/ui/hr-core/", labBrowser);
+        using (signedIn)
+        using (var bearer = new HttpClient())
+        {
+            bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            foreach (var caller in new[] { bearer, signedIn })
+            {
+                using var refused = await caller.PostAsync(applyUrl, new StringContent("{}", System.Text.Encoding.UTF8, "application/json"));
+                Assert.Equal(System.Net.HttpStatusCode.BadRequest, refused.StatusCode);
+            }
+        }
+
         var (dryExit, dryOutput, dry) = await RunReplayAsync(token, "replay-1-dry-run.json", apply: false);
         Assert.True(dryExit == 0, dryOutput);
         Assert.NotNull(dry);
@@ -578,6 +597,12 @@ public class AcMsg40AtomicPublishingTests
         var audited = await SqlScalarAsync("hr_movements_db", "SELECT COUNT(*) FROM \"AuditLogs\" WHERE \"EntityType\" = 'MessagingReplayRun';");
         Assert.True(audited >= 1, "The apply run has no audit row.");
 
+        // The documented operator path where the password grant is off: the script with a signed-in session.
+        var (sessionExit, sessionOutput, session) = await RunReplayAsync(null, "replay-4-session-dry-run.json", apply: false, labBrowser.GatewayCookies);
+        Assert.True(sessionExit == 0, sessionOutput);
+        Assert.NotNull(session);
+        Assert.Empty(ReportIds(session, "promotions"));
+
         r.WriteScenarioDbChecks(new
         {
             promotionId,
@@ -594,7 +619,9 @@ public class AcMsg40AtomicPublishingTests
             "1. SQL: an executed promotion with its execution record and a completed custody workflow with a pending assignment, none with a ledger row (the state a lost event left).\n" +
             "2. scripts/msg040-replay-lost-events.ps1 -DryRun lists both; nothing changes.\n" +
             "3. -Apply on this acceptance database: the note reaches HR.Core and the assignment becomes Active; the run is audited.\n" +
-            "4. Negative: the second dry run lists zero replayable events.");
+            "4. Negative: the second dry run lists zero replayable events.\n" +
+            "5. Negative: an apply POST with a valid hr-admin bearer token or signed-in session but no antiforgery token is refused with 400 and changes nothing.\n" +
+            "6. The script runs with -CookieHeader from a signed-in session, the path where the password grant is off.");
         r.WriteResult("Pass");
     }
 

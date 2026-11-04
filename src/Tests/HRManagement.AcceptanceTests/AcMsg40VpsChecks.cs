@@ -99,7 +99,7 @@ public partial class AcOps36VpsBootTests
     public async Task AC_MSG_40_vps_replay_dry_run_changes_nothing_and_reports_counts()
     {
         var recorder = StartMsg40("vps-replay", "Demo server: replay dry run through the gateway as hradmin; counts recorded, nothing applied (D-40-4)");
-        var (client, _) = await SignInAsync("hradmin", DemoPassword(), "/ui/hr-core/");
+        var (client, cookies) = await SignInAsync("hradmin", DemoPassword(), "/ui/hr-core/");
         var results = new JsonArray();
         var lost = 0;
         var runsBefore = Sql("hr_movements_db", "SELECT COUNT(*) FROM \"AuditLogs\" WHERE \"EntityType\" = 'MessagingReplayRun'")[0];
@@ -111,7 +111,21 @@ public partial class AcOps36VpsBootTests
                          ("hr-core", "replay/asset-outcomes"), ("hr-core", "resync/org-units"),
                      })
             {
-                var response = await client.PostAsync($"https://{AppDomain}/api/{service}/api/admin/messaging/{path}?dryRun=true", new StringContent("{}", System.Text.Encoding.UTF8, "application/json"));
+                // The session cookie alone is refused: the same call without the token proves it, then the token is sent.
+                var url = $"https://{AppDomain}/api/{service}/api/admin/messaging/{path}?dryRun=true";
+                using (var refused = await client.PostAsync(url, new StringContent("{}", System.Text.Encoding.UTF8, "application/json")))
+                    Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+
+                using var tokenResponse = await client.GetAsync($"https://{AppDomain}/api/{service}/api/admin/messaging/antiforgery");
+                var issued = JsonNode.Parse(await tokenResponse.Content.ReadAsStringAsync())!;
+
+                // The service scopes this cookie to /ui/<service>; replay goes through /api/<service>.
+                var antiforgeryCookie = tokenResponse.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal)).Split(';')[0].Split('=', 2);
+                cookies.Add(new Uri($"https://{AppDomain}/"), new Cookie(antiforgeryCookie[0], antiforgeryCookie[1], "/"));
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
+                request.Headers.Add((string)issued["headerName"]!, (string)issued["requestToken"]!);
+                var response = await client.SendAsync(request);
                 var body = await response.Content.ReadAsStringAsync();
                 Assert.True(response.StatusCode == HttpStatusCode.OK, $"{path}: {(int)response.StatusCode} {body[..Math.Min(body.Length, 300)]}");
                 var result = JsonNode.Parse(body)!;

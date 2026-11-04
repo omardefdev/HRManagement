@@ -2,6 +2,7 @@ using System.Security.Claims;
 using HR.Core.Infrastructure.Services.Workflow;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,11 +17,17 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.MessagingRepair)]
 public class MessagingRepairController(HrCoreMessagingRepair repair) : ControllerBase
 {
+    [HttpGet("antiforgery")]
+    public MessagingRepairAntiforgery Antiforgery([FromServices] IAntiforgery antiforgery) =>
+        MessagingRepairAntiforgery.Issue(antiforgery, HttpContext);
+
     [HttpPost("replay/asset-outcomes")]
+    [ValidateAntiForgeryToken]
     public Task<MessagingRepairResult> ReplayAssetOutcomes([FromQuery] bool dryRun = true, CancellationToken ct = default) =>
         repair.ReplayAssetOutcomesAsync(dryRun, Actor(), ct);
 
     [HttpPost("resync/org-units")]
+    [ValidateAntiForgeryToken]
     public Task<MessagingRepairResult> ResyncOrgUnits([FromQuery] bool dryRun = true, CancellationToken ct = default) =>
         repair.ResyncOrgUnitsAsync(dryRun, Actor(), ct);
 
