@@ -57,7 +57,7 @@ function New-LintEnvFile([string]$Path) {
     }
     foreach ($k in $fixed.Keys) { $values[$k] = $fixed[$k] }
     foreach ($k in @('POSTGRES_PASSWORD', 'RABBITMQ_DEFAULT_PASS', 'KEYCLOAK_ADMIN_PASSWORD', 'KEYCLOAK_HR_GATEWAY_CLIENT_SECRET',
-            'KEYCLOAK_DIRECTORY_SYNC_SECRET', 'HR_CORE_OTP_HMAC_KEY', 'ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET')) {
+            'KEYCLOAK_DIRECTORY_SYNC_SECRET', 'HR_CORE_OTP_HMAC_KEY', 'ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET', 'ACCEPTANCE_SVC_CLIENT_SECRET')) {
         if (-not $values.Contains($k)) { $values[$k] = 'lint-only-' + $k.ToLowerInvariant().Replace('_', '-') }
     }
     foreach ($svc in @('ADMIN_LOGISTICS', 'AUTH_DIRECTORY', 'COMPLIANCE', 'DEV_ANALYTICS', 'HR_CONTRACTS', 'HR_CORE', 'HR_HEALTH', 'HR_MOVEMENTS',

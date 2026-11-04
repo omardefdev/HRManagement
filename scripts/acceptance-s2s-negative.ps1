@@ -19,8 +19,9 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($BaseUrl)) { $BaseUrl = "http://localhost:6200" }
 if ([string]::IsNullOrWhiteSpace($KeycloakBase)) { $KeycloakBase = "http://localhost:6388" }
-if ([string]::IsNullOrWhiteSpace($ValidClientSecret)) { $ValidClientSecret = "dev-svc-secret-local-only" }
-if ([string]::IsNullOrWhiteSpace($RogueClientSecret)) { $RogueClientSecret = "dev-svc-secret-local-only" }
+if ([string]::IsNullOrWhiteSpace($ValidClientSecret)) { $ValidClientSecret = $env:ACCEPTANCE_SVC_CLIENT_SECRET }
+if ([string]::IsNullOrWhiteSpace($RogueClientSecret)) { $RogueClientSecret = $env:ACCEPTANCE_SVC_CLIENT_SECRET }
+if ([string]::IsNullOrWhiteSpace($ValidClientSecret)) { throw "ACCEPTANCE_SVC_CLIENT_SECRET is not set: see scripts/acceptance-local-env.ps1." }
 
 $evidenceRoot = if ($env:ACCEPTANCE_EVIDENCE_DIR) {
     $env:ACCEPTANCE_EVIDENCE_DIR

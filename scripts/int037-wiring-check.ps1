@@ -33,7 +33,6 @@ New-Item -ItemType Directory -Force -Path $renderDir | Out-Null
 . (Join-Path $RepoRoot 'scripts\vps\compose-chains.ps1')
 
 $WiringKey = '^(Integration__\w+|Services__\w+__BaseUrl|HrCore__BaseUrl|HrGateway__InternalBaseUrl|ServiceIdentity__ClientId|ServiceIdentity__Scope)$'
-$LabSecret = 'dev-svc-secret-local-only'
 $matrix = [System.IO.File]::ReadAllText((Join-Path $RepoRoot 'deploy\wiring\service-wiring.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 
 function Get-Prop($obj, [string]$name) {
@@ -109,7 +108,7 @@ foreach ($chain in @(Get-HrmProductionChains) + @(Get-HrmProdLikeChain)) {
             $wiringByChain[$chain.Name][$service.composeService] = $wiring
             if ($service.serviceIdentity) {
                 $secret = $actual['ServiceIdentity__ClientSecret']
-                $want = if ($chain.Name -eq 'prodlike') { $LabSecret } else { $lintValues[[string]$service.secretEnv] }
+                $want = if ($chain.Name -eq 'prodlike') { $lintValues['ACCEPTANCE_SVC_CLIENT_SECRET'] } else { $lintValues[[string]$service.secretEnv] }
                 if ($secret -cne $want) {
                     $source = if ($chain.Name -eq 'prodlike') { 'the lab secret' } else { "`${$($service.secretEnv)}" }
                     $problems.Add("$($chain.Name): $($service.composeService) ServiceIdentity__ClientSecret does not come from $source")

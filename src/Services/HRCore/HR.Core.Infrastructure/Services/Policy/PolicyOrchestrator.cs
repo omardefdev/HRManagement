@@ -19,6 +19,13 @@ namespace HR.Core.Infrastructure.Services.Policy;
 public interface IPolicyOrchestrator
 {
     Task<PolicyEnforceResponse> EnforceAsync(PolicyEnforceRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// PLAN-42: the internal endpoint. The caller has already set mode, actor and tenant from the server side. A workflow starts
+    /// only for a triple of <see cref="PolicyWorkflowTriggerAllowlist"/>, and the ledger names the client.
+    /// </summary>
+    Task<PolicyEnforceResponse> EnforceForServiceAsync(PolicyEnforceRequest request, string callerClientId, CancellationToken ct = default);
+
     Task<PolicyDecision> EvaluateAsync(PolicyEnforceRequest request, CancellationToken ct = default);
     Task<PolicyVersionSnapshot?> GetPublishedSnapshotAsync(string domain, Guid? tenantId, DateTime? asOfUtc = null, CancellationToken ct = default);
 }
@@ -31,7 +38,13 @@ public sealed class PolicyOrchestrator(
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public async Task<PolicyEnforceResponse> EnforceAsync(PolicyEnforceRequest request, CancellationToken ct = default)
+    public Task<PolicyEnforceResponse> EnforceAsync(PolicyEnforceRequest request, CancellationToken ct = default) =>
+        EnforceCoreAsync(request, callerClientId: null, ct);
+
+    public Task<PolicyEnforceResponse> EnforceForServiceAsync(PolicyEnforceRequest request, string callerClientId, CancellationToken ct = default) =>
+        EnforceCoreAsync(request, callerClientId, ct);
+
+    private async Task<PolicyEnforceResponse> EnforceCoreAsync(PolicyEnforceRequest request, string? callerClientId, CancellationToken ct)
     {
         // PLAN-42: Off means the engine has no say here: an allow with no ledger row and no workflow.
         if (request.Mode == PolicyEnforcementMode.Off)
@@ -54,12 +67,17 @@ public sealed class PolicyOrchestrator(
         }
 
         Guid? workflowInstanceId = null;
+        var explanations = decision.Explanations;
         if (request.Mode == PolicyEnforcementMode.Enforce
             && decision.Allowed
-            && decision.Effects.Contains(PolicyEffect.TriggerWorkflow)
-            && request.EntityId is Guid entityId)
+            && decision.Effects.Contains(PolicyEffect.TriggerWorkflow))
         {
-            workflowInstanceId = await TryStartWorkflowAsync(request, decision, entityId, ct);
+            var mayStart = callerClientId is null
+                || PolicyWorkflowTriggerAllowlist.Allows(request.Domain, request.SubjectType, decision.GetWorkflowCode());
+            if (mayStart && request.EntityId is Guid entityId && entityId != Guid.Empty)
+                workflowInstanceId = await TryStartWorkflowAsync(request, decision, entityId, ct);
+            else if (callerClientId is not null)
+                explanations = [.. decision.Explanations, PolicyWorkflowTriggerAllowlist.NotAllowedExplanation];
         }
 
         var ledger = new PolicyEnforcementLedger
@@ -74,6 +92,9 @@ public sealed class PolicyOrchestrator(
             ActorUserName = request.ActorUserName,
             Mode = (PolicyEnforcementModeValue)request.Mode,
             WorkflowInstanceId = workflowInstanceId,
+            CallerClientId = callerClientId,
+            SubjectType = request.SubjectType,
+            EntityId = request.EntityId,
             ShadowDiffJson = shadowDiffs.Count > 0 ? JsonSerializer.Serialize(shadowDiffs) : null,
             OccurredAt = DateTime.UtcNow
         };
@@ -89,7 +110,7 @@ public sealed class PolicyOrchestrator(
             Allowed = effectiveAllowed,
             Effects = decision.Effects.Select(e => e.ToString()).ToList(),
             WorkflowInstanceId = request.Mode == PolicyEnforcementMode.Enforce ? workflowInstanceId : null,
-            Explanations = decision.Explanations,
+            Explanations = explanations,
             PolicyVersionId = decision.PolicyVersionId,
             LedgerId = ledger.Id,
             Decision = decision,

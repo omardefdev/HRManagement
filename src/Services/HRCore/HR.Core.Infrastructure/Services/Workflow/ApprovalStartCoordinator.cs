@@ -162,12 +162,14 @@ public sealed class ApprovalStartCoordinator(
     /// <summary>
     /// Never two instances: an in-progress instance of the same entity is reused only when it runs the requested workflow
     /// code and nobody has acted on it yet (first step, empty history) — so a pre-created or half-approved instance can never
-    /// be adopted to skip a step or a stricter workflow (PLAN-25 review finding 1).
+    /// be adopted to skip a step or a stricter workflow (PLAN-25 review finding 1). PLAN-42: and only by the actor who started it,
+    /// because the initiator check compares with InitiatedBy: adopting an instance started by someone else would pass that check.
     /// </summary>
     private async Task<Guid?> FindReusableInstanceAsync(ApprovalStartRequest request, CancellationToken ct)
     {
         var candidates = await db.WorkflowInstances.AsNoTracking()
             .Where(i => i.EntityType == request.EntityType && i.EntityId == request.EntityId && i.Status == WorkflowStatus.InProgress)
+            .Where(i => i.InitiatedBy == request.ActorUserId)
             .OrderByDescending(i => i.StartedAt)
             .Select(i => new { i.Id, i.DefinitionId, i.CurrentStepLevel, i.StepHistoryJson })
             .ToListAsync(ct);

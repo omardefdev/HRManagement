@@ -19,8 +19,8 @@
     },
     "hr-core.policies.enforce": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/policies/enforce",
-      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/PoliciesController.cs",
-      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreBranchOperation"], "scope": "hr-core.workflow"
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/PolicyEnforceInternalController.cs",
+      "serverPolicies": ["ServicePolicies.PolicyEnforceS2S"], "scope": "hr-core.workflow"
     },
     "hr-core.lookup.by-ids": {
       "target": "hr-core-web", "method": "POST", "path": "/api/lookup/employees/by-ids",

@@ -189,7 +189,8 @@ public class GatewayPathAuthorizationMiddlewareTests
 
     [Theory]
     [InlineData("/api/hr-core/api/onboarding/agencies/apply", HrManagementPolicies.HrCoreApprove)]
-    [InlineData("/api/hr-core/api/policies/enforce", HrManagementPolicies.HrCoreBranchOperation)]
+    [InlineData("/api/hr-core/api/policies/enforce", HrManagementPolicies.HrCoreWrite)]
+    [InlineData("/api/hr-core/api/internal/policies/enforce", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.HrCoreBranchOperation)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
@@ -219,7 +220,7 @@ public class GatewayPathAuthorizationMiddlewareTests
     public async Task Branch_manager_can_run_scoped_operations_but_cannot_publish_policy()
     {
         var (ctx, _, _) = CreateContext(
-            "/api/hr-core/api/policies/enforce", true, HrManagementRoles.BranchManager);
+            "/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", true, HrManagementRoles.BranchManager);
         var authorization = ctx.RequestServices.GetRequiredService<IAuthorizationService>();
 
         var operational = await authorization.AuthorizeAsync(

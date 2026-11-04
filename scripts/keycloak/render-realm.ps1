@@ -148,6 +148,18 @@ foreach ($scopeProperty in @($wiring.scopes.PSObject.Properties | Sort-Object Na
 }
 $realm["clientScopes"] = $scopes.ToArray()
 
+# PLAN-42 (P-6): the persona step writes .acceptance/credentials.json, which holds the generated service secret. It runs
+# first, because the clients below need that secret. A test render writes no file and keeps the fixed lab value.
+$acceptancePersonaUsers = @()
+if ($Profile -eq "Acceptance") {
+    . (Join-Path $PSScriptRoot "acceptance-personas.ps1")
+    $acceptancePersonaUsers = Get-AcceptancePersonaUsers -RepoRoot $RepoRoot -Rotate:$RotateAcceptanceCredentials -NoCredentialFiles:$NoAcceptanceCredentialFiles
+    if (-not $NoAcceptanceCredentialFiles) {
+        $acceptanceCredentials = Read-Json (Join-Path $RepoRoot ".acceptance/credentials.json")
+        $labServiceSecret = [string]$acceptanceCredentials.serviceClientSecret
+    }
+}
+
 # ---- clients ------------------------------------------------------------------------------------------------------
 $clients = New-Object System.Collections.Generic.List[object]
 
@@ -228,9 +240,7 @@ switch ($Profile) {
         }
     }
     "Acceptance" {
-        . (Join-Path $PSScriptRoot "acceptance-personas.ps1")
-        $personaUsers = Get-AcceptancePersonaUsers -RepoRoot $RepoRoot -Rotate:$RotateAcceptanceCredentials -NoCredentialFiles:$NoAcceptanceCredentialFiles
-        foreach ($user in $personaUsers) { $users.Add($user) }
+        foreach ($user in $acceptancePersonaUsers) { $users.Add($user) }
     }
 }
 $realm["users"] = $users.ToArray()

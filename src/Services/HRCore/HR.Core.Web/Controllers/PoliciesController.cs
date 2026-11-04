@@ -15,7 +15,6 @@ using MassTransit;
 namespace HR.Core.Web.Controllers;
 
 [Route("api/policies")]
-[Route("api/internal/policies")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 public class PoliciesController(
@@ -23,19 +22,11 @@ public class PoliciesController(
     IPolicyOrchestrator orchestrator,
     IPolicyVersionPublisher publisher) : ControllerBase
 {
-    [HttpPost("enforce")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> Enforce([FromBody] PolicyEnforceRequest request, CancellationToken ct)
-    {
-        request.ActorUserId ??= ParseUserId(User);
-        request.ActorUserName ??= User.FindFirstValue("preferred_username") ?? User.Identity?.Name;
-        var response = await orchestrator.EnforceAsync(request, ct);
-        return Ok(response);
-    }
-
     [HttpPost("evaluate")]
     public async Task<IActionResult> Evaluate([FromBody] PolicyEnforceRequest request, CancellationToken ct)
     {
+        // PLAN-42: a user reads the decision of their own tenant; the body names one only for a platform operator with no session.
+        request.TenantId = HttpContext.Items[TenantIdMiddleware.ItemKey] as Guid? ?? request.TenantId;
         var decision = await orchestrator.EvaluateAsync(request, ct);
         return Ok(decision);
     }

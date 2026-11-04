@@ -27,7 +27,7 @@ public class AcOps39KeycloakDataProtectionTests
 {
     private const string Ac = "AC-OPS-39";
     private const string Project = "hrm-acceptance";
-    private const string LabServiceSecret = "dev-svc-secret-local-only";
+    private static string LabServiceSecret => AcceptanceHarness.ResolveServiceClientSecret("svc-any") ?? "";
     private const string LabKeycloakDbPassword = "acceptance-keycloak-db-lab-only";
     private const string Gateway = "http://localhost:6200";
     private static readonly string[] ComposeFiles =
@@ -88,6 +88,7 @@ public class AcOps39KeycloakDataProtectionTests
         foreach (var a in args) psi.ArgumentList.Add(a);
         // The acceptance compose files need the lab caller-proof secret (as acceptance-local-env.ps1 sets it).
         psi.Environment["ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET"] = CallerProofSecret();
+        psi.Environment["ACCEPTANCE_SVC_CLIENT_SECRET"] = LabServiceSecret;
         using var p = Process.Start(psi)!;
         if (stdin is not null)
         {

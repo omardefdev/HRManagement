@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using HRManagement.SharedKernel.Policy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -110,6 +111,12 @@ public static class ServiceAuthorizationExtensions
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.FileStorageServiceUpload)
                 && IsAllowedClient(ctx.User, ServiceClientIds.HrCore)));
+
+            // PLAN-42 (G-POL-08): the internal enforce endpoint; which domain a client owns is checked per request.
+            options.AddPolicy(ServicePolicies.PolicyEnforceS2S, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreWorkflow)
+                && PolicyDomainOwners.IsOwnerOfAnyDomain(ServiceCallerPrincipal.GetClientId(ctx.User))));
 
             // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
             options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>

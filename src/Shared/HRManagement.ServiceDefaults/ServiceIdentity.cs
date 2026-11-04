@@ -61,4 +61,6 @@ public static class ServicePolicies
     public const string EvidenceIngest = "Service.EvidenceIngest";
     public const string PayrollGradeLookup = "Service.PayrollGradeLookup";
     public const string FileStorageServiceUpload = "Service.FileStorageServiceUpload";
+    /// <summary>PLAN-42: a service account with hr-core.workflow whose client owns a policy domain.</summary>
+    public const string PolicyEnforceS2S = "Service.PolicyEnforce";
 }

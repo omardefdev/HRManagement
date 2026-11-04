@@ -25,6 +25,8 @@ if ($null -ne $credentials) {
     foreach ($property in $credentials.passwords.PSObject.Properties) { [void]$values.Add([string]$property.Value) }
     $proof = Get-AcceptanceProperty $credentials "gatewayCallerProofSecret"
     if ($proof) { [void]$values.Add([string]$proof) }
+    $serviceSecret = Get-AcceptanceProperty $credentials "serviceClientSecret"
+    if ($serviceSecret) { [void]$values.Add([string]$serviceSecret) }
 }
 $envPath = Resolve-ScanPath $LeastPrivEnv
 if (Test-Path -LiteralPath $envPath) {

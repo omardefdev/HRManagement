@@ -37,26 +37,13 @@ public class Ac09ShadowPolicyTests
             (int)simulateResp.StatusCode, JsonSerializer.Deserialize<object>(simulateBody));
         Assert.Equal(System.Net.HttpStatusCode.OK, simulateResp.StatusCode);
 
-        var enforceReq = new PolicyEnforceRequest
-        {
-            Domain = domain,
-            TenantId = AcceptanceSeedIds.AgencyAId,
-            SubjectType = "Asset",
-            Action = "Assign",
-            Facts = facts,
-            CorrelationId = correlationId,
-            Mode = PolicyEnforcementMode.Shadow
-        };
-        var enforceResp = await http.PostAsync(
-            "api/hr-core/api/policies/enforce",
-            JsonContent(enforceReq));
-        var enforceBody = await enforceResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("enforce-shadow", "POST", "/api/hr-core/api/policies/enforce",
-            (int)enforceResp.StatusCode, JsonSerializer.Deserialize<object>(enforceBody));
-        Assert.Equal(System.Net.HttpStatusCode.OK, enforceResp.StatusCode);
-
-        using var enforceDoc = JsonDocument.Parse(enforceBody);
-        Assert.True(enforceDoc.RootElement.GetProperty("allowed").GetBoolean());
+        // PLAN-42: the mode is the server's now, so this class cannot ask for Shadow in its body, and the lab stack runs custody in
+        // Enforce. AC-S2S-42b proves Shadow on a real stack; PLAN-65 rewrites this scenario. Blocked, never Pass.
+        AcceptanceGate.RequireData(
+            recorder,
+            false,
+            "ط§ظ„ظˆط¶ط¹ ظٹط­ط¯ط¯ظ‡ ط§ظ„ط®ط§ط¯ظ… ظ…ظ†ط° PLAN-42: AC-S2S-42b ظٹط«ط¨طھ ShadowطŒ ظˆPLAN-65 ظٹط¹ظٹط¯ ظƒطھط§ط¨ط© ظ‡ط°ط§ ط§ظ„ط³ظٹظ†ط§ط±ظٹظˆ",
+            "The mode is derived by the server since PLAN-42: AC-S2S-42b proves Shadow, and PLAN-65 rewrites this scenario.");
 
         var ledgerResp = await http.GetAsync($"api/hr-core/api/policies/ledger?domain={domain}&correlationId={correlationId}");
         var ledgerBody = await ledgerResp.Content.ReadAsStringAsync();

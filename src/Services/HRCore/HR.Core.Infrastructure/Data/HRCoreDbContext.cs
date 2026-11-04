@@ -927,6 +927,7 @@ public class HRCoreDbContext : TenantAwareDbContext
         modelBuilder.Entity<PolicyEnforcementLedger>(entity =>
         {
             entity.HasIndex(e => new { e.Domain, e.OccurredAt });
+            entity.HasIndex(e => new { e.EntityId, e.OccurredAt });
             entity.HasIndex(e => e.CorrelationId);
             entity.Property(e => e.Domain).HasMaxLength(100);
             entity.Property(e => e.Action).HasMaxLength(64);

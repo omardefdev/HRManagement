@@ -44,7 +44,7 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `hr-core-web` | `AddPayrollGradeLookup` | `GET /api/internal/pay-grades/{gradeCode}` | payroll-web | `ServicePolicies.PayrollGradeLookup` | `payroll.grades.read` |  |
 | `hr-core-web` | `AddCandidateDocumentUploadClient` | `POST /api/files/service-upload` | file-storage-web | `ServicePolicies.FileStorageServiceUpload` | `file-storage.service-upload` |  |
 | `hr-contracts-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
-| `hr-contracts-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreBranchOperation` | `hr-core.workflow` |  |
+| `hr-contracts-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `hr-contracts-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `hr-contracts-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` |  |
 | `hr-contracts-web` | `AddEmployeeLifecycleGate` | `GET /api/internal/employees/{employeeId}/lifecycle-flags` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` | no service token yet (PLAN-42) |
@@ -53,12 +53,12 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `payroll-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `payroll-web` | `AddHrCoreServiceRegimeClient` | `POST /api/internal/service-regime/payroll-blockers` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` |  |
 | `idcard-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
-| `idcard-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreBranchOperation` | `hr-core.workflow` |  |
+| `idcard-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `idcard-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `records-archive-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
 | `records-archive-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `admin-logistics-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
-| `admin-logistics-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreBranchOperation` | `hr-core.workflow` |  |
+| `admin-logistics-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `admin-logistics-web` | `AddHrCoreWorkflowClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
