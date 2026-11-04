@@ -215,7 +215,9 @@ function Use-Stack {
                 $global:LASTEXITCODE = 0
                 & (Join-Path (Join-Path $scripts "vps") "init-secrets.ps1") -EnvFile ".env.leastpriv" -Example "" -ComposeFile $leastPrivFiles
                 if ($LASTEXITCODE -ne 0) { throw "init-secrets.ps1 failed with exit code $LASTEXITCODE" }
-                docker build -f docker/Migrator.Dockerfile -t hr-migrate:local --build-arg "SOURCE_SHA=$imageRevision" .
+                # COPY --exclude needs Dockerfile frontend 1.19; the runner's Docker has an older one built in (run 41899641329).
+                # The argument picks the frontend here, so the Dockerfile the demo server builds stays as it is.
+                docker build -f docker/Migrator.Dockerfile -t hr-migrate:local --build-arg BUILDKIT_SYNTAX=docker/dockerfile:1.19 --build-arg "SOURCE_SHA=$imageRevision" .
                 if ($LASTEXITCODE -ne 0) { throw "hr-migrate build failed with exit code $LASTEXITCODE" }
                 # The images the other stages tested, under this project's names: a second build would only repeat them.
                 $env:SOURCE_SHA = $imageRevision

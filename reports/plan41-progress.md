@@ -145,3 +145,20 @@ Reading: an environment rate, 2 green of 8, on this machine's network. No failin
 scripts/plan035-prepush.ps1 on 17e8162f: gitleaks, actionlint, forbidden, nonprod, signatures PASS; cilocal PASS after run 8 ("PRE-PUSH OK").
 
 Finished (UTC): 2026-11-04T19:41:52Z (P6)
+
+## P7
+
+Resumed (UTC): 2026-11-04T19:43:47Z (continuing directly after P6)
+
+release/plan-41 from main e5071b42, --no-ff merge of the feature branch, head 6019f5e9. Pushed 2026-11-04T19:42Z. PR: https://github.com/omardefdev/HRManagement/pull/36
+Run 1: https://github.com/omardefdev/HRManagement/actions/runs/41899641329 (created 2026-11-04T19:43:10Z, Dedupe pass, Acceptance, CI, CodeQL, Gitleaks pending at the stop).
+WAITING-CI stop 1: the desktop app does not allow polling CI from the session.
+
+Run 1 (41899641329, head 6019f5e9, merge f4c6a01a): Dedupe 7 s, Gitleaks 56 s, CodeQL 9m57s, CI 35m52s, E2E 37m53s all green; Acceptance red after 57m36s.
+Acceptance steps: free disk 106 s, the job 3329 s (Stack lab 1207, lab-main 698, Stack prodlike 511, the rest of the tests under 5 min each). Lab and prod-like passed every required class; not-required reds Ac21, 23, 24, 25 as locally. Runner held it: 16 GB, 9.1 GB used at the peak after the lab stack, disk 54 of 145 GB.
+Root cause: the least-privilege stage stopped building hr-migrate: "unknown flag: --exclude". docker/Migrator.Dockerfile needs Dockerfile frontend 1.19 and the runner's Docker carries an older one (local Docker is 29.9). Nothing else was wrong; the guard named the three required classes that did not run.
+Fix: the job passes --build-arg BUILDKIT_SYNTAX=docker/dockerfile:1.19. The Dockerfile stays as it is, so the demo server's build is not touched (P-12). Parser passed locally and the bundles began building.
+timeout-minutes 120: 1.5 x about 80 min, the measured 57 plus least-priv and meta, set now because a change after a green run would change the code tree and cost a run.
+
+The meta stage had never run anywhere, so before pushing it was run here, at merge commit f4c6a01a, on run 1's real test-results artifact, with the job's environment: 13 of 15 in 105 s. The two left are local only: 34g needs the base stack, and 35a's gitleaks scanned 0 commits because the run used a git worktree (its .git is a file outside the mount). The cilocal check of 35a passed on CI's summary.
+It found one real stop: 35e looked for a green manual e2e-journeys run on main, and the only one (41158446834) ran on release/plan-35-first-push. The job now sets ACQA35_JOURNEYS_BRANCH, the variable the test has for this. The claim stays as weak as it was: that run is of PLAN-35's code, not of this commit.

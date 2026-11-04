@@ -492,7 +492,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [dedupe]
     if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
-    timeout-minutes: 180
+    timeout-minutes: 120
     concurrency:
       group: acceptance-${{ github.ref }}
       cancel-in-progress: true
@@ -521,6 +521,8 @@ jobs:
           ACCEPTANCE_SIMULATE_MISSING: ${{ inputs.simulate_missing }}
           ACCEPTANCE_CLASSES: ${{ inputs.classes }}
           ACQA35_NEGATIVE_PR: "25"
+          # The one green manual run of e2e-journeys (PLAN-35, run 41158446834) ran on this branch.
+          ACQA35_JOURNEYS_BRANCH: release/plan-35-first-push
           COMPOSE_PARALLEL_LIMIT: "4"
           DOCKER_BUILDKIT: "1"
         run: pwsh -NoProfile -File scripts/ci/acceptance-job.ps1 -Profile Both -SourceSha ${{ github.sha }}
