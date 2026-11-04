@@ -133,3 +133,8 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P8
 - status: in progress
+- Local CI run 1 on the release head: stopped at the formatting check (whitespace in the new tests, BOM in generated migrations); fixed by e5c70c90. Run 2 on e5c70c90: ok=True, 90 passed, 0 failed, 0 skipped, 0 not-run, 1031 s (unit 4624, integration 352, Testcontainers 129, all 0 failed).
+- plan035-prepush on e5c70c90: actionlint, cilocal, forbidden, nonprod, signatures PASS; gitleaks FAIL: generic-api-key on this file line 9 (commit 491c7b5d) = the server's public ED25519 host key fingerprint in abbreviated form, not a secret (same false positive as PLAN-37, d4e53b08). D-QA-17 (rewrite and rotate) covers real secrets, and a rewrite would change the SHAs recorded as evidence, including the tag on the server, so history was left alone.
+  Fix: one .gitleaks.toml entry, this path AND that exact abbreviated string. .gitleaks.toml's own comment limits entries to fake or lab-only values; this public value is neither, it follows the PLAN-37 entry. For the owner's review in the PR.
+  Proved in a throwaway git repository with the pinned image: fingerprint in this file passes; a generated fake key on the next line of this file is reported; the fingerprint in any other file is reported. (A first run with --no-git proved nothing: paths are absolute there, so the entry never applied.)
+  The script runs with -NoProfile -ExecutionPolicy Bypass as its header documents: plain "powershell -File" is refused on this machine (policy undefined, so the Restricted default); no setting changed.
