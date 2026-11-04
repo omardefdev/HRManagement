@@ -52,7 +52,7 @@ spec:
                 name: hr-gateway-yarp
                 optional: false
             - secretRef:
-                name: hr-app-secrets
+                name: hr-gateway-secrets
                 optional: true
           env:
             - name: ASPNETCORE_URLS

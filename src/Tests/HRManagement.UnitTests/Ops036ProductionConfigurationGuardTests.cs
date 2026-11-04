@@ -246,22 +246,27 @@ public class Ops036ProductionConfigurationGuardTests
         Assert.Contains(report.Failures, f => f.Key == "FileStorage:AccessKey");
         Assert.Contains(report.Failures, f => f.Key == "FileStorage:SecretKey");
 
+        // PLAN-42: Local needs no keys, but a placeholder left in one still stops the start.
         values["FileStorage:Provider"] = "Local";
         report = Evaluate(values, options: options);
-        Assert.True(report.IsValid);
-        Assert.Contains("FileStorage:SecretKey", report.PlaceholderWarnings);
+        Assert.Contains(report.Failures, f => f.Key == "FileStorage:SecretKey");
+
+        values["FileStorage:SecretKey"] = "";
+        Assert.True(Evaluate(values, options: options).IsValid);
     }
 
     [Fact]
-    public void Placeholder_in_a_non_critical_key_is_only_a_warning()
+    public void Placeholder_in_a_non_critical_key_is_a_warning_in_acceptance_and_stops_Production()
     {
         var values = ValidModule();
         values["Cors:AllowedOrigins:0"] = "https://YOUR_PORTAL_HOST";
 
-        var report = Evaluate(values);
+        var acceptance = Evaluate(values, "Acceptance");
+        Assert.True(acceptance.IsValid);
+        Assert.Equal(["Cors:AllowedOrigins:0"], acceptance.PlaceholderWarnings);
 
-        Assert.True(report.IsValid);
-        Assert.Equal(["Cors:AllowedOrigins:0"], report.PlaceholderWarnings);
+        // PLAN-42 (section 4): in Production every key counts.
+        Assert.Contains(Evaluate(values).Failures, f => f.Key == "Cors:AllowedOrigins:0");
     }
 
     [Fact]

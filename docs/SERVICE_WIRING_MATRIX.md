@@ -29,7 +29,7 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `records-archive-web` | `svc-records-archive` | `SVC_RECORDS_ARCHIVE_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080`, `HrGateway__InternalBaseUrl=http://hr-gateway:8080` | `hr-core.workflow`, `file-storage.references` | - |
 | `admin-logistics-web` | `svc-admin-logistics` | `SVC_ADMIN_LOGISTICS_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080`, `HrGateway__InternalBaseUrl=http://hr-gateway:8080` | `hr-core.lookup`, `hr-core.workflow`, `file-storage.references` | - |
 | `it-infra-web` | `svc-it-infra` | `SVC_IT_INFRA_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080`, `Services__AuthDirectory__BaseUrl=http://auth-directory-web:8080` | `hr-core.workflow`, `directory.sync` | - |
-| `compliance-web` | `svc-compliance` | `SVC_COMPLIANCE_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080`, `Integration__PayrollBaseUrl=http://payroll-web:8080`, `Integration__FileStorageBaseUrl=http://file-storage-web:8080`, `HrGateway__InternalBaseUrl=http://hr-gateway:8080` | `hr-core.lookup`, `hr-core.workflow`, `dsar.subject.read`, `file-storage.references` | - |
+| `compliance-web` | `svc-compliance` | `SVC_COMPLIANCE_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080`, `Integration__PayrollBaseUrl=http://payroll-web:8080`, `Integration__FileStorageBaseUrl=http://file-storage-web:8080`, `HrGateway__InternalBaseUrl=http://hr-gateway:8080` | `hr-core.lookup`, `hr-core.workflow`, `dsar.subject.read`, `dsar.subject.erase`, `file-storage.references` | - |
 | `auth-directory-web` | `svc-auth-directory` | `SVC_AUTH_DIRECTORY_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080` | `hr-core.lookup` | - |
 | `hr-health-web` | `svc-hr-health` | `SVC_HR_HEALTH_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080` | - | - |
 | `hr-training-web` | `svc-hr-training` | `SVC_HR_TRAINING_CLIENT_SECRET` | `Integration__HrCoreBaseUrl=http://hr-core-web:8080`, `HrGateway__InternalBaseUrl=http://hr-gateway:8080` | `file-storage.references` | - |
@@ -67,7 +67,7 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `compliance-web` | `AddComplianceDsarCollector` | `GET /api/internal/dsar-subjects/{employeeId}` | hr-core-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
 | `compliance-web` | `AddComplianceDsarCollector` | `GET /api/internal/dsar-subjects/{employeeId}` | payroll-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
 | `compliance-web` | `AddComplianceDsarCollector` | `GET /api/internal/dsar-subjects/{employeeId}/files` | file-storage-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
-| `compliance-web` | `AddHrDsarDeletion` | `POST /api/internal/dsar-subjects/candidates/{applicationId}/anonymize` | hr-core-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
+| `compliance-web` | `AddHrDsarDeletion` | `POST /api/internal/dsar-subjects/candidates/{applicationId}/anonymize` | hr-core-web | `ServicePolicies.DsarSubjectErase` | `dsar.subject.erase` |  |
 | `compliance-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
 | `compliance-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `compliance-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
@@ -111,6 +111,7 @@ Registered but never injected (they keep the URL, get no scope for it; removal i
 | `hr-core.workflow` | `api-hr-core` | `svc-hr-contracts`, `svc-idcard`, `svc-records-archive`, `svc-admin-logistics`, `svc-it-infra`, `svc-compliance` | HR.Core workflow + code generation (S2S) |
 | `file-storage.references` | `api-file-storage` | `svc-hr-core`, `svc-hr-contracts`, `svc-idcard`, `svc-records-archive`, `svc-admin-logistics`, `svc-compliance`, `svc-hr-training` | File.Storage reference registration (S2S) |
 | `dsar.subject.read` | `api-hr-core`, `api-payroll`, `api-file-storage` | `svc-compliance` | Compliance DSAR subject collection (S2S) |
+| `dsar.subject.erase` | `api-hr-core` | `svc-compliance` | Compliance erases a DSAR candidate in HR.Core (S2S, PLAN-42) |
 | `payroll.grades.read` | `api-payroll` | `svc-hr-core` | HR.Core offer salary bounds from Payroll pay grades (S2S, HCM-027) |
 | `file-storage.service-upload` | `api-file-storage` | `svc-hr-core` | HR.Core relays candidate document uploads to File.Storage (S2S, PLAN-30) |
 | `directory.sync` | `api-auth-directory` | `svc-it-infra` | Auth.Directory synchronization (S2S) |

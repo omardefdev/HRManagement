@@ -169,14 +169,14 @@ function Read-KustomizeOutput([string]$Text) {
             }
             $deployments[$nameLine] = $env
         }
-        elseif ($kind -eq 'ExternalSecret' -and $nameLine -eq 'hr-app-secrets') {
-            foreach ($l in $lines) { if ($l -match '^\s+(- )?secretKey: (\S+)') { [void]$secretKeys.Add($Matches[2]) } }
+        elseif ($kind -eq 'ExternalSecret' -and $nameLine -like '*-secrets') {
+            foreach ($l in $lines) { if ($l -match '^\s+(- )?secretKey: (\S+)') { [void]$secretKeys.Add("$nameLine/$($Matches[2])") } }
         }
-        elseif ($kind -eq 'Secret' -and $nameLine -eq 'hr-app-secrets') {
+        elseif ($kind -eq 'Secret' -and $nameLine -like '*-secrets') {
             $inData = $false
             foreach ($l in $lines) {
                 if ($l -match '^(stringData|data):') { $inData = $true; continue }
-                if ($inData -and $l -match '^  ([A-Za-z0-9_]+):') { [void]$secretKeys.Add($Matches[1]) } elseif ($inData -and $l -match '^\S') { $inData = $false }
+                if ($inData -and $l -match '^  ([A-Za-z0-9_]+):') { [void]$secretKeys.Add("$nameLine/$($Matches[1])") } elseif ($inData -and $l -match '^\S') { $inData = $false }
             }
         }
         elseif ($kind -eq 'ConfigMap') {
@@ -215,12 +215,13 @@ else {
                 if ($null -eq $actual) { $problems.Add("$label is not rendered"); continue }
                 foreach ($p in (Compare-Wiring $label $service $actual)) { $problems.Add($p) }
                 if ($service.serviceIdentity) {
-                    $want = "secretKeyRef:hr-app-secrets/$($service.secretEnv)"
+                    $secretName = "$($service.k8sDeployment)-secrets"
+                    $want = "secretKeyRef:$secretName/$($service.secretEnv)"
                     $got = $actual['ServiceIdentity__ClientSecret']
                     # Only the source kind is reported: a literal value could be a real secret.
                     $kind = if ($null -eq $got) { 'absent' } elseif ([string]$got -like 'secretKeyRef:*') { $got } else { 'a literal value' }
                     if ($got -ne $want) { $problems.Add("$label ServiceIdentity__ClientSecret is $kind, expected $want") }
-                    if (-not $parsed.SecretKeys.Contains([string]$service.secretEnv)) { $problems.Add("$label`: hr-app-secrets has no key $($service.secretEnv)") }
+                    if (-not $parsed.SecretKeys.Contains("$secretName/$($service.secretEnv)")) { $problems.Add("$label`: $secretName has no key $($service.secretEnv)") }
                 }
             }
         }

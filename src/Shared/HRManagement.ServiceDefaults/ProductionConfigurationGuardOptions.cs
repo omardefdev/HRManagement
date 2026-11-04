@@ -69,6 +69,8 @@ public sealed class ProductionConfigurationGuardOptions
         "YOUR_",
         "USE_ENV_OR_",
         "USE_SECRET_MANAGER",
-        "CHANGE_ME"
+        "CHANGE_ME",
+        // PLAN-42: the dev-only Secrets of deploy/k8s/base hold this value.
+        "replace-me"
     ];
 }

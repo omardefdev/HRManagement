@@ -12,7 +12,22 @@ resources:
   - pod-security
   - admission
   - configmap-yarp.yaml
-  - secret-placeholder.yaml
+  - hr-migrate-secret-placeholder.yaml
+  - hr-gateway/secret-placeholder.yaml
+  - hr-core-web/secret-placeholder.yaml
+  - hr-contracts-web/secret-placeholder.yaml
+  - hr-health-web/secret-placeholder.yaml
+  - hr-movements-web/secret-placeholder.yaml
+  - hr-training-web/secret-placeholder.yaml
+  - payroll-web/secret-placeholder.yaml
+  - idcard-web/secret-placeholder.yaml
+  - records-archive-web/secret-placeholder.yaml
+  - admin-logistics-web/secret-placeholder.yaml
+  - it-infra-web/secret-placeholder.yaml
+  - dev-analytics-web/secret-placeholder.yaml
+  - compliance-web/secret-placeholder.yaml
+  - auth-directory-web/secret-placeholder.yaml
+  - file-storage-web/secret-placeholder.yaml
   - migrate-job.yaml
   - network-policies
   - hr-gateway/deployment.yaml

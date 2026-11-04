@@ -44,6 +44,8 @@ public static class ServiceScopes
     public const string HrCoreWorkflow = "hr-core.workflow";
     public const string FileStorageReferences = "file-storage.references";
     public const string DsarSubjectRead = "dsar.subject.read";
+    /// <summary>PLAN-42: erasing a DSAR subject is not reading one.</summary>
+    public const string DsarSubjectErase = "dsar.subject.erase";
     public const string EvidenceIngest = "evidence.ingest";
     /// <summary>HCM-027: HR.Core reads Payroll grade bounds for offer letters.</summary>
     public const string PayrollGradesRead = "payroll.grades.read";
@@ -58,6 +60,7 @@ public static class ServicePolicies
     public const string HrCoreLookupS2S = "Service.HrCoreLookup";
     public const string FileStorageReferences = "Service.FileStorageReferences";
     public const string DsarSubjectRead = "Service.DsarSubjectRead";
+    public const string DsarSubjectErase = "Service.DsarSubjectErase";
     public const string EvidenceIngest = "Service.EvidenceIngest";
     public const string PayrollGradeLookup = "Service.PayrollGradeLookup";
     public const string FileStorageServiceUpload = "Service.FileStorageServiceUpload";

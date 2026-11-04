@@ -101,6 +101,12 @@ public static class ServiceAuthorizationExtensions
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DsarSubjectRead)
                 && IsAllowedClient(ctx.User, ServiceClientIds.Compliance)));
 
+            // PLAN-42 (G-IAM-13): erasing has its own scope; dsar.subject.read erases nothing.
+            options.AddPolicy(ServicePolicies.DsarSubjectErase, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DsarSubjectErase)
+                && IsAllowedClient(ctx.User, ServiceClientIds.Compliance)));
+
             // HCM-027: HR.Core validates offer salaries against Payroll grade bounds.
             options.AddPolicy(ServicePolicies.PayrollGradeLookup, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)

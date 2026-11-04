@@ -63,8 +63,8 @@ From the code, by one read-only subagent; the working copy is `artifacts/plan42/
 - Other k8s gaps, outside this plan's secrets (`DataProtection__KeyRingPath`, `Keycloak__PublicAuthority`, `HrAuth__BehindGateway=false` on the gateway, `Keycloak__RequireHttpsMetadata`): recorded for the final report.
 
 ## P-4 placeholders
-- `appsettings.json` / `appsettings.Production.json`: 28 values, all `RabbitMQ:Username` and `RabbitMQ:Password` = `USE_ENV_OR_USER_SECRETS`, in the 14 modules. Nothing else, case-insensitive, also inside longer values.
-- Server, key names only: all 14 modules have both `RabbitMQ__Username` and `RabbitMQ__Password` set; the gateway has none and has no such section. No container environment value matches a placeholder marker. No Stop.
+- `appsettings.json` / `appsettings.Production.json`: `RabbitMQ:Username` and `RabbitMQ:Password` (28 values, 14 modules) and the `Password=USE_ENV_OR_USER_SECRETS` inside each `ConnectionStrings:*`. Correction: the first search filtered the connection strings out; `S2s042PlaceholderGuardTests` found them. Nothing else.
+- Server, key names only: all 14 modules set `RabbitMQ__Username`, `RabbitMQ__Password` and one `ConnectionStrings__*`; the gateway has no broker section. No container environment value matches a placeholder marker. No Stop.
 
 ## The server, read-only, before
 - Running tag 3d0b2df84f82, previous f44e52cf58be. 22 containers healthy. Host key matches the plan.

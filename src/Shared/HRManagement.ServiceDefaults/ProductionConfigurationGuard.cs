@@ -25,7 +25,8 @@ public sealed record ProductionConfigurationReport(
 /// placeholder (<c>YOUR_*</c>, <c>USE_ENV_*</c>), the caller-proof secret is short, the public authority points to
 /// localhost, a gateway module entry is empty, the organization name is garbled, or demo mode runs without a seed
 /// profile. It reads only the resolved <see cref="IConfiguration"/>, so environment overrides win, and it names the
-/// key in Arabic and English without ever printing a value. Placeholders in other keys are logged as warnings.
+/// key in Arabic and English without ever printing a value. PLAN-42: a placeholder in any key stops the start outside
+/// Development, Testing and Acceptance (there it is a warning), and the gateway proof keys must load.
 /// <para>
 /// Always on in Production; elsewhere (Development, Acceptance) only with <c>Deployment:EnforceConfigGuard=true</c>.
 /// </para>
@@ -47,21 +48,34 @@ public sealed class ProductionConfigurationGuard(
         "[ÃØÙ][\u0080-¿ŒœŠšŸŽžƒˆ˜–—‘-„†-•…‰‹›€™]",
         RegexOptions.CultureInvariant);
 
+    // A value that is nothing but a template token, such as __SVC_SECRET__.
+    private static readonly Regex TemplateToken = new("^__[A-Za-z0-9_]+__$", RegexOptions.CultureInvariant);
+
     public static bool IsEnforced(IConfiguration configuration, IHostEnvironment environment) =>
         environment.IsProduction()
         || configuration.GetValue(ProductionConfigurationGuardOptions.EnforceKey, false);
 
+    /// <summary>PLAN-42: outside these environments a placeholder in any key stops the start, not only in a critical one.</summary>
+    public static bool PlaceholdersFailBoot(IHostEnvironment environment) =>
+        !environment.IsDevelopment()
+        && !environment.IsEnvironment("Testing")
+        && !environment.IsEnvironment("Acceptance");
+
     public static bool IsPlaceholder(string? value) =>
         !string.IsNullOrEmpty(value)
-        && ProductionConfigurationGuardOptions.PlaceholderMarkers.Any(
-            marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase));
+        && (ProductionConfigurationGuardOptions.PlaceholderMarkers.Any(
+                marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase))
+            || TemplateToken.IsMatch(value));
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!IsEnforced(configuration, environment))
+        var enforced = IsEnforced(configuration, environment);
+        if (!enforced && !PlaceholdersFailBoot(environment))
             return Task.CompletedTask;
 
-        var report = Evaluate(configuration, environment, options.Value);
+        var report = enforced
+            ? Evaluate(configuration, environment, options.Value)
+            : EvaluatePlaceholders(configuration, environment);
         foreach (var key in report.PlaceholderWarnings)
         {
             logger.LogWarning(
@@ -174,18 +188,39 @@ public sealed class ProductionConfigurationGuard(
         }
 
         var failedKeys = failures.Select(f => f.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var warnings = configuration.AsEnumerable()
-            .Where(pair => pair.Value is not null
-                           && IsPlaceholder(pair.Value)
-                           && !failedKeys.Contains(pair.Key)
-                           && !critical.Contains(pair.Key, StringComparer.OrdinalIgnoreCase))
+        var others = PlaceholderKeys(configuration)
+            .Where(key => !failedKeys.Contains(key) && !critical.Contains(key, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        // PLAN-42 (section 4): a placeholder is a value nobody chose, in any key. Named, never printed.
+        if (!PlaceholdersFailBoot(environment))
+            return new ProductionConfigurationReport(failures, others);
+
+        foreach (var key in others)
+            Fail(key, "يحمل قيمة وهمية", "holds a placeholder value");
+        return new ProductionConfigurationReport(failures, []);
+    }
+
+    /// <summary>PLAN-42: what runs in an environment that is outside Production and outside the exempt ones (Staging, for one).</summary>
+    public static ProductionConfigurationReport EvaluatePlaceholders(IConfiguration configuration, IHostEnvironment environment)
+    {
+        if (!PlaceholdersFailBoot(environment))
+            return new ProductionConfigurationReport([], PlaceholderKeys(configuration));
+
+        return new ProductionConfigurationReport(
+            PlaceholderKeys(configuration)
+                .Select(key => new ProductionConfigurationFailure(key, "يحمل قيمة وهمية", "holds a placeholder value"))
+                .ToList(),
+            []);
+    }
+
+    private static List<string> PlaceholderKeys(IConfiguration configuration) =>
+        configuration.AsEnumerable()
+            .Where(pair => pair.Value is not null && IsPlaceholder(pair.Value))
             .Select(pair => pair.Key)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(key => key, StringComparer.Ordinal)
             .ToList();
-
-        return new ProductionConfigurationReport(failures, warnings);
-    }
 
     /// <summary>
     /// PLAN-42 (rule 4 of section 3): a present key must load as ECDSA P-256 (a missing one is a required key above), and a module

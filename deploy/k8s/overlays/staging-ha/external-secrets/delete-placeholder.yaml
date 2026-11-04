@@ -1,5 +1,6 @@
+# PLAN-42: removes every dev-only placeholder Secret of the base; the kustomization selects them by label.
 apiVersion: v1
 kind: Secret
 metadata:
-  name: hr-app-secrets
+  name: dev-only-placeholder
 $patch: delete
