@@ -68,8 +68,13 @@ function Get-AcceptancePersonaUsers {
     )
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
     $personaFile = [System.IO.File]::ReadAllText((Join-Path $RepoRoot "testdata/acceptance/personas.json"), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-    if ($personaFile.schemaVersion -ne "acceptance-v2" -or @($personaFile.personas).Count -ne 61) {
-        throw "Acceptance persona catalog must use acceptance-v2 and contain exactly 61 personas."
+    # PLAN-41: the number of personas is AcceptancePersonaCatalog's to decide (AcceptanceV2CatalogTests); here only the format.
+    if ($personaFile.schemaVersion -ne "acceptance-v2") {
+        throw "Acceptance persona catalog must use acceptance-v2."
+    }
+    $duplicateIds = @($personaFile.personas | Group-Object -Property id | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+    if ($duplicateIds.Count -gt 0) {
+        throw "Acceptance persona ids must be unique: $($duplicateIds -join ', ')."
     }
 
     $passwords = [ordered]@{}

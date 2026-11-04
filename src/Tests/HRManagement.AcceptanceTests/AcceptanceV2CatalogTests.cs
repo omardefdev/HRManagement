@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.SeparationOfDuties;
@@ -80,14 +81,20 @@ public class AcceptanceV2CatalogTests
     }
 
     [Fact]
-    public void Persona_catalog_has_57_separated_accounts_and_real_employee_links()
+    public void Persona_catalog_has_separated_accounts_in_the_approved_distribution_and_real_employee_links()
     {
+        // PLAN-41: every count derives from the approved table in the catalog, so a plan that adds a persona changes one
+        // place (AC-QA-41c); the distribution itself is checked by the parity tests below.
         var personas = AcceptancePersonaCatalog.Personas;
-        Assert.Equal(60, personas.Count);
-        Assert.Equal(60, personas.Select(p => p.Username).Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(54, personas.Count(p => p.Employee is not null));
-        Assert.Equal(4, personas.Count(p => p.Fixture is not null));
-        Assert.Equal(58, personas.Count(p => p.Enabled));
+        var regular = personas.Where(p => p.Fixture is null).ToArray();
+        var fixtures = personas.Where(p => p.Fixture is not null).ToArray();
+        Assert.Equal(AcceptancePersonaCatalog.ApprovedPersonaCount, personas.Count);
+        Assert.Equal(personas.Count, personas.Select(p => p.Username).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(AcceptancePersonaCatalog.ApprovedNegativePersonas, fixtures.Length);
+        Assert.All(regular, persona => Assert.True(persona.Enabled, $"{persona.Id} is a regular persona and disabled."));
+        Assert.Equal(
+            regular.Count(p => p.Definition.TenantCode != "PLATFORM"),
+            regular.Count(p => p.Employee is not null));
 
         Assert.All(personas.Where(p => p.Employee is not null), persona =>
         {
@@ -97,10 +104,53 @@ public class AcceptanceV2CatalogTests
                 employee => employee.Id == persona.Employee.Id);
         });
 
-        Assert.Equal(42, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-A"));
-        Assert.Equal(8, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-B"));
-        Assert.Equal(4, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "AGENCY-C"));
-        Assert.Equal(2, personas.Count(p => p.Fixture is null && p.Definition.TenantCode == "PLATFORM"));
+        foreach (var (tenant, count) in AcceptancePersonaCatalog.ApprovedRegularPersonas)
+            Assert.Equal(count, regular.Count(p => p.Definition.TenantCode == tenant));
+    }
+
+    [Fact]
+    public void Committed_persona_file_matches_the_catalog()
+    {
+        var path = Path.Combine(AcceptanceHarness.RepoRoot, "testdata", "acceptance", "personas.json");
+        Assert.Empty(PersonaFileProblems(File.ReadAllText(path)));
+    }
+
+    /// <summary>AC-QA-41c negative: a persona added to the file and not to the catalog turns the parity test red.</summary>
+    [Fact]
+    public void A_persona_added_to_a_copy_of_the_file_only_is_refused()
+    {
+        var path = Path.Combine(AcceptanceHarness.RepoRoot, "testdata", "acceptance", "personas.json");
+        var copy = JsonNode.Parse(File.ReadAllText(path))!;
+        var personas = copy["personas"]!.AsArray();
+        var extra = personas[2]!.DeepClone();
+        extra["id"] = "plan41-extra";
+        extra["username"] = "acc-plan41-extra";
+        personas.Add(extra);
+
+        var problems = PersonaFileProblems(copy.ToJsonString());
+
+        Assert.Contains(problems, p => p.Contains($"{AcceptancePersonaCatalog.ApprovedPersonaCount + 1} personas", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Contains("plan41-extra", StringComparison.Ordinal));
+    }
+
+    private static List<string> PersonaFileProblems(string json)
+    {
+        var problems = new List<string>();
+        var personas = JsonNode.Parse(json)!["personas"]!.AsArray().Select(p => p!).ToArray();
+        if (personas.Length != AcceptancePersonaCatalog.ApprovedPersonaCount)
+            problems.Add($"The file has {personas.Length} personas, the catalog approves {AcceptancePersonaCatalog.ApprovedPersonaCount}.");
+
+        var known = AcceptancePersonaCatalog.Personas.Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        problems.AddRange(personas.Select(p => p["id"]!.GetValue<string>()).Where(id => !known.Contains(id)).Select(id => $"{id} is not in the catalog."));
+
+        foreach (var (tenant, count) in AcceptancePersonaCatalog.ApprovedRegularPersonas)
+        {
+            var found = personas.Count(p => p["fixture"] is null && p["tenantCode"]?.GetValue<string>() == tenant);
+            if (found != count)
+                problems.Add($"{tenant} has {found} regular personas, the catalog approves {count}.");
+        }
+
+        return problems;
     }
 
     [Fact]

@@ -40,3 +40,14 @@ Decisions from the inventory (each will be in the final report):
 
 Finished (UTC): 2026-11-04T09:52:00Z (P0)
 
+Correction: the P0 Finished stamp above was typed by hand and runs about 4 minutes ahead of the clock; the commit was at 09:48Z. Later stamps come from the clock.
+
+## P1
+
+Persona counts derive from AcceptancePersonaCatalog (ApprovedRegularPersonas, ApprovedNegativePersonas). The fixed count left
+scripts/keycloak/acceptance-personas.ps1 (PLAN-39 moved it there from prepare-keycloak-import.ps1). The file scan reads the password from
+.acceptance/credentials.json. Parity test plus a negative on a fixture copy (AC-QA-41c). The last ACCEPTANCE_PERSONA_PASSWORD, in ci.yml, goes with
+the job in P5. Static tests green (69/69 with P2-P5 test files present); dotnet build -warnaserror 0 errors.
+
+Finished (UTC): 2026-11-04T09:49:35Z (P1)
+

@@ -5,18 +5,30 @@ param(
     [string]$BaseUrl = $env:BASE_URL,
     [string]$KeycloakBase = $env:KEYCLOAK_BASE_URL,
     [string]$Username = "acc-central-a",
-    [string]$Password = $env:ACCEPTANCE_PERSONA_PASSWORD,
+    # PLAN-41: by default the persona's generated password from .acceptance/credentials.json, as AcceptanceHarness reads it.
+    [string]$Password = "",
     [string]$ClientSecret = $env:KEYCLOAK_HR_GATEWAY_CLIENT_SECRET,
     [string]$AccessToken = $env:ACCESS_TOKEN,
     [int]$PollSeconds = 120
 )
 
 $ErrorActionPreference = "Stop"
+# PLAN-41: Windows PowerShell 5.1 does not load this assembly by itself.
+Add-Type -AssemblyName System.Net.Http
 $root = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($BaseUrl)) { $BaseUrl = "http://localhost:6200" }
 if ([string]::IsNullOrWhiteSpace($KeycloakBase)) { $KeycloakBase = "http://localhost:6388" }
-if ([string]::IsNullOrWhiteSpace($Password)) { $Password = "Accept-Hr123!" }
 if ([string]::IsNullOrWhiteSpace($ClientSecret)) { $ClientSecret = $env:E2E_KEYCLOAK_CLIENT_SECRET }
+if ([string]::IsNullOrWhiteSpace($AccessToken) -and [string]::IsNullOrWhiteSpace($Password)) {
+    $credentialsPath = Join-Path $root ".acceptance/credentials.json"
+    if (-not (Test-Path -LiteralPath $credentialsPath)) {
+        throw "No access token and no $credentialsPath. Run scripts/prepare-keycloak-import.ps1 -Profile Acceptance."
+    }
+    $credentials = [System.IO.File]::ReadAllText($credentialsPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+    $passwordProperty = $credentials.passwords.PSObject.Properties[$Username]
+    if ($null -eq $passwordProperty) { throw "$credentialsPath has no password for $Username." }
+    $Password = [string]$passwordProperty.Value
+}
 
 $evidenceRoot = if ($env:ACCEPTANCE_EVIDENCE_DIR) {
     $env:ACCEPTANCE_EVIDENCE_DIR
