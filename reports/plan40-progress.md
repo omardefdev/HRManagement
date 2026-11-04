@@ -115,3 +115,11 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P7
 - status: in progress
+- First server deploy (UTC): backup /opt/hrm/backups/pre-plan40-20261104T014945Z (700/600, pg_dumpall 25.1 MB, 17 CREATE DATABASE lines incl. the maintenance hrm_admin, SHA256SUMS OK, 3 s); .env copy .env.bak-plan40-20261104T014945Z; server build c8872d7767ab 1188 s (upload 10 s, push 22 s); deploy 131 s, healthy 01:51:48Z, smoke 49/0/1 warn.
+- SECURITY NOTE: HRM_OTEL_ENABLED=true (needed for the P7 metric check) together with AllowAnonymous on /metrics made https://<app>/careers/metrics answer 200 from the internet, 01:51:48Z-01:54:37Z (aggregate runtime metrics only, no personal data). The independent review found it (M2); confirmed live; closed at once by setting the key back to false and redeploying the same tag (113 s); then 401. Fixed in code: IsProxied in the filter (404 for a path base or X-Forwarded-For), Caddy @ops also covers /careers/metrics*, smoke and AC-36c check it, AC-40f checks it through the gateway.
+- Independent review (one fresh subagent, artifacts/plan40/review.md): 1 high, 4 medium, 8 low. No refuter needed for H1 (reproduced by test first: the payload read an unstamped TenantId).
+  H1 fixed: CreateEmployeeWithEventAsync saves first inside OutboxUnitOfWork (the tenant the payload needs is stamped by the save); test with the real interceptor. This was a regression of mine in P2 and it was live on the demo server for this tag until the next deploy.
+  M1 fixed: AddPostgresOutbox sets IsolationLevel.ReadCommitted (MassTransit default RepeatableRead would have failed concurrent saga acks with 40001).
+  M2 fixed (above). M3 fixed: a refused org-unit move throws OrgUnitMoveRefusedException inside the unit of work, so it rolls back instead of committing the fields.
+  M4 open, documented: non-asset workflow handlers still run after the instance commit (the deviation in P1); no repair path for them; for the final report.
+  L1 conditional access seen by the guard (+ negative test); L2 ledger rows carry the tenant; L3 comment corrected; L5 ShouldRetry no longer rethrows types the bus never retries; L6 script writes its report in finally. L4 resolved by M2. L7, L8 recorded in the final report.

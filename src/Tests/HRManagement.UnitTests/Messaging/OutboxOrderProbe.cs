@@ -18,9 +18,13 @@ public sealed class OutboxOrderProbe
         Interceptor = new SaveRecorder(Log);
         Publish = DispatchProxy.Create<IPublishEndpoint, RecordingPublishEndpoint>();
         ((RecordingPublishEndpoint)(object)Publish).Log = Log;
+        ((RecordingPublishEndpoint)(object)Publish).Messages = Messages;
     }
 
     public List<string> Log { get; } = [];
+
+    /// <summary>The first argument of each publish, in order (the message or its values).</summary>
+    public List<object?> Messages { get; } = [];
 
     public IPublishEndpoint Publish { get; }
 
@@ -60,6 +64,7 @@ public sealed class OutboxOrderProbe
     public class RecordingPublishEndpoint : DispatchProxy
     {
         public List<string> Log { get; set; } = [];
+        public List<object?> Messages { get; set; } = [];
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
@@ -71,6 +76,7 @@ public sealed class OutboxOrderProbe
                     ? targetMethod.GetGenericArguments()[0]
                     : args?.FirstOrDefault()?.GetType();
                 Log.Add("publish:" + type?.Name);
+                Messages.Add(args?.FirstOrDefault());
             }
 
             return targetMethod.ReturnType == typeof(Task) ? Task.CompletedTask : null;

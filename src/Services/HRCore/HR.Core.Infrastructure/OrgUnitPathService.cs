@@ -194,3 +194,9 @@ public class OrgUnitPathService(HRCoreDbContext db)
         return (true, null, subtree);
     }
 }
+
+/// <summary>
+/// PLAN-40: a refused move inside a unit of work. Thrown rather than returned so the transaction rolls back: the fields
+/// saved before the move must not commit without it.
+/// </summary>
+public sealed class OrgUnitMoveRefusedException(string? reason) : Exception(reason);

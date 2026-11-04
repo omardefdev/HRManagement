@@ -62,7 +62,7 @@ outbox on every receive endpoint.
 
 | Event | Publisher | Pattern |
 |-------|-----------|---------|
-| `IEmployeeCreated` | `EmployeeIntegrationService.CreateEmployeeWithEventAsync` | SingleSave |
+| `IEmployeeCreated` | `EmployeeIntegrationService.CreateEmployeeWithEventAsync` (the payload needs the tenant the save stamps) | OutboxUnitOfWork |
 | `IEmployeeCreated` (hire) | `RecruitmentHireClosureService.PublishHireEventsAsync` | OutboxUnitOfWork (its own explicit transaction) |
 | `ICandidateAccepted` | `RecruitmentHireClosureService` | OutboxUnitOfWork (its own explicit transaction) |
 | `IInternalPlacementCompleted` | `RecruitmentHireClosureService` | OutboxUnitOfWork (its own explicit transaction) |
@@ -163,3 +163,13 @@ publishes `*PartyFaulted` once and returns (D-40-6).
 `ErrorQueueReplay.ReplayAsync` have no production caller: `ITransactionArchived` comes from Records.Archive, and
 `ISeparationCompleted` and `IHireCaseCompleted` from the sagas. A future caller of `ErrorQueueReplay` inside an outbox scope
 needs a save after it.
+
+## Rules for new publishers (PLAN-40 contract)
+
+- Any plan that adds an event or a publisher adds its row here in the same commit (rule R4) and publishes with one of the
+  patterns above. `tests/architecture/outbox-publish-allowlist.txt` stays empty unless a line carries a written reason.
+- Publish through the contract interface (`Publish<IThing>(new { ... })`). The outbox delivers to the exchange of the
+  published type only: a concrete class goes to its own exchange, which nothing binds to the interface's exchange, and the
+  broker drops the message.
+- A publish that a later replay must be able to repeat also writes its `PublishedEventLedger` row in the same save and uses
+  `DeterministicMessageId`.

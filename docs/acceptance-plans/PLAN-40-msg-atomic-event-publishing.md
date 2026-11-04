@@ -1,7 +1,7 @@
 # PLAN-40 — نشر الأحداث ذرياً عبر الخدمات وحارس يمنع العودة (MSG)
 
 **Scope:** MSG — [دراسة العمليات](../PRG_002_OPERATIONS_GAP_STUDY.md): G-OPS-08 (النشر بلا حفظ، والنشر غير الذري، والنشر من المستهلكين خارج الـ outbox، وإيصالات HR.Training)؛ [دراسة سير العمل](../WF_001_GAP_STUDY.md): G-WF-03؛ جزء النشر من G-MOV-05 في [دراسة الحركات](../FUN_003_MOVEMENTS_GAP_STUDY.md)؛ تقاطع POL (`PolicyPublished`)؛ تقاطع IDA→OPS في [دراسة الهوية والأصول](../FUN_005_IDENTITY_ASSETS_IT_GAP_STUDY.md) (§4.5: إقرارات الأطراف من `ConsumeContext`)  
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented with deviations — 2026-11-04 (atomic publishing in 13 services, consumer outbox, guards, dry-run replay; demo server deployed; see «ملاحظات التنفيذ والانحرافات»)  
 **Priority:** P1 (فقد صامت لأحداث تمس الدرجة والعهدة والسياسات)  
 **Depends on:** PLAN-34. يستخدم الملف الشبيه بالإنتاج من PLAN-37 للقبول، وإضافة الرسائل المؤجلة في RabbitMQ من PLAN-38  
 **Related cards:** INT-001، INT-002، INT-003 (completion-backlog 01/02)، PLAN-05 (AC-15..18)
@@ -246,3 +246,15 @@ pwsh scripts/msg040-replay-lost-events.ps1 -DryRun
 - الحارسان: 1
 - الإعادة: 1
 - الاختبارات والقبول والوثائق: 1.5
+
+## ملاحظات التنفيذ والانحرافات
+
+التقرير الكامل: [plan40-final-report.md](../../reports/plan40-final-report.md). أهم الانحرافات عن هذه الخطة:
+
+- **§4 مكان الإيصال:** outbox المستهلك في MassTransit يعمل بمعاملتين لكل رسالة، والأولى تُدرج `InboxState` فقط وتلتزم. إيصال يُضاف قبل `next.Send` كان سيلتزم قبل تشغيل المستهلك، فتُتخطى إعادة المحاولة بعد فشله. لذلك يوضع الإيصال بمرشح داخل الـ outbox (`InboxReceiptConsumeFilter`) بعد المستهلك، و`InboxConsumeFilter` يمرر فقط.
+- **§2 `ApproveAsync`/`RejectAsync`:** لم يُغلَّفا في `OutboxUnitOfWork`. نتيجة العهدة تُنشر قبل الحفظ الوحيد (افتراض D-40-2)، لأن معالجات تعمل بعد الاعتماد تفتح معاملاتها بلا شرط.
+- **§6 قاعدة 1:** إيصالات المستهلكين في قواعد أخرى لا يراها الناشر، فسجل ملحق بكل نشر قابل للإعادة في `EntityAuditLog` (`PublishedEventLedger`) يحدد ما فُقد، والمعرّف الحتمي يبقى يمنع التكرار عند المستهلك.
+- **§4 D-40-6:** الفشل في قاعدة الأطراف يعود إلى نقطة حفظ (savepoint) قبل نشر `*PartyFaulted`، فلا يُلتزم عمل جزئي، ولا تبقى المعاملة معطلة بعد خطأ SQL.
+- **الصلاحية:** سياسة واحدة `Messaging.Repair` (`hr-admin` أو `platform-admin`)، والسكربت يعمل بحساب `hr-admin` للجهة.
+- **ترحيلات إضافية:** `MSG040_InboxStateKeys` للسبع القائمة (فهرس `Delivered`)، و`ServiceTransactionStateHistory.Id` بلا توليد.
+- **إضافات فرضها التشغيل الحي:** نشر `IPolicyPublished` عبر الواجهة لا الصنف (كان الوسيط يسقط الرسالة)، وبقاء الفشل العابر المغلَّف قابلاً لإعادة المحاولة، و`/metrics` بلا مصادقة مع قصره على الشبكة الداخلية، و`MassTransit:ConcurrentMessageLimit`، وإعادة مزامنة الوحدات لكل الجهات عند الإقلاع، و`max_connections=250` في مكدس القبول.

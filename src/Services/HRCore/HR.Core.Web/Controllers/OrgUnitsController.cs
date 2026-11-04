@@ -259,20 +259,30 @@ public class OrgUnitsController : Controller
         {
             // Persist non-parent fields first, then atomic move (sets ParentId + paths)
             // PLAN-40 (class B): one transaction for the fields, the subtree move, the events and the version.
-            var (ok, error) = await OutboxUnitOfWork.ExecuteAsync(_context, async ct =>
+            string? error = null;
+            try
             {
-                await _context.SaveChangesAsync(ct);
-                var (moved, moveError, affected) = await _pathService.MoveSubtreeAsync(orgUnit.Id, vm.ParentId, ct);
-                if (!moved)
-                    return (false, moveError);
+                await OutboxUnitOfWork.ExecuteAsync(_context, async ct =>
+                {
+                    await _context.SaveChangesAsync(ct);
+                    var (moved, moveError, affected) = await _pathService.MoveSubtreeAsync(orgUnit.Id, vm.ParentId, ct);
+                    if (!moved)
+                        throw new OrgUnitMoveRefusedException(moveError);
 
-                await _integration.PublishManyOrgUnitsChangedAsync(affected, ct);
-                await _context.SaveChangesAsync(ct);
-                await _context.Entry(orgUnit).ReloadAsync(ct);
-                await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, DateTime.UtcNow, cancellationToken: ct);
-                return (true, (string?)null);
-            });
-            if (!ok)
+                    await _integration.PublishManyOrgUnitsChangedAsync(affected, ct);
+                    await _context.SaveChangesAsync(ct);
+                    await _context.Entry(orgUnit).ReloadAsync(ct);
+                    await _versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, DateTime.UtcNow, cancellationToken: ct);
+                });
+            }
+            catch (OrgUnitMoveRefusedException refused)
+            {
+                // Rolled back: the fields saved before the move are gone too, so nothing changed without an event.
+                error = refused.Message;
+                _context.ChangeTracker.Clear();
+            }
+
+            if (error is not null)
             {
                 ModelState.AddModelError(nameof(vm.ParentId), error ?? "فشل نقل الوحدة");
                 await PopulateSelectListsAsync(vm);

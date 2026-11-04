@@ -39,6 +39,10 @@ public static class MessagingFaults
         if (exception is OperationCanceledException && context.CancellationToken.IsCancellationRequested)
             return true;
 
+        // The bus policy never retries these (ConfigureMessageRetry), whatever they wrap: rethrowing would reach _error with no fault.
+        if (exception is ArgumentException or UnauthorizedAccessException)
+            return false;
+
         return IsTransient(exception, context.CancellationToken) && context.GetRetryAttempt() < RetryCount(context);
     }
 

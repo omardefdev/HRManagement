@@ -114,11 +114,25 @@ public static class OpenTelemetryExtensions
                     return Results.Empty;
                 }
 
+                if (IsProxied(context.HttpContext.Request))
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return Results.Empty;
+                }
+
                 return await next(context);
             });
 
         return app;
     }
+
+    /// <summary>
+    /// PLAN-40: a request that came through the gateway carries the gateway's private address, so the address alone would
+    /// admit <c>/careers/metrics</c> (the anonymous careers route, whose path base HR.Core strips) from the internet. A
+    /// scrape goes straight to the service: no path base, no forwarded header.
+    /// </summary>
+    internal static bool IsProxied(HttpRequest request) =>
+        request.PathBase.HasValue || request.Headers.ContainsKey("X-Forwarded-For");
 
     private static bool IsInternalClient(IPAddress address)
     {

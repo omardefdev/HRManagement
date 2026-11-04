@@ -130,3 +130,51 @@ public sealed class Msg040ServiceTransactionHistoryTests
         Assert.Equal(before + 1, await db.ServiceTransactionStateHistories.CountAsync());
     }
 }
+
+/// <summary>
+/// PLAN-40 (review): a move refused inside the unit of work rolls back the fields saved before it, as the two org-unit
+/// controllers do it, so no state stays behind without its event.
+/// </summary>
+public sealed class Msg040OrgUnitMoveRollbackTests
+{
+    [Fact]
+    public async Task A_refused_move_leaves_the_unit_as_it_was_and_a_valid_one_joins_the_transaction()
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<HR.Core.Infrastructure.Data.HRCoreDbContext>().UseSqlite(connection).Options;
+        await using var db = new HR.Core.Infrastructure.Data.HRCoreDbContext(options);
+        await db.Database.EnsureCreatedAsync();
+        var parent = new HR.Core.Domain.Entities.OrgUnit { Code = "P", NameAr = "أصل", NameEn = "P" };
+        parent.MaterializedPath = $"/{parent.Id:D}/";
+        var child = new HR.Core.Domain.Entities.OrgUnit { Code = "C", NameAr = "فرع", NameEn = "C", ParentId = parent.Id };
+        child.MaterializedPath = $"{parent.MaterializedPath}{child.Id:D}/";
+        var other = new HR.Core.Domain.Entities.OrgUnit { Code = "O", NameAr = "آخر", NameEn = "O" };
+        other.MaterializedPath = $"/{other.Id:D}/";
+        db.OrgUnits.AddRange(parent, child, other);
+        await db.SaveChangesAsync();
+        var paths = new HR.Core.Infrastructure.OrgUnitPathService(db);
+
+        async Task MoveAsync(Guid unit, Guid target, string name)
+        {
+            await HRManagement.ServiceDefaults.Messaging.OutboxUnitOfWork.ExecuteAsync(db, async ct =>
+            {
+                (await db.OrgUnits.SingleAsync(u => u.Id == unit, ct)).NameAr = name;
+                await db.SaveChangesAsync(ct);
+                var (moved, error, _) = await paths.MoveSubtreeAsync(unit, target, ct);
+                if (!moved)
+                    throw new HR.Core.Infrastructure.OrgUnitMoveRefusedException(error);
+            });
+        }
+
+        await Assert.ThrowsAsync<HR.Core.Infrastructure.OrgUnitMoveRefusedException>(() => MoveAsync(parent.Id, child.Id, "اسم مرفوض"));
+        db.ChangeTracker.Clear();
+        Assert.Equal("أصل", (await db.OrgUnits.AsNoTracking().SingleAsync(u => u.Id == parent.Id)).NameAr);
+
+        await MoveAsync(child.Id, other.Id, "فرع منقول");
+        db.ChangeTracker.Clear();
+        var moved = await db.OrgUnits.AsNoTracking().SingleAsync(u => u.Id == child.Id);
+        Assert.Equal(other.Id, moved.ParentId);
+        Assert.Equal("فرع منقول", moved.NameAr);
+    }
+}

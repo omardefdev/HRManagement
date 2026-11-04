@@ -491,8 +491,12 @@ public class AcMsg40AtomicPublishingTests
             Assert.True(total == 0, $"{service}: {string.Join(" | ", lines)}");
         }
 
-        r.WriteScenarioDbChecks(new { samples });
-        r.WriteScenarioSteps("GET /metrics of the 13 outbox services after the scenarios: the counter exists (zero sample route=none) and sums to 0. " +
+        // Through the gateway the careers route is anonymous and HR.Core strips its path base: the scrape must not be reachable.
+        var proxied = await http.GetAsync("http://localhost:6200/careers/metrics");
+        Assert.Equal(HttpStatusCode.NotFound, proxied.StatusCode);
+
+        r.WriteScenarioDbChecks(new { samples, gatewayCareersMetrics = (int)proxied.StatusCode });
+        r.WriteScenarioSteps("GET /metrics of the 13 outbox services after the scenarios: the counter exists (zero sample route=none) and sums to 0; /careers/metrics through the gateway is 404. " +
                              "The negative case (a publish without a save fails the request) is Msg040UnsavedOutboxGuardIntegrationTests.");
         r.WriteResult("Pass");
     }

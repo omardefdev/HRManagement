@@ -150,6 +150,13 @@ public class OutboxPublishOrderingArchitectureTests
     }
 
     [Fact]
+    public void R1_sees_a_publish_through_a_nullable_endpoint()
+    {
+        var violations = Check("async Task Run() { await publish?.Publish<IThingHappened>(new { }); }");
+        Assert.Equal("R1", Assert.Single(violations).Rule);
+    }
+
+    [Fact]
     public void R1_treats_a_marked_method_as_a_publish_in_its_caller()
     {
         var violations = Check("""
@@ -499,6 +506,7 @@ internal static class OutboxPublishScanner
         var (receiver, simple) = call.Expression switch
         {
             MemberAccessExpressionSyntax access => (access.Expression.ToString(), access.Name),
+            MemberBindingExpressionSyntax binding => (call.FirstAncestorOrSelf<ConditionalAccessExpressionSyntax>()?.Expression.ToString() ?? string.Empty, binding.Name),
             SimpleNameSyntax bare => (string.Empty, bare),
             _ => (string.Empty, (SimpleNameSyntax?)null)
         };

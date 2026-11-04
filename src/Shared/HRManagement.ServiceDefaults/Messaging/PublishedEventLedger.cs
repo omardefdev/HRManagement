@@ -21,6 +21,7 @@ public static class PublishedEventLedger
     /// <summary>The row for <paramref name="aggregateId"/>: the event is committed with the save that writes it.</summary>
     public static EntityAuditLog Entry<TEvent>(Guid aggregateId, Guid? actor, string action = Published) => new()
     {
+        TenantId = TenantIdFlow.Get() ?? Guid.Empty,
         EntityType = EntityType<TEvent>(),
         EntityId = aggregateId,
         Action = action,
@@ -30,6 +31,7 @@ public static class PublishedEventLedger
     /// <summary>The audit of a non-dry run: who ran it, what kind, how many events.</summary>
     public static EntityAuditLog ReplayRun(string kind, int count, Guid? actor) => new()
     {
+        TenantId = TenantIdFlow.Get() ?? Guid.Empty,
         EntityType = ReplayRunEntityType,
         EntityId = Guid.NewGuid(),
         Action = Replayed,

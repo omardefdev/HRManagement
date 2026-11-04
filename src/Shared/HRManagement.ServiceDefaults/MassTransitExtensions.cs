@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -79,8 +80,8 @@ public static class MassTransitExtensions
 
                 ConfigureRetryPolicy(cfg, configuration);
 
-                // PLAN-40: with the consumer outbox every message in flight holds a transaction, so an endpoint stays below the
-                // connection pool of the service (Maximum Pool Size=10, PLAN-38), whatever a burst of messages does.
+                // PLAN-40: with the consumer outbox every message in flight holds a transaction, so one busy endpoint stays below the
+                // connection pool of the service (Maximum Pool Size=10, PLAN-38). The limit is per endpoint, not per service.
                 cfg.ConcurrentMessageLimit = configuration.GetValue("MassTransit:ConcurrentMessageLimit", DefaultConcurrentMessageLimit);
 
                 cfg.UseDelayedMessageScheduler();
@@ -136,6 +137,9 @@ public static class MassTransitExtensions
         configurator.AddEntityFrameworkOutbox<TDbContext>(o =>
         {
             o.QueryDelay = TimeSpan.FromSeconds(1);
+            // PLAN-40: the isolation consumers ran at under the inbox transaction. The default RepeatableRead turns two saga
+            // acknowledgements meeting on one row into serialization failures; the row locks serialize what matters.
+            o.IsolationLevel = IsolationLevel.ReadCommitted;
             o.UsePostgres();
             o.UseBusOutbox();
         });

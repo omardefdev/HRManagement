@@ -47,28 +47,38 @@ $targets = @(
 
 $results = @()
 $lost = 0
-foreach ($target in $targets) {
-    $url = '{0}/api/{1}/api/admin/messaging/{2}?dryRun={3}' -f $GatewayUrl.TrimEnd('/'), $target.Service, $target.Path, $dryRunValue
-    $response = Invoke-RestMethod -Method Post -Uri $url -Headers $headers -ContentType 'application/json' -Body '{}'
-    $count = [int]$response.count
-    if ($target.Replayable) { $lost += $count }
-    $results += [pscustomobject]@{
-        kind = [string]$response.kind
-        dryRun = [bool]$response.dryRun
-        count = $count
-        ids = @($response.ids | ForEach-Object { [string]$_ })
+$failure = $null
+try {
+    foreach ($target in $targets) {
+        $url = '{0}/api/{1}/api/admin/messaging/{2}?dryRun={3}' -f $GatewayUrl.TrimEnd('/'), $target.Service, $target.Path, $dryRunValue
+        $response = Invoke-RestMethod -Method Post -Uri $url -Headers $headers -ContentType 'application/json' -Body '{}'
+        $count = [int]$response.count
+        if ($target.Replayable) { $lost += $count }
+        $results += [pscustomobject]@{
+            kind = [string]$response.kind
+            dryRun = [bool]$response.dryRun
+            count = $count
+            ids = @($response.ids | ForEach-Object { [string]$_ })
+        }
+        Write-Host ('{0,-16} {1,6}  {2}' -f $response.kind, $count, $(if ($isDryRun) { 'would be published' } else { 'published' }))
     }
-    Write-Host ('{0,-16} {1,6}  {2}' -f $response.kind, $count, $(if ($isDryRun) { 'would be published' } else { 'published' }))
 }
-
-$report = [pscustomobject]@{
-    generatedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
-    gateway = $GatewayUrl
-    dryRun = $isDryRun
-    lostEvents = $lost
-    results = $results
+catch {
+    $failure = [string]$_.Exception.Message
+    throw
 }
+finally {
+    # Written even when a later target fails: with -Apply the earlier ones are already published.
+    $report = [pscustomobject]@{
+        generatedAtUtc = (Get-Date).ToUniversalTime().ToString('o')
+        gateway = $GatewayUrl
+        dryRun = $isDryRun
+        lostEvents = $lost
+        failure = $failure
+        results = $results
+    }
 
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ReportPath) | Out-Null
-[System.IO.File]::WriteAllText($ReportPath, ($report | ConvertTo-Json -Depth 5), (New-Object System.Text.UTF8Encoding($false)))
-Write-Host "Report: $ReportPath"
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ReportPath) | Out-Null
+    [System.IO.File]::WriteAllText($ReportPath, ($report | ConvertTo-Json -Depth 5), (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "Report: $ReportPath"
+}

@@ -61,20 +61,30 @@ public class OrgStructureApiController(
         if (parentChanged && beforeParent != orgUnit.ParentId)
         {
             // PLAN-40 (class B): one transaction for the fields, the subtree move, the events and the version.
-            var (ok, error) = await OutboxUnitOfWork.ExecuteAsync(db, async token =>
+            string? error = null;
+            try
             {
-                await db.SaveChangesAsync(token);
-                var (moved, moveError, affected) = await pathService.MoveSubtreeAsync(orgUnit.Id, orgUnit.ParentId, token);
-                if (!moved)
-                    return (false, moveError);
+                await OutboxUnitOfWork.ExecuteAsync(db, async token =>
+                {
+                    await db.SaveChangesAsync(token);
+                    var (moved, moveError, affected) = await pathService.MoveSubtreeAsync(orgUnit.Id, orgUnit.ParentId, token);
+                    if (!moved)
+                        throw new OrgUnitMoveRefusedException(moveError);
 
-                await integration.PublishManyOrgUnitsChangedAsync(affected, token);
-                await db.SaveChangesAsync(token);
-                await db.Entry(orgUnit).ReloadAsync(token);
-                await versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, effectiveFrom, cancellationToken: token);
-                return (true, (string?)null);
-            }, ct);
-            if (!ok) return BadRequest(new { error });
+                    await integration.PublishManyOrgUnitsChangedAsync(affected, token);
+                    await db.SaveChangesAsync(token);
+                    await db.Entry(orgUnit).ReloadAsync(token);
+                    await versionService.AppendVersionAsync(orgUnit, OrgOperationType.Move, effectiveFrom, cancellationToken: token);
+                }, ct);
+            }
+            catch (OrgUnitMoveRefusedException refused)
+            {
+                // Rolled back: the fields saved before the move are gone too, so nothing changed without an event.
+                error = refused.Message;
+                db.ChangeTracker.Clear();
+            }
+
+            if (error is not null) return BadRequest(new { error });
             hierarchyCache.InvalidateTenant(orgUnit.TenantId);
         }
         else
