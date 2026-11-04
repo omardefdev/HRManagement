@@ -1,6 +1,6 @@
 # Acceptance evidence summary (AC-01..AC-37)
 
-Generated: 2026-11-04 01:28:15 UTC
+Generated: 2026-11-04 02:44:07 UTC
 
 | AC | Status | Contract | Missing |
 |----|--------|----------|---------|
@@ -163,3 +163,32 @@ Generated: 2026-11-04 01:28:15 UTC
 - **AC-MSG-40** (40b): Pass (`d725566f-74c0-434a-aa08-48949cfd8839`)
 - **AC-MSG-40** (40g): Pass (`8cba9cf1-3a6f-42e5-b65e-fa68bded569f`)
 - **AC-MSG-40** (40h): Pass (`93f74a8f-4c34-40ef-9696-f7cae22c9603`)
+- **AC-HCM-29** (ac17): Pass (`69f9c5c8-0229-4c0d-99f9-ee7270cf8ec8`)
+- **AC-17**: Pass (`e3b74bb9-0c3e-4faa-9aa8-90a10aef6c10`)
+- **AC-16**: Pass (`2947ca3a-0ea8-467a-bf82-0ffe5a559084`)
+- **AC-18**: Pass (`69cc630e-ed7e-467d-9b33-c2e9cb77f370`)
+- **AC-HCM-29** (29e): Pass (`9d312091-1bf0-4eca-a989-eb33a9e23930`)
+- **AC-HCM-29** (29i): Pass (`4b015981-1abe-494f-aa23-bb9075cae1c8`)
+- **AC-HCM-29** (29a-h): Pass (`7fe2de2c-040e-49d7-8c54-f14b6bf293b2`)
+- **AC-MSG-40** (40e): Pass (`3254be19-a493-4279-b8fb-109c924a3579`)
+- **AC-MSG-40** (40c): Pass (`35b3d969-2d1a-475a-a533-2f5b2abe8969`)
+- **AC-MSG-40** (40d): Pass (`713492a3-df63-49b1-995e-0f8a8f883500`)
+- **AC-MSG-40** (40a): Pass (`4cb4b6d6-1f0d-4a83-99e5-a85d50a2f49d`)
+- **AC-MSG-40** (40b): Pass (`f2178361-dceb-4052-8b19-b54d81811356`)
+- **AC-MSG-40** (40g): Pass (`6344ce3e-c963-4691-8512-f39b6f11e259`)
+- **AC-MSG-40** (40h): Pass (`2227f89b-008c-443b-811e-5c640da40130`)
+- **AC-HCM-29** (ac17): Pass (`8d4abdb7-084d-4b57-b176-a363f4b67739`)
+- **AC-17**: Pass (`1181e92e-b24f-42ef-a9e5-cff79f4996b6`)
+- **AC-18**: Pass (`dcc8fed8-0931-408f-8b53-dc15d512d453`)
+- **AC-16**: Pass (`c99dcf82-1b39-4848-908a-3876c969b327`)
+- **AC-HCM-29** (29e): Pass (`13fc3ed6-1f99-4e49-92e9-2e7ddab51a2e`)
+- **AC-HCM-29** (29i): Pass (`99db7dd5-bbc6-4d7e-a3ce-cd5536e5987e`)
+- **AC-HCM-29** (29a-h): Pass (`95f06820-4d0f-4488-b261-a0b0307353cd`)
+- **AC-MSG-40** (40f): Pass (`d55f5026-4f70-4122-8b27-c4bb114f84c0`)
+- **AC-MSG-40** (40e): Pass (`ce7ba72a-e45d-4cdc-9c9e-f284926bae6d`)
+- **AC-MSG-40** (40c): Pass (`6eefacd2-0c92-4238-83c0-68496b55327a`)
+- **AC-MSG-40** (40d): Pass (`3467aff7-922f-4794-ab80-cba910d87f04`)
+- **AC-MSG-40** (40a): Pass (`0eacc660-3ec3-4a23-86cc-40c739cea9bf`)
+- **AC-MSG-40** (40b): Pass (`1e13cbd4-fe53-4122-b3c2-15b3ccb77f96`)
+- **AC-MSG-40** (40g): Pass (`5ffb9fc5-c201-4ddc-a3a2-7456ceac0b7e`)
+- **AC-MSG-40** (40h): Pass (`9dcfc5a9-a460-4548-987e-7df09fbedc58`)

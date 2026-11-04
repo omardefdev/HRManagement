@@ -1,15 +1,16 @@
 {
-    "generatedAtUtc":  "2026-11-04T01:27:20.9215182Z",
+    "generatedAtUtc":  "2026-11-04T02:43:35.3366550Z",
     "gateway":  "http://localhost:6200",
     "dryRun":  true,
     "lostEvents":  2,
+    "failure":  null,
     "results":  [
                     {
                         "kind":  "promotions",
                         "dryRun":  true,
                         "count":  1,
                         "ids":  [
-                                    "621dd6d2-c97d-499d-8cb8-a9f9b1cd6829"
+                                    "b23255bf-d7fd-434c-a94f-f97716b44c8d"
                                 ]
                     },
                     {
@@ -25,7 +26,7 @@
                         "dryRun":  true,
                         "count":  1,
                         "ids":  [
-                                    "5bb5e719-86e6-4ffa-be81-abd1dfeae486"
+                                    "c303d271-c9cd-45cf-aa8e-b67fa2275d8b"
                                 ]
                     },
                     {
