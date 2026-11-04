@@ -109,6 +109,24 @@ The artifact acceptance-evidence uploads only after the scan passed, from artifa
 CI-ACCEPTANCE-DISABLED closed. CiStepsParityTests: a narrow exception for GH_TOKEN of that step. timeout-minutes 180 until the first green run sets it.
 No GitHub change in this phase: ENABLE_ACCEPTANCE_JOB never existed as a variable.
 
-Local proof: actionlint pinned PASS, unit governance and dedupe subset green (299/299 in P4, same tree), scm001 validate PASS.
+Local proof: actionlint pinned PASS (no findings), unit governance and dedupe subset green (299/299 in P4, same tree), scripts/scm001-branch-protection-validate.ps1 OK.
 
 Finished (UTC): 2026-11-04T16:08:37Z (P5)
+
+## P6
+
+Resumed (UTC): 2026-11-04T16:09:08Z (continuing directly after P5)
+
+Docs: CI_AND_TESTING (job, scope file, owner's run, evidence contract), acceptance-plans/README (environment, passwords), GITHUB_CI_GOVERNANCE_RUNBOOK (required check, manual run), VERIFICATION-COMPLETION (no acceptance-live), PRG_001 status lines of G-QA-06 and G-QA-08, the plan's Status and deviations.
+
+Independent review (one fresh subagent, read-only, run while the local job ran): no high finding, so no refuter. Six medium, six low. All fixed with tests except where noted; the fixes rode in the P4 commit because the local proof ran on them:
+- M1 acceptance-verify exit swallowed under pwsh and script stale since before PLAN-26. Confirmed by running it: it would have stopped the first CI stack. Exit read; checks brought to the current seeds; pass on lab and prod-like (run 4).
+- M2 aborted test host left a class green: guard reads RunInfo, a missing trx fails the job (fixture aborted.trx).
+- M3 hang dump could reach the artifact: --blame-hang-dump-type none; the scan refuses .dmp and .core.
+- M4 classes could pass with nothing run, or stand as a branch's green check: unknown names fail; a narrowed run warns and is red outside main.
+- M5 merge dropped nested server evidence (AC-*/vps): nested folders with a result.json are copied.
+- M6 AC-QA-34 proven without 34h: provesClaim false, with the reason.
+- L1 unreadable result.json fails the guard. L2 -Committed requires a green pull_request or push run, and summary.md must carry the totals of the evidence. L5 AC-QA-35 accepts skipped jobs only when the heavy jobs were skipped together. L6 init-secrets exit read.
+- Left as they are: L3 (the summary does not read trx; required classes are safe because the guard does) and L4 (WriteResult fills the contract files; predates this plan). Both go to the final report.
+
+Finished (UTC): 2026-11-04T16:09:08Z (P6 commit; ci-local and pre-push results follow below in the next commit)
