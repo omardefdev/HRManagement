@@ -50,8 +50,15 @@ public sealed class Msg040ReplayIntegrationTests(PgRabbitFixture fixture)
 
         var promotion = new PromotionRequest
         {
-            TenantId = TenantId, EmployeeId = Guid.NewGuid(), FromGrade = 5, ToGrade = 4, FromStep = 3, ToStep = 1,
-            TransitionDecisionRef = "DEC-40", EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow), Status = PromotionRequestStatus.Executed
+            TenantId = TenantId,
+            EmployeeId = Guid.NewGuid(),
+            FromGrade = 5,
+            ToGrade = 4,
+            FromStep = 3,
+            ToStep = 1,
+            TransitionDecisionRef = "DEC-40",
+            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = PromotionRequestStatus.Executed
         };
         await using (var scope = provider.CreateAsyncScope())
         {
@@ -60,7 +67,10 @@ public sealed class Msg040ReplayIntegrationTests(PgRabbitFixture fixture)
             db.PromotionRequests.Add(promotion);
             db.MovementExecutionRecords.Add(new MovementExecutionRecord
             {
-                TenantId = TenantId, PromotionRequestId = promotion.Id, EmployeeId = promotion.EmployeeId, ExecutedAt = DateTime.UtcNow
+                TenantId = TenantId,
+                PromotionRequestId = promotion.Id,
+                EmployeeId = promotion.EmployeeId,
+                ExecutedAt = DateTime.UtcNow
             });
             await db.SaveChangesAsync();
         }

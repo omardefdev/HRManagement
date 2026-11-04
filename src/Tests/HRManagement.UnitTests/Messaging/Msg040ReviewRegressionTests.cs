@@ -36,8 +36,13 @@ public sealed class Msg040ReviewRegressionTests
         await using var db = new HRCoreDbContext(options, context);
         var employee = new Employee
         {
-            FirstName = "موظف", LastName = "اختبار", FullName = "موظف اختبار", NationalId = "N" + Guid.NewGuid().ToString("N")[..10],
-            BirthDate = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc), Gender = Gender.Male, CurrentStatus = EmploymentStatus.Active
+            FirstName = "موظف",
+            LastName = "اختبار",
+            FullName = "موظف اختبار",
+            NationalId = "N" + Guid.NewGuid().ToString("N")[..10],
+            BirthDate = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            Gender = Gender.Male,
+            CurrentStatus = EmploymentStatus.Active
         };
         db.Employees.Add(employee);
         Assert.Equal(Guid.Empty, employee.TenantId);

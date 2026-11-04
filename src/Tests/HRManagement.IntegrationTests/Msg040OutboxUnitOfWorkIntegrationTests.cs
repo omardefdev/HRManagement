@@ -35,7 +35,11 @@ public sealed class Msg040OutboxUnitOfWorkIntegrationTests(PgRabbitFixture fixtu
 
     private static IdempotencyRecord State(string key) => new()
     {
-        TenantId = TenantId, Key = key, RequestHash = "h", ResponseStatus = 200, ResponseBody = "{}"
+        TenantId = TenantId,
+        Key = key,
+        RequestHash = "h",
+        ResponseStatus = 200,
+        ResponseBody = "{}"
     };
 
     private async Task<(ServiceProvider Provider, IBusControl Bus, FailingSave Failure, DbContextOptions<PayrollDbContext> Options)> StartAsync()

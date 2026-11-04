@@ -32,8 +32,14 @@ public sealed class Msg040ReplayTests
     {
         PromotionRequest Executed() => new()
         {
-            EmployeeId = Guid.NewGuid(), FromGrade = 5, ToGrade = 4, FromStep = 3, ToStep = 1, TransitionDecisionRef = "DEC",
-            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow), Status = PromotionRequestStatus.Executed
+            EmployeeId = Guid.NewGuid(),
+            FromGrade = 5,
+            ToGrade = 4,
+            FromStep = 3,
+            ToStep = 1,
+            TransitionDecisionRef = "DEC",
+            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = PromotionRequestStatus.Executed
         };
 
         var lost = Executed();
@@ -102,8 +108,11 @@ public sealed class Msg040ReplayTests
         await using var db = new MovementsDbContext(probe.InMemoryOptions<MovementsDbContext>());
         var delegation = new DelegationRequest
         {
-            EmployeeId = Guid.NewGuid(), HostOrg = "Host", Status = DelegationRequestStatus.Active,
-            StartDate = DateOnly.FromDateTime(DateTime.UtcNow), EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30))
+            EmployeeId = Guid.NewGuid(),
+            HostOrg = "Host",
+            Status = DelegationRequestStatus.Active,
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30))
         };
         db.DelegationRequests.Add(delegation);
         db.MovementExecutionRecords.Add(new MovementExecutionRecord { DelegationRequestId = delegation.Id, EmployeeId = delegation.EmployeeId, ExecutedAt = DateTime.UtcNow });

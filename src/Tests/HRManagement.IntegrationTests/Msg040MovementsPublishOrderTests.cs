@@ -57,9 +57,15 @@ public sealed class Msg040MovementsPublishOrderTests
         await using var db = new MovementsDbContext(probe.InMemoryOptions<MovementsDbContext>());
         var promotion = new PromotionRequest
         {
-            EmployeeId = Guid.NewGuid(), FromGrade = 5, ToGrade = 4, FromStep = 3, ToStep = 1,
-            TransitionDecisionRef = "DEC-40", EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
-            Status = PromotionRequestStatus.Approved, TenantId = Tenant
+            EmployeeId = Guid.NewGuid(),
+            FromGrade = 5,
+            ToGrade = 4,
+            FromStep = 3,
+            ToStep = 1,
+            TransitionDecisionRef = "DEC-40",
+            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
+            Status = PromotionRequestStatus.Approved,
+            TenantId = Tenant
         };
         db.PromotionRequests.Add(promotion);
         AddGateSteps(db, MovementKind.Promotion, promotion.Id);
@@ -81,10 +87,12 @@ public sealed class Msg040MovementsPublishOrderTests
         await using var db = new MovementsDbContext(probe.InMemoryOptions<MovementsDbContext>());
         var delegation = new DelegationRequest
         {
-            EmployeeId = Guid.NewGuid(), HostOrg = "Host",
+            EmployeeId = Guid.NewGuid(),
+            HostOrg = "Host",
             StartDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
             EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
-            Status = DelegationRequestStatus.Approved, TenantId = Tenant
+            Status = DelegationRequestStatus.Approved,
+            TenantId = Tenant
         };
         db.DelegationRequests.Add(delegation);
         AddGateSteps(db, MovementKind.Delegation, delegation.Id);

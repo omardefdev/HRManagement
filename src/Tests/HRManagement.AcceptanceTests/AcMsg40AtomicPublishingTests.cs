@@ -170,8 +170,14 @@ public class AcMsg40AtomicPublishingTests
         var notes = await NoteOccurrencesAsync(employeeId, decisionRef);
         var checks = new
         {
-            promotionId, messageId, executeStatus = (int)execute.StatusCode, promotionStatus = status,
-            outboxRowsWritten = sequenceAfter - sequenceBefore, receipts, consumerReceiptsBefore, consumerReceiptsAfter,
+            promotionId,
+            messageId,
+            executeStatus = (int)execute.StatusCode,
+            promotionStatus = status,
+            outboxRowsWritten = sequenceAfter - sequenceBefore,
+            receipts,
+            consumerReceiptsBefore,
+            consumerReceiptsAfter,
             employmentNotes = notes,
         };
         r.WriteScenarioDbChecks(checks);
@@ -187,7 +193,10 @@ public class AcMsg40AtomicPublishingTests
             PromotionRequestId = promotionId,
             EmployeeId = employeeId,
             SourceLegalRegimeId = (string?)null,
-            FromGrade = 5, ToGrade = 4, FromStep = 3, ToStep = 1,
+            FromGrade = 5,
+            ToGrade = 4,
+            FromStep = 3,
+            ToStep = 1,
             TransitionDecisionRef = decisionRef,
             EffectiveDate = DateTime.UtcNow.Date.AddDays(-1),
             CorrelationId = Guid.NewGuid(),
@@ -368,8 +377,12 @@ public class AcMsg40AtomicPublishingTests
         using var maker = await AcceptanceHarness.CreateAuthorizedClientAsync(AcceptanceHarness.RequirePersona("a-contracts-maker"), Guid.NewGuid().ToString("D"), allowAutoRedirect: false);
         var created = await PostUiFormAsync(maker, "ui/hr-contracts/LeaveRequests/Create", "ui/hr-contracts/LeaveRequests/Create", new Dictionary<string, string>
         {
-            ["EmployeeId"] = employeeId.ToString("D"), ["LeaveType"] = "Annual", ["StartDate"] = day.ToString("yyyy-MM-dd"),
-            ["EndDate"] = day.AddDays(1).ToString("yyyy-MM-dd"), ["DurationDays"] = "2", ["Notes"] = "AC-MSG-40d"
+            ["EmployeeId"] = employeeId.ToString("D"),
+            ["LeaveType"] = "Annual",
+            ["StartDate"] = day.ToString("yyyy-MM-dd"),
+            ["EndDate"] = day.AddDays(1).ToString("yyyy-MM-dd"),
+            ["DurationDays"] = "2",
+            ["Notes"] = "AC-MSG-40d"
         });
         Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
         var leave = await SqlTextAsync("hr_contracts_db", $"SELECT \"Id\" FROM \"LeaveRequests\" WHERE \"EmployeeId\"='{employeeId:D}' ORDER BY \"CreatedAt\" DESC LIMIT 1;");
@@ -567,7 +580,12 @@ public class AcMsg40AtomicPublishingTests
 
         r.WriteScenarioDbChecks(new
         {
-            promotionId, instance, assignment, notes, assignmentStatus, audited,
+            promotionId,
+            instance,
+            assignment,
+            notes,
+            assignmentStatus,
+            audited,
             dryRun = dry.RootElement.GetProperty("lostEvents").GetInt32(),
             applied = applied.RootElement.GetProperty("lostEvents").GetInt32(),
             secondRun = second.RootElement.GetProperty("lostEvents").GetInt32()

@@ -303,7 +303,8 @@ public class AcHcm29HireContractTests
         {
             await s.Central.PostAsync($"{tag}-hire", "ui/hr-core/RecruitmentApplications/Hire", HirePage(appId), HireForm(appId, nationalId, req.OrgUnitId));
             Assert.Equal(AppHired, await AppStatusAsync(appId));
-        });
+        }
+        );
     }
 
     private static async Task<Session> StartAsync(string tag, string scenario)
