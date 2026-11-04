@@ -61,7 +61,7 @@ builder.Services.AddServiceMassTransit(
                 r.UsePostgres();
             });
     },
-    configureOutbox: x => x.AddPostgresOutbox<MovementsDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<MovementsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(HR.Movements.Infrastructure.Consumers.TransferExecutedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();

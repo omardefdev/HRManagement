@@ -40,6 +40,7 @@ builder.Services.AddScoped<HRManagement.SharedKernel.Interfaces.IDirectoryEntryS
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AuthDirectoryDbContext>());
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<AuthDirectoryDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -117,7 +118,13 @@ public static class MassTransitExtensions
         Assembly assembly) =>
         configurator.AddConsumers(assembly);
 
-    public static void AddPostgresOutbox<TDbContext>(this IBusRegistrationConfigurator configurator)
+    /// <summary>
+    /// The EF bus outbox of a service (web and background scopes). With <paramref name="consumerOutbox"/> every receive
+    /// endpoint also runs MassTransit's consumer outbox, sagas included (PLAN-40, D-40-1): what a consumer or saga publishes
+    /// is stored in the transaction that commits its work and sent after the commit, and the inbox receipt moves inside
+    /// that transaction (<see cref="InboxReceiptConsumeFilter{TDbContext,TMessage}"/>).
+    /// </summary>
+    public static void AddPostgresOutbox<TDbContext>(this IBusRegistrationConfigurator configurator, bool consumerOutbox = false)
         where TDbContext : DbContext
     {
         configurator.AddEntityFrameworkOutbox<TDbContext>(o =>
@@ -125,6 +132,20 @@ public static class MassTransitExtensions
             o.QueryDelay = TimeSpan.FromSeconds(1);
             o.UsePostgres();
             o.UseBusOutbox();
+        });
+
+        if (!consumerOutbox)
+            return;
+
+        configurator.AddSingleton(new ConsumerOutboxRegistration(typeof(TDbContext)));
+        configurator.AddConfigureEndpointsCallback((context, _, cfg) =>
+        {
+            cfg.UseEntityFrameworkOutbox<TDbContext>(context);
+
+            // Connected after the outbox, so the receipt filter runs inside it (pipe specifications apply in order).
+            var receipts = new InboxReceiptConfigurationObserver<TDbContext>();
+            cfg.ConnectConsumerConfigurationObserver(receipts);
+            cfg.ConnectSagaConfigurationObserver(receipts);
         });
     }
 

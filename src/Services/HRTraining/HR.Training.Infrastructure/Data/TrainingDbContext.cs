@@ -130,6 +130,7 @@ public class TrainingDbContext : TenantAwareDbContext
         });
 
         modelBuilder.ConfigureMassTransitOutbox();
+        modelBuilder.ConfigureIntegrationMessageReceipts();
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureTenantQueryFilters(this);
     }

@@ -56,6 +56,7 @@ public class AuthDirectoryDbContext : TenantAwareDbContext
         });
 
         modelBuilder.ConfigureIntegrationMessageReceipts();
+        modelBuilder.ConfigureMassTransitOutbox();
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureTenantQueryFilters(this);
     }

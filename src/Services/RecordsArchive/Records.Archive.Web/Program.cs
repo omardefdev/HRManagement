@@ -41,6 +41,7 @@ builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Records.Archive.Infrastructure.ExportJobs.IArchiveExportJobService, Records.Archive.Infrastructure.ExportJobs.ArchiveExportJobService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<ArchiveDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(SeparationCompletedConsumer).Assembly);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);

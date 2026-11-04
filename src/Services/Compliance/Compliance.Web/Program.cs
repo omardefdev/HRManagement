@@ -48,7 +48,7 @@ builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Compliance.Infrastructure.ExportJobs.IComplianceExportJobService, Compliance.Infrastructure.ExportJobs.ComplianceExportJobService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<ComplianceDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<ComplianceDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(MedicalRecommendationIssuedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();

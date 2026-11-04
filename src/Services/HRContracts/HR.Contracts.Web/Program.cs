@@ -77,7 +77,7 @@ builder.Services.AddServiceMassTransit(
                 r.UsePostgres();
             });
     },
-    configureOutbox: x => x.AddPostgresOutbox<ContractsDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<ContractsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);

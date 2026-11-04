@@ -42,6 +42,7 @@ builder.Services.AddDbContext<AdminLogisticsDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AdminLogisticsDbContext>());
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<AdminLogisticsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(SeparationCompletedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();

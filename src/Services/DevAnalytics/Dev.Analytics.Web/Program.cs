@@ -41,6 +41,7 @@ builder.Services.AddSingleton<Dev.Analytics.Application.Services.IReadModelRecon
 builder.Services.AddScoped<Dev.Analytics.Application.Services.ReadModelReconciliationService>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<AnalyticsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(PayrollProcessedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();

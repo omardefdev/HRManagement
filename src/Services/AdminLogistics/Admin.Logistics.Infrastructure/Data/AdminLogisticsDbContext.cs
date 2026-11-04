@@ -29,6 +29,7 @@ public class AdminLogisticsDbContext : TenantAwareDbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ConfigureIntegrationMessageReceipts();
+        modelBuilder.ConfigureMassTransitOutbox();
 
         modelBuilder.Entity<Asset>(entity =>
         {

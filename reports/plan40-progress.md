@@ -67,3 +67,17 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P3
 - status: in progress
+- P-1 first: Msg040OutboxOrderingIntegrationTests 8/8 on PostgreSQL + RabbitMQ BEFORE enabling any service (no "already an active transaction"; reply visible only after the commit;
+  failed commit: no message, no state, no receipt; duplicate: one effect, also after InboxState is deleted; failed attempt: retry runs; party business/DB/transient/success paths).
+- DEVIATION (plan §4 "stage the receipt before next.Send"): MassTransit's outbox commits a first transaction that only inserts InboxState, so a receipt staged before it would be committed before the consumer runs.
+  InboxReceiptConsumeFilter sits inside the outbox on the consumer and saga message pipes (connected after UseEntityFrameworkOutbox) and stages after the consumer; the bus-level InboxConsumeFilter passes through when ConsumerOutboxRegistration exists; its transaction stays for File.Storage (no outbox).
+- DEVIATION (D-40-6 detail): PartyAckFlow rolls the party back to a savepoint and clears the tracker before publishing the fault: plan says "commit with the receipt", but without it partial work would commit and a failed SQL statement would abort the outbox transaction. Payroll party consumers use the same flow.
+- Enabled service by service: consumerOutbox:true in 13 Program.cs; ConfigureMassTransitOutbox in the five; receipts in Training; Archive and Analytics export jobs are one save through their new outboxes.
+- DEVIATION (P-3 wording): ConfigureMassTransitOutbox now also calls AddInboxStateEntity (MassTransit's documented model): the 7 existing outbox contexts get MSG040_InboxStateKeys (index on Delivered only; the alternate key was already there through the OutboxMessage FK). Training gets it inside MSG040_IntegrationMessageReceipts, the five get MSG040_AddMassTransitOutbox.
+  build-ef-bundles.sh lists all 15 contexts, so the bundles pick them up. has-pending-model-changes: 13/13 none (59 s; needs a build first, --no-build reads the old dll).
+- RabbitDownOutboxTests (Chaos) fixed: own broker on a fixed port and the delivery hosted service started: 1/1 (baseline failure gone; it also no longer disturbs the shared fixture).
+- Tests: PartyAckConsumerBaseTests 8 (harness, real retry pipeline). Unit 4588/4588 (59 s). Integration 469 pass, 3 fail (Qa003Minio, CI-excluded ObjectStorage), 4 skip, incl. Ops038RabbitLeastPrivilegeTests (P-4; no new broker name expected: live check in P6/P7).
+- P3 Finished (UTC): 2026-11-04T00:01:45Z
+
+## P4
+- status: in progress

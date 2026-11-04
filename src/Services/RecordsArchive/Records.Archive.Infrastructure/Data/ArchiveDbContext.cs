@@ -96,6 +96,7 @@ public class ArchiveDbContext : TenantAwareDbContext
 
         modelBuilder.ConfigureExportJobs();
         modelBuilder.ConfigureIntegrationMessageReceipts();
+        modelBuilder.ConfigureMassTransitOutbox();
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureTenantQueryFilters(this);
     }

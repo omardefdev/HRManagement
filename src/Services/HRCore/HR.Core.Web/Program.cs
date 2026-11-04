@@ -267,7 +267,7 @@ builder.Services.AddScoped<HRManagement.ServiceDefaults.Tenancy.ITenantQuarantin
 builder.Services.AddScoped<HRManagement.ServiceDefaults.Tenancy.TenantQuarantineGuard>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<HRCoreDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<HRCoreDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(TrainingCompletedConsumer).Assembly);
 builder.Services.AddHrCoreExternalIntegrations(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);

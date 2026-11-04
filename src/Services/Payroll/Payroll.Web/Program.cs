@@ -117,7 +117,7 @@ builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddPayrollInfrastructure(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<PayrollDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<PayrollDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(ContractActivatedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();

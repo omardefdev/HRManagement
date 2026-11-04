@@ -38,7 +38,7 @@ builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<HealthDbContex
 builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<HealthDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<HealthDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
