@@ -23,6 +23,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTenantContext();
 builder.Services.AddHrFileUrlProvider(builder.Configuration);
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddScoped<HR.Movements.Infrastructure.Messaging.MovementsMessagingRepair>();
 builder.Services.AddSignalR();
 
 var movementsConn = builder.Configuration.GetConnectionString("MovementsDb");

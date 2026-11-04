@@ -1030,7 +1030,7 @@ public class PromotionRequestsController(
             MovementWorkflowRules.MarkStep(executedStep, by, $"promotion:{item.Id}:executed");
 
         // PLAN-40 (class A): published before the single save, so the event commits with the execution.
-        await MovementExecutedEvents.PublishPromotionExecutedAsync(publish, item);
+        await MovementExecutedEvents.PublishPromotionExecutedAsync(db, publish, item, by);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تنفيذ الترفيع ونشر الحدث";
         return RedirectToAction(nameof(Details), new { id });
@@ -1175,7 +1175,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
             MovementWorkflowRules.MarkStep(executedStep, by, $"delegation:{item.Id}:executed");
 
         // PLAN-40 (class A): published before the single save, so the event commits with the execution.
-        await MovementExecutedEvents.PublishDelegationExecutedAsync(publish, item);
+        await MovementExecutedEvents.PublishDelegationExecutedAsync(db, publish, item, by);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تنفيذ الندب ونشر الحدث";
         return RedirectToAction(nameof(Details), new { id });

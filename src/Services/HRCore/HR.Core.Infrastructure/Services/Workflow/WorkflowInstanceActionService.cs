@@ -116,7 +116,7 @@ public sealed class WorkflowInstanceActionService(
         {
             instance.CompletedAt = DateTime.UtcNow;
             // PLAN-40 (class A): the asset outcome is staged before the single save, so it commits with the instance.
-            await StageAssetOutcomeAsync(instance, approved: true);
+            await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
         }
 
         await context.SaveChangesAsync(ct);
@@ -166,7 +166,7 @@ public sealed class WorkflowInstanceActionService(
         }
 
         instance.CompletedAt = DateTime.UtcNow;
-        await StageAssetOutcomeAsync(instance, approved: false, reason: comments);
+        await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
         await context.SaveChangesAsync(ct);
 
         await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: ct);
@@ -180,12 +180,10 @@ public sealed class WorkflowInstanceActionService(
     /// (MessagingRepairController) is deduplicated by the consumer's inbox. Other entity types publish nothing here.
     /// </summary>
     [StagesOutboxMessages]
-    private async Task StageAssetOutcomeAsync(WorkflowInstance instance, bool approved, string? reason = null)
+    private async Task StageAssetOutcomeAsync(WorkflowInstance instance, bool approved, Guid? actor, string? reason = null)
     {
-        if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase))
-            await WorkflowAssetOutcomes.PublishAssignmentOutcomeAsync(publish, instance, approved, reason);
-        else if (string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
-            await WorkflowAssetOutcomes.PublishLossOutcomeAsync(publish, instance, approved, reason);
+        if (WorkflowAssetOutcomes.IsAssetWorkflow(instance))
+            await WorkflowAssetOutcomes.PublishOutcomeAsync(context, publish, instance, approved, reason, actor);
     }
 
     private async Task PublishWorkflowOutcomeAsync(
@@ -195,8 +193,7 @@ public sealed class WorkflowInstanceActionService(
         CancellationToken ct = default)
     {
         // The custody outcomes were staged with the instance's save (StageAssetOutcomeAsync).
-        if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
+        if (WorkflowAssetOutcomes.IsAssetWorkflow(instance))
             return;
 
         if (string.Equals(instance.EntityType, "RecruitmentRequisition", StringComparison.OrdinalIgnoreCase))

@@ -90,3 +90,12 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P5
 - status: in progress
+- MessagingRepairController in HR.Movements (replay/promotions, replay/delegations) and HR.Core (replay/asset-outcomes, resync/org-units), dry run unless dryRun=false; through OutboxUnitOfWork with deterministic ids; every apply writes a MessagingReplayRun row in EntityAuditLog (actor, kind, count).
+- DEVIATION (rule 1 "the receipt shows it"): the consumer receipts are in other databases, so the publisher cannot read them. PublishedEventLedger writes an append-only EntityAuditLog row with every replayable publish, in the same save as the OutboxMessage; lost = committed source without a ledger row. Post-fix executions are never listed; the second run lists zero; the deterministic id still stops a duplicate at the consumer.
+- DEVIATION (authorization): one policy Messaging.Repair = hr-admin or platform-admin (read "module admin policy + platform-admin" as either, since no persona holds both). The gateway module policies admit hr-admin, not platform-admin, so the script runs with a tenant hr-admin, once per tenant.
+- scripts/msg040-replay-lost-events.ps1 (ASCII, PS 5.1): -DryRun default, -Apply explicit; bearer or gateway cookie; reports/msg040-replay-<utc>.json ids and counts only.
+- Tests: Msg040ReplayTests 11 (dry run changes nothing; apply once with ledger and audit; second run zero; policy), Msg040ReplayIntegrationTests on a disposable database with real migrations (deterministic id stored).
+- P5 Finished (UTC): 2026-11-04T00:23:06Z
+
+## P6
+- status: in progress

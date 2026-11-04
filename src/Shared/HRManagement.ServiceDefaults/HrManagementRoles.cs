@@ -84,6 +84,9 @@ public static class HrManagementPolicies
     public const string HrCoreReadOnly = "HrCore.ReadOnly";
     public const string HrCoreWrite = "HrCore.Write";
     public const string HrCoreDelete = "HrCore.Delete";
+
+    /// <summary>PLAN-40: the replay of lost events (MessagingRepairController): an administrator or a platform operator.</summary>
+    public const string MessagingRepair = "Messaging.Repair";
     public const string HrCoreApprove = "HrCore.Approve";
 
     /// <summary>Cross-tenant quarantine reconciliation is restricted to platform operators.</summary>

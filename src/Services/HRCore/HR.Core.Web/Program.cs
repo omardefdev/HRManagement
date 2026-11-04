@@ -260,6 +260,7 @@ builder.Services.AddSingleton<HR.Core.Web.Services.CandidatePortalSession>();
 // HCM-030 (PLAN-30 I): /careers/my page and candidate actions (session tenant as the ambient tenant).
 builder.Services.AddScoped<HR.Core.Web.Services.CandidatePortalService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>();
+builder.Services.AddScoped<HR.Core.Infrastructure.Services.Workflow.HrCoreMessagingRepair>();
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<HR.Core.Infrastructure.ExportJobs.IHRCoreExportJobService, HR.Core.Infrastructure.ExportJobs.HRCoreExportJobService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Onboarding.AgencyOrgStructureProvisioner>();

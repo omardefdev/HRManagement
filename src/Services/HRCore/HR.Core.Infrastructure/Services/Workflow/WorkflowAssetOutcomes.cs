@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Infrastructure.Data;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
@@ -17,8 +18,42 @@ public static class WorkflowAssetOutcomes
     public const string AssignmentEntityType = "AssetAssignment";
     public const string LossEntityType = "AssetLossReport";
 
+    /// <summary>The ledger types of the four outcomes (<see cref="PublishedEventLedger"/>).</summary>
+    public static readonly IReadOnlyList<string> LedgerEntityTypes =
+    [
+        PublishedEventLedger.EntityType<IAssetAssignmentApproved>(),
+        PublishedEventLedger.EntityType<IAssetAssignmentRejected>(),
+        PublishedEventLedger.EntityType<IAssetLossApproved>(),
+        PublishedEventLedger.EntityType<IAssetLossRejected>()
+    ];
+
+    public static bool IsAssetWorkflow(WorkflowInstance instance) =>
+        string.Equals(instance.EntityType, AssignmentEntityType, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(instance.EntityType, LossEntityType, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Stages the outcome of an asset workflow and its ledger row; the caller's save writes both with the instance.</summary>
     [StagesOutboxMessages]
-    public static async Task PublishAssignmentOutcomeAsync(
+    public static async Task PublishOutcomeAsync(
+        HRCoreDbContext db, IPublishEndpoint publish, WorkflowInstance instance, bool approved, string? reason, Guid? actor,
+        string ledgerAction = PublishedEventLedger.Published, CancellationToken ct = default)
+    {
+        var assignment = string.Equals(instance.EntityType, AssignmentEntityType, StringComparison.OrdinalIgnoreCase);
+        if (assignment)
+            await PublishAssignmentOutcomeAsync(publish, instance, approved, reason, ct);
+        else
+            await PublishLossOutcomeAsync(publish, instance, approved, reason, ct);
+
+        db.AuditLogs.Add((assignment, approved) switch
+        {
+            (true, true) => PublishedEventLedger.Entry<IAssetAssignmentApproved>(instance.Id, actor, ledgerAction),
+            (true, false) => PublishedEventLedger.Entry<IAssetAssignmentRejected>(instance.Id, actor, ledgerAction),
+            (false, true) => PublishedEventLedger.Entry<IAssetLossApproved>(instance.Id, actor, ledgerAction),
+            (false, false) => PublishedEventLedger.Entry<IAssetLossRejected>(instance.Id, actor, ledgerAction)
+        });
+    }
+
+    [StagesOutboxMessages]
+    private static async Task PublishAssignmentOutcomeAsync(
         IPublishEndpoint publish, WorkflowInstance instance, bool approved, string? reason = null, CancellationToken ct = default)
     {
         var ctx = ParseAssignmentContext(instance.ContextJson);
@@ -49,7 +84,7 @@ public static class WorkflowAssetOutcomes
     }
 
     [StagesOutboxMessages]
-    public static async Task PublishLossOutcomeAsync(
+    private static async Task PublishLossOutcomeAsync(
         IPublishEndpoint publish, WorkflowInstance instance, bool approved, string? reason = null, CancellationToken ct = default)
     {
         var ctx = ParseLossContext(instance.ContextJson);
