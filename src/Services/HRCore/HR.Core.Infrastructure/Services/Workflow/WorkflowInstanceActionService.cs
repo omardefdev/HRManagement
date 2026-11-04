@@ -193,7 +193,8 @@ public sealed class WorkflowInstanceActionService(
         CancellationToken ct = default)
     {
         // The custody outcomes were staged with the instance's save (StageAssetOutcomeAsync).
-        if (WorkflowAssetOutcomes.IsAssetWorkflow(instance))
+        if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
             return;
 
         if (string.Equals(instance.EntityType, "RecruitmentRequisition", StringComparison.OrdinalIgnoreCase))
