@@ -119,16 +119,7 @@ public sealed class ProductionConfigurationGuard(
                 Fail(key, "غير مضبوط", "is not set");
         }
 
-        var secret = configuration["GatewayCallerProof:Secret"];
-        if (!string.IsNullOrWhiteSpace(secret)
-            && !IsPlaceholder(secret)
-            && secret.Trim().Length < ProductionConfigurationGuardOptions.MinimumCallerProofSecretLength)
-        {
-            Fail(
-                "GatewayCallerProof:Secret",
-                $"أقصر من {ProductionConfigurationGuardOptions.MinimumCallerProofSecretLength} حرفاً",
-                $"is shorter than {ProductionConfigurationGuardOptions.MinimumCallerProofSecretLength} characters");
-        }
+        EvaluateGatewayProofKeys(configuration, options, Fail);
 
         EvaluateCredentials(configuration, environment, Fail);
 
@@ -194,6 +185,30 @@ public sealed class ProductionConfigurationGuard(
             .ToList();
 
         return new ProductionConfigurationReport(failures, warnings);
+    }
+
+    /// <summary>
+    /// PLAN-42 (rule 4 of section 3): a present key must load as ECDSA P-256 (a missing one is a required key above), and a module
+    /// must not hold the private key: with it, a module could make the gateway's proof.
+    /// </summary>
+    private static void EvaluateGatewayProofKeys(
+        IConfiguration configuration,
+        ProductionConfigurationGuardOptions options,
+        Action<string, string, string> fail)
+    {
+        var key = options.SignsGatewayProof ? GatewayCallerProofOptions.PrivateKeyKey : GatewayCallerProofOptions.PublicKeyKey;
+        var value = configuration[key];
+        if (!string.IsNullOrWhiteSpace(value) && !IsPlaceholder(value))
+        {
+            var valid = options.SignsGatewayProof
+                ? GatewayProofKeyLoader.IsValidPrivate(value)
+                : GatewayProofKeyLoader.IsValidPublic(value);
+            if (!valid)
+                fail(key, "ليس مفتاح ECDSA P-256 صالحاً", "is not a valid ECDSA P-256 key");
+        }
+
+        if (!options.SignsGatewayProof && !string.IsNullOrWhiteSpace(configuration[GatewayCallerProofOptions.PrivateKeyKey]))
+            fail(GatewayCallerProofOptions.PrivateKeyKey, "موجود في وحدة، ومكانه البوابة وحدها", "is set on a module; it belongs on the gateway alone");
     }
 
     /// <summary>

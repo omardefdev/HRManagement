@@ -20,7 +20,7 @@ public class HrCoreLookupClientTests
                 "application/json")
         });
 
-        var client = new HrCoreLookupClient(new FixedClientFactory(handler), new ConfigurationBuilder().Build());
+        var client = new HrCoreLookupClient(new FixedClientFactory(handler));
         var items = await client.GetEmployeesByIdsAsync([employeeId]);
 
         var item = Assert.Single(items);
@@ -50,7 +50,7 @@ public class HrCoreLookupClientTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>())
             .Build();
-        var client = new HrCoreLookupClient(factory, config);
+        var client = new HrCoreLookupClient(factory);
 
         var ids = Enumerable.Range(0, 120).Select(_ => Guid.NewGuid()).ToList();
         var items = await client.GetEmployeesByIdsAsync(ids);
@@ -65,7 +65,7 @@ public class HrCoreLookupClientTests
         var handler = new CountingHandler(_ => throw new InvalidOperationException("Should not be called"));
         var factory = new FixedClientFactory(handler);
         var config = new ConfigurationBuilder().Build();
-        var client = new HrCoreLookupClient(factory, config);
+        var client = new HrCoreLookupClient(factory);
 
         var items = await client.GetEmployeesByIdsAsync([]);
 

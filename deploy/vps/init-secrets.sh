@@ -7,6 +7,8 @@
 # Required keys = every ${VAR:?} of the single-host compose chain + every key of deploy/vps/.env.vps.example + the role
 # and broker matrices (deploy/bootstrap/postgres-roles.conf, rabbitmq-users.json). For each missing or empty key:
 #   - a secret (name ends in PASSWORD, _PASS, SECRET, _KEY or TOKEN) is generated: 32 random bytes, base64url (openssl);
+#   - PLAN-42: GATEWAY_PROOF_PRIVATE_KEY_B64 and GATEWAY_PROOF_PUBLIC_KEY_B64 are one ECDSA P-256 pair, made together when both are
+#     missing (single-line base64 of the DER). One without the other is an error: the pair is replaced whole, by hand;
 #   - a non-secret takes the example's non-empty default (e.g. HRM_DEPLOYMENT_MODE=demo);
 #   - a non-secret without a default (APP_DOMAIN, SSO_DOMAIN, HRM_IMAGE_REPO) is REQUIRED, not generated: give it with
 #     --set KEY=VALUE (refused for secret names, so no secret is ever on a command line) or the run fails, writing nothing.
@@ -25,7 +27,7 @@ declare -A SET=()
 
 log() { printf '[init-secrets] %s\n' "$*"; }
 die() { printf '[init-secrets] ERROR: %s\n' "$*" >&2; exit 2; }
-is_secret() { case "$1" in *PASSWORD|*_PASS|*SECRET|*_KEY|*TOKEN) return 0;; *) return 1;; esac; }
+is_secret() { case "$1" in *PASSWORD|*_PASS|*SECRET|*_KEY|*_KEY_B64|*TOKEN) return 0;; *) return 1;; esac; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -71,7 +73,29 @@ example_default() { awk -v k="$1" -F= '$1==k { v=substr($0, length(k)+2) } END {
 
 declare -A NEW=()
 generated=() defaults=() set_keys=() empties=() missing=() kept=0
+
+# PLAN-42 (P-2): the pair is made here with openssl, in a private temporary directory, and never printed.
+PROOF_PRIVATE=GATEWAY_PROOF_PRIVATE_KEY_B64
+PROOF_PUBLIC=GATEWAY_PROOF_PUBLIC_KEY_B64
+if [ -z "$(current "$PROOF_PRIVATE")" ] && [ -z "$(current "$PROOF_PUBLIC")" ]; then
+  if [ "$CHECK" = "0" ]; then
+    proof_dir="$(mktemp -d)"
+    openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$proof_dir/key.pem" 2>/dev/null
+    NEW["$PROOF_PRIVATE"]="$(openssl pkey -in "$proof_dir/key.pem" -outform DER | base64 | tr -d '\n')"
+    NEW["$PROOF_PUBLIC"]="$(openssl pkey -in "$proof_dir/key.pem" -pubout -outform DER | base64 | tr -d '\n')"
+    proof_fingerprint="$(openssl pkey -in "$proof_dir/key.pem" -pubout -outform DER | sha256sum | cut -d' ' -f1)"
+    rm -rf "$proof_dir"
+    log "gateway proof public key sha256 $proof_fingerprint"
+  else
+    NEW["$PROOF_PRIVATE"]=""; NEW["$PROOF_PUBLIC"]=""
+  fi
+  generated+=("$PROOF_PRIVATE" "$PROOF_PUBLIC")
+elif [ -z "$(current "$PROOF_PRIVATE")" ] || [ -z "$(current "$PROOF_PUBLIC")" ]; then
+  die "the env file holds one key of the gateway proof pair: it is replaced whole, by hand"
+fi
+
 for k in $keys; do
+  case "$k" in "$PROOF_PRIVATE"|"$PROOF_PUBLIC") [ -n "$(current "$k")" ] && kept=$((kept + 1)); continue;; esac
   if [ -n "$(current "$k")" ]; then kept=$((kept + 1)); continue; fi
   if [ -n "${SET[$k]+x}" ]; then NEW["$k"]="${SET[$k]}"; set_keys+=("$k"); continue; fi
   if is_secret "$k"; then

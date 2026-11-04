@@ -12,8 +12,6 @@ public sealed class ProductionConfigurationGuardOptions
     /// <summary>Deployment mode; <c>demo</c> is the single-host demo profile (D-36-1).</summary>
     public const string DeploymentModeKey = "Deployment:Mode";
 
-    public const int MinimumCallerProofSecretLength = 32;
-
     /// <summary>PLAN-38 (D-38-2): broker posture of the deployment, <c>least-privilege</c> or <c>admin</c>.</summary>
     public const string MqPostureKey = "Deployment:MqPosture";
 
@@ -31,7 +29,7 @@ public sealed class ProductionConfigurationGuardOptions
     public List<string> CriticalKeys { get; } =
     [
         "AllowedHosts",
-        "GatewayCallerProof:Secret",
+        GatewayCallerProofOptions.PublicKeyKey,
         "Keycloak:Authority",
         "Organization:Name"
     ];
@@ -39,9 +37,25 @@ public sealed class ProductionConfigurationGuardOptions
     /// <summary>Critical keys that must also be present and non-empty.</summary>
     public List<string> RequiredKeys { get; } =
     [
-        "GatewayCallerProof:Secret",
+        GatewayCallerProofOptions.PublicKeyKey,
         "Keycloak:Authority"
     ];
+
+    /// <summary>
+    /// PLAN-42: the gateway holds the private key and every module the public key. Only the gateway sets this; a module with a
+    /// private key refuses to start, because that key is what makes a proof.
+    /// </summary>
+    public bool SignsGatewayProof { get; private set; }
+
+    public void UseGatewayProofSigner()
+    {
+        SignsGatewayProof = true;
+        foreach (var keys in new[] { CriticalKeys, RequiredKeys })
+        {
+            keys.Remove(GatewayCallerProofOptions.PublicKeyKey);
+            keys.Add(GatewayCallerProofOptions.PrivateKeyKey);
+        }
+    }
 
     /// <summary>
     /// File.Storage sets this: with <c>FileStorage:Provider=Minio</c> (its default) the MinIO keys must be real, since

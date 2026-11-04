@@ -628,14 +628,13 @@ public class Hcm030CandidateDocumentTests
             .Returns(() => new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://file-storage.test/") });
         return new CandidateDocumentUploadClient(
             factory.Object,
-            configuration ?? new ConfigurationBuilder().Build(),
             NullLogger<CandidateDocumentUploadClient>.Instance);
     }
 
     private static readonly PreparedCandidateFile CvFile = new(CandidateDocumentTypes.Cv, "cv.pdf", "application/pdf", Pdf());
 
     [Fact]
-    public async Task Client_posts_the_file_with_the_tenant_header_profile_and_caller_proof()
+    public async Task Client_posts_the_file_with_the_tenant_header_and_profile_and_no_proof()
     {
         var fileId = Guid.NewGuid();
         var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.Created)
@@ -655,8 +654,7 @@ public class Hcm030CandidateDocumentTests
         Assert.Equal(HttpMethod.Post, request.Method);
         Assert.Equal("http://file-storage.test/api/files/service-upload", request.RequestUri!.ToString());
         Assert.Equal(TenantA.ToString("D"), request.Headers.GetValues(TenantIdMiddleware.HeaderName).Single());
-        Assert.Equal("/api/files/service-upload", request.Headers.GetValues(GatewayCallerProof.PathHeader).Single());
-        Assert.True(request.Headers.Contains(GatewayCallerProof.ProofHeader));
+        Assert.False(request.Headers.Contains(GatewayCallerProof.ProofHeader)); // PLAN-42: a service token needs no proof
         Assert.Contains("name=constraintProfile", body);
         Assert.Contains("CandidateDocument", body);
         Assert.Contains("name=file; filename=cv.pdf", body);

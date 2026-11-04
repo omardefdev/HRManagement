@@ -4,7 +4,7 @@ x-acceptance-service: &acceptance-service
   Seed__Profile: Acceptance
   DataProtection__KeyRingPath: /var/hrm/dpkeys
   Keycloak__AdditionalValidIssuers: http://localhost:6388/realms/hrmanagement
-  GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
+  GatewayCallerProof__PublicKeyPem: ${ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64:?Acceptance gateway proof public key is required}
   # PLAN-37: the only wiring value an acceptance file may set is this secret, the one the acceptance realm sets on every
   # service client (never the .env SVC_* values). URLs, client ids and scopes come from the shared files
   # (deploy/wiring/service-wiring.json), so the acceptance stacks get exactly the production wiring.
@@ -250,7 +250,7 @@ services:
       DataProtection__KeyRingPath: /var/hrm/dpkeys
       HrAuth__BehindGateway: "false"
       Keycloak__PublicAuthority: http://localhost:6388/realms/hrmanagement
-      GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
+      GatewayCallerProof__PrivateKeyPem: ${ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64:?Acceptance gateway proof private key is required}
       RateLimiting__PermitLimitPerMinute: "2000"
     volumes: *acceptance-dp-volumes
     depends_on: *after-volume-init

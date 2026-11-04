@@ -30,7 +30,7 @@ $repoRoot = (Resolve-Path (Join-Path (Split-Path -Parent $MyInvocation.MyCommand
 $allowEmpty = @('ACME_EMAIL', 'ADMIN_ALLOWED_CIDRS', 'IMAGE_TAG')
 
 function Write-Log([string]$Message) { Write-Host "[init-secrets] $Message" }
-function Test-Secret([string]$Key) { return $Key -match '(PASSWORD|_PASS|SECRET|_KEY|TOKEN)$' }
+function Test-Secret([string]$Key) { return $Key -match '(PASSWORD|_PASS|SECRET|_KEY|_KEY_B64|TOKEN)$' }
 function Resolve-RepoPath([string]$Path) {
     if ([System.IO.Path]::IsPathRooted($Path)) { return $Path }
     return (Join-Path $repoRoot $Path)
@@ -107,8 +107,12 @@ if (Test-Path -LiteralPath $mq) {
 $current = Read-EnvValues $envPath
 $new = [ordered]@{}
 $generated = @(); $defaults = @(); $fromSet = @(); $empties = @(); $missing = @(); $kept = 0
+# PLAN-42 (P-2): the gateway proof pair is one ECDSA key, made together by scripts/s2s042-new-gateway-proof-keys.ps1 below.
+$proofPair = @('GATEWAY_PROOF_PRIVATE_KEY_B64', 'GATEWAY_PROOF_PUBLIC_KEY_B64')
+$proofMissing = $false
 foreach ($k in $keys) {
     if ($current.ContainsKey($k) -and $current[$k] -ne '') { $kept++; continue }
+    if ($proofPair -contains $k) { $proofMissing = $true; continue }
     if ($setValues.ContainsKey($k)) { $new[$k] = $setValues[$k]; $fromSet += $k; continue }
     if (Test-Secret $k) { $new[$k] = New-Secret; $generated += $k; continue }
     if ($exampleValues.ContainsKey($k) -and $exampleValues[$k] -ne '') { $new[$k] = $exampleValues[$k]; $defaults += $k; continue }
@@ -121,8 +125,8 @@ if ($missing.Count -gt 0) {
     exit 2
 }
 if ($Check) {
-    if ($new.Count -eq 0) { Write-Log "check: all $($keys.Count) keys present (values not shown)"; exit 0 }
-    Write-Log "check: missing: $(@($new.Keys) -join ' ')"; exit 1
+    if ($new.Count -eq 0 -and -not $proofMissing) { Write-Log "check: all $($keys.Count) keys present (values not shown)"; exit 0 }
+    Write-Log "check: missing: $(@($new.Keys) -join ' ') $(if ($proofMissing) { $proofPair -join ' ' })"; exit 1
 }
 
 if ($new.Count -gt 0) {
@@ -139,6 +143,11 @@ if ($new.Count -gt 0) {
     # LF line endings and no BOM: docker compose would otherwise keep a trailing CR in every value.
     $text = ($out -join "`n") + "`n"
     [System.IO.File]::WriteAllText($envPath, $text, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+if ($proofMissing) {
+    & (Join-Path (Split-Path -Parent $PSScriptRoot) 's2s042-new-gateway-proof-keys.ps1') -EnvFile $envPath -RepoRoot (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    $generated += $proofPair
 }
 
 Write-Log "env file ${envPath}: $kept key(s) kept unchanged"

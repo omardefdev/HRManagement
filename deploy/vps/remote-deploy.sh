@@ -57,10 +57,8 @@ check_env() {
   local len
   len="$(env_value DEMO_USERS_PASSWORD | wc -c)"
   [ "$len" -ge 16 ] || die "DEMO_USERS_PASSWORD must be at least 16 characters"
-  for key in GATEWAY_CALLER_PROOF_SECRET HR_CORE_OTP_HMAC_KEY; do
-    len="$(env_value "$key" | wc -c)"
-    [ "$len" -ge 32 ] || die "$key must be at least 32 characters"
-  done
+  len="$(env_value HR_CORE_OTP_HMAC_KEY | wc -c)"
+  [ "$len" -ge 32 ] || die "HR_CORE_OTP_HMAC_KEY must be at least 32 characters"
   case "$(env_value IMAGE_TAG)" in latest|*:latest) die "IMAGE_TAG=latest is refused";; esac
   # PLAN-38 (D-38-1): the database posture. demo = the applications use the PostgreSQL administrator (vps-demo file);
   # least-privilege = the *_app roles of the production file. Demo mode with least-privilege needs wave 2 (OPS-D:

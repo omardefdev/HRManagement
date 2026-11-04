@@ -13,16 +13,17 @@ public static class ServiceCallerPrincipal
         if (user?.Identity?.IsAuthenticated != true)
             return false;
 
+        // PLAN-42: azp is set by Keycloak and decides when present. A signed-in user carries azp=hr-gateway-client, so a user who
+        // is merely named service-account-x is not a service, and the gateway proof check can rely on this answer.
+        var azp = user.FindFirst("azp")?.Value ?? user.FindFirst("client_id")?.Value;
+        if (!string.IsNullOrWhiteSpace(azp))
+            return ServiceClientIds.All.Contains(azp, StringComparer.OrdinalIgnoreCase);
+
         // Keycloak service accounts typically have preferred_username like "service-account-svc-payroll"
         var preferred = user.FindFirst("preferred_username")?.Value
             ?? user.Identity?.Name;
-        if (!string.IsNullOrWhiteSpace(preferred)
-            && preferred.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        var azp = user.FindFirst("azp")?.Value ?? user.FindFirst("client_id")?.Value;
-        return !string.IsNullOrWhiteSpace(azp)
-            && ServiceClientIds.All.Contains(azp, StringComparer.OrdinalIgnoreCase);
+        return !string.IsNullOrWhiteSpace(preferred)
+            && preferred.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase);
     }
 
     public static string? GetClientId(ClaimsPrincipal? user)

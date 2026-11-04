@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace HRManagement.ServiceDefaults.Integration;
 
 /// <summary>SYR-008: S2S client for HR.Core active service regime lookup.</summary>
-public sealed class HrCoreActiveRegimeClient(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+public sealed class HrCoreActiveRegimeClient(IHttpClientFactory httpClientFactory)
     : IHrCoreActiveRegimeClient
 {
     public const string HttpClientName = "HrCoreActiveRegime";
@@ -27,7 +27,6 @@ public sealed class HrCoreActiveRegimeClient(IHttpClientFactory httpClientFactor
         {
             Content = JsonContent.Create(new ActiveRegimesRequest(employeeIds))
         };
-        GatewayCallerProof.Sign(request, configuration, "/" + relativePath);
 
         using var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();

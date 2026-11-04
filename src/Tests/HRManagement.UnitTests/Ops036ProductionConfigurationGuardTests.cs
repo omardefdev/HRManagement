@@ -10,12 +10,10 @@ namespace HRManagement.UnitTests;
 /// <summary>PLAN-36 §5: the production configuration guard names the failing key and never prints a value.</summary>
 public class Ops036ProductionConfigurationGuardTests
 {
-    private const string GoodSecret = "lab-only-caller-proof-secret-0123456789abcdef";
-
     private static Dictionary<string, string?> ValidModule() => new()
     {
         ["AllowedHosts"] = "*",
-        ["GatewayCallerProof:Secret"] = GoodSecret,
+        ["GatewayCallerProof:PublicKeyPem"] = TestProofKeys.PublicKey,
         ["Keycloak:Authority"] = "http://keycloak:8080/realms/hrmanagement",
         ["Organization:Name"] = "شعبة التنظيم والموارد البشرية"
     };
@@ -48,7 +46,7 @@ public class Ops036ProductionConfigurationGuardTests
 
     [Theory]
     [InlineData("AllowedHosts", "YOUR_MODULE_HOST")]
-    [InlineData("GatewayCallerProof:Secret", "USE_ENV_OR_SECRET_MANAGER")]
+    [InlineData("GatewayCallerProof:PublicKeyPem", "USE_ENV_OR_SECRET_MANAGER")]
     [InlineData("Keycloak:Authority", "https://YOUR_KEYCLOAK_HOST/realms/hrmanagement")]
     [InlineData("Organization:Name", "CHANGE_ME")]
     public void Placeholder_in_a_critical_key_fails_and_names_the_key(string key, string placeholder)
@@ -112,21 +110,20 @@ public class Ops036ProductionConfigurationGuardTests
     public async Task Failure_message_is_bilingual_names_the_key_and_never_prints_the_secret()
     {
         var values = ValidModule();
-        const string shortSecret = "short-0123";
-        values["GatewayCallerProof:Secret"] = shortSecret;
+        const string brokenKey = "short-0123";
+        values["GatewayCallerProof:PublicKeyPem"] = brokenKey;
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => CreateGuard(values, "Production").StartAsync(CancellationToken.None));
 
-        Assert.Contains("GatewayCallerProof:Secret", ex.Message);
-        Assert.Contains("32", ex.Message);
+        Assert.Contains("GatewayCallerProof:PublicKeyPem", ex.Message);
         Assert.Contains("لن تبدأ الخدمة", ex.Message);
         Assert.Contains("will not start", ex.Message);
-        Assert.DoesNotContain(shortSecret, ex.Message);
+        Assert.DoesNotContain(brokenKey, ex.Message);
     }
 
     [Theory]
-    [InlineData("GatewayCallerProof:Secret")]
+    [InlineData("GatewayCallerProof:PublicKeyPem")]
     [InlineData("Keycloak:Authority")]
     public void Missing_required_key_fails(string key)
     {
@@ -139,14 +136,17 @@ public class Ops036ProductionConfigurationGuardTests
     }
 
     [Fact]
-    public void Caller_proof_secret_of_exactly_32_characters_passes()
+    public void A_public_key_that_does_not_load_fails_and_a_key_on_a_module_side_private_setting_fails()
     {
         var values = ValidModule();
-        values["GatewayCallerProof:Secret"] = new string('x', 32);
         Assert.True(Evaluate(values).IsValid);
 
-        values["GatewayCallerProof:Secret"] = new string('x', 31);
-        Assert.Contains(Evaluate(values).Failures, f => f.Key == "GatewayCallerProof:Secret");
+        values["GatewayCallerProof:PublicKeyPem"] = new string('x', 32);
+        Assert.Contains(Evaluate(values).Failures, f => f.Key == "GatewayCallerProof:PublicKeyPem");
+
+        values = ValidModule();
+        values["GatewayCallerProof:PrivateKeyPem"] = TestProofKeys.PrivateKey;
+        Assert.Contains(Evaluate(values).Failures, f => f.Key == "GatewayCallerProof:PrivateKeyPem");
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public class Ops036ProductionConfigurationGuardTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["AllowedHosts"] = "YOUR_MODULE_HOST",
-                ["GatewayCallerProof:Secret"] = "USE_ENV_OR_SECRET_MANAGER",
+                ["GatewayCallerProof:PublicKeyPem"] = "USE_ENV_OR_SECRET_MANAGER",
                 ["Keycloak:Authority"] = "https://YOUR_KEYCLOAK_HOST/realms/hrmanagement"
             })
             .AddInMemoryCollection(ValidModule())

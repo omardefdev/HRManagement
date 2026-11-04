@@ -65,12 +65,12 @@ public class AcOps39KeycloakDataProtectionTests
         return values;
     }
 
-    private static string CallerProofSecret()
+    private static string GatewayProofKey(string property)
     {
-        var path = Path.Combine(Root, ".acceptance", "credentials.json");
+        var path = Path.Combine(Root, ".acceptance", "gateway-proof-keys.json");
         if (!File.Exists(path)) return "";
         using var doc = JsonDocument.Parse(File.ReadAllText(path));
-        return doc.RootElement.TryGetProperty("gatewayCallerProofSecret", out var s) ? s.GetString() ?? "" : "";
+        return doc.RootElement.TryGetProperty(property, out var s) ? s.GetString() ?? "" : "";
     }
 
     private static async Task<(int ExitCode, string Output)> RunAsync(string exe, string? stdin, TimeSpan? timeout, params string[] args)
@@ -86,8 +86,9 @@ public class AcOps39KeycloakDataProtectionTests
             WorkingDirectory = Root,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
-        // The acceptance compose files need the lab caller-proof secret (as acceptance-local-env.ps1 sets it).
-        psi.Environment["ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET"] = CallerProofSecret();
+        // The acceptance compose files need the gateway proof pair (as acceptance-local-env.ps1 sets it).
+        psi.Environment["ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64"] = GatewayProofKey("privateKeyB64");
+        psi.Environment["ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64"] = GatewayProofKey("publicKeyB64");
         psi.Environment["ACCEPTANCE_SVC_CLIENT_SECRET"] = LabServiceSecret;
         using var p = Process.Start(psi)!;
         if (stdin is not null)

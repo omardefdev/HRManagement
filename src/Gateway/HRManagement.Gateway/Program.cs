@@ -57,6 +57,8 @@ builder.AddHrProductionNetworking();
 builder.Services.Configure<ProductionConfigurationGuardOptions>(options =>
 {
     // PLAN-36: the gateway signs in browsers, so its public authority and client secret are critical too.
+    // PLAN-42: and it alone makes the proof.
+    options.UseGatewayProofSigner();
     options.CriticalKeys.Add("Keycloak:PublicAuthority");
     options.CriticalKeys.Add("Keycloak:ClientSecret");
     options.RequiredKeys.Add("Keycloak:PublicAuthority");
@@ -128,7 +130,8 @@ builder.Services.AddHttpClient("hr-core-journey", client =>
 {
     client.BaseAddress = new Uri(gatewayEndpoints.HrCoreBaseUrl + "/");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+}).AddHttpMessageHandler<GatewayProofSigningHandler>();
+builder.Services.AddTransient<GatewayProofSigningHandler>();
 builder.Services.AddSingleton<GatewayRequestMetricsStore>();
 builder.Services.AddSingleton<EvidenceImmutabilityInterceptor>();
 builder.Services.AddDbContext<GatewayAuditDbContext>((sp, options) =>

@@ -6,6 +6,8 @@ using HRManagement.SharedKernel.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Net.Http.Headers;
 
 namespace HRManagement.Gateway.Controllers;
@@ -77,7 +79,12 @@ public class HomeController(
             var accessToken = await HttpContext.GetTokenAsync("access_token");
             if (!string.IsNullOrWhiteSpace(accessToken))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            GatewayCallerProof.Sign(request, configuration);
+            GatewayProofSigningHandler.Sign(
+                request,
+                HttpContext.RequestServices.GetRequiredService<GatewayProofKeys>(),
+                configuration,
+                HttpContext.RequestServices.GetRequiredService<IHostEnvironment>(),
+                request.RequestUri?.PathAndQuery ?? "/");
             using var response = await client.SendAsync(request, ct);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(cancellationToken: ct);

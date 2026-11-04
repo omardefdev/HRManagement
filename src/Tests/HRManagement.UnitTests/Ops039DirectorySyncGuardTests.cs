@@ -15,7 +15,7 @@ public class Ops039DirectorySyncGuardTests
     private static Dictionary<string, string?> AuthDirectory() => new()
     {
         ["AllowedHosts"] = "*",
-        ["GatewayCallerProof:Secret"] = "lab-only-caller-proof-secret-0123456789abcdef",
+        ["GatewayCallerProof:PublicKeyPem"] = TestProofKeys.PublicKey,
         ["Keycloak:Authority"] = "http://keycloak:8080/realms/hrmanagement",
         ["ConnectionStrings:AuthDirectoryDb"] = "Host=postgresql;Database=auth_directory_db;Username=auth_directory_app;Password=lab-only-0123",
         ["ServiceIdentity:ClientId"] = "svc-auth-directory",

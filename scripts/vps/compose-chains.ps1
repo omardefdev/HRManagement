@@ -43,7 +43,8 @@ function New-LintEnvFile([string]$Path) {
         HRM_IMAGE_REPO                   = 'registry.lint.test/hrmanagement'
         GITHUB_REPOSITORY_OWNER          = 'lintowner'
         IMAGE_TAG                        = '0123456789ab'
-        GATEWAY_CALLER_PROOF_SECRET      = 'lint-only-caller-proof-secret-0123456789abcdef'
+        GATEWAY_PROOF_PRIVATE_KEY_B64    = 'lint-only-gateway-proof-private-key'
+        GATEWAY_PROOF_PUBLIC_KEY_B64     = 'lint-only-gateway-proof-public-key'
         DEMO_USERS_PASSWORD              = 'lint-only-demo-password-0123'
         HRM_DEPLOYMENT_MODE              = 'demo'
         COMPOSE_PROFILES                 = 'full-stack'
@@ -57,7 +58,7 @@ function New-LintEnvFile([string]$Path) {
     }
     foreach ($k in $fixed.Keys) { $values[$k] = $fixed[$k] }
     foreach ($k in @('POSTGRES_PASSWORD', 'RABBITMQ_DEFAULT_PASS', 'KEYCLOAK_ADMIN_PASSWORD', 'KEYCLOAK_HR_GATEWAY_CLIENT_SECRET',
-            'KEYCLOAK_DIRECTORY_SYNC_SECRET', 'HR_CORE_OTP_HMAC_KEY', 'ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET', 'ACCEPTANCE_SVC_CLIENT_SECRET')) {
+            'KEYCLOAK_DIRECTORY_SYNC_SECRET', 'HR_CORE_OTP_HMAC_KEY', 'ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64', 'ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64', 'ACCEPTANCE_SVC_CLIENT_SECRET')) {
         if (-not $values.Contains($k)) { $values[$k] = 'lint-only-' + $k.ToLowerInvariant().Replace('_', '-') }
     }
     foreach ($svc in @('ADMIN_LOGISTICS', 'AUTH_DIRECTORY', 'COMPLIANCE', 'DEV_ANALYTICS', 'HR_CONTRACTS', 'HR_CORE', 'HR_HEALTH', 'HR_MOVEMENTS',

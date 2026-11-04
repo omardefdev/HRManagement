@@ -150,6 +150,9 @@ if ($Local) {
     $localHome = Join-Path $artifacts 'local-home'
     New-Item -ItemType Directory -Force -Path (Join-Path $localHome 'releases'), (Join-Path $localHome 'shared') | Out-Null
     Copy-Item $EnvFile (Join-Path $localHome 'shared\.env') -Force
+    # PLAN-42: no key is ever tracked, so the working copy gets a fresh pair of the gateway proof.
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\s2s042-new-gateway-proof-keys.ps1') -EnvFile (Join-Path $localHome 'shared\.env') -RepoRoot $repoRoot
+    if ($LASTEXITCODE -ne 0) { throw 's2s042-new-gateway-proof-keys.ps1 failed' }
     $bash = Get-GitBash
     $envVars = @{ HRM_HOME = $localHome.Replace('\', '/'); HRM_PROJECT = 'hrm-vps-local'; HRM_EXTRA_COMPOSE_FILES = 'docker-compose.vps-local.yml' }
 

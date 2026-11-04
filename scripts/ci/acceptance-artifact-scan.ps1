@@ -23,11 +23,12 @@ $values = New-Object System.Collections.Generic.HashSet[string]
 $credentials = Read-AcceptanceJson -Path (Resolve-ScanPath $CredentialsFile)
 if ($null -ne $credentials) {
     foreach ($property in $credentials.passwords.PSObject.Properties) { [void]$values.Add([string]$property.Value) }
-    $proof = Get-AcceptanceProperty $credentials "gatewayCallerProofSecret"
-    if ($proof) { [void]$values.Add([string]$proof) }
     $serviceSecret = Get-AcceptanceProperty $credentials "serviceClientSecret"
     if ($serviceSecret) { [void]$values.Add([string]$serviceSecret) }
 }
+# PLAN-42: the private key of the gateway proof must never reach an artifact.
+$proofKeys = Read-AcceptanceJson -Path (Resolve-ScanPath ".acceptance/gateway-proof-keys.json")
+if ($null -ne $proofKeys) { [void]$values.Add([string]$proofKeys.privateKeyB64) }
 $envPath = Resolve-ScanPath $LeastPrivEnv
 if (Test-Path -LiteralPath $envPath) {
     foreach ($line in [System.IO.File]::ReadAllLines($envPath)) {

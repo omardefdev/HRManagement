@@ -36,7 +36,8 @@ public class Sec004SecretRotationTests
         Assert.Contains("GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD required", Read("docker-compose.observability.production.yml"));
         Assert.Contains("RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS required", prod);
         Assert.Contains("KEYCLOAK_HR_GATEWAY_CLIENT_SECRET:?KEYCLOAK_HR_GATEWAY_CLIENT_SECRET required", prod);
-        Assert.Contains("GATEWAY_CALLER_PROOF_SECRET:?GATEWAY_CALLER_PROOF_SECRET required", prod);
+        Assert.Contains("GATEWAY_PROOF_PUBLIC_KEY_B64:?GATEWAY_PROOF_PUBLIC_KEY_B64 required", prod);
+        Assert.Contains("GATEWAY_PROOF_PRIVATE_KEY_B64:?GATEWAY_PROOF_PRIVATE_KEY_B64 required", prod);
 
         // PLAN-36 (D-36-3): MinIO is optional (profile minio). Compose interpolates inactive services, so its
         // credentials cannot be ":?" without forcing unused secrets on every Local-provider host. They stay

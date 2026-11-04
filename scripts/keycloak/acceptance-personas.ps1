@@ -78,7 +78,6 @@ function Get-AcceptancePersonaUsers {
     }
 
     $passwords = [ordered]@{}
-    $gatewayCallerProofSecret = ""
     $serviceClientSecret = ""
     $localDir = Join-Path $RepoRoot ".acceptance"
     $credentialsPath = Join-Path $localDir "credentials.json"
@@ -87,10 +86,8 @@ function Get-AcceptancePersonaUsers {
         if ((Test-Path $credentialsPath) -and -not $Rotate) {
             $existing = [System.IO.File]::ReadAllText($credentialsPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
             foreach ($property in $existing.passwords.PSObject.Properties) { $passwords[$property.Name] = [string]$property.Value }
-            if ($null -ne $existing.PSObject.Properties["gatewayCallerProofSecret"]) { $gatewayCallerProofSecret = [string]$existing.gatewayCallerProofSecret }
             if ($null -ne $existing.PSObject.Properties["serviceClientSecret"]) { $serviceClientSecret = [string]$existing.serviceClientSecret }
         }
-        if ($Rotate -or [string]::IsNullOrWhiteSpace($gatewayCallerProofSecret)) { $gatewayCallerProofSecret = New-AcceptancePassword }
         # PLAN-42 (P-6): the svc-* clients of the acceptance realm. Generated here, never in the repository.
         if ($Rotate -or [string]::IsNullOrWhiteSpace($serviceClientSecret)) { $serviceClientSecret = New-AcceptancePassword }
     }
@@ -153,7 +150,6 @@ function Get-AcceptancePersonaUsers {
         $state = [ordered]@{
             schemaVersion            = "acceptance-v2"
             generatedAtUtc           = [DateTime]::UtcNow.ToString("O")
-            gatewayCallerProofSecret = $gatewayCallerProofSecret
             serviceClientSecret      = $serviceClientSecret
             passwords                = $passwords
         }

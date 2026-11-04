@@ -210,7 +210,7 @@ function Use-Stack {
             "leastpriv" {
                 # As PLAN-38: the developer .env, the caller-proof secret, then every role and broker password generated here.
                 Import-StackEnvironment
-                $lines = @(Get-Content -LiteralPath (Join-Path $RepoRoot ".env")) + "ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET=$env:ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET" + "ACCEPTANCE_SVC_CLIENT_SECRET=$env:ACCEPTANCE_SVC_CLIENT_SECRET"
+                $lines = @(Get-Content -LiteralPath (Join-Path $RepoRoot ".env")) + "ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64=$env:ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64" + "ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64=$env:ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64" + "ACCEPTANCE_SVC_CLIENT_SECRET=$env:ACCEPTANCE_SVC_CLIENT_SECRET"
                 [System.IO.File]::WriteAllText((Join-Path $RepoRoot ".env.leastpriv"), (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
                 $global:LASTEXITCODE = 0
                 & (Join-Path (Join-Path $scripts "vps") "init-secrets.ps1") -EnvFile ".env.leastpriv" -Example "" -ComposeFile $leastPrivFiles

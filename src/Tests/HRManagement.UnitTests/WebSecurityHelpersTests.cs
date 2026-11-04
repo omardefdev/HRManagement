@@ -48,7 +48,7 @@ public class WebSecurityHelpersTests
             .Build();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://gateway.local/ui/hr-core/Reports/ExportEmployeesCsv");
-        GatewayCallerProof.Sign(request, config);
+        GatewayCallerProof.SignV1(request, config, request.RequestUri!.PathAndQuery);
 
         var proof = request.Headers.GetValues(GatewayCallerProof.ProofHeader).First();
         var ts = request.Headers.GetValues(GatewayCallerProof.TimestampHeader).First();
@@ -61,7 +61,7 @@ public class WebSecurityHelpersTests
         context.Request.Headers[GatewayCallerProof.PathHeader] =
             request.Headers.GetValues(GatewayCallerProof.PathHeader).Single();
 
-        Assert.True(GatewayCallerProof.Validate(context, config, enforce: true));
+        Assert.True(GatewayCallerProof.ValidateV1(context, config));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class WebSecurityHelpersTests
         using var request = new HttpRequestMessage(HttpMethod.Get, "http://hr-core-web:8080/");
         const string transformedPath = "/api/lookup/employees?q=%D9%81%D8%B1%D8%B9&page=1";
 
-        GatewayCallerProof.Sign(request, config, transformedPath);
+        GatewayCallerProof.SignV1(request, config, transformedPath);
 
         var context = new DefaultHttpContext();
         context.Request.Method = HttpMethods.Get;
@@ -86,7 +86,7 @@ public class WebSecurityHelpersTests
         context.Request.Headers[GatewayCallerProof.PathHeader] =
             request.Headers.GetValues(GatewayCallerProof.PathHeader).Single();
 
-        Assert.True(GatewayCallerProof.Validate(context, config, enforce: true));
+        Assert.True(GatewayCallerProof.ValidateV1(context, config));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class WebSecurityHelpersTests
             .AddInMemoryCollection(new Dictionary<string, string?> { ["GatewayCallerProof:Secret"] = "test-secret-key" })
             .Build();
         using var request = new HttpRequestMessage(HttpMethod.Get, "http://hr-core-web:8080/api/lookup/employees");
-        GatewayCallerProof.Sign(request, config);
+        GatewayCallerProof.SignV1(request, config, request.RequestUri!.PathAndQuery);
 
         var context = new DefaultHttpContext();
         context.Request.Method = HttpMethods.Get;
@@ -108,6 +108,6 @@ public class WebSecurityHelpersTests
         context.Request.Headers[GatewayCallerProof.PathHeader] =
             request.Headers.GetValues(GatewayCallerProof.PathHeader).Single();
 
-        Assert.False(GatewayCallerProof.Validate(context, config, enforce: true));
+        Assert.False(GatewayCallerProof.ValidateV1(context, config));
     }
 }
