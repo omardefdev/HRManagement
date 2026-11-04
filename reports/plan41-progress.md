@@ -99,3 +99,16 @@ git status acceptance-evidence: clean after every local run.
 Tests: unit governance and compose subset 299/299; static acceptance 73/73; dotnet build HRManagement.slnx -warnaserror 0 errors, 0 warnings (46 s).
 
 Finished (UTC): 2026-11-04T16:08:24Z (P4)
+
+## P5
+
+Resumed (UTC): 2026-11-04T16:08:37Z (continuing directly after P4)
+
+ci.yml: the job Acceptance runs scripts/ci/acceptance-job.ps1 -Profile Both, needs [dedupe] only (parallel with CI), concurrency per ref, no enabling variable; old steps (port 5000, 5433, persona password, plain compose) and the disabled-job notice gone.
+The artifact acceptance-evidence uploads only after the scan passed, from artifacts/acceptance/run/. workflow_dispatch: simulate_missing, classes. Step "Committed acceptance evidence (PLAN-41)" in CI, only when acceptance-evidence/** changed (scripts/ci/committed-evidence-check.sh, steps.json).
+CI-ACCEPTANCE-DISABLED closed. CiStepsParityTests: a narrow exception for GH_TOKEN of that step. timeout-minutes 180 until the first green run sets it.
+No GitHub change in this phase: ENABLE_ACCEPTANCE_JOB never existed as a variable.
+
+Local proof: actionlint pinned PASS, unit governance and dedupe subset green (299/299 in P4, same tree), scm001 validate PASS.
+
+Finished (UTC): 2026-11-04T16:08:37Z (P5)

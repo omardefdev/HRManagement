@@ -64,6 +64,12 @@
       "run": "python3 scripts/check-no-legal-tbd.py"
     },
     {
+      "name": "Committed acceptance evidence (PLAN-41)",
+      "kind": "guard",
+      "run": "bash scripts/ci/committed-evidence-check.sh",
+      "comment": "When acceptance-evidence/** changes, the summary must come from a CI run of this repository and be fresh against the code (P-4). A no-op outside a pull request or push run."
+    },
+    {
       "name": "Dated obligations horizon (QA-034)",
       "kind": "guard",
       "run": "pwsh -NoProfile -File scripts/qa/dated-obligations-check.ps1",

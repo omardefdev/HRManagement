@@ -5,6 +5,18 @@ on:
     branches: [ "main" ]
   push:
     branches: [ "main" ]
+  # PLAN-41: the owner reruns acceptance by hand. With simulate_missing only the lab profile runs, on the class of that
+  # scenario or on the listed classes (the negative proof of AC-QA-41a).
+  workflow_dispatch:
+    inputs:
+      simulate_missing:
+        description: "Class.Method of a required scenario to block (ACCEPTANCE_SIMULATE_MISSING); the job must turn red"
+        required: false
+        type: string
+      classes:
+        description: "Comma-separated class names; only these run"
+        required: false
+        type: string
 
 jobs:
   # PLAN-37 (P-7): after a merge, the push run on main skips the heavy jobs only when the pull request already tested
@@ -84,6 +96,11 @@ jobs:
 
       - name: No LEGAL_TBD in release path (GOV-002-B)
         run: bash scripts/ci/run-steps.sh --step "No LEGAL_TBD in release path (GOV-002-B)"
+
+      - name: Committed acceptance evidence (PLAN-41)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/run-steps.sh --step "Committed acceptance evidence (PLAN-41)"
 
       - name: Dated obligations horizon (QA-034)
         run: bash scripts/ci/run-steps.sh --step "Dated obligations horizon (QA-034)"
@@ -327,7 +344,7 @@ jobs:
         with:
           name: test-results
           path: |
-            **/TestResults/*.trx
+            **/TestResults/**/*.trx
             **/TestResults/**/coverage.cobertura.xml
             coveragereport/
             vuln-report.txt
@@ -464,117 +481,70 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack down -v
 
-  # PLAN-35 (section 2): the acceptance job cannot pass before PLAN-41. It runs only when the repository variable
-  # ENABLE_ACCEPTANCE_JOB is true (dated obligation CI-ACCEPTANCE-DISABLED in docs/qa/governance-exceptions.json);
-  # acceptance-disabled prints that in the run summary. "Acceptance" is the future required-check name.
-  acceptance-disabled:
-    name: Acceptance disabled notice
-    if: vars.ENABLE_ACCEPTANCE_JOB != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acceptance job disabled until PLAN-41
-        run: |
-          echo "::notice::Acceptance job disabled until PLAN-41 (ENABLE_ACCEPTANCE_JOB is not true; obligation CI-ACCEPTANCE-DISABLED, review by 2026-12-14)"
-          {
-            echo "### Acceptance: معطّلة حتى PLAN-41"
-            echo ""
-            echo "The Acceptance job runs only when the repository variable ENABLE_ACCEPTANCE_JOB is true."
-            echo "Dated obligation CI-ACCEPTANCE-DISABLED (docs/qa/governance-exceptions.json), owner PLAN-41, review by 2026-12-14."
-          } >> "$GITHUB_STEP_SUMMARY"
-
+  # PLAN-41: the stack the tests are written for, on the lab profile and then the prod-like profile, under
+  # ACCEPTANCE_REQUIRE_ALL. Everything is in scripts/ci/acceptance-job.ps1, the script the owner runs; what runs is
+  # tests/acceptance/ci-scope.json. Passwords are generated on the runner and never leave it (the artifact is scanned).
+  # Parallel with CI (D-QA-19, P-5); the dedupe guard skips it when the pull request tested the same tree. It reads the
+  # test-results artifact of the CI job at its end, for AC-QA-34.
   acceptance:
     name: Acceptance
-    if: vars.ENABLE_ACCEPTANCE_JOB == 'true'
     # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
     runs-on: ubuntu-24.04
-    needs: [build-and-test]
+    needs: [dedupe]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
+    timeout-minutes: 180
+    concurrency:
+      group: acceptance-${{ github.ref }}
+      cancel-in-progress: true
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
+      # The whole history: AC-QA-35a runs the pre-push gitleaks and forbidden-file checks against origin/main.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
-      - name: Prepare CI stack environment
-        run: bash scripts/prepare-ci-compose-env.sh
+      # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same, run 41083926373).
+      - name: Free runner disk space
+        run: bash scripts/ci/free-runner-disk.sh
 
-      - name: Start acceptance stack
+      - name: Run the acceptance job
         env:
-          SEED_ACCEPTANCE: "true"
-        run: |
-          docker compose \
-            -f docker-compose.yml \
-            -f docker-compose.services.yml \
-            -f docker-compose.local.yml \
-            -f docker-compose.dev-profiles.yml \
-            -f docker-compose.full-stack-gateway.yml \
-            --profile full-stack up -d --wait --wait-timeout 600
+          ACCEPTANCE_SIMULATE_MISSING: ${{ inputs.simulate_missing }}
+          ACCEPTANCE_CLASSES: ${{ inputs.classes }}
+          ACQA35_NEGATIVE_PR: "25"
+          COMPOSE_PARALLEL_LIMIT: "4"
+          DOCKER_BUILDKIT: "1"
+        run: pwsh -NoProfile -File scripts/ci/acceptance-job.ps1 -Profile Both -SourceSha ${{ github.sha }}
 
-      - name: Wait for gateway health
-        run: pwsh -NoProfile -File scripts/verify-staging-stack.ps1
-
-      - name: Apply PostgreSQL service roles (AC-20)
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5433"
-          POSTGRES_USER: hrm_ci
-          POSTGRES_PASSWORD: hrm_ci_pwd
-          POSTGRES_APP_PASSWORD: hrm_ci_app_pwd
-        run: pwsh -NoProfile -File scripts/apply-postgres-service-roles.ps1 -UseDockerExec
-
-      - name: Verify DB isolation (AC-20)
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5433"
-          POSTGRES_USER: hrm_ci
-          POSTGRES_PASSWORD: hrm_ci_pwd
-          POSTGRES_APP_PASSWORD: hrm_ci_app_pwd
-        run: pwsh -NoProfile -File scripts/acceptance-verify-db-isolation.ps1
-
-      - name: Build acceptance tests
-        run: |
-          dotnet restore src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj --locked-mode
-          dotnet build src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj -c Release --no-restore
-
-      - name: Run acceptance tests
-        env:
-          RUN_ACCEPTANCE: "true"
-          # PLAN-33 (AC-HCM-33b): a skipped [RequiredAcceptance] scenario fails the job instead of passing silently.
-          ACCEPTANCE_REQUIRE_ALL: "true"
-          GATEWAY_BASE_URL: "http://localhost:5000"
-          KEYCLOAK_BASE_URL: "http://localhost:8088"
-          KEYCLOAK_HR_GATEWAY_CLIENT_SECRET: ci-gateway-secret-lab-only
-          ACCEPTANCE_PERSONA_PASSWORD: "Accept-Hr123!"
-        run: >
-          dotnet test src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj
-          --configuration Release --no-build
-          --logger "trx;LogFileName=acceptance-results.trx"
-          --results-directory ./TestResults/acceptance
-
-      - name: AC-26 PII scan (Employees DB + logs)
-        if: success()
-        run: pwsh -NoProfile -File scripts/ac026-scan-pii.ps1
+      # Nothing generated on the runner may reach the artifact: the upload below needs this step to pass.
+      - name: Scan the artifact for secrets
+        id: artifact-scan
+        if: ${{ !cancelled() }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-artifact-scan.ps1
 
       - name: Upload acceptance evidence
-        if: always()
+        if: ${{ !cancelled() && steps.artifact-scan.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: acceptance-evidence
-          path: |
-            acceptance-evidence/**
-            TestResults/acceptance/**
-          if-no-files-found: warn
+          path: artifacts/acceptance/run/
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Tear down acceptance stack
+      - name: Tear down the stacks
         if: always()
         run: |
-          docker compose \
-            -f docker-compose.yml \
-            -f docker-compose.services.yml \
-            -f docker-compose.local.yml \
-            -f docker-compose.dev-profiles.yml \
-            -f docker-compose.full-stack-gateway.yml \
-            --profile full-stack down -v || true
+          docker ps -aq | xargs -r docker rm -f > /dev/null || true
+          docker volume prune -af > /dev/null || true
 
   codeql:
     name: CodeQL
