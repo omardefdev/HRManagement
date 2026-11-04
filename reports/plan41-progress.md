@@ -62,3 +62,13 @@ Tests: AcceptanceEvidenceSummaryTests, AcceptanceGateTests green.
 
 Finished (UTC): 2026-11-04T09:49:35Z (P2)
 
+## P3
+
+docker/DotnetService.Dockerfile and docker/Migrator.Dockerfile: ARG SOURCE_SHA=unknown and the revision label, last, so a new commit reuses the layers.
+docker-compose.yml and docker-compose.services.yml: build.args.SOURCE_SHA on all 16 build definitions. acceptance-up.ps1: -Profile Lab|ProdLike (a thin name for
+-ProdLike), -SourceSha, -dirty when a tracked file changed, one image at a time on Windows (P-1). lint-compose both chains PASS (production 22, single-host 24
+services): the server's compose renders. The server builds with docker/service-build-matrix.json and passes no SOURCE_SHA, so its label stays "unknown" until a later
+plan wants it; build-on-host was not changed.
+
+Finished (UTC): 2026-11-04T09:50:09Z (P3)
+
