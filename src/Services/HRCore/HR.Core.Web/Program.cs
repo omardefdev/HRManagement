@@ -1,5 +1,6 @@
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Privacy;
 using HRManagement.ServiceDefaults.Localization;
@@ -319,6 +320,7 @@ using (var scope = app.Services.CreateScope())
         {
             await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.OrgUnitPathService>().RecomputeAllAsync();
             await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllOrgUnitsAsync();
+            await OutboxScope.EnsureFlushedAsync(scope.ServiceProvider.GetRequiredService<HRCoreDbContext>());
         });
     }
     finally
@@ -336,6 +338,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UsePublicCareersRateLimiting();
 app.UseHrLocalization();
 app.UseHrCorrelationId();

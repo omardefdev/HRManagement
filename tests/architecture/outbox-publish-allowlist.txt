@@ -1,0 +1,3 @@
+# PLAN-40 (§5): exceptions to OutboxPublishOrderingArchitectureTests, one per line, each with its reason:
+#   <rule> <repo-relative-path>#<Method> # <why the rule does not apply>
+# The target is zero. The test fails if the file grows past its limit; a new line needs a written reason.

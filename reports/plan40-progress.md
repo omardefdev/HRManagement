@@ -81,3 +81,12 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P4
 - status: in progress
+- Static guard OutboxPublishOrderingArchitectureTests: 17 tests (real tree + negative samples for R1-R4). Roslyn: Microsoft.CodeAnalysis.CSharp 5.0.0 pinned in Directory.Packages.props, referenced by UnitTests only; lock files refreshed (30 files: the pin turns the existing transitive entry into CentralTransitive, same version; --locked-mode restore passes).
+- The guard re-checked the P0 inventory: no unknown A/B site. It asked for 4 more [StagesOutboxMessages] (FlagUnresolvedContractTypeAsync, PublishHireEventsAsync, RecruitmentRequisitionClosedEvent.StageAsync, ErrorQueueReplay.ReplayAsync) and made ProcessCandidateAcceptedHandler use ExecuteAtomicAsync (joins the consumer outbox). Allow-list: empty, limit 0.
+  Beyond the plan: R2 also treats ExecuteUpdate/ExecuteDelete before a publish as a write. Limits (in the test summary): order by position, saves by name.
+- Runtime guard: UnsavedOutboxGuardMiddleware + UseHrOutboxFlushGuard() after UseRouting in 13 Program.cs; outbox_unsaved_messages counter (exported as *_total; zero sample with route=none); default throw in Development/Acceptance/Testing; Production logs and counts unless Messaging:FailOnUnsavedOutbox=true. OutboxScope.EnsureFlushedAsync at the end of the HR.Core start-up scope (HireCommencementWatcher already ends with a save).
+- Tests: Msg040UnsavedOutboxGuardIntegrationTests 5/5.
+- P4 Finished (UTC): 2026-11-04T00:15:28Z
+
+## P5
+- status: in progress
