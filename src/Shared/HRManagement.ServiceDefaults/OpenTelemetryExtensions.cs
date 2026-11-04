@@ -129,10 +129,13 @@ public static class OpenTelemetryExtensions
     /// <summary>
     /// PLAN-40: a request that came through the gateway carries the gateway's private address, so the address alone would
     /// admit <c>/careers/metrics</c> (the anonymous careers route, whose path base HR.Core strips) from the internet. A
-    /// scrape goes straight to the service: no path base, no forwarded header.
+    /// scrape goes straight to the service, with no gateway proof and no forwarded header. (Every service stamps its own
+    /// path base on direct requests, so only the careers one tells anything.)
     /// </summary>
     internal static bool IsProxied(HttpRequest request) =>
-        request.PathBase.HasValue || request.Headers.ContainsKey("X-Forwarded-For");
+        request.PathBase.StartsWithSegments(ProductionHostExtensions.PublicCareersGatewayPrefix)
+        || request.Headers.ContainsKey("X-Forwarded-For")
+        || request.Headers.ContainsKey(GatewayCallerProof.ProofHeader);
 
     private static bool IsInternalClient(IPAddress address)
     {

@@ -63,16 +63,17 @@ public sealed class Msg040ReviewRegressionTests
     }
 
     [Theory]
-    [InlineData("", false, false)]
-    [InlineData("/careers", false, true)]
-    [InlineData("/ui/hr-core", false, true)]
-    [InlineData("", true, true)]
-    public void Metrics_are_refused_for_a_request_that_came_through_the_gateway(string pathBase, bool forwarded, bool proxied)
+    [InlineData("", null, false)]
+    [InlineData("/ui/hr-core", null, false)] // a direct scrape: every service stamps its own path base
+    [InlineData("/careers", null, true)]
+    [InlineData("/ui/hr-core", "X-Forwarded-For", true)]
+    [InlineData("/ui/hr-core", GatewayCallerProof.ProofHeader, true)]
+    public void Metrics_are_refused_for_a_request_that_came_through_the_gateway(string pathBase, string? header, bool proxied)
     {
         var http = new DefaultHttpContext();
         http.Request.PathBase = pathBase;
-        if (forwarded)
-            http.Request.Headers["X-Forwarded-For"] = "203.0.113.7";
+        if (header is not null)
+            http.Request.Headers[header] = "203.0.113.7";
 
         Assert.Equal(proxied, OpenTelemetryExtensions.IsProxied(http.Request));
     }
