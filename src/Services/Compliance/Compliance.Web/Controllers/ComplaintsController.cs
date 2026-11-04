@@ -167,7 +167,6 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
             c.ComplaintId == id && c.Step == InvestigationChecklistStep.Decision);
         if (decision is not null && !decision.IsCompleted)
             InvestigationChecklistDefaults.Mark(decision, ParseUserId(User), "resolution");
-        await db.SaveChangesAsync();
 
         await _publish.Publish<IComplaintResolved>(new
         {

@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using HRManagement.SharedKernel.Tenancy;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,14 @@ public sealed class InboxConsumeFilter<T>(
 
     public async Task Send(ConsumeContext<T> context, IPipe<ConsumeContext<T>> next)
     {
+        // PLAN-40: with the consumer outbox the receipt lives inside its transaction (InboxReceiptConsumeFilter); opening
+        // one here would conflict with it. The transaction below stays for buses without an outbox (File.Storage).
+        if (serviceProvider.GetService<ConsumerOutboxRegistration>() is not null)
+        {
+            await next.Send(context);
+            return;
+        }
+
         var db = serviceProvider.GetService<DbContext>();
         if (db is null
             || db.Model.FindEntityType(typeof(HRManagement.SharedKernel.Entities.IntegrationMessageReceipt)) is null)

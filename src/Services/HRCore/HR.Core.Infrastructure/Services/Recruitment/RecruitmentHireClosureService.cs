@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
@@ -477,6 +478,7 @@ public sealed class RecruitmentHireClosureService(
         CancellationToken cancellationToken) =>
         reserveList.MoveSiblingsToReserveAsync(requisitionId, winnerApplicationId, DateTime.UtcNow, cancellationToken);
 
+    [StagesOutboxMessages]
     private async Task PublishHireEventsAsync(
         Employee employee,
         RecruitmentApplication app,

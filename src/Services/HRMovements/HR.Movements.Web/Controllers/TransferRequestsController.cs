@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -347,64 +348,69 @@ public class TransferRequestsController : Controller
         var executedAt = DateTime.UtcNow;
         var by = ParseUserId(User);
 
-        var transitioned = await _db.TransferRequests
-            .Where(x => x.Id == id && x.Status == ApprovalStatus.Approved && !x.IsCancelled)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(x => x.Status, ApprovalStatus.Executed)
-                .SetProperty(x => x.UpdatedAt, executedAt));
+        // PLAN-40 (class B, D-40-2): the compare-and-set runs as its own statement (its row count is the concurrency guard),
+        // so the transition, the execution records and the saga start commit in one explicit transaction.
+        var transitioned = await OutboxUnitOfWork.ExecuteAsync(_db, async ct =>
+        {
+            var rows = await _db.TransferRequests
+                .Where(x => x.Id == id && x.Status == ApprovalStatus.Approved && !x.IsCancelled)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, ApprovalStatus.Executed)
+                    .SetProperty(x => x.UpdatedAt, executedAt), ct);
+            if (rows == 0)
+                return false;
 
-        if (transitioned == 0)
+            _db.MovementExecutionRecords.Add(new MovementExecutionRecord
+            {
+                TransferRequestId = t.Id,
+                EmployeeId = t.EmployeeId,
+                ExecutedAt = executedAt,
+                ExecutedBy = by
+            });
+
+            if (salaryChange.GetValueOrDefault() != 0 || allowanceChange.GetValueOrDefault() != 0)
+            {
+                _db.TransferFinancialImpacts.Add(new TransferFinancialImpact
+                {
+                    TransferRequestId = t.Id,
+                    EmployeeId = t.EmployeeId,
+                    SalaryChange = salaryChange ?? 0,
+                    AllowanceChange = allowanceChange ?? 0,
+                    Notes = financialNotes,
+                    CalculatedAt = executedAt
+                });
+            }
+
+            var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
+            if (executedStep is not null && !executedStep.IsCompleted)
+                MovementWorkflowRules.MarkStep(executedStep, by, $"transfer:{t.Id}:executed");
+
+            var correlation = CorrelationIdFlow.Get() ?? Guid.NewGuid().ToString("D");
+            await _publish.Publish<IStartTransferSaga>(new
+            {
+                TransferRequestId = t.Id,
+                t.EmployeeId,
+                t.FromOrgUnitId,
+                t.ToOrgUnitId,
+                ExecutedAt = executedAt,
+                SalaryChange = salaryChange,
+                AllowanceChange = allowanceChange,
+                t.SourceLegalRegimeId,
+                t.TargetLegalRegimeId,
+                t.TransitionDecisionRef,
+                t.ConditionCode,
+                t.ConflictNotes,
+                CorrelationId = correlation,
+                TenantId = TenantIdFlow.Get()
+            }, ct);
+            return true;
+        });
+
+        if (!transitioned)
         {
             TempData["Warning"] = "تم تنفيذ هذا الطلب مسبقاً أو حالته لم تعد تسمح بالتنفيذ";
             return RedirectToAction(nameof(Details), new { id });
         }
-
-        _db.MovementExecutionRecords.Add(new MovementExecutionRecord
-        {
-            TransferRequestId = t.Id,
-            EmployeeId = t.EmployeeId,
-            ExecutedAt = executedAt,
-            ExecutedBy = by
-        });
-
-        if (salaryChange.GetValueOrDefault() != 0 || allowanceChange.GetValueOrDefault() != 0)
-        {
-            _db.TransferFinancialImpacts.Add(new TransferFinancialImpact
-            {
-                TransferRequestId = t.Id,
-                EmployeeId = t.EmployeeId,
-                SalaryChange = salaryChange ?? 0,
-                AllowanceChange = allowanceChange ?? 0,
-                Notes = financialNotes,
-                CalculatedAt = executedAt
-            });
-        }
-
-        var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
-        if (executedStep is not null && !executedStep.IsCompleted)
-            MovementWorkflowRules.MarkStep(executedStep, by, $"transfer:{t.Id}:executed");
-
-        await _db.SaveChangesAsync();
-
-        var correlation = CorrelationIdFlow.Get() ?? Guid.NewGuid().ToString("D");
-        await _publish.Publish<IStartTransferSaga>(new
-        {
-            TransferRequestId = t.Id,
-            t.EmployeeId,
-            t.FromOrgUnitId,
-            t.ToOrgUnitId,
-            ExecutedAt = executedAt,
-            SalaryChange = salaryChange,
-            AllowanceChange = allowanceChange,
-            t.SourceLegalRegimeId,
-            t.TargetLegalRegimeId,
-            t.TransitionDecisionRef,
-            t.ConditionCode,
-            t.ConflictNotes,
-            CorrelationId = correlation,
-            TenantId = TenantIdFlow.Get()
-        });
-        await _db.SaveChangesAsync();
 
         TempData["Success"] = "تم بدء تنسيق النقل عبر الأنظمة المرتبطة";
         return RedirectToAction(nameof(Details), new { id });

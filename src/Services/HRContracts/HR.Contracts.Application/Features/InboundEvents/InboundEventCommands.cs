@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Application.Features.HireCases;
 using HR.Contracts.Application.Features.SeparationRecords;
@@ -48,7 +49,17 @@ public class ProcessCandidateAcceptedHandler(
     IEventPublisher eventPublisher,
     IOptions<HireChecklistOptions> checklistOptions) : IRequestHandler<ProcessCandidateAcceptedCommand>
 {
-    public async Task Handle(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken)
+    // PLAN-40: the helpers save inside; from a consumer this joins the consumer outbox transaction.
+    public Task Handle(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken) =>
+        repository.ExecuteAtomicAsync(
+            async token =>
+            {
+                await ProcessAsync(request, token);
+                return true;
+            },
+            cancellationToken);
+
+    private async Task ProcessAsync(ProcessCandidateAcceptedCommand request, CancellationToken cancellationToken)
     {
         // FUN-029 (E2): defence in depth — HR.Core publishes IInternalPlacementCompleted, not this, for mobility.
         if (request.IsInternalMobility)
@@ -148,6 +159,7 @@ public class ProcessCandidateAcceptedHandler(
     /// FUN-029 (F3): no silent fallback — the Appointment and its checklist exist, there is no contract, the
     /// ContractClassified item says why, and an intervention is opened for the hire case.
     /// </summary>
+    [StagesOutboxMessages]
     private async Task FlagUnresolvedContractTypeAsync(
         ServiceTransaction transaction,
         string? legalRegimeId,

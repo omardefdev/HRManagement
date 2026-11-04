@@ -412,6 +412,7 @@ public class EmployeesController : Controller
                 oldStatus,
                 vm.CurrentStatus,
                 "تحديث من واجهة إدارة الموظفين");
+            await _context.SaveChangesAsync();
         }
         else
         {

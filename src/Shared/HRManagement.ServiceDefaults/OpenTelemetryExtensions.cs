@@ -101,7 +101,10 @@ public static class OpenTelemetryExtensions
         if (!IsOpenTelemetryEnabled(app.Configuration))
             return app;
 
+        // PLAN-40: anonymous for the authorization fallback (the scrape has no token, and answered 401 until now); the filter
+        // below keeps it to private clients and the edge answers 404.
         app.MapPrometheusScrapingEndpoint()
+            .AllowAnonymous()
             .AddEndpointFilter(async (context, next) =>
             {
                 var remote = context.HttpContext.Connection.RemoteIpAddress;
@@ -111,11 +114,28 @@ public static class OpenTelemetryExtensions
                     return Results.Empty;
                 }
 
+                if (IsProxied(context.HttpContext.Request))
+                {
+                    context.HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return Results.Empty;
+                }
+
                 return await next(context);
             });
 
         return app;
     }
+
+    /// <summary>
+    /// PLAN-40: a request that came through the gateway carries the gateway's private address, so the address alone would
+    /// admit <c>/careers/metrics</c> (the anonymous careers route, whose path base HR.Core strips) from the internet. A
+    /// scrape goes straight to the service, with no gateway proof and no forwarded header. (Every service stamps its own
+    /// path base on direct requests, so only the careers one tells anything.)
+    /// </summary>
+    internal static bool IsProxied(HttpRequest request) =>
+        request.PathBase.StartsWithSegments(ProductionHostExtensions.PublicCareersGatewayPrefix)
+        || request.Headers.ContainsKey("X-Forwarded-For")
+        || request.Headers.ContainsKey(GatewayCallerProof.ProofHeader);
 
     private static bool IsInternalClient(IPAddress address)
     {

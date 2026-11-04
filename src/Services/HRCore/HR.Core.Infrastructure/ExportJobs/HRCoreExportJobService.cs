@@ -85,7 +85,6 @@ public sealed class HRCoreExportJobService(
         };
 
         db.ExportJobs.Add(job);
-        await db.SaveChangesAsync(ct);
 
         await publish.Publish<IExportJobRequested>(new
         {

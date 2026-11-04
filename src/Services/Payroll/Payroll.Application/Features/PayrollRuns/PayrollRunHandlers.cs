@@ -257,8 +257,7 @@ public class PostPayrollRunHandler(
                 job.LastCheckpointAt = DateTime.UtcNow;
             }
 
-            await repository.SaveChangesAsync(cancellationToken);
-
+            // PLAN-40 (class B): one save writes the posted run, the batch and the outbox row together.
             await eventPublisher.PublishPayrollProcessedAsync(
                 run.Id, run.PeriodStart, run.PeriodEnd, run.TotalNetPay, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);

@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Infrastructure.Data;
@@ -52,6 +53,9 @@ public class ContractsRepository(ContractsDbContext db) : IContractsRepository
     public void Remove<T>(T entity) where T : class => db.Set<T>().Remove(entity);
 
     public Task<int> SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
+
+    public Task<T> ExecuteAtomicAsync<T>(Func<CancellationToken, Task<T>> body, CancellationToken ct) =>
+        OutboxUnitOfWork.ExecuteAsync(db, body, ct);
 
     public Task ReloadAsync<T>(T entity, CancellationToken ct) where T : class => db.Entry(entity).ReloadAsync(ct);
 }

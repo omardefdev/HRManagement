@@ -1,0 +1,26 @@
+{
+  "tables": {
+    "admin_db": "InboxState,OutboxMessage,OutboxState",
+    "auth_directory_db": "InboxState,OutboxMessage,OutboxState",
+    "it_infra_db": "InboxState,OutboxMessage,OutboxState",
+    "archive_db": "InboxState,OutboxMessage,OutboxState",
+    "analytics_db": "InboxState,OutboxMessage,OutboxState"
+  },
+  "trainingReceipts": "1",
+  "brokerUsers": [
+    "mq_admin_logistics",
+    "mq_auth_directory",
+    "mq_compliance",
+    "mq_dev_analytics",
+    "mq_file_storage",
+    "mq_hr_contracts",
+    "mq_hr_core",
+    "mq_hr_health",
+    "mq_hr_movements",
+    "mq_hr_training",
+    "mq_idcard",
+    "mq_it_infra",
+    "mq_payroll",
+    "mq_records_archive"
+  ]
+}

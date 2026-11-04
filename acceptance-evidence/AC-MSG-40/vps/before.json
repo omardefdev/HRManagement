@@ -1,0 +1,6 @@
+{
+  "stage": "before",
+  "explicitDomainSnapshot": false,
+  "correlationId": "msg40-vps-tables-d588b9a0fbf2467ba1364b7fd14dfdd6",
+  "note": "No explicit pre-action domain snapshot was captured; see HTTP and DB evidence."
+}

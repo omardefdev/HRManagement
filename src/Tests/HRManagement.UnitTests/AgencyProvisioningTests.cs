@@ -250,7 +250,7 @@ public class AgencyProvisioningTests
             && i.Method.IsGenericMethod
             && i.Method.GetGenericArguments()[0] == typeof(IAgencyOnboarded));
 
-    private static AgencyManifest ValidManifest() => new()
+    internal static AgencyManifest ValidManifest() => new()
     {
         PackId = "test-pack",
         AgencyId = "test-agency-onb",

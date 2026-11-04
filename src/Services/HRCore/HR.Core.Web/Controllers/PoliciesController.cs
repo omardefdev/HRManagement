@@ -21,8 +21,7 @@ namespace HR.Core.Web.Controllers;
 public class PoliciesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,
-    IPolicyVersionPublisher publisher,
-    IPublishEndpoint? publish = null) : ControllerBase
+    IPolicyVersionPublisher publisher) : ControllerBase
 {
     [HttpPost("enforce")]
     [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
@@ -114,17 +113,8 @@ public class PoliciesController(
         if (makerId == checkerId && !request.ForceSameActorForLab)
             return BadRequest("four-eyes: الناشر يجب أن يختلف عن المحرّر");
 
+        // PLAN-40 (class A): IPolicyPublished is staged inside PublishDraftAsync, before its save (both entry points).
         await publisher.PublishDraftAsync(version, makerId, checkerId, request.EvidenceRef, ct);
-
-        if (publish is not null)
-        {
-            await publish.Publish(new PolicyPublished
-            {
-                Domain = version.PolicyTemplate.Domain,
-                VersionId = versionId,
-                PublishedAt = DateTime.UtcNow
-            }, ct);
-        }
 
         return Ok(new
         {

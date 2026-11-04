@@ -153,7 +153,12 @@ public class DeleteLeaveRequestHandler(IContractsRepository repository) : IReque
 public class CancelLeaveRequestHandler(IContractsRepository repository, IEventPublisher eventPublisher)
     : IRequestHandler<CancelLeaveRequestCommand, (bool Success, string? Error)>
 {
-    public async Task<(bool Success, string? Error)> Handle(CancelLeaveRequestCommand request, CancellationToken cancellationToken)
+    // PLAN-40 (class B): the ExecuteUpdate claim decides the outcome, so the claim, the balance, the transaction and the
+    // event commit in one explicit transaction.
+    public Task<(bool Success, string? Error)> Handle(CancelLeaveRequestCommand request, CancellationToken cancellationToken) =>
+        repository.ExecuteAtomicAsync(token => CancelAsync(request, token), cancellationToken);
+
+    private async Task<(bool Success, string? Error)> CancelAsync(CancelLeaveRequestCommand request, CancellationToken cancellationToken)
     {
         var entity = await repository.GetLeaveRequestAsync(request.Id, cancellationToken);
         if (entity is null) return (false, null);
@@ -194,7 +199,6 @@ public class CancelLeaveRequestHandler(IContractsRepository repository, IEventPu
             }
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
 
         var transactionId = entity.ServiceTransactionId ?? Guid.Empty;
         await eventPublisher.PublishLeaveCancelledAsync(
@@ -234,7 +238,12 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
 {
     public const string LeaveRequestChangedError = "تغيّر طلب الإجازة منذ قراءته؛ أعد فتحه ثم اعتمده.";
 
-    public async Task<(bool Success, string? Error)> Handle(ApproveLeaveRequestCommand request, CancellationToken cancellationToken)
+    // PLAN-40 (class B): the claim and the debit are ExecuteUpdate row counts, so they, the service transaction and the
+    // event commit in one explicit transaction.
+    public Task<(bool Success, string? Error)> Handle(ApproveLeaveRequestCommand request, CancellationToken cancellationToken) =>
+        repository.ExecuteAtomicAsync(token => ApproveAsync(request, token), cancellationToken);
+
+    private async Task<(bool Success, string? Error)> ApproveAsync(ApproveLeaveRequestCommand request, CancellationToken cancellationToken)
     {
         var entity = await repository.GetLeaveRequestAsync(request.Id, cancellationToken);
         if (entity is null) return (false, null);
@@ -338,7 +347,6 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
         var historyBefore = transaction.StateHistory.Count;
         ServiceTransactionWorkflowHelper.AdvanceToCompleted(transaction, request.ApproverId, "اعتماد طلب إجازة");
         await repository.TrackNewHistoryAsync(transaction, historyBefore, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
         await eventPublisher.PublishLeaveApprovedAsync(
             transaction.Id,
             entity.Id,

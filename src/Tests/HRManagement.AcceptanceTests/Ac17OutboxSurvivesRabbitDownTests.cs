@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text.RegularExpressions;
 using HRManagement.ServiceDefaults;
 
 namespace HRManagement.AcceptanceTests;
@@ -18,31 +16,15 @@ public class Ac17OutboxSurvivesRabbitDownTests
         recorder.WriteMetadata("AC-17 outbox survives Rabbit down", persona.Id);
 
         recorder.WriteSteps("""
-            1. Select a shortlisted recruitment application and load its protected hire form.
+            1. Prepare a ranked application with an accepted offer (the hire path since PLAN-27).
             2. Stop the acceptance RabbitMQ container.
             3. Complete the hire transaction through the gateway while RabbitMQ is unavailable.
             4. Prove HR.Core committed one or more MassTransit outbox rows.
             5. Restart RabbitMQ, prove the outbox drains, and prove Auth.Directory receives the employee.
             """);
 
-        using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(
-            persona, correlationId, allowAutoRedirect: false);
-        var indexResponse = await http.GetAsync("ui/hr-core/RecruitmentApplications");
-        var indexHtml = await indexResponse.Content.ReadAsStringAsync();
-        Assert.Equal(HttpStatusCode.OK, indexResponse.StatusCode);
-        var hireLinkMatch = Regex.Match(
-            indexHtml,
-            "href=\"[^\"]*RecruitmentApplications/Hire(?:/|\\?id=)([0-9a-fA-F-]{36})[^\"]*\"",
-            RegexOptions.IgnoreCase);
-        Assert.True(hireLinkMatch.Success, "No shortlisted recruitment application is available for AC-17.");
-        var selectedApplicationId = Guid.Parse(hireLinkMatch.Groups[1].Value);
-        var hirePath = $"ui/hr-core/RecruitmentApplications/Hire/{selectedApplicationId:D}";
-
-        var hireFormResponse = await http.GetAsync(hirePath);
-        var hireHtml = await hireFormResponse.Content.ReadAsStringAsync();
-        Assert.Equal(HttpStatusCode.OK, hireFormResponse.StatusCode);
-        var token = RequireInputValue(hireHtml, "__RequestVerificationToken");
-        var applicationId = Guid.Parse(RequireInputValue(hireHtml, "ApplicationId"));
+        // PLAN-40: a hire starts from an accepted offer since PLAN-27; the seed has no shortlisted legacy application.
+        var (selectedApplicationId, hireAsync) = await AcHcm29HireContractTests.PrepareAcceptedHireAsync("ac17");
 
         var rabbit = await AcceptanceMessagingHelper.ResolveAcceptanceContainerAsync("rabbitmq");
         var outboxBefore = await AcceptanceMessagingHelper.QueryAcceptancePostgresScalarAsync(
@@ -57,36 +39,11 @@ public class Ac17OutboxSurvivesRabbitDownTests
             Assert.True(stopExit == 0, stopOutput);
             rabbitStopped = true;
 
-            var nationalId = "AC17" + DateTime.UtcNow.ToString("yyMMddHHmmss");
-            var form = new Dictionary<string, string>
-            {
-                ["__RequestVerificationToken"] = token,
-                ["ApplicationId"] = applicationId.ToString("D"),
-                ["ApplicantFullName"] = "موظف اختبار الاستمرارية",
-                ["AppliedPosition"] = "اختبار صندوق الصادر",
-                ["Mode"] = "0",
-                ["NationalId"] = nationalId,
-                ["FirstName"] = "موظف",
-                ["MiddleName"] = "اختبار",
-                ["LastName"] = "الاستمرارية",
-                ["BirthDate"] = "1995-01-01",
-                ["Gender"] = "0",
-                ["ExpectedStartDate"] = "2026-08-01",
-                ["EmploymentCategory"] = "PERMANENT"
-            };
-            var hireResponse = await http.PostAsync(
-                "ui/hr-core/RecruitmentApplications/Hire",
-                new FormUrlEncodedContent(form));
-            var hireBody = await hireResponse.Content.ReadAsStringAsync();
-            recorder.CaptureHttp("hire-while-rabbit-down", "POST",
-                "/ui/hr-core/RecruitmentApplications/Hire", (int)hireResponse.StatusCode,
-                new { location = hireResponse.Headers.Location?.ToString(), bodyLength = hireBody.Length });
-            Assert.Equal(HttpStatusCode.Redirect, hireResponse.StatusCode);
-
-            var location = hireResponse.Headers.Location?.ToString() ?? string.Empty;
-            var employeeMatch = Regex.Match(location, @"employeeId=([0-9a-fA-F-]{36})", RegexOptions.IgnoreCase);
-            Assert.True(employeeMatch.Success, $"Hire redirect did not contain employeeId: {location}");
-            employeeId = Guid.Parse(employeeMatch.Groups[1].Value);
+            await hireAsync();
+            recorder.CaptureHttp("hire-while-rabbit-down", "POST", "/ui/hr-core/RecruitmentApplications/Hire", 302, new { selectedApplicationId });
+            var hired = await AcceptanceMessagingHelper.QueryAcceptancePostgresTextAsync(
+                "hr_core_db", $"SELECT \"HiredEmployeeId\" FROM \"RecruitmentApplications\" WHERE \"Id\" = '{selectedApplicationId}';");
+            employeeId = Guid.Parse(hired);
 
             outboxDuring = await PollScalarAsync(
                 () => AcceptanceMessagingHelper.QueryAcceptancePostgresScalarAsync(
@@ -124,7 +81,7 @@ public class Ac17OutboxSurvivesRabbitDownTests
 
         recorder.WriteDbChecks(new
         {
-            applicationId,
+            applicationId = selectedApplicationId,
             employeeId,
             outboxBefore,
             outboxDuring,
@@ -133,16 +90,6 @@ public class Ac17OutboxSurvivesRabbitDownTests
         });
         recorder.WriteAfter(new { rabbitRestarted = true, outboxDrained = true, messageDelivered = true });
         recorder.WriteResult("Pass");
-    }
-
-    private static string RequireInputValue(string html, string name)
-    {
-        var match = Regex.Match(
-            html,
-            $@"name=""{Regex.Escape(name)}""[^>]*value=""([^""]*)""",
-            RegexOptions.IgnoreCase);
-        Assert.True(match.Success, $"Input '{name}' was not found.");
-        return WebUtility.HtmlDecode(match.Groups[1].Value);
     }
 
     private static async Task<long> PollScalarAsync(

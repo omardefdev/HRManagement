@@ -1,6 +1,7 @@
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,7 @@ public class SeparationPartyConsumer(IMediator mediator, PayrollDbContext db) : 
         if (!string.Equals(m.Party, ProcessParties.Payroll, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             string evidence;
             if (m.Compensate)
@@ -74,20 +75,15 @@ public class SeparationPartyConsumer(IMediator mediator, PayrollDbContext db) : 
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<ISeparationPartyFaulted>(new
         {
-            await context.Publish<ISeparationPartyFaulted>(new
-            {
-                m.SeparationRecordId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.SeparationRecordId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 
     private async Task<string> VoidDraftEosAsync(Guid separationRecordId, Guid employeeId, CancellationToken ct)
@@ -114,7 +110,7 @@ public class TransferPartyConsumer(IMediator mediator) : IConsumer<IExecuteTrans
         if (!string.Equals(m.Party, ProcessParties.Payroll, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             if (!m.Compensate)
             {
@@ -132,20 +128,15 @@ public class TransferPartyConsumer(IMediator mediator) : IConsumer<IExecuteTrans
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<ITransferPartyFaulted>(new
         {
-            await context.Publish<ITransferPartyFaulted>(new
-            {
-                m.TransferRequestId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.TransferRequestId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 }
 
@@ -179,7 +170,7 @@ public class SecondmentPartyConsumer(IMediator mediator) : IConsumer<IExecuteSec
         if (!string.Equals(m.Party, ProcessParties.Payroll, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             if (!m.Compensate)
             {
@@ -196,20 +187,15 @@ public class SecondmentPartyConsumer(IMediator mediator) : IConsumer<IExecuteSec
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<ISecondmentPartyFaulted>(new
         {
-            await context.Publish<ISecondmentPartyFaulted>(new
-            {
-                m.SecondmentRequestId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.SecondmentRequestId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 }
 

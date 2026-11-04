@@ -37,3 +37,10 @@ condition = "AND"
 paths = ['''^reports/plan37-progress\.md$''']
 regexTarget = "match"
 regexes = ['''key SHA256:qWIfQls882KM/nQ99yV/WFU2Wk08t6DIb8o\+pUMGsto''']
+
+[[allowlists]]
+description = "PLAN-40 progress checkpoint: the same public ED25519 SSH host key fingerprint as the PLAN-37 entry above, in its abbreviated form, recorded to prove the host key was checked. A host key fingerprint is public by design (ssh prints it to anyone who connects); it is not a credential."
+condition = "AND"
+paths = ['''^reports/plan40-progress\.md$''']
+regexTarget = "match"
+regexes = ['''key SHA256:qWIfQls8\.\.\.pUMGsto''']

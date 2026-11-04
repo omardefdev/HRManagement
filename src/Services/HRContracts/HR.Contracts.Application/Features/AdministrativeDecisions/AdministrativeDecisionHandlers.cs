@@ -58,7 +58,6 @@ public class CreateAdministrativeDecisionHandler(
             await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
             await repository.AddAsync(transaction, cancellationToken);
         }
-        await repository.SaveChangesAsync(cancellationToken);
         if (transaction is not null && vm.RelatedEmployeeId is Guid relatedEmployeeId)
         {
             await eventPublisher.PublishJobUpdateAppliedAsync(
@@ -69,8 +68,8 @@ public class CreateAdministrativeDecisionHandler(
                 entity.Subject,
                 correlationId: null,
                 cancellationToken);
-            await repository.SaveChangesAsync(cancellationToken);
         }
+        await repository.SaveChangesAsync(cancellationToken);
         return entity.Id;
     }
 }

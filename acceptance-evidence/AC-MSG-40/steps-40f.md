@@ -1,0 +1,1 @@
+GET /metrics of the 13 outbox services after the scenarios: the counter exists (zero sample route=none) and sums to 0; /careers/metrics through the gateway is 404. The negative case (a publish without a save fails the request) is Msg040UnsavedOutboxGuardIntegrationTests.

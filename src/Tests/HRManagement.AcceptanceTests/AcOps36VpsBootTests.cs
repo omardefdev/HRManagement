@@ -537,7 +537,7 @@ public partial class AcOps36VpsBootTests
         foreach (var (path, expected) in new[]
                  {
                      ($"https://{SsoDomain}/admin/", 403), ($"https://{SsoDomain}/realms/master/", 403),
-                     ($"https://{AppDomain}/metrics", 404), ($"https://{AppDomain}/health/ready", 404), ($"https://{AppDomain}/health/live", 404)
+                     ($"https://{AppDomain}/metrics", 404), ($"https://{AppDomain}/careers/metrics", 404), ($"https://{AppDomain}/health/ready", 404), ($"https://{AppDomain}/health/live", 404)
                  })
         {
             var (status, _) = await GetNoRedirectAsync(path);

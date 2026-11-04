@@ -1,0 +1,70 @@
+{
+  "samples": [
+    {
+      "service": "hr-core-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "hr-contracts-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "hr-health-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "hr-movements-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "hr-training-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "payroll-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "idcard-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "records-archive-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "admin-logistics-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "it-infra-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "dev-analytics-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "compliance-web",
+      "series": 1,
+      "total": 0
+    },
+    {
+      "service": "auth-directory-web",
+      "series": 1,
+      "total": 0
+    }
+  ],
+  "gatewayCareersMetrics": 404
+}

@@ -46,7 +46,7 @@
 
 	# Health, readiness and metrics stay internal; the self-test reaches them with docker compose exec.
 	@ops {
-		path /health* /metrics* /alive* /ready*
+		path /health* /metrics* /alive* /ready* /careers/metrics*
 		not remote_ip {$ADMIN_ALLOWED_CIDRS}
 	}
 	respond @ops 404

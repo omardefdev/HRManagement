@@ -6,6 +6,7 @@ using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Seeding;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.Seeding;
@@ -85,6 +86,23 @@ public sealed class AgencyProvisioningService
         if (!dryRun)
             await NationalSeedOrchestrator.ApplyMandatoryAsync(_db, _serviceProvider, ct);
 
+        // PLAN-40 (class B): the tenant, its org units, packs, the recorded application and every message they publish
+        // (IOrgUnitChanged, IAgencyOnboarded) commit in one transaction. The national seed above is shared and idempotent.
+        return dryRun
+            ? await ApplyAgencyAsync(manifest, existingTenant, tenantCode, steps, warnings, dryRun, ct)
+            : await OutboxUnitOfWork.ExecuteAsync(
+                _db, token => ApplyAgencyAsync(manifest, existingTenant, tenantCode, steps, warnings, dryRun, token), ct);
+    }
+
+    private async Task<AgencyProvisioningResult> ApplyAgencyAsync(
+        AgencyManifest manifest,
+        Tenant? existingTenant,
+        string tenantCode,
+        List<string> steps,
+        List<string> warnings,
+        bool dryRun,
+        CancellationToken ct)
+    {
         Guid tenantId;
         if (existingTenant is null)
         {
@@ -164,8 +182,8 @@ public sealed class AgencyProvisioningService
                 RollbackRef = manifest.RollbackRef,
                 AppliedAt = DateTime.UtcNow
             });
-            await _db.SaveChangesAsync(ct);
 
+            // PLAN-40 (class A): published before the save that records the application, so both commit together.
             await _publish.Publish<IAgencyOnboarded>(new
             {
                 TenantId = tenantId,
@@ -176,6 +194,7 @@ public sealed class AgencyProvisioningService
                 OnboardedAt = DateTime.UtcNow,
                 CorrelationId = (string?)null
             }, ct);
+            await _db.SaveChangesAsync(ct);
         }
 
         _logger.LogInformation("ONB-001 manifest {PackId} applied for agency {AgencyId} dryRun={DryRun}",

@@ -69,7 +69,6 @@ public class CreateProbationRecordHandler(
         };
         await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
         await repository.AddAsync(transaction, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
         await eventPublisher.PublishConfirmationApprovedAsync(
             transaction.Id,
             vm.EmployeeId,

@@ -280,6 +280,33 @@ public class AcHcm29HireContractTests
         public decimal Mid => Math.Round((Min + Max) / 2m, 0);
     }
 
+    /// <summary>
+    /// PLAN-40 (AC-17): a ranked application whose offer is accepted, the state a hire starts from since PLAN-27, and the
+    /// hire itself as a delegate, so the caller decides what happens around it (AC-17 stops the broker first).
+    /// </summary>
+    internal static async Task<(string ApplicationId, Func<Task> HireAsync)> PrepareAcceptedHireAsync(string tag)
+    {
+        var s = await StartAsync(tag, "Accepted offer, ready to hire (precondition of AC-17)");
+        var req = await CreateRankedRequisitionAsync(s, tag, rankedCount: 1);
+        var bounds = await RequireGradeBoundsAsync(s, req);
+        var offer = await CreateOfferAsync(s, $"{tag}-offer", req.Ranked[0], bounds.Mid, req.Grade);
+        await SubmitAndApproveAsync(s, tag, offer);
+        await s.Central.PostAsync($"{tag}-accept", "ui/hr-core/OfferLetters/AcceptOffer", OfferDetails(offer), OfferOnBehalfEvidence.AcceptFields(offer), withEvidence: true);
+        Assert.Equal(OfferAccepted, await OfferStatusAsync(offer));
+
+        var appId = req.Ranked[0];
+        var nationalId = "17" + Random.Shared.NextInt64(100_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
+        // Test-only precondition: HR applications registered through the UI carry no national id.
+        await Sql($"UPDATE \"RecruitmentApplications\" SET \"NationalId\"='{nationalId}', \"NationalIdHash\"=NULL WHERE \"Id\"='{appId}';");
+        s.Recorder.WriteResult("Pass");
+        return (appId, async () =>
+        {
+            await s.Central.PostAsync($"{tag}-hire", "ui/hr-core/RecruitmentApplications/Hire", HirePage(appId), HireForm(appId, nationalId, req.OrgUnitId));
+            Assert.Equal(AppHired, await AppStatusAsync(appId));
+        }
+        );
+    }
+
     private static async Task<Session> StartAsync(string tag, string scenario)
     {
         var central = AcceptanceHarness.RequirePersona("central-a");

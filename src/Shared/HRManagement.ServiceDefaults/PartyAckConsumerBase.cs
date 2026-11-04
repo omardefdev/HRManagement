@@ -1,4 +1,5 @@
 using HRManagement.MessageContracts.Commands;
+using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 
 namespace HRManagement.ServiceDefaults;
@@ -15,7 +16,7 @@ public abstract class SeparationPartyAckConsumerBase(string partyName) : IConsum
         if (!string.Equals(m.Party, partyName, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             string evidence;
             if (m.Compensate)
@@ -36,20 +37,15 @@ public abstract class SeparationPartyAckConsumerBase(string partyName) : IConsum
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<ISeparationPartyFaulted>(new
         {
-            await context.Publish<ISeparationPartyFaulted>(new
-            {
-                m.SeparationRecordId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.SeparationRecordId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 
     /// <returns>Optional evidence ref override.</returns>
@@ -69,7 +65,7 @@ public abstract class HirePartyAckConsumerBase(string partyName) : IConsumer<IEx
         if (!string.Equals(m.Party, partyName, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             if (m.Compensate)
                 await CompensateAsync(context);
@@ -85,20 +81,15 @@ public abstract class HirePartyAckConsumerBase(string partyName) : IConsumer<IEx
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<IHirePartyFaulted>(new
         {
-            await context.Publish<IHirePartyFaulted>(new
-            {
-                m.ServiceTransactionId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.ServiceTransactionId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 
     protected virtual Task ExecuteAsync(ConsumeContext<IExecuteHireParty> context) => Task.CompletedTask;
@@ -115,7 +106,7 @@ public abstract class TransferPartyAckConsumerBase(string partyName) : IConsumer
         if (!string.Equals(m.Party, partyName, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             string evidence;
             if (m.Compensate)
@@ -132,20 +123,15 @@ public abstract class TransferPartyAckConsumerBase(string partyName) : IConsumer
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<ITransferPartyFaulted>(new
         {
-            await context.Publish<ITransferPartyFaulted>(new
-            {
-                m.TransferRequestId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.TransferRequestId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 
     protected virtual Task<string?> ExecuteAsync(ConsumeContext<IExecuteTransferParty> context) =>
@@ -164,7 +150,7 @@ public abstract class SecondmentPartyAckConsumerBase(string partyName) : IConsum
         if (!string.Equals(m.Party, partyName, StringComparison.OrdinalIgnoreCase))
             return;
 
-        try
+        await PartyAckFlow.RunAsync(context, async () =>
         {
             string evidence;
             if (m.Compensate)
@@ -181,20 +167,15 @@ public abstract class SecondmentPartyAckConsumerBase(string partyName) : IConsum
                 m.CorrelationId,
                 m.TenantId
             });
-        }
-        catch (Exception ex)
+        }, ex => context.Publish<ISecondmentPartyFaulted>(new
         {
-            await context.Publish<ISecondmentPartyFaulted>(new
-            {
-                m.SecondmentRequestId,
-                m.EmployeeId,
-                m.Party,
-                Reason = ex.Message,
-                m.CorrelationId,
-                m.TenantId
-            });
-            throw;
-        }
+            m.SecondmentRequestId,
+            m.EmployeeId,
+            m.Party,
+            Reason = ex.Message,
+            m.CorrelationId,
+            m.TenantId
+        }));
     }
 
     protected virtual Task<string?> ExecuteAsync(ConsumeContext<IExecuteSecondmentParty> context) =>

@@ -56,7 +56,6 @@ public sealed class ArchiveExportJobService(
             ExpiresAt = DateTime.UtcNow.AddHours(options.Value.ResultRetentionHours)
         };
         db.ExportJobs.Add(job);
-        await db.SaveChangesAsync(ct);
         await publish.Publish<IExportJobRequested>(new
         {
             JobId = job.Id,

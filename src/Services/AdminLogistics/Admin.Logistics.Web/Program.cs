@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.Documents.QuestPdf;
 using HRManagement.ServiceDefaults.CodeGeneration;
@@ -42,6 +43,7 @@ builder.Services.AddDbContext<AdminLogisticsDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AdminLogisticsDbContext>());
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<AdminLogisticsDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(SeparationCompletedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
@@ -87,6 +89,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

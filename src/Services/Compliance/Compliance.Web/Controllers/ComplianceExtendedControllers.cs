@@ -113,7 +113,6 @@ public class LegalCasesController(
         if (model is null) return NotFound();
 
         model.Status = CaseStatus.Closed;
-        await db.SaveChangesAsync();
 
         await publish.Publish<ILegalJudgmentIssued>(new
         {
@@ -193,16 +192,6 @@ public class DisciplinaryActionsController(
             model.Id = Guid.NewGuid();
         model.IssuedBy = ServerAssignedIdentity.ResolveActorEmployeeId(User);
         db.DisciplinaryActions.Add(model);
-        await db.SaveChangesAsync();
-
-        // Re-register with final id if evidence was attached before id known
-        if (model.EvidenceFileId.HasValue)
-        {
-            await fileRefs.RegisterReferenceAsync(
-                model.EvidenceFileId.Value,
-                FileReferenceClientExtensions.BuildHolderKey(
-                    HrFileServices.Compliance, nameof(DisciplinaryAction), model.Id, nameof(DisciplinaryAction.EvidenceFileId)));
-        }
 
         await publish.Publish<IDisciplinaryActionTaken>(new
         {
@@ -218,6 +207,16 @@ public class DisciplinaryActionsController(
             PenaltyDays = 0
         });
         await db.SaveChangesAsync();
+
+        // Re-register with final id if evidence was attached before id known (after the commit: an HTTP call to
+        // File.Storage must not sit between the state and its event; the registration is idempotent).
+        if (model.EvidenceFileId.HasValue)
+        {
+            await fileRefs.RegisterReferenceAsync(
+                model.EvidenceFileId.Value,
+                FileReferenceClientExtensions.BuildHolderKey(
+                    HrFileServices.Compliance, nameof(DisciplinaryAction), model.Id, nameof(DisciplinaryAction.EvidenceFileId)));
+        }
 
         TempData["Success"] = "تم تسجيل الإجراء التأديبي";
         return RedirectToAction(nameof(Index));

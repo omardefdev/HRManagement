@@ -89,7 +89,6 @@ public class IssuedCardsController : Controller
             RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours,
         };
         _db.IssuedCards.Add(card);
-        await _db.SaveChangesAsync();
 
         await _publish.Publish<ICardIssued>(new
         {
@@ -316,7 +315,6 @@ public class IssuedCardsController : Controller
             RevokeSlaHours = card.RevokeSlaHours
         };
         _db.IssuedCards.Add(replacement);
-        await _db.SaveChangesAsync();
 
         await _publish.Publish<ICardIssued>(new
         {

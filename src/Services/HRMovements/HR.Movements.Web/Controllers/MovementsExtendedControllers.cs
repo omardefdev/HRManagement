@@ -3,6 +3,7 @@ using HR.Movements.Domain.Entities;
 using HR.Movements.Domain.Enums;
 using HR.Movements.Domain.Services;
 using HR.Movements.Infrastructure.Data;
+using HR.Movements.Infrastructure.Messaging;
 using HR.Movements.Infrastructure.Services;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
@@ -431,7 +432,6 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
         if (executedStep is not null && !executedStep.IsCompleted)
             MovementWorkflowRules.MarkStep(executedStep, by, $"secondment:{s.Id}:executed");
-        await db.SaveChangesAsync();
 
         await publish.Publish<IStartSecondmentSaga>(new
         {
@@ -779,7 +779,6 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
         if (executedStep is not null && !executedStep.IsCompleted)
             MovementWorkflowRules.MarkStep(executedStep, by, $"loan:{s.Id}:executed");
-        await db.SaveChangesAsync();
 
         await publish.Publish<ILoanAssignmentExecuted>(new
         {
@@ -1029,22 +1028,10 @@ public class PromotionRequestsController(
         var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
         if (executedStep is not null && !executedStep.IsCompleted)
             MovementWorkflowRules.MarkStep(executedStep, by, $"promotion:{item.Id}:executed");
-        await db.SaveChangesAsync();
 
-        await publish.Publish<IPromotionExecuted>(new
-        {
-            PromotionRequestId = item.Id,
-            item.EmployeeId,
-            item.SourceLegalRegimeId,
-            item.FromGrade,
-            item.ToGrade,
-            item.FromStep,
-            item.ToStep,
-            item.TransitionDecisionRef,
-            EffectiveDate = item.EffectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            CorrelationId = Guid.NewGuid(),
-            SourceSystem = "HR.Movements"
-        });
+        // PLAN-40 (class A): published before the single save, so the event commits with the execution.
+        await MovementExecutedEvents.PublishPromotionExecutedAsync(db, publish, item, by);
+        await db.SaveChangesAsync();
         TempData["Success"] = "تم تنفيذ الترفيع ونشر الحدث";
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -1186,18 +1173,10 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         var executedStep = checklist.FirstOrDefault(c => c.Step == MovementChecklistStep.Executed);
         if (executedStep is not null && !executedStep.IsCompleted)
             MovementWorkflowRules.MarkStep(executedStep, by, $"delegation:{item.Id}:executed");
-        await db.SaveChangesAsync();
 
-        await publish.Publish<IDelegationExecuted>(new
-        {
-            DelegationRequestId = item.Id,
-            item.EmployeeId,
-            item.HostOrg,
-            StartDate = item.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            EndDate = item.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            CorrelationId = Guid.NewGuid(),
-            SourceSystem = "HR.Movements"
-        });
+        // PLAN-40 (class A): published before the single save, so the event commits with the execution.
+        await MovementExecutedEvents.PublishDelegationExecutedAsync(db, publish, item, by);
+        await db.SaveChangesAsync();
         TempData["Success"] = "تم تنفيذ الندب ونشر الحدث";
         return RedirectToAction(nameof(Details), new { id });
     }

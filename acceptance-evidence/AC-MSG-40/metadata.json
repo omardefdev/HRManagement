@@ -1,0 +1,12 @@
+{
+  "scenario": "HR.Core start-up re-sync saves its IOrgUnitChanged messages; a second restart adds no snapshot",
+  "personaId": "system (restart)",
+  "correlationId": "96124f5f-1cc1-4ca1-98d4-08713462f9b9",
+  "capturedAtUtc": "2026-11-04T05:44:49.2663931Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "29db93990116a2784f24c03d897da6b37901bd03"
+}

@@ -4,6 +4,7 @@ using HR.Core.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Enums;
 using MassTransit;
@@ -14,45 +15,50 @@ public class EmployeeIntegrationService(HRCoreDbContext db, IPublishEndpoint pub
 {
     public async Task<Employee> CreateEmployeeWithEventAsync(Employee employee, CancellationToken cancellationToken = default)
     {
-        await db.SaveChangesAsync(cancellationToken);
-
-        db.EmploymentStatusHistories.Add(new EmploymentStatusHistory
+        // PLAN-40: the tenant the message carries is stamped by the save (TenantIdStampInterceptor), so the employee is saved
+        // before the publish, and one transaction keeps the employee, its first records and IEmployeeCreated together.
+        await OutboxUnitOfWork.ExecuteAsync(db, async ct =>
         {
-            EmployeeId = employee.Id,
-            NewStatus = employee.CurrentStatus.ToString(),
-            ChangedAt = DateTime.UtcNow,
-            Reason = "تعيين أولي للموظف"
-        });
+            await db.SaveChangesAsync(ct);
 
-        if (!await db.EmploymentRecords.AnyAsync(e => e.EmployeeId == employee.Id, cancellationToken))
-        {
-            db.EmploymentRecords.Add(new EmploymentRecord
+            db.EmploymentStatusHistories.Add(new EmploymentStatusHistory
             {
                 EmployeeId = employee.Id,
-                PositionTitle = "تعيين أولي",
-                StartDate = employee.HireDate?.AsUtc()
-                    ?? DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
-                EmploymentType = EmploymentType.Permanent,
-                Status = EmploymentStatus.Active.ToString(),
-                Notes = "سجل وظيفي أولي — بانتظار اعتماد السيرة"
+                NewStatus = employee.CurrentStatus.ToString(),
+                ChangedAt = DateTime.UtcNow,
+                Reason = "تعيين أولي للموظف"
             });
-        }
 
-        await publish.Publish<IEmployeeCreated>(new
-        {
-            EmployeeId = employee.Id,
-            employee.FullName,
-            // Hash, never the raw number: HR Core is the only service entitled to hold it.
-            NationalIdHash = PiiMask.Sha256Hex(employee.NationalId),
-            EmploymentType = EmploymentType.Permanent.ToString(),
-            TenantId = employee.TenantId,
-            PrimaryOrgUnitId = employee.PrimaryOrgUnitId
+            if (!await db.EmploymentRecords.AnyAsync(e => e.EmployeeId == employee.Id, ct))
+            {
+                db.EmploymentRecords.Add(new EmploymentRecord
+                {
+                    EmployeeId = employee.Id,
+                    PositionTitle = "تعيين أولي",
+                    StartDate = employee.HireDate?.AsUtc()
+                        ?? DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
+                    EmploymentType = EmploymentType.Permanent,
+                    Status = EmploymentStatus.Active.ToString(),
+                    Notes = "سجل وظيفي أولي — بانتظار اعتماد السيرة"
+                });
+            }
+
+            await publish.Publish<IEmployeeCreated>(new
+            {
+                EmployeeId = employee.Id,
+                employee.FullName,
+                // Hash, never the raw number: HR Core is the only service entitled to hold it.
+                NationalIdHash = PiiMask.Sha256Hex(employee.NationalId),
+                EmploymentType = EmploymentType.Permanent.ToString(),
+                TenantId = employee.TenantId,
+                PrimaryOrgUnitId = employee.PrimaryOrgUnitId
+            }, ct);
         }, cancellationToken);
-
-        await db.SaveChangesAsync(cancellationToken);
         return employee;
     }
 
+    /// <summary>Stages <c>IEmployeeStatusChanged</c>; the caller's single save writes it with the status change (PLAN-40).</summary>
+    [StagesOutboxMessages]
     public async Task PublishStatusChangedIfNeededAsync(
         Employee employee,
         EmploymentStatus oldStatus,
@@ -71,7 +77,5 @@ public class EmployeeIntegrationService(HRCoreDbContext db, IPublishEndpoint pub
             Reason = reason,
             ChangedAt = DateTime.UtcNow
         }, cancellationToken);
-
-        await db.SaveChangesAsync(cancellationToken);
     }
 }

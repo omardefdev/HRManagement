@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
@@ -35,7 +36,7 @@ builder.Services.AddDbContext<TrainingDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<TrainingDbContext>());
 builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddServiceMassTransit(builder.Configuration,
-    configureOutbox: x => x.AddPostgresOutbox<TrainingDbContext>(),
+    configureOutbox: x => x.AddPostgresOutbox<TrainingDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
@@ -77,6 +78,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

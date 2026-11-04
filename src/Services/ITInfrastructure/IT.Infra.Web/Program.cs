@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
@@ -41,6 +42,7 @@ builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
+    configureOutbox: x => x.AddPostgresOutbox<ITInfraDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
@@ -77,6 +79,7 @@ app.UseHrOpenApi();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseHrOutboxFlushGuard();
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.UseAuthentication();

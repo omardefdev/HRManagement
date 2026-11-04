@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults.Messaging;
 using HR.Contracts.Domain.Entities;
 
 
@@ -10,25 +11,35 @@ public interface IEventPublisher
 
 {
 
+    [StagesOutboxMessages]
     Task PublishContractActivatedAsync(Contract contract, CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task PublishCommencementRecordedAsync(Guid transactionId, Guid employeeId, DateOnly startDate, string? correlationId, CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task PublishConfirmationApprovedAsync(Guid transactionId, Guid employeeId, Guid contractId, string result, string? correlationId, CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task PublishLeaveApprovedAsync(Guid transactionId, Guid leaveRequestId, Guid employeeId, Guid approvedBy, string? correlationId, CancellationToken ct, string? leaveType = null, DateOnly? startDate = null, DateOnly? endDate = null, int durationDays = 0);
 
+    [StagesOutboxMessages]
     Task PublishLeaveCancelledAsync(Guid transactionId, Guid leaveRequestId, Guid employeeId, Guid cancelledBy, string? correlationId, CancellationToken ct, string? leaveType = null, DateOnly? startDate = null, DateOnly? endDate = null, int durationDays = 0);
 
+    [StagesOutboxMessages]
     Task PublishAdvanceApprovedAsync(Guid transactionId, Guid advanceRequestId, Guid employeeId, decimal amount, Guid approvedBy, string? correlationId, CancellationToken ct, decimal monthlyInstallment = 0, int numberOfInstallments = 0);
 
+    [StagesOutboxMessages]
     Task PublishJobUpdateAppliedAsync(Guid transactionId, Guid decisionId, Guid employeeId, string decisionNumber, string subject, string? correlationId, CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task PublishTransactionArchivedAsync(Guid transactionId, Guid employeeId, string archiveRef, string? correlationId, CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task PublishSeparationCompletedAsync(Guid employeeId, string separationType, DateOnly effectiveDate, CancellationToken ct, Guid? contractId = null, Guid? separationRecordId = null);
 
     /// <summary>INT-003: start separation process manager (replaces immediate fan-out).</summary>
+    [StagesOutboxMessages]
     Task StartSeparationSagaAsync(
         Guid separationRecordId,
         Guid employeeId,
@@ -41,11 +52,13 @@ public interface IEventPublisher
         string? payrollRegimeCode = null);
 
     /// <summary>FUN-002: abort in-flight separation saga with party compensate.</summary>
+    [StagesOutboxMessages]
     Task CancelSeparationSagaAsync(
         Guid separationRecordId,
         string reason,
         CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task StartHireSagaAsync(
         Guid serviceTransactionId,
         Guid employeeId,
@@ -53,6 +66,7 @@ public interface IEventPublisher
         CancellationToken ct,
         Guid? recruitmentApplicationId = null);
 
+    [StagesOutboxMessages]
     Task PublishSeparationStepCompletedAsync(
         Guid separationRecordId,
         Guid employeeId,
@@ -60,6 +74,7 @@ public interface IEventPublisher
         string? notes,
         CancellationToken ct);
 
+    [StagesOutboxMessages]
     Task PublishHireCaseCompletedAsync(Guid employeeId, Guid serviceTransactionId, Guid? contractId, CancellationToken ct, Guid? recruitmentApplicationId = null);
 
     /// <summary>
@@ -67,6 +82,7 @@ public interface IEventPublisher
     /// hire contract type, overdue commencement. Default no-op keeps the test doubles compiling; the MassTransit
     /// publisher implements it.
     /// </summary>
+    [StagesOutboxMessages]
     Task PublishProcessInterventionRequestedAsync(
         string sagaType,
         Guid correlationId,

@@ -1,0 +1,1 @@
+hradmin signs in through the edge; POST replay and resync with dryRun=true; ids and counts in reports/msg040-replay-server-<utc>.json. No MessagingReplayRun row: nothing was applied.
