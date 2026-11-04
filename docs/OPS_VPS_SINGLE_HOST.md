@@ -263,7 +263,7 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-39: volume `hrm_keycloak_import` (realm مولّد بنواب `${NAME}` وخطة المطابقة، بلا أسرار) | `docker volume rm hrm_keycloak_import` بعد `down` |
 | PLAN-39: الإصدار `817304f5bd88` (current-tag؛ previous-tag `7bd85bc3ac9d`) وصوره في السجل الحلقي | `deploy.ps1 -Rollback` |
 | PLAN-39: `/opt/hrm/backups/pre-plan39-20261102T014546Z` (700، الملفات 600) | حذف المجلد بعد التأكد من عدم الحاجة إلى النسخة |
-| PLAN-40: الإصدار `f44e52cf58be` (current-tag؛ previous-tag `c8872d7767ab`)، وترحيلات `MSG040_*`: outbox في admin وauth_directory وit_infra وarchive وanalytics، وإيصالات Training، وفهرس `InboxState` | `deploy.ps1 -Tag 817304f5bd88` آمن: الإصدار القديم يتجاهل الجداول الجديدة. `-Rollback` يعود إلى `c8872d7767ab` (قبل إصلاحات المراجعة، لا يُستخدم) |
+| PLAN-40: الإصدار `3d0b2df84f82` (current-tag؛ previous-tag `f44e52cf58be`)، وترحيلات `MSG040_*`: outbox في admin وauth_directory وit_infra وarchive وanalytics، وإيصالات Training، وفهرس `InboxState` | `deploy.ps1 -Tag 817304f5bd88` آمن: الإصدار القديم يتجاهل الجداول الجديدة. `-Rollback` يعود إلى `f44e52cf58be` (طلبات الإعادة فيه بلا رمز antiforgery) |
 | PLAN-40: `HRM_OTEL_ENABLED=true` في `.env` (يلزم لـ `/metrics` داخل الشبكة؛ مغلق على الحافة والبوابة) | إعادة القيمة `false` ثم `deploy.ps1 -Tag <الوسم الحالي>` |
 | PLAN-40: `/opt/hrm/backups/pre-plan40-20261104T014945Z` (700، الملفات 600) و`/opt/hrm/shared/.env.bak-plan40-20261104T014945Z` | حذفهما بعد التأكد من عدم الحاجة إليهما |
 
@@ -451,4 +451,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/msg040-replay-lost-e
 
 `password grant` مغلق في Production وDemo، لذلك يأخذ السكربت ترويسة Cookie لجلسة مسجلة، أو `-AccessToken`. التشغيل الثاني بعد `-Apply` يسرد صفراً، والمعرّف الحتمي يمنع التكرار عند المستهلك.
 
-**ملاحظة نشر.** `keycloak-reconcile` يقرأ من Keycloak بعد إعادة إنشاء PostgreSQL، فقد تفشل قراءته الأولى باتصال مغلق، فتتوقف التطبيقات عند `Created` (حدث مرة في 2026-11-04، توقف 3 دقائق). العلاج إعادة أمر النشر نفسه؛ فهو قابل للتكرار.
+كل طلب POST للإعادة يتطلب رمز antiforgery، ويُرفض بدونه بـ 400 حتى مع جلسة أو token صالحين؛ فالخدمات تقبل الجلسة، وبدون الرمز قد يصل طلب مزوَّر من موقع آخر فيه `dryRun=false`. يجلب السكربت الرمز من `GET /api/admin/messaging/antiforgery` (خلف سياسة الإعادة نفسها) ولا يكتبه في التقرير. من يستدعي الواجهة بغير السكربت يرسل الترويسة `RequestVerificationToken` مع الكوكي، وينتبه إلى أن الخدمة تقيّد مسار الكوكي بـ `/ui/<service>` بينما الإعادة تمر عبر `/api/<service>`.
+
+**ملاحظة نشر.** `keycloak-reconcile` يقرأ من Keycloak بعد إعادة إنشاء PostgreSQL، فقد تفشل قراءته الأولى باتصال مغلق، فتتوقف التطبيقات عند `Created` (حدث مرتين في 2026-11-04، في كل نشر أعاد إنشاء PostgreSQL، وتوقفت التطبيقات 3 إلى 4 دقائق). العلاج إعادة أمر النشر نفسه؛ فهو قابل للتكرار.

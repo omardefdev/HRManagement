@@ -119,9 +119,13 @@ public partial class AcOps36VpsBootTests
                 using var tokenResponse = await client.GetAsync($"https://{AppDomain}/api/{service}/api/admin/messaging/antiforgery");
                 var issued = JsonNode.Parse(await tokenResponse.Content.ReadAsStringAsync())!;
 
-                // The service scopes this cookie to /ui/<service>; replay goes through /api/<service>.
-                var antiforgeryCookie = tokenResponse.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal)).Split(';')[0].Split('=', 2);
-                cookies.Add(new Uri($"https://{AppDomain}/"), new Cookie(antiforgeryCookie[0], antiforgeryCookie[1], "/"));
+                // The service scopes this cookie to /ui/<service>; replay goes through /api/<service>. A client that already
+                // sends a valid cookie gets no new one.
+                if (tokenResponse.Headers.TryGetValues("Set-Cookie", out var setCookies))
+                {
+                    var antiforgeryCookie = setCookies.Single(c => c.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal)).Split(';')[0].Split('=', 2);
+                    cookies.Add(new Uri($"https://{AppDomain}/"), new Cookie(antiforgeryCookie[0], antiforgeryCookie[1], "/"));
+                }
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
                 request.Headers.Add((string)issued["headerName"]!, (string)issued["requestToken"]!);

@@ -8,7 +8,9 @@ Branch `feature/plan-40-msg-atomic-event-publishing` from `main` 7e23094f. Plan:
 consumers and sagas publish through the consumer outbox; two guards stop regressions; a dry-run replay tool exists; the demo
 server runs it. Two things went wrong on the way that the owner should read: an internet exposure of `/metrics` that lasted
 about 3 minutes (section 7), and a regression of mine (`IEmployeeCreated` with an empty tenant) that was live on the demo server
-for about 75 minutes (section 3). Both are fixed and covered by tests. One review finding stays open (M4, section 8).
+for about 75 minutes (section 3). Both are fixed and covered by tests. A third came from CodeQL on the PR: the replay POSTs I added
+had no antiforgery token, and the script's session mode had never worked (section 7). Both are fixed and the server carries the
+fix. One review finding stays open (M4, section 8).
 
 ## 1. Summary per phase
 
@@ -21,7 +23,7 @@ for about 75 minutes (section 3). Both are fixed and covered by tests. One revie
 | P4 | Static guard R1-R4 (Roslyn, test-only), runtime guard in 13 services; allow-list empty |
 | P5 | `MessagingRepairController` in HR.Movements and HR.Core, `scripts/msg040-replay-lost-events.ps1`, ledger, audit |
 | P6 | AC-MSG-40a..h 8/8, AC-16/17/18 3/3, AcHcm29 3/3, prod-like journey 1/1, every queue empty |
-| P7 | Demo server on `f44e52cf58be`; all server checks green; replay dry run recorded, nothing applied |
+| P7 | Demo server on `3d0b2df84f82`; all server checks green; replay dry run recorded, nothing applied |
 | P8 | Docs, independent review, this report, merge through a PR |
 
 ## 2. Commits
@@ -41,6 +43,8 @@ for about 75 minutes (section 3). Both are fixed and covered by tests. One revie
 | c8872d77 | test: acceptance green; defects found live fixed |
 | 63f041ab | fix: review findings |
 | 5c0f8f1b | fix: gateway requests told by proof and forwarded headers |
+| 3d0b2df8 | fix: replay POSTs require an antiforgery token; script session mode works on Windows PowerShell 5.1 |
+| 29db9399 | chore: gitleaks entry for the public host key fingerprint in the progress report |
 | f44e52cf | test: acceptance evidence on the final code |
 | 381a5349 | test: demo server checks |
 
@@ -102,7 +106,7 @@ Site by site: [plan40-publisher-inventory.md](plan40-publisher-inventory.md). Cu
 |---|---|
 | Unit | 4623/4623 on 63f041ab, plus the IsProxied theory change; local CI numbers in the progress file |
 | Integration (Testcontainers on) | 474+ passed; only the 3 `Qa003Minio` tests fail (CI-excluded `ObjectStorage`, unpullable image) |
-| `Msg040*` integration | ordering 8, unit of work 4, guard 5, replay 1, movements 2, history 1, org-unit rollback 1 |
+| `Msg040*` integration | ordering 8, unit of work 4, guard 5, replay 1, movements 2, history 1, org-unit rollback 1, repair antiforgery 4 |
 | `RabbitDownOutboxTests` (Chaos) | failed at baseline, passes now (own broker on a fixed port, delivery service started) |
 | AC-MSG-40a..h | 8/8, 100 s |
 | AC-16, AC-17, AC-18 live | 3/3, 66 s; replaces the failing AC-16 evidence. AC-17 reworked for the accepted-offer hire |
@@ -122,13 +126,26 @@ tenant only.
 **Before:** tag `817304f5bd88`, 22 containers, outbox tables in 8 databases, 14 `mq_*` connections, queues empty except
 `hr-contracts-web-transaction-archived_error` = 3.
 
-**After:** tag `f44e52cf58be`, 22 containers, smoke 50 pass / 0 fail / 1 warn (the known VPN port probe). Outbox tables in the five,
+**After:** tag `3d0b2df84f82`, 22 containers, smoke 50 pass / 0 fail / 1 warn (the known VPN port probe). Outbox tables in the five,
 Training receipts, 14 `mq_*` connections only, `outbox_unsaved_messages_total` 0 in 13 services after the tour, `_error` unchanged.
 
 **Replay dry run (not applied, D-40-4):** 0 promotions, 0 delegations, 0 asset outcomes; 30 org units for the re-sync.
-[msg040-replay-server-20261104T031223Z.json](msg040-replay-server-20261104T031223Z.json). The zeros are real: the demo has no
+[msg040-replay-server-20261104T072727Z.json](msg040-replay-server-20261104T072727Z.json), same counts as the first run on `f44e52cf58be`. The zeros are real: the demo has no
 promotion, delegation or asset-workflow rows. The owner's command is in
 [OPS_VPS_SINGLE_HOST §14](../docs/OPS_VPS_SINGLE_HOST.md).
+
+**CodeQL on PR 35 (after the first push).** Four new `cs/web/missing-token-validation` findings (severity 8.8) on the replay POSTs.
+They were real: the services accept a gateway session, so a forged cross-site POST with `dryRun=false` was stopped only by the
+cookie's `SameSite`. Each POST now needs an antiforgery token from `GET /api/admin/messaging/antiforgery`, behind the same policy. The
+baseline was not touched. Testing through the gateway found two more defects, both mine: the script's `-CookieHeader` mode, the one
+the runbook gives operators, never worked (Windows PowerShell 5.1 drops a `Cookie` entry in `-Headers`; only bearer mode had been
+run), and the service scopes its cookie to `/ui/<service>` while replay goes through `/api/<service>`. AC-MSG-40g now proves the 400
+with a bearer token and a signed-in session and runs the script in both modes; the server check proves the refusal and the dry run
+with a real session over https. Replay was never applied on the server.
+
+Deploy of `3d0b2df84f82`: the first attempt failed at 06:09Z with the known `keycloak-reconcile` error after PostgreSQL was recreated;
+the same command succeeded at 06:11:55Z. The applications were down about 4 minutes. The PLAN-38 tour was not repeated on this tag:
+the unsaved counter was read on the checks' own traffic, and its reading after the tour is from `f44e52cf58be`.
 
 **Incidents:**
 
@@ -145,7 +162,7 @@ promotion, delegation or asset-workflow rows. The owner's command is in
 
 | Change | Undo |
 |---|---|
-| Release `f44e52cf58be`, `MSG040_*` migrations | `deploy.ps1 -Tag 817304f5bd88` (the old code ignores the new tables). Do not use `-Rollback`: previous-tag is `c8872d7767ab`, which has H1 |
+| Release `3d0b2df84f82`, `MSG040_*` migrations | `-Rollback` returns to `f44e52cf58be` (no H1, but replay POSTs without a token); `deploy.ps1 -Tag 817304f5bd88` returns to before the plan (the old code ignores the new tables) |
 | `HRM_OTEL_ENABLED=true` | set `false`, then deploy the current tag |
 | `/opt/hrm/backups/pre-plan40-20261104T014945Z` (700/600, verified, 17 `CREATE DATABASE` lines, `SHA256SUMS`) | remove when no longer needed |
 | `/opt/hrm/shared/.env.bak-plan40-20261104T014945Z` | remove when no longer needed |
@@ -210,4 +227,5 @@ PLAN-40      14 2026-11-02 11:01 2026-11-02 11:05 2026-11-04 06:26  False 43:21 
   needed; the consumer outbox from consumers. A payload field stamped at save time (the tenant) needs the save first, inside the
   unit of work. No allow-list line without a written reason.
 - Run the acceptance filters one group at a time: AC-17, 40d and 39f stop or recreate containers and interfere with parallel classes.
-- Server: tag `f44e52cf58be`; `previous-tag` is `c8872d7767ab`, do not roll back to it.
+- Server: tag `3d0b2df84f82`; `previous-tag` is `f44e52cf58be`.
+- `keycloak-reconcile` failed on both deploys of this plan that recreated PostgreSQL, so expect it: the first read after the recreate hits a closed connection in the Keycloak pool. A retry inside the reconcile would remove the 3-4 minute outage.
