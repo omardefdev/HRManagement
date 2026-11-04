@@ -488,13 +488,6 @@ public sealed class RecruitmentRequisitionLifecycleService(
         return hasActive ? null : AssessmentCriteriaRules.RequiredBeforePublishMessage;
     }
 
-    private PolicyEnforcementMode ResolveMode()
-    {
-        var mode = configuration["PolicyEngine:Core.Recruitment"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? "Off";
-        return Enum.TryParse<PolicyEnforcementMode>(mode, true, out var parsed)
-            ? parsed
-            : PolicyEnforcementMode.Off;
-    }
+    private PolicyEnforcementMode ResolveMode() =>
+        new PolicyModeResolver(configuration).Resolve(PolicyDomains.CoreRecruitment);
 }

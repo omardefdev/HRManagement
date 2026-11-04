@@ -50,6 +50,7 @@ public static class OpenTelemetryExtensions
                         JobActivitySource.MeterName,
                         ExportJobMetrics.MeterName,
                         ApprovalMetrics.MeterName,
+                        Policy.PolicyClientMetrics.MeterName,
                         PaymentExportMetrics.MeterName,
                         MigCutover.MigCutoverMetrics.MeterName,
                         NationalScope.NationalScopeMetrics.MeterName,

@@ -1,6 +1,7 @@
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.Workflow;
@@ -66,22 +67,16 @@ public sealed class ApprovalStartCoordinator(
     IWorkflowStarter workflowStarter,
     IConfiguration configuration)
 {
+    private readonly IPolicyModeResolver modeResolver = new PolicyModeResolver(configuration);
+
     public const string MissingDefinitionMessage = "لا يوجد تعريف مسار اعتماد منشور لهذا الإجراء.";
     public const string StartDisabledMessage =
         "بدء مسار الاعتماد معطّل بالإعداد Recruitment:Approvals:AlwaysStartWorkflow، ولا تُقدَّم المعاملة دون مسار اعتماد.";
 
-    public static PolicyEnforcementMode ResolveMode(IConfiguration configuration, string policyDomain)
-    {
-        var raw = configuration[$"PolicyEngine:{policyDomain}"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? nameof(PolicyEnforcementMode.Off);
-        return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode) ? mode : PolicyEnforcementMode.Off;
-    }
-
     public async Task<ApprovalStartResult> StartAsync(ApprovalStartRequest request, CancellationToken ct = default)
     {
         var options = RecruitmentApprovalOptions.From(configuration);
-        var mode = ResolveMode(configuration, request.PolicyDomain);
+        var mode = modeResolver.Resolve(request.PolicyDomain);
 
         if (mode != PolicyEnforcementMode.Off && request.PolicyRequest is not null)
         {

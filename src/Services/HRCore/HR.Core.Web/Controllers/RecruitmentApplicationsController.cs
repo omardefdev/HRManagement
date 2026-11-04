@@ -720,15 +720,8 @@ public class RecruitmentApplicationsController(
     private bool BlockHireOnPendingAppeal() =>
         configuration.GetValue("Recruitment:BlockHireOnPendingAppeal", true);
 
-    private PolicyEnforcementMode ResolvePolicyMode()
-    {
-        var raw = configuration["PolicyEngine:Core.Recruitment"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? nameof(PolicyEnforcementMode.Off);
-        return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode)
-            ? mode
-            : PolicyEnforcementMode.Off;
-    }
+    private PolicyEnforcementMode ResolvePolicyMode() =>
+        new PolicyModeResolver(configuration).Resolve(PolicyDomains.CoreRecruitment);
 
     private RedirectToActionResult RedirectToInterviews(Guid applicationId) =>
         RedirectToAction(nameof(Details), null, new { id = applicationId }, "interviews");

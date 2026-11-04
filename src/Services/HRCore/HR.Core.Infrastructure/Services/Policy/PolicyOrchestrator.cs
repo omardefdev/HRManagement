@@ -33,6 +33,17 @@ public sealed class PolicyOrchestrator(
 
     public async Task<PolicyEnforceResponse> EnforceAsync(PolicyEnforceRequest request, CancellationToken ct = default)
     {
+        // PLAN-42: Off means the engine has no say here: an allow with no ledger row and no workflow.
+        if (request.Mode == PolicyEnforcementMode.Off)
+        {
+            return new PolicyEnforceResponse
+            {
+                Allowed = true,
+                EffectiveMode = PolicyEnforcementMode.Off,
+                Explanations = ["PolicyEngine:Off"]
+            };
+        }
+
         var decision = await EvaluateAsync(request, ct);
         var shadowDiffs = new List<string>();
 
@@ -82,7 +93,8 @@ public sealed class PolicyOrchestrator(
             PolicyVersionId = decision.PolicyVersionId,
             LedgerId = ledger.Id,
             Decision = decision,
-            ShadowDiffs = shadowDiffs
+            ShadowDiffs = shadowDiffs,
+            EffectiveMode = request.Mode
         };
     }
 

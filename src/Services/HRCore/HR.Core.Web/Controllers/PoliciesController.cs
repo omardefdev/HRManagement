@@ -30,8 +30,6 @@ public class PoliciesController(
         request.ActorUserId ??= ParseUserId(User);
         request.ActorUserName ??= User.FindFirstValue("preferred_username") ?? User.Identity?.Name;
         var response = await orchestrator.EnforceAsync(request, ct);
-        if (!response.Allowed && request.Mode == PolicyEnforcementMode.Enforce)
-            return UnprocessableEntity(response);
         return Ok(response);
     }
 

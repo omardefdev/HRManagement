@@ -481,13 +481,6 @@ public sealed class RecruitmentAppealService(
             ChangedFields = JsonSerializer.Serialize(changes)
         });
 
-    private PolicyEnforcementMode ResolveMode()
-    {
-        var raw = configuration["PolicyEngine:Core.Recruitment"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? nameof(PolicyEnforcementMode.Off);
-        return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode)
-            ? mode
-            : PolicyEnforcementMode.Off;
-    }
+    private PolicyEnforcementMode ResolveMode() =>
+        new PolicyModeResolver(configuration).Resolve(PolicyDomains.CoreRecruitment);
 }

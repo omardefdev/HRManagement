@@ -238,7 +238,13 @@ public class AssetsController(
             return View(model);
         }
 
-        await assetClassifier.ApplyClassificationAsync(entity, HttpContext.RequestAborted);
+        var classifyError = await assetClassifier.ApplyClassificationAsync(entity, HttpContext.RequestAborted);
+        if (classifyError is not null)
+        {
+            ModelState.AddModelError(string.Empty, classifyError);
+            ViewData["ShowValidationDialog"] = true;
+            return View(model);
+        }
 
         var (tagOk, tag, tagError) = await GenerateAssetTagAsync(entity);
         if (!tagOk)
@@ -342,7 +348,14 @@ public class AssetsController(
         if (!e.OriginReceiptRecordId.HasValue && !e.IsLegacyEntry)
             e.OriginReceiptRecordId = model.OriginReceiptRecordId;
 
-        await assetClassifier.ApplyClassificationAsync(e, HttpContext.RequestAborted);
+        var classifyError = await assetClassifier.ApplyClassificationAsync(e, HttpContext.RequestAborted);
+        if (classifyError is not null)
+        {
+            ModelState.AddModelError(string.Empty, classifyError);
+            ViewData["ShowValidationDialog"] = true;
+            model.TagNumber = e.TagNumber;
+            return View(model);
+        }
 
         var outcome = await HrSaveChanges.TryAsync(db, ModelState, HttpContext.RequestAborted);
         if (outcome != SaveChangesOutcome.Success)
@@ -757,7 +770,13 @@ public class AssetsController(
 
         var label = line?.InventoryItem?.Name ?? line?.Sku ?? receipt.ItemsReceived;
         var draftAsset = new Asset { Value = line?.UnitCost, Category = line?.IsCapitalizable == true ? "أصول ثابتة" : null };
-        await assetClassifier.ApplyClassificationAsync(draftAsset, HttpContext.RequestAborted);
+        var classifyError = await assetClassifier.ApplyClassificationAsync(draftAsset, HttpContext.RequestAborted);
+        if (classifyError is not null)
+        {
+            AdminLogisticsFlash.Error(TempData, classifyError);
+            return RedirectToAction("Details", "ReceiptRecords", new { id = receiptId });
+        }
+
         var (tagOk, tag, tagError) = await GenerateAssetTagAsync(draftAsset);
         if (!tagOk)
         {

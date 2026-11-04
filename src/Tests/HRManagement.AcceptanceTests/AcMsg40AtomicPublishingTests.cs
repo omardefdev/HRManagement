@@ -102,6 +102,9 @@ public class AcMsg40AtomicPublishingTests
         SqlScalarAsync(database,
             $"SELECT COUNT(*) FROM \"IntegrationMessageReceipts\" WHERE \"MessageId\" = '{messageId:D}';");
 
+    private static Task<long> PendingOutboxRowsAsync(Guid messageId) =>
+        SqlScalarAsync("hr_core_db", $"SELECT COUNT(*) FROM \"OutboxMessage\" WHERE \"MessageId\" = '{messageId:D}';");
+
     private static Task<long> ReceiptsForConsumerAsync(string database, string consumerSuffix) =>
         SqlScalarAsync(database,
             $"SELECT COUNT(*) FROM \"IntegrationMessageReceipts\" WHERE \"ConsumerType\" LIKE '%{consumerSuffix}';");
@@ -315,7 +318,7 @@ public class AcMsg40AtomicPublishingTests
     }
 
     [SkippableFact]
-    public async Task Ac40c_policy_published_from_the_api_and_the_ui_reaches_idcard()
+    public async Task Ac40c_policy_published_from_the_api_and_the_ui_leaves_the_hr_core_outbox()
     {
         var r = Recorder("40c", "IPolicyPublished from the API and the UI, committed with the publication; four-eyes refusal publishes nothing", "central-a");
         AcceptanceGate.RequireEnabled(r);
@@ -323,38 +326,44 @@ public class AcMsg40AtomicPublishingTests
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, Guid.NewGuid().ToString("D"), allowAutoRedirect: false);
         var domain = $"msg40-{Guid.NewGuid():N}"[..20];
 
+        // PLAN-42 (P-5): IPolicyPublished has no consumer until PLAN-47, so delivery is proved at the publisher: the publication
+        // wrote an outbox row (the sequence moved) and the delivery service took it out (no row left for the MessageId).
         var (_, apiVersion) = await InjectDraftPolicyAsync(domain, Guid.NewGuid());
+        var apiSequenceBefore = await OutboxSequenceAsync("hr_core_db");
         var api = await http.PostAsJsonAsync($"api/hr-core/api/policies/templates/{apiVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
         Assert.True(api.IsSuccessStatusCode, $"API publish: {(int)api.StatusCode} {await api.Content.ReadAsStringAsync()}");
+        var apiSequenceAfter = await OutboxSequenceAsync("hr_core_db");
 
         var (uiTemplate, uiVersion) = await InjectDraftPolicyAsync(domain + "u", Guid.NewGuid());
+        var uiSequenceBefore = await OutboxSequenceAsync("hr_core_db");
         var ui = await PostUiFormAsync(http,
             $"ui/hr-core/PolicyTemplates/Details/{uiTemplate:D}",
             "ui/hr-core/PolicyTemplates/PublishFromUi",
             new Dictionary<string, string> { ["versionId"] = uiVersion.ToString("D"), ["evidenceRef"] = "AC-MSG-40c" });
         Assert.Equal(HttpStatusCode.Redirect, ui.StatusCode);
 
-        var apiReceipts = await PollAsync(() => ReceiptsAsync("idcard_db", DeterministicMessageId.For<IPolicyPublished>(apiVersion)), n => n >= 1, DeliveryWindow);
-        var uiReceipts = await PollAsync(() => ReceiptsAsync("idcard_db", DeterministicMessageId.For<IPolicyPublished>(uiVersion)), n => n >= 1, DeliveryWindow);
-        Assert.Equal(1, apiReceipts);
-        Assert.Equal(1, uiReceipts);
+        var uiSequenceAfter = await OutboxSequenceAsync("hr_core_db");
+        Assert.True(apiSequenceAfter > apiSequenceBefore, "the API publication wrote no outbox row");
+        Assert.True(uiSequenceAfter > uiSequenceBefore, "the UI publication wrote no outbox row");
+        var apiPending = await PollAsync(() => PendingOutboxRowsAsync(DeterministicMessageId.For<IPolicyPublished>(apiVersion)), n => n == 0, DeliveryWindow);
+        var uiPending = await PollAsync(() => PendingOutboxRowsAsync(DeterministicMessageId.For<IPolicyPublished>(uiVersion)), n => n == 0, DeliveryWindow);
+        Assert.Equal(0, apiPending);
+        Assert.Equal(0, uiPending);
 
         // Negative: no maker on record means the checker is the maker; four-eyes refuses and nothing is published.
         var (_, refusedVersion) = await InjectDraftPolicyAsync(domain + "n", null);
         var sequenceBefore = await OutboxSequenceAsync("hr_core_db");
         var refused = await http.PostAsJsonAsync($"api/hr-core/api/policies/templates/{refusedVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
         var sequenceAfter = await OutboxSequenceAsync("hr_core_db");
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        var refusedReceipts = await ReceiptsAsync("idcard_db", DeterministicMessageId.For<IPolicyPublished>(refusedVersion));
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
-        Assert.Equal(0, refusedReceipts);
+        Assert.Equal(sequenceBefore, sequenceAfter);
 
-        r.WriteScenarioDbChecks(new { apiVersion, apiReceipts, uiVersion, uiReceipts, refusedVersion, refusedStatus = (int)refused.StatusCode, refusedReceipts, sequenceBefore, sequenceAfter });
+        r.WriteScenarioDbChecks(new { apiVersion, apiSequenceBefore, apiSequenceAfter, apiPending, uiVersion, uiSequenceBefore, uiSequenceAfter, uiPending, refusedVersion, refusedStatus = (int)refused.StatusCode, sequenceBefore, sequenceAfter });
         r.WriteScenarioSteps(
             "1. SQL: draft policy versions with a recorded maker.\n" +
             "2. POST policies/templates/{id}/publish (API) and PolicyTemplates/PublishFromUi (UI, which published nothing before PLAN-40).\n" +
-            "3. idcard_db: one receipt for each deterministic MessageId within 60 s.\n" +
-            "4. Negative: a version with no maker is refused by four-eyes (400): no receipt.");
+            "3. hr_core_db: the OutboxMessage sequence moved for each publication, and no row is left for its deterministic MessageId within 60 s (PLAN-42: no consumer until PLAN-47).\n" +
+            "4. Negative: a version with no maker is refused by four-eyes (400): the sequence does not move.");
         r.WriteResult("Pass");
     }
 

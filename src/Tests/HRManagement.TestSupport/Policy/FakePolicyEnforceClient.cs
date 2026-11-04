@@ -8,14 +8,37 @@ namespace HRManagement.TestSupport.Policy;
 public sealed class FakePolicyEnforceClient : IPolicyEnforceClient
 {
     private readonly List<PolicyEnforceRequest> _requests = [];
-    private readonly Dictionary<string, PolicyVersionSnapshot> _snapshots = new(StringComparer.OrdinalIgnoreCase);
 
     public Func<PolicyEnforceRequest, PolicyEnforceResponse>? EnforceHandler { get; set; }
 
     public IReadOnlyList<PolicyEnforceRequest> Requests => _requests;
 
-    public void SetSnapshot(string domain, PolicyVersionSnapshot snapshot) =>
-        _snapshots[domain] = snapshot;
+    /// <summary>The mode the default answer reports; a handler sets its own.</summary>
+    public PolicyEnforcementMode EffectiveMode { get; set; } = PolicyEnforcementMode.Enforce;
+
+    /// <summary>PLAN-42: a denial as the real client returns it when HR.Core cannot be reached under FailClosed.</summary>
+    public static PolicyEnforceResponse FailedClosed(string domain, string reason = "http-503")
+    {
+        var message = $"policy {domain} could not be checked";
+        return new PolicyEnforceResponse
+        {
+            Allowed = false,
+            Degraded = true,
+            FailureReason = reason,
+            EffectiveMode = PolicyEnforcementMode.Enforce,
+            Explanations = [message],
+            Decision = new PolicyDecision { Allowed = false, DenyReason = message, Explanations = [message] }
+        };
+    }
+
+    /// <summary>PLAN-42: Shadow as the real client returns it: the caller gets the Off decision, the server's is on the side.</summary>
+    public static PolicyEnforceResponse Shadow(PolicyDecision offDecision, PolicyDecision serverDecision) => new()
+    {
+        Allowed = true,
+        EffectiveMode = PolicyEnforcementMode.Shadow,
+        Decision = offDecision,
+        ShadowDecision = serverDecision
+    };
 
     public Task<PolicyEnforceResponse> EnforceAsync(PolicyEnforceRequest request, CancellationToken ct = default)
     {
@@ -30,16 +53,11 @@ public sealed class FakePolicyEnforceClient : IPolicyEnforceClient
         };
         return Task.FromResult(new PolicyEnforceResponse
         {
-            Allowed = request.Mode == PolicyEnforcementMode.Shadow || decision.Allowed,
+            Allowed = decision.Allowed,
+            EffectiveMode = EffectiveMode,
             Decision = decision,
             Explanations = decision.Explanations.ToList()
         });
-    }
-
-    public Task<PolicyVersionSnapshot?> GetSnapshotAsync(string domain, Guid? tenantId, CancellationToken ct = default)
-    {
-        _snapshots.TryGetValue(domain, out var snap);
-        return Task.FromResult(snap);
     }
 
     private static PolicyEnforceRequest CloneRequest(PolicyEnforceRequest request) => new()

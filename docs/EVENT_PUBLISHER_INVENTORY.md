@@ -73,7 +73,7 @@ outbox on every receive endpoint.
 | `IOrgUnitChanged` (delete) | `OrgUnitsController.Delete` | SingleSave |
 | `IOrgUnitChanged` (full re-sync) | `OrgUnitIntegrationService.PublishAllOrgUnitsAsync` (start-up, onboarding, `resync/org-units`) | SingleSave |
 | `IAgencyOnboarded` | `AgencyProvisioningService.ApplyManifestAsync` (no consumer) | OutboxUnitOfWork |
-| `IPolicyPublished` | `PolicyVersionPublisher.PublishDraftAsync` (API and UI) | SingleSave |
+| `IPolicyPublished` (no consumer since PLAN-42; PLAN-47 adds the cache invalidation) | `PolicyVersionPublisher.PublishDraftAsync` (API and UI) | SingleSave |
 | `IAssetAssignmentApproved`, `IAssetAssignmentRejected`, `IAssetLossApproved`, `IAssetLossRejected` | `WorkflowInstanceActionService` through `WorkflowAssetOutcomes` | SingleSave |
 | `ITransactionRegisteredInDiwan` | `DiwanIntegrationService.RegisterCorrespondenceAsync` | SingleSave |
 | `ITransactionRegisteredInDiwan` (hire) | `HireCaseCompletedDiwanConsumer` | ConsumerOutbox |

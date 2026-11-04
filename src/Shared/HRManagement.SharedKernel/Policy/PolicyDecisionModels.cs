@@ -33,7 +33,8 @@ public sealed class PolicyEnforceRequest
     public string Action { get; set; } = string.Empty;
     public Dictionary<string, string> Facts { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public string? CorrelationId { get; set; }
-    public PolicyEnforcementMode Mode { get; set; } = PolicyEnforcementMode.Enforce;
+    /// <summary>PLAN-42: set by the caller inside HR.Core only; the internal endpoint derives it and ignores the body.</summary>
+    public PolicyEnforcementMode Mode { get; set; } = PolicyEnforcementMode.Off;
     public Guid? EntityId { get; set; }
     public string? ContextJson { get; set; }
     public Guid? ActorUserId { get; set; }
@@ -50,6 +51,18 @@ public sealed class PolicyEnforceResponse
     public Guid? LedgerId { get; init; }
     public PolicyDecision Decision { get; init; } = new();
     public IReadOnlyList<string>? ShadowDiffs { get; init; }
+
+    /// <summary>PLAN-42: the mode the server applied. The remote client reads the reply by this value; a 200 without it is a failure.</summary>
+    public PolicyEnforcementMode? EffectiveMode { get; init; }
+
+    /// <summary>PLAN-42: HR.Core gave no usable decision, so this answer comes from the failure path.</summary>
+    public bool Degraded { get; init; }
+
+    /// <summary>PLAN-42: a fixed name for the failure (http-503, timeout, exception, invalid-response).</summary>
+    public string? FailureReason { get; init; }
+
+    /// <summary>PLAN-42: in Shadow, what the server decided. For the record only: no caller may act on it.</summary>
+    public PolicyDecision? ShadowDecision { get; init; }
 }
 
 public sealed record PolicyVersionSnapshot
