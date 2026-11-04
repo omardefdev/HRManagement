@@ -51,3 +51,14 @@ the job in P5. Static tests green (69/69 with P2-P5 test files present); dotnet 
 
 Finished (UTC): 2026-11-04T09:49:35Z (P1)
 
+## P2
+
+EvidenceRecorder records profile, sourceSha, codeTree, imageRevisions, source, ciRunId, ciEvent; AcceptanceRunContext (in the E2E project, so the journey
+evidence uses it too) reads them once per process. Scenario key defaults to the test method, and every scenario keeps testClass, profile and codeTree.
+ACCEPTANCE_SIMULATE_MISSING in AcceptanceGate. One summarizer (scripts/acceptance-evidence-summarize.ps1, states in scripts/acceptance-evidence-lib.ps1);
+AcceptanceEvidenceSummary.cs deleted. tests/acceptance/ac-ownership.json: 71 entries. scripts/acceptance-baseline-validate.ps1 with -Committed.
+Added beyond the plan: summary.json for the validator; rows for nested folders (AC-HCM-33/prodlike, AC-OPS-36/vps), owner from the parent.
+Tests: AcceptanceEvidenceSummaryTests, AcceptanceGateTests green.
+
+Finished (UTC): 2026-11-04T09:49:35Z (P2)
+

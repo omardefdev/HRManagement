@@ -22,12 +22,14 @@ public sealed class EvidenceRecorder
     private readonly string _correlationId;
     private readonly List<object> _httpCaptures = [];
     private readonly Dictionary<string, object?> _timing = new();
+    private readonly AcceptanceScenario? _testScenario;
     private string? _scenario;
     private string? _personaId;
 
     public EvidenceRecorder(string acCode, string correlationId, string? evidenceRoot = null)
     {
         _correlationId = correlationId;
+        _testScenario = AcceptanceGate.CurrentScenario(new System.Diagnostics.StackTrace());
         var root = evidenceRoot
             ?? Environment.GetEnvironmentVariable("ACCEPTANCE_EVIDENCE_DIR")
             ?? Path.Combine(AcceptanceHarness.RepoRoot, "acceptance-evidence");
@@ -42,7 +44,7 @@ public sealed class EvidenceRecorder
     {
         _scenario = scenario;
         _personaId = personaId;
-        var gitSha = TryGitSha();
+        var run = AcceptanceRunContext.Current;
         var meta = new
         {
             scenario,
@@ -55,15 +57,22 @@ public sealed class EvidenceRecorder
                 keycloak = AcceptanceEnv.KeycloakBaseUrl,
                 runAcceptance = AcceptanceEnv.IsEnabled
             },
-            gitSha,
-            imageTag = Environment.GetEnvironmentVariable("IMAGE_TAG")
+            gitSha = run.SourceSha,
+            imageTag = Environment.GetEnvironmentVariable("IMAGE_TAG"),
+            // PLAN-41: what the evidence is evidence of (D-QA-6, D-QA-20, D-QA-21, P-2).
+            profile = run.Profile,
+            sourceSha = run.SourceSha,
+            codeTree = run.CodeTree,
+            imageRevisions = run.ImageRevisions,
+            source = run.Source,
+            ciRunId = run.CiRunId,
+            ciEvent = run.CiEvent
         };
         WriteJson("metadata.json", meta);
 
-        // PLAN-33: a keyed scenario counts as failed until it records its own result, so a test that throws (or is
-        // aborted) never leaves an earlier run's Pass standing in result.json.
-        if (ScenarioKey is not null)
-            WriteMergedResult("Fail", "Started but did not record a result (the test failed or was aborted before WriteResult).");
+        // PLAN-33: a scenario counts as failed until it records its own result, so a test that throws (or is aborted)
+        // never leaves an earlier run's Pass standing in result.json.
+        WriteMergedResult("Fail", "Started but did not record a result (the test failed or was aborted before WriteResult).");
     }
 
     public void WriteSteps(string markdown) => File.WriteAllText(Path.Combine(_acFolder, "steps.md"), markdown);
@@ -224,33 +233,30 @@ public sealed class EvidenceRecorder
         }
 
         var recordedAt = DateTime.UtcNow.ToString("o");
-        var key = ScenarioKey;
-        if (key is null)
+
+        // PLAN-33: several tests share one AC folder; keep every scenario's outcome and report the worst one, so a later
+        // Pass can never hide an earlier Fail or Blocked. PLAN-41: the key defaults to the test method, so this holds for
+        // every folder (AC-05: the positive no longer erases the negative).
+        var run = AcceptanceRunContext.Current;
+        var scenarios = result["scenarios"] as JsonObject ?? [];
+        scenarios[EffectiveScenarioKey] = new JsonObject
         {
-            result["status"] = status;
-            result["reason"] = reason;
-        }
-        else
-        {
-            // PLAN-33: several tests share one AC folder; keep every scenario's outcome and report the worst one, so a
-            // later Pass can never hide an earlier Fail or Blocked.
-            var scenarios = result["scenarios"] as JsonObject ?? [];
-            scenarios[key] = new JsonObject
-            {
-                ["status"] = status,
-                ["reason"] = reason,
-                ["correlationId"] = _correlationId,
-                ["recordedAtUtc"] = recordedAt
-            };
-            result["scenarios"] = scenarios;
-            var statuses = scenarios.Select(s => s.Value?["status"]?.GetValue<string>() ?? "Unknown").ToList();
-            result["status"] = AggregateStatus(statuses);
-            var open = scenarios
-                .Where(s => (s.Value?["status"]?.GetValue<string>() ?? "Unknown") != "Pass")
-                .Select(s => $"{s.Key}: {s.Value?["status"]?.GetValue<string>()} — {s.Value?["reason"]?.GetValue<string>()}")
-                .ToList();
-            result["reason"] = open.Count == 0 ? null : string.Join("; ", open);
-        }
+            ["status"] = status,
+            ["reason"] = reason,
+            ["correlationId"] = _correlationId,
+            ["recordedAtUtc"] = recordedAt,
+            ["testClass"] = _testScenario?.TestClass,
+            ["profile"] = run.Profile,
+            ["codeTree"] = run.CodeTree
+        };
+        result["scenarios"] = scenarios;
+        var statuses = scenarios.Select(s => s.Value?["status"]?.GetValue<string>() ?? "Unknown").ToList();
+        result["status"] = AggregateStatus(statuses);
+        var open = scenarios
+            .Where(s => (s.Value?["status"]?.GetValue<string>() ?? "Unknown") != "Pass")
+            .Select(s => $"{s.Key}: {s.Value?["status"]?.GetValue<string>()} — {s.Value?["reason"]?.GetValue<string>()}")
+            .ToList();
+        result["reason"] = open.Count == 0 ? null : string.Join("; ", open);
 
         result["correlationId"] = _correlationId;
         result["recordedAtUtc"] = recordedAt;
@@ -258,10 +264,12 @@ public sealed class EvidenceRecorder
     }
 
     /// <summary>
-    /// Key of the scenario inside a shared AC folder (e.g. <c>21a</c>); when set, <c>result.json</c> keeps a
-    /// <c>scenarios</c> map and its top-level status is the worst of them.
+    /// Key of the scenario inside a shared AC folder (e.g. <c>21a</c>). <c>result.json</c> always keeps a <c>scenarios</c>
+    /// map and its top-level status is the worst of them; without this key the scenario is the test method (PLAN-41).
     /// </summary>
     public string? ScenarioKey { get; set; }
+
+    private string EffectiveScenarioKey => ScenarioKey ?? _testScenario?.TestMethod ?? "scenario";
 
     /// <summary>Worst status first: Fail, then Blocked (or any non-Pass), then Pass.</summary>
     public static string AggregateStatus(IEnumerable<string> statuses)
@@ -311,26 +319,4 @@ public sealed class EvidenceRecorder
         File.WriteAllText(
             Path.Combine(_acFolder, fileName),
             JsonSerializer.Serialize(payload, JsonOptions));
-
-    private static string TryGitSha()
-    {
-        try
-        {
-            var psi = new System.Diagnostics.ProcessStartInfo("git", "rev-parse HEAD")
-            {
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            using var p = System.Diagnostics.Process.Start(psi);
-            if (p is null) return "n/a";
-            var sha = p.StandardOutput.ReadToEnd().Trim();
-            p.WaitForExit();
-            return string.IsNullOrWhiteSpace(sha) ? "n/a" : sha;
-        }
-        catch
-        {
-            return "n/a";
-        }
-    }
 }

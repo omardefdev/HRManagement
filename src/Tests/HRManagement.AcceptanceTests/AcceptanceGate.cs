@@ -11,6 +11,9 @@ namespace HRManagement.AcceptanceTests;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
 public sealed class RequiredAcceptanceAttribute : Attribute;
 
+/// <summary>The test class and method of a running acceptance scenario.</summary>
+public sealed record AcceptanceScenario(string TestClass, string TestMethod);
+
 /// <summary>
 /// The single way an acceptance test may stop early (PLAN-33 decision 3). A missing precondition is written as
 /// <c>result.json = Blocked</c> with its reason and the test is reported as Skipped, never as Passed; with
@@ -19,6 +22,12 @@ public sealed class RequiredAcceptanceAttribute : Attribute;
 public static class AcceptanceGate
 {
     public const string RequireAllVariable = "ACCEPTANCE_REQUIRE_ALL";
+
+    /// <summary>
+    /// PLAN-41, test code only: <c>ACCEPTANCE_SIMULATE_MISSING=Class.Method</c> makes the first <see cref="RequireData"/> of
+    /// that scenario false, which proves in CI that a blocked required scenario turns the job red (AC-QA-41a).
+    /// </summary>
+    public const string SimulateMissingVariable = "ACCEPTANCE_SIMULATE_MISSING";
 
     public static bool RequireAll =>
         string.Equals(Environment.GetEnvironmentVariable(RequireAllVariable), "true", StringComparison.OrdinalIgnoreCase);
@@ -29,6 +38,11 @@ public static class AcceptanceGate
     /// the physical stack, so <see cref="RequireData"/> reads this value, which flows with the async context.
     /// </summary>
     private static readonly AsyncLocal<bool?> CapturedRequired = new();
+
+    /// <summary>The running scenario, captured beside <see cref="CapturedRequired"/> for the same reason.</summary>
+    private static readonly AsyncLocal<AcceptanceScenario?> CapturedScenario = new();
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> SimulationsUsed = new(StringComparer.Ordinal);
 
     /// <summary>Skips (or fails, when required) unless <c>RUN_ACCEPTANCE=true</c>. Writes no evidence: nothing ran.</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -49,14 +63,34 @@ public static class AcceptanceGate
     /// <c>Assert.Fail</c> for a required scenario under <c>ACCEPTANCE_REQUIRE_ALL=true</c>.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void RequireData(EvidenceRecorder recorder, bool condition, string reasonAr, string reasonEn) =>
-        Evaluate(recorder, condition, reasonAr, reasonEn, RequireAll, IsRequired(new StackTrace()));
+    public static void RequireData(EvidenceRecorder recorder, bool condition, string reasonAr, string reasonEn)
+    {
+        var stack = new StackTrace();
+        if (condition && ConsumeSimulatedMissing(Environment.GetEnvironmentVariable(SimulateMissingVariable), CurrentScenario(stack)))
+        {
+            condition = false;
+            reasonEn = $"Simulated by {SimulateMissingVariable}: {reasonEn}";
+        }
+
+        Evaluate(recorder, condition, reasonAr, reasonEn, RequireAll, IsRequired(stack));
+    }
+
+    /// <summary>True once, for the scenario named by the variable.</summary>
+    internal static bool ConsumeSimulatedMissing(string? simulated, AcceptanceScenario? scenario) =>
+        !string.IsNullOrWhiteSpace(simulated)
+        && scenario is not null
+        && string.Equals(simulated.Trim(), $"{scenario.TestClass}.{scenario.TestMethod}", StringComparison.Ordinal)
+        && SimulationsUsed.TryAdd(simulated.Trim(), true);
+
+    /// <summary>The captured scenario (set by <see cref="CaptureRequired"/>), else the stack walk at the call site.</summary>
+    internal static AcceptanceScenario? CurrentScenario(StackTrace stack) => CapturedScenario.Value ?? FindScenario(stack);
 
     /// <summary>Stack walk at the start of the test; the result flows into every awaited helper of the scenario.</summary>
     internal static bool CaptureRequired(StackTrace stack)
     {
         var required = IsRequiredScenario(stack);
         CapturedRequired.Value = required;
+        CapturedScenario.Value = FindScenario(stack);
         return required;
     }
 
@@ -85,17 +119,28 @@ public static class AcceptanceGate
     /// </summary>
     internal static bool IsRequiredScenario(StackTrace stack)
     {
+        var method = FindTestMethod(stack);
+        return method is not null
+               && (method.IsDefined(typeof(RequiredAcceptanceAttribute), inherit: true)
+                   || method.DeclaringType?.IsDefined(typeof(RequiredAcceptanceAttribute), inherit: true) == true);
+    }
+
+    private static AcceptanceScenario? FindScenario(StackTrace stack)
+    {
+        var method = FindTestMethod(stack);
+        return method?.DeclaringType is null ? null : new AcceptanceScenario(method.DeclaringType.Name, method.Name);
+    }
+
+    private static MethodBase? FindTestMethod(StackTrace stack)
+    {
         foreach (var frame in stack.GetFrames())
         {
             var method = ResolveUserMethod(frame.GetMethod());
-            if (method is null || !IsTestMethod(method))
-                continue;
-
-            return method.IsDefined(typeof(RequiredAcceptanceAttribute), inherit: true)
-                   || method.DeclaringType?.IsDefined(typeof(RequiredAcceptanceAttribute), inherit: true) == true;
+            if (method is not null && IsTestMethod(method))
+                return method;
         }
 
-        return false;
+        return null;
     }
 
     private static bool IsTestMethod(MethodBase method) =>

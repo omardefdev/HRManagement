@@ -1,87 +1,94 @@
-# Rebuild acceptance-evidence/summary.md from AC-XX/result.json folders.
+#Requires -Version 5.1
+# PLAN-41: the only generator of acceptance-evidence/summary.md (and summary.json, which the validator reads). The states
+# come from scripts/acceptance-evidence-lib.ps1. Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only.
 param(
-    [string]$EvidenceDir = $(if ($env:ACCEPTANCE_EVIDENCE_DIR) { $env:ACCEPTANCE_EVIDENCE_DIR } else { "acceptance-evidence" })
+    [string]$EvidenceDir = $(if ($env:ACCEPTANCE_EVIDENCE_DIR) { $env:ACCEPTANCE_EVIDENCE_DIR } else { "acceptance-evidence" }),
+    [string]$RepoRoot = "",
+    # The commit whose code tree is the code under test (P-2).
+    [string]$Head = "HEAD",
+    # A fixed code tree (tests); by default the tree of -Head.
+    [string]$CodeTree = "",
+    [string]$Ownership = "tests/acceptance/ac-ownership.json",
+    [int]$MaxAgeDays = 30
 )
 
 $ErrorActionPreference = "Stop"
-$root = Split-Path -Parent $PSScriptRoot
-$evidencePath = if ([System.IO.Path]::IsPathRooted($EvidenceDir)) { $EvidenceDir } else { Join-Path $root $EvidenceDir }
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent $PSScriptRoot }
+. (Join-Path (Join-Path $RepoRoot "scripts") "acceptance-evidence-lib.ps1")
+
+$evidencePath = if ([System.IO.Path]::IsPathRooted($EvidenceDir)) { $EvidenceDir } else { Join-Path $RepoRoot $EvidenceDir }
+$ownershipPath = if ([System.IO.Path]::IsPathRooted($Ownership)) { $Ownership } else { Join-Path $RepoRoot $Ownership }
 New-Item -ItemType Directory -Force -Path $evidencePath | Out-Null
 
-$required = @(
-    "metadata.json", "steps.md", "before.json", "after.json",
-    "audit.json", "db-checks.json", "timing.json", "result.json"
-)
+if ([string]::IsNullOrWhiteSpace($CodeTree)) { $CodeTree = Get-AcceptanceCodeTree -RepoRoot $RepoRoot -Commit $Head }
+$owners = Get-AcceptanceOwnership -Path $ownershipPath
+$nowUtc = (Get-Date).ToUniversalTime()
+$rows = @(Get-AcceptanceRows -EvidenceDir $evidencePath -Ownership $owners -CodeTree $CodeTree -NowUtc $nowUtc -MaxAgeDays $MaxAgeDays)
+$totals = Get-AcceptanceTotals -Rows $rows
 
-$entries = @()
-Get-ChildItem -Path $evidencePath -Directory -Filter "AC-*" | Sort-Object Name | ForEach-Object {
-    $scenarioDirectory = $_
-    $missing = @($required | Where-Object {
-        $requiredFile = $_
-        -not (Test-Path (Join-Path $scenarioDirectory.FullName $requiredFile))
-    })
-    $status = "NoResult"
-    $reason = $null
-    $resultPath = Join-Path $scenarioDirectory.FullName "result.json"
-    if (Test-Path $resultPath) {
-        $result = Get-Content $resultPath -Raw | ConvertFrom-Json
-        $status = [string]$result.status
-        $reason = [string]$result.reason
-    }
-    $entries += [pscustomobject]@{
-        AcCode = $scenarioDirectory.Name
-        Status = $status
-        Reason = $reason
-        ContractComplete = ($missing.Count -eq 0)
-        Missing = ($missing -join ", ")
-    }
+$runId = $env:GITHUB_RUN_ID
+$source = if ([string]::IsNullOrWhiteSpace($runId)) { "local" } else { "ci" }
+$generated = Format-AcceptanceDate $nowUtc "yyyy-MM-dd HH:mm:ss"
+function Format-Cell([string]$Text) {
+    if ([string]::IsNullOrWhiteSpace($Text)) { return "-" }
+    return (($Text -replace '\|', '/') -replace '[\r\n]+', ' ')
 }
-
-$expected = 1..37 | ForEach-Object { "AC-{0:D2}" -f $_ }
-$found = $entries | ForEach-Object { $_.AcCode }
-$notRun = @($expected | Where-Object { $_ -notin $found })
-
-$pass = @($entries | Where-Object { $_.Status -eq "Pass" }).Count
-$fail = @($entries | Where-Object { $_.Status -eq "Fail" }).Count
-$deferred = @($entries | Where-Object { $_.Status -in @("Deferred", "Blocked") }).Count
 
 $lines = New-Object System.Collections.Generic.List[string]
-[void]$lines.Add("# Acceptance evidence summary (AC-01..AC-37)")
+[void]$lines.Add("# Acceptance evidence summary")
 [void]$lines.Add("")
-[void]$lines.Add("Generated: $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss')) UTC")
+[void]$lines.Add("Generated: $generated UTC. Source: $source$(if ($runId) { ", run $runId" }). Code tree: $(Get-AcceptanceShort $CodeTree).")
 [void]$lines.Add("")
-[void]$lines.Add("| AC | Status | Contract | Missing |")
-[void]$lines.Add("|----|--------|----------|---------|")
-
-foreach ($e in $entries) {
-    $contract = if ($e.ContractComplete) { "complete" } else { "incomplete" }
-    $missingCol = if ([string]::IsNullOrWhiteSpace($e.Missing)) { "-" } else { $e.Missing }
-    $statusCol = [string]$e.Status
-    if (-not [string]::IsNullOrWhiteSpace($e.Reason)) {
-        $statusCol = $statusCol + " (" + $e.Reason + ")"
-    }
-    $row = "| {0} | {1} | {2} | {3} |" -f $e.AcCode, $statusCol, $contract, $missingCol
-    [void]$lines.Add($row)
+[void]$lines.Add("| AC | Status | Scenarios (P/F/B) | Contract | Profile | gitSha | Images | Recorded | Source/Run | Freshness | Proves claim | Owner plan |")
+[void]$lines.Add("|----|--------|-------------------|----------|---------|--------|--------|----------|------------|-----------|--------------|------------|")
+foreach ($row in $rows) {
+    $run = if ($row.ciRunId) { "$($row.source)/$($row.ciRunId)" } else { $row.source }
+    $proves = if ($row.provesClaim) { "yes" } else { "no" }
+    $owner = if ($row.ownerPlan) { $row.ownerPlan } else { "NONE" }
+    $freshness = $row.freshness
+    if ($row.staleReasons.Count -gt 0) { $freshness = "stale: " + (@($row.staleReasons | Select-Object -First 2) -join "; ") }
+    [void]$lines.Add(("| {0} | {1} | {2}/{3}/{4} | {5} | {6} | {7} | {8} | {9} | {10} | {11} | {12} | {13} |" -f `
+        $row.ac, $row.status, $row.pass, $row.fail, $row.blocked, $row.contract, $row.profile, (Get-AcceptanceShort $row.sourceSha),
+        (Format-Cell $row.images), $row.recorded, $run, (Format-Cell $freshness), $proves, (Format-Cell $owner)))
 }
+[void]$lines.Add("")
+[void]$lines.Add(("**Totals:** {0} ACs: {1} proven, {2} passed but not proving, {3} stale, {4} incomplete, {5} not run, {6} fail, {7} blocked." -f `
+    $totals.total, $totals.proven, $totals.passedNotProving, $totals.stale, $totals.incomplete, $totals.notRun, $totals.fail, $totals.blocked))
 
-if ($notRun.Count -gt 0) {
+$open = @($rows | Where-Object { $_.status -in @("Fail", "Blocked") -and $_.reason })
+if ($open.Count -gt 0) {
     [void]$lines.Add("")
-    [void]$lines.Add("## Not yet executed")
-    foreach ($ac in $notRun) { [void]$lines.Add("- $ac") }
+    [void]$lines.Add("## Open reasons")
+    foreach ($row in $open) { [void]$lines.Add("- $($row.ac) ($($row.status)): $(Format-Cell $row.reason)") }
 }
-
-[void]$lines.Add("")
-[void]$lines.Add("**Totals:** $pass Pass, $deferred Deferred/Blocked, $fail Fail, $($notRun.Count) not run.")
 
 $summaryPath = Join-Path $evidencePath "summary.md"
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 # PLAN-40 (P-5): keep the scenario log that EvidenceRecorder appends ("- **AC-..** ...: Pass (`id`)") after the totals,
 # and write UTF-8 without a BOM (Set-Content -Encoding UTF8 adds one under PowerShell 5.1).
-if (Test-Path $summaryPath) {
-    $log = @([System.IO.File]::ReadAllLines($summaryPath, $utf8NoBom) | Where-Object { $_ -match '^- \*\*AC-' })
-    foreach ($entry in $log) { [void]$lines.Add($entry) }
+if (Test-Path -LiteralPath $summaryPath) {
+    $log = @([System.IO.File]::ReadAllLines($summaryPath, $utf8NoBom) | Where-Object { $_ -match '^- \*\*(AC|HCM)-' })
+    if ($log.Count -gt 0) {
+        [void]$lines.Add("")
+        [void]$lines.Add("## Scenario log")
+        foreach ($entry in $log) { [void]$lines.Add($entry) }
+    }
 }
-
 [System.IO.File]::WriteAllText($summaryPath, (($lines -join "`n") + "`n"), $utf8NoBom)
+
+$json = [ordered]@{
+    schema = "acceptance-summary-v1"
+    generatedAtUtc = $nowUtc.ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
+    source = $source
+    ciRunId = $runId
+    ciEvent = $env:GITHUB_EVENT_NAME
+    repository = $env:GITHUB_REPOSITORY
+    codeTree = $CodeTree
+    totals = $totals
+    rows = $rows
+}
+[System.IO.File]::WriteAllText((Join-Path $evidencePath "summary.json"), (($json | ConvertTo-Json -Depth 6) + "`n"), $utf8NoBom)
 Write-Host "Evidence summary written to: $summaryPath"
+Write-Host ("Totals: {0} proven, {1} passed but not proving, {2} stale, {3} incomplete, {4} not run, {5} fail, {6} blocked." -f `
+    $totals.proven, $totals.passedNotProving, $totals.stale, $totals.incomplete, $totals.notRun, $totals.fail, $totals.blocked)
