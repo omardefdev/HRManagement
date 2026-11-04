@@ -320,7 +320,7 @@ using (var scope = app.Services.CreateScope())
         await seeds.RunOptionalAsync("org-unit-paths", async () =>
         {
             await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.OrgUnitPathService>().RecomputeAllAsync();
-            await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllOrgUnitsAsync();
+            await scope.ServiceProvider.GetRequiredService<HR.Core.Infrastructure.Integration.OrgUnitIntegrationService>().PublishAllTenantsOrgUnitsAsync();
             await OutboxScope.EnsureFlushedAsync(scope.ServiceProvider.GetRequiredService<HRCoreDbContext>());
         });
     }

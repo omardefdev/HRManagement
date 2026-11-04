@@ -1,0 +1,10 @@
+{
+  "step": "hire-while-rabbit-down",
+  "method": "POST",
+  "url": "/ui/hr-core/RecruitmentApplications/Hire",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-11-04T01:24:38.1479941Z",
+  "body": {
+    "selectedApplicationId": "8a98126d-b613-4ab0-87a7-716ffb732b5a"
+  }
+}

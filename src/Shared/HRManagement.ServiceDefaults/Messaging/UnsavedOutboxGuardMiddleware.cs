@@ -15,17 +15,26 @@ namespace HRManagement.ServiceDefaults.Messaging;
 public sealed class UnsavedOutboxMetrics
 {
     private readonly Counter<long> _unsaved;
+    private int _seriesWritten;
 
     public UnsavedOutboxMetrics(IHostEnvironment environment, IMeterFactory? meterFactory = null)
     {
         var meter = meterFactory?.Create(OutboxMetrics.MeterName) ?? new Meter(OutboxMetrics.MeterName);
         _unsaved = meter.CreateCounter<long>("outbox_unsaved_messages", unit: "{message}");
         ServiceName = environment.ApplicationName;
-        // A zero sample, so a scrape shows the series (and the guard is visibly on) before anything goes wrong.
-        Add(0, "none");
     }
 
     public string ServiceName { get; }
+
+    /// <summary>
+    /// A zero sample at the first request, so a scrape shows the series (the guard is visibly on) before anything goes
+    /// wrong. Not in the constructor: the meter provider starts with the host, after the pipeline is built.
+    /// </summary>
+    public void EnsureSeries()
+    {
+        if (Interlocked.Exchange(ref _seriesWritten, 1) == 0)
+            Add(0, "none");
+    }
 
     public void Add(long count, string route) =>
         _unsaved.Add(count, new KeyValuePair<string, object?>("service", ServiceName), new KeyValuePair<string, object?>("route", route));
@@ -50,6 +59,7 @@ public sealed class UnsavedOutboxGuardMiddleware(
 
     public async Task InvokeAsync(HttpContext context)
     {
+        metrics.EnsureSeries();
         await next(context);
 
         var db = context.RequestServices.GetService<DbContext>();
@@ -77,7 +87,7 @@ public static class UnsavedOutboxGuardExtensions
     /// <summary>Call after <c>UseRouting</c>, inside the exception handler, in every service with an outbox.</summary>
     public static IApplicationBuilder UseHrOutboxFlushGuard(this IApplicationBuilder app)
     {
-        // Built here so the zero sample exists from the start and services need no extra registration.
+        // Built here so services need no extra registration.
         var metrics = ActivatorUtilities.GetServiceOrCreateInstance<UnsavedOutboxMetrics>(app.ApplicationServices);
         return app.UseMiddleware<UnsavedOutboxGuardMiddleware>(metrics);
     }

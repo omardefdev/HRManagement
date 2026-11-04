@@ -64,9 +64,11 @@ public sealed class PolicyVersionPublisher(
         // path (the API and the UI; the UI path published nothing before). PLAN-47 extends the payload and the cache.
         if (publish is not null)
         {
-            await publish.Publish(new PolicyPublished
+            // Through the contract: the outbox delivers to the exchange of the published type only, and nothing binds the
+            // concrete PolicyPublished exchange to IPolicyPublished, so a concrete publish was dropped by the broker.
+            await publish.Publish<IPolicyPublished>(new
             {
-                Domain = version.PolicyTemplate.Domain,
+                version.PolicyTemplate.Domain,
                 VersionId = version.Id,
                 PublishedAt = DateTime.UtcNow
             }, p => p.MessageId = DeterministicMessageId.For<IPolicyPublished>(version.Id), ct);

@@ -1,0 +1,8 @@
+{
+  "applicationId": "8a98126d-b613-4ab0-87a7-716ffb732b5a",
+  "employeeId": "3d553fdb-223f-4136-9077-7bed04c93357",
+  "outboxBefore": 0,
+  "outboxDuring": 3,
+  "outboxAfter": 0,
+  "authDirectoryRows": 1
+}

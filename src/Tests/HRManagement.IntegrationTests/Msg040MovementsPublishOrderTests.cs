@@ -99,3 +99,34 @@ public sealed class Msg040MovementsPublishOrderTests
         Assert.Equal(DelegationRequestStatus.Active, (await db.DelegationRequests.AsNoTracking().SingleAsync()).Status);
     }
 }
+
+/// <summary>
+/// PLAN-40: a consumer finds a transaction without its history and moves it, as TransactionArchivedConsumer does. The new
+/// history row must be inserted; with a generated key it counted as existing and the save failed on every delivery.
+/// </summary>
+public sealed class Msg040ServiceTransactionHistoryTests
+{
+    [Fact]
+    public async Task Moving_a_transaction_found_without_its_history_saves_the_new_row()
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<HR.Contracts.Infrastructure.Data.ContractsDbContext>().UseSqlite(connection).Options;
+        var transaction = TestDataFactory.CreateLeaveTransaction(Guid.NewGuid());
+        HR.Contracts.Domain.Services.ServiceTransactionWorkflowHelper.AdvanceToCompleted(transaction, Guid.NewGuid(), "seed");
+        await using (var seed = new HR.Contracts.Infrastructure.Data.ContractsDbContext(options))
+        {
+            await seed.Database.EnsureCreatedAsync();
+            seed.ServiceTransactions.Add(transaction);
+            await seed.SaveChangesAsync();
+        }
+
+        await using var db = new HR.Contracts.Infrastructure.Data.ContractsDbContext(options);
+        var found = await db.ServiceTransactions.FindAsync(transaction.Id);
+        var before = await db.ServiceTransactionStateHistories.CountAsync();
+        found!.MoveTo(HR.Contracts.Domain.Enums.ServiceTransactionState.Archived, null, "Archived: ref");
+        await db.SaveChangesAsync();
+
+        Assert.Equal(before + 1, await db.ServiceTransactionStateHistories.CountAsync());
+    }
+}

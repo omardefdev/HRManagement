@@ -99,3 +99,19 @@ Started (UTC): 2026-11-02T08:01:20.0119751Z
 
 ## P6
 - status: in progress
+- Verification (PS 5.1 forms): Msg040/OutboxPublishOrdering/PartyAck unit, Testcontainers Msg040+Qa003Outbox, OutboxAtomicity/InboxIdempotency/Chaos all green during P3-P5; full suites again in P8 (local CI).
+- Images: 15 local one at a time 556 s, 514 s, 502 s (three rounds: acceptance found defects), contracts 36 s; docker/build-manifest must be regenerated after a lock change (scripts/docker-generate-build-manifest.ps1; NU1004 otherwise).
+- Prod-like stack from fresh volumes: up 18-21 s, all 14 ready 43-46 s. Timings on final code: AC-16/17/18 62 s; AcHcm29 33 s; journey (RUN_PLAYWRIGHT_E2E) 16 s; AC-MSG-40 97 s. **AC-MSG-40a..h 8/8, AC-16/17/18 3/3, AcHcm29 3/3, RecruitmentToHireJourneyProdLike 1/1**, all queues empty at the end including every _error.
+- Defects the live run found and fixes (all re-proved):
+  1. max_connections 100 on the acceptance stack ran out on the start-up re-sync; acceptance now 250 like production; MassTransit:ConcurrentMessageLimit default 8 keeps an endpoint below Maximum Pool Size=10 (every in-flight message holds a transaction).
+  2. EF wraps transient PostgreSQL failures in InvalidOperationException, which the retry policy ignored: those stay retryable now (Ignore with a filter). Business InvalidOperationException still goes to _error. Needed for D-40-6; the wider retry policy stays in Wave 2.
+  3. /metrics answered 401 (authorization fallback) wherever it was mapped: AllowAnonymous, the private-client filter stays, edge 404 unchanged. OpenTelemetry__Enabled=true on the acceptance services (AC-40f); vps file defaults it to false (P7).
+  4. IPolicyPublished published as the concrete PolicyPublished was dropped: the outbox delivers to the concrete exchange, nothing binds it to the interface. Now Publish<IPolicyPublished>.
+  5. Zero sample of the counter moved to the first request (the meter provider starts after the pipeline is built).
+  6. ServiceTransactionStateHistory.Id ValueGeneratedNever: rows added by MoveTo in consumers counted as existing (DbUpdateConcurrencyException): TransactionArchived, HireCaseCompleted, TransactionRegisteredInDiwan went to _error, the 3 on the server baseline are this defect.
+  7. Start-up re-sync covered the default tenant only: PublishAllTenantsOrgUnitsAsync publishes every tenant's units under their tenant (40h uses an agency-A unit).
+  AC-17 was written for the legacy hire without an offer: now uses AcHcm29HireContractTests.PrepareAcceptedHireAsync.
+- P6 Finished (UTC): 2026-11-04T01:28:16Z
+
+## P7
+- status: in progress

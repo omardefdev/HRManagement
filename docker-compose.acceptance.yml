@@ -9,6 +9,8 @@ x-acceptance-service: &acceptance-service
   # sets on every service client (never the .env SVC_* values). URLs, client ids and scopes come from the shared files
   # (deploy/wiring/service-wiring.json), so the acceptance stacks get exactly the production wiring.
   ServiceIdentity__ClientSecret: dev-svc-secret-local-only
+  # PLAN-40 (AC-MSG-40f): /metrics is mapped only with this on, as in the production file; no OTLP endpoint here.
+  OpenTelemetry__Enabled: "true"
 
 x-acceptance-dp-volumes: &acceptance-dp-volumes
   - acceptance_data_protection:/var/hrm/dpkeys
@@ -29,6 +31,9 @@ services:
     # so dependent services cannot start during the final initialization restart.
     healthcheck:
       test: ["CMD-SHELL", "test \"$$(cat /proc/1/comm)\" = postgres && pg_isready -U \"$$POSTGRES_USER\" -d postgres"]
+    # As the production file: the connection strings here have no Maximum Pool Size, and PLAN-40 put 13 services on the
+    # consumer outbox, where every message in flight holds a transaction (the default 100 ran out on a start-up re-sync).
+    command: ["postgres", "-c", "max_connections=250"]
 
   rabbitmq:
     container_name: !reset null

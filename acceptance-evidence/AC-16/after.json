@@ -1,0 +1,3 @@
+{
+  "scriptOutput": "{\r\n    \u0022messageId\u0022:  \u0022e125c75a-c95b-4092-ac93-5258d18f20dd\u0022,\r\n    \u0022employeeId\u0022:  \u0022e2d1647d-1396-47b0-be98-293157f10de6\u0022,\r\n    \u0022tenantId\u0022:  \u0022a0000001-0000-4000-8000-000000000001\u0022,\r\n    \u0022receiptCount\u0022:  1,\r\n    \u0022authUserCount\u0022:  1,\r\n    \u0022ok\u0022:  true,\r\n    \u0022capturedAtUtc\u0022:  \u00222026-11-04T01:25:24.1100567Z\u0022\r\n}\nPASS: inbox duplicate single effect\n"
+}

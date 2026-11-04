@@ -145,7 +145,7 @@ public sealed class Msg040ClassAPublishOrderTests
         var publisher = new PolicyVersionPublisher(db, Mock.Of<IPolicyPublishedSnapshotCache>(), probe.Publish);
         await publisher.PublishDraftAsync(draft, Guid.NewGuid(), Guid.NewGuid(), "msg40");
 
-        Assert.Equal(["publish:PolicyPublished", "save"], probe.Log);
+        Assert.Equal(["publish:IPolicyPublished", "save"], probe.Log);
         Assert.Equal(PolicyVersionStatus.Published, (await db.PolicyTemplateVersions.AsNoTracking().SingleAsync()).Status);
     }
 }

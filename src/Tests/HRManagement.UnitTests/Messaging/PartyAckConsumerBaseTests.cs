@@ -136,6 +136,45 @@ public sealed class PartyAckConsumerBaseTests
     }
 
     [Fact]
+    public async Task A_transient_failure_wrapped_by_ef_is_retried_by_the_bus_policy_and_a_plain_one_is_not()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["MassTransit:RetryCount"] = "1",
+            ["MassTransit:RetryIntervalSeconds"] = "1",
+            ["MassTransit:RetryUseJitter"] = "false"
+        }).Build();
+
+        async Task<int> AttemptsAsync(Exception failure)
+        {
+            var script = new Script { Failure = attempt => attempt == 1 ? failure : null };
+            await using var provider = new ServiceCollection()
+                .AddSingleton<IConfiguration>(configuration)
+                .AddSingleton(script)
+                .AddMassTransitTestHarness(x =>
+                {
+                    x.AddConsumer<ThrowingConsumer>();
+                    x.AddConfigureEndpointsCallback((_, _, cfg) => cfg.UseMessageRetry(r => MassTransitExtensions.ConfigureMessageRetry(r, configuration)));
+                })
+                .BuildServiceProvider(true);
+            var harness = provider.GetTestHarness();
+            await harness.Start();
+            await harness.Bus.Publish<IExecuteSeparationParty>(SeparationMessage());
+            await harness.InactivityTask;
+            return script.Attempts;
+        }
+
+        Assert.Equal(2, await AttemptsAsync(new InvalidOperationException("transient failure", new TimeoutException())));
+        Assert.Equal(1, await AttemptsAsync(new InvalidOperationException("business rule")));
+    }
+
+    private sealed class ThrowingConsumer(Script script) : IConsumer<IExecuteSeparationParty>
+    {
+        public Task Consume(ConsumeContext<IExecuteSeparationParty> context) =>
+            script.Failure(++script.Attempts) is { } ex ? Task.FromException(ex) : Task.CompletedTask;
+    }
+
+    [Fact]
     public async Task Hire_transfer_and_secondment_bases_follow_the_same_rule()
     {
         var script = new Script { Failure = _ => new TimeoutException("party down") };

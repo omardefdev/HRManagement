@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-16 duplicate message idempotency",
+  "personaId": "central-a",
+  "correlationId": "f176b0c1-01e6-4be8-a970-7dff6decfa1e",
+  "capturedAtUtc": "2026-11-04T01:25:16.0790300Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "f0490b3e42e66f0a75f7c9bea296fc1d01c36766"
+}

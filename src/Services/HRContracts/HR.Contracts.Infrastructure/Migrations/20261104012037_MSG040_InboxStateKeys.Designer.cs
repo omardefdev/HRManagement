@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HR.Contracts.Infrastructure.Migrations
 {
     [DbContext(typeof(ContractsDbContext))]
-    [Migration("20261103235215_MSG040_InboxStateKeys")]
+    [Migration("20261104012037_MSG040_InboxStateKeys")]
     partial class MSG040_InboxStateKeys
     {
         /// <inheritdoc />
@@ -922,7 +922,6 @@ namespace HR.Contracts.Infrastructure.Migrations
             modelBuilder.Entity("HR.Contracts.Domain.Entities.ServiceTransactionStateHistory", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ChangedBy")

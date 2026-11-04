@@ -189,6 +189,9 @@ public class ContractsDbContext : TenantAwareDbContext
 
         modelBuilder.Entity<ServiceTransactionStateHistory>(entity =>
         {
+            // PLAN-40: the id is set by the client. As a generated key, a row added through ServiceTransaction.MoveTo counted as
+            // existing, so the save updated nothing (DbUpdateConcurrencyException): every consumer moving a transaction failed.
+            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.FromState)
                   .HasConversion<string>()
                   .HasMaxLength(50);

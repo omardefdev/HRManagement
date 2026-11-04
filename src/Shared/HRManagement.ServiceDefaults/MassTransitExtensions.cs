@@ -13,6 +13,8 @@ namespace HRManagement.ServiceDefaults;
 
 public static class MassTransitExtensions
 {
+    public const int DefaultConcurrentMessageLimit = 8;
+
     public static IServiceCollection AddServiceMassTransit(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -76,6 +78,10 @@ public static class MassTransitExtensions
                     });
 
                 ConfigureRetryPolicy(cfg, configuration);
+
+                // PLAN-40: with the consumer outbox every message in flight holds a transaction, so an endpoint stays below the
+                // connection pool of the service (Maximum Pool Size=10, PLAN-38), whatever a burst of messages does.
+                cfg.ConcurrentMessageLimit = configuration.GetValue("MassTransit:ConcurrentMessageLimit", DefaultConcurrentMessageLimit);
 
                 cfg.UseDelayedMessageScheduler();
                 cfg.UseConsumeFilter(typeof(CorrelationIdConsumeFilter<>), context);
@@ -185,7 +191,9 @@ public static class MassTransitExtensions
         }
 
         // Permanent business/validation faults → *_error. Transient → retry.
-        r.Ignore<InvalidOperationException>();
+        // PLAN-40: EF wraps a transient database failure in InvalidOperationException; that one stays retryable, or a party
+        // acknowledgement that rethrows it (D-40-6) would reach *_error with no fault for the saga.
+        r.Ignore<InvalidOperationException>(ex => !MessagingFaults.IsTransient(ex));
         r.Ignore<ArgumentException>();
         r.Ignore<ArgumentNullException>();
         r.Ignore<UnauthorizedAccessException>();

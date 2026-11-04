@@ -66,7 +66,14 @@
 
 ### Outbox (ناشرون)
 
-HR.Contracts، HR.Core، Payroll، Movements، Health، IDCard، Compliance، Training — MassTransit EF outbox (`AddPostgresOutbox`). النشر يُؤجَّل حتى نجاح `SaveChangesAsync` (INT-001).
+13 خدمة تعمل بـ MassTransit EF outbox عبر `AddPostgresOutbox<TDbContext>(consumerOutbox: true)`: HR.Core، HR.Contracts، Payroll، Movements، Health، IDCard، Compliance، Training، Admin.Logistics، Auth.Directory، IT.Infra، Records.Archive، Dev.Analytics (PLAN-40). File.Storage لا تنشر شيئاً.
+
+- **من الويب والمهام الخلفية (bus outbox):** `Publish` يضيف صف `OutboxMessage` إلى الـ DbContext، فلا يُكتب إلا مع `SaveChanges` التالي، ويسلّمه `BusOutboxDeliveryService`. النمط: تعديل ← نشر ← حفظ واحد، أو `OutboxUnitOfWork` عند الحاجة إلى `ExecuteUpdate` أو حفظ وسيط ([EVENT_PUBLISHER_INVENTORY.md](./EVENT_PUBLISHER_INVENTORY.md)).
+- **من المستهلكين والـ sagas (consumer outbox):** ما يُنشر من `ConsumeContext` يُخزَّن في المعاملة التي تلتزم عمل المستهلك ويُرسل بعد الالتزام، وفشل الالتزام لا يترك رسالة على الوسيط. تعمل المكتبة بمعاملتين لكل رسالة: الأولى تُدرج `InboxState` فقط، والثانية تشغّل المستهلك. لذلك يُكتب إيصال `IntegrationMessageReceipts` داخل الثانية (`InboxReceiptConsumeFilter`)، و`InboxConsumeFilter` يمرر فقط حيث تعمل outbox المستهلك، ويبقى بمعاملته لـ File.Storage.
+- **التكرار:** `InboxState` يمنعه خلال نافذة MassTransit، والإيصال بعدها.
+- **لا أسماء جديدة في الوسيط:** outbox المستهلك يسلّم عبر الناقل نفسه، فمصفوفة `mq_*` لم تتغير ([deploy/bootstrap/rabbitmq-users.json](../deploy/bootstrap/rabbitmq-users.json)).
+- **حارسان:** `OutboxPublishOrderingArchitectureTests` في الاختبارات، و`UnsavedOutboxGuardMiddleware` في التشغيل: `outbox_unsaved_messages_total{service,route}` يجب أن يبقى 0. فوق الصفر يعني نشراً بلا حفظ، أي حدثاً مفقوداً: يرمي في Development وAcceptance والاختبارات، ويسجّل خطأً في Production.
+- **إعادة ما فُقد قبل PLAN-40:** `scripts/msg040-replay-lost-events.ps1` يدوياً، تجريبي افتراضياً.
 
 ## تعطيل فحص RabbitMQ في الصحة
 

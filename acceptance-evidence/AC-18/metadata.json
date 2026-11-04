@@ -1,0 +1,12 @@
+{
+  "scenario": "AC-18 consumer catch-up",
+  "personaId": "central-a",
+  "correlationId": "c94236da-c4e8-49aa-8a40-1795e17cb7cb",
+  "capturedAtUtc": "2026-11-04T01:24:57.3369949Z",
+  "environment": {
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
+    "runAcceptance": true
+  },
+  "gitSha": "f0490b3e42e66f0a75f7c9bea296fc1d01c36766"
+}

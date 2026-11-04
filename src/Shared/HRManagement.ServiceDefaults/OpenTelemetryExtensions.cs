@@ -101,7 +101,10 @@ public static class OpenTelemetryExtensions
         if (!IsOpenTelemetryEnabled(app.Configuration))
             return app;
 
+        // PLAN-40: anonymous for the authorization fallback (the scrape has no token, and answered 401 until now); the filter
+        // below keeps it to private clients and the edge answers 404.
         app.MapPrometheusScrapingEndpoint()
+            .AllowAnonymous()
             .AddEndpointFilter(async (context, next) =>
             {
                 var remote = context.HttpContext.Connection.RemoteIpAddress;

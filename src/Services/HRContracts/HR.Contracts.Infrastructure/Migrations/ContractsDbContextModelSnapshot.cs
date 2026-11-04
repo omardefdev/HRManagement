@@ -919,7 +919,6 @@ namespace HR.Contracts.Infrastructure.Migrations
             modelBuilder.Entity("HR.Contracts.Domain.Entities.ServiceTransactionStateHistory", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ChangedBy")

@@ -1,0 +1,7 @@
+{
+  "step": "approve-while-rabbit-down",
+  "method": "POST",
+  "url": "/ui/hr-contracts/LeaveRequests/Approve/46620a02-6e0f-4148-abf5-c8484797c793",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-11-04T01:26:31.4811181Z"
+}
