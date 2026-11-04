@@ -101,8 +101,9 @@ public partial class ProductionWiringMatrixTests
         var authorization = BuildAuthorization();
         var allowListed = new[]
         {
-            "ServicePolicies.DirectorySync", "ServicePolicies.HrCoreLookupS2S", "ServicePolicies.FileStorageReferences",
-            "ServicePolicies.DsarSubjectRead", "ServicePolicies.PayrollGradeLookup", "ServicePolicies.FileStorageServiceUpload"
+            "ServicePolicies.DirectorySync", "ServicePolicies.HrCoreInternalS2S", "ServicePolicies.HrCoreLifecycleS2S",
+            "ServicePolicies.FileStorageReferences", "ServicePolicies.DsarSubjectRead", "ServicePolicies.DsarSubjectErase",
+            "ServicePolicies.PayrollGradeLookup", "ServicePolicies.FileStorageServiceUpload", "ServicePolicies.CodeGenerate"
         };
         var allClients = ServiceClientIds.All.Append(ServiceClientIds.Gateway).ToArray();
         var problems = new List<string>();

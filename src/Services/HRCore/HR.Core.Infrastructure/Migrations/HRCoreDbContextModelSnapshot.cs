@@ -703,6 +703,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("IssuedByClientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<Guid?>("PolicyVersionId")
                         .HasColumnType("uuid");
 

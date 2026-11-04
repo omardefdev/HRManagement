@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.Policy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,17 +72,24 @@ public static class ServiceAuthorizationExtensions
             options.AddPolicy(ServicePolicies.DirectorySync, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DirectorySync)
-                && IsAllowedClient(ctx.User, ServiceClientIds.ItInfra, ServiceClientIds.HrCore, ServiceClientIds.AuthDirectory)));
+                && IsAllowedClient(ctx.User, ServiceClientIds.ItInfra)));
 
-            options.AddPolicy(ServicePolicies.HrCoreLookupS2S, p => p.RequireAssertion(ctx =>
-                // Interactive UI users
-                (ctx.User.Identity?.IsAuthenticated == true && !ServiceCallerPrincipal.IsServiceAccount(ctx.User))
-                // Or service token with lookup scope
-                || (ServiceCallerPrincipal.IsServiceAccount(ctx.User)
-                    && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
-                    && IsAllowedClient(ctx.User, ServiceClientIds.Payroll, ServiceClientIds.HrContracts,
-                        ServiceClientIds.HrMovements, ServiceClientIds.AdminLogistics, ServiceClientIds.Compliance,
-                        ServiceClientIds.Gateway))));
+            // PLAN-42 (section 8): these replace HrCoreLookupS2S, which any signed-in user passed.
+            options.AddPolicy(ServicePolicies.HrCoreInternalS2S, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrContracts, ServiceClientIds.HrMovements, ServiceClientIds.Payroll)));
+
+            options.AddPolicy(ServicePolicies.HrCoreLifecycleS2S, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrContracts, ServiceClientIds.HrMovements)));
+
+            // PLAN-42 (G-COD-05): the internal generate and preview; which kind a client owns is checked per request.
+            options.AddPolicy(ServicePolicies.CodeGenerate, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreWorkflow)
+                && CodeKindOwners.IsOwnerOfAnyKind(ServiceCallerPrincipal.GetClientId(ctx.User))));
 
             options.AddPolicy(ServicePolicies.FileStorageReferences, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)

@@ -57,7 +57,12 @@ public static class ServiceScopes
 public static class ServicePolicies
 {
     public const string DirectorySync = "Service.DirectorySync";
-    public const string HrCoreLookupS2S = "Service.HrCoreLookup";
+    /// <summary>PLAN-42: the service-regime routes, for the services that call them (no user passes).</summary>
+    public const string HrCoreInternalS2S = "Service.HrCoreInternal";
+    /// <summary>PLAN-42: the legal-hold flags of an employee, for the services that act on them.</summary>
+    public const string HrCoreLifecycleS2S = "Service.HrCoreLifecycle";
+    /// <summary>PLAN-42: an official number; the kind each client owns is checked per request.</summary>
+    public const string CodeGenerate = "Service.CodeGenerate";
     public const string FileStorageReferences = "Service.FileStorageReferences";
     public const string DsarSubjectRead = "Service.DsarSubjectRead";
     public const string DsarSubjectErase = "Service.DsarSubjectErase";

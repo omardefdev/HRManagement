@@ -43,32 +43,32 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `hr-core-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `hr-core-web` | `AddPayrollGradeLookup` | `GET /api/internal/pay-grades/{gradeCode}` | payroll-web | `ServicePolicies.PayrollGradeLookup` | `payroll.grades.read` |  |
 | `hr-core-web` | `AddCandidateDocumentUploadClient` | `POST /api/files/service-upload` | file-storage-web | `ServicePolicies.FileStorageServiceUpload` | `file-storage.service-upload` |  |
-| `hr-contracts-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `hr-contracts-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `hr-contracts-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `hr-contracts-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
-| `hr-contracts-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` |  |
-| `hr-contracts-web` | `AddEmployeeLifecycleGate` | `GET /api/internal/employees/{employeeId}/lifecycle-flags` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` | no service token yet (PLAN-42) |
+| `hr-contracts-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
+| `hr-contracts-web` | `AddEmployeeLifecycleGate` | `GET /api/internal/employees/{employeeId}/lifecycle-flags` | hr-core-web | `ServicePolicies.HrCoreLifecycleS2S` | `hr-core.lookup` |  |
 | `hr-contracts-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
-| `hr-movements-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` |  |
+| `hr-movements-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
 | `payroll-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
-| `payroll-web` | `AddHrCoreServiceRegimeClient` | `POST /api/internal/service-regime/payroll-blockers` | hr-core-web | `ServicePolicies.HrCoreLookupS2S` | `hr-core.lookup` |  |
-| `idcard-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `payroll-web` | `AddHrCoreServiceRegimeClient` | `POST /api/internal/service-regime/payroll-blockers` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
+| `idcard-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `idcard-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `idcard-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
-| `records-archive-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `records-archive-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `records-archive-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
-| `admin-logistics-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `admin-logistics-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `admin-logistics-web` | `AddHrCoreWorkflowClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `it-infra-web` | `AddDirectorySyncClient` | `POST /api/internal/directory/sync-employee` | auth-directory-web | `ServicePolicies.DirectorySync` | `directory.sync` |  |
-| `it-infra-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `it-infra-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `compliance-web` | `AddComplianceDsarCollector` | `GET /api/internal/dsar-subjects/{employeeId}` | hr-core-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
 | `compliance-web` | `AddComplianceDsarCollector` | `GET /api/internal/dsar-subjects/{employeeId}` | payroll-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
 | `compliance-web` | `AddComplianceDsarCollector` | `GET /api/internal/dsar-subjects/{employeeId}/files` | file-storage-web | `ServicePolicies.DsarSubjectRead` | `dsar.subject.read` |  |
 | `compliance-web` | `AddHrDsarDeletion` | `POST /api/internal/dsar-subjects/candidates/{applicationId}/anonymize` | hr-core-web | `ServicePolicies.DsarSubjectErase` | `dsar.subject.erase` |  |
-| `compliance-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `compliance-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `compliance-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `compliance-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `auth-directory-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
@@ -119,8 +119,7 @@ Registered but never injected (they keep the URL, get no scope for it; removal i
 
 ## Allow-list entries without a call (not widened; removal is PLAN-42)
 
-- `ServicePolicies.HrCoreLookupS2S`: `hr-gateway-client`, `svc-admin-logistics`, `svc-compliance` - Allowed before PLAN-37 without a call to the lifecycle or service-regime endpoints (their lookups use /api/lookup under HrManagementPolicies.HrCoreLookup). Not widened here; removing them is PLAN-42 (least privilege).
-- `ServicePolicies.DirectorySync`: `svc-hr-core`, `svc-auth-directory` - Allowed before PLAN-37 without a directory-sync call. Not widened here; removing them is PLAN-42.
+- `ServicePolicies.HrCoreLifecycleS2S`: `svc-hr-movements` - PLAN-42 section 7 names it with svc-hr-contracts: transfers will read the legal hold; it has no call yet.
 
 ## Legal packs
 

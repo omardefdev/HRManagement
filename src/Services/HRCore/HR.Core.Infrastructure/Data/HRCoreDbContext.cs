@@ -1135,6 +1135,7 @@ public class HRCoreDbContext : TenantAwareDbContext
         {
             entity.HasIndex(e => new { e.TenantId, e.EntityKind, e.Code }).IsUnique();
             entity.HasIndex(e => e.IssuedAt);
+            entity.Property(e => e.IssuedByClientId).HasMaxLength(100);
             entity.Property(e => e.EntityKind).HasConversion<string>().HasMaxLength(32);
             entity.Property(e => e.Code).HasMaxLength(128);
             entity.Property(e => e.SequenceScope).HasMaxLength(256);

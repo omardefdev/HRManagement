@@ -15,8 +15,8 @@
   "endpoints": {
     "hr-core.codes.generate": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/codes/generate",
-      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/CodeGenerationController.cs",
-      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreWrite"], "scope": "hr-core.workflow"
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/CodeGenerationInternalController.cs",
+      "serverPolicies": ["ServicePolicies.CodeGenerate"], "scope": "hr-core.workflow"
     },
     "hr-core.policies.enforce": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/policies/enforce",
@@ -31,17 +31,17 @@
     "hr-core.service-regime.active-regimes": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/active-regimes",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
-      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+      "serverPolicies": ["ServicePolicies.HrCoreInternalS2S"], "scope": "hr-core.lookup"
     },
     "hr-core.service-regime.payroll-blockers": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/payroll-blockers",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
-      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+      "serverPolicies": ["ServicePolicies.HrCoreInternalS2S"], "scope": "hr-core.lookup"
     },
     "hr-core.employees.lifecycle-flags": {
       "target": "hr-core-web", "method": "GET", "path": "/api/internal/employees/{employeeId}/lifecycle-flags",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/EmployeeLifecycleInternalController.cs",
-      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+      "serverPolicies": ["ServicePolicies.HrCoreLifecycleS2S"], "scope": "hr-core.lookup"
     },
     "hr-core.workflow-instances.start": {
       "target": "hr-core-web", "method": "POST", "path": "/api/workflow-instances",
@@ -113,14 +113,9 @@
   },
   "allowListExceptions": [
     {
-      "policy": "ServicePolicies.HrCoreLookupS2S",
-      "clients": ["hr-gateway-client", "svc-admin-logistics", "svc-compliance"],
-      "reason": "Allowed before PLAN-37 without a call to the lifecycle or service-regime endpoints (their lookups use /api/lookup under HrManagementPolicies.HrCoreLookup). Not widened here; removing them is PLAN-42 (least privilege)."
-    },
-    {
-      "policy": "ServicePolicies.DirectorySync",
-      "clients": ["svc-hr-core", "svc-auth-directory"],
-      "reason": "Allowed before PLAN-37 without a directory-sync call. Not widened here; removing them is PLAN-42."
+      "policy": "ServicePolicies.HrCoreLifecycleS2S",
+      "clients": ["svc-hr-movements"],
+      "reason": "PLAN-42 section 7 names it with svc-hr-contracts: transfers will read the legal hold; it has no call yet."
     }
   ],
   "legalPacks": {
@@ -186,7 +181,7 @@
         { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
         { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" },
-        { "client": "AddEmployeeLifecycleGate", "endpoint": "hr-core.employees.lifecycle-flags", "scope": "hr-core.lookup", "authenticated": false, "owner": "PLAN-42", "note": "legal-hold gate: no service token yet (fails open on 401); authentication and fail-closed are PLAN-42" },
+        { "client": "AddEmployeeLifecycleGate", "endpoint": "hr-core.employees.lifecycle-flags", "scope": "hr-core.lookup" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
       "legalPacks": ["syr003-service-regimes-v1"]

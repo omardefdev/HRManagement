@@ -197,12 +197,18 @@ public class Fun002SeparationRecordIntegrationTests
 
     private sealed class AllowAllGate : IEmployeeLifecycleGate
     {
+        public Task<(bool Allowed, string? Error)> AssertCanStartSeparationAsync(Guid employeeId, CancellationToken ct) =>
+            Task.FromResult<(bool, string?)>((true, null));
+
         public Task<(bool Allowed, string? Error)> AssertCanPublishSeparationAsync(Guid employeeId, CancellationToken ct) =>
             Task.FromResult<(bool, string?)>((true, null));
     }
 
     private sealed class BlockHoldGate : IEmployeeLifecycleGate
     {
+        public Task<(bool Allowed, string? Error)> AssertCanStartSeparationAsync(Guid employeeId, CancellationToken ct) =>
+            Task.FromResult<(bool, string?)>((true, null));
+
         public Task<(bool Allowed, string? Error)> AssertCanPublishSeparationAsync(Guid employeeId, CancellationToken ct) =>
             Task.FromResult<(bool, string?)>((false, "الموظف تحت حجز قانوني (Legal Hold) — لا يمكن نشر الفصل."));
     }

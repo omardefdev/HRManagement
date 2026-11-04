@@ -1,6 +1,7 @@
 using HR.Core.Infrastructure.Services.CodeGeneration;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.CodeGeneration;
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,25 +11,20 @@ using HR.Core.Domain.Entities.CodeGeneration;
 namespace HR.Core.Web.Controllers;
 
 [Route("api/codes")]
-[Route("api/internal/codes")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 public class CodeGenerationController(
     ICodeGenerator generator,
-    HRCoreDbContext db) : ControllerBase
+    HRCoreDbContext db,
+    ITenantContext tenantContext) : ControllerBase
 {
-    [HttpPost("generate")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> Generate([FromBody] CodeGenerationRequest request, CancellationToken ct)
-    {
-        request.Preview = false;
-        var result = await generator.GenerateAsync(request, ct);
-        return Ok(result);
-    }
-
     [HttpPost("preview")]
     public async Task<IActionResult> Preview([FromBody] CodeGenerationRequest request, CancellationToken ct)
     {
+        // PLAN-42: a preview consumes no number, and it runs in the tenant of the user, whatever the body says.
+        if (tenantContext.TenantId is null)
+            return BadRequest("The request has no tenant.");
+        request.TenantId = tenantContext.TenantId;
         request.Preview = true;
         var result = await generator.GenerateAsync(request, ct);
         return Ok(result);
