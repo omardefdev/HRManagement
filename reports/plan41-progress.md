@@ -130,3 +130,18 @@ Independent review (one fresh subagent, read-only, run while the local job ran):
 - Left as they are: L3 (the summary does not read trx; required classes are safe because the guard does) and L4 (WriteResult fills the contract files; predates this plan). Both go to the final report.
 
 Finished (UTC): 2026-11-04T16:09:08Z (P6 commit; ci-local and pre-push results follow below in the next commit)
+
+### P6, local CI and pre-push
+
+History rewrite before any push: gitleaks found a sample JWT at 600e6c06 in AcceptanceCiScopeTests. Unpushed local commits were rebuilt (amend and cherry-pick) with the token assembled from parts: 600e6c06, f413dfc8, 352420dc became 7e66f080, 510030b0, 17e8162f. Nothing had left this machine.
+
+scripts/ci-local.ps1, nine runs on the final content (352420dc and 17e8162f differ only by that test constant):
+- run 1 (352420dc): red, Testcontainers 8 failed.
+- run 2 (352420dc): green, 91 passed, 1292 s.
+- runs 3 to 7 (17e8162f): red; Testcontainers 4, 2, 4, 1, 1 failed (run 4 also Install ReportGenerator 935 s). Different tests each run: the Ops038 rabbit image failing its plugin download from GitHub, Npgsql "The operation has timed out" through the Docker Desktop gateway (Perf001 ParallelPartitions in run 6, Data001 Inventory_ConcurrentDecrement in run 7).
+- run 8 (17e8162f): green, ok=True complete=True, 91 passed, 0 failed, 1984 s.
+Reading: an environment rate, 2 green of 8, on this machine's network. No failing test repeated with a product assertion; every one was a download or a timeout. The two Npgsql timeouts are worth watching on the runner: if they show there, they stop being an environment story.
+
+scripts/plan035-prepush.ps1 on 17e8162f: gitleaks, actionlint, forbidden, nonprod, signatures PASS; cilocal PASS after run 8 ("PRE-PUSH OK").
+
+Finished (UTC): 2026-11-04T19:41:52Z (P6)
