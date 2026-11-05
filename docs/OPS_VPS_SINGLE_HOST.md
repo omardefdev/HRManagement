@@ -267,6 +267,11 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-40: الإصدار `3d0b2df84f82` (current-tag؛ previous-tag `f44e52cf58be`)، وترحيلات `MSG040_*`: outbox في admin وauth_directory وit_infra وarchive وanalytics، وإيصالات Training، وفهرس `InboxState` | `deploy.ps1 -Tag 817304f5bd88` آمن: الإصدار القديم يتجاهل الجداول الجديدة. `-Rollback` يعود إلى `f44e52cf58be` (طلبات الإعادة فيه بلا رمز antiforgery) |
 | PLAN-40: `HRM_OTEL_ENABLED=true` في `.env` (يلزم لـ `/metrics` داخل الشبكة؛ مغلق على الحافة والبوابة) | إعادة القيمة `false` ثم `deploy.ps1 -Tag <الوسم الحالي>` |
 | PLAN-40: `/opt/hrm/backups/pre-plan40-20261104T014945Z` (700، الملفات 600) و`/opt/hrm/shared/.env.bak-plan40-20261104T014945Z` | حذفهما بعد التأكد من عدم الحاجة إليهما |
+| PLAN-42: `GATEWAY_PROOF_PRIVATE_KEY_B64` و`GATEWAY_PROOF_PUBLIC_KEY_B64` في `/opt/hrm/shared/.env` (89 مفتاحاً) | `sed -i '/^GATEWAY_PROOF_/d' /opt/hrm/shared/.env`، وهو آمن مع الوسم القديم فقط |
+| PLAN-42: الإصدار `a7ad95e0a4fa` (current-tag؛ previous-tag `3d0b2df84f82`)، وترحيلا `S2S042_*` في `hr_core_db` (`PolicyEnforcementLedgers.CallerClientId` و`CodeIssuances.IssuedByClientId`) | `deploy.ps1 -Rollback`؛ الأعمدة تبقى ولا تضر |
+| PLAN-42: نطاق `dsar.subject.erase` لـ `svc-compliance` في realm (`keycloak-reconcile`، 3 تغييرات) | لوحة Keycloak (§7)، ويعيده `keycloak-reconcile` في أي نشر بوسم PLAN-42 |
+| PLAN-42: حُذف الطابور `idcard-web-policy-published` (0 رسالة، 0 مستهلك) | لا تراجع لازم: الوسم القديم يعيد إنشاءه عند الإقلاع |
+| PLAN-42: `/opt/hrm/backups/pre-plan42-20261105T090239Z` (700، الملفات 600) و`/opt/hrm/shared/.env.bak-plan42-20261105T090239Z` | حذفهما بعد التأكد من عدم الحاجة إليهما |
 
 ## 11. التسليم للمالك
 
@@ -455,3 +460,33 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/msg040-replay-lost-e
 كل طلب POST للإعادة يتطلب رمز antiforgery، ويُرفض بدونه بـ 400 حتى مع جلسة أو token صالحين؛ فالخدمات تقبل الجلسة، وبدون الرمز قد يصل طلب مزوَّر من موقع آخر فيه `dryRun=false`. يجلب السكربت الرمز من `GET /api/admin/messaging/antiforgery` (خلف سياسة الإعادة نفسها) ولا يكتبه في التقرير. من يستدعي الواجهة بغير السكربت يرسل الترويسة `RequestVerificationToken` مع الكوكي، وينتبه إلى أن الخدمة تقيّد مسار الكوكي بـ `/ui/<service>` بينما الإعادة تمر عبر `/api/<service>`.
 
 **ملاحظة نشر.** `keycloak-reconcile` يقرأ من Keycloak بعد إعادة إنشاء PostgreSQL، فقد تفشل قراءته الأولى باتصال مغلق، فتتوقف التطبيقات عند `Created` (حدث مرتين في 2026-11-04، في كل نشر أعاد إنشاء PostgreSQL، وتوقفت التطبيقات 3 إلى 4 دقائق). العلاج إعادة أمر النشر نفسه؛ فهو قابل للتكرار.
+
+## 15. حدود الثقة بين الخدمات (PLAN-42)
+
+**المفاتيح الجديدة.** زوج ECDSA P-256 لإثبات البوابة في `/opt/hrm/shared/.env`:
+
+| المفتاح | من يراه |
+|---------|---------|
+| `GATEWAY_PROOF_PRIVATE_KEY_B64` | `hr-gateway` وحدها |
+| `GATEWAY_PROOF_PUBLIC_KEY_B64` | كل الوحدات، وليس سراً |
+
+القيمتان سطر واحد base64 من DER (PKCS#8 للخاص وSPKI للعام)، لأن `.env` وCompose لا يحملان قيماً متعددة الأسطر بأمان.
+
+**كيف يضيفهما `init-secrets`.** بالخطوات نفسها في §12.2: `deploy.ps1 -PrepareOnly`، ثم `init-secrets.sh` من مجلد الإصدار. يولّد الزوج بـ `openssl` معاً إن غاب المفتاحان، ويطبع بصمة SHA-256 للمفتاح العام ولا يطبع مفتاحاً. وجود أحدهما دون الآخر خطأ، فالزوج يُستبدل كاملاً وباليد.
+
+بصمة المفتاح العام على خادم العرض: `8d190da8c751e76be7d1c8c9b302d65387d1b444ce6047f3c9afa82d27bf6419`.
+
+**التدوير.** احذف المفتاحين من `.env`، وشغّل `init-secrets.sh`، ثم `deploy.ps1 -Tag <الوسم الحالي>`. تُرفض الإثباتات القديمة فوراً، وصلاحية الإثبات أصلاً 60 ثانية.
+
+**القيم المؤقتة.** أي مفتاح قيمته `USE_ENV_OR_SECRET_MANAGER` أو `CHANGE_ME…` أو `__X__` يوقف الإقلاع خارج `Development` و`Testing` و`Acceptance`، ويسمّي الرسالة المفتاح دون قيمته. لذلك يُفحص الإعداد المولَّد بالأسماء قبل كل نشر يضيف مفتاحاً.
+
+**نقطة الدخول في الصور.** صارت `bash` لأن `sh` يُسقط المتغيرات التي في اسمها نقطة، مثل `PolicyEngine__Assets.Custody`. من يضيف وضع سياسة في `.env` يتأكد أن قيمته وصلت إلى الخدمة.
+
+**النسخة الاحتياطية والتراجع.**
+
+- النسخة: `/opt/hrm/backups/pre-plan42-20261105T090239Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`. فيها 17 سطر `CREATE DATABASE`: القواعد الست عشرة و`hrm_admin`. ونسخة `.env`: `/opt/hrm/shared/.env.bak-plan42-20261105T090239Z`.
+- `deploy.ps1 -Rollback` يعيد `3d0b2df84f82`، وهو آمن: ترحيلات `S2S042_*` أعمدة تقبل الفراغ، والإصدار القديم يتجاهلها، و`GATEWAY_CALLER_PROOF_SECRET` ما زال في `.env`.
+
+**مؤجل.** حذف `GATEWAY_CALLER_PROOF_SECRET` من `.env` الخادم. الشيفرة الجديدة تتجاهله خارج `Development`، ويبقى ليعمل التراجع. يُحذف في أول خطة تنشر بعد PLAN-42، حين لا يعود الوسم السابق بحاجة إليه.
+
+**نشر 2026-11-05.** الوسم `a7ad95e0a4fa`: البناء 1236 ث، والنشر 135 ث بمحاولة واحدة، و`keycloak-reconcile` طبّق 3 تغييرات، وحُذف الطابور اليتيم `idcard-web-policy-published` بعد تسجيل 0 رسالة و0 مستهلك. ودامت إعادة إنشاء الحاويات نحو دقيقة و45 ثانية (11:48:06Z إلى 11:49:49Z).

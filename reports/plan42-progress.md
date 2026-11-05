@@ -125,3 +125,43 @@ Open, for the final report:
 - L7: for the owner to confirm: with local Shadow and server Enforce, a server denial blocks, which follows rule 4 of the plan but conflicts with rule 2.
 - L8: a `TriggerWorkflow` rule off the allow-list becomes a plain allow for the ID card caller, as specified.
 - L11: `IsServiceAccount` refuses a CI client outside the list. No such client exists today.
+
+## Owner update (replaces precondition 4 and the wait for PR 36 before P7)
+
+Resumed (UTC): 2026-11-05T08:55:00Z
+
+The owner's message: PLAN-43 may run beside this plan in `D:\my projects\HRManagement-b`, on a branch cut from these commits. This plan now follows `docs/PARALLEL_PLANS.md`. PR 36 stays with the PLAN-41 session. Merge `origin/release/plan-41` (never rebase), do P7 on the server from this branch, P8 up to the push, then wait for PR 36 with `WAITING-PEER:`.
+
+- The uncommitted PLAN-41 report copies moved to `artifacts/plan42/plan41-notes/` (git-ignored); the tracked file is restored and the untracked one removed.
+- Merged `origin/release/plan-41` at 7b9fcbdc as a7ad95e0, no conflict. Outside evidence it changes `.gitleaks.toml`, `docs/CI_AND_TESTING.md`, `docs/qa/dated-obligations.json`, the branch protection file and its fixture, `scripts/ci/compose-up-retry.sh`, `reports/plan41-progress.md`. No source that a service image builds.
+- Build with -warnaserror: 0 warnings. Unit 4862 passed, 0 failed: this also covers the review fixes of 6e56ded7, which had only a filtered run before.
+- My leftover `hrm-leastpriv` stack from P6 (6 hours old, compose labels point at this folder) was taken down with its volumes.
+- Left alone: `hrm-vps-local-hr-core-web-1` (restarting, exit 139, an October lab stack) and `hrm-hr-core-web`. Neither is from this plan.
+- The server's running tag 3d0b2df84f82 is on `origin/main`, so the protocol allows the deploy. `demo-server` lock taken.
+
+P7 so far, on tag a7ad95e0a4fa (server still runs 3d0b2df84f82 until the local results are clean):
+
+- Backup `/opt/hrm/backups/pre-plan42-20261105T090239Z`: 700/600, `pg_dumpall.sql` 25.5 MB, 17 CREATE DATABASE lines (the 16 databases plus the maintenance `hrm_admin`), `env.backup`, SHA256SUMS OK, 4 s. `.env` copy: `/opt/hrm/shared/.env.bak-plan42-20261105T090239Z`.
+- Server build: upload 38 s, build 1236 s, push 18 s.
+- `init-secrets`: 2 keys generated (`GATEWAY_PROOF_PRIVATE_KEY_B64`, `GATEWAY_PROOF_PUBLIC_KEY_B64`), 84 kept unchanged, 89 keys in `.env`, mode 600. Public key SHA-256 8d190da8c751e76be7d1c8c9b302d65387d1b444ce6047f3c9afa82d27bf6419, curve P-256. `GATEWAY_CALLER_PROOF_SECRET` stays (P-3). Undo: `sed -i '/^GATEWAY_PROOF_/d' /opt/hrm/shared/.env`, safe with the old tag.
+- P-4 recheck on the rendered chain of the new release, names only: no marker value, every module has broker user, password and a connection string, the private key reaches `hr-gateway` only. `artifacts/plan42/vps/p4-recheck.txt`.
+
+Rerun of the P6 classes on the merged code, first attempt (`artifacts/plan42/p7-merged-run1/`): journey 1, AcHcm25 8, AcInt37 8, AcS2s42 9 passed. AcMsg40 7 of 8: `Ac40f` got a connection reset on `http://localhost:6200/careers/metrics` at 09:21:39Z. Not explained yet, so it gets a rerun before the deploy. AcOps38 never ran: the Docker data disk went offline at 09:29:31Z (`Device offlined`, host error 0xc0000001 on writes). Windows logs no disk error, volumes and the SSD report healthy, and there is a gap in the system log from 12:19 to 12:38 local that points at the machine sleeping. Docker Desktop was quit from its tray menu at 10:37:34Z; I restarted it at 11:04Z. It then held 0 images and 0 containers; 33 volumes remained. `hrm-registry`, `hrm-hr-core-web` and `hrm-vps-local-hr-core-web-1` are gone with them. I did not remove them and do not know what did. Keep-awake is now requested for the session.
+
+Second attempt on a fresh stack, after `Test-DockerImage` fixed `acceptance-up.ps1` (commit cb462244: under Windows PowerShell 5.1 and `Stop`, the stderr of a missing image ended the script, which only shows once the cached base images are gone): AcMsg40 8 of 8 (40f passed), AcOps38 leastpriv 8 of 8, guard PASS, 2256 s with a cold build. The reset of 40f did not come back and stays unexplained. The Docker log shows the crash-looping `hrm-vps-local` lab container exiting at 09:21:38.99Z, 0.4 s before the reset, but I could not link the two; that container no longer exists.
+
+PR 36 merged at 8e79a6b2, 2026-11-05T11:28:51Z. `main` and the PLAN-41 closing note fbe1a02f are merged into this branch at 16d7add2. Neither changes anything the server builds, so the deployed tag stands.
+
+Deploy of a7ad95e0a4fa, 2026-11-05: first attempt healthy at 11:49:50Z. Total 135 s: pull 2, up 90, bootstrap 42, reconcile 11 (3 changes: scope `dsar.subject.erase` created, its audience mapper, linked to `svc-compliance`), healthy 12. Containers recreated from 11:48:06Z to 11:49:49Z, about 1 min 45 s. Smoke 50 pass, 0 fail, 1 warn. Previous tag 3d0b2df84f82. Undo: `deploy.ps1 -Rollback`.
+
+P7 checks (evidence in `artifacts/plan42/vps/`, `p7-vps-tour.log`, `p7-vps-suites.log`; committed evidence restored):
+1. Tour: leave approval and ID card through the gateway, 1 of 1.
+2. Direct to `hr-core-web` from inside the network, with a valid user token (userinfo 200): no proof 403; v1 HMAC made with the server's real old secret 403.
+3. Image with a placeholder public key, no network: exit 139, the log names `GatewayCallerProof:PublicKeyPem` twice, the value never. The exit is a crash after the guard's exception, not a clean non-zero, and it matches what the old lab container did in its loop; recorded for later.
+4. `svc-compliance` has `dsar.subject.erase` as an optional scope, the only difference from the realm before.
+5. `idcard-web-policy-published`: 0 messages, 0 consumers, deleted; gone.
+6. `PolicyEnforcementLedgers.CallerClientId` and `CodeIssuances.IssuedByClientId` exist; both `S2S042_*` migrations in the history.
+7. Smoke with mandatory wiring green, in the deploy and in `AcInt37VpsServerTests`.
+8. AcOps36 36a..i and 36k, AcInt37VpsServerTests 3, the PLAN-38 tour, PLAN-39 checks e and f, PLAN-40 checks: 18 of 18, plus the tour. 36j not run, as the plan says.
+
+Finished (UTC): 2026-11-05T12:08:59Z (P7)
