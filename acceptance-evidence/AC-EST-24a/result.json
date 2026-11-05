@@ -1,17 +1,6 @@
 {
-  "scenarios": {
-    "Establishment_details_shows_workflow_panel_for_pending_change": {
-      "status": "Pass",
-      "reason": null,
-      "correlationId": "a1cb6214-cedd-42c2-bbcb-bef3326f0894",
-      "recordedAtUtc": "2026-11-05T00:02:35.6636123Z",
-      "testClass": "AcEst24EstablishmentWorkflowUiTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
-    }
-  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "a1cb6214-cedd-42c2-bbcb-bef3326f0894",
-  "recordedAtUtc": "2026-11-05T00:02:35.6636123Z"
+  "correlationId": "b2b4e51b-d9ea-4e74-9555-023375eb9bce",
+  "recordedAtUtc": "2026-10-29T20:13:56.5900000Z"
 }

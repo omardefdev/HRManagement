@@ -1,5 +1,0 @@
-{
-  "scriptExitCode": 0,
-  "scriptOutput": "=== AC-19 Analytics read-model reconciliation ===\n{\u0022readModelId\u0022:\u0022f6a13b10-86b8-d241-95ee-db002099bfe1\u0022,\u0022database\u0022:\u0022analytics_db\u0022,\u0022tenantId\u0022:\u0022a0000001-0000-4000-8000-000000000001\u0022,\u0022postgresContainer\u0022:\u0022hrm-acceptance-postgresql-1\u0022,\u0022before\u0022:{\u0022id\u0022:\u0022f6a13b10-86b8-d241-95ee-db002099bfe1\u0022,\u0022name\u0022:\u0022rm_compliance_open_items\u0022,\u0022lastFingerprint\u0022:\u00221091a81b07847942\u0022,\u0022schema\u0022:\u0022{\\\u0022version\\\u0022:1,\\\u0022name\\\u0022:\\\u0022rm_compliance_open_items\\\u0022}\u0022,\u0022tenantId\u0022:\u0022a0000001-0000-4000-8000-000000000001\u0022},\u0022driftInjected\u0022:true,\u0022capturedAtUtc\u0022:\u00222026-11-05T00:02:02.7475924Z\u0022}\n",
-  "readModelId": "f6a13b10-86b8-d241-95ee-db002099bfe1"
-}

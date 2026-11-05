@@ -1,6 +1,0 @@
-{
-  "stage": "before",
-  "explicitDomainSnapshot": false,
-  "correlationId": "c5247a2c-0a1d-46ee-84a0-c94fd4f411af",
-  "note": "No explicit pre-action domain snapshot was captured; see HTTP and DB evidence."
-}

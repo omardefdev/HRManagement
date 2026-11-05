@@ -3,6 +3,6 @@
   "method": "POST",
   "url": "/api/platform/exit-tenant",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-04T23:56:56.8746596Z",
+  "capturedAtUtc": "2026-08-24T17:48:10.0899616Z",
   "body": "{\u0022exited\u0022:true}"
 }

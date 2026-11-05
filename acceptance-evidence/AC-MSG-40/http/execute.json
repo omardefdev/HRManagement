@@ -1,10 +1,10 @@
 {
   "step": "execute",
   "method": "POST",
-  "url": "/ui/hr-movements/PromotionRequests/Execute/b200345e-f873-4da1-b9c9-4690e41559d2",
+  "url": "/ui/hr-movements/PromotionRequests/Execute/89b98c09-982a-44f7-b0a8-9368f8b3eddd",
   "statusCode": 302,
-  "capturedAtUtc": "2026-11-05T00:23:50.7289536Z",
+  "capturedAtUtc": "2026-11-04T05:44:26.3855635Z",
   "body": {
-    "location": "/ui/hr-movements/PromotionRequests/Details/b200345e-f873-4da1-b9c9-4690e41559d2"
+    "location": "/ui/hr-movements/PromotionRequests/Details/89b98c09-982a-44f7-b0a8-9368f8b3eddd"
   }
 }

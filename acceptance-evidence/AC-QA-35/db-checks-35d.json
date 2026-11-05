@@ -1,7 +1,7 @@
 {
   "live": {
     "exit": 0,
-    "output": "SCM-001 OK: governance artifacts present; protection file within policy or under open dated exceptions."
+    "output": "SCM-001 live protection unavailable (private repository on the free plan); local guard installed: D:\\my projects\\HRManagement\\.git\\hooks\\pre-push (exception SCM-NO-GITHUB-PROTECTION)\nSCM-001 OK: governance artifacts present; protection file within policy or under open dated exceptions."
   },
   "guard": {
     "exit": 1,

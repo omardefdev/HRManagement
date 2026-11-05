@@ -1,0 +1,16 @@
+{
+  "gateway": "http://localhost:5000",
+  "health": 200,
+  "minioContainers": "",
+  "fileStorageProvider": "FileStorage__Provider=Local",
+  "providerInspectExit": 0,
+  "tokenRealmRoles": [],
+  "objectStorageProfileWithoutImage": {
+    "exit": 1,
+    "output": "service \u0022minio\u0022 has neither an image nor a build context specified: invalid compose project"
+  },
+  "objectStorageOverlayWithoutImage": {
+    "exit": 1,
+    "output": "error while interpolating services.minio.image: required variable MINIO_IMAGE is missing a value: set MINIO_IMAGE to a vetted, digest-pinned MinIO image (D-QA-7; the old pin is no longer pullable)"
+  }
+}

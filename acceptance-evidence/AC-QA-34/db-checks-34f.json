@@ -17,7 +17,7 @@
     "Pay023FrozenRunIsolationTests.Frozen_run_unchanged_after_profile_edit_later_run_reflects_change": {},
     "Perf001PayrollBatchPostgreSqlTests.ParallelPartitions_DoNotDuplicateLines_On_PostgreSQL": {}
   },
-  "postgresSource": "linux ci-local",
+  "postgresSource": "native Windows (rule P-3)",
   "hostValidation": {},
   "negative": {}
 }

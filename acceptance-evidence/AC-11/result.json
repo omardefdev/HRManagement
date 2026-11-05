@@ -1,17 +1,6 @@
 {
-  "scenarios": {
-    "Enforce_starts_workflow_two_approvals_signatures_stage_skip_blocked": {
-      "status": "Pass",
-      "reason": null,
-      "correlationId": "f416c397-bf28-425d-a370-715b95c5a42f",
-      "recordedAtUtc": "2026-11-04T23:52:46.5006910Z",
-      "testClass": "Ac11PolicyWorkflowTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
-    }
-  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "f416c397-bf28-425d-a370-715b95c5a42f",
-  "recordedAtUtc": "2026-11-04T23:52:46.5006910Z"
+  "correlationId": "9f36048a-0c35-45c4-a9e1-5fb78cb23fb5",
+  "recordedAtUtc": "2026-10-29T20:13:54.7962104Z"
 }

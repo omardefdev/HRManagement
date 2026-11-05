@@ -1,44 +1,32 @@
 {
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "a24fc5ca-292a-4e15-a567-f25747ef1075",
+  "recordedAtUtc": "2026-10-29T20:00:08.7098339Z",
   "scenarios": {
     "27b": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "9ddfdbae-933b-44e9-bbac-727ba2bb5a62",
-      "recordedAtUtc": "2026-11-05T00:07:55.7732675Z",
-      "testClass": "AcHcm27OfferMeritTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "bbbec530-8ae2-43fd-a82f-4ec2c1617380",
+      "recordedAtUtc": "2026-10-29T19:56:01.3335559Z"
     },
     "27f-g": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "f96f98c1-4aa1-47bd-9c0e-155cd3af15b5",
-      "recordedAtUtc": "2026-11-05T00:10:18.1845857Z",
-      "testClass": "AcHcm27OfferMeritTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "6f349afc-e5b3-49e6-8386-c8165f7c4d64",
+      "recordedAtUtc": "2026-10-29T19:58:23.2705770Z"
     },
     "27a-c-d-h": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "b3443825-bafe-4001-abfa-16d8c9bc1a8f",
-      "recordedAtUtc": "2026-11-05T00:10:30.3084595Z",
-      "testClass": "AcHcm27OfferMeritTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "16b35626-313f-4dd7-bd79-676be9db513b",
+      "recordedAtUtc": "2026-10-29T19:58:42.7986116Z"
     },
     "27e": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "de12d1b6-ed6f-43f7-8f38-3f9190283786",
-      "recordedAtUtc": "2026-11-05T00:11:50.1509879Z",
-      "testClass": "AcHcm27OfferMeritTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "a24fc5ca-292a-4e15-a567-f25747ef1075",
+      "recordedAtUtc": "2026-10-29T20:00:08.7098339Z"
     }
-  },
-  "status": "Pass",
-  "reason": null,
-  "correlationId": "de12d1b6-ed6f-43f7-8f38-3f9190283786",
-  "recordedAtUtc": "2026-11-05T00:11:50.1509879Z"
+  }
 }

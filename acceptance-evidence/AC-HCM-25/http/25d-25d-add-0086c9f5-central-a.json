@@ -3,16 +3,16 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/AddMember",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T00:20:47.5379364Z",
+  "capturedAtUtc": "2026-10-29T20:20:33.4918645Z",
   "body": {
     "fields": [
-      "sessionId=720448a1-8501-4484-adc0-097d70acce5d",
+      "sessionId=a18a3e06-d20f-4474-86a6-9939b2d62f33",
       "employeeId=0086c9f5-0aa8-6d41-9e2d-0e73632ab8c4",
       "role=Member",
       "hasConflictOfInterest=false"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/720448a1-8501-4484-adc0-097d70acce5d#members",
-    "final": "/ui/hr-core/SelectionCommittees/Details/720448a1-8501-4484-adc0-097d70acce5d"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/a18a3e06-d20f-4474-86a6-9939b2d62f33#members",
+    "final": "/ui/hr-core/SelectionCommittees/Details/a18a3e06-d20f-4474-86a6-9939b2d62f33"
   }
 }

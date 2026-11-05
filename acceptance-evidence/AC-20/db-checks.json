@@ -1,4 +1,4 @@
 {
   "exitCode": 0,
-  "output": "AC-20 PostgreSQL service-role isolation\nCompose project: hrm-acceptance\nChecked role/database pairs: 225\nViolations: 0\nAll cross-DB CONNECT checks passed\n\nEvidence: /home/runner/work/HRManagement/HRManagement/artifacts/acceptance/run/acceptance-evidence/AC-20\n"
+  "output": "AC-20 PostgreSQL service-role isolation\r\nCompose project: hrm-leastpriv\r\nChecked role/database pairs: 225\r\nViolations: 0\r\nAll cross-DB CONNECT checks passed\r\n\nEvidence: D:\\my projects\\HRManagement\\acceptance-evidence\\AC-20\n"
 }

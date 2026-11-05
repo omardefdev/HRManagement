@@ -1,4 +1,3 @@
 {
-  "explicitDatabaseQuery": false,
-  "note": "No separate database query was required or captured for this scenario."
+  "note": "No DB checks recorded for this scenario."
 }

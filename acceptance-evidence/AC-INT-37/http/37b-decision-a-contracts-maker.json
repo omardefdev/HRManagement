@@ -3,13 +3,13 @@
   "method": "POST",
   "url": "/ui/hr-contracts/HireWizard/IssueAppointmentDecision",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T00:23:05.6880446Z",
+  "capturedAtUtc": "2026-11-01T00:57:11.9768745Z",
   "body": {
     "fields": [
-      "transactionId=0cd85255-619b-4db0-bacd-60bdf21aefb2"
+      "transactionId=3fe6bdcf-5b2d-4d71-b9c8-2db91a4d52ff"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-contracts/HireWizard/Step2?transactionId=0cd85255-619b-4db0-bacd-60bdf21aefb2",
+    "redirect": "/ui/hr-contracts/HireWizard/Step2?transactionId=3fe6bdcf-5b2d-4d71-b9c8-2db91a4d52ff",
     "final": "/ui/hr-contracts/HireWizard/Step2"
   }
 }

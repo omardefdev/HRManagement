@@ -1,13 +1,13 @@
 {
-  "1 requisition": "2026-11-05T00:05:55.0571213Z",
-  "2 approval and publication": "2026-11-05T00:05:55.6718815Z",
-  "3 public application": "2026-11-05T00:05:56.0200025Z",
-  "4 selection": "2026-11-05T00:05:56.6428388Z",
-  "5 offer": "2026-11-05T00:05:58.7695640Z",
-  "6 candidate acceptance": "2026-11-05T00:05:59.7422549Z",
-  "7 hire": "2026-11-05T00:06:00.0576875Z",
-  "8 contracts and correlation": "2026-11-05T00:06:00.5918701Z",
-  "done": "2026-11-05T00:06:01.0293904Z",
-  "finishedAtUtc": "2026-11-05T00:06:01.0324208Z",
+  "1 requisition": "2026-10-29T20:14:14.8225267Z",
+  "2 approval and publication": "2026-10-29T20:14:17.7736989Z",
+  "3 public application": "2026-10-29T20:14:18.8493011Z",
+  "4 selection": "2026-10-29T20:14:30.9743835Z",
+  "5 offer": "2026-10-29T20:14:39.8132786Z",
+  "6 candidate acceptance": "2026-10-29T20:14:44.2948044Z",
+  "7 hire": "2026-10-29T20:14:45.9228840Z",
+  "8 contracts and correlation": "2026-10-29T20:14:47.6540709Z",
+  "done": "2026-10-29T20:14:49.8116306Z",
+  "finishedAtUtc": "2026-10-29T20:14:49.8323627Z",
   "stageReached": "done"
 }

@@ -1,17 +1,4 @@
 {
-  "scenarios": {
-    "Central_user_sees_agency_a_employees_not_agency_b": {
-      "status": "Pass",
-      "reason": null,
-      "correlationId": "dcc87e6b-8710-48ab-a8d1-435b634b8861",
-      "recordedAtUtc": "2026-11-05T00:02:01.8327011Z",
-      "testClass": "Ac01CentralTenantIsolationTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
-    }
-  },
   "status": "Pass",
-  "reason": null,
-  "correlationId": "dcc87e6b-8710-48ab-a8d1-435b634b8861",
-  "recordedAtUtc": "2026-11-05T00:02:01.8327011Z"
+  "correlationId": "c7dba097-c055-4224-ac12-1a89de51cc72"
 }

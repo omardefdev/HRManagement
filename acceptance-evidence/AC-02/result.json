@@ -1,17 +1,4 @@
 {
-  "scenarios": {
-    "Br1_manager_sees_branch1_employees_not_sibling_branch2": {
-      "status": "Pass",
-      "reason": null,
-      "correlationId": "062dd315-b155-4cbb-b50e-f5f93d39db99",
-      "recordedAtUtc": "2026-11-05T00:04:35.0093661Z",
-      "testClass": "Ac02BranchManagerScopeTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
-    }
-  },
   "status": "Pass",
-  "reason": null,
-  "correlationId": "062dd315-b155-4cbb-b50e-f5f93d39db99",
-  "recordedAtUtc": "2026-11-05T00:04:35.0093661Z"
+  "correlationId": "cd60464c-49e2-43f2-8da3-f1791aa025fd"
 }

@@ -1,9 +1,9 @@
 {
   "step": "21c-21c-cleanup-cancel-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Cancel/f9f27cb6-a038-46db-a611-a3f06caaa83e",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Cancel/2f01f219-ba4a-452a-860b-896f4de4ccc9",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T00:04:41.3155395Z",
+  "capturedAtUtc": "2026-10-29T19:55:00.8814224Z",
   "body": {
     "fields": [
       "reason=\u062A\u0646\u0638\u064A\u0641 \u0628\u0639\u062F \u0633\u064A\u0646\u0627\u0631\u064A\u0648 \u0642\u0628\u0648\u0644 PLAN-33"

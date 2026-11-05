@@ -1,35 +1,12 @@
 {
   "scenario": "AC-HCM-25h repair script: dry run lists seeded stuck rows; -Apply starts their workflows",
   "personaId": "central-a\u002Bbr1-mgr",
-  "correlationId": "743e9fea-5f23-47bb-b037-f8d61eb4b610",
-  "capturedAtUtc": "2026-11-05T00:20:50.8561017Z",
+  "correlationId": "710ee627-c710-4481-8f27-ee7c932d58ff",
+  "capturedAtUtc": "2026-10-29T20:20:39.1449933Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-  "profile": "prodlike",
-  "sourceSha": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-  "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb",
-  "imageRevisions": {
-    "admin-logistics-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "auth-directory-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "compliance-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "dev-analytics-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "file-storage-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "hr-contracts-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "hr-core-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "hr-gateway": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "hr-health-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "hr-movements-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "hr-training-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "idcard-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "it-infra-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "payroll-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
-    "records-archive-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404"
-  },
-  "source": "ci",
-  "ciRunId": "41934216395",
-  "ciEvent": "pull_request"
+  "gitSha": "4f157852cc393eb6b3f9794297c23918c5b54038"
 }

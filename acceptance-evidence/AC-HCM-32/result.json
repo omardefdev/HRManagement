@@ -1,44 +1,32 @@
 {
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "81b11837-7cb9-4706-b516-8daa68978417",
+  "recordedAtUtc": "2026-10-29T19:55:48.9964495Z",
   "scenarios": {
     "32d": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "04a2377d-5a58-4d68-899d-b91bcb30a8a1",
-      "recordedAtUtc": "2026-11-05T00:02:05.0805659Z",
-      "testClass": "AcHcm32RecruitmentReportsTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "2b574fe7-2e27-41e0-b580-2a88ea9bf49d",
+      "recordedAtUtc": "2026-10-29T19:55:45.7131276Z"
     },
     "32b": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "f69b14e3-bb1d-49ab-a9c6-d5f66f80d0bb",
-      "recordedAtUtc": "2026-11-05T00:02:06.2563012Z",
-      "testClass": "AcHcm32RecruitmentReportsTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "cc871859-ef08-4164-ab23-6d76007e9368",
+      "recordedAtUtc": "2026-10-29T19:55:46.6281153Z"
     },
     "32a": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "0787d64b-b305-4fe3-859c-73eb7f0f07c9",
-      "recordedAtUtc": "2026-11-05T00:02:07.3829446Z",
-      "testClass": "AcHcm32RecruitmentReportsTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "b16e33a9-32fe-418b-93d4-e9622fa5e979",
+      "recordedAtUtc": "2026-10-29T19:55:47.5295975Z"
     },
     "32c": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "7a3dd1df-6008-4da1-b5b9-a83a281e10d9",
-      "recordedAtUtc": "2026-11-05T00:02:09.5137498Z",
-      "testClass": "AcHcm32RecruitmentReportsTests",
-      "profile": "lab",
-      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+      "correlationId": "81b11837-7cb9-4706-b516-8daa68978417",
+      "recordedAtUtc": "2026-10-29T19:55:48.9964495Z"
     }
-  },
-  "status": "Pass",
-  "reason": null,
-  "correlationId": "7a3dd1df-6008-4da1-b5b9-a83a281e10d9",
-  "recordedAtUtc": "2026-11-05T00:02:09.5137498Z"
+  }
 }
