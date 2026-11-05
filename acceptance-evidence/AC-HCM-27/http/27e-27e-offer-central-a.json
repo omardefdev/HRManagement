@@ -3,18 +3,18 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/CreateOffer",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T19:58:50.5578514Z",
+  "capturedAtUtc": "2026-11-05T00:10:35.0006643Z",
   "body": {
     "fields": [
-      "ApplicationId=1da498bd-36d1-4443-bfe4-7794934b1794",
+      "ApplicationId=56cd3d1e-15ba-44fc-8322-9ffe3e7a0a7a",
       "OfferedSalary=400000",
       "GradeCode=G5",
-      "ProposedStartDate=2026-11-28",
+      "ProposedStartDate=2026-12-05",
       "ValidityDays=14"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/f4fe8cd5-afb6-4723-a0a4-e14dbc62d9a9",
-    "final": "/ui/hr-core/OfferLetters/Details/f4fe8cd5-afb6-4723-a0a4-e14dbc62d9a9",
+    "redirect": "/ui/hr-core/OfferLetters/Details/fd2a1bb3-d539-4dd9-ad6e-36426b603098",
+    "final": "/ui/hr-core/OfferLetters/Details/fd2a1bb3-d539-4dd9-ad6e-36426b603098",
     "alerts": []
   }
 }

@@ -1,0 +1,16 @@
+{
+  "step": "publish-v3",
+  "method": "POST",
+  "url": "/api/hr-core/api/policies/templates/a0000001-0000-4000-8000-000000000304/publish",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T00:04:35.6992836Z",
+  "body": {
+    "id": "a0000001-0000-4000-8000-000000000304",
+    "policyTemplateId": "a0000001-0000-4000-8000-000000000301",
+    "versionNumber": 3,
+    "status": 1,
+    "effectiveFrom": "2026-11-05T00:04:35.6459773Z",
+    "effectiveTo": null,
+    "tenantId": "a0000001-0000-4000-8000-000000000001"
+  }
+}

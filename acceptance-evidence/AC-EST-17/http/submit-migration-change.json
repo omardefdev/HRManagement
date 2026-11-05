@@ -1,0 +1,12 @@
+{
+  "step": "submit-migration-change",
+  "method": "POST",
+  "url": "/api/hr-core/api/establishment/changes/ea37689e-e70d-4c42-9633-b6241d83ec3e/submit",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T00:02:11.5355868Z",
+  "body": {
+    "id": "ea37689e-e70d-4c42-9633-b6241d83ec3e",
+    "status": 1,
+    "resultEntityId": null
+  }
+}

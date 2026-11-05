@@ -1,7 +1,7 @@
 {
-  "remoteMain": "152506efe8df51c6d6d3d9897b6d0729bd2f2724",
-  "localMain": "152506efe8df51c6d6d3d9897b6d0729bd2f2724",
-  "run": "https://github.com/omardefdev/HRManagement/actions/runs/41149190573",
+  "remoteMain": "e5071b4237479e6464e7a1bcc89e1c4187f09e75",
+  "localMain": "e5071b4237479e6464e7a1bcc89e1c4187f09e75",
+  "run": "https://github.com/omardefdev/HRManagement/actions/runs/41801829202",
   "conclusion": "success",
   "jobs": [
     {
@@ -9,7 +9,7 @@
       "conclusion": "success"
     },
     {
-      "name": "CI",
+      "name": "Dedupe post-merge run",
       "conclusion": "success"
     },
     {
@@ -18,14 +18,18 @@
     },
     {
       "name": "CodeQL",
-      "conclusion": "success"
+      "conclusion": "skipped"
     },
     {
-      "name": "E2E",
-      "conclusion": "success"
+      "name": "CI",
+      "conclusion": "skipped"
     },
     {
       "name": "Acceptance",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "E2E",
       "conclusion": "skipped"
     }
   ]

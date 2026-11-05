@@ -1,8 +1,8 @@
 {
-  "promotionId": "89b98c09-982a-44f7-b0a8-9368f8b3eddd",
+  "promotionId": "b200345e-f873-4da1-b9c9-4690e41559d2",
   "employeeId": "00473c33-2438-d141-b2ab-3e6caf82b84a",
-  "decisionRef": "MSG40A-89b98c09982a4",
-  "messageId": "704c2349-ed28-57b0-8542-5d7e7aa33407",
-  "sequenceBefore": 3,
-  "consumerReceiptsBefore": 3
+  "decisionRef": "MSG40A-b200345ef8734",
+  "messageId": "5806b241-7cc3-5aa7-8926-3b95435ffdf2",
+  "sequenceBefore": 0,
+  "consumerReceiptsBefore": 0
 }

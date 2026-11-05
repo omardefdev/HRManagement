@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/careers/my/offer/decline",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:06:06.8792195Z",
+  "capturedAtUtc": "2026-11-05T00:01:56.0063707Z",
   "body": {
     "fields": [
       "Category=Salary",

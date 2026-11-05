@@ -1,0 +1,18 @@
+{
+  "step": "http-resolve",
+  "method": "POST",
+  "url": "/api/tenant-quarantine/58cafb7a-c28e-4afb-90c5-51e2c8cad2c5/resolve",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T00:05:52.1288312Z",
+  "body": {
+    "id": "58cafb7a-c28e-4afb-90c5-51e2c8cad2c5",
+    "serviceName": "HRCore",
+    "tableName": "Employees",
+    "recordId": "a0000001-0000-4000-8000-000000000901",
+    "reason": "Unresolvable after OrgUnit/Explicit assignment; remains on PLATFORM default tenant",
+    "resolution": "AssignTenant: AC-08 acceptance reconciliation",
+    "assignedTenantId": "a0000001-0000-4000-8000-000000000001",
+    "createdAt": "2026-11-05T00:05:28.003045Z",
+    "resolvedAt": "2026-11-05T00:05:52.1244695Z"
+  }
+}

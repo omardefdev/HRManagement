@@ -1,0 +1,97 @@
+{
+  "step": "lookup-grades",
+  "method": "GET",
+  "url": "/api/hr-core/api/lookup/reference-data?kind=Grade\u0026q=GR\u0026page=1\u0026pageSize=20",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T00:02:10.1031506Z",
+  "body": {
+    "items": [
+      {
+        "code": "GR-EX",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0627\u0633\u062A\u062B\u0646\u0627\u0626\u064A\u0629",
+        "sublabel": "GR-EX"
+      },
+      {
+        "code": "GR-01",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0623\u0648\u0644\u0649",
+        "sublabel": "GR-01"
+      },
+      {
+        "code": "GR-09",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062A\u0627\u0633\u0639\u0629",
+        "sublabel": "GR-09"
+      },
+      {
+        "code": "GR-03",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062B\u0627\u0644\u062B\u0629",
+        "sublabel": "GR-03"
+      },
+      {
+        "code": "GR-13",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062B\u0627\u0644\u062B\u0629 \u0639\u0634\u0631",
+        "sublabel": "GR-13"
+      },
+      {
+        "code": "GR-08",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062B\u0627\u0645\u0646\u0629",
+        "sublabel": "GR-08"
+      },
+      {
+        "code": "GR-02",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062B\u0627\u0646\u064A\u0629",
+        "sublabel": "GR-02"
+      },
+      {
+        "code": "GR-12",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062B\u0627\u0646\u064A\u0629 \u0639\u0634\u0631",
+        "sublabel": "GR-12"
+      },
+      {
+        "code": "GR-11",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062D\u0627\u062F\u064A\u0629 \u0639\u0634\u0631",
+        "sublabel": "GR-11"
+      },
+      {
+        "code": "GR-05",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062E\u0627\u0645\u0633\u0629",
+        "sublabel": "GR-05"
+      },
+      {
+        "code": "GR-15",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u062E\u0627\u0645\u0633\u0629 \u0639\u0634\u0631",
+        "sublabel": "GR-15"
+      },
+      {
+        "code": "GR-04",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0631\u0627\u0628\u0639\u0629",
+        "sublabel": "GR-04"
+      },
+      {
+        "code": "GR-14",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0631\u0627\u0628\u0639\u0629 \u0639\u0634\u0631",
+        "sublabel": "GR-14"
+      },
+      {
+        "code": "GR-07",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0633\u0627\u0628\u0639\u0629",
+        "sublabel": "GR-07"
+      },
+      {
+        "code": "GR-06",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0633\u0627\u062F\u0633\u0629",
+        "sublabel": "GR-06"
+      },
+      {
+        "code": "GR-16",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0633\u0627\u062F\u0633\u0629 \u0639\u0634\u0631",
+        "sublabel": "GR-16"
+      },
+      {
+        "code": "GR-10",
+        "label": "\u0627\u0644\u062F\u0631\u062C\u0629 \u0627\u0644\u0639\u0627\u0634\u0631\u0629",
+        "sublabel": "GR-10"
+      }
+    ],
+    "hasMore": false
+  }
+}

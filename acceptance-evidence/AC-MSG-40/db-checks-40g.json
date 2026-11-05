@@ -1,11 +1,11 @@
 {
-  "promotionId": "a337d0b4-ac17-48a0-adb8-3b1cb65099f4",
-  "instance": "c4d17bc0-5b57-4f28-b7ce-1bfd19e0e0ce",
-  "assignment": "0cdcc6b1-97fd-4486-b387-6d52f4fbd29f",
+  "promotionId": "20ecb274-18e0-4e81-a220-ca21ec79c4ef",
+  "instance": "ab67202d-516d-4011-a25d-1389b2948e5f",
+  "assignment": "18d2091d-73eb-4f23-97c5-7e9a3f2b53f5",
   "notes": 1,
   "assignmentStatus": 1,
-  "audited": 2,
-  "dryRun": 6,
-  "applied": 6,
+  "audited": 1,
+  "dryRun": 2,
+  "applied": 2,
   "secondRun": 0
 }

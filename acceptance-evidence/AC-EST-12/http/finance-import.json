@@ -3,9 +3,9 @@
   "method": "POST",
   "url": "/api/hr-core/api/establishment/finance/import?fiscalYear=2026",
   "statusCode": 200,
-  "capturedAtUtc": "2026-09-04T16:06:11.0706877Z",
+  "capturedAtUtc": "2026-11-04T23:56:54.3830444Z",
   "body": {
-    "batchId": "57238241-5742-436c-a214-59e8a0c08775",
+    "batchId": "0c9c5142-2a7b-45c4-8749-264647f5055c",
     "rowCount": 3,
     "fiscalYear": 2026,
     "note": "Stub file import \u2014 no live ERP"

@@ -1,7 +1,7 @@
 # AC-16 duplicate message idempotency
 
 - Persona: `central-a`
-- Correlation ID: `fdae5fe6-3a88-480f-b5c1-1f27a953bfca`
+- Correlation ID: `e49b5483-ec23-44e4-aaa5-983b83452bbe`
 - HTTP observations: `0`
 
 The scenario was verified through assertions, scripts, or database checks recorded in the companion evidence files.

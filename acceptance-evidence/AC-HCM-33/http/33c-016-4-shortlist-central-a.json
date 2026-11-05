@@ -3,14 +3,14 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/SetStatus",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:14:33.3946257Z",
+  "capturedAtUtc": "2026-11-05T00:05:57.2798923Z",
   "body": {
     "fields": [
-      "id=d6c97c6b-dc81-44ad-b7b7-64e7fbe67ead",
+      "id=a2be49e1-029c-42bd-83af-205d3b76807c",
       "status=Shortlisted"
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentApplications/Details/d6c97c6b-dc81-44ad-b7b7-64e7fbe67ead"
+    "final": "/ui/hr-core/RecruitmentApplications/Details/a2be49e1-029c-42bd-83af-205d3b76807c"
   }
 }

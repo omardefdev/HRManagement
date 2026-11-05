@@ -1,0 +1,10 @@
+{
+  "step": "journey-rebuild",
+  "method": "GET",
+  "url": "/api/platform/audit/journey/1dcda287-3626-4722-8a50-1d74efcd83ad",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-04T23:57:14.4783288Z",
+  "body": {
+    "length": 508
+  }
+}

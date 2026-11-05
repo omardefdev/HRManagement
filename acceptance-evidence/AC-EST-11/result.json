@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Br1_manager_allowed_on_br1_forbidden_on_br2": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "69bf7d17-ef72-438b-8afa-19d9afe12c22",
+      "recordedAtUtc": "2026-11-04T23:52:36.1638834Z",
+      "testClass": "AcEst11BranchGapScopeTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "cd699944-9a8d-4fdf-ada6-67905047cb2b",
-  "recordedAtUtc": "2026-09-04T16:06:12.4263079Z"
+  "correlationId": "69bf7d17-ef72-438b-8afa-19d9afe12c22",
+  "recordedAtUtc": "2026-11-04T23:52:36.1638834Z"
 }

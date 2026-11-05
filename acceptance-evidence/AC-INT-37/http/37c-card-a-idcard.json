@@ -1,15 +1,15 @@
 {
   "step": "37c-card-a-idcard",
   "method": "POST",
-  "url": "/ui/idcard/IssuedCards/Renew/10cdbe2e-cdb5-be4d-90f4-62210e22ab2c",
+  "url": "/ui/idcard/IssuedCards/Renew/2f6bf58e-a858-b547-80a1-2f922d3915de",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-01T00:54:52.0320691Z",
+  "capturedAtUtc": "2026-11-05T00:21:00.0534424Z",
   "body": {
     "fields": [
-      "id=10cdbe2e-cdb5-be4d-90f4-62210e22ab2c"
+      "id=2f6bf58e-a858-b547-80a1-2f922d3915de"
     ],
     "postStatus": 302,
-    "redirect": "/ui/idcard/IssuedCards/Details/7d58a3e4-e5ba-43e9-94dc-a1d306a430d7",
-    "final": "/ui/idcard/IssuedCards/Details/7d58a3e4-e5ba-43e9-94dc-a1d306a430d7"
+    "redirect": "/ui/idcard/IssuedCards/Details/c90db748-c654-418f-9151-c422700d7b8a",
+    "final": "/ui/idcard/IssuedCards/Details/c90db748-c654-418f-9151-c422700d7b8a"
   }
 }

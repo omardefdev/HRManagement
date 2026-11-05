@@ -1,0 +1,23 @@
+{
+  "step": "http-apply-dryrun",
+  "method": "POST",
+  "url": "api/hr-core/api/onboarding/agencies/apply",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-04T23:56:47.2634470Z",
+  "body": {
+    "dryRun": true,
+    "alreadyApplied": false,
+    "tenantId": null,
+    "agencyId": "agency-acceptance-test",
+    "packId": "onb-acceptance-test-v1",
+    "steps": [
+      "EnsureNationalMandatory",
+      "CreateTenant",
+      "ApplyOrgStructure",
+      "ApplyReferenceSubset",
+      "ApplyPolicyPack:policy-acceptance-placeholder",
+      "RecordSeedPackApplication"
+    ],
+    "warnings": []
+  }
+}

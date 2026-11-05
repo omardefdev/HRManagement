@@ -1,11 +1,11 @@
 {
-  "requisition": "714eb811-8dc9-42c7-8580-cc9ed250eaef",
-  "offer": "6475526d-0ad0-4c8d-95ec-20fead480680",
-  "hash": "c30e8cb89ee38660e8eae977b63b77b55e0f977139c008e0b0eecc1d5a21268b",
-  "applicationId": "196c9756-0bc9-49f6-bdcf-e576742a2349",
-  "employeeId": "fe3ca5d4-85b6-48c6-b9ca-a720155efa93",
-  "contract": "8728bbf1-8284-4471-8d17-51c3d3fe1484|AGENCY-A-ACC-LAW50-PERM|G5|400000.00|law50|Permanent|6475526d-0ad0-4c8d-95ec-20fead480680|Pending",
-  "transaction": "fb10dbcb-7e54-47c2-b809-bf1c1c6c93b7|196c9756-0bc9-49f6-bdcf-e576742a2349|714eb811-8dc9-42c7-8580-cc9ed250eaef|6475526d-0ad0-4c8d-95ec-20fead480680|2026-11-12",
+  "requisition": "6ab6f10f-6cad-4b90-a830-b5cea5bcdfad",
+  "offer": "e9b13c40-6347-4002-b3ce-a689a8fea213",
+  "hash": "d79f9cd86e26793dc35c9e419d6f209bd6729e6dacc283d1b5eb6182199fd179",
+  "applicationId": "f46b9823-942b-42cd-807c-4dbf3328c3ae",
+  "employeeId": "4c704222-03b8-486f-bfd6-0da0c2053f96",
+  "contract": "438da4ac-9498-423b-84e1-9c3d31eafac8|AGENCY-A-ACC-LAW50-PERM|G5|400000.00|law50|Permanent|e9b13c40-6347-4002-b3ce-a689a8fea213|Pending",
+  "transaction": "8828c9ba-55cc-49c5-a563-5b8d7f822783|f46b9823-942b-42cd-807c-4dbf3328c3ae|6ab6f10f-6cad-4b90-a830-b5cea5bcdfad|e9b13c40-6347-4002-b3ce-a689a8fea213|2026-11-18",
   "profile": "400000.00|G5|true",
   "decision": "-2026-00001|قرار تعيين: مرشح الخطة29 — تجريبي — دائم وفق القانون 50 الدرجة G5|1"
 }

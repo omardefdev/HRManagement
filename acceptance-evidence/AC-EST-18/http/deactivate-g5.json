@@ -1,0 +1,10 @@
+{
+  "step": "deactivate-g5",
+  "method": "POST",
+  "url": "/ui/hr-core/ReferenceCatalog/Deactivate/656e15b6-f18e-4839-be78-430be182df1f",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-11-04T23:52:41.8473097Z",
+  "body": {
+    "location": "/ui/hr-core/ReferenceCatalog/Details/656e15b6-f18e-4839-be78-430be182df1f"
+  }
+}

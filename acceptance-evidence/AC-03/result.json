@@ -1,4 +1,17 @@
 {
+  "scenarios": {
+    "Br1_manager_denied_sibling_employee_via_api": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "be24f2af-0b5c-4ac9-bd51-6cc2621a44b6",
+      "recordedAtUtc": "2026-11-05T00:04:48.7845505Z",
+      "testClass": "Ac03SiblingAccessDeniedTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
-  "correlationId": "272958eb-6589-4b57-922f-2517f63a5145"
+  "reason": null,
+  "correlationId": "be24f2af-0b5c-4ac9-bd51-6cc2621a44b6",
+  "recordedAtUtc": "2026-11-05T00:04:48.7845505Z"
 }

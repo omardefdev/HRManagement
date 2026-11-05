@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Br2_manager_denied_br1_custody_asset_details": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "578b969a-a652-4ba8-8938-a71a32325b57",
+      "recordedAtUtc": "2026-11-05T00:02:47.2798896Z",
+      "testClass": "Ac32LogisticsScopeLiveTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "c4f86fa4-d104-48ea-9081-1dea88e83640",
-  "recordedAtUtc": "2026-10-29T20:13:48.7848126Z"
+  "correlationId": "578b969a-a652-4ba8-8938-a71a32325b57",
+  "recordedAtUtc": "2026-11-05T00:02:47.2798896Z"
 }

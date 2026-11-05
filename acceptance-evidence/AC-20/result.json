@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Verify_postgres_service_roles_isolation": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "575ca897-302a-4507-8be7-830719c1241f",
+      "recordedAtUtc": "2026-11-04T23:57:13.7913680Z",
+      "testClass": "Ac20DatabaseIsolationTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "1ff5691a-99f0-44a7-b74b-0a24bcfb1876",
-  "recordedAtUtc": "2026-11-01T16:06:02.6052468Z"
+  "correlationId": "575ca897-302a-4507-8be7-830719c1241f",
+  "recordedAtUtc": "2026-11-04T23:57:13.7913680Z"
 }

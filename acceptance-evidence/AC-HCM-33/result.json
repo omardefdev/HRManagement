@@ -4,30 +4,15 @@
       "status": "Pass",
       "reason": null,
       "stageReached": "done",
-      "correlationId": "e4d8046c-6dda-4fa6-a821-a78b7b6ea0f4",
-      "recordedAtUtc": "2026-10-29T20:14:49.8552330Z"
-    },
-    "33d": {
-      "status": "Pass",
-      "reason": null,
-      "source": "scripts/hcm033-validate.ps1 after P6",
-      "recordedAtUtc": "2026-10-29T16:18:50.5817693Z"
-    },
-    "33b": {
-      "status": "Pass",
-      "reason": null,
-      "source": "P1 run with ACCEPTANCE_REQUIRE_ALL=true (18 required failed, 1 optional skipped) and P6 live run (AC-HCM-26h failed as required-blocked)",
-      "recordedAtUtc": "2026-10-29T16:18:50.5817693Z"
-    },
-    "33a": {
-      "status": "Pass",
-      "reason": null,
-      "source": "dotnet test (P1, no RUN_ACCEPTANCE): 23 passed / 90 skipped / 0 failed; unit tests AcceptanceSkipPatternArchitectureTests 7/7, AcceptanceGateTests 9/9",
-      "recordedAtUtc": "2026-10-29T16:18:50.5817693Z"
+      "correlationId": "4c7913c6-d6a5-4b2c-8292-0de87037cb99",
+      "recordedAtUtc": "2026-11-05T00:06:01.0367546Z",
+      "testClass": "RecruitmentToHireJourneyE2ETests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
     }
   },
   "status": "Pass",
   "reason": null,
-  "correlationId": "e4d8046c-6dda-4fa6-a821-a78b7b6ea0f4",
-  "recordedAtUtc": "2026-10-29T20:14:49.8599220Z"
+  "correlationId": "4c7913c6-d6a5-4b2c-8292-0de87037cb99",
+  "recordedAtUtc": "2026-11-05T00:06:01.0384244Z"
 }

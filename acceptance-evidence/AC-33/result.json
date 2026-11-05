@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Acceptance_asset_details_expose_loss_snapshot_fields_when_present": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "33a75a2a-f361-420e-aaf2-706897dcb9c2",
+      "recordedAtUtc": "2026-11-04T23:52:44.8978503Z",
+      "testClass": "Ac33AssetLossLiveTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "1e43f983-7a67-4b2e-b9f8-41e47d3c88d0",
-  "recordedAtUtc": "2026-10-29T20:13:47.7354139Z"
+  "correlationId": "33a75a2a-f361-420e-aaf2-706897dcb9c2",
+  "recordedAtUtc": "2026-11-04T23:52:44.8978503Z"
 }

@@ -3,16 +3,16 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/CompleteInterview",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:14:36.1068208Z",
+  "capturedAtUtc": "2026-11-05T00:05:57.9853067Z",
   "body": {
     "fields": [
-      "applicationId=d6c97c6b-dc81-44ad-b7b7-64e7fbe67ead",
-      "slotId=9e22d06b-6934-4ebb-adaf-57a5bbf708ad",
+      "applicationId=a2be49e1-029c-42bd-83af-205d3b76807c",
+      "slotId=01efc12e-fc89-4b41-95f6-18f7dd0f409c",
       "outcome=Attended",
       "notes=\u062D\u0636\u0631 \u0627\u0644\u0645\u0631\u0634\u062D"
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentApplications/Details/d6c97c6b-dc81-44ad-b7b7-64e7fbe67ead"
+    "final": "/ui/hr-core/RecruitmentApplications/Details/a2be49e1-029c-42bd-83af-205d3b76807c"
   }
 }

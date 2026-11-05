@@ -1,4 +1,17 @@
 {
+  "scenarios": {
+    "Tenant_a_user_cannot_guess_tenant_b_employee": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "04b76124-bd52-4645-b3d4-229a25e3e451",
+      "recordedAtUtc": "2026-11-05T00:02:10.6944532Z",
+      "testClass": "Ac04CrossTenantGuessTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
-  "correlationId": "d523484c-6621-4966-93b3-1db26256b00a"
+  "reason": null,
+  "correlationId": "04b76124-bd52-4645-b3d4-229a25e3e451",
+  "recordedAtUtc": "2026-11-05T00:02:10.6944532Z"
 }

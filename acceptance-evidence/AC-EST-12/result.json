@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Import_csv_then_reconciliation_shows_variance": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "1b08dbb9-e168-45c1-b4da-80e658451319",
+      "recordedAtUtc": "2026-11-04T23:56:54.4660971Z",
+      "testClass": "AcEst12FinanceReconciliationTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "04faaa55-923f-426d-affe-08aea12fe732",
-  "recordedAtUtc": "2026-09-04T16:06:11.2324354Z"
+  "correlationId": "1b08dbb9-e168-45c1-b4da-80e658451319",
+  "recordedAtUtc": "2026-11-04T23:56:54.4660971Z"
 }

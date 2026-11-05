@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Import_invalid_grade_is_rejected": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "533b9f52-1b1d-41ca-8373-1f5f6c844a4b",
+      "recordedAtUtc": "2026-11-04T23:56:36.3032547Z",
+      "testClass": "AcEst16JobCatalogImportValidationTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "533b9f52-1b1d-41ca-8373-1f5f6c844a4b",
+  "recordedAtUtc": "2026-11-04T23:56:36.3032547Z"
+}

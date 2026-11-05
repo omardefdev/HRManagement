@@ -1,0 +1,37 @@
+{
+  "step": "simulate-v2",
+  "method": "POST",
+  "url": "/api/hr-core/api/policies/templates/a0000001-0000-4000-8000-000000000303/simulate",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T00:02:58.8185507Z",
+  "body": {
+    "allowed": true,
+    "effects": [
+      0,
+      2,
+      5
+    ],
+    "effectDetails": [
+      {
+        "effect": "RequireEvidence",
+        "params": null
+      },
+      {
+        "effect": "TriggerWorkflow",
+        "params": {
+          "workflowCode": "ASSET-ASSIGN-APPROVAL"
+        }
+      }
+    ],
+    "matchedRuleIds": [
+      "ACC-R-PRIV-EVIDENCE",
+      "ACC-R-PRIV-WORKFLOW"
+    ],
+    "explanations": [
+      "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u062F\u0644\u064A\u0644\u0627\u064B: \u062A\u0637\u0627\u0628\u0642",
+      "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u0633\u064A\u0631 \u0627\u0639\u062A\u0645\u0627\u062F: \u062A\u0637\u0627\u0628\u0642"
+    ],
+    "policyVersionId": "a0000001-0000-4000-8000-000000000303",
+    "denyReason": null
+  }
+}

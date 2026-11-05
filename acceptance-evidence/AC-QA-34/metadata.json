@@ -1,12 +1,35 @@
 {
-  "scenario": "AC-QA-34g: base compose stack (full-stack) without MinIO \u2014 file-storage on Local; clean upload \u2192 Clean, EICAR \u2192 quarantined; object-storage profile without MINIO_IMAGE fails at config",
+  "scenario": "AC-QA-34e: separation publish with the law50 fake; NoRegime \u2192 RegimeRulesNotFoundMessage, Unavailable \u2192 error, no event",
   "personaId": "n/a (repository and CI evidence)",
-  "correlationId": "qa34-34g-876a2368479d45e9bfbe807831c2b400",
-  "capturedAtUtc": "2026-10-30T14:28:30.6147389Z",
+  "correlationId": "qa34-34e-0fa56405d0ee4b349419e6caa74c0d8c",
+  "capturedAtUtc": "2026-11-05T01:14:07.6634478Z",
   "environment": {
-    "gateway": "http://localhost:5000",
-    "keycloak": "http://localhost:8088",
+    "gateway": "http://localhost:6200",
+    "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "2809a4eacaa529ee2e1228316925936161227a43"
+  "gitSha": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+  "profile": "lab",
+  "sourceSha": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+  "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb",
+  "imageRevisions": {
+    "admin-logistics-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "auth-directory-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "compliance-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "dev-analytics-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "file-storage-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-contracts-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-core-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-gateway": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-health-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-movements-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-training-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "idcard-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "it-infra-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "payroll-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "records-archive-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404"
+  },
+  "source": "ci",
+  "ciRunId": "41934216395",
+  "ciEvent": "pull_request"
 }

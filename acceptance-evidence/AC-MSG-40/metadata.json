@@ -1,12 +1,35 @@
 {
   "scenario": "HR.Core start-up re-sync saves its IOrgUnitChanged messages; a second restart adds no snapshot",
   "personaId": "system (restart)",
-  "correlationId": "96124f5f-1cc1-4ca1-98d4-08713462f9b9",
-  "capturedAtUtc": "2026-11-04T05:44:49.2663931Z",
+  "correlationId": "553b0928-d9b4-4d7e-a2e9-e71b6b4d28de",
+  "capturedAtUtc": "2026-11-05T00:24:11.3979171Z",
   "environment": {
     "gateway": "http://localhost:6200",
     "keycloak": "http://localhost:6388",
     "runAcceptance": true
   },
-  "gitSha": "29db93990116a2784f24c03d897da6b37901bd03"
+  "gitSha": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+  "profile": "prodlike",
+  "sourceSha": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+  "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb",
+  "imageRevisions": {
+    "admin-logistics-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "auth-directory-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "compliance-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "dev-analytics-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "file-storage-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-contracts-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-core-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-gateway": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-health-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-movements-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "hr-training-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "idcard-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "it-infra-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "payroll-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404",
+    "records-archive-web": "18c2021b6789f68319c3feee0f8de7d3b6ff9404"
+  },
+  "source": "ci",
+  "ciRunId": "41934216395",
+  "ciEvent": "pull_request"
 }

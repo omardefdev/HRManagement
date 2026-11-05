@@ -1,16 +1,16 @@
 {
   "step": "22c-22c-step-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/4edb094e-2134-4756-b408-617467bebd8a",
+  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/e602fa6b-2367-47b5-b7de-5e220b846054",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:00:31.8081036Z",
+  "capturedAtUtc": "2026-11-04T23:57:22.2629145Z",
   "body": {
     "fields": [
-      "SessionId=4edb094e-2134-4756-b408-617467bebd8a",
+      "SessionId=e602fa6b-2367-47b5-b7de-5e220b846054",
       "Comments=PLAN-33 22c-step-1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/4edb094e-2134-4756-b408-617467bebd8a",
-    "final": "/ui/hr-core/SelectionCommittees/Details/4edb094e-2134-4756-b408-617467bebd8a"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/e602fa6b-2367-47b5-b7de-5e220b846054",
+    "final": "/ui/hr-core/SelectionCommittees/Details/e602fa6b-2367-47b5-b7de-5e220b846054"
   }
 }

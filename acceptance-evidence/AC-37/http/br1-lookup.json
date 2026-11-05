@@ -1,0 +1,7 @@
+{
+  "step": "br1-lookup",
+  "method": "GET",
+  "url": "/api/hr-core/api/lookup/employees",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-04T23:57:14.1079526Z"
+}

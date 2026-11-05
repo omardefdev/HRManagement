@@ -12,7 +12,7 @@
     {
       "Service": "hr-core-web",
       "Database": "hr_core_db",
-      "history": 81,
+      "history": 82,
       "owners": "hr_core_migrator",
       "connectedAs": "hr_core_app",
       "healthy": true
@@ -20,7 +20,7 @@
     {
       "Service": "hr-contracts-web",
       "Database": "hr_contracts_db",
-      "history": 27,
+      "history": 28,
       "owners": "hr_contracts_migrator",
       "connectedAs": "hr_contracts_app",
       "healthy": true
@@ -28,7 +28,7 @@
     {
       "Service": "hr-health-web",
       "Database": "hr_health_db",
-      "history": 11,
+      "history": 12,
       "owners": "hr_health_migrator",
       "connectedAs": "hr_health_app",
       "healthy": true
@@ -36,7 +36,7 @@
     {
       "Service": "hr-movements-web",
       "Database": "hr_movements_db",
-      "history": 17,
+      "history": 18,
       "owners": "hr_movements_migrator",
       "connectedAs": "hr_movements_app",
       "healthy": true
@@ -44,7 +44,7 @@
     {
       "Service": "hr-training-web",
       "Database": "hr_training_db",
-      "history": 10,
+      "history": 11,
       "owners": "hr_training_migrator",
       "connectedAs": "hr_training_app",
       "healthy": true
@@ -52,7 +52,7 @@
     {
       "Service": "payroll-web",
       "Database": "payroll_db",
-      "history": 28,
+      "history": 29,
       "owners": "payroll_migrator",
       "connectedAs": "payroll_app",
       "healthy": true
@@ -60,7 +60,7 @@
     {
       "Service": "idcard-web",
       "Database": "idcard_db",
-      "history": 10,
+      "history": 11,
       "owners": "idcard_migrator",
       "connectedAs": "idcard_app",
       "healthy": true
@@ -68,31 +68,31 @@
     {
       "Service": "records-archive-web",
       "Database": "archive_db",
-      "history": 9,
+      "history": 10,
       "owners": "archive_migrator",
-      "connectedAs": "",
+      "connectedAs": "archive_app",
       "healthy": true
     },
     {
       "Service": "admin-logistics-web",
       "Database": "admin_db",
-      "history": 15,
+      "history": 16,
       "owners": "admin_migrator",
-      "connectedAs": "",
+      "connectedAs": "admin_app",
       "healthy": true
     },
     {
       "Service": "it-infra-web",
       "Database": "it_infra_db",
-      "history": 9,
+      "history": 10,
       "owners": "it_infra_migrator",
-      "connectedAs": "",
+      "connectedAs": "it_infra_app",
       "healthy": true
     },
     {
       "Service": "dev-analytics-web",
       "Database": "analytics_db",
-      "history": 8,
+      "history": 9,
       "owners": "analytics_migrator",
       "connectedAs": "analytics_app",
       "healthy": true
@@ -100,7 +100,7 @@
     {
       "Service": "compliance-web",
       "Database": "compliance_db",
-      "history": 13,
+      "history": 14,
       "owners": "compliance_migrator",
       "connectedAs": "compliance_app",
       "healthy": true
@@ -108,9 +108,9 @@
     {
       "Service": "auth-directory-web",
       "Database": "auth_directory_db",
-      "history": 7,
+      "history": 8,
       "owners": "auth_directory_migrator",
-      "connectedAs": "",
+      "connectedAs": "auth_directory_app",
       "healthy": true
     },
     {

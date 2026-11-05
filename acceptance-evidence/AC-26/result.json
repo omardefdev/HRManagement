@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Hash_search_and_role_based_display": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "7bbca2d4-93fb-422e-9001-880f65a60142",
+      "recordedAtUtc": "2026-11-04T23:56:38.5863341Z",
+      "testClass": "Ac26NationalIdPrivacyTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "7bbca2d4-93fb-422e-9001-880f65a60142",
+  "recordedAtUtc": "2026-11-04T23:56:38.5863341Z"
+}

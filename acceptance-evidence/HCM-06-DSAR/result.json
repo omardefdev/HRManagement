@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Candidate_fulfill_produces_masked_package_without_raw_national_id": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "452f5a3d-1166-4b94-85fd-104b1aab753f",
+      "recordedAtUtc": "2026-11-04T23:52:47.9407998Z",
+      "testClass": "AcHcm06CandidateDsarTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "0b079040-69e1-403f-bbde-dfef0c6710e2",
-  "recordedAtUtc": "2026-10-29T17:05:21.7554554Z"
+  "correlationId": "452f5a3d-1166-4b94-85fd-104b1aab753f",
+  "recordedAtUtc": "2026-11-04T23:52:47.9407998Z"
 }

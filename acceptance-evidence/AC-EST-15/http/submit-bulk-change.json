@@ -1,0 +1,12 @@
+{
+  "step": "submit-bulk-change",
+  "method": "POST",
+  "url": "/api/hr-core/api/establishment/changes/277e24ec-903f-4abd-8908-4ac5fa7dbbcc/submit",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T00:04:36.4313263Z",
+  "body": {
+    "id": "277e24ec-903f-4abd-8908-4ac5fa7dbbcc",
+    "status": 1,
+    "resultEntityId": null
+  }
+}

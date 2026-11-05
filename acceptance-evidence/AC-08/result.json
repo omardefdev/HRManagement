@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Quarantined_employee_blocked_then_resolved": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "9dcebfb9-25ac-4396-8b77-9ae89a975a8d",
+      "recordedAtUtc": "2026-11-05T00:05:52.1939698Z",
+      "testClass": "Ac08QuarantineReconciliationTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "9dcebfb9-25ac-4396-8b77-9ae89a975a8d",
+  "recordedAtUtc": "2026-11-05T00:05:52.1939698Z"
+}

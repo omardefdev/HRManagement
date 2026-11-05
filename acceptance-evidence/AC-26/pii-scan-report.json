@@ -1,0 +1,62 @@
+{
+  "ok": true,
+  "scannedAtUtc": "2026-11-05T00:28:49.0427249Z",
+  "checks": [
+    {
+      "name": "employees-national-id-no-digit-plaintext",
+      "passed": true,
+      "detail": {
+        "plaintextDigitRows": 0
+      }
+    },
+    {
+      "name": "employees-national-id-hash-present",
+      "passed": true,
+      "detail": {
+        "missingHashRows": 0
+      }
+    },
+    {
+      "name": "acceptance-hash-99100000327",
+      "passed": true,
+      "detail": {
+        "hash": "09d5f8dfcdd717fa31b6978173f59c7630a7946c7ba4582edd552730a38456c1",
+        "matches": 1
+      }
+    },
+    {
+      "name": "acceptance-hash-99100000328",
+      "passed": true,
+      "detail": {
+        "hash": "7b9a38e276de982c2d4caa01cc78827f652bdb98b5d341f242b215de211919e0",
+        "matches": 1
+      }
+    },
+    {
+      "name": "acceptance-hash-99100000598",
+      "passed": true,
+      "detail": {
+        "hash": "68ba35657ff85f1f31e454799a979b2e42b4ad8318477294bb10b0b1c0622936",
+        "matches": 1
+      }
+    },
+    {
+      "name": "acceptance-hash-99200000001",
+      "passed": true,
+      "detail": {
+        "hash": "694b5619b6dafce269d1cb1f072deaa860a4670411390387aed5c05843b46c0a",
+        "matches": 1
+      }
+    },
+    {
+      "name": "hr-core-logs-no-known-national-ids",
+      "passed": true,
+      "detail": {
+        "matches": []
+      }
+    }
+  ],
+  "warnings": [
+    "RecruitmentApplications contains 130 digit-only NationalId rows outside the Employee AC-26 scope."
+  ]
+}

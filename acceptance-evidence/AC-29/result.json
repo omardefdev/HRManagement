@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Presign_valid_for_uploader_wrong_user_denied": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "af61175e-9c0a-4ed1-a986-674146e7a408",
+      "recordedAtUtc": "2026-11-05T00:03:27.9140004Z",
+      "testClass": "Ac29FileAccessExpiryTests",
+      "profile": "lab",
+      "codeTree": "285bed575981df110c16c7464ab5ef4d54cdffd0f5bd7b427bad88d698bfa2bb"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "af61175e-9c0a-4ed1-a986-674146e7a408",
+  "recordedAtUtc": "2026-11-05T00:03:27.9140004Z"
+}

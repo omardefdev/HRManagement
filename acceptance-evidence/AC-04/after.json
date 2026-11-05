@@ -1,0 +1,16 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "04b76124-bd52-4645-b3d4-229a25e3e451",
+  "httpObservationCount": 1,
+  "lastHttpObservation": {
+    "step": "guess-outsider-employee",
+    "method": "GET",
+    "url": "/api/hr-core/api/lookup/employees/a0000002-0000-4000-8000-000000000201",
+    "statusCode": 404,
+    "capturedAtUtc": "2026-11-05T00:02:10.6919313Z",
+    "body": "{\u0022type\u0022:\u0022https://tools.ietf.org/html/rfc9110#section-15.5.5\u0022,\u0022title\u0022:\u0022Not Found\u0022,\u0022status\u0022:404,\u0022traceId\u0022:\u002200-d3bceaa172ae49141054b6e39cfa9d6d-2559e367b8acc78f-00\u0022}"
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

@@ -2,6 +2,6 @@
   "sqlite": {},
   "forbidden": {},
   "pg": {},
-  "pgSource": "native Windows (rule P-3)",
+  "pgSource": "linux ci-local",
   "bola": {}
 }
