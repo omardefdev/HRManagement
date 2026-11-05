@@ -209,6 +209,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 - الحداثة بشجرة الشيفرة لا بالالتزام (`codeTree`: كل المسارات عدا `acceptance-evidence/` و`reports/` و`docs/`)، فإيداع الدليل نفسه لا يجعله قديماً. والدليل `Stale` إن اختلفت الشجرة، أو بُنيت صورة من مصدر آخر أو من شجرة معدّلة، أو مضى عليه أكثر من 30 يوماً.
 - حالات `summary.md` بترتيبها: `NotRun`، `Incomplete`، `Stale`، `Fail`/`Blocked`، `Pass`. و`Pass` مع `provesClaim: false` في [`tests/acceptance/ac-ownership.json`](../tests/acceptance/ac-ownership.json) يُعدّ «ناجحاً لا يثبت»، لا مثبتاً.
 
+**ملف إضافي لمجموعة (PLAN-42، P-7):** يجوز لمرحلة في `order` من `ci-scope.json` أن تسمّي `composeFiles` و`recreate`. تطبّق الوظيفة الملفات على المكدس الجاري وتعيد إنشاء تلك الخدمات فقط قبل المرحلة، ثم تعلّم المكدس متغيراً، فتبدأ المرحلة التالية التي تحتاجه من مكدس جديد. مثال: `s2s42` مع `docker-compose.acceptance-s2s42.yml`.
+
 ### سير العمل المحذوفة والمجدولة (PLAN-35)
 
 - حُذف `gateway-ci.yml` (كان يكرر الوحدة والتكامل، ويستعيد مشروعين ثم ينسّق الحل كله، و`e2e-gateway` بلا `--profile full-stack`) و`gitleaks.yml` (مكرر لوظيفة `Gitleaks`). `ci.yml` يغطي مساراتهما.

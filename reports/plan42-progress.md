@@ -165,3 +165,17 @@ P7 checks (evidence in `artifacts/plan42/vps/`, `p7-vps-tour.log`, `p7-vps-suite
 8. AcOps36 36a..i and 36k, AcInt37VpsServerTests 3, the PLAN-38 tour, PLAN-39 checks e and f, PLAN-40 checks: 18 of 18, plus the tour. 36j not run, as the plan says.
 
 Finished (UTC): 2026-11-05T12:08:59Z (P7)
+
+## P8
+
+- Parallel readiness: `scripts/parallel/hrm-lock.ps1` with its test, `docs/PARALLEL_PLANS.md` with the measured numbers. Two stacks do not fit.
+- Docs: OPS section 15 and the change table, plan status and notes, the group-overlay contract in `docs/CI_AND_TESTING.md`. ADR, secret matrix, trust inventory, UAT and the status lines came with their phases.
+- Local CI, first run on 65e1e2bb: stopped at the formatting check, the BOM of the two generated migrations; fixed by 0908829e. Second run on 0908829e: ok=True, 91 passed, 0 failed, 0 not-run, 958 s (unit 4862, integration 352, Testcontainers 139, all 0 failed).
+- Pre-push on 0908829e: gitleaks, actionlint, cilocal, forbidden, nonprod, signatures all PASS.
+- `plan-timing.ps1` does not show PLAN-42, because its pattern refuses the scope `s2s042`. Recorded in the final report, left unfixed so the script stays as tested.
+- PR 36 had merged before this point, so there is no `WAITING-PEER:` stop.
+- Not rebuilt: the commits after a7ad95e0a4fa change no server behaviour.
+
+Next step: merge this branch into a new `release/plan-42` from `main` (`--no-ff`), run gitleaks, forbidden, nonprod and actionlint on it, push it, open the PR with `reports/plan42-pr.md`, wait for the checks, merge only when all are green, then write the merge note.
+
+Finished (UTC): 2026-11-05T12:43:44Z (P8 up to the push)
