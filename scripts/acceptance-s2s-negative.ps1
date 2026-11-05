@@ -1,4 +1,4 @@
-# PLAN-11 AC-30: S2S file reference — bad token rejected, zero side effect.
+# PLAN-11 AC-30: S2S file reference - bad token rejected, zero side effect.
 # Usage: pwsh scripts/acceptance-s2s-negative.ps1 -FileId guid
 
 param(

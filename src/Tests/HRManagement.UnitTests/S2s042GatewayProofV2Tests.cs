@@ -245,6 +245,35 @@ public class S2s042GatewayProofV2Tests
     }
 
     [Fact]
+    public void A_pem_of_the_wrong_kind_is_not_valid()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var privatePem = key.ExportPkcs8PrivateKeyPem();
+        var publicPem = key.ExportSubjectPublicKeyInfoPem();
+
+        Assert.True(GatewayProofKeyLoader.IsValidPublic(publicPem));
+        Assert.True(GatewayProofKeyLoader.IsValidPrivate(privatePem));
+        Assert.False(GatewayProofKeyLoader.IsValidPublic(privatePem));
+        Assert.False(GatewayProofKeyLoader.IsValidPrivate(publicPem));
+    }
+
+    [Theory]
+    [InlineData("/health", true)]
+    [InlineData("/health/ready", true)]
+    [InlineData("/alive", true)]
+    [InlineData("/ready", true)]
+    [InlineData("/metrics", true)]
+    [InlineData("/HealthStatusEntries/Index", false)]
+    [InlineData("/HealthRetirementRecords/Details/1", false)]
+    [InlineData("/alivestock", false)]
+    [InlineData("/readyness", false)]
+    [InlineData("/metricsreport", false)]
+    public void Only_whole_path_segments_are_exempt_from_the_proof(string path, bool exempt)
+    {
+        Assert.Equal(exempt, GatewayCallerProofMiddleware.IsExemptPath(new PathString(path)));
+    }
+
+    [Fact]
     public void Another_curve_and_RSA_are_not_valid()
     {
         using var p384 = ECDsa.Create(ECCurve.NamedCurves.nistP384);

@@ -63,16 +63,23 @@ public sealed class GatewayCallerProofMiddleware(
         return result.Succeeded && ServiceCallerPrincipal.IsServiceAccount(result.Principal);
     }
 
-    private static bool IsExemptPath(PathString path)
+    /// <summary>Whole path segments only: /HealthStatusEntries is a page of hr-health-web, not /health.</summary>
+    public static bool IsExemptPath(PathString path)
     {
         var value = path.Value ?? string.Empty;
-        return value.StartsWith("/health", StringComparison.OrdinalIgnoreCase)
-               || value.StartsWith("/alive", StringComparison.OrdinalIgnoreCase)
-               || value.StartsWith("/ready", StringComparison.OrdinalIgnoreCase)
-               || value.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase)
+        return IsPathOrChild(value, "/health")
+               || IsPathOrChild(value, "/alive")
+               || IsPathOrChild(value, "/ready")
+               || IsPathOrChild(value, "/metrics")
                || value.StartsWith("/api/internal/", StringComparison.OrdinalIgnoreCase)
                || (value.StartsWith("/api/files/", StringComparison.OrdinalIgnoreCase)
                    && value.EndsWith("/references", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsPathOrChild(string value, string prefix)
+    {
+        return value.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+               || value.StartsWith(prefix + "/", StringComparison.OrdinalIgnoreCase);
     }
 }
 

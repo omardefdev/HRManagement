@@ -102,3 +102,26 @@ P6 results on the final code, by the job script on a fresh stack:
 - Integration with Testcontainers: 492 passed, 4 skipped, 3 failed. The 3 are Qa003 MinIO tests that need HRM_MINIO_IMAGE (D-QA-7), an environment setting, not this plan.
 
 Finished (UTC): 2026-11-05T03:22:14Z (P6)
+
+## Independent review (P8 step 3, done early so that its fixes land before the single server build)
+
+No high finding, so no refuter. Full report: `artifacts/plan42/review.md`.
+
+Fixed, with tests:
+- M1: an unsaved asset sends `TenantId = Guid.Empty`, and the server answered 400, so asset creation failed whenever `Assets.Custody` was not Off. Empty now means not sent.
+- M2: the proof exemption for `/health` was a text prefix, so `/HealthStatusEntries` needed no proof. Exempt paths match whole segments.
+- L2: the PEM branch of the key loader accepted the wrong kind of key, so a module could start with a private key. It refuses now.
+- L9: a non-ASCII character in `scripts/acceptance-s2s-negative.ps1`.
+- L10: `init-secrets.sh` removes the temporary key directory on any exit.
+- L11: `hrm-lock` takeover re-reads the lock, so the loser of a race says so.
+
+Open, for the final report:
+- M3: any `hr-core.workflow` token can start a workflow for any entity on `WorkflowInstancesController`, outside the allow-list. It predates this plan; PLAN-43 and PLAN-51 are written to close it.
+- L1: the proof names no destination, so it can be replayed to another module on the same path within 60 s.
+- L3: nothing refuses `MaxSkewSeconds`, `GatewayCallerProof__Enforce=false` or `HrAuth__BehindGateway=false` in Production. No shipped file sets them.
+- L4: `EmployeeLifecycleGateStartupCheck` cannot fire, because the address is required earlier.
+- L5: `UpdateSeparationRecordHandler` can move a record to an employee under hold; publication is still refused.
+- L6: erase also needs the read scope (class and action policies both apply), as recorded in P4.
+- L7: for the owner to confirm: with local Shadow and server Enforce, a server denial blocks, which follows rule 4 of the plan but conflicts with rule 2.
+- L8: a `TriggerWorkflow` rule off the allow-list becomes a plain allow for the ID card caller, as specified.
+- L11: `IsServiceAccount` refuses a CI client outside the list. No such client exists today.

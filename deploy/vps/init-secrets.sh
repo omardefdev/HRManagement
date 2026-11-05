@@ -80,12 +80,14 @@ PROOF_PUBLIC=GATEWAY_PROOF_PUBLIC_KEY_B64
 if [ -z "$(current "$PROOF_PRIVATE")" ] && [ -z "$(current "$PROOF_PUBLIC")" ]; then
   if [ "$CHECK" = "0" ]; then
     proof_dir="$(mktemp -d)"
+    trap 'rm -rf "$proof_dir"' EXIT
     openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$proof_dir/key.pem" 2>/dev/null
     # pkcs8 -topk8, not pkey: pkey -outform DER writes the SEC1 form, which the application refuses.
     NEW["$PROOF_PRIVATE"]="$(openssl pkcs8 -topk8 -nocrypt -in "$proof_dir/key.pem" -outform DER | base64 | tr -d '\n')"
     NEW["$PROOF_PUBLIC"]="$(openssl pkey -in "$proof_dir/key.pem" -pubout -outform DER | base64 | tr -d '\n')"
     proof_fingerprint="$(openssl pkey -in "$proof_dir/key.pem" -pubout -outform DER | sha256sum | cut -d' ' -f1)"
     rm -rf "$proof_dir"
+    trap - EXIT
     log "gateway proof public key sha256 $proof_fingerprint"
   else
     NEW["$PROOF_PRIVATE"]=""; NEW["$PROOF_PUBLIC"]=""

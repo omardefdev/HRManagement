@@ -64,4 +64,14 @@ Keep both sides when they conflict:
 
 ## Can two acceptance stacks run at once?
 
-MEASUREMENT_PLACEHOLDER
+No. Plans take turns on the stack.
+
+Measured on this machine during PLAN-42 (P6):
+
+| Item | Value |
+|------|-------|
+| Memory Docker can use | 15.48 GiB (16621195264 bytes), 32 CPUs |
+| Prod-like stack, 19 containers, in use | 6784 MiB (6.63 GiB) |
+| Two stacks plus 4 GiB for the host and the build | 2 x 6.63 + 4 = 17.25 GiB |
+
+17.25 GiB is more than 15.48 GiB. There is also one set of acceptance ports and one set of Docker volumes, so a second stack would need its own project name and ports as well. Take `acceptance-stack.lock` for the whole of a run, and write code, unit tests and reports while the other plan holds it.

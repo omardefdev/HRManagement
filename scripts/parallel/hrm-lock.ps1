@@ -75,6 +75,7 @@ if ($Action -ne "Status" -and [string]::IsNullOrWhiteSpace($Plan)) {
     exit 2
 }
 
+$takenOver = $false
 $lock = Read-Lock
 switch ($Action) {
     "Status" {
@@ -95,11 +96,21 @@ switch ($Action) {
             }
             Write-Host "hrm-lock: taking over an expired lock: $(Format-Lock $lock). Record this in the progress file."
             Remove-Item -LiteralPath $path -Force
+            $takenOver = $true
         }
         try { Write-NewLock }
         catch [System.IO.IOException] {
             Write-Host "hrm-lock: $Resource was taken a moment ago: $(Format-Lock (Read-Lock))"
             exit 1
+        }
+        # Two sessions can both see the same expired lock; the last writer holds it, and the other one says so here.
+        if ($takenOver) {
+            Start-Sleep -Milliseconds 500
+            $held = Read-Lock
+            if ($null -eq $held -or [string]$held.plan -ne $Plan) {
+                Write-Host "hrm-lock: $Resource was taken a moment ago: $(Format-Lock $held)"
+                exit 1
+            }
         }
         Write-Host "hrm-lock: $Resource acquired by $Plan for $Hours hours"
         exit 0

@@ -180,6 +180,17 @@ public class S2s042PolicyEnforceInternalTests
         Assert.IsType<OkObjectResult>(await harness.Controller("svc-admin-logistics").Enforce(body, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task An_entity_not_saved_yet_sends_an_empty_tenant_and_gets_the_tenant_of_the_request()
+    {
+        var harness = new Harness();
+        var body = Body();
+        body.TenantId = Guid.Empty;
+
+        Assert.IsType<OkObjectResult>(await harness.Controller("svc-admin-logistics").Enforce(body, CancellationToken.None));
+        Assert.Equal(Tenant, harness.Seen!.TenantId);
+    }
+
     [Theory]
     [InlineData(PolicyDomains.AssetsCustody, "AssetAssignment", "ASSET-ASSIGN-APPROVAL", true)]
     [InlineData(PolicyDomains.AssetsCustody, "Asset", "ASSET-ASSIGN-APPROVAL", false)]

@@ -29,9 +29,9 @@ public static class GatewayProofKeyLoader
 {
     private const string P256Oid = "1.2.840.10045.3.1.7";
 
-    public static ECDsa LoadPrivate(string text) => Load(text, (key, der) => key.ImportPkcs8PrivateKey(der, out _));
+    public static ECDsa LoadPrivate(string text) => Load(text, wantPrivate: true, (key, der) => key.ImportPkcs8PrivateKey(der, out _));
 
-    public static ECDsa LoadPublic(string text) => Load(text, (key, der) => key.ImportSubjectPublicKeyInfo(der, out _));
+    public static ECDsa LoadPublic(string text) => Load(text, wantPrivate: false, (key, der) => key.ImportSubjectPublicKeyInfo(der, out _));
 
     public static bool IsValidPrivate(string text) => IsValid(text, LoadPrivate);
 
@@ -50,14 +50,19 @@ public static class GatewayProofKeyLoader
         }
     }
 
-    private static ECDsa Load(string text, Action<ECDsa, byte[]> importDer)
+    private static ECDsa Load(string text, bool wantPrivate, Action<ECDsa, byte[]> importDer)
     {
         var key = ECDsa.Create();
         try
         {
             var trimmed = text.Trim();
             if (trimmed.StartsWith("-----BEGIN", StringComparison.Ordinal))
+            {
+                // ImportFromPem takes either kind, and a module must never start holding the private key.
+                if (trimmed.Contains("PRIVATE KEY", StringComparison.Ordinal) != wantPrivate)
+                    throw new CryptographicException("The gateway proof key is the wrong kind of key.");
                 key.ImportFromPem(trimmed);
+            }
             else
                 importDer(key, Convert.FromBase64String(trimmed));
 

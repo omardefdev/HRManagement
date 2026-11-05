@@ -44,7 +44,8 @@ public sealed class PolicyEnforceInternalController(
             return BadRequest("ContextJson is larger than 8 KB.");
 
         var tenantId = tenantContext.TenantId;
-        if (request.TenantId is not null && request.TenantId != tenantId)
+        // Guid.Empty is an entity not saved yet: its tenant is stamped at save, so it names no other tenant.
+        if (request.TenantId is { } sent && sent != Guid.Empty && sent != tenantId)
             return BadRequest("TenantId differs from the tenant of the request.");
 
         request.TenantId = tenantId;
