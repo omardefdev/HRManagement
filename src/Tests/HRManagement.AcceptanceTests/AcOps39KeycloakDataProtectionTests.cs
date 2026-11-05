@@ -349,7 +349,7 @@ public class AcOps39KeycloakDataProtectionTests
         foreach (var id in serviceClients.Append("hr-gateway-client").Append("directory-sync"))
             Assert.True(clients.ContainsKey(id), $"client {id} missing");
         Assert.All(matrixScopes, s => Assert.Contains(s, scopes));
-        Assert.Equal(8, matrixScopes.Count);
+        Assert.Equal(9, matrixScopes.Count);
         // The Acceptance exception (the harness signs personas in with the password grant).
         Assert.True((bool)clients["hr-gateway-client"]["directAccessGrantsEnabled"]!);
         Assert.Equal(61, (int)(await AdminGetAsync("/users/count")).GetValue<int>());

@@ -179,3 +179,17 @@ Finished (UTC): 2026-11-05T12:08:59Z (P7)
 Next step: merge this branch into a new `release/plan-42` from `main` (`--no-ff`), run gitleaks, forbidden, nonprod and actionlint on it, push it, open the PR with `reports/plan42-pr.md`, wait for the checks, merge only when all are green, then write the merge note.
 
 Finished (UTC): 2026-11-05T12:43:44Z (P8 up to the push)
+
+## The PR
+
+Release branch 642eb8cd, all pre-push checks PASS on it (gitleaks, actionlint, forbidden, then nonprod in a second run after the owner stopped the first). PR https://github.com/omardefdev/HRManagement/pull/37 opened 2026-11-05T19:36:27Z; run `ci` 42095506179. WAITING-CI stop number 2.
+
+Next step: read `gh pr checks 37` once on the owner's next message. All five required checks green: `gh pr merge 37 --merge`, then `git switch main; git pull --ff-only`, check `main` = `origin/main`, and write the merge note here with the PR link, each check result, the run's artifact link, Actions minutes, the merge commit and the post-merge run, stamped `Merged by agent on owner instruction (UTC):`. A red check: fix on `release/plan-42`, push that branch only, wait again. If another PR merges first, strict means merging `origin/main` into the release branch and a full rerun. This note rides with the next plan's first commit; no second PR.
+
+Resumed (UTC): 2026-11-05T22:56:00Z
+
+PR 37 red, reported by the PLAN-43 session and confirmed with `gh pr checks 37`: run 42095506179 passed CI, CodeQL, E2E and Gitleaks, and failed Acceptance. The guard's only failure is `Ac39a`, line 352: 8 scopes expected, 9 found. This plan added `dsar.subject.erase` and I missed this count. Ac21, Ac23, Ac24, Ac25 are not required and were red in the PLAN-41 baseline too (seed has no regimes), so no action.
+
+Fixed on `release/plan-42`: the assertion says 9. AcOps39 on the prod-like stack: 8 of 8, guard PASS, stack down, lock released. That run used `-NoBuild` after taking the lock, against `docs/PARALLEL_PLANS.md`; the images were checked afterwards and are this plan's own (revision a7ad95e0). The final report's timing is corrected in the same commit.
+
+Next step: read `gh pr checks 37` once on the owner's next message, and go on as in the paragraph above, with the new head and run.
