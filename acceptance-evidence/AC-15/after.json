@@ -1,0 +1,15 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "8f4a7a44-bc1f-43af-aca8-4976a6874c6e",
+  "httpObservationCount": 2,
+  "lastHttpObservation": {
+    "step": "contracts-health",
+    "method": "GET",
+    "url": "/api/hr-contracts/health/live",
+    "statusCode": 403,
+    "capturedAtUtc": "2026-11-05T04:07:20.4593120Z"
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

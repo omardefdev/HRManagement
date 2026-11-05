@@ -48,7 +48,8 @@ function Resolve-AcceptanceContainer([string]$Service) {
 }
 
 function Invoke-PostgresScalar([string]$Sql) {
-    $output = docker exec $PostgresContainer psql -U hrm_ci -d $DbName -t -A -c $Sql 2>&1
+    # On stdin: PowerShell 5.1 strips the double quotes of an argument to a native command, and the tables need them.
+    $output = $Sql | docker exec -i $PostgresContainer psql -U hrm_ci -d $DbName -t -A 2>&1
     if ($LASTEXITCODE -ne 0) { throw "PostgreSQL query failed: $output" }
     return ($output | Out-String).Trim()
 }
@@ -83,9 +84,9 @@ SELECT COUNT(*) FROM "Employees" WHERE "NationalIdHash" IS NULL OR "NationalIdHa
     }
 
     foreach ($id in $knownIds) {
-        $hash = [Convert]::ToHexString(
-            [System.Security.Cryptography.SHA256]::HashData(
-                [System.Text.Encoding]::UTF8.GetBytes($id))).ToLowerInvariant()
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $hash = ([BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($id))) -replace '-', '').ToLowerInvariant()
+        $sha.Dispose()
         $found = Invoke-PostgresScalar "SELECT COUNT(*) FROM `"Employees`" WHERE `"NationalIdHash`" = '$hash';"
         Add-Check "acceptance-hash-$id" ([int]$found -eq 1) @{
             hash = $hash

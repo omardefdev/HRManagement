@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HRManagement.E2E\HRManagement.E2E.csproj" />
+    <ProjectReference Include="..\HRManagement.TestSupport\HRManagement.TestSupport.csproj" />
     <ProjectReference Include="..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Shared\HRManagement.MessageContracts\HRManagement.MessageContracts.csproj" />
     <ProjectReference Include="..\..\Services\Compliance\Compliance.Domain\Compliance.Domain.csproj" />

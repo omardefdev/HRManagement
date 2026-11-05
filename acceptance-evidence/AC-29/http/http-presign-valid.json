@@ -1,0 +1,11 @@
+{
+  "step": "http-presign-valid",
+  "method": "GET",
+  "url": "/api/files/b37755d1-88d9-47de-8a6a-e979452bd027/presigned-url",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:07:07.5351332Z",
+  "body": {
+    "url": "/local-files/file-storage/2026/11/b37755d188d947de8a6ae979452bd027/ac29-private.pdf",
+    "expiresAt": "2026-11-05T04:08:07.5325124Z"
+  }
+}

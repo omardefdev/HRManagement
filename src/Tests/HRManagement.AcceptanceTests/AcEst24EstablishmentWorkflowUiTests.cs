@@ -16,6 +16,8 @@ public class AcEst24EstablishmentWorkflowUiTests
         recorder.WriteMetadata("Establishment workflow panel", persona.Id);
 
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, correlationId);
+        // PLAN-41: the scenario submits its own change, as a user would; the seed has none and approvals consume them.
+        var changeId = await EstablishmentChangeFlow.SubmitSampleChangeAsync(http, recorder, "AC-EST-24a");
         var listResp = await http.GetAsync("ui/hr-core/EstablishmentChanges?status=PendingApproval");
         var listBody = await listResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("list-pending-changes", "GET", "/ui/hr-core/EstablishmentChanges?status=PendingApproval",
@@ -24,9 +26,8 @@ public class AcEst24EstablishmentWorkflowUiTests
         AcceptanceGate.RequireData(recorder, listResp.StatusCode == HttpStatusCode.OK,
             "القائمة غير متاحة أو البيئة فارغة", "No establishment changes list access or empty stack.");
 
-        var detailsHref = ExtractFirstDetailsHref(listBody, "EstablishmentChanges/Details/");
-        AcceptanceGate.RequireData(recorder, detailsHref is not null,
-            "لا يوجد سجل معلق مناسب للفحص", "No pending establishment change available.");
+        var detailsHref = ExtractFirstDetailsHref(listBody, $"EstablishmentChanges/Details/{changeId:D}");
+        Assert.True(detailsHref is not null, "The submitted change is missing from the PendingApproval list.");
 
         var detailsResp = await http.GetAsync(detailsHref!.TrimStart('/'));
         var detailsBody = await detailsResp.Content.ReadAsStringAsync();
@@ -43,12 +44,17 @@ public class AcEst24EstablishmentWorkflowUiTests
     }
 
     [SkippableFact]
-    public async Task WorkInbox_may_list_establishment_change_deep_link()
+    public async Task WorkInbox_lists_the_deep_link_of_a_pending_establishment_change()
     {
         AcceptanceEnv.RequireEnabled();
-        var persona = AcceptanceHarness.RequirePersona("br1-mgr");
+        // PLAN-25: step 1 belongs to hr-core and never to the creator, so central-a2 sees what central-a submitted.
+        var creator = AcceptanceHarness.RequirePersona("central-a");
+        var persona = AcceptanceHarness.RequirePersona("central-a2");
         var (_, correlationId) = await AcceptanceHarness.LoginAsync(persona);
         var recorder = new EvidenceRecorder("AC-EST-24e", correlationId);
+
+        using var creatorHttp = await AcceptanceHarness.CreateAuthorizedClientAsync(creator, correlationId);
+        var changeId = await EstablishmentChangeFlow.SubmitSampleChangeAsync(creatorHttp, recorder, "AC-EST-24e");
 
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, correlationId);
         var resp = await http.GetAsync("ui/hr-core/WorkInbox");
@@ -59,9 +65,7 @@ public class AcEst24EstablishmentWorkflowUiTests
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Contains("صندوق العمل", body, StringComparison.OrdinalIgnoreCase);
 
-        AcceptanceGate.RequireData(recorder,
-            body.Contains("EstablishmentChanges/Details", StringComparison.OrdinalIgnoreCase),
-            "لا يوجد تغيير ملاك معلق في صندوق العمل", "No pending establishment change deep link in the work inbox.");
+        Assert.Contains($"EstablishmentChanges/Details/{changeId:D}", body, StringComparison.OrdinalIgnoreCase);
         recorder.WriteResult("Pass");
     }
 

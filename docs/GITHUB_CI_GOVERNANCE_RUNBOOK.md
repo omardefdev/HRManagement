@@ -13,7 +13,7 @@ below replaces it there.
 | `CodeQL` | codeql + SARIF gate (`scripts/ci/codeql-sarif-gate.ps1`) | `ci.yml` | yes |
 | `Gitleaks` | gitleaks over the whole history (`scripts/ci/gitleaks.sh`) | `ci.yml` | yes |
 | `E2E` | e2e | `ci.yml` | yes since PLAN-35 P7 (D-QA-2: green twice in a row on main, runs 41130907741 and 41140221205) |
-| `Acceptance` | acceptance | `ci.yml` | no: disabled until PLAN-41 (`ENABLE_ACCEPTANCE_JOB`, obligation `CI-ACCEPTANCE-DISABLED`) |
+| `Acceptance` | acceptance (`scripts/ci/acceptance-job.ps1`, scope in `tests/acceptance/ci-scope.json`) | `ci.yml` | yes since PLAN-41 (D-QA-2): runs on every PR to `main` and every push to it, in parallel with `CI` |
 
 The protection is code: [`docs/scm-governance/branch-protection-main.json`](scm-governance/branch-protection-main.json).
 The single-developer relaxations (0 approvals, no code-owner or last-push approval, unsigned commits, merge commits)
@@ -35,12 +35,20 @@ that refuses a direct push to `main` and runs gitleaks and the forbidden-file ch
 
 Before any push: `powershell -ExecutionPolicy Bypass -File scripts/plan035-prepush.ps1`.
 
+## Rerunning acceptance by hand (PLAN-41)
+
+```bash
+gh workflow run ci.yml --ref main -f classes=AcHcm29HireContractTests
+gh workflow run ci.yml --ref main -f simulate_missing=AcHcm26AssessmentInterviewTests.Ac26_i_intake_close_job_closes_expired_posting -f classes=AcHcm26AssessmentInterviewTests
+```
+
+The second is the negative proof of AC-QA-41a: the scenario is blocked and the job must turn red, naming it. With `simulate_missing` only the lab profile runs. The other jobs of the workflow run as usual.
+
 ## Repository variables (Settings → Secrets and variables → Actions → Variables)
 
 | Variable | Effect | Set when |
 |----------|--------|----------|
 | `ENABLE_SCHEDULED` | `true` lets the scheduled runs of e2e-journeys, mutation, codeql (weekly), iac-drift and advisory-to-issue run | after `main` is green. Set back to `false` on 2026-10-31: the repository is private on the free plan (2,000 Actions minutes per month) and a nightly e2e-journeys run alone costs ~60 minutes; e2e-journeys is now weekly (Monday 04:00 UTC). Re-enable when the minutes allow |
-| `ENABLE_ACCEPTANCE_JOB` | `true` runs the `Acceptance` job | PLAN-41 |
 | `CODE_SCANNING_UPLOAD` | `true` uploads the CodeQL SARIF to code scanning (public repo, or private with Code Security) | optional |
 | `DEPENDABOT_ALERTS_TOKEN_CONFIGURED` | `true` lets advisory-to-issue run on its schedule | with the secret below |
 

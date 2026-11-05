@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/SubmitScores",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:08:56.8348632Z",
+  "capturedAtUtc": "2026-11-05T04:10:49.0243357Z",
   "body": {
     "fields": [
-      "ApplicationId=a1e06c08-cff4-443a-b421-e1699d78b412",
+      "ApplicationId=e056b205-043f-486f-bcd2-37ef84e3520f",
       "Scores[interview]=60",
       "Scores[exam]=50",
       "Scores[experience]=70",
@@ -14,11 +14,11 @@
       "NoConflictDeclared=true"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentApplications/Details/a1e06c08-cff4-443a-b421-e1699d78b412#assessment-scoring",
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/e056b205-043f-486f-bcd2-37ef84e3520f#assessment-scoring",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentApplications/Details/a1e06c08-cff4-443a-b421-e1699d78b412",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/e056b205-043f-486f-bcd2-37ef84e3520f",
     "alerts": []
   }
 }

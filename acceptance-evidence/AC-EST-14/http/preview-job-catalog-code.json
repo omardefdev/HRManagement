@@ -1,0 +1,13 @@
+{
+  "step": "preview-job-catalog-code",
+  "method": "POST",
+  "url": "/api/hr-core/api/codes/preview",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:07:14.4470553Z",
+  "body": {
+    "code": "-2026-00004",
+    "policyVersionId": null,
+    "sequenceScope": "a0000001000040008000000000000001|JobCatalogEntry|2026",
+    "isPreview": true
+  }
+}

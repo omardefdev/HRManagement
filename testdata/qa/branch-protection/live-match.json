@@ -5,7 +5,8 @@
       "CI",
       "CodeQL",
       "Gitleaks",
-      "E2E"
+      "E2E",
+      "Acceptance"
     ]
   },
   "enforce_admins": {

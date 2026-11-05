@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -117,6 +118,120 @@ public class AcceptanceGateTests
     }
 
     [Fact]
+    public void Recorder_completes_contract_and_preserves_detailed_result()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "hr-acceptance-gate-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var recorder = new EvidenceRecorder("AC-98", "corr-98", root);
+            recorder.WriteMetadata("derived evidence contract", "persona-98");
+            recorder.CaptureHttp("lookup", "GET", "/api/example", 200, new { id = 98 });
+            File.WriteAllText(Path.Combine(recorder.Folder, "result.json"), """{"ok":true,"measured":98}""");
+
+            recorder.WriteResult("Pass");
+
+            foreach (var item in new[] { "metadata.json", "steps.md", "before.json", "after.json", "audit.json", "db-checks.json", "timing.json" })
+                Assert.True(File.Exists(Path.Combine(recorder.Folder, item)), $"{item} missing");
+            using var result = JsonDocument.Parse(File.ReadAllText(Path.Combine(recorder.Folder, "result.json")));
+            Assert.True(result.RootElement.GetProperty("ok").GetBoolean());
+            Assert.Equal(98, result.RootElement.GetProperty("measured").GetInt32());
+            Assert.Equal("Pass", result.RootElement.GetProperty("status").GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>AC-QA-41d: without a key the scenario is the test method, so neither of two tests erases the other.</summary>
+    [Fact]
+    public void Two_tests_of_a_folder_keep_their_own_scenarios_and_the_worst_one_wins()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "hr-acceptance-gate-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var sample = new SharedFolderSample { Root = root };
+            sample.Negative();
+            sample.Positive();
+
+            using var result = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "AC-05", "result.json")));
+            var scenarios = result.RootElement.GetProperty("scenarios");
+            Assert.Equal("Pass", scenarios.GetProperty(nameof(SharedFolderSample.Positive)).GetProperty("status").GetString());
+            Assert.Equal("Fail", scenarios.GetProperty(nameof(SharedFolderSample.Negative)).GetProperty("status").GetString());
+            Assert.Equal(nameof(SharedFolderSample), scenarios.GetProperty(nameof(SharedFolderSample.Negative)).GetProperty("testClass").GetString());
+            Assert.Equal("Fail", result.RootElement.GetProperty("status").GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Metadata_records_where_the_evidence_comes_from()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "hr-acceptance-gate-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            new EvidenceRecorder("AC-97", "corr-97", root).WriteMetadata("metadata", "persona-97");
+
+            using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "AC-97", "metadata.json")));
+            var current = AcceptanceRunContext.Current;
+            Assert.Equal(current.Profile, metadata.RootElement.GetProperty("profile").GetString());
+            Assert.Equal(current.Source, metadata.RootElement.GetProperty("source").GetString());
+            Assert.Equal(current.CodeTree, metadata.RootElement.GetProperty("codeTree").GetString());
+            Assert.Equal(current.SourceSha, metadata.RootElement.GetProperty("sourceSha").GetString());
+            Assert.Equal(64, current.CodeTree!.Length);
+            Assert.Equal(JsonValueKind.Object, metadata.RootElement.GetProperty("imageRevisions").ValueKind);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Only_images_built_from_this_repository_count_as_image_sources()
+    {
+        var revisions = AcceptanceRunContext.ParseRevisions(
+        [
+            "hrm-acceptance-hr-core-web|hr-core-web|abc|X=1;",
+            "hrm-acceptance-hr-gateway|hr-gateway|<no value>|X=1;",
+            "hrm-acceptance-payroll-web|payroll-web||X=1;",
+            "quay.io/keycloak/keycloak:26|keycloak|upstream-revision|X=1;"
+        ]);
+
+        Assert.Equal(3, revisions.Count);
+        Assert.Equal("abc", revisions["hr-core-web"]);
+        Assert.Equal("unknown", revisions["hr-gateway"]);
+        Assert.Equal("unknown", revisions["payroll-web"]);
+    }
+
+    [Theory]
+    [InlineData("NationalScope__IsLabScale=false;PolicyEngine__Core.Recruitment=Shadow;", "prodlike")]
+    [InlineData("NationalScope__IsLabScale=true;", "lab")]
+    public void The_profile_is_told_from_the_settings_of_hr_core(string environment, string expected) =>
+        Assert.Equal(expected, AcceptanceRunContext.DetectProfile([$"hrm-acceptance-hr-core-web|hr-core-web|abc|{environment}"]));
+
+    /// <summary>AC-QA-41a: the simulation names one scenario and fires once.</summary>
+    [Fact]
+    public void Simulated_missing_fires_once_for_the_named_scenario_only()
+    {
+        const string simulated = "SimulationSample.Named_scenario";
+        var named = new AcceptanceScenario("SimulationSample", "Named_scenario");
+        var other = new AcceptanceScenario("SimulationSample", "Other_scenario");
+
+        Assert.False(AcceptanceGate.ConsumeSimulatedMissing(null, named));
+        Assert.False(AcceptanceGate.ConsumeSimulatedMissing(simulated, other));
+        Assert.False(AcceptanceGate.ConsumeSimulatedMissing(simulated, null));
+        Assert.True(AcceptanceGate.ConsumeSimulatedMissing(simulated, named));
+        Assert.False(AcceptanceGate.ConsumeSimulatedMissing(simulated, named));
+    }
+
+    [Fact]
     public async Task Required_attribute_on_class_is_found_from_async_test_method()
     {
         var sample = new RequiredSample();
@@ -207,6 +322,18 @@ public class AcceptanceGateTests
 
         [Fact]
         public void DetectSync() => SyncResult = AcceptanceGate.IsRequiredScenario(new StackTrace());
+    }
+
+    /// <summary>Two scenarios of one folder, as AC-05 has: a positive and a negative test with no scenario key.</summary>
+    private sealed class SharedFolderSample
+    {
+        public string Root { get; init; } = "";
+
+        [Fact]
+        public void Positive() => new EvidenceRecorder("AC-05", "corr-positive", Root).WriteResult("Pass");
+
+        [Fact]
+        public void Negative() => new EvidenceRecorder("AC-05", "corr-negative", Root).WriteResult("Fail", "the denial did not happen");
     }
 #pragma warning restore xUnit1000
 }

@@ -1,0 +1,7 @@
+{
+  "step": "http-after-resolve",
+  "method": "PATCH",
+  "url": "/api/employees/a0000001-0000-4000-8000-000000000901",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:09:41.4508924Z"
+}

@@ -10,6 +10,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/HRContracts/HR.Contracts.Web/HR.Contracts.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HR.Contracts.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -41,6 +42,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/HRHealth/HR.Health.Web/HR.Health.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HR.Health.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -78,6 +80,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/HRMovements/HR.Movements.Web/HR.Movements.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HR.Movements.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -115,6 +118,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/HRTraining/HR.Training.Web/HR.Training.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: HR.Training.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -153,6 +157,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/Payroll/Payroll.Web/Payroll.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: Payroll.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -190,6 +195,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/IDCard/IDCard.Web/IDCard.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: IDCard.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -228,6 +234,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/RecordsArchive/Records.Archive.Web/Records.Archive.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: Records.Archive.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -266,6 +273,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/AdminLogistics/Admin.Logistics.Web/Admin.Logistics.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: Admin.Logistics.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -310,6 +318,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/ITInfrastructure/IT.Infra.Web/IT.Infra.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: IT.Infra.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -348,6 +357,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/DevAnalytics/Dev.Analytics.Web/Dev.Analytics.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: Dev.Analytics.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -385,6 +395,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/Compliance/Compliance.Web/Compliance.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: Compliance.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -426,6 +437,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/AuthDirectory/Auth.Directory.Web/Auth.Directory.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: Auth.Directory.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"
@@ -463,6 +475,7 @@ services:
       dockerfile: docker/DotnetService.Dockerfile
       args:
         PROJECT_CSPROJ: src/Services/FileStorage/File.Storage.Web/File.Storage.Web.csproj
+        SOURCE_SHA: ${SOURCE_SHA:-unknown}
         ASSEMBLY_NAME: File.Storage.Web.dll
         NEEDS_KRB5: "true"
         GATEWAY_AUDIT_DIR: "false"

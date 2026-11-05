@@ -1,20 +1,20 @@
 {
   "step": "26h-26h-negative-approve-2-a-management-approver",
   "method": "POST",
-  "url": "/ui/hr-core/EstablishmentChanges/ApproveWorkflow/498a645f-75af-4ea9-90e0-447e264531b9",
+  "url": "/ui/hr-core/EstablishmentChanges/ApproveWorkflow/4efda49e-9ac1-4a99-a6b1-f70afe21781e",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:12:56.8443687Z",
+  "capturedAtUtc": "2026-11-05T04:12:16.6015271Z",
   "body": {
     "fields": [
-      "ChangeRequestId=498a645f-75af-4ea9-90e0-447e264531b9",
+      "ChangeRequestId=4efda49e-9ac1-4a99-a6b1-f70afe21781e",
       "Comments=AC-HCM-26h step 2"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/EstablishmentChanges/Details/498a645f-75af-4ea9-90e0-447e264531b9",
+    "redirect": "/ui/hr-core/EstablishmentChanges/Details/4efda49e-9ac1-4a99-a6b1-f70afe21781e",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/EstablishmentChanges/Details/498a645f-75af-4ea9-90e0-447e264531b9",
+    "final": "/ui/hr-core/EstablishmentChanges/Details/4efda49e-9ac1-4a99-a6b1-f70afe21781e",
     "alerts": []
   }
 }

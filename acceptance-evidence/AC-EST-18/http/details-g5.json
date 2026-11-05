@@ -1,0 +1,10 @@
+{
+  "step": "details-g5",
+  "method": "GET",
+  "url": "/ui/hr-core/ReferenceCatalog/Details/c983e68e-3900-4d55-8875-f8d98f4c5c49",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:09:43.5362846Z",
+  "body": {
+    "length": 22721
+  }
+}

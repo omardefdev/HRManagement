@@ -330,13 +330,22 @@ public sealed class JourneyEvidence
         var root = Environment.GetEnvironmentVariable("ACCEPTANCE_EVIDENCE_DIR") ?? Path.Combine(E2eSeed.RepoRoot, "acceptance-evidence");
         Folder = Path.Combine(root, relativeFolder);
         Directory.CreateDirectory(Path.Combine(Folder, "http"));
+        var run = AcceptanceRunContext.Current;
         Write("metadata.json", new
         {
             scenario,
             correlationId,
             capturedAtUtc = DateTime.UtcNow.ToString("o"),
             environment = new { gateway = E2eEnv.BaseUrl, keycloak = AcceptanceStack.KeycloakBaseUrl, composeProject = AcceptanceStack.ComposeProject },
-            gitSha = AcceptanceStack.RunAsync("git", "rev-parse", "HEAD").GetAwaiter().GetResult().Output.Trim()
+            gitSha = run.SourceSha,
+            // PLAN-41: the same fields as EvidenceRecorder.
+            profile = run.Profile,
+            sourceSha = run.SourceSha,
+            codeTree = run.CodeTree,
+            imageRevisions = run.ImageRevisions,
+            source = run.Source,
+            ciRunId = run.CiRunId,
+            ciEvent = run.CiEvent
         });
     }
 
@@ -395,7 +404,10 @@ public sealed class JourneyEvidence
             ["reason"] = reason,
             ["stageReached"] = Stage,
             ["correlationId"] = _correlationId,
-            ["recordedAtUtc"] = DateTime.UtcNow.ToString("o")
+            ["recordedAtUtc"] = DateTime.UtcNow.ToString("o"),
+            ["testClass"] = _key == "prodlike" ? "RecruitmentToHireJourneyProdLikeE2ETests" : "RecruitmentToHireJourneyE2ETests",
+            ["profile"] = AcceptanceRunContext.Current.Profile,
+            ["codeTree"] = AcceptanceRunContext.Current.CodeTree
         };
         result["scenarios"] = scenarios;
         var statuses = scenarios.Select(s => s.Value?["status"]?.GetValue<string>() ?? "Unknown").ToList();

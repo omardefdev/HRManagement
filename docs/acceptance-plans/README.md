@@ -43,6 +43,8 @@ pwsh scripts/verify-staging-stack.ps1
 ```
 
 - نقطة الدخول الوحيدة: البوابة `http://localhost:5000`.
+- **مكدّس القبول (`hrm-acceptance`، PLAN-41):** البوابة `http://localhost:6200`، وKeycloak `http://localhost:6388`، وPostgreSQL 6433، وRabbitMQ 6573. يرفعه `scripts/acceptance-up.ps1 [-Profile Lab|ProdLike]`، ويشغّله كما في CI `scripts/ci/acceptance-job.ps1 -Profile Both`.
+- **كلمات المرور:** لكل شخصية كلمة مولّدة في `.acceptance/credentials.json` (خارج Git، من `scripts/prepare-keycloak-import.ps1 -Profile Acceptance`)، ويقرؤها `AcceptanceHarness` والسكربتات. ولا كلمة مرور مشتركة، ولا كلمة في workflow.
 - تكرار في CI عبر توسعة وظيفة E2E الإلزامية في [.github/workflows/ci.yml](../../.github/workflows/ci.yml) و[.github/workflows/e2e-journeys.yml](../../.github/workflows/e2e-journeys.yml).
 
 ## عقد الأدلة لكل سيناريو (موحّد)

@@ -54,5 +54,46 @@ public static class AcceptanceMdmReferencePatch
                 "Copied national MDM reference subset to acceptance agency {AgencyCode}",
                 agency.Code);
         }
+
+        await EnsureSeededJobCatalogGradesAsync(db, ct);
+    }
+
+    /// <summary>
+    /// PLAN-41: the seeded job catalog uses G1..G10 (AcceptanceDataSeeder), so each agency owns those grades; a grade in use
+    /// must be there for the deactivation impact check of AC-EST-18d, which a national row would never reach.
+    /// </summary>
+    private static async Task EnsureSeededJobCatalogGradesAsync(HRCoreDbContext db, CancellationToken ct)
+    {
+        foreach (var agency in AcceptanceSeedCatalog.Agencies)
+        {
+            var previousTenantId = TenantIdFlow.Get();
+            TenantIdFlow.Set(agency.Id);
+            try
+            {
+                var existing = await db.ReferenceCatalogEntries
+                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                    .Where(e => e.TenantId == agency.Id && e.CatalogKind == CatalogKind.Grade)
+                    .Select(e => e.Code)
+                    .ToListAsync(ct);
+                foreach (var code in Enumerable.Range(1, 10).Select(n => $"G{n}").Except(existing))
+                {
+                    db.ReferenceCatalogEntries.Add(new ReferenceCatalogEntry
+                    {
+                        TenantId = agency.Id,
+                        CatalogKind = CatalogKind.Grade,
+                        Code = code,
+                        NameAr = $"درجة قبول {code}",
+                        IsActive = true,
+                        Version = 1
+                    });
+                }
+
+                await db.SaveChangesAsync(ct);
+            }
+            finally
+            {
+                TenantIdFlow.Set(previousTenantId);
+            }
+        }
     }
 }

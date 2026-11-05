@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/api/hr-core/api/policies/enforce",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:13:54.4492500Z",
+  "capturedAtUtc": "2026-11-05T03:59:00.4091390Z",
   "body": {
     "allowed": true,
     "effects": [
@@ -11,13 +11,13 @@
       "RequireEvidence",
       "TriggerWorkflow"
     ],
-    "workflowInstanceId": "1fe5b9b4-a7b4-4dd8-a9f4-c851274594a8",
+    "workflowInstanceId": "ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04",
     "explanations": [
       "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u062F\u0644\u064A\u0644\u0627\u064B: \u062A\u0637\u0627\u0628\u0642",
       "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u0633\u064A\u0631 \u0627\u0639\u062A\u0645\u0627\u062F: \u062A\u0637\u0627\u0628\u0642"
     ],
     "policyVersionId": "6b761597-4d61-ee4d-a837-78c746ab7f5b",
-    "ledgerId": "03dc056d-9f6e-43c7-965b-09cf911d6e8a",
+    "ledgerId": "3a64ea90-1e63-44d3-9498-6c02f387dc36",
     "decision": {
       "allowed": true,
       "effects": [

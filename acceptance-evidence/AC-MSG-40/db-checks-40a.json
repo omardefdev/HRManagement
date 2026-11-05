@@ -1,11 +1,11 @@
 {
-  "promotionId": "89b98c09-982a-44f7-b0a8-9368f8b3eddd",
-  "messageId": "704c2349-ed28-57b0-8542-5d7e7aa33407",
+  "promotionId": "920be523-0115-4d4e-b1c6-81d35da207b3",
+  "messageId": "71d991bf-5aee-5652-81c5-acb1e2675fff",
   "executeStatus": 302,
   "promotionStatus": 2,
   "outboxRowsWritten": 1,
   "receipts": 1,
-  "consumerReceiptsBefore": 3,
-  "consumerReceiptsAfter": 4,
+  "consumerReceiptsBefore": 0,
+  "consumerReceiptsAfter": 1,
   "employmentNotes": 1
 }

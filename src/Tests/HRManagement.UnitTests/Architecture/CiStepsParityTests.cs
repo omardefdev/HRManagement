@@ -167,6 +167,11 @@ public class CiStepsParityTests
             {
                 var key = m.Groups[1].Value;
                 if (key == "uses") isAction = true;
+                // PLAN-41 (P-4): the one exception, exactly as written: the committed-evidence check asks GitHub whether the
+                // run belongs to this repository, which needs the job token (steps.json cannot carry an expression).
+                if (key == "env" && lines[i - 1] == "      - name: Committed acceptance evidence (PLAN-41)"
+                                 && lines[i + 1] == "          GH_TOKEN: ${{ github.token }}")
+                    continue;
                 var allowed = key is "name" or "run" or "if" || (isAction && key is "uses" or "with");
                 if (!allowed)
                     problems.Add($"ci.yml:{i + 1}: step key '{key}' is not allowed in build-and-test (put the behaviour in scripts/ci/steps.json)");

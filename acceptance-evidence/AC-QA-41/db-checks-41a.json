@@ -1,0 +1,13 @@
+{
+  "folders": 58,
+  "profiles": [
+    "prodlike",
+    "lab"
+  ],
+  "sources": [
+    "ci"
+  ],
+  "CiRunId": "41962709297",
+  "CiEvent": "pull_request",
+  "requireAll": true
+}

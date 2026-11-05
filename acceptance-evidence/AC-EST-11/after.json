@@ -2,14 +2,14 @@
   "stage": "after",
   "explicitDomainSnapshot": false,
   "outcome": "Pass",
-  "correlationId": "cd699944-9a8d-4fdf-ada6-67905047cb2b",
+  "correlationId": "62e1543e-e272-4440-af1c-615fb8c4dbf0",
   "httpObservationCount": 2,
   "lastHttpObservation": {
     "step": "gap-br2-forbidden",
     "method": "GET",
     "url": "/api/hr-core/api/establishment/gap-analysis?orgUnitId=a0000001-0000-4000-8000-000000000104\u0026fiscalYear=2026",
     "statusCode": 403,
-    "capturedAtUtc": "2026-09-04T16:06:12.4151573Z",
+    "capturedAtUtc": "2026-11-05T04:08:35.0982923Z",
     "body": ""
   },
   "note": "Outcome is derived from the executed assertions and captured observations."

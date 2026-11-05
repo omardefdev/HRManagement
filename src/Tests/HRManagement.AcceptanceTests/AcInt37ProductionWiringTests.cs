@@ -570,7 +570,8 @@ public class AcInt37ProductionWiringTests
         var (exit, output) = await PowerShellAsync(Path.Combine(RepoRoot, "scripts", "int037-wiring-check.ps1"), $"-RepoRoot \"{RepoRoot}\"");
         Assert.True(exit == 0, output);
         var report = await File.ReadAllTextAsync(Path.Combine(RepoRoot, "artifacts", "int037", "wiring-report.json"));
-        Assert.Contains("\"ok\":  true", report);
+        using (var wiring = JsonDocument.Parse(report))
+            Assert.True(wiring.RootElement.GetProperty("ok").GetBoolean(), report);
 
         // Negative: the same check on a copy whose shared compose file lost hr-contracts-web's HR.Core URL.
         var copy = Path.Combine(Path.GetTempPath(), "int037-wiring-" + Guid.NewGuid().ToString("N"));

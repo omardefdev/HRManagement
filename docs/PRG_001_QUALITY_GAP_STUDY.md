@@ -228,6 +228,7 @@
   - خطوة «لا Blocked لسيناريو مطلوب، ولا تخطٍّ غير مبرر» تقرأ `result.json`.
   - رفع `summary.md` المولَّد كأثر.
 - **الخطة:** [PLAN-41](acceptance-plans/PLAN-41-qa-ci-acceptance-honest-baseline.md)
+- **الحالة:** ✅ عولجت في PLAN-41 — وظيفة `Acceptance` في `ci.yml` تشغّل `scripts/ci/acceptance-job.ps1` على كل PR إلى `main` وكل دفع إليه: مكدّس `hrm-acceptance`، وrealm acceptance-v2، وكلمات مرور تولَّد على المشغّل، وFile.Storage `Local`، بالملف المختبري ثم الشبيه بالإنتاج تحت `ACCEPTANCE_REQUIRE_ALL=true`. ونطاقها [ci-scope.json](../tests/acceptance/ci-scope.json)، والسيناريو المطلوب المحجوب يُسقطها (AC-QA-41a).
 - **التحقق المطلوب:**
   - موجب: وظيفة القبول على `main` تنتج `summary.md` بـ`gitSha` = HEAD، وكل AC-HCM `Pass`.
   - سالب: إزالة بذرة سيناريو مطلوب ← الوظيفة حمراء برسالة `Blocked`، لا خضراء.
@@ -270,6 +271,7 @@
   - إصلاح AC-12 بإضافة خطوة الحساب.
   - خريطة `scenarios` لكل مجلد منصّي كما في AC-HCM.
 - **الخطة:** [PLAN-41](acceptance-plans/PLAN-41-qa-ci-acceptance-honest-baseline.md)
+- **الحالة:** ✅ عولجت في PLAN-41 — مولّد واحد (`scripts/acceptance-evidence-summarize.ps1`) بحالات صادقة: `NotRun` و`Incomplete` و`Stale` و`Fail`/`Blocked` و`Pass`، ولكل AC المصدر والملف والحداثة وهل يثبت ما يدّعيه ومالكه ([ac-ownership.json](../tests/acceptance/ac-ownership.json)). والحداثة ببصمة شجرة الشيفرة ومراجعات الصور، فلا يُعدّ قديم ولا محلي ولا تعاقدي «Pass». والأدلة المودَعة من أثر CI فقط، ويدققها `acceptance-baseline-validate.ps1 -Committed`. وما بقي دون إثبات حي له مالك في خطته (PLAN-65 وPLAN-58 وغيرهما).
 - **التحقق المطلوب:**
   - موجب: `summary.md` المولَّد في CI يُظهر لكل AC-01..37 حالة و`gitSha` = HEAD، و0 «Stale».
   - سالب: تعديل `gitSha` في `metadata.json` لمجلد ناجح ← يظهر «Stale» ولا يُعدّ Pass.

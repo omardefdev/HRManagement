@@ -3,14 +3,14 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/FileAppeal",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:00:23.2536237Z",
+  "capturedAtUtc": "2026-11-05T03:58:44.0719119Z",
   "body": {
     "fields": [
-      "id=530fe298-ae41-4da6-988d-d3c2d5113f64",
+      "id=a2219bcf-ff87-4773-b8f9-df651563d660",
       "reason=\u064A\u0639\u062A\u0631\u0636 \u0627\u0644\u0645\u0631\u0634\u062D \u0639\u0644\u0649 \u0642\u0631\u0627\u0631 \u0627\u0644\u0641\u0631\u0632 \u0644\u0639\u062F\u0645 \u0627\u062D\u062A\u0633\u0627\u0628 \u0645\u0624\u0647\u0644\u0627\u062A\u0647 \u0627\u0644\u0639\u0644\u0645\u064A\u0629"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/d0f4b231-d4a0-4e66-bd43-ce6e039a73b9",
-    "final": "/ui/hr-core/RecruitmentAppeals/Details/d0f4b231-d4a0-4e66-bd43-ce6e039a73b9"
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/7a319820-b261-40ba-a772-d9534ff0260d",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/7a319820-b261-40ba-a772-d9534ff0260d"
   }
 }

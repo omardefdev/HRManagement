@@ -3,17 +3,17 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/UpsertDecision",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:01:21.4297946Z",
+  "capturedAtUtc": "2026-11-05T04:10:10.2514112Z",
   "body": {
     "fields": [
-      "sessionId=7e153c01-b462-4ca9-8954-94a2ae068837",
+      "sessionId=02ab0518-b1e8-480d-b79a-7a692e4b51a1",
       "applicationId=59f7f5cb-f384-8c4c-a8aa-8137f8e324c3",
       "recommendation=Recommend",
       "proposedRank=1",
       "rationale=AC-HCM-28b"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/7e153c01-b462-4ca9-8954-94a2ae068837#decisions",
-    "final": "/ui/hr-core/SelectionCommittees/Details/7e153c01-b462-4ca9-8954-94a2ae068837"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/02ab0518-b1e8-480d-b79a-7a692e4b51a1#decisions",
+    "final": "/ui/hr-core/SelectionCommittees/Details/02ab0518-b1e8-480d-b79a-7a692e4b51a1"
   }
 }

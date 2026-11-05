@@ -7,15 +7,10 @@
       "CI",
       "CodeQL",
       "Gitleaks",
-      "E2E"
+      "E2E",
+      "Acceptance"
     ]
   },
-  "pendingRequiredChecks": [
-    {
-      "context": "Acceptance",
-      "condition": "PLAN-41: added when the Acceptance job is enabled and green (CI-ACCEPTANCE-DISABLED)"
-    }
-  ],
   "unavailableFallback": {
     "exceptionRef": "SCM-NO-GITHUB-PROTECTION",
     "guard": "powershell -ExecutionPolicy Bypass -File scripts/scm/install-hooks.ps1 -ProtectMain",

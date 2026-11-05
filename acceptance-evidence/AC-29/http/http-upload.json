@@ -1,0 +1,13 @@
+{
+  "step": "http-upload",
+  "method": "POST",
+  "url": "/api/files",
+  "statusCode": 201,
+  "capturedAtUtc": "2026-11-05T04:06:58.3106525Z",
+  "body": {
+    "fileId": "b37755d1-88d9-47de-8a6a-e979452bd027",
+    "originalName": "ac29-private.pdf",
+    "size": 18,
+    "mimeType": "application/pdf"
+  }
+}

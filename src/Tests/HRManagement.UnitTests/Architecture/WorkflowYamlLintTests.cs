@@ -195,6 +195,12 @@ public class WorkflowYamlLintTests
 
         Assert.DoesNotContain("gitleaks/gitleaks-action", ci, StringComparison.Ordinal);
         Assert.Contains("bash scripts/ci/gitleaks.sh", ci, StringComparison.Ordinal);
-        Assert.Contains("if: vars.ENABLE_ACCEPTANCE_JOB == 'true'", ci, StringComparison.Ordinal);
+
+        // PLAN-41: the Acceptance job runs on every pull request and push, in parallel with CI, from the one job script.
+        Assert.DoesNotContain("ENABLE_ACCEPTANCE_JOB", ci, StringComparison.Ordinal);
+        Assert.DoesNotContain("acceptance-disabled", ci, StringComparison.Ordinal);
+        Assert.Contains("pwsh -NoProfile -File scripts/ci/acceptance-job.ps1 -Profile Both", ci, StringComparison.Ordinal);
+        Assert.Contains("scripts/ci/acceptance-artifact-scan.ps1", ci, StringComparison.Ordinal);
+        Assert.Contains("steps.artifact-scan.outcome == 'success'", ci, StringComparison.Ordinal);
     }
 }

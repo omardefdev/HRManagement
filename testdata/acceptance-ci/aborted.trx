@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="00000000-0000-0000-0000-000000000004" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results>
+    <UnitTestResult testId="00000000-0000-0000-0000-00000000000a" testName="HRManagement.AcceptanceTests.RequiredPassingTests.It_passes" outcome="Passed" duration="00:00:01.0000000" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="It_passes" id="00000000-0000-0000-0000-00000000000a"><TestMethod className="HRManagement.AcceptanceTests.RequiredPassingTests" name="It_passes" /></UnitTest>
+  </TestDefinitions>
+  <ResultSummary outcome="Failed">
+    <RunInfos>
+      <RunInfo computerName="runner" outcome="Error" timestamp="2026-11-04T10:00:00.0000000+00:00">
+        <Text>The active test run was aborted. Reason: Test host process crashed</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

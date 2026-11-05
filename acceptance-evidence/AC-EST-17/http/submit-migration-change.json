@@ -1,0 +1,12 @@
+{
+  "step": "submit-migration-change",
+  "method": "POST",
+  "url": "/api/hr-core/api/establishment/changes/a8abcaca-a190-4fe9-ab08-3ad0aa93f407/submit",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T03:58:37.9517888Z",
+  "body": {
+    "id": "a8abcaca-a190-4fe9-ab08-3ad0aa93f407",
+    "status": 1,
+    "resultEntityId": null
+  }
+}

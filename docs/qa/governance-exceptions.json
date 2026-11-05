@@ -49,8 +49,8 @@
       "owner": "PLAN-41",
       "recordedOn": "2026-10-30",
       "reviewBy": "2026-12-14",
-      "status": "Open",
-      "closeWhen": "PLAN-41 makes the acceptance job green, sets ENABLE_ACCEPTANCE_JOB=true and adds Acceptance to the required checks."
+      "status": "Closed",
+      "closeWhen": "PLAN-41 makes the acceptance job green and adds Acceptance to the required checks. Closed by PLAN-41: the job runs on every pull request and push, ENABLE_ACCEPTANCE_JOB no longer exists."
     },
     {
       "id": "SUP001-DEPENDABOT-ALERTS-TOKEN",

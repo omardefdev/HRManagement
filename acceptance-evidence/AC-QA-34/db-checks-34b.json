@@ -1,8 +1,8 @@
 {
-  "today": "2026-10-30",
+  "today": "2026-11-05",
   "real": {
     "exit": 0,
-    "nearest": "Nearest open obligation: QA-CI-EXCLUSIONS/ObjectStorage reviewBy=2026-12-14 in 45 day(s) (tests/ci-exclusions.json)"
+    "nearest": "Nearest open obligation: QA-COVERAGE-TEMPORARY-FLOORS/Payroll.Application reviewBy=2026-12-29 in 54 day(s) (coverage-floors.json)"
   },
   "fail5": {
     "exit": 1,

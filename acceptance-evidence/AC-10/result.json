@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Publish_v3_closes_v2_and_enforce_applies_deny": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "8cda606e-6300-4c48-bf97-9d640ae1fa03",
+      "recordedAtUtc": "2026-11-05T04:06:44.1999571Z",
+      "testClass": "Ac10EnforcePolicyTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "8cda606e-6300-4c48-bf97-9d640ae1fa03",
+  "recordedAtUtc": "2026-11-05T04:06:44.1999571Z"
+}

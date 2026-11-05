@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-contracts/AdvanceRequests/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-01T00:54:55.7868881Z",
+  "capturedAtUtc": "2026-11-05T04:24:27.4398339Z",
   "body": {
     "fields": [
       "EmployeeId=62319f30-371a-744f-ae91-a1415059a302",

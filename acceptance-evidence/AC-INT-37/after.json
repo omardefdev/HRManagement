@@ -1,8 +1,8 @@
 {
   "scenario": "37b",
   "checks": {
-    "appointment": "3fe6bdcf-5b2d-4d71-b9c8-2db91a4d52ff",
-    "reference": "-2026-00031",
-    "decisionNumber": "-2026-00004"
+    "appointment": "c0aa40f0-f4dd-40e8-b767-b9e849c04130",
+    "reference": "-2026-00001",
+    "decisionNumber": "-2026-00001"
   }
 }

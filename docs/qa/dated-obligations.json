@@ -165,6 +165,16 @@
       "note": "A test category excluded from CI must have an owner plan and a review date."
     },
     {
+      "id": "QA-ACCEPTANCE-CI-EXCLUSIONS",
+      "file": "tests/acceptance/ci-scope.json",
+      "selector": "excluded[*]",
+      "idField": "class",
+      "dateField": "reviewBy",
+      "enforcedBy": ["ci:Dated obligations horizon (QA-034)", "ci:Acceptance (scripts/ci/acceptance-guard.ps1)", "test:AcceptanceCiScopeTests"],
+      "owner": "qa",
+      "note": "PLAN-41 (P-6): an acceptance class left out of the Acceptance job needs a reason CI cannot meet, an owner plan and a review date."
+    },
+    {
       "id": "QA-GOVERNANCE-EXCEPTIONS",
       "file": "docs/qa/governance-exceptions.json",
       "selector": "exceptions[*]",
@@ -207,6 +217,11 @@
     }
   ],
   "historical": [
+    {
+      "file": "acceptance-evidence/**",
+      "keys": ["validTo"],
+      "reason": "PLAN-41: responses of the system recorded by a CI run (AC-EST-18 reads a grade, whose validTo is null). A record of what the API answered, written again by every run; nothing compares it with the clock."
+    },
     {
       "file": "docs/ops007/component-inventory.json",
       "keys": ["eolDate"],

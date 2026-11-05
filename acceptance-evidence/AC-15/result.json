@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Hire_journey_preserves_correlation_id_across_hops": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "8f4a7a44-bc1f-43af-aca8-4976a6874c6e",
+      "recordedAtUtc": "2026-11-05T04:07:25.7833878Z",
+      "testClass": "Ac15CorrelationIdHireJourneyTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "8f4a7a44-bc1f-43af-aca8-4976a6874c6e",
+  "recordedAtUtc": "2026-11-05T04:07:25.7833878Z"
+}

@@ -1,0 +1,16 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "6908eb53-a0d8-4f56-a2b8-4027e3754431-negative",
+  "httpObservationCount": 1,
+  "lastHttpObservation": {
+    "step": "tenant-user-enter",
+    "method": "POST",
+    "url": "/api/platform/enter-tenant",
+    "statusCode": 405,
+    "capturedAtUtc": "2026-11-05T04:08:36.5562036Z",
+    "body": ""
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

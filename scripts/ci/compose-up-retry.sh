@@ -17,7 +17,15 @@ set -uo pipefail
 # docker/DotnetService.Dockerfile copies docker/build-manifest/ (gitignored, BLD-002): a clean checkout has none
 # (E2E run 41089826696 failed with '"/docker/build-manifest": not found').
 pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1 || { echo "::error::build manifest generation failed"; exit 1; }
-docker compose "$@" build || { echo "::error::compose build failed"; exit 1; }
+# A registry that answers 503 for a moment (mcr.microsoft.com, run 41951228726) must not end a job of over an hour. BuildKit keeps
+# what finished, so a real build failure only repeats quickly and still fails here.
+built=""
+for attempt in 1 2 3; do
+  if docker compose "$@" build; then built=1; break; fi
+  echo "::warning::compose build failed (attempt ${attempt} of 3)"
+  [ "$attempt" = 3 ] || sleep 60
+done
+[ -n "$built" ] || { echo "::error::compose build failed"; exit 1; }
 # The service list is read once: "config --services | grep -q" under pipefail reads as false when grep exits at the
 # first match and compose gets SIGPIPE (run 41130907741 skipped both preparation steps below).
 services=$(docker compose "$@" config --services) || { echo "::error::compose config failed"; exit 1; }

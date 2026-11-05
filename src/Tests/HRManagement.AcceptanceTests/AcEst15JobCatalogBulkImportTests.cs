@@ -52,6 +52,9 @@ public class AcEst15JobCatalogBulkImportTests
         recorder.CaptureHttp("submit-bulk-change", "POST", $"/{submitUrl}", (int)submitResponse.StatusCode, JsonSerializer.Deserialize<object>(submitBody));
         Assert.True(submitResponse.IsSuccessStatusCode, submitBody);
 
+        // PLAN-25: a change applies only after both approvals (this also proves nothing was applied on submit).
+        await EstablishmentChangeFlow.ApproveBothStepsAsync(changeRequestId, correlationId, recorder);
+
         Assert.True(await JobCatalogExistsAsync(http, "مدير إداري"));
         Assert.True(await JobCatalogExistsAsync(http, "محلل"));
         Assert.True(await JobCatalogExistsAsync(http, "كاتب"));

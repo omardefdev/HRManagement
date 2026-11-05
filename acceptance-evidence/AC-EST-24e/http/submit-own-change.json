@@ -1,0 +1,8 @@
+{
+  "step": "submit-own-change",
+  "method": "POST",
+  "url": "/api/hr-core/api/establishment/changes/b370f77a-d0b8-4325-93e9-9a065d2e62b8/submit",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:07:11.7003668Z",
+  "body": "{\u0022id\u0022:\u0022b370f77a-d0b8-4325-93e9-9a065d2e62b8\u0022,\u0022status\u0022:1,\u0022resultEntityId\u0022:null}"
+}

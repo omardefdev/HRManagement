@@ -41,6 +41,9 @@ RUN find /app/bootstrap /app/scripts -type f \( -name '*.sh' -o -name '*.sql' -o
 ENV EFBUNDLE_DIR=/app/efbundles \
     DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/.net \
     HRM_BOOTSTRAP_RESULT_DIR=/var/hrm/bootstrap
+# PLAN-41: the commit the image was built from, as the service images.
+ARG SOURCE_SHA=unknown
 LABEL org.opencontainers.image.title="hr-migrate"
+LABEL org.opencontainers.image.revision=$SOURCE_SHA
 USER $APP_UID
 ENTRYPOINT ["bash", "/app/bootstrap/bootstrap.sh"]
