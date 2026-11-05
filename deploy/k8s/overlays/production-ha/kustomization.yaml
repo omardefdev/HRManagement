@@ -6,10 +6,13 @@ resources:
   - hpa.yaml
   - pdb.yaml
   - ingress.yaml
-  - external-secrets/hr-app-secrets.yaml
+  - external-secrets
 patches:
   - path: patches/replicas.yaml
   - path: external-secrets/delete-placeholder.yaml
+    target:
+      kind: Secret
+      labelSelector: hrmanagement.io/secret-source=dev-only-placeholder
 # Before apply: replace OWNER and IMAGE_TAG (same SHA promoted by DEP-001).
 # Secrets: ExternalSecret → AWS SM (OPS-005); do not commit plaintext.
 #   kubectl kustomize . | sed ... OR kustomize edit set image ...

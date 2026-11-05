@@ -24,13 +24,22 @@ function Import-AcceptanceLocalEnvironment {
     }
 
     $credentials = Get-Content -LiteralPath $credentialsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $proofProperty = $credentials.PSObject.Properties["gatewayCallerProofSecret"]
-    $proofSecret = if ($null -eq $proofProperty) { $null } else { [string]$proofProperty.Value }
-    if ([string]::IsNullOrWhiteSpace($proofSecret)) {
-        throw "Acceptance gateway caller-proof secret is missing. Regenerate the local Acceptance credentials."
-    }
 
-    $env:ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET = $proofSecret
+    # PLAN-42: the gateway proof pair, made once here (.acceptance is git-ignored). No key is ever in the repository.
+    $proofKeysPath = Join-Path $RepoRoot ".acceptance/gateway-proof-keys.json"
+    # Called in this process: the runner has pwsh, this machine Windows PowerShell.
+    & (Join-Path (Join-Path $RepoRoot "scripts") "s2s042-new-gateway-proof-keys.ps1") -OutFile $proofKeysPath -RepoRoot $RepoRoot | Out-Null
+    $proofKeys = Get-Content -LiteralPath $proofKeysPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $env:ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64 = [string]$proofKeys.privateKeyB64
+    $env:ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64 = [string]$proofKeys.publicKeyB64
+
+    # PLAN-42 (P-6): the secret of the svc-* clients of the acceptance realm, generated with the personas.
+    $serviceProperty = $credentials.PSObject.Properties["serviceClientSecret"]
+    $serviceSecret = if ($null -eq $serviceProperty) { $null } else { [string]$serviceProperty.Value }
+    if ([string]::IsNullOrWhiteSpace($serviceSecret)) {
+        throw "Acceptance service client secret is missing. Run scripts/prepare-keycloak-import.ps1 -Profile Acceptance."
+    }
+    $env:ACCEPTANCE_SVC_CLIENT_SECRET = $serviceSecret
     if (-not $env:RABBITMQ_HOST) { $env:RABBITMQ_HOST = "localhost" }
     if (-not $env:RABBITMQ_PORT) { $env:RABBITMQ_PORT = "6573" }
     if (-not $env:RABBITMQ_DEFAULT_USER) {

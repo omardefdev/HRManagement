@@ -19,6 +19,18 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Windows PowerShell 5.1 turns the stderr of a native command into a terminating error under "Stop", so a missing image would end the script.
+function Test-DockerImage([string]$Name) {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        docker image inspect $Name *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally { $ErrorActionPreference = $previous }
+}
+
 if ($Profile -eq "ProdLike") { $ProdLike = $true }
 # PLAN-33: Windows PowerShell 5.1 prefixes text piped to native commands with a UTF-8 BOM, which kcadm rejects
 # ("Not a valid JSON document - Unexpected character (code 65279)") in sync-keycloak-dev-realm.ps1 (PLAN-30 guide).
@@ -85,19 +97,15 @@ if (-not $SkipComposeUp) {
         $runtimeSource = "$projectName-hr-gateway:latest"
         $localSdk = "hrm-local-dotnet-sdk:10.0.400"
         $localRuntime = "hrm-local-dotnet-runtime:10.0"
-        docker image inspect $localSdk *> $null
-        $hasLocalSdk = $LASTEXITCODE -eq 0
-        docker image inspect $localRuntime *> $null
-        $hasLocalRuntime = $LASTEXITCODE -eq 0
+        $hasLocalSdk = Test-DockerImage $localSdk
+        $hasLocalRuntime = Test-DockerImage $localRuntime
 
         # A cached runtime already contains curl/Kerberos. Reusing it avoids fourteen
         # identical apt downloads while every service is still published from source.
         if ($UseLocalBaseImages -or ($hasLocalSdk -and $hasLocalRuntime) -or -not $mcrDnsAvailable) {
             if (-not ($hasLocalSdk -and $hasLocalRuntime)) {
-                docker image inspect $sdkImage *> $null
-                $hasSdkSource = $LASTEXITCODE -eq 0
-                docker image inspect $runtimeSource *> $null
-                $hasRuntimeSource = $LASTEXITCODE -eq 0
+                $hasSdkSource = Test-DockerImage $sdkImage
+                $hasRuntimeSource = Test-DockerImage $runtimeSource
                 if (-not ($hasSdkSource -and $hasRuntimeSource)) {
                     throw "Local Acceptance SDK/runtime base images do not exist and the remote base cannot be bootstrapped. Restore connectivity once to create them."
                 }
@@ -201,7 +209,8 @@ if ([string]::IsNullOrWhiteSpace($keycloakContainer)) {
 }
 
 Write-Host "== Syncing Keycloak service clients and scopes =="
-& "$PSScriptRoot/sync-keycloak-dev-realm.ps1" -ContainerName $keycloakContainer
+# PLAN-42 (P-6): the generated secret of the services; the default of that script is the old lab value.
+& "$PSScriptRoot/sync-keycloak-dev-realm.ps1" -ContainerName $keycloakContainer -SvcSecret $env:ACCEPTANCE_SVC_CLIENT_SECRET
 
 Write-Host "== Applying PostgreSQL per-service roles by Compose service name =="
 docker compose -p $projectName @composeArgs exec -T postgresql bash /docker-entrypoint-initdb.d/02-init-service-roles.sh

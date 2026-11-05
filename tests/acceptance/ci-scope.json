@@ -1,6 +1,6 @@
 {
   "card": "PLAN-41",
-  "description": "PLAN-41: what the Acceptance job runs. Every class of HRManagement.AcceptanceTests appears exactly once, in lab[], in prodLike[] (class, required, group) or in excluded[] (class or Class.Method, reason, ownerPlan, reviewBy). Exclude only for an environment CI cannot provide, never because a class is red. order[] is the order of the stages; stack is the stack a stage needs; ciOnly stages read the results of the CI job of the same commit, so they do not run on the owner\u0027s machine. A class in the isolated group stops or recreates containers and runs alone, in its own test process (P-7). A class in a trx that is not listed here fails the job.",
+  "description": "PLAN-41: what the Acceptance job runs. Every class of HRManagement.AcceptanceTests appears exactly once, in lab[], in prodLike[] (class, required, group) or in excluded[] (class or Class.Method, reason, ownerPlan, reviewBy). Exclude only for an environment CI cannot provide, never because a class is red. order[] is the order of the stages; stack is the stack a stage needs; ciOnly stages read the results of the CI job of the same commit, so they do not run on the owner\u0027s machine. A class in the isolated group stops or recreates containers and runs alone, in its own test process (P-7). PLAN-42: a stage with composeFiles applies them on the running stack, recreating the services in recreate; its classes also run alone, and the stack is torn down before its next use, so such a stage comes last on its stack. A class in a trx that is not listed here fails the job.",
   "order": [
     { "part": "lab", "group": "main", "stack": "lab" },
     { "part": "lab", "group": "journey", "stack": "lab" },
@@ -9,6 +9,7 @@
     { "part": "prodLike", "group": "main", "stack": "prodlike" },
     { "part": "prodLike", "group": "isolated", "stack": "prodlike" },
     { "part": "prodLike", "group": "final", "stack": "prodlike" },
+    { "part": "prodLike", "group": "s2s42", "stack": "prodlike", "composeFiles": ["docker-compose.acceptance-s2s42.yml"], "recreate": ["hr-core-web", "admin-logistics-web"] },
     { "part": "prodLike", "group": "leastpriv", "stack": "leastpriv" },
     { "part": "lab", "group": "meta", "stack": "base", "ciOnly": true }
   ],
@@ -83,6 +84,7 @@
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
     { "class": "AcOps39KeycloakDataProtectionTests", "required": true, "group": "isolated" },
     { "class": "AcQa41AcceptanceBaselineTests", "required": true, "group": "final" },
+    { "class": "AcS2s42TrustBoundaryTests", "required": true, "group": "s2s42" },
     { "class": "AcOps38FirstBootTests", "required": true, "group": "leastpriv" }
   ],
   "excluded": [

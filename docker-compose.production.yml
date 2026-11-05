@@ -20,7 +20,8 @@ x-app-production-env: &app-production-env
   # Module listeners are internal only and every request must carry the gateway caller proof (SEC-001); the
   # gateway sets its own AllowedHosts to the public name.
   AllowedHosts: "*"
-  GatewayCallerProof__Secret: ${GATEWAY_CALLER_PROOF_SECRET:?GATEWAY_CALLER_PROOF_SECRET required (at least 32 characters)}
+  # PLAN-42: the public key of the gateway proof; it is not a secret. The private key is on hr-gateway alone, below.
+  GatewayCallerProof__PublicKeyPem: ${GATEWAY_PROOF_PUBLIC_KEY_B64:?GATEWAY_PROOF_PUBLIC_KEY_B64 required (scripts/s2s042-new-gateway-proof-keys.ps1, init-secrets)}
   # PLAN-36: Data Protection key rings on named volumes (mount only; guard and encryption are PLAN-39).
   DataProtection__KeyRingPath: /var/hrm/dpkeys
   Deployment__RequireLicenseKey: ${HRM_REQUIRE_LICENSE:-false}
@@ -475,6 +476,7 @@ services:
       - data
     environment:
       <<: *app-production-env
+      GatewayCallerProof__PrivateKeyPem: ${GATEWAY_PROOF_PRIVATE_KEY_B64:?GATEWAY_PROOF_PRIVATE_KEY_B64 required (scripts/s2s042-new-gateway-proof-keys.ps1, init-secrets)}
       ConnectionStrings__GatewayAuditDb: Host=postgresql;Port=5432;Database=gateway_audit_db;Username=gateway_audit_app;Password=${POSTGRES_GATEWAY_AUDIT_APP_PASSWORD:?POSTGRES_GATEWAY_AUDIT_APP_PASSWORD required};Maximum Pool Size=${HRM_PG_POOL_MAX:-10}
       Keycloak__Authority: ${KEYCLOAK_AUTHORITY:-http://keycloak:8080/realms/hrmanagement}
       Keycloak__ClientId: hr-gateway-client

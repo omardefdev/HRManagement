@@ -72,17 +72,19 @@ public class Ac10EnforcePolicyTests
             SubjectType = "Asset",
             Action = "Assign",
             Facts = facts,
-            CorrelationId = correlationId,
-            Mode = PolicyEnforcementMode.Enforce
+            CorrelationId = correlationId
         };
-        var enforceResp = await http.PostAsync(
-            "api/hr-core/api/policies/enforce",
+        // PLAN-42: the owning service asks on its own identity, the server derives the mode, and a denial is a 200.
+        using var logistics = await AcceptanceHarness.CreateServiceClientAsync(
+            "svc-admin-logistics", ServiceScopes.HrCoreWorkflow, recorder, AcceptanceSeedIds.AgencyAId);
+        var enforceResp = await logistics.PostAsync(
+            "api/internal/policies/enforce",
             JsonContent(enforceReq));
         var enforceBody = await enforceResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("enforce-v3", "POST", "/api/hr-core/api/policies/enforce",
+        recorder.CaptureHttp("enforce-v3", "POST", "/api/internal/policies/enforce",
             (int)enforceResp.StatusCode, JsonSerializer.Deserialize<object>(enforceBody));
 
-        Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, enforceResp.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.OK, enforceResp.StatusCode);
         using (var enforceDoc = JsonDocument.Parse(enforceBody))
         {
             Assert.False(enforceDoc.RootElement.GetProperty("allowed").GetBoolean());

@@ -106,7 +106,17 @@ public class SeparationRecordsController : Controller
     {
         await PopulateContractsAsync(vm);
         if (!ModelState.IsValid) return View(vm);
-        await _mediator.Send(new CreateSeparationRecordCommand(MapCreate(vm, ParseUserId())));
+        try
+        {
+            await _mediator.Send(new CreateSeparationRecordCommand(MapCreate(vm, ParseUserId())));
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            // PLAN-42: a legal hold, or a hold that could not be checked, refuses the record.
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(vm);
+        }
+
         TempData["Success"] = "تم تسجيل سجل الفصل";
         return RedirectToAction(nameof(Index));
     }

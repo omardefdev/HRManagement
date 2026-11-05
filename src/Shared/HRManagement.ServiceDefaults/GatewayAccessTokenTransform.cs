@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Yarp.ReverseProxy.Transforms;
 using Yarp.ReverseProxy.Transforms.Builder;
 
@@ -106,9 +107,12 @@ public sealed class GatewayAccessTokenTransformProvider : ITransformProvider
             {
                 proofPath = remainingPath.HasValue ? remainingPath : new PathString("/");
             }
-            GatewayCallerProof.Sign(
+            // PLAN-42: last, because the signature covers the final Authorization header.
+            GatewayProofSigningHandler.Sign(
                 transformContext.ProxyRequest,
+                httpContext.RequestServices.GetRequiredService<GatewayProofKeys>(),
                 configuration,
+                httpContext.RequestServices.GetRequiredService<IHostEnvironment>(),
                 $"{proofPath}{httpContext.Request.QueryString}");
         });
     }

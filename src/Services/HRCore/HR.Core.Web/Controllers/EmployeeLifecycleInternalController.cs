@@ -9,7 +9,7 @@ namespace HR.Core.Web.Controllers;
 /// <summary>FUN-002 / GOV: internal lifecycle flags for peer services (S2S).</summary>
 [ApiController]
 [Route("api/internal/employees")]
-[Authorize(Policy = ServicePolicies.HrCoreLookupS2S)]
+[Authorize(Policy = ServicePolicies.HrCoreLifecycleS2S)]
 public class EmployeeLifecycleInternalController(HRCoreDbContext db) : ControllerBase
 {
     [HttpGet("{employeeId:guid}/lifecycle-flags")]

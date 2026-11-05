@@ -163,6 +163,7 @@ public static class ServiceIdentityServiceCollectionExtensions
         services.AddServiceIdentityClient();
         services.AddHttpContextAccessor();
         services.AddTransient<ForwardTenantHandler>();
+        services.AddTransient<ForwardActingUserHandler>();
         var builder = services.AddHttpClient(name, client =>
         {
             if (baseAddress is not null)

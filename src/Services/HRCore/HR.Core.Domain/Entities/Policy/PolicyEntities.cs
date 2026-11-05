@@ -140,6 +140,16 @@ public class PolicyEnforcementLedger : BaseEntity
 
     public Guid? WorkflowInstanceId { get; set; }
 
+    /// <summary>PLAN-42: the service client that asked; null for a decision taken inside HR.Core.</summary>
+    [MaxLength(100)]
+    public string? CallerClientId { get; set; }
+
+    /// <summary>PLAN-42: what was decided on.</summary>
+    [MaxLength(100)]
+    public string? SubjectType { get; set; }
+
+    public Guid? EntityId { get; set; }
+
     public string? ShadowDiffJson { get; set; }
 
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;

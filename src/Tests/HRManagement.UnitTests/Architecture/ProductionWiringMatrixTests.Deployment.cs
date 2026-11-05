@@ -185,7 +185,7 @@ public partial class ProductionWiringMatrixTests
 
     public static TheoryData<string> Overlays() => new() { "production-ha", "staging-ha", "dr-secondary" };
 
-    /// <summary>§2 rule 3: every k8s overlay sets the matrix wiring per Deployment, the secret from hr-app-secrets.</summary>
+    /// <summary>§2 rule 3: every k8s overlay sets the matrix wiring per Deployment, the secret from that Deployment's own Secret (PLAN-42).</summary>
     [Theory]
     [MemberData(nameof(Overlays))]
     public void Kubernetes_overlay_sets_the_matrix_wiring(string overlay)

@@ -79,7 +79,9 @@ public class Ops036ComposeLintTests
         Assert.Contains("Keycloak__RequireHttpsMetadata: \"false\"", anchor);
         Assert.Contains("Keycloak__AdditionalValidIssuers: https://${SSO_DOMAIN:?", anchor);
         Assert.Contains("AllowedHosts: \"*\"", anchor);
-        Assert.Contains("GatewayCallerProof__Secret: ${GATEWAY_CALLER_PROOF_SECRET:?", anchor);
+        Assert.Contains("GatewayCallerProof__PublicKeyPem: ${GATEWAY_PROOF_PUBLIC_KEY_B64:?", anchor);
+        Assert.DoesNotContain("PrivateKeyPem", anchor); // PLAN-42: the private key is on hr-gateway alone
+        Assert.DoesNotContain("GatewayCallerProof__Secret", prod);
         Assert.Contains("DataProtection__KeyRingPath: /var/hrm/dpkeys", anchor);
         Assert.Contains("Deployment__RequireLicenseKey: ${HRM_REQUIRE_LICENSE:-false}", anchor);
     }
@@ -343,7 +345,7 @@ public class Ops036ComposeLintTests
         foreach (var required in new[]
                  {
                      "APP_DOMAIN", "SSO_DOMAIN", "ACME_EMAIL", "ADMIN_ALLOWED_CIDRS", "HRM_IMAGE_REPO", "IMAGE_TAG",
-                     "GATEWAY_CALLER_PROOF_SECRET", "HRM_DEPLOYMENT_MODE", "COMPOSE_PROFILES", "HRM_ORGANIZATION_NAME",
+                     "GATEWAY_PROOF_PRIVATE_KEY_B64", "GATEWAY_PROOF_PUBLIC_KEY_B64", "HRM_DEPLOYMENT_MODE", "COMPOSE_PROFILES", "HRM_ORGANIZATION_NAME",
                      "DEMO_USERS_PASSWORD", "HRM_ACME_CA", "POSTGRES_PASSWORD", "KEYCLOAK_ADMIN_PASSWORD"
                  })
             Assert.Contains(keys, k => k.Key == required);

@@ -26,7 +26,13 @@ public sealed class CodeGeneratorService(
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public async Task<CodeGenerationResult> GenerateAsync(CodeGenerationRequest request, CancellationToken ct = default)
+    public Task<CodeGenerationResult> GenerateAsync(CodeGenerationRequest request, CancellationToken ct = default) =>
+        GenerateCoreAsync(request, callerClientId: null, ct);
+
+    public Task<CodeGenerationResult> GenerateForServiceAsync(CodeGenerationRequest request, string callerClientId, CancellationToken ct = default) =>
+        GenerateCoreAsync(request, callerClientId, ct);
+
+    private async Task<CodeGenerationResult> GenerateCoreAsync(CodeGenerationRequest request, string? callerClientId, CancellationToken ct)
     {
         var tenantId = request.TenantId ?? db.CurrentTenantId ?? TenantDefaults.DefaultTenantId;
         var snapshot = await ResolveSnapshotAsync(request, tenantId, ct)
@@ -41,7 +47,7 @@ public sealed class CodeGeneratorService(
 
         if (!request.Preview)
         {
-            await RecordIssuanceAsync(tenantId, request, code, snapshot.VersionId, scopeKey, ct);
+            await RecordIssuanceAsync(tenantId, request, code, snapshot.VersionId, scopeKey, callerClientId, ct);
         }
 
         logger.LogInformation(
@@ -404,6 +410,7 @@ public sealed class CodeGeneratorService(
         string code,
         Guid versionId,
         string scopeKey,
+        string? callerClientId,
         CancellationToken ct)
     {
         db.CodeIssuances.Add(new CodeIssuance
@@ -414,7 +421,8 @@ public sealed class CodeGeneratorService(
             PolicyVersionId = versionId == Guid.Empty ? null : versionId,
             SequenceScope = scopeKey,
             FactsJson = JsonSerializer.Serialize(request.Facts, JsonOptions),
-            IssuedAt = DateTime.UtcNow
+            IssuedAt = DateTime.UtcNow,
+            IssuedByClientId = callerClientId
         });
         await db.SaveChangesAsync(ct);
     }

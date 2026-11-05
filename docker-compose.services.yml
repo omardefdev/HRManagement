@@ -423,7 +423,7 @@ services:
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
       ServiceIdentity__ClientId: svc-compliance
       ServiceIdentity__ClientSecret: ${SVC_COMPLIANCE_CLIENT_SECRET:-dev-svc-secret-local-only}
-      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow dsar.subject.read file-storage.references
+      ServiceIdentity__Scope: hr-core.lookup hr-core.workflow dsar.subject.read dsar.subject.erase file-storage.references
     depends_on:
       postgresql:
         condition: service_healthy

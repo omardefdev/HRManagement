@@ -28,7 +28,7 @@ public class AcInt37ProductionWiringTests
 {
     private const string Ac = "AC-INT-37";
     private const string Project = "hrm-acceptance";
-    private const string LabSecret = "dev-svc-secret-local-only";
+    private static string LabSecret => AcceptanceHarness.ResolveServiceClientSecret("svc-any") ?? "";
     private static readonly Guid TenantA = AcceptanceSeedIds.AgencyAId;
     private static readonly string[] ComposeFiles =
     [

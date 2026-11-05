@@ -9,13 +9,11 @@ namespace Admin.Logistics.Infrastructure.Integration;
 
 /// <summary>
 /// Starts HR.Core approval workflows for asset custody (<c>POST /api/workflow-instances</c>, scope hr-core.workflow).
-/// PLAN-37: the client always has the HR.Core base address (AddHrCoreWorkflowClient refuses to start without it), and
-/// every call carries the gateway caller proof, which the route requires outside Development. The full custody
-/// approval loop is PLAN-45/46.
+/// PLAN-37: the client always has the HR.Core base address (AddHrCoreWorkflowClient refuses to start without it). PLAN-42: the
+/// service token is enough; no service makes a gateway proof. The full custody approval loop is PLAN-45/46.
 /// </summary>
 public sealed class WorkflowTriggerService(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
     ILogger<WorkflowTriggerService> logger)
 {
     public const string HttpClientName = "HrCoreWorkflow";
@@ -87,7 +85,6 @@ public sealed class WorkflowTriggerService(
             {
                 Content = JsonContent.Create(payload)
             };
-            GatewayCallerProof.Sign(request, configuration, WorkflowInstancesPath);
 
             using var response = await client.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)

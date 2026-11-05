@@ -15,7 +15,7 @@ public interface IHrCoreLookupClient
 }
 
 /// <summary>S2S batch lookup against HR.Core <c>/api/lookup/*/by-ids</c> (IAM-004).</summary>
-public sealed class HrCoreLookupClient(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IHrCoreLookupClient
+public sealed class HrCoreLookupClient(IHttpClientFactory httpClientFactory) : IHrCoreLookupClient
 {
     public const string HttpClientName = "HrCoreLookup";
     public const int MaxBatchSize = SearchFilterBase.LookupMaxPageSize;
@@ -47,7 +47,6 @@ public sealed class HrCoreLookupClient(IHttpClientFactory httpClientFactory, ICo
             {
                 Content = JsonContent.Create(new LookupByIdsRequest(chunk))
             };
-            GatewayCallerProof.Sign(request, configuration, "/" + relativePath.TrimStart('/'));
             using var response = await client.SendAsync(request, ct);
             response.EnsureSuccessStatusCode();
             var page = await response.Content.ReadFromJsonAsync<LookupBatchResponse>(JsonOptions, ct);

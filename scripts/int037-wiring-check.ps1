@@ -33,7 +33,6 @@ New-Item -ItemType Directory -Force -Path $renderDir | Out-Null
 . (Join-Path $RepoRoot 'scripts\vps\compose-chains.ps1')
 
 $WiringKey = '^(Integration__\w+|Services__\w+__BaseUrl|HrCore__BaseUrl|HrGateway__InternalBaseUrl|ServiceIdentity__ClientId|ServiceIdentity__Scope)$'
-$LabSecret = 'dev-svc-secret-local-only'
 $matrix = [System.IO.File]::ReadAllText((Join-Path $RepoRoot 'deploy\wiring\service-wiring.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 
 function Get-Prop($obj, [string]$name) {
@@ -109,7 +108,7 @@ foreach ($chain in @(Get-HrmProductionChains) + @(Get-HrmProdLikeChain)) {
             $wiringByChain[$chain.Name][$service.composeService] = $wiring
             if ($service.serviceIdentity) {
                 $secret = $actual['ServiceIdentity__ClientSecret']
-                $want = if ($chain.Name -eq 'prodlike') { $LabSecret } else { $lintValues[[string]$service.secretEnv] }
+                $want = if ($chain.Name -eq 'prodlike') { $lintValues['ACCEPTANCE_SVC_CLIENT_SECRET'] } else { $lintValues[[string]$service.secretEnv] }
                 if ($secret -cne $want) {
                     $source = if ($chain.Name -eq 'prodlike') { 'the lab secret' } else { "`${$($service.secretEnv)}" }
                     $problems.Add("$($chain.Name): $($service.composeService) ServiceIdentity__ClientSecret does not come from $source")
@@ -154,7 +153,12 @@ function Read-KustomizeOutput([string]$Text) {
                 if ($lines[$i] -match '^(\s+)- name: (\S+)\s*$') {
                     $indent = $Matches[1].Length; $name = $Matches[2]; $next = if ($i + 1 -lt $lines.Count) { $lines[$i + 1] } else { '' }
                     $pad = ' ' * ($indent + 2)
-                    if ($next.StartsWith($pad + 'value: ')) { $env[$name] = $next.Substring(($pad + 'value: ').Length).Trim().Trim('"') }
+                    if ($next.StartsWith($pad + 'value: ')) {
+                        $value = $next.Substring(($pad + 'value: ').Length).Trim().Trim('"')
+                        # kubectl kustomize folds a long plain scalar onto deeper lines.
+                        for ($j = $i + 2; $j -lt $lines.Count -and $lines[$j].StartsWith($pad + '  '); $j++) { $value += ' ' + $lines[$j].Trim() }
+                        $env[$name] = $value
+                    }
                     elseif ($next.StartsWith($pad + 'value:')) { $env[$name] = '' }
                     elseif ($next.StartsWith($pad + 'valueFrom:')) {
                         $key = $null; $sname = $null; $refKind = 'configMapKeyRef'; $j = $i + 2
@@ -170,14 +174,14 @@ function Read-KustomizeOutput([string]$Text) {
             }
             $deployments[$nameLine] = $env
         }
-        elseif ($kind -eq 'ExternalSecret' -and $nameLine -eq 'hr-app-secrets') {
-            foreach ($l in $lines) { if ($l -match '^\s+(- )?secretKey: (\S+)') { [void]$secretKeys.Add($Matches[2]) } }
+        elseif ($kind -eq 'ExternalSecret' -and $nameLine -like '*-secrets') {
+            foreach ($l in $lines) { if ($l -match '^\s+(- )?secretKey: (\S+)') { [void]$secretKeys.Add("$nameLine/$($Matches[2])") } }
         }
-        elseif ($kind -eq 'Secret' -and $nameLine -eq 'hr-app-secrets') {
+        elseif ($kind -eq 'Secret' -and $nameLine -like '*-secrets') {
             $inData = $false
             foreach ($l in $lines) {
                 if ($l -match '^(stringData|data):') { $inData = $true; continue }
-                if ($inData -and $l -match '^  ([A-Za-z0-9_]+):') { [void]$secretKeys.Add($Matches[1]) } elseif ($inData -and $l -match '^\S') { $inData = $false }
+                if ($inData -and $l -match '^  ([A-Za-z0-9_]+):') { [void]$secretKeys.Add("$nameLine/$($Matches[1])") } elseif ($inData -and $l -match '^\S') { $inData = $false }
             }
         }
         elseif ($kind -eq 'ConfigMap') {
@@ -216,12 +220,13 @@ else {
                 if ($null -eq $actual) { $problems.Add("$label is not rendered"); continue }
                 foreach ($p in (Compare-Wiring $label $service $actual)) { $problems.Add($p) }
                 if ($service.serviceIdentity) {
-                    $want = "secretKeyRef:hr-app-secrets/$($service.secretEnv)"
+                    $secretName = "$($service.k8sDeployment)-secrets"
+                    $want = "secretKeyRef:$secretName/$($service.secretEnv)"
                     $got = $actual['ServiceIdentity__ClientSecret']
                     # Only the source kind is reported: a literal value could be a real secret.
                     $kind = if ($null -eq $got) { 'absent' } elseif ([string]$got -like 'secretKeyRef:*') { $got } else { 'a literal value' }
                     if ($got -ne $want) { $problems.Add("$label ServiceIdentity__ClientSecret is $kind, expected $want") }
-                    if (-not $parsed.SecretKeys.Contains([string]$service.secretEnv)) { $problems.Add("$label`: hr-app-secrets has no key $($service.secretEnv)") }
+                    if (-not $parsed.SecretKeys.Contains("$secretName/$($service.secretEnv)")) { $problems.Add("$label`: $secretName has no key $($service.secretEnv)") }
                 }
             }
         }

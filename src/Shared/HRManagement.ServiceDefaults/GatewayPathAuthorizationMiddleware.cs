@@ -181,8 +181,7 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             {
                 if (pathValue.Contains("/api/onboarding/", StringComparison.OrdinalIgnoreCase))
                     policy = HrManagementPolicies.HrCoreApprove;
-                else if (pathValue.Contains("/api/policies/enforce", StringComparison.OrdinalIgnoreCase)
-                    || (pathValue.Contains("/api/workflow-instances/", StringComparison.OrdinalIgnoreCase)
+                else if ((pathValue.Contains("/api/workflow-instances/", StringComparison.OrdinalIgnoreCase)
                         && (pathValue.EndsWith("/approve", StringComparison.OrdinalIgnoreCase)
                             || pathValue.EndsWith("/reject", StringComparison.OrdinalIgnoreCase)))
                     || IsHrCoreWorkflowMvcAction(pathValue))

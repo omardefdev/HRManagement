@@ -278,7 +278,7 @@ public class ServiceIdentitySecretTests
     }
 }
 
-/// <summary>PLAN-37 (§4): the legal-hold gate is wired by the approved key (its authentication is PLAN-42).</summary>
+/// <summary>PLAN-37 (§4): the legal-hold gate is wired by the approved key (PLAN-42 adds the service identity).</summary>
 [Collection(ProcessEnvironmentCollection.Name)]
 public class Int037LifecycleGateRegistrationTests
 {
@@ -287,6 +287,7 @@ public class Int037LifecycleGateRegistrationTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(values.ToDictionary(v => v.Key, v => v.Value)).Build();
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddEmployeeLifecycleGate(configuration);
         return services.BuildServiceProvider();
     }
@@ -336,7 +337,7 @@ public class Int037WorkflowTriggerProofTests
     private const string Secret = "unit-test-caller-proof-secret-0123456789";
 
     [Fact]
-    public async Task Both_workflow_starts_sign_the_caller_proof()
+    public async Task Both_workflow_starts_carry_the_service_token_and_no_proof()
     {
         using var _ = new EnvironmentVariableScope(("DOTNET_RUNNING_IN_CONTAINER", "true"));
         var handler = new RecordingHandler();
@@ -363,11 +364,7 @@ public class Int037WorkflowTriggerProofTests
         foreach (var request in handler.Requests)
         {
             Assert.Equal(new Uri("http://hr-core-web:8080/api/workflow-instances"), request.RequestUri);
-            var ts = request.Headers.GetValues(GatewayCallerProof.TimestampHeader).Single();
-            Assert.Equal("/api/workflow-instances", request.Headers.GetValues(GatewayCallerProof.PathHeader).Single());
-            var expected = Convert.ToBase64String(HMACSHA256.HashData(
-                Encoding.UTF8.GetBytes(Secret), Encoding.UTF8.GetBytes($"{ts}\nPOST\n/api/workflow-instances")));
-            Assert.Equal(expected, request.Headers.GetValues(GatewayCallerProof.ProofHeader).Single());
+            Assert.False(request.Headers.Contains(GatewayCallerProof.ProofHeader)); // PLAN-42: a service token needs no proof
             Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
         }
     }

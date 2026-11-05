@@ -210,15 +210,14 @@ PROBE
 # reaches the container on stdin (not "docker exec -e"), and the secret, token and proof reach curl through private
 # temporary files, so none of them is on a process command line on the host.
 upload_probe() {
-  { printf "PROOF='%s'\nPROOF_TS='%s'\nPROOF_PATH='%s'\n" "$2" "$3" "$4"; cat <<'CALL'
+  { printf "PROBE_PATH='%s'\n" "$2"; cat <<'CALL'
 url="${ServiceIdentity__TokenEndpoint:-${Keycloak__Authority%/}/protocol/openid-connect/token}"
 s="$(mktemp)"; h="$(mktemp)"; trap 'rm -f "$s" "$h"' EXIT
 printf '%s' "$ServiceIdentity__ClientSecret" > "$s"
 tok="$(curl -s -m 10 --data-urlencode grant_type=client_credentials --data-urlencode "client_id=$ServiceIdentity__ClientId" --data-urlencode "client_secret@$s" --data-urlencode "scope=$ServiceIdentity__Scope" "$url" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
-printf 'Authorization: Bearer %s\nX-HR-Gateway-Proof: %s\n' "$tok" "$PROOF" > "$h"
+printf 'Authorization: Bearer %s\n' "$tok" > "$h"
 curl -s -m 10 -o /dev/null -w '%{http_code}' -H "@$h" -H "X-Tenant-ID: 00000000-0000-4000-8000-000000000001" \
-  -H "X-HR-Gateway-Proof-Ts: $PROOF_TS" -H "X-HR-Gateway-Proof-Path: $PROOF_PATH" \
-  "${Integration__FileStorageBaseUrl%/}$PROOF_PATH"
+  "${Integration__FileStorageBaseUrl%/}$PROBE_PATH"
 CALL
   } | docker exec -i "$1" sh -s
 }
@@ -270,18 +269,15 @@ else
     if [ -z "$bad" ]; then record "wiring-env $svc" Pass "URLs, client id, scopes and secret as in the matrix"; else record "wiring-env $svc" Fail "differs from the matrix:$bad"; fi
   done
 
-  # One real S2S call: HR.Core's candidate upload relay to File.Storage (scope file-storage.service-upload, caller proof).
+  # One real S2S call: HR.Core's candidate upload relay to File.Storage (scope file-storage.service-upload). PLAN-42: the service
+  # token is enough, no proof.
   core="$(cid hr-core-web)"
-  if [ -z "$core" ] || [ "$(env_length GATEWAY_CALLER_PROOF_SECRET)" -lt 32 ]; then
-    record wiring-s2s-candidate-upload Fail "hr-core-web not running or GATEWAY_CALLER_PROOF_SECRET missing"
+  if [ -z "$core" ]; then
+    record wiring-s2s-candidate-upload Fail "hr-core-web not running"
   else
     path="/api/files/service-upload/$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo 00000000-0000-4000-8000-0000000000ff)/content"
-    ts="$(date +%s)"
-    # The proof secret is read into this process's environment only; the HMAC is computed here and never printed.
-    proof="$(K="$(awk -F= '$1=="GATEWAY_CALLER_PROOF_SECRET" { v=substr($0, 29) } END { gsub(/^"|"$/, "", v); printf "%s", v }' "$ENV_FILE")" \
-      TS="$ts" P="$path" perl -MDigest::SHA=hmac_sha256_base64 -e 'my $h = hmac_sha256_base64("$ENV{TS}\nGET\n$ENV{P}", $ENV{K}); $h .= "=" while length($h) % 4; print $h')"
-    code="$(upload_probe "$core" "$proof" "$ts" "$path" < /dev/null)"
-    # 404: authenticated, authorized and through the caller-proof check; the random file does not exist.
+    code="$(upload_probe "$core" "$path" < /dev/null)"
+    # 404: authenticated and authorized; the random file does not exist.
     case "$code" in
       404) record wiring-s2s-candidate-upload Pass "svc-hr-core -> File.Storage service upload: 404 for an unknown file (authorized)";;
       *) record wiring-s2s-candidate-upload Fail "svc-hr-core -> File.Storage service upload answered HTTP ${code:-none} (expected 404 for an unknown file)";;

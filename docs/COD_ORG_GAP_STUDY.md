@@ -178,6 +178,7 @@
   - (سالب) تكرار طلب التوليد بالمفتاح نفسه يعيد الرقم نفسه.
 
 #### G-COD-05 — واجهة التوليد تثق بـ `TenantId` من جسم الطلب وتسمح بحرق الأرقام
+- **الحالة:** ✅ عولجت في [PLAN-42](acceptance-plans/PLAN-42-s2s-trust-boundary.md) — التوليد على `api/internal/codes/generate` للخدمة المالكة للنوع، والمستأجر من الطلب، و`IssuedByClientId` يسجل من أصدر الرقم (AC-S2S-42g).
 - **الدليل:**
   - `var tenantId = request.TenantId ?? db.CurrentTenantId ?? …` ([CodeGeneratorService.cs:31](../src/Services/HRCore/HR.Core.Infrastructure/Services/CodeGeneration/CodeGeneratorService.cs)). الزيادة تتم بـ SQL خام لا يمر بمرشح المستأجر ([:349-370](../src/Services/HRCore/HR.Core.Infrastructure/Services/CodeGeneration/CodeGeneratorService.cs)). ثم يرفض `TenantIdStampInterceptor` حفظ الإصدار لمستأجر آخر ([TenantIdStampInterceptor.cs:104-120](../src/Shared/HRManagement.ServiceDefaults/TenantIdStampInterceptor.cs))، لكن بعد أن تثبتت الزيادة.
   - اختبار AC-13 نفسه يرسل `TenantId` في الجسم ([Ac13ParallelCodeGenerationTests.cs:32-37](../src/Tests/HRManagement.AcceptanceTests/Ac13ParallelCodeGenerationTests.cs)).

@@ -8,7 +8,7 @@ data:
   ASPNETCORE_ENVIRONMENT: Production
   Host__ShutdownTimeoutSeconds: "30"
   # OPS-002 data plane (namespace hrmanagement-data). Apps use pooler RW + TargetSessionAttrs.
-  # Full connection strings live in Secret hr-app-secrets (per-database).
+  # Full connection strings live in each service's own Secret, <deployment>-secrets (PLAN-42).
   Postgres__Host: hr-postgres-pooler-rw.hrmanagement-data.svc.cluster.local
   Postgres__Port: "5432"
   Postgres__TargetSessionAttrs: read-write

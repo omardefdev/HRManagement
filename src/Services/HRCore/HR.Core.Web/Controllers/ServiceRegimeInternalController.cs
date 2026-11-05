@@ -7,7 +7,7 @@ namespace HR.Core.Web.Controllers;
 
 [ApiController]
 [Route("api/internal/service-regime")]
-[Authorize(Policy = ServicePolicies.HrCoreLookupS2S)]
+[Authorize(Policy = ServicePolicies.HrCoreInternalS2S)]
 public sealed class ServiceRegimeInternalController(
     ServiceRegimePayrollBlockService blockService,
     ServiceRegimeActiveRegimeService activeRegimeService) : ControllerBase

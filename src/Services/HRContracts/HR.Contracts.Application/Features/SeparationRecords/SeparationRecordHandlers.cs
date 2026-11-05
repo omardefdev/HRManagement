@@ -62,11 +62,17 @@ public class GetSeparationRecordByIdHandler(IContractsRepository repository) : I
 
 public class CreateSeparationRecordHandler(
     IContractsRepository repository,
-    ICodeGenerationClient codeClient) : IRequestHandler<CreateSeparationRecordCommand, Guid>
+    ICodeGenerationClient codeClient,
+    IEmployeeLifecycleGate lifecycleGate) : IRequestHandler<CreateSeparationRecordCommand, Guid>
 {
     public async Task<Guid> Handle(CreateSeparationRecordCommand request, CancellationToken cancellationToken)
     {
         var vm = request.Model;
+        // PLAN-42 (G-SEP-12): before anything is saved, and before an official number is spent.
+        var (allowed, holdError) = await lifecycleGate.AssertCanStartSeparationAsync(vm.EmployeeId, cancellationToken);
+        if (!allowed)
+            throw new FluentValidation.ValidationException(holdError);
+
         var entity = new SeparationRecord
         {
             EmployeeId = vm.EmployeeId,

@@ -39,8 +39,8 @@
       "owner": "omardefdev",
       "recordedOn": "2026-10-30",
       "reviewBy": "2027-01-28",
-      "status": "Open",
-      "closeWhen": "The repository becomes public or the account moves to GitHub Pro; then run scripts/scm/apply-branch-protection.ps1 and close this entry."
+      "status": "Closed",
+      "closeWhen": "The repository becomes public or the account moves to GitHub Pro; then run scripts/scm/apply-branch-protection.ps1 and close this entry. Closed by PLAN-41 on 2026-11-05: the repository is public, the file was applied to main and scm001-branch-protection-validate.ps1 -CheckLiveGitHub passes. Undo: gh api -X DELETE repos/omardefdev/HRManagement/branches/main/protection."
     },
     {
       "id": "CI-ACCEPTANCE-DISABLED",
