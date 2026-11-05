@@ -1,0 +1,9 @@
+{
+  "expectedTenant": "a0000001-0000-4000-8000-000000000001",
+  "rejectedTenant": "aaaaaaaa-aaaa-4000-8000-000000000099",
+  "forgedId": "16f6d687-a11e-4439-9821-242fe81bd57b",
+  "persistedId": "d62174ae-c1e0-403c-b51c-465a2661b715",
+  "persistedTenant": "a0000001-0000-4000-8000-000000000001",
+  "agencyAVisible": true,
+  "agencyBVisible": false
+}

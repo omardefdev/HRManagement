@@ -1,19 +1,19 @@
 {
   "step": "26i-publish-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/ef28ae9d-947d-4e96-9ac1-035645bbfad6",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Publish/28a52fea-6b25-4d8f-ab34-bc8712d20e9c",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:09:21.1411940Z",
+  "capturedAtUtc": "2026-11-05T04:10:56.4945670Z",
   "body": {
     "fields": [
-      "applicationClosingDate=2026-11-08"
+      "applicationClosingDate=2026-11-15"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/ef28ae9d-947d-4e96-9ac1-035645bbfad6",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/28a52fea-6b25-4d8f-ab34-bc8712d20e9c",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/ef28ae9d-947d-4e96-9ac1-035645bbfad6",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/28a52fea-6b25-4d8f-ab34-bc8712d20e9c",
     "alerts": [
       "\u003Ci class=\u0022fas fa-ban ms-1\u0022\u003E"
     ]

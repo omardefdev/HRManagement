@@ -1,0 +1,31 @@
+{
+  "dryRun": true,
+  "ranAt": "2026-11-05T04:24:16.633047Z",
+  "items": [
+    {
+      "entityType": "RecruitmentRequisition",
+      "entityId": "bbebcdcb-9846-47c0-af6a-f7ad192afb86",
+      "reference": "-2026-00005",
+      "action": "StartWorkflow",
+      "result": "Listed",
+      "error": null,
+      "workflowInstanceId": null
+    },
+    {
+      "entityType": "RecruitmentApplication",
+      "entityId": "a0000001-0000-4000-8000-000000000910",
+      "reference": null,
+      "action": "CancelOrphanHireWorkflow",
+      "result": "Listed",
+      "error": null,
+      "workflowInstanceId": "8f7cbfb5-5515-4b88-b96d-31203bcf0889"
+    }
+  ],
+  "found": 2,
+  "repaired": 0,
+  "failed": 0,
+  "byEntityType": {
+    "RecruitmentRequisition": 1,
+    "RecruitmentApplication": 1
+  }
+}

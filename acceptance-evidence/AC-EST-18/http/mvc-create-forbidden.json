@@ -1,0 +1,10 @@
+{
+  "step": "mvc-create-forbidden",
+  "method": "GET",
+  "url": "/ui/hr-core/ReferenceCatalog/Create?kind=Grade",
+  "statusCode": 403,
+  "capturedAtUtc": "2026-11-05T04:09:44.1026567Z",
+  "body": {
+    "length": 0
+  }
+}

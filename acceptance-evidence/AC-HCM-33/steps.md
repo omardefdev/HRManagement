@@ -1,17 +1,3 @@
-## 33a
-
-AC-HCM-33a — acceptance without data shows Skipped, never Passed.
-
-Observed 2026-10-29 (PLAN-33 P1): `dotnet test src/Tests/HRManagement.AcceptanceTests` without RUN_ACCEPTANCE → 23 passed (static, stack-free tests only), 90 skipped, 0 failed: no live scenario passes without the stack. Guarded by AcceptanceSkipPatternArchitectureTests (no WriteResult("Skip"), no result+return, no raw Skip.If, every Ac* method asserts) and AcceptanceGateTests (Blocked written, then Skip).
-
-
-## 33b
-
-AC-HCM-33b — ACCEPTANCE_REQUIRE_ALL=true turns a skipped required scenario into a failure.
-
-Observed: (1) P1, without the stack, filter `AcHcm2|Ac33`: 18 failed (required AcHcm2x scenarios), 1 skipped (Ac33, not required). (2) P6 live run on the clean stack: AC-HCM-26h (required, precondition missing) failed with «Required acceptance scenario blocked (ACCEPTANCE_REQUIRE_ALL=true): No second central hr-core persona…» and recorded Blocked in acceptance-evidence/AC-HCM-26/result.json.
-
-
 ## 33c
 
 Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-approver (step 2), an anonymous citizen.
@@ -34,21 +20,14 @@ Personas: central-a (HR, creator), br1-mgr (step 1, hr-core, RIF), a-management-
 
 ## Executed
 
-- 20:14:14 1 requisition
-  - after submit: PendingApproval|d0a1a278-499e-4ba1-a04c-2a8061acefa2
-- 20:14:17 2 approval and publication
-- 20:14:18 3 public application
-- 20:14:30 4 selection
+- 04:10:34 1 requisition
+  - after submit: PendingApproval|b767fca8-e316-4d25-882c-40328e6c5eea
+- 04:10:35 2 approval and publication
+- 04:10:35 3 public application
+- 04:10:36 4 selection
   - test-only SQL: interview slot moved one hour into the past (as AC-HCM-26)
-- 20:14:39 5 offer
-- 20:14:44 6 candidate acceptance
-- 20:14:45 7 hire
-- 20:14:47 8 contracts and correlation
-- 20:14:49 done
-
-
-## 33d
-
-AC-HCM-33d — evidence folders for AC-HCM-21, 22, 26–33 and AC-WF-23 hold the eight items.
-
-Checked by scripts/hcm033-validate.ps1 (metadata, steps, before, after, audit, db-checks, timing, result + http/*.json) after the P6 run: PASS. AC-HCM-25 does not exist (PLAN-25 deferred).
+- 04:10:38 5 offer
+- 04:10:39 6 candidate acceptance
+- 04:10:40 7 hire
+- 04:10:40 8 contracts and correlation
+- 04:10:40 done

@@ -3,54 +3,78 @@
     "39a": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "39d9c16e-da5f-4db5-ba6a-91cdf5c6b829",
-      "recordedAtUtc": "2026-11-02T02:35:52.7562680Z"
+      "correlationId": "df7d0b79-96f4-4081-8264-0d1ea21b1f23",
+      "recordedAtUtc": "2026-11-05T04:28:12.6600979Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39c": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "21f1461e-77ba-42b8-aae7-86de27af5516",
-      "recordedAtUtc": "2026-11-02T02:35:54.5192129Z"
+      "correlationId": "af1203aa-d34d-4df2-83e5-4a31af3cf46a",
+      "recordedAtUtc": "2026-11-05T04:28:13.8545633Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39d": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "8a99811c-c6d9-46f8-bae7-66c7e025698f",
-      "recordedAtUtc": "2026-11-02T02:36:12.7619320Z"
+      "correlationId": "3c9bc6cb-4c54-42ef-b49e-33ee3f1d6599",
+      "recordedAtUtc": "2026-11-05T04:28:37.2269756Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39b": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "cffbbbb7-28c9-4b77-8cef-b50fec44e6f7",
-      "recordedAtUtc": "2026-11-02T02:36:13.2065542Z"
+      "correlationId": "f21541de-491d-4bad-b042-1b46399bddcf",
+      "recordedAtUtc": "2026-11-05T04:28:37.3452432Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39g": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "4a093c73-8937-4a7c-babc-077e2dd47051",
-      "recordedAtUtc": "2026-11-02T02:36:27.7053017Z"
+      "correlationId": "009e2485-27ec-462d-922a-00877fc63d59",
+      "recordedAtUtc": "2026-11-05T04:28:46.4685042Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39f": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "5f2cace0-acd3-4744-8c21-517d3b0f8d6e",
-      "recordedAtUtc": "2026-11-02T02:36:59.0267167Z"
+      "correlationId": "ff58c6d5-23f9-4056-b063-d7f2861ff943",
+      "recordedAtUtc": "2026-11-05T04:30:24.5505329Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39e": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "b5c2a282-345f-40f5-8547-3a5ea630567c",
-      "recordedAtUtc": "2026-11-02T02:37:00.7665279Z"
+      "correlationId": "f22875f0-6386-46b4-b899-9565af094b66",
+      "recordedAtUtc": "2026-11-05T04:30:25.9108445Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     },
     "39h": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "d3545c20-dcff-4673-bc9b-dc5f81fc989b",
-      "recordedAtUtc": "2026-11-02T02:37:02.8316130Z"
+      "correlationId": "8895d783-e61d-4b05-81ef-ed7d7f599042",
+      "recordedAtUtc": "2026-11-05T04:30:29.2155744Z",
+      "testClass": "AcOps39KeycloakDataProtectionTests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     }
   },
   "status": "Pass",
   "reason": null,
-  "correlationId": "d3545c20-dcff-4673-bc9b-dc5f81fc989b",
-  "recordedAtUtc": "2026-11-02T02:37:02.8316130Z"
+  "correlationId": "8895d783-e61d-4b05-81ef-ed7d7f599042",
+  "recordedAtUtc": "2026-11-05T04:30:29.2155744Z"
 }

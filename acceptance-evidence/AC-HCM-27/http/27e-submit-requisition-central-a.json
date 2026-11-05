@@ -1,14 +1,14 @@
 {
   "step": "27e-submit-requisition-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/f5065317-3a78-4725-9b3f-83054799a376",
+  "url": "/ui/hr-core/RecruitmentRequisitions/Submit/b7581adf-213b-44f7-8c2e-fca06c684899",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T19:58:48.6731785Z",
+  "capturedAtUtc": "2026-11-05T04:15:05.2680466Z",
   "body": {
     "fields": [],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/f5065317-3a78-4725-9b3f-83054799a376",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/f5065317-3a78-4725-9b3f-83054799a376",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/b7581adf-213b-44f7-8c2e-fca06c684899",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/b7581adf-213b-44f7-8c2e-fca06c684899",
     "alerts": [
       "\u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0646\u0634\u0626 \u0627\u0639\u062A\u0645\u0627\u062F \u0637\u0644\u0628\u0647 \u0627\u0644\u062E\u0627\u0635."
     ]

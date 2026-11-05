@@ -1,7 +1,7 @@
 # AC-33 asset loss before/after snapshots
 
 - Persona: `br1-mgr`
-- Correlation ID: `1e43f983-7a67-4b2e-b9f8-41e47d3c88d0`
+- Correlation ID: `014f75b7-c206-420c-b99d-c263c95f44bd`
 - HTTP observations: `1`
 
 ## Observed requests

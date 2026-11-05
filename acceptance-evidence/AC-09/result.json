@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Shadow_enforce_keeps_allowed_true_and_writes_ledger": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "38f9a3c3-5958-43f6-b772-6115a1996ba1",
+      "recordedAtUtc": "2026-11-05T04:09:50.5483857Z",
+      "testClass": "Ac09ShadowPolicyTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "38f9a3c3-5958-43f6-b772-6115a1996ba1",
+  "recordedAtUtc": "2026-11-05T04:09:50.5483857Z"
+}

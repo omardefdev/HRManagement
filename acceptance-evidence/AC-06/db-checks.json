@@ -1,0 +1,4 @@
+{
+  "employmentRecordEndDateClosure": "HRCoreTransferExecutedConsumerTests.Consume_closes_open_employment_record_and_adds_new_one",
+  "postTransferExpectation": "After Movements transfer BR1\u2192BR2, br1-mgr loses EmpBr1 and br2-mgr gains access"
+}

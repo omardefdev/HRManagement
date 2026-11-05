@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Branch_managers_see_only_their_branch_employees": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "97d31c43-dcfa-4070-b06e-64e54d18ad77",
+      "recordedAtUtc": "2026-11-05T04:10:32.0798774Z",
+      "testClass": "Ac06TransferAccessTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "97d31c43-dcfa-4070-b06e-64e54d18ad77",
+  "recordedAtUtc": "2026-11-05T04:10:32.0798774Z"
+}

@@ -1,0 +1,27 @@
+{
+  "step": "ledger",
+  "method": "GET",
+  "url": "/api/hr-core/api/policies/ledger?domain=Assets.Custody",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:09:50.5446278Z",
+  "body": [
+    {
+      "domain": "Assets.Custody",
+      "action": "Assign",
+      "policyVersionId": "a0000001-0000-4000-8000-000000000304",
+      "correlationId": "38f9a3c3-5958-43f6-b772-6115a1996ba1",
+      "factsHash": "39359CE4FE5B4C79",
+      "decisionJson": "{\u0022Allowed\u0022:false,\u0022Effects\u0022:[1],\u0022EffectDetails\u0022:[{\u0022Effect\u0022:\u0022Deny\u0022,\u0022Params\u0022:{\u0022reason\u0022:\u0022acceptance-v3-deny\u0022}}],\u0022MatchedRuleIds\u0022:[\u0022ACC-R-PRIV-DENY\u0022],\u0022Explanations\u0022:[\u0022\\u0642\\u0627\\u0639\\u062F\\u0629 \\u0645\\u0633\\u0648\\u062F\\u0629 \\u0631\\u0641\\u0636 \\u0627\\u0644\\u0623\\u0635\\u0644 \\u0627\\u0644\\u0645\\u0645\\u064A\\u0632: \\u062A\\u0637\\u0627\\u0628\\u0642\u0022],\u0022PolicyVersionId\u0022:\u0022a0000001-0000-4000-8000-000000000304\u0022,\u0022DenyReason\u0022:\u0022acceptance-v3-deny\u0022}",
+      "actorUserId": "775c2919-e97a-1446-ab7e-eeea07401beb",
+      "actorUserName": "acc-central-a",
+      "mode": 1,
+      "workflowInstanceId": null,
+      "shadowDiffJson": "[\u0022allowed: static=True policy=False\u0022,\u0022effects: static=[RequireEvidence,TriggerWorkflow] policy=[Deny]\u0022]",
+      "occurredAt": "2026-11-05T04:09:50.535522Z",
+      "id": "8223495a-c03c-4db1-b701-439c631691d6",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "createdAt": "2026-11-05T04:09:50.535412Z",
+      "updatedAt": "2026-11-05T04:09:50.535664Z"
+    }
+  ]
+}

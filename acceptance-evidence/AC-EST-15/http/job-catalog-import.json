@@ -1,0 +1,14 @@
+{
+  "step": "job-catalog-import",
+  "method": "POST",
+  "url": "/api/hr-core/api/establishment/job-catalog/import?mode=Standard",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:06:44.7591193Z",
+  "body": {
+    "batchId": "ed414aed-1672-4420-921d-cb2494daf8f0",
+    "changeRequestId": "22aca417-0eaa-404d-b480-b542592c0c79",
+    "changeRequestNumber": "-2026-00002",
+    "rowCount": 3,
+    "importMode": "Standard"
+  }
+}

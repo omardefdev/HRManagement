@@ -1,0 +1,17 @@
+{
+  "step": "lookup-legacy-code",
+  "method": "GET",
+  "url": "/api/hr-core/api/lookup/job-catalog?q=LEG-001\u0026page=1\u0026pageSize=5",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T03:58:39.2175225Z",
+  "body": {
+    "items": [
+      {
+        "id": "eca4b2e8-0917-4f8b-a1fe-8693ba06a860",
+        "label": "\u0645\u062F\u064A\u0631 \u0642\u062F\u064A\u0645",
+        "sublabel": "LEG-001"
+      }
+    ],
+    "hasMore": false
+  }
+}

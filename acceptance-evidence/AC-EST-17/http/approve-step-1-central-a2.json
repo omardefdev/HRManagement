@@ -1,0 +1,8 @@
+{
+  "step": "approve-step-1-central-a2",
+  "method": "POST",
+  "url": "/api/hr-core/api/workflow-instances/5f88294d-ce14-4ca9-8257-65e3b28a6e17/approve",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T03:58:38.5830984Z",
+  "body": "{\u0022definitionId\u0022:\u0022f0050014-0014-4000-8000-000000000014\u0022,\u0022definitionVersion\u0022:1,\u0022entityType\u0022:\u0022EstablishmentChangeRequest\u0022,\u0022entityId\u0022:\u0022a8abcaca-a190-4fe9-ab08-3ad0aa93f407\u0022,\u0022currentStepLevel\u0022:2,\u0022status\u0022:1,\u0022stepHistoryJson\u0022:\u0022[{\\\u0022Level\\\u0022:1,\\\u0022StepName\\\u0022:\\\u0022\\\\u0645\\\\u0631\\\\u0627\\\\u062C\\\\u0639\\\\u0629 HR\\\u0022,\\\u0022Status\\\u0022:1,\\\u0022ActorId\\\u0022:\\\u00225c3c252b-0c24-e743-b620-40969c82d426\\\u0022,\\\u0022ActorName\\\u0022:\\\u0022acc-central-a2\\\u0022,\\\u0022Comments\\\u0022:\\\u0022step 1\\\u0022,\\\u0022ActionAt\\\u0022:\\\u00222026-11-05T03:58:38.5261684Z\\\u0022}]\u0022,\u0022contextJson\u0022:\u0022{\\\u0022changeRequestId\\\u0022:\\\u0022a8abcaca-a190-4fe9-ab08-3ad0aa93f407\\\u0022,\\\u0022changeType\\\u0022:\\\u0022BulkCreateJobCatalog\\\u0022,\\\u0022targetEntityId\\\u0022:null}\u0022,\u0022initiatedBy\u0022:\u0022775c2919-e97a-1446-ab7e-eeea07401beb\u0022,\u0022initiatedByName\u0022:\u0022acc-central-a\u0022,\u0022startedAt\u0022:\u00222026-11-05T03:58:37.904978Z\u0022,\u0022completedAt\u0022:null,\u0022approvalRequestId\u0022:null,\u0022id\u0022:\u00225f88294d-ce14-4ca9-8257-65e3b28a6e17\u0022,\u0022tenantId\u0022:\u0022a0000001-0000-4000-8000-000000000001\u0022,\u0022createdAt\u0022:\u00222026-11-05T03:58:37.904948Z\u0022,\u0022updatedAt\u0022:\u00222026-11-05T03:58:38.5637757Z\u0022}"
+}

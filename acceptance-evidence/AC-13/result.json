@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Parallel_generate_produces_unique_asset_tags": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "8862333b-b839-4dd8-9bf3-578a2cd75436",
+      "recordedAtUtc": "2026-11-05T04:07:08.9203753Z",
+      "testClass": "Ac13ParallelCodeGenerationTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "8862333b-b839-4dd8-9bf3-578a2cd75436",
+  "recordedAtUtc": "2026-11-05T04:07:08.9203753Z"
+}

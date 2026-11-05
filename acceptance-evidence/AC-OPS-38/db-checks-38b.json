@@ -1,6 +1,6 @@
 {
-  "pgClassBefore": 8052,
-  "pgClassAfter": 8052,
+  "pgClassBefore": 8168,
+  "pgClassAfter": 8168,
   "secondRunMigrationsApplied": 0,
   "rotation": "new password accepted, old refused (28P01)",
   "restored": true

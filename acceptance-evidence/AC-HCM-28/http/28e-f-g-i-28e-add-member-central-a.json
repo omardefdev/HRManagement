@@ -3,16 +3,16 @@
   "method": "POST",
   "url": "/ui/hr-core/SelectionCommittees/AddMember",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:00:57.0150253Z",
+  "capturedAtUtc": "2026-11-05T04:09:59.1993559Z",
   "body": {
     "fields": [
-      "sessionId=dfbc9ecd-56a0-4250-a020-d7dae8ea21e3",
+      "sessionId=9ab656ee-24f0-4eb0-a4c3-32cc3a3c255a",
       "employeeId=0170105d-96af-214b-9447-0c24a6645a2e",
       "role=Chair",
       "hasConflictOfInterest=false"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/dfbc9ecd-56a0-4250-a020-d7dae8ea21e3#members",
-    "final": "/ui/hr-core/SelectionCommittees/Details/dfbc9ecd-56a0-4250-a020-d7dae8ea21e3"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/9ab656ee-24f0-4eb0-a4c3-32cc3a3c255a#members",
+    "final": "/ui/hr-core/SelectionCommittees/Details/9ab656ee-24f0-4eb0-a4c3-32cc3a3c255a"
   }
 }

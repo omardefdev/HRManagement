@@ -1,0 +1,21 @@
+{
+  "step": "http-create-dsar",
+  "method": "POST",
+  "url": "/api/compliance/api/dsar",
+  "statusCode": 201,
+  "capturedAtUtc": "2026-11-05T04:08:10.5063199Z",
+  "body": {
+    "id": "660a5772-6608-439b-80cc-80275498a983",
+    "tenantId": "a0000001-0000-4000-8000-000000000001",
+    "requestType": 0,
+    "status": 0,
+    "subjectEmployeeId": "a0000001-0000-4000-8000-000000000201",
+    "subjectCitizenApplicationId": null,
+    "subjectNationalIdHash": null,
+    "requestedAt": "2026-11-05T04:08:10.4346286Z",
+    "completedAt": null,
+    "notes": "AC-27 acceptance",
+    "discoveryPackageJson": null,
+    "packageContentHash": null
+  }
+}

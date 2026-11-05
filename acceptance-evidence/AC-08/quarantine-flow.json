@@ -1,0 +1,7 @@
+{
+  "GeneratedAt": "2026-11-05T04:09:40.6404983Z",
+  "EmployeeId": "a0000001-0000-4000-8000-000000000901",
+  "QuarantineEntryId": "2f04723c-04e3-47ad-8000-81272b32d41b",
+  "OpenQuarantineCount": 40,
+  "ReconcileBefore": "/home/runner/work/HRManagement/HRManagement/artifacts/acceptance/run/acceptance-evidence/AC-08/reconcile-before.json"
+}

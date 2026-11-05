@@ -1,0 +1,23 @@
+{
+  "step": "http-reconcile-live",
+  "method": "POST",
+  "url": "api/dev-analytics/api/analytics/read-models/f6a13b10-86b8-d241-95ee-db002099bfe1/reconcile?dryRun=false",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:09:42.8254605Z",
+  "body": {
+    "readModelId": "f6a13b10-86b8-d241-95ee-db002099bfe1",
+    "driftDetected": true,
+    "dryRun": false,
+    "corrected": true,
+    "beforeFingerprint": "DEADBEEF",
+    "afterFingerprint": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "beforeSchemaHash": "44136FA355B3678A1146AD16F7E8649E94FB4FC21FE77E8310C060F61CAAFF8A",
+    "afterSchemaHash": "5A117B2335242EA7925BA7B5E3C7B32CC69BBA6E6FFEF7624DB880DDF1CC5265",
+    "changes": [
+      "LastFingerprint",
+      "Schema",
+      "LastRefreshed"
+    ],
+    "ranAt": "2026-11-05T04:09:42.823371Z"
+  }
+}

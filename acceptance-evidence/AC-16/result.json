@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Duplicate_IEmployeeCreated_single_auth_user_and_receipt": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "e26acecd-de09-4680-b9d3-ce096ee4d0ef",
+      "recordedAtUtc": "2026-11-05T04:03:12.6504226Z",
+      "testClass": "Ac16DuplicateMessageTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "c99dcf82-1b39-4848-908a-3876c969b327",
-  "recordedAtUtc": "2026-11-04T02:41:33.4574870Z"
+  "correlationId": "e26acecd-de09-4680-b9d3-ce096ee4d0ef",
+  "recordedAtUtc": "2026-11-05T04:03:12.6504226Z"
 }

@@ -1,0 +1,15 @@
+{
+  "readModelId": "f6a13b10-86b8-d241-95ee-db002099bfe1",
+  "database": "analytics_db",
+  "tenantId": "a0000001-0000-4000-8000-000000000001",
+  "postgresContainer": "hrm-acceptance-postgresql-1",
+  "before": {
+    "id": "f6a13b10-86b8-d241-95ee-db002099bfe1",
+    "name": "rm_compliance_open_items",
+    "lastFingerprint": "1091a81b07847942",
+    "schema": "{\"version\":1,\"name\":\"rm_compliance_open_items\"}",
+    "tenantId": "a0000001-0000-4000-8000-000000000001"
+  },
+  "driftInjected": true,
+  "capturedAtUtc": "2026-11-05T04:09:42.2078144Z"
+}

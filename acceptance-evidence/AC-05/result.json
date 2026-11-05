@@ -1,4 +1,26 @@
 {
+  "scenarios": {
+    "Tenant_user_cannot_call_enter_tenant": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "6908eb53-a0d8-4f56-a2b8-4027e3754431-negative",
+      "recordedAtUtc": "2026-11-05T04:08:36.5575227Z",
+      "testClass": "Ac05PlatformEnterTenantTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    },
+    "Platform_admin_enters_tenant_with_reason_then_can_query": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "bda78c5d-08f3-4080-a5c3-65f54e2eb0d5",
+      "recordedAtUtc": "2026-11-05T04:08:37.4069649Z",
+      "testClass": "Ac05PlatformEnterTenantTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
   "status": "Pass",
-  "correlationId": "c1742d9b-0da1-4711-aa87-d765b1703a0f"
+  "reason": null,
+  "correlationId": "bda78c5d-08f3-4080-a5c3-65f54e2eb0d5",
+  "recordedAtUtc": "2026-11-05T04:08:37.4069649Z"
 }

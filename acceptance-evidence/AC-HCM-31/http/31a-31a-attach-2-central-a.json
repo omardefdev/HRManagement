@@ -1,16 +1,16 @@
 {
   "step": "31a-31a-attach-2-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/Competitions/AttachRequisition/85c6abcb-672b-4f84-8b69-68090648c386",
+  "url": "/ui/hr-core/Competitions/AttachRequisition/9c5d9990-4f83-4cc9-bd20-5bbd49614957",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:06:18.1275554Z",
+  "capturedAtUtc": "2026-11-05T04:03:21.0404688Z",
   "body": {
     "fields": [
-      "lineId=7f0b0991-281a-495b-9990-0adf3db5e7ab",
+      "lineId=a206de16-ea0b-4df2-9717-c7e4193e5278",
       "requisitionId=a0000001-0000-4000-8000-000000000524"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/Competitions/Details/85c6abcb-672b-4f84-8b69-68090648c386",
-    "final": "/ui/hr-core/Competitions/Details/85c6abcb-672b-4f84-8b69-68090648c386"
+    "redirect": "/ui/hr-core/Competitions/Details/9c5d9990-4f83-4cc9-bd20-5bbd49614957",
+    "final": "/ui/hr-core/Competitions/Details/9c5d9990-4f83-4cc9-bd20-5bbd49614957"
   }
 }

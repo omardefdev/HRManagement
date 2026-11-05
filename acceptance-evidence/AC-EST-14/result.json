@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Preview_job_catalog_code_returns_non_empty_value": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "2fa8d14d-8fb8-4758-a7e8-295a8de05819",
+      "recordedAtUtc": "2026-11-05T04:07:14.4489656Z",
+      "testClass": "AcEst14JobCatalogCodPreviewTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "2fa8d14d-8fb8-4758-a7e8-295a8de05819",
+  "recordedAtUtc": "2026-11-05T04:07:14.4489656Z"
+}

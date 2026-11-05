@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Partial_disbursement_http_path_invariant_and_idempotency": {
+      "status": "Fail",
+      "reason": "Started but did not record a result (the test failed or was aborted before WriteResult).",
+      "correlationId": "61f02417-3092-4af9-ba40-ac45ce3b42cf",
+      "recordedAtUtc": "2026-11-05T04:03:17.6450247Z",
+      "testClass": "Ac24PartialDisbursementTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Fail",
+  "reason": "Partial_disbursement_http_path_invariant_and_idempotency: Fail \u2014 Started but did not record a result (the test failed or was aborted before WriteResult).",
+  "correlationId": "61f02417-3092-4af9-ba40-ac45ce3b42cf",
+  "recordedAtUtc": "2026-11-05T04:03:17.6450247Z"
+}
