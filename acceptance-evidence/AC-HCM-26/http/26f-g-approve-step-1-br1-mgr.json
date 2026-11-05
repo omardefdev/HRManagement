@@ -1,20 +1,20 @@
 {
   "step": "26f-g-approve-step-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/efcdb58d-1866-4be7-861a-70b0582e1042",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/7fbce100-ddc2-407d-a059-5e195214ca1d",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:09:08.2414045Z",
+  "capturedAtUtc": "2026-11-05T04:10:52.4086096Z",
   "body": {
     "fields": [
-      "RequisitionId=efcdb58d-1866-4be7-861a-70b0582e1042",
+      "RequisitionId=7fbce100-ddc2-407d-a059-5e195214ca1d",
       "Comments=AC-HCM-26 step 1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/efcdb58d-1866-4be7-861a-70b0582e1042",
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/7fbce100-ddc2-407d-a059-5e195214ca1d",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/efcdb58d-1866-4be7-861a-70b0582e1042",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/7fbce100-ddc2-407d-a059-5e195214ca1d",
     "alerts": [
       "\u0647\u0630\u0647 \u0627\u0644\u062E\u0637\u0648\u0629 \u062A\u062A\u0637\u0644\u0628 \u062F\u0648\u0631 \u00ABhr-management-approver\u00BB."
     ]

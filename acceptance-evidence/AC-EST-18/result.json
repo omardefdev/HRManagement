@@ -1,0 +1,44 @@
+{
+  "scenarios": {
+    "Deactivate_grade_used_in_job_catalog_rejected": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "07c7c17e-051c-436c-9dd1-5ba41a94be65",
+      "recordedAtUtc": "2026-11-05T04:09:43.5910832Z",
+      "testClass": "AcEst18ReferenceCatalogAdminTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    },
+    "Branch_manager_forbidden_on_mvc_create": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "f11d8a38-a8b3-4e2a-a587-2a441dc832b5",
+      "recordedAtUtc": "2026-11-05T04:09:44.1029880Z",
+      "testClass": "AcEst18ReferenceCatalogAdminTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    },
+    "Central_creates_GR16_visible_in_grade_lookup": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "c7b279dd-f5ba-4431-be78-a56c2922017e",
+      "recordedAtUtc": "2026-11-05T04:09:44.6356534Z",
+      "testClass": "AcEst18ReferenceCatalogAdminTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    },
+    "Central_creates_JcHr_visible_in_classification_lookup": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "54be2722-175e-4a8b-83ae-f91ae6e2c78e",
+      "recordedAtUtc": "2026-11-05T04:09:45.1477509Z",
+      "testClass": "AcEst18ReferenceCatalogAdminTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "54be2722-175e-4a8b-83ae-f91ae6e2c78e",
+  "recordedAtUtc": "2026-11-05T04:09:45.1477509Z"
+}

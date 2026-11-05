@@ -3,9 +3,9 @@
   "method": "GET",
   "url": "/ui/hr-core/SelectionCommittees/Minutes/a0000001-0000-4000-8000-000000000511",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:01:14.8516455Z",
+  "capturedAtUtc": "2026-11-05T04:10:06.8582771Z",
   "body": {
     "contentType": "application/pdf",
-    "bytes": 44476
+    "bytes": 46850
   }
 }

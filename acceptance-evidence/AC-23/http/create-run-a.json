@@ -1,0 +1,10 @@
+{
+  "step": "create-run-a",
+  "method": "POST",
+  "url": "/api/payroll/runs",
+  "statusCode": 201,
+  "capturedAtUtc": "2026-11-05T04:06:46.0854871Z",
+  "body": {
+    "id": "abc1c299-fb58-4534-a0cd-b8836e7046ca"
+  }
+}

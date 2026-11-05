@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Inventory_create_ignores_hidden_tenant_and_audit_fields": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "724c5869-8f83-49af-b954-180d484a4dd5",
+      "recordedAtUtc": "2026-11-05T04:08:38.5056791Z",
+      "testClass": "Ac31MassAssignmentTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "724c5869-8f83-49af-b954-180d484a4dd5",
+  "recordedAtUtc": "2026-11-05T04:08:38.5056791Z"
+}

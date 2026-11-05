@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Rogue_service_token_rejected_without_new_reference": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "b86c0d9b-2952-4f0b-bfc3-26a603c9714e",
+      "recordedAtUtc": "2026-11-05T04:08:13.5896637Z",
+      "testClass": "Ac30S2sFileReferenceRejectionTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "b86c0d9b-2952-4f0b-bfc3-26a603c9714e",
+  "recordedAtUtc": "2026-11-05T04:08:13.5896637Z"
+}

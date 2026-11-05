@@ -218,6 +218,11 @@
   ],
   "historical": [
     {
+      "file": "acceptance-evidence/**",
+      "keys": ["validTo"],
+      "reason": "PLAN-41: responses of the system recorded by a CI run (AC-EST-18 reads a grade, whose validTo is null). A record of what the API answered, written again by every run; nothing compares it with the clock."
+    },
+    {
       "file": "docs/ops007/component-inventory.json",
       "keys": ["eolDate"],
       "reason": "OPS-007 inventory of upstream vendor end-of-life dates (facts published by the vendors). No validator, test or guard compares them with the clock (ops007-validate.ps1 checks structure only); upgrades are tracked by patchStatus/upgradeTarget. Several entries are stale (kubernetes 2025-12-28, dotnet-runtime 9.0.7 2026-11-12) - recorded as an OPS documentation defect in reports/plan34-final-report.md, not an obligation of this registry."

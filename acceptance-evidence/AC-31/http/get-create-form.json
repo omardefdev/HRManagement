@@ -1,0 +1,10 @@
+{
+  "step": "get-create-form",
+  "method": "GET",
+  "url": "/ui/admin-logistics/InventoryItems/Create",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-05T04:08:37.9979356Z",
+  "body": {
+    "length": 17840
+  }
+}

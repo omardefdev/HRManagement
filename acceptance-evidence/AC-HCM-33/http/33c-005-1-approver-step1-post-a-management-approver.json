@@ -1,16 +1,16 @@
 {
   "step": "1-approver-step1-post-a-management-approver",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/63866eb4-9021-42e8-8328-f671041236e5",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/216b8b93-4b6f-4747-913e-237768714f48",
   "statusCode": 200,
-  "capturedAtUtc": "2026-10-29T20:14:17.4132346Z",
+  "capturedAtUtc": "2026-11-05T04:10:35.3985512Z",
   "body": {
     "fields": [
-      "RequisitionId=63866eb4-9021-42e8-8328-f671041236e5",
+      "RequisitionId=216b8b93-4b6f-4747-913e-237768714f48",
       "Comments=E2E wrong role"
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/63866eb4-9021-42e8-8328-f671041236e5"
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/216b8b93-4b6f-4747-913e-237768714f48"
   }
 }

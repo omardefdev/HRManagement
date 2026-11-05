@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Platform_admin_rebuilds_journey_after_scoped_lookup": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "54bc401e-bc77-405f-a5d0-d48a328c218d",
+      "recordedAtUtc": "2026-11-05T04:08:09.4856225Z",
+      "testClass": "Ac37JourneyRebuildLiveTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "54bc401e-bc77-405f-a5d0-d48a328c218d",
+  "recordedAtUtc": "2026-11-05T04:08:09.4856225Z"
+}

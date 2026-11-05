@@ -44,3 +44,10 @@ condition = "AND"
 paths = ['''^reports/plan40-progress\.md$''']
 regexTarget = "match"
 regexes = ['''key SHA256:qWIfQls8\.\.\.pUMGsto''']
+
+[[allowlists]]
+description = "PLAN-41 acceptance evidence: metadata.json records each image's source revision. The value of auth-directory-web is a 40-hex git commit id, not a secret; 'auth' in the service name trips generic-api-key. Only that exact line shape, only in evidence metadata."
+condition = "AND"
+paths = ['''^acceptance-evidence/.*metadata\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"auth-directory-web":\s*"[0-9a-f]{40}",?\s*$''']

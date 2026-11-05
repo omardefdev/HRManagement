@@ -1,0 +1,26 @@
+{
+  "scenarios": {
+    "Migration_mode_applies_legacy_job_code": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "f983079f-74cb-49d3-b815-0fa54b65db5c",
+      "recordedAtUtc": "2026-11-05T03:58:39.2320138Z",
+      "testClass": "AcEst17JobCatalogMigrationLegacyTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    },
+    "Standard_mode_rejects_legacy_job_code_column": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "2dabf33d-5972-4c24-874f-134c048fc12c",
+      "recordedAtUtc": "2026-11-05T03:58:39.9513422Z",
+      "testClass": "AcEst17JobCatalogMigrationLegacyTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "2dabf33d-5972-4c24-874f-134c048fc12c",
+  "recordedAtUtc": "2026-11-05T03:58:39.9513422Z"
+}

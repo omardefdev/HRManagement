@@ -4,12 +4,15 @@
       "status": "Pass",
       "reason": null,
       "stageReached": "done",
-      "correlationId": "da99702e-bc5f-4466-ba63-e4ce2a8aee41",
-      "recordedAtUtc": "2026-11-01T00:54:46.4862922Z"
+      "correlationId": "395b5670-7d3c-49b2-98f2-2bdb4c9d3ff9",
+      "recordedAtUtc": "2026-11-05T04:23:56.2812084Z",
+      "testClass": "RecruitmentToHireJourneyProdLikeE2ETests",
+      "profile": "prodlike",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
     }
   },
   "status": "Pass",
   "reason": null,
-  "correlationId": "da99702e-bc5f-4466-ba63-e4ce2a8aee41",
-  "recordedAtUtc": "2026-11-01T00:54:46.4872447Z"
+  "correlationId": "395b5670-7d3c-49b2-98f2-2bdb4c9d3ff9",
+  "recordedAtUtc": "2026-11-05T04:23:56.2878494Z"
 }

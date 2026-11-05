@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Frozen_run_isolated_from_profile_edit": {
+      "status": "Fail",
+      "reason": "Started but did not record a result (the test failed or was aborted before WriteResult).",
+      "correlationId": "9950f598-4125-4fd6-a784-8b5f94ae26ef",
+      "recordedAtUtc": "2026-11-05T04:06:45.8210188Z",
+      "testClass": "Ac23PayrollFreezeTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Fail",
+  "reason": "Frozen_run_isolated_from_profile_edit: Fail \u2014 Started but did not record a result (the test failed or was aborted before WriteResult).",
+  "correlationId": "9950f598-4125-4fd6-a784-8b5f94ae26ef",
+  "recordedAtUtc": "2026-11-05T04:06:45.8210188Z"
+}

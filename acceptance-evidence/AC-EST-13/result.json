@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Reference_data_lookup_returns_national_grades": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "f7374160-bc4e-4340-84da-2a9e4a876528",
+      "recordedAtUtc": "2026-11-05T04:03:13.2238701Z",
+      "testClass": "AcEst13EstablishmentMdmLookupTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "f7374160-bc4e-4340-84da-2a9e4a876528",
+  "recordedAtUtc": "2026-11-05T04:03:13.2238701Z"
+}

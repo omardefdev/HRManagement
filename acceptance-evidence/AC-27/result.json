@@ -1,0 +1,17 @@
+{
+  "scenarios": {
+    "Fulfill_produces_masked_package_without_raw_national_id": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "fcb6c973-1b93-450a-8760-473ce571025e",
+      "recordedAtUtc": "2026-11-05T04:08:10.8290279Z",
+      "testClass": "Ac27DsarExportTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "fcb6c973-1b93-450a-8760-473ce571025e",
+  "recordedAtUtc": "2026-11-05T04:08:10.8290279Z"
+}

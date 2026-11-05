@@ -1,6 +1,17 @@
 {
+  "scenarios": {
+    "Enforce_capstone_pending_api_shape_when_stack_available": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "09e4267f-7e58-4e14-b97e-4c9d86966fd5",
+      "recordedAtUtc": "2026-11-05T04:07:13.1191702Z",
+      "testClass": "AcEst24EstablishmentWorkflowUiTests",
+      "profile": "lab",
+      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+    }
+  },
   "status": "Pass",
   "reason": null,
-  "correlationId": "3a3bb1a8-f97f-43a8-b78c-93773ac160af",
-  "recordedAtUtc": "2026-10-29T20:13:56.0858000Z"
+  "correlationId": "09e4267f-7e58-4e14-b97e-4c9d86966fd5",
+  "recordedAtUtc": "2026-11-05T04:07:13.1191702Z"
 }
