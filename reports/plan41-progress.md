@@ -176,3 +176,23 @@ Fix (bc0b5fc8): the fixture lists Acceptance, acceptance-evidence/** validTo is 
 Run 5 (41951228726, head bc0b5fc8): CI, CodeQL, E2E, Gitleaks green. Acceptance red after 1h13m18s: mcr.microsoft.com answered 503 while the base stack built (03:04Z), so the meta classes did not run. Environment.
 Fix (f6e3422d): scripts/ci/compose-up-retry.sh tries the build three times, 60 s apart; a real build failure still fails.
 Run 6 (41959564898, head f6e3422d): CI red: dotnet publish inside Int037PublishOutputTests stopped for over 5 minutes, the blame hang timeout took the test host down. That test took 15 and 27 s in run 1 and passed in runs 1 to 5, so 1 failure in 6 runs. It came about 20 minutes after the 503 from Microsoft's registry; a stalled restore is likely but not proved (the hang dump is not in the artifact). No code changed for it. Its Acceptance could not end green (AC-QA-34 reads the CI job), so this commit, outside the code tree, starts a clean run instead of a rerun, which could read the failed attempt's test-results artifact. If it comes back, it stops being a one-off: a stop under "two consecutive green runs".
+
+Run 7 (41962709297, head e6518e97): every check green, Acceptance 1h37m18s, guard PASS on 69 classes in 12 trx. Totals: 77 ACs: 31 proven, 27 passed but not proving, 8 stale, 4 incomplete, 6 not run, 0 fail, 1 blocked.
+Evidence commit 7b9fcbdc from that run: -Committed PASS locally, gitleaks clean over 327 commits, 84 of 84 governance tests with the evidence in place.
+Run 8 (41998062595, head 7b9fcbdc): every check green, Acceptance 1h29m47s, the Committed acceptance evidence step success.
+
+Merged by agent on owner instruction (UTC): 2026-11-05T11:28:51Z
+PR https://github.com/omardefdev/HRManagement/pull/36, merge commit 8e79a6b2f0f59b6296cbd4b3c8a4b5557c4d86ec. main = origin/main in the clone.
+Post-merge push run 42019294047: success; the dedupe guard skipped CI, CodeQL, Acceptance and E2E.
+-Committed on main: PASS.
+Protection: applied 2026-11-05T11:29:35Z, scm001-branch-protection-validate.ps1 -CheckLiveGitHub OK. Undo: gh api -X DELETE repos/omardefdev/HRManagement/branches/main/protection. SCM-NO-GITHUB-PROTECTION closed in this commit; the fallback tests moved to testdata/qa/branch-protection/exceptions-fallback-open.json, 77 of 77 governance tests.
+ENABLE_ACCEPTANCE_JOB: never existed.
+AC-QA-41a remote negative: run 42019357506 on main. Acceptance red after 19m15s, the guard named AC-HCM-26/26i and Ac26_i_intake_close_job_closes_expired_posting, as expected.
+
+Finished (UTC): 2026-11-05T12:04:45Z (P7)
+
+## P8
+
+Final report: reports/plan41-final-report.md. Both this note and the report ride with PLAN-42 by merge of docs/plan-41-merge-note; no second PR.
+
+Finished (UTC): 2026-11-05T12:04:45Z (P8)
