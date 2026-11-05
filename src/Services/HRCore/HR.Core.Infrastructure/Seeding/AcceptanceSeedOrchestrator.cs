@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Establishment;
 using HR.Core.Infrastructure.Services.OrgStructure;
@@ -22,6 +23,8 @@ public static class AcceptanceSeedOrchestrator
         await AcceptanceRecruitmentStatesPatch.ApplyAsync(db, logger, ct);
         // PLAN-41: last, because the patches above add BR1 positions; the plan target is funded + 2 over the final subtree.
         await AcceptancePlanningPatch.SyncPlanTargetAsync(db, logger, ct);
+        // PLAN-42: only with docker-compose.acceptance-s2s42.yml.
+        await AcceptanceS2s42PolicyPatch.ApplyAsync(db, serviceProvider.GetRequiredService<IConfiguration>(), ct);
         await new OrgUnitVersionService(db, serviceProvider.GetRequiredService<IFundedPositionVersionService>())
             .BackfillMissingVersionsAsync(ct);
         var asOf = serviceProvider.GetRequiredService<EstablishmentAsOfService>();

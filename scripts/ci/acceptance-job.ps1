@@ -41,6 +41,8 @@ $onWindows = $env:OS -eq "Windows_NT"
 $inCi = $env:GITHUB_ACTIONS -eq "true"
 $hasPwsh7 = $PSVersionTable.PSVersion.Major -ge 7
 $acceptanceProject = "src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj"
+$prodLikeFiles = @("docker-compose.yml", "docker-compose.services.yml", "docker-compose.dev-profiles.yml",
+    "docker-compose.full-stack-gateway.yml", "docker-compose.acceptance.yml", "docker-compose.acceptance-prodlike.yml")
 $leastPrivFiles = @("docker-compose.yml", "docker-compose.services.yml", "docker-compose.dev-profiles.yml",
     "docker-compose.full-stack-gateway.yml", "docker-compose.acceptance.yml", "docker-compose.acceptance-prodlike.yml",
     "docker-compose.acceptance-leastpriv.yml")
@@ -192,9 +194,22 @@ function Start-AcceptanceStack {
     Wait-Gateway
 }
 
+# PLAN-42 (P-7): a stage may name extra compose files and the services they change. They are applied on the running stack before the
+# stage; the stack is then marked, so the next stage that needs it starts it again, and Use-Stack tears it down first.
+function Add-StageOverlay {
+    param([Parameter(Mandatory)]$Stage)
+    $files = @($prodLikeFiles) + @(Get-AcceptanceProperty $Stage "composeFiles")
+    $arguments = @("compose", "-p", "hrm-acceptance") + @($files | ForEach-Object { "-f", $_ })
+    $arguments += @("--profile", "full-stack", "up", "-d", "--no-deps", "--no-build", "--force-recreate") + @(Get-AcceptanceProperty $Stage "recreate")
+    & docker @arguments
+    if ($LASTEXITCODE -ne 0) { throw "The overlay of $($Stage.part)-$($Stage.group) did not apply." }
+    $script:stackChanged = $true
+}
+
 function Use-Stack {
     param([Parameter(Mandatory)][string]$Stack)
-    if ($Stack -eq $script:currentStack) { return }
+    if ($Stack -eq $script:currentStack -and -not $script:stackChanged) { return }
+    $script:stackChanged = $false
     Measure-Step "Stack $Stack" {
         Stop-CurrentStack
         Remove-Item -Path Env:ACCEPTANCE_COMPOSE_PROJECT -ErrorAction SilentlyContinue
@@ -377,11 +392,14 @@ try {
 
         Use-Stack -Stack ([string]$stage.stack)
         if ([string]$stage.group -eq "meta") { Get-CiJobResults }
+        # Where-Object: @($null) has one element, and a stage without compose files has no overlay.
+        $overlay = @(Get-AcceptanceProperty $stage "composeFiles" | Where-Object { $_ })
+        if ($overlay.Count -gt 0) { Measure-Step "Overlay $label" { Add-StageOverlay -Stage $stage } }
 
         $projects = @($entries | Group-Object -Property { if (Get-AcceptanceProperty $_ "project") { [string]$_.project } else { $acceptanceProject } })
         foreach ($project in $projects) {
             $short = if ($project.Name -eq $acceptanceProject) { "" } else { "-e2e" }
-            if ([string]$stage.group -eq "isolated") {
+            if ([string]$stage.group -eq "isolated" -or $overlay.Count -gt 0) {
                 # P-7: a class that stops or recreates containers runs alone, in its own test process.
                 foreach ($entry in $project.Group) { Invoke-TestRun -Name "$label$short-$($entry.class)" -Project $project.Name -Entries @($entry) }
             }

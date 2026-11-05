@@ -278,7 +278,7 @@ public class ServiceIdentitySecretTests
     }
 }
 
-/// <summary>PLAN-37 (§4): the legal-hold gate is wired by the approved key (its authentication is PLAN-42).</summary>
+/// <summary>PLAN-37 (§4): the legal-hold gate is wired by the approved key (PLAN-42 adds the service identity).</summary>
 [Collection(ProcessEnvironmentCollection.Name)]
 public class Int037LifecycleGateRegistrationTests
 {
@@ -287,6 +287,7 @@ public class Int037LifecycleGateRegistrationTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(values.ToDictionary(v => v.Key, v => v.Value)).Build();
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddEmployeeLifecycleGate(configuration);
         return services.BuildServiceProvider();
     }

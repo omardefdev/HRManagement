@@ -166,6 +166,7 @@
   - اختبار معماري: كل مجال في السجل له نقطة استدعاء واحدة على الأقل.
 
 #### G-POL-03 — عميل الإنفاذ البعيد يفشل مفتوحاً: الرفض يتحول إلى سماح
+- **الحالة:** ✅ عولجت في [PLAN-42](acceptance-plans/PLAN-42-s2s-trust-boundary.md) — العميل يُغلق عند الفشل، والرد 200 يُستعمل كما هو، وShadow لا يغيّر نتيجة المستدعي، ولا لقطة محلية بعد اليوم (AC-S2S-42a، 42b).
 - **الدليل:**
   - HR.Core يعيد رفض وضع Enforce بـ`UnprocessableEntity` (422) ([PoliciesController.cs:34-35](../src/Services/HRCore/HR.Core.Web/Controllers/PoliciesController.cs)). العميل يعامل أي رمز غير ناجح كعطل ويذهب إلى `Degraded` ([PolicyEnforceClient.cs:47-50](../src/Shared/HRManagement.ServiceDefaults/Policy/PolicyEnforceClient.cs)).
   - `Degraded` يقيّم لقطة مخزنة إن وُجدت، وإلا يعيد `shim.Allowed` الذي يساوي `true` دائماً لغير العهدة (`:85-108`).
@@ -292,6 +293,7 @@
   - سالب: إعادة تشغيل الخدمة لا تغيّر `WhenJson` لأي قاعدة منشورة (بصمة قبل/بعد).
 
 #### G-POL-08 — نقطة `enforce` العامة تثق بالمستدعي: الوضع والفاعل والكيان من جسم الطلب
+- **الحالة:** ✅ عولجت في [PLAN-42](acceptance-plans/PLAN-42-s2s-trust-boundary.md) — `enforce` للخدمة المالكة للمجال على `api/internal/policies/enforce`، والخادم يشتق الوضع والفاعل والمستأجر، ولا يبدأ مساراً إلا لثلاثية في القائمة البيضاء (AC-S2S-42c).
 - **الدليل:**
   - `POST api/policies/enforce` متاح لـ`HrCoreBranchOperation`: Admin وHrCore وBranchManager وHrManagementApprover ([PoliciesController.cs:17-29](../src/Services/HRCore/HR.Core.Web/Controllers/PoliciesController.cs)، [GatewayPathAuthorizationMiddleware.cs:184-189](../src/Shared/HRManagement.ServiceDefaults/GatewayPathAuthorizationMiddleware.cs)).
   - `Mode` يؤخذ من الجسم كما هو (`:34`). `ActorUserId ??=` يحتفظ بالقيمة المرسلة (`:31`)، فيُسجل في الدفتر وفي `InitiatedBy` فاعل مزيّف.

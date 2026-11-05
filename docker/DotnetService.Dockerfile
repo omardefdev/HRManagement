@@ -54,4 +54,5 @@ COPY --from=build /app/publish .
 ARG SOURCE_SHA=unknown
 LABEL org.opencontainers.image.revision=$SOURCE_SHA
 USER $APP_UID
-ENTRYPOINT ["sh", "-c", "exec dotnet \"$APP_DLL\""]
+# bash, not sh: dash drops environment variables whose name has a dot, such as PolicyEngine__Assets.Custody, and the mode falls back to Off.
+ENTRYPOINT ["bash", "-c", "exec dotnet \"$APP_DLL\""]

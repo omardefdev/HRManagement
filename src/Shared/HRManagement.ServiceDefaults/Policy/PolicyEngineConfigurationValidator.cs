@@ -56,6 +56,9 @@ public sealed class PolicyEngineConfigurationValidator(
             var isDefault = string.Equals(child.Key, PolicyModeResolver.DefaultModeKey, StringComparison.OrdinalIgnoreCase);
             if (!isDefault && !IsDomain(child.Key))
                 failures.Add($"{child.Path} is not a policy domain");
+            // A key with no value counts as absent, as it does for the resolver: a later source can clear an earlier one.
+            if (child.Value is null)
+                continue;
             if (!PolicyModeResolver.TryParseMode(child.Value, out var mode))
                 failures.Add($"{child.Path} is not one of Off, Shadow, Enforce");
             else if (mode != PolicyEnforcementMode.Off)
@@ -79,6 +82,8 @@ public sealed class PolicyEngineConfigurationValidator(
         {
             if (!IsDomain(child.Key))
                 failures.Add($"{child.Path} is not a policy domain");
+            if (child.Value is null)
+                continue;
             if (!PolicyModeResolver.TryParseFailureMode(child.Value, out var mode))
                 failures.Add($"{child.Path} is not one of FailClosed, AllowWithAlert");
             else if (mode == PolicyFailureMode.AllowWithAlert && environment.IsProduction())

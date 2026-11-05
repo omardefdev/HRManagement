@@ -209,6 +209,31 @@ public class S2s042GatewayProofV2Tests
         Assert.Equal(GatewayProofResult.Valid, GatewayCallerProof.ValidateV2(Received(Signed(privateFromBase64)), fromPem, Cache(), Skew));
     }
 
+    [Fact]
+    public void The_key_script_makes_a_pair_the_application_loads_and_that_signs_and_verifies()
+    {
+        var file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "proof-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var (exit, stdout, stderr) = HRManagement.TestSupport.RepoScriptRunner.RunScript(
+                System.IO.Path.Combine(Hard001Root(), "scripts", "s2s042-new-gateway-proof-keys.ps1"),
+                $"-OutFile \"{file}\"",
+                120_000);
+            Assert.True(exit == 0, stdout + stderr);
+
+            using var keys = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(file));
+            using var privateKey = GatewayProofKeyLoader.LoadPrivate(keys.RootElement.GetProperty("privateKeyB64").GetString()!);
+            using var publicKey = GatewayProofKeyLoader.LoadPublic(keys.RootElement.GetProperty("publicKeyB64").GetString()!);
+
+            Assert.Equal(GatewayProofResult.Valid, GatewayCallerProof.ValidateV2(Received(Signed(privateKey)), publicKey, Cache(), Skew));
+            Assert.DoesNotContain(keys.RootElement.GetProperty("privateKeyB64").GetString()!, stdout + stderr);
+        }
+        finally
+        {
+            System.IO.File.Delete(file);
+        }
+    }
+
     [Theory]
     [InlineData("USE_ENV_OR_SECRET_MANAGER")]
     [InlineData("not a key")]
@@ -477,6 +502,14 @@ public class S2s042GatewayProofV2Tests
         Assert.Equal(
             ["src/Shared/HRManagement.ServiceDefaults/GatewayAccessTokenTransform.cs", "src/Shared/HRManagement.ServiceDefaults/GatewayCallerProofMiddleware.cs"],
             signers.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void The_image_starts_through_bash_so_that_a_policy_mode_with_a_dot_in_its_name_reaches_the_process()
+    {
+        var dockerfile = System.IO.File.ReadAllText(System.IO.Path.Combine(Hard001Root(), "docker", "DotnetService.Dockerfile"));
+
+        Assert.Contains("ENTRYPOINT [\"bash\", \"-c\", \"exec dotnet \\\"$APP_DLL\\\"\"]", dockerfile);
     }
 
     private static string Hard001Root()

@@ -201,7 +201,8 @@ if ([string]::IsNullOrWhiteSpace($keycloakContainer)) {
 }
 
 Write-Host "== Syncing Keycloak service clients and scopes =="
-& "$PSScriptRoot/sync-keycloak-dev-realm.ps1" -ContainerName $keycloakContainer
+# PLAN-42 (P-6): the generated secret of the services; the default of that script is the old lab value.
+& "$PSScriptRoot/sync-keycloak-dev-realm.ps1" -ContainerName $keycloakContainer -SvcSecret $env:ACCEPTANCE_SVC_CLIENT_SECRET
 
 Write-Host "== Applying PostgreSQL per-service roles by Compose service name =="
 docker compose -p $projectName @composeArgs exec -T postgresql bash /docker-entrypoint-initdb.d/02-init-service-roles.sh

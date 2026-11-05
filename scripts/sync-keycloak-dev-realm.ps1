@@ -515,5 +515,5 @@ foreach ($service in @($wiring.services | Where-Object { $_.serviceIdentity })) 
 
 Write-Host "Done. Verify token:"
 Write-Host "  curl -X POST http://localhost:8088/realms/$Realm/protocol/openid-connect/token \"
-Write-Host "    -d grant_type=client_credentials -d client_id=svc-admin-logistics -d client_secret=$SvcSecret \"
+Write-Host "    -d grant_type=client_credentials -d client_id=svc-admin-logistics -d client_secret=<the service secret> \"
 Write-Host "    -d scope=`"hr-core.workflow`""

@@ -40,8 +40,14 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
 | Scope | Endpoint | Policy |
 |-------|----------|--------|
 | `directory.sync` | `POST /api/internal/directory/sync-employee` | `Service.DirectorySync` |
-| `hr-core.lookup` | `/api/lookup/**` (S2S) | `HrCore.Lookup` / `Service.HrCoreLookup` |
+| `hr-core.lookup` | `/api/lookup/**` (S2S) | `HrCore.Lookup` |
+| `hr-core.lookup` | `/api/internal/service-regime/**` | `Service.HrCoreInternal` (PLAN-42): service account + scope + `svc-hr-contracts`, `svc-hr-movements`, `svc-payroll` |
+| `hr-core.lookup` | `GET /api/internal/employees/{id}/lifecycle-flags` | `Service.HrCoreLifecycle` (PLAN-42): service account + scope + `svc-hr-contracts`, `svc-hr-movements` |
 | `hr-core.workflow` | `POST /api/workflow-instances` (S2S) | `HrCoreWrite` / service scope |
+| `hr-core.workflow` | `POST /api/internal/policies/enforce` | `Service.PolicyEnforce` (PLAN-42): service account + scope + owner of a domain; the action checks the domain |
+| `hr-core.workflow` | `POST /api/internal/codes/generate`, `/preview` | `Service.CodeGenerate` (PLAN-42): service account + scope + owner of a kind; the action checks the kind |
+| `dsar.subject.read` | `GET /api/internal/dsar-subjects/**` | `Service.DsarSubjectRead` |
+| `dsar.subject.erase` | `POST /api/internal/dsar-subjects/candidates/{id}/anonymize` | `Service.DsarSubjectErase` (PLAN-42): `svc-compliance` alone; the class policy still asks for `dsar.subject.read` too |
 | `file-storage.references` | `POST/DELETE /api/files/{id}/references` | `Service.FileStorageReferences` |
 | `payroll.grades.read` | `GET /api/internal/pay-grades/{gradeCode}?asOf=yyyy-MM-dd` (Payroll) | `Service.PayrollGradeLookup` — service account + scope + client `svc-hr-core` only |
 | `file-storage.service-upload` | `POST /api/files/service-upload`, `POST /api/files/service-upload/metadata`, `GET /api/files/service-upload/{fileId}/content` (File.Storage) | `Service.FileStorageServiceUpload` — service account + scope + client `svc-hr-core` only |
@@ -73,8 +79,11 @@ and/or `Keycloak:AdditionalValidAudiences=api-hr-core`.
   (`scripts/sync-keycloak-dev-realm.ps1`; not in the realm JSON, like `payroll.grades.read`). HR.Core requests it through
   `ServiceIdentity__Scope` from the wiring matrix (shared compose files and k8s, PLAN-37). Run the sync **before** HR.Core
   requests the scope: Keycloak refuses a token for an unlinked scope (`invalid_scope`), which breaks every HR.Core S2S call.
-- **Gateway caller proof:** the route is not exempt, so outside Development the direct call must be signed with
-  `GatewayCallerProof.Sign` (as `HrCoreLookupClient` does).
+- **Gateway caller proof:** none. PLAN-42: a service token passes on its own, and no service holds what makes a proof.
+
+## Gateway proof (PLAN-42)
+
+The gateway alone holds the ECDSA private key (`GatewayCallerProof__PrivateKeyPem`); every module holds the public key. A user request needs a v2 proof bound to its token, and it works once. A service account needs none. `api/internal/*` stays exempt because every route there is service-only (`S2s042InternalRoutesAreServiceOnlyTests`). See [ADR-S2S-042](ADR-S2S-042-trust-boundary.md). Secrets per container: [S2S_SECRET_MATRIX.md](S2S_SECRET_MATRIX.md).
 
 ## PostgreSQL roles (per database)
 
@@ -122,7 +131,7 @@ Do **not** inject MinIO keys into unrelated services.
 | IT.Infra | Auth.Directory | `/api/internal/directory/sync-employee` | `directory.sync` |
 | Payroll | HR.Core | `/api/lookup/**` | `hr-core.lookup` |
 | HR.Core / Contracts / Training / IDCard / Archive | File.Storage (via Gateway) | `/api/files/{id}/references` | `file-storage.references` |
-| HR.Core | File.Storage (direct, caller-proof signed) | `/api/files/service-upload/**` | `file-storage.service-upload` |
+| HR.Core | File.Storage (direct) | `/api/files/service-upload/**` | `file-storage.service-upload` |
 
 Any other service→service HTTP call is denied by default (no client / no scope).
 

@@ -81,7 +81,8 @@ if [ -z "$(current "$PROOF_PRIVATE")" ] && [ -z "$(current "$PROOF_PUBLIC")" ]; 
   if [ "$CHECK" = "0" ]; then
     proof_dir="$(mktemp -d)"
     openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$proof_dir/key.pem" 2>/dev/null
-    NEW["$PROOF_PRIVATE"]="$(openssl pkey -in "$proof_dir/key.pem" -outform DER | base64 | tr -d '\n')"
+    # pkcs8 -topk8, not pkey: pkey -outform DER writes the SEC1 form, which the application refuses.
+    NEW["$PROOF_PRIVATE"]="$(openssl pkcs8 -topk8 -nocrypt -in "$proof_dir/key.pem" -outform DER | base64 | tr -d '\n')"
     NEW["$PROOF_PUBLIC"]="$(openssl pkey -in "$proof_dir/key.pem" -pubout -outform DER | base64 | tr -d '\n')"
     proof_fingerprint="$(openssl pkey -in "$proof_dir/key.pem" -pubout -outform DER | sha256sum | cut -d' ' -f1)"
     rm -rf "$proof_dir"

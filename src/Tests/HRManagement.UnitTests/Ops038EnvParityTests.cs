@@ -128,6 +128,7 @@ public class Ops038EnvParityTests
         Assert.Contains("(PASSWORD|_PASS|SECRET|_KEY|_KEY_B64|TOKEN)$", ps);
         // PLAN-42: the proof pair is made as one key by both scripts.
         Assert.Contains("openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256", sh);
+        Assert.Contains("openssl pkcs8 -topk8 -nocrypt", sh);
         Assert.Contains("s2s042-new-gateway-proof-keys.ps1", ps);
         Assert.Contains("openssl rand -base64 32", sh);
         Assert.Contains("RandomNumberGenerator", ps);

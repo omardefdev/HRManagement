@@ -137,8 +137,9 @@ cut -d= -f1 "$f" | grep -E '^[A-Z]'     # تحقّق بأسماء المفاتي
 ```
 
 `deploy.ps1` و`remote-deploy.sh check-env` يرفضان النشر إن غاب مفتاح من `.env.vps.example`، أو فرغت قيمة سر، أو قصر
-`DEMO_USERS_PASSWORD` عن 16 حرفاً أو `GATEWAY_CALLER_PROOF_SECRET`/`HR_CORE_OTP_HMAC_KEY` عن 32 — دون طباعة أي قيمة.
+`DEMO_USERS_PASSWORD` عن 16 حرفاً أو `HR_CORE_OTP_HMAC_KEY` عن 32 — دون طباعة أي قيمة.
 منذ PLAN-38 يحلّ المولّد الملتزم `deploy/vps/init-secrets.sh` محل هذه الخطوة اليدوية (§12.2)؛ تبقى هنا للتاريخ.
+ومنذ PLAN-42 حلّ زوج مفاتيح إثبات البوابة محل `GATEWAY_CALLER_PROOF_SECRET` (§15).
 
 **إضافة مفتاح لخادم قائم (PLAN-37):** كل مفتاح `SVC_*` في `deploy/wiring/service-wiring.json` (حقل `secretEnv`) مطلوب. لإضافة
 الناقص فقط، على الخادم ودون طباعة:

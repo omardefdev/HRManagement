@@ -16,6 +16,15 @@ public class GatewayUpstreamCookieForwardingTests
         ".AspNetCore.Cookies=abc; .AspNetCore.Antiforgery.xyz=token1; careers_session=CfDJ8-session; KEYCLOAK_SESSION=xyz";
 
     [Fact]
+    public void The_flash_message_cookie_passes_under_its_exact_name_only()
+    {
+        var result = GatewayUpstreamCookieForwarding.BuildAntiforgeryCookieHeader(
+            ".AspNetCore.Cookies=abc; .AspNetCore.Mvc.CookieTempDataProvider=flash; .AspNetCore.Mvc.CookieTempData=no; x.AspNetCore.Mvc.CookieTempDataProvider=no");
+
+        Assert.Equal(".AspNetCore.Mvc.CookieTempDataProvider=flash", result);
+    }
+
+    [Fact]
     public void BuildAntiforgeryCookieHeader_returns_null_for_empty_input()
     {
         Assert.Null(GatewayUpstreamCookieForwarding.BuildAntiforgeryCookieHeader(null));
@@ -186,6 +195,8 @@ public class GatewayUpstreamCookieForwardingTests
         var services = new ServiceCollection()
             .AddSingleton<IAuthenticationService>(new TokenAuthenticationService(accessToken))
             .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
+            .AddSingleton(new GatewayProofKeys(Microsoft.Extensions.Options.Options.Create(new GatewayCallerProofOptions())))
+            .AddSingleton(Moq.Mock.Of<Microsoft.Extensions.Hosting.IHostEnvironment>(e => e.EnvironmentName == "Development"))
             .BuildServiceProvider();
 
         var builderContext = new TransformBuilderContext

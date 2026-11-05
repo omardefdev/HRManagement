@@ -22,17 +22,20 @@ public class SeparationWizardController : Controller
     private readonly IMediator _mediator;
     private readonly ICodeGenerationClient _codeClient;
     private readonly IHrCoreLookupClient _hrCoreLookup;
+    private readonly IEmployeeLifecycleGate _lifecycleGate;
 
     public SeparationWizardController(
         IContractsRepository repo,
         IMediator mediator,
         ICodeGenerationClient codeClient,
-        IHrCoreLookupClient hrCoreLookup)
+        IHrCoreLookupClient hrCoreLookup,
+        IEmployeeLifecycleGate lifecycleGate)
     {
         _repo = repo;
         _mediator = mediator;
         _codeClient = codeClient;
         _hrCoreLookup = hrCoreLookup;
+        _lifecycleGate = lifecycleGate;
     }
 
     private Guid? ParseUserId()
@@ -56,6 +59,14 @@ public class SeparationWizardController : Controller
     {
         await PopulateContractsAsync(vm);
         if (!ModelState.IsValid) return View(vm);
+
+        // PLAN-42 (G-SEP-12): the wizard creates the record itself, so it asks the gate itself.
+        var (allowed, holdError) = await _lifecycleGate.AssertCanStartSeparationAsync(vm.EmployeeId, HttpContext.RequestAborted);
+        if (!allowed)
+        {
+            ModelState.AddModelError(string.Empty, holdError!);
+            return View(vm);
+        }
 
         var model = new SeparationRecord
         {

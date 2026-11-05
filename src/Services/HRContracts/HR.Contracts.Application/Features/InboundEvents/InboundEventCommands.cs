@@ -371,7 +371,8 @@ public class ProcessJobChangeRequestedHandler(
 
 public class ProcessSeparationRequestHandler(
     IContractsRepository repository,
-    ICodeGenerationClient codeClient) : IRequestHandler<ProcessSeparationRequestCommand>
+    ICodeGenerationClient codeClient,
+    IEmployeeLifecycleGate lifecycleGate) : IRequestHandler<ProcessSeparationRequestCommand>
 {
     public async Task Handle(ProcessSeparationRequestCommand request, CancellationToken cancellationToken)
     {
@@ -382,6 +383,12 @@ public class ProcessSeparationRequestHandler(
                 && !r.SeparationEventPublished, cancellationToken);
         if (existing)
             return;
+
+        // PLAN-42 (G-SEP-12): no record under a legal hold, or when the hold cannot be checked. The message fails and stays in the
+        // broker's retry and error path, so it is neither lost nor acted on.
+        var (allowed, holdError) = await lifecycleGate.AssertCanStartSeparationAsync(request.EmployeeId, cancellationToken);
+        if (!allowed)
+            throw new InvalidOperationException(holdError);
 
         var entity = new SeparationRecord
         {

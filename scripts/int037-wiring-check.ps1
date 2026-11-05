@@ -153,7 +153,12 @@ function Read-KustomizeOutput([string]$Text) {
                 if ($lines[$i] -match '^(\s+)- name: (\S+)\s*$') {
                     $indent = $Matches[1].Length; $name = $Matches[2]; $next = if ($i + 1 -lt $lines.Count) { $lines[$i + 1] } else { '' }
                     $pad = ' ' * ($indent + 2)
-                    if ($next.StartsWith($pad + 'value: ')) { $env[$name] = $next.Substring(($pad + 'value: ').Length).Trim().Trim('"') }
+                    if ($next.StartsWith($pad + 'value: ')) {
+                        $value = $next.Substring(($pad + 'value: ').Length).Trim().Trim('"')
+                        # kubectl kustomize folds a long plain scalar onto deeper lines.
+                        for ($j = $i + 2; $j -lt $lines.Count -and $lines[$j].StartsWith($pad + '  '); $j++) { $value += ' ' + $lines[$j].Trim() }
+                        $env[$name] = $value
+                    }
                     elseif ($next.StartsWith($pad + 'value:')) { $env[$name] = '' }
                     elseif ($next.StartsWith($pad + 'valueFrom:')) {
                         $key = $null; $sname = $null; $refKind = 'configMapKeyRef'; $j = $i + 2

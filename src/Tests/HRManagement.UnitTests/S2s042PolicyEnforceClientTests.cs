@@ -7,6 +7,7 @@ using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.Policy;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -74,6 +75,24 @@ public class S2s042PolicyEnforceClientTests
 
     private static PolicyEnforceRequest Request(string domain = Domain) =>
         new() { Domain = domain, SubjectType = "LeaveRequest", Action = "Create" };
+
+    [Fact]
+    public void The_registered_http_client_can_be_built_with_the_acting_user_handler()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Integration:HrCoreBaseUrl"] = "http://hr-core-web:8080"
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+        services.AddHrPolicyEnforceClient(configuration);
+
+        using var provider = services.BuildServiceProvider();
+        using var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(PolicyEnforceClient.HttpClientName);
+
+        Assert.Equal(new Uri("http://hr-core-web:8080/"), client.BaseAddress);
+    }
 
     [Fact]
     public async Task Enforce_a_denial_with_200_stays_a_denial()
@@ -361,6 +380,17 @@ public class S2s042PolicyEnforceClientTests
     [Fact]
     public void Boot_accepts_the_valid_settings_and_what_Production_ships_today() =>
         Assert.Empty(Validate("Production", false, ("PolicyEngine:Core.Recruitment", "Shadow"), ("PolicyEngine:DefaultMode", "Off")));
+
+    [Fact]
+    public void Boot_treats_a_cleared_key_as_absent_like_the_resolver()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["PolicyEngine:DefaultMode"] = null, ["PolicyEngine:Core.Recruitment"] = "Shadow" })
+            .Build();
+
+        Assert.Empty(PolicyEngineConfigurationValidator.Evaluate(config, Environment("Production"), new PolicyEngineValidationOptions()));
+        Assert.Equal(PolicyEnforcementMode.Off, new PolicyModeResolver(config).Resolve(Domain));
+    }
 
     [Fact]
     public void Boot_refuses_an_unknown_mode_value() =>

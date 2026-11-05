@@ -504,9 +504,9 @@ public class AcHcm26AssessmentInterviewTests
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EvidenceRecorder, string> ScenarioTags = new();
 
     /// <summary>
-    /// Expected rejection messages, written to db-checks.json. Flash (TempData) messages are not observable through
-    /// the gateway — GatewayUpstreamCookieForwarding forwards only antiforgery cookies, so the TempData cookie never
-    /// reaches HR.Core — therefore every negative case is asserted on the database state instead.
+    /// Expected rejection messages, written to db-checks.json. Flash (TempData) messages were not observable through
+    /// the gateway when this was written (the cookie was not forwarded until PLAN-42), so the TempData cookie never
+    /// reached HR.Core — therefore every negative case is asserted on the database state instead.
     /// </summary>
     private static readonly List<string> ExpectedFlash = [];
 

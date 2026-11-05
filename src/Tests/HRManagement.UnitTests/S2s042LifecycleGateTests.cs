@@ -163,11 +163,30 @@ public class S2s042LifecycleGateTests
     public async Task The_real_gate_starts_anywhere() =>
         await StartupCheck(Gate(_ => Json("{}")), "Production").RunAsync(CancellationToken.None);
 
-    [Fact]
-    public void Creation_asks_the_gate()
+    [Theory]
+    [InlineData(typeof(CreateSeparationRecordHandler))]
+    [InlineData(typeof(HR.Contracts.Application.Features.InboundEvents.ProcessSeparationRequestHandler))]
+    [InlineData(typeof(HR.Contracts.Web.Controllers.SeparationWizardController))]
+    public void Every_path_that_creates_a_separation_takes_the_gate(Type creator)
     {
-        var parameters = typeof(CreateSeparationRecordHandler).GetConstructors().Single().GetParameters();
+        var parameters = creator.GetConstructors().Single().GetParameters();
 
         Assert.Contains(parameters, p => p.ParameterType == typeof(IEmployeeLifecycleGate));
+    }
+
+    [Fact]
+    public void No_other_code_builds_a_separation_record()
+    {
+        var root = HRManagement.TestSupport.RepoPaths.Root;
+        var creators = Directory.GetFiles(Path.Combine(root, "src", "Services", "HRContracts"), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .Where(f => System.Text.RegularExpressions.Regex.IsMatch(System.IO.File.ReadAllText(f), @"new SeparationRecord\b(?!\w)"))
+            .Select(Path.GetFileName)
+            .Order(StringComparer.Ordinal);
+
+        // A new one takes the gate and joins this list. DemoContractsSeeder writes demo data at start-up, not a user action.
+        Assert.Equal(
+            ["DemoContractsSeeder.cs", "InboundEventCommands.cs", "SeparationRecordHandlers.cs", "SeparationWizardController.cs"],
+            creators);
     }
 }

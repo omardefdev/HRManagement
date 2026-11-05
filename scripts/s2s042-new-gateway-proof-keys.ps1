@@ -42,8 +42,9 @@ function New-KeyPairDer([string]$Directory) {
         $pem = Join-Path $Directory "key.pem"
         & openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out $pem
         if ($LASTEXITCODE -ne 0) { throw "openssl genpkey failed." }
-        & openssl pkey -in $pem -outform DER -out $private
-        if ($LASTEXITCODE -ne 0) { throw "openssl pkey failed." }
+        # pkcs8 -topk8, not pkey: pkey -outform DER writes the SEC1 form, which the loader refuses.
+        & openssl pkcs8 -topk8 -nocrypt -in $pem -outform DER -out $private
+        if ($LASTEXITCODE -ne 0) { throw "openssl pkcs8 failed." }
         & openssl pkey -in $pem -pubout -outform DER -out $public
         if ($LASTEXITCODE -ne 0) { throw "openssl pkey -pubout failed." }
     }
