@@ -22,5 +22,16 @@ Started (UTC): 2026-11-06T07:12:23.9627032Z
 - Start and cancel move to a separate service-only controller (same routes), class demands antiforgery and each bearer-only action opts out, the PLAN-42 pattern, so the CodeQL gate holds without baseline growth.
 - HrCoreBranchOperation loses its service clause: every user of it is an approve or reject action.
 
+- P1: done. Finished (UTC): 2026-11-06T07:38:35Z. Unit: Wf043, gateway, policies, Ops039, personas, Hcm025, Workflow filters 515 passed, 0 failed. EF pending-model gate passed (15 contexts).
+
+## Decisions in P1
+- WorkflowDefinitionRead policy (deviation): the plan reads with HrCoreReadOnly, which a persona holding only workflow-admin does not pass, and adding the role there would open all HR.Core reads. Class policy is the read policy; every other action carries WorkflowDefinitionAdmin, and a test requires it.
+- LastEditedBy column (addition): the last editor of a draft counts as an author, so one person cannot rewrite a colleague's draft and publish it.
+- A new version keeps the DomainEntityType of its code (addition): starts go by code, so a weaker type would escape the guardrail.
+- Every definition write needs an antiforgery token from GET api/workflow-definitions/antiforgery (CodeQL gate, PLAN-40 pattern).
+- keycloak-reconcile did not create realm roles, against P-8's assumption. It now creates the manifest's missing roles (role rows in reconcile-plan.tsv); none deleted, mappings untouched. On the server this also creates the older roles the realm lacks.
+- Known entity types = HandledEntityTypes and the registry, as the plan says: the health report therefore also lists HIRE-WIZARD, SEPARATION-WIZARD, TRANSFER-APPROVAL and DISCIPLINARY-APPROVAL (unknown type) beside the security and it-support ones.
+- P-3: the P1 migration holds only the definition columns; WorkflowInstance fields wait for WF043_ExternalStart.
+
 ## Next step
-P1.
+P2.

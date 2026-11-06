@@ -316,6 +316,9 @@ using (var scope = app.Services.CreateScope())
             await seeds.RunOptionalAsync("acceptance", () =>
                 HR.Core.Infrastructure.Seeding.AcceptanceSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider));
         }
+        // PLAN-43 (G-WF-04): reports what the validator finds in the published definitions; it never stops a start.
+        await seeds.RunOptionalAsync("workflow-definition-health", () =>
+            HR.Core.Infrastructure.Services.Workflow.WorkflowDefinitionHealthReport.RunAsync(coreDb, app.Logger));
         // Derived data (org-unit paths) and the org-unit publication, not seeds: a failure is a warning as before.
         await seeds.RunOptionalAsync("org-unit-paths", async () =>
         {

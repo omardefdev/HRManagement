@@ -145,6 +145,15 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                 return true;
             }
 
+            // PLAN-43 (G-WF-04): definitions have their own readers and writers, and hr-core is neither a writer nor needed to read.
+            if (pathValue.Contains("/api/workflow-definitions", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = IsMutating(httpMethod)
+                    ? HrManagementPolicies.WorkflowDefinitionAdmin
+                    : HrManagementPolicies.WorkflowDefinitionRead;
+                return true;
+            }
+
             // Shared pickers and table hydration: any authenticated user (controller enforces HrCoreLookup).
             if (pathValue.Contains("/api/lookup", StringComparison.OrdinalIgnoreCase))
             {

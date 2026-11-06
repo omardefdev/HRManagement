@@ -35,6 +35,38 @@ public class FineGrainedPolicyTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
     }
 
+    [Theory]
+    [InlineData(HrManagementRoles.Admin, true)]
+    [InlineData(HrManagementRoles.WorkflowAdmin, true)]
+    [InlineData(HrManagementRoles.HrCore, false)]
+    [InlineData(HrManagementRoles.HrManagementApprover, false)]
+    public async Task WorkflowDefinitionAdmin_is_for_two_roles_only(string role, bool expected)
+    {
+        var result = await BuildAuthService().AuthorizeAsync(CreateUser(role), HrManagementPolicies.WorkflowDefinitionAdmin);
+        Assert.Equal(expected, result.Succeeded);
+    }
+
+    [Fact]
+    public async Task WorkflowDefinitionAdmin_refuses_a_service_account_even_with_the_workflow_scope_and_the_role()
+    {
+        var service = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
+        ((ClaimsIdentity)service.Identity!).AddClaim(new Claim(ClaimTypes.Role, HrManagementRoles.WorkflowAdmin));
+
+        var result = await BuildAuthService().AuthorizeAsync(service, HrManagementPolicies.WorkflowDefinitionAdmin);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task WorkflowDefinitionRead_lets_workflow_admin_read_and_workflow_admin_reads_nothing_else()
+    {
+        var auth = BuildAuthService();
+        var user = CreateUser(HrManagementRoles.WorkflowAdmin);
+
+        Assert.True((await auth.AuthorizeAsync(user, HrManagementPolicies.WorkflowDefinitionRead)).Succeeded);
+        Assert.False((await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreReadOnly)).Succeeded);
+    }
+
     [Fact]
     public async Task HrCoreReadOnly_AdminRole_Succeeds()
     {

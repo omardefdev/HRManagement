@@ -203,6 +203,20 @@ public class GatewayPathAuthorizationMiddlewareTests
         Assert.Equal(expectedPolicy, policy);
     }
 
+    [Theory]
+    [InlineData("POST", "/api/hr-core/api/workflow-definitions", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("PUT", "/api/hr-core/api/workflow-definitions/00000000-0000-0000-0000-000000000001", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("DELETE", "/api/hr-core/api/workflow-definitions/00000000-0000-0000-0000-000000000001", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("POST", "/api/hr-core/api/workflow-definitions/00000000-0000-0000-0000-000000000001/publish", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("GET", "/api/hr-core/api/workflow-definitions", HrManagementPolicies.WorkflowDefinitionRead)]
+    public void Workflow_definitions_have_their_own_gateway_policies(string method, string path, string expectedPolicy)
+    {
+        var matched = GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy("hr-core", method, new PathString(path), out var policy);
+
+        Assert.True(matched);
+        Assert.Equal(expectedPolicy, policy);
+    }
+
     [Fact]
     public void Tenant_quarantine_read_uses_platform_approval_policy()
     {

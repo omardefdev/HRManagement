@@ -870,6 +870,11 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.Property(e => e.Code).HasMaxLength(50);
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.DomainEntityType).HasMaxLength(100);
+            // PLAN-43: a database default, so the previous tag can still insert a row after a rollback.
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32).HasDefaultValue(WorkflowDefinitionStatus.Draft);
+            entity.Property(e => e.RequireDistinctApprovers).HasDefaultValue(false);
+            // PLAN-43: publish and return race on one row; the loser gets a concurrency conflict.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<WorkflowInstance>(entity =>

@@ -76,6 +76,22 @@ public static class HrManagementAuthorizationExtensions
                 || (ServiceCallerPrincipal.IsServiceAccount(c.User)
                     && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
 
+            options.AddPolicy(HrManagementPolicies.WorkflowDefinitionAdmin, p => p.RequireAssertion(c =>
+                !ServiceCallerPrincipal.IsServiceAccount(c.User)
+                && (c.User.IsInRole(HrManagementRoles.Admin) || c.User.IsInRole(HrManagementRoles.WorkflowAdmin))));
+
+            options.AddPolicy(HrManagementPolicies.WorkflowDefinitionRead, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrCore)
+                || c.User.IsInRole(HrManagementRoles.HrCoreSupervisory)
+                || c.User.IsInRole(HrManagementRoles.HrCoreExecutive)
+                || c.User.IsInRole(HrManagementRoles.BranchManager)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+                || c.User.IsInRole(HrManagementRoles.WorkflowAdmin)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && (ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreLookup)
+                        || ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow)))));
+
             options.AddPolicy(HrManagementPolicies.MessagingRepair, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.PlatformAdmin)));

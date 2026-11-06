@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HR.Core.Domain.Enums;
 using HRManagement.SharedKernel.Entities;
 
 namespace HR.Core.Domain.Entities.Workflow;
@@ -23,7 +24,35 @@ public class WorkflowDefinition : BaseEntity
 
     public DateTime? ValidTo { get; set; }
 
+    /// <summary>Kept in step with <see cref="Status"/> for the code that starts and lists definitions.</summary>
     public bool IsPublished { get; set; }
+
+    /// <summary>PLAN-43 (G-WF-04): changes only through <c>WorkflowDefinitionLifecycleService</c> and the seeder.</summary>
+    public WorkflowDefinitionStatus Status { get; set; } = WorkflowDefinitionStatus.Draft;
+
+    public Guid? CreatedBy { get; set; }
+
+    /// <summary>The last person who changed a draft: the second person must not be the one who wrote what is published.</summary>
+    public Guid? LastEditedBy { get; set; }
+
+    public Guid? SubmittedBy { get; set; }
+
+    public DateTime? SubmittedAt { get; set; }
+
+    /// <summary>Null for a version the seeder published.</summary>
+    public Guid? PublishedBy { get; set; }
+
+    public DateTime? PublishedAt { get; set; }
+
+    public Guid? RetiredBy { get; set; }
+
+    public DateTime? RetiredAt { get; set; }
+
+    [StringLength(500)]
+    public string? ChangeReason { get; set; }
+
+    /// <summary>PLAN-43 (G-WF-06): one person may not approve two steps of the same instance.</summary>
+    public bool RequireDistinctApprovers { get; set; }
 
     [Required]
     [StringLength(100)]

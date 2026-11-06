@@ -54,6 +54,18 @@ public static class HrManagementRoles
     /// identities). Not part of the HR.Core module or read roles.
     /// </summary>
     public const string HrExamMarker = "hr-exam-marker";
+
+    /// <summary>PLAN-43 (D-WF-4): writes and publishes workflow definitions from the national tenant. Reaches no HR.Core data.</summary>
+    public const string WorkflowAdmin = "workflow-admin";
+
+    /// <summary>Every role above: what a workflow step may name (PLAN-43).</summary>
+    public static readonly IReadOnlyList<string> All =
+    [
+        Admin, HrCore, HrCoreSupervisory, HrCoreExecutive, HrContracts, HrHealth, HrHealthClinical, HrMovements, HrTraining,
+        Payroll, PayrollProcessor, PayrollApprover, PayrollPoster, PayrollReverser, IdCard, RecordsArchive, AdminLogistics,
+        ItInfra, DevAnalytics, Compliance, AuthDirectory, FileStorage, HrManagementApprover, BranchManager, HrEmployee,
+        PlatformAdmin, Auditor, HrExamMarker, WorkflowAdmin
+    ];
 }
 
 /// <summary>Authorization policy names (one per module).</summary>
@@ -84,6 +96,12 @@ public static class HrManagementPolicies
     public const string HrCoreReadOnly = "HrCore.ReadOnly";
     public const string HrCoreWrite = "HrCore.Write";
     public const string HrCoreDelete = "HrCore.Delete";
+
+    /// <summary>PLAN-43 (D-WF-4): write and publish workflow definitions: hr-admin or workflow-admin, never a service account.</summary>
+    public const string WorkflowDefinitionAdmin = "Workflow.DefinitionAdmin";
+
+    /// <summary>PLAN-43: read workflow definitions: the HR.Core readers, and workflow-admin, which reads nothing else in HR.Core.</summary>
+    public const string WorkflowDefinitionRead = "Workflow.DefinitionRead";
 
     /// <summary>PLAN-40: the replay of lost events (MessagingRepairController): an administrator or a platform operator.</summary>
     public const string MessagingRepair = "Messaging.Repair";

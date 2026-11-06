@@ -9,7 +9,7 @@
 #
 #   bash reconcile.sh [--check] [plan]     plan default: /opt/keycloak/data/import/reconcile-plan.tsv
 #
-# It covers: the named realm security fields; every client scope of the matrix with exactly its audience mappers; every
+# It covers: the named realm security fields; the realm roles of the manifest (created when missing); every client scope of the matrix with exactly its audience mappers; every
 # client of the plan (the svc-* clients of the matrix, the gateway, directory-sync): existence, flags, optional scopes
 # (exactly the plan's, Keycloak's built-in scopes left alone), no non-built-in default scope on a service client, the
 # gateway's redirect URIs, web origins and post-logout URIs, and each client's secret from the environment variable the
@@ -98,6 +98,19 @@ if [ "$current" = "$expected" ]; then
 else
   change "realm $REALM: security fields set ($fields)" kc update "realms/$REALM" "${sets[@]}"
 fi
+
+# ---- 1b. realm roles (PLAN-43) ------------------------------------------------------------------------------------------
+# A role of the manifest that the realm lacks is created. An existing role is left alone, none is deleted, and who holds a
+# role stays outside this script.
+kc get roles -r "$REALM" --fields name > "$TMP/roles.json" 2> "$TMP/kcadm.err" \
+  || { cat "$TMP/kcadm.err" >&2; die "could not read the realm roles of $REALM"; }
+HAVE_ROLES=" $({ grep -o '"name" *: *"[^"]*"' "$TMP/roles.json" || true; } | sed 's/.*: *"//; s/"$//' | tr '\n' ' ')"
+while IFS=$'\t' read -r kind name description; do
+  [ "$kind" = "role" ] || continue
+  case "$HAVE_ROLES" in *" $name "*) continue;; esac
+  change "role $name: created" kc_body "{\"name\":\"$(json_escape "$name")\",\"description\":\"$(json_escape "$description")\"}" \
+    create roles -r "$REALM"
+done < "$PLAN"
 
 # ---- 2. client scopes and their audience mappers ------------------------------------------------------------------------
 # One call for every scope with its mappers; the pretty JSON is read line by line (2 spaces: scope, 4: mapper, 6: config).

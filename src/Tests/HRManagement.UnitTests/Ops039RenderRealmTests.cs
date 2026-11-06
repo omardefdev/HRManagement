@@ -166,7 +166,7 @@ public class Ops039RenderRealmTests
         Assert.Contains("hradmin", demo);
         Assert.DoesNotContain(Ops039RealmRenders.BootstrapAdmin, demo);
         var acceptance = Ops039RealmRenders.Realm("Acceptance")["users"]!.AsArray();
-        Assert.Equal(61, acceptance.Count);
+        Assert.Equal(HRManagement.ServiceDefaults.Seeding.AcceptancePersonaCatalog.ApprovedPersonaCount, acceptance.Count);
         Assert.DoesNotContain(acceptance, u => (string?)u!["username"] == "hradmin" || (string?)u!["username"] == Ops039RealmRenders.BootstrapAdmin);
     }
 
