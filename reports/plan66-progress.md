@@ -41,3 +41,8 @@ Decisions:
 - Tools by digest: docker load may not restore a digest reference, so the meta stage might still fetch gitleaks and actionlint. Verify warns; measure in the first run.
 Lock: acceptance-stack acquired 2026-11-06T18:07:39Z for the P1 local proof (lab:main).
 Finished (UTC): 2026-11-06T18:26:30Z
+
+## P1 local proof and P5 review
+Local -Stage lab:main under the lock, 18:10:47Z to 18:36:43Z: Prepare 1 s, Stack lab 687 s (build included), Tests lab-main 863 s. 163 tests, the same count as run 42146523940's Tests lab-main.trx; guard PASS (57 classes); AC-01 holds the same files; the stage wrote 52 folders, all of them in the sequential layout. Non-required failures: the 4 of the CI run plus Ac08, Ac19, Ac30 (not required, local environment). Lock released 18:37:12Z after acceptance-reset.
+Review (one fresh subagent, read only): 1 high, 2 medium, 4 low. Accepted the high after checking it against .dockerignore (docs/*.json are runtime content): reuse now also compares outsideTree, a hash of docs/ except *.md plus the trigger paths. Fixed: --no-renames in the rule, pipefail in Save and Load, identity.pullRequest compared, the comment on a failed reuse check, pull-requests permission dropped from reuse-check and Acceptance, overwrite on acceptance-evidence and run-identity for reruns. Open: tool images by digest, to measure in the first run. No refuter: the high was confirmed by reading the code.
+PLAN-43 merged (PR 38, f8f5cd04) during the run: origin/main merged into the feature branch, no conflict.
