@@ -38,6 +38,12 @@ public interface IWorkflowInstanceActionService
         string? comments,
         CancellationToken ct = default,
         int? targetStepLevel = null);
+
+    /// <summary>
+    /// PLAN-44: runs the handler of a finished instance again, for an outcome that slipped before this plan. The instance is not touched,
+    /// and the caller owns the save. Handlers check the entity's state and link, so a second run does nothing.
+    /// </summary>
+    Task ReapplyOutcomeAsync(WorkflowInstance instance, bool approved, string? reason, CancellationToken ct = default);
 }
 
 public sealed class WorkflowInstanceActionService(
@@ -232,6 +238,9 @@ public sealed class WorkflowInstanceActionService(
         if (WorkflowAssetOutcomes.IsAssetWorkflow(instance))
             await WorkflowAssetOutcomes.PublishOutcomeAsync(context, publish, instance, approved, reason, actor);
     }
+
+    public Task ReapplyOutcomeAsync(WorkflowInstance instance, bool approved, string? reason, CancellationToken ct = default) =>
+        PublishWorkflowOutcomeAsync(instance, approved, reason, ct);
 
     private async Task PublishWorkflowOutcomeAsync(
         WorkflowInstance instance,

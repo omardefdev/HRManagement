@@ -12,25 +12,27 @@ public static class WorkflowIntegrityMetrics
     public const string MeterName = "HRManagement.WorkflowIntegrity";
 
     private static readonly Meter Meter = new(MeterName);
-    private static readonly ConcurrentDictionary<string, int> Unapplied = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<Guid, IReadOnlyDictionary<string, int>> UnappliedByTenant = new();
+    private static readonly ConcurrentDictionary<string, byte> TypesSeen = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly Counter<long> Conflicts = Meter.CreateCounter<long>("workflow_instance_conflict_total");
 
     private static readonly ObservableGauge<int> UnappliedGauge = Meter.CreateObservableGauge(
         "workflow_outcome_unapplied_total",
-        () => Unapplied.Select(kv => new Measurement<int>(kv.Value, new KeyValuePair<string, object?>("entity_type", kv.Key))));
+        () => TypesSeen.Keys.Select(type =>
+            new Measurement<int>(UnappliedCount(type), new KeyValuePair<string, object?>("entity_type", type))));
 
     public static void RecordConflict(string action) =>
         Conflicts.Add(1, new KeyValuePair<string, object?>("action", action));
 
-    /// <summary>Replaces the picture of the last run. A type seen before and clean now reports 0, not nothing.</summary>
-    public static void SetUnapplied(IReadOnlyDictionary<string, int> byEntityType)
+    /// <summary>Replaces one tenant's picture. A type seen before and clean now reports 0, not nothing.</summary>
+    public static void SetUnapplied(Guid tenantId, IReadOnlyDictionary<string, int> byEntityType)
     {
-        foreach (var key in Unapplied.Keys.Except(byEntityType.Keys, StringComparer.OrdinalIgnoreCase))
-            Unapplied[key] = 0;
-        foreach (var (entityType, count) in byEntityType)
-            Unapplied[entityType] = count;
+        UnappliedByTenant[tenantId] = byEntityType;
+        foreach (var type in byEntityType.Keys)
+            TypesSeen.TryAdd(type, 0);
     }
 
-    public static int UnappliedCount(string entityType) => Unapplied.GetValueOrDefault(entityType);
+    public static int UnappliedCount(string entityType) =>
+        UnappliedByTenant.Values.Sum(tenant => tenant.GetValueOrDefault(entityType));
 }

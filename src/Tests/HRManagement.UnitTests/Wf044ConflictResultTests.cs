@@ -1,14 +1,20 @@
+using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Establishment;
+using HR.Core.Infrastructure.Services.Legal;
+using HR.Core.Infrastructure.Services.Policy;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Infrastructure.Services.Workflow;
 using HR.Core.Infrastructure.Services.Workflow.External;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.ServiceDefaults.Workflow.CrossService;
+using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using static HRManagement.UnitTests.Hcm025ApprovalGatesTests;
 
@@ -141,6 +147,49 @@ public sealed class Wf044ConflictResultTests
         Assert.Equal(ExternalApprovalOutcome.Conflict, result.Outcome);
         Assert.Equal(WorkflowConcurrency.ConflictMessage, result.Error);
         Assert.Empty(db.ChangeTracker.Entries());
+    }
+
+    [Fact]
+    public async Task A_change_that_cannot_apply_refuses_the_decision_and_leaves_the_last_step_open()
+    {
+        await using var fx = await Fx.CreateAsync();
+        var instance = await fx.EstablishmentAsync();
+        var request = await fx.Db.EstablishmentChangeRequests.SingleAsync(r => r.Id == instance.EntityId);
+        request.WorkflowInstanceId = instance.Id;
+        await fx.Db.SaveChangesAsync();
+        await fx.ApprovedStepAsync(instance, Guid.NewGuid());
+        var applier = new Mock<IEstablishmentChangeApplier>();
+        applier
+            .Setup(a => a.ApplyAsync(It.IsAny<EstablishmentChangeRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((false, "تعذّر التطبيق", null, "JobCatalogEntry", null, null));
+        var config = new ConfigurationBuilder().Build();
+        var legal = new RecruitmentLegalSourceValidator(new LegislationRegisterProvider(fx.Db));
+        var lifecycle = new EstablishmentChangeLifecycleService(
+            fx.Db, Mock.Of<ICodeGenerator>(), Mock.Of<IPolicyOrchestrator>(), new EstablishmentLegalSourceValidator(legal),
+            applier.Object, Hcm027TestSupport.CreateStarter(fx.Db), config);
+        var service = new WorkflowInstanceActionService(
+            fx.Db,
+            new WorkflowEngine(),
+            Mock.Of<IWorkflowSignatureService>(),
+            Mock.Of<MassTransit.IPublishEndpoint>(),
+            new RecruitmentRequisitionWorkflowHandler(fx.Db),
+            new OfferLetterWorkflowHandler(fx.Db),
+            new SelectionCommitteeWorkflowHandler(fx.Db),
+            new RecruitmentAppealWorkflowHandler(fx.Db),
+            new EstablishmentChangeWorkflowHandler(fx.Db, lifecycle));
+
+        var result = await service.ApproveAsync(
+            instance.Id, new WorkflowActionActor(Reviewer, "m", HrManagementRoles.HrManagementApprover), "ok", targetStepLevel: 2);
+
+        Assert.False(result.Success);
+        Assert.False(result.IsConflict);
+        Assert.Equal("تعذّر التطبيق", result.Error);
+        Assert.Empty(fx.Db.ChangeTracker.Entries());
+        var stored = await fx.Db.WorkflowInstances.AsNoTracking().SingleAsync(i => i.Id == instance.Id);
+        Assert.Equal(WorkflowStatus.InProgress, stored.Status);
+        Assert.Null(stored.CompletedAt);
+        Assert.Equal(EstablishmentChangeStatus.PendingApproval,
+            (await fx.Db.EstablishmentChangeRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id)).Status);
     }
 
     private sealed class LosingSave : SaveChangesInterceptor
