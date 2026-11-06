@@ -27,7 +27,7 @@ public class AcOps39KeycloakDataProtectionTests
 {
     private const string Ac = "AC-OPS-39";
     private const string Project = "hrm-acceptance";
-    private const string LabServiceSecret = "dev-svc-secret-local-only";
+    private static string LabServiceSecret => AcceptanceHarness.ResolveServiceClientSecret("svc-any") ?? "";
     private const string LabKeycloakDbPassword = "acceptance-keycloak-db-lab-only";
     private const string Gateway = "http://localhost:6200";
     private static readonly string[] ComposeFiles =
@@ -65,12 +65,12 @@ public class AcOps39KeycloakDataProtectionTests
         return values;
     }
 
-    private static string CallerProofSecret()
+    private static string GatewayProofKey(string property)
     {
-        var path = Path.Combine(Root, ".acceptance", "credentials.json");
+        var path = Path.Combine(Root, ".acceptance", "gateway-proof-keys.json");
         if (!File.Exists(path)) return "";
         using var doc = JsonDocument.Parse(File.ReadAllText(path));
-        return doc.RootElement.TryGetProperty("gatewayCallerProofSecret", out var s) ? s.GetString() ?? "" : "";
+        return doc.RootElement.TryGetProperty(property, out var s) ? s.GetString() ?? "" : "";
     }
 
     private static async Task<(int ExitCode, string Output)> RunAsync(string exe, string? stdin, TimeSpan? timeout, params string[] args)
@@ -86,8 +86,10 @@ public class AcOps39KeycloakDataProtectionTests
             WorkingDirectory = Root,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
-        // The acceptance compose files need the lab caller-proof secret (as acceptance-local-env.ps1 sets it).
-        psi.Environment["ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET"] = CallerProofSecret();
+        // The acceptance compose files need the gateway proof pair (as acceptance-local-env.ps1 sets it).
+        psi.Environment["ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64"] = GatewayProofKey("privateKeyB64");
+        psi.Environment["ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64"] = GatewayProofKey("publicKeyB64");
+        psi.Environment["ACCEPTANCE_SVC_CLIENT_SECRET"] = LabServiceSecret;
         using var p = Process.Start(psi)!;
         if (stdin is not null)
         {
@@ -347,7 +349,7 @@ public class AcOps39KeycloakDataProtectionTests
         foreach (var id in serviceClients.Append("hr-gateway-client").Append("directory-sync"))
             Assert.True(clients.ContainsKey(id), $"client {id} missing");
         Assert.All(matrixScopes, s => Assert.Contains(s, scopes));
-        Assert.Equal(8, matrixScopes.Count);
+        Assert.Equal(9, matrixScopes.Count);
         // The Acceptance exception (the harness signs personas in with the password grant).
         Assert.True((bool)clients["hr-gateway-client"]["directAccessGrantsEnabled"]!);
         Assert.Equal(61, (int)(await AdminGetAsync("/users/count")).GetValue<int>());

@@ -1,6 +1,7 @@
 using HR.Core.Infrastructure.Services.Policy;
 using HR.Core.Infrastructure.Services.Workflow;
 using HR.Core.Infrastructure.Services.Workflow.Gates;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Workflow;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -12,6 +13,7 @@ public static class PolicyEngineDependencyInjection
     public static IServiceCollection AddHrPolicyEngine(this IServiceCollection services)
     {
         services.AddMemoryCache();
+        services.AddHrPolicyEngineConfiguration();
         services.AddSingleton<IPolicyPublishedSnapshotCache, PolicyPublishedSnapshotCache>();
         services.AddScoped<IPolicyVersionPublisher, PolicyVersionPublisher>();
         services.AddScoped<IPolicyOrchestrator, PolicyOrchestrator>();

@@ -11,15 +11,16 @@ public sealed record K8sEnvValue(string? Value, string? SecretName = null, strin
 /// <summary>
 /// PLAN-37 (§2): the effective environment of the <c>app</c> container of each Deployment under
 /// <c>deploy/k8s/base/&lt;svc&gt;/</c>: <c>deployment.yaml</c> env, overlaid by <c>wiring-patch.yaml</c> (strategic merge on
-/// the env name), plus the keys of the shared <c>hr-app-config</c> ConfigMap and of <c>hr-app-secrets</c> for an
-/// overlay (ExternalSecret <c>spec.data[].secretKey</c>, or the base placeholder's <c>stringData</c>).
+/// the env name), plus the keys of the shared <c>hr-app-config</c> ConfigMap and, per Secret, of <c>&lt;deployment&gt;-secrets</c> for
+/// an overlay (ExternalSecret <c>spec.data[].secretKey</c>, or the base placeholder's <c>stringData</c>).
 /// <c>scripts/int037-wiring-check.ps1</c> checks the real <c>kubectl kustomize</c> output.
 /// </summary>
 public sealed class KustomizeEffectiveEnvironment
 {
     public required IReadOnlyDictionary<string, IReadOnlyDictionary<string, K8sEnvValue>> Deployments { get; init; }
     public required IReadOnlyDictionary<string, string> SharedConfigMap { get; init; }
-    public required IReadOnlySet<string> SecretKeys { get; init; }
+    /// <summary>PLAN-42: the keys of each Secret, by Secret name.</summary>
+    public required IReadOnlyDictionary<string, IReadOnlySet<string>> SecretKeys { get; init; }
     public required IReadOnlyList<string> Patches { get; init; }
 
     public static KustomizeEffectiveEnvironment Load(string repoRoot, string overlay)
@@ -55,20 +56,30 @@ public sealed class KustomizeEffectiveEnvironment
                 configMap[((YamlScalarNode)k).Value!] = ((YamlScalarNode)v).Value ?? "";
         }
 
-        var secretKeys = new HashSet<string>(StringComparer.Ordinal);
-        var external = Path.Combine(k8s, "overlays", overlay, "external-secrets", "hr-app-secrets.yaml");
-        if (File.Exists(external))
+        var secretKeys = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
+        var external = Path.Combine(k8s, "overlays", overlay, "external-secrets");
+        if (Directory.Exists(external))
         {
-            var es = LoadMapping(external);
-            var spec = (YamlMappingNode)es.Children[new YamlScalarNode("spec")];
-            foreach (var item in ((YamlSequenceNode)spec.Children[new YamlScalarNode("data")]).Children.OfType<YamlMappingNode>())
-                secretKeys.Add(Scalar(item, "secretKey")!);
+            foreach (var file in Directory.GetFiles(external, "*-secrets.yaml"))
+            {
+                var es = LoadMapping(file);
+                var spec = (YamlMappingNode)es.Children[new YamlScalarNode("spec")];
+                secretKeys[Path.GetFileNameWithoutExtension(file)] =
+                    ((YamlSequenceNode)spec.Children[new YamlScalarNode("data")]).Children.OfType<YamlMappingNode>()
+                    .Select(item => Scalar(item, "secretKey")!)
+                    .ToHashSet(StringComparer.Ordinal);
+            }
         }
         else
         {
-            var placeholder = LoadMapping(Path.Combine(baseDir, "secret-placeholder.yaml"));
-            foreach (var (k, _) in ((YamlMappingNode)placeholder.Children[new YamlScalarNode("stringData")]).Children)
-                secretKeys.Add(((YamlScalarNode)k).Value!);
+            foreach (var file in Directory.GetFiles(baseDir, "*secret-placeholder.yaml", SearchOption.AllDirectories))
+            {
+                var placeholder = LoadMapping(file);
+                var name = Scalar((YamlMappingNode)placeholder.Children[new YamlScalarNode("metadata")], "name")!;
+                secretKeys[name] = ((YamlMappingNode)placeholder.Children[new YamlScalarNode("stringData")]).Children
+                    .Select(kv => ((YamlScalarNode)kv.Key).Value!)
+                    .ToHashSet(StringComparer.Ordinal);
+            }
         }
 
         var kustomization = LoadMapping(Path.Combine(baseDir, "kustomization.yaml"));

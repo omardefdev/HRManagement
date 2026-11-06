@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace HRManagement.ServiceDefaults.Integration;
 
 /// <summary>SYR-007: S2S client for HR.Core service regime payroll blockers.</summary>
-public sealed class HrCoreServiceRegimeClient(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+public sealed class HrCoreServiceRegimeClient(IHttpClientFactory httpClientFactory)
     : IHrCoreServiceRegimeClient
 {
     public const string HttpClientName = "HrCoreServiceRegime";
@@ -27,7 +27,6 @@ public sealed class HrCoreServiceRegimeClient(IHttpClientFactory httpClientFacto
         {
             Content = JsonContent.Create(new PayrollBlockersRequest(employeeIds))
         };
-        GatewayCallerProof.Sign(request, configuration, "/" + relativePath);
 
         using var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();

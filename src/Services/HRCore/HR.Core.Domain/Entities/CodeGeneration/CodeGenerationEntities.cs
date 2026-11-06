@@ -106,4 +106,8 @@ public class CodeIssuance : BaseEntity
     public string FactsJson { get; set; } = "{}";
 
     public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>PLAN-42: the service client that asked; null for a number issued inside HR.Core.</summary>
+    [MaxLength(100)]
+    public string? IssuedByClientId { get; set; }
 }

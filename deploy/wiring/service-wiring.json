@@ -6,6 +6,7 @@
     "hr-core.workflow": { "description": "HR.Core workflow + code generation (S2S)", "audiences": ["api-hr-core"] },
     "file-storage.references": { "description": "File.Storage reference registration (S2S)", "audiences": ["api-file-storage"] },
     "dsar.subject.read": { "description": "Compliance DSAR subject collection (S2S)", "audiences": ["api-hr-core", "api-payroll", "api-file-storage"] },
+    "dsar.subject.erase": { "description": "Compliance erases a DSAR candidate in HR.Core (S2S, PLAN-42)", "audiences": ["api-hr-core"] },
     "payroll.grades.read": { "description": "HR.Core offer salary bounds from Payroll pay grades (S2S, HCM-027)", "audiences": ["api-payroll"] },
     "file-storage.service-upload": { "description": "HR.Core relays candidate document uploads to File.Storage (S2S, PLAN-30)", "audiences": ["api-file-storage"] },
     "directory.sync": { "description": "Auth.Directory synchronization (S2S)", "audiences": ["api-auth-directory"] },
@@ -14,13 +15,13 @@
   "endpoints": {
     "hr-core.codes.generate": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/codes/generate",
-      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/CodeGenerationController.cs",
-      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreWrite"], "scope": "hr-core.workflow"
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/CodeGenerationInternalController.cs",
+      "serverPolicies": ["ServicePolicies.CodeGenerate"], "scope": "hr-core.workflow"
     },
     "hr-core.policies.enforce": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/policies/enforce",
-      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/PoliciesController.cs",
-      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreBranchOperation"], "scope": "hr-core.workflow"
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/PolicyEnforceInternalController.cs",
+      "serverPolicies": ["ServicePolicies.PolicyEnforceS2S"], "scope": "hr-core.workflow"
     },
     "hr-core.lookup.by-ids": {
       "target": "hr-core-web", "method": "POST", "path": "/api/lookup/employees/by-ids",
@@ -30,17 +31,17 @@
     "hr-core.service-regime.active-regimes": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/active-regimes",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
-      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+      "serverPolicies": ["ServicePolicies.HrCoreInternalS2S"], "scope": "hr-core.lookup"
     },
     "hr-core.service-regime.payroll-blockers": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/payroll-blockers",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
-      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+      "serverPolicies": ["ServicePolicies.HrCoreInternalS2S"], "scope": "hr-core.lookup"
     },
     "hr-core.employees.lifecycle-flags": {
       "target": "hr-core-web", "method": "GET", "path": "/api/internal/employees/{employeeId}/lifecycle-flags",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/EmployeeLifecycleInternalController.cs",
-      "serverPolicies": ["ServicePolicies.HrCoreLookupS2S"], "scope": "hr-core.lookup"
+      "serverPolicies": ["ServicePolicies.HrCoreLifecycleS2S"], "scope": "hr-core.lookup"
     },
     "hr-core.workflow-instances.start": {
       "target": "hr-core-web", "method": "POST", "path": "/api/workflow-instances",
@@ -55,7 +56,7 @@
     "hr-core.dsar.candidate-anonymize": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/dsar-subjects/candidates/{applicationId}/anonymize",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/DsarInternalController.cs",
-      "serverPolicies": ["ServicePolicies.DsarSubjectRead"], "scope": "dsar.subject.read"
+      "serverPolicies": ["ServicePolicies.DsarSubjectErase"], "scope": "dsar.subject.erase"
     },
     "payroll.dsar.subject": {
       "target": "payroll-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}",
@@ -112,14 +113,9 @@
   },
   "allowListExceptions": [
     {
-      "policy": "ServicePolicies.HrCoreLookupS2S",
-      "clients": ["hr-gateway-client", "svc-admin-logistics", "svc-compliance"],
-      "reason": "Allowed before PLAN-37 without a call to the lifecycle or service-regime endpoints (their lookups use /api/lookup under HrManagementPolicies.HrCoreLookup). Not widened here; removing them is PLAN-42 (least privilege)."
-    },
-    {
-      "policy": "ServicePolicies.DirectorySync",
-      "clients": ["svc-hr-core", "svc-auth-directory"],
-      "reason": "Allowed before PLAN-37 without a directory-sync call. Not widened here; removing them is PLAN-42."
+      "policy": "ServicePolicies.HrCoreLifecycleS2S",
+      "clients": ["svc-hr-movements"],
+      "reason": "PLAN-42 section 7 names it with svc-hr-contracts: transfers will read the legal hold; it has no call yet."
     }
   ],
   "legalPacks": {
@@ -185,7 +181,7 @@
         { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
         { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" },
-        { "client": "AddEmployeeLifecycleGate", "endpoint": "hr-core.employees.lifecycle-flags", "scope": "hr-core.lookup", "authenticated": false, "owner": "PLAN-42", "note": "legal-hold gate: no service token yet (fails open on 401); authentication and fail-closed are PLAN-42" },
+        { "client": "AddEmployeeLifecycleGate", "endpoint": "hr-core.employees.lifecycle-flags", "scope": "hr-core.lookup" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
       "legalPacks": ["syr003-service-regimes-v1"]
@@ -325,13 +321,13 @@
         "Integration__FileStorageBaseUrl": "http://file-storage-web:8080",
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
-      "scopes": ["hr-core.lookup", "hr-core.workflow", "dsar.subject.read", "file-storage.references"],
+      "scopes": ["hr-core.lookup", "hr-core.workflow", "dsar.subject.read", "dsar.subject.erase", "file-storage.references"],
       "registrations": ["AddHrDsarDeletion", "AddComplianceDsarCollector", "AddHrFileReferenceClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrCoreLookupClient"],
       "calls": [
         { "client": "AddComplianceDsarCollector", "endpoint": "hr-core.dsar.subject", "scope": "dsar.subject.read" },
         { "client": "AddComplianceDsarCollector", "endpoint": "payroll.dsar.subject", "scope": "dsar.subject.read" },
         { "client": "AddComplianceDsarCollector", "endpoint": "file-storage.dsar.files", "scope": "dsar.subject.read" },
-        { "client": "AddHrDsarDeletion", "endpoint": "hr-core.dsar.candidate-anonymize", "scope": "dsar.subject.read" },
+        { "client": "AddHrDsarDeletion", "endpoint": "hr-core.dsar.candidate-anonymize", "scope": "dsar.subject.erase" },
         { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }

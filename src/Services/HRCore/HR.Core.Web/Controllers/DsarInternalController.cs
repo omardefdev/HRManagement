@@ -374,6 +374,7 @@ public sealed partial class DsarInternalController(HRCoreDbContext db) : Control
     private static partial Regex DigitRun();
 
     [HttpPost("candidates/{applicationId:guid}/anonymize")]
+    [Authorize(Policy = ServicePolicies.DsarSubjectErase)]
     public async Task<IActionResult> AnonymizeCandidate(Guid applicationId, CancellationToken ct)
     {
         var citizen = await db.CitizenApplications.FirstOrDefaultAsync(a => a.Id == applicationId, ct);

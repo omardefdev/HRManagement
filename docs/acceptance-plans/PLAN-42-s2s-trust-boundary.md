@@ -6,7 +6,7 @@
 - [دراسة COD](../COD_ORG_GAP_STUDY.md): G-COD-05 بصيغتها المصحّحة: الحرق العابر للجهات يمنعه RLS المفروض غالباً، والحرق داخل الجهة مؤكد.
 - [دراسة الانفصال](../FUN_002_SEPARATION_GAP_STUDY.md): G-SEP-12.
 
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented with deviations — 2026-11-05 (remote enforcement closed on failure, internal enforce for services only, ECDSA gateway proof, one secret per container, owner-only code issuance, authenticated legal-hold gate; see «ملاحظات التنفيذ والانحرافات»)  
 **Priority:** P1  
 **Depends on:** PLAN-37 (عناوين الخدمات ونطاقاتها وأسرارها في compose وk8s، ومفتاح `Integration:HrCoreBaseUrl` لبوابة الحجز، وملف prod-like يطابق الإنتاج). ويعدّل مخرجات أسبق: `ProductionConfigurationGuard` (PLAN-36)، و`init-secrets` (PLAN-38)، و`realm-manifest.json` (PLAN-39)، و`service-wiring.json` (PLAN-37)  
 **Related cards:** PROD-001 ([07](../completion-backlog/07-NATIONAL-PRODUCT-MIGRATION-INTEGRATION.md))، IAM-004 ([02](../completion-backlog/02-P1-PLATFORM-INTEGRITY.md))، TEN-002، FUN-002. وأيضاً PLAN-02 (AC-09/10، وAC-11 الناجح على API خام)، وPLAN-11 (AC-27..30)، وAC-13.
@@ -351,6 +351,25 @@ pwsh scripts/s2s042-validate.ps1   # جرد: لا Sign في عملاء الخد�
 | تقسيم الأسرار يكسر خدمة تقرأ مفتاحاً لم يُجرَد | المصفوفة تُبنى من جرد الشيفرة. وإقلاع الملف الشبيه بالإنتاج يكشف الغياب (`ProductionConfigurationGuard` والمفاتيح المطلوبة) |
 | AC-11/AC-13 يعتمدان على سر عميل خدمة في القبول | `ACCEPTANCE_SVC_*` من `acceptance-local-env.ps1`، و`AcceptanceGate` يكتب `Blocked` عند غيابه، لا `Pass` |
 | `kubectl` غير مثبت على جهاز المالك | `S2s042K8sPerServiceSecretsTests` نصي لا يحتاجه. و`kustomize` اختياري ويُسجَّل غيابه |
+
+## ملاحظات التنفيذ والانحرافات
+
+نُفّذت الخطة بـ [PLAN-42-AGENT-PROMPT.md](execution/PLAN-42-AGENT-PROMPT.md)، وهو يحكم حيث يخالفها:
+
+- **نقطة البدء.** قُطع الفرع من رأس PR 36 (PLAN-41) لا من `main`، ثم دُمج `origin/release/plan-41` فيه ولم يُعَد تأسيسه، لأن PLAN-43 يبني على التزاماته. بقرار المالك جرى النشر على الخادم قبل دمج PR 36.
+- **تسمية الأسرار في k8s.** `<deployment>-secrets` لكل خدمة، وسر خاص لـ `hr-migrate`.
+- **سياسة إضافية.** `HrCoreLifecycleS2S` لبوابة الحجز القانوني، منفصلة عن `HrCoreInternalS2S`، لأن مستدعي الحجز (`svc-hr-contracts` و`svc-hr-movements`) ليسوا مستدعي الأنظمة (ومنهم `svc-payroll`).
+- **سر عام للقبول.** عملاء الخدمات في مكدس القبول يتشاركون قيمة واحدة، فهو مكدس اختبار. الفصل بين الخدمات يُختبر في k8s والخادم.
+- **عميل الخدمة يتصل مباشرة** بالوحدة لا عبر البوابة، ولا يوقّع إثباتاً. الإثبات للبوابة وحدها.
+- **AC-09** بقي `Blocked` كما صُمّم.
+- **الفحص المعماري للمسارات الداخلية** يقرأ بيانات المسارات الفعلية لا نص الشيفرة، وله اختبار سالب.
+- **نقطة الدخول في الصور** صارت `bash`: كان `sh` (dash) يُسقط المتغيرات التي في اسمها نقطة، فكان `PolicyEngine__Assets.Custody` لا يصل إلى الخدمة ويبقى الوضع `Off` دون علامة. يثبّت ذلك اختبار.
+- **`ForwardActingUserHandler`** لم يكن مسجلاً، فكان كل استدعاء إنفاذ يفشل ويصير رفضاً. سُجّل مع العميل، وهذا يصلح `FileReferenceClient` أيضاً.
+- **كوكي TempData.** البوابة تمرره باسمه الدقيق على مسارات الموظفين، لا على مسار التوظيف العام، لأن المستخدم المرفوض لم يكن يرى سبب الرفض.
+- **استثناء `svc-hr-movements`.** تسميه الخطة في سياسة الحجز وليس له استدعاء بعد، فسُجّل في `allowListExceptions` في `service-wiring.json` بسببه.
+- **Antiforgery على النقاط الداخلية.** `[ValidateAntiForgeryToken]` على الصنف و`[IgnoreAntiforgeryToken]` على الإجراء، لأن بوابة CodeQL تطلب الأول، ولا كوكي في استدعاء خدمة ليُزوَّر. السبب في ADR.
+- **لم يُحذف `GATEWAY_CALLER_PROOF_SECRET` من `.env` الخادم** (P-3)، فالإصدار السابق يحتاجه عند التراجع. حذفه مؤجل إلى أول خطة تنشر بعد هذه.
+- **مفتوح للمراجعة:** `WorkflowInstancesController` يقبل أي رمز بنطاق `hr-core.workflow` خارج القائمة البيضاء، وهو أقدم من هذه الخطة ويُغلق في PLAN-43 وPLAN-51. وبقية النتائج الصغيرة في [plan42-final-report.md](../../reports/plan42-final-report.md).
 
 ## Effort estimate
 

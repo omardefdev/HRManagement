@@ -75,10 +75,11 @@ public static partial class WiringChecks
 
             if (service.ServiceIdentity)
             {
-                if (!environment.TryGetValue(SecretKey, out var secret) || secret.SecretName != "hr-app-secrets" || secret.SecretKey != service.SecretEnv)
-                    errors.Add($"{label}: {SecretKey} must be secretKeyRef hr-app-secrets/{service.SecretEnv} (was {secret?.ToString() ?? "<missing>"})");
-                if (!k8s.SecretKeys.Contains(service.SecretEnv!))
-                    errors.Add($"{label}: hr-app-secrets has no key {service.SecretEnv}");
+                var secretName = $"{service.K8sDeployment}-secrets";
+                if (!environment.TryGetValue(SecretKey, out var secret) || secret.SecretName != secretName || secret.SecretKey != service.SecretEnv)
+                    errors.Add($"{label}: {SecretKey} must be secretKeyRef {secretName}/{service.SecretEnv} (was {secret?.ToString() ?? "<missing>"})");
+                if (!k8s.SecretKeys.TryGetValue(secretName, out var keys) || !keys.Contains(service.SecretEnv!))
+                    errors.Add($"{label}: {secretName} has no key {service.SecretEnv}");
             }
         }
 

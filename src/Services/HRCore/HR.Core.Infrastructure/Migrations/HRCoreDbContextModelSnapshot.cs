@@ -703,6 +703,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("IssuedByClientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<Guid?>("PolicyVersionId")
                         .HasColumnType("uuid");
 
@@ -3553,6 +3557,10 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("CallerClientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
@@ -3568,6 +3576,9 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("FactsHash")
                         .IsRequired()
@@ -3588,6 +3599,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("ShadowDiffJson")
                         .HasColumnType("text");
 
+                    b.Property<string>("SubjectType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
@@ -3602,6 +3617,8 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("CorrelationId");
 
                     b.HasIndex("Domain", "OccurredAt");
+
+                    b.HasIndex("EntityId", "OccurredAt");
 
                     b.ToTable("PolicyEnforcementLedgers");
                 });

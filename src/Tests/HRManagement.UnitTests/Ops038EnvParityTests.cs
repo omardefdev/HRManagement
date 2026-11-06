@@ -25,7 +25,7 @@ public class Ops038EnvParityTests
         "HRM_BOOTSTRAP_ADMIN_USER",
     ];
 
-    private static readonly Regex SecretName = new("(PASSWORD|_PASS|SECRET|_KEY|TOKEN)$", RegexOptions.CultureInvariant);
+    private static readonly Regex SecretName = new("(PASSWORD|_PASS|SECRET|_KEY|_KEY_B64|TOKEN)$", RegexOptions.CultureInvariant);
 
     private static string ResolveRepoRoot()
     {
@@ -124,8 +124,12 @@ public class Ops038EnvParityTests
             Assert.Contains("refuses secret key", script);
         }
         // The same secret rule in both generators.
-        Assert.Contains("*PASSWORD|*_PASS|*SECRET|*_KEY|*TOKEN", sh);
-        Assert.Contains("(PASSWORD|_PASS|SECRET|_KEY|TOKEN)$", ps);
+        Assert.Contains("*PASSWORD|*_PASS|*SECRET|*_KEY|*_KEY_B64|*TOKEN", sh);
+        Assert.Contains("(PASSWORD|_PASS|SECRET|_KEY|_KEY_B64|TOKEN)$", ps);
+        // PLAN-42: the proof pair is made as one key by both scripts.
+        Assert.Contains("openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256", sh);
+        Assert.Contains("openssl pkcs8 -topk8 -nocrypt", sh);
+        Assert.Contains("s2s042-new-gateway-proof-keys.ps1", ps);
         Assert.Contains("openssl rand -base64 32", sh);
         Assert.Contains("RandomNumberGenerator", ps);
         Assert.Contains("chmod 600", sh);

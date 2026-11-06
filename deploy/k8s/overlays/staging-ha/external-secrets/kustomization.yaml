@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - hr-gateway-secrets.yaml
+  - hr-core-web-secrets.yaml
+  - hr-contracts-web-secrets.yaml
+  - hr-health-web-secrets.yaml
+  - hr-movements-web-secrets.yaml
+  - hr-training-web-secrets.yaml
+  - payroll-web-secrets.yaml
+  - idcard-web-secrets.yaml
+  - records-archive-web-secrets.yaml
+  - admin-logistics-web-secrets.yaml
+  - it-infra-web-secrets.yaml
+  - dev-analytics-web-secrets.yaml
+  - compliance-web-secrets.yaml
+  - auth-directory-web-secrets.yaml
+  - file-storage-web-secrets.yaml
+  - hr-migrate-secrets.yaml

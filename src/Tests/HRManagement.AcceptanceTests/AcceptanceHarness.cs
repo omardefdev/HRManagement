@@ -79,6 +79,81 @@ public static class AcceptanceHarness
         return (token, correlationId);
     }
 
+    /// <summary>
+    /// PLAN-42 (P-6): the secret of a service client of the acceptance realm: <c>ACCEPTANCE_SVC_&lt;CLIENT&gt;_SECRET</c> (the client id
+    /// without <c>svc-</c>, upper case), then <c>ACCEPTANCE_SVC_CLIENT_SECRET</c>, then the generated local credentials. Null when
+    /// none exists; no value is kept in the repository.
+    /// </summary>
+    public static string? ResolveServiceClientSecret(string clientId)
+    {
+        var name = clientId.StartsWith("svc-", StringComparison.Ordinal) ? clientId["svc-".Length..] : clientId;
+        foreach (var variable in new[] { $"ACCEPTANCE_SVC_{name.Replace('-', '_').ToUpperInvariant()}_SECRET", "ACCEPTANCE_SVC_CLIENT_SECRET" })
+        {
+            var value = Environment.GetEnvironmentVariable(variable);
+            if (!string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+
+        var credentialsPath = Path.Combine(RepoRoot, ".acceptance", "credentials.json");
+        if (!File.Exists(credentialsPath))
+            return null;
+        using var credentials = JsonDocument.Parse(File.ReadAllText(credentialsPath));
+        return credentials.RootElement.TryGetProperty("serviceClientSecret", out var secret) ? secret.GetString() : null;
+    }
+
+    /// <summary>A client_credentials token from the acceptance Keycloak; <paramref name="scope"/> null asks for the client's defaults.</summary>
+    public static async Task<HttpResponseMessage> FetchServiceTokenResponseAsync(string clientId, string secret, string? scope)
+    {
+        using var http = new HttpClient();
+        var form = new List<KeyValuePair<string, string>>
+        {
+            new("grant_type", "client_credentials"),
+            new("client_id", clientId),
+            new("client_secret", secret)
+        };
+        if (scope is not null)
+            form.Add(new("scope", scope));
+        return await http.PostAsync(
+            $"{AcceptanceEnv.KeycloakBaseUrl.TrimEnd('/')}/realms/hrmanagement/protocol/openid-connect/token",
+            new FormUrlEncodedContent(form));
+    }
+
+    /// <summary>
+    /// PLAN-42 (آ§8): an <see cref="HttpClient"/> that calls a service as a service does: straight to the container, with a service
+    /// token, the tenant in <c>X-Tenant-ID</c> and, when given, the user in <c>X-Acting-User</c>. Default target: HR.Core
+    /// (<c>HR_CORE_DIRECT_URL</c>). A missing secret writes Blocked through <see cref="AcceptanceGate"/>, never Pass. Later plans
+    /// reuse this for every service token.
+    /// </summary>
+    public static async Task<HttpClient> CreateServiceClientAsync(
+        string clientId,
+        string? scope,
+        EvidenceRecorder recorder,
+        Guid? tenantId = null,
+        Guid? actingUser = null,
+        string? baseUrl = null)
+    {
+        var secret = ResolveServiceClientSecret(clientId);
+        AcceptanceGate.RequireData(
+            recorder,
+            !string.IsNullOrWhiteSpace(secret),
+            "ط³ط± ط¹ظ…ظٹظ„ ط§ظ„ط®ط¯ظ…ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯",
+            "No service client secret: run scripts/prepare-keycloak-import.ps1 -Profile Acceptance or set ACCEPTANCE_SVC_CLIENT_SECRET.");
+
+        using var response = await FetchServiceTokenResponseAsync(clientId, secret!, scope);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, $"Service token for {clientId} failed: {(int)response.StatusCode}");
+        var token = JsonDocument.Parse(body).RootElement.GetProperty("access_token").GetString()!;
+
+        var target = baseUrl ?? Environment.GetEnvironmentVariable("HR_CORE_DIRECT_URL") ?? "http://localhost:6210";
+        var http = new HttpClient { BaseAddress = new Uri(target.TrimEnd('/') + "/") };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (tenantId is Guid tenant)
+            http.DefaultRequestHeaders.Add("X-Tenant-ID", tenant.ToString("D"));
+        if (actingUser is Guid actor)
+            http.DefaultRequestHeaders.Add("X-Acting-User", actor.ToString("D"));
+        return http;
+    }
+
     public static async Task<HttpClient> CreateAuthorizedClientAsync(
         E2ePersona persona,
         string correlationId,

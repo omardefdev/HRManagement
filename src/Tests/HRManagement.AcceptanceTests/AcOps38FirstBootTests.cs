@@ -583,9 +583,9 @@ public class AcOps38FirstBootTests
         }
 
         // Negatives: one-off containers of the least-privilege image (the guard is enforced there).
-        var (proofExit, proofOut) = await ComposeAsync("run", "--rm", "--no-deps", "-T", "-e", "GatewayCallerProof__Secret=", "hr-health-web");
+        var (proofExit, proofOut) = await ComposeAsync("run", "--rm", "--no-deps", "-T", "-e", "GatewayCallerProof__PublicKeyPem=", "hr-health-web");
         Assert.NotEqual(0, proofExit);
-        Assert.Contains("GatewayCallerProof:Secret", proofOut, StringComparison.Ordinal);
+        Assert.Contains("GatewayCallerProof:PublicKeyPem", proofOut, StringComparison.Ordinal);
         var placeholder = "Host=postgresql;Port=5432;Database=hr_health_db;Username=hr_health_app;Password=USE_ENV_OR_USER_SECRETS";
         var (connExit, connOut) = await ComposeAsync("run", "--rm", "--no-deps", "-T", "-e", "ConnectionStrings__HealthDb=" + placeholder, "hr-health-web");
         Assert.NotEqual(0, connExit);

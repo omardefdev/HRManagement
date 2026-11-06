@@ -713,23 +713,23 @@ public partial class AcOps36VpsBootTests
     [SkippableFact]
     public async Task AC_OPS_36f_Placeholder_or_short_secret_stops_the_service()
     {
-        var recorder = Start("36f", "AC-OPS-36f placeholder AllowedHosts stops hr-core-web; a 10-character caller-proof secret stops the gateway; the live services stay healthy");
+        var recorder = Start("36f", "AC-OPS-36f placeholder AllowedHosts stops hr-core-web; a broken gateway proof public key stops hr-core-web; the live services stay healthy");
 
         var placeholder = Sh(Compose("run --rm --no-deps -T -e AllowedHosts=YOUR_MODULE_HOST hr-core-web"), 420_000);
-        var shortSecret = Sh(Compose("run --rm --no-deps -T -e GatewayCallerProof__Secret=0123456789 hr-gateway"), 420_000);
+        var shortSecret = Sh(Compose("run --rm --no-deps -T -e GatewayCallerProof__PublicKeyPem=0123456789 hr-core-web"), 420_000);
         var placeholderLine = placeholder.Output.Split('\n').FirstOrDefault(l => l.Contains("will not start", StringComparison.Ordinal)) ?? "";
         var shortLine = shortSecret.Output.Split('\n').FirstOrDefault(l => l.Contains("will not start", StringComparison.Ordinal)) ?? "";
         Db(recorder, new
         {
             placeholderAllowedHosts = new { exitCode = placeholder.ExitCode, message = placeholderLine.Trim() },
-            shortCallerProofSecret = new { exitCode = shortSecret.ExitCode, message = shortLine.Trim() }
+            brokenProofPublicKey = new { exitCode = shortSecret.ExitCode, message = shortLine.Trim() }
         });
 
         Assert.NotEqual(0, placeholder.ExitCode);
         Assert.Contains("AllowedHosts", placeholderLine, StringComparison.Ordinal);
         Assert.DoesNotContain("YOUR_MODULE_HOST", placeholderLine, StringComparison.Ordinal);
         Assert.NotEqual(0, shortSecret.ExitCode);
-        Assert.Contains("GatewayCallerProof:Secret", shortLine, StringComparison.Ordinal);
+        Assert.Contains("GatewayCallerProof:PublicKeyPem", shortLine, StringComparison.Ordinal);
         Assert.DoesNotContain("0123456789", shortLine.Replace("0123456789abcdef", ""), StringComparison.Ordinal);
 
         // The live services kept their configuration: still healthy, still serving.

@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using HRManagement.SharedKernel.CodeGeneration;
+using HRManagement.SharedKernel.Policy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,16 +14,17 @@ public static class ServiceCallerPrincipal
         if (user?.Identity?.IsAuthenticated != true)
             return false;
 
+        // PLAN-42: azp is set by Keycloak and decides when present. A signed-in user carries azp=hr-gateway-client, so a user who
+        // is merely named service-account-x is not a service, and the gateway proof check can rely on this answer.
+        var azp = user.FindFirst("azp")?.Value ?? user.FindFirst("client_id")?.Value;
+        if (!string.IsNullOrWhiteSpace(azp))
+            return ServiceClientIds.All.Contains(azp, StringComparer.OrdinalIgnoreCase);
+
         // Keycloak service accounts typically have preferred_username like "service-account-svc-payroll"
         var preferred = user.FindFirst("preferred_username")?.Value
             ?? user.Identity?.Name;
-        if (!string.IsNullOrWhiteSpace(preferred)
-            && preferred.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        var azp = user.FindFirst("azp")?.Value ?? user.FindFirst("client_id")?.Value;
-        return !string.IsNullOrWhiteSpace(azp)
-            && ServiceClientIds.All.Contains(azp, StringComparer.OrdinalIgnoreCase);
+        return !string.IsNullOrWhiteSpace(preferred)
+            && preferred.StartsWith("service-account-", StringComparison.OrdinalIgnoreCase);
     }
 
     public static string? GetClientId(ClaimsPrincipal? user)
@@ -69,17 +72,24 @@ public static class ServiceAuthorizationExtensions
             options.AddPolicy(ServicePolicies.DirectorySync, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DirectorySync)
-                && IsAllowedClient(ctx.User, ServiceClientIds.ItInfra, ServiceClientIds.HrCore, ServiceClientIds.AuthDirectory)));
+                && IsAllowedClient(ctx.User, ServiceClientIds.ItInfra)));
 
-            options.AddPolicy(ServicePolicies.HrCoreLookupS2S, p => p.RequireAssertion(ctx =>
-                // Interactive UI users
-                (ctx.User.Identity?.IsAuthenticated == true && !ServiceCallerPrincipal.IsServiceAccount(ctx.User))
-                // Or service token with lookup scope
-                || (ServiceCallerPrincipal.IsServiceAccount(ctx.User)
-                    && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
-                    && IsAllowedClient(ctx.User, ServiceClientIds.Payroll, ServiceClientIds.HrContracts,
-                        ServiceClientIds.HrMovements, ServiceClientIds.AdminLogistics, ServiceClientIds.Compliance,
-                        ServiceClientIds.Gateway))));
+            // PLAN-42 (section 8): these replace HrCoreLookupS2S, which any signed-in user passed.
+            options.AddPolicy(ServicePolicies.HrCoreInternalS2S, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrContracts, ServiceClientIds.HrMovements, ServiceClientIds.Payroll)));
+
+            options.AddPolicy(ServicePolicies.HrCoreLifecycleS2S, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrContracts, ServiceClientIds.HrMovements)));
+
+            // PLAN-42 (G-COD-05): the internal generate and preview; which kind a client owns is checked per request.
+            options.AddPolicy(ServicePolicies.CodeGenerate, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreWorkflow)
+                && CodeKindOwners.IsOwnerOfAnyKind(ServiceCallerPrincipal.GetClientId(ctx.User))));
 
             options.AddPolicy(ServicePolicies.FileStorageReferences, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
@@ -99,6 +109,12 @@ public static class ServiceAuthorizationExtensions
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DsarSubjectRead)
                 && IsAllowedClient(ctx.User, ServiceClientIds.Compliance)));
 
+            // PLAN-42 (G-IAM-13): erasing has its own scope; dsar.subject.read erases nothing.
+            options.AddPolicy(ServicePolicies.DsarSubjectErase, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.DsarSubjectErase)
+                && IsAllowedClient(ctx.User, ServiceClientIds.Compliance)));
+
             // HCM-027: HR.Core validates offer salaries against Payroll grade bounds.
             options.AddPolicy(ServicePolicies.PayrollGradeLookup, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
@@ -110,6 +126,12 @@ public static class ServiceAuthorizationExtensions
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.FileStorageServiceUpload)
                 && IsAllowedClient(ctx.User, ServiceClientIds.HrCore)));
+
+            // PLAN-42 (G-POL-08): the internal enforce endpoint; which domain a client owns is checked per request.
+            options.AddPolicy(ServicePolicies.PolicyEnforceS2S, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreWorkflow)
+                && PolicyDomainOwners.IsOwnerOfAnyDomain(ServiceCallerPrincipal.GetClientId(ctx.User))));
 
             // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
             options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>

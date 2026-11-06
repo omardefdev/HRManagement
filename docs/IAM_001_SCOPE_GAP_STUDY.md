@@ -470,6 +470,7 @@
   - **AC-IAM-Ge:** `a-payroll-poster` بلا عامل ثانٍ يحاول الترحيل ← طلب step-up أو 403.
 
 #### G-IAM-13 — الثقة بين الخدمات: سر واحد لكل الحاويات، وإثبات بوابة قابل للتزوير، ونطاق قراءة يجيز المحو
+- **الحالة:** ✅ عولجت في [PLAN-42](acceptance-plans/PLAN-42-s2s-trust-boundary.md) — إثبات ECDSA لا يملك مفتاحه إلا البوابة ومربوط بالرمز ولا يُعاد، وسر لكل حاوية ([S2S_SECRET_MATRIX.md](S2S_SECRET_MATRIX.md))، والقيمة المؤقتة تُفشل الإقلاع، والمحو بنطاق `dsar.subject.erase` (AC-S2S-42d، 42e، 42f، 42i).
 - **الدليل:**
   - في k8s يُحقن سر واحد `hr-app-secrets` في كل الحاويات ([payroll-web/deployment.yaml:48-54](../deploy/k8s/base/payroll-web/deployment.yaml)). يحوي:
     - أسرار 12 عميل خدمة؛

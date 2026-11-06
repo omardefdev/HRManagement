@@ -63,7 +63,7 @@ spec:
               echo "All migration bundles applied."
           envFrom:
             - secretRef:
-                name: hr-app-secrets
+                name: hr-migrate-secrets
                 optional: true
             - configMapRef:
                 name: hr-app-config

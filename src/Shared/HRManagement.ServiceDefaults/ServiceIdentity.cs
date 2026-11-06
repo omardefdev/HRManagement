@@ -44,6 +44,8 @@ public static class ServiceScopes
     public const string HrCoreWorkflow = "hr-core.workflow";
     public const string FileStorageReferences = "file-storage.references";
     public const string DsarSubjectRead = "dsar.subject.read";
+    /// <summary>PLAN-42: erasing a DSAR subject is not reading one.</summary>
+    public const string DsarSubjectErase = "dsar.subject.erase";
     public const string EvidenceIngest = "evidence.ingest";
     /// <summary>HCM-027: HR.Core reads Payroll grade bounds for offer letters.</summary>
     public const string PayrollGradesRead = "payroll.grades.read";
@@ -55,10 +57,18 @@ public static class ServiceScopes
 public static class ServicePolicies
 {
     public const string DirectorySync = "Service.DirectorySync";
-    public const string HrCoreLookupS2S = "Service.HrCoreLookup";
+    /// <summary>PLAN-42: the service-regime routes, for the services that call them (no user passes).</summary>
+    public const string HrCoreInternalS2S = "Service.HrCoreInternal";
+    /// <summary>PLAN-42: the legal-hold flags of an employee, for the services that act on them.</summary>
+    public const string HrCoreLifecycleS2S = "Service.HrCoreLifecycle";
+    /// <summary>PLAN-42: an official number; the kind each client owns is checked per request.</summary>
+    public const string CodeGenerate = "Service.CodeGenerate";
     public const string FileStorageReferences = "Service.FileStorageReferences";
     public const string DsarSubjectRead = "Service.DsarSubjectRead";
+    public const string DsarSubjectErase = "Service.DsarSubjectErase";
     public const string EvidenceIngest = "Service.EvidenceIngest";
     public const string PayrollGradeLookup = "Service.PayrollGradeLookup";
     public const string FileStorageServiceUpload = "Service.FileStorageServiceUpload";
+    /// <summary>PLAN-42: a service account with hr-core.workflow whose client owns a policy domain.</summary>
+    public const string PolicyEnforceS2S = "Service.PolicyEnforce";
 }

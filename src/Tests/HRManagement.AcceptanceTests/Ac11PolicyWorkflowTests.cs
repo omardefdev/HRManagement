@@ -18,12 +18,17 @@ public class Ac11PolicyWorkflowTests
         // independent published policy so this workflow scenario is order-safe.
         var initiator = AcceptanceHarness.RequirePersona("b-branch-manager");
         var finalApprover = AcceptanceHarness.RequirePersona("b-approver");
-        var (_, correlationId) = await AcceptanceHarness.LoginAsync(initiator);
+        var (initiatorToken, correlationId) = await AcceptanceHarness.LoginAsync(initiator);
+        var initiatorId = Guid.Parse(AcceptanceHarness.ParseJwt(initiatorToken).Subject);
         var recorder = new EvidenceRecorder("AC-11", correlationId);
         recorder.WriteMetadata("AC-11 policy workflow + signatures", initiator.Id);
 
         using var httpInitiator = await AcceptanceHarness.CreateAuthorizedClientAsync(initiator, correlationId);
         using var httpCentral = await AcceptanceHarness.CreateAuthorizedClientAsync(finalApprover, correlationId);
+
+        // PLAN-42: enforce belongs to the service that owns the domain, on its own identity; the user travels in X-Acting-User.
+        using var logistics = await AcceptanceHarness.CreateServiceClientAsync(
+            "svc-admin-logistics", ServiceScopes.HrCoreWorkflow, recorder, AcceptanceSeedIds.AgencyBId, initiatorId);
 
         var assignmentId = Guid.NewGuid();
         var enforceReq = new PolicyEnforceRequest
@@ -39,15 +44,14 @@ public class Ac11PolicyWorkflowTests
                 ["value"] = "15000",
                 ["action"] = "Assign"
             },
-            CorrelationId = correlationId,
-            Mode = PolicyEnforcementMode.Enforce
+            CorrelationId = correlationId
         };
 
-        var enforceResp = await httpInitiator.PostAsync(
-            "api/hr-core/api/policies/enforce",
+        var enforceResp = await logistics.PostAsync(
+            "api/internal/policies/enforce",
             JsonContent(enforceReq));
         var enforceBody = await enforceResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("enforce-trigger-workflow", "POST", "/api/hr-core/api/policies/enforce",
+        recorder.CaptureHttp("enforce-trigger-workflow", "POST", "/api/internal/policies/enforce",
             (int)enforceResp.StatusCode, JsonSerializer.Deserialize<object>(enforceBody));
         Assert.Equal(System.Net.HttpStatusCode.OK, enforceResp.StatusCode);
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace HRManagement.ServiceDefaults;
@@ -30,6 +31,11 @@ public static class ProductionHostExtensions
         // PLAN-36: refuse placeholder values in Production (opt-in elsewhere). PLAN-39 (P-3, PLAN-38 review F5): a start-up
         // check, so it runs before the migrations and seeds connect (HrStartupChecks); registered first, so it runs first.
         builder.Services.AddOptions<ProductionConfigurationGuardOptions>();
+        // PLAN-42: the gateway proof; the keys load on first use, the guard above checks them at start-up.
+        builder.Services.AddOptions<GatewayCallerProofOptions>().Bind(builder.Configuration.GetSection(GatewayCallerProofOptions.SectionName));
+        builder.Services.AddMemoryCache();
+        builder.Services.TryAddSingleton<GatewayProofKeys>();
+        builder.Services.TryAddSingleton<IGatewayProofReplayCache, GatewayProofReplayCache>();
         builder.Services.AddHrStartupCheck<ProductionConfigurationGuard>();
 
         var useForwarded = builder.Configuration.GetValue("UseForwardedHeaders", false);

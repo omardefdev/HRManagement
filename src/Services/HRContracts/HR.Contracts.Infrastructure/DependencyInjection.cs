@@ -43,8 +43,9 @@ public static class DependencyInjection
     /// PLAN-37: the legal-hold / lifecycle gate against HR.Core (<c>GET /api/internal/employees/{id}/lifecycle-flags</c>),
     /// registered from the approved key <c>Integration:HrCoreBaseUrl</c> (the old <c>Services:HRCore:BaseUrl</c> /
     /// <c>HrCore:BaseUrl</c> still work with a start-up warning, D-INT-3). A missing URL is a start-up error outside
-    /// Development. Authentication and fail-closed behaviour are PLAN-42; this plan changes only the key and the wiring.
-    /// Without a configuration at all (unit tests of the infrastructure) the pass-through gate is used.
+    /// Development. PLAN-42 (G-SEP-12): the client carries the service identity (scope hr-core.lookup) and the gate fails closed.
+    /// Without a configuration at all (unit tests of the infrastructure) the pass-through gate is used; the start-up check refuses
+    /// it outside Development and Testing.
     /// </summary>
     public static IServiceCollection AddEmployeeLifecycleGate(this IServiceCollection services, IConfiguration? configuration)
     {
@@ -56,8 +57,9 @@ public static class DependencyInjection
 
         var hrCore = HrCoreEndpoint.RequireBaseUri(configuration);
         services.AddServiceEndpointWarnings();
-        services.AddHttpClient(HttpEmployeeLifecycleGate.HttpClientName, client => client.BaseAddress = hrCore);
+        services.AddServiceAuthenticatedClient(HttpEmployeeLifecycleGate.HttpClientName, hrCore);
         services.AddScoped<IEmployeeLifecycleGate, HttpEmployeeLifecycleGate>();
+        services.AddHrStartupCheck<EmployeeLifecycleGateStartupCheck>();
         return services;
     }
 }

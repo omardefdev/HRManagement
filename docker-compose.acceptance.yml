@@ -4,11 +4,12 @@ x-acceptance-service: &acceptance-service
   Seed__Profile: Acceptance
   DataProtection__KeyRingPath: /var/hrm/dpkeys
   Keycloak__AdditionalValidIssuers: http://localhost:6388/realms/hrmanagement
-  GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
-  # PLAN-37: the only wiring value an acceptance file may set is this lab secret, the one sync-keycloak-dev-realm.ps1
-  # sets on every service client (never the .env SVC_* values). URLs, client ids and scopes come from the shared files
+  GatewayCallerProof__PublicKeyPem: ${ACCEPTANCE_GATEWAY_PROOF_PUBLIC_KEY_B64:?Acceptance gateway proof public key is required}
+  # PLAN-37: the only wiring value an acceptance file may set is this secret, the one the acceptance realm sets on every
+  # service client (never the .env SVC_* values). URLs, client ids and scopes come from the shared files
   # (deploy/wiring/service-wiring.json), so the acceptance stacks get exactly the production wiring.
-  ServiceIdentity__ClientSecret: dev-svc-secret-local-only
+  # PLAN-42 (P-6): generated into .acceptance/credentials.json, exported by scripts/acceptance-local-env.ps1.
+  ServiceIdentity__ClientSecret: ${ACCEPTANCE_SVC_CLIENT_SECRET:?Acceptance service client secret is required}
   # PLAN-40 (AC-MSG-40f): /metrics is mapped only with this on, as in the production file; no OTLP endpoint here.
   OpenTelemetry__Enabled: "true"
 
@@ -95,6 +96,9 @@ services:
     environment:
       <<: *acceptance-service
       HrGateway__PublicBaseUrl: http://localhost:6200
+      # PLAN-42: the server derives the mode, so the custody decisions of AC-10 and AC-11 need it here. admin-logistics-web stays
+      # Off in this stack and never calls; the prod-like s2s42 overlay sets both sides.
+      PolicyEngine__Assets.Custody: "Enforce"
       # PLAN-30 (COM-030): candidate messages go to FileDrop files that acceptance tests read on the host
       # (artifacts/acceptance/candidate-notifications/{sha256(idempotencyKey)}.json; format in docs/COM_001_NOTIFICATIONS.md).
       Notifications__Candidate__Provider: FileDrop
@@ -246,7 +250,7 @@ services:
       DataProtection__KeyRingPath: /var/hrm/dpkeys
       HrAuth__BehindGateway: "false"
       Keycloak__PublicAuthority: http://localhost:6388/realms/hrmanagement
-      GatewayCallerProof__Secret: ${ACCEPTANCE_GATEWAY_CALLER_PROOF_SECRET:?Acceptance caller-proof secret is required}
+      GatewayCallerProof__PrivateKeyPem: ${ACCEPTANCE_GATEWAY_PROOF_PRIVATE_KEY_B64:?Acceptance gateway proof private key is required}
       RateLimiting__PermitLimitPerMinute: "2000"
     volumes: *acceptance-dp-volumes
     depends_on: *after-volume-init

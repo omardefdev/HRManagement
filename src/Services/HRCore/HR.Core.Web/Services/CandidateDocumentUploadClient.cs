@@ -66,12 +66,10 @@ public interface ICandidateDocumentUploadClient
 
 /// <summary>
 /// HCM-030 (E2): calls File.Storage DIRECTLY (<c>Integration:FileStorageBaseUrl</c>), not through the gateway: the
-/// gateway's <c>/api/files</c> rules need a tenant claim that service tokens lack. Each request carries the caller proof
-/// (<see cref="GatewayCallerProof"/>; a no-op without a configured secret, as in Development).
+/// gateway's <c>/api/files</c> rules need a tenant claim that service tokens lack. PLAN-42: the service token is enough.
 /// </summary>
 public sealed class CandidateDocumentUploadClient(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
     ILogger<CandidateDocumentUploadClient> logger) : ICandidateDocumentUploadClient
 {
     public const string HttpClientName = "CandidateDocumentUpload";
@@ -200,7 +198,6 @@ public sealed class CandidateDocumentUploadClient(
         var request = new HttpRequestMessage(method, relativePath);
         // ForwardTenantHandler adds nothing on the anonymous portal (and skips when the header is already set).
         request.Headers.TryAddWithoutValidation(TenantIdMiddleware.HeaderName, tenantId.ToString("D"));
-        GatewayCallerProof.Sign(request, configuration, "/" + relativePath.TrimStart('/'));
         return request;
     }
 

@@ -278,6 +278,7 @@
 - **التحقق المطلوب:** سالب: سجل ثانٍ للموظف نفسه مرفوض. عقد لموظف آخر مرفوض. تغيير الموظف بعد إكمال بند مرفوض. موجب: العقد ينتهي بتاريخ النفاذ.
 
 #### G-SEP-12 — بوابة الحجز القانوني مفتوحة دائماً في الإنتاج
+- **الحالة:** ✅ عولجت في [PLAN-42](acceptance-plans/PLAN-42-s2s-trust-boundary.md) — البوابة بهوية خدمة وترفض عند الفشل، عند الإنشاء (المعالج والمعالج المتتابع والحدث الوارد) وعند النشر (AC-S2S-42h). ويستدعيها مسار الاعتماد الجديد في PLAN-60.
 - **الدليل:**
   - البوابة الحقيقية لا تُسجَّل إلا إذا ضُبط `Services:HRCore:BaseUrl` أو `HrCore:BaseUrl` ([DependencyInjection.cs:36-45](../src/Services/HRContracts/HR.Contracts.Infrastructure/DependencyInjection.cs)). الإنتاج يستخدم `Integration__HrCoreBaseUrl`، والمفتاح المطلوب موجود فقط في [docker-compose.dev-contracts.yml:18](../docker-compose.dev-contracts.yml). فيعمل `PassThroughEmployeeLifecycleGate` ([EmployeeLifecycleGate.cs:9-13](../src/Services/HRContracts/HR.Contracts.Infrastructure/Services/EmployeeLifecycleGate.cs)).
   - وحتى عند ضبطه: `HttpClient` عادي بلا هوية خدمة (`:30`) إلى نقطة محمية بسياسة S2S ([EmployeeLifecycleInternalController.cs:12](../src/Services/HRCore/HR.Core.Web/Controllers/EmployeeLifecycleInternalController.cs)). النتيجة 401، ثم «allowing publish» (`:33-38`، `:47-51`). فتح عند الفشل.

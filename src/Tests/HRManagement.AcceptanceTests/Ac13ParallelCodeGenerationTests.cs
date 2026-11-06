@@ -20,7 +20,8 @@ public class Ac13ParallelCodeGenerationTests
         var recorder = new EvidenceRecorder("AC-13", correlationId);
         recorder.WriteMetadata("AC-13 parallel code generation", persona.Id);
 
-        using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, correlationId);
+        // PLAN-42: an official number belongs to the service that owns the kind, in the tenant of the request.
+        using var http = await AcceptanceHarness.CreateServiceClientAsync("svc-admin-logistics", ServiceScopes.HrCoreWorkflow, recorder, AcceptanceSeedIds.AgencyAId);
         var codes = new System.Collections.Concurrent.ConcurrentBag<string>();
         var statusCodes = new System.Collections.Concurrent.ConcurrentBag<int>();
 
@@ -32,11 +33,10 @@ public class Ac13ParallelCodeGenerationTests
                 var payload = new CodeGenerationRequest
                 {
                     EntityKind = CodeEntityKind.AssetTag,
-                    TenantId = AcceptanceSeedIds.AgencyAId,
                     Preview = false
                 };
                 var resp = await http.PostAsync(
-                    "api/hr-core/api/codes/generate",
+                    "api/internal/codes/generate",
                     JsonContent(payload));
                 statusCodes.Add((int)resp.StatusCode);
                 if (resp.IsSuccessStatusCode)
@@ -47,7 +47,7 @@ public class Ac13ParallelCodeGenerationTests
                 }
             });
 
-        recorder.CaptureHttp("generate-batch", "POST", "/api/hr-core/api/codes/generate",
+        recorder.CaptureHttp("generate-batch", "POST", "/api/internal/codes/generate",
             statusCodes.All(c => c == 200) ? 200 : 400,
             new
             {

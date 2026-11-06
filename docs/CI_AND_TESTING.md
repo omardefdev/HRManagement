@@ -195,6 +195,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 - **ما تشغّله:** [`tests/acceptance/ci-scope.json`](../tests/acceptance/ci-scope.json). كل صنف من `HRManagement.AcceptanceTests` مرة واحدة: في `lab[]` أو `prodLike[]` (`class`، `required`، `group`) أو `excluded[]` (`reason`، `ownerPlan`، `reviewBy`، ومسجّل في `docs/qa/dated-obligations.json`). و`order[]` يحدد المراحل والمكدّس الذي تحتاجه كل منها.
 - **الصنف الجديد:** يُضاف إلى `ci-scope.json` في الالتزام نفسه، وإلا سقطت الوظيفة («ran and is not in the scope file»). ولا يُستبعد إلا لبيئة لا يوفرها CI، ولا يُستبعد لأنه أحمر.
 - **الترتيب:** الأصناف التي توقف الحاويات أو تعيد إنشاءها في المجموعة `isolated`: كل صنف وحده في `dotnet test` خاص به (P-7). وبين الملفين يُعاد المكدّس من مجلدات فارغة لأن بذور القبول تُستهلك.
+- **طبقة لمرحلة (PLAN-42):** مرحلة في `order[]` تحمل `composeFiles` و`recreate` تُطبَّق ملفاتها على المكدّس الجاري قبل تشغيلها، فتُعاد الخدمات المسمّاة في `recreate` وحدها. وأصنافها تعمل كل صنف وحده كالمجموعة `isolated`، ويُهدم المكدّس قبل استعماله التالي. لذلك تأتي هذه المرحلة آخر مراحل مكدّسها: المجموعة `s2s42` بعد `final` على prod-like.
 - **الحارس:** `scripts/ci/acceptance-guard.ps1` يسقط الوظيفة إن كان في صنف مطلوب نتيجة غير `Passed`، أو سيناريو `Fail`/`Blocked` في مجلده، أو لم يعمل أصلاً، أو ظهر في trx صنف غير مدرج، أو قال trx إن التشغيل أُجهض، أو تعذرت قراءة `result.json`. والأصناف غير المطلوبة تظهر في ملخص الوظيفة فقط.
 - **السلبي اليدوي:** `gh workflow run ci.yml --ref main -f simulate_missing=<Class.Method>` يحجب سيناريو مطلوباً، فتحمر الوظيفة وتسمّيه. و`-f classes=<A,B>` يعيد تشغيل أصناف بعينها، للتشخيص فقط: خارج `main` تنتهي الوظيفة حمراء وإن نجحت أصنافها، حتى لا تقف فحصاً أخضر لالتزام فرع. واسم صنف خارج النطاق خطأ.
 - **محلياً (المالك):** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/acceptance-job.ps1 -Profile Both`، ويكتب كله في `artifacts/acceptance/run/`، ولا يمس `acceptance-evidence/` المودَع. والمرحلة `meta` (AC-QA-34/35) في CI فقط لأنها تقرأ نتائج وظيفة `CI` للالتزام نفسه. وPowerShell 5.1 لا يكفي لبعض سكربتات AC-01..37 (`??`، وتمرير علامات الاقتباس إلى `docker exec`)، وهي غير مطلوبة.
@@ -207,6 +208,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 - الخطة التي تحدّث الأدلة المودَعة تنسخها من أثر CI كاملة، وعند تغيّر `acceptance-evidence/**` تشغّل خطوة `Committed acceptance evidence` المدقّق بوضع `-Committed`: الملخص من CI، والتشغيل أخضر من PR أو دفع في هذا المستودع، والشيفرة هي نفسها.
 - الحداثة بشجرة الشيفرة لا بالالتزام (`codeTree`: كل المسارات عدا `acceptance-evidence/` و`reports/` و`docs/`)، فإيداع الدليل نفسه لا يجعله قديماً. والدليل `Stale` إن اختلفت الشجرة، أو بُنيت صورة من مصدر آخر أو من شجرة معدّلة، أو مضى عليه أكثر من 30 يوماً.
 - حالات `summary.md` بترتيبها: `NotRun`، `Incomplete`، `Stale`، `Fail`/`Blocked`، `Pass`. و`Pass` مع `provesClaim: false` في [`tests/acceptance/ac-ownership.json`](../tests/acceptance/ac-ownership.json) يُعدّ «ناجحاً لا يثبت»، لا مثبتاً.
+
+**ملف إضافي لمجموعة (PLAN-42، P-7):** يجوز لمرحلة في `order` من `ci-scope.json` أن تسمّي `composeFiles` و`recreate`. تطبّق الوظيفة الملفات على المكدس الجاري وتعيد إنشاء تلك الخدمات فقط قبل المرحلة، ثم تعلّم المكدس متغيراً، فتبدأ المرحلة التالية التي تحتاجه من مكدس جديد. مثال: `s2s42` مع `docker-compose.acceptance-s2s42.yml`.
 
 ### سير العمل المحذوفة والمجدولة (PLAN-35)
 

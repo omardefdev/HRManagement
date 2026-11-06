@@ -198,7 +198,7 @@ public sealed class Ops039KeycloakRealmImportTests : IClassFixture<Ops039Keycloa
 
         var scopes = (await _f.AdminGetAsync("/client-scopes")).EnumerateArray().Select(s => s.GetProperty("name").GetString()).ToHashSet();
         Assert.All(_f.Matrix.Scopes.Keys, s => Assert.Contains(s, scopes));
-        Assert.Equal(8, _f.Matrix.Scopes.Count);
+        Assert.Equal(9, _f.Matrix.Scopes.Count);
     }
 
     [Trait("Category", "Testcontainers")]

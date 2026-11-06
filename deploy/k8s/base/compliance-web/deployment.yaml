@@ -50,7 +50,7 @@ spec:
                 name: hr-app-config
                 optional: true
             - secretRef:
-                name: hr-app-secrets
+                name: compliance-web-secrets
                 optional: true
           env:
             - name: ASPNETCORE_URLS

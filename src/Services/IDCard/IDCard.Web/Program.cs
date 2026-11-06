@@ -38,10 +38,8 @@ builder.Services.AddDbContext<IDCardDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<IDCardDbContext>());
 builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
-builder.Services.AddHrPolicyPublishedConsumer();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
-    configureConsumers: x => x.AddConsumer<HRManagement.ServiceDefaults.Policy.PolicyPublishedConsumer>(),
     configureOutbox: x => x.AddPostgresOutbox<IDCardDbContext>(consumerOutbox: true),
     consumerAssembly: typeof(EmployeeCreatedConsumer).Assembly);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);

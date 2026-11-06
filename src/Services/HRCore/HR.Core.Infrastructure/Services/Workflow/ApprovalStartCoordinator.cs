@@ -1,6 +1,7 @@
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.Workflow;
@@ -66,22 +67,16 @@ public sealed class ApprovalStartCoordinator(
     IWorkflowStarter workflowStarter,
     IConfiguration configuration)
 {
+    private readonly IPolicyModeResolver modeResolver = new PolicyModeResolver(configuration);
+
     public const string MissingDefinitionMessage = "لا يوجد تعريف مسار اعتماد منشور لهذا الإجراء.";
     public const string StartDisabledMessage =
         "بدء مسار الاعتماد معطّل بالإعداد Recruitment:Approvals:AlwaysStartWorkflow، ولا تُقدَّم المعاملة دون مسار اعتماد.";
 
-    public static PolicyEnforcementMode ResolveMode(IConfiguration configuration, string policyDomain)
-    {
-        var raw = configuration[$"PolicyEngine:{policyDomain}"]
-            ?? configuration["PolicyEngine:DefaultMode"]
-            ?? nameof(PolicyEnforcementMode.Off);
-        return Enum.TryParse<PolicyEnforcementMode>(raw, true, out var mode) ? mode : PolicyEnforcementMode.Off;
-    }
-
     public async Task<ApprovalStartResult> StartAsync(ApprovalStartRequest request, CancellationToken ct = default)
     {
         var options = RecruitmentApprovalOptions.From(configuration);
-        var mode = ResolveMode(configuration, request.PolicyDomain);
+        var mode = modeResolver.Resolve(request.PolicyDomain);
 
         if (mode != PolicyEnforcementMode.Off && request.PolicyRequest is not null)
         {
@@ -167,12 +162,14 @@ public sealed class ApprovalStartCoordinator(
     /// <summary>
     /// Never two instances: an in-progress instance of the same entity is reused only when it runs the requested workflow
     /// code and nobody has acted on it yet (first step, empty history) — so a pre-created or half-approved instance can never
-    /// be adopted to skip a step or a stricter workflow (PLAN-25 review finding 1).
+    /// be adopted to skip a step or a stricter workflow (PLAN-25 review finding 1). PLAN-42: and only by the actor who started it,
+    /// because the initiator check compares with InitiatedBy: adopting an instance started by someone else would pass that check.
     /// </summary>
     private async Task<Guid?> FindReusableInstanceAsync(ApprovalStartRequest request, CancellationToken ct)
     {
         var candidates = await db.WorkflowInstances.AsNoTracking()
             .Where(i => i.EntityType == request.EntityType && i.EntityId == request.EntityId && i.Status == WorkflowStatus.InProgress)
+            .Where(i => i.InitiatedBy == request.ActorUserId)
             .OrderByDescending(i => i.StartedAt)
             .Select(i => new { i.Id, i.DefinitionId, i.CurrentStepLevel, i.StepHistoryJson })
             .ToListAsync(ct);

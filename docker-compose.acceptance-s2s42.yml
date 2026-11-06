@@ -1,0 +1,12 @@
+# PLAN-42: the test layer of AC-S2S-42 on top of the prod-like stack. hr-core-web and admin-logistics-web take the custody mode from
+# S2S42_ASSETS_MODE (Enforce for 42a and 42c, Shadow for 42b), and the acceptance seed publishes the deny rule of the scenarios
+# (AcceptanceS2s42PolicyPatch). scripts/ci/acceptance-job.ps1 applies this file before the s2s42 group of tests/acceptance/ci-scope.json.
+services:
+  hr-core-web:
+    environment:
+      PolicyEngine__Assets.Custody: ${S2S42_ASSETS_MODE:-Enforce}
+      Seed__S2s42PolicyPatch: "true"
+
+  admin-logistics-web:
+    environment:
+      PolicyEngine__Assets.Custody: ${S2S42_ASSETS_MODE:-Enforce}

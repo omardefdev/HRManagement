@@ -94,8 +94,8 @@ public class Scm001BranchProtectionExceptionTests
     [Fact]
     public void Unavailable_protection_passes_only_with_the_local_guard_installed()
     {
-        // D-QA-1 fallback: private repository on the free plan (GitHub answers 403 "Upgrade to GitHub Pro").
-        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/hook-protect-main.txt");
+        // D-QA-1 fallback, kept for a repository that goes private again (403 "Upgrade to GitHub Pro"); PLAN-41 closed the live exception.
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/hook-protect-main.txt -Exceptions {Fixtures}/exceptions-fallback-open.json");
         Assert.True(exit == 0, output);
         Assert.Contains("local guard installed", output, StringComparison.Ordinal);
         Assert.Contains("SCM-NO-GITHUB-PROTECTION", output, StringComparison.Ordinal);
@@ -106,7 +106,7 @@ public class Scm001BranchProtectionExceptionTests
     [InlineData("missing-hook.txt")]
     public void Unavailable_protection_without_the_main_guard_fails(string hook)
     {
-        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/{hook}");
+        var (exit, output) = Validate($"-LiveProtectionFile {Fixtures}/live-unavailable.json -HookFile {Fixtures}/{hook} -Exceptions {Fixtures}/exceptions-fallback-open.json");
         Assert.Equal(1, exit);
         Assert.Contains("the local guard is not installed", output, StringComparison.Ordinal);
     }

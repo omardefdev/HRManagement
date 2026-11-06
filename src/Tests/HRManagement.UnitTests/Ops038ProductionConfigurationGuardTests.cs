@@ -13,13 +13,12 @@ namespace HRManagement.UnitTests;
 /// </summary>
 public class Ops038ProductionConfigurationGuardTests
 {
-    private const string GoodSecret = "lab-only-caller-proof-secret-0123456789abcdef";
     private const string AppConnection = "Host=postgresql;Port=5432;Database=payroll_db;Username=payroll_app;Password=lab-only-db-password-0123";
 
     private static Dictionary<string, string?> ValidService() => new()
     {
         ["AllowedHosts"] = "*",
-        ["GatewayCallerProof:Secret"] = GoodSecret,
+        ["GatewayCallerProof:PublicKeyPem"] = TestProofKeys.PublicKey,
         ["Keycloak:Authority"] = "http://keycloak:8080/realms/hrmanagement",
         ["Organization:Name"] = "شعبة التنظيم والموارد البشرية",
         ["ConnectionStrings:PayrollDb"] = AppConnection,
@@ -57,11 +56,11 @@ public class Ops038ProductionConfigurationGuardTests
     }
 
     [Fact]
-    public void Missing_caller_proof_secret_stops_the_start()
+    public void Missing_gateway_proof_public_key_stops_the_start()
     {
         var values = ValidService();
-        values.Remove("GatewayCallerProof:Secret");
-        AssertSingleFailure(Evaluate(values), "GatewayCallerProof:Secret", null);
+        values.Remove("GatewayCallerProof:PublicKeyPem");
+        AssertSingleFailure(Evaluate(values), "GatewayCallerProof:PublicKeyPem", null);
     }
 
     [Theory]
