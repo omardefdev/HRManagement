@@ -654,7 +654,8 @@ public class AssetsController(
         if (AssetLostRules.RequiresLossApproval(asset))
         {
             var workflowId = await workflowTrigger.StartAssetLossWorkflowAsync(
-                reportId, id, asset.TagNumber, asset.IsPrivileged, asset.Value, reason, HttpContext.RequestAborted);
+                reportId, id, asset.TagNumber, asset.IsPrivileged, asset.Value, reason,
+                openForCapture.FirstOrDefault()?.EmployeeId, HttpContext.RequestAborted);
             report.WorkflowInstanceId = workflowId;
             await db.SaveChangesAsync();
             TempData["Success"] = workflowId.HasValue

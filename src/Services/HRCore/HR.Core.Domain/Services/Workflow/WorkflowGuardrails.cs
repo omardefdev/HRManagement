@@ -6,7 +6,8 @@ public sealed record WorkflowGuardrail(
     int MinSteps,
     string? LastStepRole = null,
     IReadOnlyList<string>? RequiredRoles = null,
-    IReadOnlyDictionary<string, int>? MinStepsByCode = null)
+    IReadOnlyDictionary<string, int>? MinStepsByCode = null,
+    bool RequiresDistinctApprovers = false)
 {
     public int MinStepsFor(string? workflowCode) =>
         workflowCode is not null && MinStepsByCode is not null && MinStepsByCode.TryGetValue(workflowCode, out var min)
@@ -36,7 +37,7 @@ public static class WorkflowGuardrails
             }),
             new("SelectionCommitteeSession", 3, ManagementApprover),
             new("RecruitmentAppeal", 1, Compliance),
-            new("AssetAssignment", 2, ManagementApprover),
+            new("AssetAssignment", 2, ManagementApprover, RequiresDistinctApprovers: true),
             new("AssetLossReport", 1)
         }.ToDictionary(g => g.EntityType, StringComparer.OrdinalIgnoreCase);
 

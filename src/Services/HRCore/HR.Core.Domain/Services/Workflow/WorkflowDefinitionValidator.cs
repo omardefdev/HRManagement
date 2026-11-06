@@ -8,7 +8,8 @@ public sealed record WorkflowDefinitionDraft(
     string Name,
     string DomainEntityType,
     IReadOnlyList<WorkflowStepSnapshot> Steps,
-    IReadOnlyList<string> GuardrailRoles);
+    IReadOnlyList<string> GuardrailRoles,
+    bool RequireDistinctApprovers = true);
 
 /// <summary>
 /// PLAN-43 (G-WF-04): the rules a definition passes before it is submitted and again when it is published. It returns every error
@@ -96,18 +97,26 @@ public static class WorkflowDefinitionValidator
 
     private static void ValidateGuardrail(WorkflowDefinitionDraft definition, WorkflowGuardrail guardrail, List<string> errors)
     {
+        // A step with a condition may be skipped, so only unconditional steps count towards the limits.
+        var firm = definition.Steps.Where(s => s.Condition is null).OrderBy(s => s.Level).ToList();
         var minSteps = guardrail.MinStepsFor(definition.Code);
-        if (definition.Steps.Count < minSteps)
+        if (firm.Count < minSteps)
             errors.Add($"هذا النوع يتطلب {minSteps} خطوات على الأقل.");
+
+        if (definition.Steps.Count > 0 && definition.Steps.MaxBy(s => s.Level)!.Condition is not null)
+            errors.Add("الخطوة الأخيرة لا تكون مشروطة.");
 
         if (guardrail.LastStepRole is { } lastRole
             && definition.Steps.Count > 0
             && !string.Equals(definition.Steps.MaxBy(s => s.Level)!.RoleRequired, lastRole, StringComparison.OrdinalIgnoreCase))
             errors.Add($"الخطوة الأخيرة لهذا النوع يجب أن تكون بدور «{lastRole}».");
 
+        if (guardrail.RequiresDistinctApprovers && !definition.RequireDistinctApprovers)
+            errors.Add("هذا النوع يتطلب معتمداً مختلفاً لكل خطوة.");
+
         foreach (var role in guardrail.RequiredRoles ?? [])
         {
-            if (!HasRole(definition.Steps, role))
+            if (!HasRole(firm, role))
                 errors.Add($"هذا النوع يتطلب خطوة بدور «{role}».");
         }
     }

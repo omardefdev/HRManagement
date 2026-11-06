@@ -56,6 +56,7 @@ public sealed partial class WorkflowTriggerService(
         bool isPrivileged,
         decimal? value,
         AssetLossReason reason,
+        Guid? holderEmployeeId = null,
         CancellationToken ct = default)
     {
         var request = new WorkflowApprovalStartRequest(
@@ -67,7 +68,8 @@ public sealed partial class WorkflowTriggerService(
             null,
             Title("فقدان أصل", tagNumber),
             DetailsUrl(assetId),
-            Facts(assetId, tagNumber, isPrivileged, value, ("lossReportId", lossReportId.ToString("D")), ("reason", reason.ToString())));
+            Facts(assetId, tagNumber, isPrivileged, value, ("lossReportId", lossReportId.ToString("D")), ("reason", reason.ToString())),
+            holderEmployeeId);
 
         return StartAsync(request, "Loss workflow", "report", lossReportId, ct);
     }

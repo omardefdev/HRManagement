@@ -124,7 +124,8 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
         var contextJson = request.Facts is null ? null : JsonSerializer.Serialize(request.Facts);
         var started = engine.Start(
             WorkflowDefinitionMapper.ToSnapshot(definition), type.EntityType, request.EntityId, requesterId, requesterName, contextJson);
-        if (!started.Success)
+        // Every step skipped by its condition would be a finished approval that nobody gave.
+        if (!started.Success || started.NewStatus != WorkflowStatus.InProgress)
             return new ExternalApprovalResult(ExternalApprovalOutcome.DefinitionMissing, Error: ApprovalStartCoordinator.MissingDefinitionMessage);
 
         var instance = new WorkflowInstance
@@ -140,7 +141,6 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
             InitiatedBy = requesterId,
             InitiatedByName = requesterName,
             StartedAt = now,
-            CompletedAt = started.NewStatus == WorkflowStatus.Completed ? now : null,
             RequestedByUserId = requesterId,
             RequestedByName = requesterName,
             SourceClientId = caller.ClientId,

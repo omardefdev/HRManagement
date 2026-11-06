@@ -24,10 +24,10 @@ namespace HR.Core.Infrastructure.Migrations
                 type: "uuid",
                 nullable: true);
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "LastEditedBy",
+            migrationBuilder.AddColumn<string>(
+                name: "EditorUserIdsJson",
                 table: "WorkflowDefinitions",
-                type: "uuid",
+                type: "text",
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
@@ -114,7 +114,7 @@ namespace HR.Core.Infrastructure.Migrations
                 table: "WorkflowDefinitions");
 
             migrationBuilder.DropColumn(
-                name: "LastEditedBy",
+                name: "EditorUserIdsJson",
                 table: "WorkflowDefinitions");
 
             migrationBuilder.DropColumn(

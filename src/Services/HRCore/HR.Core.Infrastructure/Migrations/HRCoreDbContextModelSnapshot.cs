@@ -5600,8 +5600,8 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid?>("LastEditedBy")
-                        .HasColumnType("uuid");
+                    b.Property<string>("EditorUserIdsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()

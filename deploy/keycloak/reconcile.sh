@@ -108,8 +108,7 @@ HAVE_ROLES=" $({ grep -o '"name" *: *"[^"]*"' "$TMP/roles.json" || true; } | sed
 while IFS=$'\t' read -r kind name description; do
   [ "$kind" = "role" ] || continue
   case "$HAVE_ROLES" in *" $name "*) continue;; esac
-  change "role $name: created" kc_body "{\"name\":\"$(json_escape "$name")\",\"description\":\"$(json_escape "$description")\"}" \
-    create roles -r "$REALM"
+  change "role $name: created" kc create roles -r "$REALM" -s "name=$name" -s "description=$description"
 done < "$PLAN"
 
 # ---- 2. client scopes and their audience mappers ------------------------------------------------------------------------

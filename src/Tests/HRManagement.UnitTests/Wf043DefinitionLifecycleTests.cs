@@ -90,12 +90,13 @@ public sealed class Wf043DefinitionLifecycleTests
     }
 
     [Fact]
-    public async Task The_last_editor_of_a_colleagues_draft_cannot_publish_it()
+    public async Task An_editor_of_a_colleagues_draft_cannot_publish_it_even_after_a_later_edit()
     {
         await using var db = NewDb();
         var service = new WorkflowDefinitionLifecycleService(db);
         var draft = await service.CreateDraftAsync(Valid(), Author);
         await service.UpdateDraftAsync(draft.Definition!.Id, new WorkflowDefinitionChange { Name = "اسم آخر" }, Second);
+        await service.UpdateDraftAsync(draft.Definition.Id, new WorkflowDefinitionChange { Description = "وصف" }, Author);
         await service.SubmitForPublishAsync(draft.Definition.Id, Author);
 
         var refused = await service.PublishAsync(draft.Definition.Id, Second);
@@ -284,6 +285,9 @@ public sealed class Wf043DefinitionLifecycleTests
         await service.SubmitForPublishAsync(v2.Definition!.Id, Author);
         await service.PublishAsync(v2.Definition.Id, Second);
 
+        // The latest version cannot go: every start would fall back to the older one with no second person.
+        Assert.Contains(WorkflowDefinitionLifecycleService.LastPublishedMessage, (await service.RetireAsync(v2.Definition.Id, "رجوع إلى الإصدار الأول", Third)).Errors!);
+
         var retired = await service.RetireAsync(v1.Id, "استُبدل بالإصدار الثاني", Third);
 
         Assert.True(retired.Success);
@@ -292,6 +296,20 @@ public sealed class Wf043DefinitionLifecycleTests
         Assert.False(stored.IsPublished);
         Assert.Equal(Third.UserId, stored.RetiredBy);
         Assert.Equal("استُبدل بالإصدار الثاني", stored.ChangeReason);
+    }
+
+    [Fact]
+    public async Task A_version_marked_published_by_an_older_tag_is_not_a_draft()
+    {
+        await using var db = NewDb();
+        var service = new WorkflowDefinitionLifecycleService(db);
+        var draft = await service.CreateDraftAsync(Valid(), Author);
+        var stored = await db.WorkflowDefinitions.SingleAsync();
+        stored.IsPublished = true;   // what the previous tag's Publish leaves after a rollback
+        await db.SaveChangesAsync();
+
+        Assert.False((await service.UpdateDraftAsync(draft.Definition!.Id, new WorkflowDefinitionChange { Name = "x" }, Second)).Success);
+        Assert.False((await service.DeleteDraftAsync(draft.Definition.Id, Second)).Success);
     }
 
     [Fact]

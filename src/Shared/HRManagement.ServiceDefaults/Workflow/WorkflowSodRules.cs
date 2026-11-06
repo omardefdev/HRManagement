@@ -24,9 +24,9 @@ public static class WorkflowSodRules
 
     /// <summary>The requester and the excluded users: every step, approving and rejecting.</summary>
     public static string? Excluded(WorkflowSodFacts facts, Guid? actorUserId) =>
-        actorUserId is Guid actor && (actor == facts.RequestedByUserId || facts.ExcludedApproverUserIds.Contains(actor))
-            ? ExcludedMessage
-            : null;
+        actorUserId is Guid actor
+            ? actor == facts.RequestedByUserId || facts.ExcludedApproverUserIds.Contains(actor) ? ExcludedMessage : null
+            : facts.RequestedByUserId is null ? null : ExcludedMessage;
 
     /// <summary>The employee the request is about: every step, approving and rejecting.</summary>
     public static string? Subject(WorkflowSodFacts facts, Guid? actorEmployeeId) =>

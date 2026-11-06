@@ -59,7 +59,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
     public const string NotPendingMessage = "التعريف ليس بانتظار النشر.";
     public const string NotPublishedMessage = "لا يُسحب إلا إصدار منشور.";
     public const string RetireReasonMessage = "سبب السحب مطلوب (10 أحرف على الأقل).";
-    public const string LastPublishedMessage = "لا يمكن سحب آخر إصدار منشور لهذا المسار قبل نشر إصدار بديل.";
+    public const string LastPublishedMessage = "لا يمكن سحب هذا الإصدار قبل نشر إصدار أحدث منه ساري المفعول.";
     public const string EntityTypeChangedMessage = "نوع الكيان يجب أن يطابق الإصدارات الأخرى لهذا الرمز.";
     public const string ValidityMessage = "نهاية السريان يجب أن تكون بعد بدايته.";
     public const string ActorMessage = "تعذّر تحديد المستخدم.";
@@ -101,7 +101,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
             RequireDistinctApprovers = change.RequireDistinctApprovers ?? true,
             ChangeReason = Trimmed(change.ChangeReason),
             CreatedBy = actor.UserId,
-            LastEditedBy = actor.UserId
+            EditorUserIdsJson = JsonSerializer.Serialize(new[] { actor.UserId!.Value })
         };
 
         db.WorkflowDefinitions.Add(definition);
@@ -118,7 +118,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
         var definition = await db.WorkflowDefinitions.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (definition is null)
             return NotFound();
-        if (definition.Status != WorkflowDefinitionStatus.Draft)
+        if (definition.Status != WorkflowDefinitionStatus.Draft || definition.IsPublished)
             return Invalid(NotDraftMessage);
 
         definition.Name = change.Name ?? definition.Name;
@@ -132,7 +132,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
             definition.StepsJson = JsonSerializer.Serialize(change.Steps);
         if (change.GuardrailRoles is not null)
             definition.GuardrailRolesJson = JsonSerializer.Serialize(change.GuardrailRoles);
-        definition.LastEditedBy = actor.UserId;
+        definition.EditorUserIdsJson = JsonSerializer.Serialize(Editors(definition).Append(actor.UserId!.Value).Distinct());
 
         await db.SaveChangesAsync(ct);
         return new WorkflowDefinitionResult(definition);
@@ -147,7 +147,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
         var definition = await db.WorkflowDefinitions.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (definition is null)
             return NotFound();
-        if (definition.Status != WorkflowDefinitionStatus.Draft)
+        if (definition.Status != WorkflowDefinitionStatus.Draft || definition.IsPublished)
             return Invalid("لا يُحذف إلا تعريف في حالة مسودة.");
 
         db.WorkflowDefinitions.Remove(definition);
@@ -180,7 +180,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
 
     /// <summary>
     /// Rules 3 and 5: a second person, the validator once more, and a plain warning when a policy binding pins another version.
-    /// The last editor counts as an author: otherwise one person could rewrite a colleague's draft and publish it.
+    /// Every editor counts as an author: otherwise one person could rewrite a colleague's draft and publish it.
     /// </summary>
     public async Task<WorkflowDefinitionResult> PublishAsync(Guid id, WorkflowDefinitionActor actor, CancellationToken ct = default)
     {
@@ -192,7 +192,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
             return NotFound();
         if (definition.Status != WorkflowDefinitionStatus.PendingPublish)
             return Invalid(NotPendingMessage);
-        if (actor.UserId == definition.CreatedBy || actor.UserId == definition.SubmittedBy || actor.UserId == definition.LastEditedBy)
+        if (actor.UserId == definition.CreatedBy || actor.UserId == definition.SubmittedBy || Editors(definition).Contains(actor.UserId!.Value))
             return new WorkflowDefinitionResult(null, WorkflowDefinitionFailure.Forbidden, [SecondPersonMessage]);
 
         var errors = await ValidateAsync(definition, ct);
@@ -228,7 +228,10 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
         return new WorkflowDefinitionResult(definition);
     }
 
-    /// <summary>Rule 7: a reason, and never the last published version of a workflow the coordinators or a service start.</summary>
+    /// <summary>
+    /// Rule 7: a reason, and a newer valid version for a workflow the coordinators or a service start. Only a newer one: retiring the
+    /// latest version would otherwise send every start back to an older one, without a second person.
+    /// </summary>
     public async Task<WorkflowDefinitionResult> RetireAsync(
         Guid id, string? reason, WorkflowDefinitionActor actor, CancellationToken ct = default)
     {
@@ -251,6 +254,7 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
             var hasReplacement = await db.WorkflowDefinitions.AnyAsync(d =>
                 d.Id != definition.Id
                 && d.Code == definition.Code
+                && d.Version > definition.Version
                 && d.IsPublished
                 && (d.ValidFrom == null || d.ValidFrom <= now)
                 && (d.ValidTo == null || d.ValidTo >= now), ct);
@@ -309,6 +313,11 @@ public sealed class WorkflowDefinitionLifecycleService(HRCoreDbContext db)
         return null;
     }
 
+    private static IReadOnlyList<Guid> Editors(WorkflowDefinition definition) =>
+        string.IsNullOrWhiteSpace(definition.EditorUserIdsJson)
+            ? []
+            : JsonSerializer.Deserialize<List<Guid>>(definition.EditorUserIdsJson) ?? [];
+
     private static WorkflowDefinitionResult NotFound() => new(null, WorkflowDefinitionFailure.NotFound);
 
     private static WorkflowDefinitionResult Invalid(string error) => new(null, WorkflowDefinitionFailure.Invalid, [error]);
@@ -338,7 +347,8 @@ public static class WorkflowDefinitionCatalog
                 definition.Name,
                 definition.DomainEntityType,
                 Read<WorkflowStepSnapshot>(definition.StepsJson),
-                Read<string>(definition.GuardrailRolesJson)),
+                Read<string>(definition.GuardrailRolesJson),
+                definition.RequireDistinctApprovers),
             KnownRoles,
             KnownEntityTypes);
 

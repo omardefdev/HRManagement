@@ -32,8 +32,8 @@ public class WorkflowDefinition : BaseEntity
 
     public Guid? CreatedBy { get; set; }
 
-    /// <summary>The last person who changed a draft: the second person must not be the one who wrote what is published.</summary>
-    public Guid? LastEditedBy { get; set; }
+    /// <summary>JSON array of everyone who changed the draft: the second person must not be someone who wrote what is published.</summary>
+    public string? EditorUserIdsJson { get; set; }
 
     public Guid? SubmittedBy { get; set; }
 

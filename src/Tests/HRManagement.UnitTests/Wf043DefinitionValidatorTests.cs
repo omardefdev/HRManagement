@@ -124,7 +124,32 @@ public sealed class Wf043DefinitionValidatorTests
         Assert.Contains("شرط الخطوة 1 يستعمل مشغّلاً غير معروف «Matches».", errors);
 
         foreach (var known in WorkflowDefinitionValidator.KnownOperators)
-            Assert.Empty(Validate("AssetLossReport", steps: Step(1, Core, condition: new WorkflowCondition { Field = "value", Operator = known })));
+            Assert.Empty(Validate("AssetLossReport", steps: [Step(1, Core, condition: new WorkflowCondition { Field = "value", Operator = known }), Step(2, Core)]));
+    }
+
+    [Fact]
+    public void A_conditional_step_does_not_count_towards_the_limits_and_the_last_step_has_no_condition()
+    {
+        var never = new WorkflowCondition { Field = "x", Operator = "Equals", Value = "never" };
+
+        var skippedApprover = Validate("AssetAssignment", steps: [Step(1, Core), Step(2, Approver, condition: never)]);
+        Assert.Contains("الخطوة الأخيرة لا تكون مشروطة.", skippedApprover);
+        Assert.Contains("هذا النوع يتطلب 2 خطوات على الأقل.", skippedApprover);
+
+        Assert.Contains("الخطوة الأخيرة لا تكون مشروطة.", Validate("AssetLossReport", steps: Step(1, Core, condition: never)));
+        Assert.Empty(Validate("AssetLossReport", steps: [Step(1, Core, condition: never), Step(2, Core)]));
+    }
+
+    [Fact]
+    public void Custody_keeps_distinct_approvers()
+    {
+        var draft = new WorkflowDefinitionDraft("C", "N", "AssetAssignment", [Step(1, Core), Step(2, Approver)], [], RequireDistinctApprovers: false);
+
+        Assert.Contains(
+            "هذا النوع يتطلب معتمداً مختلفاً لكل خطوة.",
+            WorkflowDefinitionValidator.Validate(draft, WorkflowDefinitionCatalog.KnownRoles, WorkflowDefinitionCatalog.KnownEntityTypes));
+        Assert.Empty(WorkflowDefinitionValidator.Validate(
+            draft with { RequireDistinctApprovers = true }, WorkflowDefinitionCatalog.KnownRoles, WorkflowDefinitionCatalog.KnownEntityTypes));
     }
 
     [Fact]

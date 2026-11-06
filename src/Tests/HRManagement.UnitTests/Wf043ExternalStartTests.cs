@@ -315,6 +315,47 @@ public sealed class Wf043ExternalStartTests
     }
 
     [Fact]
+    public async Task A_definition_whose_steps_all_skip_starts_nothing()
+    {
+        var (db, service) = await ArrangeAsync();
+        await using var _ = db;
+        var definition = await db.WorkflowDefinitions.SingleAsync(d => d.Code == AssignmentCode);
+        definition.StepsJson = JsonSerializer.Serialize(new[]
+        {
+            new WorkflowStepSnapshot
+            {
+                Level = 1, Name = "s", RoleRequired = HrManagementRoles.HrCore,
+                Condition = new WorkflowCondition { Field = "x", Operator = "Equals", Value = "never" }
+            }
+        });
+        await db.SaveChangesAsync();
+
+        var result = await service.StartAsync(Request(), Owner);
+
+        Assert.Equal(ExternalApprovalOutcome.DefinitionMissing, result.Outcome);
+        Assert.Empty(await db.WorkflowInstances.ToListAsync());
+    }
+
+    [Fact]
+    public async Task The_loss_report_names_the_holder_as_the_subject()
+    {
+        var handler = new RecordingHandler();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddHttpClient(WorkflowTriggerService.HttpClientName, c => c.BaseAddress = new Uri("http://hr-core-web:8080/"))
+            .ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddScoped<WorkflowTriggerService>();
+        await using var provider = services.BuildServiceProvider();
+        var holder = Guid.NewGuid();
+
+        await provider.GetRequiredService<WorkflowTriggerService>().StartAssetLossWorkflowAsync(
+            Guid.NewGuid(), Guid.NewGuid(), "TAG-1", true, 10m, AssetLossReason.Theft, holder);
+
+        using var body = JsonDocument.Parse(handler.Body!);
+        Assert.Equal(holder, body.RootElement.GetProperty("subjectEmployeeId").GetGuid());
+    }
+
+    [Fact]
     public async Task The_owner_withdraws_a_running_instance_with_a_reason()
     {
         var (db, service) = await ArrangeAsync();

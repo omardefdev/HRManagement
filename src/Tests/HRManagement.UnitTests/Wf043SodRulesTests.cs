@@ -58,6 +58,12 @@ public sealed class Wf043SodRulesTests
     }
 
     [Fact]
+    public void An_actor_with_no_id_is_not_known_to_differ_from_the_requester()
+    {
+        Assert.Equal(WorkflowSodRules.ExcludedMessage, WorkflowSodRules.Excluded(Facts(), null));
+    }
+
+    [Fact]
     public void A_rejected_earlier_entry_is_not_an_approval()
     {
         var rejected = Approved(1, Other) with { Status = WorkflowStepStatus.Rejected };
