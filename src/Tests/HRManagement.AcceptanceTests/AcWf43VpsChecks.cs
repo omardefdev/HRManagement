@@ -71,19 +71,26 @@ public partial class AcOps36VpsBootTests
             Assert.Equal(HttpStatusCode.Forbidden, start.StatusCode);
 
             const string createPage = "/ui/hr-core/RecruitmentRequisitions/Create";
-            var (status, _, body) = await PostFormAsync(creator, createPage, new Dictionary<string, string>
+            // The demo seed wrote requisition numbers without moving the counter: each attempt that collides moves it by one.
+            string[] rows = [];
+            var status = 0;
+            for (var attempt = 0; attempt < 5 && rows.Length == 0; attempt++)
             {
-                ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
-                ["ScopeOrgUnitId"] = orgUnit,
-                ["FundedPositionId"] = positionId,
-                ["JobTitle"] = Wf43Marker,
-                ["JustificationNotes"] = Wf43Marker,
-                ["LegalSourceId"] = "SYR-LAW-50-2004",
-                ["BudgetYear"] = DateTime.UtcNow.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["PublishingChannel"] = "PublicOnly"
-            });
-            var rows = Sql("hr_core_db", $"select \"Id\" from \"RecruitmentRequisitions\" where \"FundedPositionId\" = '{positionId}' and \"Status\" = 'Draft'");
-            Assert.True(rows.Length == 1, $"create answered {status}: {body[..Math.Min(body.Length, 300)]}");
+                (status, _, _) = await PostFormAsync(creator, createPage, new Dictionary<string, string>
+                {
+                    ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
+                    ["ScopeOrgUnitId"] = orgUnit,
+                    ["FundedPositionId"] = positionId,
+                    ["JobTitle"] = Wf43Marker,
+                    ["JustificationNotes"] = Wf43Marker,
+                    ["LegalSourceId"] = "SYR-LAW-50-2004",
+                    ["BudgetYear"] = DateTime.UtcNow.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["PublishingChannel"] = "PublicOnly"
+                });
+                rows = Sql("hr_core_db", $"select \"Id\" from \"RecruitmentRequisitions\" where \"FundedPositionId\" = '{positionId}' and \"Status\" = 'Draft'");
+            }
+
+            Assert.True(rows.Length == 1, $"create answered {status}");
             requisition = rows[0];
 
             var details = $"/ui/hr-core/RecruitmentRequisitions/Details/{requisition}";
