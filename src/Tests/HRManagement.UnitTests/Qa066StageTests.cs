@@ -107,7 +107,11 @@ public sealed class Qa066StageTests : IDisposable
         Directory.CreateDirectory(Path.Combine(folder, "logs"));
         System.IO.File.WriteAllText(Path.Combine(folder, "stage.json"), JsonSerializer.Serialize(new
         {
-            name, stages, sourceSha = sourceSha ?? Sha, codeTree = Tree, failures = failures ?? []
+            name,
+            stages,
+            sourceSha = sourceSha ?? Sha,
+            codeTree = Tree,
+            failures = failures ?? []
         }));
         System.IO.File.WriteAllText(Path.Combine(folder, "job-timing.json"), """{"steps":[{"step":"Prepare","seconds":1}]}""");
         return folder;
