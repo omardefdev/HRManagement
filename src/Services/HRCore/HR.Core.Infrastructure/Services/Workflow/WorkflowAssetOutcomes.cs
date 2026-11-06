@@ -66,7 +66,8 @@ public static class WorkflowAssetOutcomes
                 EmployeeId = ctx.EmployeeId,
                 OccurredAt = instance.CompletedAt ?? DateTime.UtcNow,
                 SourceSystem = "hr-core",
-                SchemaVersion = 1
+                WorkflowInstanceId = instance.Id,
+                SchemaVersion = 2
             }, p => p.MessageId = DeterministicMessageId.For<IAssetAssignmentApproved>(instance.Id), ct);
         }
         else
@@ -78,7 +79,8 @@ public static class WorkflowAssetOutcomes
                 Reason = reason,
                 OccurredAt = instance.CompletedAt ?? DateTime.UtcNow,
                 SourceSystem = "hr-core",
-                SchemaVersion = 1
+                WorkflowInstanceId = instance.Id,
+                SchemaVersion = 2
             }, p => p.MessageId = DeterministicMessageId.For<IAssetAssignmentRejected>(instance.Id), ct);
         }
     }
@@ -96,7 +98,8 @@ public static class WorkflowAssetOutcomes
                 AssetId = ctx.AssetId,
                 OccurredAt = instance.CompletedAt ?? DateTime.UtcNow,
                 SourceSystem = "hr-core",
-                SchemaVersion = 1
+                WorkflowInstanceId = instance.Id,
+                SchemaVersion = 2
             }, p => p.MessageId = DeterministicMessageId.For<IAssetLossApproved>(instance.Id), ct);
         }
         else
@@ -108,7 +111,8 @@ public static class WorkflowAssetOutcomes
                 Reason = reason,
                 OccurredAt = instance.CompletedAt ?? DateTime.UtcNow,
                 SourceSystem = "hr-core",
-                SchemaVersion = 1
+                WorkflowInstanceId = instance.Id,
+                SchemaVersion = 2
             }, p => p.MessageId = DeterministicMessageId.For<IAssetLossRejected>(instance.Id), ct);
         }
     }

@@ -190,10 +190,14 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             {
                 if (pathValue.Contains("/api/onboarding/", StringComparison.OrdinalIgnoreCase))
                     policy = HrManagementPolicies.HrCoreApprove;
-                else if ((pathValue.Contains("/api/workflow-instances/", StringComparison.OrdinalIgnoreCase)
-                        && (pathValue.EndsWith("/approve", StringComparison.OrdinalIgnoreCase)
-                            || pathValue.EndsWith("/reject", StringComparison.OrdinalIgnoreCase)))
-                    || IsHrCoreWorkflowMvcAction(pathValue))
+                else if (pathValue.Contains("/api/workflow-instances/", StringComparison.OrdinalIgnoreCase)
+                    && (pathValue.EndsWith("/approve", StringComparison.OrdinalIgnoreCase)
+                        || pathValue.EndsWith("/reject", StringComparison.OrdinalIgnoreCase)))
+                    policy = HrManagementPolicies.WorkflowStepAction;
+                // PLAN-43 (G-WF-05): the rest of this API is for the owning service, which calls HR.Core directly: no user passes.
+                else if (pathValue.Contains("/api/workflow-instances", StringComparison.OrdinalIgnoreCase))
+                    policy = HrManagementPolicies.WorkflowExternalStart;
+                else if (IsHrCoreWorkflowMvcAction(pathValue))
                     policy = HrManagementPolicies.HrCoreBranchOperation;
                 else
                     policy = HrManagementPolicies.HrCoreWrite;

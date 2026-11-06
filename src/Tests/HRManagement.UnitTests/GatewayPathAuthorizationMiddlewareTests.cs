@@ -191,7 +191,7 @@ public class GatewayPathAuthorizationMiddlewareTests
     [InlineData("/api/hr-core/api/onboarding/agencies/apply", HrManagementPolicies.HrCoreApprove)]
     [InlineData("/api/hr-core/api/policies/enforce", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/internal/policies/enforce", HrManagementPolicies.HrCoreWrite)]
-    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.HrCoreBranchOperation)]
+    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.WorkflowStepAction)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
     public void HrCore_special_write_paths_use_their_narrow_policy(string path, string expectedPolicy)

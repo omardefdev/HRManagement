@@ -33,5 +33,17 @@ Started (UTC): 2026-11-06T07:12:23.9627032Z
 - Known entity types = HandledEntityTypes and the registry, as the plan says: the health report therefore also lists HIRE-WIZARD, SEPARATION-WIZARD, TRANSFER-APPROVAL and DISCIPLINARY-APPROVAL (unknown type) beside the security and it-support ones.
 - P-3: the P1 migration holds only the definition columns; WorkflowInstance fields wait for WF043_ExternalStart.
 
+Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes, then said to continue. P0 and P1 committed, tree clean, main unmoved at 7480843e, locks free, server on a7ad95e0a4fa.
+
+- P2: done. Finished (UTC): 2026-11-06T11:23:39Z. Unit filters 1089 passed, 0 failed. Integration and acceptance follow in P4 and P5.
+
+## Decisions in P2
+- Start and cancel live in WorkflowExternalInstancesController (same routes): class demands antiforgery, bearer-only actions opt out, as PLAN-42 did; a change of file from the plan's row, for the CodeQL gate. The wiring matrix points at it.
+- HrCoreBranchOperation lost its service clause, and the evaluator refuses a service-account actor, so no route can let a service act on a step.
+- The custody facts go through Facts into ContextJson, so conditions and the event's asset ids keep working; the body has no ContextJson.
+- A key reused for another entity is a conflict (addition).
+- AC-11: requester b-logistics, step 1 b-branch-manager, step 2 b-approver, because D-WF-8 bars a requester from every step. Test renamed.
+- P-6: the allow-list is empty, 42c proves the effect and no instance; closes M3 for the registered types. What stays for PLAN-51: any other hr-core.workflow caller holds no start now, so only the general contract of PLAN-46 and per-type registration remain.
+
 ## Next step
-P2.
+P3.

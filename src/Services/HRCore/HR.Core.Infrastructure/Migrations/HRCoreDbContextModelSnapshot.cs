@@ -5759,6 +5759,14 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<int>("DefinitionVersion")
                         .HasColumnType("integer");
 
+                    b.Property<string>("DetailsUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DisplayTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
 
@@ -5767,12 +5775,33 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("ExcludedApproverUserIdsJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<Guid?>("InitiatedBy")
                         .HasColumnType("uuid");
 
                     b.Property<string>("InitiatedByName")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RequestedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ScopeOrgUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceClientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -5785,6 +5814,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("StepHistoryJson")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("SubjectEmployeeId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");

@@ -40,6 +40,7 @@ public static class WorkflowStageGuard
     public const string NotInProgressMessage = "مسار الاعتماد ليس قيد التنفيذ.";
     public const string SkipStageMessage = "لا يمكن تخطي مراحل الاعتماد: يجب أن تطابق الخطوة المستهدفة الخطوة الحالية.";
     public const string InitiatorLaterStageMessage = "لا يمكن لمنشئ المسار اعتماد مراحل لاحقة.";
+    public const string ServiceAccountMessage = "لا يعتمد حساب خدمة أي خطوة ولا يرفضها.";
 
     public static string StepRoleMessage(string roleRequired) => $"هذه الخطوة تتطلب دور «{roleRequired}».";
 

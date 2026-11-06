@@ -149,12 +149,12 @@ public class FineGrainedPolicyTests
     }
 
     [Fact]
-    public async Task HrCoreBranchOperation_ServiceWorkflowScope_Succeeds()
+    public async Task HrCoreBranchOperation_ServiceWorkflowScope_Fails()
     {
         var auth = BuildAuthService();
         var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
         var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreBranchOperation);
-        Assert.True(result.Succeeded);
+        Assert.False(result.Succeeded);
     }
 
     [Fact]

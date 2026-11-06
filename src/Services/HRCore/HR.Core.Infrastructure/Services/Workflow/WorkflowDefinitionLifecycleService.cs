@@ -327,7 +327,9 @@ public static class WorkflowDefinitionCatalog
 {
     public static readonly IReadOnlySet<string> KnownRoles = new HashSet<string>(HrManagementRoles.All, StringComparer.OrdinalIgnoreCase);
 
-    public static IReadOnlySet<string> KnownEntityTypes => WorkflowInstanceActionService.HandledEntityTypes;
+    public static readonly IReadOnlySet<string> KnownEntityTypes = new HashSet<string>(
+        WorkflowInstanceActionService.HandledEntityTypes.Concat(External.ExternalApprovalTypes.All.Select(t => t.EntityType)),
+        StringComparer.OrdinalIgnoreCase);
 
     public static IReadOnlyList<string> Validate(WorkflowDefinition definition) =>
         WorkflowDefinitionValidator.Validate(

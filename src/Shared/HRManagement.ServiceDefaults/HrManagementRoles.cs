@@ -100,6 +100,12 @@ public static class HrManagementPolicies
     /// <summary>PLAN-43 (D-WF-4): write and publish workflow definitions: hr-admin or workflow-admin, never a service account.</summary>
     public const string WorkflowDefinitionAdmin = "Workflow.DefinitionAdmin";
 
+    /// <summary>PLAN-43 (G-WF-05): a service account with hr-core.workflow. Which type it owns is checked per request.</summary>
+    public const string WorkflowExternalStart = "Workflow.ExternalStart";
+
+    /// <summary>PLAN-43 (G-WF-05): approve or reject a step through the API. PLAN-45 and PLAN-46 add roles; never a service account.</summary>
+    public const string WorkflowStepAction = "Workflow.StepAction";
+
     /// <summary>PLAN-43: read workflow definitions: the HR.Core readers, and workflow-admin, which reads nothing else in HR.Core.</summary>
     public const string WorkflowDefinitionRead = "Workflow.DefinitionRead";
 

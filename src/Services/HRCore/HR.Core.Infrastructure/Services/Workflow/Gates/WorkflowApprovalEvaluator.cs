@@ -24,6 +24,10 @@ public sealed class WorkflowApprovalEvaluator(IEnumerable<IWorkflowApprovalGate>
         int? targetStepLevel = null,
         CancellationToken ct = default)
     {
+        // PLAN-43 (G-WF-05, rule 9): behind the route policies, so no future route can let a service account act.
+        if (actor.IsServiceAccount)
+            return WorkflowStageGuard.ServiceAccountMessage;
+
         var snapshot = WorkflowDefinitionMapper.ToSnapshot(definition);
         var state = WorkflowDefinitionMapper.ToState(instance);
 

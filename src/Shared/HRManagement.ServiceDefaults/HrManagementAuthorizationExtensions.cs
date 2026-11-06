@@ -80,6 +80,17 @@ public static class HrManagementAuthorizationExtensions
                 !ServiceCallerPrincipal.IsServiceAccount(c.User)
                 && (c.User.IsInRole(HrManagementRoles.Admin) || c.User.IsInRole(HrManagementRoles.WorkflowAdmin))));
 
+            options.AddPolicy(HrManagementPolicies.WorkflowExternalStart, p => p.RequireAssertion(c =>
+                ServiceCallerPrincipal.IsServiceAccount(c.User)
+                && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow)));
+
+            options.AddPolicy(HrManagementPolicies.WorkflowStepAction, p => p.RequireAssertion(c =>
+                !ServiceCallerPrincipal.IsServiceAccount(c.User)
+                && (c.User.IsInRole(HrManagementRoles.Admin)
+                    || c.User.IsInRole(HrManagementRoles.HrCore)
+                    || c.User.IsInRole(HrManagementRoles.BranchManager)
+                    || c.User.IsInRole(HrManagementRoles.HrManagementApprover))));
+
             options.AddPolicy(HrManagementPolicies.WorkflowDefinitionRead, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrCore)
@@ -108,13 +119,13 @@ public static class HrManagementAuthorizationExtensions
             options.AddPolicy(HrManagementPolicies.TenantQuarantineReconcile, p => p.RequireRole(
                 HrManagementRoles.PlatformAdmin));
 
+            // PLAN-43 (G-WF-05): every user of this policy approves or rejects a step, which no service account does.
             options.AddPolicy(HrManagementPolicies.HrCoreBranchOperation, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrCore)
-                || c.User.IsInRole(HrManagementRoles.BranchManager)
-                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
-                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
-                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
+                !ServiceCallerPrincipal.IsServiceAccount(c.User)
+                && (c.User.IsInRole(HrManagementRoles.Admin)
+                    || c.User.IsInRole(HrManagementRoles.HrCore)
+                    || c.User.IsInRole(HrManagementRoles.BranchManager)
+                    || c.User.IsInRole(HrManagementRoles.HrManagementApprover))));
 
             // HCM-028 (PLAN-25 slice): the compliance reviewer reaches HR.Core only for recruitment appeals.
             options.AddPolicy(HrManagementPolicies.HrCoreAppealReview, p => p.RequireAssertion(c =>
