@@ -108,26 +108,34 @@ public sealed class WorkflowInstanceActionService(
             return new WorkflowActionResult(false, result.Error, null);
 
         // PLAN-44: every refusal is above, so nothing a caller staged (the appeal's outcome) is saved by a refused action.
-        return await CommitDecisionAsync("approve", instance, async token =>
+        try
         {
-            instance.CurrentStepLevel = result.NewStepLevel;
-            instance.Status = result.NewStatus;
-
-            if (result.HistoryEntry is not null)
+            await OutboxUnitOfWork.ExecuteAsync(context, async token =>
             {
-                AppendHistory(instance, result.HistoryEntry);
-                await signatures.RecordStepActionAsync(
-                    instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), token);
-            }
+                instance.CurrentStepLevel = result.NewStepLevel;
+                instance.Status = result.NewStatus;
 
-            if (result.NewStatus == WorkflowStatus.Completed)
-            {
-                instance.CompletedAt = DateTime.UtcNow;
-                // PLAN-40 (class A): the asset outcome is staged before the save, so it commits with the instance.
-                await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
-                await PublishWorkflowOutcomeAsync(instance, approved: true, ct: token);
-            }
-        }, ct);
+                if (result.HistoryEntry is not null)
+                {
+                    AppendHistory(instance, result.HistoryEntry);
+                    await signatures.RecordStepActionAsync(
+                        instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), token);
+                }
+
+                if (result.NewStatus == WorkflowStatus.Completed)
+                {
+                    instance.CompletedAt = DateTime.UtcNow;
+                    // PLAN-40 (class A): the asset outcome is staged before the save, so it commits with the instance.
+                    await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
+                    await PublishWorkflowOutcomeAsync(instance, approved: true, ct: token);
+                }
+            }, ct);
+            return new WorkflowActionResult(true, null, instance);
+        }
+        catch (Exception ex) when (ex is DbUpdateConcurrencyException or WorkflowOutcomeRefusedException)
+        {
+            return Undone("approve", ex);
+        }
     }
 
     public async Task<WorkflowActionResult> RejectAsync(
@@ -160,48 +168,44 @@ public sealed class WorkflowInstanceActionService(
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
 
-        return await CommitDecisionAsync("reject", instance, async token =>
+        try
         {
-            instance.Status = result.NewStatus;
-
-            if (result.HistoryEntry is not null)
+            await OutboxUnitOfWork.ExecuteAsync(context, async token =>
             {
-                AppendHistory(instance, result.HistoryEntry);
-                await signatures.RecordStepActionAsync(
-                    instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), token);
-            }
+                instance.Status = result.NewStatus;
 
-            instance.CompletedAt = DateTime.UtcNow;
-            await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
-            await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: token);
-        }, ct);
+                if (result.HistoryEntry is not null)
+                {
+                    AppendHistory(instance, result.HistoryEntry);
+                    await signatures.RecordStepActionAsync(
+                        instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), token);
+                }
+
+                instance.CompletedAt = DateTime.UtcNow;
+                await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
+                await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: token);
+            }, ct);
+            return new WorkflowActionResult(true, null, instance);
+        }
+        catch (Exception ex) when (ex is DbUpdateConcurrencyException or WorkflowOutcomeRefusedException)
+        {
+            return Undone("reject", ex);
+        }
     }
 
     /// <summary>
-    /// PLAN-44 (G-WF-12): the instance, the signature, the entity's change and the outbox row commit together or not at all. A decision
-    /// that lost the race on <c>xmin</c> rolls back and returns the conflict message; it is never retried, because the step may have
-    /// moved on. A failing handler throws through this, so the transaction rolls back. The unit of work makes the last save, after
-    /// everything was staged (PLAN-40's order).
+    /// PLAN-44 (G-WF-12): the unit of work above commits the instance, the signature, the entity's change and the outbox row together, and
+    /// makes the last save after everything was staged (PLAN-40's order). Here the transaction has rolled back: a decision that lost the
+    /// race on <c>xmin</c> gets the conflict message and is never retried, because the step may have moved on; a refused outcome gets its
+    /// reason. Any other failure of a handler propagates, and rolls back the same way.
     /// </summary>
-    private async Task<WorkflowActionResult> CommitDecisionAsync(
-        string action, WorkflowInstance instance, Func<CancellationToken, Task> decide, CancellationToken ct)
+    private WorkflowActionResult Undone(string action, Exception failure)
     {
-        try
-        {
-            await OutboxUnitOfWork.ExecuteAsync(context, decide, ct);
-            return new WorkflowActionResult(true, null, instance);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            // Nothing of the decision may stay tracked: a later save in this request would write it again.
-            context.ChangeTracker.Clear();
-            return Conflict(action);
-        }
-        catch (WorkflowOutcomeRefusedException refused)
-        {
-            context.ChangeTracker.Clear();
-            return new WorkflowActionResult(false, refused.Message, null);
-        }
+        // Nothing of the decision may stay tracked: a later save in this request would write it again.
+        context.ChangeTracker.Clear();
+        return failure is WorkflowOutcomeRefusedException
+            ? new WorkflowActionResult(false, failure.Message, null)
+            : Conflict(action);
     }
 
     private static WorkflowActionResult Conflict(string action)
