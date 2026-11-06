@@ -104,6 +104,29 @@ public sealed class WorkflowEngine : IWorkflowEngine
         return WorkflowEngineResult.Ok(WorkflowStatus.Rejected, instance.CurrentStepLevel, historyEntry);
     }
 
+    public WorkflowEngineResult Withdraw(
+        WorkflowInstanceState instance,
+        Guid? actorId,
+        string? actorName,
+        string? reason)
+    {
+        if (instance.Status != WorkflowStatus.InProgress)
+            return WorkflowEngineResult.Fail("Workflow instance is not in progress.");
+
+        var historyEntry = new WorkflowStepHistoryEntry
+        {
+            Level = instance.CurrentStepLevel,
+            StepName = $"Step {instance.CurrentStepLevel}",
+            Status = WorkflowStepStatus.Withdrawn,
+            ActorId = actorId,
+            ActorName = actorName,
+            Comments = reason,
+            ActionAt = DateTime.UtcNow
+        };
+
+        return WorkflowEngineResult.Ok(WorkflowStatus.Cancelled, instance.CurrentStepLevel, historyEntry);
+    }
+
     private static WorkflowStepSnapshot? FindNextApplicableStep(
         IReadOnlyList<WorkflowStepSnapshot> steps,
         int currentLevel,

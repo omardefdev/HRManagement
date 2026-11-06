@@ -1,28 +1,40 @@
-using System.Text.Json;
+using System.Security.Claims;
+using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow;
+using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
+using HRManagement.SharedKernel.Tenancy;
+using HRManagement.SharedKernel.Workflow;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using HR.Core.Domain.Entities.Workflow;
-using HR.Core.Infrastructure.Data;
-using HRManagement.ServiceDefaults;
-using HRManagement.SharedKernel.Workflow;
 
 namespace HR.Core.Web.Controllers;
 
+/// <summary>
+/// PLAN-43 (G-WF-04): definitions are written and published by hr-admin or workflow-admin only, through
+/// <see cref="WorkflowDefinitionLifecycleService"/>; the class policy is for readers, and <c>Wf043DefinitionControllerGuardTests</c> requires the
+/// admin policy on every action that is not a read. Every write needs an antiforgery token from <c>GET antiforgery</c>: a signed-in
+/// browser reaches this API through the gateway's session.
+/// </summary>
 [Route("api/workflow-definitions")]
 [ApiController]
-[Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-public class WorkflowDefinitionsController : ControllerBase
+[Authorize(Policy = HrManagementPolicies.WorkflowDefinitionRead)]
+public class WorkflowDefinitionsController(
+    HRCoreDbContext context,
+    WorkflowDefinitionLifecycleService lifecycle,
+    ITenantContext tenantContext) : ControllerBase
 {
-    private readonly HRCoreDbContext _context;
-
-    public WorkflowDefinitionsController(HRCoreDbContext context) => _context = context;
+    [HttpGet("antiforgery")]
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    public MessagingRepairAntiforgery Antiforgery([FromServices] IAntiforgery antiforgery) =>
+        MessagingRepairAntiforgery.Issue(antiforgery, HttpContext);
 
     [HttpGet]
-    [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
     public async Task<IActionResult> List([FromQuery] string? entityType, [FromQuery] bool? publishedOnly)
     {
-        var query = _context.WorkflowDefinitions.AsNoTracking().AsQueryable();
+        var query = context.WorkflowDefinitions.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(entityType))
             query = query.Where(d => d.DomainEntityType == entityType);
@@ -35,98 +47,89 @@ public class WorkflowDefinitionsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
     public async Task<IActionResult> Get(Guid id)
     {
-        var def = await _context.WorkflowDefinitions.FindAsync(id);
+        var def = await context.WorkflowDefinitions.FindAsync(id);
         if (def is null) return NotFound();
         return Ok(def);
     }
 
     [HttpPost]
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([FromBody] CreateWorkflowDefinitionRequest request)
     {
-        var existingMax = await _context.WorkflowDefinitions
-            .Where(d => d.Code == request.Code)
-            .MaxAsync(d => (int?)d.Version) ?? 0;
-
-        var def = new WorkflowDefinition
-        {
-            Code = request.Code,
-            Name = request.Name,
-            Version = existingMax + 1,
-            DomainEntityType = request.DomainEntityType,
-            Description = request.Description,
-            StepsJson = JsonSerializer.Serialize(request.Steps ?? []),
-            GuardrailRolesJson = JsonSerializer.Serialize(request.GuardrailRoles ?? []),
-            ValidFrom = request.ValidFrom,
-            ValidTo = request.ValidTo
-        };
-
-        _context.WorkflowDefinitions.Add(def);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(Get), new { id = def.Id }, def);
+        var result = await lifecycle.CreateDraftAsync(request.ToChange(), Actor(), HttpContext.RequestAborted);
+        return result.Success
+            ? CreatedAtAction(nameof(Get), new { id = result.Definition!.Id }, result.Definition)
+            : ToError(result);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWorkflowDefinitionRequest request)
-    {
-        var def = await _context.WorkflowDefinitions.FindAsync(id);
-        if (def is null) return NotFound();
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWorkflowDefinitionRequest request) =>
+        ToResponse(await lifecycle.UpdateDraftAsync(id, request.ToChange(), Actor(), HttpContext.RequestAborted));
 
-        if (def.IsPublished)
-            return BadRequest("لا يمكن تعديل تعريف منشور. أنشئ إصدارًا جديدًا بدلاً من ذلك.");
-
-        def.Name = request.Name ?? def.Name;
-        def.Description = request.Description ?? def.Description;
-        def.DomainEntityType = request.DomainEntityType ?? def.DomainEntityType;
-        def.ValidFrom = request.ValidFrom ?? def.ValidFrom;
-        def.ValidTo = request.ValidTo ?? def.ValidTo;
-
-        if (request.Steps is not null)
-            def.StepsJson = JsonSerializer.Serialize(request.Steps);
-
-        if (request.GuardrailRoles is not null)
-            def.GuardrailRolesJson = JsonSerializer.Serialize(request.GuardrailRoles);
-
-        await _context.SaveChangesAsync();
-        return Ok(def);
-    }
+    [HttpPost("{id:guid}/submit")]
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Submit(Guid id) =>
+        ToResponse(await lifecycle.SubmitForPublishAsync(id, Actor(), HttpContext.RequestAborted));
 
     [HttpPost("{id:guid}/publish")]
-    public async Task<IActionResult> Publish(Guid id)
-    {
-        var def = await _context.WorkflowDefinitions.FindAsync(id);
-        if (def is null) return NotFound();
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Publish(Guid id) =>
+        ToResponse(await lifecycle.PublishAsync(id, Actor(), HttpContext.RequestAborted));
 
-        if (def.IsPublished)
-            return BadRequest("منشور مسبقًا.");
+    [HttpPost("{id:guid}/return")]
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Return(Guid id, [FromBody] WorkflowDefinitionReasonRequest? request) =>
+        ToResponse(await lifecycle.ReturnToDraftAsync(id, request?.Reason, Actor(), HttpContext.RequestAborted));
 
-        var steps = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(def.StepsJson);
-        if (steps is null || steps.Count == 0)
-            return BadRequest("لا يمكن نشر تعريف بدون خطوات.");
-
-        def.IsPublished = true;
-        await _context.SaveChangesAsync();
-
-        return Ok(def);
-    }
+    [HttpPost("{id:guid}/retire")]
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Retire(Guid id, [FromBody] WorkflowDefinitionReasonRequest? request) =>
+        ToResponse(await lifecycle.RetireAsync(id, request?.Reason, Actor(), HttpContext.RequestAborted));
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var def = await _context.WorkflowDefinitions.FindAsync(id);
-        if (def is null) return NotFound();
-
-        if (def.IsPublished)
-            return BadRequest("لا يمكن حذف تعريف منشور.");
-
-        _context.WorkflowDefinitions.Remove(def);
-        await _context.SaveChangesAsync();
-        return NoContent();
+        var result = await lifecycle.DeleteDraftAsync(id, Actor(), HttpContext.RequestAborted);
+        return result.Success ? NoContent() : ToError(result);
     }
+
+    private WorkflowDefinitionActor Actor()
+    {
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return new WorkflowDefinitionActor(Guid.TryParse(sub, out var userId) ? userId : null, tenantContext.TenantId);
+    }
+
+    private IActionResult ToResponse(WorkflowDefinitionResult result) =>
+        result.Success ? Ok(new WorkflowDefinitionResponse(result.Definition!, result.Warnings ?? [])) : ToError(result);
+
+    private IActionResult ToError(WorkflowDefinitionResult result)
+    {
+        var body = new { errors = result.Errors ?? [] };
+        return result.Failure switch
+        {
+            WorkflowDefinitionFailure.NotFound => NotFound(),
+            WorkflowDefinitionFailure.Forbidden => StatusCode(StatusCodes.Status403Forbidden, body),
+            _ => BadRequest(body)
+        };
+    }
+}
+
+public sealed record WorkflowDefinitionResponse(HR.Core.Domain.Entities.Workflow.WorkflowDefinition Definition, IReadOnlyList<string> Warnings);
+
+public record WorkflowDefinitionReasonRequest
+{
+    public string? Reason { get; init; }
 }
 
 public record CreateWorkflowDefinitionRequest
@@ -139,6 +142,22 @@ public record CreateWorkflowDefinitionRequest
     public List<string>? GuardrailRoles { get; init; }
     public DateTime? ValidFrom { get; init; }
     public DateTime? ValidTo { get; init; }
+    public bool? RequireDistinctApprovers { get; init; }
+    public string? ChangeReason { get; init; }
+
+    public WorkflowDefinitionChange ToChange() => new()
+    {
+        Code = Code,
+        Name = Name,
+        DomainEntityType = DomainEntityType,
+        Description = Description,
+        Steps = Steps,
+        GuardrailRoles = GuardrailRoles,
+        ValidFrom = ValidFrom,
+        ValidTo = ValidTo,
+        RequireDistinctApprovers = RequireDistinctApprovers,
+        ChangeReason = ChangeReason
+    };
 }
 
 public record UpdateWorkflowDefinitionRequest
@@ -150,4 +169,19 @@ public record UpdateWorkflowDefinitionRequest
     public List<string>? GuardrailRoles { get; init; }
     public DateTime? ValidFrom { get; init; }
     public DateTime? ValidTo { get; init; }
+    public bool? RequireDistinctApprovers { get; init; }
+    public string? ChangeReason { get; init; }
+
+    public WorkflowDefinitionChange ToChange() => new()
+    {
+        Name = Name,
+        DomainEntityType = DomainEntityType,
+        Description = Description,
+        Steps = Steps,
+        GuardrailRoles = GuardrailRoles,
+        ValidFrom = ValidFrom,
+        ValidTo = ValidTo,
+        RequireDistinctApprovers = RequireDistinctApprovers,
+        ChangeReason = ChangeReason
+    };
 }

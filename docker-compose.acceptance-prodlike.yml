@@ -21,6 +21,7 @@
 #   - PolicyEngine:Core.Recruitment=Shadow (PLAN-25 decision 10; no other PolicyEngine key, so every other domain is Off);
 #   - Recruitment:Approvals:AlwaysStartWorkflow=true, FailIfDefinitionMissing=true (PLAN-25 decision 10);
 #   - Workflow:AdminBypass=false (PLAN-25 decision 4; also the default everywhere);
+#   - Workflow:StepRole:ExemptEntityTypes (PLAN-43: the recorded exemptions; every other type is enforced);
 #   - Recruitment:CommitteeApprovalDefault=true, Recruitment:Retention:Apply=false;
 #   - HR.Contracts: Contracts:AllowDefaultContractTypeFallback=false.
 # Since PLAN-25 (G-02 closed) the journey passes here; before PLAN-25 it stopped at the first approval.
@@ -35,6 +36,11 @@ services:
       Recruitment__Approvals__AlwaysStartWorkflow: "true"
       Recruitment__Approvals__FailIfDefinitionMissing: "true"
       Workflow__AdminBypass: "false"
+      Workflow__StepRole__ExemptEntityTypes__0: "AssetLossReport"
+      Workflow__StepRole__ExemptEntityTypes__1: "SeparationRecord"
+      Workflow__StepRole__ExemptEntityTypes__2: "DisciplinaryAction"
+      Workflow__StepRole__ExemptEntityTypes__3: "CardRequest"
+      Workflow__StepRole__ExemptEntityTypes__4: "Ticket"
       Recruitment__CommitteeApprovalDefault: "true"
       Recruitment__Retention__Apply: "false"
 

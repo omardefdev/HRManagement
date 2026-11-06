@@ -80,6 +80,7 @@
   "prodLike": [
     { "class": "RecruitmentToHireJourneyProdLikeE2ETests", "required": true, "group": "journey", "project": "src/Tests/HRManagement.E2E/HRManagement.E2E.csproj" },
     { "class": "AcHcm25ProductionApprovalTests", "required": true, "group": "main" },
+    { "class": "AcWf43DefinitionGovernanceTests", "required": true, "group": "main" },
     { "class": "AcInt37ProductionWiringTests", "required": true, "group": "isolated" },
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
     { "class": "AcOps39KeycloakDataProtectionTests", "required": true, "group": "isolated" },

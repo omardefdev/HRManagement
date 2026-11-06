@@ -1,11 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
-using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Workflow;
 using HRManagement.ServiceDefaults;
-using HRManagement.ServiceDefaults.Workflow;
-using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +15,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 public class WorkflowInstancesController(
     HRCoreDbContext context,
-    IWorkflowEngine engine,
-    IWorkflowInstanceActionService workflowActions,
-    WorkflowStepRoleOptions stepRoleOptions) : ControllerBase
+    IWorkflowInstanceActionService workflowActions) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? entityType, [FromQuery] string? status)
@@ -45,63 +40,8 @@ public class WorkflowInstancesController(
         return Ok(instance);
     }
 
-    [HttpPost]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> Start([FromBody] StartWorkflowRequest request)
-    {
-        // PLAN-25 (review finding 1): recruitment and establishment approvals start only through their submit (the approval
-        // start coordinator, which links the instance); a generic instance could be pre-approved and then adopted.
-        if (stepRoleOptions.IsEnforced(request.EntityType))
-            return BadRequest($"Workflows for '{request.EntityType}' are started by submitting the record, not through this API.");
-
-        var tenantId = context.CurrentTenantId ?? TenantDefaults.DefaultTenantId;
-        var definition = await context.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
-            .Where(d => d.TenantId == tenantId || d.TenantId == TenantDefaults.DefaultTenantId)
-            .Where(d => d.DomainEntityType == request.EntityType && d.IsPublished)
-            .Where(d => d.ValidFrom == null || d.ValidFrom <= DateTime.UtcNow)
-            .Where(d => d.ValidTo == null || d.ValidTo >= DateTime.UtcNow)
-            .OrderByDescending(d => d.TenantId == tenantId)
-            .ThenByDescending(d => d.Version)
-            .FirstOrDefaultAsync();
-
-        if (definition is null)
-            return BadRequest($"No published workflow definition found for entity type '{request.EntityType}'.");
-
-        var snapshot = WorkflowDefinitionMapper.ToSnapshot(definition);
-        var userId = ParseUserId(User);
-        var userName = User.FindFirstValue("preferred_username") ?? User.Identity?.Name;
-
-        var result = engine.Start(snapshot, request.EntityType, request.EntityId, userId, userName, request.ContextJson);
-
-        if (!result.Success)
-            return BadRequest(result.Error);
-
-        var instance = new WorkflowInstance
-        {
-            DefinitionId = definition.Id,
-            DefinitionVersion = definition.Version,
-            EntityType = request.EntityType,
-            EntityId = request.EntityId,
-            CurrentStepLevel = result.NewStepLevel,
-            Status = result.NewStatus,
-            ContextJson = request.ContextJson,
-            InitiatedBy = userId,
-            InitiatedByName = userName,
-            StartedAt = DateTime.UtcNow
-        };
-
-        if (result.NewStatus == WorkflowStatus.Completed)
-            instance.CompletedAt = DateTime.UtcNow;
-
-        context.WorkflowInstances.Add(instance);
-        await context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(Get), new { id = instance.Id }, instance);
-    }
-
     [HttpPost("{id:guid}/approve")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)]
     public async Task<IActionResult> Approve(Guid id, [FromBody] WorkflowActionRequest request)
     {
         var result = await workflowActions.ApproveAsync(
@@ -117,7 +57,7 @@ public class WorkflowInstancesController(
     }
 
     [HttpPost("{id:guid}/reject")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)]
     public async Task<IActionResult> Reject(Guid id, [FromBody] WorkflowActionRequest request)
     {
         var result = await workflowActions.RejectAsync(
@@ -143,19 +83,6 @@ public class WorkflowInstancesController(
 
     /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
     private static WorkflowActionActor CreateActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);
-
-    private static Guid? ParseUserId(ClaimsPrincipal user)
-    {
-        var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
-        return Guid.TryParse(v, out var g) ? g : null;
-    }
-}
-
-public record StartWorkflowRequest
-{
-    public string EntityType { get; init; } = string.Empty;
-    public Guid EntityId { get; init; }
-    public string? ContextJson { get; init; }
 }
 
 public record WorkflowActionRequest

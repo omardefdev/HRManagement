@@ -280,6 +280,8 @@ foreach ($field in $manifest.security.PSObject.Properties) {
     $value = if ($field.Value -is [bool]) { ([string]$field.Value).ToLowerInvariant() } else { [string]$field.Value }
     $plan.Add("security${tab}$($field.Name)${tab}$value")
 }
+# PLAN-43: the realm roles; reconcile creates the ones an existing realm lacks.
+foreach ($role in @($manifest.roles)) { $plan.Add("role${tab}$([string]$role.name)${tab}$([string]$role.description)") }
 foreach ($scopeProperty in @($wiring.scopes.PSObject.Properties | Sort-Object Name)) {
     $plan.Add("scope${tab}$($scopeProperty.Name)${tab}$(Join-List $scopeProperty.Value.audiences)${tab}$([string]$scopeProperty.Value.description)")
 }

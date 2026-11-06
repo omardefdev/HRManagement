@@ -24,6 +24,10 @@ public sealed class WorkflowApprovalEvaluator(IEnumerable<IWorkflowApprovalGate>
         int? targetStepLevel = null,
         CancellationToken ct = default)
     {
+        // PLAN-43 (G-WF-05, rule 9): behind the route policies, so no future route can let a service account act.
+        if (actor.IsServiceAccount)
+            return WorkflowStageGuard.ServiceAccountMessage;
+
         var snapshot = WorkflowDefinitionMapper.ToSnapshot(definition);
         var state = WorkflowDefinitionMapper.ToState(instance);
 
@@ -38,6 +42,12 @@ public sealed class WorkflowApprovalEvaluator(IEnumerable<IWorkflowApprovalGate>
         var roleError = WorkflowStageGuard.ValidateStepRole(step, instance.EntityType, actor.Roles, options);
         if (roleError is not null)
             return roleError;
+
+        // PLAN-43 (G-WF-06): for every type, after the role and before the entity's own rules; AdminBypass has no say here.
+        var sodError = WorkflowSodRules.Evaluate(
+            WorkflowDefinitionMapper.ToSodFacts(instance, definition), actor.UserId, actor.EmployeeId, kind == WorkflowActionKind.Approve);
+        if (sodError is not null)
+            return sodError;
 
         var gate = _gates.FirstOrDefault(g => string.Equals(g.EntityType, instance.EntityType, StringComparison.OrdinalIgnoreCase));
         if (gate is not null)

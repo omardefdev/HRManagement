@@ -352,7 +352,7 @@ public class AcOps39KeycloakDataProtectionTests
         Assert.Equal(9, matrixScopes.Count);
         // The Acceptance exception (the harness signs personas in with the password grant).
         Assert.True((bool)clients["hr-gateway-client"]["directAccessGrantsEnabled"]!);
-        Assert.Equal(61, (int)(await AdminGetAsync("/users/count")).GetValue<int>());
+        Assert.Equal(HRManagement.ServiceDefaults.Seeding.AcceptancePersonaCatalog.ApprovedPersonaCount, (int)(await AdminGetAsync("/users/count")).GetValue<int>());
 
         var keycloak = await ContainerAsync("keycloak");
         var (_, logs) = await RunAsync("docker", null, null, "logs", keycloak);
@@ -381,7 +381,7 @@ public class AcOps39KeycloakDataProtectionTests
         }
 
         r.WriteScenarioSteps("1. Keycloak started on a new keycloak_db (as the keycloak role) imported the realm rendered with the Acceptance profile.\n" +
-                             "2. Admin API: security fields, every matrix client + gateway + directory-sync, the 8 scopes, 61 personas.\n" +
+                             "2. Admin API: security fields, every matrix client + gateway + directory-sync, the matrix scopes, every persona.\n" +
                              "3. Production profile rendered from the same sources: no gateway password grant, sslRequired external, one bootstrap admin with UPDATE_PASSWORD " +
                              "(imported and exercised in Ops039KeycloakRealmImportTests: password grant -> unauthorized_client, update-password form at first login).");
         r.WriteScenarioDbChecks(new

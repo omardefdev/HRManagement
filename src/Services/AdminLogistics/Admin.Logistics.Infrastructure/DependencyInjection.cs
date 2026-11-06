@@ -30,7 +30,7 @@ public static class DependencyInjection
     {
         // PLAN-37: required URL (start-up error naming Integration:HrCoreBaseUrl outside Development).
         services.AddServiceEndpointWarnings();
-        services.AddServiceAuthenticatedClient(WorkflowTriggerService.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration));
+        services.AddServiceAuthenticatedClient(WorkflowTriggerService.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration), forwardActingUser: true);
         return services;
     }
 }

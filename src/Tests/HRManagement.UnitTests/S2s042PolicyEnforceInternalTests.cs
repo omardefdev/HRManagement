@@ -192,12 +192,12 @@ public class S2s042PolicyEnforceInternalTests
     }
 
     [Theory]
-    [InlineData(PolicyDomains.AssetsCustody, "AssetAssignment", "ASSET-ASSIGN-APPROVAL", true)]
+    [InlineData(PolicyDomains.AssetsCustody, "AssetAssignment", "ASSET-ASSIGN-APPROVAL", false)]
     [InlineData(PolicyDomains.AssetsCustody, "Asset", "ASSET-ASSIGN-APPROVAL", false)]
     [InlineData(PolicyDomains.AssetsCustody, "AssetAssignment", "OTHER-WORKFLOW", false)]
     [InlineData(PolicyDomains.IDCardLifecycle, "CardRequest", "ASSET-ASSIGN-APPROVAL", false)]
     [InlineData(PolicyDomains.AssetsCustody, "AssetAssignment", null, false)]
-    public void The_allowlist_holds_one_triple(string domain, string subject, string? code, bool expected) =>
+    public void The_allowlist_is_empty_since_PLAN_43(string domain, string subject, string? code, bool expected) =>
         Assert.Equal(expected, PolicyWorkflowTriggerAllowlist.Allows(domain, subject, code));
 
     [Fact]

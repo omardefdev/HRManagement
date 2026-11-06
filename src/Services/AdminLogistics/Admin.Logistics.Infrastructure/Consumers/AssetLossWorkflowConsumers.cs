@@ -18,7 +18,8 @@ public class AssetLossApprovedConsumer(
 {
     public async Task Consume(ConsumeContext<IAssetLossApproved> context)
     {
-        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 1, logger, nameof(IAssetLossApproved)))
+        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 2, logger, nameof(IAssetLossApproved))
+            || !WorkflowOutcomeLink.IsCurrentVersion(context.Message.SchemaVersion, logger, nameof(IAssetLossApproved)))
             return;
 
         var m = context.Message;
@@ -28,8 +29,12 @@ public class AssetLossApprovedConsumer(
         if (report is null || report.Status != AssetLossReportStatus.PendingApproval)
             return;
 
+        if (!WorkflowOutcomeLink.IsLinked(m.WorkflowInstanceId, report.WorkflowInstanceId, report.Id, logger, nameof(IAssetLossApproved)))
+            return;
+
+        // PLAN-43: the asset comes from the report, not from the message.
         var open = await db.AssetAssignments
-            .Where(a => a.AssetId == m.AssetId && a.ReturnedAt == null)
+            .Where(a => a.AssetId == report.AssetId && a.ReturnedAt == null)
             .ToListAsync(context.CancellationToken);
 
         string? holderName = null;
@@ -54,11 +59,15 @@ public class AssetLossRejectedConsumer(
 {
     public async Task Consume(ConsumeContext<IAssetLossRejected> context)
     {
-        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 1, logger, nameof(IAssetLossRejected)))
+        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 2, logger, nameof(IAssetLossRejected))
+            || !WorkflowOutcomeLink.IsCurrentVersion(context.Message.SchemaVersion, logger, nameof(IAssetLossRejected)))
             return;
 
         var report = await db.AssetLossReports.FindAsync([context.Message.LossReportId], context.CancellationToken);
         if (report is null || report.Status != AssetLossReportStatus.PendingApproval)
+            return;
+
+        if (!WorkflowOutcomeLink.IsLinked(context.Message.WorkflowInstanceId, report.WorkflowInstanceId, report.Id, logger, nameof(IAssetLossRejected)))
             return;
 
         report.Status = AssetLossReportStatus.Rejected;

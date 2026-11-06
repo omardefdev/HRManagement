@@ -98,17 +98,20 @@ public class S2s042PolicyLedgerCallerPostgresTests : IAsyncLifetime
     {
         Skip.IfNot(Enabled, "Set RUN_TESTCONTAINERS=true");
         await using var db = await MigrateAsync();
-        var instance = Guid.NewGuid();
         var entity = Guid.NewGuid();
+        var starter = Starter(Guid.NewGuid());
 
-        var response = await Orchestrator(db, Starter(instance).Object)
+        var response = await Orchestrator(db, starter.Object)
             .EnforceForServiceAsync(Privileged("AssetAssignment", entity), "svc-admin-logistics");
 
         var row = await db.PolicyEnforcementLedgers.IgnoreQueryFilters().AsNoTracking().SingleAsync(l => l.Id == response.LedgerId);
         Assert.Equal("svc-admin-logistics", row.CallerClientId);
         Assert.Equal("AssetAssignment", row.SubjectType);
         Assert.Equal(entity, row.EntityId);
-        Assert.Equal(instance, row.WorkflowInstanceId);
+        // PLAN-43: the allow-list is empty; the decision keeps its effect and the owner starts through ExternalApprovalService.
+        VerifyNoStart(starter);
+        Assert.Null(row.WorkflowInstanceId);
+        Assert.Contains(PolicyEffect.TriggerWorkflow, response.Decision.Effects);
         Assert.Equal("Enforce", row.Mode.ToString());
         Assert.Equal(PolicyEnforcementMode.Enforce, response.EffectiveMode);
     }

@@ -209,3 +209,25 @@ Resumed (UTC): 2026-11-06T01:18:34Z
 Auto-fix woke this session: run 42129768328 on 02ddeaaa failed Acceptance on `Ac37d` only; AcOps39 passed. Cause: `CreateLeaveAsync` picks today + 14, which on a Friday is a Friday and Saturday leave with no working day, so the server refuses it. Not from this plan. `Ac40d` has the same flaw on Sundays. Both now move a Friday start by two days.
 
 Local run on a Friday with rebuilt images (the lock was re-acquired, so no `-NoBuild`): AcMsg40 8 of 8; AcInt37 6 of 8 with `Ac37d` passed, leave on 22 and 23 November. `Ac37b` and `Ac37e` Blocked: a two-class run skips the journey they need, and the guard is FAIL for that reason only. Both passed in the PR run. Stack down, lock released.
+
+Pushed `release/plan-42` at b2ea8fda, 2026-11-06T01:50Z. Pre-push on it: gitleaks, actionlint, forbidden, nonprod PASS. Run `ci` 42146523940. Auto-fix is on, so a red check wakes this session; a green run does not. WAITING-CI stop number 5.
+
+Next step: on the owner's next message read `gh pr checks 37` once. All five required checks green: `gh pr merge 37 --merge`, `git switch main; git pull --ff-only`, check `main` = `origin/main`, write the merge note, then tell session `local_4861c937-2c2a-4a66-a5bc-96b6fcdcdffd` (PLAN-43) to start, with the merge commit, and that this clone is free.
+
+## Merge note
+
+Resumed (UTC): 2026-11-06T07:09:58Z
+
+Merged by agent on owner instruction (UTC): 2026-11-06T07:10:37Z
+
+- PR: https://github.com/omardefdev/HRManagement/pull/37, head b2ea8fda, merge commit 7480843e3ffc74388246fdad8d28323c23deaf31. `main` = `origin/main` at that commit.
+- Checks on run `ci` 42146523940: CI pass 30 min, CodeQL pass 17 min, Gitleaks pass 1 min, E2E pass 56 min, Acceptance pass 1 h 37. Also hardening-check 42146523933 and iac-plan: all pass. `mergeStateStatus` CLEAN.
+- Guard PASS: AcS2s42 9, AcInt37 8, AcMsg40 8, AcOps38 8, AcOps39 8, AcHcm25 8. Not required and red, as in the PLAN-41 baseline: Ac21, Ac23, Ac24, Ac25.
+- Evidence of record: artifact `acceptance-evidence` 13474154835, https://github.com/omardefdev/HRManagement/actions/runs/42146523940/artifacts/13474154835
+- Three PR runs: 42095506179 red (`Ac39a`, hard-coded 8 scopes, my miss), 42129768328 red (`Ac37d`, Friday leave, flaw in the test), 42146523940 green. Job minutes of the `ci` runs: 177, 175, 202, 554 in all. GitHub reports no billable time for them.
+- Post-merge run: `ci` 42179150674 and hardening-check 42179150635 on 7480843e, in progress at this note. A failure there is for the next plan to read, with `gh run view 42179150674`.
+- Wall-clock: 2026-11-04T22:47:33Z to the merge, 32 h 23. Five `WAITING-CI:` stops, 0 `WAITING-PEER:`.
+- Demo server: still on `a7ad95e0a4fa`, now an ancestor of `main`. No deploy after it: the later commits are tests, reports and `scripts/acceptance-up.ps1`. 22 containers up, 0 unhealthy at this note.
+- Locks free, no local stack up. Owner decision still open, not blocking: L7.
+
+Finished (UTC): 2026-11-06T07:11:37Z

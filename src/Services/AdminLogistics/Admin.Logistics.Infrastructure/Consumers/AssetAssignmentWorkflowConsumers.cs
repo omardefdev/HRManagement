@@ -16,7 +16,8 @@ public class AssetAssignmentApprovedConsumer(
 {
     public async Task Consume(ConsumeContext<IAssetAssignmentApproved> context)
     {
-        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 1, logger, nameof(IAssetAssignmentApproved)))
+        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 2, logger, nameof(IAssetAssignmentApproved))
+            || !WorkflowOutcomeLink.IsCurrentVersion(context.Message.SchemaVersion, logger, nameof(IAssetAssignmentApproved)))
             return;
 
         var m = context.Message;
@@ -26,8 +27,12 @@ public class AssetAssignmentApprovedConsumer(
         if (assignment is null || assignment.Status != AssetAssignmentStatus.PendingApproval)
             return;
 
+        if (!WorkflowOutcomeLink.IsLinked(m.WorkflowInstanceId, assignment.WorkflowInstanceId, assignment.Id, logger, nameof(IAssetAssignmentApproved)))
+            return;
+
+        // PLAN-43: the asset comes from the assignment, not from the message.
         var open = await db.AssetAssignments.AsNoTracking()
-            .Where(a => a.AssetId == m.AssetId && a.ReturnedAt == null && a.Id != m.AssignmentId)
+            .Where(a => a.AssetId == assignment.AssetId && a.ReturnedAt == null && a.Id != m.AssignmentId)
             .ToListAsync(context.CancellationToken);
         if (!AssetAssignmentRules.CanAssign(assignment.Asset, open))
         {
@@ -50,11 +55,15 @@ public class AssetAssignmentRejectedConsumer(
 {
     public async Task Consume(ConsumeContext<IAssetAssignmentRejected> context)
     {
-        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 1, logger, nameof(IAssetAssignmentRejected)))
+        if (!EventSchemaVersion.Supports(context.Message.SchemaVersion, supportedMax: 2, logger, nameof(IAssetAssignmentRejected))
+            || !WorkflowOutcomeLink.IsCurrentVersion(context.Message.SchemaVersion, logger, nameof(IAssetAssignmentRejected)))
             return;
 
         var assignment = await db.AssetAssignments.FindAsync([context.Message.AssignmentId], context.CancellationToken);
         if (assignment is null || assignment.Status != AssetAssignmentStatus.PendingApproval)
+            return;
+
+        if (!WorkflowOutcomeLink.IsLinked(context.Message.WorkflowInstanceId, assignment.WorkflowInstanceId, assignment.Id, logger, nameof(IAssetAssignmentRejected)))
             return;
 
         assignment.Status = AssetAssignmentStatus.Rejected;

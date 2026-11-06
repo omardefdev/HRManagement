@@ -13,7 +13,8 @@ public sealed record WorkflowActionActor(
     string? UserName,
     IReadOnlySet<string> Roles,
     Guid? EmployeeId = null,
-    string? ScopeOrgUnitClaim = null)
+    string? ScopeOrgUnitClaim = null,
+    bool IsServiceAccount = false)
 {
     /// <summary>Compatibility for single-role constructions in tests and services that act as one role.</summary>
     public WorkflowActionActor(Guid? userId, string? userName, string? role)
@@ -45,7 +46,8 @@ public sealed record WorkflowActionActor(
             user.FindFirstValue("preferred_username") ?? user.Identity?.Name,
             ToRoleSet(roles),
             HrOrgScopeVisibility.GetEmployeeId(user),
-            user.FindFirstValue(HrOrgScopeVisibility.ScopeOrgUnitClaimType));
+            user.FindFirstValue(HrOrgScopeVisibility.ScopeOrgUnitClaimType),
+            ServiceCallerPrincipal.IsServiceAccount(user));
     }
 
     /// <summary>A principal carrying the actor's roles and scope claim, for <see cref="OrgScopeService"/>.</summary>
