@@ -23,6 +23,7 @@ artifacts/
 *.secret
 secrets/
 credentials/
+.acceptance/
 
 # Local data and backups
 backups/
