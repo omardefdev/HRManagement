@@ -161,13 +161,21 @@ function Test-AcceptanceTriggerPath {
     return $false
 }
 
-# PLAN-66 (S2): a hash of what the governance checks read at this commit. docs/qa/** and the like are outside the code tree, so
-# without this a commit that changes them would reuse a run that never saw them.
+# PLAN-66 (S2): a hash of what a run reads that the code tree leaves out. docs/ is outside the code tree, yet docs/*.json are runtime
+# content (ServiceDefaults copies them, the validators of CI read them) and the governance checks read docs/qa/**. Without this a
+# commit that changes them would reuse a run that never saw them. What stays out is prose, docs/**/*.md, unless the rule names it.
+function Test-AcceptanceOutsideInput {
+    param([Parameter(Mandatory)]$ScopeFile, [Parameter(Mandatory)][string]$Path)
+    $normal = $Path.Trim().Trim('"').Replace('\', '/')
+    if ($normal.StartsWith("docs/") -and -not $normal.EndsWith(".md")) { return $true }
+    return (Test-AcceptanceTriggerPath -ScopeFile $ScopeFile -Path $normal)
+}
+
 function Get-AcceptanceInputsHash {
     param([Parameter(Mandatory)][string]$RepoRoot, [Parameter(Mandatory)]$ScopeFile, [string]$Commit = "HEAD")
     $lines = & git -C $RepoRoot -c core.quotepath=false ls-tree -r $Commit
     if ($LASTEXITCODE -ne 0) { throw "git ls-tree failed for '$Commit'." }
-    $kept = @($lines | Where-Object { Test-AcceptanceTriggerPath -ScopeFile $ScopeFile -Path (($_ -split "`t", 2)[1]) })
+    $kept = @($lines | Where-Object { Test-AcceptanceOutsideInput -ScopeFile $ScopeFile -Path (($_ -split "`t", 2)[1]) })
     $bytes = [System.Text.Encoding]::UTF8.GetBytes((($kept -join "`n") + "`n"))
     $sha = [System.Security.Cryptography.SHA256]::Create()
     try {

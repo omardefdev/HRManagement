@@ -136,12 +136,12 @@ switch ($Action) {
     "Save" {
         $manifest = Read-ImageManifest
         $images = @(@($manifest.services) + @($manifest.local) + @($manifest.thirdParty) + @($manifest.tools))
-        bash -c "docker save $($images -join ' ') | zstd -T0 -3 -q -f -o '$($archive -replace '\\', '/')'"
+        bash -c "set -o pipefail; docker save $($images -join ' ') | zstd -T0 -3 -q -f -o '$($archive -replace '\\', '/')'"
         if ($LASTEXITCODE -ne 0) { throw "docker save failed with exit code $LASTEXITCODE" }
         Write-Host ("acceptance-images: {0} images, {1:N0} MB" -f $images.Count, ((Get-Item -LiteralPath $archive).Length / 1MB))
     }
     "Load" {
-        bash -c "zstd -dc '$($archive -replace '\\', '/')' | docker load -q"
+        bash -c "set -o pipefail; zstd -dc '$($archive -replace '\\', '/')' | docker load -q"
         if ($LASTEXITCODE -ne 0) { throw "docker load failed with exit code $LASTEXITCODE" }
     }
     "Verify" {

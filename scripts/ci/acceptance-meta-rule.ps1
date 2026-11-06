@@ -25,10 +25,11 @@ function Get-ChangedPaths {
         return @(Get-Content -LiteralPath $ChangedFile | Where-Object { $_ })
     }
     # A pull request run checks out the test merge commit: its first parent is the base, so this is what the pull request changes.
+    # --no-renames: a file moved out of a trigger path shows its old path too.
     $previous = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $lines = @(& git -C $RepoRoot -c core.quotepath=false diff --name-only 'HEAD^1' HEAD 2>$null)
+        $lines = @(& git -C $RepoRoot -c core.quotepath=false diff --no-renames --name-only 'HEAD^1' HEAD 2>$null)
         if ($LASTEXITCODE -ne 0) { return $null }
         return $lines
     }

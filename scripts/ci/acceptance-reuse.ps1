@@ -3,8 +3,8 @@
 # run is, in the run-identity artifact, so a later run can ask the same question about it.
 #
 # It reuses only the newest successful run of this workflow, for the same pull request, from this repository, of scope full, every
-# job of which succeeded, with the same code tree and the same inputs of the governance checks (docs/qa/** is outside the code
-# tree), and whose evidence artifact is still there. A reusing run points at the original full run, so a chain never grows.
+# job of which succeeded, with the same code tree, the same inputs outside the code tree (docs/ except prose, and what the governance
+# checks read), and whose evidence artifact is still there. A reusing run points at the original full run, so a chain never grows.
 #
 # Never for: a fork, a push, a manual or scheduled run, a narrowed run, a failed, cancelled or partly skipped run, another tree. Any
 # doubt, an API error above all, means the run does everything: this script exits 0 and says reuse=false.
@@ -28,7 +28,7 @@ param(
     [string]$IdentityFile = "artifacts/ci/run-identity.json",
     # Tests: fixed values, and the answers of GitHub as files of this folder instead of API calls.
     [string]$CodeTree = "",
-    [string]$MetaInputs = "",
+    [string]$OutsideTree = "",
     [string]$FixtureDir = ""
 )
 
@@ -41,7 +41,7 @@ $server = if ($env:GITHUB_SERVER_URL) { $env:GITHUB_SERVER_URL } else { "https:/
 $scopePath = if ([System.IO.Path]::IsPathRooted($Scope)) { $Scope } else { Join-Path $RepoRoot $Scope }
 $scopeFile = Read-AcceptanceJson -Path $scopePath
 if ([string]::IsNullOrWhiteSpace($CodeTree)) { $CodeTree = Get-AcceptanceCodeTree -RepoRoot $RepoRoot -Commit "HEAD" }
-if ([string]::IsNullOrWhiteSpace($MetaInputs)) { $MetaInputs = Get-AcceptanceInputsHash -RepoRoot $RepoRoot -ScopeFile $scopeFile }
+if ([string]::IsNullOrWhiteSpace($OutsideTree)) { $OutsideTree = Get-AcceptanceInputsHash -RepoRoot $RepoRoot -ScopeFile $scopeFile }
 $narrowed = -not [string]::IsNullOrWhiteSpace($Classes) -or -not [string]::IsNullOrWhiteSpace($SimulateMissing)
 
 function Read-Fixture([string]$Name) {
@@ -109,9 +109,11 @@ function Get-RefusalOfRun {
 
     if ($null -eq $Identity) { return "run $id has no run identity" }
     if ([string]$Identity.repository -ne $Repository) { return "the identity of run $id names $($Identity.repository)" }
+    # GitHub lists any open pull request that matches the branch; the identity says which one the run was for.
+    if ([string]$Identity.pullRequest -ne $PullRequest) { return "run $id ran for pull request #$($Identity.pullRequest)" }
     if ([string]$Identity.scope -ne "full") { return "run $id has scope $($Identity.scope)" }
     if ([string]$Identity.codeTree -ne $CodeTree) { return "run $id tested another code tree" }
-    if ([string]$Identity.metaInputs -ne $MetaInputs) { return "run $id saw other inputs of the governance checks" }
+    if ([string]$Identity.outsideTree -ne $OutsideTree) { return "run $id saw other inputs outside the code tree" }
     return ""
 }
 
@@ -166,7 +168,7 @@ Write-AcceptanceJsonFile -Path $identityPath -Value ([ordered]@{
         event = $Event
         pullRequest = $PullRequest
         codeTree = $CodeTree
-        metaInputs = $MetaInputs
+        outsideTree = $OutsideTree
         headSha = $Sha
         pullRequestHeadSha = $HeadSha
         scope = $scopeName

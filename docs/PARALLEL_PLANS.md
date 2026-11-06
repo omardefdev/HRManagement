@@ -50,6 +50,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/parallel/hrm-lock.ps
 2. If both plans added migrations to the same `DbContext`, remove yours and add it again on top, then run `dotnet ef migrations has-pending-model-changes`.
 3. If branch protection is strict, update the PR and wait for the rerun.
 
+## Shorter local acceptance runs (PLAN-66)
+
+The full acceptance suite runs once, in CI, as parallel stage jobs. Before a push, a plan runs locally what the gates require (`scripts/ci-local.ps1`, then `scripts/plan035-prepush.ps1`) and only the acceptance classes it touches:
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/acceptance-job.ps1 -Profile Lab -Classes <Class1,Class2>
+```
+
+`-Stage lab:main` runs one stage with its stack, and takes the stack down at the end. So a plan holds `acceptance-stack` for one stack and its classes, not for a whole run of about 90 minutes.
+
 ## Files both plans append to
 
 Keep both sides when they conflict:

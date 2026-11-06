@@ -97,6 +97,14 @@ public sealed class Qa066MetaRuleTests : IDisposable
         Assert.Contains("meta=run", System.IO.File.ReadAllText(output), StringComparison.Ordinal);
     }
 
+    /// <summary>With rename detection, a file moved out of a trigger path would show only its new path, and the rule would skip.</summary>
+    [Fact]
+    public void A_file_moved_out_of_a_trigger_path_still_counts()
+    {
+        var script = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "scripts", "ci", "acceptance-meta-rule.ps1"));
+        Assert.Contains("diff --no-renames --name-only", script, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Every_trigger_path_points_at_something_in_the_repository()
     {

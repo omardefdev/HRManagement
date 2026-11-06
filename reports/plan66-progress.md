@@ -28,3 +28,16 @@ Decisions:
 - The CI job short-circuits in run-steps.sh, so its 90 steps stay equal to steps.json; the committed-evidence step still runs under reuse.
 - The nightly is not gated by vars.ENABLE_SCHEDULED (false today): D-QA-66-1 needs it. No failure-to-issue path exists for ci.yml, so a red nightly shows in Actions.
 Finished (UTC): 2026-11-06T18:01:51Z
+
+## P1 to P4
+Commits: 1dbcd70a (P1), 3a6bf1fd (P2), 5e9cc5c4 (P3), 159f81dc (P4). Written together, committed by file: the P1 commit of acceptance-job.ps1 already holds the P4 hook (Write-NotRunByRule), and the P2 commit of ci.yml holds the P3 and P4 gating, so the single commits do not run on their own. Only the release branch is pushed, once.
+Tests: dotnet build HRManagement.slnx -warnaserror 0 errors. Qa066*, CiStepsParity, WorkflowYamlLint, Scm001, DedupePushRun: 161 passed. actionlint: no findings.
+Decisions:
+- stageJobs[] in ci-scope.json groups order[]: lab-main; lab-rest; prodlike; prodlike-final; leastpriv; meta. The matrix of ci.yml must equal it (Qa066WorkflowTests).
+- Each stage scans its own results: passwords are generated per runner, so the aggregate cannot look for them.
+- Stage folder and artifact name come from stageJobs[].name; acceptance-merge.ps1 refuses a stage of another commit, another tree or other stages.
+- Workflow-level concurrency replaces the job-level group: a new push cancels the whole superseded PR run; non-PR runs get a group of their own, so a dispatch no longer cancels a nightly.
+- WorkflowYamlLintTests: the ENABLE_SCHEDULED rule gets ci.yml as a second exception, by D-QA-66-1. The variable stays false: the owner set it for Actions minutes when other schedules were on; the nightly is the owner's newer decision.
+- Tools by digest: docker load may not restore a digest reference, so the meta stage might still fetch gitleaks and actionlint. Verify warns; measure in the first run.
+Lock: acceptance-stack acquired 2026-11-06T18:07:39Z for the P1 local proof (lab:main).
+Finished (UTC): 2026-11-06T18:26:30Z

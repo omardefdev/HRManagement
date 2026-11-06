@@ -44,6 +44,28 @@ gh workflow run ci.yml --ref main -f simulate_missing=AcHcm26AssessmentInterview
 
 The second is the negative proof of AC-QA-41a: the scenario is blocked and the job must turn red, naming it. With `simulate_missing` only the lab profile runs. The other jobs of the workflow run as usual.
 
+## Reading and rerunning the parallel Acceptance job (PLAN-66)
+
+`Acceptance` is the required check. It aggregates the jobs `Acceptance images` and `Acceptance stage (<name>)`.
+
+**Rerunning one stage.** On a completed run, rerun the stage job alone. GitHub reruns `Acceptance` after it, which merges the new result with the results of the other stages. The image archive lives for a day, so after that rerun the whole run.
+
+```bash
+gh run view <run-id> --json jobs --jq '.jobs[] | select(.name | startswith("Acceptance stage")) | "\(.databaseId) \(.name) \(.conclusion)"'
+```
+
+```bash
+gh run rerun <run-id> --job <stage-job-id>
+```
+
+A failure that is plainly the environment: `gh run rerun <run-id> --failed`.
+
+**Reading a reused run.** The summary of `Reuse check` says whether the run reuses another, and why not when it does not. In a reusing run, `CI`, `E2E`, `Acceptance images` and the stage jobs succeed in a minute or two and name the reused run in their summaries. `Acceptance` copies the `acceptance-evidence` artifact of the original full run and adds `reuse.json`, which points at it. `CodeQL`, `Gitleaks` and the `Committed acceptance evidence` step do their work as usual. To force a full run on a pull request, change a file of the code tree.
+
+**The nightly.** `ci.yml` runs on `main` at 02:00 UTC with the governance checks forced on (D-QA-66-1). It does not wait for `ENABLE_SCHEDULED`. A red nightly shows in Actions; no workflow turns it into an issue. `gh workflow run ci.yml --ref main` is the same run by hand.
+
+**When the governance checks did not run.** The stage job `meta` says so in its summary, and `acceptance-evidence/not-run-by-rule.json` names the classes, the reason and the last nightly run. The rule and its paths are `metaRule` in `tests/acceptance/ci-scope.json`.
+
 ## Repository variables (Settings → Secrets and variables → Actions → Variables)
 
 | Variable | Effect | Set when |

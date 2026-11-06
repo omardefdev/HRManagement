@@ -41,7 +41,7 @@ public sealed class Qa066ReuseTests : IDisposable
 
     /// <summary>A run of the fixture: its entry in the list, its jobs, its identity and its evidence artifact.</summary>
     private void Run(int id, object? run = null, string[]? jobConclusions = null, string tree = Tree, string inputs = Inputs,
-        string scope = "full", string reusedFrom = "", string repository = Repo, bool evidence = true, bool expired = false, bool listed = true, bool identity = true)
+        string scope = "full", string reusedFrom = "", string repository = Repo, bool evidence = true, bool expired = false, bool listed = true, bool identity = true, string identityPullRequest = "66")
     {
         run ??= RunOf(id);
         if (listed)
@@ -49,7 +49,7 @@ public sealed class Qa066ReuseTests : IDisposable
         Write($"run-{id}.json", run);
         Write($"jobs-{id}.json", new { jobs = (jobConclusions ?? ["success", "success"]).Select((c, i) => new { name = $"job{i}", conclusion = c }) });
         if (identity)
-            Write($"identity-{id}.json", new { repository, codeTree = tree, metaInputs = inputs, scope, reusedFrom });
+            Write($"identity-{id}.json", new { repository, pullRequest = identityPullRequest, codeTree = tree, outsideTree = inputs, scope, reusedFrom });
         Write($"artifacts-{id}.json", new { artifacts = evidence ? new object[] { new { name = "acceptance-evidence", expired } } : [] });
     }
 
@@ -67,7 +67,7 @@ public sealed class Qa066ReuseTests : IDisposable
             $env:GITHUB_STEP_SUMMARY = ''
             & '{{Path.Combine(RepoPaths.Root, "scripts", "ci", "acceptance-reuse.ps1")}}' -RepoRoot $RepoRoot -Event '{{@event}}' -Repository '{{Repo}}' -RunId '999' -Sha 'merge' `
                 -PullRequest '{{pullRequest}}' -HeadRepository '{{headRepository}}' -HeadSha 'head' -HeadRef 'branch' -Classes '{{classes}}' -SimulateMissing '{{simulate}}' `
-                -CodeTree '{{tree}}' -MetaInputs '{{inputs}}' -FixtureDir '{{_dir}}' -IdentityFile '{{identityFile}}'
+                -CodeTree '{{tree}}' -OutsideTree '{{inputs}}' -FixtureDir '{{_dir}}' -IdentityFile '{{identityFile}}'
             exit $LASTEXITCODE
             """);
         var (exit, stdout, stderr) = RepoScriptRunner.RunScript(wrapper);
@@ -140,12 +140,42 @@ public sealed class Qa066ReuseTests : IDisposable
         AssertNoReuse("another code tree");
     }
 
-    /// <summary>docs/qa/** is outside the code tree: a commit that changes it must not reuse a run that never saw it.</summary>
+    /// <summary>docs/ is outside the code tree: a commit that changes its data must not reuse a run that never saw it.</summary>
     [Fact]
-    public void Other_inputs_of_the_governance_checks_run()
+    public void Other_inputs_outside_the_code_tree_run()
     {
         Run(100, inputs: "dddd");
-        AssertNoReuse("other inputs of the governance checks");
+        AssertNoReuse("other inputs outside the code tree");
+    }
+
+    /// <summary>GitHub lists any open pull request of the branch; a closed one on the same branch name is another pull request.</summary>
+    [Fact]
+    public void A_run_that_ran_for_another_pull_request_is_not_reused()
+    {
+        Run(100, identityPullRequest: "65");
+        AssertNoReuse("ran for pull request #65");
+    }
+
+    [Theory]
+    [InlineData("docs/sov-zt/zero-trust-matrix.json", true)]
+    [InlineData("docs/str-legal/control-catalog.json", true)]
+    [InlineData("docs/qa/dated-obligations.json", true)]
+    [InlineData("docs/qa/notes.md", true)]
+    [InlineData("docs/CI_AND_TESTING.md", false)]
+    [InlineData("docs/acceptance-plans/PLAN-66-qa-ci-fast-pipeline.md", false)]
+    public void What_outside_the_code_tree_counts_for_reuse(string path, bool counts)
+    {
+        var wrapper = Path.Combine(_dir, "outside.ps1");
+        System.IO.File.WriteAllText(wrapper, $$"""
+            param([string]$RepoRoot)
+            . (Join-Path $RepoRoot "scripts/acceptance-evidence-lib.ps1")
+            . (Join-Path $RepoRoot "scripts/ci/acceptance-stage-lib.ps1")
+            $scope = Read-AcceptanceJson -Path (Join-Path $RepoRoot "tests/acceptance/ci-scope.json")
+            Write-Output "counts=$(Test-AcceptanceOutsideInput -ScopeFile $scope -Path '{{path}}')"
+            """);
+        var (exit, stdout, stderr) = RepoScriptRunner.RunScript(wrapper);
+        Assert.True(exit == 0, stdout + stderr);
+        Assert.Contains($"counts={counts}", stdout, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -390,7 +420,7 @@ public sealed class Qa066ReuseTests : IDisposable
         Assert.Contains("name: run-identity\n", job, StringComparison.Ordinal);
         Assert.Contains("scripts/ci/acceptance-reuse.ps1", job, StringComparison.Ordinal);
         Assert.Contains("actions: read", job, StringComparison.Ordinal);
-        Assert.DoesNotContain("write", job, StringComparison.Ordinal);
+        Assert.DoesNotContain(": write", job, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -57,7 +57,8 @@ jobs:
 
   # PLAN-66: what this run has to do. S2: a commit that leaves the code tree unchanged reuses the green full run of the pull request
   # (scripts/ci/acceptance-reuse.ps1). S3: the governance checks run when their inputs change (scripts/ci/acceptance-meta-rule.ps1).
-  # Both fail towards work: an empty answer, or a failed job, means everything runs.
+  # Both fail towards work: an empty answer means everything runs. A job that failed outright also leaves Acceptance red, which
+  # needs it: rerun it.
   reuse-check:
     name: Reuse check
     runs-on: ubuntu-latest
@@ -66,7 +67,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-      pull-requests: read
     outputs:
       reuse: ${{ steps.reuse.outputs.reuse }}
       reused-run: ${{ steps.reuse.outputs.reused-run }}
@@ -97,6 +97,7 @@ jobs:
           path: artifacts/ci/run-identity.json
           if-no-files-found: error
           retention-days: 30
+          overwrite: true
 
   build-and-test:
     name: CI
@@ -718,7 +719,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-      pull-requests: read
     env:
       GH_TOKEN: ${{ github.token }}
       REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}
@@ -752,6 +752,8 @@ jobs:
           path: artifacts/acceptance/run/
           if-no-files-found: error
           retention-days: 30
+          # Rerunning one stage reruns this job in the same run.
+          overwrite: true
 
       - name: Every stage job succeeded
         if: always()
