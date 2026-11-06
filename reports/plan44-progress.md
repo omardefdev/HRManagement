@@ -33,3 +33,5 @@ P0-P4 stamps below come from commit times and were written late, at the start of
 - WAITING-LOCK (Docker, P-2): about 19:22Z to the waiter's exit; recorded as a wait, not active time.
 - Wf044InstanceIntegrityPostgresTests 14 of 14; wider integration filter 102 of 102, 263 s.
 - Acceptance before-picture: no hrm-acceptance volumes, so no data before the stack migrates.
+- First prod-like job (5f636710), 1299 s: AC-WF-44a,b,c,e Pass; AC-HCM-25 + AC-WF-43 14 of 14; AC-MSG-40 8 of 8; AC-WF-44d failed and showed a real defect.
+- Defect: Approvals/Approve and Reject fell to HrCoreWrite at the gateway, so a pure hr-management-approver could not reach legacy step 2; with the new role check a two-step legacy request could never finish. Fixed: the gateway applies HrCoreApprove, the controller's policy. AC-WF-44d now finishes a two-step request.

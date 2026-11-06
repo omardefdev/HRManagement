@@ -241,7 +241,7 @@ public class AcWf44InstanceIntegrityTests
 
     // ---------------------------------------------------------------- d
 
-    /// <summary>A pending legacy request of its own, copied from the seeded one so the scenario can finish it.</summary>
+    /// <summary>A pending legacy request of its own, copied from the seeded one so the scenario can finish it, with a management step.</summary>
     private static async Task<string> LegacyRequestAsync()
     {
         var seeded = RecruitmentStates.Load().LegacyApprovalRequest.Id;
@@ -250,7 +250,8 @@ public class AcWf44InstanceIntegrityTests
             $"CREATE TEMP TABLE r44 AS SELECT * FROM \"ApprovalRequests\" WHERE \"Id\"='{seeded:D}'; " +
             $"UPDATE r44 SET \"Id\"='{id}'; INSERT INTO \"ApprovalRequests\" SELECT * FROM r44; " +
             $"CREATE TEMP TABLE s44 AS SELECT * FROM \"ApprovalSteps\" WHERE \"ApprovalRequestId\"='{seeded:D}'; " +
-            $"UPDATE s44 SET \"Id\"=gen_random_uuid(), \"ApprovalRequestId\"='{id}'; INSERT INTO \"ApprovalSteps\" SELECT * FROM s44;");
+            $"UPDATE s44 SET \"Id\"=gen_random_uuid(), \"ApprovalRequestId\"='{id}'; INSERT INTO \"ApprovalSteps\" SELECT * FROM s44; " +
+            "UPDATE s44 SET \"Id\"=gen_random_uuid(), \"Level\"=2, \"RoleRequired\"='hr-management-approver'; INSERT INTO \"ApprovalSteps\" SELECT * FROM s44;");
         return id;
     }
 
@@ -262,10 +263,12 @@ public class AcWf44InstanceIntegrityTests
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "44d", "AC-WF-44d legacy ApprovedCV: step role and requester-only cancel", "central-a", "central-a2", "a-management-approver");
         s.Steps("""
-            A legacy ApprovedCV request by central-a whose step needs hr-core.
-            1. Negative: a-management-approver approves through Approvals/Approve: refused by the step's role, nothing changes.
+            A legacy ApprovedCV request by central-a: step 1 needs hr-core, step 2 hr-management-approver.
+            1. Negative: a-management-approver approves step 1 through Approvals/Approve: refused by the step's role, nothing changes.
             2. Negative: central-a2 (hr-core, not the requester) cancels: refused, nothing changes.
-            3. Positive: central-a2 approves, and the requester cancels another request.
+            3. Positive: central-a2 approves step 1. Negative: central-a2 cannot approve step 2.
+            4. Positive: a-management-approver approves step 2 and the request is Approved, so the gateway does not leave it stranded.
+            5. Positive: the requester cancels another request.
             """);
         var id = await LegacyRequestAsync();
         var second = await LegacyRequestAsync();
@@ -282,7 +285,14 @@ public class AcWf44InstanceIntegrityTests
             Assert.Contains("لا يلغي الطلب إلا صاحبه", cancel, StringComparison.Ordinal);
             Assert.Equal(before, await LegacyStatusAsync(id));
 
-            await s["central-a2"].PostAsync("44d-approve", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            await s["central-a2"].PostAsync("44d-approve-1", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            Assert.Equal(before, await LegacyStatusAsync(id));
+            Assert.Equal(2, await Scalar($"SELECT \"CurrentLevel\" FROM \"ApprovalRequests\" WHERE \"Id\"='{id}';"));
+
+            var secondStep = await s["central-a2"].PostAsync("44d-approve-2-no-role", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            Assert.Contains("هذه الخطوة تتطلب دور «hr-management-approver».", secondStep, StringComparison.Ordinal);
+
+            await s["a-management-approver"].PostAsync("44d-approve-2", $"ui/hr-core/Approvals/Approve/{id}", review, []);
             Assert.NotEqual(before, await LegacyStatusAsync(id));
 
             await s["central-a"].PostAsync("44d-cancel-requester", $"ui/hr-core/Approvals/Cancel/{second}", $"ui/hr-core/Approvals/Review/{second}", []);
