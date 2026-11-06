@@ -563,7 +563,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [dedupe, reuse-check]
     if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
-    timeout-minutes: 30
+    timeout-minutes: 25
     permissions:
       contents: read
     env:
@@ -615,22 +615,22 @@ jobs:
         include:
           - name: lab-main
             stages: lab:main
-            timeout: 45
+            timeout: 35
           - name: lab-rest
             stages: lab:journey,lab:isolated
-            timeout: 35
+            timeout: 30
           - name: prodlike
             stages: prodLike:journey,prodLike:main,prodLike:isolated,prodLike:s2s42
             timeout: 35
           - name: prodlike-final
             stages: prodLike:final
-            timeout: 70
+            timeout: 40
           - name: leastpriv
             stages: prodLike:leastpriv
-            timeout: 35
+            timeout: 20
           - name: meta
             stages: lab:meta
-            timeout: 80
+            timeout: 60
     permissions:
       actions: read
       contents: read
@@ -715,7 +715,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [dedupe, reuse-check, acceptance-build, acceptance-stage]
     if: ${{ always() && needs.dedupe.outputs.skip != 'true' }}
-    timeout-minutes: 20
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read

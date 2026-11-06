@@ -55,3 +55,16 @@ PLAN-43 merged (PR 38, f8f5cd04) during the run: origin/main merged into the fea
 - S4: E2E runs beside CI. CI is not split: without meta the longest path is the Acceptance chain, to be measured; decide from the first full run.
 P5 finished.
 Finished (UTC): 2026-11-06T19:35:40Z
+
+## P6
+Release branch release/plan-66 at 62da6634, pushed 2026-11-06T19:36:16Z. PR: https://github.com/omardefdev/HRManagement/pull/39
+Run 1: 42281107074, https://github.com/omardefdev/HRManagement/actions/runs/42281107074, the full run with meta (the PR changes .github/).
+WAITING-CI: from 2026-11-06T19:36:16Z.
+Next step: read run 42281107074 once. Green: record per-job durations, rerun one stage job, then the evidence commit. Red: fix on release/plan-66 and push that branch.
+
+Resumed (UTC): 2026-11-06T20:21:11Z - the app restarted the session; state read from this file and git log.
+Run 1 42281107074, 19:36:23Z to 20:16:59Z, 40.6 min, red on E2E only. Minutes: Dedupe 0.2, Gitleaks 1.0, Reuse check 0.4, CodeQL 13.0, CI 30.6, E2E 12.2 (failed), Acceptance images 14.9, stages: lab-main 23.5, lab-rest 19.3, prodlike 22.4, prodlike-final 24.4, leastpriv 10.5, meta 18.7 (698 s of it waiting for CI, tests 167 s, 15 of 15), Acceptance 0.5. Runner minutes about 192. Guard PASS, 71 classes, 13 trx. Image artifact 2.43 GB. meta=run, reuse=false (no earlier run).
+E2E: 56 of 57; LEV_H1_Contracts_Persona_Reaches_Leave_Requests, 30 s timeout in WaitForLoadState inside PlaywrightFixture.LoginAsync. This PR changes neither E2E nor product code; the test passed in every earlier run recorded. Not rerun: the next commit gives it a fresh run. If it fails again it is treated as real.
+Tool images: confirmed, docker load does not restore gitleaks and actionlint by digest, so the meta stage pulls those two from Docker Hub. Deviation from P-5, recorded for the final report; both are pinned by digest, so a stale image is not possible.
+S4: CI 30.6 min is below the Acceptance chain (about 40), so CI is not split.
+P-5: timeouts set to about 1.5 x measured: images 25, lab-main 35, lab-rest 30, prodlike 35, prodlike-final 40, leastpriv 20, meta 60, Acceptance 10. This code commit is also the not-reused proof of AC-QA-66c.
