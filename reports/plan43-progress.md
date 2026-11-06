@@ -58,3 +58,9 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 
 ## Next step
 P5.
+
+## Lock and stack log
+- acceptance-stack acquired 2026-11-06T11:46:52Z. acceptance-up -Profile ProdLike started right after (all images rebuilt: the persona catalog changed).
+- While it builds (2026-11-06T11:51:14Z): docs (engine, SoD matrix, gap study status, plan status and notes), wf043-validate.ps1 PASS, CodeQL baseline entries 061, 062, 063 marked Fixed (those actions now carry a token or moved), ci-scope and ac-ownership updated.
+- Stack: first up failed at 12:01Z (old volumes, persona digest); reset (project volumes only) and up again, 261 s, services ready; the script's last step needs pwsh, skipped by design here. 0.5 confirmed by SQL on the stack: 17 definitions, Published and Retired only, distinct approvers on ASSET-ASSIGN-APPROVAL alone.
+- AC-WF-43a..f alone: 6 of 6, 16 s (2026-11-06T12:09:35Z). 43e starts on the service identity with X-Acting-User, because a branch manager's scope guard refuses an asset in storage (no open holder), so the UI cannot reach it for br1-mgr: a deviation from the plan's wording.

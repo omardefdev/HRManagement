@@ -61,3 +61,17 @@ pwsh ./scripts/sod-report.ps1 -ConnectionString $env:HRCORE_CONNECTION -OutputPa
 ## Legal fields requiring dual approval
 
 - NationalId, DateOfBirth / BirthDate, HireDate / EmploymentDate, FullName (First/Last)
+
+## Workflow engine rules (PLAN-43)
+
+These hold for every workflow type, on the server and in the inbox panel (`WorkflowSodRules`). `Workflow:AdminBypass` does not pass them.
+
+| Rule | Who is barred | From |
+|------|---------------|------|
+| Excluded | The human requester of a service start, and `ExcludedApproverUserIds` | Approving and rejecting every step |
+| Subject | The employee the request is about (`SubjectEmployeeId`) | Approving and rejecting every step |
+| DistinctApprover | Anyone who approved another level of the same instance, when the definition sets `RequireDistinctApprovers` | Approving |
+
+No service account approves or rejects a step, or writes a definition. A definition is published by a person who neither created, last edited nor submitted it.
+
+The recruitment and establishment rules stay in their gates. Exempt types: `docs/qa/workflow-step-role-exemptions.json`.

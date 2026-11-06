@@ -178,7 +178,7 @@ public class AcS2s42TrustBoundaryTests
     }
 
     /// <summary>A new undelivered asset of agency A: the setup is SQL, the action under test goes through the gateway.</summary>
-    private static async Task<Guid> InsertAssetAsync(string category, bool privileged = false)
+    internal static async Task<Guid> InsertAssetAsync(string category, bool privileged = false)
     {
         var id = Guid.NewGuid();
         await Sql("admin_db", $"""
@@ -200,7 +200,7 @@ public class AcS2s42TrustBoundaryTests
         return id;
     }
 
-    private static async Task<(HttpResponseMessage Response, string Error)> AssignAsync(HttpClient http, Guid asset, Guid employee, string? evidence = null)
+    internal static async Task<(HttpResponseMessage Response, string Error)> AssignAsync(HttpClient http, Guid asset, Guid employee, string? evidence = null)
     {
         var fields = new Dictionary<string, string> { ["employeeId"] = employee.ToString("D"), ["handoverCondition"] = "Good" };
         if (evidence is not null)
@@ -212,7 +212,7 @@ public class AcS2s42TrustBoundaryTests
     }
 
     /// <summary>The alert boxes of a page, for a failure message.</summary>
-    private static string Alerts(string html) =>
+    internal static string Alerts(string html) =>
         string.Join(" | ", Regex.Matches(html, @"class=""[^""]*\balert\b[^""]*""[^>]*>(.*?)</div>", RegexOptions.Singleline)
             .Select(m => Regex.Replace(m.Groups[1].Value, "<[^>]+>", " ").Trim()));
 
@@ -244,7 +244,7 @@ public class AcS2s42TrustBoundaryTests
         }
     }
 
-    private static async Task<HttpClient> UiClientAsync(string persona)
+    internal static async Task<HttpClient> UiClientAsync(string persona)
     {
         var correlation = Guid.NewGuid().ToString("D");
         var token = await AcceptanceHarness.FetchPasswordGrantTokenAsync(AcceptanceHarness.RequirePersona(persona), correlation);

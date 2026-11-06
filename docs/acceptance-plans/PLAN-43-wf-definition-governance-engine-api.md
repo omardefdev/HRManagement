@@ -1,7 +1,7 @@
 # PLAN-43 — حوكمة تعريفات المسارات وتقوية واجهة المحرك وفصل المهام في كل أنواعه (WF-A)
 
 **Scope:** WF-001 — [دراسة الفجوات](../WF_001_GAP_STUDY.md): G-WF-04, G-WF-05, G-WF-06  
-**Status:** Proposed — 2026-10-30  
+**Status:** Implemented with deviations — 2026-11-06 (see «ملاحظات التنفيذ والانحرافات»)  
 **Priority:** P0 (G-WF-04) / P1 (G-WF-05, G-WF-06)  
 **Depends on:** PLAN-42 (ثقة الخدمات: أسرار لكل خدمة، وفاعل يُشتق على الخادم في `policies/enforce`)  
 **Related cards:** WF-001، IAM-003، IAM-004، PLAN-03 (AC-11)، PLAN-25 (المقيِّم والبوابات ودور الخطوة)
@@ -248,3 +248,19 @@ pwsh scripts/wf043-validate.ps1
 ## Effort estimate
 
 7–8 أيام عمل: المرحلة 0 (0.5)، دورة حياة التعريف والمحقِّق والبوابة (2.5)، البدء الخارجي والسياسات والأحداث v2 (2)، قواعد فصل المهام والتطابق (1)، التكامل والقبول والتوثيق (1–2).
+
+## ملاحظات التنفيذ والانحرافات
+
+نُفّذت الخطة بـ [PLAN-43-AGENT-PROMPT.md](execution/PLAN-43-AGENT-PROMPT.md)، وهو يحكم حيث يخالفها:
+
+- **ترحيلان لا واحد:** `WF043_DefinitionGovernance` و`WF043_ExternalStart` (P-3).
+- **سياسة قراءة خاصة:** `WorkflowDefinitionRead` بدل `HrCoreReadOnly`، لأن `workflow-admin` لا يمر بها، ولأن إضافته إليها تفتح له قراءة HR.Core كلها. وأُضيف `WorkflowDefinitions` إلى قائمة `HrModuleAuthorizationFilter`، وإلا رُفض الدور قبل وصوله إلى سياسة المتحكم.
+- **ناشر غير آخر محرّر:** عمود `LastEditedBy`، حتى لا يعيد شخص كتابة مسودة زميله ثم ينشرها.
+- **الإصدار يحفظ نوع رمزه:** البدء يجري بالرمز، فإصدار بنوع أضعف كان سيفلت من حدود نوعه.
+- **Antiforgery:** كل كتابة على التعريفات تحتاج رمزاً من `GET api/workflow-definitions/antiforgery`، وهو نمط PLAN-40. أما `Start` و`Cancel` ففي متحكم مستقل `WorkflowExternalInstancesController` بالمسارات نفسها، بنمط PLAN-42.
+- **`HrCoreBranchOperation`** فقدت بند حسابات الخدمة، فكل من يستعملها إجراء اعتماد أو رفض، والمقيِّم يرفض حساب الخدمة أيضاً.
+- **إعفاءات إضافية (P-4):** `SeparationRecord` و`DisciplinaryAction` و`CardRequest` و`Ticket` حتى PLAN-46، إلى جانب `AssetLossReport` حتى PLAN-45. دور خطوتها لا يصل إلى الاعتماد، ولا شيء يبدؤها اليوم. سجلها `docs/qa/workflow-step-role-exemptions.json` بتاريخ مراجعة.
+- **`keycloak-reconcile`** لم يكن ينشئ أدوار الـ realm، فصار ينشئ الناقص من أدوار الملف ولا يحذف شيئاً.
+- **المفتاح نفسه لكيان آخر** تعارض 409، إضافة على القاعدة 4.
+- **AC-11:** الطالب `b-logistics`، لأن الطالب ممنوع من كل خطوة بقرار D-WF-8، فلا يبقى المعتمد الأول طالباً.
+- **تقرير الإقلاع** يسرد أيضاً `HIRE-WIZARD` و`SEPARATION-WIZARD` و`TRANSFER-APPROVAL` و`DISCIPLINARY-APPROVAL`، لأن أنواعها خارج `HandledEntityTypes` والسجل، كما تنص الخطة. تصححها PLAN-46.
