@@ -51,5 +51,10 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 - ExemptEntityTypes lives in docs/qa/workflow-step-role-exemptions.json too, watched by a new dated obligation (WF043-STEP-ROLE-EXEMPTIONS, reviewBy 2027-02-01); a test keeps it equal to the three settings files.
 - The panel's role check now always equals the server's: an exempt type has no role check on either side.
 
+- P4: done. Finished (UTC): 2026-11-06T11:44:24Z. Wf043 integration: 18 of 18 (Testcontainers PostgreSQL and RabbitMQ, and the real HR.Core pipeline), 2 min 23 s. Regression filter Hcm025ProductionApproval, Ac33AssetLoss, S2s042, Msg040, Workflow, Ops039: 73 tests, 72 passed; the one failure was Wf043's own read test, fixed since. Docker Desktop was found stopped at 2026-11-06T11:3xZ and started; no data lost seen yet.
+
+## Found in P4
+- HrModuleAuthorizationFilter refused workflow-admin before the controller's policy; WorkflowDefinitions joined its list of controllers with their own policies. Unit tests could not see this: only the real pipeline did.
+
 ## Next step
-P4.
+P5.
