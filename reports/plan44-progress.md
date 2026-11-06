@@ -35,3 +35,13 @@ P0-P4 stamps below come from commit times and were written late, at the start of
 - Acceptance before-picture: no hrm-acceptance volumes, so no data before the stack migrates.
 - First prod-like job (5f636710), 1299 s: AC-WF-44a,b,c,e Pass; AC-HCM-25 + AC-WF-43 14 of 14; AC-MSG-40 8 of 8; AC-WF-44d failed and showed a real defect.
 - Defect: Approvals/Approve and Reject fell to HrCoreWrite at the gateway, so a pure hr-management-approver could not reach legacy step 2; with the new role check a two-step legacy request could never finish. Fixed: the gateway applies HrCoreApprove, the controller's policy. AC-WF-44d now finishes a two-step request.
+- Second job (ec5bdd1b, -Profile Both, 17 classes), 2925 s: prod-like AC-WF-44 5 of 5, AC-HCM-25 + AC-WF-43 14 of 14, AC-MSG-40 8 of 8; lab 47 of 48.
+- Ac29_e failed twice, differently: a connection reset on a GET, then the accept stuck 16.6 s in the upload to file-storage-web (499, gateway 405), repeated 80 s later in 0.6 s. file-storage-web logged thread-pool starvation at 21:04:00; GitHub and ssh were unreachable from the host at about 21:07Z and back by 21:08Z. Offer instance Completed and offer Issued: the decision path worked. Under investigation by rerun.
+- Duplicates report on the prod-like stack after the run: duplicates 0, stuck 0, row security forced, 15 instance groups. Metrics exported; job log: 4 tenants, 0 items.
+- AcHcm29 rerun on the same images: 3 of 3 in 37 s, guard PASS (377 s). Every required class of the P-10 list has passed locally; Ac29_e failed twice during the host stall and passed once healthy, and the CI run is the evidence of record.
+- Group: AcWf44InstanceIntegrityTests in prodLike isolated, and it also removes what it seeds.
+- acceptance-stack released 2026-11-06T21:16Z after reset; held 19:41Z to 21:16Z.
+Finished P5 (UTC): 2026-11-06T21:16Z
+
+## P6
+origin/main still f8f5cd04 at 21:08Z: nothing to move.
