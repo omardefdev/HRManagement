@@ -3,11 +3,11 @@
   "method": "POST",
   "url": "api/hr-core/api/onboarding/agencies/apply",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:06:43.3529953Z",
+  "capturedAtUtc": "2026-11-06T21:27:46.5792257Z",
   "body": {
     "dryRun": false,
     "alreadyApplied": false,
-    "tenantId": "5583a5d9-fb30-48e9-a2ef-0b1c1c620dc0",
+    "tenantId": "7c29a0f2-0f8a-4634-a996-11aee980cb97",
     "agencyId": "agency-acceptance-test",
     "packId": "onb-acceptance-test-v1",
     "steps": [

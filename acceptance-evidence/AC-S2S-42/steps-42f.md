@@ -1,0 +1,2 @@
+1. A copy of a seeded application with a random id (setup by psql). Negative: svc-compliance with dsar.subject.read alone: 403, and the row is unchanged (psql).
+2. With dsar.subject.erase: 200, and the row changed.

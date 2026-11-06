@@ -68,3 +68,11 @@ E2E: 56 of 57; LEV_H1_Contracts_Persona_Reaches_Leave_Requests, 30 s timeout in 
 Tool images: confirmed, docker load does not restore gitleaks and actionlint by digest, so the meta stage pulls those two from Docker Hub. Deviation from P-5, recorded for the final report; both are pinned by digest, so a stale image is not possible.
 S4: CI 30.6 min is below the Acceptance chain (about 40), so CI is not split.
 P-5: timeouts set to about 1.5 x measured: images 25, lab-main 35, lab-rest 30, prodlike 35, prodlike-final 40, leastpriv 20, meta 60, Acceptance 10. This code commit is also the not-reused proof of AC-QA-66c.
+
+Run 2 42287724602 on 600ccde0, 20:21:56Z to 21:06:44Z, 44.8 min, all green. Minutes: Gitleaks 0.8, Reuse check 0.4, CodeQL 17.5, CI 36.3, E2E 17.5, Acceptance images 19.2, lab-main 23.1 (stack 517 s, tests 727 s), lab-rest 15.2, prodlike 18.4, prodlike-final 24.3, leastpriv 10.4, meta 20.4, Acceptance 0.5. LEV_H1 passed: the timeout of run 1 did not come back.
+Stage rerun started 2026-11-06T21:09:36Z: gh run rerun 42287724602 --job 128142439567 (lab-main).
+WAITING-CI: rerun of lab-main.
+Next step: read attempt 2 once, record the stage and Acceptance durations; then copy acceptance-evidence from the green run, validate with -Committed, commit, push: that run must reuse.
+
+Stage rerun measured: started 21:09:36Z, lab-main 21:09:42Z to 21:33:24Z (23.7 min), Acceptance 21:33:27Z to 21:33:50Z: 24.2 min in all, attempt 2 green.
+Evidence: acceptance-evidence copied from the artifact of run 42287724602 attempt 2; acceptance-baseline-validate -Committed PASS; 79 ACs: 33 proven, 26 passed but not proving, 8 stale, 4 incomplete, 6 not run, 0 fail, 2 blocked.

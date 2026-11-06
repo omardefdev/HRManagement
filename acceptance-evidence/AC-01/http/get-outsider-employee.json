@@ -3,6 +3,6 @@
   "method": "GET",
   "url": "/api/hr-core/api/lookup/employees/a0000002-0000-4000-8000-000000000201",
   "statusCode": 404,
-  "capturedAtUtc": "2026-11-05T04:03:13.9636155Z",
-  "body": "{\u0022type\u0022:\u0022https://tools.ietf.org/html/rfc9110#section-15.5.5\u0022,\u0022title\u0022:\u0022Not Found\u0022,\u0022status\u0022:404,\u0022traceId\u0022:\u002200-3836cc0496edd6ec0a44167498d3f59f-d7c1767ea36bc316-00\u0022}"
+  "capturedAtUtc": "2026-11-06T21:32:07.0979234Z",
+  "body": "{\u0022type\u0022:\u0022https://tools.ietf.org/html/rfc9110#section-15.5.5\u0022,\u0022title\u0022:\u0022Not Found\u0022,\u0022status\u0022:404,\u0022traceId\u0022:\u002200-4f105752efd82156806806bfd9421ee2-2eabb2effe0cc89f-00\u0022}"
 }

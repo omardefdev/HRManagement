@@ -1,7 +1,7 @@
 # AC-19 analytics read-model reconciliation
 
 - Persona: `a-analytics`
-- Correlation ID: `420b4158-57cf-49a7-b3c5-5b4fab8830cc`
+- Correlation ID: `71bafb83-5a65-4ff6-a466-0563b1d8886d`
 - HTTP observations: `3`
 
 ## Observed requests

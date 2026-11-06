@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/api/hr-core/api/establishment/job-catalog/import?mode=Standard",
   "statusCode": 400,
-  "capturedAtUtc": "2026-11-05T03:58:39.9507550Z",
+  "capturedAtUtc": "2026-11-06T21:23:22.8558598Z",
   "body": {
     "error": "\u0627\u0644\u0633\u0637\u0631 2: LegacyJobCode \u0645\u0633\u0645\u0648\u062D \u0641\u064A \u0648\u0636\u0639 \u0627\u0644\u062A\u0631\u062D\u064A\u0644 \u0641\u0642\u0637."
   }

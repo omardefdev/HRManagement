@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/api/hr-core/api/policies/snapshots/Assets.Custody",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:06:44.1796508Z",
+  "capturedAtUtc": "2026-11-06T21:22:36.5196397Z",
   "body": {
     "versionId": "a0000001-0000-4000-8000-000000000304",
     "domain": "Assets.Custody",

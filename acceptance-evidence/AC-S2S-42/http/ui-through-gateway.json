@@ -1,0 +1,7 @@
+{
+  "step": "ui-through-gateway",
+  "method": "GET",
+  "url": "/ui/hr-core/",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-06T20:59:09.2802032Z"
+}

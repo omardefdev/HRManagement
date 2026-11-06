@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/admin-logistics/InventoryItems/Create",
   "statusCode": 302,
-  "capturedAtUtc": "2026-11-05T04:08:38.0622109Z",
+  "capturedAtUtc": "2026-11-06T21:20:51.1539642Z",
   "body": {
     "bodyLength": 0,
     "location": "/ui/admin-logistics/InventoryItems"

@@ -1,8 +1,9 @@
 {
-  "workflowInstanceId": "ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04",
-  "assignmentId": "33d28e64-fa4c-4a51-a367-ca0b47b3544a",
+  "workflowInstanceId": "98d00889-b9ef-4ee8-b4c3-1003a05f7112",
+  "assignmentId": "9ca546ea-fab2-4c84-8375-d805df2b0cb2",
   "signatureCount": 2,
   "historySteps": 2,
   "stageSkipBlocked": true,
-  "initiatorCheckerBlocked": true
+  "firstApproverBlockedOnStep2": true,
+  "requesterId": "7a4615fd-f1d6-7d49-8e3c-4df1e4b79396"
 }

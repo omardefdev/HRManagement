@@ -1,15 +1,15 @@
 {
   "step": "25d-25d-submit-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/SelectionCommittees/Submit/c40b6099-8fb1-4250-a50c-09b911a3cc4e",
+  "url": "/ui/hr-core/SelectionCommittees/Submit/479d0d24-4da8-4042-bcae-abddf9693445",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:12.7650678Z",
+  "capturedAtUtc": "2026-11-06T20:53:04.6922220Z",
   "body": {
     "fields": [
-      "id=c40b6099-8fb1-4250-a50c-09b911a3cc4e"
+      "id=479d0d24-4da8-4042-bcae-abddf9693445"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/c40b6099-8fb1-4250-a50c-09b911a3cc4e",
-    "final": "/ui/hr-core/SelectionCommittees/Details/c40b6099-8fb1-4250-a50c-09b911a3cc4e"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/479d0d24-4da8-4042-bcae-abddf9693445",
+    "final": "/ui/hr-core/SelectionCommittees/Details/479d0d24-4da8-4042-bcae-abddf9693445"
   }
 }

@@ -12,7 +12,7 @@
     {
       "Service": "hr-core-web",
       "Database": "hr_core_db",
-      "history": 82,
+      "history": 86,
       "owners": "hr_core_migrator",
       "connectedAs": "hr_core_app",
       "healthy": true

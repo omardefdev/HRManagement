@@ -1,7 +1,7 @@
 # AC-06 transfer access flip pattern
 
 - Persona: `br1-mgr+br2-mgr`
-- Correlation ID: `97d31c43-dcfa-4070-b06e-64e54d18ad77`
+- Correlation ID: `f86696dc-cd3a-401f-81dd-7a0c828198a8`
 - HTTP observations: `4`
 
 ## Observed requests

@@ -3,9 +3,9 @@
   "method": "GET",
   "url": "/ui/admin-logistics/Assets/Details/a0000001-0000-4000-8000-000000000601",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:06:48.2904200Z",
+  "capturedAtUtc": "2026-11-06T21:23:23.7562211Z",
   "body": {
-    "length": 31524,
+    "length": 31589,
     "tag": "ACCEPT-ASSET-BR1"
   }
 }

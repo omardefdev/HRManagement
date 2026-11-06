@@ -3,13 +3,13 @@
   "method": "POST",
   "url": "/ui/hr-contracts/LeaveRequests/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:27.2874751Z",
+  "capturedAtUtc": "2026-11-06T20:53:14.9890822Z",
   "body": {
     "fields": [
       "EmployeeId=62319f30-371a-744f-ae91-a1415059a302",
       "LeaveType=Annual",
-      "StartDate=2026-11-25",
-      "EndDate=2026-11-27",
+      "StartDate=2026-11-26",
+      "EndDate=2026-11-28",
       "DurationDays=3",
       "Notes=AC-INT-37a"
     ],

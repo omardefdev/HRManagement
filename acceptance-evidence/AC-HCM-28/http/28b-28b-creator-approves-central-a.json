@@ -1,16 +1,16 @@
 {
   "step": "28b-28b-creator-approves-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/02ab0518-b1e8-480d-b79a-7a692e4b51a1",
+  "url": "/ui/hr-core/SelectionCommittees/ApproveWorkflow/a8ef91a6-20b1-4ab4-936e-cce876759db0",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:10:10.7761169Z",
+  "capturedAtUtc": "2026-11-06T21:21:14.0735259Z",
   "body": {
     "fields": [
-      "SessionId=02ab0518-b1e8-480d-b79a-7a692e4b51a1",
+      "SessionId=a8ef91a6-20b1-4ab4-936e-cce876759db0",
       "Comments=AC-HCM-28 28b-creator-approves"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/SelectionCommittees/Details/02ab0518-b1e8-480d-b79a-7a692e4b51a1",
-    "final": "/ui/hr-core/SelectionCommittees/Details/02ab0518-b1e8-480d-b79a-7a692e4b51a1"
+    "redirect": "/ui/hr-core/SelectionCommittees/Details/a8ef91a6-20b1-4ab4-936e-cce876759db0",
+    "final": "/ui/hr-core/SelectionCommittees/Details/a8ef91a6-20b1-4ab4-936e-cce876759db0"
   }
 }

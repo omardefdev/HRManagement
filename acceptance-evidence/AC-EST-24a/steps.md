@@ -1,11 +1,11 @@
 # Establishment workflow panel
 
 - Persona: `central-a`
-- Correlation ID: `eedeb036-ab86-417d-bbb4-44ff0b9a9ea6`
+- Correlation ID: `f2f1ed21-d4c0-4e14-b1f5-2658c926caef`
 - HTTP observations: `3`
 
 ## Observed requests
 
-- `POST /api/hr-core/api/establishment/changes/2da9a1e0-f85f-408b-93f6-7af45aa2fd66/submit` -> `200`
+- `POST /api/hr-core/api/establishment/changes/7c6a0237-4be3-4885-8fae-2da4e0ef9e9a/submit` -> `200`
 - `GET /ui/hr-core/EstablishmentChanges?status=PendingApproval` -> `200`
-- `GET /ui/hr-core/EstablishmentChanges/Details/2da9a1e0-f85f-408b-93f6-7af45aa2fd66` -> `200`
+- `GET /ui/hr-core/EstablishmentChanges/Details/7c6a0237-4be3-4885-8fae-2da4e0ef9e9a` -> `200`

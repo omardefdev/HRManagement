@@ -1,7 +1,7 @@
 {
-  "remoteMain": "e5071b4237479e6464e7a1bcc89e1c4187f09e75",
-  "localMain": "e5071b4237479e6464e7a1bcc89e1c4187f09e75",
-  "run": "https://github.com/omardefdev/HRManagement/actions/runs/41801829202",
+  "remoteMain": "f8f5cd043579fd419a5a708345423f4ce6b828dd",
+  "localMain": "f8f5cd043579fd419a5a708345423f4ce6b828dd",
+  "run": "https://github.com/omardefdev/HRManagement/actions/runs/42267494985",
   "conclusion": "success",
   "jobs": [
     {
@@ -10,10 +10,6 @@
     },
     {
       "name": "Dedupe post-merge run",
-      "conclusion": "success"
-    },
-    {
-      "name": "Acceptance disabled notice",
       "conclusion": "success"
     },
     {

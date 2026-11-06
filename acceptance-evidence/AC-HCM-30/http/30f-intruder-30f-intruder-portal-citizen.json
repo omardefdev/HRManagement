@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/careers/my",
   "statusCode": 302,
-  "capturedAtUtc": "2026-11-05T04:03:02.6668114Z",
+  "capturedAtUtc": "2026-11-06T21:27:18.6208275Z",
   "body": {
     "location": "/careers/my/login"
   }

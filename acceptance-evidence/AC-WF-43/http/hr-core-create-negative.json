@@ -1,0 +1,7 @@
+{
+  "step": "hr-core-create-negative",
+  "method": "POST",
+  "url": "/api/hr-core/api/workflow-definitions",
+  "statusCode": 403,
+  "capturedAtUtc": "2026-11-06T20:52:49.8774609Z"
+}

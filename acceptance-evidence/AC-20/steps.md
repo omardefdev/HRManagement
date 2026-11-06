@@ -1,7 +1,7 @@
 # AC-20 database isolation verify script
 
 - Persona: `platform-admin`
-- Correlation ID: `1e76570e-8174-4d41-9bea-18725c0d0c20`
+- Correlation ID: `cd4152c1-31c7-44df-8dec-97a915947911`
 - HTTP observations: `1`
 
 ## Observed requests

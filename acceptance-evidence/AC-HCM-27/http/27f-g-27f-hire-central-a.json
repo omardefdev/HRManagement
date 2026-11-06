@@ -3,23 +3,26 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:12:37.0251510Z",
+  "capturedAtUtc": "2026-11-06T20:53:20.8429470Z",
   "body": {
     "fields": [
-      "ApplicationId=b8592304-db08-4bfd-8bb5-344df58bef7b",
+      "ApplicationId=288f638f-abf0-4a97-bdc0-e83ac5701bd3",
       "Mode=CreateNew",
-      "NationalId=01623087853",
+      "NationalId=01767900667",
       "FirstName=\u0645\u0631\u0634\u062D",
       "LastName=\u0627\u0644\u062C\u062F\u0627\u0631\u0629",
-      "BirthDate=1998-11-05",
+      "BirthDate=1998-11-06",
       "Gender=Male",
       "PrimaryOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "ExpectedStartDate=2026-11-19",
+      "ExpectedStartDate=2026-11-20",
       "EmploymentCategory=PERMANENT"
     ],
     "postStatus": 302,
-    "redirect": "http://localhost:6200/ui/hr-contracts/HireWizard/Continue?employeeId=449aa74e-d9b0-41f3-8805-44af4051b1e7",
+    "redirect": "http://localhost:6200/ui/hr-contracts/HireWizard/Continue?employeeId=7bbfe7ab-a531-4d0b-9d4d-4f014df7f373",
     "final": "/ui/hr-contracts/HireWizard",
-    "alerts": []
+    "alerts": [
+      "\u003Ci class=\u0022fas fa-exclamation-circle\u0022\u003E",
+      "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0639\u0627\u0645\u0644\u0629 \u062A\u0639\u064A\u064A\u0646 \u062C\u0627\u0647\u0632\u0629 \u0628\u0639\u062F. \u0627\u0646\u062A\u0638\u0631 \u0644\u062D\u0638\u0627\u062A \u062B\u0645 \u0623\u0639\u062F \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629\u060C \u0623\u0648 \u0627\u0641\u062A\u062D \u0627\u0644\u0642\u0627\u0626\u0645\u0629."
+    ]
   }
 }

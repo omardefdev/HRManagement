@@ -1,0 +1,2 @@
+1. Shadow on both sides. A privileged asset in the denied category: the handover asks for evidence and goes to PendingApproval as in Off, though the server would deny; a Shadow ledger row exists.
+2. Negative: hr-core-web stopped: a normal handover goes on, and admin-logistics-web logs policy_client_failure.

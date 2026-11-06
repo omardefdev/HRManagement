@@ -1,16 +1,16 @@
 {
   "step": "25a-25a-approve-1-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/c40a0bcf-d70b-4ad7-9ea0-b70cda630a2c",
+  "url": "/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/7c8af67d-eb3d-4aca-b1ee-09493b3b4ce0",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:06.2811105Z",
+  "capturedAtUtc": "2026-11-06T20:52:59.5608896Z",
   "body": {
     "fields": [
-      "RequisitionId=c40a0bcf-d70b-4ad7-9ea0-b70cda630a2c",
+      "RequisitionId=7c8af67d-eb3d-4aca-b1ee-09493b3b4ce0",
       "Comments=PLAN-33 25a-approve-1"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/c40a0bcf-d70b-4ad7-9ea0-b70cda630a2c",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/c40a0bcf-d70b-4ad7-9ea0-b70cda630a2c"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/7c8af67d-eb3d-4aca-b1ee-09493b3b4ce0",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/7c8af67d-eb3d-4aca-b1ee-09493b3b4ce0"
   }
 }

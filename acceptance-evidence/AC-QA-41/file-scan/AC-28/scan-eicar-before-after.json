@@ -1,7 +1,6 @@
 {
-  "downloadStatus": 409,
   "after": {
-    "fileId": "8c87955c-2c7f-42eb-a5f5-b6a1707e2ba7",
+    "fileId": "33a6f9f6-ac2d-4fc5-ab19-256e8adb5d93",
     "originalName": "eicar.pdf",
     "extension": ".pdf",
     "mimeType": "application/pdf",
@@ -10,15 +9,16 @@
     "status": "Pending",
     "scanStatus": "Infected",
     "visibility": "Private",
-    "uploadedAt": "2026-11-05T04:30:51.100857Z",
+    "uploadedAt": "2026-11-06T21:05:30.154587Z",
     "uploadedBy": "dedecc59-a5ae-3640-af24-6336110f0991",
     "legalHold": false,
     "retainUntil": null,
     "threatName": "Eicar-Test-Signature",
     "cdrApplied": false
   },
+  "downloadStatus": 409,
   "before": {
-    "scanStatus": null,
-    "fileId": "8c87955c-2c7f-42eb-a5f5-b6a1707e2ba7"
+    "fileId": "33a6f9f6-ac2d-4fc5-ab19-256e8adb5d93",
+    "scanStatus": null
   }
 }

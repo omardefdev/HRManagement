@@ -1,11 +1,11 @@
 {
+  "downloadStatus": 200,
   "before": {
     "scanStatus": null,
-    "fileId": "611bc942-1c25-42ac-8895-99625bc6abf5"
+    "fileId": "58048757-1597-4d62-a761-04b409526bfc"
   },
-  "downloadStatus": 200,
   "after": {
-    "fileId": "611bc942-1c25-42ac-8895-99625bc6abf5",
+    "fileId": "58048757-1597-4d62-a761-04b409526bfc",
     "originalName": "clean.pdf",
     "extension": ".pdf",
     "mimeType": "application/pdf",
@@ -14,7 +14,7 @@
     "status": "Pending",
     "scanStatus": "Clean",
     "visibility": "Private",
-    "uploadedAt": "2026-11-05T04:07:26.375148Z",
+    "uploadedAt": "2026-11-06T21:32:08.922755Z",
     "uploadedBy": "dedecc59-a5ae-3640-af24-6336110f0991",
     "legalHold": false,
     "retainUntil": null,

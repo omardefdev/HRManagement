@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "scannedAtUtc": "2026-11-05T04:31:24.8636333Z",
+  "scannedAtUtc": "2026-11-06T21:00:07.4952370Z",
   "checks": [
     {
       "name": "employees-national-id-no-digit-plaintext",

@@ -1,7 +1,7 @@
 # AC-26 national ID privacy (PRV-001)
 
 - Persona: `central-a`
-- Correlation ID: `a8584b61-a0b5-4c8c-bb9e-d9c423201693`
+- Correlation ID: `ea6baa07-c2f2-474d-b56a-8888f3677cc0`
 - HTTP observations: `3`
 
 ## Observed requests

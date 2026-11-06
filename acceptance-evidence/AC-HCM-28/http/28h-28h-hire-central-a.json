@@ -3,22 +3,22 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:10:16.0532516Z",
+  "capturedAtUtc": "2026-11-06T21:21:24.0637490Z",
   "body": {
     "fields": [
-      "ApplicationId=0ae9b62f-43fd-4e45-b8a0-3bae49d46557",
+      "ApplicationId=7de0dd5b-03a4-4627-b82a-95853a60b0f4",
       "Mode=CreateNew",
-      "NationalId=02775422659",
+      "NationalId=02202149301",
       "FirstName=\u0645\u0631\u0634\u062D",
       "LastName=\u0627\u0644\u0627\u0633\u062A\u0626\u0646\u0627\u0641",
-      "BirthDate=1998-11-05",
+      "BirthDate=1998-11-06",
       "Gender=Male",
       "PrimaryOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "ExpectedStartDate=2026-11-19",
+      "ExpectedStartDate=2026-11-20",
       "EmploymentCategory=PERMANENT"
     ],
     "postStatus": 302,
-    "redirect": "http://localhost:6200/ui/hr-contracts/HireWizard/Continue?employeeId=85d3c4e7-3222-4e81-adcf-dcaab4a416f0",
+    "redirect": "http://localhost:6200/ui/hr-contracts/HireWizard/Continue?employeeId=03b7ffd6-b823-446d-bb3d-b855838831bd",
     "final": "/ui/hr-contracts/HireWizard"
   }
 }

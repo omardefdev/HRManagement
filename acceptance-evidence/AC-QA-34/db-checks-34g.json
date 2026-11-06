@@ -2,12 +2,12 @@
   "gateway": "http://localhost:5000",
   "scan": {
     "Clean": {
-      "FileId": "4870c5d1-1769-4040-a119-ea6ff79a1063",
+      "FileId": "3660c1d7-2ed4-41c0-9a07-4e70f10694f9",
       "Status": "Clean",
       "Download": 200
     },
     "Eicar": {
-      "FileId": "b27763ec-b2ae-4e19-8563-79da07cb6295",
+      "FileId": "2fd685ed-0f33-4fac-acb8-e6cc38af9fc4",
       "Status": "Infected",
       "Download": 409
     }

@@ -1,0 +1,7 @@
+{
+  "step": "user-old-route",
+  "method": "POST",
+  "url": "/api/hr-core/api/policies/enforce",
+  "statusCode": 404,
+  "capturedAtUtc": "2026-11-06T21:00:04.8440632Z"
+}

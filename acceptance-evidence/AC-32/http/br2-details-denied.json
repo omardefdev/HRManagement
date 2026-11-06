@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/ui/admin-logistics/Assets/Details/a0000001-0000-4000-8000-000000000601",
   "statusCode": 403,
-  "capturedAtUtc": "2026-11-05T04:07:09.5072716Z",
+  "capturedAtUtc": "2026-11-06T21:32:01.2956524Z",
   "body": {
     "length": 0
   }

@@ -1,17 +1,17 @@
 {
   "scenarios": {
     "Shadow_enforce_keeps_allowed_true_and_writes_ledger": {
-      "status": "Pass",
-      "reason": null,
-      "correlationId": "38f9a3c3-5958-43f6-b772-6115a1996ba1",
-      "recordedAtUtc": "2026-11-05T04:09:50.5483857Z",
+      "status": "Blocked",
+      "reason": "The mode is derived by the server since PLAN-42: AC-S2S-42b proves Shadow, and PLAN-65 rewrites this scenario. \u2014 \u0637\u00A7\u0638\u201E\u0638\u02C6\u0637\u00B6\u0637\u00B9 \u0638\u0679\u0637\u00AD\u0637\u00AF\u0637\u00AF\u0638\u2021 \u0637\u00A7\u0638\u201E\u0637\u00AE\u0637\u00A7\u0637\u00AF\u0638\u2026 \u0638\u2026\u0638\u2020\u0637\u00B0 PLAN-42: AC-S2S-42b \u0638\u0679\u0637\u00AB\u0637\u00A8\u0637\u06BE Shadow\u0637\u0152 \u0638\u02C6PLAN-65 \u0638\u0679\u0637\u00B9\u0638\u0679\u0637\u00AF \u0638\u0192\u0637\u06BE\u0637\u00A7\u0637\u00A8\u0637\u00A9 \u0638\u2021\u0637\u00B0\u0637\u00A7 \u0637\u00A7\u0638\u201E\u0637\u00B3\u0638\u0679\u0638\u2020\u0637\u00A7\u0637\u00B1\u0638\u0679\u0638\u02C6",
+      "correlationId": "b5fb1cc2-c6c3-4d85-8d68-2c45dac2a163",
+      "recordedAtUtc": "2026-11-06T21:27:28.6958857Z",
       "testClass": "Ac09ShadowPolicyTests",
       "profile": "lab",
-      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
     }
   },
-  "status": "Pass",
-  "reason": null,
-  "correlationId": "38f9a3c3-5958-43f6-b772-6115a1996ba1",
-  "recordedAtUtc": "2026-11-05T04:09:50.5483857Z"
+  "status": "Blocked",
+  "reason": "Shadow_enforce_keeps_allowed_true_and_writes_ledger: Blocked \u2014 The mode is derived by the server since PLAN-42: AC-S2S-42b proves Shadow, and PLAN-65 rewrites this scenario. \u2014 \u0637\u00A7\u0638\u201E\u0638\u02C6\u0637\u00B6\u0637\u00B9 \u0638\u0679\u0637\u00AD\u0637\u00AF\u0637\u00AF\u0638\u2021 \u0637\u00A7\u0638\u201E\u0637\u00AE\u0637\u00A7\u0637\u00AF\u0638\u2026 \u0638\u2026\u0638\u2020\u0637\u00B0 PLAN-42: AC-S2S-42b \u0638\u0679\u0637\u00AB\u0637\u00A8\u0637\u06BE Shadow\u0637\u0152 \u0638\u02C6PLAN-65 \u0638\u0679\u0637\u00B9\u0638\u0679\u0637\u00AF \u0638\u0192\u0637\u06BE\u0637\u00A7\u0637\u00A8\u0637\u00A9 \u0638\u2021\u0637\u00B0\u0637\u00A7 \u0637\u00A7\u0638\u201E\u0637\u00B3\u0638\u0679\u0638\u2020\u0637\u00A7\u0637\u00B1\u0638\u0679\u0638\u02C6",
+  "correlationId": "b5fb1cc2-c6c3-4d85-8d68-2c45dac2a163",
+  "recordedAtUtc": "2026-11-06T21:27:28.6958857Z"
 }

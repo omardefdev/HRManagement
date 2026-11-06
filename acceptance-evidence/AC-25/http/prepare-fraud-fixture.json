@@ -3,8 +3,8 @@
   "method": "PUT",
   "url": "/api/payroll/employees/a0000001-0000-4000-8000-000000000201/pay-profile",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:03:15.8389172Z",
+  "capturedAtUtc": "2026-11-06T21:27:25.1939369Z",
   "body": {
-    "profileId": "c3c05a30-eda5-45d4-9376-783e8afb5fab"
+    "profileId": "537f4cad-c589-438b-b3c6-fa58a08b1fbb"
   }
 }

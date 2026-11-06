@@ -1,20 +1,22 @@
 {
   "step": "26h-26h-positive-approve-2-a-management-approver",
   "method": "POST",
-  "url": "/ui/hr-core/EstablishmentChanges/ApproveWorkflow/d612497f-6e17-42b1-b273-ea4a77274984",
+  "url": "/ui/hr-core/EstablishmentChanges/ApproveWorkflow/41771b47-6540-414a-8e06-e7752845cd21",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:12:19.8812349Z",
+  "capturedAtUtc": "2026-11-06T20:53:09.4599522Z",
   "body": {
     "fields": [
-      "ChangeRequestId=d612497f-6e17-42b1-b273-ea4a77274984",
+      "ChangeRequestId=41771b47-6540-414a-8e06-e7752845cd21",
       "Comments=AC-HCM-26h step 2"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/EstablishmentChanges/Details/d612497f-6e17-42b1-b273-ea4a77274984",
+    "redirect": "/ui/hr-core/EstablishmentChanges/Details/41771b47-6540-414a-8e06-e7752845cd21",
     "setCookies": [
       ".AspNetCore.Mvc.CookieTempDataProvider"
     ],
-    "final": "/ui/hr-core/EstablishmentChanges/Details/d612497f-6e17-42b1-b273-ea4a77274984",
-    "alerts": []
+    "final": "/ui/hr-core/EstablishmentChanges/Details/41771b47-6540-414a-8e06-e7752845cd21",
+    "alerts": [
+      "\u003Ci class=\u0022fas fa-check-circle\u0022\u003E"
+    ]
   }
 }
