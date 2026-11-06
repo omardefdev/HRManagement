@@ -26,4 +26,15 @@ public static class WorkflowDefinitionMapper
         StepHistory = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [],
         ContextJson = instance.ContextJson
     };
+
+    /// <summary>PLAN-43: what the rules of <see cref="WorkflowSodRules"/> read, for the server and the panel alike.</summary>
+    public static WorkflowSodFacts ToSodFacts(WorkflowInstance instance, WorkflowDefinition definition) => new(
+        instance.RequestedByUserId,
+        string.IsNullOrWhiteSpace(instance.ExcludedApproverUserIdsJson)
+            ? []
+            : JsonSerializer.Deserialize<List<Guid>>(instance.ExcludedApproverUserIdsJson) ?? [],
+        instance.SubjectEmployeeId,
+        definition.RequireDistinctApprovers,
+        instance.CurrentStepLevel,
+        JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? []);
 }

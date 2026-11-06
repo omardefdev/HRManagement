@@ -35,6 +35,21 @@
       "note": "Expired Declared exception = the three services refuse to start. Close or renew by decision in docs/str-governance/decision-log.json."
     },
     {
+      "id": "WF043-STEP-ROLE-EXEMPTIONS",
+      "file": "docs/qa/workflow-step-role-exemptions.json",
+      "selector": "exemptions[*]",
+      "idField": "entityType",
+      "dateField": "reviewBy",
+      "statusField": "status",
+      "closedStatuses": ["Closed"],
+      "enforcedBy": [
+        "test:Wf043SodRulesTests (the settings files equal this list)",
+        "ci:Dated obligations horizon (QA-034)"
+      ],
+      "owner": "workflow",
+      "note": "A type here has no step-role enforcement. Its owner plan lifts the exemption from Workflow:StepRole:ExemptEntityTypes and closes the row."
+    },
+    {
       "id": "STR002-LEGISLATIVE-WATCH",
       "file": "docs/str-legal/legislative-watch-stamp.json",
       "selector": "$",

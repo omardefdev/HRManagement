@@ -101,10 +101,19 @@ public static class WorkflowPanelBuilder
             || !options.IsAwaitingApproval || instance.Status != WorkflowStatus.InProgress)
             return panel;
 
-        var blockReason = ResolveBlockReason(instance, currentStep, user, userId, options);
+        var sodFacts = WorkflowDefinitionMapper.ToSodFacts(instance, definition);
+        var blockReason = ResolveBlockReason(instance, currentStep, sodFacts, user, userId, options);
         if (blockReason is not null)
         {
             panel.BlockReason = blockReason;
+            return panel;
+        }
+
+        // PLAN-43: the distinct-approver rule binds approving only, as on the server.
+        if (WorkflowSodRules.DistinctApprover(sodFacts, userId) is { } distinctApprover)
+        {
+            panel.BlockReason = distinctApprover;
+            panel.CanReject = true;
             return panel;
         }
 
@@ -191,6 +200,7 @@ public static class WorkflowPanelBuilder
     private static string? ResolveBlockReason(
         WorkflowInstance instance,
         WorkflowStepSnapshot currentStep,
+        WorkflowSodFacts sodFacts,
         ClaimsPrincipal user,
         Guid? userId,
         WorkflowPanelBuildOptions options)
@@ -206,29 +216,14 @@ public static class WorkflowPanelBuilder
             return "لا يمكن لمنشئ المسار اعتماد مراحل لاحقة.";
         }
 
-        if (!UserHasStepRole(user, currentStep, instance.EntityType, options.StepRoleOptions))
-            return WorkflowStageGuard.StepRoleMessage(currentStep.RoleRequired);
+        // PLAN-43: exactly the server's rules, exempt types included: role, then the rules of WorkflowSodRules, then the entity's.
+        var actor = WorkflowActionActor.FromPrincipal(user);
+        var roleError = WorkflowStageGuard.ValidateStepRole(currentStep, instance.EntityType, actor.Roles, options.StepRoleOptions);
+        if (roleError is not null)
+            return roleError;
 
-        return options.AdditionalBlockReason?.Invoke(instance, currentStep, userId);
-    }
-
-    private static bool UserHasStepRole(
-        ClaimsPrincipal user,
-        WorkflowStepSnapshot step,
-        string entityType,
-        WorkflowStepRoleOptions stepRoleOptions)
-    {
-        if (string.IsNullOrWhiteSpace(step.RoleRequired))
-            return true;
-
-        // Enforced entity types: exactly the server rule (no admin bypass unless configured).
-        if (stepRoleOptions.IsEnforced(entityType))
-            return WorkflowStageGuard.ValidateStepRole(
-                step, entityType, WorkflowActionActor.FromPrincipal(user).Roles, stepRoleOptions) is null;
-
-        if (user.IsInRole(HrManagementRoles.Admin))
-            return true;
-
-        return user.IsInRole(step.RoleRequired);
+        return WorkflowSodRules.Excluded(sodFacts, userId)
+            ?? WorkflowSodRules.Subject(sodFacts, actor.EmployeeId)
+            ?? options.AdditionalBlockReason?.Invoke(instance, currentStep, userId);
     }
 }

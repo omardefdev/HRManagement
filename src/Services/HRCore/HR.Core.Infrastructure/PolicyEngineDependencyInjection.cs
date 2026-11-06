@@ -20,6 +20,8 @@ public static class PolicyEngineDependencyInjection
         services.AddScoped<IWorkflowSignatureService, WorkflowSignatureService>();
         services.AddScoped<IWorkflowStarter, WorkflowStarter>();
         services.AddScoped<ApprovalStartCoordinator>();
+        services.AddScoped<WorkflowDefinitionLifecycleService>();
+        services.AddScoped<HR.Core.Infrastructure.Services.Workflow.External.ExternalApprovalService>();
         // PLAN-25 (G-04): one gate per entity type; the evaluator (guard + gate) is shared by the server and the panels.
         services.AddScoped<WorkflowGateOrgScope>();
         services.AddScoped<IWorkflowApprovalGate, RequisitionApprovalGate>();

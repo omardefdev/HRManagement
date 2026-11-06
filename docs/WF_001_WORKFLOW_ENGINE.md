@@ -84,6 +84,55 @@ Recruitment and establishment approvals start through `ApprovalStartCoordinator`
 or start another workflow, otherwise the default workflow is started (`Recruitment:Approvals:AlwaysStartWorkflow`, default
 true); the entity is `PendingApproval` only together with the instance. `NationalScope:IsLabScale` no longer decides it.
 
+### Definition governance (PLAN-43, G-WF-04)
+Only `workflow-admin` or `hr-admin`, from the national tenant, write definitions; no service account does. A version moves
+`Draft` → `PendingPublish` → `Published` → `Retired` through `WorkflowDefinitionLifecycleService`:
+
+- `submit` runs `WorkflowDefinitionValidator` (levels, names, roles in `HrManagementRoles.All`, a known entity type, the limits of
+  `WorkflowGuardrails`, known condition operators) and returns every error in Arabic. A conditional step does not count towards
+  the limits, and the last step has no condition. The validator runs again at `publish`.
+- `publish` needs a person who is not the creator, the submitter or anyone who edited the draft.
+- A published version is never edited: a change is a new version, and running instances stay on the version they pinned. A new
+  version keeps the entity type of its code.
+- `publish` warns when a `PolicyWorkflowBinding` pins another version.
+- `retire` needs a reason and, for a type the engine starts, a newer valid published version: retiring the latest one would send
+  every start back to an older version without a second person.
+- Every start honours `ValidFrom` and `ValidTo`, through a binding too.
+- Transitions race on `xmin`: the loser gets a 409.
+- `WorkflowPackSeeder.EnsureVersionAsync` is the system path for a national definition (`ChangeReason = seed:<plan>`).
+- `WorkflowDefinitionHealthReport` runs the validator on every published definition at start-up: a warning and
+  `workflow_definition_invalid_total`, never a failed boot.
+
+### External start (PLAN-43, G-WF-05)
+`ExternalApprovalTypes` lists the types started from outside HR.Core and the one service account that owns each. Only
+`ExternalApprovalService` starts them:
+
+- Owner only, otherwise 403. The body is `WorkflowApprovalStartRequest`, which never names the requester.
+- The requester comes from `X-Acting-User` (`X-Acting-User-Name` for display), accepted because the owning service vouches for it.
+  A job without a request sets `ActingUserScope`. No header: 400.
+- `IdempotencyKey` is looked up first, in every state: the same key returns the same instance even when finished. Another key for
+  a running entity is 409.
+- The latest valid published version of the code starts; a policy binding has no say. None, or all its steps skipped: 422.
+- `POST {id}/cancel` withdraws (`Cancelled`, history `Withdrawn`), the owner only; a finished instance is 409.
+- The policy engine only says an approval is needed: `PolicyWorkflowTriggerAllowlist` is empty and `PolicyOrchestrator` starts no
+  registered type.
+- Custody events are schema v2: `WorkflowInstanceId` comes from the instance. Their consumers apply an outcome only when it equals
+  the id on the record, and ignore a v1 message, counting both in `workflow_outcome_ignored_total`.
+
+### Separation of duties (PLAN-43, G-WF-06)
+The step role is enforced for every type except `Workflow:StepRole:ExemptEntityTypes`
+(`docs/qa/workflow-step-role-exemptions.json`, each with an owner plan and a date). The old key is ignored with a start-up warning.
+
+`WorkflowApprovalEvaluator` runs: service account refused → structure → role → `WorkflowSodRules` → entity gate → initiator rule.
+`WorkflowPanelBuilder` calls the same rules:
+
+- `Excluded`: the requester and `ExcludedApproverUserIds`, approving and rejecting.
+- `Subject`: `SubjectEmployeeId`, approving and rejecting.
+- `DistinctApprover`: approving only, when `RequireDistinctApprovers` is true (new definitions by default; `AssetAssignment` always,
+  by its guardrail; not the seeded recruitment and establishment ones).
+
+`Workflow:AdminBypass` never passes these rules.
+
 ## API Endpoints
 
 ### Definitions
@@ -91,19 +140,26 @@ true); the entity is `PendingApproval` only together with the instance. `Nationa
 |--------|------|-------------|
 | GET | `/api/workflow-definitions` | List definitions (filter by entityType, publishedOnly) |
 | GET | `/api/workflow-definitions/{id}` | Get definition |
-| POST | `/api/workflow-definitions` | Create new definition (auto-increments version) |
-| PUT | `/api/workflow-definitions/{id}` | Update draft definition |
-| POST | `/api/workflow-definitions/{id}/publish` | Publish definition |
-| DELETE | `/api/workflow-definitions/{id}` | Delete draft definition |
+| GET | `/api/workflow-definitions/antiforgery` | Token for the writes below (admin policy) |
+| POST | `/api/workflow-definitions` | Create a draft (auto-increments version) |
+| PUT | `/api/workflow-definitions/{id}` | Update a draft |
+| POST | `/api/workflow-definitions/{id}/submit` | Validate and submit for publication |
+| POST | `/api/workflow-definitions/{id}/publish` | Publish, by a second person |
+| POST | `/api/workflow-definitions/{id}/return` | Return a submitted definition to draft |
+| POST | `/api/workflow-definitions/{id}/retire` | Retire a published version, with a reason |
+| DELETE | `/api/workflow-definitions/{id}` | Delete a draft |
+
+Reads: `WorkflowDefinitionRead` (the HR.Core readers and `workflow-admin`). Everything else: `WorkflowDefinitionAdmin` and an antiforgery token.
 
 ### Instances
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/workflow-instances` | List instances (filter by entityType, status) |
 | GET | `/api/workflow-instances/{id}` | Get instance |
-| POST | `/api/workflow-instances` | Start new instance |
-| POST | `/api/workflow-instances/{id}/approve` | Approve current step |
-| POST | `/api/workflow-instances/{id}/reject` | Reject workflow |
+| POST | `/api/workflow-instances` | Start, for the service that owns the type (`WorkflowExternalStart`) |
+| POST | `/api/workflow-instances/{id}/cancel` | Withdraw a running instance, the owner only |
+| POST | `/api/workflow-instances/{id}/approve` | Approve current step (`WorkflowStepAction`) |
+| POST | `/api/workflow-instances/{id}/reject` | Reject workflow (`WorkflowStepAction`) |
 | GET | `/api/workflow-instances/{id}/history` | Get step history |
 
 ## Bridge (Dual-Path)

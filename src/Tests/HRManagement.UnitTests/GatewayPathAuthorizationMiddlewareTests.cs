@@ -191,13 +191,27 @@ public class GatewayPathAuthorizationMiddlewareTests
     [InlineData("/api/hr-core/api/onboarding/agencies/apply", HrManagementPolicies.HrCoreApprove)]
     [InlineData("/api/hr-core/api/policies/enforce", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/internal/policies/enforce", HrManagementPolicies.HrCoreWrite)]
-    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.HrCoreBranchOperation)]
+    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.WorkflowStepAction)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
     public void HrCore_special_write_paths_use_their_narrow_policy(string path, string expectedPolicy)
     {
         var matched = GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy(
             "hr-core", HttpMethods.Post, new PathString(path), out var policy);
+
+        Assert.True(matched);
+        Assert.Equal(expectedPolicy, policy);
+    }
+
+    [Theory]
+    [InlineData("POST", "/api/hr-core/api/workflow-definitions", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("PUT", "/api/hr-core/api/workflow-definitions/00000000-0000-0000-0000-000000000001", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("DELETE", "/api/hr-core/api/workflow-definitions/00000000-0000-0000-0000-000000000001", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("POST", "/api/hr-core/api/workflow-definitions/00000000-0000-0000-0000-000000000001/publish", HrManagementPolicies.WorkflowDefinitionAdmin)]
+    [InlineData("GET", "/api/hr-core/api/workflow-definitions", HrManagementPolicies.WorkflowDefinitionRead)]
+    public void Workflow_definitions_have_their_own_gateway_policies(string method, string path, string expectedPolicy)
+    {
+        var matched = GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy("hr-core", method, new PathString(path), out var policy);
 
         Assert.True(matched);
         Assert.Equal(expectedPolicy, policy);

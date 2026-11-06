@@ -11,5 +11,7 @@ public enum WorkflowStepStatus
     [Display(Name = "مرفوض")]
     Rejected,
     [Display(Name = "متخطى")]
-    Skipped
+    Skipped,
+    [Display(Name = "مسحوب")]
+    Withdrawn
 }

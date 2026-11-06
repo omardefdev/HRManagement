@@ -74,7 +74,7 @@ outbox on every receive endpoint.
 | `IOrgUnitChanged` (full re-sync) | `OrgUnitIntegrationService.PublishAllOrgUnitsAsync` (start-up, onboarding, `resync/org-units`) | SingleSave |
 | `IAgencyOnboarded` | `AgencyProvisioningService.ApplyManifestAsync` (no consumer) | OutboxUnitOfWork |
 | `IPolicyPublished` (no consumer since PLAN-42; PLAN-47 adds the cache invalidation) | `PolicyVersionPublisher.PublishDraftAsync` (API and UI) | SingleSave |
-| `IAssetAssignmentApproved`, `IAssetAssignmentRejected`, `IAssetLossApproved`, `IAssetLossRejected` | `WorkflowInstanceActionService` through `WorkflowAssetOutcomes` | SingleSave |
+| `IAssetAssignmentApproved`, `IAssetAssignmentRejected`, `IAssetLossApproved`, `IAssetLossRejected` (schema v2 since PLAN-43: `WorkflowInstanceId` from `instance.Id`; the four Admin.Logistics consumers apply an outcome only to the linked instance, ignore a v1 message, and count both in `workflow_outcome_ignored_total`) | `WorkflowInstanceActionService` through `WorkflowAssetOutcomes` | SingleSave |
 | `ITransactionRegisteredInDiwan` | `DiwanIntegrationService.RegisterCorrespondenceAsync` | SingleSave |
 | `ITransactionRegisteredInDiwan` (hire) | `HireCaseCompletedDiwanConsumer` | ConsumerOutbox |
 | `IAttendancePeriodClosed` | `AttendanceIntegrationService.ClosePeriodAndPublishAsync` | SingleSave |

@@ -272,6 +272,11 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-42: نطاق `dsar.subject.erase` لـ `svc-compliance` في realm (`keycloak-reconcile`، 3 تغييرات) | لوحة Keycloak (§7)، ويعيده `keycloak-reconcile` في أي نشر بوسم PLAN-42 |
 | PLAN-42: حُذف الطابور `idcard-web-policy-published` (0 رسالة، 0 مستهلك) | لا تراجع لازم: الوسم القديم يعيد إنشاءه عند الإقلاع |
 | PLAN-42: `/opt/hrm/backups/pre-plan42-20261105T090239Z` (700، الملفات 600) و`/opt/hrm/shared/.env.bak-plan42-20261105T090239Z` | حذفهما بعد التأكد من عدم الحاجة إليهما |
+| PLAN-43: الإصدار `3bd9ee92bcf5` (current-tag؛ previous-tag `c6faf0a92e6e`)، وترحيلا `WF043_*` في `hr_core_db` (أعمدة تقبل الفراغ أو لها قيمة افتراضية) | `deploy.ps1 -Rollback`؛ الأعمدة تبقى ولا تضر الإصدار السابق |
+| PLAN-43: `keycloak-reconcile` أنشأ `workflow-admin` وستة أدوار قديمة كانت غائبة (`hr-core-supervisory`، `hr-core-executive`، `hr-health-clinical`، `payroll-poster`، `payroll-reverser`، `hr-exam-marker`) | لوحة Keycloak (§7)، ولا مستخدم يحملها |
+| PLAN-43: حُذف `GATEWAY_CALLER_PROOF_SECRET` من `/opt/hrm/shared/.env` (لا شيفرة تقرؤه منذ `a7ad95e0a4fa`) | إعادة السطر من `env.backup` في نسخة `pre-plan43` |
+| PLAN-43: طلب شاغر معتمد واحد باسم «PLAN-43 server check» من فحص الخادم، ورفع عدّاد `RecruitmentRequisition` فوق أرقام البذرة | يبقى، أو يُرفض من الواجهة |
+| PLAN-43: `/opt/hrm/backups/pre-plan43-20261106T140127Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
 
 ## 11. التسليم للمالك
 
@@ -487,6 +492,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/msg040-replay-lost-e
 - النسخة: `/opt/hrm/backups/pre-plan42-20261105T090239Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`. فيها 17 سطر `CREATE DATABASE`: القواعد الست عشرة و`hrm_admin`. ونسخة `.env`: `/opt/hrm/shared/.env.bak-plan42-20261105T090239Z`.
 - `deploy.ps1 -Rollback` يعيد `3d0b2df84f82`، وهو آمن: ترحيلات `S2S042_*` أعمدة تقبل الفراغ، والإصدار القديم يتجاهلها، و`GATEWAY_CALLER_PROOF_SECRET` ما زال في `.env`.
 
-**مؤجل.** حذف `GATEWAY_CALLER_PROOF_SECRET` من `.env` الخادم. الشيفرة الجديدة تتجاهله خارج `Development`، ويبقى ليعمل التراجع. يُحذف في أول خطة تنشر بعد PLAN-42، حين لا يعود الوسم السابق بحاجة إليه.
+**أُنجز في PLAN-43 (2026-11-06).** حُذف `GATEWAY_CALLER_PROOF_SECRET` من `.env` الخادم. كان النص قبله: الشيفرة الجديدة تتجاهله خارج `Development`، ويبقى ليعمل التراجع. يُحذف في أول خطة تنشر بعد PLAN-42، حين لا يعود الوسم السابق بحاجة إليه.
 
 **نشر 2026-11-05.** الوسم `a7ad95e0a4fa`: البناء 1236 ث، والنشر 135 ث بمحاولة واحدة، و`keycloak-reconcile` طبّق 3 تغييرات، وحُذف الطابور اليتيم `idcard-web-policy-published` بعد تسجيل 0 رسالة و0 مستهلك. ودامت إعادة إنشاء الحاويات نحو دقيقة و45 ثانية (11:48:06Z إلى 11:49:49Z).
+
+## 16. حوكمة تعريفات المسارات (PLAN-43)
+
+- **الدور:** `workflow-admin` في الـ realm. `keycloak-reconcile` ينشئ الناقص من أدوار `docker/keycloak/realm-manifest.json` ولا يحذف دوراً ولا يغيّر من يحمله. على خادم العرض يكفي `hradmin` و`e2e-hr-admin` (كلاهما `hr-admin`) للنشر بشخصين.
+- **تقرير الإقلاع:** `docker logs hrm-hr-core-web | grep 'fails validation'`. ستة تعريفات متوقعة حتى PLAN-46: `ID-CARD-ISSUANCE` و`IT-TICKET` (دور خارج الكتالوج)، و`HIRE-WIZARD` و`SEPARATION-WIZARD` و`TRANSFER-APPROVAL` و`DISCIPLINARY-APPROVAL` (نوع بلا معالج ولا مالك). لا يوقف التقرير الإقلاع.
+- **التعبئة عند الإقلاع:** `Status` و`RequireDistinctApprovers` للصفوف القديمة يملؤهما `WorkflowPackSeeder.BackfillGovernanceAsync`، لا الترحيل: الجدول تحت أمن صفوف مفروض، ودور `hr_core_migrator` بلا جهة، فلا يرى صفاً.
+- **النسخة:** `/opt/hrm/backups/pre-plan43-20261106T140127Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`، و17 سطر `CREATE DATABASE`.
+- **التراجع:** `deploy.ps1 -Rollback` يعيد `c6faf0a92e6e`، وبعده `a7ad95e0a4fa` آمن أيضاً: أعمدة `WF043_*` تقبل الفراغ أو لها قيمة افتراضية. لكن مستهلكي الإصدار الأقدم (`supportedMax: 1`) يتجاهلون أحداث العهدة v2 الجارية، وسجل النشر يمنع إعادة تشغيلها، فراجع نسخ العهدة المعلقة بعد تراجع كهذا. وما ينشره الوسم القديم يصحح الترقيع `Status` له عند العودة.
+
+**نشر 2026-11-06.** بناءان: `c6faf0a92e6e` (1349 ث) ثم `3bd9ee92bcf5` (1299 ث) بعد أن كشف فحص الخادم أن تعبئة الترحيل لم تمس صفاً. النشر الأول 156 ث. النشر الثاني توقف عند `keycloak-reconcile` بعد إعادة PostgreSQL، خطأ `could not read the realm roles`، فبقي الوسم وتوقفت التطبيقات نحو 4 دقائق، ونجحت إعادة الأمر نفسه في 120 ث. الدخان 50 نجاحاً و0 فشل وتحذير واحد.

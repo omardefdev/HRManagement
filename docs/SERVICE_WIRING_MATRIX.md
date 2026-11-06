@@ -60,7 +60,7 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `admin-logistics-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
-| `admin-logistics-web` | `AddHrCoreWorkflowClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.HrCoreReadOnly`, `HrManagementPolicies.HrCoreWrite` | `hr-core.workflow` |  |
+| `admin-logistics-web` | `AddHrCoreWorkflowClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
 | `admin-logistics-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `it-infra-web` | `AddDirectorySyncClient` | `POST /api/internal/directory/sync-employee` | auth-directory-web | `ServicePolicies.DirectorySync` | `directory.sync` |  |
 | `it-infra-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |

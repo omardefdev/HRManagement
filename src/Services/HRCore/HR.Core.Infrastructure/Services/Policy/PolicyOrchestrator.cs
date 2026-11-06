@@ -6,6 +6,7 @@ using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Domain.Services.Policy;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Workflow;
+using HR.Core.Infrastructure.Services.Workflow.External;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Policy;
@@ -196,6 +197,11 @@ public sealed class PolicyOrchestrator(
     {
         var workflowCode = decision.GetWorkflowCode();
         if (string.IsNullOrWhiteSpace(workflowCode))
+            return null;
+
+        // PLAN-43 (rule 10): a registered type starts only at its owner. The decision keeps its TriggerWorkflow effect, and no
+        // instance takes its actor from a policy request.
+        if (ExternalApprovalTypes.IsRegistered(request.SubjectType))
             return null;
 
         return await workflowStarter.StartByWorkflowCodeAsync(

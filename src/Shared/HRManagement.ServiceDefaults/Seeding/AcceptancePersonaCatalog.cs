@@ -77,7 +77,8 @@ public static class AcceptanceRoleCatalog
         HrManagementRoles.HrEmployee,
         HrManagementRoles.PlatformAdmin,
         HrManagementRoles.Auditor,
-        HrManagementRoles.HrExamMarker
+        HrManagementRoles.HrExamMarker,
+        HrManagementRoles.WorkflowAdmin
     };
 }
 
@@ -94,7 +95,7 @@ public static class AcceptancePersonaCatalog
     /// </summary>
     public static readonly IReadOnlyDictionary<string, int> ApprovedRegularPersonas = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        [TenantDefaults.DefaultCode] = 2,
+        [TenantDefaults.DefaultCode] = 4,
         ["AGENCY-A"] = 43,
         ["AGENCY-B"] = 8,
         ["AGENCY-C"] = 4

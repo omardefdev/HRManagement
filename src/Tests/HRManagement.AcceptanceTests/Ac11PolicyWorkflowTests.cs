@@ -3,23 +3,29 @@ using System.Text;
 using System.Text.Json;
 using HRManagement.E2E;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Workflow.CrossService;
 using HRManagement.SharedKernel.Policy;
 
 namespace HRManagement.AcceptanceTests;
 
-/// <summary>AC-11: Policy Enforce triggers multi-step workflow; signatures stored; stage-skip blocked.</summary>
+/// <summary>
+/// AC-11: Policy Enforce says an approval is needed, the owning service starts the multi-step workflow, signatures are stored and
+/// stage-skip is blocked. PLAN-43: the requester is a third person, because a requester acts on no step. PLAN-45 makes this a UI
+/// journey.
+/// </summary>
 public class Ac11PolicyWorkflowTests
 {
     [SkippableFact]
-    public async Task Enforce_starts_workflow_two_approvals_signatures_stage_skip_blocked()
+    public async Task Enforce_requires_a_workflow_the_owner_starts_two_approvals_signatures_stage_skip_blocked()
     {
         AcceptanceEnv.RequireEnabled();
         // AC-10 intentionally publishes Agency A's deny version. Use Agency B's
         // independent published policy so this workflow scenario is order-safe.
+        var requester = AcceptanceHarness.RequirePersona("b-logistics");
         var initiator = AcceptanceHarness.RequirePersona("b-branch-manager");
         var finalApprover = AcceptanceHarness.RequirePersona("b-approver");
-        var (initiatorToken, correlationId) = await AcceptanceHarness.LoginAsync(initiator);
-        var initiatorId = Guid.Parse(AcceptanceHarness.ParseJwt(initiatorToken).Subject);
+        var (requesterToken, correlationId) = await AcceptanceHarness.LoginAsync(requester);
+        var requesterId = Guid.Parse(AcceptanceHarness.ParseJwt(requesterToken).Subject);
         var recorder = new EvidenceRecorder("AC-11", correlationId);
         recorder.WriteMetadata("AC-11 policy workflow + signatures", initiator.Id);
 
@@ -28,7 +34,7 @@ public class Ac11PolicyWorkflowTests
 
         // PLAN-42: enforce belongs to the service that owns the domain, on its own identity; the user travels in X-Acting-User.
         using var logistics = await AcceptanceHarness.CreateServiceClientAsync(
-            "svc-admin-logistics", ServiceScopes.HrCoreWorkflow, recorder, AcceptanceSeedIds.AgencyBId, initiatorId);
+            "svc-admin-logistics", ServiceScopes.HrCoreWorkflow, recorder, AcceptanceSeedIds.AgencyBId, requesterId);
 
         var assignmentId = Guid.NewGuid();
         var enforceReq = new PolicyEnforceRequest
@@ -55,11 +61,35 @@ public class Ac11PolicyWorkflowTests
             (int)enforceResp.StatusCode, JsonSerializer.Deserialize<object>(enforceBody));
         Assert.Equal(System.Net.HttpStatusCode.OK, enforceResp.StatusCode);
 
-        Guid workflowInstanceId;
         using (var doc = JsonDocument.Parse(enforceBody))
         {
             Assert.True(doc.RootElement.GetProperty("allowed").GetBoolean());
-            workflowInstanceId = doc.RootElement.GetProperty("workflowInstanceId").GetGuid();
+            Assert.Contains(doc.RootElement.GetProperty("decision").GetProperty("effects").EnumerateArray(), IsTriggerWorkflow);
+            Assert.True(
+                !doc.RootElement.TryGetProperty("workflowInstanceId", out var noInstance) || noInstance.ValueKind == JsonValueKind.Null,
+                "PLAN-43: enforce only says an approval is needed");
+        }
+
+        // PLAN-43 (rule 10): the owner starts, and the server takes the requester from X-Acting-User.
+        var startResp = await logistics.PostAsync("api/workflow-instances", JsonContent(new WorkflowApprovalStartRequest(
+            "AssetAssignment",
+            assignmentId,
+            "ASSET-ASSIGN-APPROVAL",
+            $"AssetAssignment:{assignmentId:D}",
+            [],
+            null,
+            "AC-11 custody approval",
+            $"/ui/admin-logistics/Assets/Details/{assignmentId:D}",
+            new Dictionary<string, string> { ["assetId"] = Guid.NewGuid().ToString("D"), ["employeeId"] = Guid.NewGuid().ToString("D") })));
+        var startBody = await startResp.Content.ReadAsStringAsync();
+        recorder.CaptureHttp("start-as-owner", "POST", "/api/workflow-instances",
+            (int)startResp.StatusCode, JsonSerializer.Deserialize<object>(startBody));
+        Assert.Equal(System.Net.HttpStatusCode.Created, startResp.StatusCode);
+
+        Guid workflowInstanceId;
+        using (var doc = JsonDocument.Parse(startBody))
+        {
+            workflowInstanceId = doc.RootElement.GetProperty("id").GetGuid();
             Assert.NotEqual(Guid.Empty, workflowInstanceId);
         }
 
@@ -89,13 +119,13 @@ public class Ac11PolicyWorkflowTests
             (int)step1Resp.StatusCode, JsonSerializer.Deserialize<object>(step1Body));
         Assert.Equal(System.Net.HttpStatusCode.OK, step1Resp.StatusCode);
 
-        var initiatorStep2Resp = await httpInitiator.PostAsync(
+        var firstApproverStep2Resp = await httpInitiator.PostAsync(
             $"api/hr-core/api/workflow-instances/{workflowInstanceId:D}/approve",
-            JsonContent(new { comments = "initiator checker negative" }));
-        recorder.CaptureHttp("approve-step2-initiator-negative", "POST",
+            JsonContent(new { comments = "first approver on step 2, negative" }));
+        recorder.CaptureHttp("approve-step2-first-approver-negative", "POST",
             $"/api/hr-core/api/workflow-instances/{workflowInstanceId:D}/approve",
-            (int)initiatorStep2Resp.StatusCode, await initiatorStep2Resp.Content.ReadAsStringAsync());
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, initiatorStep2Resp.StatusCode);
+            (int)firstApproverStep2Resp.StatusCode, await firstApproverStep2Resp.Content.ReadAsStringAsync());
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, firstApproverStep2Resp.StatusCode);
 
         var step2Resp = await httpCentral.PostAsync(
             $"api/hr-core/api/workflow-instances/{workflowInstanceId:D}/approve",
@@ -135,11 +165,17 @@ public class Ac11PolicyWorkflowTests
             signatureCount = sigDoc.RootElement.GetArrayLength(),
             historySteps = 2,
             stageSkipBlocked = true,
-            initiatorCheckerBlocked = true
+            firstApproverBlockedOnStep2 = true,
+            requesterId
         });
         recorder.WriteAfter(new { status = "Completed", workflowInstanceId });
         recorder.WriteResult("Pass");
     }
+
+    private static bool IsTriggerWorkflow(JsonElement effect) =>
+        effect.ValueKind == JsonValueKind.String
+            ? effect.GetString() == nameof(PolicyEffect.TriggerWorkflow)
+            : effect.GetInt32() == (int)PolicyEffect.TriggerWorkflow;
 
     private static StringContent JsonContent(object payload) =>
         new(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");

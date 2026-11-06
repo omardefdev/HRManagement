@@ -181,24 +181,44 @@ public static class ServiceIdentityServiceCollectionExtensions
 }
 
 /// <summary>
-/// Copies the caller's user id into X-Acting-User for audit without using it for authentication.
+/// Copies the caller's user id into X-Acting-User for audit without using it for authentication. PLAN-43: HR.Core records it as the
+/// requester of an approval, on the word of the owning service only. Without a signed-in user it uses <see cref="ActingUserScope"/>.
 /// </summary>
 public sealed class ForwardActingUserHandler(Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor)
     : DelegatingHandler
 {
     public const string HeaderName = "X-Acting-User";
 
+    /// <summary>PLAN-43: the display name, percent-encoded. For display only: it decides nothing.</summary>
+    public const string NameHeaderName = "X-Acting-User-Name";
+
+    public static string? DecodeName(string? headerValue) =>
+        string.IsNullOrWhiteSpace(headerValue) ? null : Uri.UnescapeDataString(headerValue);
+
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var context = httpContextAccessor.HttpContext;
-        if (context?.User?.Identity?.IsAuthenticated == true)
+        string? userId = null;
+        string? name = null;
+        var user = httpContextAccessor.HttpContext?.User;
+        if (user?.Identity?.IsAuthenticated == true)
         {
-            var sub = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                ?? context.User.FindFirst("sub")?.Value;
-            if (!string.IsNullOrWhiteSpace(sub) && !request.Headers.Contains(HeaderName))
-                request.Headers.TryAddWithoutValidation(HeaderName, sub);
+            userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value;
+            name = user.FindFirst("preferred_username")?.Value ?? user.Identity.Name;
+        }
+
+        if (string.IsNullOrWhiteSpace(userId) && ActingUserScope.Current is { } acting)
+        {
+            userId = acting.UserId.ToString("D");
+            name = acting.DisplayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(userId) && !request.Headers.Contains(HeaderName))
+        {
+            request.Headers.TryAddWithoutValidation(HeaderName, userId);
+            if (!string.IsNullOrWhiteSpace(name))
+                request.Headers.TryAddWithoutValidation(NameHeaderName, Uri.EscapeDataString(name));
         }
 
         return base.SendAsync(request, cancellationToken);

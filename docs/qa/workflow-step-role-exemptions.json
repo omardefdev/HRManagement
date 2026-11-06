@@ -1,0 +1,41 @@
+{
+  "card": "PLAN-43",
+  "description": "Entity types exempt from step-role enforcement (Workflow:StepRole:ExemptEntityTypes). Each one's step role cannot reach the approval route yet. Wf043SodRulesTests keeps this list equal to the settings files; docs/qa/dated-obligations.json watches the dates.",
+  "exemptions": [
+    {
+      "entityType": "AssetLossReport",
+      "ownerPlan": "PLAN-45",
+      "reason": "Step role admin-logistics does not pass WorkflowStepAction until PLAN-45 adds it.",
+      "reviewBy": "2027-02-01",
+      "status": "Open"
+    },
+    {
+      "entityType": "SeparationRecord",
+      "ownerPlan": "PLAN-46",
+      "reason": "Step 2 role compliance does not pass WorkflowStepAction until PLAN-46 adds it. Nothing starts this type today.",
+      "reviewBy": "2027-02-01",
+      "status": "Open"
+    },
+    {
+      "entityType": "DisciplinaryAction",
+      "ownerPlan": "PLAN-46",
+      "reason": "Step role compliance does not pass WorkflowStepAction until PLAN-46 adds it. Nothing starts this type today.",
+      "reviewBy": "2027-02-01",
+      "status": "Open"
+    },
+    {
+      "entityType": "CardRequest",
+      "ownerPlan": "PLAN-46",
+      "reason": "Step role security is not in the role catalog or the realm; PLAN-46 corrects the definition. Nothing starts this type today.",
+      "reviewBy": "2027-02-01",
+      "status": "Open"
+    },
+    {
+      "entityType": "Ticket",
+      "ownerPlan": "PLAN-46",
+      "reason": "Step role it-support is not in the role catalog or the realm; PLAN-46 corrects the definition. Nothing starts this type today.",
+      "reviewBy": "2027-02-01",
+      "status": "Open"
+    }
+  ]
+}

@@ -90,6 +90,9 @@ public sealed class WorkflowStarter(
         string? policyDomain,
         CancellationToken ct)
     {
+        // PLAN-43 (G-WF-04): both ways honour the validity window, so a pinned binding cannot start an expired version.
+        var now = DateTime.UtcNow;
+
         if (!string.IsNullOrWhiteSpace(policyDomain))
         {
             var binding = await db.PolicyWorkflowBindings
@@ -108,7 +111,7 @@ public sealed class WorkflowStarter(
                     .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.Id == defId, ct);
                 // PLAN-25 (G-14): a binding never revives an unpublished (retired) definition.
-                if (bound is { IsPublished: true })
+                if (bound is { IsPublished: true } && IsValidAt(bound, now))
                     return bound;
             }
         }
@@ -118,9 +121,15 @@ public sealed class WorkflowStarter(
             .AsNoTracking()
             .Where(d => d.Code == workflowCode
                 && d.IsPublished
+                && (d.ValidFrom == null || d.ValidFrom <= now)
+                && (d.ValidTo == null || d.ValidTo >= now)
                 && (d.TenantId == requestedTenantId || d.TenantId == TenantDefaults.DefaultTenantId))
             .OrderByDescending(d => d.TenantId == requestedTenantId)
             .ThenByDescending(d => d.Version)
             .FirstOrDefaultAsync(ct);
     }
+
+    private static bool IsValidAt(WorkflowDefinition definition, DateTime now) =>
+        (definition.ValidFrom is null || definition.ValidFrom <= now)
+        && (definition.ValidTo is null || definition.ValidTo >= now);
 }
