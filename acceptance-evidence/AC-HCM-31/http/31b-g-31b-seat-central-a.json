@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/Seat/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:03:23.8854627Z",
+  "capturedAtUtc": "2026-11-06T21:27:56.7065407Z",
   "body": {
     "fields": [],
     "postStatus": 302,

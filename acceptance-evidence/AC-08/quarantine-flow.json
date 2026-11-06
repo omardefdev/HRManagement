@@ -1,7 +1,7 @@
 {
-  "GeneratedAt": "2026-11-05T04:09:40.6404983Z",
+  "GeneratedAt": "2026-11-06T21:23:14.3252425Z",
   "EmployeeId": "a0000001-0000-4000-8000-000000000901",
-  "QuarantineEntryId": "2f04723c-04e3-47ad-8000-81272b32d41b",
-  "OpenQuarantineCount": 40,
-  "ReconcileBefore": "/home/runner/work/HRManagement/HRManagement/artifacts/acceptance/run/acceptance-evidence/AC-08/reconcile-before.json"
+  "QuarantineEntryId": "77f63f3b-f8ed-4f09-91eb-21ef84303361",
+  "OpenQuarantineCount": 43,
+  "ReconcileBefore": "/home/runner/work/HRManagement/HRManagement/artifacts/acceptance/stages/lab-main/acceptance-evidence/AC-08/reconcile-before.json"
 }

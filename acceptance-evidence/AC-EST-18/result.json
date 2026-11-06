@@ -3,42 +3,42 @@
     "Deactivate_grade_used_in_job_catalog_rejected": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "07c7c17e-051c-436c-9dd1-5ba41a94be65",
-      "recordedAtUtc": "2026-11-05T04:09:43.5910832Z",
+      "correlationId": "c04f7610-8a82-43c9-b72c-5afdb01d8518",
+      "recordedAtUtc": "2026-11-06T21:27:49.1518087Z",
       "testClass": "AcEst18ReferenceCatalogAdminTests",
       "profile": "lab",
-      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
     },
     "Branch_manager_forbidden_on_mvc_create": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "f11d8a38-a8b3-4e2a-a587-2a441dc832b5",
-      "recordedAtUtc": "2026-11-05T04:09:44.1029880Z",
+      "correlationId": "53eeb746-dfb2-46b4-a36c-7968ba688263",
+      "recordedAtUtc": "2026-11-06T21:27:49.7427259Z",
       "testClass": "AcEst18ReferenceCatalogAdminTests",
       "profile": "lab",
-      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
     },
     "Central_creates_GR16_visible_in_grade_lookup": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "c7b279dd-f5ba-4431-be78-a56c2922017e",
-      "recordedAtUtc": "2026-11-05T04:09:44.6356534Z",
+      "correlationId": "e73b1d0f-7325-4c17-a0bf-1d722f84052e",
+      "recordedAtUtc": "2026-11-06T21:27:50.3518934Z",
       "testClass": "AcEst18ReferenceCatalogAdminTests",
       "profile": "lab",
-      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
     },
     "Central_creates_JcHr_visible_in_classification_lookup": {
       "status": "Pass",
       "reason": null,
-      "correlationId": "54be2722-175e-4a8b-83ae-f91ae6e2c78e",
-      "recordedAtUtc": "2026-11-05T04:09:45.1477509Z",
+      "correlationId": "69e7f341-0512-4b47-b287-bc82a9a2fd21",
+      "recordedAtUtc": "2026-11-06T21:27:50.9784409Z",
       "testClass": "AcEst18ReferenceCatalogAdminTests",
       "profile": "lab",
-      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
     }
   },
   "status": "Pass",
   "reason": null,
-  "correlationId": "54be2722-175e-4a8b-83ae-f91ae6e2c78e",
-  "recordedAtUtc": "2026-11-05T04:09:45.1477509Z"
+  "correlationId": "69e7f341-0512-4b47-b287-bc82a9a2fd21",
+  "recordedAtUtc": "2026-11-06T21:27:50.9784409Z"
 }

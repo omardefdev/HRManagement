@@ -6,6 +6,8 @@
 param(
     [switch]$SkipComposeUp,
     [switch]$NoBuild,
+    # PLAN-66: the images and nothing else: the build job of the parallel Acceptance job starts no stack.
+    [switch]$BuildOnly,
     [switch]$SkipLiveVerification,
     [switch]$RequireCleanBaseline,
     [switch]$UseLocalBaseImages,
@@ -138,6 +140,11 @@ if (-not $SkipComposeUp) {
                 throw "Acceptance image build failed with exit code $LASTEXITCODE"
             }
         }
+    }
+
+    if ($BuildOnly) {
+        Write-Host "Acceptance v2 images are built."
+        exit 0
     }
 
     # Named volumes are created as root-owned on a clean Docker host. Prepare

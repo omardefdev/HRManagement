@@ -2,16 +2,16 @@
   "stage": "after",
   "explicitDomainSnapshot": false,
   "outcome": "Pass",
-  "correlationId": "07c7c17e-051c-436c-9dd1-5ba41a94be65",
+  "correlationId": "c04f7610-8a82-43c9-b72c-5afdb01d8518",
   "httpObservationCount": 4,
   "lastHttpObservation": {
     "step": "deactivate-g5",
     "method": "POST",
-    "url": "/ui/hr-core/ReferenceCatalog/Deactivate/c983e68e-3900-4d55-8875-f8d98f4c5c49",
+    "url": "/ui/hr-core/ReferenceCatalog/Deactivate/adebb39b-0e64-4026-9f78-8dd0bc928b7b",
     "statusCode": 302,
-    "capturedAtUtc": "2026-11-05T04:09:43.5769129Z",
+    "capturedAtUtc": "2026-11-06T21:27:49.1390156Z",
     "body": {
-      "location": "/ui/hr-core/ReferenceCatalog/Details/c983e68e-3900-4d55-8875-f8d98f4c5c49"
+      "location": "/ui/hr-core/ReferenceCatalog/Details/adebb39b-0e64-4026-9f78-8dd0bc928b7b"
     }
   },
   "note": "Outcome is derived from the executed assertions and captured observations."

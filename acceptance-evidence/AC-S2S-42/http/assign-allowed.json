@@ -1,0 +1,7 @@
+{
+  "step": "assign-allowed",
+  "method": "POST",
+  "url": "/ui/admin-logistics/Assets/AssignToEmployee/665afecf-7181-448f-931e-0a66fbd8e8bf",
+  "statusCode": 302,
+  "capturedAtUtc": "2026-11-06T20:58:56.8611073Z"
+}

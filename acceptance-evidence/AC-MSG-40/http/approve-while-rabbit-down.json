@@ -1,7 +1,7 @@
 {
   "step": "approve-while-rabbit-down",
   "method": "POST",
-  "url": "/ui/hr-contracts/LeaveRequests/Approve/099feaf0-c8dd-42e8-af03-92c5f5a0a081",
+  "url": "/ui/hr-contracts/LeaveRequests/Approve/4a7982c2-e218-4aab-9b2b-4c266fbb35db",
   "statusCode": 302,
-  "capturedAtUtc": "2026-11-05T04:26:46.2735323Z"
+  "capturedAtUtc": "2026-11-06T20:55:25.2749413Z"
 }

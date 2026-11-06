@@ -2,7 +2,7 @@
   "rotate": [
     "[keycloak-reconcile] client svc-payroll: secret set from SVC_PAYROLL_CLIENT_SECRET",
     "[keycloak-reconcile] client svc-records-archive: unchanged",
-    "[keycloak-reconcile] reconcile: 1 changes (8 s)"
+    "[keycloak-reconcile] reconcile: 1 changes (7 s)"
   ],
   "oldSecretStatus": 401,
   "secondRun": [

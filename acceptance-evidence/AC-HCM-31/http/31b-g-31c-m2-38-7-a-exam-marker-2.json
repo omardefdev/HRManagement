@@ -1,9 +1,9 @@
 {
   "step": "31b-g-31c-m2-38-7-a-exam-marker-2",
   "method": "POST",
-  "url": "/ui/hr-core/ExamMarking/Submit/95daa3e1-59e1-422a-8273-22179d0cebde",
+  "url": "/ui/hr-core/ExamMarking/Submit/44b94635-7e7e-42f1-8983-e1bf32a8aee2",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:03:30.9948877Z",
+  "capturedAtUtc": "2026-11-06T21:28:04.0032969Z",
   "body": {
     "fields": [
       "score=58",

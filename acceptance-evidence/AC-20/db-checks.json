@@ -1,4 +1,4 @@
 {
   "exitCode": 0,
-  "output": "AC-20 PostgreSQL service-role isolation\nCompose project: hrm-acceptance\nChecked role/database pairs: 225\nViolations: 0\nAll cross-DB CONNECT checks passed\n\nEvidence: /home/runner/work/HRManagement/HRManagement/artifacts/acceptance/run/acceptance-evidence/AC-20\n"
+  "output": "s2s042-new-gateway-proof-keys: /home/runner/work/HRManagement/HRManagement/.acceptance/gateway-proof-keys.json exists, kept\nAC-20 PostgreSQL service-role isolation\nCompose project: hrm-acceptance\nChecked role/database pairs: 225\nViolations: 0\nAll cross-DB CONNECT checks passed\n\nEvidence: /home/runner/work/HRManagement/HRManagement/artifacts/acceptance/stages/lab-main/acceptance-evidence/AC-20\n"
 }

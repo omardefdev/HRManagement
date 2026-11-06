@@ -3,10 +3,10 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/ApproveResultsWorkflow/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:03:34.9371701Z",
+  "capturedAtUtc": "2026-11-06T21:28:07.9159702Z",
   "body": {
     "fields": [
-      "versionId=4f15ba1b-21cf-4cc2-8eda-68b7003da690",
+      "versionId=2d6fc1f1-a0e4-4b76-84c2-1a8966edefaf",
       "comments=AC-HCM-31d \u0644\u062C\u0646\u0629 \u0627\u0644\u0645\u0633\u0627\u0628\u0642\u0629"
     ],
     "postStatus": 302,

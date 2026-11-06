@@ -1,16 +1,16 @@
 {
   "step": "25h-25h-cleanup-reject-br1-mgr",
   "method": "POST",
-  "url": "/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/bbebcdcb-9846-47c0-af6a-f7ad192afb86",
+  "url": "/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/8f5ada32-55c5-491d-b9a9-70aa80916de9",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:18.4559380Z",
+  "capturedAtUtc": "2026-11-06T20:53:08.9955022Z",
   "body": {
     "fields": [
-      "RequisitionId=bbebcdcb-9846-47c0-af6a-f7ad192afb86",
+      "RequisitionId=8f5ada32-55c5-491d-b9a9-70aa80916de9",
       "Comments=\u062A\u0646\u0638\u064A\u0641 \u0628\u0639\u062F \u0633\u064A\u0646\u0627\u0631\u064A\u0648 \u0642\u0628\u0648\u0644 PLAN-25"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/bbebcdcb-9846-47c0-af6a-f7ad192afb86",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/bbebcdcb-9846-47c0-af6a-f7ad192afb86"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/8f5ada32-55c5-491d-b9a9-70aa80916de9",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/8f5ada32-55c5-491d-b9a9-70aa80916de9"
   }
 }

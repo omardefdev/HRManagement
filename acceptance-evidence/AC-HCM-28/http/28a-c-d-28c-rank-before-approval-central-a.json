@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/AssignRank",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:10:04.6526856Z",
+  "capturedAtUtc": "2026-11-06T21:21:06.8742576Z",
   "body": {
     "fields": [
       "ApplicationId=59f7f5cb-f384-8c4c-a8aa-8137f8e324c3",

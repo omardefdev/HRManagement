@@ -1,13 +1,13 @@
 {
   "step": "http-presign-denied",
   "method": "GET",
-  "url": "/api/files/b37755d1-88d9-47de-8a6a-e979452bd027/presigned-url",
+  "url": "/api/files/83868c3a-a42a-41e1-9ce6-131bf7dd4115/presigned-url",
   "statusCode": 404,
-  "capturedAtUtc": "2026-11-05T04:07:07.8215361Z",
+  "capturedAtUtc": "2026-11-06T21:22:19.9322050Z",
   "body": {
     "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
     "title": "Not Found",
     "status": 404,
-    "traceId": "00-aacaa779517b7f8cb5a6f7a0832f60e7-a3a36a46dabbebcd-00"
+    "traceId": "00-b39a0c454917ea645f67d41bbe8bf705-e9ed4c36c4e26f9a-00"
   }
 }

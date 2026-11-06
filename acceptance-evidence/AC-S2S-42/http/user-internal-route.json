@@ -1,0 +1,7 @@
+{
+  "step": "user-internal-route",
+  "method": "POST",
+  "url": "/api/hr-core/api/internal/policies/enforce",
+  "statusCode": 403,
+  "capturedAtUtc": "2026-11-06T21:00:04.8444718Z"
+}

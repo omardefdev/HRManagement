@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/compliance/LegalCases/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:24.8078605Z",
+  "capturedAtUtc": "2026-11-06T20:53:13.6303973Z",
   "body": {
     "fields": [
       "CaseNumber=PENDING",

@@ -2,14 +2,14 @@
   "stage": "after",
   "explicitDomainSnapshot": false,
   "outcome": "Pass",
-  "correlationId": "588ae847-2aba-4091-8637-bae03f6c2c16",
+  "correlationId": "e2ab71c5-11d3-484d-9174-0c0df9fe7565",
   "httpObservationCount": 3,
   "lastHttpObservation": {
     "step": "central-details-allowed",
     "method": "GET",
     "url": "/ui/admin-logistics/Assets/Details/a0000001-0000-4000-8000-000000000601",
     "statusCode": 200,
-    "capturedAtUtc": "2026-11-05T04:07:10.5887799Z",
+    "capturedAtUtc": "2026-11-06T21:32:02.5407996Z",
     "body": {
       "status": "OK"
     }

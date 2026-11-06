@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
   push:
     branches: [ "main" ]
+  # PLAN-66 (D-QA-66-1): every night on main, with the governance checks of the CI forced on.
+  schedule:
+    - cron: "0 2 * * *"
   # PLAN-41: the owner reruns acceptance by hand. With simulate_missing only the lab profile runs, on the class of that
   # scenario or on the listed classes (the negative proof of AC-QA-41a).
   workflow_dispatch:
@@ -17,6 +20,11 @@ on:
         description: "Comma-separated class names; only these run"
         required: false
         type: string
+
+# PLAN-66: a new push to a pull request cancels the run it replaces. Other runs have a group of their own and never cancel each other.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # PLAN-37 (P-7): after a merge, the push run on main skips the heavy jobs only when the pull request already tested
@@ -47,15 +55,63 @@ jobs:
           path: artifacts/ci/tested-tree.txt
           retention-days: 14
 
-  build-and-test:
-    name: CI
+  # PLAN-66: what this run has to do. S2: a commit that leaves the code tree unchanged reuses the green full run of the pull request
+  # (scripts/ci/acceptance-reuse.ps1). S3: the governance checks run when their inputs change (scripts/ci/acceptance-meta-rule.ps1).
+  # Both fail towards work: an empty answer means everything runs. A job that failed outright also leaves Acceptance red, which
+  # needs it: rerun it.
+  reuse-check:
+    name: Reuse check
     runs-on: ubuntu-latest
     needs: [dedupe]
     if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      reuse: ${{ steps.reuse.outputs.reuse }}
+      reused-run: ${{ steps.reuse.outputs.reused-run }}
+      meta: ${{ steps.meta.outputs.meta }}
+    steps:
+      # Two commits: a pull request run checks out the test merge commit, and its first parent is the base.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Decide whether this run reuses a green full run
+        id: reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+          ACCEPTANCE_SIMULATE_MISSING: ${{ inputs.simulate_missing }}
+          ACCEPTANCE_CLASSES: ${{ inputs.classes }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-reuse.ps1
+      - name: Decide whether the governance checks run
+        id: meta
+        run: pwsh -NoProfile -File scripts/ci/acceptance-meta-rule.ps1
+      - name: Upload the run identity
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-identity
+          path: artifacts/ci/run-identity.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
+  build-and-test:
+    name: CI
+    runs-on: ubuntu-latest
+    needs: [dedupe, reuse-check]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
+    # PLAN-66 (S2): run-steps.sh does none of the steps of a reusing run and names the reused run in the job summary.
+    env:
+      REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
+        if: env.REUSED_RUN == ''
         with:
           global-json-file: global.json
 
@@ -100,6 +156,8 @@ jobs:
       - name: Committed acceptance evidence (PLAN-41)
         env:
           GH_TOKEN: ${{ github.token }}
+          # PLAN-66 (S2): an evidence commit is what a reusing run is for, so this one step always runs.
+          REUSED_RUN: ""
         run: bash scripts/ci/run-steps.sh --step "Committed acceptance evidence (PLAN-41)"
 
       - name: Dated obligations horizon (QA-034)
@@ -356,28 +414,40 @@ jobs:
     # Mandatory gate: no PR label opt-in. Playwright browsers must be installed before RUN_PLAYWRIGHT_E2E.
     # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
     runs-on: ubuntu-24.04
-    needs: [build-and-test]
+    needs: [dedupe, reuse-check]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
+    env:
+      REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Name the reused run
+        if: env.REUSED_RUN != ''
+        run: bash scripts/ci/reused-note.sh
+
       - uses: actions/setup-dotnet@v4
+        if: env.REUSED_RUN == ''
         with:
           global-json-file: global.json
 
       # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same, run 41083926373).
       - name: Free runner disk space
+        if: env.REUSED_RUN == ''
         run: bash scripts/ci/free-runner-disk.sh
 
       - name: Prepare CI stack environment
+        if: env.REUSED_RUN == ''
         run: bash scripts/prepare-ci-compose-env.sh
 
       # PLAN-35 (P-1): volume ownership for file-storage-web and one cold-start retry, CI path only.
       # docker-compose.ci-e2e.yml: the gateway's per-IP rate limit at 2000/min, because every E2E request comes from this
       # runner's IP (at the default 120 a queued request waited past the 30 s Playwright timeout).
       - name: Start stack
+        if: env.REUSED_RUN == ''
         run: bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack
 
       - name: Wait for gateway health
+        if: env.REUSED_RUN == ''
         run: |
           set -euo pipefail
           # PLAN-35: the browser tests follow the login redirect to Keycloak, so wait for its realm too.
@@ -395,22 +465,27 @@ jobs:
           exit 1
 
       - name: Restore E2E project
+        if: env.REUSED_RUN == ''
         run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
 
       - name: Build E2E project
+        if: env.REUSED_RUN == ''
         run: dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --configuration Release --no-restore
 
       - name: Install Playwright browsers
+        if: env.REUSED_RUN == ''
         run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
 
       # PLAN-35 (triage rule 3): cases in tests/e2e/quarantine.json are left out here and listed in the job summary.
       - name: E2E quarantine filter
         id: quarantine
+        if: env.REUSED_RUN == ''
         run: |
           filter=$(bash scripts/ci/e2e-quarantine-filter.sh)
           echo "filter=${filter}" >> "$GITHUB_OUTPUT"
 
       - name: Run E2E tests
+        if: env.REUSED_RUN == ''
         env:
           RUN_PLAYWRIGHT_E2E: "true"
           GATEWAY_BASE_URL: "http://localhost:5000"
@@ -441,7 +516,7 @@ jobs:
           fi
 
       - name: Upload E2E results
-        if: always()
+        if: always() && env.REUSED_RUN == ''
         uses: actions/upload-artifact@v4
         with:
           name: e2e-results
@@ -478,45 +553,128 @@ jobs:
           if-no-files-found: warn
 
       - name: Tear down stack
-        if: always()
+        if: always() && env.REUSED_RUN == ''
         run: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.ci-e2e.yml --profile full-stack down -v
 
-  # PLAN-41: the stack the tests are written for, on the lab profile and then the prod-like profile, under
-  # ACCEPTANCE_REQUIRE_ALL. Everything is in scripts/ci/acceptance-job.ps1, the script the owner runs; what runs is
-  # tests/acceptance/ci-scope.json. Passwords are generated on the runner and never leave it (the artifact is scanned).
-  # Parallel with CI (D-QA-19, P-5); the dedupe guard skips it when the pull request tested the same tree. It reads the
-  # test-results artifact of the CI job at its end, for AC-QA-34.
-  acceptance:
-    name: Acceptance
+  # PLAN-66: the images of the stage jobs, built once for the run. Service images carry this run's commit; third-party images are
+  # pulled here, once, with retries, so the stage jobs pull from no registry. The archive lives for a day.
+  acceptance-build:
+    name: Acceptance images
+    runs-on: ubuntu-24.04
+    needs: [dedupe, reuse-check]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Name the reused run
+        if: env.REUSED_RUN != ''
+        run: bash scripts/ci/reused-note.sh
+
+      - name: Build the images and pull the others
+        if: env.REUSED_RUN == ''
+        env:
+          COMPOSE_PARALLEL_LIMIT: "4"
+          DOCKER_BUILDKIT: "1"
+        run: pwsh -NoProfile -File scripts/ci/acceptance-images.ps1 -Action Build -SourceSha ${{ github.sha }}
+
+      - name: Save the images
+        if: env.REUSED_RUN == ''
+        run: pwsh -NoProfile -File scripts/ci/acceptance-images.ps1 -Action Save
+
+      - name: Upload the images
+        if: env.REUSED_RUN == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-images
+          path: artifacts/acceptance/images/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  # PLAN-41, PLAN-66: the stack the tests are written for, on the lab profile and on the prod-like profile, under
+  # ACCEPTANCE_REQUIRE_ALL, one job per entry of stageJobs[] in tests/acceptance/ci-scope.json. Everything is in
+  # scripts/ci/acceptance-job.ps1, the script the owner runs. Passwords are generated on each runner and never leave it, which is
+  # why each stage scans its own results: the job that merges them cannot know those values. A stage job waits for no other job
+  # to start: the meta stage reads the results of the CI job, and prodlike-final the folders of the other stages, each when they
+  # are ready, with its stack already up.
+  acceptance-stage:
+    name: Acceptance stage (${{ matrix.name }})
     # PLAN-35: ubuntu-latest is Ubuntu 26.04, where Playwright 1.50.1 cannot install Chromium (run 41099010391).
     runs-on: ubuntu-24.04
-    needs: [dedupe]
-    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}
-    timeout-minutes: 120
-    concurrency:
-      group: acceptance-${{ github.ref }}
-      cancel-in-progress: true
+    needs: [dedupe, reuse-check, acceptance-build]
+    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' && needs.acceptance-build.result == 'success' }}
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: lab-main
+            stages: lab:main
+            timeout: 35
+          - name: lab-rest
+            stages: lab:journey,lab:isolated
+            timeout: 30
+          - name: prodlike
+            stages: prodLike:journey,prodLike:main,prodLike:isolated,prodLike:s2s42
+            timeout: 35
+          - name: prodlike-final
+            stages: prodLike:final
+            timeout: 40
+          - name: leastpriv
+            stages: prodLike:leastpriv
+            timeout: 20
+          - name: meta
+            stages: lab:meta
+            timeout: 60
     permissions:
       actions: read
       contents: read
       pull-requests: read
     env:
       GH_TOKEN: ${{ github.token }}
+      REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}
+      # PLAN-66: a job that has no work in this run still succeeds and says why: the run reuses another (S2), or the governance
+      # checks have no changed input (S3). An empty answer of the reuse check runs the stage.
+      RUN_STAGE: ${{ needs.reuse-check.outputs.reused-run == '' && (matrix.name != 'meta' || needs.reuse-check.outputs.meta != 'skip') }}
     steps:
       # The whole history: AC-QA-35a runs the pre-push gitleaks and forbidden-file checks against origin/main.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Name the reused run
+        if: env.RUN_STAGE != 'true'
+        run: bash scripts/ci/reused-note.sh
+
       - uses: actions/setup-dotnet@v4
+        if: env.RUN_STAGE == 'true'
         with:
           global-json-file: global.json
 
-      # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same, run 41083926373).
-      - name: Free runner disk space
-        run: bash scripts/ci/free-runner-disk.sh
+      - name: Download the images
+        if: env.RUN_STAGE == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: acceptance-images
+          path: artifacts/acceptance/images
 
-      - name: Run the acceptance job
+      - name: Load the images
+        if: env.RUN_STAGE == 'true'
+        run: |
+          pwsh -NoProfile -File scripts/ci/acceptance-images.ps1 -Action Load
+          rm -f artifacts/acceptance/images/images.tar.zst
+
+      - name: Check that every image comes from this commit
+        if: env.RUN_STAGE == 'true'
+        run: pwsh -NoProfile -File scripts/ci/acceptance-images.ps1 -Action Verify -SourceSha ${{ github.sha }}
+
+      - name: Run the stage
+        if: env.RUN_STAGE == 'true'
         env:
           ACCEPTANCE_SIMULATE_MISSING: ${{ inputs.simulate_missing }}
           ACCEPTANCE_CLASSES: ${{ inputs.classes }}
@@ -525,7 +683,60 @@ jobs:
           ACQA35_JOURNEYS_BRANCH: release/plan-35-first-push
           COMPOSE_PARALLEL_LIMIT: "4"
           DOCKER_BUILDKIT: "1"
-        run: pwsh -NoProfile -File scripts/ci/acceptance-job.ps1 -Profile Both -SourceSha ${{ github.sha }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-job.ps1 -Profile Both -Stage "${{ matrix.stages }}" -StageName ${{ matrix.name }} -NoBuild -SourceSha ${{ github.sha }}
+
+      # Nothing generated on the runner may reach the artifact: the upload below needs this step to pass.
+      - name: Scan the stage results for secrets
+        id: artifact-scan
+        if: ${{ !cancelled() && env.RUN_STAGE == 'true' }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-artifact-scan.ps1 -Target artifacts/acceptance/stages/${{ matrix.name }}
+
+      - name: Upload the stage results
+        if: ${{ !cancelled() && env.RUN_STAGE == 'true' && steps.artifact-scan.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-stage-${{ matrix.name }}
+          path: artifacts/acceptance/stages/${{ matrix.name }}/
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
+      - name: Tear down the stacks
+        if: always()
+        run: |
+          docker ps -aq | xargs -r docker rm -f > /dev/null || true
+          docker volume prune -af > /dev/null || true
+
+  # PLAN-66: the required check. It runs whatever the stage jobs did, and it is green only when every one of them succeeded and the
+  # evidence they left, assembled in the layout of a sequential run, passes the summary, the validator and the guard. It must never
+  # be skipped on a pull request: GitHub counts a skipped required check as passed.
+  acceptance:
+    name: Acceptance
+    runs-on: ubuntu-24.04
+    needs: [dedupe, reuse-check, acceptance-build, acceptance-stage]
+    if: ${{ always() && needs.dedupe.outputs.skip != 'true' }}
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}
+      ACCEPTANCE_META_RULE: ${{ needs.reuse-check.outputs.meta }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # PLAN-66 (S2): the artifact of the reused run becomes this run's, with a reuse.json pointer, for the evidence of record.
+      - name: Copy the evidence of the reused run
+        if: ${{ !cancelled() && env.REUSED_RUN != '' }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-reuse-evidence.ps1 -Run "$REUSED_RUN"
+
+      - name: Assemble the evidence
+        if: ${{ !cancelled() && env.REUSED_RUN == '' }}
+        env:
+          ACCEPTANCE_SIMULATE_MISSING: ${{ inputs.simulate_missing }}
+          ACCEPTANCE_CLASSES: ${{ inputs.classes }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-job.ps1 -Profile Both -MergeStages -SourceSha ${{ github.sha }}
 
       # Nothing generated on the runner may reach the artifact: the upload below needs this step to pass.
       - name: Scan the artifact for secrets
@@ -541,12 +752,14 @@ jobs:
           path: artifacts/acceptance/run/
           if-no-files-found: error
           retention-days: 30
+          # Rerunning one stage reruns this job in the same run.
+          overwrite: true
 
-      - name: Tear down the stacks
+      - name: Every stage job succeeded
         if: always()
-        run: |
-          docker ps -aq | xargs -r docker rm -f > /dev/null || true
-          docker volume prune -af > /dev/null || true
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: pwsh -NoProfile -File scripts/ci/acceptance-needs-check.ps1
 
   codeql:
     name: CodeQL

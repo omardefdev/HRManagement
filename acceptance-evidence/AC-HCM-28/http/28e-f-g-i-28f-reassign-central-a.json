@@ -3,14 +3,14 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentAppeals/AssignReviewer",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:10:01.4180209Z",
+  "capturedAtUtc": "2026-11-06T21:21:03.2688377Z",
   "body": {
     "fields": [
-      "id=1b478baa-d509-4232-9e72-4d7462fdbaf3",
+      "id=ad6a0512-450d-40b2-946a-287b5723a28f",
       "reviewerEmployeeId=8857ddf4-5e2b-1146-bc58-2dad66596a71"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/1b478baa-d509-4232-9e72-4d7462fdbaf3",
-    "final": "/ui/hr-core/RecruitmentAppeals/Details/1b478baa-d509-4232-9e72-4d7462fdbaf3"
+    "redirect": "/ui/hr-core/RecruitmentAppeals/Details/ad6a0512-450d-40b2-946a-287b5723a28f",
+    "final": "/ui/hr-core/RecruitmentAppeals/Details/ad6a0512-450d-40b2-946a-287b5723a28f"
   }
 }

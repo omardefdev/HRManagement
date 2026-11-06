@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/api/internal/codes/generate",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:36.5152139Z",
+  "capturedAtUtc": "2026-11-06T20:53:23.2559753Z",
   "body": {
     "code": "-2026-00006"
   }

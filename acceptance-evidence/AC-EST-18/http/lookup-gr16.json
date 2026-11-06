@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/api/hr-core/api/lookup/reference-data?kind=Grade\u0026q=GR-16\u0026page=1\u0026pageSize=20",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:09:44.6350455Z",
+  "capturedAtUtc": "2026-11-06T21:27:50.3514229Z",
   "body": {
     "items": [
       {

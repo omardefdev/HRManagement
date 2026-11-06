@@ -3,14 +3,14 @@
   "method": "POST",
   "url": "/ui/hr-contracts/HireWizard/CreatePendingContract",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:08:20.4951413Z",
+  "capturedAtUtc": "2026-11-06T21:21:35.8427951Z",
   "body": {
     "fields": [
-      "transactionId=1b4a62f7-7489-4a39-8ccf-9de9137e55fc",
+      "transactionId=fd6155ec-ccb9-422e-aa45-d309dd0226e4",
       "contractTypeId=52619eab-fab2-4848-9960-5c20936bfe84"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-contracts/HireWizard/Step2?transactionId=1b4a62f7-7489-4a39-8ccf-9de9137e55fc",
+    "redirect": "/ui/hr-contracts/HireWizard/Step2?transactionId=fd6155ec-ccb9-422e-aa45-d309dd0226e4",
     "final": "/ui/hr-contracts/HireWizard/Step2"
   }
 }

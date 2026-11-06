@@ -1,17 +1,18 @@
 # AC-11 policy workflow + signatures
 
 - Persona: `b-branch-manager`
-- Correlation ID: `8d4cf58d-a16b-4c69-995f-2614bb2ed4e4`
-- HTTP observations: `9`
+- Correlation ID: `ee02ab80-d302-45c6-bfd3-1828c5e92885`
+- HTTP observations: `10`
 
 ## Observed requests
 
-- `POST /api/hr-core/api/policies/enforce` -> `200`
-- `GET /api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04` -> `200`
-- `POST /api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04/approve` -> `400`
-- `POST /api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04/approve` -> `200`
-- `POST /api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04/approve` -> `400`
-- `POST /api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04/approve` -> `200`
-- `GET /api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04/history` -> `200`
+- `POST /api/internal/policies/enforce` -> `200`
+- `POST /api/workflow-instances` -> `201`
+- `GET /api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112` -> `200`
+- `POST /api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112/approve` -> `400`
+- `POST /api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112/approve` -> `200`
+- `POST /api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112/approve` -> `400`
+- `POST /api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112/approve` -> `200`
+- `GET /api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112/history` -> `200`
 - `GET /api/hr-core/api/signatures?subjectType=AssetAssignment` -> `200`
 - `GET /api/hr-core/api/policies/ledger` -> `200`

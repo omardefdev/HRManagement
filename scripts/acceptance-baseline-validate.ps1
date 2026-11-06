@@ -7,6 +7,8 @@ param(
     [string]$RepoRoot = "",
     [string]$EvidenceDir = "acceptance-evidence",
     [string]$Ownership = "tests/acceptance/ac-ownership.json",
+    # PLAN-66 (S3): the scope whose rule may leave classes out of a run.
+    [string]$Scope = "tests/acceptance/ci-scope.json",
     [string]$Head = "HEAD",
     # A fixed code tree (tests); by default the tree of -Head.
     [string]$CodeTree = "",
@@ -21,6 +23,7 @@ param(
 $ErrorActionPreference = "Stop"
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent $PSScriptRoot }
 . (Join-Path (Join-Path $RepoRoot "scripts") "acceptance-evidence-lib.ps1")
+. (Join-Path (Join-Path (Join-Path $RepoRoot "scripts") "ci") "acceptance-stage-lib.ps1")
 
 $evidencePath = if ([System.IO.Path]::IsPathRooted($EvidenceDir)) { $EvidenceDir } else { Join-Path $RepoRoot $EvidenceDir }
 $ownershipPath = if ([System.IO.Path]::IsPathRooted($Ownership)) { $Ownership } else { Join-Path $RepoRoot $Ownership }
@@ -72,6 +75,22 @@ else {
     foreach ($key in @($expected.Keys)) {
         $value = Get-AcceptanceProperty $summary.totals $key
         if ([int]$value -ne [int]$expected[$key]) { [void]$failures.Add("Total '$key' is $value in summary.json; the evidence gives $($expected[$key]).") }
+    }
+
+    # PLAN-66 (S3): "not run by rule" holds only for the classes the rule of the scope names, and the summary says what the file says.
+    $scopePath = if ([System.IO.Path]::IsPathRooted($Scope)) { $Scope } else { Join-Path $RepoRoot $Scope }
+    $scopeFile = Read-AcceptanceJson -Path $scopePath
+    $ruleClasses = @()
+    if ($null -ne $scopeFile) { $ruleClasses = @(Get-AcceptanceRuleClasses -ScopeFile $scopeFile) }
+    $declared = @(Get-AcceptanceProperty $summary "notRunByRule" | Where-Object { $_ })
+    foreach ($class in $declared) {
+        if ([string]$class -notin $ruleClasses) { [void]$failures.Add("$class is recorded as not run by rule, and the rule of the scope does not name it.") }
+    }
+    $file = Read-AcceptanceJson -Path (Join-Path $evidencePath "not-run-by-rule.json")
+    $inFile = @()
+    if ($null -ne $file) { $inFile = @($file.classes | Where-Object { $_ }) }
+    if ((@($declared | Sort-Object) -join ",") -ne (@($inFile | Sort-Object) -join ",")) {
+        [void]$failures.Add("summary.json and not-run-by-rule.json do not name the same classes.")
     }
 
     # summary.md is what people read.

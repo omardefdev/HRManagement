@@ -3,6 +3,6 @@
   "method": "POST",
   "url": "/api/hr-core/api/reference-data",
   "statusCode": 201,
-  "capturedAtUtc": "2026-11-05T04:09:45.1412498Z",
-  "body": "{\u0022id\u0022:\u0022591e309e-e3b7-4fd4-b048-3a683d51d9ce\u0022,\u0022catalogKind\u0022:\u0022JobClassification\u0022,\u0022code\u0022:\u0022JC-HR\u0022,\u0022nameAr\u0022:\u0022\u0645\u0648\u0627\u0631\u062F \u0628\u0634\u0631\u064A\u0629\u0022,\u0022nameEn\u0022:\u0022Human Resources\u0022,\u0022nameFr\u0022:null,\u0022validFrom\u0022:null,\u0022validTo\u0022:null,\u0022replacedByCode\u0022:null,\u0022sourceAuthority\u0022:null,\u0022stewardRole\u0022:null,\u0022isActive\u0022:true,\u0022version\u0022:1}"
+  "capturedAtUtc": "2026-11-06T21:27:50.9683882Z",
+  "body": "{\u0022id\u0022:\u0022321f2303-24d4-40c1-a412-5eb99a021a50\u0022,\u0022catalogKind\u0022:\u0022JobClassification\u0022,\u0022code\u0022:\u0022JC-HR\u0022,\u0022nameAr\u0022:\u0022\u0645\u0648\u0627\u0631\u062F \u0628\u0634\u0631\u064A\u0629\u0022,\u0022nameEn\u0022:\u0022Human Resources\u0022,\u0022nameFr\u0022:null,\u0022validFrom\u0022:null,\u0022validTo\u0022:null,\u0022replacedByCode\u0022:null,\u0022sourceAuthority\u0022:null,\u0022stewardRole\u0022:null,\u0022isActive\u0022:true,\u0022version\u0022:1}"
 }

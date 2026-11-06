@@ -3,19 +3,19 @@
   "method": "POST",
   "url": "/ui/admin-logistics/Assets/CreateLegacy",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:25.9640096Z",
+  "capturedAtUtc": "2026-11-06T20:53:13.8534058Z",
   "body": {
     "fields": [
       "Name=AC-INT-37c laptop",
       "Category=IT",
       "Brand=Lab",
-      "PurchaseDate=2026-10-06",
+      "PurchaseDate=2026-10-07",
       "Value=500",
       "Status=InStorage",
       "LegacyEntryReason=PLAN-37 acceptance: legacy asset entered to prove the HR.Core asset tag"
     ],
     "postStatus": 302,
-    "redirect": "/ui/admin-logistics/Assets/Details/e3b80749-b820-4118-bac0-3fab7cbd04fb",
-    "final": "/ui/admin-logistics/Assets/Details/e3b80749-b820-4118-bac0-3fab7cbd04fb"
+    "redirect": "/ui/admin-logistics/Assets/Details/13d95592-e8f9-472e-b824-942a55d66b2d",
+    "final": "/ui/admin-logistics/Assets/Details/13d95592-e8f9-472e-b824-942a55d66b2d"
   }
 }

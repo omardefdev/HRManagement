@@ -3,15 +3,15 @@
     "Frozen_run_isolated_from_profile_edit": {
       "status": "Fail",
       "reason": "Started but did not record a result (the test failed or was aborted before WriteResult).",
-      "correlationId": "9950f598-4125-4fd6-a784-8b5f94ae26ef",
-      "recordedAtUtc": "2026-11-05T04:06:45.8210188Z",
+      "correlationId": "b68511c7-9dd1-4d68-b37a-c01905d49b38",
+      "recordedAtUtc": "2026-11-06T21:32:57.7509919Z",
       "testClass": "Ac23PayrollFreezeTests",
       "profile": "lab",
-      "codeTree": "6c3a37ac6e78d1dbd2accafddce5a357e2f314b4de94ac97135734696a3cef3a"
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
     }
   },
   "status": "Fail",
   "reason": "Frozen_run_isolated_from_profile_edit: Fail \u2014 Started but did not record a result (the test failed or was aborted before WriteResult).",
-  "correlationId": "9950f598-4125-4fd6-a784-8b5f94ae26ef",
-  "recordedAtUtc": "2026-11-05T04:06:45.8210188Z"
+  "correlationId": "b68511c7-9dd1-4d68-b37a-c01905d49b38",
+  "recordedAtUtc": "2026-11-06T21:32:57.7509919Z"
 }

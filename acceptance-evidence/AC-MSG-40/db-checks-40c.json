@@ -1,11 +1,14 @@
 {
-  "apiVersion": "4d814ac8-b387-4f69-829c-4c09b97795f5",
-  "apiReceipts": 1,
-  "uiVersion": "0db2eff5-7c07-4f9a-abe4-3cd52363ea2b",
-  "uiReceipts": 1,
-  "refusedVersion": "b7f72e08-06b3-42ef-8fb4-28f79b7dda69",
+  "apiVersion": "79e4749c-5995-4398-a405-b63eda89696b",
+  "apiSequenceBefore": 209,
+  "apiSequenceAfter": 210,
+  "apiPending": 0,
+  "uiVersion": "de456b3e-c091-4c6d-b89f-895bc62fe681",
+  "uiSequenceBefore": 210,
+  "uiSequenceAfter": 211,
+  "uiPending": 0,
+  "refusedVersion": "4dd0c40f-ac1e-4fab-bfdd-564854ebf751",
   "refusedStatus": 400,
-  "refusedReceipts": 0,
-  "sequenceBefore": 208,
-  "sequenceAfter": 208
+  "sequenceBefore": 211,
+  "sequenceAfter": 211
 }

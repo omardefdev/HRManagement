@@ -1,12 +1,12 @@
 {
   "step": "29a-h-29f-offer-pdf-central-a",
   "method": "GET",
-  "url": "/ui/hr-core/OfferLetters/Document/14017e24-4864-4c75-bb36-ceb54b491041",
+  "url": "/ui/hr-core/OfferLetters/Document/64a0276c-915a-4e74-8a58-b8d2c8c44f4d",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:08:30.6430210Z",
+  "capturedAtUtc": "2026-11-06T21:21:46.2843564Z",
   "body": {
     "contentType": "application/pdf",
-    "length": 48894,
+    "length": 47365,
     "head": "%PDF"
   }
 }

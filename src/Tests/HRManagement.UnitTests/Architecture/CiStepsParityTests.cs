@@ -21,11 +21,16 @@ public class CiStepsParityTests
     private const string DedupeNeeds = "    needs: [dedupe]";
     private const string DedupeIf = "    if: ${{ !cancelled() && needs.dedupe.outputs.skip != 'true' }}";
 
+    // PLAN-66 (S2): CI also waits for the reuse check, and run-steps.sh does nothing in a run that reuses a green full run.
+    private const string ReuseNeeds = "    needs: [dedupe, reuse-check]";
+    private const string ReuseEnv = "    env:\n      REUSED_RUN: ${{ needs.reuse-check.outputs.reused-run }}\n";
+
     [Fact]
     public void Build_and_test_is_gated_only_by_the_fail_open_dedupe_guard()
     {
         var text = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, ".github", "workflows", "ci.yml")).Replace("\r\n", "\n");
-        Assert.Contains("  build-and-test:\n    name: CI\n    runs-on: ubuntu-latest\n" + DedupeNeeds + "\n" + DedupeIf + "\n", text);
+        Assert.Contains("  build-and-test:\n    name: CI\n    runs-on: ubuntu-latest\n" + ReuseNeeds + "\n" + DedupeIf + "\n", text);
+        Assert.Contains(ReuseEnv, text);
         Assert.Contains("  codeql:\n    name: CodeQL\n    runs-on: ubuntu-latest\n" + DedupeNeeds + "\n" + DedupeIf + "\n", text);
         Assert.Contains("run: bash scripts/ci/dedupe-push-run.sh", text);
         // The cheap secret scan always runs.
@@ -150,7 +155,9 @@ public class CiStepsParityTests
             // PLAN-37: the only other keys are the post-merge dedupe guard, exactly as written (it fails open).
             if ((m = Regex.Match(lines[i], @"^    ([A-Za-z_-]+):")).Success && m.Groups[1].Value is not ("name" or "runs-on" or "steps"))
             {
-                if (!(lines[i] == DedupeNeeds || lines[i] == DedupeIf))
+                if (lines[i] == "    env:" && lines[i + 1] == ReuseEnv.Split('\n')[1])
+                    continue;
+                if (!(lines[i] == ReuseNeeds || lines[i] == DedupeIf))
                     problems.Add($"ci.yml:{i + 1}: job key '{m.Groups[1].Value}' is not allowed on build-and-test");
                 continue;
             }

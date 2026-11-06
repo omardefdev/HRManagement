@@ -3,13 +3,13 @@
   "validatorExit": 0,
   "source": "ci",
   "totals": {
-    "total": 72,
-    "proven": 28,
-    "passedNotProving": 26,
+    "total": 74,
+    "proven": 30,
+    "passedNotProving": 25,
     "stale": 0,
     "incomplete": 4,
     "notRun": 12,
     "fail": 1,
-    "blocked": 1
+    "blocked": 2
   }
 }

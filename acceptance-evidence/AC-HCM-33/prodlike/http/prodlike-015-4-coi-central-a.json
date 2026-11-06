@@ -3,13 +3,13 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/DeclareCoi",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:23:47.2289472Z",
+  "capturedAtUtc": "2026-11-06T20:52:38.3251962Z",
   "body": {
     "fields": [
-      "id=a7693d6b-4b99-4cf8-bdd6-af9199e6c80d"
+      "id=54e8ae9a-1dbc-4602-b0df-38951986c3b4"
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/RecruitmentApplications/Details/a7693d6b-4b99-4cf8-bdd6-af9199e6c80d"
+    "final": "/ui/hr-core/RecruitmentApplications/Details/54e8ae9a-1dbc-4602-b0df-38951986c3b4"
   }
 }

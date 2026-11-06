@@ -3,9 +3,9 @@
   "method": "POST",
   "url": "/api/files",
   "statusCode": 201,
-  "capturedAtUtc": "2026-11-05T04:06:58.3106525Z",
+  "capturedAtUtc": "2026-11-06T21:22:08.8660777Z",
   "body": {
-    "fileId": "b37755d1-88d9-47de-8a6a-e979452bd027",
+    "fileId": "83868c3a-a42a-41e1-9ce6-131bf7dd4115",
     "originalName": "ac29-private.pdf",
     "size": 18,
     "mimeType": "application/pdf"

@@ -1,0 +1,12 @@
+{
+  "step": "start-as-owner",
+  "method": "POST",
+  "url": "/api/workflow-instances",
+  "statusCode": 201,
+  "capturedAtUtc": "2026-11-06T21:32:08.1062217Z",
+  "body": {
+    "id": "98d00889-b9ef-4ee8-b4c3-1003a05f7112",
+    "status": "InProgress",
+    "alreadyActive": true
+  }
+}

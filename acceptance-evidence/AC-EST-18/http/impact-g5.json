@@ -1,9 +1,9 @@
 {
   "step": "impact-g5",
   "method": "GET",
-  "url": "/api/hr-core/api/reference-data/c983e68e-3900-4d55-8875-f8d98f4c5c49/impact",
+  "url": "/api/hr-core/api/reference-data/adebb39b-0e64-4026-9f78-8dd0bc928b7b/impact",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:09:43.4368542Z",
+  "capturedAtUtc": "2026-11-06T21:27:49.0026963Z",
   "body": [
     {
       "entity": "JobCatalogEntry",

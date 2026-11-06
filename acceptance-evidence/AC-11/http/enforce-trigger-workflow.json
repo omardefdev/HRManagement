@@ -1,9 +1,9 @@
 {
   "step": "enforce-trigger-workflow",
   "method": "POST",
-  "url": "/api/hr-core/api/policies/enforce",
+  "url": "/api/internal/policies/enforce",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T03:59:00.4091390Z",
+  "capturedAtUtc": "2026-11-06T21:32:08.0011018Z",
   "body": {
     "allowed": true,
     "effects": [
@@ -11,13 +11,14 @@
       "RequireEvidence",
       "TriggerWorkflow"
     ],
-    "workflowInstanceId": "ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04",
+    "workflowInstanceId": null,
     "explanations": [
       "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u062F\u0644\u064A\u0644\u0627\u064B: \u062A\u0637\u0627\u0628\u0642",
-      "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u0633\u064A\u0631 \u0627\u0639\u062A\u0645\u0627\u062F: \u062A\u0637\u0627\u0628\u0642"
+      "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632 \u064A\u062A\u0637\u0644\u0628 \u0633\u064A\u0631 \u0627\u0639\u062A\u0645\u0627\u062F: \u062A\u0637\u0627\u0628\u0642",
+      "\u0623\u062B\u0631 TriggerWorkflow \u063A\u064A\u0631 \u0645\u0633\u0645\u0648\u062D \u0644\u0647\u0630\u0627 \u0627\u0644\u0643\u064A\u0627\u0646"
     ],
     "policyVersionId": "6b761597-4d61-ee4d-a837-78c746ab7f5b",
-    "ledgerId": "3a64ea90-1e63-44d3-9498-6c02f387dc36",
+    "ledgerId": "8352e19d-c077-4305-b972-9c23f96795c8",
     "decision": {
       "allowed": true,
       "effects": [
@@ -48,6 +49,10 @@
       "policyVersionId": "6b761597-4d61-ee4d-a837-78c746ab7f5b",
       "denyReason": null
     },
-    "shadowDiffs": []
+    "shadowDiffs": [],
+    "effectiveMode": 2,
+    "degraded": false,
+    "failureReason": null,
+    "shadowDecision": null
   }
 }

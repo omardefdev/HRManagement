@@ -1,17 +1,19 @@
 {
   "step": "27f-g-27f-approve-2-a-management-approver",
   "method": "POST",
-  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/06ea05ab-0032-4482-943b-db0c3cc87d65",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/90a36bc6-155a-4d83-8052-fdafa1ca0612",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:12:35.1341860Z",
+  "capturedAtUtc": "2026-11-06T20:53:19.5200200Z",
   "body": {
     "fields": [
-      "OfferId=06ea05ab-0032-4482-943b-db0c3cc87d65",
+      "OfferId=90a36bc6-155a-4d83-8052-fdafa1ca0612",
       "Comments=AC-HCM-27 27f-approve-2"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/06ea05ab-0032-4482-943b-db0c3cc87d65",
-    "final": "/ui/hr-core/OfferLetters/Details/06ea05ab-0032-4482-943b-db0c3cc87d65",
-    "alerts": []
+    "redirect": "/ui/hr-core/OfferLetters/Details/90a36bc6-155a-4d83-8052-fdafa1ca0612",
+    "final": "/ui/hr-core/OfferLetters/Details/90a36bc6-155a-4d83-8052-fdafa1ca0612",
+    "alerts": [
+      "\u003Ci class=\u0022fas fa-check-circle\u0022\u003E"
+    ]
   }
 }

@@ -3,9 +3,9 @@
   "method": "GET",
   "url": "/api/hr-core/api/reference-data/by-code?kind=Grade\u0026code=G5",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:09:43.3927803Z",
+  "capturedAtUtc": "2026-11-06T21:27:48.9571438Z",
   "body": {
-    "id": "c983e68e-3900-4d55-8875-f8d98f4c5c49",
+    "id": "adebb39b-0e64-4026-9f78-8dd0bc928b7b",
     "catalogKind": "Grade",
     "code": "G5",
     "nameAr": "\u062F\u0631\u062C\u0629 \u0642\u0628\u0648\u0644 G5",

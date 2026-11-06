@@ -3,25 +3,28 @@
   "method": "GET",
   "url": "/api/hr-core/api/policies/ledger?domain=Assets.Custody",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:06:44.1955069Z",
+  "capturedAtUtc": "2026-11-06T21:22:36.6627060Z",
   "body": [
     {
       "domain": "Assets.Custody",
       "action": "Assign",
       "policyVersionId": "a0000001-0000-4000-8000-000000000304",
-      "correlationId": "8cda606e-6300-4c48-bf97-9d640ae1fa03",
+      "correlationId": "ab961967-9d46-4fe4-b31b-d22a905f4d6a",
       "factsHash": "CC06D305A1049892",
       "decisionJson": "{\u0022Allowed\u0022:false,\u0022Effects\u0022:[1],\u0022EffectDetails\u0022:[{\u0022Effect\u0022:\u0022Deny\u0022,\u0022Params\u0022:{\u0022reason\u0022:\u0022acceptance-v3-deny\u0022}}],\u0022MatchedRuleIds\u0022:[\u0022ACC-R-PRIV-DENY\u0022],\u0022Explanations\u0022:[\u0022\\u0642\\u0627\\u0639\\u062F\\u0629 \\u0645\\u0633\\u0648\\u062F\\u0629 \\u0631\\u0641\\u0636 \\u0627\\u0644\\u0623\\u0635\\u0644 \\u0627\\u0644\\u0645\\u0645\\u064A\\u0632: \\u062A\\u0637\\u0627\\u0628\\u0642\u0022],\u0022PolicyVersionId\u0022:\u0022a0000001-0000-4000-8000-000000000304\u0022,\u0022DenyReason\u0022:\u0022acceptance-v3-deny\u0022}",
-      "actorUserId": "775c2919-e97a-1446-ab7e-eeea07401beb",
-      "actorUserName": "acc-central-a",
+      "actorUserId": null,
+      "actorUserName": null,
       "mode": 2,
       "workflowInstanceId": null,
+      "callerClientId": "svc-admin-logistics",
+      "subjectType": "Asset",
+      "entityId": null,
       "shadowDiffJson": null,
-      "occurredAt": "2026-11-05T04:06:44.185317Z",
-      "id": "686e5a6a-6bdf-4658-a80d-13d906b23679",
+      "occurredAt": "2026-11-06T21:22:36.565756Z",
+      "id": "10713ef9-b214-40b4-9024-d4dbd1505e47",
       "tenantId": "a0000001-0000-4000-8000-000000000001",
-      "createdAt": "2026-11-05T04:06:44.185184Z",
-      "updatedAt": "2026-11-05T04:06:44.185466Z"
+      "createdAt": "2026-11-06T21:22:36.561347Z",
+      "updatedAt": "2026-11-06T21:22:36.595837Z"
     }
   ]
 }
