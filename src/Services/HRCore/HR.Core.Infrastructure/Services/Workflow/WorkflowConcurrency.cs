@@ -22,3 +22,13 @@ public static class WorkflowConcurrency
 /// PLAN-44: a handler cannot apply the outcome for a business reason. The decision's transaction rolls back and the actor sees the message.
 /// </summary>
 public sealed class WorkflowOutcomeRefusedException(string message) : Exception(message);
+
+/// <summary>PLAN-44: this entity has a running instance already. Nothing of this start was saved.</summary>
+public sealed class WorkflowInstanceRunningException(string entityType, Guid entityId) : Exception(RunningMessage)
+{
+    public const string RunningMessage = "يوجد مسار جارٍ لهذا الطلب";
+
+    public string EntityType { get; } = entityType;
+
+    public Guid EntityId { get; } = entityId;
+}

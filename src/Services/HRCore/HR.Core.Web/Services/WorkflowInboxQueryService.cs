@@ -201,7 +201,7 @@ public sealed class WorkflowInboxQueryService(
                             {
                                 ScopeOrgUnitId = req?.FundedPosition?.OrgUnitId,
                                 EntityCreatedBy = req?.CreatedBy ?? instance.InitiatedBy,
-                                IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval
+                                IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval && req.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -220,7 +220,7 @@ public sealed class WorkflowInboxQueryService(
                             {
                                 ScopeOrgUnitId = offer?.FundedPosition?.OrgUnitId,
                                 EntityCreatedBy = offer?.CreatedBy ?? instance.InitiatedBy,
-                                IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval
+                                IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval && offer.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -242,7 +242,7 @@ public sealed class WorkflowInboxQueryService(
                                 ScopeOrgUnitId = session?.Requisition?.FundedPosition?.OrgUnitId,
                                 EntityCreatedBy = session?.CreatedBy ?? instance.InitiatedBy,
                                 CommitteeMembers = session?.Members.ToList(),
-                                IsAwaitingApproval = session?.ApprovedAt is null
+                                IsAwaitingApproval = session is { ApprovedAt: null } && session.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -263,7 +263,7 @@ public sealed class WorkflowInboxQueryService(
                             {
                                 ScopeOrgUnitId = appeal?.RecruitmentApplication?.Requisition?.FundedPosition?.OrgUnitId,
                                 Appeal = appeal,
-                                IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending
+                                IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending && appeal.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -280,7 +280,7 @@ public sealed class WorkflowInboxQueryService(
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
                                 EntityCreatedBy = change?.CreatedBy ?? instance.InitiatedBy,
-                                IsAwaitingApproval = change?.Status == EstablishmentChangeStatus.PendingApproval
+                                IsAwaitingApproval = change?.Status == EstablishmentChangeStatus.PendingApproval && change.WorkflowInstanceId == instance.Id
                             };
                         }
 

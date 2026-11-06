@@ -27,7 +27,9 @@ public sealed class CompetitionWorkflowHandler(HRCoreDbContext db)
         var competition = await db.RecruitmentCompetitions
             .Include(c => c.Lines)
             .FirstOrDefaultAsync(c => c.Id == instance.EntityId, ct);
-        if (competition is null || competition.Status != RecruitmentCompetitionStatus.PendingApproval)
+        // PLAN-44: only the linked instance decides it, as for every other type.
+        if (competition is null || competition.Status != RecruitmentCompetitionStatus.PendingApproval
+            || competition.ApprovalWorkflowInstanceId != instance.Id)
             return;
 
         if (approved)
@@ -60,7 +62,8 @@ public sealed class CompetitionWorkflowHandler(HRCoreDbContext db)
     {
         var version = await db.CompetitionResultVersions.Include(v => v.Competition)
             .FirstOrDefaultAsync(v => v.Id == instance.EntityId, ct);
-        if (version?.Competition is null || version.Status != CompetitionResultVersionStatus.PendingApproval)
+        if (version?.Competition is null || version.Status != CompetitionResultVersionStatus.PendingApproval
+            || version.WorkflowInstanceId != instance.Id)
             return;
 
         if (approved)

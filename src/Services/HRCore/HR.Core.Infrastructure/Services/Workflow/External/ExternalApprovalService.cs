@@ -77,26 +77,8 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
             return Invalid(IdempotencyKeyMessage);
 
         var tenantId = db.CurrentTenantId ?? TenantDefaults.DefaultTenantId;
-        var existing = await db.WorkflowInstances.AsNoTracking()
-            .Where(i => i.TenantId == tenantId && i.SourceClientId == caller.ClientId && i.IdempotencyKey == request.IdempotencyKey)
-            .OrderByDescending(i => i.StartedAt)
-            .FirstOrDefaultAsync(ct);
-        if (existing is not null)
-        {
-            return existing.EntityId == request.EntityId
-                && string.Equals(existing.EntityType, type.EntityType, StringComparison.OrdinalIgnoreCase)
-                    ? new ExternalApprovalResult(ExternalApprovalOutcome.Existing, existing)
-                    : new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, existing, KeyReusedMessage);
-        }
-
-        var active = await db.WorkflowInstances.AsNoTracking()
-            .Where(i => i.TenantId == tenantId
-                && i.EntityType == type.EntityType
-                && i.EntityId == request.EntityId
-                && i.Status == WorkflowStatus.InProgress)
-            .FirstOrDefaultAsync(ct);
-        if (active is not null)
-            return new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, active, ActiveInstanceMessage);
+        if (await FindStartedAsync(request, type, caller, tenantId, ct) is { } found)
+            return found;
 
         // Rule 5.
         if (ValidateContent(request, type) is { } contentError)
@@ -152,9 +134,37 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
             DetailsUrl = request.DetailsUrl
         };
 
-        db.WorkflowInstances.Add(instance);
-        await db.SaveChangesAsync(ct);
-        return new ExternalApprovalResult(ExternalApprovalOutcome.Started, instance);
+        // PLAN-44: two starts passed the lookups together. The index let one through; the other answers as if it had come second.
+        if (await WorkflowInstanceInsert.TrySaveAsync(db, instance, ct) is null)
+            return new ExternalApprovalResult(ExternalApprovalOutcome.Started, instance);
+
+        return await FindStartedAsync(request, type, caller, tenantId, ct)
+            ?? new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, Error: ActiveInstanceMessage);
+    }
+
+    /// <summary>The same key answers with its instance, another entity's key or a running entity is a conflict, otherwise null.</summary>
+    private async Task<ExternalApprovalResult?> FindStartedAsync(
+        WorkflowApprovalStartRequest request, ExternalApprovalType type, ExternalApprovalCaller caller, Guid tenantId, CancellationToken ct)
+    {
+        var existing = await db.WorkflowInstances.AsNoTracking()
+            .Where(i => i.TenantId == tenantId && i.SourceClientId == caller.ClientId && i.IdempotencyKey == request.IdempotencyKey)
+            .OrderByDescending(i => i.StartedAt)
+            .FirstOrDefaultAsync(ct);
+        if (existing is not null)
+        {
+            return existing.EntityId == request.EntityId
+                && string.Equals(existing.EntityType, type.EntityType, StringComparison.OrdinalIgnoreCase)
+                    ? new ExternalApprovalResult(ExternalApprovalOutcome.Existing, existing)
+                    : new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, existing, KeyReusedMessage);
+        }
+
+        var active = await db.WorkflowInstances.AsNoTracking()
+            .Where(i => i.TenantId == tenantId
+                && i.EntityType == type.EntityType
+                && i.EntityId == request.EntityId
+                && i.Status == WorkflowStatus.InProgress)
+            .FirstOrDefaultAsync(ct);
+        return active is null ? null : new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, active, ActiveInstanceMessage);
     }
 
     /// <summary>Rule 8: the owner withdraws a running instance. PLAN-46 adds an outcome event for it; none is published here.</summary>

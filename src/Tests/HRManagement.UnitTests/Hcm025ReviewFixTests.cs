@@ -47,9 +47,12 @@ public sealed class Hcm025ReviewFixTests
         var overrideStart = await coordinator.StartAsync(new ApprovalStartRequest("OfferLetter", offer.Id, null,
             OfferOverrideApprovalRules.WorkflowCode, PolicyDomains.CoreRecruitment, Creator, "creator", "{}"));
 
-        Assert.NotEqual(preCreated.Id, requisitionStart.InstanceId);
-        Assert.NotEqual(offerInstance.Id, overrideStart.InstanceId);
-        Assert.Equal(OfferOverrideApprovalRules.WorkflowCode, await GetWorkflowCodeAsync(fx.Db, overrideStart.InstanceId));
+        // PLAN-44: still never adopted, and no second instance beside it either: the start is refused.
+        Assert.Null(requisitionStart.InstanceId);
+        Assert.Null(overrideStart.InstanceId);
+        Assert.Equal(WorkflowInstanceRunningException.RunningMessage, requisitionStart.Error);
+        Assert.Equal(WorkflowInstanceRunningException.RunningMessage, overrideStart.Error);
+        Assert.Equal(2, await fx.Db.WorkflowInstances.CountAsync());
     }
 
     [Fact]
@@ -76,7 +79,18 @@ public sealed class Hcm025ReviewFixTests
     {
         await using var fx = await Hcm025ApprovalGatesTests.Fx.CreateAsync();
         var (requisitionId, linked) = await fx.RequisitionAsync();
-        var stray = await fx.StartAsync("RECRUITMENT-REQUISITION-APPROVAL", "RecruitmentRequisition", requisitionId, Other);
+        // PLAN-44: a second running instance cannot exist any more; a finished one that is not the link still must not decide.
+        var stray = new WorkflowInstance
+        {
+            DefinitionId = linked.DefinitionId,
+            DefinitionVersion = linked.DefinitionVersion,
+            EntityType = "RecruitmentRequisition",
+            EntityId = requisitionId,
+            Status = WorkflowStatus.Completed,
+            InitiatedBy = Other
+        };
+        fx.Db.WorkflowInstances.Add(stray);
+        await fx.Db.SaveChangesAsync();
         var (sessionInstance, _) = await fx.CommitteeAsync(activeMembers: 3);   // never submitted
 
         await new RecruitmentRequisitionWorkflowHandler(fx.Db).HandleAsync(stray, approved: true, reason: null);

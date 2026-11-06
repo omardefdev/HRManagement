@@ -23,7 +23,8 @@ public sealed class RecruitmentAppealWorkflowHandler(HRCoreDbContext db)
         var appeal = await db.RecruitmentAppeals
             .Include(a => a.RecruitmentApplication)
             .FirstOrDefaultAsync(a => a.Id == instance.EntityId, ct);
-        if (appeal is null || appeal.Status != RecruitmentAppealStatus.Pending)
+        // PLAN-44: only the linked instance decides it, as for every other type.
+        if (appeal is null || appeal.Status != RecruitmentAppealStatus.Pending || appeal.WorkflowInstanceId != instance.Id)
             return;
 
         var actorId = LastActorId(instance) ?? instance.InitiatedBy;

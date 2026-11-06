@@ -428,16 +428,23 @@ public sealed class RecruitmentAppealService(
 
         // PLAN-25: always start workflow — HCM-028 (H5) already does so for policy Off outside lab scale, and when the
         // policy did not start one, so the reviewer always decides through RECRUITMENT-APPEAL-REVIEW when it exists.
-        instanceId ??= await workflowStarter.StartByWorkflowCodeAsync(
-            AppealReviewWorkflowCode,
-            "RecruitmentAppeal",
-            appeal.Id,
-            appeal.TenantId,
-            actorUserId,
-            actorUserName,
-            contextJson,
-            PolicyDomains.CoreRecruitment,
-            ct);
+        try
+        {
+            instanceId ??= await workflowStarter.StartByWorkflowCodeAsync(
+                AppealReviewWorkflowCode,
+                "RecruitmentAppeal",
+                appeal.Id,
+                appeal.TenantId,
+                actorUserId,
+                actorUserName,
+                contextJson,
+                PolicyDomains.CoreRecruitment,
+                ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            return (null, running.Message);
+        }
 
         appeal.WorkflowInstanceId = instanceId;
         return (instanceId, null);

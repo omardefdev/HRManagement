@@ -239,16 +239,24 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
             return (false, $"{CompetitionScoringRules.UnresolvedTieMessage}: {ties} متقدماً في حالة تعادل؛ يجب البت فيه قبل الاعتماد.");
 
         version.Status = CompetitionResultVersionStatus.PendingApproval;
-        version.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-            ApprovalWorkflowCode,
-            EntityType,
-            version.Id,
-            version.TenantId,
-            actorUserId,
-            actorUserName,
-            JsonSerializer.Serialize(new { competitionId = version.CompetitionId, version.VersionNo }),
-            PolicyDomains.CoreRecruitment,
-            ct);
+        try
+        {
+            version.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
+                ApprovalWorkflowCode,
+                EntityType,
+                version.Id,
+                version.TenantId,
+                actorUserId,
+                actorUserName,
+                JsonSerializer.Serialize(new { competitionId = version.CompetitionId, version.VersionNo }),
+                PolicyDomains.CoreRecruitment,
+                ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            return (false, running.Message);
+        }
+
         if (version.WorkflowInstanceId is null)
             return (false, "تعذّر بدء مسار اعتماد النتائج: تعريف المسار غير منشور.");
         if (version.Competition.Status == RecruitmentCompetitionStatus.ResultsDraft)

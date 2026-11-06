@@ -324,16 +324,24 @@ public sealed class CompetitionLifecycleService(
         competition.Status = RecruitmentCompetitionStatus.PendingApproval;
         competition.ReturnReason = null;
         var contextJson = JsonSerializer.Serialize(new { competitionId = competition.Id, competition.Number });
-        competition.ApprovalWorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-            ApprovalWorkflowCode,
-            EntityType,
-            competition.Id,
-            competition.TenantId,
-            actorUserId,
-            actorUserName,
-            contextJson,
-            PolicyDomains.CoreRecruitment,
-            ct);
+        try
+        {
+            competition.ApprovalWorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
+                ApprovalWorkflowCode,
+                EntityType,
+                competition.Id,
+                competition.TenantId,
+                actorUserId,
+                actorUserName,
+                contextJson,
+                PolicyDomains.CoreRecruitment,
+                ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            return (false, running.Message);
+        }
+
         if (competition.ApprovalWorkflowInstanceId is null)
             return (false, "تعذّر بدء مسار اعتماد المسابقة: تعريف المسار غير منشور.");
 
@@ -449,6 +457,22 @@ public sealed class CompetitionLifecycleService(
         competition.IntakeClosedAt = nowUtc;
     }
 
+    /// <summary>PLAN-44: a cancelled competition leaves no approval running, of itself or of a result version.</summary>
+    private async Task CancelRunningApprovalsAsync(Guid competitionId, DateTime now, CancellationToken ct)
+    {
+        var versionIds = db.CompetitionResultVersions.Where(v => v.CompetitionId == competitionId).Select(v => v.Id);
+        var running = await db.WorkflowInstances
+            .Where(i => i.Status == HRManagement.SharedKernel.Workflow.WorkflowStatus.InProgress
+                && ((i.EntityType == EntityType && i.EntityId == competitionId)
+                    || (i.EntityType == CompetitionResultsService.EntityType && versionIds.Contains(i.EntityId))))
+            .ToListAsync(ct);
+        foreach (var instance in running)
+        {
+            instance.Status = HRManagement.SharedKernel.Workflow.WorkflowStatus.Cancelled;
+            instance.CompletedAt = now;
+        }
+    }
+
     /// <summary>
     /// Cancels a competition before it is finalized (reason ≥ 10 characters). The posting and vacancy are closed, open
     /// competition applications are rejected (<c>RequisitionCancelled</c>, «إلغاء المسابقة»), and the attached requisitions
@@ -472,6 +496,7 @@ public sealed class CompetitionLifecycleService(
             return (false, "سبب الإلغاء يجب ألا يتجاوز 500 حرف.");
 
         var now = DateTime.UtcNow;
+        await CancelRunningApprovalsAsync(competition.Id, now, ct);
         await CloseChannelsAsync(db, competition, ct);
         var terminal = SelectionWorkflowRules.TerminalStatuses.ToList();
         var open = await db.RecruitmentApplications
