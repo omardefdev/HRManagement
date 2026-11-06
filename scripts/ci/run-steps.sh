@@ -32,6 +32,17 @@ while [[ $# -gt 0 ]]; do
 done
 if [[ -z "$MODE" ]]; then echo "run-steps.sh: pass --all or --step \"<name>\"" >&2; exit 2; fi
 
+# PLAN-66 (S2): a run that reuses a green full run does no step of the job; the workflow lists them all the same, so ci.yml and
+# steps.json stay one list. The first step names the reused run in the job summary.
+if [[ -n "${REUSED_RUN:-}" && "$MODE" == "one" ]]; then
+  if [[ ! -f "$OUT/reused-note" ]]; then
+    mkdir -p "$OUT" && touch "$OUT/reused-note"
+    bash "$ROOT/scripts/ci/reused-note.sh"
+  fi
+  echo "run-steps: reused from run $REUSED_RUN: ${SELECTED[*]}"
+  exit 0
+fi
+
 PY="$(command -v python3 || command -v python || true)"
 if [[ -z "$PY" ]]; then echo "run-steps.sh: python3 is required" >&2; exit 2; fi
 
