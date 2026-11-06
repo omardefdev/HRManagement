@@ -43,7 +43,7 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 - The custody facts go through Facts into ContextJson, so conditions and the event's asset ids keep working; the body has no ContextJson.
 - A key reused for another entity is a conflict (addition).
 - AC-11: requester b-logistics, step 1 b-branch-manager, step 2 b-approver, because D-WF-8 bars a requester from every step. Test renamed.
-- P-6: the allow-list is empty, 42c proves the effect and no instance; closes M3 for the registered types. What stays for PLAN-51: any other hr-core.workflow caller holds no start now, so only the general contract of PLAN-46 and per-type registration remain.
+- P-6: the allow-list is empty, 42c proves the effect and no instance; closes M3 for the registered types. What stays for PLAN-51: this holds for this API only. HrCoreWrite keeps its service clause, so an hr-core.workflow token can still submit records that start through the coordinator.
 
 - P3: done. Finished (UTC): 2026-11-06T11:33:14Z. Full unit suite before the last fix: 4987 passed, 1 failed (Hcm025ApprovalGatesTests.Non_enforced_entity_types_keep_their_previous_behaviour asserted the behaviour this phase changes on purpose; rewritten, not an AC-HCM-25 or parity test). After it: Hcm025, Wf043, guard, Est024, Hcm021, Hcm022, Wf023, SoD filters 314 passed, 0 failed. Hcm025PanelServerParityTests unchanged. hcm025-validate PASS, dated obligations PASS.
 
@@ -56,11 +56,13 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 ## Found in P4
 - HrModuleAuthorizationFilter refused workflow-admin before the controller's policy; WorkflowDefinitions joined its list of controllers with their own policies. Unit tests could not see this: only the real pipeline did.
 
-## Next step
-P5.
 
-## Lock and stack log
-- acceptance-stack acquired 2026-11-06T11:46:52Z. acceptance-up -Profile ProdLike started right after (all images rebuilt: the persona catalog changed).
-- While it builds (2026-11-06T11:51:14Z): docs (engine, SoD matrix, gap study status, plan status and notes), wf043-validate.ps1 PASS, CodeQL baseline entries 061, 062, 063 marked Fixed (those actions now carry a token or moved), ci-scope and ac-ownership updated.
-- Stack: first up failed at 12:01Z (old volumes, persona digest); reset (project volumes only) and up again, 261 s, services ready; the script's last step needs pwsh, skipped by design here. 0.5 confirmed by SQL on the stack: 17 definitions, Published and Retired only, distinct approvers on ASSET-ASSIGN-APPROVAL alone.
-- AC-WF-43a..f alone: 6 of 6, 16 s (2026-11-06T12:09:35Z). 43e starts on the service identity with X-Acting-User, because a branch manager's scope guard refuses an asset in storage (no open holder), so the UI cannot reach it for br1-mgr: a deviation from the plan's wording.
+- Whole job on a64f7a67, -Profile Both: PASS, guard 69 classes in 12 trx files, 3473 s (lab stack 778 s, lab-main 857 s, prod-like stack 247 s, leastpriv 397 s). prodLike-main 14 (AcHcm25 8, AcWf43 6), AcInt37 8, AcMsg40 8, AcOps39 8, final 4, AcS2s42 9, AcOps38 8, both journeys, all green.
+- Lab-main 7 failures, none required: Ac21, Ac23, Ac24, Ac25 as in the PLAN-41 baseline (regime seed defect); Ac08, Ac19, Ac30 only here: their scripts need PowerShell 7 (Ac08 uses ??; Ac30 lost SQL quoting under 5.1) and this machine has none; the same three passed in PR 37's CI.
+- Independent review (one fresh subagent, read only): no high, 6 medium, 9 low. No refuter needed. Fixed with tests in 9b8f71ce: M1 retire needs a newer version; M2 every editor counts (EditorUserIdsJson replaces LastEditedBy); M3 conditional steps do not count, last step has no condition, an external start never completes with no approver; M4 custody keeps distinct approvers; M5 a loss report names the holder; L1 IsPublished also blocks edit and delete; L3 an unnamed actor is refused when a requester exists; L4 the role step does not use kc_body. Left: M6 a start that times out after HR.Core committed leaves an unlinked record (PLAN-45 retry); L2 no registered-type guard in WorkflowStarter (no caller; wf043-validate covers it); L4 kc_body's status for older steps; L5 publish not tied to a content hash (a pending definition cannot be edited); L6 WorkflowCode is required on the wire; L7 no-tenant fallback (PLAN-45); L8 catalog roles that WorkflowStepAction refuses; L9 rollback note goes in the ops document.
+- After the fixes, images rebuilt, -Profile ProdLike -Classes AcWf43, AcHcm25, AcOps39, AcMsg40, AcS2s42: PASS, 1206 s (14, 8, 8, 9).
+- Stack down with volumes; hrm-leastpriv taken down first (it stays up after a local job, as PLAN-42 said). acceptance-stack released 2026-11-06T13:32:16Z. wf043-validate PASS. No evidence committed.
+- P5: done. Finished (UTC): 2026-11-06T13:32:16Z.
+
+## Next step
+Local CI and pre-push, then P6 check, then P7.

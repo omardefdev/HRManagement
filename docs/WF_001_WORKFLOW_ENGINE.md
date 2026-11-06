@@ -89,12 +89,14 @@ Only `workflow-admin` or `hr-admin`, from the national tenant, write definitions
 `Draft` → `PendingPublish` → `Published` → `Retired` through `WorkflowDefinitionLifecycleService`:
 
 - `submit` runs `WorkflowDefinitionValidator` (levels, names, roles in `HrManagementRoles.All`, a known entity type, the limits of
-  `WorkflowGuardrails`, known condition operators) and returns every error in Arabic. The validator runs again at `publish`.
-- `publish` needs a person who is not the creator, the submitter or the last editor.
+  `WorkflowGuardrails`, known condition operators) and returns every error in Arabic. A conditional step does not count towards
+  the limits, and the last step has no condition. The validator runs again at `publish`.
+- `publish` needs a person who is not the creator, the submitter or anyone who edited the draft.
 - A published version is never edited: a change is a new version, and running instances stay on the version they pinned. A new
   version keeps the entity type of its code.
 - `publish` warns when a `PolicyWorkflowBinding` pins another version.
-- `retire` needs a reason and refuses the last published version of a type the engine starts, unless a replacement is published.
+- `retire` needs a reason and, for a type the engine starts, a newer valid published version: retiring the latest one would send
+  every start back to an older version without a second person.
 - Every start honours `ValidFrom` and `ValidTo`, through a binding too.
 - Transitions race on `xmin`: the loser gets a 409.
 - `WorkflowPackSeeder.EnsureVersionAsync` is the system path for a national definition (`ChangeReason = seed:<plan>`).
@@ -110,7 +112,7 @@ Only `workflow-admin` or `hr-admin`, from the national tenant, write definitions
   A job without a request sets `ActingUserScope`. No header: 400.
 - `IdempotencyKey` is looked up first, in every state: the same key returns the same instance even when finished. Another key for
   a running entity is 409.
-- The latest valid published version of the code starts; a policy binding has no say. None: 422.
+- The latest valid published version of the code starts; a policy binding has no say. None, or all its steps skipped: 422.
 - `POST {id}/cancel` withdraws (`Cancelled`, history `Withdrawn`), the owner only; a finished instance is 409.
 - The policy engine only says an approval is needed: `PolicyWorkflowTriggerAllowlist` is empty and `PolicyOrchestrator` starts no
   registered type.
@@ -126,8 +128,8 @@ The step role is enforced for every type except `Workflow:StepRole:ExemptEntityT
 
 - `Excluded`: the requester and `ExcludedApproverUserIds`, approving and rejecting.
 - `Subject`: `SubjectEmployeeId`, approving and rejecting.
-- `DistinctApprover`: approving only, when `RequireDistinctApprovers` is true (new definitions and `ASSET-ASSIGN-APPROVAL`; not the
-  national recruitment and establishment ones).
+- `DistinctApprover`: approving only, when `RequireDistinctApprovers` is true (new definitions by default; `AssetAssignment` always,
+  by its guardrail; not the seeded recruitment and establishment ones).
 
 `Workflow:AdminBypass` never passes these rules.
 
