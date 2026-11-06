@@ -79,5 +79,7 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 - 22 containers, 0 unhealthy. demo-server released 2026-11-06T15:25:44Z.
 - P7: done. Finished (UTC): 2026-11-06T15:25:44Z.
 
+- P8 docs and report written 2026-11-06T15:27:15Z. Review done in P5.
+
 ## Next step
-P8: final report, local CI and pre-push on the final head, release branch, PR, merge.
+Local CI and pre-push on the final head, release/plan-43, PR, wait, merge.
