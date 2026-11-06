@@ -1,0 +1,7 @@
+{
+  "step": "anonymize-erase-scope",
+  "method": "POST",
+  "url": "/api/internal/dsar-subjects/candidates/{id}/anonymize",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-06T20:58:55.0139722Z"
+}

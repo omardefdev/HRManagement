@@ -1,8 +1,8 @@
 {
   "step": "submit-own-change",
   "method": "POST",
-  "url": "/api/hr-core/api/establishment/changes/b370f77a-d0b8-4325-93e9-9a065d2e62b8/submit",
+  "url": "/api/hr-core/api/establishment/changes/2234c8fd-89f4-4056-8a88-07ea7efa45e2/submit",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:07:11.7003668Z",
-  "body": "{\u0022id\u0022:\u0022b370f77a-d0b8-4325-93e9-9a065d2e62b8\u0022,\u0022status\u0022:1,\u0022resultEntityId\u0022:null}"
+  "capturedAtUtc": "2026-11-06T21:31:58.8895397Z",
+  "body": "{\u0022id\u0022:\u00222234c8fd-89f4-4056-8a88-07ea7efa45e2\u0022,\u0022status\u0022:1,\u0022resultEntityId\u0022:null}"
 }

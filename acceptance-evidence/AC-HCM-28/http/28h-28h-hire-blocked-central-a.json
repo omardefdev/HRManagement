@@ -3,22 +3,22 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Hire",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:10:15.7994408Z",
+  "capturedAtUtc": "2026-11-06T21:21:20.9905745Z",
   "body": {
     "fields": [
-      "ApplicationId=0ae9b62f-43fd-4e45-b8a0-3bae49d46557",
+      "ApplicationId=7de0dd5b-03a4-4627-b82a-95853a60b0f4",
       "Mode=CreateNew",
-      "NationalId=02775422659",
+      "NationalId=02202149301",
       "FirstName=\u0645\u0631\u0634\u062D",
       "LastName=\u0627\u0644\u0627\u0633\u062A\u0626\u0646\u0627\u0641",
-      "BirthDate=1998-11-05",
+      "BirthDate=1998-11-06",
       "Gender=Male",
       "PrimaryOrgUnitId=a0000001-0000-4000-8000-000000000102",
-      "ExpectedStartDate=2026-11-19",
+      "ExpectedStartDate=2026-11-20",
       "EmploymentCategory=PERMANENT"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentApplications/Details/0ae9b62f-43fd-4e45-b8a0-3bae49d46557",
-    "final": "/ui/hr-core/RecruitmentApplications/Details/0ae9b62f-43fd-4e45-b8a0-3bae49d46557"
+    "redirect": "/ui/hr-core/RecruitmentApplications/Details/7de0dd5b-03a4-4627-b82a-95853a60b0f4",
+    "final": "/ui/hr-core/RecruitmentApplications/Details/7de0dd5b-03a4-4627-b82a-95853a60b0f4"
   }
 }

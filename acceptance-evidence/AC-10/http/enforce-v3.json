@@ -1,9 +1,9 @@
 {
   "step": "enforce-v3",
   "method": "POST",
-  "url": "/api/hr-core/api/policies/enforce",
-  "statusCode": 422,
-  "capturedAtUtc": "2026-11-05T04:06:44.1893155Z",
+  "url": "/api/internal/policies/enforce",
+  "statusCode": 200,
+  "capturedAtUtc": "2026-11-06T21:22:36.6093590Z",
   "body": {
     "allowed": false,
     "effects": [
@@ -14,7 +14,7 @@
       "\u0642\u0627\u0639\u062F\u0629 \u0645\u0633\u0648\u062F\u0629 \u0631\u0641\u0636 \u0627\u0644\u0623\u0635\u0644 \u0627\u0644\u0645\u0645\u064A\u0632: \u062A\u0637\u0627\u0628\u0642"
     ],
     "policyVersionId": "a0000001-0000-4000-8000-000000000304",
-    "ledgerId": "686e5a6a-6bdf-4658-a80d-13d906b23679",
+    "ledgerId": "10713ef9-b214-40b4-9024-d4dbd1505e47",
     "decision": {
       "allowed": false,
       "effects": [
@@ -37,6 +37,10 @@
       "policyVersionId": "a0000001-0000-4000-8000-000000000304",
       "denyReason": "acceptance-v3-deny"
     },
-    "shadowDiffs": []
+    "shadowDiffs": [],
+    "effectiveMode": 2,
+    "degraded": false,
+    "failureReason": null,
+    "shadowDecision": null
   }
 }

@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/ui/admin-logistics/InventoryItems/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:08:37.9979356Z",
+  "capturedAtUtc": "2026-11-06T21:20:50.9049635Z",
   "body": {
     "length": 17840
   }

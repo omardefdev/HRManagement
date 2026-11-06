@@ -11,6 +11,7 @@
 #     running without their migrations ("relation ... does not exist", HTTP 500; run 41119397846). PostgreSQL is
 #     therefore started first and the stack waits until it answers over TCP, which only the final server does.
 # After "up --wait" the script also fails when any container of the stack has exited (a crash after --wait returned).
+# COMPOSE_UP_NO_BUILD=1 (PLAN-66): the images are already here, loaded from the build job of the run; nothing is built.
 #   bash scripts/ci/compose-up-retry.sh -f docker-compose.yml -f docker-compose.services.yml --profile full-stack
 set -uo pipefail
 
@@ -20,7 +21,13 @@ pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1 || { echo "::er
 # A registry that answers 503 for a moment (mcr.microsoft.com, run 41951228726) must not end a job of over an hour. BuildKit keeps
 # what finished, so a real build failure only repeats quickly and still fails here.
 built=""
+up_flags=()
+if [ "${COMPOSE_UP_NO_BUILD:-}" = "1" ]; then
+  built=1
+  up_flags=(--no-build)
+fi
 for attempt in 1 2 3; do
+  [ -z "$built" ] || break
   if docker compose "$@" build; then built=1; break; fi
   echo "::warning::compose build failed (attempt ${attempt} of 3)"
   [ "$attempt" = 3 ] || sleep 60
@@ -37,7 +44,7 @@ if has_service file-storage-web; then
 fi
 
 if has_service postgresql; then
-  docker compose "$@" up -d postgresql || { echo "::error::could not start postgresql"; exit 1; }
+  docker compose "$@" up -d "${up_flags[@]}" postgresql || { echo "::error::could not start postgresql"; exit 1; }
   ready=""
   for i in $(seq 1 90); do
     if docker compose "$@" exec -T postgresql sh -c 'pg_isready -h 127.0.0.1 -U "$POSTGRES_USER" -d postgres' >/dev/null 2>&1; then
@@ -52,7 +59,7 @@ fi
 exited() { docker compose "$@" ps -a --status exited --format '{{.Service}} {{.ExitCode}}' 2>/dev/null | awk '$2 != 0 { print $1 }'; }
 
 for attempt in 1 2; do
-  if docker compose "$@" up -d --wait --wait-timeout 600; then
+  if docker compose "$@" up -d --wait --wait-timeout 600 "${up_flags[@]}"; then
     # A service without a healthcheck counts as ready once running; give a crash on startup time to show.
     sleep 20
     if [ -z "$(exited "$@")" ]; then

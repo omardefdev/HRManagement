@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/RejectWorkflow/a0000001-0000-4000-8000-000000000903",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:01.2046864Z",
+  "capturedAtUtc": "2026-11-06T20:52:56.1446253Z",
   "body": {
     "fields": [
       "RequisitionId=a0000001-0000-4000-8000-000000000903",

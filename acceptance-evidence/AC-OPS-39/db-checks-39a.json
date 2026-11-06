@@ -9,6 +9,7 @@
     "hr-core.workflow",
     "file-storage.references",
     "dsar.subject.read",
+    "dsar.subject.erase",
     "payroll.grades.read",
     "file-storage.service-upload",
     "directory.sync",

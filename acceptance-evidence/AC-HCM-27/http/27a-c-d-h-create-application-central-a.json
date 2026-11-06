@@ -3,16 +3,18 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:14:57.1375931Z",
+  "capturedAtUtc": "2026-11-06T20:55:37.5523226Z",
   "body": {
     "fields": [
-      "ApplicantFullName=AC27 \u0645\u0642\u064A\u0645 f5290d2d9c7349",
-      "RequisitionId=e503ebb1-58fc-4cfe-96d9-b82681682fa7",
+      "ApplicantFullName=AC27 \u0645\u0642\u064A\u0645 a37e75df94f24a",
+      "RequisitionId=caa3a27d-2ba8-4b68-9d2b-f2b31f6f666d",
       "Notes=AC-HCM-27"
     ],
     "postStatus": 302,
     "redirect": "/ui/hr-core/RecruitmentApplications",
     "final": "/ui/hr-core/RecruitmentApplications",
-    "alerts": []
+    "alerts": [
+      "\u003Ci class=\u0022fas fa-check-circle\u0022\u003E"
+    ]
   }
 }

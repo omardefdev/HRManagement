@@ -1,11 +1,11 @@
 {
   "step": "agency-b-search",
   "method": "GET",
-  "url": "/ui/admin-logistics/InventoryItems?q=AC31-16f6d687a11e44399821242fe81bd57b\u0026page=1\u0026pageSize=20",
+  "url": "/ui/admin-logistics/InventoryItems?q=AC31-9584aa3eb4d44e8a89d29fc839a79263\u0026page=1\u0026pageSize=20",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:08:38.5021298Z",
+  "capturedAtUtc": "2026-11-06T21:20:51.7233772Z",
   "body": {
-    "length": 19307,
-    "probeName": "AC31-16f6d687a11e44399821242fe81bd57b"
+    "length": 19372,
+    "probeName": "AC31-9584aa3eb4d44e8a89d29fc839a79263"
   }
 }

@@ -1,12 +1,12 @@
 # AC-EST-18d deactivate impact
 
 - Persona: `central-a`
-- Correlation ID: `07c7c17e-051c-436c-9dd1-5ba41a94be65`
+- Correlation ID: `c04f7610-8a82-43c9-b72c-5afdb01d8518`
 - HTTP observations: `4`
 
 ## Observed requests
 
 - `GET /api/hr-core/api/reference-data/by-code?kind=Grade&code=G5` -> `200`
-- `GET /api/hr-core/api/reference-data/c983e68e-3900-4d55-8875-f8d98f4c5c49/impact` -> `200`
-- `GET /ui/hr-core/ReferenceCatalog/Details/c983e68e-3900-4d55-8875-f8d98f4c5c49` -> `200`
-- `POST /ui/hr-core/ReferenceCatalog/Deactivate/c983e68e-3900-4d55-8875-f8d98f4c5c49` -> `302`
+- `GET /api/hr-core/api/reference-data/adebb39b-0e64-4026-9f78-8dd0bc928b7b/impact` -> `200`
+- `GET /ui/hr-core/ReferenceCatalog/Details/adebb39b-0e64-4026-9f78-8dd0bc928b7b` -> `200`
+- `POST /ui/hr-core/ReferenceCatalog/Deactivate/adebb39b-0e64-4026-9f78-8dd0bc928b7b` -> `302`

@@ -1,0 +1,2 @@
+1. p-workflow-admin creates and submits a two-step draft of ESTABLISHMENT-CHANGE-APPROVAL; p-workflow-admin-2 publishes it: Published, and it is in the list.
+2. Negative: central-a (hr-core) posts a definition: 403, and the table has no new row.

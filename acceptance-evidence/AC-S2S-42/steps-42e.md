@@ -1,0 +1,2 @@
+1. hr-core-web with the stack's public key answers /health/ready.
+2. Negative: scripts/s2s042-placeholder-boot-check.ps1 runs the image in Production with the placeholder as the public key: the container exits non-zero and the log names the key without the value.

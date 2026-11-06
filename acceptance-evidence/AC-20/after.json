@@ -3,5 +3,5 @@
   "expected": "connection denied",
   "actualExitCode": 2,
   "output": "psql: error: connection to server at \u0022127.0.0.1\u0022, port 5432 failed: FATAL:  permission denied for database \u0022payroll_db\u0022\nDETAIL:  User does not have CONNECT privilege.",
-  "capturedAtUtc": "2026-11-05T04:09:07.3255559Z"
+  "capturedAtUtc": "2026-11-06T21:33:16.0156195Z"
 }

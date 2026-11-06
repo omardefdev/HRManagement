@@ -1,0 +1,62 @@
+{
+  "scenarios": {
+    "43d": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "d99b17a5-e33e-41da-b553-c633c032588d",
+      "recordedAtUtc": "2026-11-06T20:52:48.7311922Z",
+      "testClass": "AcWf43DefinitionGovernanceTests",
+      "profile": "prodlike",
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
+    },
+    "43a": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "e4411e44-51ba-4312-9ce2-54492a5e6248",
+      "recordedAtUtc": "2026-11-06T20:52:49.9396113Z",
+      "testClass": "AcWf43DefinitionGovernanceTests",
+      "profile": "prodlike",
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
+    },
+    "43b": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "d7f813b2-f2a5-4dda-962b-f0acd5101555",
+      "recordedAtUtc": "2026-11-06T20:52:50.3599423Z",
+      "testClass": "AcWf43DefinitionGovernanceTests",
+      "profile": "prodlike",
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
+    },
+    "43c": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "3508295c-a29e-4269-a271-d3466afe4758",
+      "recordedAtUtc": "2026-11-06T20:52:52.6863244Z",
+      "testClass": "AcWf43DefinitionGovernanceTests",
+      "profile": "prodlike",
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
+    },
+    "43e": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "eec8a80a-fba7-4f3b-a388-a44a0254ad99",
+      "recordedAtUtc": "2026-11-06T20:52:53.9083129Z",
+      "testClass": "AcWf43DefinitionGovernanceTests",
+      "profile": "prodlike",
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
+    },
+    "43f": {
+      "status": "Pass",
+      "reason": null,
+      "correlationId": "2bd13ce1-ee25-4b25-a79b-29991178341b",
+      "recordedAtUtc": "2026-11-06T20:52:54.5148925Z",
+      "testClass": "AcWf43DefinitionGovernanceTests",
+      "profile": "prodlike",
+      "codeTree": "54932f664e5e2577bf307dba74965c19c5fd352701e90f23488a7878077c369e"
+    }
+  },
+  "status": "Pass",
+  "reason": null,
+  "correlationId": "2bd13ce1-ee25-4b25-a79b-29991178341b",
+  "recordedAtUtc": "2026-11-06T20:52:54.5148925Z"
+}

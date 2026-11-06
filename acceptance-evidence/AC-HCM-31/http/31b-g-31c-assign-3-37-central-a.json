@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/Competitions/AssignMarker/a0000001-0000-4000-8000-000000000526",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:03:26.3310439Z",
+  "capturedAtUtc": "2026-11-06T21:27:59.3276315Z",
   "body": {
     "fields": [
       "sessionId=a0000001-0000-4000-8000-000000000537",

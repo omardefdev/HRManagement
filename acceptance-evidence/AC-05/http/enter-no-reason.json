@@ -3,6 +3,6 @@
   "method": "POST",
   "url": "/api/platform/enter-tenant",
   "statusCode": 400,
-  "capturedAtUtc": "2026-11-05T04:08:37.3645092Z",
+  "capturedAtUtc": "2026-11-06T21:32:05.4976065Z",
   "body": "reason is required."
 }

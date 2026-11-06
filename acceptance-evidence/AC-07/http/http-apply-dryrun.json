@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "api/hr-core/api/onboarding/agencies/apply",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:06:43.0205559Z",
+  "capturedAtUtc": "2026-11-06T21:27:46.0490041Z",
   "body": {
     "dryRun": true,
     "alreadyApplied": false,

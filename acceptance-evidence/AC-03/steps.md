@@ -1,7 +1,7 @@
 # AC-03 sibling org-scope denial
 
 - Persona: `br1-mgr`
-- Correlation ID: `8c5d7613-1b18-400b-bd4b-a3fbaa8c6321`
+- Correlation ID: `3c59daac-1a69-45d7-ba4c-3b314dd7e7da`
 - HTTP observations: `1`
 
 ## Observed requests

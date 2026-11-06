@@ -3,13 +3,13 @@
   "method": "POST",
   "url": "/ui/idcard/IssuedCards/Renew/2f6bf58e-a858-b547-80a1-2f922d3915de",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:22.9911039Z",
+  "capturedAtUtc": "2026-11-06T20:53:12.2675903Z",
   "body": {
     "fields": [
       "id=2f6bf58e-a858-b547-80a1-2f922d3915de"
     ],
     "postStatus": 302,
-    "redirect": "/ui/idcard/IssuedCards/Details/f1488c32-3a10-49b6-9626-3085276fc234",
-    "final": "/ui/idcard/IssuedCards/Details/f1488c32-3a10-49b6-9626-3085276fc234"
+    "redirect": "/ui/idcard/IssuedCards/Details/afa17509-4201-4584-a456-5c4529f9d241",
+    "final": "/ui/idcard/IssuedCards/Details/afa17509-4201-4584-a456-5c4529f9d241"
   }
 }

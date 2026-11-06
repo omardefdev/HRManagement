@@ -1,7 +1,7 @@
 # AC-02 branch manager org scope
 
 - Persona: `br1-mgr`
-- Correlation ID: `88c4aacf-d4eb-4ce4-bd1c-cafcba206567`
+- Correlation ID: `8772bc26-0bd3-42fb-b5c5-2cdfca4751cb`
 - HTTP observations: `3`
 
 ## Observed requests

@@ -1,7 +1,7 @@
 # AC-32 logistics custody org scope
 
 - Persona: `br2-mgr`
-- Correlation ID: `588ae847-2aba-4091-8637-bae03f6c2c16`
+- Correlation ID: `e2ab71c5-11d3-484d-9174-0c0df9fe7565`
 - HTTP observations: `3`
 
 ## Observed requests

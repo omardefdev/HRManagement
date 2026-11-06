@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:10.6342615Z",
+  "capturedAtUtc": "2026-11-06T20:53:02.7728176Z",
   "body": {
     "fields": [
       "ScopeOrgUnitId=a0000001-0000-4000-8000-000000000102",
@@ -15,7 +15,7 @@
       "PublishingChannel=PublicOnly"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/b18be22e-6eb3-4bee-baba-2a0b88bea125",
-    "final": "/ui/hr-core/RecruitmentRequisitions/Details/b18be22e-6eb3-4bee-baba-2a0b88bea125"
+    "redirect": "/ui/hr-core/RecruitmentRequisitions/Details/a5e73999-dfe4-4958-b3e9-d25745c7f200",
+    "final": "/ui/hr-core/RecruitmentRequisitions/Details/a5e73999-dfe4-4958-b3e9-d25745c7f200"
   }
 }

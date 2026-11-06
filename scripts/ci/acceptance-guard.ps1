@@ -4,7 +4,8 @@
 #   - a required class has a result other than Passed, or did not run at all;
 #   - a scenario of a required class is Fail or Blocked in its evidence folder;
 #   - a class in a trx is not in the scope file, or is listed as excluded;
-#   - a trx says the test run was aborted, or a result.json cannot be read.
+#   - a trx says the test run was aborted, or a result.json cannot be read;
+#   - PLAN-66: -NotRunByRule names a class the rule of the scope does not name, or a class that ran.
 # Results of classes that are not required go to the report only. Writes <OutDir>/summary.md and <OutDir>/guard.json.
 param(
     [string]$RepoRoot = "",
@@ -15,12 +16,15 @@ param(
     # The classes the run was limited to (-Classes of the job); the others are not expected.
     [string]$Classes = "",
     # lab, prodLike or both: the part of the scope that ran.
-    [ValidateSet("lab", "prodLike", "both")][string]$Ran = "both"
+    [ValidateSet("lab", "prodLike", "both")][string]$Ran = "both",
+    # PLAN-66 (S3): the classes the rule of the scope left out of this run: they are not expected, and nothing else may be.
+    [string]$NotRunByRule = ""
 )
 
 $ErrorActionPreference = "Stop"
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 . (Join-Path (Join-Path $RepoRoot "scripts") "acceptance-evidence-lib.ps1")
+. (Join-Path $PSScriptRoot "acceptance-stage-lib.ps1")
 
 $scopePath = if ([System.IO.Path]::IsPathRooted($Scope)) { $Scope } else { Join-Path $RepoRoot $Scope }
 $scopeFile = Read-AcceptanceJson -Path $scopePath
@@ -38,6 +42,7 @@ foreach ($entry in @($scopeFile.excluded)) {
     if ($null -ne $entry) { $excluded[[string]$entry.class] = [string]$entry.reason }
 }
 $limit = @($Classes -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$notRun = @($NotRunByRule -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 $failures = New-Object System.Collections.Generic.List[string]
 $byClass = @{}
@@ -96,9 +101,16 @@ foreach ($class in @($byClass.Keys | Sort-Object)) {
     }
 }
 
+$ruleClasses = @(Get-AcceptanceRuleClasses -ScopeFile $scopeFile)
+foreach ($class in $notRun) {
+    if ($class -notin $ruleClasses) { [void]$failures.Add("$class is marked not run by rule, and the rule of the scope does not name it.") }
+    elseif ($byClass.ContainsKey($class)) { [void]$failures.Add("$class is marked not run by rule, and it ran.") }
+}
+
 foreach ($class in @($listed.Keys | Sort-Object)) {
     $entry = $listed[$class]
     if (-not $entry.required -or $byClass.ContainsKey($class)) { continue }
+    if ($class -in $notRun -and $class -in $ruleClasses) { continue }
     if ($limit.Count -gt 0 -and $class -notin $limit) { continue }
     if ($Ran -ne "both" -and $entry.part -ne $Ran) { continue }
     [void]$failures.Add("Required: $class did not run.")
@@ -159,6 +171,12 @@ if ($notRequired.Count -gt 0 -or $open.Count -gt 0) {
     [void]$lines.Add("")
     foreach ($row in $notRequired) { foreach ($problem in $row.problems) { [void]$lines.Add("- $problem") } }
     foreach ($line in $open) { [void]$lines.Add("- $line") }
+}
+if ($notRun.Count -gt 0) {
+    [void]$lines.Add("")
+    [void]$lines.Add("## Not run by rule")
+    [void]$lines.Add("")
+    foreach ($class in $notRun) { [void]$lines.Add("- $class") }
 }
 [void]$lines.Add("")
 [void]$lines.Add("Excluded classes: $($excluded.Count) (tests/acceptance/ci-scope.json, each with a reason, an owner and a review date).")

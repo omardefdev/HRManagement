@@ -1,0 +1,2 @@
+1. a-logistics-maker hands over a privileged asset through the UI: the instance has RequestedByUserId and InitiatedBy of the user, SourceClientId svc-admin-logistics, the key and the subject employee (psql).
+2. Negative: central-a posts /api/hr-core/api/workflow-instances: 403 at the gateway.

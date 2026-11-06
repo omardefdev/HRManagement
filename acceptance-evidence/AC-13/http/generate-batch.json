@@ -1,9 +1,9 @@
 {
   "step": "generate-batch",
   "method": "POST",
-  "url": "/api/hr-core/api/codes/generate",
+  "url": "/api/internal/codes/generate",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:07:08.9140050Z",
+  "capturedAtUtc": "2026-11-06T21:32:59.5348875Z",
   "body": {
     "requested": 120,
     "successCount": 120,

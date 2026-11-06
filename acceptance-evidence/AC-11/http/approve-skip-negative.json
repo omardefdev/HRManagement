@@ -1,8 +1,8 @@
 {
   "step": "approve-skip-negative",
   "method": "POST",
-  "url": "/api/hr-core/api/workflow-instances/ea1f3e30-29f9-4bb0-b2ed-f8bc0e040c04/approve",
+  "url": "/api/hr-core/api/workflow-instances/98d00889-b9ef-4ee8-b4c3-1003a05f7112/approve",
   "statusCode": 400,
-  "capturedAtUtc": "2026-11-05T03:59:00.4310364Z",
+  "capturedAtUtc": "2026-11-06T21:32:08.1218939Z",
   "body": "\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062E\u0637\u064A \u0645\u0631\u0627\u062D\u0644 \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F: \u064A\u062C\u0628 \u0623\u0646 \u062A\u0637\u0627\u0628\u0642 \u0627\u0644\u062E\u0637\u0648\u0629 \u0627\u0644\u0645\u0633\u062A\u0647\u062F\u0641\u0629 \u0627\u0644\u062E\u0637\u0648\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629."
 }

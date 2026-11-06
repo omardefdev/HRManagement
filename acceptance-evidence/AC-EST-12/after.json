@@ -2,17 +2,17 @@
   "stage": "after",
   "explicitDomainSnapshot": false,
   "outcome": "Pass",
-  "correlationId": "e8acdca8-b202-4505-ba85-0a4e269cb175",
+  "correlationId": "71eef926-13e4-40f6-8fa4-ed94dcf9e863",
   "httpObservationCount": 2,
   "lastHttpObservation": {
     "step": "finance-reconciliation",
     "method": "GET",
-    "url": "/api/hr-core/api/establishment/finance/reconciliation?fiscalYear=2026\u0026batchId=aeb935f7-23ba-4ad4-89df-3e42274f7b97\u0026orgUnitId=a0000001-0000-4000-8000-000000000102",
+    "url": "/api/hr-core/api/establishment/finance/reconciliation?fiscalYear=2026\u0026batchId=79e7420c-ba17-437d-8574-4a404945f9b6\u0026orgUnitId=a0000001-0000-4000-8000-000000000102",
     "statusCode": 200,
-    "capturedAtUtc": "2026-11-05T04:03:17.3625894Z",
+    "capturedAtUtc": "2026-11-06T21:22:27.6043868Z",
     "body": {
       "fiscalYear": 2026,
-      "batchId": "aeb935f7-23ba-4ad4-89df-3e42274f7b97",
+      "batchId": "79e7420c-ba17-437d-8574-4a404945f9b6",
       "rows": [
         {
           "costCenter": "CC-AC31",

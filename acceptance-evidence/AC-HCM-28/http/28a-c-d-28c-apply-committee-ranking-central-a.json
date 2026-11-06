@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentRequisitions/ApplyCommitteeRanking/a0000001-0000-4000-8000-000000000510",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:10:07.2062303Z",
+  "capturedAtUtc": "2026-11-06T21:21:10.0621231Z",
   "body": {
     "fields": [
       "id=a0000001-0000-4000-8000-000000000510"

@@ -1,0 +1,1 @@
+1. a-logistics-maker hands over a privileged asset; central-a approves step 1: 200, and the instance moves to step 2 (psql).

@@ -1,0 +1,8 @@
+{
+  "batch": 120,
+  "unique": 120,
+  "oldRoute": 404,
+  "internalRoute": 403,
+  "foreign": 403,
+  "otherBefore": 0
+}

@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/ui/hr-core/ReferenceCatalog/Create?kind=Grade",
   "statusCode": 403,
-  "capturedAtUtc": "2026-11-05T04:09:44.1026567Z",
+  "capturedAtUtc": "2026-11-06T21:27:49.7424100Z",
   "body": {
     "length": 0
   }

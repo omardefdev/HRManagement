@@ -1,5 +1,5 @@
 1. Read artifacts/ci-local/head/summary.json written by run-steps.sh inside the ci-local container.
-2. Rule: gitSha == `git rev-parse HEAD` (8887e1b99f635b19887c27ca614733f87fae1cb5), dirtyTracked empty, only a global.json rollForward override, every
+2. Rule: gitSha == `git rev-parse HEAD` (6c6e13fb404989f222987cb94684a1ec253b2db5), dirtyTracked empty, only a global.json rollForward override, every
    step of scripts/ci/steps.json passed, complete = true.
 3. Negative: the rule rejects the same summary with another gitSha and with one failed step.
 4. Rule P-3: on Docker Desktop, Testcontainers inside the ci-local container times out intermittently through the

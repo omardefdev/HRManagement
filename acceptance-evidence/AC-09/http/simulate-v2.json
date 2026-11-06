@@ -3,7 +3,7 @@
   "method": "POST",
   "url": "/api/hr-core/api/policies/templates/a0000001-0000-4000-8000-000000000303/simulate",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:09:50.5257518Z",
+  "capturedAtUtc": "2026-11-06T21:27:28.6948838Z",
   "body": {
     "allowed": true,
     "effects": [

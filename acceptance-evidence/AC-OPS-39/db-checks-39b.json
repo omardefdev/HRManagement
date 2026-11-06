@@ -93,6 +93,7 @@
         "hr-core.lookup",
         "hr-core.workflow",
         "dsar.subject.read",
+        "dsar.subject.erase",
         "file-storage.references"
       ],
       "aud": [

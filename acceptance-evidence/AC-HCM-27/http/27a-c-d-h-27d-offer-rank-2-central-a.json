@@ -3,18 +3,20 @@
   "method": "POST",
   "url": "/ui/hr-core/RecruitmentApplications/CreateOffer",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:15:00.9742769Z",
+  "capturedAtUtc": "2026-11-06T20:55:40.2630830Z",
   "body": {
     "fields": [
-      "ApplicationId=5db9d15b-f6ff-4162-92f7-da00f7a12122",
+      "ApplicationId=58bbd3cc-4485-4736-b8dd-773585756427",
       "OfferedSalary=400000",
       "GradeCode=G5",
-      "ProposedStartDate=2026-12-05",
+      "ProposedStartDate=2026-12-06",
       "ValidityDays=14"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/38a4e516-6e87-4378-a225-724f0adfa560",
-    "final": "/ui/hr-core/OfferLetters/Details/38a4e516-6e87-4378-a225-724f0adfa560",
-    "alerts": []
+    "redirect": "/ui/hr-core/OfferLetters/Details/d9a8db8c-4f6c-4160-b385-90da5ec2f052",
+    "final": "/ui/hr-core/OfferLetters/Details/d9a8db8c-4f6c-4160-b385-90da5ec2f052",
+    "alerts": [
+      "\u003Ci class=\u0022fas fa-check-circle\u0022\u003E"
+    ]
   }
 }

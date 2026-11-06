@@ -1,0 +1,15 @@
+{
+  "stage": "after",
+  "explicitDomainSnapshot": false,
+  "outcome": "Pass",
+  "correlationId": "3516f4a3-0d64-450f-aeb2-12f6df351560",
+  "httpObservationCount": 2,
+  "lastHttpObservation": {
+    "step": "anonymize-erase-scope",
+    "method": "POST",
+    "url": "/api/internal/dsar-subjects/candidates/{id}/anonymize",
+    "statusCode": 200,
+    "capturedAtUtc": "2026-11-06T20:58:55.0139722Z"
+  },
+  "note": "Outcome is derived from the executed assertions and captured observations."
+}

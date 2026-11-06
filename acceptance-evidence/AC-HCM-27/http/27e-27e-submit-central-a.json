@@ -3,15 +3,16 @@
   "method": "POST",
   "url": "/ui/hr-core/OfferLetters/SubmitOffer",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:15:06.1833505Z",
+  "capturedAtUtc": "2026-11-06T20:55:43.5362803Z",
   "body": {
     "fields": [
-      "id=840a4484-a79f-49aa-93cb-6afdbf97861d"
+      "id=020743c2-4d26-457c-83be-fd3ffc1f3253"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/OfferLetters/Details/840a4484-a79f-49aa-93cb-6afdbf97861d",
-    "final": "/ui/hr-core/OfferLetters/Details/840a4484-a79f-49aa-93cb-6afdbf97861d",
+    "redirect": "/ui/hr-core/OfferLetters/Details/020743c2-4d26-457c-83be-fd3ffc1f3253",
+    "final": "/ui/hr-core/OfferLetters/Details/020743c2-4d26-457c-83be-fd3ffc1f3253",
     "alerts": [
+      "\u003Ci class=\u0022fas fa-check-circle\u0022\u003E",
       "\u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0644\u0645\u0646\u0634\u0626 \u0627\u0639\u062A\u0645\u0627\u062F \u0639\u0631\u0636\u0647 \u0627\u0644\u062E\u0627\u0635."
     ]
   }

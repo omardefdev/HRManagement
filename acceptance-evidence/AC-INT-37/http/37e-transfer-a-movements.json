@@ -3,14 +3,14 @@
   "method": "POST",
   "url": "/ui/hr-movements/TransferRequests/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:30.6846636Z",
+  "capturedAtUtc": "2026-11-06T20:53:17.9179268Z",
   "body": {
     "fields": [
-      "EmployeeId=437e4c51-9f46-497d-8ec5-c259256dac14",
+      "EmployeeId=adcc3872-bf89-48dc-b99f-8b489f14f0b0",
       "FromOrgUnitId=0732e07f-0d5f-7742-8b64-ea7e38521e17",
       "ToOrgUnitId=459da137-60bd-1e44-a3f8-2f1908481ad1",
-      "RequestDate=2026-11-05",
-      "EffectiveDate=2027-01-04",
+      "RequestDate=2026-11-06",
+      "EffectiveDate=2027-01-05",
       "Reason=AC-INT-37e"
     ],
     "postStatus": 302,

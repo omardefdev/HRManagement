@@ -3,7 +3,7 @@
   "method": "GET",
   "url": "/api/hr-core/api/establishment/gap-analysis?orgUnitId=a0000001-0000-4000-8000-000000000102\u0026fiscalYear=2026",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:08:35.0822240Z",
+  "capturedAtUtc": "2026-11-06T21:22:07.2615677Z",
   "body": {
     "orgUnitId": "a0000001-0000-4000-8000-000000000102",
     "fiscalYear": 2026,
@@ -15,8 +15,8 @@
       "actual": {
         "fundedCount": 333,
         "fundedFTE": 332.5,
-        "occupiedCount": 259,
-        "vacantCount": 74,
+        "occupiedCount": 260,
+        "vacantCount": 73,
         "frozenCount": 0
       },
       "deficitCount": 2,
@@ -31,8 +31,8 @@
           "plannedFTE": 335,
           "fundedCount": 333,
           "fundedFTE": 332.5,
-          "occupiedCount": 259,
-          "vacantCount": 74,
+          "occupiedCount": 260,
+          "vacantCount": 73,
           "frozenCount": 0,
           "deficitCount": 2,
           "surplusCount": 0,

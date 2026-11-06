@@ -1,15 +1,15 @@
 {
   "step": "31a-31a-creator-approve-central-a",
   "method": "POST",
-  "url": "/ui/hr-core/Competitions/ApproveWorkflow/9c5d9990-4f83-4cc9-bd20-5bbd49614957",
+  "url": "/ui/hr-core/Competitions/ApproveWorkflow/cf39a714-f1a5-4164-8170-4c0ff0a0b724",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:03:21.7133803Z",
+  "capturedAtUtc": "2026-11-06T21:27:54.3000287Z",
   "body": {
     "fields": [
       "comments=\u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0639\u062A\u0645\u0627\u062F \u0630\u0627\u062A\u064A"
     ],
     "postStatus": 302,
-    "redirect": "/ui/hr-core/Competitions/Details/9c5d9990-4f83-4cc9-bd20-5bbd49614957",
-    "final": "/ui/hr-core/Competitions/Details/9c5d9990-4f83-4cc9-bd20-5bbd49614957"
+    "redirect": "/ui/hr-core/Competitions/Details/cf39a714-f1a5-4164-8170-4c0ff0a0b724",
+    "final": "/ui/hr-core/Competitions/Details/cf39a714-f1a5-4164-8170-4c0ff0a0b724"
   }
 }

@@ -1,0 +1,2 @@
+1. Each of the 15 Deployments references <name>-secrets (S2s042K8sPerServiceSecretsTests holds the full rules).
+2. Negative: no file under deploy mentions hr-app-secrets; kubectl kustomize of production-ha agrees where kubectl exists.

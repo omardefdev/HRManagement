@@ -1,16 +1,16 @@
 {
   "step": "5-approve-2-a-management-approver",
   "method": "POST",
-  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/cf0ca771-43e2-4d2d-a060-cffcaf9ddc42",
+  "url": "/ui/hr-core/OfferLetters/ApproveWorkflow/d86ea014-0612-4fd1-b6f9-4c785da3ecb8",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:23:50.9676756Z",
+  "capturedAtUtc": "2026-11-06T20:52:41.3589847Z",
   "body": {
     "fields": [
-      "OfferId=cf0ca771-43e2-4d2d-a060-cffcaf9ddc42",
+      "OfferId=d86ea014-0612-4fd1-b6f9-4c785da3ecb8",
       "Comments=E2E step 2"
     ],
     "files": null,
     "postStatus": 302,
-    "final": "/ui/hr-core/OfferLetters/Details/cf0ca771-43e2-4d2d-a060-cffcaf9ddc42"
+    "final": "/ui/hr-core/OfferLetters/Details/d86ea014-0612-4fd1-b6f9-4c785da3ecb8"
   }
 }

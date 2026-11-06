@@ -369,3 +369,10 @@
 | D-53-4 | البيانات المرجعية | — | PLAN-53: `SalaryScales`/`PayGrades`: طلب تغيير يعتمده `Payroll.Approve` (`Payroll:MasterData:RequireApproval=true`). `CompensationTypes`/`DeductionTypes`: سياسة `Payroll.MasterData` فقط (والخصومات النظامية تنتقل إلى نسخة الإطار في PLAN-54) | [PLAN-53](acceptance-plans/PLAN-53-iam-payroll-salary-change.md) | قَبِل المالك الموصى به (افتراضي الخطة) — 2026-10-31، استبيان الموجة 1 |
 | D-53-5 | `PayrollReports.BulkPayslips` | — | PLAN-53: `Payroll.Process` (تصدير جماعي لقسائم تشغيل) | [PLAN-53](acceptance-plans/PLAN-53-iam-payroll-salary-change.md) | قَبِل المالك الموصى به (افتراضي الخطة) — 2026-10-31، استبيان الموجة 1 |
 
+
+### 66 — 66
+
+| القرار | المسألة | الموصى به (الدراسة) | الافتراضي في الخطة | الموجة 1 | القرار المعتمد |
+|--------|---------|---------------------|---------------------|----------|----------------|
+| D-QA-66-1 | متى تعمل فحوص حوكمة CI (`AcQa34PushableBaselineTests`، `AcQa35RemoteCiTests`) | — | PLAN-66: على PR حين يغيّر ملفاً تقرؤه، وكل ليلة على `main`، وفي كل تشغيل يدوي؛ وإلا تسجلها الأدلة «لم يُشغَّل بحكم القاعدة» مع رابط آخر تشغيل ليلي | [PLAN-66](acceptance-plans/PLAN-66-qa-ci-fast-pipeline.md) | قَبِله المالك في المحادثة، 2026-11-06 |
+| D-QA-66-2 | تشغيل ثانٍ لشجرة شيفرة لم تتغير | — | PLAN-66: تعيد الوظائف الثقيلة استعمال تشغيل كامل أخضر من PR نفسه للشجرة نفسها؛ و`CodeQL` و`Gitleaks` يعملان دائماً | [PLAN-66](acceptance-plans/PLAN-66-qa-ci-fast-pipeline.md) | قَبِله المالك في المحادثة، 2026-11-06 |

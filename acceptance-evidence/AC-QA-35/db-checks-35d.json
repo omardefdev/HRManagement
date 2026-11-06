@@ -11,7 +11,7 @@
     "url": "https://github.com/omardefdev/HRManagement/pull/25",
     "state": "CLOSED",
     "head": "plan35-negative-check",
-    "mergeStateStatus": "UNSTABLE",
+    "mergeStateStatus": "BEHIND",
     "checks": [
       {
         "Name": "CI",

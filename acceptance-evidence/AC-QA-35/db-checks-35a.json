@@ -1,11 +1,11 @@
 {
-  "head": "8887e1b99f635b19887c27ca614733f87fae1cb5",
+  "head": "6c6e13fb404989f222987cb94684a1ec253b2db5",
   "fast": {
     "exit": 0,
     "lines": [
       "[PASS] gitleaks",
-      "history: no leaks (326 commits scanned.)",
-      "range: no leaks (16 commits scanned.)",
+      "history: no leaks (367 commits scanned.)",
+      "range: no leaks (10 commits scanned.)",
       "[PASS] actionlint",
       "[PASS] forbidden",
       "[PASS] nonprod",
@@ -13,7 +13,7 @@
     ]
   },
   "cilocal": {
-    "summarySha": "8887e1b99f635b19887c27ca614733f87fae1cb5",
+    "summarySha": "6c6e13fb404989f222987cb94684a1ec253b2db5",
     "exit": 0,
     "summaryIsAncestor": true
   },

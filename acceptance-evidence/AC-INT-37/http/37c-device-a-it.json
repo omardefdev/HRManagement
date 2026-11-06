@@ -3,12 +3,12 @@
   "method": "POST",
   "url": "/ui/it-infra/UserDevices/Create",
   "statusCode": 200,
-  "capturedAtUtc": "2026-11-05T04:24:23.7922520Z",
+  "capturedAtUtc": "2026-11-06T20:53:12.9225757Z",
   "body": {
     "fields": [
       "AssignedTo=a0000001-0000-4000-8000-000000000201",
       "DeviceType=Laptop",
-      "SerialNumber=INT37-9db0f3cf39334a",
+      "SerialNumber=INT37-36fbbe931d924f",
       "AssetTag=PENDING",
       "Status=InUse"
     ],
