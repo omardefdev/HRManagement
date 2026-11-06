@@ -178,7 +178,7 @@ public class AcS2s42TrustBoundaryTests
     }
 
     /// <summary>A new undelivered asset of agency A: the setup is SQL, the action under test goes through the gateway.</summary>
-    private static async Task<Guid> InsertAssetAsync(string category, bool privileged = false)
+    internal static async Task<Guid> InsertAssetAsync(string category, bool privileged = false)
     {
         var id = Guid.NewGuid();
         await Sql("admin_db", $"""
@@ -200,7 +200,7 @@ public class AcS2s42TrustBoundaryTests
         return id;
     }
 
-    private static async Task<(HttpResponseMessage Response, string Error)> AssignAsync(HttpClient http, Guid asset, Guid employee, string? evidence = null)
+    internal static async Task<(HttpResponseMessage Response, string Error)> AssignAsync(HttpClient http, Guid asset, Guid employee, string? evidence = null)
     {
         var fields = new Dictionary<string, string> { ["employeeId"] = employee.ToString("D"), ["handoverCondition"] = "Good" };
         if (evidence is not null)
@@ -212,7 +212,7 @@ public class AcS2s42TrustBoundaryTests
     }
 
     /// <summary>The alert boxes of a page, for a failure message.</summary>
-    private static string Alerts(string html) =>
+    internal static string Alerts(string html) =>
         string.Join(" | ", Regex.Matches(html, @"class=""[^""]*\balert\b[^""]*""[^>]*>(.*?)</div>", RegexOptions.Singleline)
             .Select(m => Regex.Replace(m.Groups[1].Value, "<[^>]+>", " ").Trim()));
 
@@ -244,7 +244,7 @@ public class AcS2s42TrustBoundaryTests
         }
     }
 
-    private static async Task<HttpClient> UiClientAsync(string persona)
+    internal static async Task<HttpClient> UiClientAsync(string persona)
     {
         var correlation = Guid.NewGuid().ToString("D");
         var token = await AcceptanceHarness.FetchPasswordGrantTokenAsync(AcceptanceHarness.RequirePersona(persona), correlation);
@@ -409,10 +409,17 @@ public class AcS2s42TrustBoundaryTests
         var body = await ok.Content.ReadAsStringAsync();
         r.CaptureHttp("enforce-service", "POST", "/api/internal/policies/enforce", (int)ok.StatusCode, JsonSerializer.Deserialize<object>(body));
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
-        Guid instance;
+        // PLAN-43: the decision says an approval is needed and no instance starts here: the owner starts it through Start.
         using (var doc = JsonDocument.Parse(body))
-            instance = doc.RootElement.GetProperty("workflowInstanceId").GetGuid();
-        Assert.Equal(actor.ToString("D"), await Sql("hr_core_db", $"SELECT \"InitiatedBy\" FROM \"WorkflowInstances\" WHERE \"Id\"='{instance:D}';"));
+        {
+            Assert.Contains(doc.RootElement.GetProperty("decision").GetProperty("effects").EnumerateArray(), e =>
+                e.ValueKind == JsonValueKind.String
+                    ? e.GetString() == nameof(PolicyEffect.TriggerWorkflow)
+                    : e.GetInt32() == (int)PolicyEffect.TriggerWorkflow);
+            Assert.True(!doc.RootElement.TryGetProperty("workflowInstanceId", out var none) || none.ValueKind == JsonValueKind.Null);
+        }
+        var instances = await Sql("hr_core_db", $"SELECT count(*) FROM \"WorkflowInstances\" WHERE \"EntityId\"='{entity:D}';");
+        Assert.Equal("0", instances);
         Assert.Equal(actor.ToString("D"), await Sql("hr_core_db", $"SELECT \"ActorUserId\" FROM \"PolicyEnforcementLedgers\" WHERE \"EntityId\"='{entity:D}';"));
 
         using var user = await UiClientAsync("b-branch-manager");
@@ -432,9 +439,9 @@ public class AcS2s42TrustBoundaryTests
         var wrongSubject = await service.PostAsync("api/internal/policies/enforce", Json(offer));
         Assert.Equal(HttpStatusCode.BadRequest, wrongSubject.StatusCode);
 
-        r.WriteScenarioDbChecks(new { entity, instance, actor, oldRoute = (int)oldRoute.StatusCode, internalRoute = (int)internalRoute.StatusCode, foreign = (int)foreign.StatusCode, wrongSubject = (int)wrongSubject.StatusCode });
+        r.WriteScenarioDbChecks(new { entity, instances, actor, oldRoute = (int)oldRoute.StatusCode, internalRoute = (int)internalRoute.StatusCode, foreign = (int)foreign.StatusCode, wrongSubject = (int)wrongSubject.StatusCode });
         r.WriteScenarioSteps(
-            "1. svc-admin-logistics posts enforce for an AssetAssignment with X-Acting-User: 200, an ASSET-ASSIGN-APPROVAL instance whose InitiatedBy is the header's user, though the body named another actor and Mode Off.\n" +
+            "1. svc-admin-logistics posts enforce for an AssetAssignment with X-Acting-User and a spoofed actor and mode: 200, the TriggerWorkflow effect in the decision, no instance, and the ledger names the acting user.\n" +
             "2. Negative: b-branch-manager: the old route does not exist and the internal one is 403.\n" +
             "3. Negative: svc-admin-logistics on Contracts.Leave: 403. SubjectType OfferLetter: 400.");
         r.WriteResult("Pass");

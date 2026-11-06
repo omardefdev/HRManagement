@@ -267,13 +267,16 @@ public sealed class Hcm025ApprovalGatesTests
     }
 
     [Fact]
-    public async Task Non_enforced_entity_types_keep_their_previous_behaviour()
+    public async Task Exempt_entity_types_keep_their_previous_behaviour_and_every_other_type_is_enforced()
     {
         await using var fx = await Fx.CreateAsync();
-        var instance = await fx.StartAsync("TRANSFER-APPROVAL", "TransferRequest", Guid.NewGuid(), Creator);
+        var exempt = await fx.StartAsync("ASSET-LOSS-APPROVAL", "AssetLossReport", Guid.NewGuid(), Creator);
+        var enforced = await fx.StartAsync("TRANSFER-APPROVAL", "TransferRequest", Guid.NewGuid(), Creator);
 
-        Assert.Null(await fx.BlockAsync(instance, Approver(Other), WorkflowActionKind.Approve));
-        Assert.Null(await fx.BlockAsync(instance, Approver(Other), WorkflowActionKind.Reject));
+        Assert.Null(await fx.BlockAsync(exempt, Approver(Other), WorkflowActionKind.Approve));
+        Assert.Null(await fx.BlockAsync(exempt, Approver(Other), WorkflowActionKind.Reject));
+        // PLAN-43 (G-WF-06): enforcement is the default since then.
+        Assert.Equal(WorkflowStageGuard.StepRoleMessage(HrManagementRoles.HrCore), await fx.BlockAsync(enforced, Approver(Other), WorkflowActionKind.Approve));
     }
 
     // ---------------------------------------------------------------- fixture

@@ -275,7 +275,7 @@ builder.Services.AddHrCoreExternalIntegrations(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
 builder.Services.AddOrgScopeAuthorization();
-// PLAN-25 (G-04): Workflow:AdminBypass (false unless set) and Workflow:EnforceStepRoleEntityTypes; registered before the
+// PLAN-25 (G-04), PLAN-43: Workflow:AdminBypass (false unless set) and Workflow:StepRole:ExemptEntityTypes; registered before the
 // policy engine so its TryAdd default does not apply.
 builder.Services.AddSingleton(builder.Configuration.GetSection(HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions.SectionName)
     .Get<HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions>() ?? new HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions());
@@ -293,6 +293,7 @@ builder.Services.AddServiceRegimePackCheck(builder.Configuration, builder.Enviro
 var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
 
+HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions.WarnAboutIgnoredKey(app.Configuration, app.Logger);
 await app.Services.TryMigrateAsync<HRCoreDbContext>();
 var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 // PLAN-38 (D-38-6): the national seed is mandatory (a failure stops a Production start; Seed:AllowMandatoryFailure is the
@@ -316,6 +317,9 @@ using (var scope = app.Services.CreateScope())
             await seeds.RunOptionalAsync("acceptance", () =>
                 HR.Core.Infrastructure.Seeding.AcceptanceSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider));
         }
+        // PLAN-43 (G-WF-04): reports what the validator finds in the published definitions; it never stops a start.
+        await seeds.RunOptionalAsync("workflow-definition-health", () =>
+            HR.Core.Infrastructure.Services.Workflow.WorkflowDefinitionHealthReport.RunAsync(coreDb, app.Logger));
         // Derived data (org-unit paths) and the org-unit publication, not seeds: a failure is a warning as before.
         await seeds.RunOptionalAsync("org-unit-paths", async () =>
         {

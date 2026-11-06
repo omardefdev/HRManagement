@@ -45,8 +45,8 @@
     },
     "hr-core.workflow-instances.start": {
       "target": "hr-core-web", "method": "POST", "path": "/api/workflow-instances",
-      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowInstancesController.cs",
-      "serverPolicies": ["HrManagementPolicies.HrCoreReadOnly", "HrManagementPolicies.HrCoreWrite"], "scope": "hr-core.workflow"
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowExternalInstancesController.cs",
+      "serverPolicies": ["HrManagementPolicies.WorkflowExternalStart"], "scope": "hr-core.workflow"
     },
     "hr-core.dsar.subject": {
       "target": "hr-core-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}",

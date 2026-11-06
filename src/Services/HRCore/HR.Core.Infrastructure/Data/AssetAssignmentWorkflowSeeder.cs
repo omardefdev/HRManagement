@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Enums;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,8 @@ public static class AssetAssignmentWorkflowSeeder
             Name = "موافقة تسليم عهدة",
             Version = 1,
             IsPublished = true,
+            Status = WorkflowDefinitionStatus.Published,
+            RequireDistinctApprovers = true,
             DomainEntityType = "AssetAssignment",
             StepsJson = JsonSerializer.Serialize(steps),
             GuardrailRolesJson = "[]",

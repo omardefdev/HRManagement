@@ -30,6 +30,36 @@
       "enabled": true
     },
     {
+      "id": "p-workflow-admin",
+      "username": "acc-p-workflow-admin",
+      "passwordEnv": "ACCEPTANCE_P_WORKFLOW_ADMIN_PASSWORD",
+      "roles": [
+        "workflow-admin"
+      ],
+      "tenantCode": "PLATFORM",
+      "tenantId": "00000000-0000-4000-8000-000000000001",
+      "purpose": "Writes and submits national workflow definitions",
+      "scenarios": [
+        "AC-WF-43"
+      ],
+      "enabled": true
+    },
+    {
+      "id": "p-workflow-admin-2",
+      "username": "acc-p-workflow-admin-2",
+      "passwordEnv": "ACCEPTANCE_P_WORKFLOW_ADMIN_2_PASSWORD",
+      "roles": [
+        "workflow-admin"
+      ],
+      "tenantCode": "PLATFORM",
+      "tenantId": "00000000-0000-4000-8000-000000000001",
+      "purpose": "Second person who publishes a submitted workflow definition",
+      "scenarios": [
+        "AC-WF-43"
+      ],
+      "enabled": true
+    },
+    {
       "id": "central-a",
       "username": "acc-central-a",
       "passwordEnv": "ACCEPTANCE_CENTRAL_A_PASSWORD",

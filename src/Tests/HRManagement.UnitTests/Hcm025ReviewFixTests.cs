@@ -53,18 +53,20 @@ public sealed class Hcm025ReviewFixTests
     }
 
     [Fact]
-    public async Task F1_generic_start_api_refuses_entity_types_started_by_their_submit()
+    public async Task F1_generic_start_api_refuses_a_user_and_entity_types_started_by_their_submit()
     {
         await using var db = CreateContext();
         await SeedReferenceDataAsync(db);
-        var controller = new WorkflowInstancesController(db, new WorkflowEngine(), CreateActionService(db), new WorkflowStepRoleOptions())
-        {
-            ControllerContext = new ControllerContext { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() }
-        };
+        var service = new HR.Core.Infrastructure.Services.Workflow.External.ExternalApprovalService(db, new WorkflowEngine());
+        var request = new HRManagement.ServiceDefaults.Workflow.CrossService.WorkflowApprovalStartRequest(
+            "RecruitmentRequisition", Guid.NewGuid(), "RECRUITMENT-REQUISITION-APPROVAL", "key", [], null, "title", "/ui/hr-core/x", null);
 
-        var result = await controller.Start(new StartWorkflowRequest { EntityType = "RecruitmentRequisition", EntityId = Guid.NewGuid() });
+        // PLAN-43: 403 for a user, and for a service account too: the type has no owner outside HR.Core.
+        var asUser = await service.StartAsync(request, new(false, null, Creator.ToString("D"), null));
+        var asService = await service.StartAsync(request, new(true, ServiceClientIds.AdminLogistics, Creator.ToString("D"), null));
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(HR.Core.Infrastructure.Services.Workflow.External.ExternalApprovalOutcome.Forbidden, asUser.Outcome);
+        Assert.Equal(HR.Core.Infrastructure.Services.Workflow.External.ExternalApprovalOutcome.Forbidden, asService.Outcome);
         Assert.Empty(await db.WorkflowInstances.ToListAsync());
     }
 

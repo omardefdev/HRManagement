@@ -959,7 +959,7 @@
       "securitySeverity": 8.8,
       "owner": "security",
       "reviewBy": "2027-01-28",
-      "status": "Open",
+      "status": "Fixed",
       "reason": "Pre-existing finding surfaced by the first CodeQL SARIF gate (PLAN-35, PR run 41083926373); the code predates the push and the old job (upload: false) never failed. Fix or justify by reviewBy."
     },
     {
@@ -971,7 +971,7 @@
       "securitySeverity": 8.8,
       "owner": "security",
       "reviewBy": "2027-01-28",
-      "status": "Open",
+      "status": "Fixed",
       "reason": "Pre-existing finding surfaced by the first CodeQL SARIF gate (PLAN-35, PR run 41083926373); the code predates the push and the old job (upload: false) never failed. Fix or justify by reviewBy."
     },
     {
@@ -983,7 +983,7 @@
       "securitySeverity": 8.8,
       "owner": "security",
       "reviewBy": "2027-01-28",
-      "status": "Open",
+      "status": "Fixed",
       "reason": "Pre-existing finding surfaced by the first CodeQL SARIF gate (PLAN-35, PR run 41083926373); the code predates the push and the old job (upload: false) never failed. Fix or justify by reviewBy."
     },
     {

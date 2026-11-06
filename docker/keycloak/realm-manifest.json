@@ -143,6 +143,10 @@
     {
       "name": "hr-exam-marker",
       "description": "Role hr-exam-marker"
+    },
+    {
+      "name": "workflow-admin",
+      "description": "Role workflow-admin"
     }
   ],
   "defaultDefaultClientScopes": [],

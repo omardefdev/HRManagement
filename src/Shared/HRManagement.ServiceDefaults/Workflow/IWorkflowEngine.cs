@@ -38,6 +38,15 @@ public interface IWorkflowEngine
         Guid? actorId,
         string? actorName,
         string? comments = null);
+
+    /// <summary>
+    /// PLAN-43: ends a running instance at the request of the service that owns it (status Cancelled, history entry Withdrawn).
+    /// </summary>
+    WorkflowEngineResult Withdraw(
+        WorkflowInstanceState instance,
+        Guid? actorId,
+        string? actorName,
+        string? reason);
 }
 
 /// <summary>Mutable state bag passed to the engine for evaluation.</summary>

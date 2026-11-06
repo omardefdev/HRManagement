@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Enums;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,7 @@ public static class AssetLossWorkflowSeeder
             Name = "موافقة فقدان أصل",
             Version = 1,
             IsPublished = true,
+            Status = WorkflowDefinitionStatus.Published,
             DomainEntityType = "AssetLossReport",
             StepsJson = JsonSerializer.Serialize(steps),
             GuardrailRolesJson = "[]",

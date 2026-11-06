@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Enums;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Workflow;
@@ -83,6 +84,15 @@ public static class WorkflowPackSeeder
         "RECRUITMENT-HIRE"
     };
 
+    /// <summary>
+    /// PLAN-43 (G-WF-06): the seeded definitions that keep one person from taking two steps. The recruitment and establishment ones
+    /// stay false: AC-HCM-25d has one committee member approve two steps, and their own rules live in the gates.
+    /// </summary>
+    public static readonly IReadOnlySet<string> DistinctApproverCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "ASSET-ASSIGN-APPROVAL"
+    };
+
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
     {
         foreach (var wf in Workflows)
@@ -108,6 +118,9 @@ public static class WorkflowPackSeeder
                 Name = wf.Name,
                 Version = 1,
                 IsPublished = !RetiredCodes.Contains(wf.Code),
+                Status = RetiredCodes.Contains(wf.Code) ? WorkflowDefinitionStatus.Retired : WorkflowDefinitionStatus.Published,
+                RequireDistinctApprovers = DistinctApproverCodes.Contains(wf.Code),
+                ChangeReason = "seed:national",
                 ValidTo = RetiredCodes.Contains(wf.Code) ? DateTime.UtcNow : null,
                 DomainEntityType = wf.DomainEntityType,
                 StepsJson = JsonSerializer.Serialize(steps),
@@ -119,6 +132,94 @@ public static class WorkflowPackSeeder
         await db.SaveChangesAsync(ct);
 
         await RetireAsync(db, ct);
+        await BackfillGovernanceAsync(db, ct);
+    }
+
+    /// <summary>
+    /// PLAN-43: idempotent start-up patch for rows older than the governance columns, and for a version the previous tag published
+    /// after a rollback: published means Published, a retired code means Retired, and custody requires distinct approvers. A migration
+    /// cannot do this: the table has forced row security and the migrator role carries no tenant, so its UPDATE matches no row.
+    /// </summary>
+    public static async Task BackfillGovernanceAsync(HRCoreDbContext db, CancellationToken ct = default)
+    {
+        var definitions = await db.WorkflowDefinitions
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .ToListAsync(ct);
+
+        var changed = false;
+        foreach (var definition in definitions)
+        {
+            var status = definition.IsPublished
+                ? WorkflowDefinitionStatus.Published
+                : definition.Status == WorkflowDefinitionStatus.Draft && RetiredCodes.Contains(definition.Code)
+                    ? WorkflowDefinitionStatus.Retired
+                    : definition.Status;
+            var distinct = definition.RequireDistinctApprovers || DistinctApproverCodes.Contains(definition.Code);
+            if (status == definition.Status && distinct == definition.RequireDistinctApprovers)
+                continue;
+
+            definition.Status = status;
+            definition.RequireDistinctApprovers = distinct;
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// PLAN-43 (G-WF-04): the system path to raise a national definition, for PLAN-45 and PLAN-46. When the steps of the latest published
+    /// version differ from <paramref name="steps"/>, publishes a new version with no human publisher (<c>ChangeReason = seed:&lt;plan&gt;</c>)
+    /// and retires the older ones; instances keep the version they pinned. Running it again changes nothing.
+    /// </summary>
+    /// <returns>True when a new version was published.</returns>
+    public static async Task<bool> EnsureVersionAsync(
+        HRCoreDbContext db,
+        string code,
+        IReadOnlyList<WorkflowStepSnapshot> steps,
+        string plan,
+        CancellationToken ct = default)
+    {
+        var versions = await db.WorkflowDefinitions
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code)
+            .ToListAsync(ct);
+        var latest = versions.Where(d => d.IsPublished).MaxBy(d => d.Version)
+            ?? throw new InvalidOperationException($"No published definition {code} to raise.");
+
+        var current = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(latest.StepsJson) ?? [];
+        if (current.SequenceEqual(steps))
+            return false;
+
+        var now = DateTime.UtcNow;
+        foreach (var older in versions.Where(d => d.IsPublished))
+        {
+            older.IsPublished = false;
+            older.Status = WorkflowDefinitionStatus.Retired;
+            older.RetiredAt = now;
+            older.ChangeReason = $"seed:{plan}";
+        }
+
+        db.WorkflowDefinitions.Add(new WorkflowDefinition
+        {
+            TenantId = TenantDefaults.DefaultTenantId,
+            Code = latest.Code,
+            Name = latest.Name,
+            Version = versions.Max(d => d.Version) + 1,
+            IsPublished = true,
+            Status = WorkflowDefinitionStatus.Published,
+            PublishedAt = now,
+            PublishedBy = null,
+            ChangeReason = $"seed:{plan}",
+            RequireDistinctApprovers = latest.RequireDistinctApprovers,
+            DomainEntityType = latest.DomainEntityType,
+            StepsJson = JsonSerializer.Serialize(steps),
+            GuardrailRolesJson = latest.GuardrailRolesJson,
+            Description = latest.Description
+        });
+
+        await db.SaveChangesAsync(ct);
+        return true;
     }
 
     /// <summary>PLAN-25 (G-14): idempotent start-up patch — unpublishes retired definitions in every tenant.</summary>
@@ -133,6 +234,8 @@ public static class WorkflowPackSeeder
         foreach (var definition in published)
         {
             definition.IsPublished = false;
+            definition.Status = WorkflowDefinitionStatus.Retired;
+            definition.RetiredAt ??= now;
             definition.ValidTo ??= now;
         }
 

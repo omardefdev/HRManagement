@@ -61,8 +61,8 @@ foreach ($envName in @("Production", "Staging")) {
     if ($json.PolicyEngine.'Core.Recruitment' -ne "Shadow") { $failures += "appsettings.${envName}.json: PolicyEngine:Core.Recruitment is not Shadow" }
     if ($json.Recruitment.Approvals.AlwaysStartWorkflow -ne $true) { $failures += "appsettings.${envName}.json: Recruitment:Approvals:AlwaysStartWorkflow is not true" }
     if ($json.Workflow.AdminBypass -ne $false) { $failures += "appsettings.${envName}.json: Workflow:AdminBypass is not false" }
-    if (-not ($json.Workflow.EnforceStepRoleEntityTypes -contains "RecruitmentRequisition")) {
-        $failures += "appsettings.${envName}.json: Workflow:EnforceStepRoleEntityTypes lacks the recruitment types"
+    if ($json.Workflow.StepRole.ExemptEntityTypes -contains "RecruitmentRequisition") {
+        $failures += "appsettings.${envName}.json: Workflow:StepRole:ExemptEntityTypes holds a recruitment type"
     }
 }
 $base = Read-Text "src/Services/HRCore/HR.Core.Web/appsettings.json" | ConvertFrom-Json

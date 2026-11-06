@@ -55,12 +55,14 @@ public sealed class WorkflowStageGuardRoleTests
     }
 
     [Fact]
-    public void Non_enforced_entity_types_and_an_empty_list_skip_the_check()
+    public void An_exempt_type_skips_the_check_and_an_empty_list_exempts_nothing()
     {
-        Assert.Null(Approve(2, Roles(HrManagementRoles.HrCore), entityType: "TransferRequest"));
-        Assert.Null(Approve(2, Roles(HrManagementRoles.HrCore), new WorkflowStepRoleOptions { EnforceStepRoleEntityTypes = [] }));
+        Assert.Null(Approve(2, Roles(HrManagementRoles.HrCore), entityType: "AssetLossReport"));
+        Assert.NotNull(Approve(2, Roles(HrManagementRoles.HrCore), entityType: "TransferRequest"));
         Assert.NotNull(Approve(2, Roles(HrManagementRoles.HrCore),
-            new WorkflowStepRoleOptions { EnforceStepRoleEntityTypes = ["recruitmentrequisition"] }));
+            new WorkflowStepRoleOptions { StepRole = new() { ExemptEntityTypes = [] } }, entityType: "AssetLossReport"));
+        Assert.Null(Approve(2, Roles(HrManagementRoles.HrCore),
+            new WorkflowStepRoleOptions { StepRole = new() { ExemptEntityTypes = ["recruitmentrequisition"] } }));
     }
 
     [Theory]
@@ -76,10 +78,13 @@ public sealed class WorkflowStageGuardRoleTests
 
     [Theory]
     [InlineData("AssetAssignment")]
-    [InlineData("AssetLossReport")]
     [InlineData("TransferRequest")]
-    public void Other_domains_are_not_enforced_by_default(string entityType) =>
-        Assert.False(new WorkflowStepRoleOptions().IsEnforced(entityType));
+    public void Other_domains_are_enforced_by_default_too(string entityType) =>
+        Assert.True(new WorkflowStepRoleOptions().IsEnforced(entityType));
+
+    [Fact]
+    public void An_exemption_is_recorded_by_name() =>
+        Assert.False(new WorkflowStepRoleOptions().IsEnforced("AssetLossReport"));
 
     [Fact]
     public void Reject_checks_status_step_and_role()

@@ -42,7 +42,9 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
             || string.Equals(controller, "RecruitmentAppeals", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "WorkInbox", StringComparison.OrdinalIgnoreCase)
             // HCM-031 (PLAN-31): the marking controller carries HrCoreExamMarking (the exam marker role only).
-            || string.Equals(controller, "ExamMarking", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(controller, "ExamMarking", StringComparison.OrdinalIgnoreCase)
+            // PLAN-43: WorkflowDefinitionRead / WorkflowDefinitionAdmin admit workflow-admin, which holds no HR.Core module role.
+            || string.Equals(controller, "WorkflowDefinitions", StringComparison.OrdinalIgnoreCase))
             return;
 
         if (context.HttpContext.User.Identity?.IsAuthenticated != true)

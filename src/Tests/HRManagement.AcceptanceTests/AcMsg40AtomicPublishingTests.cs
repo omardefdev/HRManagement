@@ -234,8 +234,8 @@ public class AcMsg40AtomicPublishingTests
         await SqlTextAsync("admin_db", $"""
             INSERT INTO "Assets" ("Id","TagNumber","Name","Status","TenantId","CreatedAt","UpdatedAt")
             VALUES ('{asset:D}','MSG40-{asset:N}','MSG40 asset',1,'{TenantA:D}',now(),now());
-            INSERT INTO "AssetAssignments" ("Id","AssetId","EmployeeId","AssignedAt","Status","TenantId","CreatedAt","UpdatedAt")
-            VALUES ('{assignment:D}','{asset:D}','{employeeId:D}',now(),0,'{TenantA:D}',now(),now());
+            INSERT INTO "AssetAssignments" ("Id","AssetId","EmployeeId","AssignedAt","Status","TenantId","CreatedAt","UpdatedAt","WorkflowInstanceId")
+            VALUES ('{assignment:D}','{asset:D}','{employeeId:D}',now(),0,'{TenantA:D}',now(),now(),'{instance:D}');
             SELECT 1;
             """);
         var completedAt = workflowStatus == "InProgress" ? "NULL" : "now()";

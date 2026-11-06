@@ -23,6 +23,8 @@ public class Ac33AssetLossWorkflowTests
         public DateTime OccurredAt { get; init; } = DateTime.UtcNow;
         public string SourceSystem { get; init; } = "workflow-test";
         public Guid? TenantId { get; init; }
+        public Guid? WorkflowInstanceId { get; init; }
+        public int SchemaVersion => 2;
     }
 
     private sealed class AssetLossRejectedMessage : IAssetLossRejected
@@ -33,6 +35,8 @@ public class Ac33AssetLossWorkflowTests
         public DateTime OccurredAt { get; init; } = DateTime.UtcNow;
         public string SourceSystem { get; init; } = "workflow-test";
         public Guid? TenantId { get; init; }
+        public Guid? WorkflowInstanceId { get; init; }
+        public int SchemaVersion => 2;
     }
 
     [Fact]
@@ -55,6 +59,7 @@ public class Ac33AssetLossWorkflowTests
         {
             LossReportId = report.Id,
             AssetId = report.AssetId,
+            WorkflowInstanceId = report.WorkflowInstanceId,
             TenantId = AcceptanceSeedIds.AgencyAId
         };
         var context = Mock.Of<ConsumeContext<IAssetLossApproved>>(c =>
@@ -83,6 +88,7 @@ public class Ac33AssetLossWorkflowTests
         {
             LossReportId = report.Id,
             AssetId = report.AssetId,
+            WorkflowInstanceId = report.WorkflowInstanceId,
             Reason = "أدلة غير كافية"
         };
         var context = Mock.Of<ConsumeContext<IAssetLossRejected>>(c =>
@@ -121,6 +127,7 @@ public class Ac33AssetLossWorkflowTests
             Status = AssetLossReportStatus.PendingApproval,
             Reason = AssetLossReason.Misplacement,
             Context = AssetLossContext.WithOpenAssignment,
+            WorkflowInstanceId = Guid.NewGuid(),
             EvidenceRef = "AC-33-EVIDENCE"
         };
         AssetLossStateCapture.CaptureBefore(asset, open, report);
