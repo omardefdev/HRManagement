@@ -338,15 +338,15 @@ public sealed class Wf043GovernanceIntegrationTests(PgRabbitFixture fixture)
     }
 }
 
-/// <summary>PLAN-43 through the real HR.Core pipeline: routes, policies and the acting-user headers.</summary>
-public sealed class Wf043ApiBoundaryIntegrationTests : IClassFixture<WebApplicationFactory<HRCoreWebProgram>>, IDisposable
+/// <summary>One HR.Core host for the whole class: a host per test would pass EF's limit of service providers in this process.</summary>
+public sealed class Wf043ApiHost : IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"hr-wf043-{Guid.NewGuid():N}.db");
-    private readonly WebApplicationFactory<HRCoreWebProgram> _factory;
+    private readonly WebApplicationFactory<HRCoreWebProgram> _root = new();
 
-    public Wf043ApiBoundaryIntegrationTests(WebApplicationFactory<HRCoreWebProgram> factory)
+    public Wf043ApiHost()
     {
-        _factory = factory.WithWebHostBuilder(builder =>
+        Factory = _root.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Recruitment:Jobs:IntakeCloseEnabled", "false");
             builder.UseSetting("Recruitment:Jobs:OfferExpiryEnabled", "false");
@@ -371,12 +371,21 @@ public sealed class Wf043ApiBoundaryIntegrationTests : IClassFixture<WebApplicat
         });
     }
 
+    public WebApplicationFactory<HRCoreWebProgram> Factory { get; }
+
     public void Dispose()
     {
-        _factory.Dispose();
+        Factory.Dispose();
+        _root.Dispose();
         try { global::System.IO.File.Delete(_dbPath); }
         catch (IOException) { /* the host may still hold the file */ }
     }
+}
+
+/// <summary>PLAN-43 through the real HR.Core pipeline: routes, policies and the acting-user headers.</summary>
+public sealed class Wf043ApiBoundaryIntegrationTests(Wf043ApiHost host) : IClassFixture<Wf043ApiHost>
+{
+    private readonly WebApplicationFactory<HRCoreWebProgram> _factory = host.Factory;
 
     private HttpClient User(string roles)
     {
