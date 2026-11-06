@@ -46,3 +46,12 @@ Finished (UTC): 2026-11-06T18:26:30Z
 Local -Stage lab:main under the lock, 18:10:47Z to 18:36:43Z: Prepare 1 s, Stack lab 687 s (build included), Tests lab-main 863 s. 163 tests, the same count as run 42146523940's Tests lab-main.trx; guard PASS (57 classes); AC-01 holds the same files; the stage wrote 52 folders, all of them in the sequential layout. Non-required failures: the 4 of the CI run plus Ac08, Ac19, Ac30 (not required, local environment). Lock released 18:37:12Z after acceptance-reset.
 Review (one fresh subagent, read only): 1 high, 2 medium, 4 low. Accepted the high after checking it against .dockerignore (docs/*.json are runtime content): reuse now also compares outsideTree, a hash of docs/ except *.md plus the trigger paths. Fixed: --no-renames in the rule, pipefail in Save and Load, identity.pullRequest compared, the comment on a failed reuse check, pull-requests permission dropped from reuse-check and Acceptance, overwrite on acceptance-evidence and run-identity for reruns. Open: tool images by digest, to measure in the first run. No refuter: the high was confirmed by reading the code.
 PLAN-43 merged (PR 38, f8f5cd04) during the run: origin/main merged into the feature branch, no conflict.
+
+## P5 gates
+- ci-local run 1: red at Check formatting, 190 s (an anonymous object on one line in Qa066StageTests.cs). Fixed by c8d4d919.
+- ci-local run 2 on c8d4d919: red, 758 s: 3 of 148 Testcontainers tests lost the PostgreSQL connection mid-read, and Install ReportGenerator lost its download (ResponseEnded). No product or test change between runs 2 and 3.
+- ci-local run 3 on c8d4d919: green, 1305 s, 91 of 91 steps; unit 5124, integration 366, Testcontainers 148, 0 failed. So run 2 was the environment.
+- Pre-push on c8d4d919: green, 124 s.
+- S4: E2E runs beside CI. CI is not split: without meta the longest path is the Acceptance chain, to be measured; decide from the first full run.
+P5 finished.
+Finished (UTC): 2026-11-06T19:35:40Z
