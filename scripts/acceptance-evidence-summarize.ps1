@@ -54,6 +54,17 @@ foreach ($row in $rows) {
 [void]$lines.Add("")
 [void]$lines.Add((Format-AcceptanceTotalsLine -Totals $totals))
 
+# PLAN-66 (S3): the classes the rule of the scope left out of this run, with the reason and the last nightly run that ran them.
+$notRunByRule = Read-AcceptanceJson -Path (Join-Path $evidencePath "not-run-by-rule.json")
+if ($null -ne $notRunByRule) {
+    $nightly = [string](Get-AcceptanceProperty $notRunByRule "lastNightly")
+    if ([string]::IsNullOrWhiteSpace($nightly)) { $nightly = "none yet" }
+    [void]$lines.Add("")
+    [void]$lines.Add("## Not run by rule")
+    [void]$lines.Add("")
+    [void]$lines.Add("$(@($notRunByRule.classes) -join ', '): $($notRunByRule.reason) Last nightly run: $nightly.")
+}
+
 $open = @($rows | Where-Object { $_.status -in @("Fail", "Blocked") -and $_.reason })
 if ($open.Count -gt 0) {
     [void]$lines.Add("")
@@ -87,6 +98,7 @@ $json = [ordered]@{
     totals = $totals
     rows = $rows
 }
+if ($null -ne $notRunByRule) { $json["notRunByRule"] = @($notRunByRule.classes) }
 [System.IO.File]::WriteAllText((Join-Path $evidencePath "summary.json"), (($json | ConvertTo-Json -Depth 6) + "`n"), $utf8NoBom)
 Write-Host "Evidence summary written to: $summaryPath"
 Write-Host ("Totals: {0} proven, {1} passed but not proving, {2} stale, {3} incomplete, {4} not run, {5} fail, {6} blocked." -f `
