@@ -143,14 +143,14 @@ public class WorkflowYamlLintTests
     }
 
     [Fact]
-    public void Scheduled_jobs_wait_for_ENABLE_SCHEDULED_except_the_dated_obligations_sweep()
+    public void Scheduled_jobs_wait_for_ENABLE_SCHEDULED_except_the_dated_obligations_sweep_and_the_nightly_of_ci()
     {
         var problems = new List<string>();
         foreach (var file in WorkflowFiles())
         {
             var name = Path.GetFileName(file);
             var text = System.IO.File.ReadAllText(file).Replace("\r\n", "\n");
-            if (!Regex.IsMatch(text, @"^\s+schedule:", RegexOptions.Multiline) || name == "dated-obligations.yml")
+            if (!Regex.IsMatch(text, @"^\s+schedule:", RegexOptions.Multiline) || name is "dated-obligations.yml" or "ci.yml")
                 continue;
 
             var lines = text.Split('\n');
