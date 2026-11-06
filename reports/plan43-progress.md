@@ -72,5 +72,12 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 - Build 1 c6faf0a92e6e: 1349 s. Deploy: 156 s, reconcile 7 changes (workflow-admin and six older roles the realm lacked), smoke 50 pass, 0 fail, 1 warn.
 - Server check found: the migration's backfill matched no row. WorkflowDefinitions has forced row security and hr_core_migrator carries no tenant; the Testcontainers run was a superuser and the acceptance stack seeds after migrating, so neither could see it. Fixed by WorkflowPackSeeder.BackfillGovernanceAsync at start-up (2026-11-06T14:34:08Z). The demo stayed usable: starts read IsPublished. A second build was needed for this; a deviation from "build once".
 
+- Build 2 3bd9ee92bcf5: 1299 s. Deploy attempt 1 stopped at keycloak-reconcile right after PostgreSQL restarted (could not read the realm roles, unknown_error): the tag stayed, 7 containers up, applications down about 4 minutes (from about 14:56Z to 15:00Z). Attempt 2, the same command as the prompt says: exit 0, 120 s, reconcile 0 changes, smoke 50 pass, 0 fail, 1 warn. The transient error sits in the retry gap already open since PLAN-40.
+- Server checks 1 to 8: definitions 16 Published and 1 Retired, distinct approvers on ASSET-ASSIGN-APPROVAL alone; health report 6 of 16 invalid, service healthy; workflow-admin in the realm; hradmin refused 403 on the start through the edge; e2e-checker-mgmt approved a requisition through both steps, instance Completed with no requester; leave tour in AC_OPS_38; no in-flight instance existed before; smoke green; AcOps36 (36j excepted), AcInt37 server, PLAN-38, 39, 40 server checks 21 of 21, 1226 s, and the 2 PLAN-43 checks.
+- Requisition numbers: the demo seed wrote REQ-2026-00001..3 without moving the counter, so a real create answered 500 three times; the check moved the counter past them. A defect for later, now gone on this server.
+- GATEWAY_CALLER_PROOF_SECRET removed from .env, as PLAN-42 deferred to the next deploy; nothing in the repository reads it; a copy is in env.backup.
+- 22 containers, 0 unhealthy. demo-server released 2026-11-06T15:25:44Z.
+- P7: done. Finished (UTC): 2026-11-06T15:25:44Z.
+
 ## Next step
-Commit, build 2, deploy, server checks, secret removal, release lock.
+P8: final report, local CI and pre-push on the final head, release branch, PR, merge.
