@@ -1,37 +1,61 @@
 using HRManagement.SharedKernel.Workflow;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace HRManagement.ServiceDefaults.Workflow;
 
 /// <summary>
-/// PLAN-25 (G-04): <c>Workflow</c> section — which entity types have their step role enforced on the server, and whether
-/// <c>hr-admin</c> may act on a step it does not hold the role of.
+/// PLAN-25 (G-04), PLAN-43 (G-WF-06): <c>Workflow</c> section. The step role is enforced for every entity type except the recorded
+/// exemptions, and <c>hr-admin</c> acts on a step it does not hold the role of only with <see cref="AdminBypass"/>.
 /// </summary>
 public sealed class WorkflowStepRoleOptions
 {
     public const string SectionName = "Workflow";
 
-    /// <summary>Recruitment and establishment workflows (decision 4). Other domains are a follow-up.</summary>
-    public static readonly IReadOnlyList<string> DefaultEnforcedEntityTypes =
+    /// <summary>The key PLAN-43 replaced. It is ignored; a start-up warning names it.</summary>
+    public const string IgnoredKey = "Workflow:EnforceStepRoleEntityTypes";
+
+    /// <summary>
+    /// Types whose step role cannot reach the approval route yet, each with an owner plan and a date in
+    /// <c>docs/qa/workflow-step-role-exemptions.json</c>: <c>AssetLossReport</c> until PLAN-45, the others until PLAN-46.
+    /// </summary>
+    public static readonly IReadOnlyList<string> DefaultExemptEntityTypes =
     [
-        "RecruitmentRequisition",
-        "OfferLetter",
-        "SelectionCommitteeSession",
-        "RecruitmentAppeal",
-        "RecruitmentCompetition",
-        "CompetitionResultVersion",
-        "EstablishmentChangeRequest"
+        "AssetLossReport",
+        "SeparationRecord",
+        "DisciplinaryAction",
+        "CardRequest",
+        "Ticket"
     ];
 
     /// <summary>False in every environment unless set: an admin acts on a step only with that step's role.</summary>
     public bool AdminBypass { get; set; }
 
-    /// <summary>Null means <see cref="DefaultEnforcedEntityTypes"/>; an empty list turns enforcement off.</summary>
-    public string[]? EnforceStepRoleEntityTypes { get; set; }
+    public WorkflowStepRoleSection StepRole { get; set; } = new();
 
     public bool IsEnforced(string? entityType) =>
         !string.IsNullOrWhiteSpace(entityType)
-        && (EnforceStepRoleEntityTypes ?? DefaultEnforcedEntityTypes)
+        && !(StepRole.ExemptEntityTypes ?? DefaultExemptEntityTypes)
             .Contains(entityType, StringComparer.OrdinalIgnoreCase);
+
+    /// <returns>True when the old key is still set.</returns>
+    public static bool WarnAboutIgnoredKey(IConfiguration configuration, ILogger logger)
+    {
+        if (!configuration.GetSection(IgnoredKey).Exists())
+            return false;
+
+        logger.LogWarning(
+            "{Key} is ignored since PLAN-43: the step role is enforced for every type except Workflow:StepRole:ExemptEntityTypes",
+            IgnoredKey);
+        return true;
+    }
+}
+
+/// <summary><c>Workflow:StepRole</c>.</summary>
+public sealed class WorkflowStepRoleSection
+{
+    /// <summary>Null means <see cref="WorkflowStepRoleOptions.DefaultExemptEntityTypes"/>; an empty list exempts nothing.</summary>
+    public string[]? ExemptEntityTypes { get; set; }
 }
 
 /// <summary>WF-001 / PLAN-03 / PLAN-25: API guards against illegal stage transitions and actors without the step role.</summary>

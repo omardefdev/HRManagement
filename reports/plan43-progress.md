@@ -45,5 +45,11 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 - AC-11: requester b-logistics, step 1 b-branch-manager, step 2 b-approver, because D-WF-8 bars a requester from every step. Test renamed.
 - P-6: the allow-list is empty, 42c proves the effect and no instance; closes M3 for the registered types. What stays for PLAN-51: any other hr-core.workflow caller holds no start now, so only the general contract of PLAN-46 and per-type registration remain.
 
+- P3: done. Finished (UTC): 2026-11-06T11:33:14Z. Full unit suite before the last fix: 4987 passed, 1 failed (Hcm025ApprovalGatesTests.Non_enforced_entity_types_keep_their_previous_behaviour asserted the behaviour this phase changes on purpose; rewritten, not an AC-HCM-25 or parity test). After it: Hcm025, Wf043, guard, Est024, Hcm021, Hcm022, Wf023, SoD filters 314 passed, 0 failed. Hcm025PanelServerParityTests unchanged. hcm025-validate PASS, dated obligations PASS.
+
+## Decisions in P3
+- ExemptEntityTypes lives in docs/qa/workflow-step-role-exemptions.json too, watched by a new dated obligation (WF043-STEP-ROLE-EXEMPTIONS, reviewBy 2027-02-01); a test keeps it equal to the three settings files.
+- The panel's role check now always equals the server's: an exempt type has no role check on either side.
+
 ## Next step
-P3.
+P4.
