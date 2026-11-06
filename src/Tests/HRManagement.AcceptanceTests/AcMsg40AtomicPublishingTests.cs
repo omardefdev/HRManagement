@@ -383,6 +383,8 @@ public class AcMsg40AtomicPublishingTests
 
         var day = DateTime.UtcNow.Date.AddDays(20);
         if (day.Year != DateTime.UtcNow.Year) day = new DateTime(DateTime.UtcNow.Year, 12, 20);
+        // Friday and Saturday are not working days: a two-day leave that starts on a Friday holds none and is refused.
+        if (day.DayOfWeek == DayOfWeek.Friday) day = day.AddDays(2);
         using var maker = await AcceptanceHarness.CreateAuthorizedClientAsync(AcceptanceHarness.RequirePersona("a-contracts-maker"), Guid.NewGuid().ToString("D"), allowAutoRedirect: false);
         var created = await PostUiFormAsync(maker, "ui/hr-contracts/LeaveRequests/Create", "ui/hr-contracts/LeaveRequests/Create", new Dictionary<string, string>
         {

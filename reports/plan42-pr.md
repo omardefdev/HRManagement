@@ -16,6 +16,7 @@ Remote policy checks now fail closed, and only the owning service can reach the 
 
 - Local CI on 0908829e: 91 steps, 0 failed. Pre-push green.
 - First PR run red on `Ac39a`: the test still counted 8 scopes, and this plan adds the ninth. Fixed; AcOps39 8 of 8 locally.
+- Second PR run red on `Ac37d`: run on a Friday, its leave fell on Friday and Saturday, which hold no working day. A calendar flaw in the test, not from this plan. `Ac37d` and `Ac40d` now skip a Friday start; `Ac37d` passed locally on a Friday, and AcMsg40 8 of 8.
 - Prod-like: AC-S2S-42a..i 9 of 9, and the PLAN-40 and PLAN-41 groups. Lab: AC-10, AC-11 and AC-13 passed; AC-09 is Blocked by design.
 - Demo server on `a7ad95e0a4fa`: checks 1 to 8 green, including a direct call with a v1 proof refused with 403.
 

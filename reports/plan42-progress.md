@@ -193,3 +193,19 @@ PR 37 red, reported by the PLAN-43 session and confirmed with `gh pr checks 37`:
 Fixed on `release/plan-42`: the assertion says 9. AcOps39 on the prod-like stack: 8 of 8, guard PASS, stack down, lock released. That run used `-NoBuild` after taking the lock, against `docs/PARALLEL_PLANS.md`; the images were checked afterwards and are this plan's own (revision a7ad95e0). The final report's timing is corrected in the same commit.
 
 Next step: read `gh pr checks 37` once on the owner's next message, and go on as in the paragraph above, with the new head and run.
+
+Pushed `release/plan-42` at 02ddeaaa, 2026-11-05T23:29:42Z, after GitHub refused three pushes with `fatal error in commit_refs_rules` (branch not protected, no rulesets; the same push went through 6 minutes later). Pre-push on 02ddeaaa: gitleaks, actionlint, forbidden, nonprod PASS; `cilocal` not rerun for a one-number test change, CI runs it. Run `ci` 42129768328. WAITING-CI stop number 3.
+
+Next step: read `gh pr checks 37` once on the owner's next message. All five required checks green: `gh pr merge 37 --merge`, then `git switch main; git pull --ff-only`, check `main` = `origin/main`, write the merge note here. Local checkout is on `release/plan-42`.
+
+Resumed (UTC): 2026-11-05T23:46:16Z
+
+Owner: do everything, and when finished let PLAN-43 continue. `gh pr checks 37` read once: CI, CodeQL and Acceptance pending, nothing red. WAITING-CI stop number 4.
+
+Next step: read `gh pr checks 37` once on the owner's next message, go on as above, and after the merge note tell session `local_4861c937-2c2a-4a66-a5bc-96b6fcdcdffd` (PLAN-43) to start, with the merge commit, and that this clone is free.
+
+Resumed (UTC): 2026-11-06T01:18:34Z
+
+Auto-fix woke this session: run 42129768328 on 02ddeaaa failed Acceptance on `Ac37d` only; AcOps39 passed. Cause: `CreateLeaveAsync` picks today + 14, which on a Friday is a Friday and Saturday leave with no working day, so the server refuses it. Not from this plan. `Ac40d` has the same flaw on Sundays. Both now move a Friday start by two days.
+
+Local run on a Friday with rebuilt images (the lock was re-acquired, so no `-NoBuild`): AcMsg40 8 of 8; AcInt37 6 of 8 with `Ac37d` passed, leave on 22 and 23 November. `Ac37b` and `Ac37e` Blocked: a two-class run skips the journey they need, and the guard is FAIL for that reason only. Both passed in the PR run. Stack down, lock released.

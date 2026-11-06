@@ -286,6 +286,8 @@ public class AcInt37ProductionWiringTests
         // Same calendar year as the balance; past any minimum notice.
         var day = DateTime.UtcNow.Date.AddDays(offsetDays);
         if (day.Year != DateTime.UtcNow.Year) day = new DateTime(DateTime.UtcNow.Year, 12, 20).AddDays(offsetDays % 7);
+        // Friday and Saturday are not working days: a two-day leave that starts on a Friday holds none and is refused.
+        if (day.DayOfWeek == DayOfWeek.Friday) day = day.AddDays(2);
         await s["a-contracts-maker"].PostAsync(step, "ui/hr-contracts/LeaveRequests/Create", "ui/hr-contracts/LeaveRequests/Create",
         [
             new("EmployeeId", employee), new("LeaveType", "Annual"), new("StartDate", day.ToString("yyyy-MM-dd")),

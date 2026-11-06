@@ -116,10 +116,14 @@ The owner's message of 2026-11-05 replaced precondition 4: PLAN-43 may run besid
 | Pre-push on 0908829e | gitleaks, actionlint, cilocal, forbidden, nonprod, signatures: all PASS. Gitleaks, forbidden, nonprod and actionlint ran again on the release head after this report |
 | First PR run, 42095506179 on 642eb8cd | CI, CodeQL, E2E, Gitleaks passed; Acceptance failed on `Ac39a` (below) |
 | AcOps39 locally, after the fix | 8 of 8, guard PASS |
+| Second PR run, 42129768328 on 02ddeaaa | CI, CodeQL, E2E, Gitleaks passed; AcOps39 8 of 8; Acceptance failed on `Ac37d` (below) |
+| AcInt37 and AcMsg40 locally, after the fix, images rebuilt, on a Friday | AcMsg40 8 of 8. AcInt37 6 of 8 with `Ac37d` passed; `Ac37b` and `Ac37e` Blocked because a two-class run skips the journey they need, and both passed in the second PR run |
 
 **`Ac40f`, not explained.** On the first attempt, `http://localhost:6200/careers/metrics` got a connection reset at 09:21:39Z. The code path is the gateway, and the review fixes touched the proof exemptions, so I held the deploy until a clean rerun passed. It passed. The Docker log shows a crash-looping lab container exiting 0.4 s before the reset, but I found no mechanism linking them. If it returns on the PR run, it needs a real look.
 
 **`Ac39a`, my miss.** The test held the number of scopes as 8, and P4 added the ninth, `dsar.subject.erase`. I updated the sibling integration test (`Ops039KeycloakRealmImportTests`) and missed this one, because no local prod-like run after P4 included AcOps39: the P6 and merged-code runs named their classes, and that class was not among them. The first PR run paid for it, 1 h 45. The assertion now says 9; the check on all nine scopes is unchanged. Everything after that line of `Ac39a` had not run in CI, so I reran the class before pushing. That local run used `-NoBuild` after taking the lock, which `docs/PARALLEL_PLANS.md` forbids: I checked afterwards that the images were this plan's own (revision a7ad95e0, built 11:20Z), and the PR run builds its own anyway.
+
+**`Ac37d`, the calendar.** The second PR run reached `Ac37d` at 00:22Z on a Friday. The test files a two-day leave 14 days ahead, which fell on Friday 20 and Saturday 21 November. Neither is a working day, so `ValidateLeaveRequest` refused it. Not from this plan: the test fails whenever it runs on a Friday. `Ac40d` has the same flaw 20 days ahead, so it would fail on a Sunday. Both now move a Friday start to the Sunday after; what they assert is unchanged.
 
 **The four red payroll classes are not from this plan.** Ac21, Ac23, Ac24 and Ac25 failed in lab-main with `1102` employees lacking a regime, the seed defect in section 10. They are not required and were red the same way in the PLAN-41 baseline.
 
@@ -204,8 +208,10 @@ Start 2026-11-04T22:47:33Z. To the first push at 19:36:27Z, 20 h 49 of wall-cloc
 | Pre-push on the release head, PR opened | 19:22Z to 19:36Z, 14 min |
 | First PR run, red | 19:36Z to 21:21Z, 1 h 45 |
 | Fix and local rerun of AcOps39 | 22:56Z to 23:15Z, about 20 min |
+| Refused pushes, then the second PR run, red | 23:23Z to 01:17Z, 1 h 54 |
+| Fix and local rerun of AcInt37 and AcMsg40 | 01:18Z to 01:45Z, about 27 min |
 
-Stops: 3 `WAITING-CI:`, 0 `WAITING-PEER:` (PR 36 merged at 11:28:51Z, before P8 reached the push). The PR's wait for CI and its Actions minutes are added to the merge note, because they are not known yet.
+Stops: 5 `WAITING-CI:`, 0 `WAITING-PEER:` (PR 36 merged at 11:28:51Z, before P8 reached the push). The PR's wait for CI and its Actions minutes are added to the merge note, because they are not known yet.
 
 | Step | Time |
 |---|---|
@@ -252,6 +258,7 @@ PLAN-41      17 2026-11-04 11:48 2026-11-04 11:56 2026-11-05 15:04  False 27:08 
 - 0908829e removes the BOM from the two `S2S042_*` migrations. Generated migrations carry one here, and the formatting check refuses it: strip it before pushing.
 - 5acf4787 and 65e1e2bb are docs and reports only.
 - The fix after the first PR run sets `Ac39a` to 9 scopes. A plan that adds a scope to `deploy/wiring/service-wiring.json` must update that count and the one in `Ops039KeycloakRealmImportTests`, and include AcOps39 in its local prod-like run.
+- `Ac37d` and `Ac40d` no longer start a leave on a Friday. A new test that files a leave by date offset needs the same care: a Friday and Saturday leave holds no working day.
 - **`main` is now protected:** PR only, five required checks, strict, admins included. Under strict, a PR must be brought up to date and rerun in full, about 1 h 35, after any other PR merges. Two plans finishing close together will each pay that.
 - **Evidence goes stale** when anything under `testdata`, `scripts` or `.gitleaks.toml` changes after the evidence run.
 - **The server has two new keys, and the IDCard policy queue is gone.** A rollback to `3d0b2df84f82` recreates the queue.
