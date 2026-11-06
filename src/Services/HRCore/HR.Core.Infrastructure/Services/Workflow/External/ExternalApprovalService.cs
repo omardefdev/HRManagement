@@ -186,7 +186,18 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
         instance.StepHistoryJson = JsonSerializer.Serialize(history);
         instance.Status = withdrawn.NewStatus;
         instance.CompletedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // PLAN-44: a decision won the race; the withdrawal wrote nothing and is not retried.
+            db.ChangeTracker.Clear();
+            WorkflowIntegrityMetrics.RecordConflict("cancel");
+            return new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, Error: WorkflowConcurrency.ConflictMessage);
+        }
+
         return new ExternalApprovalResult(ExternalApprovalOutcome.Withdrawn, instance);
     }
 

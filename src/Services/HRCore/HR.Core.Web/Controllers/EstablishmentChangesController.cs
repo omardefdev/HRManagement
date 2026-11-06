@@ -190,7 +190,7 @@ public class EstablishmentChangesController(
             workflowId,
             CreateWorkflowActor(User),
             vm.Comments,
-            targetStepLevel: null);
+            vm.TargetStepLevel);
 
         TempData[result.Success ? "Success" : "Error"] = result.Success
             ? "تم اعتماد خطوة مسار تغيير الملاك"
@@ -227,7 +227,8 @@ public class EstablishmentChangesController(
         var result = await workflowActions.RejectAsync(
             workflowId,
             CreateWorkflowActor(User),
-            vm.Comments);
+            vm.Comments,
+            targetStepLevel: vm.TargetStepLevel);
 
         TempData[result.Success ? "Success" : "Error"] = result.Success
             ? "تم رفض طلب تغيير الملاك وإرجاعه إلى المسودة"

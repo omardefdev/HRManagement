@@ -884,6 +884,8 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => e.DefinitionId);
             entity.Property(e => e.EntityType).HasMaxLength(100);
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            // PLAN-44 (G-WF-12): two decisions race on one row; the loser gets a concurrency conflict.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<WorkflowDelegation>(entity =>

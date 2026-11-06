@@ -51,7 +51,7 @@ public class WorkflowInstancesController(
             request.TargetStepLevel);
 
         if (!result.Success)
-            return BadRequest(result.Error);
+            return Refused(result);
 
         return Ok(result.Instance);
     }
@@ -63,10 +63,11 @@ public class WorkflowInstancesController(
         var result = await workflowActions.RejectAsync(
             id,
             CreateActor(User),
-            request.Comments);
+            request.Comments,
+            targetStepLevel: request.TargetStepLevel);
 
         if (!result.Success)
-            return BadRequest(result.Error);
+            return Refused(result);
 
         return Ok(result.Instance);
     }
@@ -80,6 +81,10 @@ public class WorkflowInstancesController(
         var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
         return Ok(history);
     }
+
+    /// <summary>PLAN-44: a decision that lost a race is a 409, every other refusal a 400.</summary>
+    private IActionResult Refused(WorkflowActionResult result) =>
+        result.IsConflict ? Conflict(result.Error) : BadRequest(result.Error);
 
     /// <summary>PLAN-25 (G-04): every role claim, the employee id and the branch scope claim.</summary>
     private static WorkflowActionActor CreateActor(ClaimsPrincipal user) => WorkflowActionActor.FromPrincipal(user);

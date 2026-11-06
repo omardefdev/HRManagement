@@ -17,7 +17,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Workflow;
 
-public sealed record WorkflowActionResult(bool Success, string? Error, WorkflowInstance? Instance);
+public sealed record WorkflowActionResult(bool Success, string? Error, WorkflowInstance? Instance)
+{
+    /// <summary>PLAN-44: the instance changed under this action; nothing was written.</summary>
+    public bool IsConflict => Error == WorkflowConcurrency.ConflictMessage;
+}
 
 public interface IWorkflowInstanceActionService
 {
@@ -32,7 +36,8 @@ public interface IWorkflowInstanceActionService
         Guid instanceId,
         WorkflowActionActor actor,
         string? comments,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        int? targetStepLevel = null);
 }
 
 public sealed class WorkflowInstanceActionService(
@@ -81,6 +86,9 @@ public sealed class WorkflowInstanceActionService(
         if (instance is null)
             return new WorkflowActionResult(false, "Workflow instance not found.", null);
 
+        if (WorkflowConcurrency.IsStale(instance, targetStepLevel))
+            return Conflict("approve");
+
         var definition = await ResolvePinnedDefinitionAsync(instance, ct);
         if (definition is null)
             return new WorkflowActionResult(false, "Workflow definition not found for this instance version.", null);
@@ -99,43 +107,42 @@ public sealed class WorkflowInstanceActionService(
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
 
-        instance.CurrentStepLevel = result.NewStepLevel;
-        instance.Status = result.NewStatus;
-
-        if (result.HistoryEntry is not null)
+        // PLAN-44: every refusal is above, so nothing a caller staged (the appeal's outcome) is saved by a refused action.
+        return await CommitDecisionAsync("approve", instance, async token =>
         {
-            var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
-            history.Add(result.HistoryEntry);
-            instance.StepHistoryJson = JsonSerializer.Serialize(history);
+            instance.CurrentStepLevel = result.NewStepLevel;
+            instance.Status = result.NewStatus;
 
-            await signatures.RecordStepActionAsync(
-                instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), ct);
-        }
+            if (result.HistoryEntry is not null)
+            {
+                AppendHistory(instance, result.HistoryEntry);
+                await signatures.RecordStepActionAsync(
+                    instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), token);
+            }
 
-        if (result.NewStatus == WorkflowStatus.Completed)
-        {
-            instance.CompletedAt = DateTime.UtcNow;
-            // PLAN-40 (class A): the asset outcome is staged before the single save, so it commits with the instance.
-            await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
-        }
-
-        await context.SaveChangesAsync(ct);
-
-        if (result.NewStatus == WorkflowStatus.Completed)
-            await PublishWorkflowOutcomeAsync(instance, approved: true, ct: ct);
-
-        return new WorkflowActionResult(true, null, instance);
+            if (result.NewStatus == WorkflowStatus.Completed)
+            {
+                instance.CompletedAt = DateTime.UtcNow;
+                // PLAN-40 (class A): the asset outcome is staged before the save, so it commits with the instance.
+                await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
+                await PublishWorkflowOutcomeAsync(instance, approved: true, ct: token);
+            }
+        }, ct);
     }
 
     public async Task<WorkflowActionResult> RejectAsync(
         Guid instanceId,
         WorkflowActionActor actor,
         string? comments,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        int? targetStepLevel = null)
     {
         var instance = await context.WorkflowInstances.FindAsync([instanceId], ct);
         if (instance is null)
             return new WorkflowActionResult(false, "Workflow instance not found.", null);
+
+        if (WorkflowConcurrency.IsStale(instance, targetStepLevel))
+            return Conflict("reject");
 
         var definition = await ResolvePinnedDefinitionAsync(instance, ct);
         if (definition is null)
@@ -153,25 +160,61 @@ public sealed class WorkflowInstanceActionService(
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
 
-        instance.Status = result.NewStatus;
-
-        if (result.HistoryEntry is not null)
+        return await CommitDecisionAsync("reject", instance, async token =>
         {
-            var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
-            history.Add(result.HistoryEntry);
-            instance.StepHistoryJson = JsonSerializer.Serialize(history);
+            instance.Status = result.NewStatus;
 
-            await signatures.RecordStepActionAsync(
-                instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), ct);
+            if (result.HistoryEntry is not null)
+            {
+                AppendHistory(instance, result.HistoryEntry);
+                await signatures.RecordStepActionAsync(
+                    instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), token);
+            }
+
+            instance.CompletedAt = DateTime.UtcNow;
+            await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
+            await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: token);
+        }, ct);
+    }
+
+    /// <summary>
+    /// PLAN-44 (G-WF-12): the instance, the signature, the entity's change and the outbox row commit together or not at all. A decision
+    /// that lost the race on <c>xmin</c> rolls back and returns the conflict message; it is never retried, because the step may have
+    /// moved on. A failing handler throws through this, so the transaction rolls back. The unit of work makes the last save, after
+    /// everything was staged (PLAN-40's order).
+    /// </summary>
+    private async Task<WorkflowActionResult> CommitDecisionAsync(
+        string action, WorkflowInstance instance, Func<CancellationToken, Task> decide, CancellationToken ct)
+    {
+        try
+        {
+            await OutboxUnitOfWork.ExecuteAsync(context, decide, ct);
+            return new WorkflowActionResult(true, null, instance);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Nothing of the decision may stay tracked: a later save in this request would write it again.
+            context.ChangeTracker.Clear();
+            return Conflict(action);
+        }
+        catch (WorkflowOutcomeRefusedException refused)
+        {
+            context.ChangeTracker.Clear();
+            return new WorkflowActionResult(false, refused.Message, null);
+        }
+    }
 
-        instance.CompletedAt = DateTime.UtcNow;
-        await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
-        await context.SaveChangesAsync(ct);
+    private static WorkflowActionResult Conflict(string action)
+    {
+        WorkflowIntegrityMetrics.RecordConflict(action);
+        return new WorkflowActionResult(false, WorkflowConcurrency.ConflictMessage, null);
+    }
 
-        await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: ct);
-
-        return new WorkflowActionResult(true, null, instance);
+    private static void AppendHistory(WorkflowInstance instance, WorkflowStepHistoryEntry entry)
+    {
+        var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
+        history.Add(entry);
+        instance.StepHistoryJson = JsonSerializer.Serialize(history);
     }
 
     /// <summary>
