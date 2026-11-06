@@ -145,6 +145,48 @@ public sealed class Wf044RepairOutcomeTests
         Assert.DoesNotContain(report.Items, i => i.Action == ApprovalRepairService.ApplyOutcomeAction);
     }
 
+    private static async Task<Guid> SlippedAppealAsync(Fx fx, RecruitmentAppealOutcome? outcome)
+    {
+        var (instance, appealId) = await fx.AppealAsync(Guid.NewGuid());
+        var appeal = await fx.Db.RecruitmentAppeals.SingleAsync(a => a.Id == appealId);
+        appeal.WorkflowInstanceId = instance.Id;
+        appeal.Outcome = outcome;
+        var tracked = await fx.Db.WorkflowInstances.SingleAsync(i => i.Id == instance.Id);
+        tracked.Status = WorkflowStatus.Completed;
+        await fx.Db.SaveChangesAsync();
+        fx.Db.ChangeTracker.Clear();
+        return appealId;
+    }
+
+    [Fact]
+    public async Task An_upheld_objection_is_left_to_the_operator_because_the_repair_cannot_recompute_the_results()
+    {
+        await using var fx = await Fx.CreateAsync();
+        var appealId = await SlippedAppealAsync(fx, RecruitmentAppealOutcome.ObjectionUpheld);
+
+        var report = await Repair(fx.Db).RunAsync(dryRun: false, Operator, "operator");
+
+        var item = Assert.Single(report.Items, i => i.EntityId == appealId && i.Action == ApprovalRepairService.ApplyOutcomeAction);
+        Assert.Equal(ApprovalRepairService.Failed, item.Result);
+        Assert.Equal(ApprovalRepairService.ObjectionNeedsOperatorMessage, item.Error);
+        Assert.Equal(RecruitmentAppealStatus.Pending, (await fx.Db.RecruitmentAppeals.AsNoTracking().SingleAsync(a => a.Id == appealId)).Status);
+        Assert.Equal(0, await fx.Db.AuditLogs.CountAsync(a => a.Action == ApprovalRepairService.OutcomeReappliedAuditAction));
+    }
+
+    [Fact]
+    public async Task A_handler_that_changes_nothing_leaves_no_audit_row_and_reports_a_failure()
+    {
+        await using var fx = await Fx.CreateAsync();
+        var appealId = await SlippedAppealAsync(fx, outcome: null);
+
+        var report = await Repair(fx.Db).RunAsync(dryRun: false, Operator, "operator");
+
+        var item = Assert.Single(report.Items, i => i.EntityId == appealId && i.Action == ApprovalRepairService.ApplyOutcomeAction);
+        Assert.Equal(ApprovalRepairService.Failed, item.Result);
+        Assert.Equal(ApprovalRepairService.OutcomeUnchangedMessage, item.Error);
+        Assert.Equal(0, await fx.Db.AuditLogs.CountAsync(a => a.Action == ApprovalRepairService.OutcomeReappliedAuditAction));
+    }
+
     [Fact]
     public void The_metric_sums_the_tenants_and_goes_back_to_zero()
     {

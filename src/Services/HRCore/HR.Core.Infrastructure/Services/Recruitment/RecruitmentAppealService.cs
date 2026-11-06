@@ -156,8 +156,7 @@ public sealed class RecruitmentAppealService(
             return (false, startError);
         }
 
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return await WorkflowConcurrency.SaveOrConflictAsync(db, "cancel", ct) is { } conflict ? (false, conflict) : (true, null);
     }
 
     /// <summary>
@@ -391,7 +390,24 @@ public sealed class RecruitmentAppealService(
     /// Starts RECRUITMENT-APPEAL-REVIEW for the assigned reviewer (stages <c>WorkflowInstanceId</c>). A null instance
     /// without an error means no workflow definition could be resolved; the reviewer then decides directly (H5).
     /// </summary>
+    /// <summary>PLAN-44: the loser of a start race gets the message, whether the policy or the default started the instance.</summary>
     private async Task<(Guid? InstanceId, string? Error)> StartReviewWorkflowAsync(
+        RecruitmentAppeal appeal,
+        Guid? actorUserId,
+        string? actorUserName,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await StartReviewWorkflowOnceAsync(appeal, actorUserId, actorUserName, ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            return (null, running.Message);
+        }
+    }
+
+    private async Task<(Guid? InstanceId, string? Error)> StartReviewWorkflowOnceAsync(
         RecruitmentAppeal appeal,
         Guid? actorUserId,
         string? actorUserName,
@@ -428,23 +444,16 @@ public sealed class RecruitmentAppealService(
 
         // PLAN-25: always start workflow — HCM-028 (H5) already does so for policy Off outside lab scale, and when the
         // policy did not start one, so the reviewer always decides through RECRUITMENT-APPEAL-REVIEW when it exists.
-        try
-        {
-            instanceId ??= await workflowStarter.StartByWorkflowCodeAsync(
-                AppealReviewWorkflowCode,
-                "RecruitmentAppeal",
-                appeal.Id,
-                appeal.TenantId,
-                actorUserId,
-                actorUserName,
-                contextJson,
-                PolicyDomains.CoreRecruitment,
-                ct);
-        }
-        catch (WorkflowInstanceRunningException running)
-        {
-            return (null, running.Message);
-        }
+        instanceId ??= await workflowStarter.StartByWorkflowCodeAsync(
+            AppealReviewWorkflowCode,
+            "RecruitmentAppeal",
+            appeal.Id,
+            appeal.TenantId,
+            actorUserId,
+            actorUserName,
+            contextJson,
+            PolicyDomains.CoreRecruitment,
+            ct);
 
         appeal.WorkflowInstanceId = instanceId;
         return (instanceId, null);

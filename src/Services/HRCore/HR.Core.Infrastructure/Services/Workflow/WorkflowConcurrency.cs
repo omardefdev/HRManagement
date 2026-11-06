@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities.Workflow;
 using HRManagement.SharedKernel.Workflow;
+using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Workflow;
 
@@ -16,6 +17,32 @@ public static class WorkflowConcurrency
     public static bool IsStale(WorkflowInstance instance, int? targetStepLevel) =>
         targetStepLevel is int target
         && (instance.Status != WorkflowStatus.InProgress || target < instance.CurrentStepLevel);
+
+    /// <summary>
+    /// For a path that ends an instance beside a decision (a cancel, a revoke): the last save, and the conflict message when a decision won.
+    /// Nothing stays tracked, so nothing of the lost action is written later in the request.
+    /// </summary>
+    /// <returns>Null when saved.</returns>
+    public static async Task<string?> SaveOrConflictAsync(DbContext db, string action, CancellationToken ct)
+    {
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return null;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Lost(db, action);
+        }
+    }
+
+    /// <summary>After a lost race: forgets the action, counts it, and gives the message.</summary>
+    public static string Lost(DbContext db, string action)
+    {
+        db.ChangeTracker.Clear();
+        WorkflowIntegrityMetrics.RecordConflict(action);
+        return ConflictMessage;
+    }
 }
 
 /// <summary>

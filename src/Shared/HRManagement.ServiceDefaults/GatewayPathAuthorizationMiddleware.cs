@@ -312,9 +312,16 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         || pathValue.Contains("/ApproveResultsWorkflow", StringComparison.OrdinalIgnoreCase)
         || pathValue.Contains("/RejectResultsWorkflow", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsHrCoreLegacyApprovalAction(string pathValue) =>
-        pathValue.StartsWith("/ui/hr-core/Approvals/Approve/", StringComparison.OrdinalIgnoreCase)
-        || pathValue.StartsWith("/ui/hr-core/Approvals/Reject/", StringComparison.OrdinalIgnoreCase);
+    /// <summary>The Review form posts the id in its body, so the path may end at the action.</summary>
+    private static bool IsHrCoreLegacyApprovalAction(string pathValue)
+    {
+        var path = pathValue.TrimEnd('/');
+        return IsActionPath(path, "/ui/hr-core/Approvals/Approve") || IsActionPath(path, "/ui/hr-core/Approvals/Reject");
+    }
+
+    private static bool IsActionPath(string path, string action) =>
+        path.Equals(action, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(action + "/", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryGetPolicy(PathString path, out string moduleSegment, out string policyName)
     {

@@ -324,6 +324,8 @@ public sealed class CompetitionLifecycleService(
         competition.Status = RecruitmentCompetitionStatus.PendingApproval;
         competition.ReturnReason = null;
         var contextJson = JsonSerializer.Serialize(new { competitionId = competition.Id, competition.Number });
+        // PLAN-44: the instance and the link commit together, or a running instance could finish with nothing to decide.
+        await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(ct) : null;
         try
         {
             competition.ApprovalWorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
@@ -347,6 +349,8 @@ public sealed class CompetitionLifecycleService(
 
         Audit(competition, "SubmitCompetition", actorUserId, new { lines = competition.Lines.Count, vacancies = requisitionIds.Count });
         await db.SaveChangesAsync(ct);
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
         return (true, null);
     }
 
@@ -509,8 +513,7 @@ public sealed class CompetitionLifecycleService(
         competition.CancelledAt = now;
         competition.CancellationReason = trimmed;
         Audit(competition, "CancelCompetition", actorUserId, new { reason = trimmed, rejectedApplications = open.Count });
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return await WorkflowConcurrency.SaveOrConflictAsync(db, "cancel", ct) is { } conflict ? (false, conflict) : (true, null);
     }
 
     /// <summary>

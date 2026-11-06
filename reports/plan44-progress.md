@@ -40,8 +40,16 @@ P0-P4 stamps below come from commit times and were written late, at the start of
 - Duplicates report on the prod-like stack after the run: duplicates 0, stuck 0, row security forced, 15 instance groups. Metrics exported; job log: 4 tenants, 0 items.
 - AcHcm29 rerun on the same images: 3 of 3 in 37 s, guard PASS (377 s). Every required class of the P-10 list has passed locally; Ac29_e failed twice during the host stall and passed once healthy, and the CI run is the evidence of record.
 - Group: AcWf44InstanceIntegrityTests in prodLike isolated, and it also removes what it seeds.
-- acceptance-stack released 2026-11-06T21:16Z after reset; held 19:41Z to 21:16Z.
+- acceptance-stack: stack reset at 21:16Z; the first release call failed (no -Plan), so the lock was really released at 2026-11-06T21:16:22Z.
 Finished P5 (UTC): 2026-11-06T21:16Z
 
 ## P6
 origin/main still f8f5cd04 at 21:08Z: nothing to move.
+
+## Review (P8 step 2, run before P7 so the server builds once, on the final code)
+One independent review of origin/main...HEAD: 1 high, 2 medium, 6 low. H1 checked against Review.cshtml by hand and confirmed, so no refuter.
+- H1 fixed: the gateway rule missed the path the Review form really posts (no id suffix); AC-WF-44d now posts the rendered form URL.
+- M1 fixed (appeal start under Enforce), M2 fixed (an upheld objection is left to the operator), L1, L2, L4, L5, L6 fixed.
+- L3 recorded, not fixed: a cancel and a decision can deadlock on lock order; both roll back, the loser gets a 500.
+- L6 second half recorded: on the previous tag a sequential second start now gets a unique violation, not a second instance.
+- Unit 5115 of 5115; Wf044, Wf043, Hcm031 integration 38 passed, 1 skipped. SensitiveDataAuditTests failed once in a parallel run, passed alone and in the next full run; not this change.

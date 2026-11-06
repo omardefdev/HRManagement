@@ -238,6 +238,8 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
         if (ties > 0)
             return (false, $"{CompetitionScoringRules.UnresolvedTieMessage}: {ties} متقدماً في حالة تعادل؛ يجب البت فيه قبل الاعتماد.");
 
+        // PLAN-44: the instance and the link commit together, or a running instance could finish with nothing to decide.
+        await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(ct) : null;
         version.Status = CompetitionResultVersionStatus.PendingApproval;
         try
         {
@@ -263,6 +265,8 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
             version.Competition.Status = RecruitmentCompetitionStatus.ResultsPendingApproval;
         Audit(version.TenantId, version.CompetitionId, "SubmitResults", actorUserId, new { version.VersionNo });
         await db.SaveChangesAsync(ct);
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
         return (true, null);
     }
 

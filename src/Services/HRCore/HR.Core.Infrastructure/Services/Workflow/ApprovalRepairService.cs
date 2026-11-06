@@ -68,6 +68,7 @@ public sealed class ApprovalRepairService(
     public const string NotLinked = "NotLinked";
     public const string NotLinkedMessage = "غير مرتبطة";
     public const string OutcomeUnchangedMessage = "لم يغيّر المعالج حالة الكيان.";
+    public const string ObjectionNeedsOperatorMessage = "الاعتراض المقبول يتطلب إعادة احتساب النتائج، فلا تطبقه هذه الأداة: يبت فيه المشغّل من صفحة الاعتراض.";
     public const string OutcomeReappliedAuditAction = "WorkflowOutcomeReapplied";
     public const string OrphanHireEntityType = "RecruitmentApplication";
     public const string OrphanHireCancelAuditAction = "OrphanHireWorkflowCancelled";
@@ -183,8 +184,11 @@ public sealed class ApprovalRepairService(
                 UserId = actorUserId,
                 ChangedFields = JsonSerializer.Serialize(new { workflowInstanceId = instance.Id, reason = OrphanHireCancelReason })
             });
-            await db.SaveChangesAsync(ct);
-            items.Add(new ApprovalRepairItem(OrphanHireEntityType, instance.EntityId, null, CancelOrphanAction, Repaired, null, instance.Id));
+
+            // PLAN-44: a lost race on one row stops nothing else.
+            var conflict = await WorkflowConcurrency.SaveOrConflictAsync(db, "cancel", ct);
+            items.Add(new ApprovalRepairItem(
+                OrphanHireEntityType, instance.EntityId, null, CancelOrphanAction, conflict is null ? Repaired : Failed, conflict, instance.Id));
         }
     }
 
@@ -223,6 +227,8 @@ public sealed class ApprovalRepairService(
         var unapplied = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var (entityType, pending) in PendingEntities())
         {
+            // Every type reports, so a clean server shows 0 and not an empty metric.
+            unapplied[entityType] = 0;
             var entities = await pending.ToListAsync(ct);
             if (entities.Count == 0)
                 continue;
@@ -267,12 +273,24 @@ public sealed class ApprovalRepairService(
         Guid? actorUserId,
         CancellationToken ct)
     {
+        // The handler stages the corrected mark only; the recomputed draft comes from CompetitionObjectionService, after the decision.
+        // Reporting it repaired would let allocation run on the old results.
+        if (entityType == nameof(RecruitmentAppeal)
+            && await db.RecruitmentAppeals.AsNoTracking().AnyAsync(a => a.Id == entity.Id && a.Outcome == RecruitmentAppealOutcome.ObjectionUpheld, ct))
+            return new ApprovalRepairItem(entityType, entity.Id, entity.Reference, ApplyOutcomeAction, Failed, ObjectionNeedsOperatorMessage, instance.Id);
+
         var approved = instance.Status == WorkflowStatus.Completed;
         try
         {
             await OutboxUnitOfWork.ExecuteAsync(db, async token =>
             {
                 await outcomes.ReapplyOutcomeAsync(instance, approved, LastComment(instance), token);
+
+                // A handler that changed nothing leaves no audit row: the transaction rolls back.
+                await db.SaveChangesAsync(token);
+                if ((await pending.ToListAsync(token)).Any(e => e.Id == entity.Id && e.LinkedInstanceId == instance.Id))
+                    throw new WorkflowOutcomeRefusedException(OutcomeUnchangedMessage);
+
                 db.AuditLogs.Add(new EntityAuditLog
                 {
                     EntityType = entityType,
@@ -289,10 +307,7 @@ public sealed class ApprovalRepairService(
             return new ApprovalRepairItem(entityType, entity.Id, entity.Reference, ApplyOutcomeAction, Failed, ex.Message, instance.Id);
         }
 
-        // A projection into a record cannot be filtered in SQL, and the list is short.
-        return (await pending.ToListAsync(ct)).Any(e => e.Id == entity.Id && e.LinkedInstanceId == instance.Id)
-            ? new ApprovalRepairItem(entityType, entity.Id, entity.Reference, ApplyOutcomeAction, Failed, OutcomeUnchangedMessage, instance.Id)
-            : new ApprovalRepairItem(entityType, entity.Id, entity.Reference, ApplyOutcomeAction, Repaired, null, instance.Id);
+        return new ApprovalRepairItem(entityType, entity.Id, entity.Reference, ApplyOutcomeAction, Repaired, null, instance.Id);
     }
 
     private static string? LastComment(WorkflowInstance instance) =>

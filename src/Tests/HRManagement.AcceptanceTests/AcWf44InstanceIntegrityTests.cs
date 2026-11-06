@@ -255,6 +255,15 @@ public class AcWf44InstanceIntegrityTests
         return id;
     }
 
+    /// <summary>The URL the Review page's form really posts to, and its fields: a hand-built URL hid a gateway gap here once.</summary>
+    private static async Task<string> PostLegacyFormAsync(AcceptanceUi ui, string step, string action, string id, string review)
+    {
+        var html = await ui.GetAsync(step + "-page", review);
+        var form = System.Text.RegularExpressions.Regex.Match(html, $@"action=""/([^""]*/Approvals/{action}[^""]*)""");
+        Assert.True(form.Success, $"The Review page has no {action} form.");
+        return await ui.PostAsync(step, WebUtility.HtmlDecode(form.Groups[1].Value), review, [new("id", id), new("reviewComments", "AC-WF-44d")]);
+    }
+
     private static Task<string> LegacyStatusAsync(string id) => Sql($"SELECT \"Status\" FROM \"ApprovalRequests\" WHERE \"Id\"='{id}';");
 
     [SkippableFact]
@@ -277,25 +286,25 @@ public class AcWf44InstanceIntegrityTests
         var review = $"ui/hr-core/Approvals/Review/{id}";
         try
         {
-            var refused = await s["a-management-approver"].PostAsync("44d-approve-no-role", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            var refused = await PostLegacyFormAsync(s["a-management-approver"], "44d-approve-no-role", "Approve", id, review);
             Assert.Contains("هذه الخطوة تتطلب دور «hr-core».", refused, StringComparison.Ordinal);
             Assert.Equal(before, await LegacyStatusAsync(id));
 
-            var cancel = await s["central-a2"].PostAsync("44d-cancel-not-requester", $"ui/hr-core/Approvals/Cancel/{id}", review, []);
+            var cancel = await PostLegacyFormAsync(s["central-a2"], "44d-cancel-not-requester", "Cancel", id, review);
             Assert.Contains("لا يلغي الطلب إلا صاحبه", cancel, StringComparison.Ordinal);
             Assert.Equal(before, await LegacyStatusAsync(id));
 
-            await s["central-a2"].PostAsync("44d-approve-1", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            await PostLegacyFormAsync(s["central-a2"], "44d-approve-1", "Approve", id, review);
             Assert.Equal(before, await LegacyStatusAsync(id));
             Assert.Equal(2, await Scalar($"SELECT \"CurrentLevel\" FROM \"ApprovalRequests\" WHERE \"Id\"='{id}';"));
 
-            var secondStep = await s["central-a2"].PostAsync("44d-approve-2-no-role", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            var secondStep = await PostLegacyFormAsync(s["central-a2"], "44d-approve-2-no-role", "Approve", id, review);
             Assert.Contains("هذه الخطوة تتطلب دور «hr-management-approver».", secondStep, StringComparison.Ordinal);
 
-            await s["a-management-approver"].PostAsync("44d-approve-2", $"ui/hr-core/Approvals/Approve/{id}", review, []);
+            await PostLegacyFormAsync(s["a-management-approver"], "44d-approve-2", "Approve", id, review);
             Assert.NotEqual(before, await LegacyStatusAsync(id));
 
-            await s["central-a"].PostAsync("44d-cancel-requester", $"ui/hr-core/Approvals/Cancel/{second}", $"ui/hr-core/Approvals/Review/{second}", []);
+            await PostLegacyFormAsync(s["central-a"], "44d-cancel-requester", "Cancel", second, $"ui/hr-core/Approvals/Review/{second}");
             Assert.NotEqual(before, await LegacyStatusAsync(second));
 
             s.Checks(new { id, second, approved = await LegacyStatusAsync(id), cancelled = await LegacyStatusAsync(second) });
