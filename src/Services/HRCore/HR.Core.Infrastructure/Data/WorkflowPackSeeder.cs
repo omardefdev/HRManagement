@@ -132,6 +132,39 @@ public static class WorkflowPackSeeder
         await db.SaveChangesAsync(ct);
 
         await RetireAsync(db, ct);
+        await BackfillGovernanceAsync(db, ct);
+    }
+
+    /// <summary>
+    /// PLAN-43: idempotent start-up patch for rows older than the governance columns, and for a version the previous tag published
+    /// after a rollback: published means Published, a retired code means Retired, and custody requires distinct approvers. A migration
+    /// cannot do this: the table has forced row security and the migrator role carries no tenant, so its UPDATE matches no row.
+    /// </summary>
+    public static async Task BackfillGovernanceAsync(HRCoreDbContext db, CancellationToken ct = default)
+    {
+        var definitions = await db.WorkflowDefinitions
+            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .ToListAsync(ct);
+
+        var changed = false;
+        foreach (var definition in definitions)
+        {
+            var status = definition.IsPublished
+                ? WorkflowDefinitionStatus.Published
+                : definition.Status == WorkflowDefinitionStatus.Draft && RetiredCodes.Contains(definition.Code)
+                    ? WorkflowDefinitionStatus.Retired
+                    : definition.Status;
+            var distinct = definition.RequireDistinctApprovers || DistinctApproverCodes.Contains(definition.Code);
+            if (status == definition.Status && distinct == definition.RequireDistinctApprovers)
+                continue;
+
+            definition.Status = status;
+            definition.RequireDistinctApprovers = distinct;
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync(ct);
     }
 
     /// <summary>

@@ -96,21 +96,15 @@ public sealed class Wf043GovernanceIntegrationTests(PgRabbitFixture fixture)
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
-    public async Task The_backfill_sql_marks_rows_of_an_older_database()
+    public async Task The_start_up_patch_marks_rows_of_an_older_database()
     {
         Skip.IfNot(RealInfra.IsEnabled);
         var connection = await DatabaseAsync("backfill");
         await using var db = Db(connection);
 
-        // The rows as the previous tag leaves them, then the statement of the migration again.
+        // The rows as the migration leaves them on an existing database: row security hides them from its UPDATE.
         await db.Database.ExecuteSqlRawAsync("""UPDATE "WorkflowDefinitions" SET "Status" = 'Draft', "RequireDistinctApprovers" = false""");
-        var migration = new HR.Core.Infrastructure.Migrations.WF043_DefinitionGovernance();
-        var sql = new Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder("Npgsql.EntityFrameworkCore.PostgreSQL");
-        typeof(HR.Core.Infrastructure.Migrations.WF043_DefinitionGovernance)
-            .GetMethod("Up", global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.NonPublic)!
-            .Invoke(migration, [sql]);
-        var update = sql.Operations.OfType<Microsoft.EntityFrameworkCore.Migrations.Operations.SqlOperation>().Single();
-        await db.Database.ExecuteSqlRawAsync(update.Sql);
+        await WorkflowPackSeeder.BackfillGovernanceAsync(db);
 
         var rows = await db.WorkflowDefinitions.AsNoTracking().ToListAsync();
         Assert.All(rows.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));

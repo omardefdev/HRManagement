@@ -64,5 +64,13 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 - Stack down with volumes; hrm-leastpriv taken down first (it stays up after a local job, as PLAN-42 said). acceptance-stack released 2026-11-06T13:32:16Z. wf043-validate PASS. No evidence committed.
 - P5: done. Finished (UTC): 2026-11-06T13:32:16Z.
 
+
+## P7 log
+- P6: origin/main unmoved at 7480843e, no rebase needed.
+- Local CI on c6faf0a9: 91 of 91, 1030 s, unit 4994, integration 366, Testcontainers 148, 0 failed. The first run stopped: Wf043ApiBoundaryIntegrationTests built a host per test and passed EF's limit of 20 service providers, failing 171 tests; one host per class fixed it.
+- demo-server acquired 14:01Z. Backup /opt/hrm/backups/pre-plan43-20261106T140127Z (700/600): pg_dumpall.sql 25.9 MB, env.backup, SHA256SUMS OK, 17 CREATE DATABASE lines.
+- Build 1 c6faf0a92e6e: 1349 s. Deploy: 156 s, reconcile 7 changes (workflow-admin and six older roles the realm lacked), smoke 50 pass, 0 fail, 1 warn.
+- Server check found: the migration's backfill matched no row. WorkflowDefinitions has forced row security and hr_core_migrator carries no tenant; the Testcontainers run was a superuser and the acceptance stack seeds after migrating, so neither could see it. Fixed by WorkflowPackSeeder.BackfillGovernanceAsync at start-up (2026-11-06T14:34:08Z). The demo stayed usable: starts read IsPublished. A second build was needed for this; a deviation from "build once".
+
 ## Next step
-Local CI and pre-push, then P6 check, then P7.
+Commit, build 2, deploy, server checks, secret removal, release lock.

@@ -89,17 +89,8 @@ namespace HR.Core.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: 0u);
 
-            // PLAN-43: every published row becomes Published; an unpublished one is Retired when its code is retired
-            // (WorkflowPackSeeder.RetiredCodes), otherwise a Draft. Only custody requires distinct approvers.
-            migrationBuilder.Sql("""
-                UPDATE "WorkflowDefinitions"
-                SET "Status" = CASE
-                        WHEN "IsPublished" THEN 'Published'
-                        WHEN "Code" IN ('RECRUITMENT-HIRE') THEN 'Retired'
-                        ELSE 'Draft'
-                    END,
-                    "RequireDistinctApprovers" = ("Code" = 'ASSET-ASSIGN-APPROVAL');
-                """);
+            // PLAN-43: no data backfill here. WorkflowDefinitions has forced row security and the migrator role carries no tenant, so
+            // an UPDATE would match no row. WorkflowPackSeeder.BackfillGovernanceAsync does it at start-up, inside the tenant.
         }
 
         /// <inheritdoc />

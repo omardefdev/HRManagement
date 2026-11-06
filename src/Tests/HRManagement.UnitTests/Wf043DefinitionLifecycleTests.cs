@@ -336,6 +336,32 @@ public sealed class Wf043DefinitionLifecycleTests
     }
 
     [Fact]
+    public async Task The_seed_patches_rows_older_than_the_governance_columns_and_leaves_a_draft_alone()
+    {
+        await using var db = NewDb();
+        await WorkflowPackSeeder.SeedAsync(db);
+        foreach (var definition in await db.WorkflowDefinitions.ToListAsync())
+        {
+            definition.Status = WorkflowDefinitionStatus.Draft;
+            definition.RequireDistinctApprovers = false;
+        }
+
+        var draft = await new WorkflowDefinitionLifecycleService(db).CreateDraftAsync(Valid("NEW-CODE") with { RequireDistinctApprovers = false }, Author);
+        await db.SaveChangesAsync();
+
+        await WorkflowPackSeeder.SeedAsync(db);
+        await WorkflowPackSeeder.SeedAsync(db);
+
+        var all = await db.WorkflowDefinitions.AsNoTracking().ToListAsync();
+        Assert.All(all.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));
+        Assert.Equal(WorkflowDefinitionStatus.Retired, all.Single(d => d.Code == "RECRUITMENT-HIRE").Status);
+        Assert.True(all.Single(d => d.Code == "ASSET-ASSIGN-APPROVAL").RequireDistinctApprovers);
+        var untouched = all.Single(d => d.Id == draft.Definition!.Id);
+        Assert.Equal(WorkflowDefinitionStatus.Draft, untouched.Status);
+        Assert.False(untouched.RequireDistinctApprovers);
+    }
+
+    [Fact]
     public async Task EnsureVersion_publishes_once_and_retires_older_versions()
     {
         await using var db = NewDb();
