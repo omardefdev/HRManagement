@@ -11,6 +11,13 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
 {
     private readonly WorkflowStepRoleOptions _stepRoleOptions = stepRoleOptions ?? new WorkflowStepRoleOptions();
 
+    /// <summary>PLAN-44: the makers of an entity, as its gate sees them.</summary>
+    public IReadOnlySet<Guid> MakersOf(Guid? entityCreatedBy, WorkflowInstance instance) =>
+        WorkflowMakerRules.Makers(
+            entityCreatedBy, instance.InitiatedBy, instance.RequestedByUserId, _stepRoleOptions.Maker.IncludeSubmitter);
+
+    public bool AdminBypass => _stepRoleOptions.AdminBypass;
+
     public bool IsActionable(
         WorkflowInstance instance,
         WorkflowDefinition definition,
@@ -22,7 +29,7 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
         if (!WorkflowInboxOrgScope.Allows(orgScope, context.ScopeOrgUnitId))
             return false;
 
-        if (userId.HasValue && context.EntityCreatedBy == userId)
+        if (userId is Guid actorId && context.EntityMakers.Contains(actorId))
             return false;
 
         var options = BuildOptions(
@@ -31,7 +38,7 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
             instance, definition, user, userId, new WorkflowPanelBuildOptions
             {
                 IsAwaitingApproval = options.IsAwaitingApproval,
-                EntityCreatedBy = options.EntityCreatedBy,
+                EntityMakers = options.EntityMakers,
                 BlockInitiatorOnLaterSteps = options.BlockInitiatorOnLaterSteps,
                 CreatorSoDMessage = options.CreatorSoDMessage,
                 // PLAN-25 (review finding 6): the override distinct-approver rule, as OfferApprovalGate applies it.
@@ -56,7 +63,7 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
             "OfferLetter" => new WorkflowPanelBuildOptions
             {
                 IsAwaitingApproval = context.IsAwaitingApproval,
-                EntityCreatedBy = context.EntityCreatedBy,
+                EntityMakers = context.EntityMakers,
                 CreatorSoDMessage = context.CreatorSoDMessage
                     ?? "لا يمكن للمنشئ اعتماد عرضه الخاص."
             },
@@ -75,19 +82,19 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
             "SelectionCommitteeSession" => new WorkflowPanelBuildOptions
             {
                 IsAwaitingApproval = context.IsAwaitingApproval,
-                EntityCreatedBy = context.EntityCreatedBy,
+                EntityMakers = context.EntityMakers,
                 BlockInitiatorOnLaterSteps = context.BlockInitiatorOnLaterSteps,
                 CreatorSoDMessage = SelectionCommitteeRules.ApproverIsMemberOrCreatorMessage,
                 // HCM-028: same rule as SelectionCommitteeLifecycleService.ApproveStepAsync.
                 AdditionalBlockReason = (inst, _, actorId) => context.CommitteeMembers is null
                     ? null
                     : SelectionCommitteeRules.ValidateApproval(
-                        inst.CurrentStepLevel, context.CommitteeMembers, context.EntityCreatedBy, actorId, actorEmployeeId)
+                        inst.CurrentStepLevel, context.CommitteeMembers, context.CommitteeCreatedBy, actorId, actorEmployeeId)
             },
             _ => new WorkflowPanelBuildOptions
             {
                 IsAwaitingApproval = context.IsAwaitingApproval,
-                EntityCreatedBy = context.EntityCreatedBy,
+                EntityMakers = context.EntityMakers,
                 BlockInitiatorOnLaterSteps = context.BlockInitiatorOnLaterSteps,
                 CreatorSoDMessage = context.CreatorSoDMessage
             }

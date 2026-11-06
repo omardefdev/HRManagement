@@ -131,7 +131,7 @@ public sealed class Hcm025ReviewFixTests
         var definition = await fx.Db.WorkflowDefinitions.AsNoTracking().SingleAsync(d => d.Id == current.DefinitionId);
         var approver = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.Role, HrManagementRoles.HrManagementApprover)], "test", ClaimTypes.Name, ClaimTypes.Role));
-        var context = new WorkflowInboxEntityContext { EntityCreatedBy = Creator };
+        var context = new WorkflowInboxEntityContext { EntityMakers = new HashSet<Guid> { Creator } };
         var eligibility = new WorkflowInboxEligibilityService();
 
         Assert.False(eligibility.IsActionable(current, definition, approver, Other, context, OrgAccessScope.Unrestricted()));

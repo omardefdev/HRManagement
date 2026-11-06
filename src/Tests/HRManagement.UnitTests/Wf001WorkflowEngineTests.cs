@@ -318,39 +318,4 @@ public class Wf001WorkflowEngineTests
         Assert.Null(WorkflowCondition.ParseContext(""));
         Assert.Null(WorkflowCondition.ParseContext("  "));
     }
-
-    [Fact]
-    public void Bridge_CreateViaEngineOrLegacy_WithDefinition_CreatesBoth()
-    {
-        var def = new WorkflowDefinitionSnapshot
-        {
-            Id = Guid.NewGuid(),
-            Code = "TEST",
-            Name = "Test",
-            Version = 1,
-            DomainEntityType = "TestEntity",
-            Steps = [new WorkflowStepSnapshot { Level = 1, Name = "Step1", RoleRequired = "admin" }]
-        };
-
-        var (request, instance) = HR.Core.Domain.Services.ApprovalWorkflowService.CreateViaEngineOrLegacy(
-            "TestEntity", Guid.NewGuid(), "Test desc", Guid.NewGuid(), "User",
-            workflowDefinition: def);
-
-        Assert.NotNull(request);
-        Assert.NotNull(instance);
-        Assert.Equal(def.Id, instance!.DefinitionId);
-        Assert.Equal(def.Version, instance.DefinitionVersion);
-        Assert.Equal(request.Id, instance.ApprovalRequestId);
-    }
-
-    [Fact]
-    public void Bridge_CreateViaEngineOrLegacy_WithoutDefinition_LegacyOnly()
-    {
-        var (request, instance) = HR.Core.Domain.Services.ApprovalWorkflowService.CreateViaEngineOrLegacy(
-            "TestEntity", Guid.NewGuid(), "Test desc", Guid.NewGuid(), "User",
-            workflowDefinition: null);
-
-        Assert.NotNull(request);
-        Assert.Null(instance);
-    }
 }

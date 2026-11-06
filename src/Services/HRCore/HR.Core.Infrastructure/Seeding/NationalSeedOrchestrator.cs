@@ -44,7 +44,7 @@ public static class NationalSeedOrchestrator
 
             await HRCoreDataSeeder.SeedAsync(db, serviceProvider, ct);
             await WorkflowPackSeeder.SeedAsync(db, ct);
-            await WorkflowPlan03Seeder.EnsureMultiStepAssetAssignmentAsync(db, ct);
+            await WorkflowPackSeeder.EnsureMultiStepAssetAssignmentAsync(db, ct);
             await PolicyEngineSeeder.SeedAsync(db, ct);
             await CodeGenerationSeeder.SeedAsync(db, ct);
             await MdmReferenceSeeder.SeedAsync(db, ct);
@@ -84,7 +84,7 @@ public static class NationalSeedOrchestrator
     private static async Task ApplyIncrementalPatchesAsync(HRCoreDbContext db, CancellationToken ct)
     {
         await WorkflowPackSeeder.SeedAsync(db, ct);
-        await WorkflowPlan03Seeder.EnsureMultiStepAssetAssignmentAsync(db, ct);
+        await WorkflowPackSeeder.EnsureMultiStepAssetAssignmentAsync(db, ct);
         await PolicyEngineSeeder.SeedAsync(db, ct);
         await CodeGenerationSeeder.SeedAsync(db, ct);
         await MdmReferenceSeeder.SeedAsync(db, ct);
