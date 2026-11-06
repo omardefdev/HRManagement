@@ -83,6 +83,7 @@
     { "class": "AcWf43DefinitionGovernanceTests", "required": true, "group": "main" },
     { "class": "AcInt37ProductionWiringTests", "required": true, "group": "isolated" },
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
+    { "class": "AcWf44InstanceIntegrityTests", "required": true, "group": "isolated" },
     { "class": "AcOps39KeycloakDataProtectionTests", "required": true, "group": "isolated" },
     { "class": "AcQa41AcceptanceBaselineTests", "required": true, "group": "final" },
     { "class": "AcS2s42TrustBoundaryTests", "required": true, "group": "s2s42" },
