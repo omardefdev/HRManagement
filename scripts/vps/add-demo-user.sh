@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# PLAN-45 (P-13): adds one demo user of docker/keycloak/realm-manifest.json to a realm that already exists. Keycloak imports the realm only
+# when it is new, and reconcile.sh never touches users, so a user added to the manifest reaches a live realm only this way. Idempotent:
+# an existing user keeps its password and only gets the roles it lacks.
+#
+# Runs inside the Keycloak container, where KEYCLOAK_ADMIN, KEYCLOAK_ADMIN_PASSWORD and DEMO_USERS_PASSWORD already are:
+#
+#   ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- <username> <email> <lastName> <tenantId> <role> [role...]" < scripts/vps/add-demo-user.sh
+#
+# As in reconcile.sh, a secret reaches kcadm only through its prompt on stdin or a private file (mode 600), never a command line, and is
+# never printed.
+set -euo pipefail
+umask 077
+
+USERNAME="${1:?username required}"
+EMAIL="${2:?email required}"
+LAST_NAME="${3:?last name required}"
+TENANT="${4:?tenant id required}"
+shift 4
+[ "$#" -gt 0 ] || { echo "at least one role is required" >&2; exit 2; }
+
+: "${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN required}"
+: "${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD required}"
+: "${DEMO_USERS_PASSWORD:?DEMO_USERS_PASSWORD required}"
+
+KCADM=/opt/keycloak/bin/kcadm.sh
+REALM="${HRM_REALM:-hrmanagement}"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+export HOME="$TMP"
+
+kc() { "$KCADM" "$@" --config "$TMP/kcadm.config" < /dev/null; }
+json_escape() { local v="$1"; v="${v//\\/\\\\}"; v="${v//\"/\\\"}"; printf '%s' "$v"; }
+
+{ printf '%s\n' "$KEYCLOAK_ADMIN_PASSWORD"; sleep 2; } | timeout 60 "$KCADM" config credentials --config "$TMP/kcadm.config" \
+    --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN" > /dev/null 2>&1
+
+if kc get users -r "$REALM" -q "username=$USERNAME" -q exact=true --fields username | grep -q "\"$USERNAME\""; then
+    echo "exists: $USERNAME"
+else
+    body="$TMP/user.json"
+    printf '{"username":"%s","email":"%s","firstName":"E2E","lastName":"%s","enabled":true,"emailVerified":true,"attributes":{"tenant_id":["%s"]},"credentials":[{"type":"password","temporary":false,"value":"%s"}]}' \
+        "$USERNAME" "$EMAIL" "$LAST_NAME" "$TENANT" "$(json_escape "$DEMO_USERS_PASSWORD")" > "$body"
+    kc create users -r "$REALM" -f "$body" > /dev/null 2>&1
+    rm -f "$body"
+    echo "created: $USERNAME"
+fi
+
+for role in "$@"; do
+    kc add-roles -r "$REALM" --uusername "$USERNAME" --rolename "$role" > /dev/null
+done
+echo "roles: $USERNAME: $*"
