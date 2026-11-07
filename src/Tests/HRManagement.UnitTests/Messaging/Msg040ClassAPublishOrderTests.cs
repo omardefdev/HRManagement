@@ -1,6 +1,7 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Entities.Workflow;
+using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Integration;
 using HR.Core.Infrastructure.Onboarding;
@@ -37,8 +38,18 @@ public sealed class Msg040ClassAPublishOrderTests
         OutboxOrderProbe probe, string entityType)
     {
         var db = new HRCoreDbContext(probe.InMemoryOptions<HRCoreDbContext>());
-        await AssetAssignmentWorkflowSeeder.SeedAsync(db);
-        var definition = await db.WorkflowDefinitions.SingleAsync();
+        var definition = new WorkflowDefinition
+        {
+            Code = "ASSET-ASSIGN-APPROVAL",
+            Name = "موافقة تسليم عهدة",
+            Version = 1,
+            IsPublished = true,
+            Status = WorkflowDefinitionStatus.Published,
+            DomainEntityType = "AssetAssignment",
+            StepsJson = """[{"Level":1,"Name":"موافقة مدير الأصول","StepType":0,"RoleRequired":"admin-logistics"}]""",
+            GuardrailRolesJson = "[]"
+        };
+        db.WorkflowDefinitions.Add(definition);
         var instance = new WorkflowInstance
         {
             DefinitionId = definition.Id,

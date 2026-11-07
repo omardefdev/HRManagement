@@ -158,7 +158,7 @@ public class ApprovalWorkflowTests
     {
         using var ctx = CreateContext();
         var request = ApprovalsController.CreateApprovalRequest(
-            "Employee", Guid.NewGuid(), "test", null, "user");
+            "Employee", Guid.NewGuid(), "test", Guid.Parse("00000000-0000-0000-0000-000000000001"), "user");
         ctx.ApprovalRequests.Add(request);
         await ctx.SaveChangesAsync();
 

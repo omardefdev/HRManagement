@@ -2,6 +2,7 @@ using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Recruitment.Competitions;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Workflow.Gates;
@@ -10,7 +11,7 @@ namespace HR.Core.Infrastructure.Services.Workflow.Gates;
 // SelectionCommitteeLifecycleService.ApproveStepAsync. Unless noted, a rule applies to approve and reject alike (the
 // panels always disabled both buttons for it); the deliberate approve-only rules are marked.
 
-/// <summary>Requisition: the creator never acts on it; branch-scoped actors only inside their scope.</summary>
+/// <summary>Requisition: its makers never act on it; branch-scoped actors only inside their scope.</summary>
 public sealed class RequisitionApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope scope) : IWorkflowApprovalGate
 {
     public const string CreatorMessage = "لا يمكن للمنشئ اعتماد طلبه الخاص.";
@@ -26,7 +27,7 @@ public sealed class RequisitionApprovalGate(HRCoreDbContext db, WorkflowGateOrgS
         if (requisition is null)
             return null;
 
-        if (context.Actor.UserId is Guid actor && requisition.CreatedBy == actor)
+        if (context.ActorIsMaker(requisition.CreatedBy))
             return CreatorMessage;
 
         return await scope.GetBlockReasonAsync(context.Actor, requisition.OrgUnitId, ct);
@@ -34,7 +35,7 @@ public sealed class RequisitionApprovalGate(HRCoreDbContext db, WorkflowGateOrgS
 }
 
 /// <summary>
-/// Offer: the creator never acts on it; merit-override offers need a distinct approver per step (approve only — a person
+/// Offer: its makers never act on it; merit-override offers need a distinct approver per step (approve only — a person
 /// who approved an earlier step may still reject); branch-scoped actors only inside their scope.
 /// </summary>
 public sealed class OfferApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope scope) : IWorkflowApprovalGate
@@ -53,7 +54,7 @@ public sealed class OfferApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope s
             return null;
 
         var actor = context.Actor.UserId;
-        if (actor.HasValue && offer.CreatedBy == actor)
+        if (context.ActorIsMaker(offer.CreatedBy))
             return CreatorMessage;
 
         if (context.Kind == WorkflowActionKind.Approve
@@ -140,7 +141,7 @@ public sealed class AppealApprovalGate(HRCoreDbContext db) : IWorkflowApprovalGa
     }
 }
 
-/// <summary>Competition (HCM-031): the creator never acts on it. Competitions are central-only (PLAN-32).</summary>
+/// <summary>Competition (HCM-031): its makers never act on it. Competitions are central-only (PLAN-32).</summary>
 public sealed class CompetitionApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope scope) : IWorkflowApprovalGate
 {
     public const string CreatorMessage = "لا يمكن للمنشئ اعتماد مسابقته الخاصة.";
@@ -153,7 +154,7 @@ public sealed class CompetitionApprovalGate(HRCoreDbContext db, WorkflowGateOrgS
             .Where(c => c.Id == context.Instance.EntityId)
             .Select(c => c.CreatedBy)
             .FirstOrDefaultAsync(ct);
-        if (context.Actor.UserId is Guid actor && createdBy == actor)
+        if (context.ActorIsMaker(createdBy))
             return CreatorMessage;
 
         return await scope.GetBlockReasonAsync(context.Actor, entityOrgUnitId: null, ct);
@@ -182,7 +183,8 @@ public sealed class ResultsApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope
                 .FirstOrDefaultAsync(v => v.Id == instance.EntityId, ct);
             if (version?.ComputedBy == actor || version?.CreatedBy == actor)
                 return ComputedByMessage;
-            if (instance.InitiatedBy == actor)
+            // PLAN-44: these rules predate the setting, so the submitter stays barred whatever Workflow:Maker says.
+            if (WorkflowMakerRules.Makers(null, instance.InitiatedBy, instance.RequestedByUserId).Contains(actor))
                 return SubmitterMessage;
             if (version is not null && await db.AuditLogs.AsNoTracking().AnyAsync(a =>
                     a.EntityType == CompetitionLifecycleService.EntityType && a.EntityId == version.CompetitionId
@@ -198,7 +200,7 @@ public sealed class ResultsApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope
     }
 }
 
-/// <summary>Establishment change (EST-002): the creator never acts on it; central HR only (no branch scope).</summary>
+/// <summary>Establishment change (EST-002): its makers never act on it; central HR only (no branch scope).</summary>
 public sealed class EstablishmentChangeApprovalGate(HRCoreDbContext db, WorkflowGateOrgScope scope) : IWorkflowApprovalGate
 {
     public const string CreatorMessage = "لا يمكن للمنشئ اعتماد طلبه الخاص.";
@@ -211,7 +213,7 @@ public sealed class EstablishmentChangeApprovalGate(HRCoreDbContext db, Workflow
             .Where(r => r.Id == context.Instance.EntityId)
             .Select(r => r.CreatedBy)
             .FirstOrDefaultAsync(ct);
-        if (context.Actor.UserId is Guid actor && createdBy == actor)
+        if (context.ActorIsMaker(createdBy))
             return CreatorMessage;
 
         return await scope.GetBlockReasonAsync(context.Actor, entityOrgUnitId: null, ct);

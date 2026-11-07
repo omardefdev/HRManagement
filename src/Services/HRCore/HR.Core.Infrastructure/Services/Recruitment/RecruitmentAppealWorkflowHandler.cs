@@ -3,6 +3,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow;
 using HRManagement.SharedKernel.Entities;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +24,8 @@ public sealed class RecruitmentAppealWorkflowHandler(HRCoreDbContext db)
         var appeal = await db.RecruitmentAppeals
             .Include(a => a.RecruitmentApplication)
             .FirstOrDefaultAsync(a => a.Id == instance.EntityId, ct);
-        if (appeal is null || appeal.Status != RecruitmentAppealStatus.Pending)
+        // PLAN-44: only the linked instance decides it, as for every other type.
+        if (appeal is null || appeal.Status != RecruitmentAppealStatus.Pending || appeal.WorkflowInstanceId != instance.Id)
             return;
 
         var actorId = LastActorId(instance) ?? instance.InitiatedBy;
@@ -47,7 +49,7 @@ public sealed class RecruitmentAppealWorkflowHandler(HRCoreDbContext db)
     private async Task StageObjectionCorrectionAsync(RecruitmentAppeal appeal, Guid? actorUserId, DateTime now, CancellationToken ct)
     {
         if (appeal.ObjectionExamCandidateId is not Guid paperId || appeal.ObjectionCorrectedScore is not decimal corrected)
-            throw new InvalidOperationException("الاعتراض المقبول يتطلب الدفتر والعلامة المصحّحة.");
+            throw new WorkflowOutcomeRefusedException("الاعتراض المقبول يتطلب الدفتر والعلامة المصحّحة.");
         var paper = await db.ExamCandidates.FirstAsync(c => c.Id == paperId, ct);
         db.ExamScores.Add(new ExamScore
         {
@@ -92,7 +94,7 @@ public sealed class RecruitmentAppealWorkflowHandler(HRCoreDbContext db)
                 var error = await new RecruitmentSelectionService(db).StageAppealRankCorrectionAsync(
                     app, appeal.CorrectedRank!.Value, appeal.Decision!, appeal.Id, rankBeforeRejection, actorUserId, ct);
                 if (error is not null)
-                    throw new InvalidOperationException(error);
+                    throw new WorkflowOutcomeRefusedException(error);
                 break;
             case RecruitmentAppealOutcome.UpheldNoRemedy:
                 db.AuditLogs.Add(new EntityAuditLog

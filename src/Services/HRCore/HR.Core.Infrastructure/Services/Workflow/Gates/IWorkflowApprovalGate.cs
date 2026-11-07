@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities.Workflow;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Workflow;
 
 namespace HR.Core.Infrastructure.Services.Workflow.Gates;
@@ -16,7 +17,14 @@ public sealed record WorkflowGateContext(
     WorkflowDefinition Definition,
     WorkflowStepSnapshot Step,
     WorkflowActionActor Actor,
-    WorkflowActionKind Kind);
+    WorkflowActionKind Kind,
+    bool IncludeSubmitter = true)
+{
+    /// <summary>PLAN-44: the actor made this request, by the same function the inbox asks.</summary>
+    public bool ActorIsMaker(Guid? entityCreatedBy) =>
+        Actor.UserId is Guid actor
+        && WorkflowMakerRules.Makers(entityCreatedBy, Instance.InitiatedBy, Instance.RequestedByUserId, IncludeSubmitter).Contains(actor);
+}
 
 /// <summary>
 /// PLAN-25 (G-04, decision 5): the entity rules of one workflow entity type (SoD, quorum, membership, assigned reviewer,

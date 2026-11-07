@@ -6,7 +6,9 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
+using HR.Core.Infrastructure.Services.Workflow;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.ViewModels;
 
@@ -15,9 +17,23 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 public class ApprovalsController : Controller
 {
-    private readonly HRCoreDbContext _context;
+    public const string NotRequesterMessage = "لا يلغي الطلب إلا صاحبه";
 
-    public ApprovalsController(HRCoreDbContext context) => _context = context;
+    private readonly HRCoreDbContext _context;
+    private readonly WorkflowStepRoleOptions _stepRoles;
+
+    public ApprovalsController(HRCoreDbContext context, WorkflowStepRoleOptions? stepRoles = null)
+    {
+        _context = context;
+        _stepRoles = stepRoles ?? new WorkflowStepRoleOptions();
+    }
+
+    /// <summary>PLAN-44: every role claim of the actor, and whether an admin passes a step it does not hold (Workflow:AdminBypass).</summary>
+    private (IReadOnlyCollection<string> Roles, bool RoleBypass) StepRoleFacts()
+    {
+        var actor = WorkflowActionActor.FromPrincipal(User);
+        return (actor.Roles, _stepRoles.AdminBypass && actor.HasRole(HrManagementRoles.Admin));
+    }
 
     public async Task<IActionResult> Index(SearchFilterBase? filter, string? status, string? entityType)
     {
@@ -118,7 +134,8 @@ public class ApprovalsController : Controller
         var userId = ParseUserId(User);
         var userName = User.FindFirstValue("preferred_username") ?? User.Identity?.Name ?? "مجهول";
 
-        if (!ApprovalWorkflowService.TryApproveStep(request, userId, userName, reviewComments, out var approveError))
+        var (roles, roleBypass) = StepRoleFacts();
+        if (!ApprovalWorkflowService.TryApproveStep(request, userId, userName, reviewComments, roles, roleBypass, out var approveError))
         {
             TempData["Error"] = approveError;
             return RedirectToAction(nameof(Index));
@@ -167,7 +184,8 @@ public class ApprovalsController : Controller
         var userId = ParseUserId(User);
         var userName = User.FindFirstValue("preferred_username") ?? User.Identity?.Name ?? "مجهول";
 
-        if (!ApprovalWorkflowService.TryReject(request, userId, userName, reviewComments, out var rejectError))
+        var (roles, roleBypass) = StepRoleFacts();
+        if (!ApprovalWorkflowService.TryReject(request, userId, userName, reviewComments, roles, roleBypass, out var rejectError))
         {
             TempData["Error"] = rejectError;
             return RedirectToAction(nameof(Index));
@@ -192,6 +210,14 @@ public class ApprovalsController : Controller
         if (request.Status != ApprovalStatus.Pending)
         {
             TempData["Error"] = "لا يمكن إلغاء طلب غير معلق";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // PLAN-44 (G-WF-19): the requester, or an admin; the write policy alone let anyone in HR.Core withdraw a colleague's request.
+        var isRequester = ParseUserId(User) is Guid actorId && actorId == request.RequestedBy;
+        if (!isRequester && !WorkflowActionActor.FromPrincipal(User).HasRole(HrManagementRoles.Admin))
+        {
+            TempData["Error"] = NotRequesterMessage;
             return RedirectToAction(nameof(Index));
         }
 

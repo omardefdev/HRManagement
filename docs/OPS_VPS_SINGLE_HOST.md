@@ -273,6 +273,7 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-42: حُذف الطابور `idcard-web-policy-published` (0 رسالة، 0 مستهلك) | لا تراجع لازم: الوسم القديم يعيد إنشاءه عند الإقلاع |
 | PLAN-42: `/opt/hrm/backups/pre-plan42-20261105T090239Z` (700، الملفات 600) و`/opt/hrm/shared/.env.bak-plan42-20261105T090239Z` | حذفهما بعد التأكد من عدم الحاجة إليهما |
 | PLAN-43: الإصدار `3bd9ee92bcf5` (current-tag؛ previous-tag `c6faf0a92e6e`)، وترحيلا `WF043_*` في `hr_core_db` (أعمدة تقبل الفراغ أو لها قيمة افتراضية) | `deploy.ps1 -Rollback`؛ الأعمدة تبقى ولا تضر الإصدار السابق |
+| PLAN-44: الإصدار `973d68488f09` (current-tag؛ previous-tag `3bd9ee92bcf5`)، وترحيل `WF044_WorkflowInstanceIntegrity` في `hr_core_db` (فهرسان فريدان جزئيان، ولا عمود جديد)، ومهمة `WorkflowOutcomeReconciliationJob` كل 15 دقيقة (كشف فقط) | `deploy.ps1 -Rollback`؛ الفهرسان يبقيان، والإصدار السابق يعمل معهما، إلا أن بدءاً ثانياً لكيان جارٍ فيه يتلقى خطأ قيد فريد بدل نسخة ثانية. النسخة الاحتياطية: `/opt/hrm/backups/pre-plan44-20261107T083208Z` |
 | PLAN-43: `keycloak-reconcile` أنشأ `workflow-admin` وستة أدوار قديمة كانت غائبة (`hr-core-supervisory`، `hr-core-executive`، `hr-health-clinical`، `payroll-poster`، `payroll-reverser`، `hr-exam-marker`) | لوحة Keycloak (§7)، ولا مستخدم يحملها |
 | PLAN-43: حُذف `GATEWAY_CALLER_PROOF_SECRET` من `/opt/hrm/shared/.env` (لا شيفرة تقرؤه منذ `a7ad95e0a4fa`) | إعادة السطر من `env.backup` في نسخة `pre-plan43` |
 | PLAN-43: طلب شاغر معتمد واحد باسم «PLAN-43 server check» من فحص الخادم، ورفع عدّاد `RecruitmentRequisition` فوق أرقام البذرة | يبقى، أو يُرفض من الواجهة |
@@ -505,3 +506,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/msg040-replay-lost-e
 - **التراجع:** `deploy.ps1 -Rollback` يعيد `c6faf0a92e6e`، وبعده `a7ad95e0a4fa` آمن أيضاً: أعمدة `WF043_*` تقبل الفراغ أو لها قيمة افتراضية. لكن مستهلكي الإصدار الأقدم (`supportedMax: 1`) يتجاهلون أحداث العهدة v2 الجارية، وسجل النشر يمنع إعادة تشغيلها، فراجع نسخ العهدة المعلقة بعد تراجع كهذا. وما ينشره الوسم القديم يصحح الترقيع `Status` له عند العودة.
 
 **نشر 2026-11-06.** بناءان: `c6faf0a92e6e` (1349 ث) ثم `3bd9ee92bcf5` (1299 ث) بعد أن كشف فحص الخادم أن تعبئة الترحيل لم تمس صفاً. النشر الأول 156 ث. النشر الثاني توقف عند `keycloak-reconcile` بعد إعادة PostgreSQL، خطأ `could not read the realm roles`، فبقي الوسم وتوقفت التطبيقات نحو 4 دقائق، ونجحت إعادة الأمر نفسه في 120 ث. الدخان 50 نجاحاً و0 فشل وتحذير واحد.
+
+## تقرير النسخ المكررة والإصلاح (PLAN-44)
+
+**التقرير** (قراءة فقط، بدور المسؤول لأن الجداول تحت أمن صفوف مفروض):
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wf044-duplicate-instances-report.ps1 -Server -FailOnDuplicates
+```
+
+يطبع المالك وأعلام أمن الصفوف، والنسخ حسب النوع والحالة، والمكررات، والمفاتيح المكررة، وما حلّه الترحيل، و«نسخة منتهية وكيان معلّق».
+
+**الإصلاح:** المهمة الدورية تكشف فقط (`Workflow:Reconciliation:AutoApply=false`) وتسجّل تحذيراً لكل بند وتحدّث `workflow_outcome_unapplied_total`. والتطبيق عبر نقطة المشغّل، بتشغيل جاف أولاً:
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/hcm025-repair-stuck-approvals.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/hcm025-repair-stuck-approvals.ps1 -Apply
+```
+
+البند `ApplyFinishedOutcome` يعيد تشغيل المعالج ويدوّن المشغّل فاعلاً، ولا ينشئ نسخة ولا يغيّرها. و`NotLinked` يعني نسخة مكتملة لا يربطها الكيان، فلا تُطبَّق. والاعتراض المقبول يبقى للمشغّل، لأن إعادة احتساب النتائج ليست في المعالج.
+

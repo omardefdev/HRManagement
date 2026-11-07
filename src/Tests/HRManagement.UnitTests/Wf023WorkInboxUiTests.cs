@@ -20,10 +20,10 @@ namespace HRManagement.UnitTests;
 /// <summary>WF-023 / PLAN-23: unified work inbox query + service.</summary>
 public class Wf023WorkInboxUiTests
 {
-    private static readonly Guid CreatorId = Guid.Parse("cccccccc-cccc-cccc-cccc-111111111111");
-    private static readonly Guid HrReviewerId = Guid.Parse("cccccccc-cccc-cccc-cccc-222222222222");
+    internal static readonly Guid CreatorId = Guid.Parse("cccccccc-cccc-cccc-cccc-111111111111");
+    internal static readonly Guid HrReviewerId = Guid.Parse("cccccccc-cccc-cccc-cccc-222222222222");
     private static readonly Guid MgmtApproverId = Guid.Parse("cccccccc-cccc-cccc-cccc-333333333333");
-    private static readonly Guid ComplianceId = Guid.Parse("cccccccc-cccc-cccc-cccc-444444444444");
+    internal static readonly Guid ComplianceId = Guid.Parse("cccccccc-cccc-cccc-cccc-444444444444");
 
     [Fact]
     public void Required_plan23_artifacts_exist()
@@ -244,7 +244,7 @@ public class Wf023WorkInboxUiTests
         Assert.Empty(team);
     }
 
-    private static WorkflowInboxQueryService CreateQueryService(HRCoreDbContext db)
+    internal static WorkflowInboxQueryService CreateQueryService(HRCoreDbContext db)
     {
         var eligibility = new WorkflowInboxEligibilityService();
         var resolver = new WorkflowDeepLinkResolver(db);
@@ -260,7 +260,7 @@ public class Wf023WorkInboxUiTests
         return new HrCoreWorkInboxService(CreateQueryService(db), accessor.Object);
     }
 
-    private static async Task<(Guid RequisitionId, Guid InstanceId)> SeedTwoStepRequisitionAsync(
+    internal static async Task<(Guid RequisitionId, Guid InstanceId)> SeedTwoStepRequisitionAsync(
         HRCoreDbContext db,
         Guid creatorId,
         int stepLevel,
@@ -330,11 +330,12 @@ public class Wf023WorkInboxUiTests
             StartedAt = DateTime.UtcNow
         };
         db.WorkflowInstances.Add(instance);
+        req.WorkflowInstanceId = instance.Id;
         await db.SaveChangesAsync();
         return (req.Id, instance.Id);
     }
 
-    private static async Task<(Guid OfferId, Guid InstanceId)> SeedTwoStepOfferAsync(
+    internal static async Task<(Guid OfferId, Guid InstanceId)> SeedTwoStepOfferAsync(
         HRCoreDbContext db,
         Guid creatorId,
         int stepLevel)
@@ -401,11 +402,12 @@ public class Wf023WorkInboxUiTests
             StartedAt = DateTime.UtcNow
         };
         db.WorkflowInstances.Add(instance);
+        offer.WorkflowInstanceId = instance.Id;
         await db.SaveChangesAsync();
         return (offer.Id, instance.Id);
     }
 
-    private static async Task<(SelectionCommitteeSession Session, WorkflowInstance Instance)> SeedCommitteeAsync(
+    internal static async Task<(SelectionCommitteeSession Session, WorkflowInstance Instance)> SeedCommitteeAsync(
         HRCoreDbContext db,
         int memberCount)
     {
@@ -480,7 +482,7 @@ public class Wf023WorkInboxUiTests
         return (session, instance);
     }
 
-    private static async Task<(RecruitmentAppeal Appeal, WorkflowInstance Instance)> SeedAppealAsync(
+    internal static async Task<(RecruitmentAppeal Appeal, WorkflowInstance Instance)> SeedAppealAsync(
         HRCoreDbContext db,
         Guid reviewerId)
     {
@@ -530,7 +532,7 @@ public class Wf023WorkInboxUiTests
         return (appeal, instance);
     }
 
-    private static async Task<Guid> SeedEstablishmentChangeAsync(
+    internal static async Task<Guid> SeedEstablishmentChangeAsync(
         HRCoreDbContext db,
         Guid creatorId,
         int stepLevel)
@@ -603,7 +605,7 @@ public class Wf023WorkInboxUiTests
         return request.Id;
     }
 
-    private static ClaimsPrincipal CreateUser(Guid userId, string role) =>
+    internal static ClaimsPrincipal CreateUser(Guid userId, string role) =>
         new(new ClaimsIdentity([
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Role, role)
@@ -621,7 +623,7 @@ public class Wf023WorkInboxUiTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
     }
 
-    private static HRCoreDbContext CreateContext()
+    internal static HRCoreDbContext CreateContext()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();

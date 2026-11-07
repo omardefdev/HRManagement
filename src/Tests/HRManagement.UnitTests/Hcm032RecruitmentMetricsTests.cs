@@ -457,12 +457,15 @@ public class Hcm032RecruitmentMetricsTests
         {
             appeal.Outcome = RecruitmentAppealOutcome.Upheld;
             appeal.Decision = "قبول الاستئناف";
-            await handler.HandleAsync(new HR.Core.Domain.Entities.Workflow.WorkflowInstance
+            // PLAN-44: only the linked instance decides an appeal.
+            var instance = new HR.Core.Domain.Entities.Workflow.WorkflowInstance
             {
                 EntityType = "RecruitmentAppeal",
                 EntityId = appeal.Id,
                 StepHistoryJson = "[]"
-            }, approved: true, reason: null);
+            };
+            appeal.WorkflowInstanceId = instance.Id;
+            await handler.HandleAsync(instance, approved: true, reason: null);
         }
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();

@@ -5593,15 +5593,15 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("EditorUserIdsJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("GuardrailRolesJson")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("EditorUserIdsJson")
-                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -5824,6 +5824,12 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DefinitionId");
@@ -5831,6 +5837,16 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("EntityType", "EntityId");
+
+                    b.HasIndex("TenantId", "EntityType", "EntityId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_WorkflowInstances_Tenant_Entity_Active")
+                        .HasFilter("\"Status\" = 'InProgress'");
+
+                    b.HasIndex("TenantId", "SourceClientId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_WorkflowInstances_Tenant_Source_IdempotencyKey")
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
 
                     b.ToTable("WorkflowInstances");
                 });

@@ -31,7 +31,7 @@ internal static class EstablishmentChangeFlow
             Assert.True(response.IsSuccessStatusCode, body);
         }
 
-        // The workflow handler leaves a failed apply at Approved, so a clear message belongs here.
+        // PLAN-44: a change that cannot apply refuses the last approval, so this is reached only by a change that applied.
         Assert.Equal("Applied", (await StatusAsync(changeRequestId)).Trim());
     }
 

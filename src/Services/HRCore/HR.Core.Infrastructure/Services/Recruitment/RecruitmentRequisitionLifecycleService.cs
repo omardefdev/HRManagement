@@ -371,7 +371,16 @@ public sealed class RecruitmentRequisitionLifecycleService(
         await RecruitmentRequisitionCascade.StageCancellationAsync(db, req, trimmedReason ?? "إلغاء المسودة", actorUserId, ct);
         // HCM-032 (PLAN-32): aggregate close event on the outbox, same save.
         await Analytics.RecruitmentRequisitionClosedEvent.StageAsync(db, publish, req, ct);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // PLAN-44: a decision won the race; neither the cancellation nor its event is written.
+            return (false, HR.Core.Infrastructure.Services.Workflow.WorkflowConcurrency.Lost(db, "cancel"));
+        }
+
         return (true, null);
     }
 

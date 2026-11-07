@@ -57,8 +57,8 @@ public sealed record ApprovalStartResult(Guid? InstanceId, string? Error)
 /// <summary>
 /// PLAN-25 (G-02): the single place that decides how an approval starts. The policy engine may deny or start a different
 /// workflow; it never removes the approval. Steps: (1) policy mode ≠ Off → enforce, a denial is returned; (2) an instance
-/// started by the policy is used; (3) an in-progress instance of the same entity is reused (never two); (4) otherwise the
-/// default workflow is started (<see cref="RecruitmentApprovalOptions.AlwaysStartWorkflow"/>); (5) no published definition →
+/// started by the policy is used; (3) an in-progress instance of the same entity is reused, and one that cannot be reused
+/// refuses the start (never two: PLAN-44's index decides a race); (4) otherwise the default workflow is started (<see cref="RecruitmentApprovalOptions.AlwaysStartWorkflow"/>); (5) no published definition →
 /// <see cref="MissingDefinitionMessage"/>.
 /// </summary>
 public sealed class ApprovalStartCoordinator(
@@ -74,6 +74,20 @@ public sealed class ApprovalStartCoordinator(
         "بدء مسار الاعتماد معطّل بالإعداد Recruitment:Approvals:AlwaysStartWorkflow، ولا تُقدَّم المعاملة دون مسار اعتماد.";
 
     public async Task<ApprovalStartResult> StartAsync(ApprovalStartRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            return await StartOnceAsync(request, ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            // PLAN-44: a concurrent submission won. Its instance is committed by now: the insert waited for it.
+            var winner = await FindReusableInstanceAsync(request, ct);
+            return winner is Guid id ? new ApprovalStartResult(id, null) : new ApprovalStartResult(null, running.Message);
+        }
+    }
+
+    private async Task<ApprovalStartResult> StartOnceAsync(ApprovalStartRequest request, CancellationToken ct)
     {
         var options = RecruitmentApprovalOptions.From(configuration);
         var mode = modeResolver.Resolve(request.PolicyDomain);
@@ -97,6 +111,10 @@ public sealed class ApprovalStartCoordinator(
         var existing = await FindReusableInstanceAsync(request, ct);
         if (existing is not null)
             return new ApprovalStartResult(existing, null);
+
+        // PLAN-44: never two. The index decides a race; this answers the ordinary case without provoking it.
+        if (await HasRunningInstanceAsync(request, ct))
+            return new ApprovalStartResult(null, WorkflowInstanceRunningException.RunningMessage);
 
         if (!options.AlwaysStartWorkflow)
             return new ApprovalStartResult(null, StartDisabledMessage);
@@ -158,6 +176,10 @@ public sealed class ApprovalStartCoordinator(
                 await transaction.DisposeAsync();
         }
     }
+
+    private Task<bool> HasRunningInstanceAsync(ApprovalStartRequest request, CancellationToken ct) =>
+        db.WorkflowInstances.AsNoTracking().AnyAsync(
+            i => i.EntityType == request.EntityType && i.EntityId == request.EntityId && i.Status == WorkflowStatus.InProgress, ct);
 
     /// <summary>
     /// Never two instances: an in-progress instance of the same entity is reused only when it runs the requested workflow
