@@ -274,7 +274,7 @@ public class SoDPolicyIntegrationTests
         var creator = Guid.NewGuid();
         var request = ApprovalsController.CreateApprovalRequest(
             "ApprovalRequest", Guid.NewGuid(), "x", creator, "c");
-        Assert.False(ApprovalWorkflowService.TryApproveStep(request, creator, "c", null, out var err));
+        Assert.False(ApprovalWorkflowService.TryApproveStep(request, creator, "c", null, ["hr-core"], false, out var err));
         Assert.Contains("منشئ", err!);
     }
 }

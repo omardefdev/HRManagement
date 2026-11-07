@@ -75,3 +75,11 @@ These hold for every workflow type, on the server and in the inbox panel (`Workf
 No service account approves or rejects a step, or writes a definition. A definition is published by a person who neither created, edited nor submitted it.
 
 The recruitment and establishment rules stay in their gates. Exempt types: `docs/qa/workflow-step-role-exemptions.json`.
+
+## The maker (PLAN-44, D-WF-8)
+
+`WorkflowMakerRules.Makers` is the creator (`CreatedBy`), the submitter (`InitiatedBy`, with `Workflow:Maker:IncludeSubmitter=true`) and the requester (`RequestedByUserId`), leaving out the empty ones. They are barred from every step, approving and rejecting, in the requisition, offer, establishment, competition and result gates. The inbox asks the same function, so the panel and the server bar the same people. Results bar the submitter whatever the setting says.
+
+The committee and the appeal keep their own rules: the session's creator, and the assigned reviewer.
+
+The legacy path of `ApprovedCV` checks the step's role, and only the requester or `hr-admin` cancels.

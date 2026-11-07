@@ -17,7 +17,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Workflow;
 
-public sealed record WorkflowActionResult(bool Success, string? Error, WorkflowInstance? Instance);
+public sealed record WorkflowActionResult(bool Success, string? Error, WorkflowInstance? Instance)
+{
+    /// <summary>PLAN-44: the instance changed under this action; nothing was written.</summary>
+    public bool IsConflict => Error == WorkflowConcurrency.ConflictMessage;
+}
 
 public interface IWorkflowInstanceActionService
 {
@@ -32,7 +36,14 @@ public interface IWorkflowInstanceActionService
         Guid instanceId,
         WorkflowActionActor actor,
         string? comments,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        int? targetStepLevel = null);
+
+    /// <summary>
+    /// PLAN-44: runs the handler of a finished instance again, for an outcome that slipped before this plan. The instance is not touched,
+    /// and the caller owns the save. Handlers check the entity's state and link, so a second run does nothing.
+    /// </summary>
+    Task ReapplyOutcomeAsync(WorkflowInstance instance, bool approved, string? reason, CancellationToken ct = default);
 }
 
 public sealed class WorkflowInstanceActionService(
@@ -81,6 +92,9 @@ public sealed class WorkflowInstanceActionService(
         if (instance is null)
             return new WorkflowActionResult(false, "Workflow instance not found.", null);
 
+        if (WorkflowConcurrency.IsStale(instance, targetStepLevel))
+            return Conflict("approve");
+
         var definition = await ResolvePinnedDefinitionAsync(instance, ct);
         if (definition is null)
             return new WorkflowActionResult(false, "Workflow definition not found for this instance version.", null);
@@ -99,43 +113,50 @@ public sealed class WorkflowInstanceActionService(
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
 
-        instance.CurrentStepLevel = result.NewStepLevel;
-        instance.Status = result.NewStatus;
-
-        if (result.HistoryEntry is not null)
+        // PLAN-44: every refusal is above, so nothing a caller staged (the appeal's outcome) is saved by a refused action.
+        try
         {
-            var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
-            history.Add(result.HistoryEntry);
-            instance.StepHistoryJson = JsonSerializer.Serialize(history);
+            await OutboxUnitOfWork.ExecuteAsync(context, async token =>
+            {
+                instance.CurrentStepLevel = result.NewStepLevel;
+                instance.Status = result.NewStatus;
 
-            await signatures.RecordStepActionAsync(
-                instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), ct);
+                if (result.HistoryEntry is not null)
+                {
+                    AppendHistory(instance, result.HistoryEntry);
+                    await signatures.RecordStepActionAsync(
+                        instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), token);
+                }
+
+                if (result.NewStatus == WorkflowStatus.Completed)
+                {
+                    instance.CompletedAt = DateTime.UtcNow;
+                    // PLAN-40 (class A): the asset outcome is staged before the save, so it commits with the instance.
+                    await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
+                    await PublishWorkflowOutcomeAsync(instance, approved: true, ct: token);
+                }
+            }, ct);
+            return new WorkflowActionResult(true, null, instance);
         }
-
-        if (result.NewStatus == WorkflowStatus.Completed)
+        catch (Exception ex) when (ex is DbUpdateConcurrencyException or WorkflowOutcomeRefusedException)
         {
-            instance.CompletedAt = DateTime.UtcNow;
-            // PLAN-40 (class A): the asset outcome is staged before the single save, so it commits with the instance.
-            await StageAssetOutcomeAsync(instance, approved: true, actor.UserId);
+            return Undone("approve", ex);
         }
-
-        await context.SaveChangesAsync(ct);
-
-        if (result.NewStatus == WorkflowStatus.Completed)
-            await PublishWorkflowOutcomeAsync(instance, approved: true, ct: ct);
-
-        return new WorkflowActionResult(true, null, instance);
     }
 
     public async Task<WorkflowActionResult> RejectAsync(
         Guid instanceId,
         WorkflowActionActor actor,
         string? comments,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        int? targetStepLevel = null)
     {
         var instance = await context.WorkflowInstances.FindAsync([instanceId], ct);
         if (instance is null)
             return new WorkflowActionResult(false, "Workflow instance not found.", null);
+
+        if (WorkflowConcurrency.IsStale(instance, targetStepLevel))
+            return Conflict("reject");
 
         var definition = await ResolvePinnedDefinitionAsync(instance, ct);
         if (definition is null)
@@ -153,25 +174,57 @@ public sealed class WorkflowInstanceActionService(
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
 
-        instance.Status = result.NewStatus;
-
-        if (result.HistoryEntry is not null)
+        try
         {
-            var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
-            history.Add(result.HistoryEntry);
-            instance.StepHistoryJson = JsonSerializer.Serialize(history);
+            await OutboxUnitOfWork.ExecuteAsync(context, async token =>
+            {
+                instance.Status = result.NewStatus;
 
-            await signatures.RecordStepActionAsync(
-                instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), ct);
+                if (result.HistoryEntry is not null)
+                {
+                    AppendHistory(instance, result.HistoryEntry);
+                    await signatures.RecordStepActionAsync(
+                        instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), token);
+                }
+
+                instance.CompletedAt = DateTime.UtcNow;
+                await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
+                await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: token);
+            }, ct);
+            return new WorkflowActionResult(true, null, instance);
         }
+        catch (Exception ex) when (ex is DbUpdateConcurrencyException or WorkflowOutcomeRefusedException)
+        {
+            return Undone("reject", ex);
+        }
+    }
 
-        instance.CompletedAt = DateTime.UtcNow;
-        await StageAssetOutcomeAsync(instance, approved: false, actor.UserId, reason: comments);
-        await context.SaveChangesAsync(ct);
+    /// <summary>
+    /// PLAN-44 (G-WF-12): the unit of work above commits the instance, the signature, the entity's change and the outbox row together, and
+    /// makes the last save after everything was staged (PLAN-40's order). Here the transaction has rolled back: a decision that lost the
+    /// race on <c>xmin</c> gets the conflict message and is never retried, because the step may have moved on; a refused outcome gets its
+    /// reason. Any other failure of a handler propagates, and rolls back the same way.
+    /// </summary>
+    private WorkflowActionResult Undone(string action, Exception failure)
+    {
+        // Nothing of the decision may stay tracked: a later save in this request would write it again.
+        context.ChangeTracker.Clear();
+        return failure is WorkflowOutcomeRefusedException
+            ? new WorkflowActionResult(false, failure.Message, null)
+            : Conflict(action);
+    }
 
-        await PublishWorkflowOutcomeAsync(instance, approved: false, reason: comments, ct: ct);
+    private static WorkflowActionResult Conflict(string action)
+    {
+        WorkflowIntegrityMetrics.RecordConflict(action);
+        return new WorkflowActionResult(false, WorkflowConcurrency.ConflictMessage, null);
+    }
 
-        return new WorkflowActionResult(true, null, instance);
+    private static void AppendHistory(WorkflowInstance instance, WorkflowStepHistoryEntry entry)
+    {
+        var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(instance.StepHistoryJson) ?? [];
+        history.Add(entry);
+        instance.StepHistoryJson = JsonSerializer.Serialize(history);
     }
 
     /// <summary>
@@ -185,6 +238,9 @@ public sealed class WorkflowInstanceActionService(
         if (WorkflowAssetOutcomes.IsAssetWorkflow(instance))
             await WorkflowAssetOutcomes.PublishOutcomeAsync(context, publish, instance, approved, reason, actor);
     }
+
+    public Task ReapplyOutcomeAsync(WorkflowInstance instance, bool approved, string? reason, CancellationToken ct = default) =>
+        PublishWorkflowOutcomeAsync(instance, approved, reason, ct);
 
     private async Task PublishWorkflowOutcomeAsync(
         WorkflowInstance instance,

@@ -221,7 +221,8 @@ public sealed class EstablishmentChangeLifecycleService(
 
         request.Status = EstablishmentChangeStatus.Cancelled;
         request.WorkflowInstanceId = null;
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return await HR.Core.Infrastructure.Services.Workflow.WorkflowConcurrency.SaveOrConflictAsync(db, "cancel", ct) is { } conflict
+            ? (false, conflict)
+            : (true, null);
     }
 }

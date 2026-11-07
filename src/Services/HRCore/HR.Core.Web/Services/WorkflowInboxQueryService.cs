@@ -109,7 +109,7 @@ public sealed class WorkflowInboxQueryService(
         var items = new List<WorkInboxItem>();
         foreach (var request in requests)
         {
-            if (!IsLegacyApprovalActionable(request, user, userId))
+            if (!IsLegacyApprovalActionable(request, user, userId, eligibility.AdminBypass))
                 continue;
 
             var currentStep = request.Steps
@@ -135,7 +135,8 @@ public sealed class WorkflowInboxQueryService(
     internal static bool IsLegacyApprovalActionable(
         ApprovalRequest request,
         ClaimsPrincipal user,
-        Guid? userId)
+        Guid? userId,
+        bool adminBypass = false)
     {
         if (userId.HasValue && request.RequestedBy == userId)
             return false;
@@ -145,7 +146,8 @@ public sealed class WorkflowInboxQueryService(
         if (currentStep is null)
             return false;
 
-        if (user.IsInRole(HrManagementRoles.Admin))
+        // PLAN-44: as ApprovalWorkflowService judges it.
+        if (adminBypass && user.IsInRole(HrManagementRoles.Admin))
             return true;
 
         return user.IsInRole(currentStep.RoleRequired);
@@ -200,8 +202,8 @@ public sealed class WorkflowInboxQueryService(
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
                                 ScopeOrgUnitId = req?.FundedPosition?.OrgUnitId,
-                                EntityCreatedBy = req?.CreatedBy ?? instance.InitiatedBy,
-                                IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval
+                                EntityMakers = eligibility.MakersOf(req?.CreatedBy, instance),
+                                IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval && req.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -219,8 +221,8 @@ public sealed class WorkflowInboxQueryService(
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
                                 ScopeOrgUnitId = offer?.FundedPosition?.OrgUnitId,
-                                EntityCreatedBy = offer?.CreatedBy ?? instance.InitiatedBy,
-                                IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval
+                                EntityMakers = eligibility.MakersOf(offer?.CreatedBy, instance),
+                                IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval && offer.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -240,9 +242,10 @@ public sealed class WorkflowInboxQueryService(
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
                                 ScopeOrgUnitId = session?.Requisition?.FundedPosition?.OrgUnitId,
-                                EntityCreatedBy = session?.CreatedBy ?? instance.InitiatedBy,
+                                EntityMakers = WorkflowMakerRules.Makers(session?.CreatedBy, null, null),
+                                CommitteeCreatedBy = session?.CreatedBy,
                                 CommitteeMembers = session?.Members.ToList(),
-                                IsAwaitingApproval = session?.ApprovedAt is null
+                                IsAwaitingApproval = session is { ApprovedAt: null } && session.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -263,7 +266,7 @@ public sealed class WorkflowInboxQueryService(
                             {
                                 ScopeOrgUnitId = appeal?.RecruitmentApplication?.Requisition?.FundedPosition?.OrgUnitId,
                                 Appeal = appeal,
-                                IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending
+                                IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending && appeal.WorkflowInstanceId == instance.Id
                             };
                         }
 
@@ -279,8 +282,8 @@ public sealed class WorkflowInboxQueryService(
                             rows.TryGetValue(instance.EntityId, out var change);
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
-                                EntityCreatedBy = change?.CreatedBy ?? instance.InitiatedBy,
-                                IsAwaitingApproval = change?.Status == EstablishmentChangeStatus.PendingApproval
+                                EntityMakers = eligibility.MakersOf(change?.CreatedBy, instance),
+                                IsAwaitingApproval = change?.Status == EstablishmentChangeStatus.PendingApproval && change.WorkflowInstanceId == instance.Id
                             };
                         }
 

@@ -188,7 +188,8 @@ public sealed class EstablishmentChangeApplier(
 
             return (false, "حمولة الاستيراد الجماعي غير صالحة.", null, nameof(JobCatalogEntry), null, null);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        // PLAN-44: inside a decision this joins its transaction, so a failed import rolls the decision back with it.
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(ct) : null;
 
         var created = new List<JobCatalogEntry>();
 
@@ -202,7 +203,7 @@ public sealed class EstablishmentChangeApplier(
 
             {
 
-                await transaction.RollbackAsync(ct);
+                if (transaction is not null) await transaction.RollbackAsync(ct);
 
                 return (false, core.Error, null, nameof(JobCatalogEntry), null, null);
 
@@ -232,7 +233,7 @@ public sealed class EstablishmentChangeApplier(
 
         }
 
-        await transaction.CommitAsync(ct);
+        if (transaction is not null) await transaction.CommitAsync(ct);
 
         return (true, null, created[0].Id, nameof(JobCatalogEntry), null, Serialize(created));
 

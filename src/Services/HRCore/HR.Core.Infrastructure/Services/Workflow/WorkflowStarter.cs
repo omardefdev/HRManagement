@@ -79,8 +79,10 @@ public sealed class WorkflowStarter(
         if (result.NewStatus == WorkflowStatus.Completed)
             instance.CompletedAt = DateTime.UtcNow;
 
-        db.WorkflowInstances.Add(instance);
-        await db.SaveChangesAsync(ct);
+        // PLAN-44: every caller reaches here, so the loser of a race is told the same way on every path.
+        if (await WorkflowInstanceInsert.TrySaveAsync(db, instance, ct) is not null)
+            throw new WorkflowInstanceRunningException(entityType, entityId);
+
         return instance.Id;
     }
 

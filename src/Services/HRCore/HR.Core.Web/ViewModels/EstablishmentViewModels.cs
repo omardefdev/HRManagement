@@ -147,6 +147,9 @@ public class EstablishmentChangeDetailsViewModel
 
 public class EstablishmentChangeWorkflowActionViewModel
 {
+    /// <summary>PLAN-44: the step the page showed; a page behind the instance gets the conflict message.</summary>
+    public int? TargetStepLevel { get; set; }
+
     public Guid ChangeRequestId { get; set; }
 
     [Display(Name = "ملاحظات")]

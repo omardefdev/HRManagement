@@ -215,7 +215,8 @@ public sealed class SelectionCommitteesController(
             id,
             CreateWorkflowActor(User),
             HrOrgScopeVisibility.GetEmployeeId(User),
-            vm.Comments);
+            vm.Comments,
+            targetStepLevel: vm.TargetStepLevel);
 
         TempData[success ? "Success" : "Error"] = success ? "تم اعتماد خطوة مسار اللجنة" : error;
 
@@ -248,7 +249,8 @@ public sealed class SelectionCommitteesController(
             id,
             CreateWorkflowActor(User),
             HrOrgScopeVisibility.GetEmployeeId(User),
-            vm.Comments);
+            vm.Comments,
+            targetStepLevel: vm.TargetStepLevel);
 
         TempData[success ? "Success" : "Error"] = success ? "تم رفض مسار اللجنة وإعادة الجلسة للتعديل" : error;
 

@@ -16,7 +16,7 @@ namespace HR.Core.Web.Services;
 public sealed class WorkflowPanelBuildOptions
 {
     public bool IsAwaitingApproval { get; init; }
-    public Guid? EntityCreatedBy { get; init; }
+    public IReadOnlySet<Guid> EntityMakers { get; init; } = new HashSet<Guid>();
     public string? MissingWorkflowWarning { get; init; }
     public bool BlockInitiatorOnLaterSteps { get; init; } = true;
     public string? CreatorSoDMessage { get; init; } = "لا يمكن للمنشئ اعتماد طلبه الخاص.";
@@ -205,7 +205,7 @@ public static class WorkflowPanelBuilder
         Guid? userId,
         WorkflowPanelBuildOptions options)
     {
-        if (userId.HasValue && options.EntityCreatedBy == userId)
+        if (userId is Guid actorId && options.EntityMakers.Contains(actorId))
             return options.CreatorSoDMessage;
 
         if (options.BlockInitiatorOnLaterSteps

@@ -133,6 +133,15 @@ The step role is enforced for every type except `Workflow:StepRole:ExemptEntityT
 
 `Workflow:AdminBypass` never passes these rules.
 
+### Instance integrity (PLAN-44, G-WF-12)
+
+- **Concurrency.** `WorkflowInstance` carries `xmin`. A decision that loses the race gets `WorkflowConcurrency.ConflictMessage`, writes nothing and is not retried: the step may have moved on. The API answers 409. Forms and the API send the step they showed (`TargetStepLevel`), so a page behind the instance gets the same message instead of acting on the next step.
+- **One running instance.** `IX_WorkflowInstances_Tenant_Entity_Active` is unique on `(TenantId, EntityType, EntityId)` where `Status = 'InProgress'`, and `IX_WorkflowInstances_Tenant_Source_IdempotencyKey` on `(TenantId, SourceClientId, IdempotencyKey)`. Every insert goes through `WorkflowInstanceInsert`, which takes a savepoint inside a transaction, because a violation would abort it. The coordinator returns the winner's instance when it may adopt it, otherwise «يوجد مسار جارٍ لهذا الطلب». An external start answers as if it had come second: the same key gets the same instance, another key on a running entity gets 409.
+- **One transaction.** `ApproveAsync` and `RejectAsync` do every check first, then write inside `OutboxUnitOfWork`: the instance, the signature, the handler's change and the outbox row. A refusal stages nothing, so what a caller staged is not saved. A handler that throws rolls everything back. `WorkflowOutcomeRefusedException` does the same and shows its message: a change that cannot apply refuses the last approval, because nothing re-applies it later.
+- **Reconciliation.** `WorkflowOutcomeReconciliationJob` runs every `Workflow:Reconciliation:IntervalMinutes` (15) for every tenant, each in its own scope with the tenant set before the connection opens. It logs a warning per item and updates `workflow_outcome_unapplied_total{entity_type}`. With `AutoApply=false` (the default) it repairs nothing. `ApprovalRepairService` has a second category, «finished instance, linked entity still pending»: the handler runs again and the operator is audited as the actor (`WorkflowOutcomeReapplied`). It creates and changes no instance. A completed instance the entity does not link is listed «غير مرتبطة» and never applied. External types are repaired by their owners (PLAN-45, PLAN-46).
+- **Metrics.** `workflow_instance_conflict_total{action}` counts lost races.
+- **Seeding.** Only `WorkflowPackSeeder` seeds definitions (`Wf044DefinitionSeedingArchitectureTests`).
+
 ## API Endpoints
 
 ### Definitions
@@ -162,12 +171,8 @@ Reads: `WorkflowDefinitionRead` (the HR.Core readers and `workflow-admin`). Ever
 | POST | `/api/workflow-instances/{id}/reject` | Reject workflow (`WorkflowStepAction`) |
 | GET | `/api/workflow-instances/{id}/history` | Get step history |
 
-## Bridge (Dual-Path)
-`ApprovalWorkflowService.CreateViaEngineOrLegacy(...)` creates both:
-1. A legacy `ApprovalRequest` (always — maintains backward compatibility)
-2. Optionally a `WorkflowInstance` when a `WorkflowDefinitionSnapshot` is provided
-
-This enables gradual migration: callers can pass a definition snapshot when one exists, or `null` to use legacy-only path.
+## Legacy path
+`ApprovalWorkflowService` remains for `ApprovedCV` until wave 2 moves it onto the engine. A step needs its `RoleRequired`, or `hr-admin` under `Workflow:AdminBypass`, and only the requester or `hr-admin` cancels (PLAN-44, G-WF-19). The bridge `CreateViaEngineOrLegacy` had no caller and was removed.
 
 ## Database Tables
 - `WorkflowDefinitions` — indexed on (Code, Version) unique + (DomainEntityType, IsPublished)

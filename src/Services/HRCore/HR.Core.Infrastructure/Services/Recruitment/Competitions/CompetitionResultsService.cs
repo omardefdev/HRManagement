@@ -238,23 +238,35 @@ public sealed class CompetitionResultsService(HRCoreDbContext db, IWorkflowStart
         if (ties > 0)
             return (false, $"{CompetitionScoringRules.UnresolvedTieMessage}: {ties} متقدماً في حالة تعادل؛ يجب البت فيه قبل الاعتماد.");
 
+        // PLAN-44: the instance and the link commit together, or a running instance could finish with nothing to decide.
+        await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(ct) : null;
         version.Status = CompetitionResultVersionStatus.PendingApproval;
-        version.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
-            ApprovalWorkflowCode,
-            EntityType,
-            version.Id,
-            version.TenantId,
-            actorUserId,
-            actorUserName,
-            JsonSerializer.Serialize(new { competitionId = version.CompetitionId, version.VersionNo }),
-            PolicyDomains.CoreRecruitment,
-            ct);
+        try
+        {
+            version.WorkflowInstanceId = await workflowStarter.StartByWorkflowCodeAsync(
+                ApprovalWorkflowCode,
+                EntityType,
+                version.Id,
+                version.TenantId,
+                actorUserId,
+                actorUserName,
+                JsonSerializer.Serialize(new { competitionId = version.CompetitionId, version.VersionNo }),
+                PolicyDomains.CoreRecruitment,
+                ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            return (false, running.Message);
+        }
+
         if (version.WorkflowInstanceId is null)
             return (false, "تعذّر بدء مسار اعتماد النتائج: تعريف المسار غير منشور.");
         if (version.Competition.Status == RecruitmentCompetitionStatus.ResultsDraft)
             version.Competition.Status = RecruitmentCompetitionStatus.ResultsPendingApproval;
         Audit(version.TenantId, version.CompetitionId, "SubmitResults", actorUserId, new { version.VersionNo });
         await db.SaveChangesAsync(ct);
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
         return (true, null);
     }
 

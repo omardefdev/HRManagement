@@ -884,6 +884,18 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => e.DefinitionId);
             entity.Property(e => e.EntityType).HasMaxLength(100);
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            // PLAN-44 (G-WF-12): two decisions race on one row; the loser gets a concurrency conflict.
+            entity.ConfigureOptimisticConcurrency(this);
+            // One running instance per entity. A finished one is outside the filter, so a resubmission after a rejection starts anew.
+            entity.HasIndex(e => new { e.TenantId, e.EntityType, e.EntityId })
+                .IsUnique()
+                .HasFilter("\"Status\" = 'InProgress'")
+                .HasDatabaseName(Services.Workflow.WorkflowInstanceInsert.ActiveEntityIndex);
+            // One instance per key of a service: the lookup in ExternalApprovalService alone leaves a race open (PLAN-43, deferred).
+            entity.HasIndex(e => new { e.TenantId, e.SourceClientId, e.IdempotencyKey })
+                .IsUnique()
+                .HasFilter("\"IdempotencyKey\" IS NOT NULL")
+                .HasDatabaseName(Services.Workflow.WorkflowInstanceInsert.IdempotencyKeyIndex);
         });
 
         modelBuilder.Entity<WorkflowDelegation>(entity =>

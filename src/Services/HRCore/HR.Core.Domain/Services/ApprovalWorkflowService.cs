@@ -1,5 +1,4 @@
 using HR.Core.Domain.Entities;
-using HR.Core.Domain.Entities.Workflow;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using HRManagement.SharedKernel.Workflow;
@@ -7,55 +6,11 @@ using HRManagement.SharedKernel.Workflow;
 namespace HR.Core.Domain.Services;
 
 /// <summary>
-/// Multi-step approval helpers for HR.Core with SoD self-approve and financial escalation (IAM-003).
-/// WF-001: Bridge method CreateViaEngineOrLegacy supports dual-path creation of both ApprovalRequest
-/// and optionally a WorkflowInstance when a published workflow definition exists.
+/// Multi-step approval helpers for HR.Core with SoD self-approve and financial escalation (IAM-003). This is the legacy path of
+/// <c>ApprovedCV</c>, until wave 2 moves it onto the engine. PLAN-44 (G-WF-19): a step needs its role here too.
 /// </summary>
 public static class ApprovalWorkflowService
 {
-    /// <summary>
-    /// WF-001 bridge: Creates both a legacy ApprovalRequest and optionally a WorkflowInstance
-    /// when a published WorkflowDefinition exists for the entity type.
-    /// Returns the ApprovalRequest plus optionally a WorkflowInstance for persistence by the caller.
-    /// </summary>
-    public static (ApprovalRequest Request, WorkflowInstance? Instance) CreateViaEngineOrLegacy(
-        string entityType,
-        Guid entityId,
-        string? description,
-        Guid? requestedBy,
-        string? requestedByName,
-        string? payloadJson = null,
-        string[]? requiredRoles = null,
-        decimal? financialAmount = null,
-        WorkflowDefinitionSnapshot? workflowDefinition = null)
-    {
-        var request = CreateApprovalRequest(
-            entityType, entityId, description, requestedBy, requestedByName,
-            payloadJson, requiredRoles, financialAmount);
-
-        WorkflowInstance? instance = null;
-
-        if (workflowDefinition is not null && workflowDefinition.Steps.Count > 0)
-        {
-            instance = new WorkflowInstance
-            {
-                DefinitionId = workflowDefinition.Id,
-                DefinitionVersion = workflowDefinition.Version,
-                EntityType = entityType,
-                EntityId = entityId,
-                CurrentStepLevel = 1,
-                Status = WorkflowStatus.InProgress,
-                ContextJson = payloadJson,
-                InitiatedBy = requestedBy,
-                InitiatedByName = requestedByName,
-                StartedAt = DateTime.UtcNow,
-                ApprovalRequestId = request.Id
-            };
-        }
-
-        return (request, instance);
-    }
-
     public static ApprovalRequest CreateApprovalRequest(
         string entityType,
         Guid entityId,
@@ -101,11 +56,25 @@ public static class ApprovalWorkflowService
         return request;
     }
 
+    /// <summary>The current step's role is among the actor's, or <paramref name="roleBypass"/> holds (an admin under Workflow:AdminBypass).</summary>
+    public static string? StepRoleError(ApprovalRequest request, IReadOnlyCollection<string> actorRoles, bool roleBypass)
+    {
+        var step = request.Steps.FirstOrDefault(s => s.Level == request.CurrentLevel && s.Status == ApprovalStatus.Pending);
+        if (step is null || string.IsNullOrWhiteSpace(step.RoleRequired) || roleBypass)
+            return null;
+
+        return actorRoles.Contains(step.RoleRequired, StringComparer.OrdinalIgnoreCase)
+            ? null
+            : $"هذه الخطوة تتطلب دور «{step.RoleRequired}».";
+    }
+
     public static bool TryApproveStep(
         ApprovalRequest request,
         Guid? reviewerId,
         string? reviewerName,
         string? comments,
+        IReadOnlyCollection<string> actorRoles,
+        bool roleBypass,
         out string? error)
     {
         error = null;
@@ -114,6 +83,10 @@ public static class ApprovalWorkflowService
             error = "هذا الطلب ليس في حالة انتظار";
             return false;
         }
+
+        error = StepRoleError(request, actorRoles, roleBypass);
+        if (error is not null)
+            return false;
 
         if (reviewerId.HasValue && request.RequestedBy.HasValue && reviewerId == request.RequestedBy)
         {
@@ -180,7 +153,14 @@ public static class ApprovalWorkflowService
         return true;
     }
 
-    public static bool TryReject(ApprovalRequest request, Guid? reviewerId, string? reviewerName, string? comments, out string? error)
+    public static bool TryReject(
+        ApprovalRequest request,
+        Guid? reviewerId,
+        string? reviewerName,
+        string? comments,
+        IReadOnlyCollection<string> actorRoles,
+        bool roleBypass,
+        out string? error)
     {
         error = null;
         if (request.Status != ApprovalStatus.Pending)
@@ -188,6 +168,10 @@ public static class ApprovalWorkflowService
             error = "هذا الطلب ليس في حالة انتظار";
             return false;
         }
+
+        error = StepRoleError(request, actorRoles, roleBypass);
+        if (error is not null)
+            return false;
 
         var currentStep = request.Steps.FirstOrDefault(s => s.Level == request.CurrentLevel && s.Status == ApprovalStatus.Pending);
         if (currentStep is not null)

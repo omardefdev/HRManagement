@@ -385,26 +385,26 @@ public sealed class CompetitionsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> ApproveResultsWorkflow(Guid id, Guid versionId, string? comments, CancellationToken ct)
+    public async Task<IActionResult> ApproveResultsWorkflow(Guid id, Guid versionId, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId && v.CompetitionId == id)
             .Select(v => v.WorkflowInstanceId).FirstOrDefaultAsync(ct);
         if (instanceId is not Guid workflowId)
             return Result((false, "لا يوجد مسار اعتماد مرتبط بنسخة النتائج."), id, null);
-        var result = await workflowActions.ApproveAsync(workflowId, CreateWorkflowActor(User), comments, targetStepLevel: null, ct);
+        var result = await workflowActions.ApproveAsync(workflowId, CreateWorkflowActor(User), comments, targetStepLevel, ct);
         return Result((result.Success, result.Error ?? "تعذّر اعتماد الخطوة."), id, "تم اعتماد خطوة مسار النتائج.");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> RejectResultsWorkflow(Guid id, Guid versionId, string? comments, CancellationToken ct)
+    public async Task<IActionResult> RejectResultsWorkflow(Guid id, Guid versionId, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId && v.CompetitionId == id)
             .Select(v => v.WorkflowInstanceId).FirstOrDefaultAsync(ct);
         if (instanceId is not Guid workflowId)
             return Result((false, "لا يوجد مسار اعتماد مرتبط بنسخة النتائج."), id, null);
-        var result = await workflowActions.RejectAsync(workflowId, CreateWorkflowActor(User), comments, ct);
+        var result = await workflowActions.RejectAsync(workflowId, CreateWorkflowActor(User), comments, ct, targetStepLevel);
         return Result((result.Success, result.Error ?? "تعذّر رفض الخطوة."), id, "أُعيدت نسخة النتائج إلى المسودة.");
     }
 
@@ -738,24 +738,24 @@ public sealed class CompetitionsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> ApproveWorkflow(Guid id, string? comments, CancellationToken ct)
+    public async Task<IActionResult> ApproveWorkflow(Guid id, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.RecruitmentCompetitions.Where(c => c.Id == id).Select(c => c.ApprovalWorkflowInstanceId).FirstOrDefaultAsync(ct);
         if (instanceId is not Guid workflowId)
             return Result((false, "لا يوجد مسار اعتماد مرتبط بهذه المسابقة."), id, null);
-        var result = await workflowActions.ApproveAsync(workflowId, CreateWorkflowActor(User), comments, targetStepLevel: null, ct);
+        var result = await workflowActions.ApproveAsync(workflowId, CreateWorkflowActor(User), comments, targetStepLevel, ct);
         return Result((result.Success, result.Error ?? "تعذّر اعتماد الخطوة."), id, "تم اعتماد خطوة مسار المسابقة.");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
-    public async Task<IActionResult> RejectWorkflow(Guid id, string? comments, CancellationToken ct)
+    public async Task<IActionResult> RejectWorkflow(Guid id, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.RecruitmentCompetitions.Where(c => c.Id == id).Select(c => c.ApprovalWorkflowInstanceId).FirstOrDefaultAsync(ct);
         if (instanceId is not Guid workflowId)
             return Result((false, "لا يوجد مسار اعتماد مرتبط بهذه المسابقة."), id, null);
-        var result = await workflowActions.RejectAsync(workflowId, CreateWorkflowActor(User), comments, ct);
+        var result = await workflowActions.RejectAsync(workflowId, CreateWorkflowActor(User), comments, ct, targetStepLevel);
         return Result((result.Success, result.Error ?? "تعذّر رفض الخطوة."), id, "أُعيدت المسابقة إلى المسودة.");
     }
 

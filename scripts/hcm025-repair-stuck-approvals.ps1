@@ -72,5 +72,9 @@ Write-Host ("hcm025-repair ({0}): found={1} repaired={2} failed={3}" -f $mode, $
 foreach ($item in $report.items) {
     Write-Host ("  {0,-26} {1} {2,-24} {3} {4}" -f $item.entityType, $item.entityId, $item.action, $item.result, $item.error)
 }
+# PLAN-44: finished instances whose linked entity is still pending, and completed instances the entity does not link.
+$outcomes = @($report.items | Where-Object { $_.action -eq "ApplyFinishedOutcome" })
+$notLinked = @($outcomes | Where-Object { $_.result -eq "NotLinked" })
+Write-Host ("finished outcomes: {0}, of which not linked and never applied: {1}" -f $outcomes.Count, $notLinked.Count)
 Write-Host "CSV: $csv"
 if ($Apply -and $report.failed -gt 0) { exit 2 }

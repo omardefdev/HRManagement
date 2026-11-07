@@ -8,7 +8,11 @@ public sealed class WorkflowInboxEntityContext
     /// <summary>Org unit used for branch inbox filtering (position/requisition scope).</summary>
     public Guid? ScopeOrgUnitId { get; init; }
 
-    public Guid? EntityCreatedBy { get; init; }
+    /// <summary>PLAN-44: from <c>WorkflowMakerRules.Makers</c>, as the gates, so the panel and the server bar the same people.</summary>
+    public IReadOnlySet<Guid> EntityMakers { get; init; } = new HashSet<Guid>();
+
+    /// <summary>The committee's own rules take the session's creator.</summary>
+    public Guid? CommitteeCreatedBy { get; init; }
 
     public IReadOnlyList<SelectionCommitteeMember>? CommitteeMembers { get; init; }
 

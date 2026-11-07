@@ -73,19 +73,6 @@ if (Test-Path $migPath) {
     }
 }
 
-# Check bridge method
-Write-Host "`nChecking bridge method..." -ForegroundColor Yellow
-$svcPath = Join-Path $root "src/Services/HRCore/HR.Core.Domain/Services/ApprovalWorkflowService.cs"
-if (Test-Path $svcPath) {
-    $svcContent = Get-Content $svcPath -Raw
-    if ($svcContent -match "CreateViaEngineOrLegacy") {
-        Write-Host "  [OK] Bridge method CreateViaEngineOrLegacy present" -ForegroundColor Green
-    } else {
-        Write-Host "  [MISSING] Bridge method" -ForegroundColor Red
-        $errors += "Missing bridge method CreateViaEngineOrLegacy"
-    }
-}
-
 # Summary
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 if ($errors.Count -eq 0) {
