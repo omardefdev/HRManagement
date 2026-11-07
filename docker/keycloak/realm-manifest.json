@@ -879,6 +879,36 @@
           "00000000-0000-4000-8000-000000000001"
         ]
       }
+    },
+    {
+      "username": "e2e-logistics-maker",
+      "email": "e2e-logistics-maker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "LogisticsMaker",
+      "realmRoles": [
+        "admin-logistics",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-logistics-checker",
+      "email": "e2e-logistics-checker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "LogisticsChecker",
+      "realmRoles": [
+        "admin-logistics",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
     }
   ]
 }

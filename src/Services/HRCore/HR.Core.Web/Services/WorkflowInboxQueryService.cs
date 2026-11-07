@@ -4,6 +4,7 @@ using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow.External;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Enums;
@@ -25,7 +26,8 @@ public sealed class WorkflowInboxQueryService(
         "OfferLetter",
         "SelectionCommitteeSession",
         "RecruitmentAppeal",
-        "EstablishmentChangeRequest"
+        "EstablishmentChangeRequest",
+        .. ExternalApprovalTypes.All.Select(t => t.EntityType)
     ];
 
     private static readonly string[] AppealOnlyEntityTypes = ["RecruitmentAppeal"];
@@ -40,8 +42,7 @@ public sealed class WorkflowInboxQueryService(
 
         var accessScope = await orgScope.GetAllowedOrgUnitIdsAsync(user, ct);
 
-        // HCM-028 (F4): the compliance reviewer only sees the appeal reviews assigned to them.
-        var entityTypes = RecruitmentAppealAccess.IsComplianceOnly(user) ? AppealOnlyEntityTypes : SupportedEntityTypes;
+        var entityTypes = EntityTypesFor(user);
         var instances = await db.WorkflowInstances.AsNoTracking()
             .Where(i => i.Status == WorkflowStatus.InProgress
                         && entityTypes.Contains(i.EntityType))
@@ -92,12 +93,24 @@ public sealed class WorkflowInboxQueryService(
             .ToList();
     }
 
+    /// <summary>
+    /// HCM-028 (F4): the compliance reviewer only sees the appeal reviews assigned to them. PLAN-45: a role from outside HR.Core sees its
+    /// external types and nothing else.
+    /// </summary>
+    private static IReadOnlyList<string> EntityTypesFor(ClaimsPrincipal user)
+    {
+        if (RecruitmentAppealAccess.IsComplianceOnly(user))
+            return [.. AppealOnlyEntityTypes, .. WorkInboxAudience.EntityTypesFor(user)];
+
+        return WorkInboxAudience.IsAudienceOnly(user) ? WorkInboxAudience.EntityTypesFor(user) : SupportedEntityTypes;
+    }
+
     public async Task<IReadOnlyList<WorkInboxItem>> GetActionableLegacyItemsAsync(
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {
         var userId = WorkflowPanelBuilder.ParseUserId(user);
-        if (userId is null || RecruitmentAppealAccess.IsComplianceOnly(user))
+        if (userId is null || RecruitmentAppealAccess.IsComplianceOnly(user) || WorkInboxAudience.IsAudienceOnly(user))
             return [];
 
         var requests = await db.ApprovalRequests.AsNoTracking()
@@ -187,6 +200,22 @@ public sealed class WorkflowInboxQueryService(
 
         foreach (var group in byType)
         {
+            // PLAN-45: the entity lives in its owning service, so the instance is the item. The five local types keep PLAN-44's linkage rule.
+            if (ExternalApprovalTypes.IsRegistered(group.Key))
+            {
+                foreach (var instance in group)
+                {
+                    result[instance.Id] = new WorkflowInboxEntityContext
+                    {
+                        ScopeOrgUnitId = instance.ScopeOrgUnitId,
+                        EntityMakers = eligibility.MakersOf(null, instance),
+                        IsAwaitingApproval = instance.Status == WorkflowStatus.InProgress
+                    };
+                }
+
+                continue;
+            }
+
             var entityIds = group.Select(g => g.EntityId).Distinct().ToList();
             switch (group.Key)
             {

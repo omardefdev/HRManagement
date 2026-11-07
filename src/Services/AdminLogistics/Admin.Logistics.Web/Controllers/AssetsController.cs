@@ -4,6 +4,7 @@ using Admin.Logistics.Domain.Services;
 using Admin.Logistics.Infrastructure.Abstractions;
 using Admin.Logistics.Infrastructure.Data;
 using Admin.Logistics.Infrastructure.Integration;
+using Admin.Logistics.Infrastructure.Services;
 using Admin.Logistics.Web.Helpers;
 using Admin.Logistics.Web.Services;
 using Admin.Logistics.Web.ViewModels;
@@ -25,7 +26,7 @@ public class AssetsController(
     AdminLogisticsDbContext db,
     IFileReferenceClient fileRefs,
     IEmployeeLookup employeeLookup,
-    WorkflowTriggerService workflowTrigger,
+    AssetApprovalLoop approvalLoop,
     IPolicyEnforceClient policyClient,
     ICodeGenerationClient codeClient,
     IAssetClassifier assetClassifier) : Controller
@@ -372,6 +373,7 @@ public class AssetsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Idempotent]
     public async Task<IActionResult> AssignToEmployee(
         Guid id,
         Guid employeeId,
@@ -417,7 +419,7 @@ public class AssetsController(
             .Where(a => a.AssetId == id && a.ReturnedAt == null)
             .ToListAsync();
         if (!AssetAssignmentRules.CanAssign(asset, open))
-            return Fail("لا يمكن التعيين: يوجد حائز مفتوح أو الأصل غير قابل للتسليم");
+            return Fail(AssetHeldMessage);
 
         var assignmentId = Guid.NewGuid();
         var contextJson = System.Text.Json.JsonSerializer.Serialize(new
@@ -452,7 +454,9 @@ public class AssetsController(
             HandoverConditionNotes = string.IsNullOrWhiteSpace(handoverConditionNotes) ? null : handoverConditionNotes.Trim(),
             EvidenceRef = evidenceRef?.Trim(),
             HandoverFileId = handoverFileId,
-            Status = requiresApproval ? AssetAssignmentStatus.PendingApproval : AssetAssignmentStatus.Active
+            // PLAN-45: saved before HR.Core is called, so a failure there leaves a request that waits, not one that is lost.
+            Status = requiresApproval ? AssetAssignmentStatus.ApprovalStarting : AssetAssignmentStatus.Active,
+            RequestedByName = RequesterName()
         };
 
         if (handoverFileId.HasValue)
@@ -472,24 +476,162 @@ public class AssetsController(
 
         db.AssetAssignments.Add(assignment);
 
-        if (requiresApproval)
+        if (!requiresApproval)
+            asset.Status = AssetStatus.InUse;
+        else if (policyResult.WorkflowInstanceId is Guid policyInstance)
+            AssetApprovalRules.LinkPending(assignment, policyInstance);
+
+        // The unique index is the last word on two requests for one asset, as on a double click.
+        try
         {
-            var workflowId = policyResult.WorkflowInstanceId
-                ?? await workflowTrigger.StartAssetAssignmentWorkflowAsync(
-                    assignmentId, id, employeeId, asset.TagNumber, asset.IsPrivileged, asset.Value, HttpContext.RequestAborted);
-            assignment.WorkflowInstanceId = workflowId;
-            TempData["Success"] = workflowId.HasValue
-                ? "تم إرسال طلب التسليم للموافقة"
-                : "تم إرسال طلب التسليم (تعذّر بدء سير الموافقة — راجع الإعدادات)";
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+        {
+            db.ChangeTracker.Clear();
+            return Fail(AssetHeldMessage);
+        }
+
+        if (assignment.Status == AssetAssignmentStatus.ApprovalStarting)
+            ReportAdvance(await approvalLoop.AdvanceAsync(assignment, HttpContext.RequestAborted), "تم إرسال طلب التسليم للموافقة");
+        else
+            TempData["Success"] = requiresApproval ? "تم إرسال طلب التسليم للموافقة" : "تم التسليم للموظف";
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>PLAN-45: starts by hand the approval of a request that waits for it, with the same key as the job.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RetryApprovalStart(Guid id, Guid requestId, AssetApprovalRequestKind kind)
+    {
+        if (await this.ForbidIfAssetOutOfScopeAsync(db, id, HttpContext.RequestAborted) is { } denied)
+            return denied;
+
+        AssetApprovalAdvance advance;
+        if (kind == AssetApprovalRequestKind.Loss)
+        {
+            var report = await db.AssetLossReports.Include(r => r.Asset)
+                .FirstOrDefaultAsync(r => r.Id == requestId && r.AssetId == id, HttpContext.RequestAborted);
+            if (report is null) return NotFound();
+            advance = await approvalLoop.AdvanceAsync(report, HttpContext.RequestAborted);
         }
         else
         {
-            asset.Status = AssetStatus.InUse;
-            TempData["Success"] = "تم التسليم للموظف";
+            var assignment = await db.AssetAssignments.Include(a => a.Asset)
+                .FirstOrDefaultAsync(a => a.Id == requestId && a.AssetId == id, HttpContext.RequestAborted);
+            if (assignment is null) return NotFound();
+            advance = await approvalLoop.AdvanceAsync(assignment, HttpContext.RequestAborted);
         }
 
-        await db.SaveChangesAsync();
+        ReportAdvance(advance, "بدأ الاعتماد");
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>
+    /// PLAN-45: the requester, or a logistics officer in the asset's scope, withdraws a waiting request with a reason. HR.Core answers
+    /// first, and an approval that had already finished is applied instead.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WithdrawApproval(Guid id, Guid requestId, AssetApprovalRequestKind kind, string? reason)
+    {
+        if (await this.ForbidIfAssetOutOfScopeAsync(db, id, HttpContext.RequestAborted) is { } denied)
+            return denied;
+
+        Guid? requester;
+        if (kind == AssetApprovalRequestKind.Loss)
+        {
+            var report = await db.AssetLossReports.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == requestId && r.AssetId == id, HttpContext.RequestAborted);
+            if (report is null) return NotFound();
+            requester = report.CreatedBy;
+        }
+        else
+        {
+            var assignment = await db.AssetAssignments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == requestId && a.AssetId == id, HttpContext.RequestAborted);
+            if (assignment is null) return NotFound();
+            requester = assignment.CreatedBy;
+        }
+
+        var actor = CurrentUserId();
+        if (!User.IsInRole(HrManagementRoles.AdminLogistics) && (actor is null || actor != requester))
+            return Forbid();
+
+        if (!AssetApprovalRules.IsValidWithdrawReason(reason))
+        {
+            AssetDetailsFormDraftStore.SetDialogError(TempData, $"سبب السحب مطلوب ({AssetApprovalRules.MinWithdrawReasonLength} أحرف على الأقل).");
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var outcome = kind == AssetApprovalRequestKind.Loss
+            ? await approvalLoop.WithdrawLossAsync(requestId, actor, reason!, HttpContext.RequestAborted)
+            : await approvalLoop.WithdrawAssignmentAsync(requestId, actor, reason!, HttpContext.RequestAborted);
+
+        switch (outcome)
+        {
+            case AssetWithdrawOutcome.Withdrawn:
+                TempData["Success"] = "تم سحب الطلب";
+                break;
+            case AssetWithdrawOutcome.Approved:
+                TempData["Info"] = "اكتمل الاعتماد قبل السحب، فطُبّقت نتيجته.";
+                break;
+            case AssetWithdrawOutcome.Rejected:
+                TempData["Info"] = "رُفض الطلب قبل السحب، فطُبّقت نتيجته.";
+                break;
+            case AssetWithdrawOutcome.Conflict:
+                AssetDetailsFormDraftStore.SetDialogError(TempData, ApprovalConflictMessage);
+                break;
+            case AssetWithdrawOutcome.Failed:
+                AssetDetailsFormDraftStore.SetDialogError(TempData, "تعذّر سحب الطلب الآن؛ لم يتغير شيء. حاول مرة أخرى.");
+                break;
+            case AssetWithdrawOutcome.NotWaiting:
+                AssetDetailsFormDraftStore.SetDialogError(TempData, "هذا الطلب لم يعد بانتظار الاعتماد.");
+                break;
+            default:
+                return NotFound();
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private const string AssetHeldMessage = "لا يمكن التعيين: يوجد حائز مفتوح أو الأصل غير قابل للتسليم";
+    private const string LossPendingMessage = "يوجد طلب فقدان بانتظار الموافقة";
+    private const string ApprovalConflictMessage = "تغيّر هذا الطلب للتو. حدّث الصفحة وراجع حالته.";
+    private const string ApprovalStartFailedMessage = "تعذّر بدء الاعتماد الآن؛ سيُعاد المحاولة تلقائياً";
+
+    private void ReportAdvance(AssetApprovalAdvance advance, string startedMessage)
+    {
+        switch (advance)
+        {
+            case AssetApprovalAdvance.Pending:
+                TempData["Success"] = startedMessage;
+                break;
+            case AssetApprovalAdvance.Finished:
+                TempData["Info"] = "كان الاعتماد قد انتهى، فطُبّقت نتيجته.";
+                break;
+            case AssetApprovalAdvance.Waiting:
+                TempData["Info"] = ApprovalStartFailedMessage;
+                break;
+            case AssetApprovalAdvance.Conflict:
+                AssetDetailsFormDraftStore.SetDialogError(TempData, ApprovalConflictMessage);
+                break;
+            default:
+                AssetDetailsFormDraftStore.SetDialogError(TempData, "هذا الطلب لم يعد بانتظار بدء الاعتماد.");
+                break;
+        }
+    }
+
+    private Guid? CurrentUserId() =>
+        Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value, out var id)
+            ? id
+            : null;
+
+    private string? RequesterName()
+    {
+        var name = (User.FindFirst("preferred_username")?.Value ?? User.Identity?.Name)?.Trim();
+        return string.IsNullOrEmpty(name) ? null : name.Length > 200 ? name[..200] : name;
     }
 
     [HttpPost]
@@ -569,6 +711,7 @@ public class AssetsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Idempotent]
     public async Task<IActionResult> MarkLost(
         Guid id,
         AssetLossReason reason,
@@ -605,11 +748,12 @@ public class AssetsController(
             return Fail(AssetDetailsFormValidation.UploadInProgressMessage);
 
         var pendingReport = await db.AssetLossReports.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.AssetId == id && r.Status == AssetLossReportStatus.PendingApproval);
+            .FirstOrDefaultAsync(r => r.AssetId == id
+                && (r.Status == AssetLossReportStatus.PendingApproval || r.Status == AssetLossReportStatus.ApprovalStarting));
         if (!AssetLostRules.CanRequestLoss(asset, pendingReport))
         {
             return Fail(pendingReport is not null
-                ? "يوجد طلب فقدان بانتظار الموافقة"
+                ? LossPendingMessage
                 : "الأصل غير قابل لوسم الفقدان");
         }
 
@@ -626,7 +770,8 @@ public class AssetsController(
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             EvidenceRef = evidenceRef?.Trim(),
             LossFileId = lossFileId,
-            Status = AssetLossReportStatus.PendingApproval
+            Status = AssetLossReportStatus.ApprovalStarting,
+            RequestedByName = RequesterName()
         };
 
         if (lossFileId.HasValue)
@@ -653,14 +798,18 @@ public class AssetsController(
 
         if (AssetLostRules.RequiresLossApproval(asset))
         {
-            var workflowId = await workflowTrigger.StartAssetLossWorkflowAsync(
-                reportId, id, asset.TagNumber, asset.IsPrivileged, asset.Value, reason,
-                openForCapture.FirstOrDefault()?.EmployeeId, HttpContext.RequestAborted);
-            report.WorkflowInstanceId = workflowId;
-            await db.SaveChangesAsync();
-            TempData["Success"] = workflowId.HasValue
-                ? "تم إرسال طلب الفقدان للموافقة"
-                : "تم تسجيل طلب الفقدان (تعذّر بدء سير الموافقة — راجع الإعدادات)";
+            // PLAN-45: saved before HR.Core is called. The unique index is the last word on two reports for one asset.
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+            {
+                db.ChangeTracker.Clear();
+                return Fail(LossPendingMessage);
+            }
+
+            ReportAdvance(await approvalLoop.AdvanceAsync(report, HttpContext.RequestAborted), "تم إرسال طلب الفقدان للموافقة");
             return RedirectToAction(nameof(Details), new { id });
         }
 

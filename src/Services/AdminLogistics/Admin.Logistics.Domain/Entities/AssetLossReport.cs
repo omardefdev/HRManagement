@@ -5,14 +5,14 @@ using HRManagement.SharedKernel.Entities;
 namespace Admin.Logistics.Domain.Entities;
 
 [Display(Name = "تقرير فقدان أصل")]
-public class AssetLossReport : AuditableEntity
+public class AssetLossReport : AuditableEntity, IAssetApprovalRequest
 {
     [Required]
     [Display(Name = "الأصل")]
     public Guid AssetId { get; set; }
 
     [Display(Name = "حالة التقرير")]
-    public AssetLossReportStatus Status { get; set; } = AssetLossReportStatus.PendingApproval;
+    public AssetLossReportStatus Status { get; set; } = AssetLossReportStatus.ApprovalStarting;
 
     [Display(Name = "السياق")]
     public AssetLossContext Context { get; set; }
@@ -32,6 +32,33 @@ public class AssetLossReport : AuditableEntity
     public Guid? LossFileId { get; set; }
 
     public Guid? WorkflowInstanceId { get; set; }
+
+    [MaxLength(200)]
+    [Display(Name = "طالب الإجراء")]
+    public string? RequestedByName { get; set; }
+
+    [Display(Name = "محاولات بدء الاعتماد")]
+    public int ApprovalStartAttempts { get; set; }
+
+    [MaxLength(500)]
+    [Display(Name = "آخر خطأ في بدء الاعتماد")]
+    public string? ApprovalStartLastError { get; set; }
+
+    [Display(Name = "آخر محاولة لبدء الاعتماد")]
+    public DateTime? ApprovalStartLastAttemptAt { get; set; }
+
+    [Display(Name = "يتطلب تدخلاً")]
+    public bool NeedsIntervention { get; set; }
+
+    [Display(Name = "تاريخ السحب")]
+    public DateTime? WithdrawnAt { get; set; }
+
+    [Display(Name = "سحبه")]
+    public Guid? WithdrawnBy { get; set; }
+
+    [MaxLength(500)]
+    [Display(Name = "سبب السحب")]
+    public string? WithdrawnReason { get; set; }
 
     [Display(Name = "تاريخ تأكيد الفقدان")]
     public DateTime? ConfirmedLostAt { get; set; }

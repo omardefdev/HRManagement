@@ -51,6 +51,8 @@ public static class OpenTelemetryExtensions
                         ExportJobMetrics.MeterName,
                         ApprovalMetrics.MeterName,
                         "HRManagement.WorkflowIntegrity",
+                        // PLAN-45: asset_approval_starting_total, asset_approval_needs_intervention_total (Admin.Logistics.Infrastructure).
+                        "HRManagement.AssetApproval",
                         Workflow.WorkflowMetrics.MeterName,
                         Policy.PolicyClientMetrics.MeterName,
                         PaymentExportMetrics.MeterName,

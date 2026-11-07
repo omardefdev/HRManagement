@@ -12,6 +12,10 @@
     <li class="nav-item"><a asp-controller="Vendors" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-truck"></i><p>الموردون</p></a></li>
     <li class="nav-item"><a asp-controller="MaintenanceRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-tools"></i><p>سجلات الصيانة</p></a></li>
     <li class="nav-item"><a asp-controller="ReceiptRecords" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-receipt"></i><p>سجلات الاستلام</p></a></li>
+    @if (User.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.AdminLogistics))
+    {
+        <li class="nav-item"><a href="/ui/hr-core/WorkInbox" class="nav-link"><i class="nav-icon fas fa-inbox"></i><p>صندوق الاعتمادات</p></a></li>
+    }
     @await Html.PartialAsync("_HrModuleNav")
 }
 

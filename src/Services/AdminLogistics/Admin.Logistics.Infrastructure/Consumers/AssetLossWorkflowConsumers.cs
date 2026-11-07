@@ -70,12 +70,7 @@ public class AssetLossRejectedConsumer(
         if (!WorkflowOutcomeLink.IsLinked(context.Message.WorkflowInstanceId, report.WorkflowInstanceId, report.Id, logger, nameof(IAssetLossRejected)))
             return;
 
-        report.Status = AssetLossReportStatus.Rejected;
-        if (!string.IsNullOrWhiteSpace(context.Message.Reason))
-            report.Notes = string.IsNullOrWhiteSpace(report.Notes)
-                ? $"مرفوض: {context.Message.Reason.Trim()}"
-                : $"{report.Notes} — مرفوض: {context.Message.Reason.Trim()}";
-
+        AssetApprovalRules.ApplyRejected(report, context.Message.Reason);
         await db.SaveChangesAsync(context.CancellationToken);
         logger.LogInformation("Asset loss report {ReportId} rejected", context.Message.LossReportId);
     }

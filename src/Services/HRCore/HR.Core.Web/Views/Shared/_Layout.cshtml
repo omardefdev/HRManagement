@@ -10,6 +10,13 @@
         <li class="nav-header">تصحيح الامتحانات</li>
         <li class="nav-item"><a asp-controller="ExamMarking" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-pen-to-square"></i><p>جلسات التصحيح</p></a></li>
     }
+    else if (HR.Core.Web.Services.WorkInboxAudience.IsAudienceOnly(User))
+    {
+        @* PLAN-45: a role from outside HR.Core reaches the work inbox and the approval page, nothing else. *@
+        <li class="nav-header">الاعتمادات</li>
+        <li class="nav-item"><a asp-controller="WorkInbox" asp-action="Index" class="nav-link"><i class="nav-icon fas fa-inbox"></i><p>صندوق العمل</p></a></li>
+        @await Html.PartialAsync("_HrModuleNav")
+    }
     else if (HR.Core.Web.Services.RecruitmentAppealAccess.IsComplianceOnly(User))
     {
         @* HCM-028 (F5): the compliance reviewer only reaches the appeal pages and the work inbox. *@

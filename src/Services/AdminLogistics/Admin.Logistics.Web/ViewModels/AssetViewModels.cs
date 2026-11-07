@@ -59,3 +59,17 @@ public sealed class AssignmentEvidenceViewModel
     public required AssetAssignment Assignment { get; init; }
     public Asset? Asset { get; init; }
 }
+
+/// <summary>PLAN-45: which kind of request a form on the asset page acts on.</summary>
+public enum AssetApprovalRequestKind
+{
+    Assignment,
+    Loss
+}
+
+/// <summary>PLAN-45: a request waiting for its approval, as the asset page shows it.</summary>
+public sealed record AssetApprovalBarViewModel(
+    Guid AssetId,
+    Admin.Logistics.Domain.Entities.IAssetApprovalRequest Request,
+    AssetApprovalRequestKind Kind,
+    bool IsStarting);

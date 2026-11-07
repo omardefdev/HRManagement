@@ -331,8 +331,11 @@ public class AcWf43DefinitionGovernanceTests
         Assert.Equal(HttpStatusCode.BadRequest, requesterStatus);
         Assert.Contains("لا يجوز لطالب الإجراء", requesterBody, StringComparison.Ordinal);
 
-        var (firstStatus, firstBody) = await ActAsync("central-a", instance, "approve", 1);
-        Assert.True(firstStatus == HttpStatusCode.OK, firstBody);
+        // PLAN-45: step 1 belongs to admin-logistics, which acts on the generic page.
+        var (hrCoreStatus, hrCoreBody) = await ActAsync("central-a", instance, "approve", 1);
+        r.CaptureHttp("role-step1-negative", "POST", $"/api/hr-core/api/workflow-instances/{instance:D}/approve", (int)hrCoreStatus, hrCoreBody);
+        Assert.Equal(HttpStatusCode.BadRequest, hrCoreStatus);
+        await CustodyJourney.ApproveFromInboxAsync("a-logistics-checker", instance, r);
 
         var (roleStatus, roleBody) = await ActAsync("central-a", instance, "approve", 2);
         r.CaptureHttp("role-step2-negative", "POST", $"/api/hr-core/api/workflow-instances/{instance:D}/approve", (int)roleStatus, roleBody);
@@ -351,7 +354,7 @@ public class AcWf43DefinitionGovernanceTests
         r.WriteScenarioDbChecks(new { asset, assignment, instance, status });
         r.WriteScenarioSteps(
             "1. Negative: br1-mgr, who requested the handover and holds hr-core, approves step 1: refused with the requester message.\n" +
-            "2. central-a approves step 1. Negative: central-a on step 2: refused with the role message.\n" +
+            "2. Negative: central-a on step 1: refused with the role message. a-logistics-checker approves step 1 on the generic page. Negative: central-a on step 2: refused with the role message.\n" +
             "3. a-management-approver approves step 2: the instance is Completed, and within 60 s the assignment is Active, which the consumer does only for the instance id it is linked to (psql).");
         r.WriteResult("Pass");
     }
@@ -359,20 +362,18 @@ public class AcWf43DefinitionGovernanceTests
     // ------------------------------------------------------------------------------------------------ 43f
 
     [SkippableFact]
-    public async Task Ac43f_Hr_core_approves_step_one_of_a_handover_someone_else_requested()
+    public async Task Ac43f_A_logistics_officer_approves_step_one_of_a_handover_someone_else_requested()
     {
-        var r = Recorder("43f", "A person who is not the requester acts on step 1", "central-a");
+        var r = Recorder("43f", "A person who is not the requester acts on step 1", "a-logistics-checker");
         AcceptanceGate.RequireEnabled(r);
 
         var (_, assignment, instance) = await PrivilegedHandoverAsync("a-logistics-maker", AcceptanceSeedIds.EmpBr1Id);
-        var (status, body) = await ActAsync("central-a", instance, "approve", 1);
+        await CustodyJourney.ApproveFromInboxAsync("a-logistics-checker", instance, r);
 
-        r.CaptureHttp("approve-step1", "POST", $"/api/hr-core/api/workflow-instances/{instance:D}/approve", (int)status, body);
-        Assert.True(status == HttpStatusCode.OK, body);
         Assert.Equal("2", await Scalar("hr_core_db", $"SELECT \"CurrentStepLevel\" FROM \"WorkflowInstances\" WHERE \"Id\"='{instance:D}';"));
 
         r.WriteScenarioDbChecks(new { assignment, instance, currentStep = 2 });
-        r.WriteScenarioSteps("1. a-logistics-maker hands over a privileged asset; central-a approves step 1: 200, and the instance moves to step 2 (psql).");
+        r.WriteScenarioSteps("1. a-logistics-maker hands over a privileged asset; a-logistics-checker approves step 1 on the generic page, and the instance moves to step 2 (psql).");
         r.WriteResult("Pass");
     }
 }

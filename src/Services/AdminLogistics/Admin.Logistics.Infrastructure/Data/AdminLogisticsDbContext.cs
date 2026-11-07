@@ -99,7 +99,9 @@ public class AdminLogisticsDbContext : TenantAwareDbContext
 
             entity.HasIndex(r => r.AssetId)
                 .IsUnique()
-                .HasFilter("\"Status\" = 0");
+                .HasFilter("\"Status\" IN (0, 4)");
+
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<SupplyOrder>(entity =>
@@ -137,6 +139,10 @@ public class AdminLogisticsDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // PLAN-45: AssetApprovalStartRetryJob finds the tenants here, outside row security.
+        modelBuilder.Entity<EntityAuditLog>().HasIndex(l => new { l.EntityType, l.TenantId });
+
+        modelBuilder.ConfigureIdempotencyRecords();
         modelBuilder.ConfigureUtcDateTimeProperties();
         modelBuilder.ConfigureTenantQueryFilters(this);
     }

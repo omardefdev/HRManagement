@@ -200,12 +200,10 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex) when (WorkflowConcurrency.LostRace(ex))
         {
             // PLAN-44: a decision won the race; the withdrawal wrote nothing and is not retried.
-            db.ChangeTracker.Clear();
-            WorkflowIntegrityMetrics.RecordConflict("cancel");
-            return new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, Error: WorkflowConcurrency.ConflictMessage);
+            return new ExternalApprovalResult(ExternalApprovalOutcome.Conflict, Error: WorkflowConcurrency.Lost(db, "cancel"));
         }
 
         return new ExternalApprovalResult(ExternalApprovalOutcome.Withdrawn, instance);
@@ -235,7 +233,7 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
     }
 
     /// <summary>A path inside the owner's UI: no scheme, no other host, no way back out of the prefix.</summary>
-    private static bool IsDetailsUrl(string? url, string prefix) =>
+    public static bool IsDetailsUrl(string? url, string prefix) =>
         !string.IsNullOrWhiteSpace(url)
         && url.Length <= MaxDetailsUrlLength
         && url.StartsWith(prefix, StringComparison.Ordinal)

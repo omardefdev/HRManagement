@@ -17,11 +17,10 @@ public sealed class WorkflowStepRoleOptions
 
     /// <summary>
     /// Types whose step role cannot reach the approval route yet, each with an owner plan and a date in
-    /// <c>docs/qa/workflow-step-role-exemptions.json</c>: <c>AssetLossReport</c> until PLAN-45, the others until PLAN-46.
+    /// <c>docs/qa/workflow-step-role-exemptions.json</c>: all until PLAN-46. PLAN-45 lifted <c>AssetLossReport</c>.
     /// </summary>
     public static readonly IReadOnlyList<string> DefaultExemptEntityTypes =
     [
-        "AssetLossReport",
         "SeparationRecord",
         "DisciplinaryAction",
         "CardRequest",

@@ -83,9 +83,9 @@ public sealed class Wf043SodRulesTests
     {
         var options = new WorkflowStepRoleOptions();
 
-        foreach (var type in new[] { "AssetAssignment", "TransferRequest", "ServiceTransaction", "RecruitmentApplication", "AnythingNew", "RecruitmentRequisition" })
+        foreach (var type in new[] { "AssetAssignment", "AssetLossReport", "assetlossreport", "TransferRequest", "ServiceTransaction", "RecruitmentApplication", "AnythingNew", "RecruitmentRequisition" })
             Assert.True(options.IsEnforced(type), type);
-        foreach (var type in new[] { "AssetLossReport", "assetlossreport", "SeparationRecord", "DisciplinaryAction", "CardRequest", "Ticket" })
+        foreach (var type in new[] { "SeparationRecord", "separationrecord", "DisciplinaryAction", "CardRequest", "Ticket" })
             Assert.False(options.IsEnforced(type), type);
     }
 
@@ -140,10 +140,11 @@ public sealed class Wf043SodRulesTests
         var root = HRManagement.TestSupport.RepoPaths.Root;
         using var registry = JsonDocument.Parse(global::System.IO.File.ReadAllText(Path.Combine(root, "docs", "qa", "workflow-step-role-exemptions.json")));
         var entries = registry.RootElement.GetProperty("exemptions").EnumerateArray().ToList();
+        var open = entries.Where(e => e.GetProperty("status").GetString() == "Open").ToList();
 
         Assert.Equal(
             WorkflowStepRoleOptions.DefaultExemptEntityTypes.Order(StringComparer.Ordinal),
-            entries.Select(e => e.GetProperty("entityType").GetString()!).Order(StringComparer.Ordinal));
+            open.Select(e => e.GetProperty("entityType").GetString()!).Order(StringComparer.Ordinal));
         Assert.All(entries, e =>
         {
             Assert.Matches("^PLAN-4[56]$", e.GetProperty("ownerPlan").GetString()!);
@@ -278,12 +279,12 @@ public sealed class Wf043SodRulesTests
     {
         await using var db = new HRCoreDbContext(new DbContextOptionsBuilder<HRCoreDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
         await WorkflowPackSeeder.SeedAsync(db);
-        var definition = await db.WorkflowDefinitions.AsNoTracking().SingleAsync(d => d.Code == "ASSET-LOSS-APPROVAL");
+        var definition = await db.WorkflowDefinitions.AsNoTracking().SingleAsync(d => d.Code == "SEPARATION-WIZARD");
         var instance = new WorkflowInstance
         {
             DefinitionId = definition.Id,
             DefinitionVersion = 1,
-            EntityType = "AssetLossReport",
+            EntityType = "SeparationRecord",
             Status = WorkflowStatus.InProgress,
             CurrentStepLevel = 1
         };

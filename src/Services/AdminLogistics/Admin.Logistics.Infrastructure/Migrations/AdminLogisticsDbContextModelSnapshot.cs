@@ -113,6 +113,16 @@ namespace Admin.Logistics.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("ApprovalStartAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ApprovalStartLastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovalStartLastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("AssetId")
                         .HasColumnType("uuid");
 
@@ -145,6 +155,13 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<Guid?>("HandoverFileId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("NeedsIntervention")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RequestedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<Guid?>("ReturnFileId")
                         .HasColumnType("uuid");
 
@@ -166,6 +183,16 @@ namespace Admin.Logistics.Infrastructure.Migrations
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WithdrawnBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WithdrawnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<Guid?>("WorkflowInstanceId")
                         .HasColumnType("uuid");
@@ -197,6 +224,16 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<string>("AfterStateJson")
                         .HasColumnType("text");
 
+                    b.Property<int>("ApprovalStartAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ApprovalStartLastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovalStartLastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("AssetId")
                         .HasColumnType("uuid");
 
@@ -225,6 +262,9 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<Guid?>("LossFileId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("NeedsIntervention")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -238,6 +278,10 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<string>("RecoveryNotes")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<string>("RequestedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("SettlementApprovedAt")
                         .HasColumnType("timestamp with time zone");
@@ -258,14 +302,30 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WithdrawnBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WithdrawnReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid?>("WorkflowInstanceId")
                         .HasColumnType("uuid");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AssetId")
                         .IsUnique()
-                        .HasFilter("\"Status\" = 0");
+                        .HasFilter("\"Status\" IN (0, 4)");
 
                     b.ToTable("AssetLossReports");
                 });
@@ -532,6 +592,43 @@ namespace Admin.Logistics.Infrastructure.Migrations
                     b.ToTable("Vendors");
                 });
 
+            modelBuilder.Entity("HRManagement.ServiceDefaults.IdempotencyRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ResponseBody")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<int>("ResponseStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("IdempotencyRecords", (string)null);
+                });
+
             modelBuilder.Entity("HRManagement.SharedKernel.Entities.EmployeeOrgUnitSnapshot", b =>
                 {
                     b.Property<Guid>("EmployeeId")
@@ -584,6 +681,8 @@ namespace Admin.Logistics.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "TenantId");
 
                     b.ToTable("AuditLogs");
                 });

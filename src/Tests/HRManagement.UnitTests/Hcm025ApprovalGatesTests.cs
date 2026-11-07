@@ -270,7 +270,7 @@ public sealed class Hcm025ApprovalGatesTests
     public async Task Exempt_entity_types_keep_their_previous_behaviour_and_every_other_type_is_enforced()
     {
         await using var fx = await Fx.CreateAsync();
-        var exempt = await fx.StartAsync("ASSET-LOSS-APPROVAL", "AssetLossReport", Guid.NewGuid(), Creator);
+        var exempt = await fx.StartAsync("SEPARATION-WIZARD", "SeparationRecord", Guid.NewGuid(), Creator);
         var enforced = await fx.StartAsync("TRANSFER-APPROVAL", "TransferRequest", Guid.NewGuid(), Creator);
 
         Assert.Null(await fx.BlockAsync(exempt, Approver(Other), WorkflowActionKind.Approve));

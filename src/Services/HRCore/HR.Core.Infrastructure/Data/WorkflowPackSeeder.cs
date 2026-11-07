@@ -90,7 +90,8 @@ public static class WorkflowPackSeeder
     /// </summary>
     public static readonly IReadOnlySet<string> DistinctApproverCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        "ASSET-ASSIGN-APPROVAL"
+        "ASSET-ASSIGN-APPROVAL",
+        "ASSET-LOSS-APPROVAL"
     };
 
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
@@ -243,63 +244,70 @@ public static class WorkflowPackSeeder
             await db.SaveChangesAsync(ct);
     }
 
-    private static readonly Guid MultiStepAssetAssignmentId = Guid.Parse("f0050001-0001-4000-8000-000000000011");
+    private static readonly string[] CustodyCodes = ["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL"];
 
-    /// <summary>PLAN-03: multi-step ASSET-ASSIGN-APPROVAL for AC-11 (upgrade from single-step v1). Moved here by PLAN-44: this class alone seeds definitions.</summary>
-    public static async Task EnsureMultiStepAssetAssignmentAsync(HRCoreDbContext db, CancellationToken ct = default)
+    private const string CustodyChainPlan = "PLAN-45";
+
+    /// <summary>PLAN-45 (D-WF-2, D-IDA-4): the logistics officer, then the management approver, for custody and loss alike.</summary>
+    public static IReadOnlyList<WorkflowStepSnapshot> CustodyChain { get; } =
+    [
+        new WorkflowStepSnapshot
+        {
+            Level = 1,
+            Name = "موافقة مسؤول الأصول",
+            StepType = WorkflowStepType.Approval,
+            RoleRequired = HrManagementRoles.AdminLogistics
+        },
+        new WorkflowStepSnapshot
+        {
+            Level = 2,
+            Name = "اعتماد إداري",
+            StepType = WorkflowStepType.Approval,
+            RoleRequired = HrManagementRoles.HrManagementApprover
+        }
+    ];
+
+    /// <summary>
+    /// PLAN-45: raises both codes to <see cref="CustodyChain"/> at every start, inside the tenant (a migration sees no row under forced row
+    /// security). A later version with the same roles is left alone, because <c>workflow-admin</c> may have renamed a step. It publishes no
+    /// first version, and it retires any older version it finds published, such as the single-step one of an old database.
+    /// </summary>
+    public static async Task EnsureCustodyChainAsync(HRCoreDbContext db, CancellationToken ct = default)
     {
-        const string code = "ASSET-ASSIGN-APPROVAL";
-
-        var published = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
-            .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code && d.IsPublished)
-            .OrderByDescending(d => d.Version)
-            .ToListAsync(ct);
-
-        if (published.Any(d => CountSteps(d) >= 2))
-            return;
-
-        var nextVersion = published.Count == 0 ? 1 : published.Max(d => d.Version) + 1;
-        var steps = new[]
+        foreach (var code in CustodyCodes)
         {
-            new WorkflowStepSnapshot
+            var published = await db.WorkflowDefinitions
+                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code && d.IsPublished)
+                .ToListAsync(ct);
+            var latest = published.MaxBy(d => d.Version);
+            if (latest is null)
+                continue;
+
+            if (!HasCustodyRoles(latest))
             {
-                Level = 1,
-                Name = "موافقة لوجستية",
-                StepType = WorkflowStepType.Approval,
-                RoleRequired = "hr-core"
-            },
-            new WorkflowStepSnapshot
-            {
-                Level = 2,
-                Name = "موافقة إدارية",
-                StepType = WorkflowStepType.Approval,
-                RoleRequired = "hr-management-approver"
+                await EnsureVersionAsync(db, code, CustodyChain, CustodyChainPlan, ct);
+                continue;
             }
-        };
 
-        db.WorkflowDefinitions.Add(new WorkflowDefinition
-        {
-            Id = nextVersion == 1 ? Guid.Parse("f0050001-0001-4000-8000-000000000001") : MultiStepAssetAssignmentId,
-            TenantId = TenantDefaults.DefaultTenantId,
-            Code = code,
-            Name = "موافقة تسليم عهدة",
-            Version = nextVersion,
-            IsPublished = true,
-            Status = WorkflowDefinitionStatus.Published,
-            RequireDistinctApprovers = true,
-            DomainEntityType = "AssetAssignment",
-            StepsJson = JsonSerializer.Serialize(steps),
-            GuardrailRolesJson = "[]",
-            Description = "PLAN-03: two-step asset assignment approval (AC-11)"
-        });
+            var now = DateTime.UtcNow;
+            var older = published.Where(d => d.Version < latest.Version).ToList();
+            foreach (var definition in older)
+            {
+                definition.IsPublished = false;
+                definition.Status = WorkflowDefinitionStatus.Retired;
+                definition.RetiredAt ??= now;
+                definition.ChangeReason = $"seed:{CustodyChainPlan}";
+            }
 
-        await db.SaveChangesAsync(ct);
+            if (older.Count > 0)
+                await db.SaveChangesAsync(ct);
+        }
     }
 
-    private static int CountSteps(WorkflowDefinition definition)
+    private static bool HasCustodyRoles(WorkflowDefinition definition)
     {
         var steps = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(definition.StepsJson) ?? [];
-        return steps.Count;
+        return steps.OrderBy(s => s.Level).Select(s => s.RoleRequired).SequenceEqual(CustodyChain.Select(s => s.RoleRequired), StringComparer.OrdinalIgnoreCase);
     }
 }

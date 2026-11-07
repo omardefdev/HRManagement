@@ -33,7 +33,7 @@ public sealed class Wf043DefinitionValidatorTests
     [InlineData("SelectionCommitteeSession", 3, Approver)]
     [InlineData("RecruitmentAppeal", 1, HrManagementRoles.Compliance)]
     [InlineData("AssetAssignment", 2, Approver)]
-    [InlineData("AssetLossReport", 1, null)]
+    [InlineData("AssetLossReport", 2, Approver)]
     public void Each_guardrail_row_holds_its_floor_and_its_last_role(string entityType, int minSteps, string? lastRole)
     {
         var guardrail = WorkflowGuardrails.For(entityType);
@@ -41,7 +41,7 @@ public sealed class Wf043DefinitionValidatorTests
         Assert.Equal(lastRole, guardrail.LastStepRole);
 
         var enough = Enumerable.Range(1, minSteps)
-            .Select(level => Step(level, level == minSteps ? lastRole ?? Core : Core))
+            .Select(level => Step(level, level == minSteps ? lastRole ?? Core : guardrail.FirstStepRole ?? Core))
             .ToArray();
         Assert.Empty(Validate(entityType, steps: enough));
 
@@ -93,7 +93,7 @@ public sealed class Wf043DefinitionValidatorTests
     [InlineData("security")]
     [InlineData("it-support")]
     public void A_role_outside_the_catalog_is_an_error(string role) =>
-        Assert.Contains($"دور الخطوة 1 «{role}» غير موجود في كتالوج الأدوار.", Validate("AssetLossReport", steps: Step(1, role)));
+        Assert.Contains($"دور الخطوة 1 «{role}» غير موجود في كتالوج الأدوار.", Validate("SeparationRecord", steps: Step(1, role)));
 
     [Fact]
     public void An_unknown_entity_type_is_an_error() =>
@@ -102,9 +102,9 @@ public sealed class Wf043DefinitionValidatorTests
     [Fact]
     public void Steps_must_exist_have_a_name_and_a_role()
     {
-        Assert.Contains("لا يمكن قبول تعريف بدون خطوات.", Validate("AssetLossReport"));
+        Assert.Contains("لا يمكن قبول تعريف بدون خطوات.", Validate("RecruitmentAppeal"));
 
-        var errors = Validate("AssetLossReport", steps: Step(1, "", ""));
+        var errors = Validate("RecruitmentAppeal", steps: Step(1, "", ""));
         Assert.Contains("الخطوة 1 بلا اسم.", errors);
         Assert.Contains("الخطوة 1 بلا دور.", errors);
     }
@@ -114,17 +114,17 @@ public sealed class Wf043DefinitionValidatorTests
     [InlineData(new[] { 1, 3 }, "مستويات الخطوات يجب أن تكون متصلة وتبدأ من 1.")]
     [InlineData(new[] { 2, 3 }, "مستويات الخطوات يجب أن تكون متصلة وتبدأ من 1.")]
     public void Levels_are_unique_and_connected_from_one(int[] levels, string error) =>
-        Assert.Contains(error, Validate("AssetLossReport", steps: levels.Select(l => Step(l, Core)).ToArray()));
+        Assert.Contains(error, Validate("RecruitmentAppeal", steps: levels.Select(l => Step(l, HrManagementRoles.Compliance)).ToArray()));
 
     [Fact]
     public void A_condition_needs_a_field_and_a_known_operator()
     {
-        var errors = Validate("AssetLossReport", steps: Step(1, Core, condition: new WorkflowCondition { Field = "", Operator = "Matches" }));
+        var errors = Validate("RecruitmentAppeal", steps: Step(1, HrManagementRoles.Compliance, condition: new WorkflowCondition { Field = "", Operator = "Matches" }));
         Assert.Contains("شرط الخطوة 1 بلا حقل.", errors);
         Assert.Contains("شرط الخطوة 1 يستعمل مشغّلاً غير معروف «Matches».", errors);
 
         foreach (var known in WorkflowDefinitionValidator.KnownOperators)
-            Assert.Empty(Validate("AssetLossReport", steps: [Step(1, Core, condition: new WorkflowCondition { Field = "value", Operator = known }), Step(2, Core)]));
+            Assert.Empty(Validate("RecruitmentAppeal", steps: [Step(1, HrManagementRoles.Compliance, condition: new WorkflowCondition { Field = "value", Operator = known }), Step(2, HrManagementRoles.Compliance)]));
     }
 
     [Fact]
@@ -132,18 +132,18 @@ public sealed class Wf043DefinitionValidatorTests
     {
         var never = new WorkflowCondition { Field = "x", Operator = "Equals", Value = "never" };
 
-        var skippedApprover = Validate("AssetAssignment", steps: [Step(1, Core), Step(2, Approver, condition: never)]);
+        var skippedApprover = Validate("AssetAssignment", steps: [Step(1, HrManagementRoles.AdminLogistics), Step(2, Approver, condition: never)]);
         Assert.Contains("الخطوة الأخيرة لا تكون مشروطة.", skippedApprover);
         Assert.Contains("هذا النوع يتطلب 2 خطوات على الأقل.", skippedApprover);
 
-        Assert.Contains("الخطوة الأخيرة لا تكون مشروطة.", Validate("AssetLossReport", steps: Step(1, Core, condition: never)));
-        Assert.Empty(Validate("AssetLossReport", steps: [Step(1, Core, condition: never), Step(2, Core)]));
+        Assert.Contains("الخطوة الأخيرة لا تكون مشروطة.", Validate("RecruitmentAppeal", steps: Step(1, HrManagementRoles.Compliance, condition: never)));
+        Assert.Empty(Validate("RecruitmentAppeal", steps: [Step(1, Core, condition: never), Step(2, HrManagementRoles.Compliance)]));
     }
 
     [Fact]
     public void Custody_keeps_distinct_approvers()
     {
-        var draft = new WorkflowDefinitionDraft("C", "N", "AssetAssignment", [Step(1, Core), Step(2, Approver)], [], RequireDistinctApprovers: false);
+        var draft = new WorkflowDefinitionDraft("C", "N", "AssetAssignment", [Step(1, HrManagementRoles.AdminLogistics), Step(2, Approver)], [], RequireDistinctApprovers: false);
 
         Assert.Contains(
             "هذا النوع يتطلب معتمداً مختلفاً لكل خطوة.",
@@ -176,6 +176,7 @@ public sealed class Wf043DefinitionValidatorTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
         await WorkflowPackSeeder.SeedAsync(db);
+        await WorkflowPackSeeder.EnsureCustodyChainAsync(db);
 
         var invalid = (await db.WorkflowDefinitions.AsNoTracking().Where(d => d.IsPublished).ToListAsync())
             .Where(d => WorkflowDefinitionCatalog.Validate(d).Count > 0)

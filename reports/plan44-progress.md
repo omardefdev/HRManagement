@@ -67,3 +67,21 @@ Finished P7 (UTC): 2026-11-07T08:53Z
 
 ## P8
 - Local CI on afb0922b: 91 passed, 0 failed, 1329 s. Pre-push: OK, 793 s.
+- PR: https://github.com/omardefdev/HRManagement/pull/41, opened 2026-11-07T10:47Z from release/plan-44 (3e02afd6).
+- WAITING-CI: PR run 42365420730 from 2026-11-07T10:47:21Z to 11:30:27Z, 43 min. The turn ended on WAITING-CI at about 11:02Z; the next check came on the owner's message at 13:23:52Z, so green to merge was 1 h 54.
+
+## Merge note
+- PR: https://github.com/omardefdev/HRManagement/pull/41, head 3e02afd6, merged at 2026-11-07T13:24:11Z.
+- Merge commit: aeb6d716758d3928d28651df049efee6205f195f. main = origin/main = aeb6d716 after git pull --ff-only.
+- PR run: https://github.com/omardefdev/HRManagement/actions/runs/42365420730, success, 14 of 14 checks, no rerun:
+  - Gitleaks pass 1m2s; Reuse check pass 22s; Dedupe post-merge run pass 8s
+  - CI pass 24m12s; CodeQL pass 16m35s; E2E pass 15m33s; Acceptance images pass 15m39s
+  - Acceptance stage: leastpriv pass 8m20s; meta pass 11m55s; prodlike pass 16m57s; lab-rest pass 17m24s; lab-main pass 24m37s; prodlike-final pass 26m18s
+  - Acceptance pass 29s
+- Evidence of record: the run's artifacts, https://github.com/omardefdev/HRManagement/actions/runs/42365420730#artifacts (acceptance-evidence, the six acceptance-stage-* sets, test-results, e2e-results, codeql-sarif, gitleaks-report). No evidence committed.
+- Actions job time: 10771 s, about 180 min across 14 jobs; 43 min wall-clock.
+- Demo server after the merge: 16 images on 973d68488f09, 0 unhealthy, / answers 302. From 973d6848 to aeb6d716 only tests, reports and docs changed, so no new deploy is needed.
+- Total: 2026-11-06T18:11:31Z to 2026-11-07T13:24:11Z, 19 h 13 wall-clock: about 6 h 40 active, 9 h 56 host outage, 2 h 37 from PR opened to merge (43 min CI, 1 h 54 waiting for the next message). PLAN-43 wait: none. Lock wait: none of its own; a short Docker wait behind PLAN-66 from about 19:22Z, inside other work.
+- Open for later plans: L3 (a cancel and a decision can deadlock, the loser gets a 500, no data damage), and PLAN-66's three uncommitted files in D:/my projects/HRManagement-b.
+- Post-merge run: https://github.com/omardefdev/HRManagement/actions/runs/42376802623 on aeb6d716, success at 13:25:18Z. Gitleaks ran; Dedupe post-merge run passed and the other jobs were skipped, because the tree was already tested in the PR run.
+Merged by agent on owner instruction (UTC): 2026-11-07T13:24:11Z

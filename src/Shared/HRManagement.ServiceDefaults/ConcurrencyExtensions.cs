@@ -29,6 +29,20 @@ public static class ConcurrencyExtensions
         return entity;
     }
 
+    /// <summary>PLAN-45: PostgreSQL ended this transaction to break a deadlock (40P01). It rolled back and wrote nothing.</summary>
+    public static bool IsDeadlock(Exception exception)
+    {
+        for (Exception? ex = exception; ex is not null; ex = ex.InnerException)
+        {
+            var type = ex.GetType();
+            if (string.Equals(type.Name, "PostgresException", StringComparison.Ordinal)
+                && type.GetProperty("SqlState")?.GetValue(ex) as string == "40P01")
+                return true;
+        }
+
+        return false;
+    }
+
     public static bool IsUniqueViolation(Exception exception)
     {
         for (Exception? ex = exception; ex is not null; ex = ex.InnerException)

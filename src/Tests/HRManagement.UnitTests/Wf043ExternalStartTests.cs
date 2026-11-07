@@ -342,14 +342,15 @@ public sealed class Wf043ExternalStartTests
         var handler = new RecordingHandler();
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddHttpClient(WorkflowTriggerService.HttpClientName, c => c.BaseAddress = new Uri("http://hr-core-web:8080/"))
+        services.AddHttpClient(AssetApprovalStarter.HttpClientName, c => c.BaseAddress = new Uri("http://hr-core-web:8080/"))
             .ConfigurePrimaryHttpMessageHandler(() => handler);
-        services.AddScoped<WorkflowTriggerService>();
+        services.AddDbContext<AdminLogisticsDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddScoped<AssetApprovalStarter>();
         await using var provider = services.BuildServiceProvider();
         var holder = Guid.NewGuid();
 
-        await provider.GetRequiredService<WorkflowTriggerService>().StartAssetLossWorkflowAsync(
-            Guid.NewGuid(), Guid.NewGuid(), "TAG-1", true, 10m, AssetLossReason.Theft, holder);
+        await provider.CreateScope().ServiceProvider.GetRequiredService<AssetApprovalStarter>().StartAsync(
+            new AssetLossReport { AssetId = Guid.NewGuid(), Reason = AssetLossReason.Theft }, new Asset { TagNumber = "TAG-1", IsPrivileged = true, Value = 10m }, holder);
 
         using var body = JsonDocument.Parse(handler.Body!);
         Assert.Equal(holder, body.RootElement.GetProperty("subjectEmployeeId").GetGuid());
@@ -528,14 +529,17 @@ public sealed class Wf043ExternalStartTests
         var handler = new RecordingHandler();
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddHttpClient(WorkflowTriggerService.HttpClientName, c => c.BaseAddress = new Uri("http://hr-core-web:8080/"))
+        services.AddHttpClient(AssetApprovalStarter.HttpClientName, c => c.BaseAddress = new Uri("http://hr-core-web:8080/"))
             .ConfigurePrimaryHttpMessageHandler(() => handler);
-        services.AddScoped<WorkflowTriggerService>();
+        services.AddDbContext<AdminLogisticsDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddScoped<AssetApprovalStarter>();
         await using var provider = services.BuildServiceProvider();
-        var trigger = provider.GetRequiredService<WorkflowTriggerService>();
+        var starter = provider.CreateScope().ServiceProvider.GetRequiredService<AssetApprovalStarter>();
         var (assignment, asset, employee) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
-        await trigger.StartAssetAssignmentWorkflowAsync(assignment, asset, employee, "12345678901", true, 15000.5m);
+        await starter.StartAsync(
+            new AssetAssignment { Id = assignment, AssetId = asset, EmployeeId = employee },
+            new Asset { Id = asset, TagNumber = "12345678901", IsPrivileged = true, Value = 15000.5m });
 
         using var body = JsonDocument.Parse(handler.Body!);
         var root = body.RootElement;

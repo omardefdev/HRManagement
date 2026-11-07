@@ -1,8 +1,10 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Admin.Logistics.Domain.Entities;
 using Admin.Logistics.Domain.Enums;
 using Admin.Logistics.Infrastructure;
+using Admin.Logistics.Infrastructure.Data;
 using Admin.Logistics.Infrastructure.Integration;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Infrastructure;
@@ -10,6 +12,7 @@ using HR.Contracts.Infrastructure.Services;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Integration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -351,14 +354,16 @@ public class Int037WorkflowTriggerProofTests
         services.AddLogging();
         services.AddSingleton<IConfiguration>(configuration);
         services.AddHrCoreWorkflowClient(configuration);
-        services.AddHttpClient(WorkflowTriggerService.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddHttpClient(AssetApprovalStarter.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => handler);
         services.AddSingleton<IServiceTokenProvider>(new StaticToken());
-        services.AddScoped<WorkflowTriggerService>();
+        services.AddDbContext<AdminLogisticsDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddScoped<AssetApprovalStarter>();
         using var provider = services.BuildServiceProvider();
-        var trigger = provider.CreateScope().ServiceProvider.GetRequiredService<WorkflowTriggerService>();
+        var starter = provider.CreateScope().ServiceProvider.GetRequiredService<AssetApprovalStarter>();
+        var asset = new Asset { TagNumber = "TAG-1", Value = 10m };
 
-        await trigger.StartAssetAssignmentWorkflowAsync(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "TAG-1", false, 10m);
-        await trigger.StartAssetLossWorkflowAsync(Guid.NewGuid(), Guid.NewGuid(), "TAG-1", false, 10m, AssetLossReason.Theft);
+        await starter.StartAsync(new AssetAssignment { AssetId = asset.Id, EmployeeId = Guid.NewGuid() }, asset);
+        await starter.StartAsync(new AssetLossReport { AssetId = asset.Id, Reason = AssetLossReason.Theft }, asset, null);
 
         Assert.Equal(2, handler.Requests.Count);
         foreach (var request in handler.Requests)
