@@ -4,6 +4,7 @@ using Admin.Logistics.Domain.Services;
 using Admin.Logistics.Infrastructure.Abstractions;
 using Admin.Logistics.Infrastructure.Data;
 using Admin.Logistics.Infrastructure.Integration;
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -375,7 +376,7 @@ public sealed class AssetApprovalLoop(
             await db.SaveChangesAsync(ct);
             return true;
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex) when (ex is DbUpdateConcurrencyException || ConcurrencyExtensions.IsDeadlock(ex))
         {
             db.ChangeTracker.Clear();
             return false;

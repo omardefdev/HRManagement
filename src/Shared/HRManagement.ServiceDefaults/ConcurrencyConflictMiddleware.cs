@@ -30,6 +30,12 @@ public sealed class ConcurrencyConflictMiddleware(
             logger.LogWarning(ex, "Optimistic concurrency conflict on {Path}", context.Request.Path);
             await WriteConflictAsync(context, ConcurrencyConflictMessages.StaleWrite, ex);
         }
+        // PLAN-45 (PLAN-44's L3): the loser of a deadlock rolled back, as the loser of an optimistic race does. Never a 500.
+        catch (Exception ex) when (ConcurrencyExtensions.IsDeadlock(ex))
+        {
+            logger.LogWarning(ex, "Deadlock victim on {Path}", context.Request.Path);
+            await WriteConflictAsync(context, ConcurrencyConflictMessages.StaleWrite, ex);
+        }
         catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
         {
             logger.LogWarning(ex, "Unique constraint violation on {Path}", context.Request.Path);

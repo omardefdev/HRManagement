@@ -1,46 +1,32 @@
-using System.Net;
 using HRManagement.E2E;
-using HRManagement.ServiceDefaults;
 
 namespace HRManagement.AcceptanceTests;
 
-/// <summary>AC-33: privileged asset loss report retains before/after snapshots (live read).</summary>
+/// <summary>AC-33: a privileged asset reported lost goes through both approvals; the asset ends Lost, with its settlement and snapshots.</summary>
+[RequiredAcceptance]
 public class Ac33AssetLossLiveTests
 {
     [SkippableFact]
-    public async Task Acceptance_asset_details_expose_loss_snapshot_fields_when_present()
+    public async Task A_privileged_loss_is_approved_in_two_steps_and_the_asset_ends_lost_with_its_settlement()
     {
         AcceptanceEnv.RequireEnabled();
-        var br1 = AcceptanceHarness.RequirePersona("br1-mgr");
-        var (_, correlationId) = await AcceptanceHarness.LoginAsync(br1);
+        var maker = AcceptanceHarness.RequirePersona("a-logistics-maker");
+        var (_, correlationId) = await AcceptanceHarness.LoginAsync(maker);
         var recorder = new EvidenceRecorder("AC-33", correlationId);
-        recorder.WriteMetadata("AC-33 asset loss before/after snapshots", br1.Id);
+        recorder.WriteMetadata("AC-33 a privileged loss through both approvals, with its settlement and snapshots", maker.Id);
+        recorder.WriteSteps(
+            "1. a-logistics-maker reports a privileged asset lost through its page: PendingApproval with an instance.\n" +
+            "2. a-logistics-checker approves step 1 and a-management-approver step 2, from the inbox, on the generic page.\n" +
+            "3. The report is Confirmed, the asset Lost, the settlement recorded and both snapshots written (psql).");
 
-        var assetPath = $"ui/admin-logistics/Assets/Details/{AcceptanceSeedIds.AcceptanceAssetBr1Id:D}";
-        using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(br1, correlationId);
-        var resp = await http.GetAsync(assetPath);
-        var html = await resp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("asset-details", "GET", $"/{assetPath}", (int)resp.StatusCode,
-            new { length = html.Length, tag = AcceptanceSeedIds.AcceptanceAssetBr1Tag });
+        var (asset, report, instance) = await CustodyJourney.LossThroughBothStepsAsync(recorder);
 
-        AcceptanceGate.RequireData(recorder, resp.StatusCode != HttpStatusCode.NotFound,
-            "أصل القبول غير مبذور في هذه البيئة",
-            "Acceptance asset not seeded in this environment — run acceptance-up with RUN_ACCEPTANCE");
+        var settled = await CustodyJourney.CountAsync("admin_db",
+            $"SELECT count(*) FROM \"AssetLossReports\" WHERE \"Id\"='{report:D}' AND \"SettlementApprovedAt\" IS NOT NULL AND \"SettlementApprovedBy\" IS NOT NULL AND \"ConfirmedLostAt\" IS NOT NULL AND \"BeforeStateJson\" IS NOT NULL AND \"AfterStateJson\" IS NOT NULL;");
+        Assert.Equal(1, settled);
 
-        E2eHttp.EnsureNotServerError((int)resp.StatusCode, "asset details");
-        Assert.True(resp.StatusCode is HttpStatusCode.OK or HttpStatusCode.Forbidden);
-
-        if (resp.StatusCode == HttpStatusCode.OK)
-        {
-            Assert.Contains(AcceptanceSeedIds.AcceptanceAssetBr1Tag, html, StringComparison.Ordinal);
-            recorder.WriteAfter(new
-            {
-                note = "Before/after JSON rendered in loss history when reports exist",
-                privileged = true,
-                evidenceRefPattern = "AC-32-AC-33-HANDOVER"
-            });
-        }
-
+        recorder.WriteDbChecks(new { asset, report, instance, assetStatus = "Lost", settled });
+        recorder.WriteAfter(new { status = "Confirmed", instance });
         recorder.WriteResult("Pass");
     }
 }

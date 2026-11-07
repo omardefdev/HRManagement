@@ -138,7 +138,7 @@ public sealed class WorkflowInstanceActionService(
             }, ct);
             return new WorkflowActionResult(true, null, instance);
         }
-        catch (Exception ex) when (ex is DbUpdateConcurrencyException or WorkflowOutcomeRefusedException)
+        catch (Exception ex) when (ex is WorkflowOutcomeRefusedException || WorkflowConcurrency.LostRace(ex))
         {
             return Undone("approve", ex);
         }
@@ -193,7 +193,7 @@ public sealed class WorkflowInstanceActionService(
             }, ct);
             return new WorkflowActionResult(true, null, instance);
         }
-        catch (Exception ex) when (ex is DbUpdateConcurrencyException or WorkflowOutcomeRefusedException)
+        catch (Exception ex) when (ex is WorkflowOutcomeRefusedException || WorkflowConcurrency.LostRace(ex))
         {
             return Undone("reject", ex);
         }
@@ -202,7 +202,7 @@ public sealed class WorkflowInstanceActionService(
     /// <summary>
     /// PLAN-44 (G-WF-12): the unit of work above commits the instance, the signature, the entity's change and the outbox row together, and
     /// makes the last save after everything was staged (PLAN-40's order). Here the transaction has rolled back: a decision that lost the
-    /// race on <c>xmin</c> gets the conflict message and is never retried, because the step may have moved on; a refused outcome gets its
+    /// race on <c>xmin</c> or to a deadlock gets the conflict message and is never retried, because the step may have moved on; a refused outcome gets its
     /// reason. Any other failure of a handler propagates, and rolls back the same way.
     /// </summary>
     private WorkflowActionResult Undone(string action, Exception failure)

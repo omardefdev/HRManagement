@@ -1,4 +1,5 @@
 using HR.Core.Domain.Entities.Workflow;
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Workflow;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,14 @@ public static class WorkflowConcurrency
         && (instance.Status != WorkflowStatus.InProgress || target < instance.CurrentStepLevel);
 
     /// <summary>
+    /// PLAN-45 (PLAN-44's L3): this action lost to another one. On <c>xmin</c> when they touched the same row, or by a deadlock when a cancel
+    /// and a decision locked the instance and the entity in opposite orders. Either way it rolled back, so one wins and the other gets the
+    /// conflict message.
+    /// </summary>
+    public static bool LostRace(Exception exception) =>
+        exception is DbUpdateConcurrencyException || ConcurrencyExtensions.IsDeadlock(exception);
+
+    /// <summary>
     /// For a path that ends an instance beside a decision (a cancel, a revoke): the last save, and the conflict message when a decision won.
     /// Nothing stays tracked, so nothing of the lost action is written later in the request.
     /// </summary>
@@ -30,7 +39,7 @@ public static class WorkflowConcurrency
             await db.SaveChangesAsync(ct);
             return null;
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex) when (LostRace(ex))
         {
             return Lost(db, action);
         }

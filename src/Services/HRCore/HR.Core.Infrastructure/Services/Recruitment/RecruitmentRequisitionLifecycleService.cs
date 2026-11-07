@@ -375,7 +375,7 @@ public sealed class RecruitmentRequisitionLifecycleService(
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex) when (HR.Core.Infrastructure.Services.Workflow.WorkflowConcurrency.LostRace(ex))
         {
             // PLAN-44: a decision won the race; neither the cancellation nor its event is written.
             return (false, HR.Core.Infrastructure.Services.Workflow.WorkflowConcurrency.Lost(db, "cancel"));

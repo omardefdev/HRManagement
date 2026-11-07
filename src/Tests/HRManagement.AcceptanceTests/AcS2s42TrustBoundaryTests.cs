@@ -119,7 +119,7 @@ public class AcS2s42TrustBoundaryTests
     }
 
     /// <summary>The job recreates these two just before this class, and nothing else waits for them.</summary>
-    private static async Task StackReadyAsync()
+    internal static async Task StackReadyAsync()
     {
         await WaitReadyAsync(HrCoreDirect, "hr-core-web");
         await WaitReadyAsync(LogisticsDirect, "admin-logistics-web");
@@ -144,14 +144,14 @@ public class AcS2s42TrustBoundaryTests
         await WaitReadyAsync(LogisticsDirect, "admin-logistics-web");
     }
 
-    private static async Task StopAsync(string service)
+    internal static async Task StopAsync(string service)
     {
         var container = await AcceptanceMessagingHelper.ResolveAcceptanceContainerAsync(service);
         var (exit, output) = await AcceptanceMessagingHelper.RunProcessAsync("docker", "stop", container);
         Assert.True(exit == 0, output);
     }
 
-    private static async Task StartAsync(string service)
+    internal static async Task StartAsync(string service)
     {
         // ps -a: the helper's lookup sees running containers only, and this one is stopped.
         var (_, names) = await AcceptanceMessagingHelper.RunProcessAsync(
