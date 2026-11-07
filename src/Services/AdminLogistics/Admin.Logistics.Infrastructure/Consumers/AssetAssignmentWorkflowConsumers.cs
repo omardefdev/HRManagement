@@ -34,18 +34,9 @@ public class AssetAssignmentApprovedConsumer(
         var open = await db.AssetAssignments.AsNoTracking()
             .Where(a => a.AssetId == assignment.AssetId && a.ReturnedAt == null && a.Id != m.AssignmentId)
             .ToListAsync(context.CancellationToken);
-        if (!AssetAssignmentRules.CanAssign(assignment.Asset, open))
-        {
-            assignment.Status = AssetAssignmentStatus.Rejected;
-            assignment.ReturnedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(context.CancellationToken);
-            return;
-        }
-
-        assignment.Status = AssetAssignmentStatus.Active;
-        assignment.Asset.Status = AssetStatus.InUse;
+        AssetApprovalRules.ApplyApproved(assignment, assignment.Asset, open);
         await db.SaveChangesAsync(context.CancellationToken);
-        logger.LogInformation("Asset assignment {AssignmentId} activated after approval", m.AssignmentId);
+        logger.LogInformation("Asset assignment {AssignmentId} ended {Status} after approval", m.AssignmentId, assignment.Status);
     }
 }
 
@@ -66,11 +57,7 @@ public class AssetAssignmentRejectedConsumer(
         if (!WorkflowOutcomeLink.IsLinked(context.Message.WorkflowInstanceId, assignment.WorkflowInstanceId, assignment.Id, logger, nameof(IAssetAssignmentRejected)))
             return;
 
-        assignment.Status = AssetAssignmentStatus.Rejected;
-        assignment.ReturnedAt = DateTime.UtcNow;
-        assignment.EvidenceRef = string.IsNullOrWhiteSpace(context.Message.Reason)
-            ? assignment.EvidenceRef
-            : $"rejected: {context.Message.Reason}".Trim();
+        AssetApprovalRules.ApplyRejected(assignment, context.Message.Reason, DateTime.UtcNow);
         await db.SaveChangesAsync(context.CancellationToken);
         logger.LogInformation("Asset assignment {AssignmentId} rejected", context.Message.AssignmentId);
     }

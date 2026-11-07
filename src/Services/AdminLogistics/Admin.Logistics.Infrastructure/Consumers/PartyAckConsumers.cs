@@ -35,7 +35,7 @@ public class SeparationPartyAckConsumer(AdminLogisticsDbContext db)
     {
         var employeeId = context.Message.EmployeeId;
         var returned = await db.AssetAssignments
-            .Where(a => a.EmployeeId == employeeId && a.ReturnedAt != null)
+            .Where(a => a.EmployeeId == employeeId && a.ReturnedAt != null && a.Status == AssetAssignmentStatus.Returned)
             .ToListAsync(context.CancellationToken);
 
         foreach (var assignment in returned)

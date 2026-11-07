@@ -48,6 +48,11 @@
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowExternalInstancesController.cs",
       "serverPolicies": ["HrManagementPolicies.WorkflowExternalStart"], "scope": "hr-core.workflow"
     },
+    "hr-core.workflow-instances.cancel": {
+      "target": "hr-core-web", "method": "POST", "path": "/api/workflow-instances/{id}/cancel",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowExternalInstancesController.cs",
+      "serverPolicies": ["HrManagementPolicies.WorkflowExternalStart"], "scope": "hr-core.workflow"
+    },
     "hr-core.dsar.subject": {
       "target": "hr-core-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/DsarInternalController.cs",
@@ -282,6 +287,7 @@
         { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
         { "client": "AddHrCoreWorkflowClient", "endpoint": "hr-core.workflow-instances.start", "scope": "hr-core.workflow" },
+        { "client": "AddHrCoreWorkflowClient", "endpoint": "hr-core.workflow-instances.cancel", "scope": "hr-core.workflow" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
       "legalPacks": []

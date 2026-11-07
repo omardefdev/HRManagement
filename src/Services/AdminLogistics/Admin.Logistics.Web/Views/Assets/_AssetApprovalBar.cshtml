@@ -1,0 +1,62 @@
+@model Admin.Logistics.Web.ViewModels.AssetApprovalBarViewModel
+@using System.Security.Claims
+@using Admin.Logistics.Domain.Services
+@using HRManagement.ServiceDefaults
+@{
+    var request = Model.Request;
+    var userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var parsed) ? parsed : (Guid?)null;
+    var canWithdraw = User.IsInRole(HrManagementRoles.AdminLogistics) || (userId is not null && userId == request.CreatedBy);
+    var formId = $"withdraw-{request.Id:N}";
+}
+<div data-hr-approval-bar="@Model.Kind">
+    @if (Model.IsStarting)
+    {
+        <p class="mb-2" data-hr-approval-starting>
+            لم يبدأ الاعتماد بعد، والأصل محجوز لهذا الطلب. يُعاد البدء تلقائياً.
+            @if (request.ApprovalStartAttempts > 0)
+            {
+                <span class="text-muted small">المحاولات: @request.ApprovalStartAttempts</span>
+            }
+        </p>
+        @if (!string.IsNullOrWhiteSpace(request.ApprovalStartLastError))
+        {
+            <p class="small text-muted mb-2">آخر خطأ: @request.ApprovalStartLastError</p>
+        }
+        @if (request.NeedsIntervention)
+        {
+            <p class="mb-2"><span class="badge bg-danger">يتطلب تدخلاً</span> توقفت إعادة البدء التلقائية.</p>
+        }
+    }
+    <div class="d-flex flex-wrap gap-2 align-items-start">
+        @if (request.WorkflowInstanceId is Guid instanceId)
+        {
+            <a href="/ui/hr-core/WorkflowApprovals/Details/@instanceId" class="btn btn-sm btn-outline-primary">عرض الاعتماد</a>
+        }
+        @if (Model.IsStarting)
+        {
+            <form asp-action="RetryApprovalStart" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.AssetId" />
+                <input type="hidden" name="requestId" value="@request.Id" />
+                <input type="hidden" name="kind" value="@Model.Kind" />
+                <button type="submit" class="btn btn-sm btn-outline-secondary">إعادة المحاولة</button>
+            </form>
+        }
+        @if (canWithdraw)
+        {
+            <form asp-action="WithdrawApproval" method="post" class="d-flex flex-wrap gap-2 align-items-start" id="@formId"
+                  data-hr-confirm="سحب هذا الطلب؟"
+                  data-hr-confirm-title="سحب الطلب"
+                  data-hr-confirm-label="سحب">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.AssetId" />
+                <input type="hidden" name="requestId" value="@request.Id" />
+                <input type="hidden" name="kind" value="@Model.Kind" />
+                <input type="text" name="reason" class="form-control form-control-sm" style="min-width: 16rem"
+                       minlength="@AssetApprovalRules.MinWithdrawReasonLength" maxlength="@AssetApprovalRules.MaxWithdrawReasonLength"
+                       required placeholder="سبب السحب (@AssetApprovalRules.MinWithdrawReasonLength أحرف على الأقل)" aria-label="سبب السحب" />
+                <button type="submit" class="btn btn-sm btn-outline-danger">سحب الطلب</button>
+            </form>
+        }
+    </div>
+</div>

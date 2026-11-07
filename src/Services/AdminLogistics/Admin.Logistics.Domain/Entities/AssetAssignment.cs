@@ -5,7 +5,7 @@ using HRManagement.SharedKernel.Entities;
 namespace Admin.Logistics.Domain.Entities;
 
 [Display(Name = "سجل إعطاء العهدة")]
-public class AssetAssignment : AuditableEntity
+public class AssetAssignment : AuditableEntity, IAssetApprovalRequest
 {
     [Required]
     [Display(Name = "الأصل")]
@@ -50,6 +50,33 @@ public class AssetAssignment : AuditableEntity
     public AssetAssignmentStatus Status { get; set; } = AssetAssignmentStatus.Active;
 
     public Guid? WorkflowInstanceId { get; set; }
+
+    [MaxLength(200)]
+    [Display(Name = "طالب الإجراء")]
+    public string? RequestedByName { get; set; }
+
+    [Display(Name = "محاولات بدء الاعتماد")]
+    public int ApprovalStartAttempts { get; set; }
+
+    [MaxLength(500)]
+    [Display(Name = "آخر خطأ في بدء الاعتماد")]
+    public string? ApprovalStartLastError { get; set; }
+
+    [Display(Name = "آخر محاولة لبدء الاعتماد")]
+    public DateTime? ApprovalStartLastAttemptAt { get; set; }
+
+    [Display(Name = "يتطلب تدخلاً")]
+    public bool NeedsIntervention { get; set; }
+
+    [Display(Name = "تاريخ السحب")]
+    public DateTime? WithdrawnAt { get; set; }
+
+    [Display(Name = "سحبه")]
+    public Guid? WithdrawnBy { get; set; }
+
+    [MaxLength(500)]
+    [Display(Name = "سبب السحب")]
+    public string? WithdrawnReason { get; set; }
 
     public Asset Asset { get; set; } = default!;
 }

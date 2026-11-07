@@ -13,4 +13,6 @@ public static class AdvisoryLockKeys
     public const long GatewayAuditChain = 4_001_008;
     /// <summary>FUN-029 (J): HR.Contracts hire commencement watch.</summary>
     public const long HireCommencementWatch = 4_001_009;
+    /// <summary>PLAN-45: Admin.Logistics, the approval start of waiting custody and loss requests.</summary>
+    public const long AssetApprovalStartRetry = 4_001_010;
 }
