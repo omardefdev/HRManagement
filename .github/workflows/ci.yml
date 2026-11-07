@@ -430,6 +430,36 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Built before the stack starts: playwright.ps1 comes from this build, and the install runs while the stack starts.
+      - name: Restore E2E project
+        if: env.REUSED_RUN == ''
+        run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
+
+      - name: Build E2E project
+        if: env.REUSED_RUN == ''
+        run: dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --configuration Release --no-restore
+
+      - name: Playwright cache key
+        id: playwright-key
+        if: env.REUSED_RUN == ''
+        run: bash scripts/ci/playwright-install.sh key
+
+      # Restore and save are separate steps so that a red E2E run still leaves the cache: actions/cache saves only on success.
+      - name: Restore Playwright cache
+        id: playwright-cache
+        if: env.REUSED_RUN == ''
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/playwright-debs
+          key: ${{ steps.playwright-key.outputs.key }}
+
+      # scripts/ci/playwright-install.sh says why: the apt mirror, not the browsers, took up to 52 minutes.
+      - name: Start Playwright install
+        if: env.REUSED_RUN == ''
+        run: bash scripts/ci/playwright-install.sh start
+
       # PLAN-35: the stack builds every service image (the CI job ran out of disk doing the same, run 41083926373).
       - name: Free runner disk space
         if: env.REUSED_RUN == ''
@@ -464,17 +494,21 @@ jobs:
           docker compose logs hr-gateway --tail 80 || true
           exit 1
 
-      - name: Restore E2E project
-        if: env.REUSED_RUN == ''
-        run: dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
-
-      - name: Build E2E project
-        if: env.REUSED_RUN == ''
-        run: dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --configuration Release --no-restore
-
+      # Waits for the install begun in "Start Playwright install"; this step's log has its output and how long it took.
       - name: Install Playwright browsers
         if: env.REUSED_RUN == ''
-        run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
+        env:
+          CACHE_HIT: ${{ steps.playwright-cache.outputs.cache-hit }}
+        run: bash scripts/ci/playwright-install.sh wait
+
+      - name: Save Playwright cache
+        if: env.REUSED_RUN == '' && steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/playwright-debs
+          key: ${{ steps.playwright-key.outputs.key }}
 
       # PLAN-35 (triage rule 3): cases in tests/e2e/quarantine.json are left out here and listed in the job summary.
       - name: E2E quarantine filter
