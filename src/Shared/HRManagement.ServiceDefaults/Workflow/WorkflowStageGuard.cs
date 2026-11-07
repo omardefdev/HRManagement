@@ -17,15 +17,9 @@ public sealed class WorkflowStepRoleOptions
 
     /// <summary>
     /// Types whose step role cannot reach the approval route yet, each with an owner plan and a date in
-    /// <c>docs/qa/workflow-step-role-exemptions.json</c>: all until PLAN-46. PLAN-45 lifted <c>AssetLossReport</c>.
+    /// <c>docs/qa/workflow-step-role-exemptions.json</c>. None since PLAN-46: every type is enforced.
     /// </summary>
-    public static readonly IReadOnlyList<string> DefaultExemptEntityTypes =
-    [
-        "SeparationRecord",
-        "DisciplinaryAction",
-        "CardRequest",
-        "Ticket"
-    ];
+    public static readonly IReadOnlyList<string> DefaultExemptEntityTypes = [];
 
     /// <summary>False in every environment unless set: an admin acts on a step only with that step's role.</summary>
     public bool AdminBypass { get; set; }

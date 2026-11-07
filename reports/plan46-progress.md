@@ -35,3 +35,9 @@ Wait for baseline tests, commit P0, then build and run the P1 tests.
 
 ## Next step (after P1)
 P2: HR.Core registry, ExternalOutcomePublisher, external-status, guardrails, policies, exemptions lifted, wiring, definitions, RetiredCodes, guards.
+- P2 Finished (UTC): 2026-11-07T21:01:25Z. Unit filter (Wf04*, Hcm025, Hcm028, guards, wiring, outbox, S2s042, seeds, Workflow*): 1492 passed, 2 failed by design (WorkflowDefinitionsHaveHandlersTests.Each_consumer_exists for CardRequest and DisciplinaryAction: the consumers come in P3 and P4; they must be green at the end of P4). wf043-validate PASS, seed-001-validate PASS, hcm025-validate FAIL only on those two, wiring doc up to date.
+  - Decisions: the guard keeps SeparationRecord as a pending entry (PendingPlan PLAN-60): its type may publish no definition, and the test fails the day the consumer exists until the entry is completed. HR.Contracts registers AddWorkflowApprovalClient now, so its matrix calls are true. Compliance becomes audience-only in the inbox; the layout keeps its appeal menu. Tests changed because the behaviour changed on purpose: Hcm025ApprovalGatesTests (exempt types -> every type enforced; it is not AC-HCM-25 nor the parity tests), Wf043SodRulesTests, WorkflowStageGuardRoleTests, Wf043DefinitionValidatorTests, Wf043DefinitionLifecycleTests (2), Wf045WorkflowApprovalsControllerTests.
+  - Rollback note: the previous tag knows none of the three registry types: an instance of them stays InProgress there, and nothing starts one.
+
+## Next step (after P2)
+P3: the card.

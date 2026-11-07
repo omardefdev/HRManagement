@@ -90,8 +90,11 @@ public static class HrManagementAuthorizationExtensions
                     || c.User.IsInRole(HrManagementRoles.HrCore)
                     || c.User.IsInRole(HrManagementRoles.BranchManager)
                     || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
-                    // PLAN-45: step 1 of custody and loss. This role reaches no other page of HR.Core than the inbox and the approval page.
-                    || c.User.IsInRole(HrManagementRoles.AdminLogistics))));
+                    // PLAN-45, PLAN-46: the steps of custody, loss, the card and discipline. These roles reach no other page of HR.Core than the
+                    // inbox and the approval page: they stay out of ModuleHrCore and HrCoreReadOnly.
+                    || c.User.IsInRole(HrManagementRoles.AdminLogistics)
+                    || c.User.IsInRole(HrManagementRoles.IdCard)
+                    || c.User.IsInRole(HrManagementRoles.Compliance))));
 
             options.AddPolicy(HrManagementPolicies.WorkflowDefinitionRead, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
@@ -143,7 +146,8 @@ public static class HrManagementAuthorizationExtensions
                 || c.User.IsInRole(HrManagementRoles.BranchManager)
                 || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
                 || c.User.IsInRole(HrManagementRoles.Compliance)
-                || c.User.IsInRole(HrManagementRoles.AdminLogistics)));
+                || c.User.IsInRole(HrManagementRoles.AdminLogistics)
+                || c.User.IsInRole(HrManagementRoles.IdCard)));
 
             // HCM-031 (PLAN-31): exam markers reach HR.Core only for the anonymous marking screens. Not added to
             // ModuleHrCore / HrCoreReadOnly / HrCoreWorkInbox, so a marker never reaches application data.

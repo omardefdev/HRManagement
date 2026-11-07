@@ -267,16 +267,15 @@ public sealed class Hcm025ApprovalGatesTests
     }
 
     [Fact]
-    public async Task Exempt_entity_types_keep_their_previous_behaviour_and_every_other_type_is_enforced()
+    public async Task Every_type_is_enforced_since_the_last_exemptions_were_lifted()
     {
         await using var fx = await Fx.CreateAsync();
-        var exempt = await fx.StartAsync("SEPARATION-WIZARD", "SeparationRecord", Guid.NewGuid(), Creator);
-        var enforced = await fx.StartAsync("TRANSFER-APPROVAL", "TransferRequest", Guid.NewGuid(), Creator);
+        // PLAN-46 lifted DisciplinaryAction, one of the last exempt types, and retired SEPARATION-WIZARD and TRANSFER-APPROVAL.
+        var lifted = await fx.StartAsync("DISCIPLINARY-APPROVAL", "DisciplinaryAction", Guid.NewGuid(), Creator);
 
-        Assert.Null(await fx.BlockAsync(exempt, Approver(Other), WorkflowActionKind.Approve));
-        Assert.Null(await fx.BlockAsync(exempt, Approver(Other), WorkflowActionKind.Reject));
         // PLAN-43 (G-WF-06): enforcement is the default since then.
-        Assert.Equal(WorkflowStageGuard.StepRoleMessage(HrManagementRoles.HrCore), await fx.BlockAsync(enforced, Approver(Other), WorkflowActionKind.Approve));
+        Assert.Equal(WorkflowStageGuard.StepRoleMessage(HrManagementRoles.Compliance), await fx.BlockAsync(lifted, Approver(Other), WorkflowActionKind.Approve));
+        Assert.Equal(WorkflowStageGuard.StepRoleMessage(HrManagementRoles.Compliance), await fx.BlockAsync(lifted, Approver(Other), WorkflowActionKind.Reject));
     }
 
     // ---------------------------------------------------------------- fixture

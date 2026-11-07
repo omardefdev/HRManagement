@@ -122,7 +122,13 @@ public static class WorkflowDefinitionValidator
         if (guardrail.RequiresDistinctApprovers && !definition.RequireDistinctApprovers)
             errors.Add("هذا النوع يتطلب معتمداً مختلفاً لكل خطوة.");
 
-        foreach (var role in guardrail.RequiredRoles ?? [])
+        if (guardrail.AllowedStepRoles is { } allowed)
+        {
+            foreach (var step in definition.Steps.Where(s => !allowed.Contains(s.RoleRequired ?? string.Empty, StringComparer.OrdinalIgnoreCase)))
+                errors.Add($"الخطوة «{step.Name}» لا تكون بدور «{step.RoleRequired}» في هذا النوع.");
+        }
+
+        foreach (var role in guardrail.RequiredRolesFor(definition.Code))
         {
             if (!HasRole(firm, role))
                 errors.Add($"هذا النوع يتطلب خطوة بدور «{role}».");

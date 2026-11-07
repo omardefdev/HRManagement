@@ -43,6 +43,11 @@ public sealed class WorkflowExternalInstancesController(ExternalApprovalService 
         return result.Outcome == ExternalApprovalOutcome.Withdrawn ? Ok(ToResponse(result.Instance!)) : ToError(result);
     }
 
+    /// <summary>PLAN-46: for the service that owns the type and started the instance; anyone else gets the 404 of an unknown id.</summary>
+    [HttpGet("{id:guid}/external-status")]
+    public async Task<IActionResult> ExternalStatus(Guid id, CancellationToken ct) =>
+        await approvals.GetStatusAsync(id, Caller(), ct) is { } status ? Ok(status) : NotFound();
+
     private ExternalApprovalCaller Caller() => new(
         ServiceCallerPrincipal.IsServiceAccount(User),
         ServiceCallerPrincipal.GetClientId(User),

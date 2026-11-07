@@ -53,6 +53,11 @@
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowExternalInstancesController.cs",
       "serverPolicies": ["HrManagementPolicies.WorkflowExternalStart"], "scope": "hr-core.workflow"
     },
+    "hr-core.workflow-instances.external-status": {
+      "target": "hr-core-web", "method": "GET", "path": "/api/workflow-instances/{id}/external-status",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/WorkflowExternalInstancesController.cs",
+      "serverPolicies": ["HrManagementPolicies.WorkflowExternalStart"], "scope": "hr-core.workflow"
+    },
     "hr-core.dsar.subject": {
       "target": "hr-core-web", "method": "GET", "path": "/api/internal/dsar-subjects/{employeeId}",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/DsarInternalController.cs",
@@ -106,6 +111,7 @@
     "AddCandidateDocumentUploadClient": { "definedIn": "src/Services/HRCore/HR.Core.Web/Services/CandidateDocumentUploadClient.cs", "urlKeys": ["Integration__FileStorageBaseUrl"] },
     "AddComplianceDsarCollector": { "definedIn": "src/Services/Compliance/Compliance.Infrastructure/Privacy/HttpDsarSubjectSources.cs", "urlKeys": ["Integration__HrCoreBaseUrl", "Integration__PayrollBaseUrl", "Integration__FileStorageBaseUrl"] },
     "AddHrCoreWorkflowClient": { "definedIn": "src/Services/AdminLogistics/Admin.Logistics.Infrastructure/DependencyInjection.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddWorkflowApprovalClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Workflow/CrossService/WorkflowApprovalClientExtensions.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
     "AddDirectorySyncClient": { "definedIn": "src/Services/ITInfrastructure/IT.Infra.Infrastructure/Integration/HttpDirectoryEntrySyncClient.cs", "urlKeys": ["Services__AuthDirectory__BaseUrl"] },
     "AddEmployeeLifecycleGate": { "definedIn": "src/Services/HRContracts/HR.Contracts.Infrastructure/DependencyInjection.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] }
   },
@@ -180,13 +186,16 @@
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
       "scopes": ["hr-core.workflow", "hr-core.lookup", "file-storage.references"],
-      "registrations": ["AddHrCodeGeneration", "AddHrFileReferenceClient", "AddHrCoreLookupClient", "AddHrCoreActiveRegimeClient", "AddHrPolicyEnforceClient", "AddEmployeeLifecycleGate"],
+      "registrations": ["AddHrCodeGeneration", "AddHrFileReferenceClient", "AddHrCoreLookupClient", "AddHrCoreActiveRegimeClient", "AddHrPolicyEnforceClient", "AddEmployeeLifecycleGate", "AddWorkflowApprovalClient"],
       "calls": [
         { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
         { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
         { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" },
         { "client": "AddEmployeeLifecycleGate", "endpoint": "hr-core.employees.lifecycle-flags", "scope": "hr-core.lookup" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.start", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.cancel", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.external-status", "scope": "hr-core.workflow" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
       "legalPacks": ["syr003-service-regimes-v1"]
@@ -239,10 +248,13 @@
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
       "scopes": ["hr-core.workflow", "file-storage.references"],
-      "registrations": ["AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrFileReferenceClient"],
+      "registrations": ["AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrFileReferenceClient", "AddWorkflowApprovalClient"],
       "calls": [
         { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
         { "client": "AddHrPolicyEnforceClient", "endpoint": "hr-core.policies.enforce", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.start", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.cancel", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.external-status", "scope": "hr-core.workflow" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
       "legalPacks": []
@@ -328,7 +340,7 @@
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
       "scopes": ["hr-core.lookup", "hr-core.workflow", "dsar.subject.read", "dsar.subject.erase", "file-storage.references"],
-      "registrations": ["AddHrDsarDeletion", "AddComplianceDsarCollector", "AddHrFileReferenceClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrCoreLookupClient"],
+      "registrations": ["AddHrDsarDeletion", "AddComplianceDsarCollector", "AddHrFileReferenceClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrCoreLookupClient", "AddWorkflowApprovalClient"],
       "calls": [
         { "client": "AddComplianceDsarCollector", "endpoint": "hr-core.dsar.subject", "scope": "dsar.subject.read" },
         { "client": "AddComplianceDsarCollector", "endpoint": "payroll.dsar.subject", "scope": "dsar.subject.read" },
@@ -336,6 +348,9 @@
         { "client": "AddHrDsarDeletion", "endpoint": "hr-core.dsar.candidate-anonymize", "scope": "dsar.subject.erase" },
         { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.start", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.cancel", "scope": "hr-core.workflow" },
+        { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.external-status", "scope": "hr-core.workflow" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
       "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected (D-INT-4); hr-core.workflow is granted for code generation, not for it; removal is PLAN-49" },

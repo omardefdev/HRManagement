@@ -14,7 +14,12 @@ public sealed class WorkflowApprovalDetailsViewModel
         ["value"] = "القيمة",
         ["employeeId"] = "معرّف الموظف",
         ["lossReportId"] = "معرّف تقرير الفقدان",
-        ["reason"] = "السبب"
+        ["reason"] = "السبب",
+        ["cardPurpose"] = "الغرض من البطاقة",
+        ["employeeName"] = "الموظف",
+        ["actionType"] = "نوع الإجراء",
+        ["issuedAt"] = "تاريخ الإجراء",
+        ["complaintId"] = "معرّف الشكوى"
     };
 
     public Guid InstanceId { get; init; }

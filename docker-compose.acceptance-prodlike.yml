@@ -36,10 +36,6 @@ services:
       Recruitment__Approvals__AlwaysStartWorkflow: "true"
       Recruitment__Approvals__FailIfDefinitionMissing: "true"
       Workflow__AdminBypass: "false"
-      Workflow__StepRole__ExemptEntityTypes__0: "SeparationRecord"
-      Workflow__StepRole__ExemptEntityTypes__1: "DisciplinaryAction"
-      Workflow__StepRole__ExemptEntityTypes__2: "CardRequest"
-      Workflow__StepRole__ExemptEntityTypes__3: "Ticket"
       Recruitment__CommitteeApprovalDefault: "true"
       Recruitment__Retention__Apply: "false"
 
@@ -73,6 +69,10 @@ services:
     environment:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
+      # PLAN-46: a hire leaves a card draft for the card office to submit, and the owner-side sweep runs every minute.
+      IdCard__Approval__AutoSubmitOnHire: "false"
+      WorkflowApproval__Sweep__IntervalMinutes: "1"
+      WorkflowApproval__Sweep__StaleAfterMinutes: "2"
 
   records-archive-web:
     environment:
@@ -93,6 +93,9 @@ services:
     environment:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
+      # PLAN-46: the owner-side sweep of disciplinary approvals runs every minute.
+      WorkflowApproval__Sweep__IntervalMinutes: "1"
+      WorkflowApproval__Sweep__StaleAfterMinutes: "2"
 
   auth-directory-web:
     environment:
