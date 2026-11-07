@@ -332,7 +332,7 @@ public sealed class Wf043DefinitionLifecycleTests
         var all = await db.WorkflowDefinitions.AsNoTracking().ToListAsync();
         Assert.All(all.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));
         Assert.Equal(WorkflowDefinitionStatus.Retired, all.Single(d => d.Code == "RECRUITMENT-HIRE").Status);
-        Assert.Equal(["ASSET-ASSIGN-APPROVAL"], all.Where(d => d.RequireDistinctApprovers).Select(d => d.Code));
+        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL"], all.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -417,12 +417,14 @@ public sealed class Wf043DefinitionLifecycleTests
     {
         await using var db = NewDb();
         await WorkflowPackSeeder.SeedAsync(db);
+        await WorkflowPackSeeder.EnsureCustodyChainAsync(db);
 
         var invalid = await WorkflowDefinitionHealthReport.RunAsync(db, NullLogger.Instance);
 
         Assert.Contains(invalid, d => d.Code == "ID-CARD-ISSUANCE");
         Assert.Contains(invalid, d => d.Code == "IT-TICKET");
         Assert.DoesNotContain(invalid, d => d.Code == "ASSET-ASSIGN-APPROVAL");
+        Assert.DoesNotContain(invalid, d => d.Code == "ASSET-LOSS-APPROVAL");
     }
 
     [Fact]

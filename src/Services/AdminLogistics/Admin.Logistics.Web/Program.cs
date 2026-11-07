@@ -9,6 +9,7 @@ using Admin.Logistics.Infrastructure;
 using Admin.Logistics.Infrastructure.Abstractions;
 using Admin.Logistics.Infrastructure.Consumers;
 using Admin.Logistics.Infrastructure.Data;
+using Admin.Logistics.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseHrManagementSerilog();
@@ -27,6 +28,7 @@ builder.Services.AddTenantContext();
 builder.Services.AddHrFileUrlProvider(builder.Configuration);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddAdminLogisticsInfrastructure(builder.Configuration);
+builder.Services.AddHostedService<AssetApprovalStartRetryJob>();
 builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddScoped<AuditSaveChangesInterceptor>();
 builder.Services.AddSignalR();

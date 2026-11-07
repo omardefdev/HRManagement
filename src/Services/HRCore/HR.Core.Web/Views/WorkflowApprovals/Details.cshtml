@@ -1,0 +1,93 @@
+@model HR.Core.Web.ViewModels.WorkflowApprovalDetailsViewModel
+@using HR.Core.Web.ViewModels
+@using HRManagement.SharedKernel.Localization
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["WorkflowController"] = "WorkflowApprovals";
+    ViewData["WorkflowApproveAction"] = "ApproveWorkflow";
+    ViewData["WorkflowRejectAction"] = "RejectWorkflow";
+    ViewData["WorkflowEntityId"] = Model.InstanceId;
+    ViewData["WorkflowEntityIdFieldName"] = "InstanceId";
+    ViewData["WorkflowConfirmReject"] = "رفض هذا الطلب؟";
+}
+
+<div class="card" data-hr-workflow-approval="@Model.InstanceId">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">@Model.Title</h3>
+        <span class="badge text-bg-secondary" data-hr-workflow-status="@Model.Status">@EnumDisplayExtensions.GetDisplayName(Model.Status)</span>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-3">
+            <dt class="col-sm-3">المسار</dt>
+            <dd class="col-sm-9">@Model.WorkflowName</dd>
+            <dt class="col-sm-3">طالب الإجراء</dt>
+            <dd class="col-sm-9">@(Model.RequesterName ?? "—")</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.SubjectName))
+            {
+                <dt class="col-sm-3">الموظف المعني</dt>
+                <dd class="col-sm-9">@Model.SubjectName</dd>
+            }
+            <dt class="col-sm-3">تاريخ الطلب</dt>
+            <dd class="col-sm-9">@Model.StartedAt.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</dd>
+            @if (Model.CompletedAt is DateTime completed)
+            {
+                <dt class="col-sm-3">تاريخ الانتهاء</dt>
+                <dd class="col-sm-9">@completed.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</dd>
+            }
+        </dl>
+
+        @if (Model.Facts.Count > 0)
+        {
+            <h6>البيانات</h6>
+            <table class="table table-sm mb-3" data-hr-workflow-facts>
+                <tbody>
+                    @foreach (var fact in Model.Facts)
+                    {
+                        <tr>
+                            <th scope="row" class="w-25">@WorkflowApprovalDetailsViewModel.FactLabel(fact.Key)</th>
+                            <td>@fact.Value</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.DetailsUrl))
+        {
+            <p><a href="@Model.DetailsUrl" class="btn btn-sm btn-outline-primary">فتح الطلب في الخدمة المالكة</a></p>
+        }
+
+        <h6 class="mt-3">مسار الاعتماد</h6>
+        <partial name="_WorkflowProgressPanel" model="Model.Panel.Steps" />
+
+        @if (Model.History.Count > 0)
+        {
+            <h6 class="mt-3">السجل</h6>
+            <table class="table table-sm mb-0">
+                <thead><tr><th>الخطوة</th><th>القرار</th><th>الفاعل</th><th>ملاحظات</th><th>الوقت</th></tr></thead>
+                <tbody>
+                    @foreach (var entry in Model.History)
+                    {
+                        <tr>
+                            <td>@entry.StepName</td>
+                            <td>@EnumDisplayExtensions.GetDisplayName(entry.Status)</td>
+                            <td>@(entry.ActorName ?? "—")</td>
+                            <td>@entry.Comments</td>
+                            <td>@entry.ActionAt.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Panel.BlockReason))
+        {
+            <div class="alert alert-info mt-3 mb-0" data-hr-workflow-block>@Model.Panel.BlockReason</div>
+        }
+
+        @if (Model.Panel.CanApprove || Model.Panel.CanReject)
+        {
+            <partial name="_WorkflowActionPanel" model="Model.Panel" />
+        }
+    </div>
+</div>

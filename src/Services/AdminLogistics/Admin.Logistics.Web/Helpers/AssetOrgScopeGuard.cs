@@ -17,7 +17,8 @@ public static class AssetOrgScopeGuard
             .Where(a => a.AssetId == assetId
                         && a.ReturnedAt == null
                         && (a.Status == AssetAssignmentStatus.Active
-                            || a.Status == AssetAssignmentStatus.PendingApproval))
+                            || a.Status == AssetAssignmentStatus.PendingApproval
+                            || a.Status == AssetAssignmentStatus.ApprovalStarting))
             .Select(a => (Guid?)a.EmployeeId)
             .FirstOrDefaultAsync(ct);
 

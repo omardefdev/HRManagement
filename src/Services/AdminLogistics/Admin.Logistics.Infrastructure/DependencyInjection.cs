@@ -1,5 +1,6 @@
 using Admin.Logistics.Infrastructure.Abstractions;
 using Admin.Logistics.Infrastructure.Integration;
+using Admin.Logistics.Infrastructure.Services;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults;
@@ -17,7 +18,9 @@ public static class DependencyInjection
     {
         services.AddScoped<IEmployeeLookup, EmployeeLookupService>();
         services.AddScoped<IAssetClassifier, AssetClassifier>();
-        services.AddScoped<WorkflowTriggerService>();
+        services.AddScoped<IAssetApprovalStarter, AssetApprovalStarter>();
+        services.AddScoped<AssetApprovalLoop>();
+        services.Configure<AssetApprovalOptions>(configuration.GetSection(AssetApprovalOptions.SectionName));
         services.AddHrPolicyEnforceClient(configuration);
         services.AddHrCodeGeneration(configuration);
         services.AddHrCoreLookupClient(configuration);
@@ -30,7 +33,7 @@ public static class DependencyInjection
     {
         // PLAN-37: required URL (start-up error naming Integration:HrCoreBaseUrl outside Development).
         services.AddServiceEndpointWarnings();
-        services.AddServiceAuthenticatedClient(WorkflowTriggerService.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration), forwardActingUser: true);
+        services.AddServiceAuthenticatedClient(AssetApprovalStarter.HttpClientName, HrCoreEndpoint.RequireBaseUri(configuration), forwardActingUser: true);
         return services;
     }
 }

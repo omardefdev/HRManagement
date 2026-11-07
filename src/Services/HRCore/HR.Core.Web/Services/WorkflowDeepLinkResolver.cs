@@ -2,6 +2,7 @@ using System.Text.Json;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow.External;
 using HRManagement.ServiceDefaults.Workflow;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Workflow;
@@ -57,7 +58,9 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
                     break;
                 default:
                     foreach (var (instance, definition) in group)
-                        result[instance.Id] = BuildFallback(instance, definition);
+                        result[instance.Id] = ExternalApprovalTypes.IsRegistered(instance.EntityType)
+                            ? BuildExternal(instance, definition)
+                            : BuildFallback(instance, definition);
                     break;
             }
         }
@@ -252,6 +255,16 @@ public sealed class WorkflowDeepLinkResolver(HRCoreDbContext db)
                 WorkflowName: definition.Name);
         }
     }
+
+    /// <summary>PLAN-45: relative to HR.Core, like every link of the inbox. The title is the one the owning service gave, with no national number.</summary>
+    private static WorkflowDeepLinkInfo BuildExternal(WorkflowInstance instance, WorkflowDefinition definition) =>
+        new(
+            DeepLink: $"/WorkflowApprovals/Details/{instance.Id}",
+            Title: instance.DisplayTitle ?? definition.Name,
+            Description: null,
+            EntityTypeLabel: definition.Name,
+            CurrentStepName: GetCurrentStepName(instance, definition),
+            WorkflowName: definition.Name);
 
     private static WorkflowDeepLinkInfo BuildFallback(WorkflowInstance instance, WorkflowDefinition definition)
     {

@@ -115,6 +115,8 @@
 
 #### G-IDA-02 — حلقة اعتماد العهدة المميزة وفقدها لا تُغلق في الإنتاج
 
+- **الحالة (2026-11-07، PLAN-45):** ✅ مغلقة: رحلة التسليم والفقدان تكتمل من الواجهة بإعدادات الإنتاج، من الطلب إلى `Active` أو `Lost`، مع إعادة البدء الآلية واليدوية والسحب.
+
 - **الدليل:**
   - **المسار يُفعَّل لأي أصل ذي قيمة:** في الإنتاج لا مفتاح `PolicyEngine` لـ `Assets.Custody`، فيعمل العميل بالوضع Off ويعيد `PolicyStaticFallbackShim` ([PolicyEnforceClient.cs:29, 33-41](../src/Shared/HRManagement.ServiceDefaults/Policy/PolicyEnforceClient.cs)). الـ shim يطلب سير عمل لكل أصل مميز أو قيمته > 10,000 (:125)، ويصنّف الأصل مميزاً عند القيمة > 10,000، أو > 5,000 للأصل الثابت (:146).
   - **الطلب يُحفظ عالقاً إن فشل البدء:** `AssignToEmployee` يحفظ العهدة `PendingApproval` ويبدأ المسار في HR.Core عبر HTTP ([AssetsController.cs:422-464](../src/Services/AdminLogistics/Admin.Logistics.Web/Controllers/AssetsController.cs)، [WorkflowTriggerService.cs:44-71](../src/Services/AdminLogistics/Admin.Logistics.Infrastructure/Integration/WorkflowTriggerService.cs)). إن فشل البدء تُحفظ العهدة `PendingApproval` و`WorkflowInstanceId = null`، مع رسالة «تعذّر بدء سير الموافقة» ([AssetsController.cs:461-463](../src/Services/AdminLogistics/Admin.Logistics.Web/Controllers/AssetsController.cs)). لا إعادة محاولة ولا سحب. والأمر نفسه لتقرير الفقد (:634-644).

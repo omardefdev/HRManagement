@@ -176,6 +176,14 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                 return true;
             }
 
+            // PLAN-45: the generic approval page, before the mutating block because its actions carry the names IsHrCoreWorkflowMvcAction
+            // reads. The inbox audience reads it and the step actors decide; the controller narrows both to the instance.
+            if (pathValue.StartsWith("/ui/hr-core/WorkflowApprovals", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = IsMutating(httpMethod) ? HrManagementPolicies.WorkflowStepAction : HrManagementPolicies.HrCoreWorkInbox;
+                return true;
+            }
+
             if (string.Equals(httpMethod, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
             {
                 policy = pathValue.StartsWith("/ui/hr-core/WorkInbox", StringComparison.OrdinalIgnoreCase)

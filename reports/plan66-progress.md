@@ -76,3 +76,21 @@ Next step: read attempt 2 once, record the stage and Acceptance durations; then 
 
 Stage rerun measured: started 21:09:36Z, lab-main 21:09:42Z to 21:33:24Z (23.7 min), Acceptance 21:33:27Z to 21:33:50Z: 24.2 min in all, attempt 2 green.
 Evidence: acceptance-evidence copied from the artifact of run 42287724602 attempt 2; acceptance-baseline-validate -Committed PASS; 79 ACs: 33 proven, 26 passed but not proving, 8 stale, 4 incomplete, 6 not run, 0 fail, 2 blocked.
+
+Evidence commit af52f605, pushed 21:42:58Z. Locally first: validator -Committed PASS, gitleaks and forbidden PASS on the range, unit suite 5124 of 5124 (a reusing run skips it, and PLAN-41's evidence commit once broke unit tests).
+Run 3 42299004110 on af52f605, 21:43:04Z to 21:59:10Z, 16.1 min, all green, set by CodeQL (15.9). CI 0.7, E2E 0.1, Acceptance images 0.1, six stage jobs 0.1 to 0.2 each, Acceptance 0.3. reusedFrom 42287724602 in run-identity and reuse.json, same codeTree and outsideTree. committed-evidence ran under reuse: 1502 files, validator PASS. Runner minutes about 20.
+Merged by agent on owner instruction (UTC): 2026-11-06T22:03:16Z. PR https://github.com/omardefdev/HRManagement/pull/39, merge commit f77dd28b, 14 checks green. Local main = origin/main = f77dd28b in the second clone.
+Post-merge:
+- Push run 42301677430: Dedupe success; CI, CodeQL, E2E, Reuse check, Acceptance images, stages, Acceptance skipped. Gitleaks was still running when read.
+- simulate_missing run 42301740446, dispatched 22:03:44Z on AcHcm26AssessmentInterviewTests.Ac26_i_intake_close_job_closes_expired_posting: must end red.
+- Manual nightly run 42301745454: meta must run and pass.
+WAITING-CI: the two dispatches.
+Next step: read both once, record them, write reports/plan66-final-report.md, set the plan document status. Those stay in the working tree: they ride with the next plan's first commit.
+
+Post-merge proofs read 2026-11-07T08:22Z (the background watch stopped at 22:35:32Z on a connection error).
+- Run 42301740446 (simulate_missing): red as required, 22:03:46Z to 23:11:28Z. lab-rest failed, Acceptance failed in 0.6 min, the guard names AC-HCM-26/26i, needs-check FAIL. Whole run 67.7 min only because E2E took 67.2 (Playwright install 52.3).
+- Run 42301745454 (manual nightly): green, 22:03:49Z to 22:54:19Z, 50.5 min, meta 15 of 15 in 144 s, guard PASS, 71 classes, 13 trx, no not-run-by-rule.json. E2E 49.8 (Playwright install 32.9).
+- Push run 42301677430: green, dedupe skipped the heavy jobs.
+- No scheduled run yet at 08:23Z: schedules here run hours late (advisory-to-issue 0 6 * * * fires near 13:20Z).
+Report: reports/plan66-final-report.md. Plan document status updated. All three stay uncommitted for the next plan's first commit.
+Finished (UTC): 2026-11-07T08:25:13Z

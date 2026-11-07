@@ -11,8 +11,8 @@
     var lossDraft = ViewBag.LossDraft as ReportLossDraft;
     var formScrollTo = ViewBag.FormScrollTo as string;
     var openAssignment = Model.Assignments.FirstOrDefault(a => a.ReturnedAt == null && a.Status == AssetAssignmentStatus.Active);
-    var pendingAssignment = Model.Assignments.FirstOrDefault(a => a.ReturnedAt == null && a.Status == AssetAssignmentStatus.PendingApproval);
-    var pendingLossReport = Model.LossReports.FirstOrDefault(r => r.Status == AssetLossReportStatus.PendingApproval);
+    var pendingAssignment = Model.Assignments.FirstOrDefault(a => a.ReturnedAt == null && AssetApprovalRules.IsWaiting(a.Status));
+    var pendingLossReport = Model.LossReports.FirstOrDefault(r => AssetApprovalRules.IsWaiting(r.Status));
     var canAssign = !Model.IsCancelled
         && Model.Status is not AssetStatus.Disposed and not AssetStatus.Lost
         && openAssignment is null && pendingAssignment is null && pendingLossReport is null;
@@ -129,7 +129,9 @@
                 <dt class="col-sm-3">الدليل</dt>
                 <dd class="col-sm-9">@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = pendingAssignment, Asset = Model })</dd>
             </dl>
-            <p class="text-muted small mb-0 mt-2">لا يمكن الاسترداد حتى اكتمال الموافقة في HR.Core.</p>
+            <p class="text-muted small mt-2">لا يمكن الاسترداد حتى اكتمال الموافقة في HR.Core.</p>
+            @await Html.PartialAsync("_AssetApprovalBar", new AssetApprovalBarViewModel(
+                Model.Id, pendingAssignment, AssetApprovalRequestKind.Assignment, pendingAssignment.Status == AssetAssignmentStatus.ApprovalStarting))
         </div>
     </div>
 }
@@ -284,11 +286,9 @@
 @if (pendingLossReport is not null)
 {
     <div class="alert alert-warning">
-        طلب فقدان بانتظار الموافقة.
-        @if (pendingLossReport.WorkflowInstanceId is Guid wfId)
-        {
-            <a href="/ui/hr-core/Approvals/Review?workflowInstanceId=@wfId" class="alert-link">عرض الموافقة</a>
-        }
+        <div class="mb-2">طلب فقدان: <strong>@Html.HrEnumDisplay(pendingLossReport.Status)</strong></div>
+        @await Html.PartialAsync("_AssetApprovalBar", new AssetApprovalBarViewModel(
+            Model.Id, pendingLossReport, AssetApprovalRequestKind.Loss, pendingLossReport.Status == AssetLossReportStatus.ApprovalStarting))
     </div>
 }
 

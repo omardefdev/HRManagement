@@ -35,14 +35,20 @@ public class SeparationPartyAckConsumer(AdminLogisticsDbContext db)
     {
         var employeeId = context.Message.EmployeeId;
         var returned = await db.AssetAssignments
-            .Where(a => a.EmployeeId == employeeId && a.ReturnedAt != null)
+            // ExecuteAsync sets ReturnedAt and leaves the status, so these are the rows it closed. PLAN-45: a row withdrawn, rejected or
+            // really returned was closed by someone else, and its asset may be with another employee by now.
+            .Where(a => a.EmployeeId == employeeId
+                && a.ReturnedAt != null
+                && (a.Status == AssetAssignmentStatus.Active
+                    || a.Status == AssetAssignmentStatus.PendingApproval
+                    || a.Status == AssetAssignmentStatus.ApprovalStarting))
             .ToListAsync(context.CancellationToken);
 
         foreach (var assignment in returned)
         {
             assignment.ReturnedAt = null;
             var asset = await db.Assets.FirstOrDefaultAsync(x => x.Id == assignment.AssetId, context.CancellationToken);
-            if (asset is not null && asset.Status == AssetStatus.InStorage)
+            if (assignment.Status == AssetAssignmentStatus.Active && asset is not null && asset.Status == AssetStatus.InStorage)
                 asset.Status = AssetStatus.InUse;
         }
 

@@ -109,7 +109,7 @@ public sealed class Wf043GovernanceIntegrationTests(PgRabbitFixture fixture)
         var rows = await db.WorkflowDefinitions.AsNoTracking().ToListAsync();
         Assert.All(rows.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));
         Assert.Equal(WorkflowDefinitionStatus.Retired, rows.Single(d => d.Code == "RECRUITMENT-HIRE").Status);
-        Assert.Equal([AssignmentCode], rows.Where(d => d.RequireDistinctApprovers).Select(d => d.Code));
+        Assert.Equal([AssignmentCode, "ASSET-LOSS-APPROVAL"], rows.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
     }
 
     [Trait("Category", "Testcontainers")]

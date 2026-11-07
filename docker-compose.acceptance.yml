@@ -184,7 +184,10 @@ services:
     container_name: !reset null
     ports: !override
       - "6290:8080"
-    environment: *acceptance-service
+    environment:
+      <<: *acceptance-service
+      # PLAN-45: the acceptance tests wait for the retry job.
+      AssetApproval__Retry__IntervalSeconds: "15"
     volumes: *acceptance-dp-volumes
     depends_on: *after-volume-init
 

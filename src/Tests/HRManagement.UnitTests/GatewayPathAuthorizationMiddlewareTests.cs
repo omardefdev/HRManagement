@@ -193,6 +193,8 @@ public class GatewayPathAuthorizationMiddlewareTests
     [InlineData("/api/hr-core/api/internal/policies/enforce", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.WorkflowStepAction)]
     [InlineData("/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreBranchOperation)]
+    [InlineData("/ui/hr-core/WorkflowApprovals/ApproveWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.WorkflowStepAction)]
+    [InlineData("/ui/hr-core/WorkflowApprovals/RejectWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.WorkflowStepAction)]
     [InlineData("/ui/hr-core/Approvals/Approve", HrManagementPolicies.HrCoreApprove)]
     [InlineData("/ui/hr-core/Approvals/Reject", HrManagementPolicies.HrCoreApprove)]
     [InlineData("/ui/hr-core/Approvals/ApproveAll", HrManagementPolicies.HrCoreWrite)]

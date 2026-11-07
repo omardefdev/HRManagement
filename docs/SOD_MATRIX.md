@@ -76,6 +76,19 @@ No service account approves or rejects a step, or writes a definition. A definit
 
 The recruitment and establishment rules stay in their gates. Exempt types: `docs/qa/workflow-step-role-exemptions.json`.
 
+## Custody and loss (PLAN-45, D-WF-2)
+
+`ASSET-ASSIGN-APPROVAL` and `ASSET-LOSS-APPROVAL`, with `RequireDistinctApprovers`, and a guardrail that keeps them so:
+
+| Step | Role | Barred |
+|------|------|--------|
+| 1, موافقة مسؤول الأصول | `admin-logistics` | The requester (`CreatedBy`, also excluded by name) and the employee concerned |
+| 2, اعتماد إداري | `hr-management-approver` | The same, and whoever approved step 1 |
+
+`ExternalApprovalGate` keeps a branch-level actor inside the unit the instance recorded; an instance with no unit is for central roles. `admin-logistics` reaches the work inbox and the approval page, and no other page of HR.Core: it is in `HrCoreWorkInbox` and `WorkflowStepAction`, never in `ModuleHrCore` or `HrCoreReadOnly`.
+
+The requester, or any `admin-logistics` in the asset's scope, withdraws a request with a reason of at least 10 characters. The actor and the reason are recorded, and nothing is deleted.
+
 ## The maker (PLAN-44, D-WF-8)
 
 `WorkflowMakerRules.Makers` is the creator (`CreatedBy`), the submitter (`InitiatedBy`, with `Workflow:Maker:IncludeSubmitter=true`) and the requester (`RequestedByUserId`), leaving out the empty ones. They are barred from every step, approving and rejecting, in the requisition, offer, establishment, competition and result gates. The inbox asks the same function, so the panel and the server bar the same people. Results bar the submitter whatever the setting says.
