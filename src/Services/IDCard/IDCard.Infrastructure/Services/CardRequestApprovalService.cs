@@ -37,6 +37,7 @@ public sealed class CardRequestApprovalService(
     public const string NotDraftMessage = "يُقدَّم الطلب وهو مسودة فقط.";
     public const string NotPendingMessage = "لا يوجد اعتماد جارٍ لهذا الطلب.";
     public const string CancelledMessage = "الطلب ملغى.";
+    public const string RefusedApprovalReason = "رُفض الاعتماد: سجّله الطالب أو مقدّم الطلب نفسه.";
 
     public async Task<WorkflowApprovalSubmitResult> SubmitAsync(CardRequest request, Guid submitter, CancellationToken ct = default)
     {
@@ -97,8 +98,11 @@ public sealed class CardRequestApprovalService(
             case WorkflowApprovalOutcomes.Approved:
                 if (WorkflowOutcomeGuard.HasExcludedDecider(outcome, [request!.CreatedBy, request.RequestedBy, request.SubmittedBy], logger))
                 {
+                    // Closed, not left pending: the sweep would read it again on every cycle, and a withdrawal would meet the same approval.
                     logger.LogError("Card request {RequestId}: an approval by its requester or submitter was refused.", request.Id);
-                    return;
+                    request.Status = CardRequestStatus.Rejected;
+                    request.RejectionReason = RefusedApprovalReason;
+                    break;
                 }
 
                 request.Status = CardRequestStatus.Approved;

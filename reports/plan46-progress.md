@@ -56,3 +56,23 @@ P4: discipline.
 
 ## Next step (after P4)
 P5: PostgreSQL tests (Wf046ExternalOutcomePostgresTests, Wf046DisciplinaryConsumerPostgresTests, migration under forced RLS, sweeps under forced RLS), then acceptance (AcWf46CrossServiceApprovalTests + P-11 list), then the independent review.
+- P5 (in progress): PostgreSQL Wf046ExternalOutcomePostgresTests (4) and Wf046DisciplinaryConsumerPostgresTests (6: consumer outbox one event and no second on redelivery, xmin, migration as non-superuser owner under FORCE in two tenants, both sweeps as the app role in two tenants) + Ops038 card tests: 15/15 pass (Testcontainers, 3 min).
+  - Acceptance: AcWf46CrossServiceApprovalTests (46a..i, isolated) and AcWf46PolicyOrphanTests (46j) in the s2s42 overlay stage, with docker-compose.acceptance-wf46.yml (PolicyEngine__IDCard.Lifecycle=Enforce on hr-core-web and idcard-web; idcard-web added to recreate). Reason: a second overlay stage would force a full stack restart between them.
+  - AC-INT-37c and AcOps38VpsDemoDefectChecks step 4 issue the card from a request seeded approved (they prove the serial and the form, not the approval); Renew issues nothing since PLAN-46.
+  - Independent review started (one subagent) in parallel with the acceptance runs.
+  - Independent review (one subagent, ~10 min): 0 high, 4 medium, 4 low. No refuter (none high). Fixed, with tests:
+    1. ProcessRequest saved the card before the request: one save now (a second Process, an issue from the same request or a cancel loses on xmin and leaves no card). IssuedCards/Create answers a lost race with the form, not a 500.
+    2. The sweep read only the oldest page: it now pages on (SubmittedAt, Id) through every waiting record (MaxPages 100); the PostgreSQL test pages one by one.
+    3. A start of a Generic type refuses a version that breaks its guardrail (DefinitionMissing), whatever tenant it belongs to.
+    6. An approval refused for naming the requester/creator closes the record as Rejected with a reason, instead of leaving it pending forever.
+    7. IssuedCards/Edit may only bring the expiry forward; a later expiry is a renewal.
+    8. The Submit-finished and Withdraw-AlreadyTerminal paths answer a lost xmin race with a message, not a 500.
+  - Not changed, recorded: (4, medium) after a failed link save AND a failed compensating cancel, a later edit plus resubmission finds the same key's instance, approved on the old facts; it needs two failures in a row, and the generic page links to the owner's current record. For a later plan: a content hash in the facts. (5, low) old and new binaries must not overlap: on the single host, compose recreates each service (old stops before new starts); a rollback runs the previous tag's rules (its Renew issues at once, its Edit ignores approval) until the roll-forward - recorded as rollback behaviour.
+  - Acceptance prod-like, run 1 (after the review fixes; 27 min including the image build): AcWf46CrossServiceApprovalTests 9/9 (46a..i), AcWf45 8/8, AcWf43 6/6, AcWf44 5/5, AcHcm25ProductionApprovalTests 8/8, AcS2s42 9/9, AcMsg40 8/8, AcOps39 8/8 (persona count with a-idcard-2). Failed: AcWf46PolicyOrphanTests 46j (the definitions list read by central-a shows only agency A's definitions: now read by the national p-workflow-admin-2, as AC-WF-43 does); AcInt37 37c (the seeded request used a card design of another tenant: now agency A's), 37b and 37e blocked by data that only the journey stages create (not run with -Classes; they run in CI after prodLike:journey).
+  - Acceptance prod-like, reruns (-NoBuild): 46j needed the national reader and a readiness wait after the overlay recreated hr-core-web (502 otherwise); 37c an agency-A design. Rerun 2: RecruitmentToHireJourneyProdLikeE2ETests 1/1, AcInt37 8/8 (37b and 37e have their data after the journey), AcWf46PolicyOrphanTests 1/1 (46j: orphans unpublished; under Enforce, ProcessRequest of an approved request issued the card and HR.Core kept 8 instances before and after). Guard PASS. Evidence copied to artifacts/plan46/acceptance/.
+  - Acceptance lab (-NoBuild, 7 min): Ac11PolicyWorkflowTests 1/1, AcWf23WorkInboxUiTests 6/6, AcHcm28CommitteeAppealTests 4/4, AcEst24 3/3, Ac33 1/1, RecruitmentToHireJourneyE2ETests 1/1, AcceptanceV2CatalogTests 9/9, AcceptanceIdentityPopulationTests 1/1. Guard PASS. Stack down -v; committed evidence untouched.
+  - Times: prod-like run 1 27 min (with the image build), reruns 9 and 8 min, lab 7 min.
+- P5 Finished (UTC): 2026-11-07T22:42:36Z.
+
+## Next step (after P5)
+P6: origin/main has not moved (c8252dc6) as of 22:00Z; check again, then P7 server (backup, single detached build, deploy, demo users, checks).

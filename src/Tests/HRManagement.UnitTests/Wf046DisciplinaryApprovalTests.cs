@@ -186,7 +186,9 @@ public sealed class Wf046DisciplinaryApprovalTests
 
         Assert.Empty(published);
         db.ChangeTracker.Clear();
-        Assert.Equal(DisciplinaryApprovalStatus.PendingApproval, (await db.DisciplinaryActions.SingleAsync()).ApprovalStatus);
+        var refused = await db.DisciplinaryActions.SingleAsync();
+        Assert.Equal(DisciplinaryApprovalStatus.Rejected, refused.ApprovalStatus); // back to its authors, never published
+        Assert.Equal(DisciplinaryApprovalService.RefusedApprovalReason, refused.RejectionReason);
     }
 
     [Fact]
@@ -289,7 +291,7 @@ public sealed class Wf046DisciplinaryApprovalTests
         var store = new DisciplinaryApprovalStore(db, service);
 
         Assert.Equal([Tenant], await store.ListTenantsAsync(default));
-        Assert.Equal(stale.Id, Assert.Single(await store.ListPendingAsync(DateTime.UtcNow.AddMinutes(-15), 10, default)).EntityId);
+        Assert.Equal(stale.Id, Assert.Single(await store.ListPendingAsync(DateTime.UtcNow.AddMinutes(-15), null, 10, default)).EntityId);
         Assert.Equal(AdvisoryLockKeys.DisciplinaryApprovalSweep, store.LeaderLockKey);
     }
 

@@ -15,11 +15,18 @@ public sealed class WorkflowApprovalSweepOptions
 
     public int StaleAfterMinutes { get; set; } = 15;
 
+    /// <summary>One page of records; the sweep reads every page of a cycle.</summary>
     public int BatchSize { get; set; } = 100;
+
+    /// <summary>A ceiling on the pages of one tenant in one cycle; the next cycle starts again from the oldest.</summary>
+    public int MaxPages { get; set; } = 100;
 }
 
-/// <summary>A record waiting for its approval, and the instance it is linked to.</summary>
-public sealed record WorkflowApprovalPendingRecord(Guid EntityId, Guid InstanceId);
+/// <summary>
+/// A record waiting for its approval, the instance it is linked to, and when it was submitted: the sweep pages on
+/// (<see cref="SubmittedAt"/>, <see cref="EntityId"/>), so approvals that rightly wait for days never hide a later one.
+/// </summary>
+public sealed record WorkflowApprovalPendingRecord(Guid EntityId, Guid InstanceId, DateTime SubmittedAt);
 
 /// <summary>
 /// PLAN-46 (section 1, rule 7): what an owner gives the sweep. Each owner registers one for its type, with
@@ -38,8 +45,12 @@ public interface IWorkflowApprovalOwnerStore
     /// <summary>The tenants that ever saved such a record, from a source outside row security.</summary>
     Task<IReadOnlyList<Guid>> ListTenantsAsync(CancellationToken ct);
 
-    /// <summary>Runs under the tenant of <see cref="TenantIdFlow"/>: the records waiting since before <paramref name="submittedBefore"/>.</summary>
-    Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(DateTime submittedBefore, int take, CancellationToken ct);
+    /// <summary>
+    /// Runs under the tenant of <see cref="TenantIdFlow"/>: the records waiting since before <paramref name="submittedBefore"/>, ordered by
+    /// (<c>SubmittedAt</c>, <c>Id</c>), after <paramref name="after"/> when it is set.
+    /// </summary>
+    Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(
+        DateTime submittedBefore, WorkflowApprovalPendingRecord? after, int take, CancellationToken ct);
 
     /// <summary>The same function the outcome consumer runs, guard included.</summary>
     Task ApplyOutcomeAsync(IWorkflowOutcomeDecided outcome, CancellationToken ct);
@@ -126,17 +137,29 @@ public sealed class WorkflowApprovalSweepJob<TStore>(
         var settings = options.CurrentValue;
         var cutoff = DateTime.UtcNow.AddMinutes(-Math.Max(0, settings.StaleAfterMinutes));
 
-        IReadOnlyList<WorkflowApprovalPendingRecord> pending;
-        using (var listScope = scopeFactory.CreateScope())
+        var take = Math.Max(1, settings.BatchSize);
+        var (seen, applied) = (0, 0);
+        WorkflowApprovalPendingRecord? after = null;
+
+        // Every page, not the oldest one only: approvals that rightly wait for days would otherwise fill it on every cycle.
+        for (var page = 0; page < Math.Max(1, settings.MaxPages); page++)
         {
-            pending = await listScope.ServiceProvider.GetRequiredService<TStore>()
-                .ListPendingAsync(cutoff, Math.Max(1, settings.BatchSize), ct);
+            IReadOnlyList<WorkflowApprovalPendingRecord> pending;
+            using (var listScope = scopeFactory.CreateScope())
+            {
+                pending = await listScope.ServiceProvider.GetRequiredService<TStore>().ListPendingAsync(cutoff, after, take, ct);
+            }
+
+            foreach (var record in pending)
+                applied += await SweepOneAsync(record, tenantId, ct) ? 1 : 0;
+            seen += pending.Count;
+
+            if (pending.Count < take)
+                break;
+            after = pending[^1];
         }
 
-        var applied = 0;
-        foreach (var record in pending)
-            applied += await SweepOneAsync(record, tenantId, ct) ? 1 : 0;
-        return (pending.Count, applied);
+        return (seen, applied);
     }
 
     /// <summary>A scope of its own: a lost race clears the tracker, which must not touch the next record.</summary>

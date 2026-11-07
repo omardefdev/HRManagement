@@ -25,15 +25,24 @@ public sealed class DisciplinaryApprovalStore(ComplianceDbContext db, Disciplina
             .Distinct()
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(DateTime submittedBefore, int take, CancellationToken ct) =>
-        await db.DisciplinaryActions.AsNoTracking()
+    public async Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(
+        DateTime submittedBefore, WorkflowApprovalPendingRecord? after, int take, CancellationToken ct)
+    {
+        var query = db.DisciplinaryActions.AsNoTracking()
             .Where(a => a.ApprovalStatus == DisciplinaryApprovalStatus.PendingApproval
                 && a.WorkflowInstanceId != null
-                && a.SubmittedAt <= submittedBefore)
+                && a.SubmittedAt != null
+                && a.SubmittedAt <= submittedBefore);
+        if (after is not null)
+            query = query.Where(a => a.SubmittedAt > after.SubmittedAt || (a.SubmittedAt == after.SubmittedAt && a.Id.CompareTo(after.EntityId) > 0));
+
+        return await query
             .OrderBy(a => a.SubmittedAt)
+            .ThenBy(a => a.Id)
             .Take(take)
-            .Select(a => new WorkflowApprovalPendingRecord(a.Id, a.WorkflowInstanceId!.Value))
+            .Select(a => new WorkflowApprovalPendingRecord(a.Id, a.WorkflowInstanceId!.Value, a.SubmittedAt!.Value))
             .ToListAsync(ct);
+    }
 
     public Task ApplyOutcomeAsync(IWorkflowOutcomeDecided outcome, CancellationToken ct) => approvals.ApplyOutcomeAsync(outcome, ct);
 }

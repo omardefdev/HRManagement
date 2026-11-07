@@ -9,7 +9,7 @@
     { "part": "prodLike", "group": "main", "stack": "prodlike" },
     { "part": "prodLike", "group": "isolated", "stack": "prodlike" },
     { "part": "prodLike", "group": "final", "stack": "prodlike" },
-    { "part": "prodLike", "group": "s2s42", "stack": "prodlike", "composeFiles": ["docker-compose.acceptance-s2s42.yml"], "recreate": ["hr-core-web", "admin-logistics-web"] },
+    { "part": "prodLike", "group": "s2s42", "stack": "prodlike", "composeFiles": ["docker-compose.acceptance-s2s42.yml", "docker-compose.acceptance-wf46.yml"], "recreate": ["hr-core-web", "admin-logistics-web", "idcard-web"] },
     { "part": "prodLike", "group": "leastpriv", "stack": "leastpriv" },
     { "part": "lab", "group": "meta", "stack": "base", "ciOnly": true }
   ],
@@ -146,9 +146,11 @@
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
     { "class": "AcWf44InstanceIntegrityTests", "required": true, "group": "isolated" },
     { "class": "AcWf45AssetApprovalLoopTests", "required": true, "group": "isolated" },
+    { "class": "AcWf46CrossServiceApprovalTests", "required": true, "group": "isolated" },
     { "class": "AcOps39KeycloakDataProtectionTests", "required": true, "group": "isolated" },
     { "class": "AcQa41AcceptanceBaselineTests", "required": true, "group": "final" },
     { "class": "AcS2s42TrustBoundaryTests", "required": true, "group": "s2s42" },
+    { "class": "AcWf46PolicyOrphanTests", "required": true, "group": "s2s42" },
     { "class": "AcOps38FirstBootTests", "required": true, "group": "leastpriv" }
   ],
   "excluded": [

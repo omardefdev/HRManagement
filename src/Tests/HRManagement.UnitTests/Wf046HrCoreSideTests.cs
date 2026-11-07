@@ -141,6 +141,38 @@ public sealed class Wf046HrCoreSideTests
     }
 
     [Fact]
+    public async Task A_version_that_breaks_the_guardrail_starts_nothing()
+    {
+        await using var db = await SeededAsync();
+        // A one-step discipline, as a tenant's own version or one older than the guardrail could be: compliance alone would send it to payroll.
+        var latest = await db.WorkflowDefinitions.Where(d => d.Code == "DISCIPLINARY-APPROVAL" && d.IsPublished).SingleAsync();
+        latest.StepsJson = """[{"Level":1,"Name":"مراجعة امتثال","StepType":0,"RoleRequired":"compliance"}]""";
+        await db.SaveChangesAsync();
+        var entityId = Guid.NewGuid();
+
+        var started = await new ExternalApprovalService(db, new WorkflowEngine()).StartAsync(
+            new WorkflowApprovalStartRequest("DisciplinaryAction", entityId, "DISCIPLINARY-APPROVAL", $"DisciplinaryAction:{entityId:D}:1", [Requester], null,
+                "إجراء تأديبي — إنذار", $"/ui/compliance/DisciplinaryActions/Details/{entityId:D}", null),
+            new ExternalApprovalCaller(true, ServiceClientIds.Compliance, Requester.ToString("D"), "a-compliance"));
+
+        Assert.Equal(ExternalApprovalOutcome.DefinitionMissing, started.Outcome);
+        Assert.Empty(await db.WorkflowInstances.ToListAsync());
+    }
+
+    [Fact]
+    public void Processing_writes_the_card_and_the_request_in_one_save()
+    {
+        var source = global::System.IO.File.ReadAllText(Path.Combine(HRManagement.TestSupport.RepoPaths.Root,
+            "src", "Services", "IDCard", "IDCard.Web", "Controllers", "CardRequestsController.cs"));
+        var start = source.IndexOf("public async Task<IActionResult> ProcessRequest(", StringComparison.Ordinal);
+        var end = source.IndexOf("\n    internal static", start, StringComparison.Ordinal);
+        var body = source[start..end];
+
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(body, @"SaveChangesAsync\("));
+        Assert.True(body.IndexOf("IssuedCardId = issued.Id", StringComparison.Ordinal) < body.IndexOf("SaveChangesAsync(", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_withdrawal_stages_the_cancelled_outcome_with_its_reason()
     {
         await using var db = await SeededAsync();

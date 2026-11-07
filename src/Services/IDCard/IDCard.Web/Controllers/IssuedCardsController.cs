@@ -116,7 +116,16 @@ public class IssuedCardsController : Controller
             IssuedAt = card.IssuedAt,
             CorrelationId = CorrelationIdFlow.Get()
         });
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // PLAN-46: the request was processed or cancelled at the same moment; the card and its event were not saved.
+            ModelState.AddModelError(nameof(model.CardRequestId), RequiresApprovedRequestMessage);
+            return View(model);
+        }
 
         TempData["Success"] = "تم إصدار البطاقة ونشر الحدث";
         return RedirectToAction(nameof(Index));
@@ -156,7 +165,16 @@ public class IssuedCardsController : Controller
         }
 
         card.CardDesignId = model.CardDesignId!.Value;
-        card.ExpiresAt = model.ExpiresAt;
+        // PLAN-46 (review): a later expiry is a renewal, which goes through an approved request; an edit may only bring it forward.
+        if (model.ExpiresAt is { } expires && (card.ExpiresAt is null || expires <= card.ExpiresAt))
+            card.ExpiresAt = expires;
+        else if (model.ExpiresAt != card.ExpiresAt)
+        {
+            await LoadDesignsAsync(model.CardDesignId);
+            model.SerialNumber = card.SerialNumber;
+            ModelState.AddModelError(nameof(model.ExpiresAt), "تمديد الصلاحية يكون بطلب تجديد معتمد.");
+            return View(model);
+        }
         // SerialNumber immutable (COD-001)
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث البطاقة";

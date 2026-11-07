@@ -46,6 +46,7 @@ public static class WorkflowApprovalSubmission
     public const string LocalSaveFailedReason = "فشل الحفظ المحلي";
     public const string SaveFailedMessage = "تعذّر حفظ التقديم. أعد المحاولة.";
     public const string FinishedPendingMessage = "انتهى مسار الاعتماد قبل السحب، وستُطبّق نتيجته قريباً.";
+    public const string ChangedMessage = "تغيّر السجل أثناء السحب. أعد تحميل الصفحة.";
 
     public static async Task<WorkflowApprovalSubmitResult> SubmitAsync(
         IWorkflowApprovalClient client, int submissionNo, WorkflowApprovalSubmitSteps steps, ILogger logger, CancellationToken ct)
@@ -107,7 +108,16 @@ public static class WorkflowApprovalSubmission
 
             if (finished is not null)
             {
-                await steps.ApplyOutcomeAsync(WorkflowOutcomeDecision.From(finished, TenantIdFlow.Get()), ct);
+                try
+                {
+                    await steps.ApplyOutcomeAsync(WorkflowOutcomeDecision.From(finished, TenantIdFlow.Get()), ct);
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+                {
+                    // The consumer or the sweep applied the same outcome at the same moment; the record is linked either way.
+                    return new WorkflowApprovalSubmitResult(false, ChangedMessage, instanceId);
+                }
+
                 return new WorkflowApprovalSubmitResult(true, null, instanceId, Finished: true);
             }
 
@@ -135,9 +145,18 @@ public static class WorkflowApprovalSubmission
         if (cancelled.Success)
         {
             var now = DateTime.UtcNow;
-            await applyOutcomeAsync(new WorkflowOutcomeDecision(
-                TenantIdFlow.Get(), entityType, entityId, instanceId, string.Empty, WorkflowApprovalOutcomes.Cancelled, actor, now, reason,
-                [new WorkflowStepDecisionDto(0, string.Empty, actor, WorkflowApprovalOutcomes.ActionWithdrawn, now)], null), ct);
+            try
+            {
+                await applyOutcomeAsync(new WorkflowOutcomeDecision(
+                    TenantIdFlow.Get(), entityType, entityId, instanceId, string.Empty, WorkflowApprovalOutcomes.Cancelled, actor, now, reason,
+                    [new WorkflowStepDecisionDto(0, string.Empty, actor, WorkflowApprovalOutcomes.ActionWithdrawn, now)], null), ct);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                // The record changed under this request (xmin). The instance is withdrawn; its Cancelled event or the sweep applies it.
+                return new WorkflowApprovalWithdrawResult(false, ChangedMessage);
+            }
+
             return new WorkflowApprovalWithdrawResult(true, null);
         }
 
@@ -148,7 +167,16 @@ public static class WorkflowApprovalSubmission
         if (status is null || !WorkflowApprovalOutcomes.IsFinal(status.Status))
             return new WorkflowApprovalWithdrawResult(false, FinishedPendingMessage, cancelled.FinalOutcome);
 
-        await applyOutcomeAsync(WorkflowOutcomeDecision.From(status, TenantIdFlow.Get()), ct);
+        try
+        {
+            await applyOutcomeAsync(WorkflowOutcomeDecision.From(status, TenantIdFlow.Get()), ct);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+        {
+            // The consumer or the sweep applied the same outcome at the same moment.
+            return new WorkflowApprovalWithdrawResult(false, ChangedMessage, status.Status);
+        }
+
         return new WorkflowApprovalWithdrawResult(false, null, status.Status);
     }
 

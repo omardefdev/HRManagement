@@ -27,6 +27,7 @@ public sealed class DisciplinaryApprovalService(
 
     public const string NotSubmittableMessage = "يُقدَّم الإجراء وهو مسودة أو بعد رفضه فقط.";
     public const string NotPendingMessage = "لا يوجد اعتماد جارٍ لهذا الإجراء.";
+    public const string RefusedApprovalReason = "رُفض الاعتماد: سجّله منشئ الإجراء أو مقدّمه نفسه.";
 
     /// <param name="employeeName">For the title the inbox shows; never a national number.</param>
     public async Task<WorkflowApprovalSubmitResult> SubmitAsync(
@@ -89,8 +90,11 @@ public sealed class DisciplinaryApprovalService(
             case WorkflowApprovalOutcomes.Approved:
                 if (WorkflowOutcomeGuard.HasExcludedDecider(outcome, [action!.CreatedBy, action.SubmittedBy], logger))
                 {
+                    // Back to the authors as rejected, never published: the sweep would otherwise read it again on every cycle.
                     logger.LogError("Disciplinary action {ActionId}: an approval by its creator or submitter was refused.", action.Id);
-                    return;
+                    action.ApprovalStatus = DisciplinaryApprovalStatus.Rejected;
+                    action.RejectionReason = RefusedApprovalReason;
+                    break;
                 }
 
                 action.ApprovalStatus = DisciplinaryApprovalStatus.Approved;

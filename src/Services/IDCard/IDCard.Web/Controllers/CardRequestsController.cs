@@ -231,8 +231,6 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         };
         db.IssuedCards.Add(issued);
         await RevokeReplacedAsync(db, e);
-        await db.SaveChangesAsync();
-
         e.Status = CardRequestStatus.Processed;
         e.IssuedCardId = issued.Id;
 
@@ -241,7 +239,18 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         if (issuedStep is not null && !issuedStep.IsCompleted)
             CardChecklistDefaults.Mark(issuedStep, null, $"card:{issued.Id}");
 
-        await db.SaveChangesAsync();
+        // PLAN-46 (review): the card and the request's Processed state in one save, so a second Process, an issue from the same request or a
+        // cancel that wins on xmin leaves no card behind.
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            TempData["Error"] = "تغيّر الطلب أثناء المعالجة. أعد تحميل الصفحة.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         TempData["Success"] = "تمت معالجة الطلب وإصدار البطاقة";
         return RedirectToAction(nameof(Details), new { id });
     }

@@ -1,0 +1,11 @@
+# PLAN-46: AC-WF-46j on top of the prod-like stack. The card policy domain runs in Enforce on idcard-web and hr-core-web, so the rule
+# R-ID-PROCESS (TriggerWorkflow ID-CARD-ISSUANCE) is evaluated when a request is processed; it must start no instance. Applied with the
+# s2s42 overlay by scripts/ci/acceptance-job.ps1 (tests/acceptance/ci-scope.json), so the stack is recreated once for both.
+services:
+  hr-core-web:
+    environment:
+      PolicyEngine__IDCard.Lifecycle: "Enforce"
+
+  idcard-web:
+    environment:
+      PolicyEngine__IDCard.Lifecycle: "Enforce"

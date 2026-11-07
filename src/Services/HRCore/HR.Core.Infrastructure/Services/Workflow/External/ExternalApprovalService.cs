@@ -100,7 +100,10 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
             .OrderByDescending(d => d.TenantId == tenantId)
             .ThenByDescending(d => d.Version)
             .FirstOrDefaultAsync(ct);
-        if (definition is null)
+        // PLAN-46 (review): a version that breaks its type's guardrail (a tenant's own, or one older than the guardrail) never starts a
+        // general approval: the outcome of such a type reaches payroll or issues a card.
+        if (definition is null
+            || (type.OutcomeEvent == ExternalOutcomeEvent.Generic && WorkflowDefinitionCatalog.Validate(definition).Count > 0))
             return new ExternalApprovalResult(ExternalApprovalOutcome.DefinitionMissing, Error: ApprovalStartCoordinator.MissingDefinitionMessage);
 
         // Rule 7.

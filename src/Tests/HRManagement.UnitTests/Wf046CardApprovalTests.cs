@@ -241,7 +241,9 @@ public sealed class Wf046CardApprovalTests
             Tenant, Requester, decisions: [new WorkflowStepDecisionDto(1, "idcard", Requester, "Approved", DateTime.UtcNow)]));
 
         db.ChangeTracker.Clear();
-        Assert.Equal(CardRequestStatus.PendingApproval, (await db.CardRequests.SingleAsync()).Status);
+        var refused = await db.CardRequests.SingleAsync();
+        Assert.Equal(CardRequestStatus.Rejected, refused.Status); // closed, never left pending for the sweep to read again
+        Assert.Equal(CardRequestApprovalService.RefusedApprovalReason, refused.RejectionReason);
     }
 
     [Fact]
@@ -323,7 +325,7 @@ public sealed class Wf046CardApprovalTests
         var store = new CardRequestApprovalStore(db, Service(db, new FakeWorkflowApprovalClient()));
 
         Assert.Equal([Tenant], await store.ListTenantsAsync(default));
-        var waiting = Assert.Single(await store.ListPendingAsync(DateTime.UtcNow.AddMinutes(-15), 10, default));
+        var waiting = Assert.Single(await store.ListPendingAsync(DateTime.UtcNow.AddMinutes(-15), null, 10, default));
         Assert.Equal(stale.Id, waiting.EntityId);
         Assert.Equal(AdvisoryLockKeys.CardRequestApprovalSweep, store.LeaderLockKey);
     }

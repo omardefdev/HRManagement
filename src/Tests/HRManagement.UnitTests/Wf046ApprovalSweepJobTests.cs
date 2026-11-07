@@ -80,6 +80,22 @@ public sealed class Wf046ApprovalSweepJobTests
     }
 
     [Fact]
+    public async Task Long_running_approvals_never_hide_a_later_finished_one()
+    {
+        var state = new SweepState();
+        for (var i = 0; i < 5; i++)
+            state.Engine.SetStatus(state.Pending(TenantA).InstanceId, WorkflowApprovalOutcomes.InProgress);
+        var finished = state.Pending(TenantA);
+        state.Engine.SetStatus(finished.InstanceId, WorkflowApprovalOutcomes.Approved);
+
+        await Job(state, new WorkflowApprovalSweepOptions { BatchSize = 2 }).RunOnceAsync();
+
+        Assert.Equal(finished.InstanceId, Assert.Single(state.Applied).Outcome.InstanceId);
+        Assert.Equal(6, state.Engine.StatusReads.Count);
+        Assert.Equal(4, state.Pages); // three full pages, then an empty one
+    }
+
+    [Fact]
     public async Task A_record_that_fails_does_not_stop_the_next()
     {
         var state = new SweepState();
@@ -158,9 +174,11 @@ public sealed class Wf046ApprovalSweepJobTests
 
         public int LastTake { get; set; }
 
+        public int Pages { get; set; }
+
         public WorkflowApprovalPendingRecord Pending(Guid tenant)
         {
-            var record = new WorkflowApprovalPendingRecord(Guid.NewGuid(), Guid.NewGuid());
+            var record = new WorkflowApprovalPendingRecord(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.AddMinutes(-60).AddSeconds(Records.Values.Sum(l => l.Count)));
             if (!Records.TryGetValue(tenant, out var list))
                 Records[tenant] = list = [];
             list.Add(record);
@@ -179,14 +197,19 @@ public sealed class Wf046ApprovalSweepJobTests
         public Task<IReadOnlyList<Guid>> ListTenantsAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<Guid>>(state.Records.Keys.ToList());
 
-        public Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(DateTime submittedBefore, int take, CancellationToken ct)
+        public Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(DateTime submittedBefore, WorkflowApprovalPendingRecord? after, int take, CancellationToken ct)
         {
             state.LastCutoff = submittedBefore;
             state.LastTake = take;
             var tenant = TenantIdFlow.Get()!.Value;
             if (tenant == state.FailTenant)
                 throw new InvalidOperationException("this tenant fails");
-            return Task.FromResult<IReadOnlyList<WorkflowApprovalPendingRecord>>(state.Records[tenant]);
+            state.Pages++;
+            return Task.FromResult<IReadOnlyList<WorkflowApprovalPendingRecord>>(state.Records[tenant]
+                .Where(r => after is null || r.SubmittedAt > after.SubmittedAt)
+                .OrderBy(r => r.SubmittedAt)
+                .Take(take)
+                .ToList());
         }
 
         public Task ApplyOutcomeAsync(IWorkflowOutcomeDecided outcome, CancellationToken ct)

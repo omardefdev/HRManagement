@@ -25,16 +25,25 @@ public sealed class CardRequestApprovalStore(IDCardDbContext db, CardRequestAppr
             .Distinct()
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(DateTime submittedBefore, int take, CancellationToken ct) =>
-        await db.CardRequests.AsNoTracking()
+    public async Task<IReadOnlyList<WorkflowApprovalPendingRecord>> ListPendingAsync(
+        DateTime submittedBefore, WorkflowApprovalPendingRecord? after, int take, CancellationToken ct)
+    {
+        var query = db.CardRequests.AsNoTracking()
             .Where(r => r.Status == CardRequestStatus.PendingApproval
                 && !r.IsCancelled
                 && r.WorkflowInstanceId != null
-                && r.SubmittedAt <= submittedBefore)
+                && r.SubmittedAt != null
+                && r.SubmittedAt <= submittedBefore);
+        if (after is not null)
+            query = query.Where(r => r.SubmittedAt > after.SubmittedAt || (r.SubmittedAt == after.SubmittedAt && r.Id.CompareTo(after.EntityId) > 0));
+
+        return await query
             .OrderBy(r => r.SubmittedAt)
+            .ThenBy(r => r.Id)
             .Take(take)
-            .Select(r => new WorkflowApprovalPendingRecord(r.Id, r.WorkflowInstanceId!.Value))
+            .Select(r => new WorkflowApprovalPendingRecord(r.Id, r.WorkflowInstanceId!.Value, r.SubmittedAt!.Value))
             .ToListAsync(ct);
+    }
 
     public Task ApplyOutcomeAsync(IWorkflowOutcomeDecided outcome, CancellationToken ct) => approvals.ApplyOutcomeAsync(outcome, ct);
 }
