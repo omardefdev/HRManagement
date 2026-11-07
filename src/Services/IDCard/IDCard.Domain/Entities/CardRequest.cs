@@ -31,4 +31,24 @@ public class CardRequest : AuditableEntity
     public string? CancellationReason { get; set; }
 
     public Guid? IssuedCardId { get; set; }
+
+    /// <summary>PLAN-46: the card a replacement request replaces; it is revoked when the new card is issued.</summary>
+    public Guid? ReplacesCardId { get; set; }
+
+    // PLAN-46: the approval in HR.Core's engine. None of these is ever bound from a form.
+
+    /// <summary>The instance of the current submission. Never <c>PendingApproval</c> without it (rule 3).</summary>
+    public Guid? WorkflowInstanceId { get; set; }
+
+    /// <summary>The number of the last submission that reached the engine: the key is <c>CardRequest:{Id}:{SubmissionNo}</c>.</summary>
+    public int SubmissionNo { get; set; }
+
+    public Guid? SubmittedBy { get; set; }
+    public DateTime? SubmittedAt { get; set; }
+
+    public Guid? DecidedBy { get; set; }
+    public DateTime? DecidedAt { get; set; }
+
+    [MaxLength(1000)]
+    public string? RejectionReason { get; set; }
 }

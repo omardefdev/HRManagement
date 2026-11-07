@@ -16,6 +16,8 @@ namespace IDCard.Web.Controllers;
 
 public class IssuedCardsController : Controller
 {
+    public const string RequiresApprovedRequestMessage = "الإصدار يتطلب طلباً معتمداً";
+
     private readonly IDCardDbContext _db;
     private readonly IPublishEndpoint _publish;
     private readonly IFileReferenceClient _fileRefs;
@@ -68,6 +70,18 @@ public class IssuedCardsController : Controller
         await LoadDesignsAsync(model.CardDesignId);
         if (model.CardDesignId is { } designId && !await _db.CardDesigns.AnyAsync(d => d.Id == designId))
             ModelState.AddModelError(nameof(model.CardDesignId), "التصميم غير موجود");
+
+        // PLAN-46 (section 3, rule 1): a card comes only from an approved, unprocessed request of the same employee.
+        var request = model.CardRequestId is Guid requestId
+            ? await _db.CardRequests.FirstOrDefaultAsync(r => r.Id == requestId)
+            : null;
+        if (request is null
+            || request.IsCancelled
+            || !CardIssuanceWorkflow.CanProcess(request.Status)
+            || request.WorkflowInstanceId is null
+            || request.IssuedCardId is not null
+            || request.EmployeeId != model.EmployeeId)
+            ModelState.AddModelError(nameof(model.CardRequestId), RequiresApprovedRequestMessage);
         if (!ModelState.IsValid) return View(model);
 
         var (ok, serial, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
@@ -87,8 +101,12 @@ public class IssuedCardsController : Controller
             Status = model.Status,
             SerialNumber = serial!,
             RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours,
+            ReplacesCardId = request!.ReplacesCardId,
         };
         _db.IssuedCards.Add(card);
+        await CardRequestsController.RevokeReplacedAsync(_db, request);
+        request.Status = CardRequestStatus.Processed;
+        request.IssuedCardId = card.Id;
 
         await _publish.Publish<ICardIssued>(new
         {
@@ -128,7 +146,15 @@ public class IssuedCardsController : Controller
             return View(model);
         }
 
-        card.EmployeeId = model.EmployeeId!.Value;
+        // PLAN-46: the holder was approved with the request; a card never moves to another employee.
+        if (model.EmployeeId != card.EmployeeId)
+        {
+            await LoadDesignsAsync(model.CardDesignId);
+            model.SerialNumber = card.SerialNumber;
+            ModelState.AddModelError(nameof(model.EmployeeId), "لا يُنقل حامل البطاقة؛ أصدر بطاقة من طلب معتمد للموظف الآخر.");
+            return View(model);
+        }
+
         card.CardDesignId = model.CardDesignId!.Value;
         card.ExpiresAt = model.ExpiresAt;
         // SerialNumber immutable (COD-001)
@@ -289,44 +315,34 @@ public class IssuedCardsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        if (card.Status == CardStatus.Active)
+        // PLAN-46: renewing issues nothing. It opens a replacement request, which the card office approves like any other; the old card
+        // stays as it is until the new one is issued.
+        var open = await _db.CardRequests.FirstOrDefaultAsync(r => r.ReplacesCardId == card.Id && !r.IsCancelled
+            && (r.Status == CardRequestStatus.Pending || r.Status == CardRequestStatus.PendingApproval || r.Status == CardRequestStatus.Approved));
+        if (open is not null)
         {
-            card.Status = CardStatus.Revoked;
-            card.RevokedAt = DateTime.UtcNow;
+            TempData["Error"] = "يوجد طلب بديل مفتوح لهذه البطاقة.";
+            return RedirectToAction("Details", "CardRequests", new { id = open.Id });
         }
 
-        var (ok, serial, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
-            _codeClient, CodeGenerationRequests.IdCardSerial());
-        if (!ok)
-        {
-            TempData["Error"] = error ?? "تعذّر توليد الرقم التسلسلي";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        var replacement = new IssuedCard
+        var request = new CardRequest
         {
             EmployeeId = card.EmployeeId,
-            CardDesignId = card.CardDesignId,
-            IssuedAt = DateTime.UtcNow,
-            Status = CardStatus.Active,
-            SerialNumber = serial!,
-            ExpiresAt = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(card.CardDesign?.ValidityDays ?? 365)),
-            ReplacesCardId = card.Id,
-            RevokeSlaHours = card.RevokeSlaHours
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Purpose = CardRequestPurpose.Replacement,
+            Status = CardRequestStatus.Pending,
+            RequestedBy = ParseUserId(User),
+            ReplacesCardId = card.Id
         };
-        _db.IssuedCards.Add(replacement);
+        await CardRequestsController.AddDraftAsync(_db, request, HttpContext.RequestAborted);
 
-        await _publish.Publish<ICardIssued>(new
-        {
-            EmployeeId = replacement.EmployeeId,
-            IssuedCardId = replacement.Id,
-            SerialNumber = replacement.SerialNumber,
-            IssuedAt = replacement.IssuedAt,
-            CorrelationId = CorrelationIdFlow.Get()
-        });
-        await _db.SaveChangesAsync();
+        TempData["Success"] = "أُنشئ طلب بطاقة بديلة مسودةً. قدّمه للاعتماد.";
+        return RedirectToAction("Details", "CardRequests", new { id = request.Id });
+    }
 
-        TempData["Success"] = $"تم التجديد — البطاقة الجديدة {replacement.SerialNumber}";
-        return RedirectToAction(nameof(Details), new { id = replacement.Id });
+    private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var raw = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value;
+        return Guid.TryParse(raw, out var id) ? id : null;
     }
 }

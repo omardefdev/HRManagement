@@ -41,3 +41,11 @@ P2: HR.Core registry, ExternalOutcomePublisher, external-status, guardrails, pol
 
 ## Next step (after P2)
 P3: the card.
+- P3 Finished (UTC): 2026-11-07T21:14:14Z. Unit (Wf046*, Phase5, Data001, IdCard, Fun005, outbox, wiring, mass assignment): 285 passed, 1 failing by design (Data001 row for DisciplinaryAction, P4). Guard: CardRequest consumer found by reflection. IDCard has no pending model changes; migration without BOM.
+  - Decisions: WorkflowApprovalSubmission (ServiceDefaults) holds rules 2-5 for every owner (PLAN-60 reuses it). A key whose instance was withdrawn before the record pointed at it spends its number. A save that fails after a start cancels it unless the record already points at it (a concurrent double submit). CardRequest gets ReplacesCardId: Renew opens a Replacement draft; the old card is revoked when the new one is issued (ProcessRequest or IssuedCards/Create). IssuedCards/Edit can no longer move a card to another employee. Create of a request copies only the form's three fields (no overposting of the approval fields). AutoSubmitOnHire=true is refused at start-up (no requester to vouch for a bus-made request). IDCard has no lookup client, so the title is the purpose only; the subject goes as SubjectEmployeeId and HR.Core shows the name.
+  - Deferred (wave 2, as the plan says): ProcessRequest still issues a local serial and publishes no ICardIssued (G-IDA-03).
+  - Persona a-idcard-2 (AGENCY-A, ordinal 45); AGENCY-A count 44.
+  - Rollback: the previous tag reads statuses 3 and 4 as unknown enum values; it lets nothing process them (its CanProcess is Pending only) and shows the number.
+
+## Next step (after P3)
+P4: discipline.
