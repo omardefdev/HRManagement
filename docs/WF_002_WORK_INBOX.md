@@ -69,6 +69,9 @@ interface IWorkInboxService
 - Escalation triggers notification to manager
 - An item waits for a decision only when the entity links that instance (`entity.WorkflowInstanceId == instance.Id`), for all five types (PLAN-44): an approval of any other instance would be lost, because the handler ignores it
 - The inbox bars the makers the gates bar, through the same `WorkflowMakerRules.Makers` (PLAN-44)
+- External types (`ExternalApprovalTypes`: `AssetAssignment`, `AssetLossReport`) join the inbox (PLAN-45). Their entity lives in the owning service, so the instance is the item: the unit, the requester and the excluded users come from it, and an item waits while the instance is `InProgress`
+- `WorkInboxAudience` takes the roles from outside HR.Core from `ExternalApprovalTypes.AudienceRoles`. Such a user sees only their types, no legacy items, and a menu with the inbox alone (PLAN-45)
+- An external item opens the generic approval page, `/ui/hr-core/WorkflowApprovals/Details/{instanceId}`: its title, facts (HTML-encoded), a link to the owner's page, the history and the decision panel. GET needs a step role of the pinned definition, the requester or `admin`, and a branch-level holder reads inside their unit only. Approve and reject go through `WorkflowInstanceActionService`, so the page is never wider than the API. PLAN-46 reuses the page and the audience for its types
 
 ## Acceptance Criteria Mapping
 
@@ -85,6 +88,8 @@ interface IWorkInboxService
 | `docs/WF_002_WORK_INBOX.md` | This document |
 | `ServiceDefaults/Workflow/WorkInboxItem.cs` | Work inbox item entity |
 | `ServiceDefaults/Workflow/IWorkInboxService.cs` | Service interface |
+| `HR.Core.Web/Controllers/WorkflowApprovalsController.cs` | The generic approval page (PLAN-45) |
+| `HR.Core.Web/Services/WorkInboxAudience.cs` | Roles from outside HR.Core, and who reads an approval (PLAN-45) |
 | `scripts/wf002-validate.ps1` | Validates WF-002 artifacts |
 | `Wf002WorkInboxTests.cs` | Unit tests |
 
