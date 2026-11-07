@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow.External;
 using HRManagement.ServiceDefaults.Workflow;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -65,6 +66,7 @@ public sealed class WorkflowApprovalEvaluator(IEnumerable<IWorkflowApprovalGate>
     /// <summary>Every recruitment and establishment gate over one context (DI registers the same set).</summary>
     public static IReadOnlyList<IWorkflowApprovalGate> CreateGates(HRCoreDbContext db, WorkflowGateOrgScope scope) =>
     [
+        .. ExternalApprovalTypes.All.Select(type => new ExternalApprovalGate(type, scope)),
         new RequisitionApprovalGate(db, scope),
         new OfferApprovalGate(db, scope),
         new CommitteeApprovalGate(db, scope),

@@ -1,5 +1,6 @@
 using HR.Core.Infrastructure.Services.Policy;
 using HR.Core.Infrastructure.Services.Workflow;
+using HR.Core.Infrastructure.Services.Workflow.External;
 using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Workflow;
@@ -31,6 +32,8 @@ public static class PolicyEngineDependencyInjection
         services.AddScoped<IWorkflowApprovalGate, CompetitionApprovalGate>();
         services.AddScoped<IWorkflowApprovalGate, ResultsApprovalGate>();
         services.AddScoped<IWorkflowApprovalGate, EstablishmentChangeApprovalGate>();
+        foreach (var type in ExternalApprovalTypes.All)
+            services.AddScoped<IWorkflowApprovalGate>(sp => new ExternalApprovalGate(type, sp.GetRequiredService<WorkflowGateOrgScope>()));
         services.TryAddSingleton(new WorkflowStepRoleOptions());
         services.AddScoped<WorkflowApprovalEvaluator>();
         services.AddScoped<IWorkflowInstanceActionService, WorkflowInstanceActionService>();

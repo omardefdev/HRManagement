@@ -103,6 +103,14 @@ public static class WorkflowDefinitionValidator
         if (firm.Count < minSteps)
             errors.Add($"هذا النوع يتطلب {minSteps} خطوات على الأقل.");
 
+        if (guardrail.MaxSteps is { } maxSteps && definition.Steps.Count > maxSteps)
+            errors.Add($"هذا النوع يتطلب {maxSteps} خطوات على الأكثر.");
+
+        if (guardrail.FirstStepRole is { } firstRole
+            && definition.Steps.Count > 0
+            && !string.Equals(definition.Steps.MinBy(s => s.Level)!.RoleRequired, firstRole, StringComparison.OrdinalIgnoreCase))
+            errors.Add($"الخطوة الأولى لهذا النوع يجب أن تكون بدور «{firstRole}».");
+
         if (definition.Steps.Count > 0 && definition.Steps.MaxBy(s => s.Level)!.Condition is not null)
             errors.Add("الخطوة الأخيرة لا تكون مشروطة.");
 

@@ -5,9 +5,9 @@
     {
       "entityType": "AssetLossReport",
       "ownerPlan": "PLAN-45",
-      "reason": "Step role admin-logistics does not pass WorkflowStepAction until PLAN-45 adds it.",
+      "reason": "Step role admin-logistics did not pass WorkflowStepAction. PLAN-45 added it and lifted the exemption on 2026-11-07.",
       "reviewBy": "2027-02-01",
-      "status": "Open"
+      "status": "Closed"
     },
     {
       "entityType": "SeparationRecord",

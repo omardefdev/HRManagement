@@ -122,7 +122,7 @@ public static class HrManagementPolicies
     /// <summary>HCM-028 (PLAN-25 slice): recruitment appeal review — central HR and the compliance reviewer.</summary>
     public const string HrCoreAppealReview = "HrCore.AppealReview";
 
-    /// <summary>HCM-028 (PLAN-25 slice): HR.Core work inbox — the read-only roles plus compliance (appeals only).</summary>
+    /// <summary>HCM-028 (PLAN-25 slice): HR.Core work inbox — the read-only roles plus compliance (appeals only) and admin-logistics (external approvals only).</summary>
     public const string HrCoreWorkInbox = "HrCore.WorkInbox";
 
     /// <summary>HCM-031 (PLAN-31): the anonymous exam marking screens — the exam marker role only.</summary>
