@@ -46,3 +46,28 @@ public static class WorkflowSodRules
         ?? Subject(facts, actorEmployeeId)
         ?? (approving ? DistinctApprover(facts, actorUserId) : null);
 }
+
+/// <summary>
+/// PLAN-44 (G-WF-19, D-WF-8): who made a request: its creator, the person who submitted it and the human behind a service start. They are
+/// barred from every step of the requisition, offer, establishment, competition and result gates, and the inbox hides the item from the
+/// same people, because both ask this function. The committee and the appeal keep their own rules.
+/// </summary>
+public static class WorkflowMakerRules
+{
+    /// <param name="entityCreatedBy">The entity's <c>CreatedBy</c>.</param>
+    /// <param name="initiatedBy">The instance's <c>InitiatedBy</c>: the submitter.</param>
+    /// <param name="requestedByUserId">The instance's <c>RequestedByUserId</c> (PLAN-43).</param>
+    /// <param name="includeSubmitter"><c>Workflow:Maker:IncludeSubmitter</c>.</param>
+    public static IReadOnlySet<Guid> Makers(
+        Guid? entityCreatedBy, Guid? initiatedBy, Guid? requestedByUserId, bool includeSubmitter = true)
+    {
+        var makers = new HashSet<Guid>();
+        if (entityCreatedBy is Guid creator)
+            makers.Add(creator);
+        if (includeSubmitter && initiatedBy is Guid submitter)
+            makers.Add(submitter);
+        if (requestedByUserId is Guid requester)
+            makers.Add(requester);
+        return makers;
+    }
+}

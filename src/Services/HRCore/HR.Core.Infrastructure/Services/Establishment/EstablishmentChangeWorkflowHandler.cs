@@ -2,6 +2,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Workflow;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Establishment;
@@ -25,7 +26,10 @@ public sealed class EstablishmentChangeWorkflowHandler(
         {
             request.Status = EstablishmentChangeStatus.Approved;
             await db.SaveChangesAsync(ct);
-            await lifecycleService.ApplyApprovedAsync(request, instance.InitiatedBy, ct);
+            // PLAN-44: nothing re-applies a change later, so a change that cannot apply refuses the decision that would have finished it.
+            var (applied, error) = await lifecycleService.ApplyApprovedAsync(request, instance.InitiatedBy, ct);
+            if (!applied)
+                throw new WorkflowOutcomeRefusedException(error ?? "تعذّر تطبيق طلب تغيير الملاك.");
         }
         else
         {

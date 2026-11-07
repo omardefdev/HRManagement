@@ -33,6 +33,8 @@ public sealed class WorkflowStepRoleOptions
 
     public WorkflowStepRoleSection StepRole { get; set; } = new();
 
+    public WorkflowMakerSection Maker { get; set; } = new();
+
     public bool IsEnforced(string? entityType) =>
         !string.IsNullOrWhiteSpace(entityType)
         && !(StepRole.ExemptEntityTypes ?? DefaultExemptEntityTypes)
@@ -56,6 +58,13 @@ public sealed class WorkflowStepRoleSection
 {
     /// <summary>Null means <see cref="WorkflowStepRoleOptions.DefaultExemptEntityTypes"/>; an empty list exempts nothing.</summary>
     public string[]? ExemptEntityTypes { get; set; }
+}
+
+/// <summary><c>Workflow:Maker</c> (PLAN-44, D-WF-8).</summary>
+public sealed class WorkflowMakerSection
+{
+    /// <summary>The submitter counts as a maker. See <see cref="WorkflowMakerRules"/>.</summary>
+    public bool IncludeSubmitter { get; set; } = true;
 }
 
 /// <summary>WF-001 / PLAN-03 / PLAN-25: API guards against illegal stage transitions and actors without the step role.</summary>

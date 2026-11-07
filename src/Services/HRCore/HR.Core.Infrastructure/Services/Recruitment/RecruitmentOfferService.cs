@@ -477,8 +477,9 @@ public sealed class RecruitmentOfferService(
         AddAudit(offer, "RevokeOffer", actorUserId, new { reason = trimmed, revertToRanked });
         // PLAN-30: notify candidate
 
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return await HR.Core.Infrastructure.Services.Workflow.WorkflowConcurrency.SaveOrConflictAsync(db, "cancel", ct) is { } conflict
+            ? (false, conflict)
+            : (true, null);
     }
 
     /// <summary>HCM-027 (G-06): an issued offer past its expiry date becomes Expired; the application OfferDeclined.</summary>

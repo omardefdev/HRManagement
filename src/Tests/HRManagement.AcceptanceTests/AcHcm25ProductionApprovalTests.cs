@@ -417,7 +417,10 @@ public class AcHcm25ProductionApprovalTests
         return env.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.StartsWith(name + "=", StringComparison.Ordinal))?[(name.Length + 1)..];
     }
 
-    private static async Task<string> RunRepairAsync(RecruitmentSession s, bool apply)
+    private static Task<string> RunRepairAsync(RecruitmentSession s, bool apply) => RunRepairAsync(apply);
+
+    /// <summary>The operator's script. PLAN-44 reads its reports as well.</summary>
+    internal static async Task<string> RunRepairAsync(bool apply)
     {
         var script = Path.Combine(AcceptanceHarness.RepoRoot, "scripts", "hcm025-repair-stuck-approvals.ps1");
         var outDir = Path.Combine(AcceptanceHarness.EvidenceRoot, Ac, "repair");

@@ -175,6 +175,11 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Candidate
 // IOptionsMonitor<RecruitmentOptions>.Jobs.CandidateRetentionEnabled.
 if (builder.Configuration.GetValue("Recruitment:Jobs:CandidateRetentionEnabled", true))
     builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Recruitment.CandidateRetentionJob>();
+// PLAN-44 (G-WF-12): detects outcomes that slipped before this plan. It repairs only with Workflow:Reconciliation:AutoApply.
+builder.Services.Configure<HR.Core.Infrastructure.Services.Workflow.WorkflowReconciliationOptions>(
+    builder.Configuration.GetSection(HR.Core.Infrastructure.Services.Workflow.WorkflowReconciliationOptions.SectionName));
+if (builder.Configuration.GetValue("Workflow:Reconciliation:Enabled", true))
+    builder.Services.AddHostedService<HR.Core.Infrastructure.Services.Workflow.WorkflowOutcomeReconciliationJob>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();

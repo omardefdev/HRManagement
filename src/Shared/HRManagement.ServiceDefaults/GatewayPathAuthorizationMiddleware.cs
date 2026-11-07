@@ -199,6 +199,9 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                     policy = HrManagementPolicies.WorkflowExternalStart;
                 else if (IsHrCoreWorkflowMvcAction(pathValue))
                     policy = HrManagementPolicies.HrCoreBranchOperation;
+                // PLAN-44: the controller's own policy. A legacy step 2 needs hr-management-approver, which HrCoreWrite does not admit.
+                else if (IsHrCoreLegacyApprovalAction(pathValue))
+                    policy = HrManagementPolicies.HrCoreApprove;
                 else
                     policy = HrManagementPolicies.HrCoreWrite;
                 return true;
@@ -308,6 +311,17 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         || pathValue.Contains("/RejectWorkflow", StringComparison.OrdinalIgnoreCase)
         || pathValue.Contains("/ApproveResultsWorkflow", StringComparison.OrdinalIgnoreCase)
         || pathValue.Contains("/RejectResultsWorkflow", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The Review form posts the id in its body, so the path may end at the action.</summary>
+    private static bool IsHrCoreLegacyApprovalAction(string pathValue)
+    {
+        var path = pathValue.TrimEnd('/');
+        return IsActionPath(path, "/ui/hr-core/Approvals/Approve") || IsActionPath(path, "/ui/hr-core/Approvals/Reject");
+    }
+
+    private static bool IsActionPath(string path, string action) =>
+        path.Equals(action, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(action + "/", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryGetPolicy(PathString path, out string moduleSegment, out string policyName)
     {

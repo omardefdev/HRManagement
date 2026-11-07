@@ -52,7 +52,7 @@ public sealed class WorkflowApprovalEvaluator(IEnumerable<IWorkflowApprovalGate>
         var gate = _gates.FirstOrDefault(g => string.Equals(g.EntityType, instance.EntityType, StringComparison.OrdinalIgnoreCase));
         if (gate is not null)
         {
-            var gateError = await gate.GetBlockReasonAsync(new WorkflowGateContext(instance, definition, step, actor, kind), ct);
+            var gateError = await gate.GetBlockReasonAsync(new WorkflowGateContext(instance, definition, step, actor, kind, options.Maker.IncludeSubmitter), ct);
             if (gateError is not null)
                 return gateError;
         }

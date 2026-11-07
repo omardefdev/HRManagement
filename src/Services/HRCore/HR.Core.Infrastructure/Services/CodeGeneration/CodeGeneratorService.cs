@@ -299,7 +299,8 @@ public sealed class CodeGeneratorService(
 
         var relational = db.Database.IsRelational();
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? tx = null;
-        if (relational)
+        // PLAN-44: inside a decision's transaction the counter joins it.
+        if (relational && db.Database.CurrentTransaction is null)
             tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
 
         try

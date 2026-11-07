@@ -27,6 +27,7 @@
               class="row g-2 align-items-end">
             @Html.AntiForgeryToken()
             <input type="hidden" name="@entityIdFieldName" value="@entityId" />
+            <input type="hidden" name="TargetStepLevel" value="@Model.CurrentStepLevel" />
             @if (!string.IsNullOrEmpty(extraFieldName) && extraFieldValue is Guid extraId)
             {
                 <input type="hidden" name="@extraFieldName" value="@extraId" />
@@ -51,6 +52,7 @@
                   onsubmit="return confirm('@confirmReject');">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="@entityIdFieldName" value="@entityId" />
+                <input type="hidden" name="TargetStepLevel" value="@Model.CurrentStepLevel" />
                 @if (!string.IsNullOrEmpty(extraFieldName) && extraFieldValue is Guid extraIdReject)
                 {
                     <input type="hidden" name="@extraFieldName" value="@extraIdReject" />

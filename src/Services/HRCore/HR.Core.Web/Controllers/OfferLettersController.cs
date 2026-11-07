@@ -271,7 +271,7 @@ public class OfferLettersController(
 
             vm.Comments,
 
-            targetStepLevel: null);
+            vm.TargetStepLevel);
 
 
 
@@ -336,7 +336,8 @@ public class OfferLettersController(
 
             CreateWorkflowActor(User),
 
-            vm.Comments);
+            vm.Comments,
+            targetStepLevel: vm.TargetStepLevel);
 
 
 

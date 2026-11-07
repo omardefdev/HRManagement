@@ -81,5 +81,27 @@ Resumed (UTC): 2026-11-06T11:04:33Z. Reason: the owner interrupted the P2 writes
 
 - P8 docs and report written 2026-11-06T15:27:15Z. Review done in P5.
 
+- Local CI on e520764e: 91 of 91, 1346 s, unit 4995, integration 366, Testcontainers 148. Pre-push: gitleaks, actionlint, cilocal, forbidden, nonprod, signatures PASS, 782 s.
+- release/plan-43 at 5524e112, pushed once, PR https://github.com/omardefdev/HRManagement/pull/38 opened 2026-11-06T16:04:12Z. Not committed on the release branch: this note rides with the merge note.
+
 ## Next step
-Local CI and pre-push on the final head, release/plan-43, PR, wait, merge.
+WAITING-CI: PR 38. When every check is green: gh pr merge 38 --merge, switch to main, pull --ff-only, verify, write the merge note.
+
+## Merge note
+
+Resumed (UTC): 2026-11-06T18:04:56Z
+
+Merged by agent on owner instruction (UTC): 2026-11-06T18:05:16Z
+
+- PR: https://github.com/omardefdev/HRManagement/pull/38, head 5524e112, merge commit f8f5cd043579fd419a5a708345423f4ce6b828dd. `main` = `origin/main` at that commit.
+- Checks on run `ci` 42248899518, one PR run, no red: CI pass 37 min 44 s, CodeQL pass 12 min 55 s, E2E pass 12 min 17 s, Gitleaks pass 37 s, Dedupe pass 7 s, Acceptance pass 1 h 46 min 9 s. `mergeStateStatus` CLEAN.
+- Acceptance took 1 h 46 of its 120-minute limit, up from 1 h 30 (PR 36) and 1 h 37 (PR 37). The next plans that add a class should read this before they push.
+- Evidence of record: artifact `acceptance-evidence` 13527061517, https://github.com/omardefdev/HRManagement/actions/runs/42248899518/artifacts/13527061517 (expires 2026-12-06).
+- Post-merge run: `ci` 42267494985 on f8f5cd04, success. The dedupe guard skipped: CI, CodeQL, Acceptance and E2E skipped, Gitleaks ran and passed. No hardening-check run on this commit at this note.
+- CI wait: 2026-11-06T16:04:12Z to 17:50:36Z, 1 h 46 until green, then 15 min until the owner's message, 2 h 01 in all. Two `WAITING-CI:` stops. Job minutes of the run: 170. GitHub reports no billable time.
+- Other waits: `WAITING-PEER` 11 h 26 for PR 37, lock waits 0, owner stop about 3 h 26. The early start saved 0: there was no overlap with PLAN-42.
+- Wall-clock: first attempt 2026-11-05T19:39:47Z to the merge, 22 h 25; from Started to the merge, 10 h 53.
+- Demo server: on `3bd9ee92bcf5`, previous `c6faf0a92e6e`, an ancestor of `main`; nothing outside `docs` and `reports` changed after it. 22 containers up, 0 unhealthy at this note.
+- Locks free, no local container up. Open, not blocking: M6 and L7 (PLAN-45), L2, L5, L6, L8; the `keycloak-reconcile` retry after a PostgreSQL restart.
+
+Finished (UTC): 2026-11-06T18:07:30Z

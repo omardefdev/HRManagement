@@ -254,7 +254,7 @@ public class SeparationOfDutiesTests
         var request = ApprovalsController.CreateApprovalRequest(
             "Employee", Guid.NewGuid(), "test", creator, "maker");
 
-        var ok = ApprovalWorkflowService.TryApproveStep(request, creator, "maker", null, out var error);
+        var ok = ApprovalWorkflowService.TryApproveStep(request, creator, "maker", null, ["hr-core"], false, out var error);
         Assert.False(ok);
         Assert.Contains("منشئ", error!);
     }
@@ -287,10 +287,10 @@ public class SeparationOfDutiesTests
             "maker",
             requiredRoles: ["hr-core", "hr-management-approver"]);
 
-        Assert.True(ApprovalWorkflowService.TryApproveStep(request, approver, "a1", null, out _));
+        Assert.True(ApprovalWorkflowService.TryApproveStep(request, approver, "a1", null, ["hr-core", "hr-management-approver"], false, out _));
         Assert.Equal(ApprovalStatus.Pending, request.Status);
 
-        var second = ApprovalWorkflowService.TryApproveStep(request, approver, "a1", null, out var error);
+        var second = ApprovalWorkflowService.TryApproveStep(request, approver, "a1", null, ["hr-core", "hr-management-approver"], false, out var error);
         Assert.False(second);
         Assert.Contains("ثانٍ", error!);
     }

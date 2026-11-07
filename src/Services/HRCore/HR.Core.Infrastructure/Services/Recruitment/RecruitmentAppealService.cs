@@ -156,8 +156,7 @@ public sealed class RecruitmentAppealService(
             return (false, startError);
         }
 
-        await db.SaveChangesAsync(ct);
-        return (true, null);
+        return await WorkflowConcurrency.SaveOrConflictAsync(db, "cancel", ct) is { } conflict ? (false, conflict) : (true, null);
     }
 
     /// <summary>
@@ -391,7 +390,24 @@ public sealed class RecruitmentAppealService(
     /// Starts RECRUITMENT-APPEAL-REVIEW for the assigned reviewer (stages <c>WorkflowInstanceId</c>). A null instance
     /// without an error means no workflow definition could be resolved; the reviewer then decides directly (H5).
     /// </summary>
+    /// <summary>PLAN-44: the loser of a start race gets the message, whether the policy or the default started the instance.</summary>
     private async Task<(Guid? InstanceId, string? Error)> StartReviewWorkflowAsync(
+        RecruitmentAppeal appeal,
+        Guid? actorUserId,
+        string? actorUserName,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await StartReviewWorkflowOnceAsync(appeal, actorUserId, actorUserName, ct);
+        }
+        catch (WorkflowInstanceRunningException running)
+        {
+            return (null, running.Message);
+        }
+    }
+
+    private async Task<(Guid? InstanceId, string? Error)> StartReviewWorkflowOnceAsync(
         RecruitmentAppeal appeal,
         Guid? actorUserId,
         string? actorUserName,

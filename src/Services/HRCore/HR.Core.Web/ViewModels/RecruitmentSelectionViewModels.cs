@@ -182,6 +182,9 @@ public class RevokeOfferForm
 
 public class OfferLetterWorkflowActionViewModel
 {
+    /// <summary>PLAN-44: the step the page showed; a page behind the instance gets the conflict message.</summary>
+    public int? TargetStepLevel { get; set; }
+
     public Guid OfferId { get; set; }
 
     [Display(Name = "ملاحظات")]
@@ -201,6 +204,9 @@ public class SelectionCommitteeDetailsViewModel
 
 public class SelectionCommitteeWorkflowActionViewModel
 {
+    /// <summary>PLAN-44: the step the page showed; a page behind the instance gets the conflict message.</summary>
+    public int? TargetStepLevel { get; set; }
+
     public Guid SessionId { get; set; }
 
     [Display(Name = "ملاحظات")]

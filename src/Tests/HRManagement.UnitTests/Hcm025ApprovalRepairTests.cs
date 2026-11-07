@@ -126,7 +126,7 @@ public sealed class Hcm025ApprovalRepairTests
 
     private static IConfiguration NonLab() => Config("Off", labScale: false);
 
-    private static ApprovalRepairService CreateRepair(HRCoreDbContext db)
+    internal static ApprovalRepairService CreateRepair(HRCoreDbContext db)
     {
         var config = NonLab();
         var starter = CreateStarter(db);
@@ -140,7 +140,8 @@ public sealed class Hcm025ApprovalRepairTests
             new SelectionCommitteeLifecycleService(db, policy, starter, config, new SelectionCommitteeService(db), CreateActionService(db)),
             Hcm028AppealTestSupport.CreateService(db, config),
             new EstablishmentChangeLifecycleService(db, Mock.Of<ICodeGenerator>(), policy,
-                new EstablishmentLegalSourceValidator(legal), Mock.Of<IEstablishmentChangeApplier>(), starter, config));
+                new EstablishmentLegalSourceValidator(legal), Mock.Of<IEstablishmentChangeApplier>(), starter, config),
+            CreateActionService(db));
     }
 
     /// <summary>One stuck row of each kind (as a pre-PLAN-25 build left them) plus rows that are not stuck.</summary>
