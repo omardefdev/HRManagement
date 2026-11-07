@@ -534,6 +534,27 @@ public sealed class Wf045AssetApprovalPostgresTests(PgRabbitFixture fixture)
         Assert.Equal(key, Assert.Single(hrCore.Starts).Key);
     }
 
+    /// <summary>As the controller saves it: as the app role, inside the tenant, with the real interceptors, so the audit row is the real one.</summary>
+    private static async Task<AssetAssignment> SeedThroughTheAppRoleAsync(ServiceProvider provider, Guid tenant, Guid requester)
+    {
+        TenantIdFlow.Set(tenant);
+        try
+        {
+            await using var scope = provider.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AdminLogisticsDbContext>();
+            var asset = NewAsset(tenant);
+            var assignment = NewAssignment(asset, AssetAssignmentStatus.ApprovalStarting, requester: requester);
+            db.Assets.Add(asset);
+            db.AssetAssignments.Add(assignment);
+            await db.SaveChangesAsync();
+            return assignment;
+        }
+        finally
+        {
+            TenantIdFlow.Set(null);
+        }
+    }
+
     private async Task<(string Admin, string App)> ForcedRowSecurityAsync()
     {
         var admin = await LogisticsDatabaseAsync("rls");
@@ -549,16 +570,17 @@ public sealed class Wf045AssetApprovalPostgresTests(PgRabbitFixture fixture)
     {
         Skip.IfNot(RealInfra.IsEnabled);
         var (admin, app) = await ForcedRowSecurityAsync();
-        var inA = await SeedStartingAsync(admin, Tenant, Requester);
-        var inB = await SeedStartingAsync(admin, TenantB, RequesterB);
 
         Assert.False(await ScalarAsync<bool>(app, "SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user"));
         Assert.True(await ScalarAsync<bool>(admin, """SELECT relforcerowsecurity FROM pg_class WHERE oid = '"AssetAssignments"'::regclass"""));
 
-        // A session with no tenant finds no request at all, and the tenants still.
-        Assert.Equal(0L, await ScalarAsync<long>(app, """SELECT count(*) FROM "AssetAssignments" """));
         var hrCore = new FakeHrCore(failures: 0);
         await using var provider = JobProvider(app, hrCore);
+        var inA = await SeedThroughTheAppRoleAsync(provider, Tenant, Requester);
+        var inB = await SeedThroughTheAppRoleAsync(provider, TenantB, RequesterB);
+
+        // A session with no tenant finds no request at all, and the tenants still: the audit interceptor wrote their rows.
+        Assert.Equal(0L, await ScalarAsync<long>(app, """SELECT count(*) FROM "AssetAssignments" """));
         await using (var scope = provider.CreateAsyncScope())
         {
             var tenants = await AssetApprovalStartRetryJob.FindTenantsAsync(scope.ServiceProvider.GetRequiredService<AdminLogisticsDbContext>());

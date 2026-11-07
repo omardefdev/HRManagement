@@ -160,6 +160,20 @@ public sealed class Wf045AssetApprovalRulesTests
     }
 
     [Fact]
+    public void An_approval_does_not_revive_a_request_a_transfer_closed()
+    {
+        var closedAt = new DateTime(2026, 11, 7, 12, 0, 0, DateTimeKind.Utc);
+        var asset = new Asset { Status = AssetStatus.InStorage };
+        var assignment = new AssetAssignment { AssetId = asset.Id, Status = AssetAssignmentStatus.PendingApproval, ReturnedAt = closedAt };
+
+        AssetApprovalRules.ApplyApproved(assignment, asset, []);
+
+        Assert.Equal(AssetAssignmentStatus.Rejected, assignment.Status);
+        Assert.Equal(closedAt, assignment.ReturnedAt);
+        Assert.Equal(AssetStatus.InStorage, asset.Status);
+    }
+
+    [Fact]
     public void A_long_reason_fits_the_columns_so_a_rejection_never_fails_its_consumer()
     {
         var assignment = new AssetAssignment { Status = AssetAssignmentStatus.PendingApproval };

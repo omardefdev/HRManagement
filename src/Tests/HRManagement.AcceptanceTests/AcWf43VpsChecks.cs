@@ -30,8 +30,8 @@ public partial class AcOps36VpsBootTests
         var recorder = StartWf43("vps-definitions", "Demo server: the backfill matches the before-picture, the health report names the invalid definitions, the realm has workflow-admin");
 
         var byStatus = Sql("hr_core_db", "select \"Status\", \"IsPublished\", count(*) from \"WorkflowDefinitions\" group by 1, 2 order by 1, 2");
-        Assert.Equal(["Published|t|16", "Retired|f|1"], byStatus);
-        Assert.Equal(["ASSET-ASSIGN-APPROVAL"], Sql("hr_core_db", "select \"Code\" from \"WorkflowDefinitions\" where \"RequireDistinctApprovers\""));
+        Assert.Equal(["Published|t|16", "Retired|f|3"], byStatus);
+        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL"], Sql("hr_core_db", "select distinct \"Code\" from \"WorkflowDefinitions\" where \"RequireDistinctApprovers\" order by 1"));
 
         var (code, logs) = Sh($"docker logs {ContainerOf("hr-core-web")} 2>&1 | grep -a 'fails validation' | grep -ao 'definition [A-Z-]* v[0-9]*' | sort -u");
         Assert.True(code == 0, logs);
@@ -44,7 +44,7 @@ public partial class AcOps36VpsBootTests
         Assert.Equal("1", role);
 
         recorder.WriteScenarioDbChecks(new { byStatus, invalid = logs.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), role });
-        recorder.WriteScenarioSteps("psql: 16 Published and 1 Retired, distinct approvers on ASSET-ASSIGN-APPROVAL alone; the start-up log names the invalid definitions and hr-core-web is healthy; the realm holds workflow-admin.");
+        recorder.WriteScenarioSteps("psql: 16 Published and 3 Retired, distinct approvers on both custody codes; the start-up log names the invalid definitions and hr-core-web is healthy; the realm holds workflow-admin.");
         recorder.WriteResult("Pass");
     }
 

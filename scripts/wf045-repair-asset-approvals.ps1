@@ -115,7 +115,7 @@ if ($Apply) {
     foreach ($t in $tables) {
         $table = $t.Table
         $changed = Invoke-Sql 'admin_db' "WITH changed AS (UPDATE `"$table`" SET `"Status`" = 4, `"UpdatedAt`" = now() WHERE `"Status`" = 0 AND `"WorkflowInstanceId`" IS NULL RETURNING 1) SELECT count(*) FROM changed;"
-        $applied += [int]$changed[0]
+        $applied += [int](@($changed)[0])
     }
 }
 

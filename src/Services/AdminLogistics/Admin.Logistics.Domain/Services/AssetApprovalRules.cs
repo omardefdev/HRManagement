@@ -94,14 +94,17 @@ public static class AssetApprovalRules
         RecordWithdrawal(report, actor, reason, now);
     }
 
-    /// <summary>The approved outcome of a linked assignment. The asset may have left the storage meanwhile: then it is refused.</summary>
+    /// <summary>
+    /// The approved outcome of a linked assignment. It is refused if a transfer or a separation closed the request meanwhile, or the asset left
+    /// the storage.
+    /// </summary>
     public static void ApplyApproved(AssetAssignment assignment, Asset asset, IEnumerable<AssetAssignment> otherOpenAssignments)
     {
         Require(CanMove(assignment.Status, AssetAssignmentStatus.Active), assignment.Status);
-        if (!AssetAssignmentRules.CanAssign(asset, otherOpenAssignments))
+        if (assignment.ReturnedAt is not null || !AssetAssignmentRules.CanAssign(asset, otherOpenAssignments))
         {
             assignment.Status = AssetAssignmentStatus.Rejected;
-            assignment.ReturnedAt = DateTime.UtcNow;
+            assignment.ReturnedAt ??= DateTime.UtcNow;
             return;
         }
 

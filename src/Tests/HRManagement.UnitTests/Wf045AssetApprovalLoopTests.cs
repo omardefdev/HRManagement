@@ -3,16 +3,20 @@ using System.Text;
 using System.Text.Json;
 using Admin.Logistics.Domain.Entities;
 using Admin.Logistics.Domain.Enums;
+using Admin.Logistics.Infrastructure.Consumers;
 using Admin.Logistics.Infrastructure.Abstractions;
 using Admin.Logistics.Infrastructure.Data;
 using Admin.Logistics.Infrastructure.Integration;
 using Admin.Logistics.Infrastructure.Services;
+using HRManagement.MessageContracts.Commands;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Entities;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace HRManagement.UnitTests;
 
@@ -504,6 +508,59 @@ public sealed class Wf045AssetApprovalLoopTests
         Assert.Equal(2, tenants.Count);
         Assert.Contains(assignments, tenants);
         Assert.Contains(losses, tenants);
+    }
+
+    // The separation saga.
+
+    private sealed class Compensating(AdminLogisticsDbContext db) : SeparationPartyAckConsumer(db)
+    {
+        public Task<string?> RunExecuteAsync(ConsumeContext<IExecuteSeparationParty> context) => ExecuteAsync(context);
+
+        public Task<string?> RunCompensateAsync(ConsumeContext<IExecuteSeparationParty> context) => CompensateAsync(context);
+    }
+
+    private static ConsumeContext<IExecuteSeparationParty> SeparationOf(Guid employee)
+    {
+        var message = new Mock<IExecuteSeparationParty>();
+        message.SetupGet(m => m.EmployeeId).Returns(employee);
+        var context = new Mock<ConsumeContext<IExecuteSeparationParty>>();
+        context.SetupGet(c => c.Message).Returns(message.Object);
+        context.SetupGet(c => c.CancellationToken).Returns(CancellationToken.None);
+        return context.Object;
+    }
+
+    [Fact]
+    public async Task Compensation_reopens_what_the_saga_closed_and_nothing_someone_else_closed()
+    {
+        await using var db = NewDb();
+        var employee = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        Asset Stored(string tag, AssetStatus status) => new() { Name = "Laptop", TagNumber = tag, Status = status };
+        var (held, withdrawn, rejected, returned) = (Stored("H", AssetStatus.InUse), Stored("W", AssetStatus.InStorage), Stored("R", AssetStatus.InStorage), Stored("B", AssetStatus.InStorage));
+        db.Assets.AddRange(held, withdrawn, rejected, returned);
+        var active = new AssetAssignment { AssetId = held.Id, EmployeeId = employee, Status = AssetAssignmentStatus.Active };
+        var closed = new[]
+        {
+            new AssetAssignment { AssetId = withdrawn.Id, EmployeeId = employee, Status = AssetAssignmentStatus.Withdrawn, ReturnedAt = now },
+            new AssetAssignment { AssetId = rejected.Id, EmployeeId = employee, Status = AssetAssignmentStatus.Rejected, ReturnedAt = now },
+            new AssetAssignment { AssetId = returned.Id, EmployeeId = employee, Status = AssetAssignmentStatus.Returned, ReturnedAt = now }
+        };
+        db.AssetAssignments.Add(active);
+        db.AssetAssignments.AddRange(closed);
+        await db.SaveChangesAsync();
+        var consumer = new Compensating(db);
+        var context = SeparationOf(employee);
+
+        await consumer.RunExecuteAsync(context);
+        Assert.NotNull(active.ReturnedAt);
+        Assert.Equal(AssetStatus.InStorage, held.Status);
+
+        await consumer.RunCompensateAsync(context);
+
+        Assert.Null(active.ReturnedAt);
+        Assert.Equal(AssetStatus.InUse, held.Status);
+        Assert.All(closed, a => Assert.NotNull(a.ReturnedAt));
+        Assert.Equal(AssetStatus.InStorage, withdrawn.Status);
     }
 
     private sealed class FakeStarter : IAssetApprovalStarter

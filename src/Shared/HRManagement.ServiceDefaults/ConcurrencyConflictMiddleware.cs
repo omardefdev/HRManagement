@@ -33,7 +33,7 @@ public sealed class ConcurrencyConflictMiddleware(
         // PLAN-45 (PLAN-44's L3): the loser of a deadlock rolled back, as the loser of an optimistic race does. Never a 500.
         catch (Exception ex) when (ConcurrencyExtensions.IsDeadlock(ex))
         {
-            logger.LogWarning(ex, "Deadlock victim on {Path}", context.Request.Path);
+            logger.LogWarning(ex, "Deadlock victim on {Path}", context.Request.Path.Value);
             await WriteConflictAsync(context, ConcurrencyConflictMessages.StaleWrite, ex);
         }
         catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))

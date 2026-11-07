@@ -14,3 +14,46 @@ Finished (UTC): 2026-11-07T14:06:11.2927772Z
 - Test results: see reports/plan45-baseline.md.
 - Server changes: none.
 - Next step: finish P1 (AdminLogistics loop).
+
+## P1 - the loop in AdminLogistics
+Finished (UTC): 2026-11-07T14:17:09.1345985Z
+- Migration WF045_AssetApprovalLoop: the fields, xmin on AssetLossReport (Npgsql emits nothing for it), IdempotencyRecords (so [Idempotent] has a table), an index on AuditLogs (EntityType, TenantId), the loss report's unique index widened to Status IN (0, 4) so ApprovalStarting blocks a second report. No data change.
+- Decisions: WorkflowTriggerService deleted, AssetApprovalStarter replaces it; AssetApprovalLoop holds the start, the retry and the withdrawal; RequestedByName added (the job otherwise starts instances with no requester name); the starter sets X-Acting-User to CreatedBy, so a retry by a colleague keeps the real requester.
+- Withdrawing a request in ApprovalStarting looks up the key first, to cancel an instance a lost answer left behind. With HR.Core down the asset is still freed.
+- PartyAck compensation now reopens Returned rows only (it would have reopened withdrawn and rejected ones).
+- Wiring: hr-core.workflow-instances.cancel added.
+- Tests: Wf045 rules, architecture guard, loop, starter, job. Filter Wf045|Wf043|Fun005|Asset|HrCoreEndpoint|Data001|Ten002|ProductionWiring: 402 passed, 1 failed (the QuestPDF notice from the baseline).
+- Next step: P2.
+
+## P2 - the chain
+Finished (UTC): (commit 5348fb37, before P3; stamped late in this section's file order)
+- EnsureCustodyChainAsync replaces EnsureMultiStepAssetAssignmentAsync: raises both codes, leaves a later version with the same roles alone, retires an older published version, never publishes a first one.
+- Guardrails: FirstStepRole and MaxSteps added. ExternalApprovalGate, one per registered type. admin-logistics in WorkflowStepAction and HrCoreWorkInbox only. AssetLossReport exemption closed.
+
+## P3 - generic page and inbox
+Finished (UTC): (commit cb5f09ac)
+- WorkflowApprovalsController, WorkInboxAudience, the gateway rule placed before the mutating block, the module filter. The deep link is relative to HR.Core. Branch-level holders read inside their unit only (addition to the plan). A short menu for a logistics-only user.
+
+## P4 - tests and repair
+Finished (UTC): 2026-11-07T14:47:37.4893640Z
+- L3 closed: ConcurrencyExtensions.IsDeadlock, WorkflowConcurrency.LostRace used by decisions, cancels and SaveOrConflictAsync, and ConcurrencyConflictMiddleware as the net.
+- Wf045AssetApprovalPostgresTests: 8 of 8 (outbox, withdraw race x5, real deadlock, indexes, freed index, xmin, retry by key, job under forced row security as a non-superuser).
+- Integration Wf045|Ac33|Wf043|Wf044: green after one test was updated for the loss code's distinct approvers. Unit: 5370 passed, the 1 failure fixed in the commit.
+- AC-11, AC-33, AC-WF-43e/f rewritten; AcWf45 written; ci-scope and ownership updated early, because the guards need them.
+- Next step: P5.
+
+Stamps for P2 and P3, from their commits (the sections above were written later): P2 finished 2026-11-07T14:27:00Z, P3 finished 2026-11-07T14:31:11Z.
+
+## P5 - acceptance and review (running)
+- Job 1, prod-like, AcWf45 only: stack 897 s with images; AC-WF-45a..h 8 of 8, 70 s.
+- Repair script on the acceptance data, all modes run: dry, -Apply (the job linked the row), -RestartOnLatest (old instance Cancelled, new one on v2). The run showed a defect in the script's count (char cast), fixed.
+- Pending requests on the acceptance data before the repair: 0 without an instance; the one found was inserted for the check.
+- Job 2, prod-like regressions, -NoBuild: stack 264 s. AcHcm25 and AcWf43 14 of 14, AcMsg40 8, AcWf44 5, AcOps39 8, AcS2s42 9, AcInt37 6 of 8. Ac37b and Ac37e are Blocked: they need the journey stage, which a -Classes run skips (recorded before; not a regression).
+- Independent review (one subagent, read-only): 1 high, 1 medium, 5 low. H1 checked against the code and confirmed: my change to CompensateAsync (Status == Returned) could not match what ExecuteAsync closes. Fixed: Active, PendingApproval, ApprovalStarting; a test covers it. M1 fixed: Path.Value in the new log line. L1 fixed: ApplyApproved refuses a request closed by a transfer or separation. L2 recorded in the baseline. L3, L4, L5: see the final report.
+- The row-security test now seeds through the app role and the real audit interceptor.
+- Unit after the fixes: 5373 of 5373. Wf045 PostgreSQL: 8 of 8.
+- Job 3, -Profile Both after the review fixes, images rebuilt: lab stack 905 s, prod-like 269 s. Ac11, Ac32, Ac33, AcWf23, AcEst24, AcHcm28: 16 of 16. AcWf43 6 of 6, AcMsg40 8 of 8, AcWf45 8 of 8. Guard PASS (9 classes in 4 trx files), job PASS.
+- Demo users added to the realm manifest: e2e-logistics-maker, e2e-logistics-checker. AcWf45VpsChecks written; AC-WF-43's server check moved to 3 Retired and both custody codes.
+- Stack down with -v. Evidence restored, a copy in artifacts/plan45/acceptance.
+Finished (UTC): 2026-11-07T15:50:01.0044594Z
+- Next step: P6, then P7.

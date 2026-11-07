@@ -62,7 +62,9 @@ Storage is a plain integer with no check constraint, and EF casts an unknown val
 | Loss `ApprovalStarting` (4) | Not seen as pending, so the form shows; the new index refuses a second report, which the tag shows as an error |
 | Loss `Withdrawn` (5) | Closed, the label shows `5` |
 
-The consumers return without effect on either value. Rollback is safe: nothing crashes, and a held asset is released by redeploying or by the repair path.
+The consumers return without effect on either value. Rollback is safe for the data: nothing crashes, and a row in `ApprovalStarting` stays held until the new tag runs again.
+
+**The definitions stay on the chain after a rollback.** The previous tag starts custody on v2, whose step 1 is `admin-logistics`, and it has no `admin-logistics` in `WorkflowStepAction`, so a new custody request cannot pass step 1 and has no withdrawal. Nothing crashes and no data is lost: such a request waits for the roll-forward.
 
 ## Callers
 
