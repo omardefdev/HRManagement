@@ -15,4 +15,8 @@ public static class AdvisoryLockKeys
     public const long HireCommencementWatch = 4_001_009;
     /// <summary>PLAN-45: Admin.Logistics, the approval start of waiting custody and loss requests.</summary>
     public const long AssetApprovalStartRetry = 4_001_010;
+    /// <summary>PLAN-46: IDCard, the owner-side sweep of card requests.</summary>
+    public const long CardRequestApprovalSweep = 4_001_011;
+    /// <summary>PLAN-46: Compliance, the owner-side sweep of disciplinary actions.</summary>
+    public const long DisciplinaryApprovalSweep = 4_001_012;
 }

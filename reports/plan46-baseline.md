@@ -76,4 +76,4 @@ PLAN-60's document needs no correction.
 Run with the additive P1 shared types in the tree; no existing code path changed.
 
 - Unit, filter `IdCard|Compliance|Disciplinary|WorkflowDefinitionsHaveHandlers|Wf043|Wf045`: 320 passed, 0 failed.
-- Integration, filter `IdCard|Compliance|Wf043|Wf045`: A total of 1 test files matched the specified pattern..
+- Integration, filter `IdCard|Compliance|Wf043|Wf045`: 11 passed, 16 skipped, 0 failed, 27 in all.
