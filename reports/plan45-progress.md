@@ -57,3 +57,22 @@ Stamps for P2 and P3, from their commits (the sections above were written later)
 - Stack down with -v. Evidence restored, a copy in artifacts/plan45/acceptance.
 Finished (UTC): 2026-11-07T15:50:01.0044594Z
 - Next step: P6, then P7.
+
+## P6 - main
+origin/main did not move (aeb6d716): nothing to do. Finished with P5.
+
+## P7 - the demo server
+Finished (UTC): 2026-11-07T16:57:31.2619808Z
+- Condition: running tag 973d68488f09 is on origin/main.
+- Backup /opt/hrm/backups/pre-plan45-20261107T155048Z verified: SHA256SUMS OK, 17 CREATE DATABASE. Undo: restore only if data is damaged.
+- Build of 9560b03e51a3, detached, 1280 s, 17 of 17 tagged. Deploy 150 s, smoke 50 pass, 0 fail, 1 warn. Undo: scripts/vps/deploy.ps1 -Rollback (to 973d68488f09).
+- Demo users e2e-logistics-maker, e2e-logistics-checker through scripts/vps/add-demo-user.sh. Undo: Keycloak admin, delete both. First attempt lost tenant_id (user profile); fixed, the profile restored.
+- Repair: dry and -Apply, 0 items.
+- AC_WF_45_vps 3 of 3. Server suites: 12 pass, 9 fail, 6 skip on ssh errors; rerun 13 of 13 and 6 of 6.
+- Server keeps assets named PLAN-45 server check.
+- Next step: P8.
+
+## P8 - docs, gates, merge
+- Local CI on 8957cc32: 91 passed, 0 failed, 1629 s, after two failed runs (byte order mark; Ops038 plugin download).
+- Final report and PR text written.
+- Next step: pre-push check, release/plan-45, PR, wait for the checks, merge only when all are green.

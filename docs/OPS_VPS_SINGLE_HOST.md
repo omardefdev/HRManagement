@@ -278,6 +278,11 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-43: حُذف `GATEWAY_CALLER_PROOF_SECRET` من `/opt/hrm/shared/.env` (لا شيفرة تقرؤه منذ `a7ad95e0a4fa`) | إعادة السطر من `env.backup` في نسخة `pre-plan43` |
 | PLAN-43: طلب شاغر معتمد واحد باسم «PLAN-43 server check» من فحص الخادم، ورفع عدّاد `RecruitmentRequisition` فوق أرقام البذرة | يبقى، أو يُرفض من الواجهة |
 | PLAN-43: `/opt/hrm/backups/pre-plan43-20261106T140127Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
+| PLAN-45: الإصدار `9560b03e51a3` (current-tag؛ previous-tag `973d68488f09`)، وترحيل `WF045_AssetApprovalLoop` في `admin_db` (أعمدة مضافة، وجدول `IdempotencyRecords`، وفهرس على `AuditLogs`، وفهرس فقدان موسَّع) | `deploy.ps1 -Rollback`. الأعمدة تبقى ويتجاهلها الوسم السابق |
+| PLAN-45: الإصداران 2 من `ASSET-ASSIGN-APPROVAL` و`ASSET-LOSS-APPROVAL`، والإصداران 1 مسحوبان، ويأتيان من `EnsureCustodyChainAsync` عند الإقلاع | لا تراجع بالوسم: الإصدار 2 يبقى منشوراً بعد `-Rollback`، فالطلب الجديد يبقى عند الخطوة 1 حتى العودة إلى هذا الوسم. لا يتعطل شيء ولا تُفقد بيانات |
+| PLAN-45: المستخدمان `e2e-logistics-maker` و`e2e-logistics-checker` في الـ realm (`admin-logistics`، و`tenant_id` للجهة الوطنية، وكلمة مرور العرض) عبر `scripts/vps/add-demo-user.sh` | لوحة Keycloak: حذف المستخدمين |
+| PLAN-45: ثلاثة أصول باسم «PLAN-45 server check» لكل تشغيل لفحص الخادم (محجوز، ومفقود، ومتاح) | تُترك، أو تُلغى من شاشة الأصل |
+| PLAN-45: `/opt/hrm/backups/pre-plan45-20261107T155048Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
 
 ## 11. التسليم للمالك
 
@@ -526,3 +531,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/hcm025-repair-stuck-
 
 البند `ApplyFinishedOutcome` يعيد تشغيل المعالج ويدوّن المشغّل فاعلاً، ولا ينشئ نسخة ولا يغيّرها. و`NotLinked` يعني نسخة مكتملة لا يربطها الكيان، فلا تُطبَّق. والاعتراض المقبول يبقى للمشغّل، لأن إعادة احتساب النتائج ليست في المعالج.
 
+
+## اعتماد العهدة والفقدان (PLAN-45)
+
+- **المهمة:** `AssetApprovalStartRetryJob` في `admin-logistics-web` تبدأ كل `AssetApproval:Retry:IntervalSeconds` (120 ثانية) ما بقي `ApprovalStarting`، حتى `MaxAttempts` (30) ثم «يتطلب تدخلاً». تعرف الجهات من `AuditLogs`، لأن قاعدة الخدمة بلا جدول جهات. سطرها في السجل: `docker logs hrm-admin-logistics-web 2>&1 | grep 'Asset approval start'`.
+- **المقياسان** داخل الحاوية: `curl -s http://localhost:8080/metrics | grep '^asset_approval_'`: `asset_approval_starting_total` و`asset_approval_needs_intervention_total`. يتجاوز الثاني الصفر حين يحتاج طلب إلى «إعادة المحاولة» من صفحة الأصل أو إلى السحب.
+- **سكربت الإصلاح** للطلبات `PendingApproval` بلا نسخة، جاف افتراضياً:
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wf045-repair-asset-approvals.ps1 -Server
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/wf045-repair-asset-approvals.ps1 -Server -Apply
+```
+
+  التقرير في `artifacts/plan45/`. أما `-RestartOnLatest` فلا يُستعمل على هذا الخادم: النسخ الجارية تكمل على إصدارها المثبّت.
+- **مستخدم عرض جديد:** أضفه إلى `demoUsers` في `docker/keycloak/realm-manifest.json`، ثم إلى الـ realm القائم، لأن الاستيراد للـ realm الجديد فقط و`keycloak-reconcile` لا يمس المستخدمين:
+
+```bash
+ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- <username> <email> <lastName> <tenantId> <role>" < scripts/vps/add-demo-user.sh
+```
+
+  ملف المستخدم في الـ realm القائم لا يعرّف `tenant_id`، فالسكربت يسمح بالسمة أثناء الكتابة فقط ثم يعيد الملف كما كان.
+- **النسخة:** `/opt/hrm/backups/pre-plan45-20261107T155048Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`، و17 سطر `CREATE DATABASE`.
+- **التراجع:** `deploy.ps1 -Rollback` يعيد `973d68488f09`. صف `ApprovalStarting` يبقى حاجزاً للأصل بلا أزرار، ويظهر رقم الحالة، حتى العودة إلى هذا الوسم.
+
+**نشر 2026-11-07.** بناء واحد لـ `9560b03e51a3` (1280 ث، منفصل عن جلسة ssh)، ونشر في 150 ث، وفحص الدخان 50 نجاحاً و0 فشل وتحذير واحد.
