@@ -6,7 +6,7 @@ using HRManagement.ServiceDefaults;
 
 namespace HR.Core.Web.Controllers;
 
-/// <summary>HCM-028 (F4): HrCoreWorkInbox — the HR.Core read roles plus the compliance reviewer (appeals only).</summary>
+/// <summary>HCM-028 (F4): HrCoreWorkInbox — the HR.Core read roles plus the compliance reviewer (appeals only), and PLAN-45's external audience (their types only).</summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreWorkInbox)]
 public class WorkInboxController(WorkflowInboxQueryService queryService) : Controller
 {

@@ -235,7 +235,7 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
     }
 
     /// <summary>A path inside the owner's UI: no scheme, no other host, no way back out of the prefix.</summary>
-    private static bool IsDetailsUrl(string? url, string prefix) =>
+    public static bool IsDetailsUrl(string? url, string prefix) =>
         !string.IsNullOrWhiteSpace(url)
         && url.Length <= MaxDetailsUrlLength
         && url.StartsWith(prefix, StringComparison.Ordinal)
