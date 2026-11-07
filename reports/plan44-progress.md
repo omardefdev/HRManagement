@@ -53,3 +53,14 @@ One independent review of origin/main...HEAD: 1 high, 2 medium, 6 low. H1 checke
 - L3 recorded, not fixed: a cancel and a decision can deadlock on lock order; both roll back, the loser gets a 500.
 - L6 second half recorded: on the previous tag a sequential second start now gets a unique violation, not a second instance.
 - Unit 5115 of 5115; Wf044, Wf043, Hcm031 integration 38 passed, 1 skipped. SensitiveDataAuditTests failed once in a parallel run, passed alone and in the next full run; not this change.
+Resumed (UTC): 2026-11-07T08:22:47Z reason: the server build's ssh session was reset and the host lost its network for long stretches; the demo-server lock expired at 02:14Z.
+
+## P7 (demo server)
+- demo-server: acquired 22:14:17Z, expired 02:14Z during the outage, taken over 08:23Z (own lock), released 08:53Z. Check of P-13: running tag 3bd9ee92bcf5 on origin/main.
+- origin/main moved to f77dd28b (PLAN-66, PR 39): merged at 973d6848, no conflict, no service code; unit 5244 of 5244.
+- WAITING (host network): GitHub and ssh lost at about 22:26Z; the first build died before its push; the host was back by 08:22Z.
+- Backups: pre-plan44-20261106T221735Z and pre-plan44-20261107T083208Z (700/600, SHA256SUMS OK, 17 CREATE DATABASE lines).
+- Build: first run compiled 17 images, then lost; rerun detached with nohup 08:23Z to about 08:31Z, rc=0, 17 of 17 in the registry.
+- Deploy 973d68488f09: 147 s, no keycloak-reconcile failure, smoke 50 pass, 0 fail, 1 warn; previous-tag 3bd9ee92bcf5.
+- Checks: duplicates 0, stuck 0, row security forced; AC_WF_44_vps 3 of 3; AcOps36 (36j excepted), AcInt37, PLAN-38..43 server checks 21 of 21, 997 s. Dry run 0 items, so nothing to apply.
+Finished P7 (UTC): 2026-11-07T08:53Z

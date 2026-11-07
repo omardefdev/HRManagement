@@ -67,6 +67,8 @@ interface IWorkInboxService
 - Bulk approval prohibited or governed per agency policy
 - Every delegation/reassignment is audited
 - Escalation triggers notification to manager
+- An item waits for a decision only when the entity links that instance (`entity.WorkflowInstanceId == instance.Id`), for all five types (PLAN-44): an approval of any other instance would be lost, because the handler ignores it
+- The inbox bars the makers the gates bar, through the same `WorkflowMakerRules.Makers` (PLAN-44)
 
 ## Acceptance Criteria Mapping
 
