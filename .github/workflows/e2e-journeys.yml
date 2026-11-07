@@ -61,8 +61,10 @@ jobs:
           dotnet restore src/Tests/HRManagement.E2E/HRManagement.E2E.csproj --locked-mode
           dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj -c Release --no-restore
 
+      # Headless Chromium only, the one browser the tests launch: a plain --with-deps also fetches the WebKit and Firefox
+      # dependencies, 181 packages and 112 MB from an apt mirror that served them at 36 to 58 kB/s (up to 52 minutes, PR 40).
       - name: Install Playwright browsers
-        run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps
+        run: pwsh src/Tests/HRManagement.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps --only-shell chromium
 
       # The requisition-to-hire journey needs the acceptance stack (personas, seed, FileDrop) and runs in its own job
       # below, on the lab profile and then on the prod-like profile (Category=JourneyProdLike, PLAN-25).
