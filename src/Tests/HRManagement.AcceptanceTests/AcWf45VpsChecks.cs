@@ -131,7 +131,7 @@ public partial class AcOps36VpsBootTests
     {
         var recorder = StartWf45("vps-journey", "Demo server: a handover and a loss through both steps from the inbox, a withdrawal, and the refusals");
         var password = DemoPassword();
-        var employee = Sql("admin_db", "select \"EmployeeId\" from \"EmployeeOrgUnitSnapshots\" order by \"EmployeeId\" limit 1").Single();
+        var employee = Sql("hr_core_db", "select \"Id\" from \"Employees\" order by \"Id\" limit 1").Single();
 
         var (maker, _) = await SignInAsync(Wf45Maker, password, "/ui/admin-logistics/");
         var (checker, _) = await SignInAsync(Wf45Checker, password, "/ui/admin-logistics/");

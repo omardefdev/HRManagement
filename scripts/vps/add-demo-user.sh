@@ -7,6 +7,10 @@
 #
 #   ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- <username> <email> <lastName> <tenantId> <role> [role...]" < scripts/vps/add-demo-user.sh
 #
+# The live realm's user profile declares no tenant_id, and an admin write of an attribute it does not know is silently dropped; users of the
+# first import have it because the import bypasses the profile. So the profile allows unmanaged attributes for this write only, and goes back
+# as it was: the stored attribute stays, and the token mapper reads it as it does for the imported users.
+#
 # As in reconcile.sh, a secret reaches kcadm only through its prompt on stdin or a private file (mode 600), never a command line, and is
 # never printed.
 set -euo pipefail
@@ -26,7 +30,12 @@ shift 4
 KCADM=/opt/keycloak/bin/kcadm.sh
 REALM="${HRM_REALM:-hrmanagement}"
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+RESTORE_PROFILE=0
+restore() {
+    if [ "$RESTORE_PROFILE" = "1" ]; then kc update users/profile -r "$REALM" -f "$TMP/profile.json" > /dev/null; fi
+    rm -rf "$TMP"
+}
+trap restore EXIT
 export HOME="$TMP"
 
 kc() { "$KCADM" "$@" --config "$TMP/kcadm.config" < /dev/null; }
@@ -34,6 +43,13 @@ json_escape() { local v="$1"; v="${v//\\/\\\\}"; v="${v//\"/\\\"}"; printf '%s' 
 
 { printf '%s\n' "$KEYCLOAK_ADMIN_PASSWORD"; sleep 2; } | timeout 60 "$KCADM" config credentials --config "$TMP/kcadm.config" \
     --server http://localhost:8080 --realm master --user "$KEYCLOAK_ADMIN" > /dev/null 2>&1
+
+kc get users/profile -r "$REALM" > "$TMP/profile.json"
+if ! grep -q unmanagedAttributePolicy "$TMP/profile.json"; then
+    sed '0,/{/s//{ "unmanagedAttributePolicy": "ADMIN_EDIT",/' "$TMP/profile.json" > "$TMP/open.json"
+    kc update users/profile -r "$REALM" -f "$TMP/open.json" > /dev/null
+    RESTORE_PROFILE=1
+fi
 
 if kc get users -r "$REALM" -q "username=$USERNAME" -q exact=true --fields username | grep -q "\"$USERNAME\""; then
     echo "exists: $USERNAME"
@@ -45,6 +61,10 @@ else
     rm -f "$body"
     echo "created: $USERNAME"
 fi
+
+id="$(kc get users -r "$REALM" -q "username=$USERNAME" -q exact=true --fields id | grep -o '"id" : "[^"]*"' | cut -d'"' -f4)"
+[ -n "$id" ] || { echo "no id for $USERNAME" >&2; exit 1; }
+kc update "users/$id" -r "$REALM" -s "attributes.tenant_id=[\"$TENANT\"]" > /dev/null
 
 for role in "$@"; do
     kc add-roles -r "$REALM" --uusername "$USERNAME" --rolename "$role" > /dev/null
