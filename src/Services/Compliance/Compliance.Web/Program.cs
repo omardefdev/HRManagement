@@ -47,6 +47,8 @@ builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
 // PLAN-46: the cross-service approval contract (start, withdraw, status) with HR.Core.
 builder.Services.AddWorkflowApprovalClient(builder.Configuration);
+builder.Services.AddScoped<Compliance.Infrastructure.Services.DisciplinaryApprovalService>();
+builder.Services.AddWorkflowApprovalSweep<Compliance.Infrastructure.Services.DisciplinaryApprovalStore>(builder.Configuration);
 builder.Services.AddHrCoreLookupClient(builder.Configuration);
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Compliance.Infrastructure.ExportJobs.IComplianceExportJobService, Compliance.Infrastructure.ExportJobs.ComplianceExportJobService>();

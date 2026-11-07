@@ -137,10 +137,10 @@ outbox on every receive endpoint.
 | `IMedicalDecisionIssued` | `MedicalCommitteeReportsController.Create` | SingleSave |
 | `ITrainingCompleted` | `TrainingEnrollmentsController.Complete`, `EssLearningController.UpdateProgress` | SingleSave |
 | `IMissionApproved` | `MissionFilesController.Approve` | SingleSave |
-| `ICardIssued` | `IssuedCardsController.Create`, `IssuedCardsController.Renew` | SingleSave |
+| `ICardIssued` (PLAN-46: only from a request approved in HR.Core's engine; `Renew` opens a replacement request and publishes nothing; `ProcessRequest` publishes nothing until wave 2, G-IDA-03) | `IssuedCardsController.Create` | SingleSave |
 | `IComplaintResolved` | `ComplaintsController.Resolve` | SingleSave |
 | `ILegalJudgmentIssued` | `LegalCasesController.Close` | SingleSave |
-| `IDisciplinaryActionTaken` | `DisciplinaryActionsController.Create` | SingleSave |
+| `IDisciplinaryActionTaken` (PLAN-46: only on the approval of compliance then the authority; message id from the action; actions published before PLAN-46 are `ApprovedBeforeEngine` and never published again) | `DisciplinaryApprovalOutcomeConsumer.StageActionTakenAsync`, from the consumer of `IWorkflowOutcomeDecided` and from the owner-side sweep, both through `DisciplinaryApprovalService.ApplyOutcomeAsync` with the status change in one save | ConsumerOutbox |
 | `IExportJobRequested` | `ComplianceExportJobService.EnqueueAsync` | SingleSave |
 
 ### Records.Archive, Dev.Analytics

@@ -130,12 +130,25 @@ public class LegalCasesController(
     }
 }
 
+/// <summary>
+/// PLAN-46 (section 4): an action is a draft until compliance, then the authority, approve it in HR.Core's engine; only that approval sends
+/// it to payroll (<c>DisciplinaryApprovalOutcomeConsumer</c>). This controller publishes nothing, and binds no approval field.
+/// </summary>
 public class DisciplinaryActionsController(
     ComplianceDbContext db,
-    IPublishEndpoint publish,
     IFileReferenceClient fileRefs,
-    IHrCoreLookupClient hrCoreLookup) : Controller
+    IHrCoreLookupClient hrCoreLookup,
+    Compliance.Infrastructure.Services.DisciplinaryApprovalService approvals) : Controller
 {
+    public const string NotEditableMessage = "يُعدَّل الإجراء وهو مسودة أو بعد رفضه فقط.";
+    public const string NotApprovedMessage = "يُستأنف الإجراء المعتمد فقط.";
+
+    private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var raw = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value;
+        return Guid.TryParse(raw, out var id) ? id : null;
+    }
+
     public async Task<IActionResult> Index()
     {
         var items = await db.DisciplinaryActions.AsNoTracking()
@@ -188,38 +201,86 @@ public class DisciplinaryActionsController(
             }
         }
 
-        if (model.Id == Guid.Empty)
-            model.Id = Guid.NewGuid();
-        model.IssuedBy = ServerAssignedIdentity.ResolveActorEmployeeId(User);
-        db.DisciplinaryActions.Add(model);
-
-        await publish.Publish<IDisciplinaryActionTaken>(new
+        // PLAN-46: a draft, with only what the form shows; nothing reaches payroll before the approval.
+        var action = new DisciplinaryAction
         {
-            model.EmployeeId,
-            ActionType = model.ActionType.ToString(),
-            model.IssuedAt,
-            model.Notes,
-            model.ComplaintId,
-            CorrelationId = (Guid?)model.Id,
-            ActionId = model.Id,
-
-            SourceSystem = "Compliance",
-            PenaltyDays = 0
-        });
+            Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id,
+            EmployeeId = model.EmployeeId,
+            ActionType = model.ActionType,
+            IssuedAt = model.IssuedAt,
+            Notes = model.Notes,
+            ComplaintId = model.ComplaintId,
+            EvidenceFileId = model.EvidenceFileId,
+            AppealStatus = AppealStatus.None,
+            ApprovalStatus = DisciplinaryApprovalStatus.Draft,
+            ApprovedBeforeEngine = false,
+            IssuedBy = ServerAssignedIdentity.ResolveActorEmployeeId(User)
+        };
+        db.DisciplinaryActions.Add(action);
         await db.SaveChangesAsync();
 
-        // Re-register with final id if evidence was attached before id known (after the commit: an HTTP call to
-        // File.Storage must not sit between the state and its event; the registration is idempotent).
-        if (model.EvidenceFileId.HasValue)
+        // Re-register with final id if evidence was attached before id known (after the commit; the registration is idempotent).
+        if (action.EvidenceFileId.HasValue)
         {
             await fileRefs.RegisterReferenceAsync(
-                model.EvidenceFileId.Value,
+                action.EvidenceFileId.Value,
                 FileReferenceClientExtensions.BuildHolderKey(
-                    HrFileServices.Compliance, nameof(DisciplinaryAction), model.Id, nameof(DisciplinaryAction.EvidenceFileId)));
+                    HrFileServices.Compliance, nameof(DisciplinaryAction), action.Id, nameof(DisciplinaryAction.EvidenceFileId)));
         }
 
-        TempData["Success"] = "تم تسجيل الإجراء التأديبي";
-        return RedirectToAction(nameof(Index));
+        // Then the submission. A failure leaves the draft, which Details submits again.
+        if (ParseUserId(User) is Guid submitter)
+        {
+            var result = await approvals.SubmitAsync(action, submitter, await EmployeeNameAsync(action.EmployeeId), HttpContext.RequestAborted);
+            if (result.Success)
+                TempData["Success"] = "سُجّل الإجراء وقُدّم للاعتماد: لا أثر له قبل اعتماد الامتثال ثم صاحب الصلاحية.";
+            else
+                TempData["Error"] = $"سُجّل الإجراء مسودةً ولم يُقدَّم: {result.Error}";
+        }
+        else
+        {
+            TempData["Error"] = "سُجّل الإجراء مسودةً؛ تعذّر تحديد مقدّم الطلب.";
+        }
+
+        return RedirectToAction(nameof(Details), new { id = action.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Submit(Guid id)
+    {
+        var action = await db.DisciplinaryActions.FindAsync(id);
+        if (action is null) return NotFound();
+        if (ParseUserId(User) is not Guid submitter) return Forbid();
+
+        var result = await approvals.SubmitAsync(action, submitter, await EmployeeNameAsync(action.EmployeeId), HttpContext.RequestAborted);
+        if (result.Success)
+            TempData["Success"] = result.Finished ? "انتهى اعتماد هذا الإجراء سابقاً وطُبّقت نتيجته." : "قُدّم الإجراء للاعتماد.";
+        else
+            TempData["Error"] = result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Withdraw(Guid id, string? reason)
+    {
+        var action = await db.DisciplinaryActions.FindAsync(id);
+        if (action is null) return NotFound();
+
+        var result = await approvals.WithdrawAsync(
+            action, ParseUserId(User), string.IsNullOrWhiteSpace(reason) ? "سحب الإجراء التأديبي" : reason.Trim(), HttpContext.RequestAborted);
+        if (result.Success)
+            TempData["Success"] = "سُحب الإجراء وعاد مسودة.";
+        else
+            TempData["Error"] = result.Error ?? "انتهى الاعتماد قبل السحب وطُبّقت نتيجته.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    private async Task<string?> EmployeeNameAsync(Guid employeeId)
+    {
+        var name = (await ResolveEmployeeNamesAsync([employeeId])).GetValueOrDefault(employeeId);
+        return name == "غير متاح" ? null : name;
     }
 
     public async Task<IActionResult> Details(Guid id)
@@ -253,8 +314,11 @@ public class DisciplinaryActionsController(
     {
         var model = await db.DisciplinaryActions.FindAsync(id);
         if (model is null) return NotFound();
-        if (model.AppealStatus != AppealStatus.None)
+        if (model.AppealStatus != AppealStatus.None || !DisciplinaryWorkflowRules.CanEdit(model.ApprovalStatus))
+        {
+            TempData["Error"] = NotEditableMessage;
             return RedirectToAction(nameof(Details), new { id });
+        }
 
         ViewBag.Complaints = new SelectList(db.Complaints.AsNoTracking().OrderByDescending(c => c.CreatedAt).Take(SearchFilterBase.LookupMaxPageSize).ToList(), "Id", "Subject");
         return View(model);
@@ -266,6 +330,12 @@ public class DisciplinaryActionsController(
     {
         var entity = await db.DisciplinaryActions.FindAsync(id);
         if (entity is null) return NotFound();
+        // PLAN-46: an action that is pending, approved or published keeps its employee and type.
+        if (entity.AppealStatus != AppealStatus.None || !DisciplinaryWorkflowRules.CanEdit(entity.ApprovalStatus))
+        {
+            TempData["Error"] = NotEditableMessage;
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         entity.EmployeeId = model.EmployeeId;
         entity.ActionType = model.ActionType;
@@ -284,10 +354,14 @@ public class DisciplinaryActionsController(
         var entity = await db.DisciplinaryActions.FindAsync(id);
         if (entity is null) return NotFound();
 
-        if (DisciplinaryWorkflowRules.CanAppeal(entity.AppealStatus))
+        if (DisciplinaryWorkflowRules.CanAppeal(entity.AppealStatus, entity.ApprovalStatus))
         {
             entity.AppealStatus = AppealStatus.Pending;
             await db.SaveChangesAsync();
+        }
+        else
+        {
+            TempData["Error"] = NotApprovedMessage;
         }
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -299,7 +373,7 @@ public class DisciplinaryActionsController(
         var entity = await db.DisciplinaryActions.FindAsync(id);
         if (entity is null) return NotFound();
 
-        if (DisciplinaryWorkflowRules.CanDecide(entity.AppealStatus))
+        if (DisciplinaryWorkflowRules.CanDecide(entity.AppealStatus, entity.ApprovalStatus))
         {
             entity.AppealStatus = AppealStatus.Decided;
             entity.Notes = (entity.Notes ?? "") + $"\n[قرار الاستئناف]: {decision}";

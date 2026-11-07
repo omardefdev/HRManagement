@@ -86,16 +86,16 @@ public class Phase4Tests
     [Fact]
     public void DisciplinaryWorkflow_CanAppeal_OnlyWhenNone()
     {
-        Assert.True(DisciplinaryWorkflowRules.CanAppeal(AppealStatus.None));
-        Assert.False(DisciplinaryWorkflowRules.CanAppeal(AppealStatus.Pending));
+        Assert.True(DisciplinaryWorkflowRules.CanAppeal(AppealStatus.None, DisciplinaryApprovalStatus.Approved));
+        Assert.False(DisciplinaryWorkflowRules.CanAppeal(AppealStatus.Pending, DisciplinaryApprovalStatus.Approved));
     }
 
     [Fact]
     public void DisciplinaryWorkflow_CanDecide_OnlyWhenPending()
     {
-        Assert.True(DisciplinaryWorkflowRules.CanDecide(AppealStatus.Pending));
-        Assert.False(DisciplinaryWorkflowRules.CanDecide(AppealStatus.None));
-        Assert.False(DisciplinaryWorkflowRules.CanDecide(AppealStatus.Decided));
+        Assert.True(DisciplinaryWorkflowRules.CanDecide(AppealStatus.Pending, DisciplinaryApprovalStatus.Approved));
+        Assert.False(DisciplinaryWorkflowRules.CanDecide(AppealStatus.None, DisciplinaryApprovalStatus.Approved));
+        Assert.False(DisciplinaryWorkflowRules.CanDecide(AppealStatus.Decided, DisciplinaryApprovalStatus.Approved));
     }
 
     [Fact]

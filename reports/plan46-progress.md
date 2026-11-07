@@ -49,3 +49,10 @@ P3: the card.
 
 ## Next step (after P3)
 P4: discipline.
+- P4 Finished (UTC): 2026-11-07T21:20:50Z. Unit (Wf046*, Phase4/5, Data001, Compliance, Disciplinary, Fun004, outbox, guard, wiring, mass assignment, IdCard): 397 passed, 0 failed. Compliance has no pending model changes; migration without BOM.
+  - Decisions: existing rows become Approved (2) and ApprovedBeforeEngine by column defaults (works whatever row security says); OutcomePublishedAt = CreatedAt by an UPDATE inside a DO block that lifts FORCE only if it was set and restores it (PLAN-44 pattern). Deviation from P-3's first option: the defaults are NOT reset to Draft/false, because this code always writes both columns, while the previous tag (after a rollback) omits them and publishes at once: its rows must be approved-before-engine too, never published again.
+  - The publish of IDisciplinaryActionTaken lives in DisciplinaryApprovalOutcomeConsumer.StageActionTakenAsync ([StagesOutboxMessages]); the consumer and the sweep reach it through DisciplinaryApprovalService.ApplyOutcomeAsync. MessageId = DeterministicMessageId(action id): payroll's inbox drops any second copy. Excluded deciders: creator and submitter.
+  - Rollback: the previous tag ignores the approval columns; a Draft or PendingApproval action has no payroll effect there (it was never published), until the roll-forward.
+
+## Next step (after P4)
+P5: PostgreSQL tests (Wf046ExternalOutcomePostgresTests, Wf046DisciplinaryConsumerPostgresTests, migration under forced RLS, sweeps under forced RLS), then acceptance (AcWf46CrossServiceApprovalTests + P-11 list), then the independent review.
