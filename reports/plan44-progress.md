@@ -64,3 +64,6 @@ Resumed (UTC): 2026-11-07T08:22:47Z reason: the server build's ssh session was r
 - Deploy 973d68488f09: 147 s, no keycloak-reconcile failure, smoke 50 pass, 0 fail, 1 warn; previous-tag 3bd9ee92bcf5.
 - Checks: duplicates 0, stuck 0, row security forced; AC_WF_44_vps 3 of 3; AcOps36 (36j excepted), AcInt37, PLAN-38..43 server checks 21 of 21, 997 s. Dry run 0 items, so nothing to apply.
 Finished P7 (UTC): 2026-11-07T08:53Z
+
+## P8
+- Local CI on afb0922b: 91 passed, 0 failed, 1329 s. Pre-push: OK, 793 s.
