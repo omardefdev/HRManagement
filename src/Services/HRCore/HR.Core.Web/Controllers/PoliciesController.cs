@@ -20,7 +20,8 @@ namespace HR.Core.Web.Controllers;
 public class PoliciesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,
-    IPolicyVersionPublisher publisher) : ControllerBase
+    PolicyPublishService publishService,
+    PolicyDraftService drafts) : ControllerBase
 {
     [HttpPost("evaluate")]
     public async Task<IActionResult> Evaluate([FromBody] PolicyEnforceRequest request, CancellationToken ct)
@@ -102,8 +103,10 @@ public class PoliciesController(
         if (makerId == checkerId && !request.ForceSameActorForLab)
             return BadRequest("four-eyes: الناشر يجب أن يختلف عن المحرّر");
 
-        // PLAN-40 (class A): IPolicyPublished is staged inside PublishDraftAsync, before its save (both entry points).
-        await publisher.PublishDraftAsync(version, makerId, checkerId, request.EvidenceRef, ct);
+        // PLAN-47: the one publish path; PLAN-40's IPolicyPublished is staged inside the publisher, before its save.
+        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, makerId, checkerId, request.EvidenceRef), ct);
+        if (!result.Succeeded)
+            return PublishProblem(result);
 
         return Ok(new
         {
@@ -116,6 +119,49 @@ public class PoliciesController(
             version.TenantId
         });
     }
+
+    /// <summary>PLAN-47: add a rule to a draft. The rule is validated before it is saved; a published version answers 409.</summary>
+    [HttpPost("versions/{versionId:guid}/rules")]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> AddRule(Guid versionId, [FromBody] PolicyRuleRequest request, CancellationToken ct)
+    {
+        var result = await drafts.AddRuleAsync(versionId, request.ToInput(), ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
+    /// <summary>PLAN-47: change a rule of a draft.</summary>
+    [HttpPut("versions/{versionId:guid}/rules/{ruleId:guid}")]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> UpdateRule(Guid versionId, Guid ruleId, [FromBody] PolicyRuleRequest request, CancellationToken ct)
+    {
+        var result = await drafts.UpdateRuleAsync(versionId, ruleId, request.ToInput(), ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
+    /// <summary>PLAN-47: remove a rule from a draft.</summary>
+    [HttpDelete("versions/{versionId:guid}/rules/{ruleId:guid}")]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    public async Task<IActionResult> RemoveRule(Guid versionId, Guid ruleId, CancellationToken ct)
+    {
+        var result = await drafts.RemoveRuleAsync(versionId, ruleId, ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
+    private IActionResult DraftResult(PolicyDraftResult result) => result.Outcome switch
+    {
+        PolicyDraftOutcome.Ok => Ok(new { id = result.Id }),
+        PolicyDraftOutcome.NotFound => NotFound(new { error = result.MessageAr }),
+        PolicyDraftOutcome.NotDraft or PolicyDraftOutcome.Conflict => Conflict(new { error = result.MessageAr }),
+        _ => BadRequest(new { error = result.MessageAr, issues = result.IssueList })
+    };
+
+    private IActionResult PublishProblem(PolicyPublishResult result) => result.Outcome switch
+    {
+        PolicyPublishOutcome.NotFound => NotFound(new { error = result.MessageAr }),
+        PolicyPublishOutcome.Conflict => Conflict(new { error = result.MessageAr }),
+        PolicyPublishOutcome.FourEyes => StatusCode(StatusCodes.Status403Forbidden, new { error = result.MessageAr }),
+        _ => BadRequest(new { error = result.MessageAr, issues = result.IssueList })
+    };
 
     [HttpGet("ledger")]
     public async Task<IActionResult> Ledger([FromQuery] string? domain, [FromQuery] string? correlationId, CancellationToken ct)
@@ -134,6 +180,17 @@ public class PoliciesController(
         var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
         return Guid.TryParse(v, out var g) ? g : null;
     }
+}
+
+public sealed class PolicyRuleRequest
+{
+    public string? RuleKey { get; set; }
+    public string? Name { get; set; }
+    public int Priority { get; set; } = 100;
+    public string? WhenJson { get; set; }
+    public string? ThenJson { get; set; }
+
+    public HR.Core.Domain.Services.Policy.PolicyRuleInput ToInput() => new(RuleKey, Name, Priority, WhenJson, ThenJson);
 }
 
 public sealed class PublishPolicyRequest

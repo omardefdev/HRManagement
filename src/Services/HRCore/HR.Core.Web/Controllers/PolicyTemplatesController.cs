@@ -14,7 +14,8 @@ namespace HR.Core.Web.Controllers;
 public class PolicyTemplatesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,
-    IPolicyVersionPublisher publisher) : Controller
+    PolicyPublishService publishService,
+    PolicyDraftService drafts) : Controller
 {
     public async Task<IActionResult> Index()
     {
@@ -153,18 +154,13 @@ public class PolicyTemplatesController(
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> AddRule(Guid versionId, string ruleKey, string? name, int priority, string whenJson, string thenJson)
     {
-        var version = await db.PolicyTemplateVersions.FindAsync(versionId);
-        if (version is null || version.Status != PolicyVersionStatus.Draft) return BadRequest();
-        db.PolicyRules.Add(new PolicyRule
-        {
-            PolicyTemplateVersionId = versionId,
-            RuleKey = ruleKey,
-            Name = name,
-            Priority = priority,
-            WhenJson = whenJson,
-            ThenJson = thenJson
-        });
-        await db.SaveChangesAsync();
+        // PLAN-47: validated before it is saved; the message names the JSON path.
+        var result = await drafts.AddRuleAsync(
+            versionId, new HR.Core.Domain.Services.Policy.PolicyRuleInput(ruleKey, name, priority, whenJson, thenJson), ParseUserId(User));
+        if (result.Outcome is PolicyDraftOutcome.NotFound or PolicyDraftOutcome.NotDraft)
+            return result.Outcome == PolicyDraftOutcome.NotFound ? NotFound() : Conflict(result.MessageAr);
+        if (!result.Succeeded)
+            TempData["Error"] = result.MessageAr;
         return RedirectToAction(nameof(EditRules), new { versionId });
     }
 
@@ -191,7 +187,15 @@ public class PolicyTemplatesController(
             return RedirectToAction(nameof(EditRules), new { versionId });
         }
 
-        await publisher.PublishDraftAsync(version, makerId, checkerId, evidenceRef);
+        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, makerId, checkerId, evidenceRef));
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.Outcome == PolicyPublishOutcome.Invalid
+                ? $"{result.MessageAr}: {string.Join(" | ", result.IssueList.Select(i => $"{i.JsonPath}: {i.MessageAr}"))}"
+                : result.MessageAr;
+            return RedirectToAction(nameof(EditRules), new { versionId });
+        }
+
         TempData["Success"] = "تم النشر";
         return RedirectToAction(nameof(Details), new { id = version.PolicyTemplateId });
     }

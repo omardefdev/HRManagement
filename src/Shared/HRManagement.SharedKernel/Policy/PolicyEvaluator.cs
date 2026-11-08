@@ -88,6 +88,9 @@ public static class PolicyEvaluator
         };
     }
 
+    private static DateTime? Earliest(DateTime? a, DateTime? b) =>
+        a is null ? b : b is null ? a : (a < b ? a : b);
+
     public static PolicyVersionSnapshot MergeNationalAndTenant(
         PolicyVersionSnapshot? national,
         PolicyVersionSnapshot? tenant)
@@ -108,7 +111,9 @@ public static class PolicyEvaluator
             TenantId = tenant.TenantId,
             VersionNumber = tenant.VersionNumber,
             FactsSchema = tenant.FactsSchema ?? national.FactsSchema,
-            Rules = national.Rules.Concat(tenant.Rules).OrderBy(r => r.Priority).ToList()
+            Rules = national.Rules.Concat(tenant.Rules).OrderBy(r => r.Priority).ToList(),
+            InvalidRuleKeys = national.InvalidRuleKeys.Concat(tenant.InvalidRuleKeys).ToList(),
+            NextEffectiveFrom = Earliest(national.NextEffectiveFrom, tenant.NextEffectiveFrom)
         };
     }
 }

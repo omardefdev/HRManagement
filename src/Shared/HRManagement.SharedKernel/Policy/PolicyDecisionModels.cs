@@ -73,4 +73,10 @@ public sealed record PolicyVersionSnapshot
     public int VersionNumber { get; init; }
     public List<PolicyRuleDefinition> Rules { get; init; } = [];
     public PolicyFactsSchemaDefinition? FactsSchema { get; init; }
+
+    /// <summary>PLAN-47: stored rules the strict parser refuses. They stay in <see cref="Rules"/> and never match.</summary>
+    public IReadOnlyList<string> InvalidRuleKeys { get; init; } = [];
+
+    /// <summary>PLAN-47: the earliest EffectiveFrom of a published version after the evaluation time, if any (cache lifetime).</summary>
+    public DateTime? NextEffectiveFrom { get; init; }
 }

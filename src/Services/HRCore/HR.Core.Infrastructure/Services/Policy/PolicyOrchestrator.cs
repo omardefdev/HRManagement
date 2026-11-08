@@ -158,6 +158,12 @@ public sealed class PolicyOrchestrator(
         if (schema is not null)
             merged = merged with { FactsSchema = schema };
 
+        // PLAN-47: a stored rule the strict parser refuses matches nothing; say so once per load of the snapshot.
+        if (merged.InvalidRuleKeys.Count > 0)
+            logger.LogError(
+                "PLAN-47 policy version {VersionId} holds {Count} rule(s) the strict parser refuses; they never match: {RuleKeys}",
+                merged.VersionId, merged.InvalidRuleKeys.Count, string.Join(",", merged.InvalidRuleKeys));
+
         snapshotCache.Set(cacheKey, merged, PolicyPublishedSnapshotCache.DefaultTtl);
         return merged;
     }
