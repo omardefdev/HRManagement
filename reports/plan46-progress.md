@@ -95,3 +95,7 @@ P6 Finished (UTC): 2026-11-07T22:43:00Z
 
 ## Next step (after P7)
 P8: docs (status lines done; PLAN-46 plan status and notes), ci-local + prepush, final report, release branch, PR, wait, merge.
+- P8: docs updated (WF_001 engine «الاعتماد العابر للخدمات», WF_002, SOD_MATRIX, ADR-FUN-004, FUN_005 journey matrix, G-WF-01/G-WF-17 status lines, OPS_VPS_SINGLE_HOST, plan status and «ملاحظات التنفيذ والانحرافات»); final report and PR body written.
+
+## Next step (P8)
+Commit docs, create release/plan-46 from origin/main with --no-ff, run ci-local on that HEAD, then prepush, push, PR, wait, merge.

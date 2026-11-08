@@ -6,9 +6,10 @@
 
 | خطوة | إلزامي | مالك | SLA | واجهة |
 |---|---|---|---|---|
-| Requested | نعم | idcard | 24 | `CardRequestsController` |
+| Requested | نعم | idcard | 24 | `CardRequestsController` (مسودة، ثم «تقديم للاعتماد») |
+| Approved (PLAN-46) | نعم | idcard (غير الطالب) | 24 | `ID-CARD-ISSUANCE` في محرك HR.Core، من صندوق العمل والصفحة العامة |
 | Designed | لا | idcard | 48 | `CardDesignsController` |
-| Issued | نعم | idcard | 48 | `IssuedCards` + `ICardIssued` |
+| Issued | نعم | idcard | 48 | من طلب معتمد فقط: `ProcessRequest` أو `IssuedCards/Create` + `ICardIssued`؛ `Renew` يفتح طلباً بديلاً |
 | Printed | نعم | idcard | 24 | `MarkPrinted` |
 | Delivered | نعم | idcard | 24 | `MarkDelivered` + دليل |
 | Revoked | نعم | idcard | 48 | party ACK + `UrgentRevoke` |
