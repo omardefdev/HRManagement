@@ -58,13 +58,19 @@ public static class HrManagementRoles
     /// <summary>PLAN-43 (D-WF-4): writes and publishes workflow definitions from the national tenant. Reaches no HR.Core data.</summary>
     public const string WorkflowAdmin = "workflow-admin";
 
+    /// <summary>PLAN-47 (D-POL-3): writes policy drafts. No default holder; hr-core and admin author too.</summary>
+    public const string PolicyAuthor = "policy-author";
+
+    /// <summary>PLAN-47 (D-POL-3): publishes policy versions it did not edit. No default holder; hr-management-approver and admin publish too.</summary>
+    public const string PolicyApprover = "policy-approver";
+
     /// <summary>Every role above: what a workflow step may name (PLAN-43).</summary>
     public static readonly IReadOnlyList<string> All =
     [
         Admin, HrCore, HrCoreSupervisory, HrCoreExecutive, HrContracts, HrHealth, HrHealthClinical, HrMovements, HrTraining,
         Payroll, PayrollProcessor, PayrollApprover, PayrollPoster, PayrollReverser, IdCard, RecordsArchive, AdminLogistics,
         ItInfra, DevAnalytics, Compliance, AuthDirectory, FileStorage, HrManagementApprover, BranchManager, HrEmployee,
-        PlatformAdmin, Auditor, HrExamMarker, WorkflowAdmin
+        PlatformAdmin, Auditor, HrExamMarker, WorkflowAdmin, PolicyAuthor, PolicyApprover
     ];
 }
 
@@ -112,6 +118,15 @@ public static class HrManagementPolicies
     /// <summary>PLAN-40: the replay of lost events (MessagingRepairController): an administrator or a platform operator.</summary>
     public const string MessagingRepair = "Messaging.Repair";
     public const string HrCoreApprove = "HrCore.Approve";
+
+    /// <summary>PLAN-47 (D-POL-3): write policy drafts: PolicyEngine:Roles:Author (admin, hr-core, policy-author); never a service account.</summary>
+    public const string PolicyAuthor = "Policy.Author";
+
+    /// <summary>PLAN-47 (D-POL-3): publish policy versions: PolicyEngine:Roles:Approver (admin, hr-management-approver, policy-approver).</summary>
+    public const string PolicyApprover = "Policy.Approver";
+
+    /// <summary>PLAN-47: read policy templates and versions: the HR.Core readers, the authors and the approvers.</summary>
+    public const string PolicyReader = "Policy.Reader";
 
     /// <summary>Cross-tenant quarantine reconciliation is restricted to platform operators.</summary>
     public const string TenantQuarantineReconcile = "TenantQuarantine.Reconcile";

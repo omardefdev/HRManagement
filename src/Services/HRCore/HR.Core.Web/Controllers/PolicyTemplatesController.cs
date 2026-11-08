@@ -1,21 +1,29 @@
+using System.Globalization;
 using System.Security.Claims;
 using HR.Core.Domain.Entities.Policy;
-using HRManagement.SharedKernel.Policy;
+using HR.Core.Domain.Services.Policy;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Policy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
-[Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+/// <summary>
+/// PLAN-47 (D-POL-3): the policy pages. Reading is open to the HR.Core readers, the authors and the approvers; drafts belong
+/// to <see cref="HrManagementPolicies.PolicyAuthor"/>, publishing to <see cref="HrManagementPolicies.PolicyApprover"/>, and the
+/// publisher must not be among the draft's editors.
+/// </summary>
+[Authorize(Policy = HrManagementPolicies.PolicyReader)]
 public class PolicyTemplatesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,
     PolicyPublishService publishService,
-    PolicyDraftService drafts) : Controller
+    PolicyDraftService drafts,
+    IAuthorizationService authorization) : Controller
 {
     public async Task<IActionResult> Index()
     {
@@ -30,10 +38,16 @@ public class PolicyTemplatesController(
     public async Task<IActionResult> Details(Guid id)
     {
         var t = await db.PolicyTemplates
+            .AsNoTracking()
             .Include(x => x.Versions)
             .ThenInclude(v => v.Rules)
+            .Include(x => x.Versions)
+            .ThenInclude(v => v.Publications)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (t is null) return NotFound();
+
+        ViewBag.CanAuthor = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
+        ViewBag.EffectiveVersionId = PolicyDraftService.EffectiveVersion(t, DateTime.UtcNow)?.Id;
         return View(t);
     }
 
@@ -50,9 +64,10 @@ public class PolicyTemplatesController(
         return View();
     }
 
+    /// <summary>Evaluates the published policy of the version's domain, now or as of a date (PLAN-47 §6).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Simulate(Guid versionId, string factsJson)
+    public async Task<IActionResult> Simulate(Guid versionId, string factsJson, string? asOfUtc = null)
     {
         Dictionary<string, string>? facts;
         try
@@ -66,16 +81,29 @@ public class PolicyTemplatesController(
             return RedirectToAction(nameof(Simulate), new { versionId });
         }
 
-        var request = new HRManagement.SharedKernel.Policy.PolicyEnforceRequest
+        DateTime? asOf = null;
+        if (!string.IsNullOrWhiteSpace(asOfUtc))
+        {
+            if (!DateTime.TryParse(asOfUtc, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var parsed))
+            {
+                TempData["Error"] = "التاريخ غير صالح";
+                return RedirectToAction(nameof(Simulate), new { versionId });
+            }
+            asOf = parsed;
+        }
+
+        var request = new PolicyEnforceRequest
         {
             Domain = (await db.PolicyTemplateVersions.Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId)).PolicyTemplate.Domain,
             Facts = facts,
-            Mode = HRManagement.SharedKernel.Policy.PolicyEnforcementMode.Enforce
+            Mode = PolicyEnforcementMode.Enforce,
+            AsOfUtc = asOf
         };
         var decision = await orchestrator.EvaluateAsync(request);
         ViewBag.Decision = decision;
         ViewBag.VersionId = versionId;
         ViewBag.FactsJson = factsJson;
+        ViewBag.AsOfUtc = asOfUtc;
         return View("Simulate");
     }
 
@@ -90,7 +118,7 @@ public class PolicyTemplatesController(
     }
 
     [HttpGet]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public IActionResult CreateDraft(string domain, string subjectType)
     {
         ViewBag.Domain = domain;
@@ -98,13 +126,13 @@ public class PolicyTemplatesController(
         return View();
     }
 
+    /// <summary>A draft of the domain's national template: a copy of its effective version (§5). A missing template is created.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> CreateDraft(string domain, string subjectType, string name)
     {
         var template = await db.PolicyTemplates
-            .Include(t => t.Versions)
             .FirstOrDefaultAsync(t => t.Domain == domain && t.Scope == PolicyTemplateScope.National);
         if (template is null)
         {
@@ -117,23 +145,37 @@ public class PolicyTemplatesController(
                 Description = "مسودة جديدة"
             };
             db.PolicyTemplates.Add(template);
+            await db.SaveChangesAsync();
         }
 
-        var nextVer = (template.Versions.MaxBy(v => v.VersionNumber)?.VersionNumber ?? 0) + 1;
-        var version = new PolicyTemplateVersion
+        return await CreateDraftForTemplate(template.Id);
+    }
+
+    /// <summary>§5: a new draft of this template, a copy of its effective version.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public Task<IActionResult> CreateTemplateDraft(Guid templateId) => CreateDraftForTemplate(templateId);
+
+    /// <summary>§7: a rollback draft to an earlier version, with a written reason.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> CreateRollbackDraft(Guid templateId, Guid targetVersionId, string? reason)
+    {
+        var result = await drafts.CreateRollbackDraftAsync(templateId, targetVersionId, reason, ParseUserId(User));
+        if (!result.Succeeded)
         {
-            PolicyTemplate = template,
-            VersionNumber = nextVer,
-            Status = PolicyVersionStatus.Draft,
-            CreatedBy = ParseUserId(User)
-        };
-        db.PolicyTemplateVersions.Add(version);
-        await db.SaveChangesAsync();
-        return RedirectToAction(nameof(EditRules), new { versionId = version.Id });
+            TempData["Error"] = result.MessageAr;
+            return RedirectToAction(nameof(Details), new { id = templateId });
+        }
+
+        TempData["Success"] = "أُنشئت مسودة التراجع";
+        return RedirectToAction(nameof(EditRules), new { versionId = result.Id });
     }
 
     [HttpGet]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> EditRules(Guid versionId)
     {
         var version = await db.PolicyTemplateVersions
@@ -146,58 +188,106 @@ public class PolicyTemplatesController(
             TempData["Error"] = "يمكن تعديل المسودات فقط";
             return RedirectToAction(nameof(Details), new { id = version.PolicyTemplateId });
         }
+
+        ViewBag.Editors = await db.PolicyVersionEdits.AsNoTracking()
+            .Where(e => e.PolicyTemplateVersionId == versionId)
+            .OrderBy(e => e.OccurredAt)
+            .ToListAsync();
+        var userId = ParseUserId(User);
+        var editorIds = ((List<PolicyVersionEdit>)ViewBag.Editors).Where(e => e.UserId.HasValue).Select(e => e.UserId!.Value).ToHashSet();
+        if (version.CreatedBy is Guid creator)
+            editorIds.Add(creator);
+        ViewBag.CanPublish = userId is Guid me
+                             && !editorIds.Contains(me)
+                             && (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyApprover)).Succeeded;
         return View(version);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> AddRule(Guid versionId, string ruleKey, string? name, int priority, string whenJson, string thenJson)
     {
         // PLAN-47: validated before it is saved; the message names the JSON path.
-        var result = await drafts.AddRuleAsync(
-            versionId, new HR.Core.Domain.Services.Policy.PolicyRuleInput(ruleKey, name, priority, whenJson, thenJson), ParseUserId(User));
-        if (result.Outcome is PolicyDraftOutcome.NotFound or PolicyDraftOutcome.NotDraft)
-            return result.Outcome == PolicyDraftOutcome.NotFound ? NotFound() : Conflict(result.MessageAr);
-        if (!result.Succeeded)
-            TempData["Error"] = result.MessageAr;
-        return RedirectToAction(nameof(EditRules), new { versionId });
+        var result = await drafts.AddRuleAsync(versionId, new PolicyRuleInput(ruleKey, name, priority, whenJson, thenJson), ParseUserId(User));
+        return DraftRedirect(result, versionId, "أُضيفت القاعدة");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreApprove)]
-    public async Task<IActionResult> PublishFromUi(Guid versionId, string? evidenceRef, bool forceSameActorForLab = false)
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> UpdateRule(Guid versionId, Guid ruleId, string ruleKey, string? name, int priority, string whenJson, string thenJson)
     {
-        var version = await db.PolicyTemplateVersions
-            .Include(v => v.PolicyTemplate)
-            .FirstOrDefaultAsync(v => v.Id == versionId);
-        if (version is null) return NotFound();
-        if (version.Status != PolicyVersionStatus.Draft)
+        var result = await drafts.UpdateRuleAsync(versionId, ruleId, new PolicyRuleInput(ruleKey, name, priority, whenJson, thenJson), ParseUserId(User));
+        return DraftRedirect(result, versionId, "عُدّلت القاعدة");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> RemoveRule(Guid versionId, Guid ruleId)
+    {
+        var result = await drafts.RemoveRuleAsync(versionId, ruleId, ParseUserId(User));
+        return DraftRedirect(result, versionId, "حُذفت القاعدة");
+    }
+
+    /// <summary>§6: the effective time is entered as UTC (the page shows the user's local time beside it).</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> SetEffectiveFrom(Guid versionId, string? effectiveFromUtc)
+    {
+        DateTime? value = null;
+        if (!string.IsNullOrWhiteSpace(effectiveFromUtc))
         {
-            TempData["Error"] = "يمكن نشر المسودات فقط";
-            return RedirectToAction(nameof(Details), new { id = version.PolicyTemplateId });
+            if (!DateTime.TryParse(effectiveFromUtc, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var parsed))
+            {
+                TempData["Error"] = "التاريخ غير صالح";
+                return RedirectToAction(nameof(EditRules), new { versionId });
+            }
+            value = parsed;
         }
 
-        var makerId = version.CreatedBy ?? ParseUserId(User);
-        var checkerId = ParseUserId(User);
-        if (makerId == checkerId && !forceSameActorForLab)
-        {
-            TempData["Error"] = "four-eyes: الناشر يجب أن يختلف عن المحرّر";
-            return RedirectToAction(nameof(EditRules), new { versionId });
-        }
+        var result = await drafts.SetEffectiveFromAsync(versionId, value, ParseUserId(User));
+        return DraftRedirect(result, versionId, "حُدّد تاريخ النفاذ");
+    }
 
-        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, makerId, checkerId, evidenceRef));
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> DiscardDraft(Guid versionId)
+    {
+        var templateId = await db.PolicyTemplateVersions.Where(v => v.Id == versionId).Select(v => (Guid?)v.PolicyTemplateId).FirstOrDefaultAsync();
+        var result = await drafts.DiscardDraftAsync(versionId, ParseUserId(User));
+        if (!result.Succeeded)
+            TempData["Error"] = result.MessageAr;
+        else
+            TempData["Success"] = "أُهملت المسودة";
+        return templateId is Guid id ? RedirectToAction(nameof(Details), new { id }) : RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>PLAN-47 (D-POL-3): the approver publishes a draft they did not edit. There is no same-actor override.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PolicyApprover)]
+    public async Task<IActionResult> PublishFromUi(Guid versionId, string? evidenceRef)
+    {
+        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), evidenceRef));
+        if (result.Outcome == PolicyPublishOutcome.NotFound)
+            return NotFound();
+
+        var templateId = result.Version?.PolicyTemplateId
+                         ?? await db.PolicyTemplateVersions.Where(v => v.Id == versionId).Select(v => v.PolicyTemplateId).FirstAsync();
         if (!result.Succeeded)
         {
-            TempData["Error"] = result.Outcome == PolicyPublishOutcome.Invalid
+            TempData["Error"] = result.Outcome == PolicyPublishOutcome.Invalid && result.IssueList.Count > 0
                 ? $"{result.MessageAr}: {string.Join(" | ", result.IssueList.Select(i => $"{i.JsonPath}: {i.MessageAr}"))}"
                 : result.MessageAr;
-            return RedirectToAction(nameof(EditRules), new { versionId });
+            return RedirectToAction(nameof(Details), new { id = templateId });
         }
 
         TempData["Success"] = "تم النشر";
-        return RedirectToAction(nameof(Details), new { id = version.PolicyTemplateId });
+        return RedirectToAction(nameof(Details), new { id = templateId });
     }
 
     [HttpGet]
@@ -213,12 +303,38 @@ public class PolicyTemplatesController(
         return View(items);
     }
 
+    private async Task<IActionResult> CreateDraftForTemplate(Guid templateId)
+    {
+        var result = await drafts.CreateDraftAsync(templateId, copyFromVersionId: null, ParseUserId(User));
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.MessageAr;
+            return RedirectToAction(nameof(Details), new { id = templateId });
+        }
+
+        return RedirectToAction(nameof(EditRules), new { versionId = result.Id });
+    }
+
+    private IActionResult DraftRedirect(PolicyDraftResult result, Guid versionId, string successAr)
+    {
+        if (result.Outcome == PolicyDraftOutcome.NotFound && result == PolicyDraftResult.VersionNotFound)
+            return NotFound();
+        if (result.Outcome == PolicyDraftOutcome.NotDraft)
+            return Conflict(result.MessageAr);
+        if (result.Succeeded)
+            TempData["Success"] = successAr;
+        else
+            TempData["Error"] = result.MessageAr;
+        return RedirectToAction(nameof(EditRules), new { versionId });
+    }
+
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {
         var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
         return Guid.TryParse(v, out var g) ? g : null;
     }
 }
+
 public static class PolicyDomainRegistry
 {
     public static IReadOnlyList<(string Domain, string Service, string MigrationStatus)> All { get; } =

@@ -16,7 +16,7 @@ namespace HR.Core.Web.Controllers;
 
 [Route("api/policies")]
 [ApiController]
-[Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[Authorize(Policy = HrManagementPolicies.PolicyReader)]
 public class PoliciesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,
@@ -87,27 +87,20 @@ public class PoliciesController(
         return Ok(decision);
     }
 
+    /// <summary>
+    /// PLAN-47 (D-POL-3): publish a draft. The approver policy, and a publisher who is not among the draft's editors; no
+    /// override in the body. The one publish path: PLAN-40's IPolicyPublished is staged inside the publisher, before its save.
+    /// </summary>
     [HttpPost("templates/{versionId:guid}/publish")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreApprove)]
-    public async Task<IActionResult> Publish(Guid versionId, [FromBody] PublishPolicyRequest request, CancellationToken ct)
+    [Authorize(Policy = HrManagementPolicies.PolicyApprover)]
+    public async Task<IActionResult> Publish(Guid versionId, [FromBody] PublishPolicyRequest? request, CancellationToken ct)
     {
-        var version = await db.PolicyTemplateVersions
-            .Include(v => v.PolicyTemplate)
-            .FirstOrDefaultAsync(v => v.Id == versionId, ct);
-        if (version is null) return NotFound();
-        if (version.Status != PolicyVersionStatus.Draft)
-            return BadRequest("يمكن نشر المسودات فقط");
-
-        var makerId = version.CreatedBy ?? ParseUserId(User);
-        var checkerId = ParseUserId(User);
-        if (makerId == checkerId && !request.ForceSameActorForLab)
-            return BadRequest("four-eyes: الناشر يجب أن يختلف عن المحرّر");
-
-        // PLAN-47: the one publish path; PLAN-40's IPolicyPublished is staged inside the publisher, before its save.
-        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, makerId, checkerId, request.EvidenceRef), ct);
+        var result = await publishService.PublishAsync(
+            new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), request?.EvidenceRef), ct);
         if (!result.Succeeded)
             return PublishProblem(result);
 
+        var version = result.Version!;
         return Ok(new
         {
             version.Id,
@@ -120,9 +113,30 @@ public class PoliciesController(
         });
     }
 
+    /// <summary>PLAN-47 (§5): a new draft of the template, a copy of the effective version unless another is named.</summary>
+    [HttpPost("templates/{templateId:guid}/drafts")]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> CreateDraft(Guid templateId, [FromBody] CreatePolicyDraftRequest? request, CancellationToken ct)
+    {
+        var userId = ParseUserId(User);
+        var result = request?.WithdrawAllRules == true
+            ? await drafts.CreateWithdrawAllDraftAsync(templateId, request.Reason, userId, ct)
+            : await drafts.CreateDraftAsync(templateId, request?.CopyFromVersionId, userId, ct);
+        return DraftResult(result);
+    }
+
+    /// <summary>PLAN-47 (§7): a rollback draft: a copy of an earlier version, with a written reason.</summary>
+    [HttpPost("templates/{templateId:guid}/rollback-drafts")]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> CreateRollbackDraft(Guid templateId, [FromBody] CreateRollbackDraftRequest request, CancellationToken ct)
+    {
+        var result = await drafts.CreateRollbackDraftAsync(templateId, request.TargetVersionId, request.Reason, ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
     /// <summary>PLAN-47: add a rule to a draft. The rule is validated before it is saved; a published version answers 409.</summary>
     [HttpPost("versions/{versionId:guid}/rules")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> AddRule(Guid versionId, [FromBody] PolicyRuleRequest request, CancellationToken ct)
     {
         var result = await drafts.AddRuleAsync(versionId, request.ToInput(), ParseUserId(User), ct);
@@ -131,7 +145,7 @@ public class PoliciesController(
 
     /// <summary>PLAN-47: change a rule of a draft.</summary>
     [HttpPut("versions/{versionId:guid}/rules/{ruleId:guid}")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> UpdateRule(Guid versionId, Guid ruleId, [FromBody] PolicyRuleRequest request, CancellationToken ct)
     {
         var result = await drafts.UpdateRuleAsync(versionId, ruleId, request.ToInput(), ParseUserId(User), ct);
@@ -140,10 +154,28 @@ public class PoliciesController(
 
     /// <summary>PLAN-47: remove a rule from a draft.</summary>
     [HttpDelete("versions/{versionId:guid}/rules/{ruleId:guid}")]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> RemoveRule(Guid versionId, Guid ruleId, CancellationToken ct)
     {
         var result = await drafts.RemoveRuleAsync(versionId, ruleId, ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
+    /// <summary>PLAN-47 (§6): when the draft takes effect once published (UTC); null means at publication.</summary>
+    [HttpPut("versions/{versionId:guid}/effective-from")]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> SetEffectiveFrom(Guid versionId, [FromBody] SetEffectiveFromRequest request, CancellationToken ct)
+    {
+        var result = await drafts.SetEffectiveFromAsync(versionId, request.EffectiveFromUtc, ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
+    /// <summary>PLAN-47 (§5): discard a draft (it becomes Archived).</summary>
+    [HttpPost("versions/{versionId:guid}/discard")]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    public async Task<IActionResult> DiscardDraft(Guid versionId, CancellationToken ct)
+    {
+        var result = await drafts.DiscardDraftAsync(versionId, ParseUserId(User), ct);
         return DraftResult(result);
     }
 
@@ -193,8 +225,29 @@ public sealed class PolicyRuleRequest
     public HR.Core.Domain.Services.Policy.PolicyRuleInput ToInput() => new(RuleKey, Name, Priority, WhenJson, ThenJson);
 }
 
+/// <summary>PLAN-47: there is no same-actor override; an unknown property in the body (an old client's flag) is ignored.</summary>
 public sealed class PublishPolicyRequest
 {
     public string? EvidenceRef { get; set; }
-    public bool ForceSameActorForLab { get; set; }
+}
+
+public sealed class CreatePolicyDraftRequest
+{
+    public Guid? CopyFromVersionId { get; set; }
+
+    /// <summary>The explicit "withdraw every rule of the domain" draft; needs <see cref="Reason"/>.</summary>
+    public bool WithdrawAllRules { get; set; }
+
+    public string? Reason { get; set; }
+}
+
+public sealed class CreateRollbackDraftRequest
+{
+    public Guid TargetVersionId { get; set; }
+    public string? Reason { get; set; }
+}
+
+public sealed class SetEffectiveFromRequest
+{
+    public DateTime? EffectiveFromUtc { get; set; }
 }

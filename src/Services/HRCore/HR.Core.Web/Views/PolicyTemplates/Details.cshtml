@@ -1,7 +1,24 @@
-@model HR.Core.Domain.Entities.Policy.PolicyTemplate
-@{ ViewData["Title"] = Model.Name; }
+@using HR.Core.Domain.Entities.Policy
+@model PolicyTemplate
+@{
+    ViewData["Title"] = Model.Name;
+    var canAuthor = ViewBag.CanAuthor is true;
+    var effectiveId = ViewBag.EffectiveVersionId as Guid?;
+    var hasDraft = Model.Versions.Any(v => v.Status == PolicyVersionStatus.Draft);
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
 <div class="card mb-3">
-    <div class="card-header"><h3 class="mb-0">@Model.Name</h3></div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">@Model.Name</h3>
+        @if (canAuthor && !hasDraft)
+        {
+            <form asp-action="CreateTemplateDraft" method="post" class="mb-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="templateId" value="@Model.Id" />
+                <button type="submit" class="btn btn-sm btn-warning">إنشاء مسودة (نسخة من النافذ)</button>
+            </form>
+        }
+    </div>
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">Domain</dt><dd class="col-sm-9"><code>@Model.Domain</code></dd>
@@ -12,33 +29,75 @@
 </div>
 @foreach (var v in Model.Versions.OrderByDescending(x => x.VersionNumber))
 {
+    var publication = v.Publications.OrderByDescending(p => p.PublishedAt).FirstOrDefault();
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between">
-            <span>إصدار @v.VersionNumber — @v.Status</span>
             <span>
-                @if (v.Status == HR.Core.Domain.Entities.Policy.PolicyVersionStatus.Draft)
+                إصدار @v.VersionNumber — @v.Status
+                @if (v.Id == effectiveId)
+                {
+                    <span class="badge bg-success ms-1">النافذ الآن</span>
+                }
+                @if (v.EffectiveFrom is DateTime from)
+                {
+                    <small class="text-muted ms-2" dir="ltr">@from.ToString("u", inv) → @(v.EffectiveTo?.ToString("u", inv) ?? "…")</small>
+                }
+            </span>
+            <span>
+                @if (v.Status == PolicyVersionStatus.Draft && canAuthor)
                 {
                     <a asp-action="EditRules" asp-route-versionId="@v.Id" class="btn btn-sm btn-warning me-1">تحرير</a>
                 }
                 <a asp-action="Simulate" asp-route-versionId="@v.Id" class="btn btn-sm btn-primary">محاكاة</a>
             </span>
         </div>
+        @if (publication is not null)
+        {
+            <div class="card-body border-bottom small">
+                النوع: <strong>@publication.Kind</strong>
+                · المحرّر: <code>@(publication.MakerUserId?.ToString() ?? publication.MakerRole ?? "—")</code>
+                · الناشر: <code>@(publication.CheckerUserId?.ToString() ?? publication.CheckerRole ?? "—")</code>
+                · الدليل: @(publication.EvidenceRef ?? "—")
+                · النشر: <span dir="ltr">@publication.PublishedAt.ToString("u", inv)</span>
+                @if (publication.RolledBackFromVersionId is Guid rolledBack)
+                {
+                    var target = Model.Versions.FirstOrDefault(x => x.Id == rolledBack);
+                    <span>· تراجع عن الإصدار @(target?.VersionNumber.ToString(inv) ?? rolledBack.ToString())</span>
+                }
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(v.ChangeReason))
+        {
+            <div class="card-body border-bottom small">السبب: @v.ChangeReason</div>
+        }
         <div class="card-body p-0">
             <table class="table table-sm mb-0">
                 <thead><tr><th>Rule</th><th>Priority</th><th>When</th><th>Then</th></tr></thead>
                 <tbody>
-                    @foreach (var r in v.Rules.OrderBy(x => x.Priority))
+                    @foreach (var r in v.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                     {
                         <tr>
-                            <td>@(r.Name ?? r.RuleKey)</td>
+                            <td>@(r.Name ?? r.RuleKey) <small class="text-muted">@r.RuleKey</small></td>
                             <td>@r.Priority</td>
-                            <td><code class="small">@r.WhenJson</code></td>
-                            <td><code class="small">@r.ThenJson</code></td>
+                            <td><code class="small" dir="ltr">@r.WhenJson</code></td>
+                            <td><code class="small" dir="ltr">@r.ThenJson</code></td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+        @if (canAuthor && !hasDraft && v.Status != PolicyVersionStatus.Draft && v.Id != effectiveId)
+        {
+            <div class="card-footer">
+                <form asp-action="CreateRollbackDraft" method="post" class="row g-2 align-items-end mb-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="templateId" value="@Model.Id" />
+                    <input type="hidden" name="targetVersionId" value="@v.Id" />
+                    <div class="col-md-8"><input name="reason" class="form-control form-control-sm" placeholder="سبب التراجع (إلزامي)" required maxlength="1000" /></div>
+                    <div class="col-md-4"><button type="submit" class="btn btn-sm btn-outline-warning">إنشاء مسودة تراجع إلى هذا الإصدار</button></div>
+                </form>
+            </div>
+        }
     </div>
 }
 <p><a asp-action="Index">العودة</a></p>

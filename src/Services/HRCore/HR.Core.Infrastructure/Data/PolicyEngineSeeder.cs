@@ -66,18 +66,10 @@ public static class PolicyEngineSeeder
         };
         db.PolicyTemplates.Add(template);
 
-        var version = new PolicyTemplateVersion
+        // PLAN-47: rules go only to a draft, so v1 is added as a draft with its rules and then published.
+        var rules = new List<PolicyRule>();
+        rules.Add(new PolicyRule
         {
-            PolicyTemplate = template,
-            VersionNumber = 1,
-            Status = PolicyVersionStatus.Published,
-            EffectiveFrom = DateTime.UtcNow.AddYears(-1)
-        };
-        db.PolicyTemplateVersions.Add(version);
-
-        db.PolicyRules.Add(new PolicyRule
-        {
-            PolicyTemplateVersion = version,
             RuleKey = "R-CLASSIFY-HIGH-VALUE",
             Name = "تصنيف — قيمة عالية → مميز",
             Priority = 5,
@@ -85,9 +77,8 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"SetField","params":{"field":"isPrivileged","value":"true"}}]"""
         });
 
-        db.PolicyRules.Add(new PolicyRule
+        rules.Add(new PolicyRule
         {
-            PolicyTemplateVersion = version,
             RuleKey = "R-CLASSIFY-CAPITAL",
             Name = "تصنيف — أصول ثابتة → مميز",
             Priority = 6,
@@ -95,9 +86,8 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"SetField","params":{"field":"isPrivileged","value":"true"}}]"""
         });
 
-        db.PolicyRules.Add(new PolicyRule
+        rules.Add(new PolicyRule
         {
-            PolicyTemplateVersion = version,
             RuleKey = "R-PRIV-EVIDENCE",
             Name = "أصل مميز → دليل",
             Priority = 10,
@@ -105,9 +95,8 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"RequireEvidence"}]"""
         });
 
-        db.PolicyRules.Add(new PolicyRule
+        rules.Add(new PolicyRule
         {
-            PolicyTemplateVersion = version,
             RuleKey = "R-HIGH-APPROVAL",
             Name = "قيمة عالية → موافقة",
             Priority = 20,
@@ -115,9 +104,8 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""
         });
 
-        db.PolicyRules.Add(new PolicyRule
+        rules.Add(new PolicyRule
         {
-            PolicyTemplateVersion = version,
             RuleKey = "R-PRIV-WF",
             Name = "مميز → workflow",
             Priority = 15,
@@ -125,9 +113,8 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""
         });
 
-        db.PolicyRules.Add(new PolicyRule
+        rules.Add(new PolicyRule
         {
-            PolicyTemplateVersion = version,
             RuleKey = "R-PRIV-CODE",
             Name = "مميز → قالب ترميز VIP",
             Priority = 12,
@@ -135,14 +122,21 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"SelectCodePolicy","params":{"policyKey":"ASSET-PRIVILEGED"}}]"""
         });
 
-        db.PolicyPublications.Add(new PolicyPublication
-        {
-            PolicyTemplateVersion = version,
-            PublishedAt = DateTime.UtcNow.AddYears(-1),
-            EvidenceRef = "seed-PROD001ab"
-        });
+        foreach (var rule in rules)
+            rule.TenantId = template.TenantId;
 
-        await Task.CompletedTask;
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            PolicyTemplate = template,
+            TenantId = template.TenantId,
+            VersionNumber = 1,
+            EffectiveFrom = DateTime.UtcNow.AddYears(-1)
+        }, rules, PolicyVersionStatus.Published, new PolicyPublication
+        {
+            PublishedAt = DateTime.UtcNow.AddYears(-1),
+            EvidenceRef = "seed-PROD001ab",
+            Kind = PolicyPublicationKind.SystemSeed
+        }, ct);
     }
 
     private static async Task SeedFactsSchemasAsync(HRCoreDbContext db, CancellationToken ct)

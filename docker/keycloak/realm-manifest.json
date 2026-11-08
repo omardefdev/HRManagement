@@ -147,6 +147,14 @@
     {
       "name": "workflow-admin",
       "description": "Role workflow-admin"
+    },
+    {
+      "name": "policy-author",
+      "description": "Role policy-author"
+    },
+    {
+      "name": "policy-approver",
+      "description": "Role policy-approver"
     }
   ],
   "defaultDefaultClientScopes": [],

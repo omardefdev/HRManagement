@@ -39,6 +39,12 @@ public sealed class PolicyEnforceRequest
     public string? ContextJson { get; set; }
     public Guid? ActorUserId { get; set; }
     public string? ActorUserName { get; set; }
+
+    /// <summary>
+    /// PLAN-47 (§6): evaluate the policy as it stood (or will stand) at this time, UTC. Honoured in HR.Core (EvaluateAsync,
+    /// EnforceAsync, POST api/policies/evaluate, the simulation); PLAN-42's internal endpoint clears it.
+    /// </summary>
+    public DateTime? AsOfUtc { get; set; }
 }
 
 public sealed class PolicyEnforceResponse

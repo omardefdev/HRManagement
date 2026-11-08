@@ -125,6 +125,11 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<PolicySimulationRun> PolicySimulationRuns => Set<PolicySimulationRun>();
     public DbSet<PolicyEnforcementLedger> PolicyEnforcementLedgers => Set<PolicyEnforcementLedger>();
     public DbSet<PolicyWorkflowBinding> PolicyWorkflowBindings => Set<PolicyWorkflowBinding>();
+    public DbSet<PolicyVersionEdit> PolicyVersionEdits => Set<PolicyVersionEdit>();
+    public DbSet<PolicySeedApplication> PolicySeedApplications => Set<PolicySeedApplication>();
+
+    /// <summary>PLAN-47 (D-POL-12): the filtered unique index that allows one draft per policy template.</summary>
+    public const string OneDraftPerTemplateIndex = "IX_PolicyTemplateVersions_OneDraftPerTemplate";
     public DbSet<CodePolicyTemplate> CodePolicyTemplates => Set<CodePolicyTemplate>();
     public DbSet<CodePolicyVersion> CodePolicyVersions => Set<CodePolicyVersion>();
     public DbSet<CodePolicyRule> CodePolicyRules => Set<CodePolicyRule>();
@@ -911,6 +916,9 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.SubjectType).HasMaxLength(100);
             entity.Property(e => e.Scope).HasConversion<string>().HasMaxLength(32);
+            // PLAN-47: every publication touches its template, so two publications of one template race on this row and the
+            // loser gets a concurrency conflict (409).
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<PolicyTemplateVersion>(entity =>
@@ -918,6 +926,13 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.HasIndex(e => new { e.PolicyTemplateId, e.VersionNumber }).IsUnique();
             entity.HasIndex(e => new { e.Status, e.EffectiveFrom });
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.ChangeReason).HasMaxLength(1000);
+            entity.Property(e => e.WithdrawsAllRules).HasDefaultValue(false);
+            // PLAN-47 (D-POL-12): one draft per template; no parallel drafts.
+            entity.HasIndex(e => e.PolicyTemplateId)
+                .IsUnique()
+                .HasFilter("\"Status\" = 'Draft'")
+                .HasDatabaseName(OneDraftPerTemplateIndex);
             entity.HasOne(e => e.PolicyTemplate)
                   .WithMany(t => t.Versions)
                   .HasForeignKey(e => e.PolicyTemplateId)
@@ -951,6 +966,36 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.Property(e => e.CorrelationId).HasMaxLength(128);
             entity.Property(e => e.FactsHash).HasMaxLength(64);
             entity.Property(e => e.Mode).HasConversion<string>().HasMaxLength(16);
+        });
+
+        modelBuilder.Entity<PolicyPublication>(entity =>
+        {
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(16).HasDefaultValue(PolicyPublicationKind.Manual);
+            entity.Property(e => e.MakerRole).HasMaxLength(100);
+            entity.Property(e => e.CheckerRole).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<PolicyVersionEdit>(entity =>
+        {
+            entity.HasIndex(e => new { e.PolicyTemplateVersionId, e.OccurredAt });
+            entity.Property(e => e.Action).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.RuleKey).HasMaxLength(100);
+            entity.HasOne<PolicyTemplateVersion>()
+                  .WithMany()
+                  .HasForeignKey(e => e.PolicyTemplateVersionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PolicySeedApplication>(entity =>
+        {
+            entity.HasIndex(e => new { e.ChangeSetId, e.PolicyTemplateId }).IsUnique();
+            entity.Property(e => e.ChangeSetId).HasMaxLength(100);
+            entity.Property(e => e.Outcome).HasMaxLength(20);
+            entity.Property(e => e.Digest).HasMaxLength(64);
+            entity.HasOne<PolicyTemplate>()
+                  .WithMany()
+                  .HasForeignKey(e => e.PolicyTemplateId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PolicyWorkflowBinding>(entity =>

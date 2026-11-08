@@ -372,35 +372,6 @@ public static class PolicyEngineDomainSeeds
         };
         db.PolicyTemplates.Add(template);
 
-        var version = new PolicyTemplateVersion
-        {
-            PolicyTemplate = template,
-            VersionNumber = 1,
-            Status = PolicyVersionStatus.Published,
-            EffectiveFrom = DateTime.UtcNow.AddYears(-1)
-        };
-        db.PolicyTemplateVersions.Add(version);
-
-        foreach (var r in rules)
-        {
-            db.PolicyRules.Add(new PolicyRule
-            {
-                PolicyTemplateVersion = version,
-                RuleKey = r.Key,
-                Name = r.Name,
-                Priority = r.Priority,
-                WhenJson = r.When,
-                ThenJson = r.Then
-            });
-        }
-
-        db.PolicyPublications.Add(new PolicyPublication
-        {
-            PolicyTemplateVersion = version,
-            PublishedAt = DateTime.UtcNow.AddYears(-1),
-            EvidenceRef = $"seed-{domain}"
-        });
-
         if (!await db.PolicyFactsSchemas.AnyAsync(s => s.Domain == domain, ct))
         {
             db.PolicyFactsSchemas.Add(new PolicyFactsSchemaEntity
@@ -411,6 +382,31 @@ public static class PolicyEngineDomainSeeds
                 FieldsJson = JsonSerializer.Serialize(fields)
             });
         }
+
+        // v1 on an empty database only. PLAN-47: rules go only to a draft, so v1 is added as a draft and then published.
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            PolicyTemplate = template,
+            TenantId = template.TenantId,
+            VersionNumber = 1,
+            EffectiveFrom = DateTime.UtcNow.AddYears(-1)
+        },
+        rules.Select(r => new PolicyRule
+        {
+            TenantId = template.TenantId,
+            RuleKey = r.Key,
+            Name = r.Name,
+            Priority = r.Priority,
+            WhenJson = r.When,
+            ThenJson = r.Then
+        }).ToList(),
+        PolicyVersionStatus.Published,
+        new PolicyPublication
+        {
+            PublishedAt = DateTime.UtcNow.AddYears(-1),
+            EvidenceRef = $"seed-{domain}",
+            Kind = PolicyPublicationKind.SystemSeed
+        }, ct);
     }
 
     private static (string Key, string Name, int Priority, string When, string Then) Rule(

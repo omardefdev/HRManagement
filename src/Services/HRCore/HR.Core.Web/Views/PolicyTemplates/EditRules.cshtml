@@ -1,21 +1,119 @@
 @model HR.Core.Domain.Entities.Policy.PolicyTemplateVersion
-@{ ViewData["Title"] = "تحرير قواعد — " + Model.PolicyTemplate.Domain; }
+@{
+    ViewData["Title"] = "تحرير قواعد — " + Model.PolicyTemplate.Domain;
+    var edits = ViewBag.Editors as List<HR.Core.Domain.Entities.Policy.PolicyVersionEdit> ?? [];
+    var canPublish = ViewBag.CanPublish is true;
+}
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between">
-        <span>مسودة إصدار @Model.VersionNumber — @Model.PolicyTemplate.Name</span>
+        <span>
+            مسودة إصدار @Model.VersionNumber — @Model.PolicyTemplate.Name
+            @if (Model.RollbackOfVersionId is not null)
+            {
+                <span class="badge bg-warning text-dark ms-1">مسودة تراجع</span>
+            }
+            @if (Model.WithdrawsAllRules)
+            {
+                <span class="badge bg-danger ms-1">سحب كل قواعد المجال</span>
+            }
+        </span>
         <a asp-action="Simulate" asp-route-versionId="@Model.Id" class="btn btn-sm btn-outline-primary">محاكاة</a>
     </div>
+    @if (!string.IsNullOrWhiteSpace(Model.ChangeReason))
+    {
+        <div class="card-body border-bottom small">السبب: @Model.ChangeReason</div>
+    }
     <div class="card-body p-0">
-        <table class="table table-sm mb-0">
-            <thead><tr><th>Rule</th><th>Priority</th><th>When</th><th>Then</th></tr></thead>
+        <table class="table table-sm mb-0 align-middle">
+            <thead><tr><th>المفتاح</th><th>الاسم</th><th>الأولوية</th><th>When</th><th>Then</th><th></th></tr></thead>
             <tbody>
-                @foreach (var r in Model.Rules.OrderBy(x => x.Priority))
+                @foreach (var r in Model.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                 {
                     <tr>
-                        <td>@(r.Name ?? r.RuleKey)</td>
-                        <td>@r.Priority</td>
-                        <td><code class="small">@r.WhenJson</code></td>
-                        <td><code class="small">@r.ThenJson</code></td>
+                        <td colspan="6" class="p-1">
+                            <form asp-action="UpdateRule" method="post" class="row g-1 align-items-start">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="versionId" value="@Model.Id" />
+                                <input type="hidden" name="ruleId" value="@r.Id" />
+                                <div class="col-md-2"><input name="ruleKey" class="form-control form-control-sm" value="@r.RuleKey" required /></div>
+                                <div class="col-md-2"><input name="name" class="form-control form-control-sm" value="@r.Name" /></div>
+                                <div class="col-md-1"><input name="priority" type="number" min="1" max="1000" class="form-control form-control-sm" value="@r.Priority" /></div>
+                                <div class="col-md-3"><textarea name="whenJson" class="form-control form-control-sm font-monospace" rows="2" dir="ltr" required>@r.WhenJson</textarea></div>
+                                <div class="col-md-2"><textarea name="thenJson" class="form-control form-control-sm font-monospace" rows="2" dir="ltr" required>@r.ThenJson</textarea></div>
+                                <div class="col-md-1"><button type="submit" class="btn btn-sm btn-outline-primary w-100">حفظ</button></div>
+                            </form>
+                            <form asp-action="RemoveRule" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="versionId" value="@Model.Id" />
+                                <input type="hidden" name="ruleId" value="@r.Id" />
+                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">حذف @r.RuleKey</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (!Model.WithdrawsAllRules)
+{
+    <div class="card mb-3">
+        <div class="card-header">إضافة قاعدة</div>
+        <div class="card-body">
+            <form asp-action="AddRule" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="versionId" value="@Model.Id" />
+                <div class="row g-2">
+                    <div class="col-md-2"><input name="ruleKey" class="form-control form-control-sm" placeholder="R-KEY" required /></div>
+                    <div class="col-md-2"><input name="name" class="form-control form-control-sm" placeholder="الاسم" /></div>
+                    <div class="col-md-1"><input name="priority" type="number" min="1" max="1000" class="form-control form-control-sm" value="100" /></div>
+                    <div class="col-md-3"><textarea name="whenJson" class="form-control form-control-sm font-monospace" rows="2" dir="ltr" placeholder='{"all":[{"field":"…","operator":"Equals","value":"…"}]}' required></textarea></div>
+                    <div class="col-md-3"><textarea name="thenJson" class="form-control form-control-sm font-monospace" rows="2" dir="ltr" placeholder='[{"effect":"RequireEvidence"}]' required></textarea></div>
+                    <div class="col-md-1"><button type="submit" class="btn btn-sm btn-primary">إضافة</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header">تاريخ النفاذ</div>
+    <div class="card-body">
+        <form asp-action="SetEffectiveFrom" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="versionId" value="@Model.Id" />
+            <div class="col-md-4">
+                <label class="form-label">ينفذ من (UTC، فارغ = عند النشر)</label>
+                <input name="effectiveFromUtc" class="form-control form-control-sm" dir="ltr" placeholder="2026-12-01T00:00:00Z"
+                       value="@(Model.EffectiveFrom?.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture))" />
+            </div>
+            @if (Model.EffectiveFrom is DateTime from)
+            {
+                <div class="col-md-4 small text-muted">بتوقيتك: <span data-utc="@from.ToString("o", System.Globalization.CultureInfo.InvariantCulture)" class="js-local-time">@from.ToString("u", System.Globalization.CultureInfo.InvariantCulture)</span></div>
+            }
+            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-outline-secondary">حفظ</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">المحرّرون</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>المستخدم</th><th>الإجراء</th><th>القاعدة</th><th>الوقت (UTC)</th></tr></thead>
+            <tbody>
+                @if (Model.CreatedBy is Guid creator && edits.All(e => e.UserId != creator))
+                {
+                    <tr><td><code>@creator</code></td><td>Create</td><td></td><td>@Model.CreatedAt.ToString("u", System.Globalization.CultureInfo.InvariantCulture)</td></tr>
+                }
+                @foreach (var e in edits)
+                {
+                    <tr>
+                        <td><code>@(e.UserId?.ToString() ?? "system")</code></td>
+                        <td>@e.Action</td>
+                        <td>@e.RuleKey</td>
+                        <td>@e.OccurredAt.ToString("u", System.Globalization.CultureInfo.InvariantCulture)</td>
                     </tr>
                 }
             </tbody>
@@ -24,38 +122,28 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-header">إضافة قاعدة</div>
+    <div class="card-header">نشر (أربع عيون)</div>
     <div class="card-body">
-        <form asp-action="AddRule" method="post">
+        @if (canPublish)
+        {
+            <form asp-action="PublishFromUi" method="post" class="row g-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="versionId" value="@Model.Id" />
+                <div class="col-md-4">
+                    <label class="form-label">مرجع الدليل</label>
+                    <input name="evidenceRef" class="form-control form-control-sm" placeholder="POL-EV-001" />
+                </div>
+                <div class="col-md-2"><button type="submit" class="btn btn-success btn-sm">نشر</button></div>
+            </form>
+        }
+        else
+        {
+            <p class="mb-0 text-muted small">ينشر هذه المسودة معتمدٌ لم يحرّرها.</p>
+        }
+        <form asp-action="DiscardDraft" method="post" class="mt-2">
             @Html.AntiForgeryToken()
             <input type="hidden" name="versionId" value="@Model.Id" />
-            <div class="row g-2">
-                <div class="col-md-2"><input name="ruleKey" class="form-control form-control-sm" placeholder="RuleKey" required /></div>
-                <div class="col-md-2"><input name="name" class="form-control form-control-sm" placeholder="الاسم" /></div>
-                <div class="col-md-1"><input name="priority" type="number" class="form-control form-control-sm" value="100" /></div>
-                <div class="col-md-3"><textarea name="whenJson" class="form-control form-control-sm" rows="2" placeholder='{"all":[...]}' required></textarea></div>
-                <div class="col-md-3"><textarea name="thenJson" class="form-control form-control-sm" rows="2" placeholder='[{"effect":"Allow"}]' required></textarea></div>
-                <div class="col-md-1"><button type="submit" class="btn btn-sm btn-primary">إضافة</button></div>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header">نشر (four-eyes)</div>
-    <div class="card-body">
-        <form asp-action="PublishFromUi" method="post" class="row g-2 align-items-end">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="versionId" value="@Model.Id" />
-            <div class="col-md-4">
-                <label class="form-label">EvidenceRef</label>
-                <input name="evidenceRef" class="form-control form-control-sm" placeholder="POL-EV-001" />
-            </div>
-            <div class="col-md-3 form-check">
-                <input type="checkbox" name="forceSameActorForLab" value="true" class="form-check-input" id="forceLab" />
-                <label class="form-check-label" for="forceLab">Lab: نفس المحرّر</label>
-            </div>
-            <div class="col-md-2"><button type="submit" class="btn btn-success btn-sm">نشر</button></div>
+            <button type="submit" class="btn btn-sm btn-outline-danger">إهمال المسودة</button>
         </form>
     </div>
 </div>

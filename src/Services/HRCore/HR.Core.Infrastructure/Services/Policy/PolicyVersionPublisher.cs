@@ -7,7 +7,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Policy;
 
-/// <summary>Publishes draft policy versions: closes prior EffectiveTo + cache invalidation (PLAN-02 / W2.2).</summary>
+/// <summary>PLAN-47: what a publication records besides the maker and the checker.</summary>
+public sealed record PolicyPublicationDetails(
+    Guid? MakerUserId,
+    Guid? CheckerUserId,
+    string? EvidenceRef,
+    PolicyPublicationKind Kind,
+    string? MakerRole,
+    string? CheckerRole,
+    Guid? RolledBackFromVersionId);
+
+/// <summary>
+/// Publishes draft policy versions: closes the prior EffectiveTo, records the publication and stages IPolicyPublished in the
+/// same save (PLAN-02, PLAN-40). PLAN-47: called only by <see cref="PolicyPublishService"/>, which validates and checks four eyes.
+/// </summary>
 public interface IPolicyVersionPublisher
 {
     Task<PolicyTemplateVersion> PublishDraftAsync(
@@ -15,6 +28,7 @@ public interface IPolicyVersionPublisher
         Guid? makerUserId,
         Guid? checkerUserId,
         string? evidenceRef,
+        PolicyPublicationDetails? details = null,
         CancellationToken ct = default);
 }
 
@@ -29,6 +43,7 @@ public sealed class PolicyVersionPublisher(
         Guid? makerUserId,
         Guid? checkerUserId,
         string? evidenceRef,
+        PolicyPublicationDetails? details = null,
         CancellationToken ct = default)
     {
         if (version.Status != PolicyVersionStatus.Draft)
@@ -38,6 +53,7 @@ public sealed class PolicyVersionPublisher(
         version.EffectiveFrom = effectiveFrom;
         version.Status = PolicyVersionStatus.Published;
 
+        // A version effective later keeps the current one effective until then: only EffectiveTo of a published version changes.
         var previousPublished = await db.PolicyTemplateVersions
             .Where(v => v.PolicyTemplateId == version.PolicyTemplateId
                         && v.Id != version.Id
@@ -57,11 +73,20 @@ public sealed class PolicyVersionPublisher(
             CheckerUserId = checkerUserId,
             EvidenceRef = evidenceRef,
             PublishedAt = DateTime.UtcNow,
-            TenantId = version.TenantId
+            TenantId = version.TenantId,
+            Kind = details?.Kind ?? PolicyPublicationKind.Manual,
+            MakerRole = details?.MakerRole,
+            CheckerRole = details?.CheckerRole,
+            RolledBackFromVersionId = details?.RolledBackFromVersionId
         });
 
-        // PLAN-40 (class A): staged before the save, so the publication and IPolicyPublished commit together on every
-        // path (the API and the UI; the UI path published nothing before). PLAN-47 extends the payload and the cache.
+        // PLAN-47: every publication touches its template, so two publications of one template race on its xmin and the loser
+        // gets a concurrency conflict instead of a second "current" version.
+        version.PolicyTemplate.UpdatedAt = DateTime.UtcNow;
+        db.Entry(version.PolicyTemplate).Property(t => t.UpdatedAt).IsModified = true;
+
+        // PLAN-40 (class A): staged before the save, so the publication and IPolicyPublished commit together on every path.
+        // PLAN-47: the payload names the version fully, and every HR.Core instance clears its cache on it.
         if (publish is not null)
         {
             // Through the contract: the outbox delivers to the exchange of the published type only, and nothing binds the
@@ -70,7 +95,10 @@ public sealed class PolicyVersionPublisher(
             {
                 version.PolicyTemplate.Domain,
                 VersionId = version.Id,
-                PublishedAt = DateTime.UtcNow
+                PublishedAt = DateTime.UtcNow,
+                TenantId = (Guid?)version.TenantId,
+                version.VersionNumber,
+                EffectiveFrom = (DateTime?)effectiveFrom
             }, p => p.MessageId = DeterministicMessageId.For<IPolicyPublished>(version.Id), ct);
         }
 

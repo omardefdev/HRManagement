@@ -48,8 +48,81 @@ public class PolicyTemplateVersion : AuditableEntity
     public DateTime? EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
 
+    /// <summary>PLAN-47: a rollback draft: the earlier version it copies. Published as <see cref="PolicyPublicationKind.Rollback"/>.</summary>
+    public Guid? RollbackOfVersionId { get; set; }
+
+    /// <summary>PLAN-47: the written reason of a rollback, or of a draft that withdraws every rule of the domain.</summary>
+    [MaxLength(1000)]
+    public string? ChangeReason { get; set; }
+
+    /// <summary>PLAN-47: the explicit "withdraw every rule of the domain" draft: the only version that may publish with no rule.</summary>
+    public bool WithdrawsAllRules { get; set; }
+
     public ICollection<PolicyRule> Rules { get; set; } = [];
     public ICollection<PolicyPublication> Publications { get; set; } = [];
+}
+
+/// <summary>PLAN-47: how a version came to be published.</summary>
+public enum PolicyPublicationKind
+{
+    Manual,
+    SystemSeed,
+    Rollback
+}
+
+/// <summary>PLAN-47: what was done to a draft.</summary>
+public enum PolicyVersionEditAction
+{
+    Create,
+    Copy,
+    AddRule,
+    UpdateRule,
+    RemoveRule,
+    SetEffectiveFrom,
+    Discard
+}
+
+/// <summary>
+/// PLAN-47 (G-POL-06): every change to a draft, by whom. The publisher must not be among a version's editors (four eyes).
+/// </summary>
+[Display(Name = "تعديل مسودة سياسة")]
+public class PolicyVersionEdit : BaseEntity
+{
+    public Guid PolicyTemplateVersionId { get; set; }
+
+    /// <summary>The user who made the change; null for the system (a seed change set waiting for an approver).</summary>
+    public Guid? UserId { get; set; }
+
+    public PolicyVersionEditAction Action { get; set; }
+
+    [MaxLength(100)]
+    public string? RuleKey { get; set; }
+
+    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// PLAN-47 (§4): one seed change set applied to one template. Never changed: an applied set whose digest differs fails the boot.
+/// </summary>
+[Display(Name = "تطبيق مجموعة تغيير بذور السياسة")]
+public class PolicySeedApplication : BaseEntity
+{
+    [Required, MaxLength(100)]
+    public string ChangeSetId { get; set; } = default!;
+
+    public Guid PolicyTemplateId { get; set; }
+
+    /// <summary>The version the set published (or left as a draft); null for a NoOp.</summary>
+    public Guid? ResultVersionId { get; set; }
+
+    [Required, MaxLength(20)]
+    public string Outcome { get; set; } = default!;
+
+    /// <summary>SHA-256 (hex) of the set's operations.</summary>
+    [Required, MaxLength(64)]
+    public string Digest { get; set; } = default!;
+
+    public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
 }
 
 [Display(Name = "قاعدة سياسة")]
@@ -100,6 +173,17 @@ public class PolicyPublication : BaseEntity
     public DateTime PublishedAt { get; set; } = DateTime.UtcNow;
 
     public Guid? RolledBackFromVersionId { get; set; }
+
+    /// <summary>PLAN-47: Manual, SystemSeed (a seed change set, D-POL-11) or Rollback.</summary>
+    public PolicyPublicationKind Kind { get; set; } = PolicyPublicationKind.Manual;
+
+    /// <summary>PLAN-47: the role the maker acted in (policy-author, or system for a seed).</summary>
+    [MaxLength(100)]
+    public string? MakerRole { get; set; }
+
+    /// <summary>PLAN-47: the role the checker acted in (policy-approver).</summary>
+    [MaxLength(100)]
+    public string? CheckerRole { get; set; }
 }
 
 [Display(Name = "محاكاة سياسة")]
@@ -151,6 +235,9 @@ public class PolicyEnforcementLedger : BaseEntity
     public Guid? EntityId { get; set; }
 
     public string? ShadowDiffJson { get; set; }
+
+    /// <summary>PLAN-47: the "as of" time of the decision, when it was not the time of the request.</summary>
+    public DateTime? EvaluatedAsOf { get; set; }
 
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
 }
