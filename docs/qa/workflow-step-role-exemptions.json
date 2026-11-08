@@ -12,30 +12,30 @@
     {
       "entityType": "SeparationRecord",
       "ownerPlan": "PLAN-46",
-      "reason": "Step 2 role compliance does not pass WorkflowStepAction until PLAN-46 adds it. Nothing starts this type today.",
+      "reason": "Step 2 role compliance did not pass WorkflowStepAction. PLAN-46 added it and lifted the exemption on 2026-11-08.",
       "reviewBy": "2027-02-01",
-      "status": "Open"
+      "status": "Closed"
     },
     {
       "entityType": "DisciplinaryAction",
       "ownerPlan": "PLAN-46",
-      "reason": "Step role compliance does not pass WorkflowStepAction until PLAN-46 adds it. Nothing starts this type today.",
+      "reason": "Step role compliance did not pass WorkflowStepAction. PLAN-46 added it and lifted the exemption on 2026-11-08.",
       "reviewBy": "2027-02-01",
-      "status": "Open"
+      "status": "Closed"
     },
     {
       "entityType": "CardRequest",
       "ownerPlan": "PLAN-46",
-      "reason": "Step role security is not in the role catalog or the realm; PLAN-46 corrects the definition. Nothing starts this type today.",
+      "reason": "Step role security was not in the role catalog or the realm. PLAN-46 raised the definition to the role idcard and lifted the exemption on 2026-11-08.",
       "reviewBy": "2027-02-01",
-      "status": "Open"
+      "status": "Closed"
     },
     {
       "entityType": "Ticket",
       "ownerPlan": "PLAN-46",
-      "reason": "Step role it-support is not in the role catalog or the realm; PLAN-46 corrects the definition. Nothing starts this type today.",
+      "reason": "Step role it-support was not in the role catalog or the realm. PLAN-46 retired IT-TICKET, so nothing starts this type, and lifted the exemption on 2026-11-08.",
       "reviewBy": "2027-02-01",
-      "status": "Open"
+      "status": "Closed"
     }
   ]
 }

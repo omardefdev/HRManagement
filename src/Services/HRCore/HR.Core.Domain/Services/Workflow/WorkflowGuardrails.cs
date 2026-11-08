@@ -9,23 +9,34 @@ public sealed record WorkflowGuardrail(
     IReadOnlyDictionary<string, int>? MinStepsByCode = null,
     bool RequiresDistinctApprovers = false,
     string? FirstStepRole = null,
-    int? MaxSteps = null)
+    int? MaxSteps = null,
+    IReadOnlyList<string>? AllowedStepRoles = null,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? RequiredRolesByCode = null)
 {
     public int MinStepsFor(string? workflowCode) =>
         workflowCode is not null && MinStepsByCode is not null && MinStepsByCode.TryGetValue(workflowCode, out var min)
             ? min
             : MinSteps;
+
+    /// <summary>The roles every definition of the type must hold, and those this code adds.</summary>
+    public IReadOnlyList<string> RequiredRolesFor(string? workflowCode) =>
+        workflowCode is not null && RequiredRolesByCode is not null && RequiredRolesByCode.TryGetValue(workflowCode, out var roles)
+            ? [.. RequiredRoles ?? [], .. roles]
+            : RequiredRoles ?? [];
 }
 
 /// <summary>
 /// PLAN-43 (G-WF-04): the limits of each entity type, a tested table kept in code. They are a working default reviewed with the
 /// owner, not a legal value. PLAN-45 (D-WF-2): custody and loss are exactly the logistics officer, then the management approver.
+/// PLAN-46 (D-WF-1): a card stays with the card office or above, discipline runs from compliance to the authority, and a sensitive
+/// separation passes compliance.
 /// </summary>
 public static class WorkflowGuardrails
 {
     private const string ManagementApprover = "hr-management-approver";
     private const string Compliance = "compliance";
     private const string AdminLogistics = "admin-logistics";
+    private const string IdCard = "idcard";
 
     private static readonly IReadOnlyDictionary<string, WorkflowGuardrail> Table =
         new WorkflowGuardrail[]
@@ -41,7 +52,13 @@ public static class WorkflowGuardrails
             new("SelectionCommitteeSession", 3, ManagementApprover),
             new("RecruitmentAppeal", 1, Compliance),
             new("AssetAssignment", 2, ManagementApprover, RequiresDistinctApprovers: true, FirstStepRole: AdminLogistics, MaxSteps: 2),
-            new("AssetLossReport", 2, ManagementApprover, RequiresDistinctApprovers: true, FirstStepRole: AdminLogistics, MaxSteps: 2)
+            new("AssetLossReport", 2, ManagementApprover, RequiresDistinctApprovers: true, FirstStepRole: AdminLogistics, MaxSteps: 2),
+            new("CardRequest", 1, AllowedStepRoles: [IdCard, ManagementApprover]),
+            new("DisciplinaryAction", 2, ManagementApprover, RequiresDistinctApprovers: true, FirstStepRole: Compliance),
+            new("SeparationRecord", 2, ManagementApprover, RequiredRolesByCode: new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["SEPARATION-APPROVAL-SENSITIVE"] = [Compliance]
+            })
         }.ToDictionary(g => g.EntityType, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Any other known type: one step, and the roles still come from the catalog.</summary>

@@ -45,6 +45,7 @@ public static class NationalSeedOrchestrator
             await HRCoreDataSeeder.SeedAsync(db, serviceProvider, ct);
             await WorkflowPackSeeder.SeedAsync(db, ct);
             await WorkflowPackSeeder.EnsureCustodyChainAsync(db, ct);
+            await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db, ct);
             await PolicyEngineSeeder.SeedAsync(db, ct);
             await CodeGenerationSeeder.SeedAsync(db, ct);
             await MdmReferenceSeeder.SeedAsync(db, ct);
@@ -85,6 +86,7 @@ public static class NationalSeedOrchestrator
     {
         await WorkflowPackSeeder.SeedAsync(db, ct);
         await WorkflowPackSeeder.EnsureCustodyChainAsync(db, ct);
+        await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db, ct);
         await PolicyEngineSeeder.SeedAsync(db, ct);
         await CodeGenerationSeeder.SeedAsync(db, ct);
         await MdmReferenceSeeder.SeedAsync(db, ct);

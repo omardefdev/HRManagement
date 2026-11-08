@@ -340,6 +340,23 @@
       "enabled": true
     },
     {
+      "id": "a-idcard-2",
+      "username": "acc-a-idcard-2",
+      "passwordEnv": "ACCEPTANCE_A_IDCARD_2_PASSWORD",
+      "roles": [
+        "idcard"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 45,
+      "purpose": "Second card office reviewer: approves a card request someone else made (PLAN-46)",
+      "scenarios": [
+        "AC-WF-46"
+      ],
+      "enabled": true
+    },
+    {
       "id": "a-archive",
       "username": "acc-a-archive",
       "passwordEnv": "ACCEPTANCE_A_ARCHIVE_PASSWORD",

@@ -553,8 +553,8 @@ $metricSpecs = @(
     @{ Id = "DATA-COMPLIANCE"; Db = "compliance_db"; Table = "Complaints"; Expected = 90 },
     @{ Id = "DATA-DSAR"; Db = "compliance_db"; Table = "DsarRequests"; Expected = 24 },
     @{ Id = "DATA-FILE"; Db = "file_storage_db"; Table = "Files"; Expected = 120 },
-    @{ Id = "DATA-AUTH"; Db = "auth_directory_db"; Table = "AuthUsers"; Expected = 63 },
-    @{ Id = "DATA-DIRECTORY"; Db = "auth_directory_db"; Table = "DirectoryEntries"; Expected = 55 },
+    @{ Id = "DATA-AUTH"; Db = "auth_directory_db"; Table = "AuthUsers"; Expected = 64 },
+    @{ Id = "DATA-DIRECTORY"; Db = "auth_directory_db"; Table = "DirectoryEntries"; Expected = 56 },
     @{ Id = "DATA-KPI"; Db = "analytics_db"; Table = "KPIs"; Expected = 45 }
 )
 foreach ($metric in $metricSpecs) {

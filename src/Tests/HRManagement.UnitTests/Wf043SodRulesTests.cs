@@ -83,10 +83,10 @@ public sealed class Wf043SodRulesTests
     {
         var options = new WorkflowStepRoleOptions();
 
-        foreach (var type in new[] { "AssetAssignment", "AssetLossReport", "assetlossreport", "TransferRequest", "ServiceTransaction", "RecruitmentApplication", "AnythingNew", "RecruitmentRequisition" })
+        // PLAN-46 lifted the last four: no type is exempt by default.
+        foreach (var type in new[] { "AssetAssignment", "AssetLossReport", "assetlossreport", "TransferRequest", "ServiceTransaction", "RecruitmentApplication", "AnythingNew", "RecruitmentRequisition",
+                     "SeparationRecord", "separationrecord", "DisciplinaryAction", "CardRequest", "Ticket" })
             Assert.True(options.IsEnforced(type), type);
-        foreach (var type in new[] { "SeparationRecord", "separationrecord", "DisciplinaryAction", "CardRequest", "Ticket" })
-            Assert.False(options.IsEnforced(type), type);
     }
 
     [Fact]
@@ -275,8 +275,9 @@ public sealed class Wf043SodRulesTests
     }
 
     [Fact]
-    public async Task An_exempt_type_has_no_role_check_on_either_side()
+    public async Task A_type_listed_as_exempt_has_no_role_check_on_either_side()
     {
+        // No type is exempt by default since PLAN-46; the mechanism stays for a dated exemption a later plan may need.
         await using var db = new HRCoreDbContext(new DbContextOptionsBuilder<HRCoreDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
         await WorkflowPackSeeder.SeedAsync(db);
         var definition = await db.WorkflowDefinitions.AsNoTracking().SingleAsync(d => d.Code == "SEPARATION-WIZARD");
@@ -288,7 +289,7 @@ public sealed class Wf043SodRulesTests
             Status = WorkflowStatus.InProgress,
             CurrentStepLevel = 1
         };
-        var options = new WorkflowStepRoleOptions();
+        var options = new WorkflowStepRoleOptions { StepRole = new() { ExemptEntityTypes = ["SeparationRecord"] } };
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.NameIdentifier, Other.ToString("D")), new Claim(ClaimTypes.Role, HrManagementRoles.HrCore)],
             "test", ClaimTypes.Name, ClaimTypes.Role));

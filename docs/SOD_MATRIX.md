@@ -89,6 +89,25 @@ The recruitment and establishment rules stay in their gates. Exempt types: `docs
 
 The requester, or any `admin-logistics` in the asset's scope, withdraws a request with a reason of at least 10 characters. The actor and the reason are recorded, and nothing is deleted.
 
+## ID card and discipline (PLAN-46, D-WF-1, D-ER-2)
+
+Both are approved in HR.Core's engine (`WF_001_WORKFLOW_ENGINE.md`, «الاعتماد العابر للخدمات»). The owning service starts the
+instance with the people to exclude; the engine bars them from every step, and the owner refuses an outcome that names them anyway.
+
+| Definition | Step | Role | Barred |
+|------------|------|------|--------|
+| `ID-CARD-ISSUANCE` | 1, مراجعة مكتب البطاقات | `idcard` | The requester (`RequestedBy`, `CreatedBy`), the submitter, and the employee concerned |
+| `DISCIPLINARY-APPROVAL` | 1, مراجعة امتثال | `compliance` | The creator, the submitter, and the employee concerned |
+| `DISCIPLINARY-APPROVAL` | 2, اعتماد صاحب الصلاحية | `hr-management-approver` | The same, and whoever approved step 1 (`RequireDistinctApprovers`) |
+
+- A card is issued only from an `Approved` request; whoever holds `idcard` may process it, because the two pairs of eyes were the
+  requester and the reviewer. `Renew` opens a replacement request.
+- A disciplinary action reaches payroll only when approved; the actions published before PLAN-46 are `ApprovedBeforeEngine` and are
+  never published again.
+- `idcard` and `compliance` reach the inbox and the approval page of HR.Core, nothing else: they are in `HrCoreWorkInbox` and
+  `WorkflowStepAction`, never in `ModuleHrCore` or `HrCoreReadOnly`.
+- No entity type is exempt from the step role since PLAN-46.
+
 ## The maker (PLAN-44, D-WF-8)
 
 `WorkflowMakerRules.Makers` is the creator (`CreatedBy`), the submitter (`InitiatedBy`, with `Workflow:Maker:IncludeSubmitter=true`) and the requester (`RequestedByUserId`), leaving out the empty ones. They are barred from every step, approving and rejecting, in the requisition, offer, establishment, competition and result gates. The inbox asks the same function, so the panel and the server bar the same people. Results bar the submitter whatever the setting says.

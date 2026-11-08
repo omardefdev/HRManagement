@@ -96,7 +96,8 @@ public static class AcceptancePersonaCatalog
     public static readonly IReadOnlyDictionary<string, int> ApprovedRegularPersonas = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         [TenantDefaults.DefaultCode] = 4,
-        ["AGENCY-A"] = 43,
+        // PLAN-46: a-idcard-2.
+        ["AGENCY-A"] = 44,
         ["AGENCY-B"] = 8,
         ["AGENCY-C"] = 4
     };

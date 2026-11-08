@@ -16,8 +16,8 @@ public class Phase5Tests
     #region CardIssuanceWorkflow
 
     [Fact]
-    public void CanProcess_Pending_ReturnsTrue() =>
-        Assert.True(CardIssuanceWorkflow.CanProcess(CardRequestStatus.Pending));
+    public void CanProcess_Pending_ReturnsFalse() =>
+        Assert.False(CardIssuanceWorkflow.CanProcess(CardRequestStatus.Pending)); // PLAN-46: a draft is never processed.
 
     [Fact]
     public void CanProcess_Processed_ReturnsFalse() =>

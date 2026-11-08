@@ -5,6 +5,8 @@
         @Html.AntiForgeryToken()
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="CardRequestId" class="form-label"></label><input asp-for="CardRequestId" class="form-control" /><span asp-validation-for="CardRequestId" class="text-danger"></span>
+                <div class="form-text">الإصدار يتطلب طلباً معتمداً غير معالج للموظف نفسه.</div></div>
             <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
             <div class="mb-3"><label asp-for="CardDesignId" class="form-label"></label><select asp-for="CardDesignId" asp-items="designs" class="form-control"></select><span asp-validation-for="CardDesignId" class="text-danger"></span></div>
             <p class="text-muted small mb-3">الرقم التسلسلي يُولَّد عند الإصدار (COD-001).</p>

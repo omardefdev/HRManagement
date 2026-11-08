@@ -1,6 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Workflow.CrossService;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Policy;
@@ -38,6 +39,14 @@ builder.Services.AddDbContext<IDCardDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<IDCardDbContext>());
 builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
+// PLAN-46: the cross-service approval contract (start, withdraw, status) with HR.Core.
+builder.Services.AddWorkflowApprovalClient(builder.Configuration);
+builder.Services.AddScoped<IDCard.Infrastructure.Services.CardRequestApprovalService>();
+builder.Services.AddWorkflowApprovalSweep<IDCard.Infrastructure.Services.CardRequestApprovalStore>(builder.Configuration);
+builder.Services.AddOptions<IDCard.Infrastructure.Services.CardApprovalOptions>()
+    .Bind(builder.Configuration.GetSection(IDCard.Infrastructure.Services.CardApprovalOptions.SectionName))
+    .Validate(o => !o.AutoSubmitOnHire, "IdCard:Approval:AutoSubmitOnHire must stay false: a request made on hire has no requester to vouch for it (D-WF-1).")
+    .ValidateOnStart();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     configureOutbox: x => x.AddPostgresOutbox<IDCardDbContext>(consumerOutbox: true),

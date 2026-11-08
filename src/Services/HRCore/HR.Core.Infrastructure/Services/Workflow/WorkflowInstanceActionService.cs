@@ -5,6 +5,7 @@ using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Establishment;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Infrastructure.Services.Recruitment.Competitions;
+using HR.Core.Infrastructure.Services.Workflow.External;
 using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
@@ -63,23 +64,27 @@ public sealed class WorkflowInstanceActionService(
     WorkflowApprovalEvaluator? evaluator = null) : IWorkflowInstanceActionService
 {
     private readonly WorkflowApprovalEvaluator _evaluator = evaluator ?? WorkflowApprovalEvaluator.CreateDefault(context);
+    private readonly ExternalOutcomePublisher _externalOutcomes = new(context, publish);
 
     /// <summary>
     /// PLAN-25 (G-14): entity types whose completed or rejected workflow has an effect here (<see cref="PublishWorkflowOutcomeAsync"/>).
     /// <c>WorkflowDefinitionsHaveHandlersTests</c> requires every published definition to be one of these or allow-listed.
+    /// PLAN-46: every <see cref="ExternalOutcomeEvent.Generic"/> type of the registry, whose effect here is the outcome event.
     /// </summary>
-    public static readonly IReadOnlySet<string> HandledEntityTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "AssetAssignment",
-        "AssetLossReport",
-        "RecruitmentRequisition",
-        "OfferLetter",
-        "SelectionCommitteeSession",
-        "RecruitmentAppeal",
-        "EstablishmentChangeRequest",
-        CompetitionLifecycleService.EntityType,
-        CompetitionResultsService.EntityType
-    };
+    public static readonly IReadOnlySet<string> HandledEntityTypes = new HashSet<string>(
+        [
+            "AssetAssignment",
+            "AssetLossReport",
+            "RecruitmentRequisition",
+            "OfferLetter",
+            "SelectionCommitteeSession",
+            "RecruitmentAppeal",
+            "EstablishmentChangeRequest",
+            CompetitionLifecycleService.EntityType,
+            CompetitionResultsService.EntityType,
+            .. ExternalApprovalTypes.All.Where(t => t.OutcomeEvent == ExternalOutcomeEvent.Generic).Select(t => t.EntityType)
+        ],
+        StringComparer.OrdinalIgnoreCase);
 
     public async Task<WorkflowActionResult> ApproveAsync(
         Guid instanceId,
@@ -252,6 +257,13 @@ public sealed class WorkflowInstanceActionService(
         if (string.Equals(instance.EntityType, "AssetAssignment", StringComparison.OrdinalIgnoreCase)
             || string.Equals(instance.EntityType, "AssetLossReport", StringComparison.OrdinalIgnoreCase))
             return;
+
+        // PLAN-46: the entity lives in its owning service, which hears the outcome through the outbox, in this transaction.
+        if (ExternalApprovalTypes.IsGeneric(instance.EntityType))
+        {
+            await _externalOutcomes.StageWorkflowOutcomeAsync(instance, ct);
+            return;
+        }
 
         if (string.Equals(instance.EntityType, "RecruitmentRequisition", StringComparison.OrdinalIgnoreCase))
             await requisitionHandler.HandleAsync(instance, approved, reason, ct);

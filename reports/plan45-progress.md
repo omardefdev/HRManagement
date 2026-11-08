@@ -76,3 +76,26 @@ Finished (UTC): 2026-11-07T16:57:31.2619808Z
 - Local CI on 8957cc32: 91 passed, 0 failed, 1629 s, after two failed runs (byte order mark; Ops038 plugin download).
 - Final report and PR text written.
 - Next step: pre-push check, release/plan-45, PR, wait for the checks, merge only when all are green.
+- Local CI on release HEAD 87f83c53: first run 2 unit failures (Qa066ReuseTests, Prod005WorkboxPackTests), both a PowerShell child crash loading an assembly, no assertion; the rerun passed 91 of 91, 1344 s. Pre-push: all six PASS.
+- Pushed release/plan-45 once. PR 43 opened 2026-11-07T17:58Z. Run 42398929354.
+WAITING-CI: PR 43, run 42398929354, from 2026-11-07T17:58Z. The app's monitor could not be set (denied by the permission classifier), so this turn ends here. Recorded at 2026-11-07T17:59:29.3016026Z.
+- Next step: gh pr checks 43 once; all green: gh pr merge 43 --merge, then git switch main, git pull --ff-only, and the merge note. Red: fix on release/plan-45 only.
+Resumed (UTC): 2026-11-07T20:09:19Z - owner's message after WAITING-CI; one check of PR 43, all green. origin/main still aeb6d716, server on 9560b03e51a3.
+Finished P8 (UTC): 2026-11-07T20:09:43Z
+
+## Merge note
+- PR: https://github.com/omardefdev/HRManagement/pull/43, head 87f83c53, merged at 2026-11-07T20:09:43Z.
+- Merge commit: c8252dc6bf812d35367624b47c70fe88f73b70d2. main = origin/main = c8252dc6 after git pull --ff-only.
+- PR run: https://github.com/omardefdev/HRManagement/actions/runs/42398929354, success, 14 of 14 checks, no rerun:
+  - Gitleaks pass 51s; Reuse check pass 21s; Dedupe post-merge run pass 8s
+  - CI pass 37m47s; CodeQL pass 17m42s; E2E pass 11m57s; Acceptance images pass 22m28s
+  - Acceptance stage: leastpriv pass 8m30s; lab-rest pass 13m46s; meta pass 19m8s; lab-main pass 21m9s; prodlike pass 22m14s; prodlike-final pass 23m8s
+  - Acceptance pass 27s
+- Evidence of record: the run's artifacts, https://github.com/omardefdev/HRManagement/actions/runs/42398929354#artifacts (acceptance-evidence, the six acceptance-stage-* sets, test-results, e2e-results, codeql-sarif, gitleaks-report). No evidence committed.
+- Actions job time: 11976 s, about 200 min across 14 jobs; 47 min wall-clock.
+- WAITING-CI: PR run from 2026-11-07T17:58:38Z to 18:45:22Z, 47 min. The app's monitor was denied, so the next check came on the owner's message at 20:09:19Z: green to merge was 1 h 24.
+- Demo server after the merge: 16 images on 9560b03e51a3, 22 containers, 0 unhealthy, / answers 302. From 9560b03e to c8252dc6 outside tests, reports and docs: scripts/vps/add-demo-user.sh (already run on the server) and the migration file without its byte order mark (no other difference), so no new deploy is needed.
+- Total: 2026-11-07T13:55:29Z to 20:09:43Z, 6 h 14 wall-clock: about 4 h 03 to the PR, then 2 h 11 from PR opened to merge (47 min CI, 1 h 24 waiting for the next message).
+- Open for later plans: reports/plan45-final-report.md, sections 8 and 9.
+- Post-merge run: https://github.com/omardefdev/HRManagement/actions/runs/42409698800 on c8252dc6, success at 20:10:40Z. Gitleaks ran; Dedupe post-merge run passed and the other jobs were skipped, because the tree was already tested in the PR run.
+Merged by agent on owner instruction (UTC): 2026-11-07T20:09:43Z

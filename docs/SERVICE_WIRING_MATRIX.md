@@ -48,12 +48,18 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `hr-contracts-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `hr-contracts-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
 | `hr-contracts-web` | `AddEmployeeLifecycleGate` | `GET /api/internal/employees/{employeeId}/lifecycle-flags` | hr-core-web | `ServicePolicies.HrCoreLifecycleS2S` | `hr-core.lookup` |  |
+| `hr-contracts-web` | `AddWorkflowApprovalClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
+| `hr-contracts-web` | `AddWorkflowApprovalClient` | `POST /api/workflow-instances/{id}/cancel` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
+| `hr-contracts-web` | `AddWorkflowApprovalClient` | `GET /api/workflow-instances/{id}/external-status` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
 | `hr-contracts-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `hr-movements-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
 | `payroll-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `payroll-web` | `AddHrCoreServiceRegimeClient` | `POST /api/internal/service-regime/payroll-blockers` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
 | `idcard-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `idcard-web` | `AddHrPolicyEnforceClient` | `POST /api/internal/policies/enforce` | hr-core-web | `ServicePolicies.PolicyEnforceS2S` | `hr-core.workflow` |  |
+| `idcard-web` | `AddWorkflowApprovalClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
+| `idcard-web` | `AddWorkflowApprovalClient` | `POST /api/workflow-instances/{id}/cancel` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
+| `idcard-web` | `AddWorkflowApprovalClient` | `GET /api/workflow-instances/{id}/external-status` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
 | `idcard-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `records-archive-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `records-archive-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
@@ -71,6 +77,9 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `compliance-web` | `AddHrDsarDeletion` | `POST /api/internal/dsar-subjects/candidates/{applicationId}/anonymize` | hr-core-web | `ServicePolicies.DsarSubjectErase` | `dsar.subject.erase` |  |
 | `compliance-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
 | `compliance-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
+| `compliance-web` | `AddWorkflowApprovalClient` | `POST /api/workflow-instances` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
+| `compliance-web` | `AddWorkflowApprovalClient` | `POST /api/workflow-instances/{id}/cancel` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
+| `compliance-web` | `AddWorkflowApprovalClient` | `GET /api/workflow-instances/{id}/external-status` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
 | `compliance-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `auth-directory-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `hr-training-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
@@ -90,6 +99,7 @@ PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal de
 | `AddCandidateDocumentUploadClient` | `src/Services/HRCore/HR.Core.Web/Services/CandidateDocumentUploadClient.cs` | `Integration__FileStorageBaseUrl` | `hr-core-web` |
 | `AddComplianceDsarCollector` | `src/Services/Compliance/Compliance.Infrastructure/Privacy/HttpDsarSubjectSources.cs` | `Integration__HrCoreBaseUrl`, `Integration__PayrollBaseUrl`, `Integration__FileStorageBaseUrl` | `compliance-web` |
 | `AddHrCoreWorkflowClient` | `src/Services/AdminLogistics/Admin.Logistics.Infrastructure/DependencyInjection.cs` | `Integration__HrCoreBaseUrl` | `admin-logistics-web` |
+| `AddWorkflowApprovalClient` | `src/Shared/HRManagement.ServiceDefaults/Workflow/CrossService/WorkflowApprovalClientExtensions.cs` | `Integration__HrCoreBaseUrl` | `hr-contracts-web`, `idcard-web`, `compliance-web` |
 | `AddDirectorySyncClient` | `src/Services/ITInfrastructure/IT.Infra.Infrastructure/Integration/HttpDirectoryEntrySyncClient.cs` | `Services__AuthDirectory__BaseUrl` | `it-infra-web` |
 | `AddEmployeeLifecycleGate` | `src/Services/HRContracts/HR.Contracts.Infrastructure/DependencyInjection.cs` | `Integration__HrCoreBaseUrl` | `hr-contracts-web` |
 

@@ -8,13 +8,21 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0">إجراء تأديبي</h3>
-        @if (Model.AppealStatus == AppealStatus.None)
+        @if (Model.AppealStatus == AppealStatus.None && DisciplinaryWorkflowRules.CanEdit(Model.ApprovalStatus))
         {
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">تعديل</a>
         }
     </div>
     <div class="card-body">
         <dl class="row">
+            <dt class="col-sm-3">حالة الاعتماد</dt>
+            <dd class="col-sm-9"><span class="badge text-bg-info" data-approval-status="@Model.ApprovalStatus">@Html.HrEnumDisplay(Model.ApprovalStatus)</span>
+                @if (Model.ApprovedBeforeEngine) { <span class="text-muted small">(صدر قبل ربط الاعتماد)</span> }</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
+            {
+                <dt class="col-sm-3">سبب الرفض</dt>
+                <dd class="col-sm-9">@Model.RejectionReason</dd>
+            }
             <dt class="col-sm-3">الموظف</dt>
             <dd class="col-sm-9">@employeeName</dd>
             <dt class="col-sm-3">نوع الإجراء</dt>
@@ -55,10 +63,24 @@
             </dd>
         </dl>
     </div>
+    <div class="card-footer d-flex flex-wrap gap-2">
+        @if (DisciplinaryWorkflowRules.CanSubmit(Model.ApprovalStatus))
+        {
+            <form asp-action="Submit" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary btn-sm">تقديم للاعتماد</button></form>
+        }
+        @if (DisciplinaryWorkflowRules.CanWithdraw(Model.ApprovalStatus))
+        {
+            <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب الإجراء التأديبي" /><button type="submit" class="btn btn-outline-secondary btn-sm">سحب من الاعتماد</button></form>
+        }
+        @if (Model.WorkflowInstanceId is Guid instanceId)
+        {
+            <a href="/ui/hr-core/WorkflowApprovals/Details/@instanceId" class="btn btn-outline-info btn-sm" data-approval-link="@instanceId">عرض الاعتماد</a>
+        }
+    </div>
 </div>
 
 <div class="row">
-    @if (DisciplinaryWorkflowRules.CanAppeal(Model.AppealStatus))
+    @if (DisciplinaryWorkflowRules.CanAppeal(Model.AppealStatus, Model.ApprovalStatus))
     {
         <div class="col-md-6">
             <div class="card">
@@ -73,7 +95,7 @@
         </div>
     }
 
-    @if (DisciplinaryWorkflowRules.CanDecide(Model.AppealStatus))
+    @if (DisciplinaryWorkflowRules.CanDecide(Model.AppealStatus, Model.ApprovalStatus))
     {
         <div class="col-md-6">
             <div class="card">

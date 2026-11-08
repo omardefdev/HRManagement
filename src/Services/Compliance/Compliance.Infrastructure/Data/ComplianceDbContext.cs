@@ -93,7 +93,13 @@ public class ComplianceDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.ComplaintId)
                   .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.RejectionReason).HasMaxLength(1000);
+            // PLAN-46: a withdrawal and the outcome of the approval never both win.
+            entity.ConfigureOptimisticConcurrency(this);
         });
+
+        // PLAN-46: the sweep of disciplinary approvals finds the tenants here, outside row security.
+        modelBuilder.Entity<HRManagement.SharedKernel.Entities.EntityAuditLog>().HasIndex(l => new { l.EntityType, l.TenantId });
 
         modelBuilder.Entity<Complaint>(entity =>
         {
