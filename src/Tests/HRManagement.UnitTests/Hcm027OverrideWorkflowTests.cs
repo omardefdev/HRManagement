@@ -125,8 +125,8 @@ public class Hcm027OverrideWorkflowTests
     {
         await using var db = CreateContext();
         await SeedReferenceDataAsync(db);
-        await PolicyEngineDomainSeeds.SeedAllDomainsAsync(db);
-        await PolicyEngineDomainSeeds.SeedIncrementalRulesAsync(db);
+        // PLAN-47: v1 of every domain, the bindings, and the seed change sets (new versions, never an in-place patch).
+        await PolicyEngineSeeder.SeedAsync(db);
         var (overrideOffer, normalOffer) = await SeedTwoOffersOnTwoRequisitionsAsync(db);
         var service = CreateOfferService(db, Config(policyMode: "Enforce"), CreateOrchestrator(db));
 

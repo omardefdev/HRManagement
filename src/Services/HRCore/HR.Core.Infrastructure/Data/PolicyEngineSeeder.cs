@@ -9,7 +9,14 @@ namespace HR.Core.Infrastructure.Data;
 
 public static class PolicyEngineSeeder
 {
-    public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
+    public static Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default) => SeedAsync(db, null, ct);
+
+    /// <summary>
+    /// v1 of every domain on an empty database, the workflow bindings, then the seed change sets (PLAN-47): every later change of
+    /// the seeded rules is a new version with a publication record, never an edit of a published one (the writers that patched
+    /// published versions in place are gone).
+    /// </summary>
+    public static async Task SeedAsync(HRCoreDbContext db, IServiceProvider? services, CancellationToken ct = default)
     {
         if (!await db.PolicyTemplates.AnyAsync(ct))
         {
@@ -18,39 +25,10 @@ public static class PolicyEngineSeeder
             await PolicyEngineDomainSeeds.SeedAllDomainsAsync(db, ct);
             await db.SaveChangesAsync(ct);
         }
-        else
-        {
-            await SeedSelectCodePolicyRuleIfMissingAsync(db, ct);
-        }
 
         await SeedWorkflowBindingsAsync(db, ct);
-        await PolicyEngineDomainSeeds.SeedIncrementalRulesAsync(db, ct);
-    }
-
-    private static async Task SeedSelectCodePolicyRuleIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        if (await db.PolicyRules.AnyAsync(r => r.RuleKey == "R-PRIV-CODE", ct))
-            return;
-
-        var version = await db.PolicyTemplateVersions.AsNoTracking()
-            .Include(v => v.PolicyTemplate)
-            .Where(v => v.PolicyTemplate!.Domain == PolicyDomains.AssetsCustody)
-            .Where(v => v.Status == PolicyVersionStatus.Published)
-            .OrderByDescending(v => v.VersionNumber)
-            .FirstOrDefaultAsync(ct);
-        if (version is null)
-            return;
-
-        db.PolicyRules.Add(new PolicyRule
-        {
-            PolicyTemplateVersionId = version.Id,
-            RuleKey = "R-PRIV-CODE",
-            Name = "مميز → قالب ترميز VIP",
-            Priority = 12,
-            WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"},{"field":"action","operator":"Equals","value":"Create"}]}""",
-            ThenJson = """[{"effect":"SelectCodePolicy","params":{"policyKey":"ASSET-PRIVILEGED"}}]"""
-        });
-        await db.SaveChangesAsync(ct);
+        await PolicySeedChangeSetApplier.ApplyAsync(db, services, ct);
+        await Services.Policy.PolicyPublishedRuleInventory.LogAsync(db, services, ct);
     }
 
     private static async Task SeedAssetsCustodyAsync(HRCoreDbContext db, CancellationToken ct)
@@ -178,9 +156,35 @@ public static class PolicyEngineSeeder
         (PolicyDomains.ITTickets, "IT-TICKET", "تذكرة IT")
     ];
 
+    /// <summary>
+    /// PLAN-47: codes the seeded recruitment rules fire that had no binding. The validator accepts a TriggerWorkflow only for a
+    /// code bound to the domain; these bindings pin no definition version (WorkflowStarter then takes the published one).
+    /// </summary>
+    private static readonly (string Domain, string WorkflowCode, string Description)[] UnpinnedWorkflowBindings =
+    [
+        (PolicyDomains.CoreRecruitment, "RECRUITMENT-SELECTION-COMMITTEE", "لجنة اختيار"),
+        (PolicyDomains.CoreRecruitment, "RECRUITMENT-APPEAL-REVIEW", "مراجعة استئناف")
+    ];
+
     private static async Task SeedWorkflowBindingsAsync(HRCoreDbContext db, CancellationToken ct)
     {
         var added = false;
+        foreach (var binding in UnpinnedWorkflowBindings)
+        {
+            if (await db.PolicyWorkflowBindings.AnyAsync(b => b.Domain == binding.Domain && b.WorkflowCode == binding.WorkflowCode, ct))
+                continue;
+
+            db.PolicyWorkflowBindings.Add(new PolicyWorkflowBinding
+            {
+                TenantId = TenantDefaults.DefaultTenantId,
+                Domain = binding.Domain,
+                WorkflowCode = binding.WorkflowCode,
+                WorkflowDefinitionId = null,
+                Description = binding.Description
+            });
+            added = true;
+        }
+
         foreach (var binding in WorkflowBindings)
         {
             if (await db.PolicyWorkflowBindings.AnyAsync(

@@ -51,10 +51,12 @@ public sealed class PolicyPublishService(
     HRCoreDbContext db,
     IPolicyRuleValidationService validation,
     IPolicyVersionPublisher publisher,
-    IPolicyPlatformClaimGuard guard,
-    IAuthorizationService authorization,
-    IConfiguration configuration,
-    IHostEnvironment environment)
+    // DI supplies all four. A seed applier built without a container (tests, tools) has none: the guards are then not called (the
+    // validation still refuses an invalid version) and a manual publication is refused for want of an authorization service.
+    IPolicyPlatformClaimGuard? guard = null,
+    IAuthorizationService? authorization = null,
+    IConfiguration? configuration = null,
+    IHostEnvironment? environment = null)
 {
     public const string AllowSameActorInDevelopmentKey = "PolicyEngine:Publish:AllowSameActorInDevelopment";
     public const string AllowRetroactiveKey = "PolicyEngine:Publish:AllowRetroactive";
@@ -81,7 +83,7 @@ public sealed class PolicyPublishService(
         var publisherId = command.Publisher.UserId;
         if (publisherId is null || publisherId == Guid.Empty)
             return new(PolicyPublishOutcome.FourEyes, "four-eyes: الناشر يجب أن يكون مستخدماً معرّفاً");
-        if (command.Publisher.Principal is null
+        if (command.Publisher.Principal is null || authorization is null
             || !(await authorization.AuthorizeAsync(command.Publisher.Principal, HrManagementPolicies.PolicyApprover)).Succeeded)
             return new(PolicyPublishOutcome.FourEyes, "four-eyes: النشر لدور الاعتماد فقط");
 
@@ -99,7 +101,7 @@ public sealed class PolicyPublishService(
         if (editors.Contains(publisherId.Value) && !SameActorAllowedInDevelopment())
             return new(PolicyPublishOutcome.FourEyes, "four-eyes: لا ينشر أحد مسودة حرّرها");
 
-        var four = guard.ValidateFourEyesPublish(AuthorRoleName, ApproverRoleName);
+        var four = guard?.ValidateFourEyesPublish(AuthorRoleName, ApproverRoleName);
         if (four is not null)
             return new(PolicyPublishOutcome.FourEyes, four);
 
@@ -110,10 +112,12 @@ public sealed class PolicyPublishService(
     }
 
     /// <summary>
-    /// D-POL-11: a seed change set publishes without four eyes, as SystemSeed, with the set's id as the evidence. The same
-    /// validation and the same publisher (and so the same IPolicyPublished) as any other publication.
+    /// D-POL-11: a seed change set publishes without four eyes, as SystemSeed, with the set's id as the evidence, through the same
+    /// publisher (and so the same IPolicyPublished) as any other publication. The validator checks the rules the set adds or
+    /// replaces (<paramref name="changedRuleKeys"/>); the rules it carries over from the effective version are published as they
+    /// were, so a rule PLAN-46 retired (left for PLAN-49) never fails the boot.
     /// </summary>
-    public async Task<PolicyPublishResult> PublishSystemSeedAsync(Guid versionId, string changeSetId, CancellationToken ct = default)
+    public async Task<PolicyPublishResult> PublishSystemSeedAsync(Guid versionId, string changeSetId, IReadOnlySet<string> changedRuleKeys, CancellationToken ct = default)
     {
         var version = await LoadAsync(versionId, ct);
         if (version is null)
@@ -122,10 +126,14 @@ public sealed class PolicyPublishService(
             return new(PolicyPublishOutcome.NotDraft, "يمكن نشر المسودات فقط");
 
         return await ValidateAndPublishAsync(version, new PolicyPublicationDetails(
-            null, null, changeSetId, PolicyPublicationKind.SystemSeed, SystemRoleName, SystemRoleName, null), ct);
+            null, null, changeSetId, PolicyPublicationKind.SystemSeed, SystemRoleName, SystemRoleName, null), ct, changedRuleKeys);
     }
 
-    private async Task<PolicyPublishResult> ValidateAndPublishAsync(PolicyTemplateVersion version, PolicyPublicationDetails details, CancellationToken ct)
+    private async Task<PolicyPublishResult> ValidateAndPublishAsync(
+        PolicyTemplateVersion version,
+        PolicyPublicationDetails details,
+        CancellationToken ct,
+        IReadOnlySet<string>? onlyRuleKeys = null)
     {
         // §5: no empty version, except the explicit "withdraw every rule of the domain" draft with a written reason.
         if (version.WithdrawsAllRules)
@@ -145,7 +153,7 @@ public sealed class PolicyPublishService(
         {
             if (string.IsNullOrWhiteSpace(version.ChangeReason))
                 return PolicyPublishResult.Invalid("التراجع يتطلب سبباً مكتوباً", "$.changeReason");
-            var rollback = guard.ValidateRollback(hasRollbackRef: true);
+            var rollback = guard?.ValidateRollback(hasRollbackRef: true);
             if (rollback is not null)
                 return PolicyPublishResult.Invalid(rollback);
         }
@@ -153,16 +161,19 @@ public sealed class PolicyPublishService(
         // D-POL-10: no retroactive effect, unless the setting opens it.
         if (version.EffectiveFrom is DateTime from
             && from < DateTime.UtcNow - RetroactiveTolerance
-            && !configuration.GetValue<bool>(AllowRetroactiveKey))
+            && configuration?.GetValue<bool>(AllowRetroactiveKey) != true)
             return PolicyPublishResult.Invalid(RetroactiveMessage, "$.effectiveFrom");
 
         var issues = await validation.ValidateVersionAsync(
             version.PolicyTemplate.Domain,
-            version.Rules.OrderBy(r => r.Priority).ThenBy(r => r.RuleKey, StringComparer.Ordinal).Select(PolicyRuleValidationService.ToInput).ToList(),
+            version.Rules
+                .Where(r => onlyRuleKeys is null || (r.RuleKey is not null && onlyRuleKeys.Contains(r.RuleKey)))
+                .OrderBy(r => r.Priority).ThenBy(r => r.RuleKey, StringComparer.Ordinal)
+                .Select(PolicyRuleValidationService.ToInput).ToList(),
             ct);
 
         // PROD-001 publish gate: an invalid version is never published.
-        var gate = guard.ValidateInvalidPublish(isValid: issues.Count == 0, published: true);
+        var gate = guard?.ValidateInvalidPublish(isValid: issues.Count == 0, published: true);
         if (issues.Count > 0)
             return new(PolicyPublishOutcome.Invalid, gate ?? "الإصدار لا يجتاز التحقق", issues);
 
@@ -185,7 +196,7 @@ public sealed class PolicyPublishService(
     }
 
     private bool SameActorAllowedInDevelopment() =>
-        environment.IsDevelopment() && configuration.GetValue<bool>(AllowSameActorInDevelopmentKey);
+        environment?.IsDevelopment() == true && configuration?.GetValue<bool>(AllowSameActorInDevelopmentKey) == true;
 
     private Task<PolicyTemplateVersion?> LoadAsync(Guid versionId, CancellationToken ct) =>
         db.PolicyTemplateVersions

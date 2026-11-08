@@ -232,8 +232,8 @@ public sealed class Hcm025ProductionApprovalIntegrationTests(
         {
             await LegislationRegisterSeeder.SeedAsync(db);
             await WorkflowPackSeeder.SeedAsync(db);
-            await PolicyEngineDomainSeeds.SeedAllDomainsAsync(db);
-            await PolicyEngineDomainSeeds.SeedIncrementalRulesAsync(db);
+            // PLAN-47: v1 of every domain, the bindings, and the seed change sets (new versions, never an in-place patch).
+            await PolicyEngineSeeder.SeedAsync(db);
             return true;
         });
         return _host;
