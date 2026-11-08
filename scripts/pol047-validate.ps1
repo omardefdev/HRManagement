@@ -71,7 +71,11 @@ foreach ($id in @("POL-2026-10-30-BASELINE", "POL-2026-10-30-RETIRE-R-REC-HIRE")
 # 2. The inventory of published rules the validator refuses, from the start-up log.
 $inventory = @()
 if (-not [string]::IsNullOrWhiteSpace($Container)) {
-    $log = & docker logs $Container 2>&1 | Out-String
+    # docker logs writes the container's stderr to stderr: under PowerShell 5.1 that is an error record, not a failure.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $log = (& docker logs $Container 2>&1 | ForEach-Object { "$_" }) -join "`n"
+    $ErrorActionPreference = $previous
     $inventory = @($log -split "`r?`n" | Where-Object { $_ -match 'PLAN-47 validator inventory' })
 } elseif (-not [string]::IsNullOrWhiteSpace($LogFile)) {
     $inventory = @([System.IO.File]::ReadAllLines((Resolve-Path $LogFile)) | Where-Object { $_ -match 'PLAN-47 validator inventory' })

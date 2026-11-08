@@ -26,7 +26,11 @@ public enum PolicyPublishOutcome
 /// <summary>Who publishes: the user id from the token and the principal the approver policy is checked against.</summary>
 public sealed record PolicyActor(Guid? UserId, ClaimsPrincipal? Principal);
 
-public sealed record PolicyPublishCommand(Guid VersionId, PolicyActor Publisher, string? EvidenceRef);
+/// <summary>
+/// <paramref name="ExpectedRevision"/>: the draft's revision the approver reviewed (<see cref="PolicyPublishService.Revision"/>);
+/// the page always sends it, an API client should.
+/// </summary>
+public sealed record PolicyPublishCommand(Guid VersionId, PolicyActor Publisher, string? EvidenceRef, uint? ExpectedRevision = null);
 
 public sealed record PolicyPublishResult(
     PolicyPublishOutcome Outcome,
@@ -101,14 +105,22 @@ public sealed class PolicyPublishService(
         if (editors.Contains(publisherId.Value) && !SameActorAllowedInDevelopment())
             return new(PolicyPublishOutcome.FourEyes, "four-eyes: لا ينشر أحد مسودة حرّرها");
 
-        var four = guard?.ValidateFourEyesPublish(AuthorRoleName, ApproverRoleName);
+        // The draft the approver reviewed (its revision, from the page or the API body) is the draft that is published: a change
+        // after the review is a conflict, and so is a change that races this publication (the version's xmin).
+        if (command.ExpectedRevision is uint expected && Revision(version) is uint actual && actual != expected)
+            return new(PolicyPublishOutcome.Conflict, ChangedSinceReviewMessage);
+
+        // The role the checker actually holds (the first of PolicyEngine:Roles:Approver); the author acted as policy-author.
+        var checkerRole = PolicyEngineRoleHandler.ApproverRoles(configuration)
+            .FirstOrDefault(r => command.Publisher.Principal.IsInRole(r)) ?? ApproverRoleName;
+        var four = guard?.ValidateFourEyesPublish(AuthorRoleName, checkerRole);
         if (four is not null)
             return new(PolicyPublishOutcome.FourEyes, four);
 
         var makerId = version.CreatedBy ?? edits.FirstOrDefault(e => e.UserId.HasValue)?.UserId;
         var kind = version.RollbackOfVersionId is null ? PolicyPublicationKind.Manual : PolicyPublicationKind.Rollback;
         return await ValidateAndPublishAsync(version, new PolicyPublicationDetails(
-            makerId, publisherId, command.EvidenceRef, kind, AuthorRoleName, ApproverRoleName, version.RollbackOfVersionId), ct);
+            makerId, publisherId, command.EvidenceRef, kind, AuthorRoleName, checkerRole, version.RollbackOfVersionId), ct);
     }
 
     /// <summary>
@@ -186,13 +198,35 @@ public sealed class PolicyPublishService(
             db.ChangeTracker.Clear();
             return new(PolicyPublishOutcome.Conflict, ConcurrentPublishMessage);
         }
-        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex) || IsPublishedMeanwhile(ex))
         {
+            // The same race seen from another statement: the draft was published by the winner (the immutability trigger,
+            // SQLSTATE P0047, refuses the loser's change of a version that is now published).
             db.ChangeTracker.Clear();
             return new(PolicyPublishOutcome.Conflict, ConcurrentPublishMessage);
         }
 
         return new(PolicyPublishOutcome.Ok, Version: version);
+    }
+
+    public const string ChangedSinceReviewMessage = "تغيّرت المسودة بعد مراجعتك؛ راجعها ثم انشرها";
+
+    /// <summary>The draft's revision: its PostgreSQL xmin (every change of a draft updates the version row); null elsewhere.</summary>
+    public uint? Revision(PolicyTemplateVersion version)
+    {
+        var property = db.Entry(version).Metadata.FindProperty("xmin");
+        return property is null ? null : (uint?)db.Entry(version).Property("xmin").CurrentValue;
+    }
+
+    /// <summary>PLAN-47: the SQLSTATE the immutability triggers of POL047_PolicyRuleLifecycle raise.</summary>
+    public const string ImmutabilitySqlState = "P0047";
+
+    private static bool IsPublishedMeanwhile(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+            if (e is Npgsql.PostgresException { SqlState: ImmutabilitySqlState })
+                return true;
+        return false;
     }
 
     private bool SameActorAllowedInDevelopment() =>

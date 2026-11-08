@@ -61,6 +61,11 @@ public sealed class Pol047RollbackTests
         var draft = await h.Drafts.CreateRollbackDraftAsync(template.Id, v1.Id, "سبب", Author);
         var self = await h.PublishService.PublishAsync(new(draft.Id!.Value, Pol047Harness.Actor(Author, HrManagementRoles.HrManagementApprover), null));
         Assert.Equal(PolicyPublishOutcome.FourEyes, self.Outcome);
+
+        // A discarded draft (Archived) was never in force: no rollback to it, no copy of it.
+        Assert.True((await h.Drafts.DiscardDraftAsync(draft.Id.Value, Author)).Succeeded);
+        Assert.Equal(PolicyDraftOutcome.Invalid, (await h.Drafts.CreateRollbackDraftAsync(template.Id, draft.Id.Value, "سبب", Author)).Outcome);
+        Assert.Equal(PolicyDraftOutcome.Invalid, (await h.Drafts.CreateDraftAsync(template.Id, draft.Id.Value, Author)).Outcome);
     }
 
     [Fact]

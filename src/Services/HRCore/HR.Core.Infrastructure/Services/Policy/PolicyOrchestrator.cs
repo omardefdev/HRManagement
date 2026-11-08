@@ -125,6 +125,13 @@ public sealed class PolicyOrchestrator(
     /// <summary>PLAN-47 (§6): the published policy now, or as of <see cref="PolicyEnforceRequest.AsOfUtc"/>.</summary>
     public async Task<PolicyDecision> EvaluateAsync(PolicyEnforceRequest request, CancellationToken ct = default)
     {
+        // A time with no zone is UTC; a local one is converted (the body may carry either).
+        request.AsOfUtc = request.AsOfUtc switch
+        {
+            DateTime { Kind: DateTimeKind.Local } local => local.ToUniversalTime(),
+            DateTime { Kind: DateTimeKind.Unspecified } unspecified => DateTime.SpecifyKind(unspecified, DateTimeKind.Utc),
+            var asOf => asOf
+        };
         var snapshot = await GetPublishedSnapshotAsync(request.Domain, request.TenantId, request.AsOfUtc, ct);
         if (snapshot is null || snapshot.Rules.Count == 0)
         {

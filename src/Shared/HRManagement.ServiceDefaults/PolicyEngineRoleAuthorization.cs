@@ -50,10 +50,12 @@ public sealed class PolicyEngineRoleHandler(IServiceProvider services) : Authori
         var configuration = services.GetService<IConfiguration>();
         var isService = ServiceCallerPrincipal.IsServiceAccount(user);
 
+        // An author or an approver is a person the edit record and the publication can name: a GUID user id is required.
+        var identified = HasUserId(user);
         var allowed = requirement.Kind switch
         {
-            PolicyEngineRoleKind.Author => !isService && AuthorRoles(configuration).Any(user.IsInRole),
-            PolicyEngineRoleKind.Approver => !isService && ApproverRoles(configuration).Any(user.IsInRole),
+            PolicyEngineRoleKind.Author => !isService && identified && AuthorRoles(configuration).Any(user.IsInRole),
+            PolicyEngineRoleKind.Approver => !isService && identified && ApproverRoles(configuration).Any(user.IsInRole),
             _ => isService
                 ? ServiceCallerPrincipal.HasScope(user, ServiceScopes.HrCoreLookup) || ServiceCallerPrincipal.HasScope(user, ServiceScopes.HrCoreWorkflow)
                 : HrCoreReaderRoles.Concat(AuthorRoles(configuration)).Concat(ApproverRoles(configuration)).Any(user.IsInRole)
@@ -63,6 +65,10 @@ public sealed class PolicyEngineRoleHandler(IServiceProvider services) : Authori
             context.Succeed(requirement);
         return Task.CompletedTask;
     }
+
+    private static bool HasUserId(System.Security.Claims.ClaimsPrincipal user) =>
+        Guid.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value, out var id)
+        && id != Guid.Empty;
 
     private static IReadOnlyList<string> Read(IConfiguration? configuration, string key, IReadOnlyList<string> defaults)
     {

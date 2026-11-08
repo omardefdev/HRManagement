@@ -44,9 +44,9 @@
                 }
             </span>
             <span>
-                @if (v.Status == PolicyVersionStatus.Draft && canAuthor)
+                @if (v.Status == PolicyVersionStatus.Draft)
                 {
-                    <a asp-action="EditRules" asp-route-versionId="@v.Id" class="btn btn-sm btn-warning me-1">تحرير</a>
+                    <a asp-action="EditRules" asp-route-versionId="@v.Id" class="btn btn-sm btn-warning me-1">@(canAuthor ? "تحرير" : "مراجعة ونشر")</a>
                 }
                 <a asp-action="Simulate" asp-route-versionId="@v.Id" class="btn btn-sm btn-primary">محاكاة</a>
             </span>
@@ -86,7 +86,7 @@
                 </tbody>
             </table>
         </div>
-        @if (canAuthor && !hasDraft && v.Status != PolicyVersionStatus.Draft && v.Id != effectiveId)
+        @if (canAuthor && !hasDraft && v.Status == PolicyVersionStatus.Published && v.Id != effectiveId)
         {
             <div class="card-footer">
                 <form asp-action="CreateRollbackDraft" method="post" class="row g-2 align-items-end mb-0">

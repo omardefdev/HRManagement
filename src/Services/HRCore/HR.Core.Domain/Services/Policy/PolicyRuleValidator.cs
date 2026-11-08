@@ -93,7 +93,8 @@ public static class PolicyRuleValidator
     {
         foreach (var (leaf, path) in PolicyRuleJson.Leaves(when))
         {
-            var field = context.Schema?.Fields.FirstOrDefault(f => string.Equals(f.Name, leaf.Field, StringComparison.OrdinalIgnoreCase));
+            // Exact case: the evaluator reads the facts by the exact name on the internal path (an Ordinal dictionary).
+            var field = context.Schema?.Fields.FirstOrDefault(f => string.Equals(f.Name, leaf.Field, StringComparison.Ordinal));
             if (field is null)
             {
                 issues.Add(context.Schema is null

@@ -174,8 +174,8 @@ public class PolicyTemplatesController(
         return RedirectToAction(nameof(EditRules), new { versionId = result.Id });
     }
 
+    /// <summary>The draft page: the author edits it, and an approver who is not an editor reviews it read-only and publishes it.</summary>
     [HttpGet]
-    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
     public async Task<IActionResult> EditRules(Guid versionId)
     {
         var version = await db.PolicyTemplateVersions
@@ -200,6 +200,9 @@ public class PolicyTemplatesController(
         ViewBag.CanPublish = userId is Guid me
                              && !editorIds.Contains(me)
                              && (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyApprover)).Succeeded;
+        ViewBag.CanAuthor = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
+        // The revision the reviewer sees is the one published: a change after this page answers a conflict.
+        ViewBag.Revision = publishService.Revision(version);
         return View(version);
     }
 
@@ -270,9 +273,9 @@ public class PolicyTemplatesController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PolicyApprover)]
-    public async Task<IActionResult> PublishFromUi(Guid versionId, string? evidenceRef)
+    public async Task<IActionResult> PublishFromUi(Guid versionId, string? evidenceRef, uint? revision)
     {
-        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), evidenceRef));
+        var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), evidenceRef, revision));
         if (result.Outcome == PolicyPublishOutcome.NotFound)
             return NotFound();
 

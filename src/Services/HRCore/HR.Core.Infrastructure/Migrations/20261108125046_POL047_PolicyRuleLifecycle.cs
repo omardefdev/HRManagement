@@ -38,6 +38,14 @@ namespace HR.Core.Infrastructure.Migrations
                 rowVersion: true,
                 nullable: false,
                 defaultValue: 0u);
+            migrationBuilder.AddColumn<uint>(
+                name: "xmin",
+                table: "PolicyTemplateVersions",
+                type: "xid",
+                rowVersion: true,
+                nullable: false,
+                defaultValue: 0u);
+
 
             migrationBuilder.AddColumn<string>(
                 name: "CheckerRole",
@@ -159,7 +167,7 @@ namespace HR.Core.Infrastructure.Migrations
                 v_status text;
             BEGIN
                 IF TG_OP IN ('UPDATE', 'DELETE') THEN
-                    SELECT v."Status" INTO v_status FROM public."PolicyTemplateVersions" v WHERE v."Id" = OLD."PolicyTemplateVersionId";
+                    SELECT v."Status" INTO v_status FROM public."PolicyTemplateVersions" v WHERE v."Id" = OLD."PolicyTemplateVersionId" FOR SHARE;
                     IF (TG_OP = 'UPDATE' AND v_status IS DISTINCT FROM 'Draft')
                        OR (TG_OP = 'DELETE' AND v_status IS NOT NULL AND v_status <> 'Draft') THEN
                         RAISE EXCEPTION 'PLAN-47 policy immutability: the rules of policy version % (status %) cannot change; create a new draft',
@@ -169,7 +177,7 @@ namespace HR.Core.Infrastructure.Migrations
                 END IF;
 
                 IF TG_OP IN ('INSERT', 'UPDATE') THEN
-                    SELECT v."Status" INTO v_status FROM public."PolicyTemplateVersions" v WHERE v."Id" = NEW."PolicyTemplateVersionId";
+                    SELECT v."Status" INTO v_status FROM public."PolicyTemplateVersions" v WHERE v."Id" = NEW."PolicyTemplateVersionId" FOR SHARE;
                     IF v_status IS DISTINCT FROM 'Draft' THEN
                         RAISE EXCEPTION 'PLAN-47 policy immutability: the rules of policy version % (status %) cannot change; create a new draft',
                             NEW."PolicyTemplateVersionId", COALESCE(v_status, 'not visible')
@@ -254,6 +262,9 @@ namespace HR.Core.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "xmin",
                 table: "PolicyTemplates");
+            migrationBuilder.DropColumn(
+                name: "xmin",
+                table: "PolicyTemplateVersions");
 
             migrationBuilder.DropColumn(
                 name: "CheckerRole",

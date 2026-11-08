@@ -111,6 +111,8 @@ public sealed class Pol047RuleValidatorTests
     public void A_field_outside_the_schema_is_refused(string culture)
     {
         Single(Validate(culture, Rule("""{"all":[{"field":"employeeName","operator":"Equals","value":"x"}]}""")), "WHEN_UNKNOWN_FIELD", "$.when.all[0].field");
+        // Exact case: the evaluator reads facts by the exact name on the internal path.
+        Single(Validate(culture, Rule("""{"all":[{"field":"Category","operator":"Equals","value":"x"}]}""")), "WHEN_UNKNOWN_FIELD", "$.when.all[0].field");
 
         var noSchema = new PolicyRuleValidationContext { Domain = PolicyDomains.AssetsCustody };
         Single(Validate(culture, Rule(GoodWhen), noSchema), "WHEN_NO_SCHEMA", "$.when.all[0].field");

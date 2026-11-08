@@ -28,8 +28,43 @@ public class PoliciesController(
     {
         // PLAN-42: a user reads the decision of their own tenant; the body names one only for a platform operator with no session.
         request.TenantId = HttpContext.Items[TenantIdMiddleware.ItemKey] as Guid? ?? request.TenantId;
+        // PLAN-47: "as of a date" is for people reading HR.Core's policy; a service is decided on the policy in force now.
+        if (ServiceCallerPrincipal.IsServiceAccount(User))
+            request.AsOfUtc = null;
         var decision = await orchestrator.EvaluateAsync(request, ct);
         return Ok(decision);
+    }
+
+    /// <summary>PLAN-47: one version with its rules, its editors and its revision (what an approver reviews before publishing).</summary>
+    [HttpGet("versions/{versionId:guid}")]
+    public async Task<IActionResult> GetVersion(Guid versionId, CancellationToken ct)
+    {
+        var version = await db.PolicyTemplateVersions
+            .Include(v => v.Rules)
+            .FirstOrDefaultAsync(v => v.Id == versionId, ct);
+        if (version is null) return NotFound();
+        var editors = await db.PolicyVersionEdits.AsNoTracking()
+            .Where(e => e.PolicyTemplateVersionId == versionId)
+            .OrderBy(e => e.OccurredAt)
+            .Select(e => new { e.UserId, Action = e.Action.ToString(), e.RuleKey, e.OccurredAt })
+            .ToListAsync(ct);
+        return Ok(new
+        {
+            version.Id,
+            version.PolicyTemplateId,
+            version.VersionNumber,
+            Status = version.Status.ToString(),
+            version.EffectiveFrom,
+            version.EffectiveTo,
+            version.CreatedBy,
+            version.RollbackOfVersionId,
+            version.ChangeReason,
+            version.WithdrawsAllRules,
+            Revision = publishService.Revision(version),
+            Rules = version.Rules.OrderBy(r => r.Priority).ThenBy(r => r.RuleKey)
+                .Select(r => new { r.Id, r.RuleKey, r.Name, r.Priority, r.WhenJson, r.ThenJson }),
+            Editors = editors
+        });
     }
 
     [HttpGet("snapshots/{domain}")]
@@ -96,7 +131,7 @@ public class PoliciesController(
     public async Task<IActionResult> Publish(Guid versionId, [FromBody] PublishPolicyRequest? request, CancellationToken ct)
     {
         var result = await publishService.PublishAsync(
-            new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), request?.EvidenceRef), ct);
+            new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), request?.EvidenceRef, request?.Revision), ct);
         if (!result.Succeeded)
             return PublishProblem(result);
 
@@ -229,6 +264,9 @@ public sealed class PolicyRuleRequest
 public sealed class PublishPolicyRequest
 {
     public string? EvidenceRef { get; set; }
+
+    /// <summary>The revision of the draft the approver reviewed (from GET versions/{id}); a change since then answers 409.</summary>
+    public uint? Revision { get; set; }
 }
 
 public sealed class CreatePolicyDraftRequest

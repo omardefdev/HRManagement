@@ -19,7 +19,8 @@ public static class AcceptanceS2s42PolicyPatch
     public const string DeniedCategory = "اختبار-رفض";
     public const string DenyReason = "مرفوض بقاعدة القبول ACC-S2S42-DENY";
 
-    private const int VersionNumber = 4;
+    // PLAN-47: the next number of the template (AC-POL-47 publishes versions of this template on the same prod-like stack
+    // before the s2s42 overlay recreates hr-core-web), not a fixed 4.
 
     public static async Task ApplyAsync(HRCoreDbContext db, IConfiguration configuration, CancellationToken ct = default)
     {
@@ -88,7 +89,7 @@ public static class AcceptanceS2s42PolicyPatch
             Id = versionId,
             TenantId = tenantId,
             PolicyTemplateId = AcceptanceSeedIds.PolicyTemplateId,
-            VersionNumber = VersionNumber,
+            VersionNumber = await versions.Where(v => v.PolicyTemplateId == AcceptanceSeedIds.PolicyTemplateId).MaxAsync(v => v.VersionNumber, ct) + 1,
             EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate
         }, rules, PolicyVersionStatus.Published, new PolicyPublication
         {

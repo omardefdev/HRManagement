@@ -928,6 +928,9 @@ public class HRCoreDbContext : TenantAwareDbContext
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
             entity.Property(e => e.ChangeReason).HasMaxLength(1000);
             entity.Property(e => e.WithdrawsAllRules).HasDefaultValue(false);
+            // PLAN-47 (review): every change of a draft updates its version row, so a publication of a draft that changed after it
+            // was loaded (or reviewed) is a concurrency conflict (409), not a publication of rules nobody checked.
+            entity.ConfigureOptimisticConcurrency(this);
             // PLAN-47 (D-POL-12): one draft per template; no parallel drafts.
             entity.HasIndex(e => e.PolicyTemplateId)
                 .IsUnique()

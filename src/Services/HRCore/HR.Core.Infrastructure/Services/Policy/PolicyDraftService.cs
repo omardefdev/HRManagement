@@ -63,9 +63,9 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         PolicyTemplateVersion? source;
         if (copyFromVersionId is Guid fromId)
         {
-            source = template.Versions.FirstOrDefault(v => v.Id == fromId && v.Status != PolicyVersionStatus.Draft);
+            source = template.Versions.FirstOrDefault(v => v.Id == fromId && v.Status == PolicyVersionStatus.Published);
             if (source is null)
-                return PolicyDraftResult.Invalid("الإصدار المنسوخ ليس إصداراً منشوراً أو مؤرشفاً لهذا القالب", "$.copyFromVersionId");
+                return PolicyDraftResult.Invalid("الإصدار المنسوخ ليس إصداراً منشوراً لهذا القالب", "$.copyFromVersionId");
         }
         else
         {
@@ -90,9 +90,10 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         if (template.Versions.Any(v => v.Status == PolicyVersionStatus.Draft))
             return PolicyDraftResult.DraftExists;
 
-        var target = template.Versions.FirstOrDefault(v => v.Id == targetVersionId && v.Status != PolicyVersionStatus.Draft);
+        // Published versions only: an archived row is a discarded draft (or seeded history), never a decision that was in force.
+        var target = template.Versions.FirstOrDefault(v => v.Id == targetVersionId && v.Status == PolicyVersionStatus.Published);
         if (target is null)
-            return PolicyDraftResult.Invalid("الإصدار المستهدف ليس إصداراً منشوراً أو مؤرشفاً لهذا القالب", "$.targetVersionId");
+            return PolicyDraftResult.Invalid("الإصدار المستهدف ليس إصداراً منشوراً لهذا القالب", "$.targetVersionId");
 
         return await AddDraftAsync(template, target, actorUserId, reasonAr.Trim(), target.Id, withdrawReason: null, ct);
     }
@@ -288,7 +289,15 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         return PolicyDraftResult.Ok(draft.Id);
     }
 
-    private void Record(PolicyTemplateVersion version, Guid? actorUserId, PolicyVersionEditAction action, string? ruleKey) =>
+    /// <summary>
+    /// The edit record, and a new revision of the draft: touching UpdatedAt updates the version row, so its xmin (the version's
+    /// concurrency token) moves; a publication of a draft that changed after it was reviewed, and a change racing a
+    /// publication, end in a conflict.
+    /// </summary>
+    private void Record(PolicyTemplateVersion version, Guid? actorUserId, PolicyVersionEditAction action, string? ruleKey)
+    {
+        version.UpdatedAt = DateTime.UtcNow;
+        db.Entry(version).Property(v => v.UpdatedAt).IsModified = true;
         db.PolicyVersionEdits.Add(new PolicyVersionEdit
         {
             PolicyTemplateVersionId = version.Id,
@@ -298,6 +307,7 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
             RuleKey = ruleKey,
             OccurredAt = DateTime.UtcNow
         });
+    }
 
     private async Task<(PolicyTemplateVersion? Version, PolicyDraftResult? Error)> LoadDraftAsync(Guid versionId, CancellationToken ct)
     {

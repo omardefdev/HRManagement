@@ -239,6 +239,7 @@
   - سالب: مستخدم جهة لا يستطيع إنشاء قالب `National`.
 
 #### G-POL-06 — النشر بأربع عيون قابل للتجاوز، والقاعدة تُنشر بلا تحقق من صحتها
+- **الحالة:** ✅ عولجت في [PLAN-47](acceptance-plans/PLAN-47-pol-rule-lifecycle.md) — لا علم تجاوز، والنشر لسياسة `Policy.Approver` والتأليف لـ`Policy.Author` (الدوران `policy-author`/`policy-approver`)، وكل محرر مسجّل في `PolicyVersionEdits` ولا ينشر ما حرّره. `PolicyRuleValidator` يرفض الشرط الفارغ والعامل المجهول والحقل خارج المخطط والأثر الخاطئ برسالة عربية تذكر المسار، والأرقام بالثقافة الثابتة، والقاعدة المخزنة التالفة لا تطابق شيئاً. الحراس `ValidateFourEyesPublish`/`ValidateInvalidPublish` موصولة (AC-POL-47a، 47b).
 - **الدليل:**
   - **تجاوز فصل المهام:**
     - `ForceSameActorForLab` حقل في جسم API ([PoliciesController.cs:114](../src/Services/HRCore/HR.Core.Web/Controllers/PoliciesController.cs)، `:163`) ومربع «Lab: نفس المحرّر» في واجهة الإنتاج ([EditRules.cshtml:55](../src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml)). لا فحص للبيئة.
@@ -268,6 +269,7 @@
   - موجب: مؤلف ومعتمد مختلفان ينشران بنجاح.
 
 #### G-POL-07 — الإصدارات المنشورة ليست ثابتة، والتأريخ شكلي، ولا يوجد تراجع
+- **الحالة:** ✅ عولجت في [PLAN-47](acceptance-plans/PLAN-47-pol-rule-lifecycle.md) — الإصدار المنشور ثابت (معترِض وtrigger يعمل تحت أمن الصفوف)، وتغييرات البذور مجموعات تغيير تُنشئ إصدارات جديدة (ومنها سحب `R-REC-HIRE`)، والمسودة نسخة من النافذ تُعدَّل وتُحذف منها القواعد، و`EffectiveFrom` مستقبلي والتقييم «كما في تاريخ»، والتراجع إصدار جديد بأربع عيون مرتبط بالسابق (AC-POL-47c، 47d، 47e، 47f). وجزء G-POL-15: مسار نشر واحد، وكل نسخ HR.Core تبطل كاشها (AC-POL-47g). مخطط الحقائق من الواجهة باقٍ للموجة 2.
 - **الدليل:**
   - **البذور تعدّل الإصدار المنشور في مكانه:**
     - `AddRuleIfMissingAsync` يضيف القاعدة إلى أحدث إصدار **منشور** ([PolicyEngineDomainSeeds.cs:297-329](../src/Services/HRCore/HR.Core.Infrastructure/Data/PolicyEngineDomainSeeds.cs))، وكذلك `SeedSelectCodePolicyRuleIfMissingAsync` ([PolicyEngineSeeder.cs:30-54](../src/Services/HRCore/HR.Core.Infrastructure/Data/PolicyEngineSeeder.cs)).

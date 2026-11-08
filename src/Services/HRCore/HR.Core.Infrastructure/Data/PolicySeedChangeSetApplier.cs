@@ -67,8 +67,20 @@ public sealed class PolicySeedChangeSetApplier(
         }
     }
 
+    /// <summary>The key of the advisory lock every HR.Core instance takes before it applies a change set (one at a time).</summary>
+    public const long AdvisoryLockKey = 4_700_470_047;
+
     private async Task ApplyToDomainAsync(PolicySeedChangeSet set, string domain, CancellationToken ct)
     {
+        // One transaction per template (a relational database; the in-memory test store has none). On PostgreSQL every instance
+        // that boots takes the same transaction-scoped advisory lock first and reads the records under it, so two instances
+        // starting together apply a set once: the second finds the first one's record.
+        await using var transaction = db.Database.IsRelational() && db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(ct)
+            : null;
+        if (db.Database.IsNpgsql())
+            await db.Database.ExecuteSqlRawAsync($"SELECT pg_advisory_xact_lock({AdvisoryLockKey})", ct);
+
         var template = await db.PolicyTemplates
             .Include(t => t.Versions).ThenInclude(v => v.Rules)
             .FirstOrDefaultAsync(t => t.Domain == domain && t.Scope == PolicyTemplateScope.National, ct);
@@ -107,10 +119,6 @@ public sealed class PolicySeedChangeSetApplier(
                       ?? new Dictionary<string, PolicyRule>(StringComparer.Ordinal);
         var ruleOps = operations.Where(o => o.Kind != PolicySeedOperationKind.EnsureFactsField && Changes(o, current)).ToList();
 
-        // One transaction per template (a relational database; the in-memory test store has none).
-        await using var transaction = db.Database.IsRelational() && db.Database.CurrentTransaction is null
-            ? await db.Database.BeginTransactionAsync(ct)
-            : null;
         if (ruleOps.Count == 0)
         {
             await RecordAsync(set.Id, template, null, OutcomeNoOp, digest, ct);

@@ -147,6 +147,7 @@
     { "class": "AcWf44InstanceIntegrityTests", "required": true, "group": "isolated" },
     { "class": "AcWf45AssetApprovalLoopTests", "required": true, "group": "isolated" },
     { "class": "AcWf46CrossServiceApprovalTests", "required": true, "group": "isolated" },
+    { "class": "AcPol47RuleLifecycleTests", "required": true, "group": "isolated" },
     { "class": "AcOps39KeycloakDataProtectionTests", "required": true, "group": "isolated" },
     { "class": "AcQa41AcceptanceBaselineTests", "required": true, "group": "final" },
     { "class": "AcS2s42TrustBoundaryTests", "required": true, "group": "s2s42" },

@@ -33,9 +33,9 @@ public sealed class Pol047FourEyesTests
         Assert.Equal(Approver, publication.CheckerUserId);
         Assert.Equal(PolicyPublicationKind.Manual, publication.Kind);
         Assert.Equal("policy-author", publication.MakerRole);
-        Assert.Equal("policy-approver", publication.CheckerRole);
+        Assert.Equal(HrManagementRoles.HrManagementApprover, publication.CheckerRole);   // the role the checker actually holds
         Assert.Equal("EV-1", publication.EvidenceRef);
-        h.Guard.Verify(g => g.ValidateFourEyesPublish("policy-author", "policy-approver"), Times.Once);
+        h.Guard.Verify(g => g.ValidateFourEyesPublish("policy-author", HrManagementRoles.HrManagementApprover), Times.Once);
         h.Guard.Verify(g => g.ValidateInvalidPublish(true, true), Times.Once);
         Assert.NotNull((await h.Db.PolicyTemplateVersions.SingleAsync(v => v.Id == v1.Id)).EffectiveTo);
     }
@@ -153,6 +153,14 @@ public sealed class Pol047FourEyesTests
         Assert.False((await defaults.AuthorizeAsync(Pol047Harness.User(id, HrManagementRoles.HrManagementApprover), HrManagementPolicies.PolicyAuthor)).Succeeded);
         Assert.True((await defaults.AuthorizeAsync(Pol047Harness.User(id, HrManagementRoles.PolicyApprover), HrManagementPolicies.PolicyReader)).Succeeded);
         Assert.False((await defaults.AuthorizeAsync(Pol047Harness.User(id, HrManagementRoles.HrEmployee), HrManagementPolicies.PolicyReader)).Succeeded);
+
+        // An author or an approver is a person the records can name: a token with no user id holds neither policy.
+        var nameless = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+            [new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, HrManagementRoles.HrCore),
+             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, HrManagementRoles.HrManagementApprover)], "test"));
+        Assert.False((await defaults.AuthorizeAsync(nameless, HrManagementPolicies.PolicyAuthor)).Succeeded);
+        Assert.False((await defaults.AuthorizeAsync(nameless, HrManagementPolicies.PolicyApprover)).Succeeded);
+        Assert.True((await defaults.AuthorizeAsync(nameless, HrManagementPolicies.PolicyReader)).Succeeded);
     }
 
     [Theory]
