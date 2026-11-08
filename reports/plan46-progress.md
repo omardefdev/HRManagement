@@ -76,3 +76,22 @@ P5: PostgreSQL tests (Wf046ExternalOutcomePostgresTests, Wf046DisciplinaryConsum
 
 ## Next step (after P5)
 P6: origin/main has not moved (c8252dc6) as of 22:00Z; check again, then P7 server (backup, single detached build, deploy, demo users, checks).
+P6: origin/main unchanged at c8252dc6 (2026-11-07T22:43:00Z); nothing to merge.
+P6 Finished (UTC): 2026-11-07T22:43:00Z
+
+## P7 server log
+- Condition: running tag 9560b03e51a3 is on origin/main. Release tag: dbf53280121d (the final code of P1-P5 plus the server checks and demo users).
+- Backup: /opt/hrm/backups/pre-plan46-20261107T224439Z (700, files 600): pg_dumpall.sql (17 CREATE DATABASE), env.backup, SHA256SUMS verified. Undo: none (delete when no longer needed).
+- Before: 20 disciplinary actions, 0 payroll disciplinary records; cards 45 Pending, 450 Processed; 457 issued cards; definitions 16 Published, 3 Retired.
+- Build 1 failed: "no space left on device" (disk 95%). Freed with `docker builder prune -af` and `docker image prune -af --filter until=12h` (87 GB; disk 40%). Undo: none needed, every release stays in the loopback registry. Build 2 started detached.
+- Build 2: 21 min 41 s (23:08:24 to 23:30:05Z), 17/17 images tagged dbf53280121d; source and build cache removed by the script; disk 43%.
+- Deploy 1 (23:30Z) stopped at keycloak-reconcile ("could not read the realm roles", right after PostgreSQL restarted: the PLAN-40 incident); hrm-bootstrap had exited 0. Deploy 2, the same command: exit 0 in 116 s; current-tag dbf53280121d, previous-tag 9560b03e51a3; smoke 50 pass, 0 fail, 1 warn. Downtime about 4 min (23:30 to 23:34Z). Undo: `scripts/vps/deploy.ps1 -Rollback` (to 9560b03e51a3; safe by P-3).
+- Demo users added to the live realm with scripts/vps/add-demo-user.sh (password from the server .env, not printed): e2e-idcard-maker (idcard), e2e-idcard-checker (idcard), e2e-compliance-checker (compliance); national tenant. Undo: delete the three users in Keycloak.
+- Server checks need VPS_SSH_HOST, VPS_APP_DOMAIN, VPS_SSO_DOMAIN and VPS_TARGET_IP (without VPS_TARGET_IP the client connects to 127.0.0.1): artifacts/plan46/vps/env.sh.
+- AC_WF_46 vps: schema/old actions/definitions Pass; card journey Pass; warning journey Pass (payroll exactly once).
+- Server suites (16 min, nothing heavy beside): AcOps36VpsBootTests without 36j + AcInt37VpsServerTests + PLAN-38..46 server checks: 30/31; the sweep check ran before the first cycle of idcard-web, which restarted at 23:49Z during the suites. After the first cycles (23:59Z: "Workflow approval sweep of CardRequest: 1 tenant(s), 0 waiting, 0 applied" and the same for DisciplinaryAction) the sweep check passed: 31/31.
+- After: disciplinary 22 (20 Approved+ApprovedBeforeEngine, 2 Approved by the engine from the checks); payroll disciplinary records 2, at most 1 per action (the 20 old ones have none, as before); cards 47 draft, 453 processed; issued 460; definitions 12 Published, 9 Retired; disk 42%.
+- P7 Finished (UTC): 2026-11-08T00:00:15Z.
+
+## Next step (after P7)
+P8: docs (status lines done; PLAN-46 plan status and notes), ci-local + prepush, final report, release branch, PR, wait, merge.
