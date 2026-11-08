@@ -1087,42 +1087,30 @@ public static class AcceptanceDataSeeder
             Scope = PolicyTemplateScope.TenantOverride,
             Description = "قالب قبول بإصدارات مؤرشفة ومنشورة ومسودة"
         });
-        db.PolicyTemplateVersions.AddRange(
-            new PolicyTemplateVersion
-            {
-                Id = v1Id,
-                TenantId = agency.Id,
-                PolicyTemplateId = templateId,
-                VersionNumber = 1,
-                Status = PolicyVersionStatus.Archived,
-                EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddYears(-2),
-                EffectiveTo = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
-            },
-            new PolicyTemplateVersion
-            {
-                Id = v2Id,
-                TenantId = agency.Id,
-                PolicyTemplateId = templateId,
-                VersionNumber = 2,
-                Status = PolicyVersionStatus.Published,
-                EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
-            },
-            new PolicyTemplateVersion
-            {
-                Id = v3Id,
-                TenantId = agency.Id,
-                PolicyTemplateId = templateId,
-                VersionNumber = 3,
-                Status = PolicyVersionStatus.Draft,
-                CreatedBy = agency.EmployeeAt(0).Id
-            });
+        // PLAN-47: rules go only to a draft, so each version is added as a draft and then moved to its status, one at a time.
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            Id = v1Id,
+            TenantId = agency.Id,
+            PolicyTemplateId = templateId,
+            VersionNumber = 1,
+            EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddYears(-2),
+            EffectiveTo = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
+        }, [], PolicyVersionStatus.Archived, publication: null, ct);
 
-        db.PolicyRules.AddRange(
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            Id = v2Id,
+            TenantId = agency.Id,
+            PolicyTemplateId = templateId,
+            VersionNumber = 2,
+            EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
+        },
+        [
             new PolicyRule
             {
                 Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v2"),
                 TenantId = agency.Id,
-                PolicyTemplateVersionId = v2Id,
                 RuleKey = "ACC-R-PRIV-EVIDENCE",
                 Name = "الأصل المميز يتطلب دليلاً",
                 Priority = 10,
@@ -1133,35 +1121,40 @@ public static class AcceptanceDataSeeder
             {
                 Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v2-workflow"),
                 TenantId = agency.Id,
-                PolicyTemplateVersionId = v2Id,
                 RuleKey = "ACC-R-PRIV-WORKFLOW",
                 Name = "الأصل المميز يتطلب سير اعتماد",
                 Priority = 20,
                 WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
                 ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""
-            },
+            }
+        ], PolicyVersionStatus.Published, new PolicyPublication
+        {
+            Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-publication-v2"),
+            TenantId = agency.Id,
+            PublishedAt = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1),
+            EvidenceRef = $"{AcceptanceSeedCatalog.PackId}:{agency.Code}"
+        }, ct);
+
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            Id = v3Id,
+            TenantId = agency.Id,
+            PolicyTemplateId = templateId,
+            VersionNumber = 3,
+            CreatedBy = agency.EmployeeAt(0).Id
+        },
+        [
             new PolicyRule
             {
                 Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v3"),
                 TenantId = agency.Id,
-                PolicyTemplateVersionId = v3Id,
                 RuleKey = "ACC-R-PRIV-DENY",
                 Name = "مسودة رفض الأصل المميز",
                 Priority = 5,
                 WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
                 ThenJson = """[{"effect":"Deny","params":{"reason":"acceptance-v3-deny"}}]"""
-            });
-
-        db.PolicyPublications.Add(new PolicyPublication
-        {
-            Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-publication-v2"),
-            TenantId = agency.Id,
-            PolicyTemplateVersionId = v2Id,
-            PublishedAt = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1),
-            EvidenceRef = $"{AcceptanceSeedCatalog.PackId}:{agency.Code}"
-        });
-
-        await db.SaveChangesAsync(ct);
+            }
+        ], PolicyVersionStatus.Draft, publication: null, ct);
     }
 
     private static EmploymentStatus MapEmploymentStatus(AcceptanceEmployeeState state) => state switch

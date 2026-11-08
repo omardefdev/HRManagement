@@ -147,6 +147,14 @@
     {
       "name": "workflow-admin",
       "description": "Role workflow-admin"
+    },
+    {
+      "name": "policy-author",
+      "description": "Role policy-author"
+    },
+    {
+      "name": "policy-approver",
+      "description": "Role policy-approver"
     }
   ],
   "defaultDefaultClientScopes": [],
@@ -947,6 +955,21 @@
       "lastName": "ComplianceChecker",
       "realmRoles": [
         "compliance",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-policy-author",
+      "email": "e2e-policy-author@hrm.local",
+      "firstName": "E2E",
+      "lastName": "PolicyAuthor",
+      "realmRoles": [
+        "policy-author",
         "offline_access"
       ],
       "attributes": {

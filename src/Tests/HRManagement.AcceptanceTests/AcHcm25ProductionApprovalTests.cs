@@ -310,25 +310,32 @@ public class AcHcm25ProductionApprovalTests
     public async Task Ac25_g_hire_starts_no_recruitment_hire_workflow()
     {
         AcceptanceEnv.RequireEnabled();
-        var s = await StartAsync(Ac, "25g", "AC-HCM-25g RECRUITMENT-HIRE retired: rule neutralised, definition unpublished, no instances", "central-a");
+        var s = await StartAsync(Ac, "25g", "AC-HCM-25g RECRUITMENT-HIRE retired: rule absent from the effective version, definition unpublished, no instances", "central-a");
         s.Steps("""
-            Live facts on the running stack (patched on start-up by WorkflowPackSeeder.RetireAsync and
-            PolicyEngineDomainSeeds.DeactivateRuleIfPresentAsync):
-            1. R-REC-HIRE has no effect («[]») and its name is marked «[معطّلة]»; R-REC-ORG and R-REC-HIRE-OFFER remain.
+            Live facts on the running stack (WorkflowPackSeeder.RetireAsync, and PLAN-47's seed change set
+            POL-2026-10-30-RETIRE-R-REC-HIRE, which publishes a new version without the rule instead of rewriting it):
+            1. R-REC-HIRE is absent from the effective Core.Recruitment version; R-REC-ORG and R-REC-HIRE-OFFER are in it.
             2. RECRUITMENT-HIRE is unpublished with ValidTo set.
             3. No RecruitmentApplication workflow instance is in progress (hires on this stack — AC-HCM-22a/30/33c — started none).
             The Enforce-mode hire itself (fresh DB, pre-PLAN-25 DB with rule + published definition + binding, static fallback)
             is proven by Hcm025RecruitmentHireRetiredTests (unit) — Enforce is not the deployed mode (Production = Shadow).
             """);
 
-        var rule = await Sql("SELECT \"ThenJson\" || '|' || \"Name\" FROM \"PolicyRules\" WHERE \"RuleKey\"='R-REC-HIRE';");
-        var kept = await Scalar("SELECT COUNT(*) FROM \"PolicyRules\" WHERE \"RuleKey\" IN ('R-REC-ORG','R-REC-HIRE-OFFER');");
+        // PLAN-47: the effective national Core.Recruitment version, the one the orchestrator evaluates now.
+        const string effective = """
+            (SELECT v."Id" FROM "PolicyTemplateVersions" v JOIN "PolicyTemplates" t ON t."Id" = v."PolicyTemplateId"
+             WHERE t."Domain" = 'Core.Recruitment' AND t."Scope" = 'National' AND v."Status" = 'Published'
+               AND (v."EffectiveFrom" IS NULL OR v."EffectiveFrom" <= now()) AND (v."EffectiveTo" IS NULL OR v."EffectiveTo" > now())
+             ORDER BY v."VersionNumber" DESC LIMIT 1)
+            """;
+        var rule = await Sql($"SELECT string_agg(\"ThenJson\" || '|' || \"Name\", ';') FROM \"PolicyRules\" WHERE \"RuleKey\"='R-REC-HIRE' AND \"PolicyTemplateVersionId\" = {effective};");
+        var kept = await Scalar($"SELECT COUNT(*) FROM \"PolicyRules\" WHERE \"RuleKey\" IN ('R-REC-ORG','R-REC-HIRE-OFFER') AND \"PolicyTemplateVersionId\" = {effective};");
         var definition = await Sql("SELECT \"IsPublished\"::text || '|' || (\"ValidTo\" IS NOT NULL)::text FROM \"WorkflowDefinitions\" WHERE \"Code\"='RECRUITMENT-HIRE';");
         var inProgress = await Scalar("SELECT COUNT(*) FROM \"WorkflowInstances\" WHERE \"EntityType\"='RecruitmentApplication' AND \"Status\"='InProgress';");
         var hires = await Scalar($"SELECT COUNT(*) FROM \"RecruitmentApplications\" WHERE \"Status\"={4};");
         s.Recorder.WriteBefore(new { rule, kept, definition, inProgress, hires });
 
-        Assert.True(rule.Length == 0 || rule.StartsWith("[]|[معطّلة]", StringComparison.Ordinal), $"R-REC-HIRE still active: {rule}");
+        Assert.True(rule.Length == 0, $"R-REC-HIRE is still in the effective Core.Recruitment version: {rule}");
         Assert.Equal(2, kept);
         Assert.Equal("false|true", definition);
         Assert.Equal(0, inProgress);

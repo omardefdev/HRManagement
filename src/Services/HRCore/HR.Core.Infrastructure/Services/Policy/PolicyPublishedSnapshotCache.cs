@@ -12,8 +12,9 @@ public interface IPolicyPublishedSnapshotCache
 
     void InvalidateDomain(string domain);
 
-    static string BuildCacheKey(string domain, Guid? tenantId, DateTime asOfUtc) =>
-        $"policy:{domain}:{tenantId}:{asOfUtc:yyyyMMdd}";
+    /// <summary>PLAN-47: the key of the snapshot effective now (evaluations as of another time are not cached).</summary>
+    static string BuildCacheKey(string domain, Guid? tenantId) =>
+        $"policy:{domain}:{tenantId}:now";
 }
 
 public sealed class PolicyPublishedSnapshotCache(IMemoryCache cache) : IPolicyPublishedSnapshotCache
@@ -22,6 +23,18 @@ public sealed class PolicyPublishedSnapshotCache(IMemoryCache cache) : IPolicyPu
 
     private readonly HashSet<string> _keys = new(StringComparer.Ordinal);
     private readonly object _gate = new();
+
+    /// <summary>
+    /// PLAN-47 (§6): an entry lives at most <see cref="DefaultTtl"/>, or until the next EffectiveFrom of the domain's templates,
+    /// whichever comes first, so a version that takes effect later is evaluated from that moment.
+    /// </summary>
+    public static TimeSpan TimeToLive(DateTime nowUtc, DateTime? nextEffectiveFromUtc)
+    {
+        if (nextEffectiveFromUtc is not DateTime next)
+            return DefaultTtl;
+        var untilNext = next - nowUtc;
+        return untilNext < DefaultTtl ? untilNext : DefaultTtl;
+    }
 
     public bool TryGet(string cacheKey, out PolicyVersionSnapshot? snapshot)
     {
@@ -37,6 +50,8 @@ public sealed class PolicyPublishedSnapshotCache(IMemoryCache cache) : IPolicyPu
 
     public void Set(string cacheKey, PolicyVersionSnapshot snapshot, TimeSpan ttl)
     {
+        if (ttl <= TimeSpan.Zero)
+            return;
         cache.Set(cacheKey, snapshot, ttl);
         lock (_gate)
             _keys.Add(cacheKey);

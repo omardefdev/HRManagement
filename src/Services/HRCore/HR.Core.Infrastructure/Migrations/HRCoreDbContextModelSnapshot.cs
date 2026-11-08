@@ -3580,6 +3580,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("EntityId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("EvaluatedAsOf")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("FactsHash")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -3672,6 +3675,10 @@ namespace HR.Core.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CheckerRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<Guid?>("CheckerUserId")
                         .HasColumnType("uuid");
 
@@ -3681,6 +3688,17 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("EvidenceRef")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("Manual");
+
+                    b.Property<string>("MakerRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<Guid?>("MakerUserId")
                         .HasColumnType("uuid");
@@ -3749,6 +3767,55 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("PolicyTemplateVersionId");
 
                     b.ToTable("PolicyRules");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicySeedApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangeSetId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("PolicyTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ResultVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PolicyTemplateId");
+
+                    b.HasIndex("ChangeSetId", "PolicyTemplateId")
+                        .IsUnique();
+
+                    b.ToTable("PolicySeedApplications");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicySimulationRun", b =>
@@ -3833,6 +3900,12 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TenantId", "Domain", "Scope");
@@ -3845,6 +3918,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -3859,6 +3936,9 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("PolicyTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RollbackOfVersionId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Status")
@@ -3878,7 +3958,23 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<int>("VersionNumber")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("WithdrawsAllRules")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("PolicyTemplateId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PolicyTemplateVersions_OneDraftPerTemplate")
+                        .HasFilter("\"Status\" = 'Draft'");
 
                     b.HasIndex("PolicyTemplateId", "VersionNumber")
                         .IsUnique();
@@ -3886,6 +3982,46 @@ namespace HR.Core.Infrastructure.Migrations
                     b.HasIndex("Status", "EffectiveFrom");
 
                     b.ToTable("PolicyTemplateVersions");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicyVersionEdit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PolicyTemplateVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RuleKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PolicyTemplateVersionId", "OccurredAt");
+
+                    b.ToTable("PolicyVersionEdits");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicyWorkflowBinding", b =>
@@ -7967,6 +8103,15 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Navigation("PolicyTemplateVersion");
                 });
 
+            modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicySeedApplication", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.Policy.PolicyTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("PolicyTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicyTemplateVersion", b =>
                 {
                     b.HasOne("HR.Core.Domain.Entities.Policy.PolicyTemplate", "PolicyTemplate")
@@ -7976,6 +8121,15 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("PolicyTemplate");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.Policy.PolicyVersionEdit", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.Policy.PolicyTemplateVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PolicyTemplateVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.PublicJobPosting", b =>

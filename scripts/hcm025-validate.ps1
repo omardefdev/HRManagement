@@ -90,7 +90,9 @@ foreach ($controller in @("Competitions", "EstablishmentChanges", "OfferLetters"
 # 4. G-14 and G-15.
 $seeds = Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicyEngineDomainSeeds.cs"
 if ($seeds -match 'Rule\("R-REC-HIRE"') { $failures += "PolicyEngineDomainSeeds still seeds R-REC-HIRE" }
-if ($seeds -notmatch 'DeactivateRuleIfPresentAsync\(db, "R-REC-HIRE"') { $failures += "R-REC-HIRE is not deactivated on existing databases" }
+# PLAN-47: an existing database retires R-REC-HIRE through a seed change set (a new version), never an in-place rewrite.
+$changeSets = Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicySeedChangeSets.cs"
+if ($changeSets -notmatch 'RetireRule, PolicyDomains\.CoreRecruitment, RuleKey: "R-REC-HIRE"') { $failures += "R-REC-HIRE is not retired on existing databases (POL-2026-10-30-RETIRE-R-REC-HIRE)" }
 $pack = Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Data/WorkflowPackSeeder.cs"
 if ($pack -notmatch '"RECRUITMENT-HIRE"\s*\r?\n\s*\}' -or $pack -notmatch 'RetireAsync') { $failures += "RECRUITMENT-HIRE is not in WorkflowPackSeeder.RetiredCodes / RetireAsync" }
 if ((Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Services/Policy/PolicyStaticFallback.cs") -match '"RECRUITMENT-HIRE"') {

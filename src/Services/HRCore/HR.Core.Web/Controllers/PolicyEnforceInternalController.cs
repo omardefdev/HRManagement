@@ -52,6 +52,8 @@ public sealed class PolicyEnforceInternalController(
         request.Mode = modeResolver.Resolve(request.Domain);
         request.ActorUserId = ParseActingUser();
         request.ActorUserName = null;
+        // PLAN-47: a service is decided on the policy in force now; "as of a date" is for HR.Core's own reads, never the body.
+        request.AsOfUtc = null;
 
         return Ok(await orchestrator.EnforceForServiceAsync(request, clientId!, ct));
     }

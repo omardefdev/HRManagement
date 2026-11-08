@@ -34,7 +34,7 @@ public static class PolicyDomainFactsBuilders
             Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["employeeId"] = employeeId.ToString(),
-                ["durationDays"] = durationDays.ToString(),
+                ["durationDays"] = durationDays.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["leaveType"] = leaveType,
                 ["action"] = action
             }

@@ -34,6 +34,8 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
             // IAM-004: S2S API controllers carry their own Service.* / HrCoreWrite policies.
             || string.Equals(controller, "CodeGeneration", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "Policies", StringComparison.OrdinalIgnoreCase)
+            // PLAN-47: PolicyReader / PolicyAuthor / PolicyApprover admit policy-author and policy-approver, which hold no HR.Core module role.
+            || string.Equals(controller, "PolicyTemplates", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "Onboarding", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "TenantQuarantine", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "EmployeeLifecycleInternal", StringComparison.OrdinalIgnoreCase)

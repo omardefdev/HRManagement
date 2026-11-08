@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace HRManagement.SharedKernel.Workflow;
@@ -25,15 +26,20 @@ public sealed record WorkflowCondition
         {
             "Equals" => string.Equals(actual, Value, StringComparison.OrdinalIgnoreCase),
             "NotEquals" => !string.Equals(actual, Value, StringComparison.OrdinalIgnoreCase),
-            "GreaterThan" => decimal.TryParse(actual, out var a) && decimal.TryParse(Value, out var b) && a > b,
-            "LessThan" => decimal.TryParse(actual, out var la) && decimal.TryParse(Value, out var lb) && la < lb,
-            "GreaterThanOrEqual" => decimal.TryParse(actual, out var ga) && decimal.TryParse(Value, out var gb) && ga >= gb,
+            // PLAN-47: numbers are read with the invariant culture, never the machine's (ar-SA on the owner's machine).
+            "GreaterThan" => TryNumber(actual, out var a) && TryNumber(Value, out var b) && a > b,
+            "LessThan" => TryNumber(actual, out var la) && TryNumber(Value, out var lb) && la < lb,
+            "GreaterThanOrEqual" => TryNumber(actual, out var ga) && TryNumber(Value, out var gb) && ga >= gb,
+            "LessThanOrEqual" => TryNumber(actual, out var le) && TryNumber(Value, out var lv) && le <= lv,
             "Contains" => actual.Contains(Value, StringComparison.OrdinalIgnoreCase),
             "In" => Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                          .Any(v => string.Equals(v, actual, StringComparison.OrdinalIgnoreCase)),
             _ => false
         };
     }
+
+    private static bool TryNumber(string? text, out decimal value) =>
+        decimal.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value);
 
     /// <summary>Parses a context dictionary from a JSON payload string.</summary>
     public static Dictionary<string, string>? ParseContext(string? json)

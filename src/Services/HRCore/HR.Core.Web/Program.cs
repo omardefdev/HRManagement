@@ -123,6 +123,8 @@ builder.Services.AddSingleton<AuditSaveChangesInterceptor>();
 builder.Services.AddSingleton<EmployeePiiProtectionInterceptor>();
 builder.Services.AddSingleton<EmployeePiiMaterializationInterceptor>();
 builder.Services.AddSingleton<ArabicNameNormalizationInterceptor>();
+// PLAN-47 (G-POL-07): a published policy version never changes through the application.
+builder.Services.AddSingleton<HR.Core.Infrastructure.Data.Interceptors.PublishedPolicyImmutabilityInterceptor>();
 builder.Services.AddSignalR();
 
 var coreConn = builder.Configuration.GetConnectionString("HRCoreDb");
@@ -132,6 +134,7 @@ builder.Services.AddDbContext<HRCoreDbContext>((sp, options) =>
             typeof(HRCoreDbContext).Assembly.GetName().Name!)
            .AddInterceptors(
                sp.GetRequiredService<AuditSaveChangesInterceptor>(),
+               sp.GetRequiredService<HR.Core.Infrastructure.Data.Interceptors.PublishedPolicyImmutabilityInterceptor>(),
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>(),
                sp.GetRequiredService<SignatureImmutabilityInterceptor>(),

@@ -27,8 +27,18 @@ public sealed class PolicyConditionGroup
     [JsonPropertyName("not")]
     public PolicyConditionNode? Not { get; set; }
 
+    /// <summary>PLAN-47: a condition that never matches (a stored rule the strict parser refuses).</summary>
+    [JsonIgnore]
+    public bool IsNever { get; init; }
+
+    /// <summary>PLAN-47: what a malformed stored rule becomes: it matches nothing.</summary>
+    public static PolicyConditionGroup Never => new() { IsNever = true };
+
     public bool Evaluate(IReadOnlyDictionary<string, string> facts)
     {
+        if (IsNever)
+            return false;
+
         if (All is { Count: > 0 })
             return All.All(n => n.Evaluate(facts));
 
@@ -38,7 +48,8 @@ public sealed class PolicyConditionGroup
         if (Not is not null)
             return !Not.Evaluate(facts);
 
-        return true;
+        // PLAN-47 (G-POL-06): an empty group matches nothing; it used to match everything.
+        return false;
     }
 }
 
@@ -52,7 +63,7 @@ public sealed class PolicyConditionNode
     {
         if (Leaf is not null) return Leaf.Evaluate(facts);
         if (Group is not null) return Group.Evaluate(facts);
-        return true;
+        return false;
     }
 }
 

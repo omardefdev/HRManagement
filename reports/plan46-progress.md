@@ -103,3 +103,24 @@ Commit docs, create release/plan-46 from origin/main with --no-ff, run ci-local 
 - Pushed release/plan-46 at 2026-11-08T00:37Z; PR https://github.com/omardefdev/HRManagement/pull/44; CI run 42430590954 started 00:37:27Z.
 - WAITING-CI: PR 44, run 42430590954 (https://github.com/omardefdev/HRManagement/actions/runs/42430590954). Next step: `gh pr checks 44` once; all green -> `gh pr merge 44 --merge`, then `git switch main; git pull --ff-only`, merge note here; red -> fix on release/plan-46.
 - Resumed (UTC): 2026-11-08T07:28:23Z — the owner turned on Auto-fix; run 42430590954 finished red (CI, CodeQL, E2E, Gitleaks, leastpriv and meta green). Causes: (1) prodlike, prodlike-final and lab-main stopped in `acceptance-up.ps1` verification, DATA-AUTH and DATA-DIRECTORY row counts: the new employee-linked persona a-idcard-2 adds one row to AuthUsers and one to DirectoryEntries, and the expected counts were not raised (63 -> 64, 55 -> 56, the same per-persona step as QA-041's +6/+6); the local acceptance runs reused started stacks and never ran that verification. (2) lab-rest: the image artifact download was cut short ("premature end", docker load failed), a runner flake; the new push reruns it.
+- Pushed 23811ae4 to release/plan-46 (pre-push gitleaks and forbidden PASS); CI run 42458981284 started ~07:31Z.
+- WAITING-CI: PR 44, run 42458981284 (https://github.com/omardefdev/HRManagement/actions/runs/42458981284). Next step: Auto-fix wakes this session on a red check; all green -> `gh pr merge 44 --merge`, then `git switch main; git pull --ff-only`, merge note on docs/plan-46-merge-note.
+- Resumed (UTC): 2026-11-08T11:24:27Z - the PLAN-47 session found run 42458981284 green but PR 44 open; the owner told that session to merge PR 44, write this note and return the folder to main. One check of PR 44: 14 of 14 green, mergeStateStatus CLEAN.
+Finished P8 (UTC): 2026-11-08T12:04:33Z
+
+## Merge note
+- PR: https://github.com/omardefdev/HRManagement/pull/44, head 23811ae4, merged at 2026-11-08T12:04:33Z by the PLAN-47 session on the owner's instruction.
+- Merge commit: 49a5f08d99512a948255d81a468e5f921cc0696e. main = origin/main = 49a5f08d after git pull --ff-only.
+- PR run 1: https://github.com/omardefdev/HRManagement/actions/runs/42430590954, failure, 00:37:27Z to 01:16:20Z (39 min, 8295 s of jobs); causes in the resume line above.
+- PR run 2: https://github.com/omardefdev/HRManagement/actions/runs/42458981284, success, 14 of 14 checks, no rerun, 07:29:15Z to 08:16:36Z (47 min, 12252 s of jobs, about 204 min):
+  - Gitleaks pass 58s; Reuse check pass 18s; Dedupe post-merge run pass 7s
+  - CI pass 38m12s; CodeQL pass 13m33s; E2E pass 16m14s; Acceptance images pass 22m42s
+  - Acceptance stage: leastpriv pass 9m9s; lab-rest pass 16m52s; meta pass 19m7s; lab-main pass 22m25s; prodlike pass 20m32s; prodlike-final pass 23m39s
+  - Acceptance pass 24s
+- Evidence of record: the run's artifacts, https://github.com/omardefdev/HRManagement/actions/runs/42458981284#artifacts. No evidence committed.
+- WAITING-CI: run 1 39 min; fix and push about 6 h 12 later (00:37Z red at 01:16Z, resumed 07:28Z); run 2 47 min; green to merge 3 h 48 (08:16Z to 12:04Z, waiting for the next message).
+- Demo server after the merge: tag dbf53280121d (on origin/main), 22 containers, 0 unhealthy, https://hr.161-97-185-71.sslip.io/ answers 302. From dbf53280 to 49a5f08d outside tests, reports and docs: only scripts/acceptance-verify.ps1 (the expected AuthUsers and DirectoryEntries counts), so no new deploy is needed.
+- Total: 2026-11-07T20:33:47Z to 2026-11-08T12:04:33Z, 15 h 31 wall-clock: about 4 h 03 to the PR, then 11 h 27 from PR opened to merge.
+- Open for later plans: reports/plan46-final-report.md, sections 9 and 10.
+- Post-merge run: https://github.com/omardefdev/HRManagement/actions/runs/42478537569 on 49a5f08d, in progress at the time of this note.
+Merged by agent on owner instruction (UTC): 2026-11-08T12:04:33Z

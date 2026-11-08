@@ -33,7 +33,7 @@ public static class NationalSeedOrchestrator
             if (await IsPackAppliedAsync(db, tenantId, SeedPackIds.NationalMandatory, SeedPackDigests.NationalMandatoryV1, ct))
             {
                 logger?.LogInformation("National mandatory seed pack already applied");
-                await ApplyIncrementalPatchesAsync(db, ct);
+                await ApplyIncrementalPatchesAsync(db, serviceProvider, ct);
                 await new OrgUnitVersionService(db, new FundedPositionVersionService(db)).BackfillMissingVersionsAsync(ct);
                 await new EstablishmentAsOfService(new JobCatalogVersionService(db), new FundedPositionVersionService(db))
                     .BackfillAllMissingVersionsAsync(ct);
@@ -46,7 +46,7 @@ public static class NationalSeedOrchestrator
             await WorkflowPackSeeder.SeedAsync(db, ct);
             await WorkflowPackSeeder.EnsureCustodyChainAsync(db, ct);
             await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db, ct);
-            await PolicyEngineSeeder.SeedAsync(db, ct);
+            await PolicyEngineSeeder.SeedAsync(db, serviceProvider, ct);
             await CodeGenerationSeeder.SeedAsync(db, ct);
             await MdmReferenceSeeder.SeedAsync(db, ct);
             await LegislationRegisterSeeder.SeedAsync(db, ct);
@@ -82,12 +82,12 @@ public static class NationalSeedOrchestrator
         }
     }
 
-    private static async Task ApplyIncrementalPatchesAsync(HRCoreDbContext db, CancellationToken ct)
+    private static async Task ApplyIncrementalPatchesAsync(HRCoreDbContext db, IServiceProvider serviceProvider, CancellationToken ct)
     {
         await WorkflowPackSeeder.SeedAsync(db, ct);
         await WorkflowPackSeeder.EnsureCustodyChainAsync(db, ct);
         await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db, ct);
-        await PolicyEngineSeeder.SeedAsync(db, ct);
+        await PolicyEngineSeeder.SeedAsync(db, serviceProvider, ct);
         await CodeGenerationSeeder.SeedAsync(db, ct);
         await MdmReferenceSeeder.SeedAsync(db, ct);
         await LegislationRegisterSeeder.SeedAsync(db, ct);

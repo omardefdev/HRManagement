@@ -47,9 +47,11 @@ public sealed class Hcm025RecruitmentHireRetiredTests
     {
         await using var db = CreateContext();
         await WorkflowPackSeeder.SeedAsync(db);
-        await PolicyEngineSeeder.SeedAsync(db);
 
-        // What an older seed left behind: the trigger rule, a published definition and a policy binding.
+        // A database seeded before PLAN-25 and PLAN-47: v1 of every domain, no change set applied yet. What the older seed left
+        // behind: the trigger rule in the published version (no interceptor on this context: it stands for the old data), a
+        // published definition and a policy binding.
+        await PolicyEngineDomainSeeds.SeedAllDomainsAsync(db);
         var version = await db.PolicyTemplateVersions.Include(v => v.PolicyTemplate)
             .Where(v => v.PolicyTemplate!.Domain == PolicyDomains.CoreRecruitment && v.Status == PolicyVersionStatus.Published)
             .OrderByDescending(v => v.VersionNumber)
@@ -57,6 +59,7 @@ public sealed class Hcm025RecruitmentHireRetiredTests
         db.PolicyRules.Add(new PolicyRule
         {
             PolicyTemplateVersionId = version.Id,
+            TenantId = version.TenantId,
             RuleKey = "R-REC-HIRE",
             Name = "توظيف → workflow",
             Priority = 10,
@@ -82,10 +85,21 @@ public sealed class Hcm025RecruitmentHireRetiredTests
             await PolicyEngineSeeder.SeedAsync(db);
         }
 
+        // PLAN-47: the retirement is a new version without the rule; the version that had it keeps it as it was.
         db.ChangeTracker.Clear();
-        var rule = await db.PolicyRules.SingleAsync(r => r.RuleKey == "R-REC-HIRE");
-        Assert.Equal(PolicyEngineDomainSeeds.DeactivatedThenJson, rule.ThenJson);
-        Assert.StartsWith(PolicyEngineDomainSeeds.DeactivatedNamePrefix, rule.Name);
+        var versions = await db.PolicyTemplateVersions.Include(v => v.Rules).Include(v => v.PolicyTemplate)
+            .Where(v => v.PolicyTemplate!.Domain == PolicyDomains.CoreRecruitment && v.Status == PolicyVersionStatus.Published)
+            .OrderBy(v => v.VersionNumber)
+            .ToListAsync();
+        var effective = versions.Last();
+        Assert.DoesNotContain(effective.Rules, r => r.RuleKey == "R-REC-HIRE");
+        Assert.Contains(effective.Rules, r => r.RuleKey == "R-REC-HIRE-OFFER");
+        var original = Assert.Single(versions.First().Rules, r => r.RuleKey == "R-REC-HIRE");
+        Assert.Equal(OldTrigger, original.ThenJson);
+        Assert.Equal("توظيف → workflow", original.Name);
+        Assert.Equal(PolicySeedChangeSetApplier.OutcomePublished, (await db.PolicySeedApplications.SingleAsync(
+            a => a.ChangeSetId == PolicySeedChangeSets.RetireRecruitmentHireId)).Outcome);
+        Assert.Equal(PolicyPublicationKind.SystemSeed, (await db.PolicyPublications.SingleAsync(p => p.PolicyTemplateVersionId == effective.Id)).Kind);
         Assert.False((await db.WorkflowDefinitions.SingleAsync(d => d.Code == "RECRUITMENT-HIRE")).IsPublished);
 
         var result = await CreateOrchestrator(db).EnforceAsync(Hire(Guid.NewGuid()));
