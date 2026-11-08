@@ -72,3 +72,14 @@ Finished P2 (UTC): 2026-11-08T13:00:26.9325668Z
 - Integration (Testcontainers) Hcm025ProductionApproval|RecruitmentRequisitionPolicy|Est00|NationalSeed|Hcm031AcceptanceSeed: 16/16.
 Finished P3 (UTC): 2026-11-08T13:16:34.5675878Z
 - Next step: P4 (orchestrator AsOfUtc + EvaluatedAsOf, internal endpoint clears AsOfUtc, cache key without the date and TTL bounded by the next EffectiveFrom, PolicyPublishedCacheInvalidationConsumer on a per-instance temporary endpoint excluded from quorum, consumer outbox and receipts, AC-10 with two personas, Pol047DraftServiceTests, Pol047EffectiveDatingTests, Pol047RollbackTests).
+
+## P4 - drafts, effective dating, rollback, one publish path
+- (Drafts, rollback drafts, withdrawal, effective time, discard, the controllers and views: built in P2 with the draft service.)
+- PolicyEnforceRequest.AsOfUtc: honoured by PolicyOrchestrator.EvaluateAsync/EnforceAsync, POST api/policies/evaluate (body) and the UI simulation (as-of field); PolicyEnforceInternalController clears it (PLAN-42 endpoint ignores it). Ledger EvaluatedAsOf = the request's AsOfUtc (null for "now").
+- Snapshot cache: only "now" is cached (key policy:{domain}:{tenant}:now); TTL = min(5 min, next EffectiveFrom - now) through PolicyPublishedSnapshotCache.TimeToLive; nothing cached when no version is effective; effective window [EffectiveFrom, EffectiveTo) in the orchestrator and the draft service.
+- PolicyPublishedCacheInvalidationConsumer (IPolicyPublished -> InvalidateDomain), marked [PerInstanceConsumer("policy-cache")]. AddServiceMassTransit leaves per-instance consumers out of AddConsumers and registers each on a temporary endpoint named {service prefix}-{purpose}-instance-{MassTransit:InstanceId or machine name} (inside PLAN-38's hr-core-web-.* permission); the quorum callback and AddPostgresOutbox's consumer outbox + receipt observer skip endpoints with the "-instance-" marker (a shared receipt key would make the second instance skip the message).
+- IPolicyPublished payload widened in P2 (EVENT_PUBLISHER_INVENTORY.md updated there).
+- AC-10 (P-8): a-management-approver publishes the seeded v3 (the flag is gone); the republish of v2 still answers 400; nothing else changed (PLAN-65 rewrites it).
+- Tests: Pol047DraftServiceTests (7), Pol047EffectiveDatingTests (6, incl. cache boundary, ledger as-of, internal endpoint), Pol047RollbackTests (3); Pol047* 97/97; full unit suite 5632/5632; pol047-validate PASS.
+Finished P4 (UTC): 2026-11-08T13:24:10.3274700Z
+- Next step: P5 (PostgreSQL tests: immutability as a non-superuser under FORCE for a national and a tenant template; concurrent publish 409; outbox + two buses clearing their caches; the applier under FORCE booted twice. Then acceptance reset/up ProdLike, fingerprint, AcPol47RuleLifecycleTests, the P-11 classes, ci-scope/ac-ownership, the independent review).

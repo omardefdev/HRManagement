@@ -47,15 +47,31 @@ public static class MassTransitExtensions
             x.SetEndpointNameFormatter(new KebabCaseEndpointNameFormatter(endpointPrefix, includeNamespace: false));
 
             if (consumerAssembly is not null)
-                x.AddConsumers(consumerAssembly);
+            {
+                x.AddConsumers(t => !IsPerInstanceConsumer(t), consumerAssembly);
+
+                // PLAN-47: a per-instance consumer gets its own temporary queue in every instance of the service, so each one
+                // receives every message (a shared queue would deliver it to one instance only).
+                foreach (var type in ConsumerRegistrationHostedService.DiscoverConsumers(consumerAssembly).Where(IsPerInstanceConsumer))
+                {
+                    var purpose = type.GetCustomAttribute<PerInstanceConsumerAttribute>()!.Purpose;
+                    x.AddConsumer(type).Endpoint(e =>
+                    {
+                        e.Name = PerInstanceEndpointName(configuration, purpose);
+                        e.Temporary = true;
+                    });
+                }
+            }
 
             configureConsumers?.Invoke(x);
             configureOutbox?.Invoke(x);
 
             x.AddConfigureEndpointsCallback((_, name, cfg) =>
             {
-                // OPS-002: quorum queues for MassTransit receive endpoints (safe on single-node Compose too).
+                // OPS-002: quorum queues for MassTransit receive endpoints (safe on single-node Compose too). PLAN-47: not for a
+                // per-instance endpoint, whose queue is temporary (auto-delete), which a quorum queue cannot be.
                 if (cfg is IRabbitMqReceiveEndpointConfigurator rabbit
+                    && !IsPerInstanceEndpoint(name)
                     && configuration.GetValue("RabbitMQ:UseQuorumQueues", true))
                 {
                     rabbit.SetQuorumQueue();
@@ -103,6 +119,26 @@ public static class MassTransitExtensions
         return services;
     }
 
+    /// <summary>PLAN-47: the part of a receive endpoint's name that marks it as one instance's own (temporary) queue.</summary>
+    public const string PerInstanceMarker = "-instance-";
+
+    /// <summary>
+    /// PLAN-47: the name of an instance's own endpoint: the service prefix (so PLAN-38's per-service RabbitMQ permission covers
+    /// it), the purpose, and MassTransit:InstanceId or the machine name (a container's host name is its own).
+    /// </summary>
+    public static string PerInstanceEndpointName(IConfiguration configuration, string purpose)
+    {
+        var instance = configuration["MassTransit:InstanceId"];
+        if (string.IsNullOrWhiteSpace(instance))
+            instance = Environment.MachineName;
+        return $"{ResolveEndpointPrefix(configuration)}-{EndpointPrefixFor(purpose)}{PerInstanceMarker}{EndpointPrefixFor(instance)}";
+    }
+
+    public static bool IsPerInstanceEndpoint(string? endpointName) =>
+        endpointName is not null && endpointName.Contains(PerInstanceMarker, StringComparison.Ordinal);
+
+    public static bool IsPerInstanceConsumer(Type type) => type.GetCustomAttribute<PerInstanceConsumerAttribute>() is not null;
+
     private static string ResolveEndpointPrefix(IConfiguration configuration)
     {
         var configured = configuration["MassTransit:EndpointPrefix"];
@@ -148,8 +184,14 @@ public static class MassTransitExtensions
             return;
 
         configurator.AddSingleton(new ConsumerOutboxRegistration(typeof(TDbContext)));
-        configurator.AddConfigureEndpointsCallback((context, _, cfg) =>
+        configurator.AddConfigureEndpointsCallback((context, name, cfg) =>
         {
+            // PLAN-47: a per-instance endpoint (an idempotent in-memory effect such as clearing a cache) takes neither the
+            // consumer outbox nor the inbox receipt: the receipt key (MessageId, ConsumerType, TenantId) is shared in the
+            // service's database, so the second instance would skip the message the first one recorded.
+            if (MassTransitExtensions.IsPerInstanceEndpoint(name))
+                return;
+
             cfg.UseEntityFrameworkOutbox<TDbContext>(context);
 
             // Connected after the outbox, so the receipt filter runs inside it (pipe specifications apply in order).

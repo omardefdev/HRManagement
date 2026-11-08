@@ -97,6 +97,8 @@ public sealed class PolicyOrchestrator(
             SubjectType = request.SubjectType,
             EntityId = request.EntityId,
             ShadowDiffJson = shadowDiffs.Count > 0 ? JsonSerializer.Serialize(shadowDiffs) : null,
+            // PLAN-47: recorded only when the decision was taken as of another time than the request's.
+            EvaluatedAsOf = request.AsOfUtc,
             OccurredAt = DateTime.UtcNow
         };
         db.PolicyEnforcementLedgers.Add(ledger);
@@ -120,9 +122,10 @@ public sealed class PolicyOrchestrator(
         };
     }
 
+    /// <summary>PLAN-47 (§6): the published policy now, or as of <see cref="PolicyEnforceRequest.AsOfUtc"/>.</summary>
     public async Task<PolicyDecision> EvaluateAsync(PolicyEnforceRequest request, CancellationToken ct = default)
     {
-        var snapshot = await GetPublishedSnapshotAsync(request.Domain, request.TenantId, DateTime.UtcNow, ct);
+        var snapshot = await GetPublishedSnapshotAsync(request.Domain, request.TenantId, request.AsOfUtc, ct);
         if (snapshot is null || snapshot.Rules.Count == 0)
         {
             return PolicyStaticFallback.Evaluate(request);
@@ -137,20 +140,28 @@ public sealed class PolicyOrchestrator(
         DateTime? asOfUtc = null,
         CancellationToken ct = default)
     {
-        var asOf = asOfUtc ?? DateTime.UtcNow;
-        var cacheKey = IPolicyPublishedSnapshotCache.BuildCacheKey(domain, tenantId, asOf);
+        // PLAN-47 (§6): only "now" is cached. An evaluation as of a date reads the database; the "now" entry lives at most 5
+        // minutes, or until the next EffectiveFrom of the domain's templates, whichever comes first (no stale version across a
+        // boundary). Publications clear it in every instance (PolicyPublishedCacheInvalidationConsumer).
+        var now = DateTime.UtcNow;
+        var asOf = asOfUtc ?? now;
+        var cacheKey = asOfUtc is null ? IPolicyPublishedSnapshotCache.BuildCacheKey(domain, tenantId) : null;
 
-        if (snapshotCache.TryGet(cacheKey, out PolicyVersionSnapshot? cached))
+        if (cacheKey is not null && snapshotCache.TryGet(cacheKey, out PolicyVersionSnapshot? cached))
             return cached;
 
-        var national = await LoadPublishedAsync(domain, PolicyTemplateScope.National, null, asOf, ct);
+        var (national, nationalNext) = await LoadPublishedAsync(domain, PolicyTemplateScope.National, null, asOf, ct);
         PolicyVersionSnapshot? tenant = null;
+        DateTime? tenantNext = null;
         if (tenantId.HasValue)
-            tenant = await LoadPublishedAsync(domain, PolicyTemplateScope.TenantOverride, tenantId, asOf, ct);
+            (tenant, tenantNext) = await LoadPublishedAsync(domain, PolicyTemplateScope.TenantOverride, tenantId, asOf, ct);
 
-        var merged = PolicyEvaluator.MergeNationalAndTenant(national, tenant);
-        if (merged.Rules.Count == 0 && national is null && tenant is null)
+        var next = nationalNext is null ? tenantNext : tenantNext is null ? nationalNext : (nationalNext < tenantNext ? nationalNext : tenantNext);
+        // Nothing effective (yet): not cached, so the first version is seen the moment it takes effect.
+        if (national is null && tenant is null)
             return null;
+
+        var merged = PolicyEvaluator.MergeNationalAndTenant(national, tenant) with { NextEffectiveFrom = next };
 
         var schemaEntity = await db.PolicyFactsSchemas.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Domain == domain, ct);
@@ -164,11 +175,18 @@ public sealed class PolicyOrchestrator(
                 "PLAN-47 policy version {VersionId} holds {Count} rule(s) the strict parser refuses; they never match: {RuleKeys}",
                 merged.VersionId, merged.InvalidRuleKeys.Count, string.Join(",", merged.InvalidRuleKeys));
 
-        snapshotCache.Set(cacheKey, merged, PolicyPublishedSnapshotCache.DefaultTtl);
+        if (cacheKey is not null)
+        {
+            var ttl = PolicyPublishedSnapshotCache.TimeToLive(now, merged.NextEffectiveFrom);
+            if (ttl > TimeSpan.Zero)
+                snapshotCache.Set(cacheKey, merged, ttl);
+        }
+
         return merged;
     }
 
-    private async Task<PolicyVersionSnapshot?> LoadPublishedAsync(
+    /// <summary>The template's version effective at <paramref name="asOf"/>, and the next EffectiveFrom after it.</summary>
+    private async Task<(PolicyVersionSnapshot? Snapshot, DateTime? Next)> LoadPublishedAsync(
         string domain,
         PolicyTemplateScope scope,
         Guid? tenantId,
@@ -183,16 +201,22 @@ public sealed class PolicyOrchestrator(
                 && t.Scope == scope
                 && (scope == PolicyTemplateScope.National || t.TenantId == tenantId), ct);
 
-        if (template is null) return null;
+        if (template is null) return (null, null);
 
+        // PLAN-47: the effective window is [EffectiveFrom, EffectiveTo), the same choice PolicyDraftService.EffectiveVersion makes.
         var version = template.Versions
             .Where(v => v.Status == PolicyVersionStatus.Published)
             .Where(v => v.EffectiveFrom == null || v.EffectiveFrom <= asOf)
-            .Where(v => v.EffectiveTo == null || v.EffectiveTo >= asOf)
+            .Where(v => v.EffectiveTo == null || v.EffectiveTo > asOf)
             .OrderByDescending(v => v.VersionNumber)
             .FirstOrDefault();
 
-        return version is null ? null : PolicyEntityMapper.ToSnapshot(template, version);
+        var next = template.Versions
+            .Where(v => v.Status == PolicyVersionStatus.Published && v.EffectiveFrom > asOf)
+            .Select(v => v.EffectiveFrom)
+            .Min();
+
+        return (version is null ? null : PolicyEntityMapper.ToSnapshot(template, version), next);
     }
 
     private async Task<Guid?> TryStartWorkflowAsync(
