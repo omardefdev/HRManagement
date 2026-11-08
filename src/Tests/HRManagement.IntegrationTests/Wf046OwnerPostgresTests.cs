@@ -354,9 +354,15 @@ public sealed class Wf046DisciplinaryConsumerPostgresTests(PgRabbitFixture fixtu
             {
                 var action = new DisciplinaryAction
                 {
-                    TenantId = tenant, EmployeeId = Guid.NewGuid(), IssuedAt = DateTime.UtcNow, CreatedBy = Creator,
-                    ApprovalStatus = DisciplinaryApprovalStatus.PendingApproval, WorkflowInstanceId = Guid.NewGuid(), SubmissionNo = 1,
-                    SubmittedBy = Creator, SubmittedAt = DateTime.UtcNow.AddMinutes(-30)
+                    TenantId = tenant,
+                    EmployeeId = Guid.NewGuid(),
+                    IssuedAt = DateTime.UtcNow,
+                    CreatedBy = Creator,
+                    ApprovalStatus = DisciplinaryApprovalStatus.PendingApproval,
+                    WorkflowInstanceId = Guid.NewGuid(),
+                    SubmissionNo = 1,
+                    SubmittedBy = Creator,
+                    SubmittedAt = DateTime.UtcNow.AddMinutes(-30)
                 };
                 db.Add(action);
                 return action;
@@ -397,8 +403,14 @@ public sealed class Wf046DisciplinaryConsumerPostgresTests(PgRabbitFixture fixtu
             {
                 var request = new CardRequest
                 {
-                    TenantId = tenant, EmployeeId = Guid.NewGuid(), RequestDate = DateOnly.FromDateTime(DateTime.UtcNow), RequestedBy = Creator,
-                    Status = CardRequestStatus.PendingApproval, WorkflowInstanceId = Guid.NewGuid(), SubmissionNo = 1, SubmittedBy = Creator,
+                    TenantId = tenant,
+                    EmployeeId = Guid.NewGuid(),
+                    RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    RequestedBy = Creator,
+                    Status = CardRequestStatus.PendingApproval,
+                    WorkflowInstanceId = Guid.NewGuid(),
+                    SubmissionNo = 1,
+                    SubmittedBy = Creator,
                     SubmittedAt = DateTime.UtcNow.AddMinutes(-30)
                 };
                 db.Add(request);
