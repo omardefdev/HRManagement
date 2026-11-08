@@ -191,7 +191,22 @@ All of them are gone or changed. Details: `artifacts/plan47/inventory-code.md`.
 
 ## 10. Timing
 
-(filled in at P8)
+Stamps are from the progress log (UTC). One session, no resume.
+
+| Phase | Finished (UTC) | Duration |
+|-------|----------------|----------|
+| P0 | 12:17:16 | 0:10:43 from Started 12:06:33 |
+| P1 | 12:40:05 | 0:22:49 |
+| P2 | 13:00:26 | 0:20:21 |
+| P3 | 13:16:34 | 0:16:08 |
+| P4 | 13:24:10 | 0:07:36 |
+| P5 (and P6, which had nothing to merge; no stamp of its own) | 14:51:36 | 1:27:26, of which the prod-like acceptance job was 1846 s and the lab job 345 s |
+| P7 | 16:17:08 | 1:25:32, of which the build on the host was about 22 min and the two server suite runs 21 and 33 min |
+| P8 to the PR | in the progress log | |
+
+Work up to P8: about 4 h 13 min. The wait for the PR's checks (`WAITING-CI:`), the merge commit and the post-merge run are recorded in the progress log's merge note on `docs/plan-47-merge-note`, since they happen after this report is pushed.
+
+`scripts/plan-timing.ps1 -From 25 -To 47` (local time, UTC+3, before the PR) gives PLAN-47 9 commits, first commit 15:06, span 4:12; PLAN-46 15:31 and PLAN-45 6:15 for comparison. The script's Merged column is as it prints it.
 
 ## 11. Readiness note for PLAN-48 and PLAN-49
 

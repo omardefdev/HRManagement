@@ -120,3 +120,5 @@ Finished P5 (UTC): 2026-11-08T14:51:36.9941714Z
 - Final server fingerprint: 22 versions, 39 rules; the 20 earlier unchanged, 2 new (Analytics.ETL v2 and v3 of the tour). Server change: Analytics.ETL v2, v3 and two publications (undo: none needed; the rules are v1's; a rollback to them is a new version by design). Demo up: current-tag ae95ec2fec82, 0 unhealthy, / 302.
 Finished P7 (UTC): 2026-11-08T16:17:08.9550743Z
 - Next step: P8 (OPS change rows, final report §7 and §10, release/plan-47 --no-ff from main, ci-local on its HEAD, plan035-prepush, push once, PR, wait, merge, merge note on docs/plan-47-merge-note).
+- P8 started: final report §7 and §10 written; plan-timing -From 25 -To 47 run (PLAN-47 9 commits, span 4:12 before the PR). Note: P6 has no stamp of its own; it is the "P6: origin/main still 49a5f08d" line inside P5's block.
+- P8 docs commit at 2026-11-08T16:19:30Z.
