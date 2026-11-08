@@ -93,8 +93,13 @@ public sealed class Pol047SeedChangeSetApplierTests
         // The PLAN-25 in-place rewrite left this row; PLAN-47 never touches it.
         h.Db.PolicyRules.Add(new PolicyRule
         {
-            PolicyTemplateVersionId = v1.Id, TenantId = v1.TenantId, RuleKey = "R-REC-HIRE", Name = "[معطّلة] توظيف → workflow", Priority = 10,
-            WhenJson = """{"all":[{"field":"action","operator":"Equals","value":"__deactivated__"}]}""", ThenJson = "[]"
+            PolicyTemplateVersionId = v1.Id,
+            TenantId = v1.TenantId,
+            RuleKey = "R-REC-HIRE",
+            Name = "[معطّلة] توظيف → workflow",
+            Priority = 10,
+            WhenJson = """{"all":[{"field":"action","operator":"Equals","value":"__deactivated__"}]}""",
+            ThenJson = "[]"
         });
         await h.Db.SaveChangesAsync();
 

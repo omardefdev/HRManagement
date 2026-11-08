@@ -131,12 +131,18 @@ internal static class Pol047Pg
         var publishedRule = new PolicyRule { TenantId = tenant, RuleKey = "R-PUB", Name = "pub", Priority = 10, WhenJson = ValidWhen, ThenJson = ValidThen };
         var v1 = await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
         {
-            PolicyTemplate = template, TenantId = tenant, VersionNumber = 1, EffectiveFrom = DateTime.UtcNow.AddDays(-1)
+            PolicyTemplate = template,
+            TenantId = tenant,
+            VersionNumber = 1,
+            EffectiveFrom = DateTime.UtcNow.AddDays(-1)
         }, [publishedRule], PolicyVersionStatus.Published, new PolicyPublication { TenantId = tenant, EvidenceRef = "seed" });
         var draftRule = new PolicyRule { TenantId = tenant, RuleKey = "R-DRAFT", Name = "draft", Priority = 10, WhenJson = ValidWhen, ThenJson = ValidThen };
         var v2 = await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
         {
-            PolicyTemplate = template, TenantId = tenant, VersionNumber = 2, CreatedBy = Guid.NewGuid()
+            PolicyTemplate = template,
+            TenantId = tenant,
+            VersionNumber = 2,
+            CreatedBy = Guid.NewGuid()
         }, [draftRule], PolicyVersionStatus.Draft, null);
         return (template.Id, v1.Id, v2.Id, publishedRule.Id, draftRule.Id);
     }
