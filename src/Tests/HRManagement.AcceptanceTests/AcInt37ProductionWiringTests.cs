@@ -182,13 +182,20 @@ public class AcInt37ProductionWiringTests
         var today = DateTime.UtcNow.Date;
         var checks = new List<object>();
 
-        // The card is issued through Renew (a new card with a new HR.Core serial). IssuedCards/Create cannot be used:
-        // it binds the IssuedCard entity, whose required CardDesign navigation always fails model validation
-        // (pre-existing IDCard defect, reported in the PLAN-37 final report).
-        var card = await Db("idcard_db", $"SELECT \"Id\" FROM \"IssuedCards\" WHERE \"TenantId\"='{TenantA}' AND \"Status\"=0 ORDER BY \"CreatedAt\" LIMIT 1;");
-        AcceptanceGate.RequireData(s.Recorder, Guid.TryParse(card, out _), "لا توجد بطاقة نشطة", "No active card for agency A in idcard_db.");
-        await s["a-idcard"].PostAsync("card", $"ui/idcard/IssuedCards/Renew/{card}", $"ui/idcard/IssuedCards/Details/{card}", [new("id", card)]);
-        var serial = await Db("idcard_db", $"SELECT \"SerialNumber\" FROM \"IssuedCards\" WHERE \"CreatedAt\" >= '{Since(start)}' ORDER BY \"CreatedAt\" DESC LIMIT 1;");
+        // PLAN-46: a card is issued only from an approved request (AC-WF-46 walks the approval itself). The request is seeded approved here,
+        // so this check stays on what it proves: IssuedCards/Create takes its serial from HR.Core. Renew issues nothing since PLAN-46.
+        var design = await Db("idcard_db", $"SELECT \"Id\" FROM \"CardDesigns\" WHERE \"TenantId\"='{TenantA}' ORDER BY \"Id\" LIMIT 1;");
+        AcceptanceGate.RequireData(s.Recorder, Guid.TryParse(design, out _), "لا يوجد تصميم بطاقة", "No card design in idcard_db.");
+        var cardEmployee = Guid.NewGuid();
+        var approved = Guid.NewGuid();
+        await Db("idcard_db", $"""
+            INSERT INTO "CardRequests" ("Id", "EmployeeId", "RequestDate", "Purpose", "Status", "IsCancelled", "TenantId", "CreatedAt", "UpdatedAt", "WorkflowInstanceId", "SubmissionNo", "SubmittedAt", "DecidedAt")
+            VALUES ('{approved:D}', '{cardEmployee:D}', current_date, 0, 4, false, '{TenantA}', now(), now(), '{Guid.NewGuid():D}', 1, now(), now());
+            """);
+        await s["a-idcard"].PostAsync("card", "ui/idcard/IssuedCards/Create", "ui/idcard/IssuedCards/Create",
+            [new("CardRequestId", approved.ToString("D")), new("EmployeeId", cardEmployee.ToString("D")), new("CardDesignId", design),
+             new("IssuedAt", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")), new("Status", "Active")]);
+        var serial = await Db("idcard_db", $"SELECT \"SerialNumber\" FROM \"IssuedCards\" WHERE \"EmployeeId\"='{cardEmployee:D}' ORDER BY \"CreatedAt\" DESC LIMIT 1;");
         await AssertIssuedAsync("37c-card", serial, "IdCardSerial");
         checks.Add(new { idCardSerial = serial });
 
@@ -215,7 +222,7 @@ public class AcInt37ProductionWiringTests
         checks.Add(new { assetTag = asset });
 
         s.Steps("1. a-idcard issues a card, a-it registers a device, a-compliance opens a legal case, a-logistics-maker enters an asset.\n" +
-                "   (the card through IssuedCards/Renew: IssuedCards/Create cannot bind its entity, a pre-existing defect).\n" +
+                "   (the card through IssuedCards/Create from a request seeded approved: since PLAN-46 a card comes only from an approved request).\n" +
                 "2. Each gets its number from HR.Core (svc-idcard / svc-it-infra / svc-compliance / svc-admin-logistics, scope hr-core.workflow) with one CodeIssuances row.");
         s.Checks(checks);
         s.Recorder.WriteResult("Pass");

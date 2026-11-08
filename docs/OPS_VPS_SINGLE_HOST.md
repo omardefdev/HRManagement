@@ -283,6 +283,12 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-45: المستخدمان `e2e-logistics-maker` و`e2e-logistics-checker` في الـ realm (`admin-logistics`، و`tenant_id` للجهة الوطنية، وكلمة مرور العرض) عبر `scripts/vps/add-demo-user.sh` | لوحة Keycloak: حذف المستخدمين |
 | PLAN-45: ثلاثة أصول باسم «PLAN-45 server check» لكل تشغيل لفحص الخادم (محجوز، ومفقود، ومتاح) | تُترك، أو تُلغى من شاشة الأصل |
 | PLAN-45: `/opt/hrm/backups/pre-plan45-20261107T155048Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
+| PLAN-46: الإصدار `dbf53280121d` (current-tag؛ previous-tag `9560b03e51a3`)، وترحيلا `WF046_CardRequestApproval` في `idcard_db` و`WF046_DisciplinaryApproval` في `compliance_db` (أعمدة الاعتماد؛ الإجراءات القائمة معتمدة `ApprovedBeforeEngine` بقيمة العمود الافتراضية) | `scripts/vps/deploy.ps1 -Rollback`؛ الأعمدة تبقى ولا يقرؤها الإصدار السابق |
+| PLAN-46: الإصداران 2 من `ID-CARD-ISSUANCE` و`DISCIPLINARY-APPROVAL`، والإصداران 1 مسحوبان، وسُحبت `HIRE-WIZARD` و`TRANSFER-APPROVAL` و`IT-TICKET` و`SEPARATION-WIZARD`، كلها من البذرة عند الإقلاع | لا تراجع: الإصدار السابق لا يعيد نشرها |
+| PLAN-46: المستخدمون `e2e-idcard-maker` و`e2e-idcard-checker` (`idcard`) و`e2e-compliance-checker` (`compliance`) في الـ realm، للجهة الوطنية وبكلمة مرور العرض، عبر `scripts/vps/add-demo-user.sh` | حذفهم من Keycloak |
+| PLAN-46: من فحص الخادم لكل تشغيل: طلبا بطاقة (معالج، ومسحوب إلى مسودة) وبطاقة نشطة، وإنذار معتمد ملاحظته «PLAN-46 server check» وسجله في الرواتب | تُترك، أو تُلغى من الشاشات |
+| PLAN-46: حُذفت صور قديمة غير مستعملة (`docker image prune -af --filter until=12h`) وذاكرة البناء، لأن القرص امتلأ أثناء البناء (95%) | لا يلزم: كل إصدار باقٍ في السجل المحلي `127.0.0.1:5050` |
+| PLAN-46: `/opt/hrm/backups/pre-plan46-20261107T224439Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
 
 ## 11. التسليم للمالك
 
@@ -555,3 +561,15 @@ ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- <username> <email> <lastName
 - **التراجع:** `deploy.ps1 -Rollback` يعيد `973d68488f09`. صف `ApprovalStarting` يبقى حاجزاً للأصل بلا أزرار، ويظهر رقم الحالة، حتى العودة إلى هذا الوسم.
 
 **نشر 2026-11-07.** بناء واحد لـ `9560b03e51a3` (1280 ث، منفصل عن جلسة ssh)، ونشر في 150 ث، وفحص الدخان 50 نجاحاً و0 فشل وتحذير واحد.
+
+## الاعتماد العابر للخدمات (PLAN-46)
+
+- **ما تغيّر:** طلب البطاقة مسودة حتى يقدّمه موظف `idcard` ويعتمده موظف `idcard` آخر من صندوق العمل، ثم يعالجه. والإجراء التأديبي مسودة حتى يعتمده `compliance` ثم `hr-management-approver`، شخصين مختلفين غير المنشئ، وعندها فقط يصل إلى الرواتب. والإجراءات القائمة قبل PLAN-46 معتمدة (`ApprovedBeforeEngine`) ولا يُعاد نشرها.
+- **مستخدمو العرض:** `e2e-idcard-maker` (يطلب ويعالج)، `e2e-idcard-checker` (يعتمد)، `e2e-compliance` (ينشئ الإجراء)، `e2e-compliance-checker` (الخطوة 1)، `e2e-checker-mgmt` (الخطوة 2). كلهم في الجهة الوطنية.
+- **المصالحة:** `WorkflowApprovalSweepJob` في `idcard-web` و`compliance-web` كل `WorkflowApproval:Sweep:IntervalMinutes` (10) للسجلات المعلّقة أقدم من `StaleAfterMinutes` (15). سطرها: `docker logs hrm-idcard-web 2>&1 | grep 'Workflow approval sweep of'`. والمقاييس داخل الحاوية: `curl -s http://localhost:8080/metrics | grep -E '^workflow_(outcome_ignored|approval_sweep_applied)_total'`.
+- **فحص الخادم** يحتاج المتغيرات `VPS_SSH_HOST=hrm-vps` و`VPS_APP_DOMAIN` و`VPS_SSO_DOMAIN` و`VPS_TARGET_IP` (عنوان الخادم)، وإلا اتصل العميل بـ 127.0.0.1.
+- **القرص:** امتلأ أثناء بناء PLAN-46 (95%). قبل كل بناء: `df -h /` و`docker system df`؛ وإن تجاوز ~85%: `docker builder prune -af` و`docker image prune -af --filter until=12h` (الإصدارات باقية في السجل المحلي).
+- **النسخة:** `/opt/hrm/backups/pre-plan46-20261107T224439Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`، و17 سطر `CREATE DATABASE`.
+- **التراجع:** `deploy.ps1 -Rollback` يعيد `9560b03e51a3`. لا يعرف الإصدار السابق الاعتماد: يعرض الحالتين الجديدتين رقماً ولا يعالج إلا `Pending`، ويصدر `Renew` بطاقة فوراً، وما ينشئه من إجراءات تأديبية يُنشر فوراً ويُخزَّن معتمداً قبل المحرك بالقيمة الافتراضية للعمود، فلا يُعاد نشره بعد العودة.
+
+**نشر 2026-11-07.** البناء الأول فشل لامتلاء القرص؛ وبعد التنظيف بناء واحد لـ `dbf53280121d` (1301 ث، منفصل عن جلسة ssh)، والنشر توقف عند `keycloak-reconcile` بعد إعادة تشغيل PostgreSQL (حادثة PLAN-40)، وأعيد الأمر نفسه فنجح في 116 ث. فحص الدخان 50 نجاحاً و0 فشل وتحذير واحد. التوقف نحو 4 دقائق.

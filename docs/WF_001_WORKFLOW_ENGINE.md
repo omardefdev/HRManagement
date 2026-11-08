@@ -120,7 +120,7 @@ Only `workflow-admin` or `hr-admin`, from the national tenant, write definitions
   the id on the record, and ignore a v1 message, counting both in `workflow_outcome_ignored_total`.
 
 ### Separation of duties (PLAN-43, G-WF-06)
-The step role is enforced for every type except `Workflow:StepRole:ExemptEntityTypes`
+The step role is enforced for every type except `Workflow:StepRole:ExemptEntityTypes` (empty since PLAN-46)
 (`docs/qa/workflow-step-role-exemptions.json`, each with an owner plan and a date). The old key is ignored with a start-up warning.
 
 `WorkflowApprovalEvaluator` runs: service account refused → structure → role → `WorkflowSodRules` → entity gate → initiator rule.
@@ -141,6 +141,77 @@ The step role is enforced for every type except `Workflow:StepRole:ExemptEntityT
 - **Reconciliation.** `WorkflowOutcomeReconciliationJob` runs every `Workflow:Reconciliation:IntervalMinutes` (15) for every tenant, each in its own scope with the tenant set before the connection opens. It logs a warning per item and updates `workflow_outcome_unapplied_total{entity_type}`. With `AutoApply=false` (the default) it repairs nothing. `ApprovalRepairService` has a second category, «finished instance, linked entity still pending»: the handler runs again and the operator is audited as the actor (`WorkflowOutcomeReapplied`). It creates and changes no instance. A completed instance the entity does not link is listed «غير مرتبطة» and never applied. External types are repaired by their owners (PLAN-45, PLAN-46).
 - **Metrics.** `workflow_instance_conflict_total{action}` counts lost races.
 - **Seeding.** Only `WorkflowPackSeeder` seeds definitions (`Wf044DefinitionSeedingArchitectureTests`).
+
+### الاعتماد العابر للخدمات — cross-service approval (PLAN-46, G-WF-01)
+
+A service that owns a decision (IDCard for a card request, Compliance for a disciplinary action, HR.Contracts for a separation
+with PLAN-60) gets it approved in this engine through one contract, with the names PLAN-60 §0.1 relies on.
+
+**The types** (`src/Shared/HRManagement.ServiceDefaults/Workflow/CrossService/`, `src/Shared/HRManagement.MessageContracts/Events/`):
+
+| Type | What it is |
+|------|------------|
+| `IWorkflowApprovalClient` | `StartAsync`, `CancelAsync`, `GetStatusAsync`. Registered by `AddWorkflowApprovalClient` (named client `hr-core-workflow`, `Integration:HrCoreBaseUrl`, service token, acting user, tenant). |
+| `WorkflowApprovalStartRequest` | The wire body of PLAN-43; `SubjectEmployeeId` stays optional and last. |
+| `WorkflowApprovalStartResult(Success, InstanceId, AlreadyActive, ErrorCode, Error)` | `AlreadyActive` is HR.Core's: the instance is running. False on a success means the key found a finished instance. |
+| `WorkflowApprovalCancelResult(Success, AlreadyTerminal, FinalOutcome, ErrorCode, Error)` | A finished instance answers `Success=false, AlreadyTerminal=true` with its outcome. |
+| `WorkflowApprovalStatusDto` | Status `InProgress`, `Approved`, `Rejected`, `Cancelled`; the current step and role; every decision; `ApprovalUrl`. PLAN-46 adds `Reason` and `CorrelationId` at the end. |
+| `WorkflowApprovalErrorCodes` | `DefinitionMissing` (422), `PolicyDenied` (reserved), `EngineUnavailable` (timeout, 5xx, network, no address), `Forbidden` (401/403), `Conflict` (409), `Invalid` (400, or no tenant). Each has an Arabic message (`MessageFor`). |
+| `IWorkflowOutcomeDecided` (schema 1) + `WorkflowStepDecisionDto` | The outcome event, published through HR.Core's outbox. |
+| `WorkflowOutcomeGuard` | `ShouldApply` (schema, a known outcome, the link, the pending state) and `HasExcludedDecider`; counts what it ignores in `workflow_outcome_ignored_total{entity_type,reason}`. |
+| `WorkflowApprovalSubmission` | Submit and withdraw, the same for every owner (rules 2 to 5 below). |
+| `WorkflowApprovalSweepJob<TStore>` + `IWorkflowApprovalOwnerStore` | The owner-side sweep (rule 7). `AddWorkflowApprovalSweep<TStore>`. |
+| `FakeWorkflowApprovalClient` (`HRManagement.TestSupport/Workflow`) | The engine for an owner's tests. |
+
+**HR.Core's side.**
+
+- The registry entries `CardRequest` (`svc-idcard`, `ID-CARD-ISSUANCE`, audience `idcard`, `/ui/idcard/`), `DisciplinaryAction`
+  (`svc-compliance`, `DISCIPLINARY-APPROVAL`, `compliance`, `/ui/compliance/`) and `SeparationRecord` (`svc-hr-contracts`,
+  `SEPARATION-APPROVAL` and `SEPARATION-APPROVAL-SENSITIVE`, `compliance`, `/ui/hr-contracts/`) have `OutcomeEvent = Generic`.
+- `ExternalOutcomePublisher` stages `IWorkflowOutcomeDecided` inside the decision's `OutboxUnitOfWork`: on the last approval and on a
+  rejection (`WorkflowInstanceActionService`), and on a withdrawal (`ExternalApprovalService.CancelAsync`). `Decisions` come from
+  `StepHistoryJson` with the roles of the pinned definition; the message id comes from the instance; the tenant header from the
+  instance.
+- `GET api/workflow-instances/{id}/external-status` answers the owner that started the instance (`SourceClientId` equal to the
+  caller); anyone else gets the 404 of an unknown id.
+- `WorkflowGuardrails`: a card has one step or more, each `idcard` or `hr-management-approver`; discipline has two or more, the first
+  `compliance`, the last `hr-management-approver`, distinct approvers; separation has two or more, the last
+  `hr-management-approver`, and `-SENSITIVE` holds `compliance`.
+- `idcard` and `compliance` act on steps (`WorkflowStepAction`) and read the inbox (`HrCoreWorkInbox`); neither is in `ModuleHrCore`
+  or `HrCoreReadOnly`, so they reach the inbox and the generic page only.
+- No type is exempt from the step role (`ExemptEntityTypes = []`).
+- `WorkflowPackSeeder.EnsureCrossServiceChainsAsync` raises `ID-CARD-ISSUANCE` («مراجعة مكتب البطاقات», `idcard`) and
+  `DISCIPLINARY-APPROVAL` («مراجعة امتثال» `compliance`, «اعتماد صاحب الصلاحية» `hr-management-approver`, distinct approvers) at
+  every start. `HIRE-WIZARD`, `TRANSFER-APPROVAL`, `IT-TICKET` and `SEPARATION-WIZARD` are retired (`RetiredCodes`).
+
+**The rules.**
+
+1. The requester never travels in the body: HR.Core takes it from `X-Acting-User`, from the owning service only. A job sets
+   `ActingUserScope`.
+2. The key is pinned per submission: `"{EntityType}:{Id}:{SubmissionNo}"`, where the number is the one after the last submission
+   that reached the engine. A retry after a failure uses the same number and finds the same instance. A key whose instance had
+   finished applies that outcome through `GetStatusAsync`; one whose instance was withdrawn before the record pointed at it is spent,
+   and the next number is used.
+3. A failed start changes nothing: the record stays a draft and the person reads why. `PendingApproval` and the instance id are set
+   in the same save.
+4. A save that fails after a start withdraws the instance on a best-effort basis («فشل الحفظ المحلي»), unless the record already
+   points at it (a concurrent submission of the same record).
+5. A withdrawal goes through `CancelAsync` first. `AlreadyTerminal` applies the final outcome; the record never returns to draft.
+6. Delivery is at least once. The owner applies an outcome only to the record linked to the instance while it is pending; its own
+   closed state wins over a late outcome, which is logged and counted.
+7. Every owner registers `WorkflowApprovalSweepJob<TStore>` for its type: every `WorkflowApproval:Sweep:IntervalMinutes` (10; 1 on
+   the acceptance stack) one replica (advisory lock) walks the tenants from a source outside row security (`AuditLogs`), sets
+   `TenantIdFlow` before each scope opens a connection, and applies the finished outcome of each record waiting longer than
+   `StaleAfterMinutes` (15; 2 on the acceptance stack) with the consumer's own `ApplyOutcomeAsync`. It counts what it applies in
+   `workflow_approval_sweep_applied_total{entity_type}`.
+8. An owner that publishes in turn (Compliance → `IDisciplinaryActionTaken`) does it in the transaction of the status change, through
+   the consumer outbox inside the consumer and the bus outbox from the sweep, with a message id from the record.
+9. Schema 1; an owner ignores a newer version.
+
+**The owners today.** IDCard: `CardRequestApprovalService`, `CardRequestApprovalOutcomeConsumer`, `CardRequestApprovalStore`.
+Compliance: `DisciplinaryApprovalService`, `DisciplinaryApprovalOutcomeConsumer`, `DisciplinaryApprovalStore`.
+`WorkflowDefinitionsHaveHandlersTests` finds each consumer by reflection as an `IConsumer<IWorkflowOutcomeDecided>`; PLAN-60 adds
+`SeparationRecord → SeparationApprovalOutcomeConsumer` and removes its pending mark.
 
 ## API Endpoints
 
@@ -167,6 +238,7 @@ Reads: `WorkflowDefinitionRead` (the HR.Core readers and `workflow-admin`). Ever
 | GET | `/api/workflow-instances/{id}` | Get instance |
 | POST | `/api/workflow-instances` | Start, for the service that owns the type (`WorkflowExternalStart`) |
 | POST | `/api/workflow-instances/{id}/cancel` | Withdraw a running instance, the owner only |
+| GET | `/api/workflow-instances/{id}/external-status` | The state of an instance, for the service that started it (`WorkflowExternalStart`, PLAN-46) |
 | POST | `/api/workflow-instances/{id}/approve` | Approve current step (`WorkflowStepAction`) |
 | POST | `/api/workflow-instances/{id}/reject` | Reject workflow (`WorkflowStepAction`) |
 | GET | `/api/workflow-instances/{id}/history` | Get step history |

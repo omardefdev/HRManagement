@@ -79,8 +79,13 @@ public static class WorkflowPackSeeder
     /// PLAN-25 (G-14): workflows kept only so old instances still resolve their pinned definition; never started again
     /// (seeded unpublished; existing databases are patched by <see cref="RetireAsync"/>).
     /// </summary>
+    /// PLAN-46 (G-WF-17): four definitions with no real owner. The policy rules that fire them stay for PLAN-49 and start nothing.
     public static readonly IReadOnlySet<string> RetiredCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
+        "HIRE-WIZARD",
+        "TRANSFER-APPROVAL",
+        "IT-TICKET",
+        "SEPARATION-WIZARD",
         "RECRUITMENT-HIRE"
     };
 
@@ -91,7 +96,8 @@ public static class WorkflowPackSeeder
     public static readonly IReadOnlySet<string> DistinctApproverCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "ASSET-ASSIGN-APPROVAL",
-        "ASSET-LOSS-APPROVAL"
+        "ASSET-LOSS-APPROVAL",
+        "DISCIPLINARY-APPROVAL"
     };
 
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
@@ -305,9 +311,63 @@ public static class WorkflowPackSeeder
         }
     }
 
-    private static bool HasCustodyRoles(WorkflowDefinition definition)
+    private static bool HasCustodyRoles(WorkflowDefinition definition) => HasRoles(definition, CustodyChain);
+
+    private static bool HasRoles(WorkflowDefinition definition, IReadOnlyList<WorkflowStepSnapshot> chain)
     {
         var steps = JsonSerializer.Deserialize<List<WorkflowStepSnapshot>>(definition.StepsJson) ?? [];
-        return steps.OrderBy(s => s.Level).Select(s => s.RoleRequired).SequenceEqual(CustodyChain.Select(s => s.RoleRequired), StringComparer.OrdinalIgnoreCase);
+        return steps.OrderBy(s => s.Level).Select(s => s.RoleRequired).SequenceEqual(chain.Select(s => s.RoleRequired), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private const string CrossServiceChainPlan = "PLAN-46";
+
+    /// <summary>PLAN-46 (D-WF-1): the card office, with the requester excluded by the instance.</summary>
+    public static IReadOnlyList<WorkflowStepSnapshot> CardChain { get; } =
+    [
+        new WorkflowStepSnapshot
+        {
+            Level = 1,
+            Name = "مراجعة مكتب البطاقات",
+            StepType = WorkflowStepType.Approval,
+            RoleRequired = HrManagementRoles.IdCard
+        }
+    ];
+
+    /// <summary>PLAN-46 (D-WF-1, D-ER-2): compliance, then the authority, two different people.</summary>
+    public static IReadOnlyList<WorkflowStepSnapshot> DisciplinaryChain { get; } =
+    [
+        new WorkflowStepSnapshot
+        {
+            Level = 1,
+            Name = "مراجعة امتثال",
+            StepType = WorkflowStepType.Approval,
+            RoleRequired = HrManagementRoles.Compliance
+        },
+        new WorkflowStepSnapshot
+        {
+            Level = 2,
+            Name = "اعتماد صاحب الصلاحية",
+            StepType = WorkflowStepType.Approval,
+            RoleRequired = HrManagementRoles.HrManagementApprover
+        }
+    ];
+
+    /// <summary>
+    /// PLAN-46: raises the card and the discipline to their chains at every start, inside the tenant (a migration sees no row under forced
+    /// row security). As with custody, a later version with the same roles is left alone: <c>workflow-admin</c> may have renamed a step.
+    /// </summary>
+    public static async Task EnsureCrossServiceChainsAsync(HRCoreDbContext db, CancellationToken ct = default)
+    {
+        foreach (var (code, chain) in new[] { ("ID-CARD-ISSUANCE", CardChain), ("DISCIPLINARY-APPROVAL", DisciplinaryChain) })
+        {
+            var latest = (await db.WorkflowDefinitions
+                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                    .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code && d.IsPublished)
+                    .ToListAsync(ct))
+                .MaxBy(d => d.Version);
+
+            if (latest is not null && !HasRoles(latest, chain))
+                await EnsureVersionAsync(db, code, chain, CrossServiceChainPlan, ct);
+        }
     }
 }

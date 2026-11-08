@@ -2,6 +2,7 @@ using IDCard.Domain.Entities;
 using IDCard.Domain.Enums;
 using IDCard.Domain.Services;
 using IDCard.Infrastructure.Data;
+using IDCard.Infrastructure.Services;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.ViewModels;
@@ -11,8 +12,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IDCard.Web.Controllers;
 
-public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient policyClient) : Controller
+/// <summary>
+/// PLAN-46 (section 3): a request is a draft until it is submitted to the card office in HR.Core's engine; only an approved request is
+/// processed into a card. The approval fields are never bound from a form.
+/// </summary>
+public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient policyClient, CardRequestApprovalService approvals) : Controller
 {
+    public const string NotApprovedMessage = "تُعالَج الطلبات المعتمدة فقط.";
+    public const string NotDraftEditMessage = "يُعدَّل الطلب وهو مسودة فقط.";
 
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {
@@ -50,31 +57,45 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
     public async Task<IActionResult> Create(CardRequest model)
     {
         if (!ModelState.IsValid) return View(model);
-        model.Status = CardRequestStatus.Pending;
-        // Requester identity comes from the session, never from the posted form.
-        model.RequestedBy = ParseUserId(User);
-        db.CardRequests.Add(model);
-        await db.SaveChangesAsync();
 
-        foreach (var step in CardChecklistDefaults.CreateFor(model.Id))
+        // PLAN-46: only what the form shows is taken; the status and every approval field start empty.
+        var request = new CardRequest
+        {
+            EmployeeId = model.EmployeeId,
+            RequestDate = model.RequestDate,
+            Purpose = model.Purpose,
+            Status = CardRequestStatus.Pending,
+            // Requester identity comes from the session, never from the posted form.
+            RequestedBy = ParseUserId(User)
+        };
+        await AddDraftAsync(db, request, HttpContext.RequestAborted);
+
+        TempData["Success"] = "تم تسجيل الطلب مسودةً. قدّمه للاعتماد من صفحة التفاصيل.";
+        return RedirectToAction(nameof(Details), new { id = request.Id });
+    }
+
+    /// <summary>A draft and its checklist, the first step marked. Renew uses it too.</summary>
+    internal static async Task AddDraftAsync(IDCardDbContext db, CardRequest request, CancellationToken ct)
+    {
+        db.CardRequests.Add(request);
+        await db.SaveChangesAsync(ct);
+
+        foreach (var step in CardChecklistDefaults.CreateFor(request.Id))
             db.CardChecklists.Add(step);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         var requested = await db.CardChecklists.FirstAsync(c =>
-            c.CorrelationId == model.Id && c.Step == CardChecklistStep.Requested);
-        CardChecklistDefaults.Mark(requested, null, $"request:{model.Id}");
-        await db.SaveChangesAsync();
-
-        TempData["Success"] = "تم تسجيل الطلب";
-        return RedirectToAction(nameof(Index));
+            c.CorrelationId == request.Id && c.Step == CardChecklistStep.Requested, ct);
+        CardChecklistDefaults.Mark(requested, null, $"request:{request.Id}");
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<IActionResult> Edit(Guid id)
     {
         var e = await db.CardRequests.FindAsync(id);
         if (e == null) return NotFound();
-        if (e.IsCancelled)
+        if (e.IsCancelled || !CardIssuanceWorkflow.CanEdit(e.Status))
         {
-            TempData["Error"] = "الطلب ملغى";
+            TempData["Error"] = e.IsCancelled ? "الطلب ملغى" : NotDraftEditMessage;
             return RedirectToAction(nameof(Details), new { id });
         }
         return View(e);
@@ -88,9 +109,9 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         if (!ModelState.IsValid) return View(model);
         var e = await db.CardRequests.FindAsync(id);
         if (e == null) return NotFound();
-        if (e.IsCancelled)
+        if (e.IsCancelled || !CardIssuanceWorkflow.CanEdit(e.Status))
         {
-            TempData["Error"] = "الطلب ملغى";
+            TempData["Error"] = e.IsCancelled ? "الطلب ملغى" : NotDraftEditMessage;
             return RedirectToAction(nameof(Details), new { id });
         }
         e.EmployeeId = model.EmployeeId;
@@ -103,17 +124,63 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>PLAN-46: the draft goes to the card office; the requester and the submitter cannot approve it.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Submit(Guid id)
+    {
+        var e = await db.CardRequests.FindAsync(id);
+        if (e is null) return NotFound();
+        if (ParseUserId(User) is not Guid submitter)
+            return Forbid();
+
+        var result = await approvals.SubmitAsync(e, submitter, HttpContext.RequestAborted);
+        if (result.Success)
+            TempData["Success"] = result.Finished ? "انتهى اعتماد هذا الطلب سابقاً وطُبّقت نتيجته." : "قُدّم الطلب للاعتماد.";
+        else
+            TempData["Error"] = result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>PLAN-46: the instance is withdrawn first; one that had ended keeps its outcome.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Withdraw(Guid id, string? reason)
+    {
+        var e = await db.CardRequests.FindAsync(id);
+        if (e is null) return NotFound();
+
+        var result = await approvals.WithdrawAsync(e, ParseUserId(User), Reason(reason, "سحب طلب البطاقة"), HttpContext.RequestAborted);
+        if (result.Success)
+            TempData["Success"] = "سُحب الطلب وعاد مسودة.";
+        else
+            TempData["Error"] = result.Error ?? "انتهى الاعتماد قبل السحب وطُبّقت نتيجته.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var e = await db.CardRequests.FindAsync(id);
         if (e == null) return NotFound();
-        if (e.IsCancelled)
+        if (e.IsCancelled || !CardIssuanceWorkflow.CanCancel(e.Status))
         {
-            TempData["Error"] = "ملغى مسبقاً";
+            TempData["Error"] = e.IsCancelled ? "ملغى مسبقاً" : "لا يمكن إلغاء الطلب في حالته الحالية";
             return RedirectToAction(nameof(Details), new { id });
         }
+
+        // PLAN-46 (section 3, rule 3): a pending request is withdrawn from the engine before it is cancelled here.
+        if (e.Status == CardRequestStatus.PendingApproval)
+        {
+            var withdrawn = await approvals.WithdrawAsync(e, ParseUserId(User), Reason(reason, "إلغاء طلب البطاقة"), HttpContext.RequestAborted);
+            if (!withdrawn.Success)
+            {
+                TempData["Error"] = withdrawn.Error ?? "انتهى الاعتماد قبل الإلغاء وطُبّقت نتيجته. أعد المحاولة إن لزم.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
         CardRequestRules.SoftCancel(e, reason);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم إلغاء الطلب (soft-cancel)";
@@ -127,8 +194,14 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         var e = await db.CardRequests.FindAsync(id);
         if (e is null) return NotFound();
         if (e.IsCancelled) return BadRequest();
-        if (!CardIssuanceWorkflow.CanProcess(e.Status)) return BadRequest();
+        // PLAN-46: approved in the engine, by someone other than the requester, and linked to that approval.
+        if (!CardIssuanceWorkflow.CanProcess(e.Status) || e.WorkflowInstanceId is null || e.IssuedCardId is not null)
+        {
+            TempData["Error"] = NotApprovedMessage;
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
+        // PLAN-43/46: the policy is a signal here; it starts no instance (the type is started only through the contract).
         var policyResult = await policyClient.EnforceAsync(
             PolicyDomainFactsBuilders.ForIDCardRequest(id, e.TenantId, e.EmployeeId, e.Purpose.ToString(), "Process"),
             HttpContext.RequestAborted);
@@ -153,11 +226,11 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
             IssuedAt = DateTime.UtcNow,
             Status = CardStatus.Active,
             SerialNumber = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
-            RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours
+            RevokeSlaHours = CardChecklistDefaults.DefaultRevokeSlaHours,
+            ReplacesCardId = e.ReplacesCardId
         };
         db.IssuedCards.Add(issued);
-        await db.SaveChangesAsync();
-
+        await RevokeReplacedAsync(db, e);
         e.Status = CardRequestStatus.Processed;
         e.IssuedCardId = issued.Id;
 
@@ -166,8 +239,35 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         if (issuedStep is not null && !issuedStep.IsCompleted)
             CardChecklistDefaults.Mark(issuedStep, null, $"card:{issued.Id}");
 
-        await db.SaveChangesAsync();
+        // PLAN-46 (review): the card and the request's Processed state in one save, so a second Process, an issue from the same request or a
+        // cancel that wins on xmin leaves no card behind.
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            TempData["Error"] = "تغيّر الطلب أثناء المعالجة. أعد تحميل الصفحة.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         TempData["Success"] = "تمت معالجة الطلب وإصدار البطاقة";
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    /// <summary>A replacement takes the place of the old card when it is issued, not when it is asked for.</summary>
+    internal static async Task RevokeReplacedAsync(IDCardDbContext db, CardRequest request)
+    {
+        if (request.ReplacesCardId is not Guid oldId)
+            return;
+
+        var old = await db.IssuedCards.FirstOrDefaultAsync(c => c.Id == oldId);
+        if (old is { Status: CardStatus.Active })
+        {
+            old.Status = CardStatus.Revoked;
+            old.RevokedAt = DateTime.UtcNow;
+        }
+    }
+
+    private static string Reason(string? reason, string fallback) => string.IsNullOrWhiteSpace(reason) ? fallback : reason.Trim();
 }

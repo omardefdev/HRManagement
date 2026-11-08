@@ -3,6 +3,7 @@ using HR.Contracts.Application;
 using HR.Contracts.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Workflow.CrossService;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Localization;
@@ -40,6 +41,8 @@ builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ContractsDbCon
 builder.Services.AddHrContractsApplication();
 builder.Services.AddHrContractsInfrastructure(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
+// PLAN-46: the cross-service approval contract (start, withdraw, status) with HR.Core.
+builder.Services.AddWorkflowApprovalClient(builder.Configuration);
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddHrCoreLookupClient(builder.Configuration);
 builder.Services.AddHrCoreActiveRegimeClient(builder.Configuration);

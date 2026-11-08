@@ -57,7 +57,10 @@ public sealed class WorkflowStageGuardRoleTests
     [Fact]
     public void An_exempt_type_skips_the_check_and_an_empty_list_exempts_nothing()
     {
-        Assert.Null(Approve(2, Roles(HrManagementRoles.HrCore), entityType: "SeparationRecord"));
+        Assert.Null(Approve(2, Roles(HrManagementRoles.HrCore),
+            new WorkflowStepRoleOptions { StepRole = new() { ExemptEntityTypes = ["SeparationRecord"] } }, entityType: "SeparationRecord"));
+        // PLAN-46: no type is exempt by default.
+        Assert.NotNull(Approve(2, Roles(HrManagementRoles.HrCore), entityType: "SeparationRecord"));
         Assert.NotNull(Approve(2, Roles(HrManagementRoles.HrCore), entityType: "TransferRequest"));
         Assert.NotNull(Approve(2, Roles(HrManagementRoles.HrCore),
             new WorkflowStepRoleOptions { StepRole = new() { ExemptEntityTypes = [] } }, entityType: "SeparationRecord"));
@@ -84,7 +87,7 @@ public sealed class WorkflowStageGuardRoleTests
 
     [Fact]
     public void An_exemption_is_recorded_by_name() =>
-        Assert.False(new WorkflowStepRoleOptions().IsEnforced("SeparationRecord"));
+        Assert.True(new WorkflowStepRoleOptions().IsEnforced("SeparationRecord")); // PLAN-46: no exemption by default; a listed one is tested above.
 
     [Fact]
     public void Reject_checks_status_step_and_role()

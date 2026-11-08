@@ -177,15 +177,14 @@ public sealed class Wf043DefinitionValidatorTests
             .Options);
         await WorkflowPackSeeder.SeedAsync(db);
         await WorkflowPackSeeder.EnsureCustodyChainAsync(db);
+        await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db);
 
         var invalid = (await db.WorkflowDefinitions.AsNoTracking().Where(d => d.IsPublished).ToListAsync())
             .Where(d => WorkflowDefinitionCatalog.Validate(d).Count > 0)
             .Select(d => d.Code)
             .Order(StringComparer.Ordinal);
 
-        // No handler or registry entry yet, or a role outside the catalog: PLAN-46 corrects these.
-        Assert.Equal(
-            ["DISCIPLINARY-APPROVAL", "HIRE-WIZARD", "ID-CARD-ISSUANCE", "IT-TICKET", "SEPARATION-WIZARD", "TRANSFER-APPROVAL"],
-            invalid);
+        // PLAN-46 raised the card and the discipline to their chains and retired the four orphans: every published definition is valid.
+        Assert.Empty(invalid);
     }
 }

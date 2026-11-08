@@ -13,6 +13,10 @@ public sealed class IssuedCardFormModel
 {
     public Guid Id { get; set; }
 
+    /// <summary>PLAN-46: the approved request this card is issued from. A card is never issued without one.</summary>
+    [Display(Name = "طلب البطاقة المعتمد")]
+    public Guid? CardRequestId { get; set; }
+
     [Required(ErrorMessage = "اختر الموظف")]
     [Display(Name = "الموظف")]
     public Guid? EmployeeId { get; set; }

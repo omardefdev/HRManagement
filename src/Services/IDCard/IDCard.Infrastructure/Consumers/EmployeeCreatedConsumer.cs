@@ -24,8 +24,12 @@ public class EmployeeCreatedConsumer : IConsumer<IEmployeeCreated>
         var m = context.Message;
         _logger.LogInformation("IDCard: EmployeeCreated EmployeeId={EmployeeId}", m.EmployeeId);
 
+        // PLAN-46: a draft, a submitted or an approved request is still open; the hire adds none beside it. The request stays a draft
+        // (IdCard:Approval:AutoSubmitOnHire=false): nobody vouches for a request the bus made.
         var exists = await _db.CardRequests.AnyAsync(r =>
-            r.EmployeeId == m.EmployeeId && r.Status == CardRequestStatus.Pending);
+            r.EmployeeId == m.EmployeeId
+            && !r.IsCancelled
+            && (r.Status == CardRequestStatus.Pending || r.Status == CardRequestStatus.PendingApproval || r.Status == CardRequestStatus.Approved));
         if (exists) return;
 
         _db.CardRequests.Add(new CardRequest

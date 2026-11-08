@@ -332,7 +332,8 @@ public sealed class Wf043DefinitionLifecycleTests
         var all = await db.WorkflowDefinitions.AsNoTracking().ToListAsync();
         Assert.All(all.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));
         Assert.Equal(WorkflowDefinitionStatus.Retired, all.Single(d => d.Code == "RECRUITMENT-HIRE").Status);
-        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL"], all.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
+        // PLAN-46: discipline needs two different people too.
+        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL"], all.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -421,8 +422,10 @@ public sealed class Wf043DefinitionLifecycleTests
 
         var invalid = await WorkflowDefinitionHealthReport.RunAsync(db, NullLogger.Instance);
 
+        // Before PLAN-46's chains are raised, the first versions of the card (role security) and the discipline (one step) are invalid.
         Assert.Contains(invalid, d => d.Code == "ID-CARD-ISSUANCE");
-        Assert.Contains(invalid, d => d.Code == "IT-TICKET");
+        Assert.Contains(invalid, d => d.Code == "DISCIPLINARY-APPROVAL");
+        Assert.DoesNotContain(invalid, d => d.Code == "IT-TICKET");
         Assert.DoesNotContain(invalid, d => d.Code == "ASSET-ASSIGN-APPROVAL");
         Assert.DoesNotContain(invalid, d => d.Code == "ASSET-LOSS-APPROVAL");
     }

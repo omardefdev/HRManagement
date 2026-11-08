@@ -33,4 +33,30 @@ public class DisciplinaryAction : AuditableEntity
 
     /// <summary>FUN-004: FILE-002 evidence attachment.</summary>
     public Guid? EvidenceFileId { get; set; }
+
+    // PLAN-46: the approval in HR.Core's engine. None of these is ever bound from a form.
+
+    [Display(Name = "حالة الاعتماد")]
+    public DisciplinaryApprovalStatus ApprovalStatus { get; set; }
+
+    /// <summary>The instance of the current submission. Never <c>PendingApproval</c> without it (rule 3).</summary>
+    public Guid? WorkflowInstanceId { get; set; }
+
+    /// <summary>The number of the last submission that reached the engine: the key is <c>DisciplinaryAction:{Id}:{SubmissionNo}</c>.</summary>
+    public int SubmissionNo { get; set; }
+
+    public Guid? SubmittedBy { get; set; }
+    public DateTime? SubmittedAt { get; set; }
+
+    public Guid? DecidedBy { get; set; }
+    public DateTime? DecidedAt { get; set; }
+
+    [MaxLength(1000)]
+    public string? RejectionReason { get; set; }
+
+    /// <summary>When <c>IDisciplinaryActionTaken</c> was staged for payroll. Set once; never published again.</summary>
+    public DateTime? OutcomePublishedAt { get; set; }
+
+    /// <summary>An action published to payroll before this plan: approved by the migration, never published again.</summary>
+    public bool ApprovedBeforeEngine { get; set; }
 }

@@ -9,6 +9,7 @@ using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.TestSupport.CodeGeneration;
 using IDCard.Domain.Entities;
+using IDCard.Domain.Enums;
 using IDCard.Infrastructure.Data;
 using IDCard.Web.Controllers;
 using IDCard.Web.Models;
@@ -322,7 +323,18 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
 
         controller.ModelState.Clear();
         var employee = Guid.NewGuid();
-        var model = new IssuedCardFormModel { EmployeeId = employee, CardDesignId = designId };
+        // PLAN-46: a card is issued only from a request approved in the engine.
+        var request = new CardRequest
+        {
+            EmployeeId = employee,
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = CardRequestStatus.Approved,
+            WorkflowInstanceId = Guid.NewGuid(),
+            SubmissionNo = 1
+        };
+        db.CardRequests.Add(request);
+        await db.SaveChangesAsync();
+        var model = new IssuedCardFormModel { EmployeeId = employee, CardDesignId = designId, CardRequestId = request.Id };
         Assert.True(controller.TryValidateModel(model));
         var result = await controller.Create(model);
 
@@ -331,6 +343,9 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
         var card = await verify.IssuedCards.AsNoTracking().SingleAsync(c => c.EmployeeId == employee);
         Assert.Equal(designId, card.CardDesignId);
         Assert.StartsWith("TEST-", card.SerialNumber, StringComparison.Ordinal);
+        var processed = await verify.CardRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id);
+        Assert.Equal(CardRequestStatus.Processed, processed.Status);
+        Assert.Equal(card.Id, processed.IssuedCardId);
     }
 
     [Trait("Category", "Testcontainers")]
@@ -353,6 +368,14 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
         Assert.True(controller.TryValidateModel(unknownDesign));
         Assert.IsType<ViewResult>(await controller.Create(unknownDesign));
         Assert.True(controller.ModelState[nameof(IssuedCardFormModel.CardDesignId)]!.Errors.Count > 0);
+
+        // PLAN-46: a valid form with no approved request issues nothing.
+        controller.ModelState.Clear();
+        var design = await db.CardDesigns.AsNoTracking().Select(d => d.Id).FirstAsync();
+        var noRequest = new IssuedCardFormModel { EmployeeId = Guid.NewGuid(), CardDesignId = design };
+        Assert.IsType<ViewResult>(await controller.Create(noRequest));
+        Assert.Contains(IssuedCardsController.RequiresApprovedRequestMessage,
+            controller.ModelState[nameof(IssuedCardFormModel.CardRequestId)]!.Errors.Select(e => e.ErrorMessage));
 
         await using var verify = Cards(cs);
         Assert.Equal(0, await verify.IssuedCards.CountAsync());

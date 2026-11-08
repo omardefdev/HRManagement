@@ -909,6 +909,51 @@
           "00000000-0000-4000-8000-000000000001"
         ]
       }
+    },
+    {
+      "username": "e2e-idcard-maker",
+      "email": "e2e-idcard-maker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "IdCardMaker",
+      "realmRoles": [
+        "idcard",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-idcard-checker",
+      "email": "e2e-idcard-checker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "IdCardChecker",
+      "realmRoles": [
+        "idcard",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
+    },
+    {
+      "username": "e2e-compliance-checker",
+      "email": "e2e-compliance-checker@hrm.local",
+      "firstName": "E2E",
+      "lastName": "ComplianceChecker",
+      "realmRoles": [
+        "compliance",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      }
     }
   ]
 }

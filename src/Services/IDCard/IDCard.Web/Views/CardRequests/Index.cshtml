@@ -18,8 +18,14 @@
                         <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                         <td>
-                            <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
-                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = x.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
+                            @if (IDCard.Domain.Services.CardIssuanceWorkflow.CanEdit(x.Status))
+                            {
+                                <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            }
+                            @if (x.WorkflowInstanceId is Guid instanceId)
+                            {
+                                <a href="/ui/hr-core/WorkflowApprovals/Details/@instanceId" class="btn btn-outline-info btn-xs" aria-label="عرض الاعتماد"><i aria-hidden="true" class="fas fa-stamp"></i></a>
+                            }
                         </td>
                     </tr>
                 }

@@ -16,4 +16,8 @@ public static class WorkflowMetrics
     public static readonly Counter<long> OutcomeIgnored = Meter.CreateCounter<long>(
         "workflow_outcome_ignored_total",
         description: "Workflow outcomes a consumer refused because the instance is not linked to the record");
+
+    public static readonly Counter<long> ApprovalSweepApplied = Meter.CreateCounter<long>(
+        "workflow_approval_sweep_applied_total",
+        description: "Finished outcomes the owner-side sweep applied because the event did not reach the record");
 }

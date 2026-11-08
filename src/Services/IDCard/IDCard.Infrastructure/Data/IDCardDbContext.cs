@@ -55,7 +55,14 @@ public class IDCardDbContext : TenantAwareDbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.CancellationReason).HasMaxLength(500);
+            entity.Property(e => e.RejectionReason).HasMaxLength(1000);
+            entity.Property(e => e.SubmissionNo).HasDefaultValue(0);
+            // PLAN-46: a withdrawal and the outcome of the approval never both win.
+            entity.ConfigureOptimisticConcurrency(this);
         });
+
+        // PLAN-46: the sweep of card approvals finds the tenants here, outside row security.
+        modelBuilder.Entity<EntityAuditLog>().HasIndex(l => new { l.EntityType, l.TenantId });
 
         modelBuilder.Entity<CardDeliveryRecord>(entity =>
         {

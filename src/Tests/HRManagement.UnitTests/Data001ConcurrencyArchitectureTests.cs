@@ -21,6 +21,8 @@ public class Data001ConcurrencyArchitectureTests
     [InlineData("HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs", "Entity<AdvanceRequest>", "ConfigureOptimisticConcurrency")]
     [InlineData("Payroll/Payroll.Infrastructure/Data/PayrollDbContext.cs", "Entity<PaymentBatch>", "ConfigureOptimisticConcurrency")]
     [InlineData("AdminLogistics/Admin.Logistics.Infrastructure/Data/AdminLogisticsDbContext.cs", "Entity<AssetAssignment>", "ConfigureOptimisticConcurrency")]
+    [InlineData("IDCard/IDCard.Infrastructure/Data/IDCardDbContext.cs", "Entity<CardRequest>", "ConfigureOptimisticConcurrency")]
+    [InlineData("Compliance/Compliance.Infrastructure/Data/ComplianceDbContext.cs", "Entity<DisciplinaryAction>", "ConfigureOptimisticConcurrency")]
     public void DbContext_configures_optimistic_concurrency(string relativePath, string entityMarker, string concurrencyCall)
     {
         var path = Path.Combine(RepoRoot, "src", "Services", relativePath.Replace('/', Path.DirectorySeparatorChar));

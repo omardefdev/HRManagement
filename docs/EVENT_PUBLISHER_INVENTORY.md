@@ -75,6 +75,7 @@ outbox on every receive endpoint.
 | `IAgencyOnboarded` | `AgencyProvisioningService.ApplyManifestAsync` (no consumer) | OutboxUnitOfWork |
 | `IPolicyPublished` (no consumer since PLAN-42; PLAN-47 adds the cache invalidation) | `PolicyVersionPublisher.PublishDraftAsync` (API and UI) | SingleSave |
 | `IAssetAssignmentApproved`, `IAssetAssignmentRejected`, `IAssetLossApproved`, `IAssetLossRejected` (schema v2 since PLAN-43: `WorkflowInstanceId` from `instance.Id`; the four Admin.Logistics consumers apply an outcome only to the linked instance, ignore a v1 message, and count both in `workflow_outcome_ignored_total`) | `WorkflowInstanceActionService` through `WorkflowAssetOutcomes` (since PLAN-44 inside the decision's `OutboxUnitOfWork`, with the instance and the signature) | OutboxUnitOfWork |
+| `IWorkflowOutcomeDecided` (PLAN-46: the outcome of a registry type whose `OutcomeEvent` is `Generic`, schema v1; message id from `instance.Id`, tenant header from the instance; IDCard and Compliance apply it only to the linked pending record with `WorkflowOutcomeGuard`, and their owner-side sweep catches a lost one) | `WorkflowInstanceActionService` (approve, reject) and `ExternalApprovalService.CancelAsync` (withdrawal), both through `ExternalOutcomePublisher.StageWorkflowOutcomeAsync` inside the decision's `OutboxUnitOfWork` | OutboxUnitOfWork |
 | `ITransactionRegisteredInDiwan` | `DiwanIntegrationService.RegisterCorrespondenceAsync` | SingleSave |
 | `ITransactionRegisteredInDiwan` (hire) | `HireCaseCompletedDiwanConsumer` | ConsumerOutbox |
 | `IAttendancePeriodClosed` | `AttendanceIntegrationService.ClosePeriodAndPublishAsync` | SingleSave |
@@ -136,10 +137,10 @@ outbox on every receive endpoint.
 | `IMedicalDecisionIssued` | `MedicalCommitteeReportsController.Create` | SingleSave |
 | `ITrainingCompleted` | `TrainingEnrollmentsController.Complete`, `EssLearningController.UpdateProgress` | SingleSave |
 | `IMissionApproved` | `MissionFilesController.Approve` | SingleSave |
-| `ICardIssued` | `IssuedCardsController.Create`, `IssuedCardsController.Renew` | SingleSave |
+| `ICardIssued` (PLAN-46: only from a request approved in HR.Core's engine; `Renew` opens a replacement request and publishes nothing; `ProcessRequest` publishes nothing until wave 2, G-IDA-03) | `IssuedCardsController.Create` | SingleSave |
 | `IComplaintResolved` | `ComplaintsController.Resolve` | SingleSave |
 | `ILegalJudgmentIssued` | `LegalCasesController.Close` | SingleSave |
-| `IDisciplinaryActionTaken` | `DisciplinaryActionsController.Create` | SingleSave |
+| `IDisciplinaryActionTaken` (PLAN-46: only on the approval of compliance then the authority; message id from the action; actions published before PLAN-46 are `ApprovedBeforeEngine` and never published again) | `DisciplinaryApprovalOutcomeConsumer.StageActionTakenAsync`, from the consumer of `IWorkflowOutcomeDecided` and from the owner-side sweep, both through `DisciplinaryApprovalService.ApplyOutcomeAsync` with the status change in one save | ConsumerOutbox |
 | `IExportJobRequested` | `ComplianceExportJobService.EnqueueAsync` | SingleSave |
 
 ### Records.Archive, Dev.Analytics

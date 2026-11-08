@@ -1,26 +1,54 @@
 @model CardRequest
+@using IDCard.Domain.Services
 @{ ViewData["Title"] = "تفاصيل طلب البطاقة"; }
 <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلب بطاقة</h3><span class="badge bg-secondary">@Html.HrEnumDisplay(Model.Status)</span></div>
+    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">طلب بطاقة</h3><span class="badge bg-secondary" data-request-status="@Model.Status">@Html.HrEnumDisplay(Model.Status)</span></div>
     <div class="card-body">
         <dl class="row mb-0">
-    <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
+            <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">طالب البطاقة</dt><dd class="col-sm-9">@Model.RequestedBy</dd>
             <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Model.RequestDate</dd>
             <dt class="col-sm-3">الغرض</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.Purpose)</dd>
+            @if (Model.SubmittedAt is not null)
+            {
+                <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@Model.SubmittedAt.Value.ToString("yyyy/MM/dd HH:mm")</dd>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
+            {
+                <dt class="col-sm-3">سبب الرفض</dt><dd class="col-sm-9">@Model.RejectionReason</dd>
+            }
+            @if (Model.IsCancelled)
+            {
+                <dt class="col-sm-3">الإلغاء</dt><dd class="col-sm-9">@Model.CancellationReason</dd>
+            }
         </dl>
     </div>
 </div>
-<div class="btn-group mb-3">
-    @if (Model.Status == CardRequestStatus.Pending)
+<div class="d-flex flex-wrap gap-2 mb-3">
+    @if (!Model.IsCancelled && CardIssuanceWorkflow.CanSubmit(Model.Status))
+    {
+        <form asp-action="Submit" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary">تقديم للاعتماد</button></form>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+    }
+    @if (!Model.IsCancelled && CardIssuanceWorkflow.CanWithdraw(Model.Status))
+    {
+        <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب طلب البطاقة" /><button type="submit" class="btn btn-outline-secondary">سحب من الاعتماد</button></form>
+    }
+    @if (!Model.IsCancelled && CardIssuanceWorkflow.CanProcess(Model.Status) && Model.IssuedCardId is null)
     {
         <form asp-action="ProcessRequest" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success">معالجة الطلب</button></form>
     }
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
-    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
-          data-hr-confirm="هل أنت متأكد من الحذف؟"
-          data-hr-confirm-title="تأكيد الحذف"
-          data-hr-confirm-variant="danger"
-          data-hr-confirm-label="حذف">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger">حذف</button></form>
+    @if (Model.WorkflowInstanceId is Guid instanceId)
+    {
+        <a href="/ui/hr-core/WorkflowApprovals/Details/@instanceId" class="btn btn-outline-info" data-approval-link="@instanceId">عرض الاعتماد</a>
+    }
+    @if (!Model.IsCancelled && CardIssuanceWorkflow.CanCancel(Model.Status))
+    {
+        <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline"
+              data-hr-confirm="هل تريد إلغاء الطلب؟"
+              data-hr-confirm-title="تأكيد الإلغاء"
+              data-hr-confirm-variant="danger"
+              data-hr-confirm-label="إلغاء">@Html.AntiForgeryToken()<button type="submit" class="btn btn-danger">إلغاء الطلب</button></form>
+    }
 </div>
 <p><a asp-action="Index">العودة</a></p>

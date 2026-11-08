@@ -245,9 +245,10 @@ public sealed class Wf045WorkflowApprovalsControllerTests
     [Fact]
     public void The_audience_comes_from_the_registry()
     {
-        Assert.Equal([HrManagementRoles.AdminLogistics], WorkInboxAudience.Roles);
+        // PLAN-46 added the card office and compliance.
+        Assert.Equal([HrManagementRoles.AdminLogistics, HrManagementRoles.IdCard, HrManagementRoles.Compliance], WorkInboxAudience.Roles);
         Assert.Equal(
-            ExternalApprovalTypes.All.Select(t => t.EntityType),
+            ExternalApprovalTypes.All.Where(t => t.AudienceRoles.Contains(HrManagementRoles.AdminLogistics)).Select(t => t.EntityType),
             WorkInboxAudience.EntityTypesFor(User(Officer, HrManagementRoles.AdminLogistics)));
     }
 
@@ -256,7 +257,9 @@ public sealed class Wf045WorkflowApprovalsControllerTests
     [InlineData(false, HrManagementRoles.AdminLogistics, HrManagementRoles.HrCore)]
     [InlineData(false, HrManagementRoles.AdminLogistics, HrManagementRoles.BranchManager)]
     [InlineData(false, HrManagementRoles.HrManagementApprover)]
-    [InlineData(false, HrManagementRoles.Compliance)]
+    [InlineData(true, HrManagementRoles.Compliance)]
+    [InlineData(true, HrManagementRoles.IdCard)]
+    [InlineData(false, HrManagementRoles.Compliance, HrManagementRoles.HrCore)]
     public void Only_a_role_with_no_hr_core_access_is_audience_only(bool expected, params string[] roles) =>
         Assert.Equal(expected, WorkInboxAudience.IsAudienceOnly(User(Officer, roles)));
 

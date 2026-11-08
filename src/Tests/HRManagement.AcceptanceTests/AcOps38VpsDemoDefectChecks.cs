@@ -162,13 +162,20 @@ public partial class AcOps36VpsBootTests
             Assert.Equal("Cancelled", cancelled[0]);
             Assert.Equal(usedBefore, int.Parse(cancelled[1], CultureInfo.InvariantCulture));
 
-            // 4. ID card (PLAN-37 defect 2: IssuedCards/Create bound the entity and never passed validation).
+            // 4. ID card (PLAN-37 defect 2: IssuedCards/Create bound the entity and never passed validation). PLAN-46: a card is issued only
+            // from an approved request; the request is seeded approved here, as this check proves the form, not the approval (PLAN-46's own
+            // server check walks a real approval).
             var design = Sql("idcard_db", "select \"Id\" from \"CardDesigns\" order by \"Id\" limit 1").First();
             var cardsBefore = int.Parse(Sql("idcard_db", $"select count(*) from \"IssuedCards\" where \"EmployeeId\" = '{employeeId}'").Single(), CultureInfo.InvariantCulture);
+            var cardRequest = Guid.NewGuid();
+            Sql("idcard_db",
+                "insert into \"CardRequests\" (\"Id\", \"EmployeeId\", \"RequestDate\", \"Purpose\", \"Status\", \"IsCancelled\", \"TenantId\", \"CreatedAt\", \"UpdatedAt\", \"WorkflowInstanceId\", \"SubmissionNo\", \"SubmittedAt\", \"DecidedAt\") " +
+                $"values ('{cardRequest}', '{employeeId}', current_date, 0, 4, false, '{HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId}', now(), now(), '{Guid.NewGuid()}', 1, now(), now())");
             token = await TokenAsync(approver, "/ui/idcard/IssuedCards/Create");
             (status, finalPath, _) = await PostFormAsync(approver, "/ui/idcard/IssuedCards/Create", new Dictionary<string, string>
             {
                 ["__RequestVerificationToken"] = token,
+                ["CardRequestId"] = cardRequest.ToString(),
                 ["EmployeeId"] = employeeId.ToString(),
                 ["CardDesignId"] = design,
                 ["IssuedAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),

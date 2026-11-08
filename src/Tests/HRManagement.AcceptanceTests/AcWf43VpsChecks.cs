@@ -29,14 +29,15 @@ public partial class AcOps36VpsBootTests
     {
         var recorder = StartWf43("vps-definitions", "Demo server: the backfill matches the before-picture, the health report names the invalid definitions, the realm has workflow-admin");
 
+        // PLAN-46: the four orphans are retired, and the card and the discipline run a second version (their first one retired).
         var byStatus = Sql("hr_core_db", "select \"Status\", \"IsPublished\", count(*) from \"WorkflowDefinitions\" group by 1, 2 order by 1, 2");
-        Assert.Equal(["Published|t|16", "Retired|f|3"], byStatus);
-        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL"], Sql("hr_core_db", "select distinct \"Code\" from \"WorkflowDefinitions\" where \"RequireDistinctApprovers\" order by 1"));
+        Assert.Equal(["Published|t|12", "Retired|f|9"], byStatus);
+        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL"], Sql("hr_core_db", "select distinct \"Code\" from \"WorkflowDefinitions\" where \"RequireDistinctApprovers\" order by 1"));
 
-        var (code, logs) = Sh($"docker logs {ContainerOf("hr-core-web")} 2>&1 | grep -a 'fails validation' | grep -ao 'definition [A-Z-]* v[0-9]*' | sort -u");
+        // PLAN-46: no published definition fails the validator any more, so the start-up health report names none.
+        var (code, logs) = Sh($"docker logs {ContainerOf("hr-core-web")} 2>&1 | grep -a 'fails validation' | grep -ao 'definition [A-Z-]* v[0-9]*' | sort -u; true");
         Assert.True(code == 0, logs);
-        Assert.Contains("ID-CARD-ISSUANCE", logs, StringComparison.Ordinal);
-        Assert.Contains("IT-TICKET", logs, StringComparison.Ordinal);
+        Assert.True(string.IsNullOrWhiteSpace(logs), $"Published definitions fail the validator: {logs}");
         Assert.Equal("healthy", Sh($"docker inspect -f '{{{{.State.Health.Status}}}}' {ContainerOf("hr-core-web")}").Output.Trim());
 
         var role = Sql("keycloak_db",
@@ -44,7 +45,7 @@ public partial class AcOps36VpsBootTests
         Assert.Equal("1", role);
 
         recorder.WriteScenarioDbChecks(new { byStatus, invalid = logs.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), role });
-        recorder.WriteScenarioSteps("psql: 16 Published and 3 Retired, distinct approvers on both custody codes; the start-up log names the invalid definitions and hr-core-web is healthy; the realm holds workflow-admin.");
+        recorder.WriteScenarioSteps("psql: 12 Published and 9 Retired (PLAN-46 retired four orphans and raised the card and the discipline), distinct approvers on both custody codes and the discipline; the start-up log names no invalid definition and hr-core-web is healthy; the realm holds workflow-admin.");
         recorder.WriteResult("Pass");
     }
 
