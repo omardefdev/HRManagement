@@ -158,7 +158,10 @@ public class NationalSharedWriteGuardTests
         await using var db = new HRCoreDbContext(Options(name), new FixedTenant(AgencyB));
         db.CodePolicyTemplates.Add(new CodePolicyTemplate
         {
-            TenantId = AgencyB, Name = "overlay", EntityKind = CodeEntityKind.AssetTag, Scope = CodePolicyScope.TenantOverride
+            TenantId = AgencyB,
+            Name = "overlay",
+            EntityKind = CodeEntityKind.AssetTag,
+            Scope = CodePolicyScope.TenantOverride
         });
         await db.SaveChangesAsync();
         Assert.Equal(2, await db.CodePolicyTemplates.OwnOrNational(AgencyB).CountAsync());

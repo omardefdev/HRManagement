@@ -101,6 +101,8 @@ public class PolicyTemplatesController(
         var request = new PolicyEnforceRequest
         {
             Domain = (await db.ReadablePolicyVersions().Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId)).PolicyTemplate.Domain,
+            // PLAN-48: the session's decision (the national rules and its own override, merged), as POST api/policies/evaluate.
+            TenantId = db.CurrentTenantId,
             Facts = facts,
             Mode = PolicyEnforcementMode.Enforce,
             AsOfUtc = asOf

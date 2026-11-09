@@ -79,8 +79,18 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
     {
         if (string.IsNullOrWhiteSpace(domain))
             return PolicyDraftResult.Invalid("المجال مطلوب", "$.domain");
+        // A known domain only, and values that fit their columns (a 400, never the database's 500).
+        if (!PolicyDomains.All.Contains(domain, StringComparer.Ordinal))
+            return PolicyDraftResult.Invalid($"المجال «{domain}» غير معروف", "$.domain");
+        if (name is { Length: > 200 })
+            return PolicyDraftResult.Invalid("الاسم أطول من 200 محرف", "$.name");
+        if (subjectType is { Length: > 100 })
+            return PolicyDraftResult.Invalid("نوع الموضوع أطول من 100 محرف", "$.subjectType");
 
         var sessionTenant = db.CurrentTenantId;
+        // A session with no tenant (a platform operator outside a tenant) owns no template: 400, not the stamp's refusal (500).
+        if (sessionTenant is null || sessionTenant == Guid.Empty)
+            return PolicyDraftResult.Invalid("لا مستأجر لهذه الجلسة: ادخل مستأجراً قبل إنشاء مسودة", "$");
         var national = NationalTenant.IsNational(sessionTenant);
         var effectiveScope = scope ?? (national ? PolicyTemplateScope.National : PolicyTemplateScope.TenantOverride);
         if (effectiveScope == PolicyTemplateScope.National && !national)

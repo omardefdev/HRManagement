@@ -95,7 +95,8 @@ public static class AcceptancePersonaCatalog
     /// </summary>
     public static readonly IReadOnlyDictionary<string, int> ApprovedRegularPersonas = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        [TenantDefaults.DefaultCode] = 4,
+        // PLAN-48: platform-central (hr-core in the national tenant).
+        [TenantDefaults.DefaultCode] = 5,
         // PLAN-46: a-idcard-2.
         ["AGENCY-A"] = 44,
         ["AGENCY-B"] = 8,

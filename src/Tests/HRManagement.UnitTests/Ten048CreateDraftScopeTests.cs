@@ -38,6 +38,46 @@ public sealed class Ten048CreateDraftScopeTests
         Assert.Equal(0, await check.PolicyTemplateVersions.CountAsync(v => v.Status == PolicyVersionStatus.Draft));
     }
 
+    [Theory]
+    [InlineData("Not.A.Domain", "x", "Asset", "$.domain")]
+    [InlineData(Domain, "a name longer than two hundred characters", "Asset", "$.name")]
+    [InlineData(Domain, "x", "a subject type longer than one hundred characters", "$.subjectType")]
+    public async Task A_draft_request_with_an_unknown_domain_or_an_oversized_value_is_a_400_and_writes_nothing(string domain, string name, string subjectType, string path)
+    {
+        await using var h = await CreateAsync();
+        await using var db = h.Session(AgencyA);
+        // The review's case: values that do not fit their columns ended in the database's 500.
+        var longName = name.StartsWith("a name longer", StringComparison.Ordinal) ? new string('n', 201) : name;
+        var longSubject = subjectType.StartsWith("a subject type", StringComparison.Ordinal) ? new string('s', 101) : subjectType;
+
+        var result = await h.Drafts(db).CreateDomainDraftAsync(domain, longSubject, longName, null, Author);
+
+        Assert.Equal(PolicyDraftOutcome.Invalid, result.Outcome);
+        Assert.Contains(result.IssueList, i => i.JsonPath == path);
+        await using var check = h.DesignTime();
+        Assert.False(await check.PolicyTemplates.AnyAsync(t => t.TenantId == AgencyA));
+    }
+
+    [Fact]
+    public async Task The_simulation_page_decides_with_the_agencys_own_override()
+    {
+        await using var h = await CreateAsync();
+        var (_, version) = await h.SeedOldOverrideAsync(AgencyA,
+            Rule("A-SIM-DENY", 1, DenyThen, """{"all":[{"field":"category","operator":"Equals","value":"T48-SIM"}]}"""));
+        await using var db = h.Session(AgencyA);
+        var controller = new PolicyTemplatesController(db, Orchestrator(db), h.Publish(db), h.Drafts(db), Pol047Harness.Authorization(h.Configuration))
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = Pol047Harness.User(Author, HrManagementRoles.HrCore) } }
+        };
+
+        var view = Assert.IsType<ViewResult>(await controller.Simulate(version.Id, """{"category":"T48-SIM","isPrivileged":"false","action":"Assign"}"""));
+
+        // The review's case: the page asked for no tenant, so it showed the national-only decision.
+        var decision = Assert.IsType<PolicyDecision>(view.ViewData["Decision"]);
+        Assert.False(decision.Allowed);
+        Assert.Contains("A-SIM-DENY", decision.MatchedRuleIds);
+    }
+
     [Fact]
     public async Task An_agency_draft_is_its_own_override_and_the_national_template_is_untouched()
     {

@@ -217,7 +217,7 @@ public static class CodeCounterReseeder
         return parsed;
     }
 
-    private static async Task<CodeCounterRaise?> RaiseAsync(
+    internal static async Task<CodeCounterRaise?> RaiseAsync(
         HRCoreDbContext db,
         Guid tenantId,
         CodeEntityKind kind,

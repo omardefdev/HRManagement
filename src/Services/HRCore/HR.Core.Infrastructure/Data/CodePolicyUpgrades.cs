@@ -86,11 +86,54 @@ public static class CodePolicyUpgrades
             "D-TEN-5: the scope was the budget year and the number showed the calendar year")
     ];
 
+    /// <summary>The key of the advisory lock every HR.Core instance takes before it applies the upgrade (one at a time).</summary>
+    public const long AdvisoryLockKey = 4_800_480_048;
+
     public static async Task<CodePolicyUpgradeResult> ApplyAsync(
         HRCoreDbContext db,
         IServiceProvider services,
         ILogger? logger,
         CancellationToken ct = default)
+    {
+        // Two instances starting together apply the upgrade once: the second waits, then finds the first one's record. A session
+        // lock, not a transaction lock: the reseeding reads the corrected versions from other connections, so every save of the
+        // upgrade commits before it.
+        var locked = db.Database.IsNpgsql();
+        if (locked)
+        {
+            await db.Database.OpenConnectionAsync(ct);
+            // The second instance waits for the first one's whole upgrade and reseeding, which may outlast the 30 s command default.
+            var timeout = db.Database.GetCommandTimeout();
+            db.Database.SetCommandTimeout(TimeSpan.FromMinutes(30));
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync($"SELECT pg_advisory_lock({AdvisoryLockKey})", ct);
+            }
+            finally
+            {
+                db.Database.SetCommandTimeout(timeout);
+            }
+        }
+
+        try
+        {
+            return await ApplyOnceAsync(db, services, logger, ct);
+        }
+        finally
+        {
+            if (locked)
+            {
+                await db.Database.ExecuteSqlRawAsync($"SELECT pg_advisory_unlock({AdvisoryLockKey})", CancellationToken.None);
+                await db.Database.CloseConnectionAsync();
+            }
+        }
+    }
+
+    private static async Task<CodePolicyUpgradeResult> ApplyOnceAsync(
+        HRCoreDbContext db,
+        IServiceProvider services,
+        ILogger? logger,
+        CancellationToken ct)
     {
         var national = NationalTenant.Id;
         if (await db.SeedPackApplications.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)

@@ -96,3 +96,13 @@ agency provisioned before this plan has no `policy-ministry-finance-v1` rule, un
 
 Tenants: PLATFORM only (P0). Policy templates: 20, all national (`Scope = National`, PLATFORM); no `TenantOverride` template and
 no agency. **The ceiling changes nothing there.** P7 checks this again, read-only, before the deploy.
+
+## Older agency data the change affects (found by the independent review)
+
+- **An agency's own template of `Scope = National`** (the pre-PLAN-48 `CreateDraft` made one inside the agency) is no longer
+  evaluated: «national» is the national tenant's `Scope = National` only (D-TEN-1), and an override is `TenantOverride`. Its
+  rules stop applying with no report. None exists on the demo server (PLATFORM only) or in the acceptance seed (its agency
+  templates are all `TenantOverride`). A lab that made one should re-create its rules in the agency's override.
+- **An agency provisioned before PLAN-48 with the keyed `FIN-ORG-UNIT` code overlay** used to get it for org unit requests with
+  no policy key. Now a keyless request gets the kind's default template only, so its new org unit numbers take the national
+  format (`OU-…`); nothing collides. New provisioning stores the overlay as the agency's default (`"default": true`).

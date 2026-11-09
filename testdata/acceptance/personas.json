@@ -30,6 +30,21 @@
       "enabled": true
     },
     {
+      "id": "platform-central",
+      "username": "acc-platform-central",
+      "passwordEnv": "ACCEPTANCE_PLATFORM_CENTRAL_PASSWORD",
+      "roles": [
+        "hr-core"
+      ],
+      "tenantCode": "PLATFORM",
+      "tenantId": "00000000-0000-4000-8000-000000000001",
+      "purpose": "HR.Core in the national tenant (PLAN-48): national numbering and the national policy as the national tenant reads it",
+      "scenarios": [
+        "AC-TEN-48b"
+      ],
+      "enabled": true
+    },
+    {
       "id": "p-workflow-admin",
       "username": "acc-p-workflow-admin",
       "passwordEnv": "ACCEPTANCE_P_WORKFLOW_ADMIN_PASSWORD",

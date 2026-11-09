@@ -74,40 +74,18 @@ public sealed class CodSequenceBootstrapService(HRCoreDbContext db)
         return upserts;
     }
 
+    /// <summary>
+    /// Never lowers a counter, also against a concurrent increment: on PostgreSQL the counter becomes GREATEST(its value, the
+    /// highest observed number) in one statement (PLAN-48 review), as the reseeder does.
+    /// </summary>
     private async Task<bool> UpsertCounterAsync(
         Guid tenantId,
         CodeEntityKind entityKind,
         string scopeKey,
         int year,
         long lastValue,
-        CancellationToken ct)
-    {
-        var counter = await db.CodeSequenceCounters.FirstOrDefaultAsync(
-            c => c.TenantId == tenantId && c.EntityKind == entityKind
-                && c.ScopeKey == scopeKey && c.Year == year, ct);
-
-        if (counter is null)
-        {
-            db.CodeSequenceCounters.Add(new CodeSequenceCounter
-            {
-                TenantId = tenantId,
-                EntityKind = entityKind,
-                ScopeKey = scopeKey,
-                Year = year,
-                LastValue = lastValue
-            });
-            return true;
-        }
-
-        // Never lower a counter.
-        if (lastValue > counter.LastValue)
-        {
-            counter.LastValue = lastValue;
-            return true;
-        }
-
-        return false;
-    }
+        CancellationToken ct) =>
+        await CodeCounterReseeder.RaiseAsync(db, tenantId, entityKind, scopeKey, year, lastValue, ct) is not null;
 
     private static bool IsDemoExcluded(string code) =>
         code.StartsWith("DEMO-", StringComparison.OrdinalIgnoreCase)

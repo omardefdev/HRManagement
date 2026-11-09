@@ -103,13 +103,16 @@ public sealed class CodeGeneratorService(
         var tid = tenantId is Guid requested && requested != Guid.Empty ? requested : db.CurrentTenantId ?? NationalTenant.Id;
         var key = NormalizeKey(policyKey);
         // PLAN-48: the key is part of the cache key, and a publication, an upgrade or an overlay drops every entry of this instance.
-        var cacheKey = $"code-policy:{Volatile.Read(ref _cacheGeneration)}:{tid:N}:{entityKind}:{key}";
-        if (cache.TryGetValue(cacheKey, out CodePolicySnapshot? cached))
+        // A tenant's entry is read and written only from that tenant's own session: another session (a platform operator naming the
+        // tenant) may not see the tenant's overlay under row security, and its national snapshot must not answer the tenant.
+        var sessionIsTenant = db.BypassTenantFilter || db.CurrentTenantId == tid;
+        var cacheKey = sessionIsTenant ? $"code-policy:{Volatile.Read(ref _cacheGeneration)}:{tid:N}:{entityKind}:{key}" : null;
+        if (cacheKey is not null && cache.TryGetValue(cacheKey, out CodePolicySnapshot? cached))
             return cached;
 
         var resolved = await ResolveAsync(entityKind, key, new Dictionary<string, string>(), tid, DateTime.UtcNow, ct);
         var snapshot = resolved?.ToSnapshot(entityKind);
-        if (snapshot is not null)
+        if (snapshot is not null && cacheKey is not null)
             cache.Set(cacheKey, snapshot, TimeSpan.FromMinutes(5));
         return snapshot;
     }
@@ -252,7 +255,8 @@ public sealed class CodeGeneratorService(
         if (!request.Preview)
             await RecordDerivedIssuanceOnceAsync(tenantId, request, code, resolved.VersionId, scopeKey, callerClientId, ct);
 
-        logger.LogInformation("Derived code {EntityKind} preview={Preview} scope={Scope}", request.EntityKind, request.Preview, scopeKey);
+        // No request-derived value in the log (CodeQL cs/log-forging): the kind and the mode only.
+        logger.LogInformation("Derived code {EntityKind} preview={Preview}", request.EntityKind, request.Preview);
         return new CodeGenerationResult
         {
             Code = code,
@@ -464,7 +468,8 @@ public sealed class CodeGeneratorService(
         {
             // PLAN-48: the counter was behind an issued code. Say which, never answer with a bare 500.
             db.Entry(issuance).State = EntityState.Detached;
-            logger.LogError(ex, "PLAN-48 code collision: {EntityKind} {Code} already issued (scope {Scope})", request.EntityKind, code, scopeKey);
+            // No request-derived value in the log (CodeQL cs/log-forging): the kind and the tenant; the 409 names the number.
+            logger.LogError(ex, "PLAN-48 code collision: a {EntityKind} number of tenant {TenantId} was already issued", request.EntityKind, tenantId);
             throw new CodeCollisionException(request.EntityKind, code, scopeKey, ex);
         }
     }
