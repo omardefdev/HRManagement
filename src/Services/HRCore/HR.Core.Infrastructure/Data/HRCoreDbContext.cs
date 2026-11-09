@@ -24,13 +24,17 @@ public class HRCoreDbContext : TenantAwareDbContext
 
     /// <summary>
     /// PLAN-48 (§1): every HR.Core context, in every host and test, refuses a national row (an <see cref="INationalShared"/>
-    /// entity of the national tenant) written outside the national tenant or an explicit seed scope. Added after the
-    /// interceptors the host registers, so an added row already carries its stamped tenant.
+    /// entity of the national tenant) written outside the national tenant or an explicit seed scope. HR.Core's host registers the
+    /// guard before the tenant stamp (so an agency's insert of a national row is refused by the guard, with its 403); a context
+    /// built without it (tests, tools) gets it here, after the interceptors it has.
     /// </summary>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-        optionsBuilder.AddInterceptors(new NationalSharedWriteGuard(TenantContext));
+        var registered = optionsBuilder.Options.FindExtension<Microsoft.EntityFrameworkCore.Infrastructure.CoreOptionsExtension>()?
+            .Interceptors?.OfType<NationalSharedWriteGuard>().Any() == true;
+        if (!registered)
+            optionsBuilder.AddInterceptors(new NationalSharedWriteGuard(TenantContext));
     }
 
     public DbSet<Employee> Employees => Set<Employee>();

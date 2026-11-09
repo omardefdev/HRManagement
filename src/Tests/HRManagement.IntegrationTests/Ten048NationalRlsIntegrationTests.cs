@@ -226,14 +226,18 @@ public sealed class Ten048NationalRlsIntegrationTests(PostgreSqlFixture fixture)
         var issues = await Pol047Pg.AsTenantAsync(provider, TenantB, db =>
             new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance).ValidateRuleAsync(
                 PolicyDomains.AssetsCustody,
+                PolicyTemplateScope.TenantOverride,
                 new PolicyRuleInput("R-B-AGENCY", "agency", 10, Pol047Pg.ValidWhen,
                     """[{"effect":"TriggerWorkflow","params":{"workflowCode":"TEN048-WF"}}]""")));
         Assert.DoesNotContain(issues, i => i.Code is "WHEN_NO_SCHEMA" or "WHEN_UNKNOWN_FIELD" or "THEN_WORKFLOW_UNKNOWN" or "THEN_WORKFLOW_UNBOUND");
+        // PLAN-48: the national version in force (RequireEvidence only) triggers no workflow, so the ceiling lets the agency's pass.
+        Assert.DoesNotContain(issues, i => i.Code.StartsWith("CEILING_", StringComparison.Ordinal));
 
         // A field outside the national schema is still refused (the schema is read, not ignored).
         var unknown = await Pol047Pg.AsTenantAsync(provider, TenantB, db =>
             new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance).ValidateRuleAsync(
                 PolicyDomains.AssetsCustody,
+                PolicyTemplateScope.TenantOverride,
                 new PolicyRuleInput("R-B-UNKNOWN", "x", 10, """{"all":[{"field":"notInSchema","operator":"Equals","value":"x"}]}""", Pol047Pg.ValidThen)));
         Assert.Contains(unknown, i => i.Code == "WHEN_UNKNOWN_FIELD");
     }

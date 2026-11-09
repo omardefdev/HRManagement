@@ -170,8 +170,11 @@ public sealed class PolicyOrchestrator(
 
         var merged = PolicyEvaluator.MergeNationalAndTenant(national, tenant) with { NextEffectiveFrom = next };
 
-        var schemaEntity = await db.PolicyFactsSchemas.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Domain == domain, ct);
+        // PLAN-48 (§4): the agency's own schema first, then the national one (the validator reads the same).
+        var schemaEntity = await db.PolicyFactsSchemas.OwnOrNational(db).AsNoTracking()
+            .Where(s => s.Domain == domain)
+            .OwnFirst(db.CurrentTenantId)
+            .FirstOrDefaultAsync(ct);
         var schema = PolicyEntityMapper.ParseSchema(schemaEntity);
         if (schema is not null)
             merged = merged with { FactsSchema = schema };
@@ -200,13 +203,17 @@ public sealed class PolicyOrchestrator(
         DateTime asOf,
         CancellationToken ct)
     {
-        var template = await db.PolicyTemplates.AsNoTracking()
+        // PLAN-48 (§4, G-POL-05): the national template through the national read (an agency's EF filter hid it, and the agency
+        // fell back to PolicyStaticFallback); the override is the session's own (its EF filter), for the tenant asked.
+        var templates = scope == PolicyTemplateScope.National
+            ? db.PolicyTemplates.NationalOnly().Where(t => t.Scope == PolicyTemplateScope.National)
+            : db.PolicyTemplates.Where(t => t.Scope == PolicyTemplateScope.TenantOverride && t.TenantId == tenantId);
+        var template = await templates.AsNoTracking()
             .Include(t => t.Versions.Where(v => v.Status == PolicyVersionStatus.Published))
             .ThenInclude(v => v.Rules)
-            .FirstOrDefaultAsync(t =>
-                t.Domain == domain
-                && t.Scope == scope
-                && (scope == PolicyTemplateScope.National || t.TenantId == tenantId), ct);
+            .Where(t => t.Domain == domain)
+            .OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
+            .FirstOrDefaultAsync(ct);
 
         if (template is null) return (null, null);
 

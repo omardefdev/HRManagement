@@ -212,6 +212,7 @@ public sealed class Pol047FourEyesTests
                 $"{action.Name} has no [ValidateAntiForgeryToken]");
         }
 
-        Assert.Equal(8, writes);
+        // PLAN-48: + POST api/policies/drafts (a draft of a domain's template, with the scope rules).
+        Assert.Equal(9, writes);
     }
 }

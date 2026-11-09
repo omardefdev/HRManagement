@@ -9,28 +9,35 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Services.Policy;
 
-/// <summary>PLAN-47: the validator with what it needs loaded from the database.</summary>
+/// <summary>
+/// PLAN-47: the validator with what it needs loaded from the database. PLAN-48: every call names the scope of the template the
+/// rules belong to; for a TenantOverride the agency ceiling (D-TEN-8 = D-POL-4) is checked against the domain's published national
+/// version.
+/// </summary>
 public interface IPolicyRuleValidationService
 {
-    Task<PolicyRuleValidationContext> LoadContextAsync(string domain, CancellationToken ct = default);
+    Task<PolicyRuleValidationContext> LoadContextAsync(string domain, PolicyTemplateScope scope, CancellationToken ct = default);
 
-    Task<IReadOnlyList<PolicyRuleIssue>> ValidateRuleAsync(string domain, PolicyRuleInput rule, CancellationToken ct = default);
+    Task<IReadOnlyList<PolicyRuleIssue>> ValidateRuleAsync(string domain, PolicyTemplateScope scope, PolicyRuleInput rule, CancellationToken ct = default);
 
-    Task<IReadOnlyList<PolicyRuleIssue>> ValidateVersionAsync(string domain, IReadOnlyList<PolicyRuleInput> rules, CancellationToken ct = default);
+    Task<IReadOnlyList<PolicyRuleIssue>> ValidateVersionAsync(string domain, PolicyTemplateScope scope, IReadOnlyList<PolicyRuleInput> rules, CancellationToken ct = default);
 }
 
 public sealed class PolicyRuleValidationService(HRCoreDbContext db, IPolicyDomainCapabilities capabilities) : IPolicyRuleValidationService
 {
-    public async Task<PolicyRuleValidationContext> LoadContextAsync(string domain, CancellationToken ct = default)
+    public async Task<PolicyRuleValidationContext> LoadContextAsync(string domain, PolicyTemplateScope scope, CancellationToken ct = default)
     {
         // PLAN-48: the facts schemas, workflow definitions, bindings and code templates are read through the one national read
         // path. Under forced row security the national_shared_read policy shows the same national rows, so an agency session's
-        // validator now accepts the fields of the national schema (PLAN-47 failed closed until this plan).
-        var schemaEntity = await db.PolicyFactsSchemas.NationalOnly().AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Domain == domain, ct);
+        // validator now accepts the fields of the national schema (PLAN-47 failed closed until this plan). The schema is the one
+        // the evaluator uses (PolicyOrchestrator): the agency's own first, then the national one.
+        var tenant = db.CurrentTenantId;
+        var schemaEntity = await db.PolicyFactsSchemas.OwnOrNational(db).AsNoTracking()
+            .Where(s => s.Domain == domain)
+            .OwnFirst(tenant)
+            .FirstOrDefaultAsync(ct);
 
         // The session tenant and the national tenant only (an agency rule never names another agency's workflow or key).
-        var tenant = db.CurrentTenantId;
         var definitions = await db.WorkflowDefinitions.OwnOrNational(db).AsNoTracking()
             .Select(d => new { d.Code, d.IsPublished, d.Status })
             .ToListAsync(ct);
@@ -58,6 +65,11 @@ public sealed class PolicyRuleValidationService(HRCoreDbContext db, IPolicyDomai
             .Select(t => t.PolicyKey!)
             .ToListAsync(ct);
 
+        var isOverride = scope == PolicyTemplateScope.TenantOverride;
+        var (nationalFields, nationalTriggers) = isOverride
+            ? await LoadNationalCeilingAsync(domain, ct)
+            : (new HashSet<string>(StringComparer.Ordinal), false);
+
         return new PolicyRuleValidationContext
         {
             Domain = domain,
@@ -66,15 +78,46 @@ public sealed class PolicyRuleValidationService(HRCoreDbContext db, IPolicyDomai
             RetiredWorkflowCodes = retired,
             BoundWorkflowCodes = new HashSet<string>(bound, StringComparer.OrdinalIgnoreCase),
             CodePolicyKeys = new HashSet<string>(codeKeys, StringComparer.Ordinal),
-            Capabilities = capabilities
+            Capabilities = capabilities,
+            IsAgencyOverride = isOverride,
+            NationalSetFields = nationalFields,
+            NationalTriggersWorkflow = nationalTriggers
         };
     }
 
-    public async Task<IReadOnlyList<PolicyRuleIssue>> ValidateRuleAsync(string domain, PolicyRuleInput rule, CancellationToken ct = default) =>
-        PolicyRuleValidator.ValidateRule(rule, await LoadContextAsync(domain, ct));
+    /// <summary>
+    /// PLAN-48 (§4): what the domain's national version in force sets with SetField and whether it triggers a workflow: the
+    /// national template (national tenant, Scope = National), its version effective now, its rules as the evaluator reads them.
+    /// </summary>
+    private async Task<(HashSet<string> Fields, bool Triggers)> LoadNationalCeilingAsync(string domain, CancellationToken ct)
+    {
+        var template = await db.PolicyTemplates.NationalOnly().AsNoTracking()
+            .Include(t => t.Versions.Where(v => v.Status == PolicyVersionStatus.Published))
+            .ThenInclude(v => v.Rules)
+            .Where(t => t.Domain == domain && t.Scope == PolicyTemplateScope.National)
+            .OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<IReadOnlyList<PolicyRuleIssue>> ValidateVersionAsync(string domain, IReadOnlyList<PolicyRuleInput> rules, CancellationToken ct = default) =>
-        PolicyRuleValidator.ValidateVersion(rules, await LoadContextAsync(domain, ct));
+        var fields = new HashSet<string>(StringComparer.Ordinal);
+        var version = template is null ? null : PolicyDraftService.EffectiveVersion(template, DateTime.UtcNow);
+        if (version is null)
+            return (fields, false);
+
+        var effects = PolicyEntityMapper.ToSnapshot(template!, version).Rules.SelectMany(r => r.Then).ToList();
+        foreach (var effect in effects.Where(e => e.Effect == PolicyEffect.SetField))
+        {
+            if (effect.Params?.GetValueOrDefault("field") is { Length: > 0 } field)
+                fields.Add(field);
+        }
+
+        return (fields, effects.Any(e => e.Effect == PolicyEffect.TriggerWorkflow));
+    }
+
+    public async Task<IReadOnlyList<PolicyRuleIssue>> ValidateRuleAsync(string domain, PolicyTemplateScope scope, PolicyRuleInput rule, CancellationToken ct = default) =>
+        PolicyRuleValidator.ValidateRule(rule, await LoadContextAsync(domain, scope, ct));
+
+    public async Task<IReadOnlyList<PolicyRuleIssue>> ValidateVersionAsync(string domain, PolicyTemplateScope scope, IReadOnlyList<PolicyRuleInput> rules, CancellationToken ct = default) =>
+        PolicyRuleValidator.ValidateVersion(rules, await LoadContextAsync(domain, scope, ct));
 
     public static PolicyRuleInput ToInput(PolicyRule rule) => new(rule.RuleKey, rule.Name, rule.Priority, rule.WhenJson, rule.ThenJson);
 }

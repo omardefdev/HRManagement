@@ -24,6 +24,8 @@ public static class PolicyEntityMapper
     {
         var invalid = new List<string>();
         var rules = new List<PolicyRuleDefinition>();
+        // PLAN-48 (§4): an override's rules are the agency's, so the ceiling bounds them (PolicyCeiling).
+        var origin = template.Scope == PolicyTemplateScope.TenantOverride ? PolicyRuleOrigin.Agency : PolicyRuleOrigin.National;
         foreach (var r in version.Rules.OrderBy(r => r.Priority).ThenBy(r => r.RuleKey, StringComparer.Ordinal))
         {
             var issues = new List<PolicyRuleIssue>();
@@ -39,7 +41,8 @@ public static class PolicyEntityMapper
                 Name = r.Name,
                 Priority = r.Priority,
                 When = valid ? when! : PolicyConditionGroup.Never,
-                Then = valid ? then! : []
+                Then = valid ? then! : [],
+                Origin = origin
             });
         }
 

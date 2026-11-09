@@ -1,5 +1,7 @@
 @model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyTemplate>
-@{ ViewData["Title"] = "قوالب السياسات"; var domains = ViewBag.Domains as IReadOnlyList<(string Domain, string Service, string MigrationStatus)>; }
+@using HR.Core.Domain.Entities.Policy
+@using HRManagement.SharedKernel.Tenancy
+@{ ViewData["Title"] = "قوالب السياسات"; var domains = ViewBag.Domains as IReadOnlyList<(string Domain, string Service, string MigrationStatus)>; var sessionIsNational = ViewBag.SessionIsNational is true; }
 <div class="card">
     <div class="card-header d-flex justify-content-between">
         <h3 class="mb-0">محرك السياسات</h3>
@@ -14,10 +16,24 @@
             <tbody>
                 @foreach (var t in Model)
                 {
-                    <tr>
+                    var inherited = t.TenantId == NationalTenant.Id && t.Scope == PolicyTemplateScope.National && !sessionIsNational;
+                    <tr data-domain="@t.Domain" data-origin="@(inherited ? "inherited" : t.Scope == PolicyTemplateScope.TenantOverride ? "override" : "national")">
                         <td><code>@t.Domain</code></td>
                         <td>@t.Name</td>
-                        <td>@t.Scope</td>
+                        <td>
+                            @if (inherited)
+                            {
+                                <span class="badge bg-secondary" data-testid="badge-inherited">وطني (موروث — للقراءة)</span>
+                            }
+                            else if (t.Scope == PolicyTemplateScope.TenantOverride)
+                            {
+                                <span class="badge bg-info text-dark" data-testid="badge-override">تجاوز الجهة</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary" data-testid="badge-national">وطني</span>
+                            }
+                        </td>
                         <td>@t.Versions.Count</td>
                         <td><a asp-action="Details" asp-route-id="@t.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>

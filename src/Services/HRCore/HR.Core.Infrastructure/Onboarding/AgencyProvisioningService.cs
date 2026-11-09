@@ -2,6 +2,7 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.CodeGeneration;
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Entities.Seeding;
+using HR.Core.Domain.Services.Policy;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Seeding;
 using HR.Core.Infrastructure.Services.CodeGeneration;
@@ -156,7 +157,10 @@ public sealed class AgencyProvisioningService
         {
             steps.Add($"ApplyPolicyPack:{packId}");
             if (!dryRun)
-                await AgencyPolicySeeder.ApplyPackAsync(_db, tenantId, packId, ct);
+            {
+                var pack = await AgencyPolicySeeder.ApplyPackAsync(_db, _serviceProvider, tenantId, packId, ct);
+                warnings.AddRange(pack.Skipped.Select(s => $"Policy overlay {packId}: {s}"));
+            }
         }
 
         foreach (var packId in manifest.Policies.CodePackIds)
@@ -214,12 +218,39 @@ public sealed class AgencyProvisioningService
     }
 }
 
-/// <summary>Applies tenant-scoped policy overlay packs from seed-packs/policy-overlays/.</summary>
+/// <summary>PLAN-48 (P-6): an overlay pack the validator or the ceiling refuses, refused whole before anything is saved.</summary>
+public sealed class AgencyPolicyPackException(string packId, IReadOnlyList<string> issues)
+    : InvalidOperationException($"Policy overlay {packId} refused: {string.Join(" | ", issues)}")
+{
+    public string PackId { get; } = packId;
+
+    public IReadOnlyList<string> Issues { get; } = issues;
+}
+
+/// <summary>What <see cref="AgencyPolicySeeder.ApplyPackAsync"/> did, per domain.</summary>
+public sealed record AgencyPolicyPackResult(string PackId, IReadOnlyList<string> Published, IReadOnlyList<string> Skipped);
+
+/// <summary>
+/// Applies tenant-scoped policy overlay packs from seed-packs/policy-overlays/. PLAN-48 (§4, P-6): for each domain of the pack, one
+/// draft of the agency's override (a copy of its version in force, plus every rule of the pack not in it yet), then the added
+/// rules validated with the agency ceiling (D-TEN-8 = D-POL-4), then a SystemSeed publication through
+/// <see cref="PolicyPublishService"/> (no four eyes, the pack id as evidence). A pack with one refused rule is refused whole,
+/// before anything is saved. A stored key is "{ruleKeyPrefix}:{ruleKey}" (PLAN-47's key pattern); a rule renamed in its pack
+/// keeps its old key in "renamedFrom", so an agency provisioned before the rename does not get the rule twice.
+/// <para>
+/// Until PLAN-48 the pack was read case-sensitively (its camelCase names never bound), so no overlay rule was ever added; and
+/// a domain received its first rule only.
+/// </para>
+/// </summary>
 public static class AgencyPolicySeeder
 {
     private sealed class PolicyOverlayPack
     {
         public string PackId { get; set; } = "";
+
+        /// <summary>PLAN-48: the prefix of the stored keys; the pack id when absent (it must then fit the key pattern).</summary>
+        public string? RuleKeyPrefix { get; set; }
+
         public List<PolicyOverlayRule> Rules { get; set; } = [];
     }
 
@@ -231,73 +262,189 @@ public static class AgencyPolicySeeder
         public int Priority { get; set; } = 10;
         public string WhenJson { get; set; } = "";
         public string ThenJson { get; set; } = "";
+
+        /// <summary>PLAN-48: the stored key the rule had before its pack was renamed (recorded; never stored again).</summary>
+        public string? RenamedFrom { get; set; }
     }
 
-    public static async Task ApplyPackAsync(
+    private static readonly JsonSerializerOptions PackJson = new() { PropertyNameCaseInsensitive = true };
+
+    public static async Task<AgencyPolicyPackResult> ApplyPackAsync(
         HRCoreDbContext db,
+        IServiceProvider? services,
         Guid tenantId,
         string packId,
         CancellationToken ct = default)
     {
         var path = ResolveOverlayPath("policy-overlays", packId);
         if (path is null || !File.Exists(path))
-            return;
+            return new AgencyPolicyPackResult(packId, [], [$"{packId}: no pack file"]);
 
-        var pack = JsonSerializer.Deserialize<PolicyOverlayPack>(await File.ReadAllTextAsync(path, ct))
-                   ?? throw new InvalidOperationException($"Invalid policy overlay: {path}");
+        return await ApplyPackContentAsync(db, services, tenantId, packId, await File.ReadAllTextAsync(path, ct), ct);
+    }
 
-        foreach (var rule in pack.Rules)
+    /// <summary>The same, for a pack's JSON (tools and tests); <paramref name="packId"/> must be the id the pack names.</summary>
+    public static async Task<AgencyPolicyPackResult> ApplyPackContentAsync(
+        HRCoreDbContext db,
+        IServiceProvider? services,
+        Guid tenantId,
+        string packId,
+        string packJson,
+        CancellationToken ct = default)
+    {
+        var pack = JsonSerializer.Deserialize<PolicyOverlayPack>(packJson, PackJson)
+                   ?? throw new InvalidOperationException($"Invalid policy overlay: {packId}");
+        if (!string.Equals(pack.PackId, packId, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Policy overlay '{packId}' names pack '{pack.PackId}'");
+
+        var prefix = string.IsNullOrWhiteSpace(pack.RuleKeyPrefix) ? pack.PackId : pack.RuleKeyPrefix.Trim();
+        var (validation, publisher) = CreateServices(db, services);
+        var now = DateTime.UtcNow;
+
+        // 1. Every domain planned and every added rule validated (with the ceiling) before anything is saved.
+        var plans = new List<(string Domain, PolicyTemplate? Template, PolicyTemplateVersion? Effective, List<PolicyOverlayRule> Added)>();
+        var issues = new List<string>();
+        var skipped = new List<string>();
+        foreach (var group in pack.Rules.GroupBy(r => r.Domain, StringComparer.Ordinal))
         {
-            if (await db.PolicyRules.AnyAsync(r => r.RuleKey == $"{packId}:{rule.RuleKey}", ct))
+            // The agency's own override, named explicitly: the provisioning session is not the agency's.
+            var template = await db.PolicyTemplates.OwnOrNational(tenantId)
+                .Include(t => t.Versions).ThenInclude(v => v.Rules)
+                .Where(t => t.TenantId == tenantId && t.Domain == group.Key && t.Scope == PolicyTemplateScope.TenantOverride)
+                .OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
+                .FirstOrDefaultAsync(ct);
+            var effective = template is null ? null : PolicyDraftService.EffectiveVersion(template, now);
+            var present = new HashSet<string>(effective?.Rules.Select(r => r.RuleKey ?? string.Empty) ?? [], StringComparer.Ordinal);
+            var added = group
+                .Where(r => !present.Contains($"{prefix}:{r.RuleKey}") && (r.RenamedFrom is null || !present.Contains(r.RenamedFrom)))
+                .ToList();
+            if (added.Count == 0)
+            {
+                skipped.Add($"{group.Key}: every rule already in force");
                 continue;
+            }
 
-            var template = await db.PolicyTemplates.FirstOrDefaultAsync(
-                t => t.TenantId == tenantId && t.Domain == rule.Domain && t.Scope == PolicyTemplateScope.TenantOverride, ct);
+            if (template?.Versions.Any(v => v.Status == PolicyVersionStatus.Draft) == true)
+            {
+                issues.Add($"{group.Key}: the agency's override has an open draft (one draft per template)");
+                continue;
+            }
 
+            var found = await validation.ValidateVersionAsync(
+                group.Key,
+                PolicyTemplateScope.TenantOverride,
+                added.Select(r => new PolicyRuleInput($"{prefix}:{r.RuleKey}", r.Name, r.Priority, r.WhenJson, r.ThenJson)).ToList(),
+                ct);
+            issues.AddRange(found.Select(i => $"{group.Key} {i.JsonPath}: {i.MessageAr} ({i.Code})"));
+            plans.Add((group.Key, template, effective, added));
+        }
+
+        if (issues.Count > 0)
+            throw new AgencyPolicyPackException(packId, issues);
+
+        // 2. One draft per domain, published as a system seed through the one publish path.
+        var published = new List<string>();
+        foreach (var (domain, existing, effective, added) in plans)
+        {
+            var template = existing;
             if (template is null)
             {
                 template = new PolicyTemplate
                 {
                     TenantId = tenantId,
-                    Domain = rule.Domain,
+                    Domain = domain,
                     Name = $"overlay — {packId}",
                     SubjectType = "AgencyOverlay",
                     Scope = PolicyTemplateScope.TenantOverride,
                     Description = $"ONB policy overlay {packId}"
                 };
                 db.PolicyTemplates.Add(template);
-
-                // PLAN-47: rules go only to a draft; the version is added as a draft, then published (the overlay's own record).
-                await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
-                {
-                    PolicyTemplate = template,
-                    TenantId = tenantId,
-                    VersionNumber = 1,
-                    EffectiveFrom = DateTime.UtcNow
-                },
-                [
-                    new PolicyRule
-                    {
-                        TenantId = tenantId,
-                        RuleKey = $"{packId}:{rule.RuleKey}",
-                        Name = rule.Name,
-                        Priority = rule.Priority,
-                        WhenJson = rule.WhenJson,
-                        ThenJson = rule.ThenJson
-                    }
-                ], PolicyVersionStatus.Published, new PolicyPublication
-                {
-                    TenantId = tenantId,
-                    PublishedAt = DateTime.UtcNow,
-                    EvidenceRef = $"overlay-{packId}",
-                    Kind = PolicyPublicationKind.SystemSeed,
-                    MakerRole = PolicyPublishService.SystemRoleName,
-                    CheckerRole = PolicyPublishService.SystemRoleName
-                }, ct);
             }
+
+            var draft = new PolicyTemplateVersion
+            {
+                PolicyTemplate = template,
+                PolicyTemplateId = template.Id,
+                TenantId = tenantId,
+                VersionNumber = (template.Versions.Count == 0 ? 0 : template.Versions.Max(v => v.VersionNumber)) + 1,
+                Status = PolicyVersionStatus.Draft,
+                ChangeReason = $"overlay {packId}"
+            };
+            db.PolicyTemplateVersions.Add(draft);
+            db.PolicyVersionEdits.Add(new PolicyVersionEdit
+            {
+                PolicyTemplateVersionId = draft.Id,
+                TenantId = tenantId,
+                Action = effective is null ? PolicyVersionEditAction.Create : PolicyVersionEditAction.Copy,
+                OccurredAt = now
+            });
+
+            foreach (var rule in effective?.Rules.OrderBy(r => r.Priority).ThenBy(r => r.RuleKey, StringComparer.Ordinal) ?? Enumerable.Empty<PolicyRule>())
+            {
+                db.PolicyRules.Add(new PolicyRule
+                {
+                    PolicyTemplateVersionId = draft.Id,
+                    TenantId = tenantId,
+                    RuleKey = rule.RuleKey,
+                    Name = rule.Name,
+                    Priority = rule.Priority,
+                    WhenJson = rule.WhenJson,
+                    ThenJson = rule.ThenJson
+                });
+            }
+
+            var addedKeys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var rule in added)
+            {
+                var key = $"{prefix}:{rule.RuleKey}";
+                addedKeys.Add(key);
+                db.PolicyRules.Add(new PolicyRule
+                {
+                    PolicyTemplateVersionId = draft.Id,
+                    TenantId = tenantId,
+                    RuleKey = key,
+                    Name = rule.Name,
+                    Priority = rule.Priority,
+                    WhenJson = rule.WhenJson,
+                    ThenJson = rule.ThenJson
+                });
+                db.PolicyVersionEdits.Add(new PolicyVersionEdit
+                {
+                    PolicyTemplateVersionId = draft.Id,
+                    TenantId = tenantId,
+                    Action = PolicyVersionEditAction.AddRule,
+                    RuleKey = key,
+                    OccurredAt = now
+                });
+            }
+
+            await db.SaveChangesAsync(ct);
+            // The draft's rules as saved, for the publish service's validation and the publication.
+            await db.Entry(draft).Collection(v => v.Rules).LoadAsync(ct);
+
+            var result = await publisher.PublishSystemSeedAsync(draft, $"overlay-{packId}", addedKeys, ct);
+            if (!result.Succeeded)
+                throw new AgencyPolicyPackException(packId,
+                    [$"{domain}: {result.MessageAr}", .. result.IssueList.Select(i => $"{domain} {i.JsonPath}: {i.MessageAr} ({i.Code})")]);
+            published.Add($"{domain}: v{draft.VersionNumber} ({string.Join(", ", addedKeys)})");
         }
 
-        await db.SaveChangesAsync(ct);
+        return new AgencyPolicyPackResult(packId, published, skipped);
+    }
+
+    /// <summary>The request's validation and publish services when they hold the same context, otherwise ones built over it.</summary>
+    private static (IPolicyRuleValidationService Validation, PolicyPublishService Publisher) CreateServices(HRCoreDbContext db, IServiceProvider? services)
+    {
+        if (services?.GetService<HRCoreDbContext>() is { } scoped && ReferenceEquals(scoped, db)
+            && services.GetService<IPolicyRuleValidationService>() is { } scopedValidation
+            && services.GetService<PolicyPublishService>() is { } scopedPublisher)
+            return (scopedValidation, scopedPublisher);
+
+        // No service container over this context (tests, tools): the same services, without the bus (no IPolicyPublished).
+        var validation = new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance);
+        var cache = services?.GetService<IPolicyPublishedSnapshotCache>()
+                    ?? new PolicyPublishedSnapshotCache(new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()));
+        return (validation, new PolicyPublishService(db, validation, new PolicyVersionPublisher(db, cache, services?.GetService<IPublishEndpoint>())));
     }
 
     private static string? ResolveOverlayPath(string folder, string packId) =>

@@ -129,6 +129,9 @@ builder.Services.AddSingleton<EmployeePiiMaterializationInterceptor>();
 builder.Services.AddSingleton<ArabicNameNormalizationInterceptor>();
 // PLAN-47 (G-POL-07): a published policy version never changes through the application.
 builder.Services.AddSingleton<HR.Core.Infrastructure.Data.Interceptors.PublishedPolicyImmutabilityInterceptor>();
+// PLAN-48 (§1): a national row is written only from the national tenant; before the tenant stamp, so an agency's insert of a
+// national row is refused by this guard (403), not by the stamp's generic refusal.
+builder.Services.AddSingleton<NationalSharedWriteGuard>();
 builder.Services.AddSignalR();
 
 var coreConn = builder.Configuration.GetConnectionString("HRCoreDb");
@@ -139,6 +142,7 @@ builder.Services.AddDbContext<HRCoreDbContext>((sp, options) =>
            .AddInterceptors(
                sp.GetRequiredService<AuditSaveChangesInterceptor>(),
                sp.GetRequiredService<HR.Core.Infrastructure.Data.Interceptors.PublishedPolicyImmutabilityInterceptor>(),
+               sp.GetRequiredService<NationalSharedWriteGuard>(),
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>(),
                sp.GetRequiredService<SignatureImmutabilityInterceptor>(),
