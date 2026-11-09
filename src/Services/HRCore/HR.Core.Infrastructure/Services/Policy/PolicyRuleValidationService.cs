@@ -1,3 +1,4 @@
+using HR.Core.Domain.Entities.CodeGeneration;
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services.Policy;
@@ -22,17 +23,15 @@ public sealed class PolicyRuleValidationService(HRCoreDbContext db, IPolicyDomai
 {
     public async Task<PolicyRuleValidationContext> LoadContextAsync(string domain, CancellationToken ct = default)
     {
-        // The facts schemas, workflow definitions, bindings and code templates are national (PLATFORM tenant) rows: an agency
-        // session reads them past the EF tenant filter. Under forced row security a tenant session still cannot see them; the
-        // validator then refuses every field (fail closed) until PLAN-48 adds the shared national read.
-        var schemaEntity = await db.PolicyFactsSchemas.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution).AsNoTracking()
+        // PLAN-48: the facts schemas, workflow definitions, bindings and code templates are read through the one national read
+        // path. Under forced row security the national_shared_read policy shows the same national rows, so an agency session's
+        // validator now accepts the fields of the national schema (PLAN-47 failed closed until this plan).
+        var schemaEntity = await db.PolicyFactsSchemas.NationalOnly().AsNoTracking()
             .FirstOrDefaultAsync(s => s.Domain == domain, ct);
 
         // The session tenant and the national tenant only (an agency rule never names another agency's workflow or key).
         var tenant = db.CurrentTenantId;
-        var national = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId;
-        var definitions = await db.WorkflowDefinitions.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution).AsNoTracking()
-            .Where(d => tenant == null || d.TenantId == tenant || d.TenantId == national)
+        var definitions = await db.WorkflowDefinitions.OwnOrNational(db).AsNoTracking()
             .Select(d => new { d.Code, d.IsPublished, d.Status })
             .ToListAsync(ct);
 
@@ -47,15 +46,15 @@ public sealed class PolicyRuleValidationService(HRCoreDbContext db, IPolicyDomai
             definitions.Where(d => d.IsPublished && d.Status == WorkflowDefinitionStatus.Published && !retired.Contains(d.Code)).Select(d => d.Code),
             StringComparer.OrdinalIgnoreCase);
 
-        var bound = await db.PolicyWorkflowBindings.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution).AsNoTracking()
+        var bound = await db.PolicyWorkflowBindings.OwnOrNational(db).AsNoTracking()
             .Where(b => b.Domain == domain)
-            .Where(b => tenant == null || b.TenantId == tenant || b.TenantId == national)
             .Select(b => b.WorkflowCode)
             .ToListAsync(ct);
 
-        var codeKeys = await db.CodePolicyTemplates.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution).AsNoTracking()
+        // D-TEN-1: on the national side only Scope = National (the trial agency's overrides stay its own).
+        var codeKeys = await db.CodePolicyTemplates.OwnOrNational(db).AsNoTracking()
             .Where(t => t.PolicyKey != null)
-            .Where(t => tenant == null || t.TenantId == tenant || t.TenantId == national)
+            .Where(t => db.BypassTenantFilter || (tenant != null && t.TenantId == tenant) || t.Scope == CodePolicyScope.National)
             .Select(t => t.PolicyKey!)
             .ToListAsync(ct);
 

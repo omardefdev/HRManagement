@@ -49,7 +49,8 @@ public class PoliciesController(
     [HttpGet("versions/{versionId:guid}")]
     public async Task<IActionResult> GetVersion(Guid versionId, CancellationToken ct)
     {
-        var version = await db.PolicyTemplateVersions
+        // PLAN-48: the agency's own versions and the national ones it inherits (read-only).
+        var version = await db.ReadablePolicyVersions()
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null) return NotFound();
@@ -88,7 +89,7 @@ public class PoliciesController(
     [HttpGet("templates")]
     public async Task<IActionResult> ListTemplates([FromQuery] string? domain, CancellationToken ct)
     {
-        var q = db.PolicyTemplates.AsNoTracking().AsQueryable();
+        var q = db.ReadablePolicyTemplates().AsNoTracking();
         if (!string.IsNullOrWhiteSpace(domain))
             q = q.Where(t => t.Domain == domain);
         var items = await q.OrderBy(t => t.Domain).ThenBy(t => t.Name).ToListAsync(ct);
@@ -98,7 +99,8 @@ public class PoliciesController(
     [HttpGet("templates/{id:guid}")]
     public async Task<IActionResult> GetTemplate(Guid id, CancellationToken ct)
     {
-        var t = await db.PolicyTemplates
+        var t = await db.ReadablePolicyTemplates()
+            .AsNoTracking()
             .Include(x => x.Versions)
             .ThenInclude(v => v.Rules)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -109,13 +111,14 @@ public class PoliciesController(
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Simulate(Guid versionId, [FromBody] Dictionary<string, string> facts, CancellationToken ct)
     {
-        var version = await db.PolicyTemplateVersions
+        var version = await db.ReadablePolicyVersions()
+            .AsNoTracking()
             .Include(v => v.PolicyTemplate)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null) return NotFound();
 
-        var schemaEntity = await db.PolicyFactsSchemas.AsNoTracking()
+        var schemaEntity = await db.PolicyFactsSchemas.NationalOnly().AsNoTracking()
             .FirstOrDefaultAsync(s => s.Domain == version.PolicyTemplate.Domain, ct);
         var snapshot = PolicyEntityMapper.ToSnapshot(version.PolicyTemplate, version, PolicyEntityMapper.ParseSchema(schemaEntity));
         var decision = PolicyEvaluator.Evaluate(snapshot, facts);

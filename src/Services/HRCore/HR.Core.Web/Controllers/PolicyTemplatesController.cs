@@ -27,7 +27,8 @@ public class PolicyTemplatesController(
 {
     public async Task<IActionResult> Index()
     {
-        var templates = await db.PolicyTemplates.AsNoTracking()
+        // PLAN-48: the agency's own templates and the national ones it inherits (read-only).
+        var templates = await db.ReadablePolicyTemplates().AsNoTracking()
             .Include(t => t.Versions)
             .OrderBy(t => t.Domain)
             .ToListAsync();
@@ -37,7 +38,7 @@ public class PolicyTemplatesController(
 
     public async Task<IActionResult> Details(Guid id)
     {
-        var t = await db.PolicyTemplates
+        var t = await db.ReadablePolicyTemplates()
             .AsNoTracking()
             .Include(x => x.Versions)
             .ThenInclude(v => v.Rules)
@@ -54,7 +55,7 @@ public class PolicyTemplatesController(
     [HttpGet]
     public async Task<IActionResult> Simulate(Guid versionId)
     {
-        var version = await db.PolicyTemplateVersions
+        var version = await db.ReadablePolicyVersions()
             .Include(v => v.PolicyTemplate)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId);
@@ -94,7 +95,7 @@ public class PolicyTemplatesController(
 
         var request = new PolicyEnforceRequest
         {
-            Domain = (await db.PolicyTemplateVersions.Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId)).PolicyTemplate.Domain,
+            Domain = (await db.ReadablePolicyVersions().Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId)).PolicyTemplate.Domain,
             Facts = facts,
             Mode = PolicyEnforcementMode.Enforce,
             AsOfUtc = asOf

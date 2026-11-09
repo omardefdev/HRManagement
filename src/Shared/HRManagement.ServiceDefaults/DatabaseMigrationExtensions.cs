@@ -151,22 +151,109 @@ public static class DatabaseMigrationExtensions
         if (unhardened.Count == 0)
         {
             logger.LogInformation("Tenant RLS hardening verified for {Context}.", contextName);
+        }
+        else
+        {
+            var detail = string.Join(", ", unhardened);
+            if (isProduction)
+            {
+                throw new InvalidOperationException(
+                    $"Tenant isolation is not enforced for {contextName}. Unhardened tables: {detail}. " +
+                    "Tables must have RLS enabled and forced with a tenant_isolation policy carrying WITH CHECK. " +
+                    "This usually means the migrating role does not own them — run migrations as the *_migrator role.");
+            }
+
+            logger.LogWarning(
+                "Tenant RLS not fully hardened for {Context} (non-production). Unhardened tables: {Tables}.",
+                contextName,
+                detail);
+        }
+
+        await ApplyNationalSharedReadAsync(db, logger, contextName, isProduction, cancellationToken);
+    }
+
+    /// <summary>True when the context maps an <see cref="HRManagement.SharedKernel.Tenancy.INationalShared"/> entity (HR.Core).</summary>
+    public static bool HasNationalSharedEntities(DbContext db) =>
+        db.Model.GetEntityTypes().Any(e => typeof(HRManagement.SharedKernel.Tenancy.INationalShared).IsAssignableFrom(e.ClrType));
+
+    /// <summary>
+    /// PLAN-48 (§1): for a context with national shared entities, the <c>national_shared_read</c> SELECT policy on the tables of
+    /// <c>NationalTenant.TableNames</c> (the start-up path; <c>scripts/sql/ten048-national-shared-read.sql</c> is the bootstrap
+    /// and migration-job path), then its check: missing on a listed table, or present on another, fails a Production start.
+    /// </summary>
+    public static async Task ApplyNationalSharedReadAsync(
+        DbContext db,
+        ILogger logger,
+        string contextName,
+        bool isProduction,
+        CancellationToken cancellationToken)
+    {
+        if (!HasNationalSharedEntities(db))
+            return;
+
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(TenantRlsMigrationHelper.NationalSharedReadSql, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to apply the national shared read policy for {Context}.", contextName);
+            if (isProduction)
+                throw;
             return;
         }
 
-        var detail = string.Join(", ", unhardened);
+        var problems = await ListNationalSharedReadProblemsAsync(db, cancellationToken);
+        if (problems.Count == 0)
+        {
+            logger.LogInformation("National shared read policy verified for {Context}.", contextName);
+            return;
+        }
+
+        var detail = string.Join(", ", problems);
         if (isProduction)
         {
             throw new InvalidOperationException(
-                $"Tenant isolation is not enforced for {contextName}. Unhardened tables: {detail}. " +
-                "Tables must have RLS enabled and forced with a tenant_isolation policy carrying WITH CHECK. " +
-                "This usually means the migrating role does not own them — run migrations as the *_migrator role.");
+                $"The national shared read policy is wrong for {contextName}: {detail}. Each national shared table needs " +
+                "national_shared_read (PERMISSIVE, FOR SELECT, the national tenant) and no other table may carry it. " +
+                "Apply scripts/sql/ten048-national-shared-read.sql as the *_migrator role.");
         }
 
         logger.LogWarning(
-            "Tenant RLS not fully hardened for {Context} (non-production). Unhardened tables: {Tables}.",
+            "National shared read policy not verified for {Context} (non-production): {Problems}.",
             contextName,
             detail);
+    }
+
+    /// <summary>PLAN-48: the problems <see cref="TenantRlsMigrationHelper.VerifyNationalSharedReadSql"/> reports; empty passes.</summary>
+    public static async Task<IReadOnlyList<string>> ListNationalSharedReadProblemsAsync(
+        DbContext db,
+        CancellationToken cancellationToken)
+    {
+        var results = new List<string>();
+        var connection = db.Database.GetDbConnection();
+        var opened = false;
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await db.Database.OpenConnectionAsync(cancellationToken);
+            opened = true;
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = TenantRlsMigrationHelper.VerifyNationalSharedReadSql;
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+                results.Add(reader.GetString(0));
+        }
+        finally
+        {
+            if (opened)
+                await db.Database.CloseConnectionAsync();
+        }
+
+        return results;
     }
 
     /// <summary>Names of tenant tables missing ENABLE, FORCE, or a WITH CHECK policy.</summary>

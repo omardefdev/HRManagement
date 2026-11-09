@@ -171,8 +171,9 @@ public sealed class WorkflowInboxQueryService(
         CancellationToken ct)
     {
         var definitionIds = keys.Select(k => k.DefinitionId).Distinct().ToList();
+        // PLAN-48: the national read path (the session tenant's or the national definitions).
         var rows = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+            .OwnOrNational(db)
             .AsNoTracking()
             .Where(d => definitionIds.Contains(d.Id))
             .ToListAsync(ct);

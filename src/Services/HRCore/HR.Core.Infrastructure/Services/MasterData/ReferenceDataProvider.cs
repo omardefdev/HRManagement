@@ -89,11 +89,12 @@ public sealed class ReferenceDataProvider(HRCoreDbContext db) : IReferenceDataPr
         CatalogKind kind,
         CancellationToken ct)
     {
-        var tenantId = db.CurrentTenantId ?? TenantDefaults.DefaultTenantId;
-        var platformId = TenantDefaults.DefaultTenantId;
+        var tenantId = db.CurrentTenantId ?? NationalTenant.Id;
+        var platformId = NationalTenant.Id;
+        // PLAN-48: the national read path. The agency's own catalog of a kind still replaces the national one (COD-F).
         var bypass = db.ReferenceCatalogEntries
+            .OwnOrNational(tenantId)
             .AsNoTracking()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.NationalReferenceLookup)
             .Where(e => e.CatalogKind == kind);
 
         if (tenantId == platformId)

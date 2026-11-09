@@ -58,9 +58,12 @@ public sealed class PublishedPolicyImmutabilityInterceptor : SaveChangesIntercep
         public PolicyVersionStatus Status { get; init; }
     }
 
+    /// <summary>
+    /// PLAN-48: the session's own versions only (the context's EF tenant filter), never the national read: a rule an agency adds to
+    /// a national draft is refused here as "not found", the same as the POL047 trigger's <c>FOR SHARE</c> lookup refuses it.
+    /// </summary>
     private static IQueryable<VersionStatusRow> Lookup(DbContext context, IReadOnlyCollection<Guid> ids) =>
         context.Set<PolicyTemplateVersion>()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
             .AsNoTracking()
             .Where(v => ids.Contains(v.Id))
             .Select(v => new VersionStatusRow { Id = v.Id, Status = v.Status });

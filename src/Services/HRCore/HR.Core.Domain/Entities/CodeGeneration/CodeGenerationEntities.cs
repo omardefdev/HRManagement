@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Tenancy;
 
 namespace HR.Core.Domain.Entities.CodeGeneration;
 
@@ -18,7 +19,7 @@ public enum CodePolicyVersionStatus
 }
 
 [Display(Name = "قالب ترميز")]
-public class CodePolicyTemplate : AuditableEntity
+public class CodePolicyTemplate : AuditableEntity, INationalShared
 {
     [Required, MaxLength(100)]
     public string Name { get; set; } = default!;
@@ -38,7 +39,7 @@ public class CodePolicyTemplate : AuditableEntity
 }
 
 [Display(Name = "إصدار سياسة ترميز")]
-public class CodePolicyVersion : AuditableEntity
+public class CodePolicyVersion : AuditableEntity, INationalShared
 {
     public Guid CodePolicyTemplateId { get; set; }
     public CodePolicyTemplate Template { get; set; } = default!;
@@ -58,7 +59,7 @@ public class CodePolicyVersion : AuditableEntity
 }
 
 [Display(Name = "قاعدة سياسة ترميز")]
-public class CodePolicyRule : BaseEntity
+public class CodePolicyRule : BaseEntity, INationalShared
 {
     public Guid CodePolicyTemplateId { get; set; }
     public CodePolicyTemplate Template { get; set; } = default!;

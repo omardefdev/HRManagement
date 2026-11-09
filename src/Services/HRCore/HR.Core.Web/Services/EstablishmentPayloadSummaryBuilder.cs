@@ -2,6 +2,7 @@ using System.Text.Json;
 using HR.Core.Domain.Entities;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Establishment;
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.MasterData;
 using Microsoft.EntityFrameworkCore;
 
@@ -164,9 +165,12 @@ public sealed class EstablishmentPayloadSummaryBuilder(HRCoreDbContext db)
     {
         if (string.IsNullOrWhiteSpace(code)) return null;
 
+        // PLAN-48: the national read path, the agency's own label first.
         return await db.ReferenceCatalogEntries
+            .OwnOrNational(db)
             .AsNoTracking()
             .Where(e => e.CatalogKind == kind && e.Code == code)
+            .OwnFirst(db.CurrentTenantId)
             .Select(e => e.NameAr)
             .FirstOrDefaultAsync(ct);
     }

@@ -1063,7 +1063,7 @@ public static class AcceptanceDataSeeder
             ? AcceptanceSeedIds.PolicyTemplateId
             : AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-template-assets");
         if (await db.PolicyTemplates
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .OwnOrNational(agency.Id)
                 .AnyAsync(t => t.Id == templateId, ct))
             return;
 

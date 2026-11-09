@@ -11,7 +11,14 @@ public enum SystemTenantBypassPurpose
     OrganizationMaintenance,
     PolicyResolution,
     NationalReferenceLookup,
-    PublicCareersPortal
+    PublicCareersPortal,
+
+    /// <summary>
+    /// PLAN-48: the one read path of the national shared tables (<c>OwnOrNational</c>, <c>NationalOnly</c> in
+    /// <see cref="NationalScopeQueryExtensions"/>). Never pass it at a call site: those two methods use it with an explicit
+    /// tenant predicate.
+    /// </summary>
+    NationalSharedRead
 }
 
 /// <summary>

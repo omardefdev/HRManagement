@@ -579,11 +579,11 @@ public sealed class RecruitmentMetricsService(
         // The published workflow pack lives in the default tenant (as WorkflowStarter resolves it); definitions hold no
         // tenant data. The instances below stay tenant-filtered.
         var tenantId = db.CurrentTenantId;
+        // PLAN-48: the national read path (with no session tenant: the national definitions only).
         var definitions = (await db.WorkflowDefinitions
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+                .OwnOrNational(db)
                 .AsNoTracking()
-                .Where(d => d.Code.StartsWith(RecruitmentWorkflowPrefix)
-                    && (tenantId == null || d.TenantId == tenantId || d.TenantId == TenantDefaults.DefaultTenantId))
+                .Where(d => d.Code.StartsWith(RecruitmentWorkflowPrefix))
                 .Select(d => new { d.Id, d.Code, d.Name, d.StepsJson })
                 .ToListAsync(ct))
             .ToDictionary(d => d.Id, d => (d.Code, d.Name, Steps: DeserializeOrEmpty<WorkflowStepSnapshot>(d.StepsJson)));
