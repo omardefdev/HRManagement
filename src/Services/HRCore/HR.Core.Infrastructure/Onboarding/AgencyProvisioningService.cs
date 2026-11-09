@@ -4,6 +4,7 @@ using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Entities.Seeding;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Seeding;
+using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
@@ -265,24 +266,33 @@ public static class AgencyPolicySeeder
                 };
                 db.PolicyTemplates.Add(template);
 
-                var version = new PolicyTemplateVersion
+                // PLAN-47: rules go only to a draft; the version is added as a draft, then published (the overlay's own record).
+                await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
                 {
                     PolicyTemplate = template,
+                    TenantId = tenantId,
                     VersionNumber = 1,
-                    Status = PolicyVersionStatus.Published,
                     EffectiveFrom = DateTime.UtcNow
-                };
-                db.PolicyTemplateVersions.Add(version);
-
-                db.PolicyRules.Add(new PolicyRule
+                },
+                [
+                    new PolicyRule
+                    {
+                        TenantId = tenantId,
+                        RuleKey = $"{packId}:{rule.RuleKey}",
+                        Name = rule.Name,
+                        Priority = rule.Priority,
+                        WhenJson = rule.WhenJson,
+                        ThenJson = rule.ThenJson
+                    }
+                ], PolicyVersionStatus.Published, new PolicyPublication
                 {
-                    PolicyTemplateVersion = version,
-                    RuleKey = $"{packId}:{rule.RuleKey}",
-                    Name = rule.Name,
-                    Priority = rule.Priority,
-                    WhenJson = rule.WhenJson,
-                    ThenJson = rule.ThenJson
-                });
+                    TenantId = tenantId,
+                    PublishedAt = DateTime.UtcNow,
+                    EvidenceRef = $"overlay-{packId}",
+                    Kind = PolicyPublicationKind.SystemSeed,
+                    MakerRole = PolicyPublishService.SystemRoleName,
+                    CheckerRole = PolicyPublishService.SystemRoleName
+                }, ct);
             }
         }
 

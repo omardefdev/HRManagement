@@ -289,6 +289,11 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-46: من فحص الخادم لكل تشغيل: طلبا بطاقة (معالج، ومسحوب إلى مسودة) وبطاقة نشطة، وإنذار معتمد ملاحظته «PLAN-46 server check» وسجله في الرواتب | تُترك، أو تُلغى من الشاشات |
 | PLAN-46: حُذفت صور قديمة غير مستعملة (`docker image prune -af --filter until=12h`) وذاكرة البناء، لأن القرص امتلأ أثناء البناء (95%) | لا يلزم: كل إصدار باقٍ في السجل المحلي `127.0.0.1:5050` |
 | PLAN-46: `/opt/hrm/backups/pre-plan46-20261107T224439Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
+| PLAN-47: الإصدار `ae95ec2fec82` (current-tag؛ previous-tag `dbf53280121d`)، وترحيل `POL047_PolicyRuleLifecycle` في `hr_core_db` (جدولان، وأعمدة تقبل NULL أو بقيم افتراضية، وفهرس المسودة الواحدة، و`xmin`، والـ triggers) | `scripts/vps/deploy.ps1 -Rollback`، ثم إسقاط الـ triggers بالـ SQL في قسم PLAN-47 إن لم يُقلع الإصدار السابق |
+| PLAN-47: الدوران `policy-author` و`policy-approver` في الـ realm (`keycloak-reconcile`)، والمستخدم `e2e-policy-author` (`policy-author`، الجهة الوطنية، كلمة مرور العرض) عبر `scripts/vps/add-demo-user.sh` | حذف المستخدم والدورين من Keycloak |
+| PLAN-47: ربطان غير مثبتين لـ `Core.Recruitment` (`RECRUITMENT-SELECTION-COMMITTEE`، `RECRUITMENT-APPEAL-REVIEW`) وسجلات `PolicySeedApplications` (كلها NoOp على الخادم) من البذرة عند الإقلاع | تُترك |
+| PLAN-47: جولة فحص الخادم: الإصداران 2 و3 من `Analytics.ETL` (نسخة من v1، ثم تراجع إليها)، والقواعد كما كانت | تُترك (التراجع إصدار جديد بالتصميم) |
+| PLAN-47: `/opt/hrm/backups/pre-plan47-20261108T144522Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
 
 ## 11. التسليم للمالك
 
@@ -573,3 +578,29 @@ ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- <username> <email> <lastName
 - **التراجع:** `deploy.ps1 -Rollback` يعيد `9560b03e51a3`. لا يعرف الإصدار السابق الاعتماد: يعرض الحالتين الجديدتين رقماً ولا يعالج إلا `Pending`، ويصدر `Renew` بطاقة فوراً، وما ينشئه من إجراءات تأديبية يُنشر فوراً ويُخزَّن معتمداً قبل المحرك بالقيمة الافتراضية للعمود، فلا يُعاد نشره بعد العودة.
 
 **نشر 2026-11-07.** البناء الأول فشل لامتلاء القرص؛ وبعد التنظيف بناء واحد لـ `dbf53280121d` (1301 ث، منفصل عن جلسة ssh)، والنشر توقف عند `keycloak-reconcile` بعد إعادة تشغيل PostgreSQL (حادثة PLAN-40)، وأعيد الأمر نفسه فنجح في 116 ث. فحص الدخان 50 نجاحاً و0 فشل وتحذير واحد. التوقف نحو 4 دقائق.
+
+## دورة حياة قاعدة السياسة (PLAN-47)
+
+- **ما تغيّر:** الإصدار المنشور لا يتغير: معترِض في HR.Core، وtrigger في `hr_core_db` (`policy_rules_guard` على `PolicyRules`، و`policy_versions_guard` على `PolicyTemplateVersions`، SQLSTATE `P0047`) يرفض أي تعديل لقاعدة إصدار غير مسودة، وأي تعديل لإصدار منشور إلا `EffectiveTo`/`UpdatedAt`/`UpdatedBy`، ولو من مستخدم superuser. المسودة نسخة من الإصدار النافذ، والنشر لمعتمد لم يحرّرها، والتراجع إصدار جديد. تغييرات البذور مجموعات تغيير تُسجَّل في `PolicySeedApplications`.
+- **الأدوار:** `policy-author` و`policy-approver` في الـ realm بلا حامل افتراضي (`keycloak-reconcile` ينشئهما). يؤلف أيضاً `hr-core` و`admin`، وينشر `hr-management-approver` و`admin`. تغيير القوائم: `PolicyEngine:Roles:Author` و`PolicyEngine:Roles:Approver` في `hr-core-web` **وفي البوابة** معاً (البوابة تقرأ الإعداد نفسه من إعدادها).
+- **تقرير القواعد التي يرفضها المدقق:** `docker logs hrm-hr-core-web 2>&1 | grep 'PLAN-47 validator inventory'`. المتوقع حتى PLAN-49: `R-HIRE-START` و`R-SEP-START` و`R-TKT` و`R-TRF` (تطلق مسارات سحبها PLAN-46) و`R-EST-SUBMIT` (مسار غير مربوط بالمجال). لا يوقف التقرير الإقلاع، ولا تُصلَح القواعد في مكانها: الإصلاح مجموعة تغيير جديدة.
+- **البصمة:** `docker exec -i hrm-postgresql sh -c 'psql -X -U "$POSTGRES_USER" -d hr_core_db -At' < scripts/pol047-policy-fingerprint.sql` (قراءة فقط). وصفوف «[معطّلة]» القديمة: `scripts/pol047-history-report.sql` بالطريقة نفسها.
+- **التراجع إلى الإصدار السابق:** يعمل بجانب المخطط الجديد. أعمدة PLAN-47 تقبل NULL أو لها قيمة افتراضية، و`xmin` عمود نظام. بذرة الإصدار السابق تكتب في الإصدار المنشور، فيرفضها الـ trigger. البذرة إلزامية، فرفضها يوقف الإقلاع (D-38-6) إلا مع `Seed:AllowMandatoryFailure=true`. لكنها على خادم العرض لا تكتب شيئاً: كل مفتاح موجود، ولا صف `R-REC-HIRE`. ما يتعطل مع الإصدار السابق:
+  - إضافة جهة بحزمة سياسة: `AgencyPolicySeeder` القديم يرفضه الـ trigger.
+  - إنشاء مسودة لقالب فيه مسودة: الفهرس الفريد يردّ 500.
+  - قاعدة `R-REC-HIRE` نشطة في قاعدة لم تشغّل PLAN-25: ترفض البذرة، فيتوقف الإقلاع.
+
+  إن لم يُقلع الإصدار السابق: `scripts/vps/deploy.ps1 -Rollback`، ثم إسقاط الـ triggers بدور `hr_core_migrator`:
+
+```sql
+DROP TRIGGER IF EXISTS policy_rules_guard ON public."PolicyRules";
+DROP TRIGGER IF EXISTS policy_versions_guard ON public."PolicyTemplateVersions";
+DROP FUNCTION IF EXISTS public.policy_rules_guard();
+DROP FUNCTION IF EXISTS public.policy_versions_guard();
+```
+
+  والعودة إلى PLAN-47 تعيدها (الترحيل يطبَّق من جديد فقط إن أُزيل من `__EFMigrationsHistory`؛ وإلا يعاد إنشاؤها بنص `PolicyImmutabilitySql` في الترحيل `20261108125046_POL047_PolicyRuleLifecycle`).
+- **مستخدم العرض:** `e2e-policy-author` يؤلف (دور `policy-author` وحده)، و`e2e-checker-mgmt` يعتمد. صفحة القالب: «إنشاء مسودة (نسخة من النافذ)»، ثم المعتمد يفتح المسودة «مراجعة ونشر».
+- **النسخة:** `/opt/hrm/backups/pre-plan47-20261108T144522Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`، و17 سطر `CREATE DATABASE`.
+
+**نشر 2026-11-08.** بناء واحد لـ `ae95ec2fec82` على الخادم (نحو 22 دقيقة؛ انقطعت جلسة ssh المحلية عند 1245 ث، وأكمل الخادم البناء والدفع: 17 من 17). النشر 156 ث (السحب 2، التشغيل 91، الإقلاع 42، المطابقة 10، الصحة 12)، وأنشأ `keycloak-reconcile` الدورين. فحص الدخان 50 نجاحاً و0 فشل وتحذير واحد. البصمة: الإصدارات العشرون السابقة لم تتغير.

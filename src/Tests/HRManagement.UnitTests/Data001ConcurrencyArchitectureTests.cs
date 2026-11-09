@@ -17,6 +17,7 @@ public class Data001ConcurrencyArchitectureTests
     [Theory]
     [InlineData("HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs", "Entity<Employee>", "ConfigureOptimisticConcurrency")]
     [InlineData("HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs", "Entity<WorkflowInstance>", "ConfigureOptimisticConcurrency")]
+    [InlineData("HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs", "Entity<PolicyTemplate>", "ConfigureOptimisticConcurrency")]
     [InlineData("HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs", "Entity<Contract>", "ConfigureOptimisticConcurrency")]
     [InlineData("HRContracts/HR.Contracts.Infrastructure/Data/ContractsDbContext.cs", "Entity<AdvanceRequest>", "ConfigureOptimisticConcurrency")]
     [InlineData("Payroll/Payroll.Infrastructure/Data/PayrollDbContext.cs", "Entity<PaymentBatch>", "ConfigureOptimisticConcurrency")]

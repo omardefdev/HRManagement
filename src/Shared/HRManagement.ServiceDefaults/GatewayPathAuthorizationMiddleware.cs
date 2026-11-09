@@ -127,6 +127,61 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         await context.Response.WriteAsync("Forbidden: missing role for this module.");
     }
 
+    /// <summary>PLAN-47: the policy lifecycle pages and API of HR.Core.</summary>
+    private static bool TryGetPolicyLifecyclePolicy(string httpMethod, string pathValue, out string policy)
+    {
+        policy = "";
+        var ui = pathValue.StartsWith("/ui/hr-core/PolicyTemplates", StringComparison.OrdinalIgnoreCase);
+        var api = pathValue.Contains("/api/policies/", StringComparison.OrdinalIgnoreCase)
+                  && !pathValue.Contains("/api/internal/", StringComparison.OrdinalIgnoreCase);
+        if (!ui && !api)
+            return false;
+
+        var publish = pathValue.EndsWith("/PolicyTemplates/PublishFromUi", StringComparison.OrdinalIgnoreCase)
+                      || PolicyApiPublish.IsMatch(pathValue);
+        if (IsMutating(httpMethod) && publish)
+        {
+            policy = HrManagementPolicies.PolicyApprover;
+            return true;
+        }
+
+        if (IsMutating(httpMethod))
+        {
+            if (ui && !pathValue.EndsWith("/PolicyTemplates/Simulate", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = HrManagementPolicies.PolicyAuthor;
+                return true;
+            }
+
+            if (api && (pathValue.Contains("/api/policies/versions/", StringComparison.OrdinalIgnoreCase)
+                        || PolicyApiDrafts.IsMatch(pathValue)))
+            {
+                policy = HrManagementPolicies.PolicyAuthor;
+                return true;
+            }
+
+            return false;
+        }
+
+        if (string.Equals(httpMethod, HttpMethods.Get, StringComparison.OrdinalIgnoreCase) && !IsHrCoreStaticAsset(pathValue))
+        {
+            policy = HrManagementPolicies.PolicyReader;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex PolicyApiPublish = new(
+        @"/api/policies/templates/[0-9a-fA-F-]{36}/publish/?$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
+    private static readonly System.Text.RegularExpressions.Regex PolicyApiDrafts = new(
+        @"/api/policies/templates/[0-9a-fA-F-]{36}/(drafts|rollback-drafts)/?$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
     /// <summary>
     /// Returns a fine-grained policy for modules that support read/write differentiation.
     /// Currently only hr-core: GET → HrCoreReadOnly, POST/PUT/DELETE → HrCoreWrite.
@@ -153,6 +208,11 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                     : HrManagementPolicies.WorkflowDefinitionRead;
                 return true;
             }
+
+            // PLAN-47 (D-POL-3): publishing a policy version is the approver's, and writing a draft the author's; hr-core is no
+            // longer both. Reading the pages admits both. Evaluate and simulate keep the default HR.Core rules below.
+            if (TryGetPolicyLifecyclePolicy(httpMethod, pathValue, out policy))
+                return true;
 
             // Shared pickers and table hydration: any authenticated user (controller enforces HrCoreLookup).
             if (pathValue.Contains("/api/lookup", StringComparison.OrdinalIgnoreCase))

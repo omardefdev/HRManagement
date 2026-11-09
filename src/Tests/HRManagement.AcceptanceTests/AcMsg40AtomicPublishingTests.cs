@@ -302,16 +302,24 @@ public class AcMsg40AtomicPublishingTests
 
     // ------------------------------------------------------------------------------------------------ 40c
 
-    private static async Task<(Guid Template, Guid Version)> InjectDraftPolicyAsync(string domain, Guid? createdBy)
+    // PLAN-47: a publishable draft has a rule the validator accepts, so it names a real domain and a field of its facts schema.
+    // Training.Learning's "action" never takes this value, so the published override changes no decision.
+    private const string PolicyDomain = "Training.Learning";
+
+    private static async Task<(Guid Template, Guid Version)> InjectDraftPolicyAsync(string name, Guid? createdBy)
     {
         var template = Guid.NewGuid();
         var version = Guid.NewGuid();
         var maker = createdBy is null ? "NULL" : $"'{createdBy:D}'";
-        await SqlTextAsync("hr_core_db", $"""
+        await SqlTextAsync("hr_core_db", $$"""
             INSERT INTO "PolicyTemplates" ("Id","Domain","Name","Scope","SubjectType","TenantId","CreatedAt","UpdatedAt")
-            VALUES ('{template:D}','{domain}','MSG40 policy','TenantOverride','Employee','{TenantA:D}',now(),now());
+            VALUES ('{{template:D}}','{{PolicyDomain}}','{{name}}','TenantOverride','TrainingCourse','{{TenantA:D}}',now(),now());
             INSERT INTO "PolicyTemplateVersions" ("Id","PolicyTemplateId","VersionNumber","Status","TenantId","CreatedAt","UpdatedAt","CreatedBy")
-            VALUES ('{version:D}','{template:D}',1,'Draft','{TenantA:D}',now(),now(),{maker});
+            VALUES ('{{version:D}}','{{template:D}}',1,'Draft','{{TenantA:D}}',now(),now(),{{maker}});
+            INSERT INTO "PolicyRules" ("Id","PolicyTemplateVersionId","RuleKey","Name","Priority","WhenJson","ThenJson","TenantId","CreatedAt","UpdatedAt")
+            VALUES (gen_random_uuid(),'{{version:D}}','R-MSG40-NEVER','MSG40',10,
+                    '{"all":[{"field":"action","operator":"Equals","value":"MSG40-NEVER"}]}','[{"effect":"RequireEvidence"}]',
+                    '{{TenantA:D}}',now(),now());
             SELECT 1;
             """);
         return (template, version);
@@ -320,17 +328,20 @@ public class AcMsg40AtomicPublishingTests
     [SkippableFact]
     public async Task Ac40c_policy_published_from_the_api_and_the_ui_leaves_the_hr_core_outbox()
     {
-        var r = Recorder("40c", "IPolicyPublished from the API and the UI, committed with the publication; four-eyes refusal publishes nothing", "central-a");
+        // PLAN-47 (D-POL-3): publishing belongs to the approver policy, so the approver publishes drafts someone else made.
+        var r = Recorder("40c", "IPolicyPublished from the API and the UI, committed with the publication; four-eyes refusal publishes nothing", "a-management-approver");
         AcceptanceGate.RequireEnabled(r);
-        var persona = AcceptanceHarness.RequirePersona("central-a");
+        var persona = AcceptanceHarness.RequirePersona("a-management-approver");
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, Guid.NewGuid().ToString("D"), allowAutoRedirect: false);
+        // PLAN-47: the policy API writes need the antiforgery token; the UI form below carries its own.
+        using var policyApi = await AcceptanceHarness.CreatePolicyLifecycleClientAsync(persona, Guid.NewGuid().ToString("D"));
         var domain = $"msg40-{Guid.NewGuid():N}"[..20];
 
         // PLAN-42 (P-5): IPolicyPublished has no consumer until PLAN-47, so delivery is proved at the publisher: the publication
         // wrote an outbox row (the sequence moved) and the delivery service took it out (no row left for the MessageId).
         var (_, apiVersion) = await InjectDraftPolicyAsync(domain, Guid.NewGuid());
         var apiSequenceBefore = await OutboxSequenceAsync("hr_core_db");
-        var api = await http.PostAsJsonAsync($"api/hr-core/api/policies/templates/{apiVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
+        var api = await policyApi.PostAsJsonAsync($"api/hr-core/api/policies/templates/{apiVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
         Assert.True(api.IsSuccessStatusCode, $"API publish: {(int)api.StatusCode} {await api.Content.ReadAsStringAsync()}");
         var apiSequenceAfter = await OutboxSequenceAsync("hr_core_db");
 
@@ -353,17 +364,17 @@ public class AcMsg40AtomicPublishingTests
         // Negative: no maker on record means the checker is the maker; four-eyes refuses and nothing is published.
         var (_, refusedVersion) = await InjectDraftPolicyAsync(domain + "n", null);
         var sequenceBefore = await OutboxSequenceAsync("hr_core_db");
-        var refused = await http.PostAsJsonAsync($"api/hr-core/api/policies/templates/{refusedVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
+        var refused = await policyApi.PostAsJsonAsync($"api/hr-core/api/policies/templates/{refusedVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
         var sequenceAfter = await OutboxSequenceAsync("hr_core_db");
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Equal(sequenceBefore, sequenceAfter);
 
         r.WriteScenarioDbChecks(new { apiVersion, apiSequenceBefore, apiSequenceAfter, apiPending, uiVersion, uiSequenceBefore, uiSequenceAfter, uiPending, refusedVersion, refusedStatus = (int)refused.StatusCode, sequenceBefore, sequenceAfter });
         r.WriteScenarioSteps(
-            "1. SQL: draft policy versions with a recorded maker.\n" +
+            "1. SQL: draft policy versions (Training.Learning overrides of agency A, one rule that never matches) with a recorded maker.\n" +
             "2. POST policies/templates/{id}/publish (API) and PolicyTemplates/PublishFromUi (UI, which published nothing before PLAN-40).\n" +
             "3. hr_core_db: the OutboxMessage sequence moved for each publication, and no row is left for its deterministic MessageId within 60 s (PLAN-42: no consumer until PLAN-47).\n" +
-            "4. Negative: a version with no maker is refused by four-eyes (400): the sequence does not move.");
+            "4. Negative: a version with no maker on record is refused by four-eyes (400): the sequence does not move. The publisher is a-management-approver (PLAN-47: publishing is the approver's).");
         r.WriteResult("Pass");
     }
 

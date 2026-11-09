@@ -76,6 +76,11 @@ public static class HrManagementAuthorizationExtensions
                 || (ServiceCallerPrincipal.IsServiceAccount(c.User)
                     && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
 
+            // PLAN-47 (D-POL-3): the policy lifecycle; the role lists are read from configuration by PolicyEngineRoleHandler.
+            options.AddPolicy(HrManagementPolicies.PolicyAuthor, p => p.AddRequirements(new PolicyEngineRoleRequirement(PolicyEngineRoleKind.Author)));
+            options.AddPolicy(HrManagementPolicies.PolicyApprover, p => p.AddRequirements(new PolicyEngineRoleRequirement(PolicyEngineRoleKind.Approver)));
+            options.AddPolicy(HrManagementPolicies.PolicyReader, p => p.AddRequirements(new PolicyEngineRoleRequirement(PolicyEngineRoleKind.Reader)));
+
             options.AddPolicy(HrManagementPolicies.WorkflowDefinitionAdmin, p => p.RequireAssertion(c =>
                 !ServiceCallerPrincipal.IsServiceAccount(c.User)
                 && (c.User.IsInRole(HrManagementRoles.Admin) || c.User.IsInRole(HrManagementRoles.WorkflowAdmin))));
@@ -224,6 +229,7 @@ public static class HrManagementAuthorizationExtensions
                         || c.User.IsInRole(HrManagementRoles.HrCoreExecutive)))));
         });
 
+        services.AddSingleton<IAuthorizationHandler, PolicyEngineRoleHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();
         return services;
